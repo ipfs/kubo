@@ -1,4 +1,4 @@
-package merkledag
+package merkledag;
 
 import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
 
@@ -15,17 +15,6 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
 
-// An IPFS MerkleDAG Node
-message PBNode {
-
-  // refs to other objects
-  repeated Link Links = 2;
-
-  // opaque user data
-  optional bytes Data = 1;
-}
-
-
 // An IPFS MerkleDAG Link
 message PBLink {
 
@@ -37,4 +26,14 @@ message PBLink {
 
   // cumulative size of target object
   optional uint64 Size = 3;
+}
+
+// An IPFS MerkleDAG Node
+message PBNode {
+
+  // refs to other objects
+  repeated PBLink Links = 2;
+
+  // opaque user data
+  optional bytes Data = 1;
 }
