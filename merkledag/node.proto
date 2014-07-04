@@ -25,7 +25,7 @@ message PBLink {
   optional string Name = 2;
 
   // cumulative size of target object
-  optional uint64 Size = 3;
+  optional uint64 Tsize = 3;
 }
 
 // An IPFS MerkleDAG Node
