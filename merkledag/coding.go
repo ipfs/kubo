@@ -59,3 +59,15 @@ func (n *Node) getPBNode() *PBNode {
 	pbn.Data = n.Data
 	return pbn
 }
+
+func (n *Node) Encoded(force bool) ([]byte, error) {
+	if n.encoded == nil || force {
+		var err error
+		n.encoded, err = n.Marshal()
+		if err != nil {
+			return []byte{}, err
+		}
+	}
+
+	return n.encoded, nil
+}
