@@ -1,8 +1,13 @@
 package merkledag
 
 import (
+	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
 )
+
+// can't use []byte/Multihash for keys :(
+// so have to convert Multihash bytes to string
+type NodeMap map[u.Key]*Node
 
 // A node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
@@ -24,6 +29,9 @@ type Link struct {
 
 	// multihash of the target object
 	Hash mh.Multihash
+
+	// a ptr to the actual node for graph manipulation
+	Node *Node
 }
 
 func (n *Node) AddNodeLink(name string, that *Node) error {
@@ -65,4 +73,9 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 	}
 
 	return mh.Sum(b, mh.SHA2_256, -1)
+}
+
+func (n *Node) Key() (u.Key, error) {
+	h, err := n.Multihash()
+	return u.Key(h), err
 }

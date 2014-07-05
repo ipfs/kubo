@@ -1,14 +1,15 @@
 package peer
 
 import (
+	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-multihash"
 )
 
 type PeerId mh.Multihash
 
-// have to map string : *Peer because slices are not comparable.
-type PeerBook map[string]*Peer
+// have to map Key (string) : *Peer because slices are not comparable.
+type PeerBook map[u.Key]*Peer
 
 type Peer struct {
 	Id        PeerId
