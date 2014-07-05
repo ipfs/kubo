@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
+	config "github.com/jbenet/go-ipfs/config"
+	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
 	"os"
 )
@@ -55,4 +57,14 @@ func main() {
 		os.Exit(1)
 	}
 	return
+}
+
+func localNode() (*core.IpfsNode, error) {
+	//todo implement config file flag
+	cfg, err := config.LoadConfig("")
+	if err != nil {
+		return nil, err
+	}
+
+	return core.NewIpfsNode(cfg)
 }
