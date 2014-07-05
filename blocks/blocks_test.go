@@ -37,10 +37,14 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block key and data multihash key not equal")
 	}
 
-	err = bs.AddBlock(b)
+	k, err := bs.AddBlock(b)
 	if err != nil {
 		t.Error("failed to add block to BlockService", err)
 		return
+	}
+
+	if k != b.Key() {
+		t.Error("returned key is not equal to block key", err)
 	}
 
 	b2, err := bs.GetBlock(b.Key())

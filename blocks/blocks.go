@@ -39,9 +39,10 @@ func NewBlockService(d ds.Datastore) (*BlockService, error) {
 	return &BlockService{Datastore: d}, nil
 }
 
-func (s *BlockService) AddBlock(b *Block) error {
-	dsk := ds.NewKey(string(b.Key()))
-	return s.Datastore.Put(dsk, b.Data)
+func (s *BlockService) AddBlock(b *Block) (u.Key, error) {
+	k := b.Key()
+	dsk := ds.NewKey(string(k))
+	return k, s.Datastore.Put(dsk, b.Data)
 }
 
 func (s *BlockService) GetBlock(k u.Key) (*Block, error) {
