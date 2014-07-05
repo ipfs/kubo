@@ -72,7 +72,7 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	return mh.Sum(b, mh.SHA2_256, -1)
+	return u.Hash(b)
 }
 
 func (n *Node) Key() (u.Key, error) {
