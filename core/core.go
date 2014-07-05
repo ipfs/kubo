@@ -1,33 +1,62 @@
 package core
 
+import (
+  config "github.com/jbenet/go-ipfs/config"
+  ds "github.com/jbenet/datastore.go"
+  "fmt"
+  peer "github.com/jbenet/go-ipfs/peer"
+)
+
 // IPFS Core module. It represents an IPFS instance.
 
-type IPFSNode struct {
+type IpfsNode struct {
 
-  // the local node's identity (a Peer instance)
+  // the node's configuration
+  Config *config.Config
+
+  // the local node's identity
   Identity *peer.Peer
 
-  // the book of other nodes (a hashtable of Peer instances)
-  PeerBook *peerbook.PeerBook
+  // the book of other nodes (a map of Peer instances)
+  PeerBook *peer.PeerBook
 
-  // the local database (uses datastore)
-  Storage *storage.Storage
+  // the local datastore
+  Datastore ds.Datastore
 
   // the network message stream
-  Network *netmux.Netux
+  // Network *netmux.Netux
 
   // the routing system. recommend ipfs-dht
-  Routing *routing.Routing
+  // Routing *routing.Routing
 
   // the block exchange + strategy (bitswap)
-  BitSwap *bitswap.BitSwap
+  // BitSwap *bitswap.BitSwap
 
   // the block service, get/add blocks.
-  Blocks *blocks.BlockService
+  // Blocks *blocks.BlockService
 
   // the path resolution system
-  Resolver *resolver.PathResolver
+  // Resolver *resolver.PathResolver
 
   // the name system, resolves paths to hashes
-  Namesys *namesys.Namesys
+  // Namesys *namesys.Namesys
+}
+
+func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
+  if cfg == nil {
+    return nil, fmt.Errorf("configuration required.")
+  }
+
+  d, err := makeDatastore(cfg.Datastore)
+  if err != nil {
+    return nil, err
+  }
+
+  n := &IpfsNode{
+    Config: cfg,
+    PeerBook: &peer.PeerBook{},
+    Datastore: d,
+  }
+
+  return n, nil
 }
