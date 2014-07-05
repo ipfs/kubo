@@ -34,7 +34,7 @@ Use "ipfs help <command>" for more information about a command.
 `,
   Run: ipfsCmd,
   Subcommands: []*commander.Command{
-    // cmdIpfsVersion,
+    cmdIpfsVersion,
     // cmdIpfsConfig,
     cmdIpfsCommands,
   },
