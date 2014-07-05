@@ -1,25 +1,24 @@
 package config
 
 import (
-  "strings"
-  "os"
-  "os/user"
+	"os"
+	"os/user"
+	"strings"
 )
 
 type Identity struct {
-  PeerId string
+	PeerId string
 }
 
 type Datastore struct {
-  Type string
-  Path string
+	Type string
+	Path string
 }
 
 type Config struct {
-  Identity Identity
-  Datastore Datastore
+	Identity  Identity
+	Datastore Datastore
 }
-
 
 var defaultConfigFilePath = "~/.go-ipfs/config"
 var defaultConfigFile = `{
@@ -32,31 +31,31 @@ var defaultConfigFile = `{
 `
 
 func LoadConfig(filename string) (*Config, error) {
-  if len(filename) == 0 {
-    filename = defaultConfigFilePath
-  }
+	if len(filename) == 0 {
+		filename = defaultConfigFilePath
+	}
 
-  // expand ~/
-  if strings.HasPrefix(filename, "~/") {
-    usr, err := user.Current()
-    if err != nil {
-      return nil, err
-    }
+	// expand ~/
+	if strings.HasPrefix(filename, "~/") {
+		usr, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
 
-    dir := usr.HomeDir + "/"
-    filename = strings.Replace(filename, "~/", dir, 1)
-  }
+		dir := usr.HomeDir + "/"
+		filename = strings.Replace(filename, "~/", dir, 1)
+	}
 
-  // if nothing is there, write first conifg file.
-  if _, err := os.Stat(filename); os.IsNotExist(err) {
-    WriteFile(filename, []byte(defaultConfigFile))
-  }
+	// if nothing is there, write first conifg file.
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		WriteFile(filename, []byte(defaultConfigFile))
+	}
 
-  var cfg Config
-  err := ReadConfigFile(filename, &cfg)
-  if err != nil {
-    return nil, err
-  }
+	var cfg Config
+	err := ReadConfigFile(filename, &cfg)
+	if err != nil {
+		return nil, err
+	}
 
-  return &cfg, err
+	return &cfg, err
 }
