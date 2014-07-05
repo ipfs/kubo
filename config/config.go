@@ -16,8 +16,8 @@ type Datastore struct {
 }
 
 type Config struct {
-	Identity  Identity
-	Datastore Datastore
+	Identity  *Identity
+	Datastore *Datastore
 }
 
 var defaultConfigFilePath = "~/.go-ipfs/config"
