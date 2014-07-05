@@ -5,8 +5,13 @@ import (
 	mh "github.com/jbenet/go-multihash"
 )
 
+type PeerId mh.Multihash
+
+// have to map string : *Peer because slices are not comparable.
+type PeerBook map[string]*Peer
+
 type Peer struct {
-	Id        mh.Multihash
+	Id        PeerId
 	Addresses []*ma.Multiaddr
 }
 
