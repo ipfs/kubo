@@ -22,13 +22,13 @@ Basic commands:
 
 Tool commands:
 
-    config      Manage configuration.
-    version     Show ipfs version information.
-    commands    List all available commands.
+    config        Manage configuration.
+    version       Show ipfs version information.
+    commands      List all available commands.
 
 Advanced Commands:
 
-    mount       Mount a ipfs a read-only mountpoint.
+    mount         Mount an ipfs a read-only mountpoint.
 
 Use "ipfs help <command>" for more information about a command.
 `,
