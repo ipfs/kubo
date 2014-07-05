@@ -1,4 +1,4 @@
-package data
+package util
 
 import (
 	"fmt"
@@ -7,6 +7,9 @@ import (
 
 var Debug bool
 var NotImplementedError = fmt.Errorf("Error: not implemented yet.")
+
+// a Key for maps. It's a string (rep of a multihash).
+type Key string
 
 // Shorthand printing functions.
 func PErr(format string, a ...interface{}) {
