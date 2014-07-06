@@ -40,7 +40,7 @@ func lsCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		nd, err := n.GetDagNode(u.Key(h))
+		nd, err := n.DAG.Get(u.Key(h))
 		if err != nil {
 			return err
 		}

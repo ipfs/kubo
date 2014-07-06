@@ -119,7 +119,7 @@ func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 // addNode adds the node to the graph + local storage
 func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 	// add the file to the graph + local storage
-	k, err := n.AddDagNode(nd)
+	k, err := n.DAG.Put(nd)
 	if err != nil {
 		return err
 	}

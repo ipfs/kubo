@@ -7,7 +7,6 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 // IPFS Core module. It represents an IPFS instance.
@@ -73,12 +72,4 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 	}
 
 	return n, nil
-}
-
-func (n *IpfsNode) AddDagNode(nd *merkledag.Node) (u.Key, error) {
-	return n.DAG.Put(nd)
-}
-
-func (n *IpfsNode) GetDagNode(k u.Key) (*merkledag.Node, error) {
-	return n.DAG.Get(k)
 }
