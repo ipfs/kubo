@@ -3,103 +3,116 @@
 package readonly
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
-	core "github.com/jbenet/go-ipfs/core"
+  "os"
+	"bazil.org/fuse"
+  "bazil.org/fuse/fs"
+  core "github.com/jbenet/go-ipfs/core"
+  mdag "github.com/jbenet/go-ipfs/merkledag"
 )
 
+
 type FileSystem struct {
-	Ipfs *core.IpfsNode
-	pathfs.FileSystem
+  Ipfs *core.IpfsNode
 }
 
 func NewFileSystem(ipfs *core.IpfsNode) *FileSystem {
-	return &FileSystem{
-		Ipfs:       ipfs,
-		FileSystem: pathfs.NewDefaultFileSystem(),
-	}
+  return &FileSystem{ Ipfs: ipfs }
 }
 
-func (s *FileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	if name == "/" { // -rw +x on root
-		return &fuse.Attr{Mode: fuse.S_IFDIR | 0111}, fuse.OK
-	}
-
-	nd, err := s.Ipfs.Resolver.ResolvePath(name)
-	if err != nil {
-		// todo: make this error more versatile.
-		return nil, fuse.ENOENT
-	}
-
-	// links? say dir. could have data...
-	if len(nd.Links) > 0 {
-		return &fuse.Attr{Mode: fuse.S_IFDIR | 0555}, fuse.OK
-	}
-
-	// size
-	size, _ := nd.Size()
-
-	// file.
-	return &fuse.Attr{
-		Mode: fuse.S_IFREG | 0444,
-		Size: uint64(size),
-	}, fuse.OK
+func (f FileSystem) Root() (fs.Node, fuse.Error) {
+  return Root{Ipfs: f.Ipfs }, nil
 }
 
-func (s *FileSystem) OpenDir(name string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
-	if name == "/" { // nope
-		return nil, fuse.EPERM
-	}
 
-	nd, err := s.Ipfs.Resolver.ResolvePath(name)
-	if err != nil {
-		// todo: make this error more versatile.
-		return nil, fuse.ENOENT
-	}
-
-	entries := make([]fuse.DirEntry, len(nd.Links))
-	for i, link := range nd.Links {
-		n := link.Name
-		if len(n) == 0 {
-			n = link.Hash.B58String()
-		}
-		entries[i] = fuse.DirEntry{Name: n, Mode: fuse.S_IFREG | 0444}
-	}
-
-	if len(entries) > 0 {
-		return entries, fuse.OK
-	}
-	return nil, fuse.ENOENT
+type Root struct {
+  Ipfs *core.IpfsNode
 }
 
-func (s *FileSystem) Open(name string, flags uint32, context *fuse.Context) (
-	file nodefs.File, code fuse.Status) {
-
-	// read only, bro!
-	if flags&fuse.O_ANYWRITE != 0 {
-		return nil, fuse.EPERM
-	}
-
-	nd, err := s.Ipfs.Resolver.ResolvePath(name)
-	if err != nil {
-		// todo: make this error more versatile.
-		return nil, fuse.ENOENT
-	}
-
-	return nodefs.NewDataFile([]byte(nd.Data)), fuse.OK
+func (Root) Attr() fuse.Attr {
+  return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0111} // -rw+x
 }
 
-func (s *FileSystem) String() string {
-  return "IpfsReadOnly"
+func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+
+  nd, err := s.Ipfs.Resolver.ResolvePath(name)
+  if err != nil {
+    // todo: make this error more versatile.
+    return nil, fuse.ENOENT
+  }
+
+  return Node{Ipfs: s.Ipfs, Nd: nd}, nil
 }
 
-func (s *FileSystem) OnMount(nodeFs *pathfs.PathNodeFs) {
+func (Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+  return nil, fuse.EPERM
 }
 
-func Mount(s *FileSystem, path string) (*fuse.Server, error) {
-  rfs := pathfs.NewReadonlyFileSystem(s)
-	fs := pathfs.NewPathNodeFs(rfs, nil)
-	ser, _, err := nodefs.MountRoot(path, fs.Root(), nil)
-	return ser, err
+type Node struct {
+  Ipfs *core.IpfsNode
+  Nd *mdag.Node
+}
+
+func (s Node) Attr() fuse.Attr {
+
+  if len(s.Nd.Links) > 0 {
+    return fuse.Attr{Mode: os.ModeDir | 0555}
+  }
+
+  size, _ := s.Nd.Size()
+  return fuse.Attr{Mode: 0444, Size: uint64(size)}
+}
+
+func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+
+  nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
+  if err != nil {
+    // todo: make this error more versatile.
+    return nil, fuse.ENOENT
+  }
+
+  return Node{Ipfs: s.Ipfs, Nd: nd}, nil
+}
+
+func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+
+  entries := make([]fuse.Dirent, len(s.Nd.Links))
+  for i, link := range s.Nd.Links {
+    n := link.Name
+    if len(n) == 0 {
+      n = link.Hash.B58String()
+    }
+    entries[i] = fuse.Dirent{Name: n, Type: fuse.DT_File}
+  }
+
+  if len(entries) > 0 {
+    return entries, nil
+  }
+  return nil, fuse.ENOENT
+}
+
+func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
+  return []byte(s.Nd.Data), nil
+}
+
+
+
+func Mount(ipfs *core.IpfsNode, fpath string) (error) {
+
+  c, err := fuse.Mount(fpath)
+  if err != nil {
+    return err
+  }
+  defer c.Close()
+
+  err = fs.Serve(c, FileSystem{Ipfs: ipfs})
+  if err != nil {
+    return err
+  }
+
+  // check if the mount process has an error to report
+  <-c.Ready
+  if err := c.MountError; err != nil {
+    return err
+  }
+  return nil
 }

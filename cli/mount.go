@@ -36,12 +36,5 @@ func mountCmd(c *commander.Command, inp []string) error {
 	mp := inp[0]
 	fmt.Printf("Mounting at %s\n", mp)
 
-	fs := rofs.NewFileSystem(n)
-	s, err := rofs.Mount(fs, mp)
-  if err != nil {
-    return err
-  }
-  s.SetDebug(true)
-	s.Serve()
-	return nil
+	return rofs.Mount(n, mp)
 }
