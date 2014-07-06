@@ -7,4 +7,37 @@ Please put all issues regarding IPFS _design_ in the
 
 Please put all issues regarding go IPFS _implementation_ in [this repo](https://github.com/jbenet/go-ipfs/issues).
 
-The [node implementation](https://github.com/jbenet/node-ipfs) is much farther along. This one is just a skeleton.
+## Install
+
+[Install Go](http://golang.org/doc/install). Then:
+
+```
+git clone https://github.com/jbenet/go-ipfs
+cd go-ipfs
+go install
+```
+
+## Usage
+
+```
+ipfs - global versioned p2p merkledag file system
+
+Basic commands:
+
+    add <path>    Add an object to ipfs.
+    cat <ref>     Show ipfs object data.
+    ls <ref>      List links from an object.
+    refs <ref>    List link hashes from an object.
+
+Tool commands:
+
+    config        Manage configuration.
+    version       Show ipfs version information.
+    commands      List all available commands.
+
+Advanced Commands:
+
+    mount         Mount an ipfs read-only mountpoint.
+
+Use "ipfs help <command>" for more information about a command.
+```

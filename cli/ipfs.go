@@ -30,7 +30,7 @@ Tool commands:
 
 Advanced Commands:
 
-    mount         Mount an ipfs a read-only mountpoint.
+    mount         Mount an ipfs read-only mountpoint.
 
 Use "ipfs help <command>" for more information about a command.
 `,
