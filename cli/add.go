@@ -95,10 +95,6 @@ func addFile(n *core.IpfsNode, fpath string, depth int) error {
 		return err
 	}
 
-	h, _ := root.Multihash()
-	u.POut("hash: %v\n", h)
-	u.POut("data: %v\n", root.Data)
-
 	// add the file to the graph + local storage
 	k, err := n.AddDagNode(root)
 	if err != nil {
