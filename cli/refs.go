@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
+	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
 )
@@ -56,30 +57,31 @@ func refCmd(c *commander.Command, inp []string) error {
 		u.POut("%s\n", h.B58String())
 	}
 
-	var printRefs func(h mh.Multihash, recursive bool)
-	printRefs = func(h mh.Multihash, recursive bool) {
-		nd, err := n.DAG.Get(u.Key(h))
-		if err != nil {
-			u.PErr("error: cannot retrieve %s (%s)\n", h.B58String(), err)
-			return
-		}
+	var printRefs func(nd *mdag.Node, recursive bool)
+	printRefs = func(nd *mdag.Node, recursive bool) {
 
 		for _, link := range nd.Links {
 			printRef(link.Hash)
+
 			if recursive {
-				printRefs(link.Hash, recursive)
+				nd, err := n.DAG.Get(u.Key(link.Hash))
+				if err != nil {
+					u.PErr("error: cannot retrieve %s (%s)\n", link.Hash.B58String(), err)
+					return
+				}
+
+				printRefs(nd, recursive)
 			}
 		}
 	}
 
 	for _, fn := range inp {
-		// for now only hashes, no path resolution
-		h, err := mh.FromB58String(fn)
+		nd, err := n.Resolver.ResolvePath(fn)
 		if err != nil {
 			return err
 		}
 
-		printRefs(h, recursive)
+		printRefs(nd, recursive)
 	}
 	return nil
 }

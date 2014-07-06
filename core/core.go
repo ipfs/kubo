@@ -6,6 +6,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	config "github.com/jbenet/go-ipfs/config"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
@@ -40,7 +41,7 @@ type IpfsNode struct {
 	DAG *merkledag.DAGService
 
 	// the path resolution system
-	// Resolver *resolver.PathResolver
+	Resolver *path.Resolver
 
 	// the name system, resolves paths to hashes
 	// Namesys *namesys.Namesys
@@ -61,14 +62,15 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	dag := &merkledag.DAGService{ Blocks: bs }
+	dag := &merkledag.DAGService{Blocks: bs}
 
 	n := &IpfsNode{
 		Config:    cfg,
 		PeerBook:  &peer.PeerBook{},
 		Datastore: d,
 		Blocks:    bs,
-		DAG: 			 dag,
+		DAG:       dag,
+		Resolver:  &path.Resolver{DAG: dag},
 	}
 
 	return n, nil

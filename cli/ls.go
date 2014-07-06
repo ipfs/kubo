@@ -4,7 +4,6 @@ import (
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
 )
 
 var cmdIpfsLs = &commander.Command{
@@ -34,13 +33,7 @@ func lsCmd(c *commander.Command, inp []string) error {
 	}
 
 	for _, fn := range inp {
-		// for now only hashes, no path resolution
-		h, err := mh.FromB58String(fn)
-		if err != nil {
-			return err
-		}
-
-		nd, err := n.DAG.Get(u.Key(h))
+		nd, err := n.Resolver.ResolvePath(fn)
 		if err != nil {
 			return err
 		}
