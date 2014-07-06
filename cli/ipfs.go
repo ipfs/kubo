@@ -37,6 +37,7 @@ Use "ipfs help <command>" for more information about a command.
 	Run: ipfsCmd,
 	Subcommands: []*commander.Command{
 		cmdIpfsAdd,
+		cmdIpfsCat,
 		cmdIpfsVersion,
 		cmdIpfsCommands,
 	},
@@ -52,7 +53,7 @@ func main() {
 	err := CmdIpfs.Dispatch(os.Args[1:])
 	if err != nil {
 		if len(err.Error()) > 0 {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
 		}
 		os.Exit(1)
 	}

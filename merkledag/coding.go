@@ -71,3 +71,9 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 
 	return n.encoded, nil
 }
+
+func Decoded(encoded []byte) (*Node, error) {
+	n := &Node{}
+	err := n.Unmarshal(encoded)
+	return n, err
+}

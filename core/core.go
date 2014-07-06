@@ -83,3 +83,12 @@ func (n *IpfsNode) AddDagNode(nd *merkledag.Node) (u.Key, error) {
 
 	return n.Blocks.AddBlock(b)
 }
+
+func (n *IpfsNode) GetDagNode(k u.Key) (*merkledag.Node, error) {
+	b, err := n.Blocks.GetBlock(k)
+	if err != nil {
+		return nil, err
+	}
+
+	return merkledag.Decoded(b.Data)
+}
