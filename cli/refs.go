@@ -60,7 +60,7 @@ func refCmd(c *commander.Command, inp []string) error {
 	printRefs = func(h mh.Multihash, recursive bool) {
 		nd, err := n.GetDagNode(u.Key(h))
 		if err != nil {
-			u.PErr("error: cannot retrieve %s\n", h.B58String())
+			u.PErr("error: cannot retrieve %s (%s)\n", h.B58String(), err)
 			return
 		}
 

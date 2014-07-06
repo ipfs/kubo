@@ -1,6 +1,8 @@
 package merkledag
 
 import (
+	"fmt"
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
 )
@@ -78,4 +80,42 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 func (n *Node) Key() (u.Key, error) {
 	h, err := n.Multihash()
 	return u.Key(h), err
+}
+
+// An IPFS Merkle DAG service.
+// the root is virtual (like a forest)
+// stores nodes' data in a blockService
+type DAGService struct {
+	Blocks *blocks.BlockService
+}
+
+func (n *DAGService) Put(nd *Node) (u.Key, error) {
+	if n == nil {
+		return "", fmt.Errorf("DAGService is nil")
+	}
+
+	d, err := nd.Encoded(false)
+	if err != nil {
+		return "", err
+	}
+
+	b, err := blocks.NewBlock(d)
+	if err != nil {
+		return "", err
+	}
+
+	return n.Blocks.AddBlock(b)
+}
+
+func (n *DAGService) Get(k u.Key) (*Node, error) {
+	if n == nil {
+		return nil, fmt.Errorf("DAGService is nil")
+	}
+
+	b, err := n.Blocks.GetBlock(k)
+	if err != nil {
+		return nil, err
+	}
+
+	return Decoded(b.Data)
 }

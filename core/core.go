@@ -37,6 +37,9 @@ type IpfsNode struct {
 	// the block service, get/add blocks.
 	Blocks *blocks.BlockService
 
+	// the merkle dag service, get/add objects.
+	DAG *merkledag.DAGService
+
 	// the path resolution system
 	// Resolver *resolver.PathResolver
 
@@ -59,35 +62,23 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, err
 	}
 
+	dag := &merkledag.DAGService{ Blocks: bs }
+
 	n := &IpfsNode{
 		Config:    cfg,
 		PeerBook:  &peer.PeerBook{},
 		Datastore: d,
 		Blocks:    bs,
+		DAG: 			 dag,
 	}
 
 	return n, nil
 }
 
 func (n *IpfsNode) AddDagNode(nd *merkledag.Node) (u.Key, error) {
-	d, err := nd.Encoded(false)
-	if err != nil {
-		return "", err
-	}
-
-	b, err := blocks.NewBlock(d)
-	if err != nil {
-		return "", err
-	}
-
-	return n.Blocks.AddBlock(b)
+	return n.DAG.Put(nd)
 }
 
 func (n *IpfsNode) GetDagNode(k u.Key) (*merkledag.Node, error) {
-	b, err := n.Blocks.GetBlock(k)
-	if err != nil {
-		return nil, err
-	}
-
-	return merkledag.Decoded(b.Data)
+	return n.DAG.Get(k)
 }
