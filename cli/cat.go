@@ -25,22 +25,24 @@ func catCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	// for now only hashes, no path resolution
-	h, err := mh.FromB58String(inp[0])
-	if err != nil {
-		return err
-	}
-
 	n, err := localNode()
 	if err != nil {
 		return err
 	}
 
-	nd, err := n.GetDagNode(u.Key(h))
-	if err != nil {
-		return err
-	}
+	for _, fn := range inp {
+		// for now only hashes, no path resolution
+		h, err := mh.FromB58String(fn)
+		if err != nil {
+			return err
+		}
 
-	u.POut("%s", nd.Data)
+		nd, err := n.GetDagNode(u.Key(h))
+		if err != nil {
+			return err
+		}
+
+		u.POut("%s", nd.Data)
+	}
 	return nil
 }
