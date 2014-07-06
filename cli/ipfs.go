@@ -38,6 +38,7 @@ Use "ipfs help <command>" for more information about a command.
 	Subcommands: []*commander.Command{
 		cmdIpfsAdd,
 		cmdIpfsCat,
+		cmdIpfsLs,
 		cmdIpfsVersion,
 		cmdIpfsCommands,
 	},

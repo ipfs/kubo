@@ -6,10 +6,15 @@ import (
 	"github.com/jbenet/commander"
 	core "github.com/jbenet/go-ipfs/core"
 	importer "github.com/jbenet/go-ipfs/importer"
+	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 )
+
+var DepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 var cmdIpfsAdd = &commander.Command{
 	UsageLine: "add",
@@ -49,18 +54,26 @@ func addCmd(c *commander.Command, inp []string) error {
 	}
 
 	for _, fpath := range inp {
-		err = addPath(n, fpath, depth)
+		_, err := addPath(n, fpath, depth)
 		if err != nil {
-			u.PErr("error adding %s: %v\n", fpath, err)
+			if !recursive {
+				return fmt.Errorf("%s is a directory. Use -r to add recursively.", fpath)
+			} else {
+				u.PErr("error adding %s: %v\n", fpath, err)
+			}
 		}
 	}
 	return err
 }
 
-func addPath(n *core.IpfsNode, fpath string, depth int) error {
+func addPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
+	if depth == 0 {
+		return nil, DepthLimitExceeded
+	}
+
 	fi, err := os.Stat(fpath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if fi.IsDir() {
@@ -70,33 +83,43 @@ func addPath(n *core.IpfsNode, fpath string, depth int) error {
 	}
 }
 
-func addDir(n *core.IpfsNode, fpath string, depth int) error {
-	return u.NotImplementedError
+func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
+	tree := &dag.Node{}
+
+	files, err := ioutil.ReadDir(fpath)
+	if err != nil {
+		return nil, err
+	}
+
+	// construct nodes for containing files.
+	for _, f := range files {
+		fp := filepath.Join(fpath, f.Name())
+		nd, err := addPath(n, fp, depth-1)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = tree.AddNodeLink(f.Name(), nd); err != nil {
+			return nil, err
+		}
+	}
+
+	return tree, addNode(n, tree, fpath)
 }
 
-func addFile(n *core.IpfsNode, fpath string, depth int) error {
-	stat, err := os.Stat(fpath)
+func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
+	root, err := importer.NewDagFromFile(fpath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if stat.IsDir() {
-		return fmt.Errorf("addFile: `fpath` is a directory")
-	}
+	return root, addNode(n, root, fpath)
+}
 
-	f, err := os.Open(fpath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	root, err := importer.NewDagFromReader(f, stat.Size())
-	if err != nil {
-		return err
-	}
-
+// addNode adds the node to the graph + local storage
+func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 	// add the file to the graph + local storage
-	k, err := n.AddDagNode(root)
+	k, err := n.AddDagNode(nd)
 	if err != nil {
 		return err
 	}

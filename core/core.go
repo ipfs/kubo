@@ -11,7 +11,6 @@ import (
 )
 
 // IPFS Core module. It represents an IPFS instance.
-
 type IpfsNode struct {
 
 	// the node's configuration

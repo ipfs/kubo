@@ -5,6 +5,7 @@ import (
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	"io"
 	"io/ioutil"
+	"os"
 )
 
 var BlockSizeLimit = int64(1048576) // 1 MB
@@ -37,4 +38,23 @@ func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
 	root := &dag.Node{Data: buf}
 	// no children for now because not block splitting yet
 	return root, nil
+}
+
+func NewDagFromFile(fpath string) (*dag.Node, error) {
+	stat, err := os.Stat(fpath)
+	if err != nil {
+		return nil, err
+	}
+
+	if stat.IsDir() {
+		return nil, fmt.Errorf("`fpath` is a directory")
+	}
+
+	f, err := os.Open(fpath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return NewDagFromReader(f, stat.Size())
 }
