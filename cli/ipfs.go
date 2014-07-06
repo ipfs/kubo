@@ -39,6 +39,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsAdd,
 		cmdIpfsCat,
 		cmdIpfsLs,
+		cmdIpfsRefs,
 		cmdIpfsVersion,
 		cmdIpfsCommands,
 	},
