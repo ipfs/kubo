@@ -2,8 +2,7 @@ package config
 
 import (
 	"os"
-	"os/user"
-	"strings"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type Identity struct {
@@ -35,15 +34,10 @@ func LoadConfig(filename string) (*Config, error) {
 		filename = defaultConfigFilePath
 	}
 
-	// expand ~/
-	if strings.HasPrefix(filename, "~/") {
-		usr, err := user.Current()
-		if err != nil {
-			return nil, err
-		}
-
-		dir := usr.HomeDir + "/"
-		filename = strings.Replace(filename, "~/", dir, 1)
+	// tilde expansion on config file
+	filename, err := u.TildeExpansion(filename)
+	if err != nil {
+		return nil, err
 	}
 
 	// if nothing is there, write first conifg file.
@@ -52,7 +46,13 @@ func LoadConfig(filename string) (*Config, error) {
 	}
 
 	var cfg Config
-	err := ReadConfigFile(filename, &cfg)
+	err = ReadConfigFile(filename, &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// tilde expansion on datastore path
+	cfg.Datastore.Path, err = u.TildeExpansion(cfg.Datastore.Path)
 	if err != nil {
 		return nil, err
 	}

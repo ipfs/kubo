@@ -4,6 +4,8 @@ import (
 	"fmt"
 	mh "github.com/jbenet/go-multihash"
 	"os"
+	"os/user"
+	"strings"
 )
 
 var Debug bool
@@ -15,6 +17,20 @@ type Key string
 // global hash function. uses multihash SHA2_256, 256 bits
 func Hash(data []byte) (mh.Multihash, error) {
 	return mh.Sum(data, mh.SHA2_256, -1)
+}
+
+// tilde expansion
+func TildeExpansion(filename string) (string, error) {
+	if strings.HasPrefix(filename, "~/") {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+
+		dir := usr.HomeDir + "/"
+		filename = strings.Replace(filename, "~/", dir, 1)
+	}
+	return filename, nil
 }
 
 // Shorthand printing functions.
