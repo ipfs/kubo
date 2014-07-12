@@ -16,6 +16,10 @@ type Peer struct {
 	Addresses []*ma.Multiaddr
 }
 
+func (p *Peer) Key() u.Key {
+	return u.Key(p.Id)
+}
+
 func (p *Peer) AddAddress(a *ma.Multiaddr) {
 	p.Addresses = append(p.Addresses, a)
 }
