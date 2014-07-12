@@ -124,7 +124,6 @@ Loop:
 			break Loop
 
 		case data, ok := <-conn.Incoming.MsgChan:
-			fmt.Println("got back data", data)
 			if !ok {
 				e := fmt.Errorf("Error retrieving from conn: %v", conn)
 				s.Chan.Errors <- e

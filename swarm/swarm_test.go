@@ -37,7 +37,6 @@ func pong(c net.Conn, peer *peer.Peer) {
 			fmt.Printf("error %v\n", err)
 			return
 		}
-		fmt.Println("pong")
 	}
 }
 
@@ -82,23 +81,32 @@ func TestSwarm(t *testing.T) {
 		listeners = append(listeners, &listener)
 	}
 
-	for i, p := range peers {
-		swarm.Chan.Outgoing <- Message{Peer: p, Data: []byte("ping")}
-		fmt.Println("ping", i)
+	MsgNum := 1000
+	for k := 0; k < MsgNum; k++ {
+		for _, p := range peers {
+			swarm.Chan.Outgoing <- Message{Peer: p, Data: []byte("ping")}
+		}
 	}
 
-	got := map[u.Key]bool{}
-	for _, _ = range peers {
+	got := map[u.Key]int{}
+	for k := 0; k < (MsgNum * len(peers)); k++ {
 		msg := <-swarm.Chan.Incoming
-		fmt.Println("recving", string(msg.Data))
 		if string(msg.Data) != "pong" {
 			t.Error("unexpected conn output", msg.Data)
 		}
-		got[msg.Peer.Key()] = true
+
+		n, _ := got[msg.Peer.Key()]
+		got[msg.Peer.Key()] = n + 1
 	}
 
 	if len(peers) != len(got) {
 		t.Error("got less messages than sent")
+	}
+
+	for p, n := range got {
+		if n != MsgNum {
+			t.Error("peer did not get all msgs", p, n, "/", MsgNum)
+		}
 	}
 
 	fmt.Println("closing")
