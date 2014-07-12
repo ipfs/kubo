@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# We use `go get` to clone all repos. Ensure we have a GOPATH set.
+if [ "$GOPATH" = "" ]; then
+	echo "ERROR: no GOPATH set"
+	exit 1
+fi
+
+repos=(github.com/jbenet/go-multiaddr github.com/jbenet/go-multihash
+	github.com/jbenet/datastore.go bazil.org/fuse code.google.com/p/gogoprotobuf/proto
+	github.com/gonuts/flag github.com/jbenet/commander github.com/jbenet/datastore.go/leveldb
+	github.com/jbenet/go-msgio)
+
+echo "Cloning ${#repos[@]} external repositories for go-ipfs..."
+
+# Download/update all repos using the `go get` tool.
+for dir in ${repos[@]}; do
+	echo "Cloning ${dir}..."
+	if [ -d "$GOPATH/src/${dir}" ]; then
+   		echo "  Already exists, updating"
+	fi
+	# Hide errors/output.
+   	go get ${dir} >/dev/null 2>&1
+done
