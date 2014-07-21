@@ -64,7 +64,7 @@ func (s *Resolver) ResolveLinks(ndd *merkledag.Node, names []string) (
 		if next == "" {
 			h1, _ := nd.Multihash()
 			h2 := h1.B58String()
-			return nil, fmt.Errorf("no link named \"%s\" under %s", name, h2)
+			return nil, fmt.Errorf("no link named %q under %s", name, h2)
 		}
 
 		// fetch object for link and assign to nd
