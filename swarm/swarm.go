@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+// Message represents a packet of information sent to or received from a
+// particular Peer.
 type Message struct {
 	// To or from, depending on direction.
 	Peer *peer.Peer
@@ -14,6 +16,7 @@ type Message struct {
 	Data []byte
 }
 
+// Chan is a swam channel, which provides duplex communication and errors.
 type Chan struct {
 	Outgoing chan Message
 	Incoming chan Message
@@ -21,6 +24,7 @@ type Chan struct {
 	Close    chan bool
 }
 
+// NewChan constructs a Chan instance, with given buffer size bufsize.
 func NewChan(bufsize int) *Chan {
 	return &Chan{
 		Outgoing: make(chan Message, bufsize),
@@ -30,12 +34,17 @@ func NewChan(bufsize int) *Chan {
 	}
 }
 
+// Swarm is a connection muxer, allowing connections to other peers to
+// be opened and closed, while still using the same Chan for all
+// communication. The Chan sends/receives Messages, which note the
+// destination or source Peer.
 type Swarm struct {
 	Chan      *Chan
 	conns     ConnMap
 	connsLock sync.RWMutex
 }
 
+// NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm() *Swarm {
 	s := &Swarm{
 		Chan:  NewChan(10),
@@ -45,6 +54,7 @@ func NewSwarm() *Swarm {
 	return s
 }
 
+// Close closes a swam.
 func (s *Swarm) Close() {
 	s.connsLock.RLock()
 	l := len(s.conns)
@@ -57,6 +67,14 @@ func (s *Swarm) Close() {
 	s.Chan.Close <- true // listener
 }
 
+// Dial connects to a peer.
+//
+// The idea is that the client of Swarm does not need to know what network
+// the connection will happen over. Swarm can use whichever it choses.
+// This allows us to use various transport protocols, do NAT traversal/relay,
+// etc. to achive connection.
+//
+// For now, Dial uses only TCP. This will be extended.
 func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error) {
 	k := peer.Key()
 

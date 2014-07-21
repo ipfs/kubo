@@ -9,8 +9,10 @@ import (
 	"net"
 )
 
+// ChanBuffer is the size of the buffer in the Conn Chan
 const ChanBuffer = 10
 
+// Conn represents a connection to another Peer (IPFS Node).
 type Conn struct {
 	Peer *peer.Peer
 	Addr *ma.Multiaddr
@@ -21,8 +23,11 @@ type Conn struct {
 	Incoming *msgio.Chan
 }
 
+// ConnMap maps Keys (PeerIds) to Connections.
 type ConnMap map[u.Key]*Conn
 
+// Dial connects to a particular peer, over a given network
+// Example: Dial("udp", peer)
 func Dial(network string, peer *peer.Peer) (*Conn, error) {
 	addr := peer.NetAddress(network)
 	if addr == nil {
@@ -58,6 +63,7 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 	return conn, nil
 }
 
+// Close closes the connection, and associated channels.
 func (s *Conn) Close() error {
 	if s.Conn == nil {
 		return fmt.Errorf("Already closed.") // already closed

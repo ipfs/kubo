@@ -14,7 +14,8 @@ import (
 	"path/filepath"
 )
 
-var DepthLimitExceeded = fmt.Errorf("depth limit exceeded")
+// Error indicating the max depth has been exceded.
+var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 var cmdIpfsAdd = &commander.Command{
 	UsageLine: "add",
@@ -57,10 +58,10 @@ func addCmd(c *commander.Command, inp []string) error {
 		_, err := addPath(n, fpath, depth)
 		if err != nil {
 			if !recursive {
-				return fmt.Errorf("%s is a directory. Use -r to add recursively.", fpath)
-			} else {
-				u.PErr("error adding %s: %v\n", fpath, err)
+				return fmt.Errorf("%s is a directory. Use -r to add recursively", fpath)
 			}
+
+			u.PErr("error adding %s: %v\n", fpath, err)
 		}
 	}
 	return err
@@ -68,7 +69,7 @@ func addCmd(c *commander.Command, inp []string) error {
 
 func addPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 	if depth == 0 {
-		return nil, DepthLimitExceeded
+		return nil, ErrDepthLimitExceeded
 	}
 
 	fi, err := os.Stat(fpath)
@@ -78,9 +79,9 @@ func addPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 
 	if fi.IsDir() {
 		return addDir(n, fpath, depth)
-	} else {
-		return addFile(n, fpath, depth)
 	}
+
+	return addFile(n, fpath, depth)
 }
 
 func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {

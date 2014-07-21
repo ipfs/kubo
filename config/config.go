@@ -5,15 +5,18 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// Identity tracks the configuration of the local node's identity.
 type Identity struct {
 	PeerId string
 }
 
+// Datastore tracks the configuration of the datastore.
 type Datastore struct {
 	Type string
 	Path string
 }
 
+// Config is used to load IPFS config files.
 type Config struct {
 	Identity  *Identity
 	Datastore *Datastore
@@ -29,6 +32,7 @@ var defaultConfigFile = `{
 }
 `
 
+// LoadConfig reads given file and returns the read config, or error.
 func LoadConfig(filename string) (*Config, error) {
 	if len(filename) == 0 {
 		filename = defaultConfigFilePath

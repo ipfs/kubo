@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// The IPFS command tree. It is an instance of `commander.Command`.
 var CmdIpfs = &commander.Command{
 	UsageLine: "ipfs [<flags>] <command> [<args>]",
 	Short:     "global versioned p2p merkledag file system",

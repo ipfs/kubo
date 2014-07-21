@@ -5,6 +5,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// The IPFS version.
 const Version = "0.1.0"
 
 var cmdIpfsVersion = &commander.Command{

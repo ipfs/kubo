@@ -7,11 +7,12 @@ import (
 	mh "github.com/jbenet/go-multihash"
 )
 
-// can't use []byte/Multihash for keys :(
-// so have to convert Multihash bytes to string
+// NodeMap maps u.Keys to Nodes.
+// We cannot use []byte/Multihash for keys :(
+// so have to convert Multihash bytes to string (u.Key)
 type NodeMap map[u.Key]*Node
 
-// A node in the IPFS Merkle DAG.
+// Node represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
 type Node struct {
 	Links []*Link
@@ -21,7 +22,7 @@ type Node struct {
 	encoded []byte
 }
 
-// An IPFS Merkle DAG Link
+// Link represents an IPFS Merkle DAG Link between Nodes.
 type Link struct {
 	// utf string name. should be unique per object
 	Name string // utf8
@@ -36,6 +37,7 @@ type Link struct {
 	Node *Node
 }
 
+// AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
 	s, err := that.Size()
 	if err != nil {
@@ -55,6 +57,8 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 	return nil
 }
 
+// Size returns the total size of the data addressed by node,
+// including the total sizes of references.
 func (n *Node) Size() (uint64, error) {
 	b, err := n.Encoded(false)
 	if err != nil {
@@ -68,6 +72,7 @@ func (n *Node) Size() (uint64, error) {
 	return s, nil
 }
 
+// Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
 	b, err := n.Encoded(false)
 	if err != nil {
@@ -77,18 +82,20 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 	return u.Hash(b)
 }
 
+// Key returns the Multihash as a key, for maps.
 func (n *Node) Key() (u.Key, error) {
 	h, err := n.Multihash()
 	return u.Key(h), err
 }
 
-// An IPFS Merkle DAG service.
-// the root is virtual (like a forest)
-// stores nodes' data in a blockService
+// DAGService is an IPFS Merkle DAG service.
+// - the root is virtual (like a forest)
+// - stores nodes' data in a BlockService
 type DAGService struct {
 	Blocks *blocks.BlockService
 }
 
+// Put adds a node to the DAGService, storing the block in the BlockService
 func (n *DAGService) Put(nd *Node) (u.Key, error) {
 	if n == nil {
 		return "", fmt.Errorf("DAGService is nil")
@@ -107,6 +114,7 @@ func (n *DAGService) Put(nd *Node) (u.Key, error) {
 	return n.Blocks.AddBlock(b)
 }
 
+// Get retrieves a node from the DAGService, fetching the block in the BlockService
 func (n *DAGService) Get(k u.Key) (*Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("DAGService is nil")

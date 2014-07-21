@@ -8,13 +8,17 @@ import (
 	"os"
 )
 
+// BlockSizeLimit specifies the maximum size an imported block can have.
 var BlockSizeLimit = int64(1048576) // 1 MB
-var SizeLimitExceeded = fmt.Errorf("object size limit exceeded")
+
+// ErrSizeLimitExceeded signals that a block is larger than BlockSizeLimit.
+var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 
 // todo: incremental construction with an ipfs node. dumping constructed
 // objects into the datastore, to avoid buffering all in memory
 
-// size required for block construction
+// NewDagFromReader constructs a Merkle DAG from the given io.Reader.
+// size required for block construction.
 func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
 	// todo: block-splitting based on rabin fingerprinting
 	// todo: block-splitting with user-defined function
@@ -22,7 +26,7 @@ func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
 
 	// totally just trusts the reported size. fix later.
 	if size > BlockSizeLimit { // 1 MB limit for now.
-		return nil, SizeLimitExceeded
+		return nil, ErrSizeLimitExceeded
 	}
 
 	// we're doing it live!
@@ -32,7 +36,7 @@ func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
 	}
 
 	if int64(len(buf)) > BlockSizeLimit {
-		return nil, SizeLimitExceeded // lying punk.
+		return nil, ErrSizeLimitExceeded // lying punk.
 	}
 
 	root := &dag.Node{Data: buf}
@@ -40,6 +44,7 @@ func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
 	return root, nil
 }
 
+// NewDagFromFile constructs a Merkle DAG from the file at given path.
 func NewDagFromFile(fpath string) (*dag.Node, error) {
 	stat, err := os.Stat(fpath)
 	if err != nil {

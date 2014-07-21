@@ -9,12 +9,15 @@ import (
 	"strings"
 )
 
-// Path resolution for IPFS
-
+// Resolver provides path resolution to IPFS
+// It has a pointer to a DAGService, which is uses to resolve nodes.
 type Resolver struct {
 	DAG *merkledag.DAGService
 }
 
+// ResolvePath fetches the node for given path. It uses the first
+// path component as a hash (key) of the first node, then resolves
+// all other components walking the links, with ResolveLinks.
 func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 	fpath = path.Clean(fpath)
 
@@ -27,7 +30,7 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 
 	// if nothing, bail.
 	if len(parts) == 0 {
-		return nil, fmt.Errorf("ipfs path must contain at least one component.")
+		return nil, fmt.Errorf("ipfs path must contain at least one component")
 	}
 
 	// first element in the path is a b58 hash (for now)
@@ -44,6 +47,12 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 	return s.ResolveLinks(nd, parts[1:])
 }
 
+// ResolveLinks iteratively resolves names by walking the link hierarchy.
+// Every node is fetched from the DAGService, resolving the next name.
+// Returns the last node found.
+//
+// ResolveLinks(nd, []string{"foo", "bar", "baz"})
+// would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
 func (s *Resolver) ResolveLinks(ndd *merkledag.Node, names []string) (
 	nd *merkledag.Node, err error) {
 
