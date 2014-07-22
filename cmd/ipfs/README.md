@@ -1,25 +1,11 @@
-# ipfs implementation in go.
+# go-ipfs/cmd/ipfs
 
-See: https://github.com/jbenet/ipfs
-
-Please put all issues regarding IPFS _design_ in the
-[ipfs repo issues](https://github.com/jbenet/ipfs/issues).
-
-Please put all issues regarding go IPFS _implementation_ in [this repo](https://github.com/jbenet/go-ipfs/issues).
-
-## Install
-
-[Install Go](http://golang.org/doc/install). Then:
+This is the ipfs commandline tool. For now, it's the main entry point to using IPFS. Use it.
 
 ```
-git clone https://github.com/jbenet/go-ipfs
-cd go-ipfs/cmd/ipfs
-go install
-```
-
-## Usage
-
-```
+> go build
+> go install
+> ipfs
 ipfs - global versioned p2p merkledag file system
 
 Basic commands:
