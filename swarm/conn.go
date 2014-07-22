@@ -23,7 +23,7 @@ type Conn struct {
 	Incoming *msgio.Chan
 }
 
-// ConnMap maps Keys (PeerIds) to Connections.
+// ConnMap maps Keys (Peer.IDs) to Connections.
 type ConnMap map[u.Key]*Conn
 
 // Dial connects to a particular peer, over a given network

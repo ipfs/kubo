@@ -6,22 +6,22 @@ import (
 	mh "github.com/jbenet/go-multihash"
 )
 
-// PeerId is a byte slice representing the identity of a peer.
-type PeerId mh.Multihash
+// ID is a byte slice representing the identity of a peer.
+type ID mh.Multihash
 
-// PeerBook maps Key (string) : *Peer (slices are not comparable).
-type PeerBook map[u.Key]*Peer
+// Map maps Key (string) : *Peer (slices are not comparable).
+type Map map[u.Key]*Peer
 
 // Peer represents the identity information of an IPFS Node, including
-// a PeerId, and relevant Addresses.
+// ID, and relevant Addresses.
 type Peer struct {
-	Id        PeerId
+	ID        ID
 	Addresses []*ma.Multiaddr
 }
 
-// Key returns the PeerId as a Key (string) for maps.
+// Key returns the ID as a Key (string) for maps.
 func (p *Peer) Key() u.Key {
-	return u.Key(p.Id)
+	return u.Key(p.ID)
 }
 
 // AddAddress adds the given Multiaddr address to Peer's addresses.

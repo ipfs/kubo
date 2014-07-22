@@ -7,7 +7,7 @@ import (
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
-	PeerId string
+	PeerID string
 }
 
 // Datastore tracks the configuration of the datastore.

@@ -19,8 +19,8 @@ type IpfsNode struct {
 	// the local node's identity
 	Identity *peer.Peer
 
-	// the book of other nodes (a map of Peer instances)
-	PeerBook *peer.PeerBook
+	// the map of other nodes (Peer instances)
+	PeerMap *peer.Map
 
 	// the local datastore
 	Datastore ds.Datastore
@@ -67,7 +67,7 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 
 	n := &IpfsNode{
 		Config:    cfg,
-		PeerBook:  &peer.PeerBook{},
+		PeerMap:   &peer.Map{},
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,

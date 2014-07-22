@@ -20,7 +20,7 @@ func setupPeer(id string, addr string) (*peer.Peer, error) {
 		return nil, err
 	}
 
-	p := &peer.Peer{Id: peer.PeerId(mh)}
+	p := &peer.Peer{ID: peer.ID(mh)}
 	p.AddAddress(tcp)
 	return p, nil
 }

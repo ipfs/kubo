@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"fmt"
 	mh "github.com/jbenet/go-multihash"
 	"testing"
 )
