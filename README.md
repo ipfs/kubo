@@ -14,6 +14,7 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 ```
 git clone https://github.com/jbenet/go-ipfs
 cd go-ipfs/cmd/ipfs
+go get ./...
 go install
 ```
 
