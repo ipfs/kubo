@@ -44,7 +44,7 @@ func LoadConfig(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	// if nothing is there, write first conifg file.
+	// if nothing is there, write first config file.
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		WriteFile(filename, []byte(defaultConfigFile))
 	}
