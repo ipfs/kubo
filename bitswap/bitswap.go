@@ -2,13 +2,23 @@ package bitswap
 
 import (
 	"github.com/jbenet/go-ipfs/blocks"
-	"github.com/jbenet/go-multihash"
+	mh "github.com/jbenet/go-multihash"
+
+	"time"
 )
 
 // aliases
 
 type Ledger struct {
-	// todo
+	Owner mh.Multihash
+
+	Partner mh.Multihash
+
+	BytesSent uint64
+
+	BytesRecv uint64
+
+	Timestamp *time.Time
 }
 
 type BitSwap struct {

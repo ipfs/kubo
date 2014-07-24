@@ -4,10 +4,17 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-multihash"
+
+	"bytes"
 )
 
 // ID is a byte slice representing the identity of a peer.
 type ID mh.Multihash
+
+// Utililty function for comparing two peer ID's
+func (id *ID) Equal(other *ID) bool {
+	return bytes.Equal(*id, *other)
+}
 
 // Map maps Key (string) : *Peer (slices are not comparable).
 type Map map[u.Key]*Peer
