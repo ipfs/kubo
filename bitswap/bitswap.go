@@ -1,17 +1,18 @@
 package bitswap
 
 import (
-  peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/blocks"
+	"github.com/jbenet/go-multihash"
 )
 
 // aliases
 
 type Ledger struct {
-  // todo
+	// todo
 }
 
 type BitSwap struct {
-  Ledgers map[peer.ID]*Ledger
-  HaveList map[multihash.Multihash]*block.Block
-  WantList []*multihash.Multihash
+	Ledgers  map[string]*Ledger
+	HaveList map[string]*blocks.Block
+	WantList []*multihash.Multihash
 }
