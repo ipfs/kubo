@@ -1,9 +1,5 @@
 package netmux
 
-import (
-  "net"
-)
-
 // The netmux module provides a "network multiplexer".
 // The core idea is to have the client be able to connect to
 // many different networks (potentially over different transports)
@@ -22,9 +18,8 @@ type Netmux struct {
   outgoingSrc <-chan *Packet
 }
 
-
 // Warning: will probably change to adopt multiaddr format
-type Packet {
+type Packet struct {
   // the network addresses to send to
   // e.g. tcp4://127.0.0.1:12345
   NetAddrTo string
@@ -44,8 +39,8 @@ func NewNetmux() *Netmux {
   // setup channels
   och := make(chan *Packet)
   ich := make(chan *Packet)
-  n.Incoming, n.incomingSrc := ich, ich
-  n.Outgoing, n.outgoingSrc := och, och
+  n.Incoming, n.incomingSrc = ich, ich
+  n.Outgoing, n.outgoingSrc = och, och
 
   return n
 }

@@ -13,38 +13,38 @@ type Interface struct {
   Network string
 
   // Own network address
-  Address string
-  ResolvedAddress string
+  Address         string
+  ResolvedAddress *net.UDPAddr
 
   // Connection
-  conn *net.Conn
+  conn net.Conn
 
   // next packets + close control channels
-  Input chan *Packet
+  Input  chan *Packet
   Output chan *Packet
   Closed chan bool
   Errors chan error
 }
 
-func NewUDPInterface(net, addr string) (*Interface, error) {
-  raddr, err := net.ResolveUDPAddr(net, addr)
+func NewUDPInterface(network, addr string) (*Interface, error) {
+  raddr, err := net.ResolveUDPAddr(network, addr)
   if err != nil {
     return nil, err
   }
 
-  conn, err := net.ListenUDP(net, addr)
+  conn, err := net.ListenUDP(network, raddr)
   if err != nil {
     return nil, err
   }
 
   i := &Interface{
-    Network: net,
+    Network: network,
     Address: addr,
     ResolvedAddress: raddr,
     conn: conn,
   }
 
-  go i.processInput()
+  go i.processUDPInput()
   go i.processOutput()
   return i, nil
 }
@@ -53,10 +53,10 @@ func (i *Interface) processOutput() {
   for {
     select {
     case <-i.Closed:
-      break;
+      break
 
     case buffer := <-i.Output:
-      i.conn.Write([]byte(buffer))
+      i.conn.Write([]byte(buffer.Data))
     }
   }
 }
@@ -64,15 +64,15 @@ func (i *Interface) processOutput() {
 func (i *Interface) processUDPInput() {
   for {
     select {
-    case <- i.Closed:
-      break;
+    case <-i.Closed:
+      break
 
     }
   }
 }
 
 func (i *Interface) Read(buffer []byte) bool {
-  n, err := i.Conn.Read(buffer)
+  _, err := i.conn.Read(buffer)
   if err != nil {
     i.Errors <- err
     i.Close()
