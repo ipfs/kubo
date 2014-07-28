@@ -12,11 +12,10 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 [Install Go](http://golang.org/doc/install). Then:
 
 ```
-git clone https://github.com/jbenet/go-ipfs
-cd go-ipfs/cmd/ipfs
-go get ./...
-go install
+go get github.com/jbenet/go-ipfs/cmd/ipfs
 ```
+
+NOTE: `git` and mercurial (`hg`) are required in order for `go get` to fetch all dependencies.
 
 ## Usage
 
