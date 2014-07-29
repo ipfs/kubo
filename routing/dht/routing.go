@@ -43,14 +43,20 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	mes.Data = []byte(pmes.String())
 	mes.Peer = p
 
-	response_chan := s.network.ListenFor(pmes.Id)
+	response_chan := s.ListenFor(pmes.Id)
 
+	// Wait for either the response or a timeout
 	timeup := time.After(timeout)
 	select {
 		case <-timeup:
+			// TODO: unregister listener
 			return nil, timeoutError
 		case resp := <-response_chan:
+			return resp.Data, nil
 	}
+
+	// Should never be hit
+	return nil, nil
 }
 
 
