@@ -4,6 +4,7 @@ import (
   "time"
   peer "github.com/jbenet/go-ipfs/peer"
   u "github.com/jbenet/go-ipfs/util"
+  swarm "github.com/jbenet/go-ipfs/swarm"
 )
 
 
@@ -13,12 +14,43 @@ import (
 
 // PutValue adds value corresponding to given Key.
 func (s *IpfsDHT) PutValue(key u.Key, value []byte) (error) {
-  return u.ErrNotImplemented
+	var p *peer.Peer
+	p = s.routes.NearestNode(key)
+
+	pmes := new(PutValue)
+	pmes.Key = &key
+	pmes.Value = value
+
+	mes := new(swarm.Message)
+	mes.Data = []byte(pmes.String())
+	mes.Peer = p
+
+	s.network.Chan.Outgoing <- mes
+	return nil
 }
 
 // GetValue searches for the value corresponding to given Key.
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
-  return nil, u.ErrNotImplemented
+	var p *peer.Peer
+	p = s.routes.NearestNode(key)
+
+	// protobuf structure
+	pmes := new(GetValue)
+	pmes.Key = &key
+	pmes.Id = GenerateMessageID()
+
+	mes := new(swarm.Message)
+	mes.Data = []byte(pmes.String())
+	mes.Peer = p
+
+	response_chan := s.network.ListenFor(pmes.Id)
+
+	timeup := time.After(timeout)
+	select {
+		case <-timeup:
+			return nil, timeoutError
+		case resp := <-response_chan:
+	}
 }
 
 
