@@ -1,0 +1,16 @@
+package dht;
+
+//run `protoc --go_out=. *.proto` to generate
+
+message DHTMessage {
+	enum MessageType {
+		PUT_VALUE = 0;
+		GET_VALUE = 1;
+		PING = 2;
+		FIND_NODE = 3;
+	}
+
+	required MessageType type = 1;
+	optional string key = 2;
+	optional bytes value = 3;
+}
