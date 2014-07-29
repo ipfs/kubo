@@ -6,11 +6,14 @@ message DHTMessage {
 	enum MessageType {
 		PUT_VALUE = 0;
 		GET_VALUE = 1;
-		PING = 2;
-		FIND_NODE = 3;
+		ADD_PROVIDER = 2;
+		GET_PROVIDERS = 3;
+		FIND_NODE = 4;
+		PING = 5;
 	}
 
 	required MessageType type = 1;
 	optional string key = 2;
 	optional bytes value = 3;
+	required int64 id = 4;
 }
