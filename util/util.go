@@ -14,6 +14,9 @@ var Debug bool
 // ErrNotImplemented signifies a function has not been implemented yet.
 var ErrNotImplemented = fmt.Errorf("Error: not implemented yet.")
 
+// ErrTimeout implies that a timeout has been triggered
+var ErrTimeout = fmt.Errorf("Error: Call timed out.")
+
 // Key is a string representation of multihash for use with maps.
 type Key string
 
