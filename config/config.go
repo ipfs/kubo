@@ -1,8 +1,8 @@
 package config
 
 import (
-	"os"
 	u "github.com/jbenet/go-ipfs/util"
+	"os"
 )
 
 // Identity tracks the configuration of the local node's identity.

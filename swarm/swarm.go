@@ -3,10 +3,10 @@ package swarm
 import (
 	"fmt"
 	peer "github.com/jbenet/go-ipfs/peer"
-	ma "github.com/jbenet/go-multiaddr"
 	u "github.com/jbenet/go-ipfs/util"
-	"sync"
+	ma "github.com/jbenet/go-multiaddr"
 	"net"
+	"sync"
 )
 
 // Message represents a packet of information sent to or received from a
@@ -46,7 +46,7 @@ type Swarm struct {
 	conns     ConnMap
 	connsLock sync.RWMutex
 
-	local	  *peer.Peer
+	local *peer.Peer
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
@@ -62,7 +62,7 @@ func NewSwarm(local *peer.Peer) *Swarm {
 
 // Open listeners for each network the swarm should listen on
 func (s *Swarm) Listen() {
-	for _,addr := range s.local.Addresses {
+	for _, addr := range s.local.Addresses {
 		err := s.connListen(addr)
 		if err != nil {
 			u.PErr("Failed to listen on: %s [%s]", addr, err)
@@ -85,7 +85,7 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 	// Accept and handle new connections on this listener until it errors
 	go func() {
 		for {
-			nconn,err := list.Accept()
+			nconn, err := list.Accept()
 			if err != nil {
 				u.PErr("Failed to accept connection: %s - %s", netstr, addr)
 				return
