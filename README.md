@@ -48,6 +48,7 @@ go-ipfs is MIT licensed open source software. We welcome contributions big and s
 
 Guidelines:
 
+- see the [dev pseudo-roadmap](dev.md)
 - please adhere to the protocol described in [the main ipfs repo](https://github.com/jbenet/ipfs) and [paper](http://static.benet.ai/t/ipfs.pdf).
 - please make branches + pull-request, even if working on the main repository
 - ask questions or talk about things in [Issues](https://github.com/jbenet/go-ipfs/issues) or #ipfs on freenode.
