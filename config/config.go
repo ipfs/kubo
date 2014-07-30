@@ -1,8 +1,8 @@
 package config
 
 import (
-	"os"
 	u "github.com/jbenet/go-ipfs/util"
+	"os"
 )
 
 // Identity tracks the configuration of the local node's identity.
@@ -22,7 +22,7 @@ type Config struct {
 	Datastore *Datastore
 }
 
-var defaultConfigFilePath = "~/.go-ipfs/config"
+var DefaultConfigFilePath = "~/.go-ipfs/config"
 var defaultConfigFile = `{
   "identity": {},
   "datastore": {
@@ -35,7 +35,7 @@ var defaultConfigFile = `{
 // LoadConfig reads given file and returns the read config, or error.
 func LoadConfig(filename string) (*Config, error) {
 	if len(filename) == 0 {
-		filename = defaultConfigFilePath
+		filename = DefaultConfigFilePath
 	}
 
 	// tilde expansion on config file
