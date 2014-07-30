@@ -44,29 +44,36 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 		return nil, err
 	}
 
-	out := msgio.NewChan(10)
-	inc := msgio.NewChan(10)
-
 	conn := &Conn{
 		Peer: peer,
 		Addr: addr,
 		Conn: nconn,
-
-		Outgoing: out,
-		Incoming: inc,
-		Closed:   make(chan bool, 1),
 	}
 
-	go out.WriteTo(nconn)
-	go inc.ReadFrom(nconn, 1<<12)
-
+	newConnChans(conn)
 	return conn, nil
+}
+
+// Construct new channels for given Conn.
+func newConnChans(c *Conn) error {
+	if c.Outgoing != nil || c.Incoming != nil {
+		return fmt.Errorf("Conn already initialized")
+	}
+
+	c.Outgoing = msgio.NewChan(10)
+	c.Incoming = msgio.NewChan(10)
+	c.Closed = make(chan bool, 1)
+
+	go c.Outgoing.WriteTo(c.Conn)
+	go c.Incoming.ReadFrom(c.Conn, 1<<12)
+
+	return nil
 }
 
 // Close closes the connection, and associated channels.
 func (s *Conn) Close() error {
 	if s.Conn == nil {
-		return fmt.Errorf("Already closed.") // already closed
+		return fmt.Errorf("Already closed") // already closed
 	}
 
 	// closing net connection

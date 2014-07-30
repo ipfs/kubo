@@ -42,7 +42,7 @@ func pong(c net.Conn, peer *peer.Peer) {
 
 func TestSwarm(t *testing.T) {
 
-	swarm := NewSwarm()
+	swarm := NewSwarm(nil)
 	peers := []*peer.Peer{}
 	listeners := []*net.Listener{}
 	peerNames := map[string]string{
