@@ -15,5 +15,5 @@ message DHTMessage {
 	required MessageType type = 1;
 	optional string key = 2;
 	optional bytes value = 3;
-	required int64 id = 4;
+	required uint64 id = 4;
 }

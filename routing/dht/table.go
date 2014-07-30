@@ -3,6 +3,9 @@ package dht
 import (
 	"bytes"
 	"container/list"
+
+	peer "github.com/jbenet/go-ipfs/peer"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // ID for IpfsDHT should be a byte slice, to allow for simpler operations
@@ -20,6 +23,11 @@ type RoutingTable struct {
 
 	// kBuckets define all the fingers to other nodes.
 	Buckets []Bucket
+}
+
+//TODO: make this accept an ID, requires method of converting keys to IDs
+func (rt *RoutingTable) NearestNode(key u.Key) *peer.Peer {
+	panic("Function not implemented.")
 }
 
 func (id ID) Equal(other ID) bool {

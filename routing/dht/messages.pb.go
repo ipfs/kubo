@@ -23,23 +23,29 @@ var _ = math.Inf
 type DHTMessage_MessageType int32
 
 const (
-	DHTMessage_PUT_VALUE DHTMessage_MessageType = 0
-	DHTMessage_GET_VALUE DHTMessage_MessageType = 1
-	DHTMessage_PING      DHTMessage_MessageType = 2
-	DHTMessage_FIND_NODE DHTMessage_MessageType = 3
+	DHTMessage_PUT_VALUE     DHTMessage_MessageType = 0
+	DHTMessage_GET_VALUE     DHTMessage_MessageType = 1
+	DHTMessage_ADD_PROVIDER  DHTMessage_MessageType = 2
+	DHTMessage_GET_PROVIDERS DHTMessage_MessageType = 3
+	DHTMessage_FIND_NODE     DHTMessage_MessageType = 4
+	DHTMessage_PING          DHTMessage_MessageType = 5
 )
 
 var DHTMessage_MessageType_name = map[int32]string{
 	0: "PUT_VALUE",
 	1: "GET_VALUE",
-	2: "PING",
-	3: "FIND_NODE",
+	2: "ADD_PROVIDER",
+	3: "GET_PROVIDERS",
+	4: "FIND_NODE",
+	5: "PING",
 }
 var DHTMessage_MessageType_value = map[string]int32{
-	"PUT_VALUE": 0,
-	"GET_VALUE": 1,
-	"PING":      2,
-	"FIND_NODE": 3,
+	"PUT_VALUE":     0,
+	"GET_VALUE":     1,
+	"ADD_PROVIDER":  2,
+	"GET_PROVIDERS": 3,
+	"FIND_NODE":     4,
+	"PING":          5,
 }
 
 func (x DHTMessage_MessageType) Enum() *DHTMessage_MessageType {
@@ -63,6 +69,7 @@ type DHTMessage struct {
 	Type             *DHTMessage_MessageType `protobuf:"varint,1,req,name=type,enum=dht.DHTMessage_MessageType" json:"type,omitempty"`
 	Key              *string                 `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
 	Value            []byte                  `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	Id               *uint64                 `protobuf:"varint,4,req,name=id" json:"id,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -89,6 +96,13 @@ func (m *DHTMessage) GetValue() []byte {
 		return m.Value
 	}
 	return nil
+}
+
+func (m *DHTMessage) GetId() uint64 {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return 0
 }
 
 func init() {

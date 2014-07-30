@@ -21,8 +21,8 @@ type Message struct {
 
 // Chan is a swam channel, which provides duplex communication and errors.
 type Chan struct {
-	Outgoing chan Message
-	Incoming chan Message
+	Outgoing chan *Message
+	Incoming chan *Message
 	Errors   chan error
 	Close    chan bool
 }
@@ -30,8 +30,8 @@ type Chan struct {
 // NewChan constructs a Chan instance, with given buffer size bufsize.
 func NewChan(bufsize int) *Chan {
 	return &Chan{
-		Outgoing: make(chan Message, bufsize),
-		Incoming: make(chan Message, bufsize),
+		Outgoing: make(chan *Message, bufsize),
+		Incoming: make(chan *Message, bufsize),
 		Errors:   make(chan error),
 		Close:    make(chan bool, bufsize),
 	}
@@ -197,7 +197,7 @@ Loop:
 			}
 
 			// wrap it for consumers.
-			msg := Message{Peer: conn.Peer, Data: data}
+			msg := &Message{Peer: conn.Peer, Data: data}
 			s.Chan.Incoming <- msg
 		}
 	}
