@@ -7,7 +7,7 @@ import (
 
 func TestConfig(t *testing.T) {
 
-	cfg, err := Load("")
+	cfg, err := Load(".ipfsconfig")
 	if err != nil {
 		t.Error(err)
 		return
