@@ -4,7 +4,7 @@ import (
 	"fmt"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
+	name "github.com/jbenet/go-ipfs/name"
 	"path"
 	"strings"
 )
@@ -33,16 +33,15 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 		return nil, fmt.Errorf("ipfs path must contain at least one component")
 	}
 
-	// first element in the path is a b58 hash (for now)
-	h, err := mh.FromB58String(parts[0])
-	if err != nil {
-		return nil, err
+    h, err := name.Resolve(parts[0])
+    if err != nil {
+        return nil, err
 	}
 
-	nd, err := s.DAG.Get(u.Key(h))
-	if err != nil {
-		return nil, err
-	}
+    nd, err := s.DAG.Get(u.Key(h))
+    if err != nil {
+	    return nil, err
+    }
 
 	return s.ResolveLinks(nd, parts[1:])
 }
