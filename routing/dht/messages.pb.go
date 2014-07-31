@@ -66,11 +66,14 @@ func (x *DHTMessage_MessageType) UnmarshalJSON(data []byte) error {
 }
 
 type DHTMessage struct {
-	Type             *DHTMessage_MessageType `protobuf:"varint,1,req,name=type,enum=dht.DHTMessage_MessageType" json:"type,omitempty"`
-	Key              *string                 `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
-	Value            []byte                  `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
-	Id               *uint64                 `protobuf:"varint,4,req,name=id" json:"id,omitempty"`
-	XXX_unrecognized []byte                  `json:"-"`
+	Type  *DHTMessage_MessageType `protobuf:"varint,1,req,name=type,enum=dht.DHTMessage_MessageType" json:"type,omitempty"`
+	Key   *string                 `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
+	Value []byte                  `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	// Unique ID of this message, used to match queries with responses
+	Id *uint64 `protobuf:"varint,4,req,name=id" json:"id,omitempty"`
+	// Signals whether or not this message is a response to another message
+	Response         *bool  `protobuf:"varint,5,opt,name=response" json:"response,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *DHTMessage) Reset()         { *m = DHTMessage{} }
@@ -103,6 +106,13 @@ func (m *DHTMessage) GetId() uint64 {
 		return *m.Id
 	}
 	return 0
+}
+
+func (m *DHTMessage) GetResponse() bool {
+	if m != nil && m.Response != nil {
+		return *m.Response
+	}
+	return false
 }
 
 func init() {
