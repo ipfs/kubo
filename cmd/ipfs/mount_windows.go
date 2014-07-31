@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 )
@@ -15,7 +15,5 @@ var cmdIpfsMount = &commander.Command{
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
-	fmt.Printf("not implemented yet\n")
-
-	return nil
+	return errors.New("mount not yet implemented on windows")
 }
