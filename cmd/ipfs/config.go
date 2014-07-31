@@ -45,7 +45,7 @@ func init() {
 func configCmd(c *commander.Command, inp []string) error {
 
 	// todo: implement --config filename flag.
-	filename, err := config.ConfigFilename("")
+	filename, err := config.Filename("")
 	if err != nil {
 		return err
 	}
@@ -103,8 +103,11 @@ func configCat(filename string) error {
 	}
 	defer file.Close()
 
-	_, err = io.Copy(os.Stdout, file)
-	return err
+	if _, err = io.Copy(os.Stdout, file); err != nil {
+		return err
+	}
+	u.POut("\n")
+	return nil
 }
 
 func configEditor(filename string) error {
