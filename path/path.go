@@ -1,10 +1,10 @@
 package path
 
 import (
+	name "./../name"
 	"fmt"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	name "github.com/jbenet/go-ipfs/name"
 	"path"
 	"strings"
 )
@@ -33,15 +33,15 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 		return nil, fmt.Errorf("ipfs path must contain at least one component")
 	}
 
-    h, err := name.Resolve(parts[0])
-    if err != nil {
-        return nil, err
+	h, err := name.Resolve(parts[0])
+	if err != nil {
+		return nil, err
 	}
 
-    nd, err := s.DAG.Get(u.Key(h))
-    if err != nil {
-	    return nil, err
-    }
+	nd, err := s.DAG.Get(u.Key(h))
+	if err != nil {
+		return nil, err
+	}
 
 	return s.ResolveLinks(nd, parts[1:])
 }
