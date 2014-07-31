@@ -32,6 +32,7 @@ var defaultConfigFile = `{
 }
 `
 
+// ConfigFilename returns the proper tilde expanded config filename.
 func ConfigFilename(filename string) (string, error) {
 	if len(filename) == 0 {
 		filename = defaultConfigFilePath
@@ -41,8 +42,8 @@ func ConfigFilename(filename string) (string, error) {
 	return u.TildeExpansion(filename)
 }
 
-// LoadConfig reads given file and returns the read config, or error.
-func LoadConfig(filename string) (*Config, error) {
+// ConfigLoad reads given file and returns the read config, or error.
+func ConfigLoad(filename string) (*Config, error) {
 	filename, err := ConfigFilename(filename)
 	if err != nil {
 		return nil, err
@@ -66,4 +67,9 @@ func LoadConfig(filename string) (*Config, error) {
 	}
 
 	return &cfg, err
+}
+
+// Set sets the value of a particular config key
+func Set(filename, key, value string) error {
+	return nil
 }

@@ -2,120 +2,114 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	u "github.com/jbenet/go-ipfs/util"
-	"io/ioutil"
+	"io"
 	"os"
-	"path"
 	"strings"
 )
 
-// WriteFile writes the given buffer `buf` into file named `filename`.
-func WriteFile(filename string, buf []byte) error {
-	err := os.MkdirAll(path.Dir(filename), 0777)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(filename, buf, 0666)
-}
-
 // ReadConfigFile reads the config from `filename` into `cfg`.
-func ReadConfigFile(filename string, cfg *Config) error {
-	buf, err := ioutil.ReadFile(filename)
+func ReadConfigFile(filename string, cfg interface{}) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return Decode(f, cfg)
+}
+
+// WriteConfigFile writes the config from `cfg` into `filename`.
+func WriteConfigFile(filename string, cfg interface{}) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return Encode(f, cfg)
+}
+
+// WriteFile writes the buffer at filename
+func WriteFile(filename string, buf []byte) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(buf)
+	return err
+}
+
+// Encode configuration with JSON
+func Encode(w io.Writer, value interface{}) error {
+	// need to prettyprint, hence MarshalIndent, instead of Encoder
+	buf, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return json.Unmarshal(buf, cfg)
+	_, err = w.Write(buf)
+	return err
 }
 
-// WriteConfigFile writes the config from `cfg` into `filename`.
-func WriteConfigFile(filename string, cfg *Config) error {
-	buf, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return WriteFile(filename, buf)
+// Decode configuration with JSON
+func Decode(r io.Reader, value interface{}) error {
+	return json.NewDecoder(r).Decode(value)
 }
 
-// WriteConfigFile writes the config from `cfg` into `filename`.
-func GetValueInConfigFile(key string) (value string, err error) {
-	// reading config file
-	attrs := strings.Split(key, ".")
-
-	filename, _ := u.TildeExpansion(defaultConfigFilePath)
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return "", err
-	}
-
-	// deserializing json
+// ReadConfigKey retrieves only the value of a particular key
+func ReadConfigKey(filename, key string) (interface{}, error) {
 	var cfg interface{}
-	var exists bool
-
-	err = json.Unmarshal(buf, &cfg)
-	if err != nil {
-		return "", err
+	if err := ReadConfigFile(filename, &cfg); err != nil {
+		return nil, err
 	}
 
-	for i := range attrs {
-		cfgMap, isMap := cfg.(map[string]interface{})
-		if !isMap {
-			return "", errors.New(fmt.Sprintf("%s has no attributes", strings.Join(attrs[:i], ".")))
-		}
-		cfg, exists = cfgMap[attrs[i]]
-		if !exists {
-			return "", errors.New(fmt.Sprintf("Configuration option key \"%s\" not recognized", strings.Join(attrs[:i+1], ".")))
-		}
-		val, is_string := cfg.(string)
-		if is_string {
-			return val, nil
+	var ok bool
+	cursor := cfg
+	parts := strings.Split(key, ".")
+	for i, part := range parts {
+		cursor, ok = cursor.(map[string]interface{})[part]
+		if !ok {
+			sofar := strings.Join(parts[:i], ".")
+			return nil, fmt.Errorf("%s key has no attributes", sofar)
 		}
 	}
-	return "", errors.New(fmt.Sprintf("%s is not a string", key))
+	return cursor, nil
 }
 
-// WriteConfigFile writes the config from `cfg` into `filename`.
-func SetValueInConfigFile(key string, values []string) error {
-	assignee := strings.Join(values, " ")
-	attrs := strings.Split(key, ".")
-
-	filename, _ := u.TildeExpansion(defaultConfigFilePath)
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
+// WriteConfigKey writes the value of a particular key
+func WriteConfigKey(filename, key string, value interface{}) error {
+	var cfg interface{}
+	if err := ReadConfigFile(filename, &cfg); err != nil {
 		return err
 	}
 
-	// deserializing json
-	var cfg, orig interface{}
-	var exists, isMap bool
-	cfgMap := make(map[string]interface{})
+	var ok bool
+	var mcursor map[string]interface{}
+	cursor := cfg
 
-	err = json.Unmarshal(buf, &orig)
-	cfg = orig
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(attrs); i++ {
-		cfgMap, isMap = cfg.(map[string]interface{})
-		// curs = append(curs, cfgMap)
-		if !isMap {
-			return errors.New(fmt.Sprintf("%s has no attributes", strings.Join(attrs[:i], ".")))
+	parts := strings.Split(key, ".")
+	for i, part := range parts {
+		mcursor, ok = cursor.(map[string]interface{})
+		if !ok {
+			sofar := strings.Join(parts[:i], ".")
+			return fmt.Errorf("%s key is not a map", sofar)
 		}
-		cfg, exists = cfgMap[attrs[i]]
-		if !exists {
-			return errors.New(fmt.Sprintf("Configuration option key \"%s\" not recognized", strings.Join(attrs[:i+1], ".")))
+
+		// last part? set here
+		if i == (len(parts) - 1) {
+			mcursor[part] = value
+			break
+		}
+
+		cursor, ok = mcursor[part]
+		if !ok { // create map if this is empty
+			mcursor[part] = map[string]interface{}{}
+			cursor = mcursor[part]
 		}
 	}
-	cfgMap[attrs[len(attrs)-1]] = assignee
-	buf, err = json.MarshalIndent(orig, "", "  ")
-	if err != nil {
-		return err
-	}
-	WriteFile(filename, buf)
-	return nil
+
+	return WriteConfigFile(filename, cfg)
 }

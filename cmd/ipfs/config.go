@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
@@ -67,19 +68,28 @@ func configCmd(c *commander.Command, inp []string) error {
 
 	// Getter (1 param)
 	if len(inp) == 1 {
-		value, err := config.GetValueInConfigFile(inp[0])
+		value, err := config.ReadConfigKey(filename, inp[0])
 		if err != nil {
-			return errors.New("Failed to get config value: " + err.Error())
+			return fmt.Errorf("Failed to get config value: %s", err)
 		}
 
-		u.POut(value + "\n")
+		strval, ok := value.(string)
+		if ok {
+			u.POut("%s\n", strval)
+			return nil
+		}
+
+		if err := config.Encode(os.Stdout, value); err != nil {
+			return fmt.Errorf("Failed to encode config value: %s", err)
+		}
+		u.POut("\n")
 		return nil
 	}
 
 	// Setter (>1 params)
-	err = config.SetValueInConfigFile(inp[0], inp[1:])
+	err = config.WriteConfigKey(filename, inp[0], inp[1])
 	if err != nil {
-		return errors.New("Failed to set config value: " + err.Error())
+		return fmt.Errorf("Failed to set config value: %s", err)
 	}
 
 	return nil

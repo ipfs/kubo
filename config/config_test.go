@@ -7,7 +7,7 @@ import (
 
 func TestConfig(t *testing.T) {
 
-	cfg, err := LoadConfig("")
+	cfg, err := ConfigLoad("")
 	if err != nil {
 		t.Error(err)
 		return
