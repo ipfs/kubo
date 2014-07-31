@@ -24,8 +24,7 @@ func Resolve(name string) (mh.Multihash, error) {
     }
 
     if isB58 { // Is a base58 hash.
-        h, err := mh.FromB58String(name)
-        return h, err
+        return mh.FromB58String(name)
     } else if isPQ { // Is a Proquint identifier.
         return mh.Multihash(proquint.Decode(name)), nil
     } else { // Is a domain name.  Hopefully.
@@ -38,8 +37,7 @@ func Resolve(name string) (mh.Multihash, error) {
             var parts []string = strings.SplitN(txts[i], "=", 2)
 
             if len(parts) == 2 && parts[0] == "ipfs" {
-                h, err := mh.FromB58String(parts[1])
-                return h, err
+                return mh.FromB58String(parts[1])
             }
         }
 

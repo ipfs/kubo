@@ -53,6 +53,11 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, fmt.Errorf("configuration required")
 	}
 
+    id, err := peer.NewIdentity(cfg.Identity)
+    if err != nil {
+        return nil, err
+    }
+
 	d, err := makeDatastore(cfg.Datastore)
 	if err != nil {
 		return nil, err
@@ -67,6 +72,7 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 
 	n := &IpfsNode{
 		Config:    cfg,
+		Identity:  id,
 		PeerMap:   &peer.Map{},
 		Datastore: d,
 		Blocks:    bs,

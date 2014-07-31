@@ -7,7 +7,7 @@ import (
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
-	PeerID string
+	Curve uint16
 }
 
 // Datastore tracks the configuration of the datastore.
@@ -24,7 +24,9 @@ type Config struct {
 
 var defaultConfigFilePath = "~/.go-ipfs/config"
 var defaultConfigFile = `{
-  "identity": {},
+  "identity": {
+    "curve": 224
+  },
   "datastore": {
     "type": "leveldb",
     "path": "~/.go-ipfs/datastore"
