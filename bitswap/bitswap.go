@@ -2,7 +2,6 @@ package bitswap
 
 import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
-	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
 	"time"

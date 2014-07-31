@@ -84,7 +84,7 @@ func TestSwarm(t *testing.T) {
 	MsgNum := 1000
 	for k := 0; k < MsgNum; k++ {
 		for _, p := range peers {
-			swarm.Chan.Outgoing <- Message{Peer: p, Data: []byte("ping")}
+			swarm.Chan.Outgoing <- &Message{Peer: p, Data: []byte("ping")}
 		}
 	}
 
