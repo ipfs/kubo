@@ -46,7 +46,7 @@ func GetValueInConfigFile(key string) (value string, err error) {
 	// reading config file
 	attrs := strings.Split(key, ".")
 
-	filename, _ := u.TildeExpansion(DefaultConfigFilePath)
+	filename, _ := u.TildeExpansion(defaultConfigFilePath)
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return "", err
@@ -83,7 +83,7 @@ func SetValueInConfigFile(key string, values []string) error {
 	assignee := strings.Join(values, " ")
 	attrs := strings.Split(key, ".")
 
-	filename, _ := u.TildeExpansion(DefaultConfigFilePath)
+	filename, _ := u.TildeExpansion(defaultConfigFilePath)
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err

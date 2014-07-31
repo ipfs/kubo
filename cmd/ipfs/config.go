@@ -1,72 +1,110 @@
 package main
 
 import (
+	"errors"
+	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
+	"io"
 	"os"
 	"os/exec"
 )
 
 var cmdIpfsConfig = &commander.Command{
 	UsageLine: "config",
-	Short:     "See and Edit ipfs options",
-	Long: `ipfs config - See or Edit ipfs configuration.
+	Short:     "Get/Set ipfs config values",
+	Long: `ipfs config [<key>] [<value>] - Get/Set ipfs config values.
 
-    See specific config's values with:
-	ipfs config datastore.path
-    Assign a new value with:
-	ipfs config datastore.path ~/.go-ipfs/datastore
+    ipfs config <key>          - Get value of <key>
+    ipfs config <key> <value>  - Set value of <key> to <value>
+    ipfs config --show         - Show config file
+    ipfs config --edit         - Edit config file in $EDITOR
 
-    Open the config file in your editor(from $EDITOR):
-	ipfs config edit
-  `,
-	Run: configCmd,
-	Subcommands: []*commander.Command{
-		cmdIpfsConfigEdit,
-	},
+Examples:
+
+  Get the value of the 'datastore.path' key:
+
+      ipfs config datastore.path
+
+  Set the value of the 'datastore.path' key:
+
+      ipfs config datastore.path ~/.go-ipfs/datastore
+
+`,
+	Run:  configCmd,
+	Flag: *flag.NewFlagSet("ipfs-config", flag.ExitOnError),
 }
 
-var cmdIpfsConfigEdit = &commander.Command{
-	UsageLine: "edit",
-	Short:     "Opens the configuration file in the editor.",
-	Long: `Looks up environment variable $EDITOR and
-	attempts to open the config file with it.
-  `,
-	Run: configEditCmd,
+func init() {
+	cmdIpfsConfig.Flag.Bool("edit", false, "Edit config file in $EDITOR")
+	cmdIpfsConfig.Flag.Bool("show", false, "Show config file")
 }
 
 func configCmd(c *commander.Command, inp []string) error {
+
+	// todo: implement --config filename flag.
+	filename, err := config.ConfigFilename("")
+	if err != nil {
+		return err
+	}
+
+	// if editing, open the editor
+	if c.Flag.Lookup("edit").Value.Get().(bool) {
+		return configEditor(filename)
+	}
+
+	// if showing, cat the file
+	if c.Flag.Lookup("show").Value.Get().(bool) {
+		return configCat(filename)
+	}
+
 	if len(inp) == 0 {
 		// "ipfs config" run without parameters
-		u.POut(c.Long + "\n")
+		u.POut(c.Long)
 		return nil
 	}
 
+	// Getter (1 param)
 	if len(inp) == 1 {
-		// "ipfs config" run without one parameter, so this is a value getter
 		value, err := config.GetValueInConfigFile(inp[0])
 		if err != nil {
-			u.POut("Failed to get config value: " + err.Error() + "\n")
-		} else {
-			u.POut(value + "\n")
+			return errors.New("Failed to get config value: " + err.Error())
 		}
+
+		u.POut(value + "\n")
 		return nil
 	}
 
-	// "ipfs config" run without two parameter, so this is a value setter
-	err := config.SetValueInConfigFile(inp[0], inp[1:])
+	// Setter (>1 params)
+	err = config.SetValueInConfigFile(inp[0], inp[1:])
 	if err != nil {
-		u.POut("Failed to set config value: " + err.Error() + "\n")
+		return errors.New("Failed to set config value: " + err.Error())
 	}
+
 	return nil
 }
 
-func configEditCmd(c *commander.Command, _ []string) error {
-	if editor := os.Getenv("EDITOR"); editor == "" {
-		u.POut("ENVIRON variable $EDITOR is not assigned \n")
-	} else {
-		exec.Command("sh", "-c", editor+" "+config.DefaultConfigFilePath).Start()
+func configCat(filename string) error {
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
 	}
-	return nil
+	defer file.Close()
+
+	_, err = io.Copy(os.Stdout, file)
+	return err
+}
+
+func configEditor(filename string) error {
+
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		return errors.New("ENV variable $EDITOR not set")
+	}
+
+	cmd := exec.Command("sh", "-c", editor+" "+filename)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	return cmd.Run()
 }

@@ -22,7 +22,7 @@ type Config struct {
 	Datastore *Datastore
 }
 
-var DefaultConfigFilePath = "~/.go-ipfs/config"
+var defaultConfigFilePath = "~/.go-ipfs/config"
 var defaultConfigFile = `{
   "identity": {},
   "datastore": {
@@ -32,14 +32,18 @@ var defaultConfigFile = `{
 }
 `
 
-// LoadConfig reads given file and returns the read config, or error.
-func LoadConfig(filename string) (*Config, error) {
+func ConfigFilename(filename string) (string, error) {
 	if len(filename) == 0 {
-		filename = DefaultConfigFilePath
+		filename = defaultConfigFilePath
 	}
 
 	// tilde expansion on config file
-	filename, err := u.TildeExpansion(filename)
+	return u.TildeExpansion(filename)
+}
+
+// LoadConfig reads given file and returns the read config, or error.
+func LoadConfig(filename string) (*Config, error) {
+	filename, err := ConfigFilename(filename)
 	if err != nil {
 		return nil, err
 	}
