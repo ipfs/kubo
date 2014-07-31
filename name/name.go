@@ -14,8 +14,11 @@ func Resolve(name string) (mh.Multihash, error) {
     pqExp := "^([abdfghijklmnoprstuvz]{5}-)*[abdfghijklmnoprstuvz]{5}$"
 
     isB58, err := regexp.MatchString(b58Exp, name)
+    if err != nil {
+        return nil, err
+    }
+    
     isPQ, err := regexp.MatchString(pqExp, name)
-
     if err != nil {
         return nil, err
     }
