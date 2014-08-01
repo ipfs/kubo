@@ -2,11 +2,12 @@ package swarm
 
 import (
 	"fmt"
+	"net"
+	"sync"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
-	"net"
-	"sync"
 )
 
 // Message represents a packet of information sent to or received from a
@@ -17,6 +18,14 @@ type Message struct {
 
 	// Opaque data
 	Data []byte
+}
+
+// Cleaner looking helper function to make a new message struct
+func NewMessage(p *peer.Peer, data []byte) *Message {
+	return &Message{
+		Peer: p,
+		Data: data,
+	}
 }
 
 // Chan is a swam channel, which provides duplex communication and errors.
@@ -87,7 +96,8 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 		for {
 			nconn, err := list.Accept()
 			if err != nil {
-				u.PErr("Failed to accept connection: %s - %s", netstr, addr)
+				u.PErr("Failed to accept connection: %s - %s [%s]", netstr,
+					addr, err)
 				return
 			}
 			go s.handleNewConn(nconn)
@@ -99,7 +109,27 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 
 // Handle getting ID from this peer and adding it into the map
 func (s *Swarm) handleNewConn(nconn net.Conn) {
-	panic("Not yet implemented!")
+	p := MakePeerFromConn(nconn)
+
+	var addr *ma.Multiaddr
+
+	//naddr := nconn.RemoteAddr()
+	//addr := ma.FromDialArgs(naddr.Network(), naddr.String())
+
+	conn := &Conn{
+		Peer: p,
+		Addr: addr,
+		Conn: nconn,
+	}
+
+	newConnChans(conn)
+	go s.fanIn(conn)
+}
+
+// Negotiate with peer for its ID and create a peer object
+// TODO: this might belong in the peer package
+func MakePeerFromConn(conn net.Conn) *peer.Peer {
+	panic("Not yet implemented.")
 }
 
 // Close closes a swarm.
@@ -140,6 +170,11 @@ func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error) {
 		return nil, err
 	}
 
+	s.StartConn(k, conn)
+	return conn, nil
+}
+
+func (s *Swarm) StartConn(k u.Key, conn *Conn) {
 	// add to conns
 	s.connsLock.Lock()
 	s.conns[k] = conn
@@ -147,7 +182,6 @@ func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error) {
 
 	// kick off reader goroutine
 	go s.fanIn(conn)
-	return conn, nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
@@ -165,7 +199,8 @@ func (s *Swarm) fanOut() {
 			conn, found := s.conns[msg.Peer.Key()]
 			s.connsLock.RUnlock()
 			if !found {
-				e := fmt.Errorf("Sent msg to peer without open conn: %v", msg.Peer)
+				e := fmt.Errorf("Sent msg to peer without open conn: %v",
+					msg.Peer)
 				s.Chan.Errors <- e
 			}
 

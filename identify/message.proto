@@ -1,0 +1,3 @@
+message Identify {
+	required bytes id = 1;
+}

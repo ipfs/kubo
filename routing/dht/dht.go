@@ -2,10 +2,14 @@ package dht
 
 import (
 	"sync"
+	"time"
 
 	peer	"github.com/jbenet/go-ipfs/peer"
 	swarm	"github.com/jbenet/go-ipfs/swarm"
 	u		"github.com/jbenet/go-ipfs/util"
+	identify "github.com/jbenet/go-ipfs/identify"
+
+	ma "github.com/jbenet/go-multiaddr"
 
 	ds "github.com/jbenet/datastore.go"
 
@@ -35,14 +39,43 @@ type IpfsDHT struct {
 	shutdown chan struct{}
 }
 
-func NewDHT(p *peer.Peer) *IpfsDHT {
+// Create a new DHT object with the given peer as the 'local' host
+func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	dht := new(IpfsDHT)
-	dht.self = p
+
 	dht.network = swarm.NewSwarm(p)
+	//TODO: should Listen return an error?
+	dht.network.Listen()
+
+	dht.datastore = ds.NewMapDatastore()
+
+	dht.self = p
 	dht.listeners = make(map[uint64]chan *swarm.Message)
 	dht.shutdown = make(chan struct{})
-	return dht
+	return dht, nil
 }
+
+// Connect to a new peer at the given address
+func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) error {
+	peer := new(peer.Peer)
+	peer.AddAddress(addr)
+
+	conn,err := swarm.Dial("tcp", peer)
+	if err != nil {
+		return err
+	}
+
+	err = identify.Handshake(dht.self, conn)
+	if err != nil {
+		return err
+	}
+
+	dht.network.StartConn(conn.Peer.Key(), conn)
+
+	// TODO: Add this peer to our routing table
+	return nil
+}
+
 
 // Read in all messages from swarm and handle them appropriately
 // NOTE: this function is just a quick sketch
@@ -134,11 +167,9 @@ func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *DHTMessage) {
 	resp := new(DHTMessage)
 	resp.Id = pmes.Id
 	resp.Response = &isResponse
+	resp.Type = pmes.Type
 
-	mes := new(swarm.Message)
-	mes.Peer = p
-	mes.Data = []byte(resp.String())
-	dht.network.Chan.Outgoing <- mes
+	dht.network.Chan.Outgoing <-swarm.NewMessage(p, []byte(resp.String()))
 }
 
 
@@ -162,9 +193,36 @@ func (dht *IpfsDHT) Unlisten(mesid uint64) {
 	close(ch)
 }
 
-
 // Stop all communications from this node and shut down
 func (dht *IpfsDHT) Halt() {
 	dht.shutdown <- struct{}{}
 	dht.network.Close()
+}
+
+// Ping a node, log the time it took
+func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) {
+	// Thoughts: maybe this should accept an ID and do a peer lookup?
+	id := GenerateMessageID()
+	mes_type := DHTMessage_PING
+	pmes := new(DHTMessage)
+	pmes.Id = &id
+	pmes.Type = &mes_type
+
+	mes := new(swarm.Message)
+	mes.Peer = p
+	mes.Data = []byte(pmes.String())
+
+	before := time.Now()
+	response_chan := dht.ListenFor(id)
+	dht.network.Chan.Outgoing <- mes
+
+	tout := time.After(timeout)
+	select {
+	case <-response_chan:
+		roundtrip := time.Since(before)
+		u.DOut("Ping took %s.", roundtrip.String())
+	case <-tout:
+		// Timed out, think about removing node from network
+		u.DOut("Ping node timed out.")
+	}
 }
