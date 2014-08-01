@@ -41,20 +41,22 @@ type IpfsDHT struct {
 
 // Create a new DHT object with the given peer as the 'local' host
 func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
+	network := swarm.NewSwarm(p)
+	err := network.Listen()
+	if err != nil {
+		return nil,err
+	}
+
 	dht := new(IpfsDHT)
-
-	dht.network = swarm.NewSwarm(p)
-	//TODO: should Listen return an error?
-	dht.network.Listen()
-
+	dht.network = network
 	dht.datastore = ds.NewMapDatastore()
-
 	dht.self = p
 	dht.listeners = make(map[uint64]chan *swarm.Message)
 	dht.shutdown = make(chan struct{})
 	return dht, nil
 }
 
+// Start up background goroutines needed by the DHT
 func (dht *IpfsDHT) Start() {
 	go dht.handleMessages()
 }
@@ -111,6 +113,7 @@ func (dht *IpfsDHT) handleMessages() {
 			}
 			//
 
+			u.DOut("Got message type: %d", pmes.GetType())
 			switch pmes.GetType() {
 			case DHTMessage_GET_VALUE:
 				dht.handleGetValue(mes.Peer, pmes)
@@ -121,7 +124,7 @@ func (dht *IpfsDHT) handleMessages() {
 			case DHTMessage_ADD_PROVIDER:
 			case DHTMessage_GET_PROVIDERS:
 			case DHTMessage_PING:
-				dht.handleFindNode(mes.Peer, pmes)
+				dht.handlePing(mes.Peer, pmes)
 			}
 
 		case err := <-dht.network.Chan.Errors:
@@ -136,18 +139,15 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *DHTMessage) {
 	dskey := ds.NewKey(pmes.GetKey())
 	i_val, err := dht.datastore.Get(dskey)
 	if err == nil {
-		isResponse := true
-		resp := new(DHTMessage)
-		resp.Response = &isResponse
-		resp.Id = pmes.Id
-		resp.Key = pmes.Key
+		resp := &pDHTMessage{
+			Response: true,
+			Id: *pmes.Id,
+			Key: *pmes.Key,
+			Value: i_val.([]byte),
+		}
 
-		val := i_val.([]byte)
-		resp.Value = val
-
-		mes := new(swarm.Message)
-		mes.Peer = p
-		mes.Data = []byte(resp.String())
+		mes := swarm.NewMessage(p, resp.ToProtobuf())
+		dht.network.Chan.Outgoing <- mes
 	} else if err == ds.ErrNotFound {
 		// Find closest node(s) to desired key and reply with that info
 		// TODO: this will need some other metadata in the protobuf message
@@ -167,13 +167,13 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *DHTMessage) {
 }
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *DHTMessage) {
-	isResponse := true
-	resp := new(DHTMessage)
-	resp.Id = pmes.Id
-	resp.Response = &isResponse
-	resp.Type = pmes.Type
+	resp := &pDHTMessage{
+		Type: pmes.GetType(),
+		Response: true,
+		Id: pmes.GetId(),
+	}
 
-	dht.network.Chan.Outgoing <-swarm.NewMessage(p, []byte(resp.String()))
+	dht.network.Chan.Outgoing <-swarm.NewMessage(p, resp.ToProtobuf())
 }
 
 func (dht *IpfsDHT) handleFindNode(p *peer.Peer, pmes *DHTMessage) {
@@ -199,6 +199,7 @@ func (dht *IpfsDHT) ListenFor(mesid uint64) <-chan *swarm.Message {
 	return lchan
 }
 
+// Unregister the given message id from the listener map
 func (dht *IpfsDHT) Unlisten(mesid uint64) {
 	dht.listenLock.Lock()
 	ch, ok := dht.listeners[mesid]
@@ -216,31 +217,26 @@ func (dht *IpfsDHT) Halt() {
 }
 
 // Ping a node, log the time it took
-func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) {
+func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	u.DOut("Enter Ping.")
 
-	id := GenerateMessageID()
-	mes_type := DHTMessage_PING
-	pmes := new(DHTMessage)
-	pmes.Id = &id
-	pmes.Type = &mes_type
-
-	mes := new(swarm.Message)
-	mes.Peer = p
-	mes.Data = []byte(pmes.String())
+	pmes := pDHTMessage{Id: GenerateMessageID(), Type: DHTMessage_PING}
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
-	response_chan := dht.ListenFor(id)
+	response_chan := dht.ListenFor(pmes.Id)
 	dht.network.Chan.Outgoing <- mes
 
 	tout := time.After(timeout)
 	select {
 	case <-response_chan:
 		roundtrip := time.Since(before)
-		u.DOut("Ping took %s.", roundtrip.String())
+		u.POut("Ping took %s.", roundtrip.String())
+		return nil
 	case <-tout:
 		// Timed out, think about removing node from network
 		u.DOut("Ping node timed out.")
+		return u.ErrTimeout
 	}
 }

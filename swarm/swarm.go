@@ -9,6 +9,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
 	ident "github.com/jbenet/go-ipfs/identify"
+	proto "code.google.com/p/goprotobuf/proto"
 )
 
 // Message represents a packet of information sent to or received from a
@@ -22,10 +23,14 @@ type Message struct {
 }
 
 // Cleaner looking helper function to make a new message struct
-func NewMessage(p *peer.Peer, data []byte) *Message {
+func NewMessage(p *peer.Peer, data proto.Message) *Message {
+	bytes,err := proto.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
 	return &Message{
 		Peer: p,
-		Data: data,
+		Data: bytes,
 	}
 }
 
@@ -45,6 +50,25 @@ func NewChan(bufsize int) *Chan {
 		Errors:   make(chan error),
 		Close:    make(chan bool, bufsize),
 	}
+}
+
+// Contains a set of errors mapping to each of the swarms addresses
+// that were listened on
+type SwarmListenErr struct {
+	Errors []error
+}
+
+func (se *SwarmListenErr) Error() string {
+	if se == nil {
+		return "<nil error>"
+	}
+	var out string
+	for i,v := range se.Errors {
+		if v != nil {
+			out += fmt.Sprintf("%d: %s\n", i, v)
+		}
+	}
+	return out
 }
 
 // Swarm is a connection muxer, allowing connections to other peers to
@@ -71,13 +95,23 @@ func NewSwarm(local *peer.Peer) *Swarm {
 }
 
 // Open listeners for each network the swarm should listen on
-func (s *Swarm) Listen() {
-	for _, addr := range s.local.Addresses {
+func (s *Swarm) Listen() error {
+	var ret_err *SwarmListenErr
+	for i, addr := range s.local.Addresses {
 		err := s.connListen(addr)
 		if err != nil {
+			if ret_err != nil {
+				ret_err = new(SwarmListenErr)
+				ret_err.Errors = make([]error, len(s.local.Addresses))
+			}
+			ret_err.Errors[i] = err
 			u.PErr("Failed to listen on: %s [%s]", addr, err)
 		}
 	}
+	if ret_err == nil {
+		return nil
+	}
+	return ret_err
 }
 
 // Listen for new connections on the given multiaddr
