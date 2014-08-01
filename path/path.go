@@ -1,7 +1,7 @@
 package path
 
 import (
-	name "./../name"
+	namesys "github.com/jbenet/go-ipfs/namesys"
 	"fmt"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"

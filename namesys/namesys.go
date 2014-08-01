@@ -1,4 +1,4 @@
-package naming
+package namesys
 
 import (
 	"errors"
