@@ -81,6 +81,7 @@ type Swarm struct {
 	connsLock sync.RWMutex
 
 	local *peer.Peer
+	listeners []net.Listener
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
@@ -125,6 +126,9 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 	if err != nil {
 		return err
 	}
+
+	// NOTE: this may require a lock around it later. currently, only run on setup
+	s.listeners = append(s.listeners, list)
 
 	// Accept and handle new connections on this listener until it errors
 	go func() {
@@ -172,6 +176,10 @@ func (s *Swarm) Close() {
 	}
 	s.Chan.Close <- true // fan out
 	s.Chan.Close <- true // listener
+
+	for _,list := range s.listeners {
+		list.Close()
+	}
 }
 
 // Dial connects to a peer.
