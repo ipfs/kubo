@@ -21,7 +21,7 @@ func GenerateMessageID() uint64 {
 // PutValue adds value corresponding to given Key.
 func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	var p *peer.Peer
-	p = s.routes.NearestNode(key)
+	p = s.routes.NearestPeer(convertKey(key))
 
 	pmes_type := DHTMessage_PUT_VALUE
 	str_key := string(key)
@@ -44,7 +44,7 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 // GetValue searches for the value corresponding to given Key.
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	var p *peer.Peer
-	p = s.routes.NearestNode(key)
+	p = s.routes.NearestPeer(convertKey(key))
 
 	str_key := string(key)
 	mes_type := DHTMessage_GET_VALUE

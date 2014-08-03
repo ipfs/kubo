@@ -12,8 +12,8 @@ import (
 type ID mh.Multihash
 
 // Utililty function for comparing two peer ID's
-func (id *ID) Equal(other *ID) bool {
-	return bytes.Equal(*id, *other)
+func (id ID) Equal(other ID) bool {
+	return bytes.Equal(id, other)
 }
 
 // Map maps Key (string) : *Peer (slices are not comparable).
