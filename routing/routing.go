@@ -25,7 +25,7 @@ type IpfsRouting interface {
 	Provide(key u.Key) error
 
 	// FindProviders searches for peers who can provide the value for given key.
-	FindProviders(key u.Key, timeout time.Duration) (*peer.Peer, error)
+	FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error)
 
 	// Find specific Peer
 
