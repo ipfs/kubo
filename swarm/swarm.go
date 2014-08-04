@@ -101,7 +101,7 @@ func (s *Swarm) Listen() error {
 	for i, addr := range s.local.Addresses {
 		err := s.connListen(addr)
 		if err != nil {
-			if ret_err != nil {
+			if ret_err == nil {
 				ret_err = new(SwarmListenErr)
 				ret_err.Errors = make([]error, len(s.local.Addresses))
 			}
@@ -135,8 +135,9 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 		for {
 			nconn, err := list.Accept()
 			if err != nil {
-				u.PErr("Failed to accept connection: %s - %s [%s]", netstr,
-					addr, err)
+				e := fmt.Errorf("Failed to accept connection: %s - %s [%s]",
+					netstr, addr, err)
+				s.Chan.Errors <- e
 				return
 			}
 			go s.handleNewConn(nconn)

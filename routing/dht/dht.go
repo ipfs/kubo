@@ -21,7 +21,7 @@ import (
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
-	routes RoutingTable
+	routes *RoutingTable
 
 	network *swarm.Swarm
 
@@ -53,6 +53,7 @@ func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	dht.self = p
 	dht.listeners = make(map[uint64]chan *swarm.Message)
 	dht.shutdown = make(chan struct{})
+	dht.routes = NewRoutingTable(20, convertPeerID(p.ID))
 	return dht, nil
 }
 
@@ -78,14 +79,14 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) error {
 
 	dht.network.StartConn(conn)
 
-	// TODO: Add this peer to our routing table
+	dht.routes.Update(peer)
 	return nil
 }
 
 // Read in all messages from swarm and handle them appropriately
 // NOTE: this function is just a quick sketch
 func (dht *IpfsDHT) handleMessages() {
-	u.DOut("Being message handling routine")
+	u.DOut("Begin message handling routine")
 	for {
 		select {
 		case mes := <-dht.network.Chan.Incoming:
@@ -97,6 +98,9 @@ func (dht *IpfsDHT) handleMessages() {
 				u.PErr("Failed to decode protobuf message: %s", err)
 				continue
 			}
+
+			// Update peers latest visit in routing table
+			dht.routes.Update(mes.Peer)
 
 			// Note: not sure if this is the correct place for this
 			if pmes.GetResponse() {

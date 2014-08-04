@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"time"
 
+	proto "code.google.com/p/goprotobuf/proto"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
@@ -22,21 +24,20 @@ func GenerateMessageID() uint64 {
 func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	var p *peer.Peer
 	p = s.routes.NearestPeer(convertKey(key))
+	if p == nil {
+		u.POut("nbuckets: %d", len(s.routes.Buckets))
+		u.POut("%d", s.routes.Buckets[0].Len())
+		panic("Table returned nil peer!")
+	}
 
-	pmes_type := DHTMessage_PUT_VALUE
-	str_key := string(key)
-	mes_id := GenerateMessageID()
+	pmes := pDHTMessage{
+		Type: DHTMessage_PUT_VALUE,
+		Key: string(key),
+		Value: value,
+		Id: GenerateMessageID(),
+	}
 
-	pmes := new(DHTMessage)
-	pmes.Type = &pmes_type
-	pmes.Key = &str_key
-	pmes.Value = value
-	pmes.Id = &mes_id
-
-	mes := new(swarm.Message)
-	mes.Data = []byte(pmes.String())
-	mes.Peer = p
-
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 	s.network.Chan.Outgoing <- mes
 	return nil
 }
@@ -45,21 +46,19 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	var p *peer.Peer
 	p = s.routes.NearestPeer(convertKey(key))
+	if p == nil {
+		panic("Table returned nil peer!")
+	}
 
-	str_key := string(key)
-	mes_type := DHTMessage_GET_VALUE
-	mes_id := GenerateMessageID()
-	// protobuf structure
-	pmes := new(DHTMessage)
-	pmes.Type = &mes_type
-	pmes.Key = &str_key
-	pmes.Id = &mes_id
+	pmes := pDHTMessage{
+		Type: DHTMessage_GET_VALUE,
+		Key: string(key),
+		Id: GenerateMessageID(),
+	}
+	response_chan := s.ListenFor(pmes.Id)
 
-	mes := new(swarm.Message)
-	mes.Data = []byte(pmes.String())
-	mes.Peer = p
-
-	response_chan := s.ListenFor(*pmes.Id)
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
+	s.network.Chan.Outgoing <- mes
 
 	// Wait for either the response or a timeout
 	timeup := time.After(timeout)
@@ -68,7 +67,12 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		// TODO: unregister listener
 		return nil, u.ErrTimeout
 	case resp := <-response_chan:
-		return resp.Data, nil
+		pmes_out := new(DHTMessage)
+		err := proto.Unmarshal(resp.Data, pmes_out)
+		if err != nil {
+			return nil,err
+		}
+		return pmes_out.GetValue(), nil
 	}
 }
 
