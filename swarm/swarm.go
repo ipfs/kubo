@@ -290,3 +290,6 @@ Loop:
 	delete(s.conns, conn.Peer.Key())
 	s.connsLock.Unlock()
 }
+
+func (s *Swarm) Find(addr *ma.Multiaddr) {
+}

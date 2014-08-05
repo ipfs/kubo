@@ -3,8 +3,11 @@ package dht
 import (
 	"math/rand"
 	"time"
+	"encoding/json"
 
 	proto "code.google.com/p/goprotobuf/proto"
+
+	ma "github.com/jbenet/go-multiaddr"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
@@ -125,7 +128,32 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 		if err != nil {
 			return nil, err
 		}
-		panic("Not yet implemented.")
+		var addrs map[string]string
+		err := json.Unmarshal(pmes_out.GetValue(), &addrs)
+		if err != nil {
+			return nil, err
+		}
+
+		for key,addr := range addrs {
+			p := s.network.Find(u.Key(key))
+			if p == nil {
+				maddr,err := ma.NewMultiaddr(addr)
+				if err != nil {
+					u.PErr("error connecting to new peer: %s", err)
+					continue
+				}
+				p, err := s.Connect(maddr)
+				if err != nil {
+					u.PErr("error connecting to new peer: %s", err)
+					continue
+				}
+			}
+			s.providerLock.Lock()
+			prov_arr := s.providers[key]
+			s.providers[key] = append(prov_arr, p)
+			s.providerLock.Unlock()
+		}
+
 	}
 }
 

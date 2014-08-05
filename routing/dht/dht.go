@@ -35,6 +35,7 @@ type IpfsDHT struct {
 	// Map keys to peers that can provide their value
 	// TODO: implement a TTL on each of these keys
 	providers map[u.Key][]*peer.Peer
+	providerLock sync.RWMutex
 
 	// map of channels waiting for reply messages
 	listeners  map[uint64]chan *swarm.Message
@@ -46,6 +47,9 @@ type IpfsDHT struct {
 
 // Create a new DHT object with the given peer as the 'local' host
 func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
+	if p == nil {
+		panic("Tried to create new dht with nil peer")
+	}
 	network := swarm.NewSwarm(p)
 	err := network.Listen()
 	if err != nil {
@@ -68,24 +72,27 @@ func (dht *IpfsDHT) Start() {
 }
 
 // Connect to a new peer at the given address
-func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) error {
+func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
+	if addr == nil {
+		panic("addr was nil!")
+	}
 	peer := new(peer.Peer)
 	peer.AddAddress(addr)
 
 	conn,err := swarm.Dial("tcp", peer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = identify.Handshake(dht.self, peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dht.network.StartConn(conn)
 
 	dht.routes.Update(peer)
-	return nil
+	return peer, nil
 }
 
 // Read in all messages from swarm and handle them appropriately
@@ -195,6 +202,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *DHTMessage) {
 		// ?????
 	}
 
+	// This is just a quick hack, formalize method of sending addrs later
 	var addrs []string
 	for _,prov := range providers {
 		ma := prov.NetAddress("tcp")
