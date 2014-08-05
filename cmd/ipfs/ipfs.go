@@ -35,6 +35,7 @@ Tool commands:
 Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
+    serve         Serve an http gateway into ipfs.
 
 Use "ipfs help <command>" for more information about a command.
 `,
@@ -49,6 +50,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsCommands,
 		cmdIpfsMount,
 		cmdIpfsInit,
+		cmdIpfsServe,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
