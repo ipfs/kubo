@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"github.com/gorilla/mux"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
@@ -32,11 +31,10 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "%s", nd.Data)
+	w.Write(nd.Data)
 }
 
 func ipfsPostHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode) {
-
 	root, err := importer.NewDagFromReader(r.Body, 1)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -51,5 +49,5 @@ func ipfsPostHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode
 
 	//TODO: return json representation of list instead
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "%s", mh.Multihash(k).B58String())
+	w.Write([]byte(mh.Multihash(k).B58String()))
 }
