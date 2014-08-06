@@ -31,6 +31,7 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: return json object containing the tree data if it's a folder
 	w.Write(nd.Data)
 }
 
