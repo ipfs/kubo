@@ -19,7 +19,8 @@ var PoolSize = 6
 
 // TODO: determine a way of creating and managing message IDs
 func GenerateMessageID() uint64 {
-	return uint64(rand.Uint32()) << 32 & uint64(rand.Uint32())
+	//return (uint64(rand.Uint32()) << 32) & uint64(rand.Uint32())
+	return uint64(rand.Uint32())
 }
 
 // This file implements the Routing interface for the IpfsDHT struct.
@@ -116,6 +117,7 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	listen_chan := s.ListenFor(pmes.Id)
+	u.DOut("Find providers for: '%s'", key)
 	s.network.Chan.Outgoing <-mes
 	after := time.After(timeout)
 	select {
@@ -123,36 +125,38 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 		s.Unlisten(pmes.Id)
 		return nil, u.ErrTimeout
 	case resp := <-listen_chan:
+		u.DOut("FindProviders: got response.")
 		pmes_out := new(DHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
 			return nil, err
 		}
-		var addrs map[string]string
-		err := json.Unmarshal(pmes_out.GetValue(), &addrs)
+		var addrs map[u.Key]string
+		err = json.Unmarshal(pmes_out.GetValue(), &addrs)
 		if err != nil {
 			return nil, err
 		}
 
-		for key,addr := range addrs {
-			p := s.network.Find(u.Key(key))
+		var prov_arr []*peer.Peer
+		for pid,addr := range addrs {
+			p := s.network.Find(pid)
 			if p == nil {
 				maddr,err := ma.NewMultiaddr(addr)
 				if err != nil {
 					u.PErr("error connecting to new peer: %s", err)
 					continue
 				}
-				p, err := s.Connect(maddr)
+				p, err = s.Connect(maddr)
 				if err != nil {
 					u.PErr("error connecting to new peer: %s", err)
 					continue
 				}
 			}
-			s.providerLock.Lock()
-			prov_arr := s.providers[key]
-			s.providers[key] = append(prov_arr, p)
-			s.providerLock.Unlock()
+			s.addProviderEntry(key, p)
+			prov_arr = append(prov_arr, p)
 		}
+
+		return prov_arr, nil
 
 	}
 }

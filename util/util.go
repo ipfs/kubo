@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"strings"
+	"encoding/hex"
 )
 
 // Debug is a global flag for debugging.
@@ -19,6 +20,10 @@ var ErrTimeout = fmt.Errorf("Error: Call timed out.")
 
 // Key is a string representation of multihash for use with maps.
 type Key string
+
+func (k Key) Pretty() string {
+	return hex.EncodeToString([]byte(k))
+}
 
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
 func Hash(data []byte) (mh.Multihash, error) {

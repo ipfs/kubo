@@ -61,6 +61,7 @@ func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	dht.datastore = ds.NewMapDatastore()
 	dht.self = p
 	dht.listeners = make(map[uint64]chan *swarm.Message)
+	dht.providers = make(map[u.Key][]*peer.Peer)
 	dht.shutdown = make(chan struct{})
 	dht.routes = NewRoutingTable(20, convertPeerID(p.ID))
 	return dht, nil
@@ -101,9 +102,11 @@ func (dht *IpfsDHT) handleMessages() {
 	u.DOut("Begin message handling routine")
 	for {
 		select {
-		case mes := <-dht.network.Chan.Incoming:
-			u.DOut("recieved message from swarm.")
-
+		case mes,ok := <-dht.network.Chan.Incoming:
+			if !ok {
+				u.DOut("handleMessages closing, bad recv on incoming")
+				return
+			}
 			pmes := new(DHTMessage)
 			err := proto.Unmarshal(mes.Data, pmes)
 			if err != nil {
@@ -121,15 +124,16 @@ func (dht *IpfsDHT) handleMessages() {
 				dht.listenLock.RUnlock()
 				if ok {
 					ch <- mes
+				} else {
+					// this is expected behaviour during a timeout
+					u.DOut("Received response with nobody listening...")
 				}
 
-				// this is expected behaviour during a timeout
-				u.DOut("Received response with nobody listening...")
 				continue
 			}
 			//
 
-			u.DOut("Got message type: %d", pmes.GetType())
+			u.DOut("Got message type: '%s' [id = %x]", mesNames[pmes.GetType()], pmes.GetId())
 			switch pmes.GetType() {
 			case DHTMessage_GET_VALUE:
 				dht.handleGetValue(mes.Peer, pmes)
@@ -138,13 +142,15 @@ func (dht *IpfsDHT) handleMessages() {
 			case DHTMessage_FIND_NODE:
 				dht.handleFindNode(mes.Peer, pmes)
 			case DHTMessage_ADD_PROVIDER:
+				dht.handleAddProvider(mes.Peer, pmes)
 			case DHTMessage_GET_PROVIDERS:
+				dht.handleGetProviders(mes.Peer, pmes)
 			case DHTMessage_PING:
 				dht.handlePing(mes.Peer, pmes)
 			}
 
 		case err := <-dht.network.Chan.Errors:
-			panic(err)
+			u.DErr("dht err: %s", err)
 		case <-dht.shutdown:
 			return
 		}
@@ -197,13 +203,16 @@ func (dht *IpfsDHT) handleFindNode(p *peer.Peer, pmes *DHTMessage) {
 }
 
 func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *DHTMessage) {
+	dht.providerLock.RLock()
 	providers := dht.providers[u.Key(pmes.GetKey())]
+	dht.providerLock.RUnlock()
 	if providers == nil || len(providers) == 0 {
 		// ?????
+		u.DOut("No known providers for requested key.")
 	}
 
 	// This is just a quick hack, formalize method of sending addrs later
-	var addrs []string
+	addrs := make(map[u.Key]string)
 	for _,prov := range providers {
 		ma := prov.NetAddress("tcp")
 		str,err := ma.String()
@@ -212,7 +221,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *DHTMessage) {
 			continue
 		}
 
-		addrs = append(addrs, str)
+		addrs[prov.Key()] = str
 	}
 
 	data,err := json.Marshal(addrs)
@@ -225,6 +234,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *DHTMessage) {
 		Key: pmes.GetKey(),
 		Value: data,
 		Id: pmes.GetId(),
+		Response: true,
 	}
 
 	mes := swarm.NewMessage(p, resp.ToProtobuf())
@@ -234,8 +244,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *DHTMessage) {
 func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *DHTMessage) {
 	//TODO: need to implement TTLs on providers
 	key := u.Key(pmes.GetKey())
-	parr := dht.providers[key]
-	dht.providers[key] = append(parr, p)
+	dht.addProviderEntry(key, p)
 }
 
 
@@ -289,4 +298,12 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 		u.DOut("Ping node timed out.")
 		return u.ErrTimeout
 	}
+}
+
+func (dht *IpfsDHT) addProviderEntry(key u.Key, p *peer.Peer) {
+	u.DOut("Adding %s as provider for '%s'", p.Key().Pretty(), key)
+	dht.providerLock.Lock()
+	provs := dht.providers[key]
+	dht.providers[key] = append(provs, p)
+	dht.providerLock.Unlock()
 }

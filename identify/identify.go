@@ -20,7 +20,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 	out <- self.ID
 	resp := <-in
 	remote.ID = peer.ID(resp)
-	u.DOut("Got node id: %s", string(remote.ID))
+	u.DOut("identify: Got node id: %s", remote.ID.Pretty())
 
 	return nil
 }

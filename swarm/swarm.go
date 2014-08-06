@@ -47,7 +47,7 @@ func NewChan(bufsize int) *Chan {
 	return &Chan{
 		Outgoing: make(chan *Message, bufsize),
 		Incoming: make(chan *Message, bufsize),
-		Errors:   make(chan error),
+		Errors:   make(chan error, bufsize),
 		Close:    make(chan bool, bufsize),
 	}
 }
@@ -137,7 +137,7 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 			if err != nil {
 				e := fmt.Errorf("Failed to accept connection: %s - %s [%s]",
 					netstr, addr, err)
-				s.Chan.Errors <- e
+				go func() {s.Chan.Errors <- e}()
 				return
 			}
 			go s.handleNewConn(nconn)
@@ -217,7 +217,7 @@ func (s *Swarm) StartConn(conn *Conn) {
 		panic("tried to start nil Conn!")
 	}
 
-	u.DOut("Starting connection: %s", string(conn.Peer.ID))
+	u.DOut("Starting connection: %s", conn.Peer.Key().Pretty())
 	// add to conns
 	s.connsLock.Lock()
 	s.conns[conn.Peer.Key()] = conn
@@ -234,10 +234,10 @@ func (s *Swarm) fanOut() {
 		case <-s.Chan.Close:
 			return // told to close.
 		case msg, ok := <-s.Chan.Outgoing:
-			u.DOut("fanOut: outgoing message for: '%s'", msg.Peer.Key())
 			if !ok {
 				return
 			}
+			u.DOut("fanOut: outgoing message for: '%s'", msg.Peer.Key().Pretty())
 
 			s.connsLock.RLock()
 			conn, found := s.conns[msg.Peer.Key()]
@@ -252,7 +252,6 @@ func (s *Swarm) fanOut() {
 
 			// queue it in the connection's buffer
 			conn.Outgoing.MsgChan <- msg.Data
-			u.DOut("fanOut: message off.")
 		}
 	}
 }
@@ -260,36 +259,39 @@ func (s *Swarm) fanOut() {
 // Handles the receiving + wrapping of messages, per conn.
 // Consider using reflect.Select with one goroutine instead of n.
 func (s *Swarm) fanIn(conn *Conn) {
-Loop:
 	for {
 		select {
 		case <-s.Chan.Close:
 			// close Conn.
 			conn.Close()
-			break Loop
+			goto out
 
 		case <-conn.Closed:
-			break Loop
+			goto out
 
 		case data, ok := <-conn.Incoming.MsgChan:
-			u.DOut("fanIn: got message from incoming channel.")
 			if !ok {
-				e := fmt.Errorf("Error retrieving from conn: %v", conn)
+				e := fmt.Errorf("Error retrieving from conn: %v", conn.Peer.Key().Pretty())
 				s.Chan.Errors <- e
-				break Loop
+				goto out
 			}
 
 			// wrap it for consumers.
 			msg := &Message{Peer: conn.Peer, Data: data}
 			s.Chan.Incoming <- msg
-			u.DOut("fanIn: message off.")
 		}
 	}
+out:
 
 	s.connsLock.Lock()
 	delete(s.conns, conn.Peer.Key())
 	s.connsLock.Unlock()
 }
 
-func (s *Swarm) Find(addr *ma.Multiaddr) {
+func (s *Swarm) Find(key u.Key) *peer.Peer {
+	conn, found := s.conns[key]
+	if !found {
+		return nil
+	}
+	return conn.Peer
 }
