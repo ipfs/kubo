@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"errors"
 	mh "github.com/jbenet/go-multihash"
 	"os"
 	"os/user"
@@ -13,10 +14,14 @@ import (
 var Debug bool
 
 // ErrNotImplemented signifies a function has not been implemented yet.
-var ErrNotImplemented = fmt.Errorf("Error: not implemented yet.")
+var ErrNotImplemented = errors.New("Error: not implemented yet.")
 
 // ErrTimeout implies that a timeout has been triggered
-var ErrTimeout = fmt.Errorf("Error: Call timed out.")
+var ErrTimeout = errors.New("Error: Call timed out.")
+
+// ErrSeErrSearchIncomplete implies that a search type operation didnt
+// find the expected node, but did find 'a' node.
+var ErrSearchIncomplete = errors.New("Error: Search Incomplete.")
 
 // Key is a string representation of multihash for use with maps.
 type Key string

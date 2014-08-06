@@ -45,7 +45,7 @@ func TestPing(t *testing.T) {
 	dht_a.Start()
 	dht_b.Start()
 
-	err = dht_a.Connect(addr_b)
+	_,err = dht_a.Connect(addr_b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestValueGetSet(t *testing.T) {
 	dht_a.Start()
 	dht_b.Start()
 
-	err = dht_a.Connect(addr_b)
+	_,err = dht_a.Connect(addr_b)
 	if err != nil {
 		t.Fatal(err)
 	}

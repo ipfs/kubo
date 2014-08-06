@@ -106,6 +106,14 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	if removed != nil {
 		panic("need to remove this peer.")
 	}
+
+	// Ping new peer to register in their routing table
+	// NOTE: this should be done better...
+	err = dht.Ping(peer, time.Second * 2)
+	if err != nil {
+		panic("Failed to ping new peer.")
+	}
+
 	return peer, nil
 }
 
@@ -149,7 +157,7 @@ func (dht *IpfsDHT) handleMessages() {
 			}
 			//
 
-			u.DOut("Got message type: '%s' [id = %x]", mesNames[pmes.GetType()], pmes.GetId())
+			u.DOut("Got message type: '%s' [id = %x]", DHTMessage_MessageType_name[int32(pmes.GetType())], pmes.GetId())
 			switch pmes.GetType() {
 			case DHTMessage_GET_VALUE:
 				dht.handleGetValue(mes.Peer, pmes)
@@ -215,13 +223,17 @@ func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *DHTMessage) {
 }
 
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *DHTMessage) {
+	u.POut("handleFindPeer: searching for '%s'", peer.ID(pmes.GetKey()).Pretty())
 	closest := dht.routes.NearestPeer(convertKey(u.Key(pmes.GetKey())))
 	if closest == nil {
+		panic("could not find anything.")
 	}
 
 	if len(closest.Addresses) == 0 {
 		panic("no addresses for connected peer...")
 	}
+
+	u.POut("handleFindPeer: sending back '%s'", closest.ID.Pretty())
 
 	addr,err := closest.Addresses[0].String()
 	if err != nil {

@@ -245,7 +245,7 @@ func (s *Swarm) fanOut() {
 			if !ok {
 				return
 			}
-			u.DOut("fanOut: outgoing message for: '%s'", msg.Peer.Key().Pretty())
+			//u.DOut("fanOut: outgoing message for: '%s'", msg.Peer.Key().Pretty())
 
 			s.connsLock.RLock()
 			conn, found := s.conns[msg.Peer.Key()]

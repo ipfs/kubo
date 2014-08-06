@@ -10,6 +10,7 @@ message DHTMessage {
 		GET_PROVIDERS = 3;
 		FIND_NODE = 4;
 		PING = 5;
+		DIAGNOSTIC = 6;
 	}
 
 	required MessageType type = 1;

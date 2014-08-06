@@ -194,6 +194,17 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 			return nil, err
 		}
 
-		return s.Connect(maddr)
+		found_peer, err := s.Connect(maddr)
+		if err != nil {
+			u.POut("Found peer but couldnt connect.")
+			return nil, err
+		}
+
+		if !found_peer.ID.Equal(id) {
+			u.POut("FindPeer: searching for '%s' but found '%s'", id.Pretty(), found_peer.ID.Pretty())
+			return found_peer, u.ErrSearchIncomplete
+		}
+
+		return found_peer, nil
 	}
 }
