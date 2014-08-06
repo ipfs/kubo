@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	h "github.com/jbenet/go-ipfs/http"
+	"strconv"
 )
 
 var cmdIpfsServe = &commander.Command{
@@ -30,5 +32,8 @@ func serveCmd(c *commander.Command, _ []string) error {
 		return err
 	}
 
-	return h.Serve("127.0.0.1", port, n)
+	address := "127.0.0.1" + ":" + strconv.FormatUint(uint64(port), 10)
+	fmt.Printf("Serving on %s\n", address)
+
+	return h.Serve(address, n)
 }
