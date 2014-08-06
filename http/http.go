@@ -24,7 +24,7 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", nd.Data)
 }
 
-func Serve(host string, port uint16, node *core.IpfsNode) error {
+func Serve(host string, port uint, node *core.IpfsNode) error {
 	r := mux.NewRouter()
 	r.PathPrefix("/").Handler(&ipfsHandler{node}).Methods("GET")
 	http.Handle("/", r)
