@@ -19,6 +19,7 @@ var cmdIpfsServe = &commander.Command{
 
 func init() {
 	cmdIpfsServe.Flag.Uint("port", 80, "Port number")
+	cmdIpfsServe.Flag.String("hostname", "localhost", "Hostname")
 }
 
 func serveCmd(c *commander.Command, _ []string) error {
@@ -27,12 +28,14 @@ func serveCmd(c *commander.Command, _ []string) error {
 		return errors.New("invalid port number")
 	}
 
+	hostname := c.Flag.Lookup("hostname").Value.Get().(string)
+
 	n, err := localNode()
 	if err != nil {
 		return err
 	}
 
-	address := "127.0.0.1" + ":" + strconv.FormatUint(uint64(port), 10)
+	address := hostname + ":" + strconv.FormatUint(uint64(port), 10)
 	fmt.Printf("Serving on %s\n", address)
 
 	return h.Serve(address, n)
