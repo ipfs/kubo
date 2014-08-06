@@ -13,6 +13,7 @@ type ipfsHandler struct {
 	node *core.IpfsNode
 }
 
+// Serve starts the http server
 func Serve(address string, node *core.IpfsNode) error {
 	r := mux.NewRouter()
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { ipfsPostHandler(w, r, node) }).Methods("POST")
