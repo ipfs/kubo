@@ -188,6 +188,12 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 		if err != nil {
 			return nil, err
 		}
-		panic("Not yet implemented.")
+		addr := string(pmes_out.GetValue())
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		return s.Connect(maddr)
 	}
 }

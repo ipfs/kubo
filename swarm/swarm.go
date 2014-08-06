@@ -163,6 +163,14 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 		panic(err)
 	}
 
+	// Get address to contact remote peer from
+	addr := <-conn.Incoming.MsgChan
+	maddr, err := ma.NewMultiaddr(string(addr))
+	if err != nil {
+		u.PErr("Got invalid address from peer.")
+	}
+	p.AddAddress(maddr)
+
 	s.StartConn(conn)
 }
 
