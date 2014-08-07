@@ -48,6 +48,8 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 }
 
 // GetValue searches for the value corresponding to given Key.
+// If the search does not succeed, a multiaddr string of a closer peer is
+// returned along with util.ErrSearchIncomplete
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	var p *peer.Peer
 	p = s.routes.NearestPeer(convertKey(key))
@@ -77,7 +79,11 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		if err != nil {
 			return nil,err
 		}
-		return pmes_out.GetValue(), nil
+		if pmes_out.GetSuccess() {
+			return pmes_out.GetValue(), nil
+		} else {
+			return pmes_out.GetValue(), u.ErrSearchIncomplete
+		}
 	}
 }
 
@@ -225,7 +231,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	select {
 	case <-response_chan:
 		roundtrip := time.Since(before)
-		p.Distance = roundtrip //TODO: This isnt threadsafe
+		p.SetDistance(roundtrip)
 		u.POut("Ping took %s.", roundtrip.String())
 		return nil
 	case <-tout:

@@ -3,8 +3,10 @@ package dht
 import (
 	"container/list"
 	"sort"
+	"sync"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // RoutingTable defines the routing table.
@@ -12,6 +14,9 @@ type RoutingTable struct {
 
 	// ID of the local peer
 	local ID
+
+	// Blanket lock, refine later for better performance
+	tabLock sync.RWMutex
 
 	// kBuckets define all the fingers to other nodes.
 	Buckets []*Bucket
@@ -29,6 +34,8 @@ func NewRoutingTable(bucketsize int, local_id ID) *RoutingTable {
 // Update adds or moves the given peer to the front of its respective bucket
 // If a peer gets removed from a bucket, it is returned
 func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
+	rt.tabLock.Lock()
+	defer rt.tabLock.Unlock()
 	peer_id := convertPeerID(p.ID)
 	cpl := xor(peer_id, rt.local).commonPrefixLen()
 
@@ -88,7 +95,11 @@ func (p peerSorterArr) Less(a, b int) bool {
 //
 
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
-	for e := peerList.Front(); e != nil; e = e.Next() {
+	if peerList == nil {
+		return peerSorterArr{}
+	}
+	e := peerList.Front()
+	for ; e != nil; {
 		p := e.Value.(*peer.Peer)
 		p_id := convertPeerID(p.ID)
 		pd := peerDistance{
@@ -96,6 +107,11 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 			distance: xor(target, p_id),
 		}
 		peerArr = append(peerArr, &pd)
+		if e != nil {
+			u.POut("list element was nil.")
+			return peerArr
+		}
+		e = e.Next()
 	}
 	return peerArr
 }
@@ -112,6 +128,8 @@ func (rt *RoutingTable) NearestPeer(id ID) *peer.Peer {
 
 // Returns a list of the 'count' closest peers to the given ID
 func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
+	rt.tabLock.RLock()
+	defer rt.tabLock.RUnlock()
 	cpl := xor(id, rt.local).commonPrefixLen()
 
 	// Get bucket at cpl index or last bucket

@@ -3,6 +3,7 @@ package peer
 import (
 	"encoding/hex"
 	"time"
+	"sync"
 
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
@@ -31,7 +32,9 @@ type Map map[u.Key]*Peer
 type Peer struct {
 	ID        ID
 	Addresses []*ma.Multiaddr
-	Distance time.Duration
+
+	distance time.Duration
+	distLock sync.RWMutex
 }
 
 // Key returns the ID as a Key (string) for maps.
@@ -59,4 +62,14 @@ func (p *Peer) NetAddress(n string) *ma.Multiaddr {
 		}
 	}
 	return nil
+}
+
+func (p *Peer) GetDistance() time.Duration {
+	return p.distance
+}
+
+func (p *Peer) SetDistance(dist time.Duration) {
+	p.distLock.Lock()
+	p.distance = dist
+	p.distLock.Unlock()
 }

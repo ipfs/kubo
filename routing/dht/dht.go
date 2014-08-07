@@ -186,6 +186,7 @@ func (dht *IpfsDHT) handleMessages() {
 
 		case err := <-dht.network.Chan.Errors:
 			u.DErr("dht err: %s", err)
+			panic(err)
 		case <-dht.shutdown:
 			checkTimeouts.Stop()
 			return
