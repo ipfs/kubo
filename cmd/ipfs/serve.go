@@ -6,7 +6,6 @@ import (
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	h "github.com/jbenet/go-ipfs/http"
-	"strconv"
 )
 
 var cmdIpfsServe = &commander.Command{
@@ -18,7 +17,7 @@ var cmdIpfsServe = &commander.Command{
 }
 
 func init() {
-	cmdIpfsServe.Flag.Uint("port", 80, "Port number")
+	cmdIpfsServe.Flag.Uint("port", 8080, "Port number")
 	cmdIpfsServe.Flag.String("hostname", "localhost", "Hostname")
 }
 
@@ -35,7 +34,7 @@ func serveCmd(c *commander.Command, _ []string) error {
 		return err
 	}
 
-	address := hostname + ":" + strconv.FormatUint(uint64(port), 10)
+	address := fmt.Sprintf("%s:%d", hostname, port)
 	fmt.Printf("Serving on %s\n", address)
 
 	return h.Serve(address, n)
