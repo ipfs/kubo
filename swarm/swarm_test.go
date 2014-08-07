@@ -42,7 +42,7 @@ func pong(c net.Conn, peer *peer.Peer) {
 
 func TestSwarm(t *testing.T) {
 
-	swarm := NewSwarm()
+	swarm := NewSwarm(nil)
 	peers := []*peer.Peer{}
 	listeners := []*net.Listener{}
 	peerNames := map[string]string{
@@ -84,7 +84,7 @@ func TestSwarm(t *testing.T) {
 	MsgNum := 1000
 	for k := 0; k < MsgNum; k++ {
 		for _, p := range peers {
-			swarm.Chan.Outgoing <- Message{Peer: p, Data: []byte("ping")}
+			swarm.Chan.Outgoing <- &Message{Peer: p, Data: []byte("ping")}
 		}
 	}
 
