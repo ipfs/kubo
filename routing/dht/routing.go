@@ -208,3 +208,30 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 		return found_peer, nil
 	}
 }
+
+// Ping a peer, log the time it took
+func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
+	// Thoughts: maybe this should accept an ID and do a peer lookup?
+	u.DOut("Enter Ping.")
+
+	pmes := pDHTMessage{Id: GenerateMessageID(), Type: DHTMessage_PING}
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
+
+	before := time.Now()
+	response_chan := dht.ListenFor(pmes.Id)
+	dht.network.Chan.Outgoing <- mes
+
+	tout := time.After(timeout)
+	select {
+	case <-response_chan:
+		roundtrip := time.Since(before)
+		p.Distance = roundtrip //TODO: This isnt threadsafe
+		u.POut("Ping took %s.", roundtrip.String())
+		return nil
+	case <-tout:
+		// Timed out, think about removing peer from network
+		u.DOut("Ping peer timed out.")
+		dht.Unlisten(pmes.Id)
+		return u.ErrTimeout
+	}
+}

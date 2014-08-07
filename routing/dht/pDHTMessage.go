@@ -7,6 +7,7 @@ type pDHTMessage struct {
 	Value []byte
 	Response bool
 	Id uint64
+	Success bool
 }
 
 func (m *pDHTMessage) ToProtobuf() *DHTMessage {
@@ -19,6 +20,7 @@ func (m *pDHTMessage) ToProtobuf() *DHTMessage {
 	pmes.Key = &m.Key
 	pmes.Response = &m.Response
 	pmes.Id = &m.Id
+	pmes.Success = &m.Success
 
 	return pmes
 }

@@ -11,8 +11,8 @@ import (
 // ID for IpfsDHT should be a byte slice, to allow for simpler operations
 // (xor). DHT ids are based on the peer.IDs.
 //
-// NOTE: peer.IDs are biased because they are multihashes (first bytes
-// biased). Thus, may need to re-hash keys (uniform dist). TODO(jbenet)
+// The type dht.ID signifies that its contents have been hashed from either a
+// peer.ID or a util.Key. This unifies the keyspace
 type ID []byte
 
 func (id ID) Equal(other ID) bool {

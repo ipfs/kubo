@@ -22,4 +22,5 @@ message DHTMessage {
 
 	// Signals whether or not this message is a response to another message
 	optional bool response = 5;
+	optional bool success = 6;
 }

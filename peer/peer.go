@@ -2,6 +2,7 @@ package peer
 
 import (
 	"encoding/hex"
+	"time"
 
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
@@ -30,6 +31,7 @@ type Map map[u.Key]*Peer
 type Peer struct {
 	ID        ID
 	Addresses []*ma.Multiaddr
+	Distance time.Duration
 }
 
 // Key returns the ID as a Key (string) for maps.

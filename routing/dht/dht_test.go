@@ -6,12 +6,8 @@ import (
 	ma "github.com/jbenet/go-multiaddr"
 	u "github.com/jbenet/go-ipfs/util"
 
-	"fmt"
-
 	"time"
 )
-
-var _ = fmt.Println
 
 func TestPing(t *testing.T) {
 	u.Debug = false

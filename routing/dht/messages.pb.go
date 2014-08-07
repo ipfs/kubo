@@ -74,6 +74,7 @@ type DHTMessage struct {
 	Value            []byte                  `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
 	Id               *uint64                 `protobuf:"varint,4,req,name=id" json:"id,omitempty"`
 	Response         *bool                   `protobuf:"varint,5,opt,name=response" json:"response,omitempty"`
+	Success          *bool                   `protobuf:"varint,6,opt,name=success" json:"success,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -112,6 +113,13 @@ func (m *DHTMessage) GetId() uint64 {
 func (m *DHTMessage) GetResponse() bool {
 	if m != nil && m.Response != nil {
 		return *m.Response
+	}
+	return false
+}
+
+func (m *DHTMessage) GetSuccess() bool {
+	if m != nil && m.Success != nil {
+		return *m.Success
 	}
 	return false
 }
