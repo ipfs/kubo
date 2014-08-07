@@ -3,6 +3,7 @@ package dht
 import (
 	"sync"
 	"time"
+	"bytes"
 	"encoding/json"
 
 	peer	"github.com/jbenet/go-ipfs/peer"
@@ -22,7 +23,7 @@ import (
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
-	routes *RoutingTable
+	routes []*RoutingTable
 
 	network *swarm.Swarm
 
@@ -38,7 +39,7 @@ type IpfsDHT struct {
 	providerLock sync.RWMutex
 
 	// map of channels waiting for reply messages
-	listeners  map[uint64]chan *swarm.Message
+	listeners  map[uint64]*listenInfo
 	listenLock sync.RWMutex
 
 	// Signal to shutdown dht
@@ -46,6 +47,14 @@ type IpfsDHT struct {
 
 	// When this peer started up
 	birth time.Time
+
+	//lock to make diagnostics work better
+	diaglock sync.Mutex
+}
+
+type listenInfo struct {
+	resp chan *swarm.Message
+	count int
 }
 
 // Create a new DHT object with the given peer as the 'local' host
@@ -63,10 +72,11 @@ func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	dht.network = network
 	dht.datastore = ds.NewMapDatastore()
 	dht.self = p
-	dht.listeners = make(map[uint64]chan *swarm.Message)
+	dht.listeners = make(map[uint64]*listenInfo)
 	dht.providers = make(map[u.Key][]*providerInfo)
 	dht.shutdown = make(chan struct{})
-	dht.routes = NewRoutingTable(20, convertPeerID(p.ID))
+	dht.routes = make([]*RoutingTable, 1)
+	dht.routes[0] = NewRoutingTable(20, convertPeerID(p.ID))
 	dht.birth = time.Now()
 	return dht, nil
 }
@@ -106,7 +116,7 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 
 	dht.network.StartConn(conn)
 
-	removed := dht.routes.Update(peer)
+	removed := dht.routes[0].Update(peer)
 	if removed != nil {
 		panic("need to remove this peer.")
 	}
@@ -142,7 +152,7 @@ func (dht *IpfsDHT) handleMessages() {
 			}
 
 			// Update peers latest visit in routing table
-			removed := dht.routes.Update(mes.Peer)
+			removed := dht.routes[0].Update(mes.Peer)
 			if removed != nil {
 				panic("Need to handle removed peer.")
 			}
@@ -150,10 +160,15 @@ func (dht *IpfsDHT) handleMessages() {
 			// Note: not sure if this is the correct place for this
 			if pmes.GetResponse() {
 				dht.listenLock.RLock()
-				ch, ok := dht.listeners[pmes.GetId()]
+				list, ok := dht.listeners[pmes.GetId()]
+				if list.count > 1 {
+					list.count--
+				} else if list.count == 1 {
+					delete(dht.listeners, pmes.GetId())
+				}
 				dht.listenLock.RUnlock()
 				if ok {
-					ch <- mes
+					list.resp <- mes
 				} else {
 					// this is expected behaviour during a timeout
 					u.DOut("Received response with nobody listening...")
@@ -181,7 +196,7 @@ func (dht *IpfsDHT) handleMessages() {
 			case DHTMessage_PING:
 				dht.handlePing(mes.Peer, pmes)
 			case DHTMessage_DIAGNOSTIC:
-				// TODO: network diagnostic messages
+				dht.handleDiagnostic(mes.Peer, pmes)
 			}
 
 		case err := <-dht.network.Chan.Errors:
@@ -220,7 +235,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *DHTMessage) {
 		}
 	} else if err == ds.ErrNotFound {
 		// Find closest peer(s) to desired key and reply with that info
-		closer := dht.routes.NearestPeer(convertKey(u.Key(pmes.GetKey())))
+		closer := dht.routes[0].NearestPeer(convertKey(u.Key(pmes.GetKey())))
 		resp = &pDHTMessage{
 			Response: true,
 			Id: *pmes.Id,
@@ -256,7 +271,7 @@ func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *DHTMessage) {
 
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *DHTMessage) {
 	u.POut("handleFindPeer: searching for '%s'", peer.ID(pmes.GetKey()).Pretty())
-	closest := dht.routes.NearestPeer(convertKey(u.Key(pmes.GetKey())))
+	closest := dht.routes[0].NearestPeer(convertKey(u.Key(pmes.GetKey())))
 	if closest == nil {
 		panic("could not find anything.")
 	}
@@ -336,10 +351,10 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *DHTMessage) {
 
 // Register a handler for a specific message ID, used for getting replies
 // to certain messages (i.e. response to a GET_VALUE message)
-func (dht *IpfsDHT) ListenFor(mesid uint64) <-chan *swarm.Message {
+func (dht *IpfsDHT) ListenFor(mesid uint64, count int) <-chan *swarm.Message {
 	lchan := make(chan *swarm.Message)
 	dht.listenLock.Lock()
-	dht.listeners[mesid] = lchan
+	dht.listeners[mesid] = &listenInfo{lchan, count}
 	dht.listenLock.Unlock()
 	return lchan
 }
@@ -347,12 +362,19 @@ func (dht *IpfsDHT) ListenFor(mesid uint64) <-chan *swarm.Message {
 // Unregister the given message id from the listener map
 func (dht *IpfsDHT) Unlisten(mesid uint64) {
 	dht.listenLock.Lock()
-	ch, ok := dht.listeners[mesid]
+	list, ok := dht.listeners[mesid]
 	if ok {
 		delete(dht.listeners, mesid)
 	}
 	dht.listenLock.Unlock()
-	close(ch)
+	close(list.resp)
+}
+
+func (dht *IpfsDHT) IsListening(mesid uint64) bool {
+	dht.listenLock.RLock()
+	_,ok := dht.listeners[mesid]
+	dht.listenLock.RUnlock()
+	return ok
 }
 
 // Stop all communications from this peer and shut down
@@ -367,4 +389,52 @@ func (dht *IpfsDHT) addProviderEntry(key u.Key, p *peer.Peer) {
 	provs := dht.providers[key]
 	dht.providers[key] = append(provs, &providerInfo{time.Now(), p})
 	dht.providerLock.Unlock()
+}
+
+func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *DHTMessage) {
+	dht.diaglock.Lock()
+	if dht.IsListening(pmes.GetId()) {
+		//TODO: ehhh..........
+		dht.diaglock.Unlock()
+		return
+	}
+	dht.diaglock.Unlock()
+
+	seq := dht.routes[0].NearestPeers(convertPeerID(dht.self.ID), 10)
+	listen_chan := dht.ListenFor(pmes.GetId(), len(seq))
+
+	for _,ps := range seq {
+		mes := swarm.NewMessage(ps, pmes)
+		dht.network.Chan.Outgoing <-mes
+	}
+
+
+
+	buf := new(bytes.Buffer)
+	// NOTE: this shouldnt be a hardcoded value
+	after := time.After(time.Second * 20)
+	count := len(seq)
+	for count > 0 {
+		select {
+		case <-after:
+			//Timeout, return what we have
+			goto out
+		case req_resp := <-listen_chan:
+			buf.Write(req_resp.Data)
+			count--
+		}
+	}
+
+out:
+	di := dht.getDiagInfo()
+	buf.Write(di.Marshal())
+	resp := pDHTMessage{
+		Type: DHTMessage_DIAGNOSTIC,
+		Id: pmes.GetId(),
+		Value: buf.Bytes(),
+		Response: true,
+	}
+
+	mes := swarm.NewMessage(p, resp.ToProtobuf())
+	dht.network.Chan.Outgoing <-mes
 }

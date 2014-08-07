@@ -3,6 +3,7 @@ package dht
 import (
 	"math/rand"
 	"time"
+	"bytes"
 	"encoding/json"
 
 	proto "code.google.com/p/goprotobuf/proto"
@@ -30,7 +31,7 @@ func GenerateMessageID() uint64 {
 // PutValue adds value corresponding to given Key.
 func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	var p *peer.Peer
-	p = s.routes.NearestPeer(convertKey(key))
+	p = s.routes[0].NearestPeer(convertKey(key))
 	if p == nil {
 		panic("Table returned nil peer!")
 	}
@@ -52,7 +53,7 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 // returned along with util.ErrSearchIncomplete
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	var p *peer.Peer
-	p = s.routes.NearestPeer(convertKey(key))
+	p = s.routes[0].NearestPeer(convertKey(key))
 	if p == nil {
 		panic("Table returned nil peer!")
 	}
@@ -62,7 +63,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		Key: string(key),
 		Id: GenerateMessageID(),
 	}
-	response_chan := s.ListenFor(pmes.Id)
+	response_chan := s.ListenFor(pmes.Id, 1)
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 	s.network.Chan.Outgoing <- mes
@@ -92,7 +93,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 // Announce that this node can provide value for given key
 func (s *IpfsDHT) Provide(key u.Key) error {
-	peers := s.routes.NearestPeers(convertKey(key), PoolSize)
+	peers := s.routes[0].NearestPeers(convertKey(key), PoolSize)
 	if len(peers) == 0 {
 		//return an error
 	}
@@ -112,7 +113,7 @@ func (s *IpfsDHT) Provide(key u.Key) error {
 
 // FindProviders searches for peers who can provide the value for given key.
 func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
-	p := s.routes.NearestPeer(convertKey(key))
+	p := s.routes[0].NearestPeer(convertKey(key))
 
 	pmes := pDHTMessage{
 		Type: DHTMessage_GET_PROVIDERS,
@@ -122,7 +123,7 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
-	listen_chan := s.ListenFor(pmes.Id)
+	listen_chan := s.ListenFor(pmes.Id, 1)
 	u.DOut("Find providers for: '%s'", key)
 	s.network.Chan.Outgoing <-mes
 	after := time.After(timeout)
@@ -163,7 +164,6 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 		}
 
 		return prov_arr, nil
-
 	}
 }
 
@@ -171,7 +171,7 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 
 // FindPeer searches for a peer with given ID.
 func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
-	p := s.routes.NearestPeer(convertPeerID(id))
+	p := s.routes[0].NearestPeer(convertPeerID(id))
 
 	pmes := pDHTMessage{
 		Type: DHTMessage_FIND_NODE,
@@ -181,7 +181,7 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
-	listen_chan := s.ListenFor(pmes.Id)
+	listen_chan := s.ListenFor(pmes.Id, 1)
 	s.network.Chan.Outgoing <-mes
 	after := time.After(timeout)
 	select {
@@ -224,7 +224,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
-	response_chan := dht.ListenFor(pmes.Id)
+	response_chan := dht.ListenFor(pmes.Id, 1)
 	dht.network.Chan.Outgoing <- mes
 
 	tout := time.After(timeout)
@@ -240,4 +240,55 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 		dht.Unlisten(pmes.Id)
 		return u.ErrTimeout
 	}
+}
+
+func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
+	u.DOut("Begin Diagnostic")
+	//Send to N closest peers
+	targets := dht.routes[0].NearestPeers(convertPeerID(dht.self.ID), 10)
+
+	// TODO: Add timeout to this struct so nodes know when to return
+	pmes := pDHTMessage{
+		Type: DHTMessage_DIAGNOSTIC,
+		Id: GenerateMessageID(),
+	}
+
+	listen_chan := dht.ListenFor(pmes.Id, len(targets))
+
+	pbmes := pmes.ToProtobuf()
+	for _,p := range targets {
+		mes := swarm.NewMessage(p, pbmes)
+		dht.network.Chan.Outgoing <-mes
+	}
+
+	var out []*diagInfo
+	after := time.After(timeout)
+	for count := len(targets); count > 0; {
+		select {
+		case <-after:
+			u.DOut("Diagnostic request timed out.")
+			return out, u.ErrTimeout
+		case resp := <-listen_chan:
+			pmes_out := new(DHTMessage)
+			err := proto.Unmarshal(resp.Data, pmes_out)
+			if err != nil {
+				// NOTE: here and elsewhere, need to audit error handling,
+				//		some errors should be continued on from
+				return out, err
+			}
+
+			dec := json.NewDecoder(bytes.NewBuffer(pmes_out.GetValue()))
+			for {
+				di := new(diagInfo)
+				err := dec.Decode(di)
+				if err != nil {
+					break
+				}
+
+				out = append(out, di)
+			}
+		}
+	}
+
+	return nil,nil
 }

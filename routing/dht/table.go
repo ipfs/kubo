@@ -95,11 +95,7 @@ func (p peerSorterArr) Less(a, b int) bool {
 //
 
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
-	if peerList == nil {
-		return peerSorterArr{}
-	}
-	e := peerList.Front()
-	for ; e != nil; {
+		for e := peerList.Front(); e != nil; e = e.Next() {
 		p := e.Value.(*peer.Peer)
 		p_id := convertPeerID(p.ID)
 		pd := peerDistance{
@@ -107,11 +103,10 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 			distance: xor(target, p_id),
 		}
 		peerArr = append(peerArr, &pd)
-		if e != nil {
+		if e == nil {
 			u.POut("list element was nil.")
 			return peerArr
 		}
-		e = e.Next()
 	}
 	return peerArr
 }
