@@ -7,6 +7,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	"time"
+	"fmt"
 )
 
 func TestPing(t *testing.T) {
@@ -107,3 +108,72 @@ func TestValueGetSet(t *testing.T) {
 		t.Fatalf("Expected 'world' got %s", string(val))
 	}
 }
+
+func TestProvides(t *testing.T) {
+	u.Debug = false
+	var addrs []*ma.Multiaddr
+	for i := 0; i < 4; i++ {
+		a,err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000 + i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, a)
+	}
+
+
+	var peers []*peer.Peer
+	for i := 0; i < 4; i++ {
+		p := new(peer.Peer)
+		p.AddAddress(addrs[i])
+		p.ID = peer.ID([]byte(fmt.Sprintf("peer_%d", i)))
+		peers = append(peers, p)
+	}
+
+	var dhts []*IpfsDHT
+	for i := 0; i < 4; i++ {
+		d,err := NewDHT(peers[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		dhts = append(dhts, d)
+		d.Start()
+	}
+
+	_, err := dhts[0].Connect(addrs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(addrs[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(addrs[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].PutLocal(u.Key("hello"), []byte("world"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].Provide(u.Key("hello"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 60)
+
+	provs,err := dhts[0].FindProviders(u.Key("hello"), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(provs) != 1 {
+		t.Fatal("Didnt get back providers")
+	}
+}
+
+

@@ -92,6 +92,8 @@ func (dht *IpfsDHT) Start() {
 // Connect to a new peer at the given address
 // TODO: move this into swarm
 func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
+	maddrstr,_ := addr.String()
+	u.DOut("Connect to new peer: %s", maddrstr)
 	if addr == nil {
 		panic("addr was nil!")
 	}
@@ -483,4 +485,16 @@ out:
 
 	mes := swarm.NewMessage(p, resp.ToProtobuf())
 	dht.network.Chan.Outgoing <-mes
+}
+
+func (dht *IpfsDHT) GetLocal(key u.Key) ([]byte, error) {
+	v,err := dht.datastore.Get(ds.NewKey(string(key)))
+	if err != nil {
+		return nil, err
+	}
+	return v.([]byte), nil
+}
+
+func (dht *IpfsDHT) PutLocal(key u.Key, value []byte) error {
+	return dht.datastore.Put(ds.NewKey(string(key)), value)
 }
