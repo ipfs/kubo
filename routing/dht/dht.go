@@ -23,6 +23,8 @@ import (
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
+	// Array of routing tables for differently distanced nodes
+	// NOTE: (currently, only a single table is used)
 	routes []*RoutingTable
 
 	network *swarm.Swarm
@@ -55,6 +57,7 @@ type IpfsDHT struct {
 type listenInfo struct {
 	resp chan *swarm.Message
 	count int
+	eol time.Time
 }
 
 // Create a new DHT object with the given peer as the 'local' host
@@ -161,14 +164,19 @@ func (dht *IpfsDHT) handleMessages() {
 			if pmes.GetResponse() {
 				dht.listenLock.RLock()
 				list, ok := dht.listeners[pmes.GetId()]
+				dht.listenLock.RUnlock()
+				if time.Now().After(list.eol) {
+					dht.Unlisten(pmes.GetId())
+					ok = false
+				}
 				if list.count > 1 {
 					list.count--
-				} else if list.count == 1 {
-					delete(dht.listeners, pmes.GetId())
 				}
-				dht.listenLock.RUnlock()
 				if ok {
 					list.resp <- mes
+					if list.count == 1 {
+						dht.Unlisten(pmes.GetId())
+					}
 				} else {
 					// this is expected behaviour during a timeout
 					u.DOut("Received response with nobody listening...")
@@ -217,8 +225,33 @@ func (dht *IpfsDHT) handleMessages() {
 				dht.providers[k] = cleaned
 			}
 			dht.providerLock.Unlock()
+			dht.listenLock.Lock()
+			var remove []uint64
+			now := time.Now()
+			for k,v := range dht.listeners {
+				if now.After(v.eol) {
+					remove = append(remove, k)
+				}
+			}
+			for _,k := range remove {
+				delete(dht.listeners, k)
+			}
+			dht.listenLock.Unlock()
 		}
 	}
+}
+
+func (dht *IpfsDHT) putValueToPeer(p *peer.Peer, key string, value []byte) error {
+	pmes := pDHTMessage{
+		Type: DHTMessage_PUT_VALUE,
+		Key: key,
+		Value: value,
+		Id: GenerateMessageID(),
+	}
+
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
+	dht.network.Chan.Outgoing <- mes
+	return nil
 }
 
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *DHTMessage) {
@@ -351,10 +384,10 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *DHTMessage) {
 
 // Register a handler for a specific message ID, used for getting replies
 // to certain messages (i.e. response to a GET_VALUE message)
-func (dht *IpfsDHT) ListenFor(mesid uint64, count int) <-chan *swarm.Message {
+func (dht *IpfsDHT) ListenFor(mesid uint64, count int, timeout time.Duration) <-chan *swarm.Message {
 	lchan := make(chan *swarm.Message)
 	dht.listenLock.Lock()
-	dht.listeners[mesid] = &listenInfo{lchan, count}
+	dht.listeners[mesid] = &listenInfo{lchan, count, time.Now().Add(timeout)}
 	dht.listenLock.Unlock()
 	return lchan
 }
@@ -372,8 +405,14 @@ func (dht *IpfsDHT) Unlisten(mesid uint64) {
 
 func (dht *IpfsDHT) IsListening(mesid uint64) bool {
 	dht.listenLock.RLock()
-	_,ok := dht.listeners[mesid]
+	li,ok := dht.listeners[mesid]
 	dht.listenLock.RUnlock()
+	if time.Now().After(li.eol) {
+		dht.listenLock.Lock()
+		delete(dht.listeners, mesid)
+		dht.listenLock.Unlock()
+		return false
+	}
 	return ok
 }
 
@@ -401,7 +440,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *DHTMessage) {
 	dht.diaglock.Unlock()
 
 	seq := dht.routes[0].NearestPeers(convertPeerID(dht.self.ID), 10)
-	listen_chan := dht.ListenFor(pmes.GetId(), len(seq))
+	listen_chan := dht.ListenFor(pmes.GetId(), len(seq), time.Second * 30)
 
 	for _,ps := range seq {
 		mes := swarm.NewMessage(ps, pmes)
@@ -411,6 +450,9 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *DHTMessage) {
 
 
 	buf := new(bytes.Buffer)
+	di := dht.getDiagInfo()
+	buf.Write(di.Marshal())
+
 	// NOTE: this shouldnt be a hardcoded value
 	after := time.After(time.Second * 20)
 	count := len(seq)
@@ -420,14 +462,18 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *DHTMessage) {
 			//Timeout, return what we have
 			goto out
 		case req_resp := <-listen_chan:
+			pmes_out := new(DHTMessage)
+			err := proto.Unmarshal(req_resp.Data, pmes_out)
+			if err != nil {
+				// It broke? eh, whatever, keep going
+				continue
+			}
 			buf.Write(req_resp.Data)
 			count--
 		}
 	}
 
 out:
-	di := dht.getDiagInfo()
-	buf.Write(di.Marshal())
 	resp := pDHTMessage{
 		Type: DHTMessage_DIAGNOSTIC,
 		Id: pmes.GetId(),

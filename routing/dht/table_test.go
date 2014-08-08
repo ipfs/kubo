@@ -107,3 +107,20 @@ func TestTableFind(t *testing.T) {
 		t.Fatalf("Failed to lookup known node...")
 	}
 }
+
+func TestTableFindMultiple(t *testing.T) {
+	local := _randPeer()
+	rt := NewRoutingTable(20, convertPeerID(local.ID))
+
+	peers := make([]*peer.Peer, 100)
+	for i := 0; i < 18; i++ {
+		peers[i] = _randPeer()
+		rt.Update(peers[i])
+	}
+
+	t.Logf("Searching for peer: '%s'", peers[2].ID.Pretty())
+	found := rt.NearestPeers(convertPeerID(peers[2].ID), 15)
+	if len(found) != 15 {
+		t.Fatalf("Got back different number of peers than we expected.")
+	}
+}

@@ -29,6 +29,7 @@ func GenerateMessageID() uint64 {
 // Basic Put/Get
 
 // PutValue adds value corresponding to given Key.
+// This is the top level "Store" operation of the DHT
 func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	var p *peer.Peer
 	p = s.routes[0].NearestPeer(convertKey(key))
@@ -36,16 +37,7 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 		panic("Table returned nil peer!")
 	}
 
-	pmes := pDHTMessage{
-		Type: DHTMessage_PUT_VALUE,
-		Key: string(key),
-		Value: value,
-		Id: GenerateMessageID(),
-	}
-
-	mes := swarm.NewMessage(p, pmes.ToProtobuf())
-	s.network.Chan.Outgoing <- mes
-	return nil
+	return s.putValueToPeer(p, string(key), value)
 }
 
 // GetValue searches for the value corresponding to given Key.
@@ -63,7 +55,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		Key: string(key),
 		Id: GenerateMessageID(),
 	}
-	response_chan := s.ListenFor(pmes.Id, 1)
+	response_chan := s.ListenFor(pmes.Id, 1, time.Minute)
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 	s.network.Chan.Outgoing <- mes
@@ -74,7 +66,13 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	case <-timeup:
 		s.Unlisten(pmes.Id)
 		return nil, u.ErrTimeout
-	case resp := <-response_chan:
+	case resp, ok := <-response_chan:
+		if !ok {
+			panic("Channel was closed...")
+		}
+		if resp == nil {
+			panic("Why the hell is this response nil?")
+		}
 		pmes_out := new(DHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
@@ -123,7 +121,7 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
-	listen_chan := s.ListenFor(pmes.Id, 1)
+	listen_chan := s.ListenFor(pmes.Id, 1, time.Minute)
 	u.DOut("Find providers for: '%s'", key)
 	s.network.Chan.Outgoing <-mes
 	after := time.After(timeout)
@@ -181,7 +179,7 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
-	listen_chan := s.ListenFor(pmes.Id, 1)
+	listen_chan := s.ListenFor(pmes.Id, 1, time.Minute)
 	s.network.Chan.Outgoing <-mes
 	after := time.After(timeout)
 	select {
@@ -224,7 +222,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
-	response_chan := dht.ListenFor(pmes.Id, 1)
+	response_chan := dht.ListenFor(pmes.Id, 1, time.Minute)
 	dht.network.Chan.Outgoing <- mes
 
 	tout := time.After(timeout)
@@ -253,7 +251,7 @@ func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 		Id: GenerateMessageID(),
 	}
 
-	listen_chan := dht.ListenFor(pmes.Id, len(targets))
+	listen_chan := dht.ListenFor(pmes.Id, len(targets), time.Minute * 2)
 
 	pbmes := pmes.ToProtobuf()
 	for _,p := range targets {
