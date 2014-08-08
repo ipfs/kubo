@@ -4,7 +4,7 @@ The purpose of this document is to lay out the structure of all messages sent by
 This includes the structure and types for all data sent over the network.
 
 ##DHT Messages
-All DHT Messages are wrapped in a protobuf message structure as defined in routing/dht/messages.proto (currently only in dht branch)
+All DHT Messages are wrapped in a protobuf message structure as defined [over here](https://github.com/jbenet/go-ipfs/blob/dht/routing/dht/messages.proto) (currently only in dht branch).
 Every message includes a unique message ID. This is used to identify responses to requests that are sent out, a response will have the same message ID as the request.
 
 The fields are commonly overloaded to mean different things depending on which message type is being sent.
