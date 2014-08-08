@@ -35,7 +35,8 @@ Value is the value for the requested key
 
 On Failure:
 
-Value is the multiaddr of a node who is closer to the requested value
+Peers will contain a list of peers closer to the requested key
+
 
 ### Add Provider
 Type Value: 2
@@ -53,7 +54,7 @@ Key is the value that the sender is looking for providers of.
 
 Response:
 
-Value is a JSON encoded map of peer ID''s to multiaddr strings of peers that can provide the requested Value
+Peers is an array of Peer IDs and Multiaddrs (See messages.proto)
 
 ### Find Peer
 Type Value: 4
@@ -62,7 +63,8 @@ Key is the peer ID of the peer the sender is searching for
 
 Response:
 
-The closest peer the receiver has to the requested peer (could potentially be the searched for peer)
+Peers will contain the closest peer the receiver has to the requested peer.
+The Success variable will indicate if the peer was found or not.
 
 ### Ping
 Type Value: 5
