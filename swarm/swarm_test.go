@@ -43,8 +43,8 @@ func pong(c net.Conn, peer *peer.Peer) {
 func TestSwarm(t *testing.T) {
 
 	swarm := NewSwarm(nil)
-	peers := []*peer.Peer{}
-	listeners := []*net.Listener{}
+	var peers []*peer.Peer
+	var  listeners []net.Listener
 	peerNames := map[string]string{
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a30": "/ip4/127.0.0.1/tcp/1234",
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31": "/ip4/127.0.0.1/tcp/2345",
@@ -78,7 +78,7 @@ func TestSwarm(t *testing.T) {
 
 		// ok done, add it.
 		peers = append(peers, peer)
-		listeners = append(listeners, &listener)
+		listeners = append(listeners, listener)
 	}
 
 	MsgNum := 1000
@@ -112,6 +112,6 @@ func TestSwarm(t *testing.T) {
 	fmt.Println("closing")
 	swarm.Close()
 	for _, listener := range listeners {
-		(*listener).(*net.TCPListener).Close()
+		listener.(*net.TCPListener).Close()
 	}
 }

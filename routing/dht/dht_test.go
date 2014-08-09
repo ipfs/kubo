@@ -13,7 +13,7 @@ import (
 
 func TestPing(t *testing.T) {
 	u.Debug = false
-	addr_a, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1234")
+	addr_a, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
 	if err != nil {
 		t.Fatal(err)
 	}
