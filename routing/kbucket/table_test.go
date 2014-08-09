@@ -36,7 +36,7 @@ func TestBucket(t *testing.T) {
 	}
 
 	local := _randPeer()
-	local_id := convertPeerID(local.ID)
+	local_id := ConvertPeerID(local.ID)
 
 	i := rand.Intn(len(peers))
 	e := b.Find(peers[i].ID)
@@ -44,10 +44,10 @@ func TestBucket(t *testing.T) {
 		t.Errorf("Failed to find peer: %v", peers[i])
 	}
 
-	spl := b.Split(0, convertPeerID(local.ID))
+	spl := b.Split(0, ConvertPeerID(local.ID))
 	llist := (*list.List)(b)
 	for e := llist.Front(); e != nil; e = e.Next() {
-		p := convertPeerID(e.Value.(*peer.Peer).ID)
+		p := ConvertPeerID(e.Value.(*peer.Peer).ID)
 		cpl := xor(p, local_id).commonPrefixLen()
 		if cpl > 0 {
 			t.Fatalf("Split failed. found id with cpl > 0 in 0 bucket")
@@ -56,7 +56,7 @@ func TestBucket(t *testing.T) {
 
 	rlist := (*list.List)(spl)
 	for e := rlist.Front(); e != nil; e = e.Next() {
-		p := convertPeerID(e.Value.(*peer.Peer).ID)
+		p := ConvertPeerID(e.Value.(*peer.Peer).ID)
 		cpl := xor(p, local_id).commonPrefixLen()
 		if cpl == 0 {
 			t.Fatalf("Split failed. found id with cpl == 0 in non 0 bucket")
@@ -67,7 +67,7 @@ func TestBucket(t *testing.T) {
 // Right now, this just makes sure that it doesnt hang or crash
 func TestTableUpdate(t *testing.T) {
 	local := _randPeer()
-	rt := NewRoutingTable(10, convertPeerID(local.ID))
+	rt := NewRoutingTable(10, ConvertPeerID(local.ID))
 
 	peers := make([]*peer.Peer, 100)
 	for i := 0; i < 100; i++ {
@@ -93,7 +93,7 @@ func TestTableUpdate(t *testing.T) {
 
 func TestTableFind(t *testing.T) {
 	local := _randPeer()
-	rt := NewRoutingTable(10, convertPeerID(local.ID))
+	rt := NewRoutingTable(10, ConvertPeerID(local.ID))
 
 	peers := make([]*peer.Peer, 100)
 	for i := 0; i < 5; i++ {
@@ -102,7 +102,7 @@ func TestTableFind(t *testing.T) {
 	}
 
 	t.Logf("Searching for peer: '%s'", peers[2].ID.Pretty())
-	found := rt.NearestPeer(convertPeerID(peers[2].ID))
+	found := rt.NearestPeer(ConvertPeerID(peers[2].ID))
 	if !found.ID.Equal(peers[2].ID) {
 		t.Fatalf("Failed to lookup known node...")
 	}
@@ -110,7 +110,7 @@ func TestTableFind(t *testing.T) {
 
 func TestTableFindMultiple(t *testing.T) {
 	local := _randPeer()
-	rt := NewRoutingTable(20, convertPeerID(local.ID))
+	rt := NewRoutingTable(20, ConvertPeerID(local.ID))
 
 	peers := make([]*peer.Peer, 100)
 	for i := 0; i < 18; i++ {
@@ -119,7 +119,7 @@ func TestTableFindMultiple(t *testing.T) {
 	}
 
 	t.Logf("Searching for peer: '%s'", peers[2].ID.Pretty())
-	found := rt.NearestPeers(convertPeerID(peers[2].ID), 15)
+	found := rt.NearestPeers(ConvertPeerID(peers[2].ID), 15)
 	if len(found) != 15 {
 		t.Fatalf("Got back different number of peers than we expected.")
 	}

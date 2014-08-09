@@ -10,6 +10,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
+	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 
 	ma "github.com/jbenet/go-multiaddr"
 
@@ -25,7 +26,7 @@ import (
 type IpfsDHT struct {
 	// Array of routing tables for differently distanced nodes
 	// NOTE: (currently, only a single table is used)
-	routes []*RoutingTable
+	routes []*kb.RoutingTable
 
 	network *swarm.Swarm
 
@@ -84,8 +85,8 @@ func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	dht.listeners = make(map[uint64]*listenInfo)
 	dht.providers = make(map[u.Key][]*providerInfo)
 	dht.shutdown = make(chan struct{})
-	dht.routes = make([]*RoutingTable, 1)
-	dht.routes[0] = NewRoutingTable(20, convertPeerID(p.ID))
+	dht.routes = make([]*kb.RoutingTable, 1)
+	dht.routes[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID))
 	dht.birth = time.Now()
 	return dht, nil
 }
@@ -253,7 +254,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 		}
 	} else if err == ds.ErrNotFound {
 		// Find closest peer(s) to desired key and reply with that info
-		closer := dht.routes[0].NearestPeer(convertKey(u.Key(pmes.GetKey())))
+		closer := dht.routes[0].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 		resp = &DHTMessage{
 			Response: true,
 			Id:       *pmes.Id,
@@ -290,7 +291,7 @@ func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *PBDHTMessage) {
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
 	success := true
 	u.POut("handleFindPeer: searching for '%s'", peer.ID(pmes.GetKey()).Pretty())
-	closest := dht.routes[0].NearestPeer(convertKey(u.Key(pmes.GetKey())))
+	closest := dht.routes[0].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 	if closest == nil {
 		u.PErr("handleFindPeer: could not find anything.")
 		success = false
@@ -432,7 +433,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 	}
 	dht.diaglock.Unlock()
 
-	seq := dht.routes[0].NearestPeers(convertPeerID(dht.self.ID), 10)
+	seq := dht.routes[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 	listen_chan := dht.ListenFor(pmes.GetId(), len(seq), time.Second*30)
 
 	for _, ps := range seq {

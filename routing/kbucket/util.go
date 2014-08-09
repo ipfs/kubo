@@ -71,12 +71,12 @@ func equalizeSizes(a, b ID) (ID, ID) {
 	return a, b
 }
 
-func convertPeerID(id peer.ID) ID {
+func ConvertPeerID(id peer.ID) ID {
 	hash := sha256.Sum256(id)
 	return hash[:]
 }
 
-func convertKey(id u.Key) ID {
+func ConvertKey(id u.Key) ID {
 	hash := sha256.Sum256([]byte(id))
 	return hash[:]
 }

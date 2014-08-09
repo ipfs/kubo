@@ -36,7 +36,7 @@ func NewRoutingTable(bucketsize int, local_id ID) *RoutingTable {
 func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 	rt.tabLock.Lock()
 	defer rt.tabLock.Unlock()
-	peer_id := convertPeerID(p.ID)
+	peer_id := ConvertPeerID(p.ID)
 	cpl := xor(peer_id, rt.local).commonPrefixLen()
 
 	b_id := cpl
@@ -97,7 +97,7 @@ func (p peerSorterArr) Less(a, b int) bool {
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
 		for e := peerList.Front(); e != nil; e = e.Next() {
 		p := e.Value.(*peer.Peer)
-		p_id := convertPeerID(p.ID)
+		p_id := ConvertPeerID(p.ID)
 		pd := peerDistance{
 			p: p,
 			distance: xor(target, p_id),
@@ -173,7 +173,7 @@ func (rt *RoutingTable) Size() int {
 }
 
 // NOTE: This is potentially unsafe... use at your own risk
-func (rt *RoutingTable) listpeers() []*peer.Peer {
+func (rt *RoutingTable) Listpeers() []*peer.Peer {
 	var peers []*peer.Peer
 	for _,buck := range rt.Buckets {
 		for e := buck.getIter(); e != nil; e = e.Next() {
