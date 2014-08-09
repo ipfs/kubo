@@ -2,7 +2,7 @@ package dht;
 
 //run `protoc --go_out=. *.proto` to generate
 
-message DHTMessage {
+message PBDHTMessage {
 	enum MessageType {
 		PUT_VALUE = 0;
 		GET_VALUE = 1;
@@ -11,6 +11,11 @@ message DHTMessage {
 		FIND_NODE = 4;
 		PING = 5;
 		DIAGNOSTIC = 6;
+	}
+
+	message PBPeer {
+		required string id = 1;
+		required string addr = 2;
 	}
 
 	required MessageType type = 1;
@@ -23,4 +28,7 @@ message DHTMessage {
 	// Signals whether or not this message is a response to another message
 	optional bool response = 5;
 	optional bool success = 6;
+
+	// Used for returning peers from queries (normally, peers closer to X)
+	repeated PBPeer peers = 7; 
 }

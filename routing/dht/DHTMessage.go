@@ -1,17 +1,17 @@
 package dht
 
 // A helper struct to make working with protbuf types easier
-type pDHTMessage struct {
-	Type DHTMessage_MessageType
-	Key string
-	Value []byte
+type DHTMessage struct {
+	Type     PBDHTMessage_MessageType
+	Key      string
+	Value    []byte
 	Response bool
-	Id uint64
-	Success bool
+	Id       uint64
+	Success  bool
 }
 
-func (m *pDHTMessage) ToProtobuf() *DHTMessage {
-	pmes := new(DHTMessage)
+func (m *DHTMessage) ToProtobuf() *PBDHTMessage {
+	pmes := new(PBDHTMessage)
 	if m.Value != nil {
 		pmes.Value = m.Value
 	}

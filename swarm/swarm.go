@@ -1,15 +1,16 @@
 package swarm
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 
+	proto "code.google.com/p/goprotobuf/proto"
+	ident "github.com/jbenet/go-ipfs/identify"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
-	ident "github.com/jbenet/go-ipfs/identify"
-	proto "code.google.com/p/goprotobuf/proto"
 )
 
 // Message represents a packet of information sent to or received from a
@@ -24,9 +25,10 @@ type Message struct {
 
 // Cleaner looking helper function to make a new message struct
 func NewMessage(p *peer.Peer, data proto.Message) *Message {
-	bytes,err := proto.Marshal(data)
+	bytes, err := proto.Marshal(data)
 	if err != nil {
-		panic(err)
+		u.PErr(err.Error())
+		return nil
 	}
 	return &Message{
 		Peer: p,
@@ -63,7 +65,7 @@ func (se *SwarmListenErr) Error() string {
 		return "<nil error>"
 	}
 	var out string
-	for i,v := range se.Errors {
+	for i, v := range se.Errors {
 		if v != nil {
 			out += fmt.Sprintf("%d: %s\n", i, v)
 		}
@@ -80,7 +82,7 @@ type Swarm struct {
 	conns     ConnMap
 	connsLock sync.RWMutex
 
-	local *peer.Peer
+	local     *peer.Peer
 	listeners []net.Listener
 }
 
@@ -137,7 +139,7 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 			if err != nil {
 				e := fmt.Errorf("Failed to accept connection: %s - %s [%s]",
 					netstr, addr, err)
-				go func() {s.Chan.Errors <- e}()
+				go func() { s.Chan.Errors <- e }()
 				return
 			}
 			go s.handleNewConn(nconn)
@@ -160,7 +162,9 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 
 	err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
-		panic(err)
+		u.PErr(err.Error())
+		conn.Close()
+		return
 	}
 
 	// Get address to contact remote peer from
@@ -186,7 +190,7 @@ func (s *Swarm) Close() {
 	s.Chan.Close <- true // fan out
 	s.Chan.Close <- true // listener
 
-	for _,list := range s.listeners {
+	for _, list := range s.listeners {
 		list.Close()
 	}
 }
@@ -220,9 +224,9 @@ func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error) {
 	return conn, nil
 }
 
-func (s *Swarm) StartConn(conn *Conn) {
+func (s *Swarm) StartConn(conn *Conn) error {
 	if conn == nil {
-		panic("tried to start nil Conn!")
+		return errors.New("Tried to start nil connection.")
 	}
 
 	u.DOut("Starting connection: %s", conn.Peer.Key().Pretty())
@@ -233,6 +237,7 @@ func (s *Swarm) StartConn(conn *Conn) {
 
 	// kick off reader goroutine
 	go s.fanIn(conn)
+	return nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
@@ -302,4 +307,51 @@ func (s *Swarm) Find(key u.Key) *peer.Peer {
 		return nil
 	}
 	return conn.Peer
+}
+
+func (s *Swarm) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
+	if addr == nil {
+		return nil, errors.New("nil Multiaddr passed to swarm.Connect()")
+	}
+	npeer := new(peer.Peer)
+	npeer.AddAddress(addr)
+
+	conn, err := Dial("tcp", npeer)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ident.Handshake(s.local, npeer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send node an address that you can be reached on
+	myaddr := s.local.NetAddress("tcp")
+	mastr, err := myaddr.String()
+	if err != nil {
+		return nil, errors.New("No local address to send to peer.")
+	}
+
+	conn.Outgoing.MsgChan <- []byte(mastr)
+
+	s.StartConn(conn)
+
+	return npeer, nil
+}
+
+// Removes a given peer from the swarm and closes connections to it
+func (s *Swarm) Drop(p *peer.Peer) error {
+	s.connsLock.RLock()
+	conn, found := s.conns[u.Key(p.ID)]
+	s.connsLock.RUnlock()
+	if !found {
+		return u.ErrNotFound
+	}
+
+	s.connsLock.Lock()
+	delete(s.conns, u.Key(p.ID))
+	s.connsLock.Unlock()
+
+	return conn.Close()
 }

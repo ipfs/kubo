@@ -38,7 +38,7 @@ func (dht *IpfsDHT) getDiagInfo() *diagInfo {
 	di.Keys = nil // Currently no way to query datastore
 
 	for _,p := range dht.routes[0].listpeers() {
-		di.Connections = append(di.Connections, connDiagInfo{p.GetDistance(), p.ID})
+		di.Connections = append(di.Connections, connDiagInfo{p.GetLatency(), p.ID})
 	}
 	return di
 }

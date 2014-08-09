@@ -1,10 +1,11 @@
 package dht
 
 import (
-	"math/rand"
-	"time"
 	"bytes"
 	"encoding/json"
+	"errors"
+	"math/rand"
+	"time"
 
 	proto "code.google.com/p/goprotobuf/proto"
 
@@ -34,7 +35,7 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	var p *peer.Peer
 	p = s.routes[0].NearestPeer(convertKey(key))
 	if p == nil {
-		panic("Table returned nil peer!")
+		return errors.New("Table returned nil peer!")
 	}
 
 	return s.putValueToPeer(p, string(key), value)
@@ -47,13 +48,13 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	var p *peer.Peer
 	p = s.routes[0].NearestPeer(convertKey(key))
 	if p == nil {
-		panic("Table returned nil peer!")
+		return nil, errors.New("Table returned nil peer!")
 	}
 
-	pmes := pDHTMessage{
-		Type: DHTMessage_GET_VALUE,
-		Key: string(key),
-		Id: GenerateMessageID(),
+	pmes := DHTMessage{
+		Type: PBDHTMessage_GET_VALUE,
+		Key:  string(key),
+		Id:   GenerateMessageID(),
 	}
 	response_chan := s.ListenFor(pmes.Id, 1, time.Minute)
 
@@ -68,15 +69,13 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		return nil, u.ErrTimeout
 	case resp, ok := <-response_chan:
 		if !ok {
-			panic("Channel was closed...")
+			u.PErr("response channel closed before timeout, please investigate.")
+			return nil, u.ErrTimeout
 		}
-		if resp == nil {
-			panic("Why the hell is this response nil?")
-		}
-		pmes_out := new(DHTMessage)
+		pmes_out := new(PBDHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
 		if pmes_out.GetSuccess() {
 			return pmes_out.GetValue(), nil
@@ -96,15 +95,15 @@ func (s *IpfsDHT) Provide(key u.Key) error {
 		//return an error
 	}
 
-	pmes := pDHTMessage{
-		Type: DHTMessage_ADD_PROVIDER,
-		Key: string(key),
+	pmes := DHTMessage{
+		Type: PBDHTMessage_ADD_PROVIDER,
+		Key:  string(key),
 	}
 	pbmes := pmes.ToProtobuf()
 
-	for _,p := range peers {
+	for _, p := range peers {
 		mes := swarm.NewMessage(p, pbmes)
-		s.network.Chan.Outgoing <-mes
+		s.network.Chan.Outgoing <- mes
 	}
 	return nil
 }
@@ -113,17 +112,17 @@ func (s *IpfsDHT) Provide(key u.Key) error {
 func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
 	p := s.routes[0].NearestPeer(convertKey(key))
 
-	pmes := pDHTMessage{
-		Type: DHTMessage_GET_PROVIDERS,
-		Key: string(key),
-		Id: GenerateMessageID(),
+	pmes := DHTMessage{
+		Type: PBDHTMessage_GET_PROVIDERS,
+		Key:  string(key),
+		Id:   GenerateMessageID(),
 	}
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	listen_chan := s.ListenFor(pmes.Id, 1, time.Minute)
 	u.DOut("Find providers for: '%s'", key)
-	s.network.Chan.Outgoing <-mes
+	s.network.Chan.Outgoing <- mes
 	after := time.After(timeout)
 	select {
 	case <-after:
@@ -131,7 +130,7 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 		return nil, u.ErrTimeout
 	case resp := <-listen_chan:
 		u.DOut("FindProviders: got response.")
-		pmes_out := new(DHTMessage)
+		pmes_out := new(PBDHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
 			return nil, err
@@ -143,10 +142,10 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 		}
 
 		var prov_arr []*peer.Peer
-		for pid,addr := range addrs {
+		for pid, addr := range addrs {
 			p := s.network.Find(pid)
 			if p == nil {
-				maddr,err := ma.NewMultiaddr(addr)
+				maddr, err := ma.NewMultiaddr(addr)
 				if err != nil {
 					u.PErr("error connecting to new peer: %s", err)
 					continue
@@ -171,23 +170,23 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
 	p := s.routes[0].NearestPeer(convertPeerID(id))
 
-	pmes := pDHTMessage{
-		Type: DHTMessage_FIND_NODE,
-		Key: string(id),
-		Id: GenerateMessageID(),
+	pmes := DHTMessage{
+		Type: PBDHTMessage_FIND_NODE,
+		Key:  string(id),
+		Id:   GenerateMessageID(),
 	}
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	listen_chan := s.ListenFor(pmes.Id, 1, time.Minute)
-	s.network.Chan.Outgoing <-mes
+	s.network.Chan.Outgoing <- mes
 	after := time.After(timeout)
 	select {
 	case <-after:
 		s.Unlisten(pmes.Id)
 		return nil, u.ErrTimeout
 	case resp := <-listen_chan:
-		pmes_out := new(DHTMessage)
+		pmes_out := new(PBDHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
 			return nil, err
@@ -218,7 +217,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	u.DOut("Enter Ping.")
 
-	pmes := pDHTMessage{Id: GenerateMessageID(), Type: DHTMessage_PING}
+	pmes := DHTMessage{Id: GenerateMessageID(), Type: PBDHTMessage_PING}
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
@@ -229,7 +228,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	select {
 	case <-response_chan:
 		roundtrip := time.Since(before)
-		p.SetDistance(roundtrip)
+		p.SetLatency(roundtrip)
 		u.POut("Ping took %s.", roundtrip.String())
 		return nil
 	case <-tout:
@@ -246,17 +245,17 @@ func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 	targets := dht.routes[0].NearestPeers(convertPeerID(dht.self.ID), 10)
 
 	// TODO: Add timeout to this struct so nodes know when to return
-	pmes := pDHTMessage{
-		Type: DHTMessage_DIAGNOSTIC,
-		Id: GenerateMessageID(),
+	pmes := DHTMessage{
+		Type: PBDHTMessage_DIAGNOSTIC,
+		Id:   GenerateMessageID(),
 	}
 
-	listen_chan := dht.ListenFor(pmes.Id, len(targets), time.Minute * 2)
+	listen_chan := dht.ListenFor(pmes.Id, len(targets), time.Minute*2)
 
 	pbmes := pmes.ToProtobuf()
-	for _,p := range targets {
+	for _, p := range targets {
 		mes := swarm.NewMessage(p, pbmes)
-		dht.network.Chan.Outgoing <-mes
+		dht.network.Chan.Outgoing <- mes
 	}
 
 	var out []*diagInfo
@@ -267,7 +266,7 @@ func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 			u.DOut("Diagnostic request timed out.")
 			return out, u.ErrTimeout
 		case resp := <-listen_chan:
-			pmes_out := new(DHTMessage)
+			pmes_out := new(PBDHTMessage)
 			err := proto.Unmarshal(resp.Data, pmes_out)
 			if err != nil {
 				// NOTE: here and elsewhere, need to audit error handling,
@@ -288,5 +287,5 @@ func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 		}
 	}
 
-	return nil,nil
+	return nil, nil
 }

@@ -1,13 +1,14 @@
 package util
 
 import (
-	"fmt"
 	"errors"
-	mh "github.com/jbenet/go-multihash"
+	"fmt"
 	"os"
 	"os/user"
 	"strings"
-	"encoding/hex"
+
+	b58 "github.com/jbenet/go-base58"
+	mh "github.com/jbenet/go-multihash"
 )
 
 // Debug is a global flag for debugging.
@@ -23,11 +24,14 @@ var ErrTimeout = errors.New("Error: Call timed out.")
 // find the expected node, but did find 'a' node.
 var ErrSearchIncomplete = errors.New("Error: Search Incomplete.")
 
+// ErrNotFound is returned when a search fails to find anything
+var ErrNotFound = errors.New("Error: Not Found.")
+
 // Key is a string representation of multihash for use with maps.
 type Key string
 
 func (k Key) Pretty() string {
-	return hex.EncodeToString([]byte(k))
+	return b58.Encode([]byte(k))
 }
 
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
@@ -51,12 +55,12 @@ func TildeExpansion(filename string) (string, error) {
 
 // PErr is a shorthand printing function to output to Stderr.
 func PErr(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format + "\n", a...)
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
 }
 
 // POut is a shorthand printing function to output to Stdout.
 func POut(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stdout, format + "\n", a...)
+	fmt.Fprintf(os.Stdout, format+"\n", a...)
 }
 
 // DErr is a shorthand debug printing function to output to Stderr.

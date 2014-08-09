@@ -125,7 +125,7 @@ func (rt *RoutingTable) NearestPeer(id ID) *peer.Peer {
 func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 	rt.tabLock.RLock()
 	defer rt.tabLock.RUnlock()
-	cpl := xor(id, rt.local).commonPrefixLen()
+	cpl := prefLen(id, rt.local)
 
 	// Get bucket at cpl index or last bucket
 	var bucket *Bucket

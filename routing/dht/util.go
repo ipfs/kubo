@@ -40,6 +40,10 @@ func (id ID) commonPrefixLen() int {
 	return len(id)*8 - 1
 }
 
+func prefLen(a, b ID) int {
+	return xor(a, b).commonPrefixLen()
+}
+
 func xor(a, b ID) ID {
 	a, b = equalizeSizes(a, b)
 
