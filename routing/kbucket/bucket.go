@@ -5,6 +5,7 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 )
+
 // Bucket holds a list of peers.
 type Bucket list.List
 

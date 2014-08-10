@@ -44,7 +44,7 @@ func TestSwarm(t *testing.T) {
 
 	swarm := NewSwarm(nil)
 	var peers []*peer.Peer
-	var  listeners []net.Listener
+	var listeners []net.Listener
 	peerNames := map[string]string{
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a30": "/ip4/127.0.0.1/tcp/1234",
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31": "/ip4/127.0.0.1/tcp/2345",

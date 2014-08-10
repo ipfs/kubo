@@ -8,9 +8,9 @@ import (
 	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 
 	ma "github.com/jbenet/go-multiaddr"
 
@@ -37,7 +37,6 @@ type IpfsDHT struct {
 	datastore ds.Datastore
 
 	// Map keys to peers that can provide their value
-	// TODO: implement a TTL on each of these keys
 	providers    map[u.Key][]*providerInfo
 	providerLock sync.RWMutex
 
@@ -67,7 +66,7 @@ type listenInfo struct {
 	eol time.Time
 }
 
-// Create a new DHT object with the given peer as the 'local' host
+// NewDHT creates a new DHT object with the given peer as the 'local' host
 func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	if p == nil {
 		return nil, errors.New("nil peer passed to NewDHT()")
@@ -111,7 +110,7 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	// NOTE: this should be done better...
 	err = dht.Ping(npeer, time.Second*2)
 	if err != nil {
-		return nil, errors.New("Failed to ping newly connected peer.")
+		return nil, errors.New("failed to ping newly connected peer")
 	}
 
 	return npeer, nil
@@ -227,7 +226,7 @@ func (dht *IpfsDHT) cleanExpiredListeners() {
 	dht.listenLock.Unlock()
 }
 
-func (dht *IpfsDHT) putValueToPeer(p *peer.Peer, key string, value []byte) error {
+func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) error {
 	pmes := DHTMessage{
 		Type:  PBDHTMessage_PUT_VALUE,
 		Key:   key,
@@ -242,26 +241,32 @@ func (dht *IpfsDHT) putValueToPeer(p *peer.Peer, key string, value []byte) error
 
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 	dskey := ds.NewKey(pmes.GetKey())
-	var resp *DHTMessage
-	i_val, err := dht.datastore.Get(dskey)
+	resp := &DHTMessage{
+		Response: true,
+		Id:       pmes.GetId(),
+		Key:      pmes.GetKey(),
+	}
+	iVal, err := dht.datastore.Get(dskey)
 	if err == nil {
-		resp = &DHTMessage{
-			Response: true,
-			Id:       *pmes.Id,
-			Key:      *pmes.Key,
-			Value:    i_val.([]byte),
-			Success:  true,
-		}
+		resp.Success = true
+		resp.Value = iVal.([]byte)
 	} else if err == ds.ErrNotFound {
-		// Find closest peer(s) to desired key and reply with that info
-		closer := dht.routes[0].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
-		resp = &DHTMessage{
-			Response: true,
-			Id:       *pmes.Id,
-			Key:      *pmes.Key,
-			Value:    closer.ID,
-			Success:  false,
+		// Check if we know any providers for the requested value
+		provs, ok := dht.providers[u.Key(pmes.GetKey())]
+		if ok && len(provs) > 0 {
+			for _, prov := range provs {
+				resp.Peers = append(resp.Peers, prov.Value)
+			}
+			resp.Success = true
+		} else {
+			// No providers?
+			// Find closest peer(s) to desired key and reply with that info
+			closer := dht.routes[0].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
+			resp.Peers = []*peer.Peer{closer}
 		}
+	} else {
+		//temp: what other errors can a datastore throw?
+		panic(err)
 	}
 
 	mes := swarm.NewMessage(p, resp.ToProtobuf())
@@ -397,6 +402,7 @@ func (dht *IpfsDHT) Unlisten(mesid uint64) {
 	close(list.resp)
 }
 
+// Check whether or not the dht is currently listening for mesid
 func (dht *IpfsDHT) IsListening(mesid uint64) bool {
 	dht.listenLock.RLock()
 	li, ok := dht.listeners[mesid]
@@ -424,6 +430,7 @@ func (dht *IpfsDHT) addProviderEntry(key u.Key, p *peer.Peer) {
 	dht.providerLock.Unlock()
 }
 
+// NOTE: not yet finished, low priority
 func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 	dht.diaglock.Lock()
 	if dht.IsListening(pmes.GetId()) {
@@ -434,7 +441,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 	dht.diaglock.Unlock()
 
 	seq := dht.routes[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
-	listen_chan := dht.ListenFor(pmes.GetId(), len(seq), time.Second*30)
+	listenChan := dht.ListenFor(pmes.GetId(), len(seq), time.Second*30)
 
 	for _, ps := range seq {
 		mes := swarm.NewMessage(ps, pmes)
@@ -453,7 +460,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 		case <-after:
 			//Timeout, return what we have
 			goto out
-		case req_resp := <-listen_chan:
+		case req_resp := <-listenChan:
 			pmes_out := new(PBDHTMessage)
 			err := proto.Unmarshal(req_resp.Data, pmes_out)
 			if err != nil {
@@ -477,6 +484,77 @@ out:
 	dht.network.Chan.Outgoing <- mes
 }
 
+func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duration) ([]byte, error) {
+	pmes := DHTMessage{
+		Type: PBDHTMessage_GET_VALUE,
+		Key:  string(key),
+		Id:   GenerateMessageID(),
+	}
+	response_chan := dht.ListenFor(pmes.Id, 1, time.Minute)
+
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
+	dht.network.Chan.Outgoing <- mes
+
+	// Wait for either the response or a timeout
+	timeup := time.After(timeout)
+	select {
+	case <-timeup:
+		dht.Unlisten(pmes.Id)
+		return nil, u.ErrTimeout
+	case resp, ok := <-response_chan:
+		if !ok {
+			u.PErr("response channel closed before timeout, please investigate.")
+			return nil, u.ErrTimeout
+		}
+		pmes_out := new(PBDHTMessage)
+		err := proto.Unmarshal(resp.Data, pmes_out)
+		if err != nil {
+			return nil, err
+		}
+		// TODO: debate moving this logic out of this function to be handled by the caller
+		if pmes_out.GetSuccess() {
+			if pmes_out.Value == nil {
+				// We were given provider[s]
+				return dht.getFromProviderList(key, timeout, pmes_out.GetPeers())
+			}
+			// We were given the value
+			return pmes_out.GetValue(), nil
+		} else {
+			return pmes_out.GetValue(), u.ErrSearchIncomplete
+		}
+	}
+}
+
+// TODO: Im not certain on this implementation, we get a list of providers from someone
+// what do we do with it? Connect to each of them? randomly pick one to get the value from?
+// Or just connect to one at a time until we get a successful connection and request the
+// value from it?
+func (dht *IpfsDHT) getFromProviderList(key u.Key, timeout time.Duration, provlist []*PBDHTMessage_PBPeer) ([]byte, error) {
+	for _, prov := range provlist {
+		prov_p, _ := dht.Find(peer.ID(prov.GetId()))
+		if prov_p == nil {
+			maddr, err := ma.NewMultiaddr(prov.GetAddr())
+			if err != nil {
+				u.PErr("getValue error: %s", err)
+				continue
+			}
+			prov_p, err = dht.Connect(maddr)
+			if err != nil {
+				u.PErr("getValue error: %s", err)
+				continue
+			}
+		}
+		data, err := dht.getValueSingle(prov_p, key, timeout)
+		if err != nil {
+			u.DErr("getFromProvs error: %s", err)
+			continue
+		}
+
+		return data, nil
+	}
+	return nil, u.ErrNotFound
+}
+
 func (dht *IpfsDHT) GetLocal(key u.Key) ([]byte, error) {
 	v, err := dht.datastore.Get(ds.NewKey(string(key)))
 	if err != nil {
@@ -494,4 +572,15 @@ func (dht *IpfsDHT) Update(p *peer.Peer) {
 	if removed != nil {
 		dht.network.Drop(removed)
 	}
+}
+
+// Look for a peer with a given ID connected to this dht
+func (dht *IpfsDHT) Find(id peer.ID) (*peer.Peer, *kb.RoutingTable) {
+	for _, table := range dht.routes {
+		p := table.Find(id)
+		if p != nil {
+			return p, table
+		}
+	}
+	return nil, nil
 }

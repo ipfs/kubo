@@ -19,7 +19,7 @@ type RoutingTable struct {
 	tabLock sync.RWMutex
 
 	// kBuckets define all the fingers to other nodes.
-	Buckets []*Bucket
+	Buckets    []*Bucket
 	bucketsize int
 }
 
@@ -52,7 +52,7 @@ func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 
 		// Are we past the max bucket size?
 		if bucket.Len() > rt.bucketsize {
-			if b_id == len(rt.Buckets) - 1 {
+			if b_id == len(rt.Buckets)-1 {
 				new_bucket := bucket.Split(b_id, rt.local)
 				rt.Buckets = append(rt.Buckets, new_bucket)
 				if new_bucket.Len() > rt.bucketsize {
@@ -81,25 +81,27 @@ func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 
 // A helper struct to sort peers by their distance to the local node
 type peerDistance struct {
-	p *peer.Peer
+	p        *peer.Peer
 	distance ID
 }
 
 // peerSorterArr implements sort.Interface to sort peers by xor distance
 type peerSorterArr []*peerDistance
-func (p peerSorterArr) Len() int {return len(p)}
-func (p peerSorterArr) Swap(a, b int) {p[a],p[b] = p[b],p[a]}
+
+func (p peerSorterArr) Len() int      { return len(p) }
+func (p peerSorterArr) Swap(a, b int) { p[a], p[b] = p[b], p[a] }
 func (p peerSorterArr) Less(a, b int) bool {
 	return p[a].distance.Less(p[b].distance)
 }
+
 //
 
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
-		for e := peerList.Front(); e != nil; e = e.Next() {
+	for e := peerList.Front(); e != nil; e = e.Next() {
 		p := e.Value.(*peer.Peer)
 		p_id := ConvertPeerID(p.ID)
 		pd := peerDistance{
-			p: p,
+			p:        p,
 			distance: xor(target, p_id),
 		}
 		peerArr = append(peerArr, &pd)
@@ -109,6 +111,15 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 		}
 	}
 	return peerArr
+}
+
+// Find a specific peer by ID or return nil
+func (rt *RoutingTable) Find(id peer.ID) *peer.Peer {
+	srch := rt.NearestPeers(ConvertPeerID(id), 1)
+	if len(srch) == 0 || !srch[0].ID.Equal(id) {
+		return nil
+	}
+	return srch[0]
 }
 
 // Returns a single peer that is nearest to the given ID
@@ -139,12 +150,12 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 		// In the case of an unusual split, one bucket may be empty.
 		// if this happens, search both surrounding buckets for nearest peer
 		if cpl > 0 {
-			plist := (*list.List)(rt.Buckets[cpl - 1])
+			plist := (*list.List)(rt.Buckets[cpl-1])
 			peerArr = copyPeersFromList(id, peerArr, plist)
 		}
 
-		if cpl < len(rt.Buckets) - 1 {
-			plist := (*list.List)(rt.Buckets[cpl + 1])
+		if cpl < len(rt.Buckets)-1 {
+			plist := (*list.List)(rt.Buckets[cpl+1])
 			peerArr = copyPeersFromList(id, peerArr, plist)
 		}
 	} else {
@@ -166,7 +177,7 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 // Returns the total number of peers in the routing table
 func (rt *RoutingTable) Size() int {
 	var tot int
-	for _,buck := range rt.Buckets {
+	for _, buck := range rt.Buckets {
 		tot += buck.Len()
 	}
 	return tot
@@ -175,7 +186,7 @@ func (rt *RoutingTable) Size() int {
 // NOTE: This is potentially unsafe... use at your own risk
 func (rt *RoutingTable) Listpeers() []*peer.Peer {
 	var peers []*peer.Peer
-	for _,buck := range rt.Buckets {
+	for _, buck := range rt.Buckets {
 		for e := buck.getIter(); e != nil; e = e.Next() {
 			peers = append(peers, e.Value.(*peer.Peer))
 		}

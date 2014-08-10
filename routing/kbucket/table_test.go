@@ -1,10 +1,10 @@
 package dht
 
 import (
+	"container/list"
 	crand "crypto/rand"
 	"crypto/sha256"
 	"math/rand"
-	"container/list"
 	"testing"
 
 	peer "github.com/jbenet/go-ipfs/peer"
