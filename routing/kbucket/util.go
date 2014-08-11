@@ -3,10 +3,15 @@ package dht
 import (
 	"bytes"
 	"crypto/sha256"
+	"errors"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// Returned if a routing table query returns no results. This is NOT expected
+// behaviour
+var ErrLookupFailure = errors.New("failed to find any peer in table")
 
 // ID for IpfsDHT should be a byte slice, to allow for simpler operations
 // (xor). DHT ids are based on the peer.IDs.
@@ -19,8 +24,8 @@ func (id ID) Equal(other ID) bool {
 	return bytes.Equal(id, other)
 }
 
-func (id ID) Less(other interface{}) bool {
-	a, b := equalizeSizes(id, other.(ID))
+func (id ID) Less(other ID) bool {
+	a, b := equalizeSizes(id, other)
 	for i := 0; i < len(a); i++ {
 		if a[i] != b[i] {
 			return a[i] < b[i]
@@ -79,4 +84,15 @@ func ConvertPeerID(id peer.ID) ID {
 func ConvertKey(id u.Key) ID {
 	hash := sha256.Sum256([]byte(id))
 	return hash[:]
+}
+
+// Returns true if a is closer to key than b is
+func Closer(a, b peer.ID, key u.Key) bool {
+	aid := ConvertPeerID(a)
+	bid := ConvertPeerID(b)
+	tgt := ConvertKey(key)
+	adist := xor(aid, tgt)
+	bdist := xor(bid, tgt)
+
+	return adist.Less(bdist)
 }

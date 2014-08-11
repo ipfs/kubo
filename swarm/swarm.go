@@ -355,3 +355,17 @@ func (s *Swarm) Drop(p *peer.Peer) error {
 
 	return conn.Close()
 }
+
+func (s *Swarm) Send(mes *Message) {
+	s.Chan.Outgoing <- mes
+}
+
+func (s *Swarm) Error(e error) {
+	s.Chan.Errors <- e
+}
+
+func (s *Swarm) GetChan() *Chan {
+	return s.Chan
+}
+
+var _ Network = &Swarm{}

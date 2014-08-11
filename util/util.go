@@ -1,10 +1,12 @@
 package util
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"os/user"
+	"runtime"
 	"strings"
 
 	b58 "github.com/jbenet/go-base58"
@@ -32,6 +34,30 @@ type Key string
 
 func (k Key) Pretty() string {
 	return b58.Encode([]byte(k))
+}
+
+type IpfsError struct {
+	Inner error
+	Note  string
+	Stack string
+}
+
+func (ie *IpfsError) Error() string {
+	buf := new(bytes.Buffer)
+	fmt.Fprintln(buf, ie.Inner)
+	fmt.Fprintln(buf, ie.Note)
+	fmt.Fprintln(buf, ie.Stack)
+	return buf.String()
+}
+
+func WrapError(err error, note string) error {
+	ie := new(IpfsError)
+	ie.Inner = err
+	ie.Note = note
+	stack := make([]byte, 2048)
+	n := runtime.Stack(stack, false)
+	ie.Stack = string(stack[:n])
+	return ie
 }
 
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
