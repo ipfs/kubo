@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
 
@@ -31,10 +32,12 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 
 	var dhts []*IpfsDHT
 	for i := 0; i < 4; i++ {
-		d, err := NewDHT(peers[i])
+		net := swarm.NewSwarm(peers[i])
+		err := net.Listen()
 		if err != nil {
 			t.Fatal(err)
 		}
+		d := NewDHT(peers[i], net)
 		dhts = append(dhts, d)
 		d.Start()
 	}
@@ -61,15 +64,19 @@ func TestPing(t *testing.T) {
 	peer_b.AddAddress(addr_b)
 	peer_b.ID = peer.ID([]byte("peer_b"))
 
-	dht_a, err := NewDHT(peer_a)
+	neta := swarm.NewSwarm(peer_a)
+	err = neta.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
+	dht_a := NewDHT(peer_a, neta)
 
-	dht_b, err := NewDHT(peer_b)
+	netb := swarm.NewSwarm(peer_b)
+	err = netb.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
+	dht_b := NewDHT(peer_b, netb)
 
 	dht_a.Start()
 	dht_b.Start()
@@ -108,15 +115,19 @@ func TestValueGetSet(t *testing.T) {
 	peer_b.AddAddress(addr_b)
 	peer_b.ID = peer.ID([]byte("peer_b"))
 
-	dht_a, err := NewDHT(peer_a)
+	neta := swarm.NewSwarm(peer_a)
+	err = neta.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
+	dht_a := NewDHT(peer_a, neta)
 
-	dht_b, err := NewDHT(peer_b)
+	netb := swarm.NewSwarm(peer_b)
+	err = netb.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
+	dht_b := NewDHT(peer_b, netb)
 
 	dht_a.Start()
 	dht_b.Start()
@@ -197,32 +208,7 @@ func TestProvides(t *testing.T) {
 
 func TestLayeredGet(t *testing.T) {
 	u.Debug = false
-	var addrs []*ma.Multiaddr
-	for i := 0; i < 4; i++ {
-		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		addrs = append(addrs, a)
-	}
-
-	var peers []*peer.Peer
-	for i := 0; i < 4; i++ {
-		p := new(peer.Peer)
-		p.AddAddress(addrs[i])
-		p.ID = peer.ID([]byte(fmt.Sprintf("peer_%d", i)))
-		peers = append(peers, p)
-	}
-
-	var dhts []*IpfsDHT
-	for i := 0; i < 4; i++ {
-		d, err := NewDHT(peers[i])
-		if err != nil {
-			t.Fatal(err)
-		}
-		dhts = append(dhts, d)
-		d.Start()
-	}
+	addrs,_,dhts := setupDHTS(4, t)
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {
@@ -267,32 +253,8 @@ func TestLayeredGet(t *testing.T) {
 
 func TestFindPeer(t *testing.T) {
 	u.Debug = false
-	var addrs []*ma.Multiaddr
-	for i := 0; i < 4; i++ {
-		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		addrs = append(addrs, a)
-	}
 
-	var peers []*peer.Peer
-	for i := 0; i < 4; i++ {
-		p := new(peer.Peer)
-		p.AddAddress(addrs[i])
-		p.ID = peer.ID([]byte(fmt.Sprintf("peer_%d", i)))
-		peers = append(peers, p)
-	}
-
-	var dhts []*IpfsDHT
-	for i := 0; i < 4; i++ {
-		d, err := NewDHT(peers[i])
-		if err != nil {
-			t.Fatal(err)
-		}
-		dhts = append(dhts, d)
-		d.Start()
-	}
+	addrs,peers,dhts := setupDHTS(4, t)
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {

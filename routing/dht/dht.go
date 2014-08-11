@@ -66,18 +66,9 @@ type listenInfo struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
-	if p == nil {
-		return nil, errors.New("nil peer passed to NewDHT()")
-	}
-	network := swarm.NewSwarm(p)
-	err := network.Listen()
-	if err != nil {
-		return nil, err
-	}
-
+func NewDHT(p *peer.Peer, net swarm.Network) *IpfsDHT {
 	dht := new(IpfsDHT)
-	dht.network = network
+	dht.network = net
 	dht.datastore = ds.NewMapDatastore()
 	dht.self = p
 	dht.listeners = make(map[uint64]*listenInfo)
@@ -86,7 +77,7 @@ func NewDHT(p *peer.Peer) (*IpfsDHT, error) {
 	dht.routes = make([]*kb.RoutingTable, 1)
 	dht.routes[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID))
 	dht.birth = time.Now()
-	return dht, nil
+	return dht
 }
 
 // Start up background goroutines needed by the DHT
