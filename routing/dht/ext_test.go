@@ -3,12 +3,13 @@ package dht
 import (
 	"testing"
 
-	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
-	swarm "github.com/jbenet/go-ipfs/swarm"
-	//ma "github.com/jbenet/go-multiaddr"
+	"code.google.com/p/goprotobuf/proto"
 
-	"fmt"
+	peer "github.com/jbenet/go-ipfs/peer"
+	swarm "github.com/jbenet/go-ipfs/swarm"
+	u "github.com/jbenet/go-ipfs/util"
+	ma "github.com/jbenet/go-multiaddr"
+
 	"time"
 )
 
@@ -36,7 +37,7 @@ func (f *fauxNet) Listen() error {
 		for {
 			select {
 			case in := <-f.Chan.Outgoing:
-				for _,h := range f.handlers {
+				for _, h := range f.handlers {
 					reply := h(in)
 					if reply != nil {
 						f.Chan.Incoming <- reply
@@ -54,24 +55,69 @@ func (f *fauxNet) AddHandler(fn func(*swarm.Message) *swarm.Message) {
 }
 
 func (f *fauxNet) Send(mes *swarm.Message) {
-
+	f.Chan.Outgoing <- mes
 }
 
-func TestGetFailure(t *testing.T) {
+func (f *fauxNet) GetChan() *swarm.Chan {
+	return f.Chan
+}
+
+func (f *fauxNet) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
+	return nil, nil
+}
+
+func TestGetFailures(t *testing.T) {
 	fn := newFauxNet()
 	fn.Listen()
 
 	local := new(peer.Peer)
-	local.ID = peer.ID([]byte("test_peer"))
+	local.ID = peer.ID("test_peer")
 
 	d := NewDHT(local, fn)
 
+	other := &peer.Peer{ID: peer.ID("other_peer")}
+
 	d.Start()
 
-	b, err := d.GetValue(u.Key("test"), time.Second)
+	d.Update(other)
+
+	// This one should time out
+	_, err := d.GetValue(u.Key("test"), time.Millisecond*5)
 	if err != nil {
-		t.Fatal(err)
+		nerr, ok := err.(*u.IpfsError)
+		if !ok {
+			t.Fatal("Got different error than we expected.")
+		}
+		if nerr.Inner != u.ErrTimeout {
+			t.Fatal("Got different error than we expected.")
+		}
+	} else {
+		t.Fatal("Did not get expected error!")
 	}
 
-	fmt.Println(b)
+	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
+		pmes := new(PBDHTMessage)
+		err := proto.Unmarshal(mes.Data, pmes)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		resp := DHTMessage{
+			Type:     pmes.GetType(),
+			Id:       pmes.GetId(),
+			Response: true,
+			Success:  false,
+		}
+		return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
+	})
+
+	// This one should fail with NotFound
+	_, err = d.GetValue(u.Key("test"), time.Millisecond*5)
+	if err != nil {
+		if err != u.ErrNotFound {
+			t.Fatal("Expected ErrNotFound, got: %s", err)
+		}
+	} else {
+		t.Fatal("expected error, got none.")
+	}
 }

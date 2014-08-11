@@ -208,7 +208,7 @@ func TestProvides(t *testing.T) {
 
 func TestLayeredGet(t *testing.T) {
 	u.Debug = false
-	addrs,_,dhts := setupDHTS(4, t)
+	addrs, _, dhts := setupDHTS(4, t)
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {
@@ -254,7 +254,7 @@ func TestLayeredGet(t *testing.T) {
 func TestFindPeer(t *testing.T) {
 	u.Debug = false
 
-	addrs,peers,dhts := setupDHTS(4, t)
+	addrs, peers, dhts := setupDHTS(4, t)
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {
