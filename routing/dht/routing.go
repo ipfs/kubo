@@ -3,6 +3,7 @@ package dht
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"time"
 
@@ -89,10 +90,10 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 					panic("not yet implemented")
 				}
 
-				p, err = s.network.Connect(maddr)
+				p, err = s.network.GetConnection(peer.ID(closers[0].GetId()), maddr)
 				if err != nil {
-					// Move up route level
-					panic("not yet implemented.")
+					u.PErr("[%s] Failed to connect to: %s", s.self.ID.Pretty(), closers[0].GetAddr())
+					route_level++
 				}
 			} else {
 				route_level++
@@ -160,12 +161,13 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 		for _, prov := range pmes_out.GetPeers() {
 			p := s.network.Find(u.Key(prov.GetId()))
 			if p == nil {
+				u.DOut("given provider %s was not in our network already.", peer.ID(prov.GetId()).Pretty())
 				maddr, err := ma.NewMultiaddr(prov.GetAddr())
 				if err != nil {
 					u.PErr("error connecting to new peer: %s", err)
 					continue
 				}
-				p, err = s.network.Connect(maddr)
+				p, err = s.network.GetConnection(peer.ID(prov.GetId()), maddr)
 				if err != nil {
 					u.PErr("error connecting to new peer: %s", err)
 					continue
@@ -183,10 +185,19 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 
 // FindPeer searches for a peer with given ID.
 func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
+	// Check if were already connected to them
+	p, _ := s.Find(id)
+	if p != nil {
+		return p, nil
+	}
+
 	route_level := 0
-	p := s.routes[route_level].NearestPeer(kb.ConvertPeerID(id))
+	p = s.routes[route_level].NearestPeer(kb.ConvertPeerID(id))
 	if p == nil {
 		return nil, kb.ErrLookupFailure
+	}
+	if p.ID.Equal(id) {
+		return p, nil
 	}
 
 	for route_level < len(s.routes) {
@@ -202,11 +213,14 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 			return nil, u.WrapError(err, "FindPeer received bad info")
 		}
 
-		nxtPeer, err := s.network.Connect(addr)
+		nxtPeer, err := s.network.GetConnection(peer.ID(found.GetId()), addr)
 		if err != nil {
 			return nil, u.WrapError(err, "FindPeer failed to connect to new peer.")
 		}
 		if pmes.GetSuccess() {
+			if !id.Equal(nxtPeer.ID) {
+				return nil, errors.New("got back invalid peer from 'successful' response")
+			}
 			return nxtPeer, nil
 		} else {
 			p = nxtPeer

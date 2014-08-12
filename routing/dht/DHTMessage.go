@@ -28,6 +28,8 @@ func peerInfo(p *peer.Peer) *PBDHTMessage_PBPeer {
 	return pbp
 }
 
+// TODO: building the protobuf message this way is a little wasteful
+//		 Unused fields wont be omitted, find a better way to do this
 func (m *DHTMessage) ToProtobuf() *PBDHTMessage {
 	pmes := new(PBDHTMessage)
 	if m.Value != nil {

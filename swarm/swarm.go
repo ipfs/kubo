@@ -203,7 +203,7 @@ func (s *Swarm) Close() {
 // etc. to achive connection.
 //
 // For now, Dial uses only TCP. This will be extended.
-func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error) {
+func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error, bool) {
 	k := peer.Key()
 
 	// check if we already have an open connection first
@@ -211,17 +211,16 @@ func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error) {
 	conn, found := s.conns[k]
 	s.connsLock.RUnlock()
 	if found {
-		return conn, nil
+		return conn, nil, true
 	}
 
 	// open connection to peer
 	conn, err := Dial("tcp", peer)
 	if err != nil {
-		return nil, err
+		return nil, err, false
 	}
 
-	s.StartConn(conn)
-	return conn, nil
+	return conn, nil, false
 }
 
 func (s *Swarm) StartConn(conn *Conn) error {
@@ -309,7 +308,50 @@ func (s *Swarm) Find(key u.Key) *peer.Peer {
 	return conn.Peer
 }
 
-func (s *Swarm) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
+// GetConnection will check if we are already connected to the peer in question
+// and only open a new connection if we arent already
+func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error) {
+	p := &peer.Peer{
+		ID:        id,
+		Addresses: []*ma.Multiaddr{addr},
+	}
+
+	conn, err, reused := s.Dial(p)
+	if err != nil {
+		return nil, err
+	}
+
+	if reused {
+		return p, nil
+	}
+
+	err = s.handleDialedCon(conn)
+	return conn.Peer, err
+}
+
+func (s *Swarm) handleDialedCon(conn *Conn) error {
+	err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	if err != nil {
+		return err
+	}
+
+	// Send node an address that you can be reached on
+	myaddr := s.local.NetAddress("tcp")
+	mastr, err := myaddr.String()
+	if err != nil {
+		errors.New("No local address to send to peer.")
+	}
+
+	conn.Outgoing.MsgChan <- []byte(mastr)
+
+	s.StartConn(conn)
+
+	return nil
+}
+
+// ConnectNew is for connecting to a peer when you dont know their ID,
+// Should only be used when you are sure that you arent already connected to peer in question
+func (s *Swarm) ConnectNew(addr *ma.Multiaddr) (*peer.Peer, error) {
 	if addr == nil {
 		return nil, errors.New("nil Multiaddr passed to swarm.Connect()")
 	}
@@ -321,23 +363,8 @@ func (s *Swarm) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 		return nil, err
 	}
 
-	err = ident.Handshake(s.local, npeer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
-	if err != nil {
-		return nil, err
-	}
-
-	// Send node an address that you can be reached on
-	myaddr := s.local.NetAddress("tcp")
-	mastr, err := myaddr.String()
-	if err != nil {
-		return nil, errors.New("No local address to send to peer.")
-	}
-
-	conn.Outgoing.MsgChan <- []byte(mastr)
-
-	s.StartConn(conn)
-
-	return npeer, nil
+	err = s.handleDialedCon(conn)
+	return npeer, err
 }
 
 // Removes a given peer from the swarm and closes connections to it

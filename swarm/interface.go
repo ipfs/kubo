@@ -12,7 +12,8 @@ type Network interface {
 	Error(error)
 	Find(u.Key) *peer.Peer
 	Listen() error
-	Connect(*ma.Multiaddr) (*peer.Peer, error)
+	ConnectNew(*ma.Multiaddr) (*peer.Peer, error)
+	GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error)
 	GetChan() *Chan
 	Close()
 	Drop(*peer.Peer) error

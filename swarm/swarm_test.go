@@ -2,11 +2,12 @@ package swarm
 
 import (
 	"fmt"
+	"net"
+	"testing"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	msgio "github.com/jbenet/go-msgio"
-	"net"
-	"testing"
 )
 
 func pingListen(listener *net.TCPListener, peer *peer.Peer) {
@@ -71,11 +72,12 @@ func TestSwarm(t *testing.T) {
 		}
 		go pingListen(listener.(*net.TCPListener), peer)
 
-		_, err = swarm.Dial(peer)
+		conn, err, _ := swarm.Dial(peer)
 		if err != nil {
 			t.Fatal("error swarm dialing to peer", err)
 		}
 
+		swarm.StartConn(conn)
 		// ok done, add it.
 		peers = append(peers, peer)
 		listeners = append(listeners, listener)

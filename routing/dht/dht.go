@@ -93,7 +93,7 @@ func (dht *IpfsDHT) Start() {
 func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	maddrstr, _ := addr.String()
 	u.DOut("Connect to new peer: %s", maddrstr)
-	npeer, err := dht.network.Connect(addr)
+	npeer, err := dht.network.ConnectNew(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +527,7 @@ func (dht *IpfsDHT) getFromPeerList(key u.Key, timeout time.Duration,
 				continue
 			}
 
-			p, err = dht.network.Connect(maddr)
+			p, err = dht.network.GetConnection(peer.ID(pinfo.GetId()), maddr)
 			if err != nil {
 				u.PErr("getValue error: %s", err)
 				continue
