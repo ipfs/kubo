@@ -2,8 +2,10 @@ package dht
 
 import (
 	"container/list"
+	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -18,16 +20,20 @@ type RoutingTable struct {
 	// Blanket lock, refine later for better performance
 	tabLock sync.RWMutex
 
+	// Maximum acceptable latency for peers in this cluster
+	maxLatency time.Duration
+
 	// kBuckets define all the fingers to other nodes.
 	Buckets    []*Bucket
 	bucketsize int
 }
 
-func NewRoutingTable(bucketsize int, local_id ID) *RoutingTable {
+func NewRoutingTable(bucketsize int, local_id ID, latency time.Duration) *RoutingTable {
 	rt := new(RoutingTable)
-	rt.Buckets = []*Bucket{new(Bucket)}
+	rt.Buckets = []*Bucket{NewBucket()}
 	rt.bucketsize = bucketsize
 	rt.local = local_id
+	rt.maxLatency = latency
 	return rt
 }
 
@@ -48,6 +54,10 @@ func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 	e := bucket.Find(p.ID)
 	if e == nil {
 		// New peer, add to bucket
+		if p.GetLatency() > rt.maxLatency {
+			// Connection doesnt meet requirements, skip!
+			return nil
+		}
 		bucket.PushFront(p)
 
 		// Are we past the max bucket size?
@@ -150,17 +160,16 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 		// In the case of an unusual split, one bucket may be empty.
 		// if this happens, search both surrounding buckets for nearest peer
 		if cpl > 0 {
-			plist := (*list.List)(rt.Buckets[cpl-1])
+			plist := rt.Buckets[cpl-1].list
 			peerArr = copyPeersFromList(id, peerArr, plist)
 		}
 
 		if cpl < len(rt.Buckets)-1 {
-			plist := (*list.List)(rt.Buckets[cpl+1])
+			plist := rt.Buckets[cpl+1].list
 			peerArr = copyPeersFromList(id, peerArr, plist)
 		}
 	} else {
-		plist := (*list.List)(bucket)
-		peerArr = copyPeersFromList(id, peerArr, plist)
+		peerArr = copyPeersFromList(id, peerArr, bucket.list)
 	}
 
 	// Sort by distance to local peer
@@ -192,4 +201,13 @@ func (rt *RoutingTable) Listpeers() []*peer.Peer {
 		}
 	}
 	return peers
+}
+
+func (rt *RoutingTable) Print() {
+	fmt.Printf("Routing Table, bs = %d, Max latency = %d\n", rt.bucketsize, rt.maxLatency)
+	rt.tabLock.RLock()
+	peers := rt.Listpeers()
+	for i, p := range peers {
+		fmt.Printf("%d) %s %s\n", i, p.ID.Pretty(), p.GetLatency().String())
+	}
 }

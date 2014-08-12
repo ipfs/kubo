@@ -2,16 +2,27 @@ package dht
 
 import (
 	"container/list"
+	"sync"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
 // Bucket holds a list of peers.
-type Bucket list.List
+type Bucket struct {
+	lk   sync.RWMutex
+	list *list.List
+}
+
+func NewBucket() *Bucket {
+	b := new(Bucket)
+	b.list = list.New()
+	return b
+}
 
 func (b *Bucket) Find(id peer.ID) *list.Element {
-	bucket_list := (*list.List)(b)
-	for e := bucket_list.Front(); e != nil; e = e.Next() {
+	b.lk.RLock()
+	defer b.lk.RUnlock()
+	for e := b.list.Front(); e != nil; e = e.Next() {
 		if e.Value.(*peer.Peer).ID.Equal(id) {
 			return e
 		}
@@ -20,34 +31,42 @@ func (b *Bucket) Find(id peer.ID) *list.Element {
 }
 
 func (b *Bucket) MoveToFront(e *list.Element) {
-	bucket_list := (*list.List)(b)
-	bucket_list.MoveToFront(e)
+	b.lk.Lock()
+	b.list.MoveToFront(e)
+	b.lk.Unlock()
 }
 
 func (b *Bucket) PushFront(p *peer.Peer) {
-	bucket_list := (*list.List)(b)
-	bucket_list.PushFront(p)
+	b.lk.Lock()
+	b.list.PushFront(p)
+	b.lk.Unlock()
 }
 
 func (b *Bucket) PopBack() *peer.Peer {
-	bucket_list := (*list.List)(b)
-	last := bucket_list.Back()
-	bucket_list.Remove(last)
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	last := b.list.Back()
+	b.list.Remove(last)
 	return last.Value.(*peer.Peer)
 }
 
 func (b *Bucket) Len() int {
-	bucket_list := (*list.List)(b)
-	return bucket_list.Len()
+	b.lk.RLock()
+	defer b.lk.RUnlock()
+	return b.list.Len()
 }
 
 // Splits a buckets peers into two buckets, the methods receiver will have
 // peers with CPL equal to cpl, the returned bucket will have peers with CPL
 // greater than cpl (returned bucket has closer peers)
 func (b *Bucket) Split(cpl int, target ID) *Bucket {
-	bucket_list := (*list.List)(b)
+	b.lk.Lock()
+	defer b.lk.Unlock()
+
 	out := list.New()
-	e := bucket_list.Front()
+	newbuck := NewBucket()
+	newbuck.list = out
+	e := b.list.Front()
 	for e != nil {
 		peer_id := ConvertPeerID(e.Value.(*peer.Peer).ID)
 		peer_cpl := prefLen(peer_id, target)
@@ -55,15 +74,14 @@ func (b *Bucket) Split(cpl int, target ID) *Bucket {
 			cur := e
 			out.PushBack(e.Value)
 			e = e.Next()
-			bucket_list.Remove(cur)
+			b.list.Remove(cur)
 			continue
 		}
 		e = e.Next()
 	}
-	return (*Bucket)(out)
+	return newbuck
 }
 
 func (b *Bucket) getIter() *list.Element {
-	bucket_list := (*list.List)(b)
-	return bucket_list.Front()
+	return b.list.Front()
 }

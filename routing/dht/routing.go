@@ -89,9 +89,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 					panic("not yet implemented")
 				}
 
-				// TODO: dht.Connect has overhead due to an internal
-				//			ping to the target. Use something else
-				p, err = s.Connect(maddr)
+				p, err = s.network.Connect(maddr)
 				if err != nil {
 					// Move up route level
 					panic("not yet implemented.")
@@ -167,7 +165,7 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 					u.PErr("error connecting to new peer: %s", err)
 					continue
 				}
-				p, err = s.Connect(maddr)
+				p, err = s.network.Connect(maddr)
 				if err != nil {
 					u.PErr("error connecting to new peer: %s", err)
 					continue
@@ -204,7 +202,7 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 			return nil, u.WrapError(err, "FindPeer received bad info")
 		}
 
-		nxtPeer, err := s.Connect(addr)
+		nxtPeer, err := s.network.Connect(addr)
 		if err != nil {
 			return nil, u.WrapError(err, "FindPeer failed to connect to new peer.")
 		}

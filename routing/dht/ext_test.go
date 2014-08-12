@@ -16,13 +16,16 @@ import (
 // fauxNet is a standin for a swarm.Network in order to more easily recreate
 // different testing scenarios
 type fauxNet struct {
-	Chan *swarm.Chan
+	Chan     *swarm.Chan
+	handlers []mesHandleFunc
 
 	swarm.Network
-
-	handlers []mesHandleFunc
 }
 
+// mesHandleFunc is a function that takes in outgoing messages
+// and can respond to them, simulating other peers on the network.
+// returning nil will chose not to respond and pass the message onto the
+// next registered handler
 type mesHandleFunc func(*swarm.Message) *swarm.Message
 
 func newFauxNet() *fauxNet {
@@ -32,6 +35,9 @@ func newFauxNet() *fauxNet {
 	return fn
 }
 
+// Instead of 'Listening' Start up a goroutine that will check
+// all outgoing messages against registered message handlers,
+// and reply if needed
 func (f *fauxNet) Listen() error {
 	go func() {
 		for {
@@ -95,6 +101,7 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal("Did not get expected error!")
 	}
 
+	// Reply with failures to every message
 	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
 		pmes := new(PBDHTMessage)
 		err := proto.Unmarshal(mes.Data, pmes)
@@ -120,4 +127,30 @@ func TestGetFailures(t *testing.T) {
 	} else {
 		t.Fatal("expected error, got none.")
 	}
+
+	success := make(chan struct{})
+	fn.handlers = nil
+	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
+		resp := new(PBDHTMessage)
+		err := proto.Unmarshal(mes.Data, resp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.GetSuccess() {
+			t.Fatal("Get returned success when it shouldnt have.")
+		}
+		success <- struct{}{}
+		return nil
+	})
+
+	// Now we test this DHT's handleGetValue failure
+	req := DHTMessage{
+		Type:  PBDHTMessage_GET_VALUE,
+		Key:   "hello",
+		Id:    GenerateMessageID(),
+		Value: []byte{0},
+	}
+	fn.Chan.Incoming <- swarm.NewMessage(other, req.ToProtobuf())
+
+	<-success
 }

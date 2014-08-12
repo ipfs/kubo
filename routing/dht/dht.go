@@ -74,8 +74,12 @@ func NewDHT(p *peer.Peer, net swarm.Network) *IpfsDHT {
 	dht.listeners = make(map[uint64]*listenInfo)
 	dht.providers = make(map[u.Key][]*providerInfo)
 	dht.shutdown = make(chan struct{})
-	dht.routes = make([]*kb.RoutingTable, 1)
-	dht.routes[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID))
+
+	dht.routes = make([]*kb.RoutingTable, 3)
+	dht.routes[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*30)
+	dht.routes[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*100)
+	dht.routes[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
+
 	dht.birth = time.Now()
 	return dht
 }
@@ -253,7 +257,13 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 			// No providers?
 			// Find closest peer on given cluster to desired key and reply with that info
 
-			level := pmes.GetValue()[0] // Using value field to specify cluster level
+			level := 0
+			if len(pmes.GetValue()) < 1 {
+				// TODO: maybe return an error? Defaulting isnt a good idea IMO
+				u.PErr("handleGetValue: no routing level specified, assuming 0")
+			} else {
+				level = int(pmes.GetValue()[0]) // Using value field to specify cluster level
+			}
 
 			closer := dht.routes[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 
@@ -477,6 +487,7 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 	response_chan := dht.ListenFor(pmes.Id, 1, time.Minute)
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
+	t := time.Now()
 	dht.network.Send(mes)
 
 	// Wait for either the response or a timeout
@@ -490,6 +501,8 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 			u.PErr("response channel closed before timeout, please investigate.")
 			return nil, u.ErrTimeout
 		}
+		roundtrip := time.Since(t)
+		resp.Peer.SetLatency(roundtrip)
 		pmes_out := new(PBDHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
@@ -513,7 +526,8 @@ func (dht *IpfsDHT) getFromPeerList(key u.Key, timeout time.Duration,
 				u.PErr("getValue error: %s", err)
 				continue
 			}
-			p, err = dht.Connect(maddr)
+
+			p, err = dht.network.Connect(maddr)
 			if err != nil {
 				u.PErr("getValue error: %s", err)
 				continue
@@ -547,9 +561,21 @@ func (dht *IpfsDHT) PutLocal(key u.Key, value []byte) error {
 }
 
 func (dht *IpfsDHT) Update(p *peer.Peer) {
-	removed := dht.routes[0].Update(p)
-	if removed != nil {
-		dht.network.Drop(removed)
+	for _, route := range dht.routes {
+		removed := route.Update(p)
+		// Only drop the connection if no tables refer to this peer
+		if removed != nil {
+			found := false
+			for _, r := range dht.routes {
+				if r.Find(removed.ID) != nil {
+					found = true
+					break
+				}
+			}
+			if !found {
+				dht.network.Drop(removed)
+			}
+		}
 	}
 }
 
@@ -574,6 +600,7 @@ func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Durati
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 	listenChan := dht.ListenFor(pmes.Id, 1, time.Minute)
+	t := time.Now()
 	dht.network.Send(mes)
 	after := time.After(timeout)
 	select {
@@ -581,6 +608,8 @@ func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Durati
 		dht.Unlisten(pmes.Id)
 		return nil, u.ErrTimeout
 	case resp := <-listenChan:
+		roundtrip := time.Since(t)
+		resp.Peer.SetLatency(roundtrip)
 		pmes_out := new(PBDHTMessage)
 		err := proto.Unmarshal(resp.Data, pmes_out)
 		if err != nil {
@@ -588,5 +617,11 @@ func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Durati
 		}
 
 		return pmes_out, nil
+	}
+}
+
+func (dht *IpfsDHT) PrintTables() {
+	for _, route := range dht.routes {
+		route.Print()
 	}
 }

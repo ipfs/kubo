@@ -71,6 +71,8 @@ func (p *Peer) GetLatency() (out time.Duration) {
 	return
 }
 
+// TODO: Instead of just keeping a single number,
+//		 keep a running average over the last hour or so
 func (p *Peer) SetLatency(laten time.Duration) {
 	p.latenLock.Lock()
 	p.latency = laten
