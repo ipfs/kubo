@@ -62,9 +62,20 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) {
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	route_level := 0
 
+	// If we have it local, dont bother doing an RPC!
+	// NOTE: this might not be what we want to do...
+	val,err := s.GetLocal(key)
+	if err != nil {
+		return val, nil
+	}
+
 	p := s.routes[route_level].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, kb.ErrLookupFailure
+	}
+
+	if kb.Closer(s.self.ID, p.ID, key) {
+		return nil, u.ErrNotFound
 	}
 
 	for route_level < len(s.routes) && p != nil {
@@ -84,17 +95,21 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 			// We were given a closer node
 			closers := pmes.GetPeers()
 			if len(closers) > 0 {
+				if peer.ID(closers[0].GetId()).Equal(s.self.ID) {
+					return nil, u.ErrNotFound
+				}
 				maddr, err := ma.NewMultiaddr(closers[0].GetAddr())
 				if err != nil {
 					// ??? Move up route level???
 					panic("not yet implemented")
 				}
 
-				p, err = s.network.GetConnection(peer.ID(closers[0].GetId()), maddr)
+				np, err := s.network.GetConnection(peer.ID(closers[0].GetId()), maddr)
 				if err != nil {
 					u.PErr("[%s] Failed to connect to: %s", s.self.ID.Pretty(), closers[0].GetAddr())
 					route_level++
 				}
+				p = np
 			} else {
 				route_level++
 			}
@@ -159,6 +174,9 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 
 		var prov_arr []*peer.Peer
 		for _, prov := range pmes_out.GetPeers() {
+			if peer.ID(prov.GetId()).Equal(s.self.ID) {
+				continue
+			}
 			p := s.network.Find(u.Key(prov.GetId()))
 			if p == nil {
 				u.DOut("given provider %s was not in our network already.", peer.ID(prov.GetId()).Pretty())

@@ -158,8 +158,8 @@ func (dht *IpfsDHT) handleMessages() {
 			}
 			//
 
-			u.DOut("[peer: %s]", dht.self.ID.Pretty())
-			u.DOut("Got message type: '%s' [id = %x, from = %s]",
+			u.DOut("[peer: %s]\nGot message type: '%s' [id = %x, from = %s]",
+				dht.self.ID.Pretty(),
 				PBDHTMessage_MessageType_name[int32(pmes.GetType())],
 				pmes.GetId(), mes.Peer.ID.Pretty())
 			switch pmes.GetType() {
@@ -235,6 +235,7 @@ func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) er
 }
 
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
+	u.DOut("handleGetValue for key: %s", pmes.GetKey())
 	dskey := ds.NewKey(pmes.GetKey())
 	resp := &DHTMessage{
 		Response: true,
