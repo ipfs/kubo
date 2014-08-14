@@ -60,12 +60,19 @@ func (s *IpfsDHT) PutValue(key u.Key, value []byte) {
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
+	ll := startNewRpc("GET")
+	defer func() {
+		ll.EndLog()
+		ll.Print()
+	}()
 	route_level := 0
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
-	val,err := s.GetLocal(key)
-	if err != nil {
+	val, err := s.GetLocal(key)
+	if err == nil {
+		ll.Success = true
+		u.DOut("Found local, returning.")
 		return val, nil
 	}
 
@@ -74,11 +81,8 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		return nil, kb.ErrLookupFailure
 	}
 
-	if kb.Closer(s.self.ID, p.ID, key) {
-		return nil, u.ErrNotFound
-	}
-
 	for route_level < len(s.routes) && p != nil {
+		ll.RpcCount++
 		pmes, err := s.getValueSingle(p, key, timeout, route_level)
 		if err != nil {
 			return nil, u.WrapError(err, "getValue Error")
@@ -86,16 +90,19 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 		if pmes.GetSuccess() {
 			if pmes.Value == nil { // We were given provider[s]
+				ll.RpcCount++
 				return s.getFromPeerList(key, timeout, pmes.GetPeers(), route_level)
 			}
 
 			// Success! We were given the value
+			ll.Success = true
 			return pmes.GetValue(), nil
 		} else {
 			// We were given a closer node
 			closers := pmes.GetPeers()
 			if len(closers) > 0 {
 				if peer.ID(closers[0].GetId()).Equal(s.self.ID) {
+					u.DOut("Got myself back as a closer peer.")
 					return nil, u.ErrNotFound
 				}
 				maddr, err := ma.NewMultiaddr(closers[0].GetAddr())
@@ -108,6 +115,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 				if err != nil {
 					u.PErr("[%s] Failed to connect to: %s", s.self.ID.Pretty(), closers[0].GetAddr())
 					route_level++
+					continue
 				}
 				p = np
 			} else {
@@ -143,60 +151,52 @@ func (s *IpfsDHT) Provide(key u.Key) error {
 
 // FindProviders searches for peers who can provide the value for given key.
 func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
+	ll := startNewRpc("FindProviders")
+	defer func() {
+		ll.EndLog()
+		ll.Print()
+	}()
+	u.DOut("Find providers for: '%s'", key)
 	p := s.routes[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, kb.ErrLookupFailure
 	}
 
-	pmes := DHTMessage{
-		Type: PBDHTMessage_GET_PROVIDERS,
-		Key:  string(key),
-		Id:   GenerateMessageID(),
-	}
-
-	mes := swarm.NewMessage(p, pmes.ToProtobuf())
-
-	listenChan := s.ListenFor(pmes.Id, 1, time.Minute)
-	u.DOut("Find providers for: '%s'", key)
-	s.network.Send(mes)
-	after := time.After(timeout)
-	select {
-	case <-after:
-		s.Unlisten(pmes.Id)
-		return nil, u.ErrTimeout
-	case resp := <-listenChan:
-		u.DOut("FindProviders: got response.")
-		pmes_out := new(PBDHTMessage)
-		err := proto.Unmarshal(resp.Data, pmes_out)
+	for level := 0; level < len(s.routes); {
+		pmes, err := s.findProvidersSingle(p, key, level, timeout)
 		if err != nil {
 			return nil, err
 		}
-
-		var prov_arr []*peer.Peer
-		for _, prov := range pmes_out.GetPeers() {
-			if peer.ID(prov.GetId()).Equal(s.self.ID) {
+		if pmes.GetSuccess() {
+			provs := s.addPeerList(key, pmes.GetPeers())
+			ll.Success = true
+			return provs, nil
+		} else {
+			closer := pmes.GetPeers()
+			if len(closer) == 0 {
+				level++
 				continue
 			}
-			p := s.network.Find(u.Key(prov.GetId()))
-			if p == nil {
-				u.DOut("given provider %s was not in our network already.", peer.ID(prov.GetId()).Pretty())
-				maddr, err := ma.NewMultiaddr(prov.GetAddr())
-				if err != nil {
-					u.PErr("error connecting to new peer: %s", err)
-					continue
-				}
-				p, err = s.network.GetConnection(peer.ID(prov.GetId()), maddr)
-				if err != nil {
-					u.PErr("error connecting to new peer: %s", err)
-					continue
-				}
+			if peer.ID(closer[0].GetId()).Equal(s.self.ID) {
+				u.DOut("Got myself back as a closer peer.")
+				return nil, u.ErrNotFound
 			}
-			s.addProviderEntry(key, p)
-			prov_arr = append(prov_arr, p)
-		}
+			maddr, err := ma.NewMultiaddr(closer[0].GetAddr())
+			if err != nil {
+				// ??? Move up route level???
+				panic("not yet implemented")
+			}
 
-		return prov_arr, nil
+			np, err := s.network.GetConnection(peer.ID(closer[0].GetId()), maddr)
+			if err != nil {
+				u.PErr("[%s] Failed to connect to: %s", s.self.ID.Pretty(), closer[0].GetAddr())
+				level++
+				continue
+			}
+			p = np
+		}
 	}
+	return nil, u.ErrNotFound
 }
 
 // Find specific Peer

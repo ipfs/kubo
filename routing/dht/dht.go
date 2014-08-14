@@ -244,12 +244,14 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 	}
 	iVal, err := dht.datastore.Get(dskey)
 	if err == nil {
+		u.DOut("handleGetValue success!")
 		resp.Success = true
 		resp.Value = iVal.([]byte)
 	} else if err == ds.ErrNotFound {
 		// Check if we know any providers for the requested value
 		provs, ok := dht.providers[u.Key(pmes.GetKey())]
 		if ok && len(provs) > 0 {
+			u.DOut("handleGetValue returning %d provider[s]", len(provs))
 			for _, prov := range provs {
 				resp.Peers = append(resp.Peers, prov.Value)
 			}
@@ -265,13 +267,21 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 			} else {
 				level = int(pmes.GetValue()[0]) // Using value field to specify cluster level
 			}
+			u.DOut("handleGetValue searching level %d clusters", level)
 
 			closer := dht.routes[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 
+			if closer.ID.Equal(dht.self.ID) {
+				u.DOut("Attempted to return self! this shouldnt happen...")
+				resp.Peers = nil
+				goto out
+			}
 			// If this peer is closer than the one from the table, return nil
 			if kb.Closer(dht.self.ID, closer.ID, u.Key(pmes.GetKey())) {
 				resp.Peers = nil
+				u.DOut("handleGetValue could not find a closer node than myself.")
 			} else {
+				u.DOut("handleGetValue returning a closer peer: '%s'", closer.ID.Pretty())
 				resp.Peers = []*peer.Peer{closer}
 			}
 		}
@@ -280,6 +290,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 		panic(err)
 	}
 
+out:
 	mes := swarm.NewMessage(p, resp.ToProtobuf())
 	dht.network.Send(mes)
 }
@@ -349,9 +360,17 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *PBDHTMessage) {
 	providers := dht.providers[u.Key(pmes.GetKey())]
 	dht.providerLock.RUnlock()
 	if providers == nil || len(providers) == 0 {
-		// TODO: work on tiering this
-		closer := dht.routes[0].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
-		resp.Peers = []*peer.Peer{closer}
+		level := 0
+		if len(pmes.GetValue()) > 0 {
+			level = int(pmes.GetValue()[0])
+		}
+
+		closer := dht.routes[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
+		if kb.Closer(dht.self.ID, closer.ID, u.Key(pmes.GetKey())) {
+			resp.Peers = nil
+		} else {
+			resp.Peers = []*peer.Peer{closer}
+		}
 	} else {
 		for _, prov := range providers {
 			resp.Peers = append(resp.Peers, prov.Value)
@@ -625,4 +644,61 @@ func (dht *IpfsDHT) PrintTables() {
 	for _, route := range dht.routes {
 		route.Print()
 	}
+}
+
+func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
+	pmes := DHTMessage{
+		Type:  PBDHTMessage_GET_PROVIDERS,
+		Key:   string(key),
+		Id:    GenerateMessageID(),
+		Value: []byte{byte(level)},
+	}
+
+	mes := swarm.NewMessage(p, pmes.ToProtobuf())
+
+	listenChan := dht.ListenFor(pmes.Id, 1, time.Minute)
+	dht.network.Send(mes)
+	after := time.After(timeout)
+	select {
+	case <-after:
+		dht.Unlisten(pmes.Id)
+		return nil, u.ErrTimeout
+	case resp := <-listenChan:
+		u.DOut("FindProviders: got response.")
+		pmes_out := new(PBDHTMessage)
+		err := proto.Unmarshal(resp.Data, pmes_out)
+		if err != nil {
+			return nil, err
+		}
+
+		return pmes_out, nil
+	}
+}
+
+func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer.Peer {
+	var prov_arr []*peer.Peer
+	for _, prov := range peers {
+		// Dont add outselves to the list
+		if peer.ID(prov.GetId()).Equal(dht.self.ID) {
+			continue
+		}
+		// Dont add someone who is already on the list
+		p := dht.network.Find(u.Key(prov.GetId()))
+		if p == nil {
+			u.DOut("given provider %s was not in our network already.", peer.ID(prov.GetId()).Pretty())
+			maddr, err := ma.NewMultiaddr(prov.GetAddr())
+			if err != nil {
+				u.PErr("error connecting to new peer: %s", err)
+				continue
+			}
+			p, err = dht.network.GetConnection(peer.ID(prov.GetId()), maddr)
+			if err != nil {
+				u.PErr("error connecting to new peer: %s", err)
+				continue
+			}
+		}
+		dht.addProviderEntry(key, p)
+		prov_arr = append(prov_arr, p)
+	}
+	return prov_arr
 }

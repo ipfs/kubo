@@ -156,7 +156,7 @@ func TestValueGetSet(t *testing.T) {
 	}
 
 	if string(val) != "world" {
-		t.Fatalf("Expected 'world' got %s", string(val))
+		t.Fatalf("Expected 'world' got '%s'", string(val))
 	}
 }
 
