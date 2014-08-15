@@ -31,8 +31,8 @@ func (l *logDhtRpc) EndLog() {
 func (l *logDhtRpc) Print() {
 	b, err := json.Marshal(l)
 	if err != nil {
-		u.POut(err.Error())
+		u.DOut(err.Error())
 	} else {
-		u.POut(string(b))
+		u.DOut(string(b))
 	}
 }

@@ -496,6 +496,45 @@ out:
 	dht.network.Send(mes)
 }
 
+func (dht *IpfsDHT) getValueOrPeers(p *peer.Peer, key u.Key, timeout time.Duration, level int) ([]byte, []*peer.Peer, error) {
+	pmes, err := dht.getValueSingle(p, key, timeout, level)
+	if err != nil {
+		return nil, nil, u.WrapError(err, "getValue Error")
+	}
+
+	if pmes.GetSuccess() {
+		if pmes.Value == nil { // We were given provider[s]
+			val, err := dht.getFromPeerList(key, timeout, pmes.GetPeers(), level)
+			if err != nil {
+				return nil, nil, err
+			}
+			return val, nil, nil
+		}
+
+		// Success! We were given the value
+		return pmes.GetValue(), nil, nil
+	} else {
+		// We were given a closer node
+		var peers []*peer.Peer
+		for _, pb := range pmes.GetPeers() {
+			addr, err := ma.NewMultiaddr(pb.GetAddr())
+			if err != nil {
+				u.PErr(err.Error())
+				continue
+			}
+
+			np, err := dht.network.GetConnection(peer.ID(pb.GetId()), addr)
+			if err != nil {
+				u.PErr(err.Error())
+				continue
+			}
+
+			peers = append(peers, np)
+		}
+		return nil, peers, nil
+	}
+}
+
 // getValueSingle simply performs the get value RPC with the given parameters
 func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duration, level int) (*PBDHTMessage, error) {
 	pmes := DHTMessage{

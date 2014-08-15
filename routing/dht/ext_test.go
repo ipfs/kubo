@@ -88,13 +88,9 @@ func TestGetFailures(t *testing.T) {
 	d.Update(other)
 
 	// This one should time out
-	_, err := d.GetValue(u.Key("test"), time.Millisecond*5)
+	_, err := d.GetValue(u.Key("test"), time.Millisecond*10)
 	if err != nil {
-		nerr, ok := err.(*u.IpfsError)
-		if !ok {
-			t.Fatal("Got different error than we expected.")
-		}
-		if nerr.Inner != u.ErrTimeout {
+		if err != u.ErrTimeout {
 			t.Fatal("Got different error than we expected.")
 		}
 	} else {
@@ -119,10 +115,10 @@ func TestGetFailures(t *testing.T) {
 	})
 
 	// This one should fail with NotFound
-	_, err = d.GetValue(u.Key("test"), time.Millisecond*5)
+	_, err = d.GetValue(u.Key("test"), time.Millisecond*1000)
 	if err != nil {
 		if err != u.ErrNotFound {
-			t.Fatal("Expected ErrNotFound, got: %s", err)
+			t.Fatalf("Expected ErrNotFound, got: %s", err)
 		}
 	} else {
 		t.Fatal("expected error, got none.")
