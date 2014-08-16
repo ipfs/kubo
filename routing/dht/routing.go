@@ -21,6 +21,12 @@ import (
 // Pool size is the number of nodes used for group find/set RPC calls
 var PoolSize = 6
 
+// We put the 'K' in kademlia!
+var KValue = 10
+
+// Its in the paper, i swear
+var AlphaValue = 3
+
 // TODO: determine a way of creating and managing message IDs
 func GenerateMessageID() uint64 {
 	//return (uint64(rand.Uint32()) << 32) & uint64(rand.Uint32())
@@ -35,24 +41,25 @@ func GenerateMessageID() uint64 {
 // This is the top level "Store" operation of the DHT
 func (s *IpfsDHT) PutValue(key u.Key, value []byte) {
 	complete := make(chan struct{})
+	count := 0
 	for _, route := range s.routes {
-		p := route.NearestPeer(kb.ConvertKey(key))
-		if p == nil {
-			s.network.Error(kb.ErrLookupFailure)
-			go func() {
-				complete <- struct{}{}
-			}()
-			continue
-		}
-		go func() {
-			err := s.putValueToNetwork(p, string(key), value)
-			if err != nil {
-				s.network.Error(err)
+		peers := route.NearestPeers(kb.ConvertKey(key), KValue)
+		for _, p := range peers {
+			if p == nil {
+				s.network.Error(kb.ErrLookupFailure)
+				continue
 			}
-			complete <- struct{}{}
-		}()
+			count++
+			go func(sp *peer.Peer) {
+				err := s.putValueToNetwork(sp, string(key), value)
+				if err != nil {
+					s.network.Error(err)
+				}
+				complete <- struct{}{}
+			}(p)
+		}
 	}
-	for _, _ = range s.routes {
+	for i := 0; i < count; i++ {
 		<-complete
 	}
 }
@@ -150,15 +157,13 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 	c := counter{}
 
-	// This limit value is referred to as k in the kademlia paper
-	limit := 20
 	count := 0
 	go func() {
 		for {
 			select {
 			case p := <-npeer_chan:
 				count++
-				if count >= limit {
+				if count >= KValue {
 					break
 				}
 				c.Increment()
@@ -194,7 +199,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 				for _, np := range peers {
 					// TODO: filter out peers that arent closer
-					if !pset.Contains(np) && pset.Size() < limit {
+					if !pset.Contains(np) && pset.Size() < KValue {
 						pset.Add(np) //This is racey... make a single function to do operation
 						npeer_chan <- np
 					}
@@ -204,8 +209,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		}
 	}
 
-	concurFactor := 3
-	for i := 0; i < concurFactor; i++ {
+	for i := 0; i < AlphaValue; i++ {
 		go process()
 	}
 
