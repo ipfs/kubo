@@ -13,6 +13,8 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ```
 go get github.com/jbenet/go-ipfs/cmd/ipfs
+cd $GOPATH/src/github.com/jbenet/go-ipfs/cmd/ipfs
+go install
 ```
 
 NOTE: `git` and mercurial (`hg`) are required in order for `go get` to fetch all dependencies.
