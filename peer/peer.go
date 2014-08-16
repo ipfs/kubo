@@ -1,6 +1,10 @@
 package peer
 
 import (
+	"sync"
+	"time"
+
+	b58 "github.com/jbenet/go-base58"
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-multihash"
@@ -12,8 +16,12 @@ import (
 type ID mh.Multihash
 
 // Utililty function for comparing two peer ID's
-func (id *ID) Equal(other *ID) bool {
-	return bytes.Equal(*id, *other)
+func (id ID) Equal(other ID) bool {
+	return bytes.Equal(id, other)
+}
+
+func (id ID) Pretty() string {
+	return b58.Encode(id)
 }
 
 // Map maps Key (string) : *Peer (slices are not comparable).
@@ -24,6 +32,9 @@ type Map map[u.Key]*Peer
 type Peer struct {
 	ID        ID
 	Addresses []*ma.Multiaddr
+
+	latency   time.Duration
+	latenLock sync.RWMutex
 }
 
 // Key returns the ID as a Key (string) for maps.
@@ -51,4 +62,19 @@ func (p *Peer) NetAddress(n string) *ma.Multiaddr {
 		}
 	}
 	return nil
+}
+
+func (p *Peer) GetLatency() (out time.Duration) {
+	p.latenLock.RLock()
+	out = p.latency
+	p.latenLock.RUnlock()
+	return
+}
+
+// TODO: Instead of just keeping a single number,
+//		 keep a running average over the last hour or so
+func (p *Peer) SetLatency(laten time.Duration) {
+	p.latenLock.Lock()
+	p.latency = laten
+	p.latenLock.Unlock()
 }
