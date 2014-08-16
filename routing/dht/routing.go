@@ -81,6 +81,36 @@ func (c *counter) Size() int {
 	return c.n
 }
 
+type peerSet struct {
+	ps map[string]bool
+	lk sync.RWMutex
+}
+
+func newPeerSet() *peerSet {
+	ps := new(peerSet)
+	ps.ps = make(map[string]bool)
+	return ps
+}
+
+func (ps *peerSet) Add(p *peer.Peer) {
+	ps.lk.Lock()
+	ps.ps[string(p.ID)] = true
+	ps.lk.Unlock()
+}
+
+func (ps *peerSet) Contains(p *peer.Peer) bool {
+	ps.lk.RLock()
+	_, ok := ps.ps[string(p.ID)]
+	ps.lk.RUnlock()
+	return ok
+}
+
+func (ps *peerSet) Size() int {
+	ps.lk.RLock()
+	defer ps.lk.RUnlock()
+	return len(ps.ps)
+}
+
 // GetValue searches for the value corresponding to given Key.
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
@@ -111,8 +141,10 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	proc_peer := make(chan *peer.Peer, 30)
 	err_chan := make(chan error)
 	after := time.After(timeout)
+	pset := newPeerSet()
 
 	for _, p := range closest {
+		pset.Add(p)
 		npeer_chan <- p
 	}
 
@@ -130,6 +162,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 					break
 				}
 				c.Increment()
+
 				proc_peer <- p
 			default:
 				if c.Size() == 0 {
@@ -161,7 +194,10 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 				for _, np := range peers {
 					// TODO: filter out peers that arent closer
-					npeer_chan <- np
+					if !pset.Contains(np) && pset.Size() < limit {
+						pset.Add(np) //This is racey... make a single function to do operation
+						npeer_chan <- np
+					}
 				}
 				c.Decrement()
 			}
@@ -175,13 +211,10 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 	select {
 	case val := <-val_chan:
-		close(npeer_chan)
 		return val, nil
 	case err := <-err_chan:
-		close(npeer_chan)
 		return nil, err
 	case <-after:
-		close(npeer_chan)
 		return nil, u.ErrTimeout
 	}
 }
@@ -288,12 +321,12 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 
 		addr, err := ma.NewMultiaddr(found.GetAddr())
 		if err != nil {
-			return nil, u.WrapError(err, "FindPeer received bad info")
+			return nil, err
 		}
 
 		nxtPeer, err := s.network.GetConnection(peer.ID(found.GetId()), addr)
 		if err != nil {
-			return nil, u.WrapError(err, "FindPeer failed to connect to new peer.")
+			return nil, err
 		}
 		if pmes.GetSuccess() {
 			if !id.Equal(nxtPeer.ID) {
@@ -316,7 +349,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
-	response_chan := dht.ListenFor(pmes.Id, 1, time.Minute)
+	response_chan := dht.listener.Listen(pmes.Id, 1, time.Minute)
 	dht.network.Send(mes)
 
 	tout := time.After(timeout)
@@ -329,7 +362,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	case <-tout:
 		// Timed out, think about removing peer from network
 		u.DOut("Ping peer timed out.")
-		dht.Unlisten(pmes.Id)
+		dht.listener.Unlisten(pmes.Id)
 		return u.ErrTimeout
 	}
 }
@@ -345,7 +378,7 @@ func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 		Id:   GenerateMessageID(),
 	}
 
-	listenChan := dht.ListenFor(pmes.Id, len(targets), time.Minute*2)
+	listenChan := dht.listener.Listen(pmes.Id, len(targets), time.Minute*2)
 
 	pbmes := pmes.ToProtobuf()
 	for _, p := range targets {
