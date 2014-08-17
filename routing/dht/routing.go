@@ -27,6 +27,7 @@ var KValue = 10
 // Its in the paper, i swear
 var AlphaValue = 3
 
+// GenerateMessageID creates and returns a new message ID
 // TODO: determine a way of creating and managing message IDs
 func GenerateMessageID() uint64 {
 	//return (uint64(rand.Uint32()) << 32) & uint64(rand.Uint32())
@@ -39,21 +40,21 @@ func GenerateMessageID() uint64 {
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (s *IpfsDHT) PutValue(key u.Key, value []byte) {
+func (dht *IpfsDHT) PutValue(key u.Key, value []byte) {
 	complete := make(chan struct{})
 	count := 0
-	for _, route := range s.routes {
+	for _, route := range dht.routingTables {
 		peers := route.NearestPeers(kb.ConvertKey(key), KValue)
 		for _, p := range peers {
 			if p == nil {
-				s.network.Error(kb.ErrLookupFailure)
+				dht.network.Error(kb.ErrLookupFailure)
 				continue
 			}
 			count++
 			go func(sp *peer.Peer) {
-				err := s.putValueToNetwork(sp, string(key), value)
+				err := dht.putValueToNetwork(sp, string(key), value)
 				if err != nil {
-					s.network.Error(err)
+					dht.network.Error(err)
 				}
 				complete <- struct{}{}
 			}(p)
@@ -121,8 +122,8 @@ func (ps *peerSet) Size() int {
 // GetValue searches for the value corresponding to given Key.
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
-func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
-	ll := startNewRpc("GET")
+func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
+	ll := startNewRPC("GET")
 	defer func() {
 		ll.EndLog()
 		ll.Print()
@@ -130,29 +131,29 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
-	val, err := s.GetLocal(key)
+	val, err := dht.getLocal(key)
 	if err == nil {
 		ll.Success = true
 		u.DOut("Found local, returning.")
 		return val, nil
 	}
 
-	route_level := 0
-	closest := s.routes[route_level].NearestPeers(kb.ConvertKey(key), PoolSize)
+	routeLevel := 0
+	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if closest == nil || len(closest) == 0 {
 		return nil, kb.ErrLookupFailure
 	}
 
-	val_chan := make(chan []byte)
-	npeer_chan := make(chan *peer.Peer, 30)
-	proc_peer := make(chan *peer.Peer, 30)
-	err_chan := make(chan error)
+	valChan := make(chan []byte)
+	npeerChan := make(chan *peer.Peer, 30)
+	procPeer := make(chan *peer.Peer, 30)
+	errChan := make(chan error)
 	after := time.After(timeout)
 	pset := newPeerSet()
 
 	for _, p := range closest {
 		pset.Add(p)
-		npeer_chan <- p
+		npeerChan <- p
 	}
 
 	c := counter{}
@@ -161,17 +162,17 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	go func() {
 		for {
 			select {
-			case p := <-npeer_chan:
+			case p := <-npeerChan:
 				count++
 				if count >= KValue {
 					break
 				}
 				c.Increment()
 
-				proc_peer <- p
+				procPeer <- p
 			default:
 				if c.Size() == 0 {
-					err_chan <- u.ErrNotFound
+					errChan <- u.ErrNotFound
 				}
 			}
 		}
@@ -180,19 +181,19 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	process := func() {
 		for {
 			select {
-			case p, ok := <-proc_peer:
+			case p, ok := <-procPeer:
 				if !ok || p == nil {
 					c.Decrement()
 					return
 				}
-				val, peers, err := s.getValueOrPeers(p, key, timeout/4, route_level)
+				val, peers, err := dht.getValueOrPeers(p, key, timeout/4, routeLevel)
 				if err != nil {
 					u.DErr(err.Error())
 					c.Decrement()
 					continue
 				}
 				if val != nil {
-					val_chan <- val
+					valChan <- val
 					c.Decrement()
 					return
 				}
@@ -201,7 +202,7 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 					// TODO: filter out peers that arent closer
 					if !pset.Contains(np) && pset.Size() < KValue {
 						pset.Add(np) //This is racey... make a single function to do operation
-						npeer_chan <- np
+						npeerChan <- np
 					}
 				}
 				c.Decrement()
@@ -214,9 +215,9 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	}
 
 	select {
-	case val := <-val_chan:
+	case val := <-valChan:
 		return val, nil
-	case err := <-err_chan:
+	case err := <-errChan:
 		return nil, err
 	case <-after:
 		return nil, u.ErrTimeout
@@ -226,14 +227,14 @@ func (s *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 // Value provider layer of indirection.
 // This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
 
-// Announce that this node can provide value for given key
-func (s *IpfsDHT) Provide(key u.Key) error {
-	peers := s.routes[0].NearestPeers(kb.ConvertKey(key), PoolSize)
+// Provide makes this node announce that it can provide a value for the given key
+func (dht *IpfsDHT) Provide(key u.Key) error {
+	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if len(peers) == 0 {
 		return kb.ErrLookupFailure
 	}
 
-	pmes := DHTMessage{
+	pmes := Message{
 		Type: PBDHTMessage_ADD_PROVIDER,
 		Key:  string(key),
 	}
@@ -241,57 +242,57 @@ func (s *IpfsDHT) Provide(key u.Key) error {
 
 	for _, p := range peers {
 		mes := swarm.NewMessage(p, pbmes)
-		s.network.Send(mes)
+		dht.network.Send(mes)
 	}
 	return nil
 }
 
 // FindProviders searches for peers who can provide the value for given key.
-func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
-	ll := startNewRpc("FindProviders")
+func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
+	ll := startNewRPC("FindProviders")
 	defer func() {
 		ll.EndLog()
 		ll.Print()
 	}()
 	u.DOut("Find providers for: '%s'", key)
-	p := s.routes[0].NearestPeer(kb.ConvertKey(key))
+	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, kb.ErrLookupFailure
 	}
 
-	for level := 0; level < len(s.routes); {
-		pmes, err := s.findProvidersSingle(p, key, level, timeout)
+	for level := 0; level < len(dht.routingTables); {
+		pmes, err := dht.findProvidersSingle(p, key, level, timeout)
 		if err != nil {
 			return nil, err
 		}
 		if pmes.GetSuccess() {
-			provs := s.addPeerList(key, pmes.GetPeers())
+			provs := dht.addPeerList(key, pmes.GetPeers())
 			ll.Success = true
 			return provs, nil
-		} else {
-			closer := pmes.GetPeers()
-			if len(closer) == 0 {
-				level++
-				continue
-			}
-			if peer.ID(closer[0].GetId()).Equal(s.self.ID) {
-				u.DOut("Got myself back as a closer peer.")
-				return nil, u.ErrNotFound
-			}
-			maddr, err := ma.NewMultiaddr(closer[0].GetAddr())
-			if err != nil {
-				// ??? Move up route level???
-				panic("not yet implemented")
-			}
-
-			np, err := s.network.GetConnection(peer.ID(closer[0].GetId()), maddr)
-			if err != nil {
-				u.PErr("[%s] Failed to connect to: %s", s.self.ID.Pretty(), closer[0].GetAddr())
-				level++
-				continue
-			}
-			p = np
 		}
+
+		closer := pmes.GetPeers()
+		if len(closer) == 0 {
+			level++
+			continue
+		}
+		if peer.ID(closer[0].GetId()).Equal(dht.self.ID) {
+			u.DOut("Got myself back as a closer peer.")
+			return nil, u.ErrNotFound
+		}
+		maddr, err := ma.NewMultiaddr(closer[0].GetAddr())
+		if err != nil {
+			// ??? Move up route level???
+			panic("not yet implemented")
+		}
+
+		np, err := dht.network.GetConnection(peer.ID(closer[0].GetId()), maddr)
+		if err != nil {
+			u.PErr("[%s] Failed to connect to: %s", dht.self.ID.Pretty(), closer[0].GetAddr())
+			level++
+			continue
+		}
+		p = np
 	}
 	return nil, u.ErrNotFound
 }
@@ -299,15 +300,15 @@ func (s *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer,
 // Find specific Peer
 
 // FindPeer searches for a peer with given ID.
-func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
+func (dht *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
 	// Check if were already connected to them
-	p, _ := s.Find(id)
+	p, _ := dht.Find(id)
 	if p != nil {
 		return p, nil
 	}
 
-	route_level := 0
-	p = s.routes[route_level].NearestPeer(kb.ConvertPeerID(id))
+	routeLevel := 0
+	p = dht.routingTables[routeLevel].NearestPeer(kb.ConvertPeerID(id))
 	if p == nil {
 		return nil, kb.ErrLookupFailure
 	}
@@ -315,11 +316,11 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 		return p, nil
 	}
 
-	for route_level < len(s.routes) {
-		pmes, err := s.findPeerSingle(p, id, timeout, route_level)
+	for routeLevel < len(dht.routingTables) {
+		pmes, err := dht.findPeerSingle(p, id, timeout, routeLevel)
 		plist := pmes.GetPeers()
 		if len(plist) == 0 {
-			route_level++
+			routeLevel++
 		}
 		found := plist[0]
 
@@ -328,7 +329,7 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 			return nil, err
 		}
 
-		nxtPeer, err := s.network.GetConnection(peer.ID(found.GetId()), addr)
+		nxtPeer, err := dht.network.GetConnection(peer.ID(found.GetId()), addr)
 		if err != nil {
 			return nil, err
 		}
@@ -337,9 +338,8 @@ func (s *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error
 				return nil, errors.New("got back invalid peer from 'successful' response")
 			}
 			return nxtPeer, nil
-		} else {
-			p = nxtPeer
 		}
+		p = nxtPeer
 	}
 	return nil, u.ErrNotFound
 }
@@ -349,16 +349,16 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	u.DOut("Enter Ping.")
 
-	pmes := DHTMessage{Id: GenerateMessageID(), Type: PBDHTMessage_PING}
+	pmes := Message{ID: GenerateMessageID(), Type: PBDHTMessage_PING}
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
-	response_chan := dht.listener.Listen(pmes.Id, 1, time.Minute)
+	responseChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 	dht.network.Send(mes)
 
 	tout := time.After(timeout)
 	select {
-	case <-response_chan:
+	case <-responseChan:
 		roundtrip := time.Since(before)
 		p.SetLatency(roundtrip)
 		u.DOut("Ping took %s.", roundtrip.String())
@@ -366,23 +366,23 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	case <-tout:
 		// Timed out, think about removing peer from network
 		u.DOut("Ping peer timed out.")
-		dht.listener.Unlisten(pmes.Id)
+		dht.listener.Unlisten(pmes.ID)
 		return u.ErrTimeout
 	}
 }
 
-func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
+func (dht *IpfsDHT) getDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 	u.DOut("Begin Diagnostic")
 	//Send to N closest peers
-	targets := dht.routes[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
+	targets := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 
 	// TODO: Add timeout to this struct so nodes know when to return
-	pmes := DHTMessage{
+	pmes := Message{
 		Type: PBDHTMessage_DIAGNOSTIC,
-		Id:   GenerateMessageID(),
+		ID:   GenerateMessageID(),
 	}
 
-	listenChan := dht.listener.Listen(pmes.Id, len(targets), time.Minute*2)
+	listenChan := dht.listener.Listen(pmes.ID, len(targets), time.Minute*2)
 
 	pbmes := pmes.ToProtobuf()
 	for _, p := range targets {
@@ -398,15 +398,15 @@ func (dht *IpfsDHT) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 			u.DOut("Diagnostic request timed out.")
 			return out, u.ErrTimeout
 		case resp := <-listenChan:
-			pmes_out := new(PBDHTMessage)
-			err := proto.Unmarshal(resp.Data, pmes_out)
+			pmesOut := new(PBDHTMessage)
+			err := proto.Unmarshal(resp.Data, pmesOut)
 			if err != nil {
 				// NOTE: here and elsewhere, need to audit error handling,
 				//		some errors should be continued on from
 				return out, err
 			}
 
-			dec := json.NewDecoder(bytes.NewBuffer(pmes_out.GetValue()))
+			dec := json.NewDecoder(bytes.NewBuffer(pmesOut.GetValue()))
 			for {
 				di := new(diagInfo)
 				err := dec.Decode(di)

@@ -28,11 +28,11 @@ type RoutingTable struct {
 	bucketsize int
 }
 
-func NewRoutingTable(bucketsize int, local_id ID, latency time.Duration) *RoutingTable {
+func newRoutingTable(bucketsize int, localID ID, latency time.Duration) *RoutingTable {
 	rt := new(RoutingTable)
-	rt.Buckets = []*Bucket{NewBucket()}
+	rt.Buckets = []*Bucket{newBucket()}
 	rt.bucketsize = bucketsize
-	rt.local = local_id
+	rt.local = localID
 	rt.maxLatency = latency
 	return rt
 }
@@ -42,51 +42,50 @@ func NewRoutingTable(bucketsize int, local_id ID, latency time.Duration) *Routin
 func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 	rt.tabLock.Lock()
 	defer rt.tabLock.Unlock()
-	peer_id := ConvertPeerID(p.ID)
-	cpl := xor(peer_id, rt.local).commonPrefixLen()
+	peerID := convertPeerID(p.ID)
+	cpl := xor(peerID, rt.local).commonPrefixLen()
 
-	b_id := cpl
-	if b_id >= len(rt.Buckets) {
-		b_id = len(rt.Buckets) - 1
+	bucketID := cpl
+	if bucketID >= len(rt.Buckets) {
+		bucketID = len(rt.Buckets) - 1
 	}
 
-	bucket := rt.Buckets[b_id]
-	e := bucket.Find(p.ID)
+	bucket := rt.Buckets[bucketID]
+	e := bucket.find(p.ID)
 	if e == nil {
 		// New peer, add to bucket
 		if p.GetLatency() > rt.maxLatency {
 			// Connection doesnt meet requirements, skip!
 			return nil
 		}
-		bucket.PushFront(p)
+		bucket.pushFront(p)
 
 		// Are we past the max bucket size?
-		if bucket.Len() > rt.bucketsize {
-			if b_id == len(rt.Buckets)-1 {
-				new_bucket := bucket.Split(b_id, rt.local)
-				rt.Buckets = append(rt.Buckets, new_bucket)
-				if new_bucket.Len() > rt.bucketsize {
+		if bucket.len() > rt.bucketsize {
+			if bucketID == len(rt.Buckets)-1 {
+				newBucket := bucket.Split(bucketID, rt.local)
+				rt.Buckets = append(rt.Buckets, newBucket)
+				if newBucket.len() > rt.bucketsize {
 					// TODO: This is a very rare and annoying case
 					panic("Case not handled.")
 				}
 
 				// If all elements were on left side of split...
-				if bucket.Len() > rt.bucketsize {
-					return bucket.PopBack()
+				if bucket.len() > rt.bucketsize {
+					return bucket.popBack()
 				}
 			} else {
 				// If the bucket cant split kick out least active node
-				return bucket.PopBack()
+				return bucket.popBack()
 			}
 		}
 		return nil
-	} else {
-		// If the peer is already in the table, move it to the front.
-		// This signifies that it it "more active" and the less active nodes
-		// Will as a result tend towards the back of the list
-		bucket.MoveToFront(e)
-		return nil
 	}
+	// If the peer is already in the table, move it to the front.
+	// This signifies that it it "more active" and the less active nodes
+	// Will as a result tend towards the back of the list
+	bucket.moveToFront(e)
+	return nil
 }
 
 // A helper struct to sort peers by their distance to the local node
@@ -101,7 +100,7 @@ type peerSorterArr []*peerDistance
 func (p peerSorterArr) Len() int      { return len(p) }
 func (p peerSorterArr) Swap(a, b int) { p[a], p[b] = p[b], p[a] }
 func (p peerSorterArr) Less(a, b int) bool {
-	return p[a].distance.Less(p[b].distance)
+	return p[a].distance.less(p[b].distance)
 }
 
 //
@@ -109,10 +108,10 @@ func (p peerSorterArr) Less(a, b int) bool {
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
 	for e := peerList.Front(); e != nil; e = e.Next() {
 		p := e.Value.(*peer.Peer)
-		p_id := ConvertPeerID(p.ID)
+		pID := convertPeerID(p.ID)
 		pd := peerDistance{
 			p:        p,
-			distance: xor(target, p_id),
+			distance: xor(target, pID),
 		}
 		peerArr = append(peerArr, &pd)
 		if e == nil {
@@ -125,24 +124,23 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 
 // Find a specific peer by ID or return nil
 func (rt *RoutingTable) Find(id peer.ID) *peer.Peer {
-	srch := rt.NearestPeers(ConvertPeerID(id), 1)
+	srch := rt.NearestPeers(convertPeerID(id), 1)
 	if len(srch) == 0 || !srch[0].ID.Equal(id) {
 		return nil
 	}
 	return srch[0]
 }
 
-// Returns a single peer that is nearest to the given ID
+// NearestPeer returns a single peer that is nearest to the given ID
 func (rt *RoutingTable) NearestPeer(id ID) *peer.Peer {
 	peers := rt.NearestPeers(id, 1)
 	if len(peers) > 0 {
 		return peers[0]
-	} else {
-		return nil
 	}
+	return nil
 }
 
-// Returns a list of the 'count' closest peers to the given ID
+// NearestPeers returns a list of the 'count' closest peers to the given ID
 func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 	rt.tabLock.RLock()
 	defer rt.tabLock.RUnlock()
@@ -156,7 +154,7 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 	bucket = rt.Buckets[cpl]
 
 	var peerArr peerSorterArr
-	if bucket.Len() == 0 {
+	if bucket.len() == 0 {
 		// In the case of an unusual split, one bucket may be empty.
 		// if this happens, search both surrounding buckets for nearest peer
 		if cpl > 0 {
@@ -183,17 +181,17 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 	return out
 }
 
-// Returns the total number of peers in the routing table
+// Size returns the total number of peers in the routing table
 func (rt *RoutingTable) Size() int {
 	var tot int
 	for _, buck := range rt.Buckets {
-		tot += buck.Len()
+		tot += buck.len()
 	}
 	return tot
 }
 
 // NOTE: This is potentially unsafe... use at your own risk
-func (rt *RoutingTable) Listpeers() []*peer.Peer {
+func (rt *RoutingTable) listPeers() []*peer.Peer {
 	var peers []*peer.Peer
 	for _, buck := range rt.Buckets {
 		for e := buck.getIter(); e != nil; e = e.Next() {
@@ -203,10 +201,10 @@ func (rt *RoutingTable) Listpeers() []*peer.Peer {
 	return peers
 }
 
-func (rt *RoutingTable) Print() {
+func (rt *RoutingTable) print() {
 	fmt.Printf("Routing Table, bs = %d, Max latency = %d\n", rt.bucketsize, rt.maxLatency)
 	rt.tabLock.RLock()
-	peers := rt.Listpeers()
+	peers := rt.listPeers()
 	for i, p := range peers {
 		fmt.Printf("%d) %s %s\n", i, p.ID.Pretty(), p.GetLatency().String())
 	}

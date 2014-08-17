@@ -25,7 +25,7 @@ import (
 type IpfsDHT struct {
 	// Array of routing tables for differently distanced nodes
 	// NOTE: (currently, only a single table is used)
-	routes []*kb.RoutingTable
+	routingTables []*kb.RoutingTable
 
 	network swarm.Network
 
@@ -49,7 +49,7 @@ type IpfsDHT struct {
 	diaglock sync.Mutex
 
 	// listener is a server to register to listen for responses to messages
-	listener *MesListener
+	listener *mesListener
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
@@ -61,12 +61,11 @@ func NewDHT(p *peer.Peer, net swarm.Network) *IpfsDHT {
 	dht.providers = make(map[u.Key][]*providerInfo)
 	dht.shutdown = make(chan struct{})
 
-	dht.routes = make([]*kb.RoutingTable, 3)
-	dht.routes[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*30)
-	dht.routes[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*100)
-	dht.routes[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
-
-	dht.listener = NewMesListener()
+	dht.routingTables = make([]*kb.RoutingTable, 3)
+	dht.routingTables[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*30)
+	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*100)
+	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
+	dht.listener = newMesListener()
 	dht.birth = time.Now()
 	return dht
 }
@@ -175,11 +174,11 @@ func (dht *IpfsDHT) cleanExpiredProviders() {
 }
 
 func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) error {
-	pmes := DHTMessage{
+	pmes := Message{
 		Type:  PBDHTMessage_PUT_VALUE,
 		Key:   key,
 		Value: value,
-		Id:    GenerateMessageID(),
+		ID:    GenerateMessageID(),
 	}
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
@@ -190,9 +189,9 @@ func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) er
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 	u.DOut("handleGetValue for key: %s", pmes.GetKey())
 	dskey := ds.NewKey(pmes.GetKey())
-	resp := &DHTMessage{
+	resp := &Message{
 		Response: true,
-		Id:       pmes.GetId(),
+		ID:       pmes.GetId(),
 		Key:      pmes.GetKey(),
 	}
 	iVal, err := dht.datastore.Get(dskey)
@@ -222,7 +221,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 			}
 			u.DOut("handleGetValue searching level %d clusters", level)
 
-			closer := dht.routes[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
+			closer := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 
 			if closer.ID.Equal(dht.self.ID) {
 				u.DOut("Attempted to return self! this shouldnt happen...")
@@ -259,19 +258,19 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *PBDHTMessage) {
 }
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *PBDHTMessage) {
-	resp := DHTMessage{
+	resp := Message{
 		Type:     pmes.GetType(),
 		Response: true,
-		Id:       pmes.GetId(),
+		ID:       pmes.GetId(),
 	}
 
 	dht.network.Send(swarm.NewMessage(p, resp.ToProtobuf()))
 }
 
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
-	resp := DHTMessage{
+	resp := Message{
 		Type:     pmes.GetType(),
-		Id:       pmes.GetId(),
+		ID:       pmes.GetId(),
 		Response: true,
 	}
 	defer func() {
@@ -280,7 +279,7 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
 	}()
 	level := pmes.GetValue()[0]
 	u.DOut("handleFindPeer: searching for '%s'", peer.ID(pmes.GetKey()).Pretty())
-	closest := dht.routes[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
+	closest := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 	if closest == nil {
 		u.PErr("handleFindPeer: could not find anything.")
 		return
@@ -302,10 +301,10 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
 }
 
 func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *PBDHTMessage) {
-	resp := DHTMessage{
+	resp := Message{
 		Type:     PBDHTMessage_GET_PROVIDERS,
 		Key:      pmes.GetKey(),
-		Id:       pmes.GetId(),
+		ID:       pmes.GetId(),
 		Response: true,
 	}
 
@@ -318,7 +317,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *PBDHTMessage) {
 			level = int(pmes.GetValue()[0])
 		}
 
-		closer := dht.routes[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
+		closer := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 		if kb.Closer(dht.self.ID, closer.ID, u.Key(pmes.GetKey())) {
 			resp.Peers = nil
 		} else {
@@ -346,7 +345,7 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *PBDHTMessage) {
 	dht.addProviderEntry(key, p)
 }
 
-// Stop all communications from this peer and shut down
+// Halt stops all communications from this peer and shut down
 func (dht *IpfsDHT) Halt() {
 	dht.shutdown <- struct{}{}
 	dht.network.Close()
@@ -362,7 +361,7 @@ func (dht *IpfsDHT) addProviderEntry(key u.Key, p *peer.Peer) {
 
 // NOTE: not yet finished, low priority
 func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
-	seq := dht.routes[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
+	seq := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 	listenChan := dht.listener.Listen(pmes.GetId(), len(seq), time.Second*30)
 
 	for _, ps := range seq {
@@ -382,22 +381,22 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 		case <-after:
 			//Timeout, return what we have
 			goto out
-		case req_resp := <-listenChan:
-			pmes_out := new(PBDHTMessage)
-			err := proto.Unmarshal(req_resp.Data, pmes_out)
+		case reqResp := <-listenChan:
+			pmesOut := new(PBDHTMessage)
+			err := proto.Unmarshal(reqResp.Data, pmesOut)
 			if err != nil {
 				// It broke? eh, whatever, keep going
 				continue
 			}
-			buf.Write(req_resp.Data)
+			buf.Write(reqResp.Data)
 			count--
 		}
 	}
 
 out:
-	resp := DHTMessage{
+	resp := Message{
 		Type:     PBDHTMessage_DIAGNOSTIC,
-		Id:       pmes.GetId(),
+		ID:       pmes.GetId(),
 		Value:    buf.Bytes(),
 		Response: true,
 	}
@@ -423,40 +422,40 @@ func (dht *IpfsDHT) getValueOrPeers(p *peer.Peer, key u.Key, timeout time.Durati
 
 		// Success! We were given the value
 		return pmes.GetValue(), nil, nil
-	} else {
-		// We were given a closer node
-		var peers []*peer.Peer
-		for _, pb := range pmes.GetPeers() {
-			if peer.ID(pb.GetId()).Equal(dht.self.ID) {
-				continue
-			}
-			addr, err := ma.NewMultiaddr(pb.GetAddr())
-			if err != nil {
-				u.PErr(err.Error())
-				continue
-			}
-
-			np, err := dht.network.GetConnection(peer.ID(pb.GetId()), addr)
-			if err != nil {
-				u.PErr(err.Error())
-				continue
-			}
-
-			peers = append(peers, np)
-		}
-		return nil, peers, nil
 	}
+
+	// We were given a closer node
+	var peers []*peer.Peer
+	for _, pb := range pmes.GetPeers() {
+		if peer.ID(pb.GetId()).Equal(dht.self.ID) {
+			continue
+		}
+		addr, err := ma.NewMultiaddr(pb.GetAddr())
+		if err != nil {
+			u.PErr(err.Error())
+			continue
+		}
+
+		np, err := dht.network.GetConnection(peer.ID(pb.GetId()), addr)
+		if err != nil {
+			u.PErr(err.Error())
+			continue
+		}
+
+		peers = append(peers, np)
+	}
+	return nil, peers, nil
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
 func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duration, level int) (*PBDHTMessage, error) {
-	pmes := DHTMessage{
+	pmes := Message{
 		Type:  PBDHTMessage_GET_VALUE,
 		Key:   string(key),
 		Value: []byte{byte(level)},
-		Id:    GenerateMessageID(),
+		ID:    GenerateMessageID(),
 	}
-	response_chan := dht.listener.Listen(pmes.Id, 1, time.Minute)
+	responseChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 	t := time.Now()
@@ -466,21 +465,21 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 	timeup := time.After(timeout)
 	select {
 	case <-timeup:
-		dht.listener.Unlisten(pmes.Id)
+		dht.listener.Unlisten(pmes.ID)
 		return nil, u.ErrTimeout
-	case resp, ok := <-response_chan:
+	case resp, ok := <-responseChan:
 		if !ok {
 			u.PErr("response channel closed before timeout, please investigate.")
 			return nil, u.ErrTimeout
 		}
 		roundtrip := time.Since(t)
 		resp.Peer.SetLatency(roundtrip)
-		pmes_out := new(PBDHTMessage)
-		err := proto.Unmarshal(resp.Data, pmes_out)
+		pmesOut := new(PBDHTMessage)
+		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
 			return nil, err
 		}
-		return pmes_out, nil
+		return pmesOut, nil
 	}
 }
 
@@ -520,7 +519,7 @@ func (dht *IpfsDHT) getFromPeerList(key u.Key, timeout time.Duration,
 	return nil, u.ErrNotFound
 }
 
-func (dht *IpfsDHT) GetLocal(key u.Key) ([]byte, error) {
+func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	v, err := dht.datastore.Get(ds.NewKey(string(key)))
 	if err != nil {
 		return nil, err
@@ -528,17 +527,18 @@ func (dht *IpfsDHT) GetLocal(key u.Key) ([]byte, error) {
 	return v.([]byte), nil
 }
 
-func (dht *IpfsDHT) PutLocal(key u.Key, value []byte) error {
+func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 	return dht.datastore.Put(ds.NewKey(string(key)), value)
 }
 
+// Update TODO(chas) Document this function
 func (dht *IpfsDHT) Update(p *peer.Peer) {
-	for _, route := range dht.routes {
+	for _, route := range dht.routingTables {
 		removed := route.Update(p)
 		// Only drop the connection if no tables refer to this peer
 		if removed != nil {
 			found := false
-			for _, r := range dht.routes {
+			for _, r := range dht.routingTables {
 				if r.Find(removed.ID) != nil {
 					found = true
 					break
@@ -551,9 +551,9 @@ func (dht *IpfsDHT) Update(p *peer.Peer) {
 	}
 }
 
-// Look for a peer with a given ID connected to this dht
+// Find looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
 func (dht *IpfsDHT) Find(id peer.ID) (*peer.Peer, *kb.RoutingTable) {
-	for _, table := range dht.routes {
+	for _, table := range dht.routingTables {
 		p := table.Find(id)
 		if p != nil {
 			return p, table
@@ -563,72 +563,72 @@ func (dht *IpfsDHT) Find(id peer.ID) (*peer.Peer, *kb.RoutingTable) {
 }
 
 func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Duration, level int) (*PBDHTMessage, error) {
-	pmes := DHTMessage{
+	pmes := Message{
 		Type:  PBDHTMessage_FIND_NODE,
 		Key:   string(id),
-		Id:    GenerateMessageID(),
+		ID:    GenerateMessageID(),
 		Value: []byte{byte(level)},
 	}
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
-	listenChan := dht.listener.Listen(pmes.Id, 1, time.Minute)
+	listenChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 	t := time.Now()
 	dht.network.Send(mes)
 	after := time.After(timeout)
 	select {
 	case <-after:
-		dht.listener.Unlisten(pmes.Id)
+		dht.listener.Unlisten(pmes.ID)
 		return nil, u.ErrTimeout
 	case resp := <-listenChan:
 		roundtrip := time.Since(t)
 		resp.Peer.SetLatency(roundtrip)
-		pmes_out := new(PBDHTMessage)
-		err := proto.Unmarshal(resp.Data, pmes_out)
+		pmesOut := new(PBDHTMessage)
+		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
 			return nil, err
 		}
 
-		return pmes_out, nil
+		return pmesOut, nil
 	}
 }
 
-func (dht *IpfsDHT) PrintTables() {
-	for _, route := range dht.routes {
+func (dht *IpfsDHT) printTables() {
+	for _, route := range dht.routingTables {
 		route.Print()
 	}
 }
 
 func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
-	pmes := DHTMessage{
+	pmes := Message{
 		Type:  PBDHTMessage_GET_PROVIDERS,
 		Key:   string(key),
-		Id:    GenerateMessageID(),
+		ID:    GenerateMessageID(),
 		Value: []byte{byte(level)},
 	}
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
-	listenChan := dht.listener.Listen(pmes.Id, 1, time.Minute)
+	listenChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 	dht.network.Send(mes)
 	after := time.After(timeout)
 	select {
 	case <-after:
-		dht.listener.Unlisten(pmes.Id)
+		dht.listener.Unlisten(pmes.ID)
 		return nil, u.ErrTimeout
 	case resp := <-listenChan:
 		u.DOut("FindProviders: got response.")
-		pmes_out := new(PBDHTMessage)
-		err := proto.Unmarshal(resp.Data, pmes_out)
+		pmesOut := new(PBDHTMessage)
+		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
 			return nil, err
 		}
 
-		return pmes_out, nil
+		return pmesOut, nil
 	}
 }
 
 func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer.Peer {
-	var prov_arr []*peer.Peer
+	var provArr []*peer.Peer
 	for _, prov := range peers {
 		// Dont add outselves to the list
 		if peer.ID(prov.GetId()).Equal(dht.self.ID) {
@@ -650,7 +650,7 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 			}
 		}
 		dht.addProviderEntry(key, p)
-		prov_arr = append(prov_arr, p)
+		provArr = append(provArr, p)
 	}
-	return prov_arr
+	return provArr
 }

@@ -1,9 +1,10 @@
 package routing
 
 import (
+	"time"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	"time"
 )
 
 // IpfsRouting is the routing module interface

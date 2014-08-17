@@ -7,28 +7,28 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type logDhtRpc struct {
+type logDhtRPC struct {
 	Type     string
 	Start    time.Time
 	End      time.Time
 	Duration time.Duration
-	RpcCount int
+	RPCCount int
 	Success  bool
 }
 
-func startNewRpc(name string) *logDhtRpc {
-	r := new(logDhtRpc)
+func startNewRPC(name string) *logDhtRPC {
+	r := new(logDhtRPC)
 	r.Type = name
 	r.Start = time.Now()
 	return r
 }
 
-func (l *logDhtRpc) EndLog() {
+func (l *logDhtRPC) EndLog() {
 	l.End = time.Now()
 	l.Duration = l.End.Sub(l.Start)
 }
 
-func (l *logDhtRpc) Print() {
+func (l *logDhtRPC) Print() {
 	b, err := json.Marshal(l)
 	if err != nil {
 		u.DOut(err.Error())

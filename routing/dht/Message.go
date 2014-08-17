@@ -4,13 +4,13 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// A helper struct to make working with protbuf types easier
-type DHTMessage struct {
+// Message is a a helper struct which makes working with protbuf types easier
+type Message struct {
 	Type     PBDHTMessage_MessageType
 	Key      string
 	Value    []byte
 	Response bool
-	Id       uint64
+	ID       uint64
 	Success  bool
 	Peers    []*peer.Peer
 }
@@ -28,9 +28,10 @@ func peerInfo(p *peer.Peer) *PBDHTMessage_PBPeer {
 	return pbp
 }
 
+// ToProtobuf takes a Message and produces a protobuf with it.
 // TODO: building the protobuf message this way is a little wasteful
 //		 Unused fields wont be omitted, find a better way to do this
-func (m *DHTMessage) ToProtobuf() *PBDHTMessage {
+func (m *Message) ToProtobuf() *PBDHTMessage {
 	pmes := new(PBDHTMessage)
 	if m.Value != nil {
 		pmes.Value = m.Value
@@ -39,7 +40,7 @@ func (m *DHTMessage) ToProtobuf() *PBDHTMessage {
 	pmes.Type = &m.Type
 	pmes.Key = &m.Key
 	pmes.Response = &m.Response
-	pmes.Id = &m.Id
+	pmes.Id = &m.ID
 	pmes.Success = &m.Success
 	for _, p := range m.Peers {
 		pmes.Peers = append(pmes.Peers, peerInfo(p))

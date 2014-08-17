@@ -8,7 +8,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type MesListener struct {
+type mesListener struct {
 	listeners map[uint64]*listenInfo
 	haltchan  chan struct{}
 	unlist    chan uint64
@@ -36,8 +36,8 @@ type listenInfo struct {
 	id uint64
 }
 
-func NewMesListener() *MesListener {
-	ml := new(MesListener)
+func newMesListener() *mesListener {
+	ml := new(mesListener)
 	ml.haltchan = make(chan struct{})
 	ml.listeners = make(map[uint64]*listenInfo)
 	ml.nlist = make(chan *listenInfo, 16)
@@ -47,7 +47,7 @@ func NewMesListener() *MesListener {
 	return ml
 }
 
-func (ml *MesListener) Listen(id uint64, count int, timeout time.Duration) <-chan *swarm.Message {
+func (ml *mesListener) Listen(id uint64, count int, timeout time.Duration) <-chan *swarm.Message {
 	li := new(listenInfo)
 	li.count = count
 	li.eol = time.Now().Add(timeout)
@@ -57,7 +57,7 @@ func (ml *MesListener) Listen(id uint64, count int, timeout time.Duration) <-cha
 	return li.resp
 }
 
-func (ml *MesListener) Unlisten(id uint64) {
+func (ml *mesListener) Unlisten(id uint64) {
 	ml.unlist <- id
 }
 
@@ -66,18 +66,18 @@ type respMes struct {
 	mes *swarm.Message
 }
 
-func (ml *MesListener) Respond(id uint64, mes *swarm.Message) {
+func (ml *mesListener) Respond(id uint64, mes *swarm.Message) {
 	ml.send <- &respMes{
 		id:  id,
 		mes: mes,
 	}
 }
 
-func (ml *MesListener) Halt() {
+func (ml *mesListener) Halt() {
 	ml.haltchan <- struct{}{}
 }
 
-func (ml *MesListener) run() {
+func (ml *mesListener) run() {
 	for {
 		select {
 		case <-ml.haltchan:

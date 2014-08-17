@@ -9,11 +9,11 @@ import (
 
 type connDiagInfo struct {
 	Latency time.Duration
-	Id      peer.ID
+	ID      peer.ID
 }
 
 type diagInfo struct {
-	Id          peer.ID
+	ID          peer.ID
 	Connections []connDiagInfo
 	Keys        []string
 	LifeSpan    time.Duration
@@ -32,11 +32,11 @@ func (di *diagInfo) Marshal() []byte {
 func (dht *IpfsDHT) getDiagInfo() *diagInfo {
 	di := new(diagInfo)
 	di.CodeVersion = "github.com/jbenet/go-ipfs"
-	di.Id = dht.self.ID
+	di.ID = dht.self.ID
 	di.LifeSpan = time.Since(dht.birth)
 	di.Keys = nil // Currently no way to query datastore
 
-	for _, p := range dht.routes[0].Listpeers() {
+	for _, p := range dht.routingTables[0].Listpeers() {
 		di.Connections = append(di.Connections, connDiagInfo{p.GetLatency(), p.ID})
 	}
 	return di

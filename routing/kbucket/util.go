@@ -20,11 +20,11 @@ var ErrLookupFailure = errors.New("failed to find any peer in table")
 // peer.ID or a util.Key. This unifies the keyspace
 type ID []byte
 
-func (id ID) Equal(other ID) bool {
+func (id ID) equal(other ID) bool {
 	return bytes.Equal(id, other)
 }
 
-func (id ID) Less(other ID) bool {
+func (id ID) less(other ID) bool {
 	a, b := equalizeSizes(id, other)
 	for i := 0; i < len(a); i++ {
 		if a[i] != b[i] {
@@ -76,23 +76,23 @@ func equalizeSizes(a, b ID) (ID, ID) {
 	return a, b
 }
 
-func ConvertPeerID(id peer.ID) ID {
+func convertPeerID(id peer.ID) ID {
 	hash := sha256.Sum256(id)
 	return hash[:]
 }
 
-func ConvertKey(id u.Key) ID {
+func convertKey(id u.Key) ID {
 	hash := sha256.Sum256([]byte(id))
 	return hash[:]
 }
 
-// Returns true if a is closer to key than b is
+// Closer returns true if a is closer to key than b is
 func Closer(a, b peer.ID, key u.Key) bool {
-	aid := ConvertPeerID(a)
-	bid := ConvertPeerID(b)
-	tgt := ConvertKey(key)
+	aid := convertPeerID(a)
+	bid := convertPeerID(b)
+	tgt := convertKey(key)
 	adist := xor(aid, tgt)
 	bdist := xor(bid, tgt)
 
-	return adist.Less(bdist)
+	return adist.less(bdist)
 }

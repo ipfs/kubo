@@ -47,93 +47,93 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 
 func TestPing(t *testing.T) {
 	u.Debug = false
-	addr_a, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
+	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
 	if err != nil {
 		t.Fatal(err)
 	}
-	addr_b, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5678")
+	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5678")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	peer_a := new(peer.Peer)
-	peer_a.AddAddress(addr_a)
-	peer_a.ID = peer.ID([]byte("peer_a"))
+	peerA := new(peer.Peer)
+	peerA.AddAddress(addrA)
+	peerA.ID = peer.ID([]byte("peerA"))
 
-	peer_b := new(peer.Peer)
-	peer_b.AddAddress(addr_b)
-	peer_b.ID = peer.ID([]byte("peer_b"))
+	peerB := new(peer.Peer)
+	peerB.AddAddress(addrB)
+	peerB.ID = peer.ID([]byte("peerB"))
 
-	neta := swarm.NewSwarm(peer_a)
+	neta := swarm.NewSwarm(peerA)
 	err = neta.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
-	dht_a := NewDHT(peer_a, neta)
+	dhtA := NewDHT(peerA, neta)
 
-	netb := swarm.NewSwarm(peer_b)
+	netb := swarm.NewSwarm(peerB)
 	err = netb.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
-	dht_b := NewDHT(peer_b, netb)
+	dhtB := NewDHT(peerB, netb)
 
-	dht_a.Start()
-	dht_b.Start()
+	dhtA.Start()
+	dhtB.Start()
 
-	_, err = dht_a.Connect(addr_b)
+	_, err = dhtA.Connect(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//Test that we can ping the node
-	err = dht_a.Ping(peer_b, time.Second*2)
+	err = dhtA.Ping(peerB, time.Second*2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dht_a.Halt()
-	dht_b.Halt()
+	dhtA.Halt()
+	dhtB.Halt()
 }
 
 func TestValueGetSet(t *testing.T) {
 	u.Debug = false
-	addr_a, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
+	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 	if err != nil {
 		t.Fatal(err)
 	}
-	addr_b, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
+	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	peer_a := new(peer.Peer)
-	peer_a.AddAddress(addr_a)
-	peer_a.ID = peer.ID([]byte("peer_a"))
+	peerA := new(peer.Peer)
+	peerA.AddAddress(addrA)
+	peerA.ID = peer.ID([]byte("peerA"))
 
-	peer_b := new(peer.Peer)
-	peer_b.AddAddress(addr_b)
-	peer_b.ID = peer.ID([]byte("peer_b"))
+	peerB := new(peer.Peer)
+	peerB.AddAddress(addrB)
+	peerB.ID = peer.ID([]byte("peerB"))
 
-	neta := swarm.NewSwarm(peer_a)
+	neta := swarm.NewSwarm(peerA)
 	err = neta.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
-	dht_a := NewDHT(peer_a, neta)
+	dhtA := NewDHT(peerA, neta)
 
-	netb := swarm.NewSwarm(peer_b)
+	netb := swarm.NewSwarm(peerB)
 	err = netb.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
-	dht_b := NewDHT(peer_b, netb)
+	dhtB := NewDHT(peerB, netb)
 
-	dht_a.Start()
-	dht_b.Start()
+	dhtA.Start()
+	dhtB.Start()
 
-	errsa := dht_a.network.GetChan().Errors
-	errsb := dht_b.network.GetChan().Errors
+	errsa := dhtA.network.GetChan().Errors
+	errsb := dhtB.network.GetChan().Errors
 	go func() {
 		select {
 		case err := <-errsa:
@@ -143,14 +143,14 @@ func TestValueGetSet(t *testing.T) {
 		}
 	}()
 
-	_, err = dht_a.Connect(addr_b)
+	_, err = dhtA.Connect(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dht_a.PutValue("hello", []byte("world"))
+	dhtA.PutValue("hello", []byte("world"))
 
-	val, err := dht_a.GetValue("hello", time.Second*2)
+	val, err := dhtA.GetValue("hello", time.Second*2)
 	if err != nil {
 		t.Fatal(err)
 	}

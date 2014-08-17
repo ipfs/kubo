@@ -13,13 +13,13 @@ type Bucket struct {
 	list *list.List
 }
 
-func NewBucket() *Bucket {
+func newBucket() *Bucket {
 	b := new(Bucket)
 	b.list = list.New()
 	return b
 }
 
-func (b *Bucket) Find(id peer.ID) *list.Element {
+func (b *Bucket) find(id peer.ID) *list.Element {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
@@ -30,19 +30,19 @@ func (b *Bucket) Find(id peer.ID) *list.Element {
 	return nil
 }
 
-func (b *Bucket) MoveToFront(e *list.Element) {
+func (b *Bucket) moveToFront(e *list.Element) {
 	b.lk.Lock()
 	b.list.MoveToFront(e)
 	b.lk.Unlock()
 }
 
-func (b *Bucket) PushFront(p *peer.Peer) {
+func (b *Bucket) pushFront(p *peer.Peer) {
 	b.lk.Lock()
 	b.list.PushFront(p)
 	b.lk.Unlock()
 }
 
-func (b *Bucket) PopBack() *peer.Peer {
+func (b *Bucket) popBack() *peer.Peer {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	last := b.list.Back()
@@ -50,13 +50,13 @@ func (b *Bucket) PopBack() *peer.Peer {
 	return last.Value.(*peer.Peer)
 }
 
-func (b *Bucket) Len() int {
+func (b *Bucket) len() int {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	return b.list.Len()
 }
 
-// Splits a buckets peers into two buckets, the methods receiver will have
+// Split splits a buckets peers into two buckets, the methods receiver will have
 // peers with CPL equal to cpl, the returned bucket will have peers with CPL
 // greater than cpl (returned bucket has closer peers)
 func (b *Bucket) Split(cpl int, target ID) *Bucket {
@@ -64,13 +64,13 @@ func (b *Bucket) Split(cpl int, target ID) *Bucket {
 	defer b.lk.Unlock()
 
 	out := list.New()
-	newbuck := NewBucket()
+	newbuck := newBucket()
 	newbuck.list = out
 	e := b.list.Front()
 	for e != nil {
-		peer_id := ConvertPeerID(e.Value.(*peer.Peer).ID)
-		peer_cpl := prefLen(peer_id, target)
-		if peer_cpl > cpl {
+		peerID := convertPeerID(e.Value.(*peer.Peer).ID)
+		peerCPL := prefLen(peerID, target)
+		if peerCPL > cpl {
 			cur := e
 			out.PushBack(e.Value)
 			e = e.Next()
