@@ -55,12 +55,12 @@ func TildeExpansion(filename string) (string, error) {
 
 // PErr is a shorthand printing function to output to Stderr.
 func PErr(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	fmt.Fprintf(os.Stderr, format, a...)
 }
 
 // POut is a shorthand printing function to output to Stdout.
 func POut(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stdout, format+"\n", a...)
+	fmt.Fprintf(os.Stdout, format, a...)
 }
 
 // DErr is a shorthand debug printing function to output to Stderr.

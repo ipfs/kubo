@@ -116,7 +116,7 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 		}
 		peerArr = append(peerArr, &pd)
 		if e == nil {
-			u.POut("list element was nil.")
+			u.POut("list element was nil.\n")
 			return peerArr
 		}
 	}
