@@ -19,6 +19,8 @@ go install
 
 NOTE: `git` and mercurial (`hg`) are required in order for `go get` to fetch all dependencies.
 
+If you are interested in development, please install the development dependencies as well.
+
 ## Usage
 
 ```
@@ -60,6 +62,9 @@ Guidelines:
 - if you'd like to work on ipfs part-time (20+ hrs/wk) or full-time (40+ hrs/wk), contact [@jbenet](https://github.com/jbenet)
 - have fun!
 
+## Development Dependencies
+
+If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://code.google.com/p/protobuf/downloads/list).
 
 ## License
 
