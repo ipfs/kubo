@@ -1,7 +1,9 @@
 package bitswap
 
 import (
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
+	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/datastore.go"
@@ -32,7 +34,7 @@ type Ledger struct {
 	BytesReceived uint64
 
 	// FirstExchnage is the time of the first data exchange.
-	LastExchange *time.Time
+	FirstExchange *time.Time
 
 	// LastExchange is the time of the last data exchange.
 	LastExchange *time.Time
@@ -44,9 +46,10 @@ type Ledger struct {
 // LedgerMap lists Ledgers by their Partner key.
 type LedgerMap map[u.Key]*Ledger
 
+// BitSwap instances implement the bitswap protocol.
 type BitSwap struct {
 	// peer is the identity of this (local) node.
-	peer peer.Peer
+	peer *peer.Peer
 
 	// net holds the connections to all peers.
 	net swarm.Network
@@ -68,24 +71,25 @@ type BitSwap struct {
 	wantList KeySet
 }
 
+// NewBitSwap creates a new BitSwap instance. It does not check its parameters.
 func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore) *BitSwap {
 	return &BitSwap{
 		peer:      p,
 		net:       net,
 		datastore: d,
-		ledgers:   &LedgerMap{},
-		haveList:  &KeySet{},
-		wantList:  &KeySet{},
+		partners:  LedgerMap{},
+		wantList:  KeySet{},
 	}
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (s *BitSwap) GetBlock(k u.Key, timeout time.Time) (*Block, error) {
+func (s *BitSwap) GetBlock(k u.Key, timeout time.Time) (
+	*blocks.Block, error) {
 	return nil, errors.New("not implemented")
 }
 
-// Announce the existance of a block to BitSwap, potentially sending it to
-// peers (Partners) whose WantLists include it.
-func (s *BitSwap) HaveBlock(k u.Key) (*Block, error) {
+// HaveBlock announces the existance of a block to BitSwap, potentially sending
+// it to peers (Partners) whose WantLists include it.
+func (s *BitSwap) HaveBlock(k u.Key) (*blocks.Block, error) {
 	return nil, errors.New("not implemented")
 }
