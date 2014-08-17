@@ -1,0 +1,10 @@
+package swarm;
+
+message PBWrapper {
+	enum MessageType {
+		DHT_MESSAGE = 0;
+	}
+
+	required MessageType Type = 1;
+	required bytes Message = 2;
+}
