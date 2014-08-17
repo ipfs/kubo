@@ -262,8 +262,14 @@ func (s *Swarm) fanOut() {
 				continue
 			}
 
+			wrapped, err := Wrap(msg.Data, PBWrapper_DHT_MESSAGE)
+			if err != nil {
+				s.Error(err)
+				continue
+			}
+
 			// queue it in the connection's buffer
-			conn.Outgoing.MsgChan <- msg.Data
+			conn.Outgoing.MsgChan <- wrapped
 		}
 	}
 }
@@ -288,8 +294,14 @@ func (s *Swarm) fanIn(conn *Conn) {
 				goto out
 			}
 
+			wrapper, err := Unwrap(data)
+			if err != nil {
+				s.Error(err)
+				continue
+			}
+
 			// wrap it for consumers.
-			msg := &Message{Peer: conn.Peer, Data: data}
+			msg := &Message{Peer: conn.Peer, Data: wrapper.GetMessage()}
 			s.Chan.Incoming <- msg
 		}
 	}
@@ -399,4 +411,26 @@ func (s *Swarm) GetChan() *Chan {
 	return s.Chan
 }
 
+func Wrap(data []byte, typ PBWrapper_MessageType) ([]byte, error) {
+	wrapper := new(PBWrapper)
+	wrapper.Message = data
+	wrapper.Type = &typ
+	b, err := proto.Marshal(wrapper)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func Unwrap(data []byte) (*PBWrapper, error) {
+	mes := new(PBWrapper)
+	err := proto.Unmarshal(data, mes)
+	if err != nil {
+		return nil, err
+	}
+
+	return mes, nil
+}
+
+// Temporary to ensure that the Swarm always matches the Network interface as we are changing it
 var _ Network = &Swarm{}

@@ -14,7 +14,7 @@ func pingListen(listener *net.TCPListener, peer *peer.Peer) {
 	for {
 		c, err := listener.Accept()
 		if err == nil {
-			fmt.Println("accepeted")
+			fmt.Println("accepted")
 			go pong(c, peer)
 		}
 	}
@@ -29,11 +29,21 @@ func pong(c net.Conn, peer *peer.Peer) {
 			fmt.Printf("error %v\n", err)
 			return
 		}
-		if string(data[:n]) != "ping" {
-			fmt.Printf("error: didn't receive ping: '%v'\n", data[:n])
+		b, err := Unwrap(data[:n])
+		if err != nil {
+			fmt.Printf("error %v\n", err)
 			return
 		}
-		err = mrw.WriteMsg([]byte("pong"))
+		if string(b.GetMessage()) != "ping" {
+			fmt.Printf("error: didn't receive ping: '%v'\n", b.GetMessage())
+			return
+		}
+		data, err = Wrap([]byte("pong"), PBWrapper_DHT_MESSAGE)
+		if err != nil {
+			fmt.Printf("error %v\n", err)
+			return
+		}
+		err = mrw.WriteMsg(data)
 		if err != nil {
 			fmt.Printf("error %v\n", err)
 			return
