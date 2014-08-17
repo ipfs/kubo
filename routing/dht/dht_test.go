@@ -180,7 +180,7 @@ func TestProvides(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].PutLocal(u.Key("hello"), []byte("world"))
+	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].PutLocal(u.Key("hello"), []byte("world"))
+	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}

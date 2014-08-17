@@ -76,21 +76,23 @@ func equalizeSizes(a, b ID) (ID, ID) {
 	return a, b
 }
 
-func convertPeerID(id peer.ID) ID {
+// ConvertPeerID creates a DHT ID by hashing a Peer ID (Multihash)
+func ConvertPeerID(id peer.ID) ID {
 	hash := sha256.Sum256(id)
 	return hash[:]
 }
 
-func convertKey(id u.Key) ID {
+// ConvertKey creates a DHT ID by hashing a local key (String)
+func ConvertKey(id u.Key) ID {
 	hash := sha256.Sum256([]byte(id))
 	return hash[:]
 }
 
 // Closer returns true if a is closer to key than b is
 func Closer(a, b peer.ID, key u.Key) bool {
-	aid := convertPeerID(a)
-	bid := convertPeerID(b)
-	tgt := convertKey(key)
+	aid := ConvertPeerID(a)
+	bid := ConvertPeerID(b)
+	tgt := ConvertKey(key)
 	adist := xor(aid, tgt)
 	bdist := xor(bid, tgt)
 

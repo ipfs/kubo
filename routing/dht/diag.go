@@ -36,7 +36,7 @@ func (dht *IpfsDHT) getDiagInfo() *diagInfo {
 	di.LifeSpan = time.Since(dht.birth)
 	di.Keys = nil // Currently no way to query datastore
 
-	for _, p := range dht.routingTables[0].Listpeers() {
+	for _, p := range dht.routingTables[0].ListPeers() {
 		di.Connections = append(di.Connections, connDiagInfo{p.GetLatency(), p.ID})
 	}
 	return di

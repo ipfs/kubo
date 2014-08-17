@@ -105,9 +105,9 @@ func TestGetFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resp := DHTMessage{
+		resp := Message{
 			Type:     pmes.GetType(),
-			Id:       pmes.GetId(),
+			ID:       pmes.GetId(),
 			Response: true,
 			Success:  false,
 		}
@@ -140,10 +140,10 @@ func TestGetFailures(t *testing.T) {
 	})
 
 	// Now we test this DHT's handleGetValue failure
-	req := DHTMessage{
+	req := Message{
 		Type:  PBDHTMessage_GET_VALUE,
 		Key:   "hello",
-		Id:    GenerateMessageID(),
+		ID:    GenerateMessageID(),
 		Value: []byte{0},
 	}
 	fn.Chan.Incoming <- swarm.NewMessage(other, req.ToProtobuf())

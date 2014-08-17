@@ -28,7 +28,8 @@ type RoutingTable struct {
 	bucketsize int
 }
 
-func newRoutingTable(bucketsize int, localID ID, latency time.Duration) *RoutingTable {
+// NewRoutingTable creates a new routing table with a given bucketsize, local ID, and latency tolerance.
+func NewRoutingTable(bucketsize int, localID ID, latency time.Duration) *RoutingTable {
 	rt := new(RoutingTable)
 	rt.Buckets = []*Bucket{newBucket()}
 	rt.bucketsize = bucketsize
@@ -42,7 +43,7 @@ func newRoutingTable(bucketsize int, localID ID, latency time.Duration) *Routing
 func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 	rt.tabLock.Lock()
 	defer rt.tabLock.Unlock()
-	peerID := convertPeerID(p.ID)
+	peerID := ConvertPeerID(p.ID)
 	cpl := xor(peerID, rt.local).commonPrefixLen()
 
 	bucketID := cpl
@@ -108,7 +109,7 @@ func (p peerSorterArr) Less(a, b int) bool {
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
 	for e := peerList.Front(); e != nil; e = e.Next() {
 		p := e.Value.(*peer.Peer)
-		pID := convertPeerID(p.ID)
+		pID := ConvertPeerID(p.ID)
 		pd := peerDistance{
 			p:        p,
 			distance: xor(target, pID),
@@ -124,7 +125,7 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 
 // Find a specific peer by ID or return nil
 func (rt *RoutingTable) Find(id peer.ID) *peer.Peer {
-	srch := rt.NearestPeers(convertPeerID(id), 1)
+	srch := rt.NearestPeers(ConvertPeerID(id), 1)
 	if len(srch) == 0 || !srch[0].ID.Equal(id) {
 		return nil
 	}
@@ -190,8 +191,9 @@ func (rt *RoutingTable) Size() int {
 	return tot
 }
 
+// ListPeers takes a RoutingTable and returns a list of all peers from all buckets in the table.
 // NOTE: This is potentially unsafe... use at your own risk
-func (rt *RoutingTable) listPeers() []*peer.Peer {
+func (rt *RoutingTable) ListPeers() []*peer.Peer {
 	var peers []*peer.Peer
 	for _, buck := range rt.Buckets {
 		for e := buck.getIter(); e != nil; e = e.Next() {
@@ -201,10 +203,11 @@ func (rt *RoutingTable) listPeers() []*peer.Peer {
 	return peers
 }
 
-func (rt *RoutingTable) print() {
+// Print prints a descriptive statement about the provided RoutingTable
+func (rt *RoutingTable) Print() {
 	fmt.Printf("Routing Table, bs = %d, Max latency = %d\n", rt.bucketsize, rt.maxLatency)
 	rt.tabLock.RLock()
-	peers := rt.listPeers()
+	peers := rt.ListPeers()
 	for i, p := range peers {
 		fmt.Printf("%d) %s %s\n", i, p.ID.Pretty(), p.GetLatency().String())
 	}
