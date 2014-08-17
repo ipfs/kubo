@@ -2,6 +2,7 @@ package merkledag
 
 import (
 	"fmt"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
