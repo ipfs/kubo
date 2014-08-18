@@ -30,8 +30,7 @@ var AlphaValue = 3
 // GenerateMessageID creates and returns a new message ID
 // TODO: determine a way of creating and managing message IDs
 func GenerateMessageID() uint64 {
-	//return (uint64(rand.Uint32()) << 32) & uint64(rand.Uint32())
-	return uint64(rand.Uint32())
+	return (uint64(rand.Uint32()) << 32) | uint64(rand.Uint32())
 }
 
 // This file implements the Routing interface for the IpfsDHT struct.
@@ -188,7 +187,7 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 				}
 				val, peers, err := dht.getValueOrPeers(p, key, timeout/4, routeLevel)
 				if err != nil {
-					u.DErr(err.Error())
+					u.DErr("%v\n", err.Error())
 					c.Decrement()
 					continue
 				}
@@ -254,7 +253,7 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 		ll.EndLog()
 		ll.Print()
 	}()
-	u.DOut("Find providers for: '%s'", key)
+	u.DOut("Find providers for: '%s'\n", key)
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, kb.ErrLookupFailure
@@ -288,7 +287,7 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 
 		np, err := dht.network.GetConnection(peer.ID(closer[0].GetId()), maddr)
 		if err != nil {
-			u.PErr("[%s] Failed to connect to: %s", dht.self.ID.Pretty(), closer[0].GetAddr())
+			u.PErr("[%s] Failed to connect to: %s\n", dht.self.ID.Pretty(), closer[0].GetAddr())
 			level++
 			continue
 		}
@@ -361,7 +360,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	case <-responseChan:
 		roundtrip := time.Since(before)
 		p.SetLatency(roundtrip)
-		u.DOut("Ping took %s.", roundtrip.String())
+		u.DOut("Ping took %s.\n", roundtrip.String())
 		return nil
 	case <-tout:
 		// Timed out, think about removing peer from network

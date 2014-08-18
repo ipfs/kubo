@@ -13,6 +13,8 @@ import (
 	ma "github.com/jbenet/go-multiaddr"
 )
 
+var ErrAlreadyOpen = errors.New("Error: Connection to this peer already open.")
+
 // Message represents a packet of information sent to or received from a
 // particular Peer.
 type Message struct {
@@ -27,7 +29,7 @@ type Message struct {
 func NewMessage(p *peer.Peer, data proto.Message) *Message {
 	bytes, err := proto.Marshal(data)
 	if err != nil {
-		u.PErr(err.Error())
+		u.PErr("%v\n", err.Error())
 		return nil
 	}
 	return &Message{
@@ -162,7 +164,7 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 
 	err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
-		u.PErr(err.Error())
+		u.PErr("%v\n", err.Error())
 		conn.Close()
 		return
 	}
@@ -228,9 +230,13 @@ func (s *Swarm) StartConn(conn *Conn) error {
 		return errors.New("Tried to start nil connection.")
 	}
 
-	u.DOut("Starting connection: %s", conn.Peer.Key().Pretty())
+	u.DOut("Starting connection: %s\n", conn.Peer.Key().Pretty())
 	// add to conns
 	s.connsLock.Lock()
+	if _, ok := s.conns[conn.Peer.Key()]; ok {
+		s.connsLock.Unlock()
+		return ErrAlreadyOpen
+	}
 	s.conns[conn.Peer.Key()] = conn
 	s.connsLock.Unlock()
 
@@ -249,7 +255,6 @@ func (s *Swarm) fanOut() {
 			if !ok {
 				return
 			}
-			//u.DOut("fanOut: outgoing message for: '%s'", msg.Peer.Key().Pretty())
 
 			s.connsLock.RLock()
 			conn, found := s.conns[msg.Peer.Key()]
@@ -313,6 +318,8 @@ out:
 }
 
 func (s *Swarm) Find(key u.Key) *peer.Peer {
+	s.connsLock.RLock()
+	defer s.connsLock.RUnlock()
 	conn, found := s.conns[key]
 	if !found {
 		return nil
