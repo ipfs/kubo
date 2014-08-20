@@ -215,7 +215,6 @@ func TestNotFound(t *testing.T) {
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:
-			t.Fail()
 			//Success!
 			return
 		case u.ErrTimeout:
