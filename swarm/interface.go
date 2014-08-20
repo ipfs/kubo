@@ -14,7 +14,8 @@ type Network interface {
 	Listen() error
 	ConnectNew(*ma.Multiaddr) (*peer.Peer, error)
 	GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error)
-	GetChan() *Chan
+	GetErrChan() chan error
+	GetChannel(PBWrapper_MessageType) chan *Message
 	Close()
 	Drop(*peer.Peer) error
 }

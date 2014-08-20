@@ -66,8 +66,12 @@ func (f *fauxNet) Send(mes *swarm.Message) {
 	f.Chan.Outgoing <- mes
 }
 
-func (f *fauxNet) GetChan() *swarm.Chan {
-	return f.Chan
+func (f *fauxNet) GetErrChan() chan error {
+	return f.Chan.Errors
+}
+
+func (f *fauxNet) GetChannel(t swarm.PBWrapper_MessageType) chan *swarm.Message {
+	return f.Chan.Incoming
 }
 
 func (f *fauxNet) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
@@ -167,7 +171,6 @@ func _randPeer() *peer.Peer {
 }
 
 func TestNotFound(t *testing.T) {
-	u.Debug = true
 	fn := newFauxNet()
 	fn.Listen()
 
@@ -204,6 +207,67 @@ func TestNotFound(t *testing.T) {
 			for i := 0; i < 7; i++ {
 				resp.Peers = append(resp.Peers, _randPeer())
 			}
+			return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
+		default:
+			panic("Shouldnt recieve this.")
+		}
+
+	})
+
+	_, err := d.GetValue(u.Key("hello"), time.Second*30)
+	if err != nil {
+		switch err {
+		case u.ErrNotFound:
+			//Success!
+			return
+		case u.ErrTimeout:
+			t.Fatal("Should not have gotten timeout!")
+		default:
+			t.Fatalf("Got unexpected error: %s", err)
+		}
+	}
+	t.Fatal("Expected to recieve an error.")
+}
+
+// If less than K nodes are in the entire network, it should fail when we make
+// a GET rpc and nobody has the value
+func TestLessThanKResponses(t *testing.T) {
+	u.Debug = false
+	fn := newFauxNet()
+	fn.Listen()
+
+	local := new(peer.Peer)
+	local.ID = peer.ID("test_peer")
+
+	d := NewDHT(local, fn)
+	d.Start()
+
+	var ps []*peer.Peer
+	for i := 0; i < 5; i++ {
+		ps = append(ps, _randPeer())
+		d.Update(ps[i])
+	}
+	other := _randPeer()
+
+	// Reply with random peers to every message
+	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
+		t.Log("Handling message...")
+		pmes := new(PBDHTMessage)
+		err := proto.Unmarshal(mes.Data, pmes)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch pmes.GetType() {
+		case PBDHTMessage_GET_VALUE:
+			resp := Message{
+				Type:     pmes.GetType(),
+				ID:       pmes.GetId(),
+				Response: true,
+				Success:  false,
+				Peers:    []*peer.Peer{other},
+			}
+
 			return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
 		default:
 			panic("Shouldnt recieve this.")

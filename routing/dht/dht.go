@@ -100,10 +100,11 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 func (dht *IpfsDHT) handleMessages() {
 	u.DOut("Begin message handling routine\n")
 
-	ch := dht.network.GetChan()
+	errs := dht.network.GetErrChan()
+	dhtmes := dht.network.GetChannel(swarm.PBWrapper_DHT_MESSAGE)
 	for {
 		select {
-		case mes, ok := <-ch.Incoming:
+		case mes, ok := <-dhtmes:
 			if !ok {
 				u.DOut("handleMessages closing, bad recv on incoming\n")
 				return
@@ -147,7 +148,7 @@ func (dht *IpfsDHT) handleMessages() {
 				u.PErr("Recieved invalid message type")
 			}
 
-		case err := <-ch.Errors:
+		case err := <-errs:
 			u.PErr("dht err: %s\n", err)
 		case <-dht.shutdown:
 			return

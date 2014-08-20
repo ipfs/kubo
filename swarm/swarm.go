@@ -84,6 +84,10 @@ type Swarm struct {
 	conns     ConnMap
 	connsLock sync.RWMutex
 
+	filterChans map[PBWrapper_MessageType]chan *Message
+	toFilter    chan *Message
+	newFilters  chan *newFilterInfo
+
 	local     *peer.Peer
 	listeners []net.Listener
 }
@@ -91,10 +95,14 @@ type Swarm struct {
 // NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm(local *peer.Peer) *Swarm {
 	s := &Swarm{
-		Chan:  NewChan(10),
-		conns: ConnMap{},
-		local: local,
+		Chan:        NewChan(10),
+		conns:       ConnMap{},
+		local:       local,
+		filterChans: make(map[PBWrapper_MessageType]chan *Message),
+		toFilter:    make(chan *Message, 32),
+		newFilters:  make(chan *newFilterInfo),
 	}
+	go s.routeMessages()
 	go s.fanOut()
 	return s
 }
@@ -299,15 +307,8 @@ func (s *Swarm) fanIn(conn *Conn) {
 				goto out
 			}
 
-			wrapper, err := Unwrap(data)
-			if err != nil {
-				s.Error(err)
-				continue
-			}
-
-			// wrap it for consumers.
-			msg := &Message{Peer: conn.Peer, Data: wrapper.GetMessage()}
-			s.Chan.Incoming <- msg
+			msg := &Message{Peer: conn.Peer, Data: data}
+			s.toFilter <- msg
 		}
 	}
 out:
@@ -315,6 +316,39 @@ out:
 	s.connsLock.Lock()
 	delete(s.conns, conn.Peer.Key())
 	s.connsLock.Unlock()
+}
+
+type newFilterInfo struct {
+	Type PBWrapper_MessageType
+	resp chan chan *Message
+}
+
+func (s *Swarm) routeMessages() {
+	for {
+		select {
+		case mes, ok := <-s.toFilter:
+			if !ok {
+				return
+			}
+			wrapper, err := Unwrap(mes.Data)
+			if err != nil {
+				u.PErr("error in route messages: %s\n", err)
+			}
+
+			ch, ok := s.filterChans[PBWrapper_MessageType(wrapper.GetType())]
+			if !ok {
+				u.PErr("Received message with invalid type: %d\n", wrapper.GetType())
+				continue
+			}
+
+			mes.Data = wrapper.GetMessage()
+			ch <- mes
+		case gchan := <-s.newFilters:
+			nch := make(chan *Message)
+			s.filterChans[gchan.Type] = nch
+			gchan.resp <- nch
+		}
+	}
 }
 
 func (s *Swarm) Find(key u.Key) *peer.Peer {
@@ -414,8 +448,8 @@ func (s *Swarm) Error(e error) {
 	s.Chan.Errors <- e
 }
 
-func (s *Swarm) GetChan() *Chan {
-	return s.Chan
+func (s *Swarm) GetErrChan() chan error {
+	return s.Chan.Errors
 }
 
 func Wrap(data []byte, typ PBWrapper_MessageType) ([]byte, error) {
@@ -437,6 +471,16 @@ func Unwrap(data []byte) (*PBWrapper, error) {
 	}
 
 	return mes, nil
+}
+
+func (s *Swarm) GetChannel(typ PBWrapper_MessageType) chan *Message {
+	nfi := &newFilterInfo{
+		Type: typ,
+		resp: make(chan chan *Message),
+	}
+	s.newFilters <- nfi
+
+	return <-nfi.resp
 }
 
 // Temporary to ensure that the Swarm always matches the Network interface as we are changing it

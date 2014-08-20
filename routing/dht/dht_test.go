@@ -132,8 +132,8 @@ func TestValueGetSet(t *testing.T) {
 	dhtA.Start()
 	dhtB.Start()
 
-	errsa := dhtA.network.GetChan().Errors
-	errsb := dhtB.network.GetChan().Errors
+	errsa := dhtA.network.GetErrChan()
+	errsb := dhtB.network.GetErrChan()
 	go func() {
 		select {
 		case err := <-errsa:

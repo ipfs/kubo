@@ -164,7 +164,8 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 			case p := <-npeerChan:
 				count++
 				if count >= KValue {
-					break
+					errChan <- u.ErrNotFound
+					return
 				}
 				c.Increment()
 
@@ -172,40 +173,38 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 			default:
 				if c.Size() == 0 {
 					errChan <- u.ErrNotFound
+					return
 				}
 			}
 		}
 	}()
 
 	process := func() {
-		for {
-			select {
-			case p, ok := <-procPeer:
-				if !ok || p == nil {
-					c.Decrement()
-					return
-				}
-				val, peers, err := dht.getValueOrPeers(p, key, timeout/4, routeLevel)
-				if err != nil {
-					u.DErr("%v\n", err.Error())
-					c.Decrement()
-					continue
-				}
-				if val != nil {
-					valChan <- val
-					c.Decrement()
-					return
-				}
-
-				for _, np := range peers {
-					// TODO: filter out peers that arent closer
-					if !pset.Contains(np) && pset.Size() < KValue {
-						pset.Add(np) //This is racey... make a single function to do operation
-						npeerChan <- np
-					}
-				}
+		for p := range procPeer {
+			if p == nil {
 				c.Decrement()
+				return
 			}
+			val, peers, err := dht.getValueOrPeers(p, key, timeout/4, routeLevel)
+			if err != nil {
+				u.DErr("%v\n", err.Error())
+				c.Decrement()
+				continue
+			}
+			if val != nil {
+				valChan <- val
+				c.Decrement()
+				return
+			}
+
+			for _, np := range peers {
+				// TODO: filter out peers that arent closer
+				if !pset.Contains(np) && pset.Size() < KValue {
+					pset.Add(np) //This is racey... make a single function to do operation
+					npeerChan <- np
+				}
+			}
+			c.Decrement()
 		}
 	}
 

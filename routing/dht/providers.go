@@ -3,24 +3,24 @@ package dht
 import (
 	"time"
 
-	u "github.com/jbenet/go-ipfs/util"
 	peer "github.com/jbenet/go-ipfs/peer"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type ProviderManager struct {
 	providers map[u.Key][]*providerInfo
-	newprovs chan *addProv
-	getprovs chan *getProv
-	halt chan struct{}
+	newprovs  chan *addProv
+	getprovs  chan *getProv
+	halt      chan struct{}
 }
 
 type addProv struct {
-	k u.Key
+	k   u.Key
 	val *peer.Peer
 }
 
 type getProv struct {
-	k u.Key
+	k    u.Key
 	resp chan []*peer.Peer
 }
 
@@ -55,7 +55,7 @@ func (pm *ProviderManager) run() {
 			for k, provs := range pm.providers {
 				var filtered []*providerInfo
 				for _, p := range provs {
-					if time.Now().Sub(p.Creation) < time.Hour * 24 {
+					if time.Now().Sub(p.Creation) < time.Hour*24 {
 						filtered = append(filtered, p)
 					}
 				}
@@ -69,7 +69,7 @@ func (pm *ProviderManager) run() {
 
 func (pm *ProviderManager) AddProvider(k u.Key, val *peer.Peer) {
 	pm.newprovs <- &addProv{
-		k: k,
+		k:   k,
 		val: val,
 	}
 }

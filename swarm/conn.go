@@ -40,8 +40,6 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 		return nil, err
 	}
 
-	fmt.Printf("Making connection to: %s\n", host)
-
 	nconn, err := net.Dial(network, host)
 	if err != nil {
 		return nil, err
