@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"code.google.com/p/goprotobuf/proto"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
@@ -17,12 +18,16 @@ type Message struct {
 
 func peerInfo(p *peer.Peer) *PBDHTMessage_PBPeer {
 	pbp := new(PBDHTMessage_PBPeer)
-	addr, err := p.Addresses[0].String()
-	if err != nil {
-		//Temp: what situations could cause this?
-		panic(err)
+	if len(p.Addresses) == 0 || p.Addresses[0] == nil {
+		pbp.Addr = proto.String("")
+	} else {
+		addr, err := p.Addresses[0].String()
+		if err != nil {
+			//Temp: what situations could cause this?
+			panic(err)
+		}
+		pbp.Addr = &addr
 	}
-	pbp.Addr = &addr
 	pid := string(p.ID)
 	pbp.Id = &pid
 	return pbp

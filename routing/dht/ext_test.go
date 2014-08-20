@@ -3,6 +3,8 @@ package dht
 import (
 	"testing"
 
+	crand "crypto/rand"
+
 	"code.google.com/p/goprotobuf/proto"
 
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -70,6 +72,10 @@ func (f *fauxNet) GetChan() *swarm.Chan {
 
 func (f *fauxNet) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	return nil, nil
+}
+
+func (f *fauxNet) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error) {
+	return &peer.Peer{ID: id, Addresses: []*ma.Multiaddr{addr}}, nil
 }
 
 func TestGetFailures(t *testing.T) {
@@ -149,4 +155,74 @@ func TestGetFailures(t *testing.T) {
 	fn.Chan.Incoming <- swarm.NewMessage(other, req.ToProtobuf())
 
 	<-success
+}
+
+// TODO: Maybe put these in some sort of "ipfs_testutil" package
+func _randPeer() *peer.Peer {
+	p := new(peer.Peer)
+	p.ID = make(peer.ID, 16)
+	p.Addresses = []*ma.Multiaddr{nil}
+	crand.Read(p.ID)
+	return p
+}
+
+func TestNotFound(t *testing.T) {
+	u.Debug = true
+	fn := newFauxNet()
+	fn.Listen()
+
+	local := new(peer.Peer)
+	local.ID = peer.ID("test_peer")
+
+	d := NewDHT(local, fn)
+	d.Start()
+
+	var ps []*peer.Peer
+	for i := 0; i < 5; i++ {
+		ps = append(ps, _randPeer())
+		d.Update(ps[i])
+	}
+
+	// Reply with random peers to every message
+	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
+		t.Log("Handling message...")
+		pmes := new(PBDHTMessage)
+		err := proto.Unmarshal(mes.Data, pmes)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch pmes.GetType() {
+		case PBDHTMessage_GET_VALUE:
+			resp := Message{
+				Type:     pmes.GetType(),
+				ID:       pmes.GetId(),
+				Response: true,
+				Success:  false,
+			}
+
+			for i := 0; i < 7; i++ {
+				resp.Peers = append(resp.Peers, _randPeer())
+			}
+			return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
+		default:
+			panic("Shouldnt recieve this.")
+		}
+
+	})
+
+	_, err := d.GetValue(u.Key("hello"), time.Second*30)
+	if err != nil {
+		switch err {
+		case u.ErrNotFound:
+			t.Fail()
+			//Success!
+			return
+		case u.ErrTimeout:
+			t.Fatal("Should not have gotten timeout!")
+		default:
+			t.Fatalf("Got unexpected error: %s", err)
+		}
+	}
+	t.Fatal("Expected to recieve an error.")
 }

@@ -87,7 +87,7 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	// NOTE: this should be done better...
 	err = dht.Ping(npeer, time.Second*2)
 	if err != nil {
-		return nil, errors.New("failed to ping newly connected peer")
+		return nil, errors.New("failed to ping newly connected peer\n")
 	}
 
 	dht.Update(npeer)
@@ -98,14 +98,14 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 // Read in all messages from swarm and handle them appropriately
 // NOTE: this function is just a quick sketch
 func (dht *IpfsDHT) handleMessages() {
-	u.DOut("Begin message handling routine")
+	u.DOut("Begin message handling routine\n")
 
 	ch := dht.network.GetChan()
 	for {
 		select {
 		case mes, ok := <-ch.Incoming:
 			if !ok {
-				u.DOut("handleMessages closing, bad recv on incoming")
+				u.DOut("handleMessages closing, bad recv on incoming\n")
 				return
 			}
 			pmes := new(PBDHTMessage)
@@ -178,7 +178,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 	}
 	iVal, err := dht.datastore.Get(dskey)
 	if err == nil {
-		u.DOut("handleGetValue success!")
+		u.DOut("handleGetValue success!\n")
 		resp.Success = true
 		resp.Value = iVal.([]byte)
 	} else if err == ds.ErrNotFound {
@@ -195,7 +195,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 			level := 0
 			if len(pmes.GetValue()) < 1 {
 				// TODO: maybe return an error? Defaulting isnt a good idea IMO
-				u.PErr("handleGetValue: no routing level specified, assuming 0")
+				u.PErr("handleGetValue: no routing level specified, assuming 0\n")
 			} else {
 				level = int(pmes.GetValue()[0]) // Using value field to specify cluster level
 			}
@@ -204,14 +204,14 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
 			closer := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 
 			if closer.ID.Equal(dht.self.ID) {
-				u.DOut("Attempted to return self! this shouldnt happen...")
+				u.DOut("Attempted to return self! this shouldnt happen...\n")
 				resp.Peers = nil
 				goto out
 			}
 			// If this peer is closer than the one from the table, return nil
 			if kb.Closer(dht.self.ID, closer.ID, u.Key(pmes.GetKey())) {
 				resp.Peers = nil
-				u.DOut("handleGetValue could not find a closer node than myself.")
+				u.DOut("handleGetValue could not find a closer node than myself.\n")
 			} else {
 				u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
 				resp.Peers = []*peer.Peer{closer}
@@ -263,12 +263,12 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
 	u.DOut("handleFindPeer: searching for '%s'\n", peer.ID(pmes.GetKey()).Pretty())
 	closest := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
 	if closest == nil {
-		u.PErr("handleFindPeer: could not find anything.")
+		u.PErr("handleFindPeer: could not find anything.\n")
 		return
 	}
 
 	if len(closest.Addresses) == 0 {
-		u.PErr("handleFindPeer: no addresses for connected peer...")
+		u.PErr("handleFindPeer: no addresses for connected peer...\n")
 		return
 	}
 
@@ -438,7 +438,7 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 		return nil, u.ErrTimeout
 	case resp, ok := <-responseChan:
 		if !ok {
-			u.PErr("response channel closed before timeout, please investigate.")
+			u.PErr("response channel closed before timeout, please investigate.\n")
 			return nil, u.ErrTimeout
 		}
 		roundtrip := time.Since(t)
@@ -587,7 +587,7 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 		dht.listener.Unlisten(pmes.ID)
 		return nil, u.ErrTimeout
 	case resp := <-listenChan:
-		u.DOut("FindProviders: got response.")
+		u.DOut("FindProviders: got response.\n")
 		pmesOut := new(PBDHTMessage)
 		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
