@@ -38,7 +38,8 @@ func pong(c net.Conn, peer *peer.Peer) {
 			fmt.Printf("error: didn't receive ping: '%v'\n", b.GetMessage())
 			return
 		}
-		data, err = Wrap([]byte("pong"), PBWrapper_DHT_MESSAGE)
+
+		data, err = Wrap([]byte("pong"), PBWrapper_TEST)
 		if err != nil {
 			fmt.Printf("error %v\n", err)
 			return
@@ -63,6 +64,7 @@ func TestSwarm(t *testing.T) {
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33": "/ip4/127.0.0.1/tcp/4567",
 	}
 
+	recv := swarm.GetChannel(PBWrapper_TEST)
 	for k, n := range peerNames {
 		peer, err := setupPeer(k, n)
 		if err != nil {
@@ -96,13 +98,14 @@ func TestSwarm(t *testing.T) {
 	MsgNum := 1000
 	for k := 0; k < MsgNum; k++ {
 		for _, p := range peers {
-			swarm.Chan.Outgoing <- &Message{Peer: p, Data: []byte("ping")}
+			recv.Outgoing <- &Message{Peer: p, Data: []byte("ping")}
 		}
 	}
 
 	got := map[u.Key]int{}
+
 	for k := 0; k < (MsgNum * len(peers)); k++ {
-		msg := <-swarm.Chan.Incoming
+		msg := <-recv.Incoming
 		if string(msg.Data) != "pong" {
 			t.Error("unexpected conn output", msg.Data)
 		}

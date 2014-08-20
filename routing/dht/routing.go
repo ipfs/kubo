@@ -240,7 +240,7 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 
 	for _, p := range peers {
 		mes := swarm.NewMessage(p, pbmes)
-		dht.network.Send(mes)
+		dht.netChan.Outgoing <- mes
 	}
 	return nil
 }
@@ -352,7 +352,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 
 	before := time.Now()
 	responseChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
-	dht.network.Send(mes)
+	dht.netChan.Outgoing <- mes
 
 	tout := time.After(timeout)
 	select {
@@ -385,7 +385,7 @@ func (dht *IpfsDHT) getDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 	pbmes := pmes.ToProtobuf()
 	for _, p := range targets {
 		mes := swarm.NewMessage(p, pbmes)
-		dht.network.Send(mes)
+		dht.netChan.Outgoing <- mes
 	}
 
 	var out []*diagInfo

@@ -38,7 +38,7 @@ func NewMessage(p *peer.Peer, data proto.Message) *Message {
 	}
 }
 
-// Chan is a swam channel, which provides duplex communication and errors.
+// Chan is a swarm channel, which provides duplex communication and errors.
 type Chan struct {
 	Outgoing chan *Message
 	Incoming chan *Message
@@ -84,7 +84,7 @@ type Swarm struct {
 	conns     ConnMap
 	connsLock sync.RWMutex
 
-	filterChans map[PBWrapper_MessageType]chan *Message
+	filterChans map[PBWrapper_MessageType]*Chan
 	toFilter    chan *Message
 	newFilters  chan *newFilterInfo
 
@@ -98,7 +98,7 @@ func NewSwarm(local *peer.Peer) *Swarm {
 		Chan:        NewChan(10),
 		conns:       ConnMap{},
 		local:       local,
-		filterChans: make(map[PBWrapper_MessageType]chan *Message),
+		filterChans: make(map[PBWrapper_MessageType]*Chan),
 		toFilter:    make(chan *Message, 32),
 		newFilters:  make(chan *newFilterInfo),
 	}
@@ -233,6 +233,8 @@ func (s *Swarm) Dial(peer *peer.Peer) (*Conn, error, bool) {
 	return conn, nil, false
 }
 
+// StartConn adds the passed in connection to its peerMap and starts
+// the fanIn routine for that connection
 func (s *Swarm) StartConn(conn *Conn) error {
 	if conn == nil {
 		return errors.New("Tried to start nil connection.")
@@ -275,14 +277,8 @@ func (s *Swarm) fanOut() {
 				continue
 			}
 
-			wrapped, err := Wrap(msg.Data, PBWrapper_DHT_MESSAGE)
-			if err != nil {
-				s.Error(err)
-				continue
-			}
-
 			// queue it in the connection's buffer
-			conn.Outgoing.MsgChan <- wrapped
+			conn.Outgoing.MsgChan <- msg.Data
 		}
 	}
 }
@@ -320,7 +316,7 @@ out:
 
 type newFilterInfo struct {
 	Type PBWrapper_MessageType
-	resp chan chan *Message
+	resp chan *Chan
 }
 
 func (s *Swarm) routeMessages() {
@@ -342,11 +338,32 @@ func (s *Swarm) routeMessages() {
 			}
 
 			mes.Data = wrapper.GetMessage()
-			ch <- mes
+			ch.Incoming <- mes
 		case gchan := <-s.newFilters:
-			nch := make(chan *Message)
-			s.filterChans[gchan.Type] = nch
+			nch, ok := s.filterChans[gchan.Type]
+			if !ok {
+				nch = NewChan(16)
+				s.filterChans[gchan.Type] = nch
+				go s.muxChan(nch, gchan.Type)
+			}
 			gchan.resp <- nch
+		}
+	}
+}
+
+func (s *Swarm) muxChan(ch *Chan, typ PBWrapper_MessageType) {
+	for {
+		select {
+		case <-ch.Close:
+			return
+		case mes := <-ch.Outgoing:
+			data, err := Wrap(mes.Data, typ)
+			if err != nil {
+				u.PErr("muxChan error: %s\n", err)
+				continue
+			}
+			mes.Data = data
+			s.Chan.Outgoing <- mes
 		}
 	}
 }
@@ -386,6 +403,7 @@ func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error
 	return conn.Peer, err
 }
 
+// Handle performing a handshake on a new connection and ensuring proper forward communication
 func (s *Swarm) handleDialedCon(conn *Conn) error {
 	err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
@@ -440,10 +458,6 @@ func (s *Swarm) Drop(p *peer.Peer) error {
 	return conn.Close()
 }
 
-func (s *Swarm) Send(mes *Message) {
-	s.Chan.Outgoing <- mes
-}
-
 func (s *Swarm) Error(e error) {
 	s.Chan.Errors <- e
 }
@@ -452,31 +466,10 @@ func (s *Swarm) GetErrChan() chan error {
 	return s.Chan.Errors
 }
 
-func Wrap(data []byte, typ PBWrapper_MessageType) ([]byte, error) {
-	wrapper := new(PBWrapper)
-	wrapper.Message = data
-	wrapper.Type = &typ
-	b, err := proto.Marshal(wrapper)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-func Unwrap(data []byte) (*PBWrapper, error) {
-	mes := new(PBWrapper)
-	err := proto.Unmarshal(data, mes)
-	if err != nil {
-		return nil, err
-	}
-
-	return mes, nil
-}
-
-func (s *Swarm) GetChannel(typ PBWrapper_MessageType) chan *Message {
+func (s *Swarm) GetChannel(typ PBWrapper_MessageType) *Chan {
 	nfi := &newFilterInfo{
 		Type: typ,
-		resp: make(chan chan *Message),
+		resp: make(chan *Chan),
 	}
 	s.newFilters <- nfi
 

@@ -8,14 +8,13 @@ import (
 )
 
 type Network interface {
-	Send(*Message)
-	Error(error)
 	Find(u.Key) *peer.Peer
 	Listen() error
 	ConnectNew(*ma.Multiaddr) (*peer.Peer, error)
 	GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error)
+	Error(error)
 	GetErrChan() chan error
-	GetChannel(PBWrapper_MessageType) chan *Message
+	GetChannel(PBWrapper_MessageType) *Chan
 	Close()
 	Drop(*peer.Peer) error
 }

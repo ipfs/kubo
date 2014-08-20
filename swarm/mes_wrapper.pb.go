@@ -23,14 +23,17 @@ var _ = math.Inf
 type PBWrapper_MessageType int32
 
 const (
-	PBWrapper_DHT_MESSAGE PBWrapper_MessageType = 0
+	PBWrapper_TEST        PBWrapper_MessageType = 0
+	PBWrapper_DHT_MESSAGE PBWrapper_MessageType = 1
 )
 
 var PBWrapper_MessageType_name = map[int32]string{
-	0: "DHT_MESSAGE",
+	0: "TEST",
+	1: "DHT_MESSAGE",
 }
 var PBWrapper_MessageType_value = map[string]int32{
-	"DHT_MESSAGE": 0,
+	"TEST":        0,
+	"DHT_MESSAGE": 1,
 }
 
 func (x PBWrapper_MessageType) Enum() *PBWrapper_MessageType {
@@ -64,7 +67,7 @@ func (m *PBWrapper) GetType() PBWrapper_MessageType {
 	if m != nil && m.Type != nil {
 		return *m.Type
 	}
-	return PBWrapper_DHT_MESSAGE
+	return PBWrapper_TEST
 }
 
 func (m *PBWrapper) GetMessage() []byte {

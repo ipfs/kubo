@@ -70,8 +70,8 @@ func (f *fauxNet) GetErrChan() chan error {
 	return f.Chan.Errors
 }
 
-func (f *fauxNet) GetChannel(t swarm.PBWrapper_MessageType) chan *swarm.Message {
-	return f.Chan.Incoming
+func (f *fauxNet) GetChannel(t swarm.PBWrapper_MessageType) *swarm.Chan {
+	return f.Chan
 }
 
 func (f *fauxNet) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {

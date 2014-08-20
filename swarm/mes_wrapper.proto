@@ -2,7 +2,8 @@ package swarm;
 
 message PBWrapper {
 	enum MessageType {
-		DHT_MESSAGE = 0;
+		TEST = 0;
+		DHT_MESSAGE = 1;
 	}
 
 	required MessageType Type = 1;
