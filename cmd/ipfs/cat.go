@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	u "github.com/jbenet/go-ipfs/util"
@@ -35,7 +37,10 @@ func catCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		u.POut("%s", nd.Data)
+		_, err = fmt.Printf("%s", nd.Data)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
