@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"math/rand"
-	"sync"
 	"time"
 
 	proto "code.google.com/p/goprotobuf/proto"
@@ -17,21 +15,6 @@ import (
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
-
-// Pool size is the number of nodes used for group find/set RPC calls
-var PoolSize = 6
-
-// We put the 'K' in kademlia!
-var KValue = 10
-
-// Its in the paper, i swear
-var AlphaValue = 3
-
-// GenerateMessageID creates and returns a new message ID
-// TODO: determine a way of creating and managing message IDs
-func GenerateMessageID() uint64 {
-	return (uint64(rand.Uint32()) << 32) | uint64(rand.Uint32())
-}
 
 // This file implements the Routing interface for the IpfsDHT struct.
 
@@ -62,60 +45,6 @@ func (dht *IpfsDHT) PutValue(key u.Key, value []byte) {
 	for i := 0; i < count; i++ {
 		<-complete
 	}
-}
-
-// A counter for incrementing a variable across multiple threads
-type counter struct {
-	n   int
-	mut sync.RWMutex
-}
-
-func (c *counter) Increment() {
-	c.mut.Lock()
-	c.n++
-	c.mut.Unlock()
-}
-
-func (c *counter) Decrement() {
-	c.mut.Lock()
-	c.n--
-	c.mut.Unlock()
-}
-
-func (c *counter) Size() int {
-	c.mut.RLock()
-	defer c.mut.RUnlock()
-	return c.n
-}
-
-type peerSet struct {
-	ps map[string]bool
-	lk sync.RWMutex
-}
-
-func newPeerSet() *peerSet {
-	ps := new(peerSet)
-	ps.ps = make(map[string]bool)
-	return ps
-}
-
-func (ps *peerSet) Add(p *peer.Peer) {
-	ps.lk.Lock()
-	ps.ps[string(p.ID)] = true
-	ps.lk.Unlock()
-}
-
-func (ps *peerSet) Contains(p *peer.Peer) bool {
-	ps.lk.RLock()
-	_, ok := ps.ps[string(p.ID)]
-	ps.lk.RUnlock()
-	return ok
-}
-
-func (ps *peerSet) Size() int {
-	ps.lk.RLock()
-	defer ps.lk.RUnlock()
-	return len(ps.ps)
 }
 
 // GetValue searches for the value corresponding to given Key.
@@ -159,9 +88,13 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 	count := 0
 	go func() {
+		defer close(procPeer)
 		for {
 			select {
-			case p := <-npeerChan:
+			case p, ok := <-npeerChan:
+				if !ok {
+					return
+				}
 				count++
 				if count >= KValue {
 					errChan <- u.ErrNotFound
@@ -171,8 +104,11 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 				procPeer <- p
 			default:
-				if c.Size() == 0 {
-					errChan <- u.ErrNotFound
+				if c.Size() <= 0 {
+					select {
+					case errChan <- u.ErrNotFound:
+					default:
+					}
 					return
 				}
 			}
@@ -180,20 +116,22 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	}()
 
 	process := func() {
+		defer c.Decrement()
 		for p := range procPeer {
 			if p == nil {
-				c.Decrement()
 				return
 			}
 			val, peers, err := dht.getValueOrPeers(p, key, timeout/4, routeLevel)
 			if err != nil {
 				u.DErr("%v\n", err.Error())
-				c.Decrement()
 				continue
 			}
 			if val != nil {
-				valChan <- val
-				c.Decrement()
+				select {
+				case valChan <- val:
+				default:
+					u.DOut("Wasnt the first to return the value!")
+				}
 				return
 			}
 
@@ -347,7 +285,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	u.DOut("Enter Ping.")
 
-	pmes := Message{ID: GenerateMessageID(), Type: PBDHTMessage_PING}
+	pmes := Message{ID: swarm.GenerateMessageID(), Type: PBDHTMessage_PING}
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
 
 	before := time.Now()
@@ -363,7 +301,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 		return nil
 	case <-tout:
 		// Timed out, think about removing peer from network
-		u.DOut("Ping peer timed out.")
+		u.DOut("[%s] Ping peer [%s] timed out.", dht.self.ID.Pretty(), p.ID.Pretty())
 		dht.listener.Unlisten(pmes.ID)
 		return u.ErrTimeout
 	}
@@ -377,7 +315,7 @@ func (dht *IpfsDHT) getDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 	// TODO: Add timeout to this struct so nodes know when to return
 	pmes := Message{
 		Type: PBDHTMessage_DIAGNOSTIC,
-		ID:   GenerateMessageID(),
+		ID:   swarm.GenerateMessageID(),
 	}
 
 	listenChan := dht.listener.Listen(pmes.ID, len(targets), time.Minute*2)

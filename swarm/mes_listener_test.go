@@ -1,23 +1,22 @@
-package dht
+package swarm
 
 import (
 	"testing"
 	"time"
 
-	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/swarm"
+	peer "github.com/jbenet/go-ipfs/peer"
 )
 
 // Ensure that the Message Listeners basic functionality works
 func TestMesListenerBasic(t *testing.T) {
-	ml := newMesListener()
+	ml := NewMesListener()
 	a := GenerateMessageID()
 	resp := ml.Listen(a, 1, time.Minute)
 
-	pmes := new(swarm.PBWrapper)
+	pmes := new(PBWrapper)
 	pmes.Message = []byte("Hello")
-	pmes.Type = new(swarm.PBWrapper_MessageType)
-	mes := swarm.NewMessage(new(peer.Peer), pmes)
+	pmes.Type = new(PBWrapper_MessageType)
+	mes := NewMessage(new(peer.Peer), pmes)
 
 	go ml.Respond(a, mes)
 

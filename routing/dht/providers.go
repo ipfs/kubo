@@ -81,3 +81,7 @@ func (pm *ProviderManager) GetProviders(k u.Key) []*peer.Peer {
 	pm.getprovs <- gp
 	return <-gp.resp
 }
+
+func (pm *ProviderManager) Halt() {
+	pm.halt <- struct{}{}
+}

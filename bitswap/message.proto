@@ -1,0 +1,13 @@
+package bitswap;
+
+message PBMessage {
+	enum MessageType {
+		GET_BLOCK = 0;
+	}
+
+	required MessageType Type = 1;
+	required uint64 id = 2;
+	required string key = 3;
+	optional bytes value = 4;
+	optional bool response = 5;
+}

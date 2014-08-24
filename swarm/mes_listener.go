@@ -1,14 +1,14 @@
-package dht
+package swarm
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type mesListener struct {
+type MesListener struct {
 	listeners map[uint64]*listenInfo
 	haltchan  chan struct{}
 	unlist    chan uint64
@@ -16,10 +16,15 @@ type mesListener struct {
 	send      chan *respMes
 }
 
+// GenerateMessageID creates and returns a new message ID
+func GenerateMessageID() uint64 {
+	return (uint64(rand.Uint32()) << 32) | uint64(rand.Uint32())
+}
+
 // The listen info struct holds information about a message that is being waited for
 type listenInfo struct {
 	// Responses matching the listen ID will be sent through resp
-	resp chan *swarm.Message
+	resp chan *Message
 
 	// count is the number of responses to listen for
 	count int
@@ -36,8 +41,8 @@ type listenInfo struct {
 	id uint64
 }
 
-func newMesListener() *mesListener {
-	ml := new(mesListener)
+func NewMesListener() *MesListener {
+	ml := new(MesListener)
 	ml.haltchan = make(chan struct{})
 	ml.listeners = make(map[uint64]*listenInfo)
 	ml.nlist = make(chan *listenInfo, 16)
@@ -47,37 +52,37 @@ func newMesListener() *mesListener {
 	return ml
 }
 
-func (ml *mesListener) Listen(id uint64, count int, timeout time.Duration) <-chan *swarm.Message {
+func (ml *MesListener) Listen(id uint64, count int, timeout time.Duration) <-chan *Message {
 	li := new(listenInfo)
 	li.count = count
 	li.eol = time.Now().Add(timeout)
-	li.resp = make(chan *swarm.Message, count)
+	li.resp = make(chan *Message, count)
 	li.id = id
 	ml.nlist <- li
 	return li.resp
 }
 
-func (ml *mesListener) Unlisten(id uint64) {
+func (ml *MesListener) Unlisten(id uint64) {
 	ml.unlist <- id
 }
 
 type respMes struct {
 	id  uint64
-	mes *swarm.Message
+	mes *Message
 }
 
-func (ml *mesListener) Respond(id uint64, mes *swarm.Message) {
+func (ml *MesListener) Respond(id uint64, mes *Message) {
 	ml.send <- &respMes{
 		id:  id,
 		mes: mes,
 	}
 }
 
-func (ml *mesListener) Halt() {
+func (ml *MesListener) Halt() {
 	ml.haltchan <- struct{}{}
 }
 
-func (ml *mesListener) run() {
+func (ml *MesListener) run() {
 	for {
 		select {
 		case <-ml.haltchan:

@@ -153,7 +153,7 @@ func TestGetFailures(t *testing.T) {
 	req := Message{
 		Type:  PBDHTMessage_GET_VALUE,
 		Key:   "hello",
-		ID:    GenerateMessageID(),
+		ID:    swarm.GenerateMessageID(),
 		Value: []byte{0},
 	}
 	fn.Chan.Incoming <- swarm.NewMessage(other, req.ToProtobuf())
