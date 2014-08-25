@@ -40,6 +40,7 @@ func (c *counter) Size() (s int) {
 	return
 }
 
+// peerSet is a threadsafe set of peers
 type peerSet struct {
 	ps map[string]bool
 	lk sync.RWMutex
@@ -68,4 +69,15 @@ func (ps *peerSet) Size() int {
 	ps.lk.RLock()
 	defer ps.lk.RUnlock()
 	return len(ps.ps)
+}
+
+func (ps *peerSet) AddIfSmallerThan(p *peer.Peer, maxsize int) bool {
+	var success bool
+	ps.lk.Lock()
+	if _, ok := ps.ps[string(p.ID)]; !ok && len(ps.ps) < maxsize {
+		success = true
+		ps.ps[string(p.ID)] = true
+	}
+	ps.lk.Unlock()
+	return success
 }

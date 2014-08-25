@@ -22,7 +22,7 @@ import (
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(key u.Key, value []byte) {
+func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	complete := make(chan struct{})
 	count := 0
 	for _, route := range dht.routingTables {
@@ -45,6 +45,7 @@ func (dht *IpfsDHT) PutValue(key u.Key, value []byte) {
 	for i := 0; i < count; i++ {
 		<-complete
 	}
+	return nil
 }
 
 // GetValue searches for the value corresponding to given Key.
@@ -181,6 +182,59 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 		dht.netChan.Outgoing <- mes
 	}
 	return nil
+}
+
+func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Duration) chan *peer.Peer {
+	peerOut := make(chan *peer.Peer, count)
+	go func() {
+		ps := newPeerSet()
+		provs := dht.providers.GetProviders(key)
+		for _, p := range provs {
+			count--
+			// NOTE: assuming that the list of peers is unique
+			ps.Add(p)
+			peerOut <- p
+			if count <= 0 {
+				return
+			}
+		}
+
+		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
+		for _, pp := range peers {
+			go func() {
+				pmes, err := dht.findProvidersSingle(pp, key, 0, timeout)
+				if err != nil {
+					u.PErr("%v\n", err)
+					return
+				}
+				dht.addPeerListAsync(key, pmes.GetPeers(), ps, count, peerOut)
+			}()
+		}
+
+	}()
+	return peerOut
+}
+
+//TODO: this function could also be done asynchronously
+func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*PBDHTMessage_PBPeer, ps *peerSet, count int, out chan *peer.Peer) {
+	for _, pbp := range peers {
+		maddr, err := ma.NewMultiaddr(pbp.GetAddr())
+		if err != nil {
+			u.PErr("%v\n", err)
+			continue
+		}
+		p, err := dht.network.GetConnection(peer.ID(pbp.GetId()), maddr)
+		if err != nil {
+			u.PErr("%v\n", err)
+			continue
+		}
+		dht.providers.AddProvider(k, p)
+		if ps.AddIfSmallerThan(p, count) {
+			out <- p
+		} else if ps.Size() >= count {
+			return
+		}
+	}
 }
 
 // FindProviders searches for peers who can provide the value for given key.

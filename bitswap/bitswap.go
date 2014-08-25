@@ -5,6 +5,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
+	dht "github.com/jbenet/go-ipfs/routing/dht"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -36,7 +37,7 @@ type BitSwap struct {
 	datastore ds.Datastore
 
 	// routing interface for communication
-	routing routing.IpfsRouting
+	routing *dht.IpfsDHT
 
 	listener *swarm.MesListener
 
@@ -63,7 +64,7 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 		datastore: d,
 		partners:  LedgerMap{},
 		wantList:  KeySet{},
-		routing:   r,
+		routing:   r.(*dht.IpfsDHT),
 		meschan:   net.GetChannel(swarm.PBWrapper_BITSWAP),
 		haltChan:  make(chan struct{}),
 	}
@@ -76,32 +77,32 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
 	begin := time.Now()
-	provs, err := bs.routing.FindProviders(k, timeout)
-	if err != nil {
-		u.PErr("GetBlock error: %s\n", err)
-		return nil, err
-	}
 	tleft := timeout - time.Now().Sub(begin)
+	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
 
 	valchan := make(chan []byte)
 	after := time.After(tleft)
-	for _, p := range provs {
-		go func(pr *peer.Peer) {
-			ledger := bs.GetLedger(pr.Key())
-			blk, err := bs.getBlock(k, pr, tleft)
-			if err != nil {
-				u.PErr("%v\n", err)
-				return
-			}
-			// NOTE: this credits everyone who sends us a block,
-			//       even if we dont use it
-			ledger.ReceivedBytes(uint64(len(blk)))
-			select {
-			case valchan <- blk:
-			default:
-			}
-		}(p)
-	}
+
+	// TODO: when the data is received, shut down this for loop
+	go func() {
+		for p := range provs_ch {
+			go func(pr *peer.Peer) {
+				ledger := bs.GetLedger(pr.Key())
+				blk, err := bs.getBlock(k, pr, tleft)
+				if err != nil {
+					u.PErr("%v\n", err)
+					return
+				}
+				// NOTE: this credits everyone who sends us a block,
+				//       even if we dont use it
+				ledger.ReceivedBytes(uint64(len(blk)))
+				select {
+				case valchan <- blk:
+				default:
+				}
+			}(p)
+		}
+	}()
 
 	select {
 	case blkdata := <-valchan:
@@ -212,4 +213,8 @@ func (bs *BitSwap) GetLedger(k u.Key) *Ledger {
 	l.Partner = peer.ID(k)
 	bs.partners[k] = l
 	return l
+}
+
+func (bs *BitSwap) Halt() {
+	bs.haltChan <- struct{}{}
 }

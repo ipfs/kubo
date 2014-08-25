@@ -1,0 +1,4 @@
+*.swp
+.ipfsconfig
+*.out
+*.test

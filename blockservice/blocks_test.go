@@ -1,11 +1,13 @@
-package blocks
+package blockservice
 
 import (
 	"bytes"
 	"fmt"
-	ds "github.com/jbenet/datastore.go"
-	u "github.com/jbenet/go-ipfs/util"
 	"testing"
+
+	ds "github.com/jbenet/datastore.go"
+	blocks "github.com/jbenet/go-ipfs/blocks"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 func TestBlocks(t *testing.T) {
@@ -17,7 +19,7 @@ func TestBlocks(t *testing.T) {
 		return
 	}
 
-	b, err := NewBlock([]byte("beep boop"))
+	b, err := blocks.NewBlock([]byte("beep boop"))
 	if err != nil {
 		t.Error("failed to construct block", err)
 		return
