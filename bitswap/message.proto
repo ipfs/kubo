@@ -10,4 +10,5 @@ message PBMessage {
 	required string key = 3;
 	optional bytes value = 4;
 	optional bool response = 5;
+	optional bool success = 6;
 }

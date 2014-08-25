@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	bserv "github.com/jbenet/go-ipfs/blockservice"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
 )
@@ -93,7 +94,7 @@ func (n *Node) Key() (u.Key, error) {
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
 type DAGService struct {
-	Blocks *blocks.BlockService
+	Blocks *bserv.BlockService
 }
 
 // Put adds a node to the DAGService, storing the block in the BlockService

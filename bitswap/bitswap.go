@@ -10,7 +10,6 @@ import (
 
 	ds "github.com/jbenet/datastore.go"
 
-	"errors"
 	"time"
 )
 
@@ -74,24 +73,52 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) GetBlock(k u.Key, timeout time.Time) (
+func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
 	begin := time.Now()
-	_, err := bs.routing.FindProviders(k, timeout)
+	provs, err := bs.routing.FindProviders(k, timeout)
 	if err != nil {
 		u.PErr("GetBlock error: %s\n", err)
-		return
+		return nil, err
 	}
-	tleft := timeout.Sub(time.Now().Sub(begin))
-	return nil, errors.New("not implemented")
+	tleft := timeout - time.Now().Sub(begin)
+
+	valchan := make(chan []byte)
+	after := time.After(tleft)
+	for _, p := range provs {
+		go func(pr *peer.Peer) {
+			ledger := bs.GetLedger(pr.Key())
+			blk, err := bs.getBlock(k, pr, tleft)
+			if err != nil {
+				u.PErr("%v\n", err)
+				return
+			}
+			// NOTE: this credits everyone who sends us a block,
+			//       even if we dont use it
+			ledger.ReceivedBytes(uint64(len(blk)))
+			select {
+			case valchan <- blk:
+			default:
+			}
+		}(p)
+	}
+
+	select {
+	case blkdata := <-valchan:
+		return blocks.NewBlock(blkdata)
+	case <-after:
+		return nil, u.ErrTimeout
+	}
 }
 
 func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
+	//
 	mes := new(PBMessage)
-	mes.Id = proto.Uint64(swarm.GenerateID())
-	mes.Key = proto.String(k)
+	mes.Id = proto.Uint64(swarm.GenerateMessageID())
+	mes.Key = proto.String(string(k))
 	typ := PBMessage_GET_BLOCK
 	mes.Type = &typ
+	//
 
 	after := time.After(timeout)
 	resp := bs.listener.Listen(mes.GetId(), 1, timeout)
@@ -100,23 +127,89 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byt
 
 	select {
 	case resp_mes := <-resp:
+		pmes := new(PBMessage)
+		err := proto.Unmarshal(resp_mes.Data, pmes)
+		if err != nil {
+			return nil, err
+		}
+		if pmes.GetSuccess() {
+			return pmes.GetValue(), nil
+		}
+		return nil, u.ErrNotFound
 	case <-after:
-		u.PErr("getBlock for '%s' timed out.", k)
+		u.PErr("getBlock for '%s' timed out.\n", k)
 		return nil, u.ErrTimeout
 	}
 }
 
 // HaveBlock announces the existance of a block to BitSwap, potentially sending
 // it to peers (Partners) whose WantLists include it.
-func (bs *BitSwap) HaveBlock(k u.Key) (*blocks.Block, error) {
-	return nil, errors.New("not implemented")
+func (bs *BitSwap) HaveBlock(k u.Key) error {
+	return bs.routing.Provide(k)
 }
 
 func (bs *BitSwap) handleMessages() {
 	for {
 		select {
-		case mes := bs.meschan.Incoming:
+		case mes := <-bs.meschan.Incoming:
+			pmes := new(PBMessage)
+			err := proto.Unmarshal(mes.Data, pmes)
+			if err != nil {
+				u.PErr("%v\n", err)
+				continue
+			}
+			if pmes.GetResponse() {
+				bs.listener.Respond(pmes.GetId(), mes)
+			}
+
+			switch pmes.GetType() {
+			case PBMessage_GET_BLOCK:
+				go bs.handleGetBlock(mes.Peer, pmes)
+			default:
+				u.PErr("Invalid message type.\n")
+			}
 		case <-bs.haltChan:
+			return
 		}
 	}
+}
+
+func (bs *BitSwap) handleGetBlock(p *peer.Peer, pmes *PBMessage) {
+	ledger := bs.GetLedger(p.Key())
+
+	idata, err := bs.datastore.Get(ds.NewKey(pmes.GetKey()))
+	if err != nil {
+		if err == ds.ErrNotFound {
+			return
+		}
+		u.PErr("%v\n", err)
+		return
+	}
+	data, ok := idata.([]byte)
+	if !ok {
+		u.PErr("Failed casting data from datastore.")
+		return
+	}
+
+	if ledger.ShouldSend() {
+		resp := &Message{
+			Value:    data,
+			Response: true,
+			ID:       pmes.GetId(),
+		}
+		bs.meschan.Outgoing <- swarm.NewMessage(p, resp.ToProtobuf())
+		ledger.SentBytes(uint64(len(data)))
+	}
+}
+
+func (bs *BitSwap) GetLedger(k u.Key) *Ledger {
+	l, ok := bs.partners[k]
+	if ok {
+		return l
+	}
+
+	l = new(Ledger)
+	l.Partner = peer.ID(k)
+	bs.partners[k] = l
+	return l
 }

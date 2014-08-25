@@ -603,6 +603,7 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 	}
 }
 
+// TODO: Could be done async
 func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer.Peer {
 	var provArr []*peer.Peer
 	for _, prov := range peers {

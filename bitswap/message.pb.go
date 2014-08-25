@@ -56,6 +56,7 @@ type PBMessage struct {
 	Key              *string                `protobuf:"bytes,3,req,name=key" json:"key,omitempty"`
 	Value            []byte                 `protobuf:"bytes,4,opt,name=value" json:"value,omitempty"`
 	Response         *bool                  `protobuf:"varint,5,opt,name=response" json:"response,omitempty"`
+	Success          *bool                  `protobuf:"varint,6,opt,name=success" json:"success,omitempty"`
 	XXX_unrecognized []byte                 `json:"-"`
 }
 
@@ -94,6 +95,13 @@ func (m *PBMessage) GetValue() []byte {
 func (m *PBMessage) GetResponse() bool {
 	if m != nil && m.Response != nil {
 		return *m.Response
+	}
+	return false
+}
+
+func (m *PBMessage) GetSuccess() bool {
+	if m != nil && m.Success != nil {
+		return *m.Success
 	}
 	return false
 }

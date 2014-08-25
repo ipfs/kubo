@@ -2,8 +2,9 @@ package core
 
 import (
 	"fmt"
+
 	ds "github.com/jbenet/datastore.go"
-	blocks "github.com/jbenet/go-ipfs/blocks"
+	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
@@ -35,7 +36,7 @@ type IpfsNode struct {
 	// BitSwap *bitswap.BitSwap
 
 	// the block service, get/add blocks.
-	Blocks *blocks.BlockService
+	Blocks *bserv.BlockService
 
 	// the merkle dag service, get/add objects.
 	DAG *merkledag.DAGService
@@ -58,7 +59,7 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	bs, err := blocks.NewBlockService(d)
+	bs, err := bserv.NewBlockService(d)
 	if err != nil {
 		return nil, err
 	}

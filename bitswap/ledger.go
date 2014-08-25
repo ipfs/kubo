@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	"math/rand"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -13,11 +15,8 @@ type Ledger struct {
 	// Partner is the ID of the remote Peer.
 	Partner peer.ID
 
-	// BytesSent counts the number of bytes the local peer sent to Partner
-	BytesSent uint64
-
-	// BytesReceived counts the number of bytes local peer received from Partner
-	BytesReceived uint64
+	// Accounting tracks bytes sent and recieved.
+	Accounting debtRatio
 
 	// FirstExchnage is the time of the first data exchange.
 	FirstExchange *time.Time
@@ -31,3 +30,15 @@ type Ledger struct {
 
 // LedgerMap lists Ledgers by their Partner key.
 type LedgerMap map[u.Key]*Ledger
+
+func (l *Ledger) ShouldSend() bool {
+	return rand.Float64() <= probabilitySend(l.Accounting.Value())
+}
+
+func (l *Ledger) SentBytes(n uint64) {
+	l.Accounting.BytesSent += n
+}
+
+func (l *Ledger) ReceivedBytes(n uint64) {
+	l.Accounting.BytesRecv += n
+}
