@@ -67,6 +67,7 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 		routing:   r.(*dht.IpfsDHT),
 		meschan:   net.GetChannel(swarm.PBWrapper_BITSWAP),
 		haltChan:  make(chan struct{}),
+		listener:  swarm.NewMesListener(),
 	}
 
 	go bs.handleMessages()
@@ -90,7 +91,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 				ledger := bs.GetLedger(pr.Key())
 				blk, err := bs.getBlock(k, pr, tleft)
 				if err != nil {
-					u.PErr("%v\n", err)
+					u.PErr("getBlock returned: %v\n", err)
 					return
 				}
 				// NOTE: this credits everyone who sends us a block,
@@ -106,6 +107,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 
 	select {
 	case blkdata := <-valchan:
+		close(valchan)
 		return blocks.NewBlock(blkdata)
 	case <-after:
 		return nil, u.ErrTimeout
@@ -113,6 +115,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 }
 
 func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
+	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
 	//
 	mes := new(PBMessage)
 	mes.Id = proto.Uint64(swarm.GenerateMessageID())
@@ -161,6 +164,7 @@ func (bs *BitSwap) handleMessages() {
 			}
 			if pmes.GetResponse() {
 				bs.listener.Respond(pmes.GetId(), mes)
+				continue
 			}
 
 			switch pmes.GetType() {
@@ -176,16 +180,20 @@ func (bs *BitSwap) handleMessages() {
 }
 
 func (bs *BitSwap) handleGetBlock(p *peer.Peer, pmes *PBMessage) {
+	u.DOut("handleGetBlock.\n")
 	ledger := bs.GetLedger(p.Key())
 
+	u.DOut("finding [%s] in datastore.\n", u.Key(pmes.GetKey()).Pretty())
 	idata, err := bs.datastore.Get(ds.NewKey(pmes.GetKey()))
 	if err != nil {
+		u.PErr("handleGetBlock datastore returned: %v\n", err)
 		if err == ds.ErrNotFound {
 			return
 		}
-		u.PErr("%v\n", err)
 		return
 	}
+
+	u.DOut("found value!\n")
 	data, ok := idata.([]byte)
 	if !ok {
 		u.PErr("Failed casting data from datastore.")
@@ -193,13 +201,18 @@ func (bs *BitSwap) handleGetBlock(p *peer.Peer, pmes *PBMessage) {
 	}
 
 	if ledger.ShouldSend() {
+		u.DOut("Sending value back!\n")
 		resp := &Message{
 			Value:    data,
 			Response: true,
 			ID:       pmes.GetId(),
+			Type:     PBMessage_GET_BLOCK,
+			Success:  true,
 		}
 		bs.meschan.Outgoing <- swarm.NewMessage(p, resp.ToProtobuf())
 		ledger.SentBytes(uint64(len(data)))
+	} else {
+		u.DOut("Ledger decided not to send anything...\n")
 	}
 }
 
@@ -210,6 +223,7 @@ func (bs *BitSwap) GetLedger(k u.Key) *Ledger {
 	}
 
 	l = new(Ledger)
+	l.Strategy = StandardStrategy
 	l.Partner = peer.ID(k)
 	bs.partners[k] = l
 	return l

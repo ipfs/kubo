@@ -53,11 +53,11 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(p *peer.Peer, net swarm.Network) *IpfsDHT {
+func NewDHT(p *peer.Peer, net swarm.Network, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.network = net
 	dht.netChan = net.GetChannel(swarm.PBWrapper_DHT_MESSAGE)
-	dht.datastore = ds.NewMapDatastore()
+	dht.datastore = dstore
 	dht.self = p
 	dht.providers = NewProviderManager()
 	dht.shutdown = make(chan struct{})
@@ -322,6 +322,7 @@ type providerInfo struct {
 
 func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *PBDHTMessage) {
 	key := u.Key(pmes.GetKey())
+	u.DOut("[%s] Adding [%s] as a provider for '%s'\n", dht.self.ID.Pretty(), p.ID.Pretty(), peer.ID(key).Pretty())
 	dht.providers.AddProvider(key, p)
 }
 
@@ -615,12 +616,8 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 		p := dht.network.Find(u.Key(prov.GetId()))
 		if p == nil {
 			u.DOut("given provider %s was not in our network already.\n", peer.ID(prov.GetId()).Pretty())
-			maddr, err := ma.NewMultiaddr(prov.GetAddr())
-			if err != nil {
-				u.PErr("error connecting to new peer: %s\n", err)
-				continue
-			}
-			p, err = dht.network.GetConnection(peer.ID(prov.GetId()), maddr)
+			var err error
+			p, err = dht.peerFromInfo(prov)
 			if err != nil {
 				u.PErr("error connecting to new peer: %s\n", err)
 				continue
@@ -630,4 +627,13 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 		provArr = append(provArr, p)
 	}
 	return provArr
+}
+
+func (dht *IpfsDHT) peerFromInfo(pbp *PBDHTMessage_PBPeer) (*peer.Peer, error) {
+	maddr, err := ma.NewMultiaddr(pbp.GetAddr())
+	if err != nil {
+		return nil, err
+	}
+
+	return dht.network.GetConnection(peer.ID(pbp.GetId()), maddr)
 }

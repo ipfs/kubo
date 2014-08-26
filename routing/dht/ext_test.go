@@ -7,6 +7,7 @@ import (
 
 	"code.google.com/p/goprotobuf/proto"
 
+	ds "github.com/jbenet/datastore.go"
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
@@ -89,7 +90,7 @@ func TestGetFailures(t *testing.T) {
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, fn)
+	d := NewDHT(local, fn, ds.NewMapDatastore())
 
 	other := &peer.Peer{ID: peer.ID("other_peer")}
 
@@ -177,7 +178,7 @@ func TestNotFound(t *testing.T) {
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, fn)
+	d := NewDHT(local, fn, ds.NewMapDatastore())
 	d.Start()
 
 	var ps []*peer.Peer
@@ -239,7 +240,7 @@ func TestLessThanKResponses(t *testing.T) {
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, fn)
+	d := NewDHT(local, fn, ds.NewMapDatastore())
 	d.Start()
 
 	var ps []*peer.Peer

@@ -59,7 +59,7 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	bs, err := bserv.NewBlockService(d)
+	bs, err := bserv.NewBlockService(d, nil)
 	if err != nil {
 		return nil, err
 	}

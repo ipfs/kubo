@@ -1,8 +1,6 @@
 package bitswap
 
 import (
-	"math/rand"
-
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -26,13 +24,15 @@ type Ledger struct {
 
 	// WantList is a (bounded, small) set of keys that Partner desires.
 	WantList KeySet
+
+	Strategy StrategyFunc
 }
 
 // LedgerMap lists Ledgers by their Partner key.
 type LedgerMap map[u.Key]*Ledger
 
 func (l *Ledger) ShouldSend() bool {
-	return rand.Float64() <= probabilitySend(l.Accounting.Value())
+	return l.Strategy(l.Accounting)
 }
 
 func (l *Ledger) SentBytes(n uint64) {

@@ -6,6 +6,7 @@ import (
 )
 
 type Message struct {
+	Type     PBMessage_MessageType
 	ID       uint64
 	Response bool
 	Key      u.Key
@@ -16,6 +17,7 @@ type Message struct {
 func (m *Message) ToProtobuf() *PBMessage {
 	pmes := new(PBMessage)
 	pmes.Id = &m.ID
+	pmes.Type = &m.Type
 	if m.Response {
 		pmes.Response = proto.Bool(true)
 	}

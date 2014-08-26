@@ -63,7 +63,7 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	val, err := dht.getLocal(key)
 	if err == nil {
 		ll.Success = true
-		u.DOut("Found local, returning.")
+		u.DOut("Found local, returning.\n")
 		return val, nil
 	}
 
@@ -218,6 +218,9 @@ func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Durati
 //TODO: this function could also be done asynchronously
 func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*PBDHTMessage_PBPeer, ps *peerSet, count int, out chan *peer.Peer) {
 	for _, pbp := range peers {
+		if peer.ID(pbp.GetId()).Equal(dht.self.ID) {
+			continue
+		}
 		maddr, err := ma.NewMultiaddr(pbp.GetAddr())
 		if err != nil {
 			u.PErr("%v\n", err)
@@ -256,10 +259,13 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 			return nil, err
 		}
 		if pmes.GetSuccess() {
+			u.DOut("Got providers back from findProviders call!\n")
 			provs := dht.addPeerList(key, pmes.GetPeers())
 			ll.Success = true
 			return provs, nil
 		}
+
+		u.DOut("Didnt get providers, just closer peers.\n")
 
 		closer := pmes.GetPeers()
 		if len(closer) == 0 {
@@ -337,7 +343,7 @@ func (dht *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, err
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	u.DOut("Enter Ping.")
+	u.DOut("Enter Ping.\n")
 
 	pmes := Message{ID: swarm.GenerateMessageID(), Type: PBDHTMessage_PING}
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())

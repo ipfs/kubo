@@ -3,6 +3,7 @@ package dht
 import (
 	"testing"
 
+	ds "github.com/jbenet/datastore.go"
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
@@ -37,7 +38,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 		if err != nil {
 			t.Fatal(err)
 		}
-		d := NewDHT(peers[i], net)
+		d := NewDHT(peers[i], net, ds.NewMapDatastore())
 		dhts = append(dhts, d)
 		d.Start()
 	}
@@ -69,14 +70,14 @@ func TestPing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dhtA := NewDHT(peerA, neta)
+	dhtA := NewDHT(peerA, neta, ds.NewMapDatastore())
 
 	netb := swarm.NewSwarm(peerB)
 	err = netb.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
-	dhtB := NewDHT(peerB, netb)
+	dhtB := NewDHT(peerB, netb, ds.NewMapDatastore())
 
 	dhtA.Start()
 	dhtB.Start()
@@ -120,14 +121,14 @@ func TestValueGetSet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dhtA := NewDHT(peerA, neta)
+	dhtA := NewDHT(peerA, neta, ds.NewMapDatastore())
 
 	netb := swarm.NewSwarm(peerB)
 	err = netb.Listen()
 	if err != nil {
 		t.Fatal(err)
 	}
-	dhtB := NewDHT(peerB, netb)
+	dhtB := NewDHT(peerB, netb, ds.NewMapDatastore())
 
 	dhtA.Start()
 	dhtB.Start()
