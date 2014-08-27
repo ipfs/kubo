@@ -5,7 +5,8 @@ This is a simple description of where the codebase stands.
 There are multiple subpackages:
 
 - `bitswap` - the block exchange
-- `blocks` - retrieve blocks for the core node
+- `blocks` - handles dealing with individual blocks and sharding files
+- `blockservice` - handles getting and storing blocks
 - `cmd/ipfs` - cli ipfs tool - the main **entrypoint** atm
 - `config` - load/edit configuration
 - `core` - the core node, joins all the pieces
@@ -29,11 +30,14 @@ There are multiple subpackages:
 - mounting `/ipfs` (try `{cat, ls} /ipfs/<path>`)
 - multiplexing connections (tcp atm)
 - peer addressing
+- dht - impl basic kademlia routing
+
+### What's in progress:
+
+- bitswap - impl basic block exchange functionality
 
 ### What's next:
 
-- dht - impl basic kademlia routing
-- bitswap - impl basic block exchange functionality
 - ipns - impl `/ipns` obj publishing + path resolution
 - **(at this point should have func similar to bittorrent)**
 - block splitting on import - Rabin fingerprints, etc
