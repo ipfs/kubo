@@ -8,8 +8,8 @@ import (
 )
 
 // Ensure that the Message Listeners basic functionality works
-func TestMesListenerBasic(t *testing.T) {
-	ml := NewMesListener()
+func TestMessageListener(t *testing.T) {
+	ml := NewMessageListener()
 	a := GenerateMessageID()
 	resp := ml.Listen(a, 1, time.Minute)
 
@@ -20,7 +20,7 @@ func TestMesListenerBasic(t *testing.T) {
 
 	go ml.Respond(a, mes)
 
-	del := time.After(time.Millisecond * 10)
+	del := time.After(time.Millisecond * 100)
 	select {
 	case get := <-resp:
 		if string(get.Data) != string(mes.Data) {

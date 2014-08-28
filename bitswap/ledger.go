@@ -10,17 +10,17 @@ import (
 // Ledger stores the data exchange relationship between two peers.
 type Ledger struct {
 
-	// Partner is the ID of the remote Peer.
-	Partner peer.ID
+	// Partner is the remote Peer.
+	Partner *peer.Peer
 
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio
 
 	// FirstExchnage is the time of the first data exchange.
-	FirstExchange *time.Time
+	FirstExchange time.Time
 
 	// LastExchange is the time of the last data exchange.
-	LastExchange *time.Time
+	LastExchange time.Time
 
 	// WantList is a (bounded, small) set of keys that Partner desires.
 	WantList KeySet
@@ -36,9 +36,11 @@ func (l *Ledger) ShouldSend() bool {
 }
 
 func (l *Ledger) SentBytes(n uint64) {
+	l.LastExchange = time.Now()
 	l.Accounting.BytesSent += n
 }
 
 func (l *Ledger) ReceivedBytes(n uint64) {
+	l.LastExchange = time.Now()
 	l.Accounting.BytesRecv += n
 }

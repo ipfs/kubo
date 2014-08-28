@@ -49,7 +49,7 @@ type IpfsDHT struct {
 	diaglock sync.Mutex
 
 	// listener is a server to register to listen for responses to messages
-	listener *swarm.MesListener
+	listener *swarm.MessageListener
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
@@ -66,7 +66,7 @@ func NewDHT(p *peer.Peer, net swarm.Network, dstore ds.Datastore) *IpfsDHT {
 	dht.routingTables[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*30)
 	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*100)
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
-	dht.listener = swarm.NewMesListener()
+	dht.listener = swarm.NewMessageListener()
 	dht.birth = time.Now()
 	return dht
 }

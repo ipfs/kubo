@@ -23,14 +23,17 @@ var _ = math.Inf
 type PBMessage_MessageType int32
 
 const (
-	PBMessage_GET_BLOCK PBMessage_MessageType = 0
+	PBMessage_GET_BLOCK  PBMessage_MessageType = 0
+	PBMessage_WANT_BLOCK PBMessage_MessageType = 1
 )
 
 var PBMessage_MessageType_name = map[int32]string{
 	0: "GET_BLOCK",
+	1: "WANT_BLOCK",
 }
 var PBMessage_MessageType_value = map[string]int32{
-	"GET_BLOCK": 0,
+	"GET_BLOCK":  0,
+	"WANT_BLOCK": 1,
 }
 
 func (x PBMessage_MessageType) Enum() *PBMessage_MessageType {
@@ -57,6 +60,7 @@ type PBMessage struct {
 	Value            []byte                 `protobuf:"bytes,4,opt,name=value" json:"value,omitempty"`
 	Response         *bool                  `protobuf:"varint,5,opt,name=response" json:"response,omitempty"`
 	Success          *bool                  `protobuf:"varint,6,opt,name=success" json:"success,omitempty"`
+	Wantlist         []string               `protobuf:"bytes,7,rep,name=wantlist" json:"wantlist,omitempty"`
 	XXX_unrecognized []byte                 `json:"-"`
 }
 
@@ -104,6 +108,13 @@ func (m *PBMessage) GetSuccess() bool {
 		return *m.Success
 	}
 	return false
+}
+
+func (m *PBMessage) GetWantlist() []string {
+	if m != nil {
+		return m.Wantlist
+	}
+	return nil
 }
 
 func init() {

@@ -25,7 +25,7 @@ func NewBlockService(d ds.Datastore, rem *bitswap.BitSwap) (*BlockService, error
 		return nil, fmt.Errorf("BlockService requires valid datastore")
 	}
 	if rem == nil {
-		return nil, fmt.Errorf("BlockService requires a valid bitswap")
+		u.PErr("Caution: blockservice running in local (offline) mode.\n")
 	}
 	return &BlockService{Datastore: d, Remote: rem}, nil
 }
@@ -39,7 +39,9 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	if err != nil {
 		return k, err
 	}
-	err = s.Remote.HaveBlock(b.Key())
+	if s.Remote != nil {
+		err = s.Remote.HaveBlock(b.Key())
+	}
 	return k, err
 }
 
@@ -57,7 +59,7 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 			Multihash: mh.Multihash(k),
 			Data:      bdata,
 		}, nil
-	} else if err == ds.ErrNotFound {
+	} else if err == ds.ErrNotFound && s.Remote != nil {
 		blk, err := s.Remote.GetBlock(k, time.Second*5)
 		if err != nil {
 			return nil, err

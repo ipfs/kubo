@@ -2,7 +2,6 @@ package blockservice
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	ds "github.com/jbenet/datastore.go"
@@ -11,9 +10,8 @@ import (
 )
 
 func TestBlocks(t *testing.T) {
-
 	d := ds.NewMapDatastore()
-	bs, err := NewBlockService(d)
+	bs, err := NewBlockService(d, nil)
 	if err != nil {
 		t.Error("failed to construct block service", err)
 		return
@@ -62,7 +60,4 @@ func TestBlocks(t *testing.T) {
 	if !bytes.Equal(b.Data, b2.Data) {
 		t.Error("Block data is not equal.")
 	}
-
-	fmt.Printf("key: %s\n", b.Key())
-	fmt.Printf("data: %v\n", b.Data)
 }

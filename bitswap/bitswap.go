@@ -32,14 +32,13 @@ type BitSwap struct {
 	net     swarm.Network
 	meschan *swarm.Chan
 
-	// datastore is the local database
-	// Ledgers of known
+	// datastore is the local database // Ledgers of known
 	datastore ds.Datastore
 
 	// routing interface for communication
 	routing *dht.IpfsDHT
 
-	listener *swarm.MesListener
+	listener *swarm.MessageListener
 
 	// partners is a map of currently active bitswap relationships.
 	// The Ledger has the peer.ID, and the peer connection works through net.
@@ -67,7 +66,7 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 		routing:   r.(*dht.IpfsDHT),
 		meschan:   net.GetChannel(swarm.PBWrapper_BITSWAP),
 		haltChan:  make(chan struct{}),
-		listener:  swarm.NewMesListener(),
+		listener:  swarm.NewMessageListener(),
 	}
 
 	go bs.handleMessages()
@@ -84,11 +83,11 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	valchan := make(chan []byte)
 	after := time.After(tleft)
 
-	// TODO: when the data is received, shut down this for loop
+	// TODO: when the data is received, shut down this for loop ASAP
 	go func() {
 		for p := range provs_ch {
 			go func(pr *peer.Peer) {
-				ledger := bs.GetLedger(pr.Key())
+				ledger := bs.GetLedger(pr)
 				blk, err := bs.getBlock(k, pr, tleft)
 				if err != nil {
 					u.PErr("getBlock returned: %v\n", err)
@@ -170,6 +169,8 @@ func (bs *BitSwap) handleMessages() {
 			switch pmes.GetType() {
 			case PBMessage_GET_BLOCK:
 				go bs.handleGetBlock(mes.Peer, pmes)
+			case PBMessage_WANT_BLOCK:
+				go bs.handleWantBlock(mes.Peer, pmes)
 			default:
 				u.PErr("Invalid message type.\n")
 			}
@@ -179,9 +180,18 @@ func (bs *BitSwap) handleMessages() {
 	}
 }
 
+func (bs *BitSwap) handleWantBlock(p *peer.Peer, pmes *PBMessage) {
+	wants := pmes.GetWantlist()
+	ledg := bs.GetLedger(p)
+	for _, s := range wants {
+		// TODO: this needs to be different. We need timeouts.
+		ledg.WantList[u.Key(s)] = struct{}{}
+	}
+}
+
 func (bs *BitSwap) handleGetBlock(p *peer.Peer, pmes *PBMessage) {
 	u.DOut("handleGetBlock.\n")
-	ledger := bs.GetLedger(p.Key())
+	ledger := bs.GetLedger(p)
 
 	u.DOut("finding [%s] in datastore.\n", u.Key(pmes.GetKey()).Pretty())
 	idata, err := bs.datastore.Get(ds.NewKey(pmes.GetKey()))
@@ -216,17 +226,33 @@ func (bs *BitSwap) handleGetBlock(p *peer.Peer, pmes *PBMessage) {
 	}
 }
 
-func (bs *BitSwap) GetLedger(k u.Key) *Ledger {
-	l, ok := bs.partners[k]
+func (bs *BitSwap) GetLedger(p *peer.Peer) *Ledger {
+	l, ok := bs.partners[p.Key()]
 	if ok {
 		return l
 	}
 
 	l = new(Ledger)
 	l.Strategy = StandardStrategy
-	l.Partner = peer.ID(k)
-	bs.partners[k] = l
+	l.Partner = p
+	bs.partners[p.Key()] = l
 	return l
+}
+
+func (bs *BitSwap) SendWantList(wl KeySet) error {
+	mes := Message{
+		ID:       swarm.GenerateMessageID(),
+		Type:     PBMessage_WANT_BLOCK,
+		WantList: bs.wantList,
+	}
+
+	pbmes := mes.ToProtobuf()
+	// Lets just ping everybody all at once
+	for _, ledger := range bs.partners {
+		bs.meschan.Outgoing <- swarm.NewMessage(ledger.Partner, pbmes)
+	}
+
+	return nil
 }
 
 func (bs *BitSwap) Halt() {

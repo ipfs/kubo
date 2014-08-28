@@ -3,6 +3,7 @@ package bitswap;
 message PBMessage {
 	enum MessageType {
 		GET_BLOCK = 0;
+		WANT_BLOCK = 1;
 	}
 
 	required MessageType Type = 1;
@@ -11,4 +12,5 @@ message PBMessage {
 	optional bytes value = 4;
 	optional bool response = 5;
 	optional bool success = 6;
+	repeated string wantlist = 7; 
 }
