@@ -11,7 +11,7 @@ type Message struct {
 	Key      string
 	Value    []byte
 	Response bool
-	ID       uint64
+	ID       string
 	Success  bool
 	Peers    []*peer.Peer
 }

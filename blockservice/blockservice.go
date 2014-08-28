@@ -40,7 +40,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 		return k, err
 	}
 	if s.Remote != nil {
-		err = s.Remote.HaveBlock(b.Key())
+		err = s.Remote.HaveBlock(b)
 	}
 	return k, err
 }

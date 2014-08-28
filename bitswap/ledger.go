@@ -22,6 +22,9 @@ type Ledger struct {
 	// LastExchange is the time of the last data exchange.
 	LastExchange time.Time
 
+	// Number of exchanges with this peer
+	ExchangeCount uint64
+
 	// WantList is a (bounded, small) set of keys that Partner desires.
 	WantList KeySet
 
@@ -32,15 +35,17 @@ type Ledger struct {
 type LedgerMap map[u.Key]*Ledger
 
 func (l *Ledger) ShouldSend() bool {
-	return l.Strategy(l.Accounting)
+	return l.Strategy(l)
 }
 
-func (l *Ledger) SentBytes(n uint64) {
+func (l *Ledger) SentBytes(n int) {
+	l.ExchangeCount++
 	l.LastExchange = time.Now()
-	l.Accounting.BytesSent += n
+	l.Accounting.BytesSent += uint64(n)
 }
 
-func (l *Ledger) ReceivedBytes(n uint64) {
+func (l *Ledger) ReceivedBytes(n int) {
+	l.ExchangeCount++
 	l.LastExchange = time.Now()
-	l.Accounting.BytesRecv += n
+	l.Accounting.BytesRecv += uint64(n)
 }

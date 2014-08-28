@@ -1,7 +1,7 @@
 package swarm
 
 import (
-	"math/rand"
+	crand "crypto/rand"
 	"sync"
 	"time"
 
@@ -9,16 +9,18 @@ import (
 )
 
 type MessageListener struct {
-	listeners map[uint64]*listenInfo
+	listeners map[string]*listenInfo
 	haltchan  chan struct{}
-	unlist    chan uint64
+	unlist    chan string
 	nlist     chan *listenInfo
 	send      chan *respMes
 }
 
 // GenerateMessageID creates and returns a new message ID
-func GenerateMessageID() uint64 {
-	return (uint64(rand.Uint32()) << 32) | uint64(rand.Uint32())
+func GenerateMessageID() string {
+	buf := make([]byte, 16)
+	crand.Read(buf)
+	return string(buf)
 }
 
 // The listen info struct holds information about a message that is being waited for
@@ -38,21 +40,21 @@ type listenInfo struct {
 
 	closed bool
 
-	id uint64
+	id string
 }
 
 func NewMessageListener() *MessageListener {
 	ml := new(MessageListener)
 	ml.haltchan = make(chan struct{})
-	ml.listeners = make(map[uint64]*listenInfo)
+	ml.listeners = make(map[string]*listenInfo)
 	ml.nlist = make(chan *listenInfo, 16)
 	ml.send = make(chan *respMes, 16)
-	ml.unlist = make(chan uint64, 16)
+	ml.unlist = make(chan string, 16)
 	go ml.run()
 	return ml
 }
 
-func (ml *MessageListener) Listen(id uint64, count int, timeout time.Duration) <-chan *Message {
+func (ml *MessageListener) Listen(id string, count int, timeout time.Duration) <-chan *Message {
 	li := new(listenInfo)
 	li.count = count
 	li.eol = time.Now().Add(timeout)
@@ -62,16 +64,16 @@ func (ml *MessageListener) Listen(id uint64, count int, timeout time.Duration) <
 	return li.resp
 }
 
-func (ml *MessageListener) Unlisten(id uint64) {
+func (ml *MessageListener) Unlisten(id string) {
 	ml.unlist <- id
 }
 
 type respMes struct {
-	id  uint64
+	id  string
 	mes *Message
 }
 
-func (ml *MessageListener) Respond(id uint64, mes *Message) {
+func (ml *MessageListener) Respond(id string, mes *Message) {
 	ml.send <- &respMes{
 		id:  id,
 		mes: mes,
