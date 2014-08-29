@@ -48,24 +48,29 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
+	u.DOut("BlockService GetBlock: '%s'\n", k.Pretty())
 	dsk := ds.NewKey(string(k))
 	datai, err := s.Datastore.Get(dsk)
 	if err == nil {
+		u.DOut("Blockservice: Got data in datastore.\n")
 		bdata, ok := datai.([]byte)
 		if !ok {
 			return nil, fmt.Errorf("data associated with %s is not a []byte", k)
 		}
+		u.DOut("Got data: %v\n", bdata)
 		return &blocks.Block{
 			Multihash: mh.Multihash(k),
 			Data:      bdata,
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
+		u.DOut("Blockservice: Searching bitswap.\n")
 		blk, err := s.Remote.GetBlock(k, time.Second*5)
 		if err != nil {
 			return nil, err
 		}
 		return blk, nil
 	} else {
+		u.DOut("Blockservice GetBlock: Not found.\n")
 		return nil, u.ErrNotFound
 	}
 }

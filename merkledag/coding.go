@@ -2,6 +2,7 @@ package merkledag
 
 import (
 	"fmt"
+
 	mh "github.com/jbenet/go-multihash"
 )
 

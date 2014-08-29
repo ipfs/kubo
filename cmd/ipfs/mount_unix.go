@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"

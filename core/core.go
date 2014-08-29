@@ -4,11 +4,17 @@ import (
 	"fmt"
 
 	ds "github.com/jbenet/datastore.go"
+	"github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
+	routing "github.com/jbenet/go-ipfs/routing"
+	dht "github.com/jbenet/go-ipfs/routing/dht"
+	swarm "github.com/jbenet/go-ipfs/swarm"
+	u "github.com/jbenet/go-ipfs/util"
+	ma "github.com/jbenet/go-multiaddr"
 )
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
@@ -27,13 +33,13 @@ type IpfsNode struct {
 	Datastore ds.Datastore
 
 	// the network message stream
-	// Network *netmux.Netux
+	Swarm *swarm.Swarm
 
 	// the routing system. recommend ipfs-dht
-	// Routing *routing.Routing
+	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	// BitSwap *bitswap.BitSwap
+	BitSwap *bitswap.BitSwap
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -59,7 +65,36 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	bs, err := bserv.NewBlockService(d, nil)
+	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4001")
+	if err != nil {
+		return nil, err
+	}
+
+	local := &peer.Peer{
+		ID:        peer.ID(cfg.Identity.PeerID),
+		Addresses: []*ma.Multiaddr{maddr},
+	}
+
+	if len(local.ID) == 0 {
+		mh, err := u.Hash([]byte("blah blah blah ID"))
+		if err != nil {
+			return nil, err
+		}
+		local.ID = peer.ID(mh)
+	}
+
+	net := swarm.NewSwarm(local)
+	err = net.Listen()
+	if err != nil {
+		return nil, err
+	}
+
+	route := dht.NewDHT(local, net, d)
+	route.Start()
+
+	swap := bitswap.NewBitSwap(local, net, d, route)
+
+	bs, err := bserv.NewBlockService(d, swap)
 	if err != nil {
 		return nil, err
 	}

@@ -78,6 +78,7 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
 func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
+	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
 	begin := time.Now()
 	tleft := timeout - time.Now().Sub(begin)
 	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
@@ -126,7 +127,7 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byt
 	case resp_mes := <-resp:
 		return resp_mes.Data, nil
 	case <-after:
-		u.PErr("getBlock for '%s' timed out.\n", k)
+		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
 		return nil, u.ErrTimeout
 	}
 }

@@ -2,11 +2,12 @@ package path
 
 import (
 	"fmt"
+	"path"
+	"strings"
+
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
-	"path"
-	"strings"
 )
 
 // Resolver provides path resolution to IPFS
@@ -19,6 +20,7 @@ type Resolver struct {
 // path component as a hash (key) of the first node, then resolves
 // all other components walking the links, with ResolveLinks.
 func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
+	u.DOut("Resolve: '%s'\n", fpath)
 	fpath = path.Clean(fpath)
 
 	parts := strings.Split(fpath, "/")
@@ -39,6 +41,7 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 		return nil, err
 	}
 
+	u.DOut("Resolve dag get.\n")
 	nd, err := s.DAG.Get(u.Key(h))
 	if err != nil {
 		return nil, err
