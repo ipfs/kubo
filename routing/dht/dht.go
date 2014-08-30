@@ -622,7 +622,7 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 			continue
 		}
 		// Dont add someone who is already on the list
-		p := dht.network.Find(u.Key(prov.GetId()))
+		p := dht.network.GetPeer(u.Key(prov.GetId()))
 		if p == nil {
 			u.DOut("given provider %s was not in our network already.\n", peer.ID(prov.GetId()).Pretty())
 			var err error
