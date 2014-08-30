@@ -16,5 +16,5 @@ type Network interface {
 	GetErrChan() chan error
 	GetChannel(PBWrapper_MessageType) *Chan
 	Close()
-	Drop(*peer.Peer) error
+	CloseConnection(*peer.Peer) error
 }
