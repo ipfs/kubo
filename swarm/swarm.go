@@ -409,7 +409,7 @@ func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error
 	}
 
 	if id.Equal(s.local.ID) {
-		panic("Attempted connection to self!")
+		return nil, errors.New("Attempted connection to self!")
 	}
 
 	conn, err, reused := s.Dial(p)
