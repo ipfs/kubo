@@ -25,15 +25,18 @@ type PBWrapper_MessageType int32
 const (
 	PBWrapper_TEST        PBWrapper_MessageType = 0
 	PBWrapper_DHT_MESSAGE PBWrapper_MessageType = 1
+	PBWrapper_BITSWAP     PBWrapper_MessageType = 2
 )
 
 var PBWrapper_MessageType_name = map[int32]string{
 	0: "TEST",
 	1: "DHT_MESSAGE",
+	2: "BITSWAP",
 }
 var PBWrapper_MessageType_value = map[string]int32{
 	"TEST":        0,
 	"DHT_MESSAGE": 1,
+	"BITSWAP":     2,
 }
 
 func (x PBWrapper_MessageType) Enum() *PBWrapper_MessageType {

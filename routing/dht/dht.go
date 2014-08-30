@@ -2,7 +2,7 @@ package dht
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -49,15 +49,15 @@ type IpfsDHT struct {
 	diaglock sync.Mutex
 
 	// listener is a server to register to listen for responses to messages
-	listener *mesListener
+	listener *swarm.MessageListener
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(p *peer.Peer, net swarm.Network) *IpfsDHT {
+func NewDHT(p *peer.Peer, net swarm.Network, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.network = net
 	dht.netChan = net.GetChannel(swarm.PBWrapper_DHT_MESSAGE)
-	dht.datastore = ds.NewMapDatastore()
+	dht.datastore = dstore
 	dht.self = p
 	dht.providers = NewProviderManager()
 	dht.shutdown = make(chan struct{})
@@ -66,7 +66,7 @@ func NewDHT(p *peer.Peer, net swarm.Network) *IpfsDHT {
 	dht.routingTables[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*30)
 	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*100)
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
-	dht.listener = newMesListener()
+	dht.listener = swarm.NewMessageListener()
 	dht.birth = time.Now()
 	return dht
 }
@@ -89,7 +89,7 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	// NOTE: this should be done better...
 	err = dht.Ping(npeer, time.Second*2)
 	if err != nil {
-		return nil, errors.New("failed to ping newly connected peer\n")
+		return nil, fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
 
 	dht.Update(npeer)
@@ -132,19 +132,19 @@ func (dht *IpfsDHT) handleMessages() {
 				pmes.GetId(), mes.Peer.ID.Pretty())
 			switch pmes.GetType() {
 			case PBDHTMessage_GET_VALUE:
-				dht.handleGetValue(mes.Peer, pmes)
+				go dht.handleGetValue(mes.Peer, pmes)
 			case PBDHTMessage_PUT_VALUE:
-				dht.handlePutValue(mes.Peer, pmes)
+				go dht.handlePutValue(mes.Peer, pmes)
 			case PBDHTMessage_FIND_NODE:
-				dht.handleFindPeer(mes.Peer, pmes)
+				go dht.handleFindPeer(mes.Peer, pmes)
 			case PBDHTMessage_ADD_PROVIDER:
-				dht.handleAddProvider(mes.Peer, pmes)
+				go dht.handleAddProvider(mes.Peer, pmes)
 			case PBDHTMessage_GET_PROVIDERS:
-				dht.handleGetProviders(mes.Peer, pmes)
+				go dht.handleGetProviders(mes.Peer, pmes)
 			case PBDHTMessage_PING:
-				dht.handlePing(mes.Peer, pmes)
+				go dht.handlePing(mes.Peer, pmes)
 			case PBDHTMessage_DIAGNOSTIC:
-				dht.handleDiagnostic(mes.Peer, pmes)
+				go dht.handleDiagnostic(mes.Peer, pmes)
 			default:
 				u.PErr("Recieved invalid message type")
 			}
@@ -162,7 +162,7 @@ func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) er
 		Type:  PBDHTMessage_PUT_VALUE,
 		Key:   key,
 		Value: value,
-		ID:    GenerateMessageID(),
+		ID:    swarm.GenerateMessageID(),
 	}
 
 	mes := swarm.NewMessage(p, pmes.ToProtobuf())
@@ -242,6 +242,7 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *PBDHTMessage) {
 }
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *PBDHTMessage) {
+	u.DOut("[%s] Responding to ping from [%s]!\n", dht.self.ID.Pretty(), p.ID.Pretty())
 	resp := Message{
 		Type:     pmes.GetType(),
 		Response: true,
@@ -321,6 +322,7 @@ type providerInfo struct {
 
 func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *PBDHTMessage) {
 	key := u.Key(pmes.GetKey())
+	u.DOut("[%s] Adding [%s] as a provider for '%s'\n", dht.self.ID.Pretty(), p.ID.Pretty(), peer.ID(key).Pretty())
 	dht.providers.AddProvider(key, p)
 }
 
@@ -328,6 +330,8 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *PBDHTMessage) {
 func (dht *IpfsDHT) Halt() {
 	dht.shutdown <- struct{}{}
 	dht.network.Close()
+	dht.providers.Halt()
+	dht.listener.Halt()
 }
 
 // NOTE: not yet finished, low priority
@@ -424,7 +428,7 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 		Type:  PBDHTMessage_GET_VALUE,
 		Key:   string(key),
 		Value: []byte{byte(level)},
-		ID:    GenerateMessageID(),
+		ID:    swarm.GenerateMessageID(),
 	}
 	responseChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 
@@ -539,7 +543,7 @@ func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Durati
 	pmes := Message{
 		Type:  PBDHTMessage_FIND_NODE,
 		Key:   string(id),
-		ID:    GenerateMessageID(),
+		ID:    swarm.GenerateMessageID(),
 		Value: []byte{byte(level)},
 	}
 
@@ -575,7 +579,7 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 	pmes := Message{
 		Type:  PBDHTMessage_GET_PROVIDERS,
 		Key:   string(key),
-		ID:    GenerateMessageID(),
+		ID:    swarm.GenerateMessageID(),
 		Value: []byte{byte(level)},
 	}
 
@@ -600,6 +604,7 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 	}
 }
 
+// TODO: Could be done async
 func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer.Peer {
 	var provArr []*peer.Peer
 	for _, prov := range peers {
@@ -611,12 +616,8 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 		p := dht.network.Find(u.Key(prov.GetId()))
 		if p == nil {
 			u.DOut("given provider %s was not in our network already.\n", peer.ID(prov.GetId()).Pretty())
-			maddr, err := ma.NewMultiaddr(prov.GetAddr())
-			if err != nil {
-				u.PErr("error connecting to new peer: %s\n", err)
-				continue
-			}
-			p, err = dht.network.GetConnection(peer.ID(prov.GetId()), maddr)
+			var err error
+			p, err = dht.peerFromInfo(prov)
 			if err != nil {
 				u.PErr("error connecting to new peer: %s\n", err)
 				continue
@@ -626,4 +627,13 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 		provArr = append(provArr, p)
 	}
 	return provArr
+}
+
+func (dht *IpfsDHT) peerFromInfo(pbp *PBDHTMessage_PBPeer) (*peer.Peer, error) {
+	maddr, err := ma.NewMultiaddr(pbp.GetAddr())
+	if err != nil {
+		return nil, err
+	}
+
+	return dht.network.GetConnection(peer.ID(pbp.GetId()), maddr)
 }

@@ -23,7 +23,7 @@ message PBDHTMessage {
 	optional bytes value = 3;
 
 	// Unique ID of this message, used to match queries with responses
-	required uint64 id = 4;
+	required string id = 4;
 
 	// Signals whether or not this message is a response to another message
 	optional bool response = 5;

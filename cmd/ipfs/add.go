@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	core "github.com/jbenet/go-ipfs/core"
@@ -9,9 +13,6 @@ import (
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 )
 
 // Error indicating the max depth has been exceded.
@@ -41,7 +42,7 @@ func addCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode()
+	n, err := localNode(false)
 	if err != nil {
 		return err
 	}

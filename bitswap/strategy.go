@@ -2,7 +2,18 @@ package bitswap
 
 import (
 	"math"
+	"math/rand"
 )
+
+type StrategyFunc func(*Ledger) bool
+
+func StandardStrategy(l *Ledger) bool {
+	return rand.Float64() <= probabilitySend(l.Accounting.Value())
+}
+
+func YesManStrategy(l *Ledger) bool {
+	return true
+}
 
 func probabilitySend(ratio float64) float64 {
 	x := 1 + math.Exp(6-3*ratio)

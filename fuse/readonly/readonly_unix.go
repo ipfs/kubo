@@ -5,17 +5,19 @@
 package readonly
 
 import (
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
 	"fmt"
-	core "github.com/jbenet/go-ipfs/core"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"os"
 	"os/exec"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
+
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	core "github.com/jbenet/go-ipfs/core"
+	mdag "github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // FileSystem is the readonly Ipfs Fuse Filesystem.
@@ -45,6 +47,7 @@ func (*Root) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+	u.DOut("Root Lookup: '%s'\n", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -62,6 +65,7 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 // ReadDir reads a particular directory. Disallowed for root.
 func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+	u.DOut("Read Root.\n")
 	return nil, fuse.EPERM
 }
 
@@ -73,6 +77,7 @@ type Node struct {
 
 // Attr returns the attributes of a given node.
 func (s *Node) Attr() fuse.Attr {
+	u.DOut("Node attr.\n")
 	if len(s.Nd.Links) > 0 {
 		return fuse.Attr{Mode: os.ModeDir | 0555}
 	}
@@ -83,6 +88,7 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+	u.DOut("Lookup '%s'\n", name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -94,6 +100,7 @@ func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 // ReadDir reads the link structure as directory entries
 func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+	u.DOut("Node ReadDir\n")
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
 		n := link.Name
@@ -111,6 +118,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
+	u.DOut("Read node.\n")
 	return []byte(s.Nd.Data), nil
 }
 

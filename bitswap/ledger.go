@@ -10,24 +10,42 @@ import (
 // Ledger stores the data exchange relationship between two peers.
 type Ledger struct {
 
-	// Partner is the ID of the remote Peer.
-	Partner peer.ID
+	// Partner is the remote Peer.
+	Partner *peer.Peer
 
-	// BytesSent counts the number of bytes the local peer sent to Partner
-	BytesSent uint64
-
-	// BytesReceived counts the number of bytes local peer received from Partner
-	BytesReceived uint64
+	// Accounting tracks bytes sent and recieved.
+	Accounting debtRatio
 
 	// FirstExchnage is the time of the first data exchange.
-	FirstExchange *time.Time
+	FirstExchange time.Time
 
 	// LastExchange is the time of the last data exchange.
-	LastExchange *time.Time
+	LastExchange time.Time
+
+	// Number of exchanges with this peer
+	ExchangeCount uint64
 
 	// WantList is a (bounded, small) set of keys that Partner desires.
 	WantList KeySet
+
+	Strategy StrategyFunc
 }
 
 // LedgerMap lists Ledgers by their Partner key.
 type LedgerMap map[u.Key]*Ledger
+
+func (l *Ledger) ShouldSend() bool {
+	return l.Strategy(l)
+}
+
+func (l *Ledger) SentBytes(n int) {
+	l.ExchangeCount++
+	l.LastExchange = time.Now()
+	l.Accounting.BytesSent += uint64(n)
+}
+
+func (l *Ledger) ReceivedBytes(n int) {
+	l.ExchangeCount++
+	l.LastExchange = time.Now()
+	l.Accounting.BytesRecv += uint64(n)
+}

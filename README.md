@@ -62,6 +62,15 @@ Guidelines:
 - if you'd like to work on ipfs part-time (20+ hrs/wk) or full-time (40+ hrs/wk), contact [@jbenet](https://github.com/jbenet)
 - have fun!
 
+## Todo
+
+Ipfs is still under heavy development, there is a lot to be done!
+
+- [ ] Finish Bitswap
+- [ ] Connect fuse interface to Blockservice
+- [ ] Write tests for bitswap
+- [ ] Come up with more TODO items
+
 ## Development Dependencies
 
 If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://code.google.com/p/protobuf/downloads/list).

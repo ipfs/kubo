@@ -1,25 +1,32 @@
-package dht
+package swarm
 
 import (
+	crand "crypto/rand"
 	"sync"
 	"time"
 
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type mesListener struct {
-	listeners map[uint64]*listenInfo
+type MessageListener struct {
+	listeners map[string]*listenInfo
 	haltchan  chan struct{}
-	unlist    chan uint64
+	unlist    chan string
 	nlist     chan *listenInfo
 	send      chan *respMes
+}
+
+// GenerateMessageID creates and returns a new message ID
+func GenerateMessageID() string {
+	buf := make([]byte, 16)
+	crand.Read(buf)
+	return string(buf)
 }
 
 // The listen info struct holds information about a message that is being waited for
 type listenInfo struct {
 	// Responses matching the listen ID will be sent through resp
-	resp chan *swarm.Message
+	resp chan *Message
 
 	// count is the number of responses to listen for
 	count int
@@ -33,51 +40,51 @@ type listenInfo struct {
 
 	closed bool
 
-	id uint64
+	id string
 }
 
-func newMesListener() *mesListener {
-	ml := new(mesListener)
+func NewMessageListener() *MessageListener {
+	ml := new(MessageListener)
 	ml.haltchan = make(chan struct{})
-	ml.listeners = make(map[uint64]*listenInfo)
+	ml.listeners = make(map[string]*listenInfo)
 	ml.nlist = make(chan *listenInfo, 16)
 	ml.send = make(chan *respMes, 16)
-	ml.unlist = make(chan uint64, 16)
+	ml.unlist = make(chan string, 16)
 	go ml.run()
 	return ml
 }
 
-func (ml *mesListener) Listen(id uint64, count int, timeout time.Duration) <-chan *swarm.Message {
+func (ml *MessageListener) Listen(id string, count int, timeout time.Duration) <-chan *Message {
 	li := new(listenInfo)
 	li.count = count
 	li.eol = time.Now().Add(timeout)
-	li.resp = make(chan *swarm.Message, count)
+	li.resp = make(chan *Message, count)
 	li.id = id
 	ml.nlist <- li
 	return li.resp
 }
 
-func (ml *mesListener) Unlisten(id uint64) {
+func (ml *MessageListener) Unlisten(id string) {
 	ml.unlist <- id
 }
 
 type respMes struct {
-	id  uint64
-	mes *swarm.Message
+	id  string
+	mes *Message
 }
 
-func (ml *mesListener) Respond(id uint64, mes *swarm.Message) {
+func (ml *MessageListener) Respond(id string, mes *Message) {
 	ml.send <- &respMes{
 		id:  id,
 		mes: mes,
 	}
 }
 
-func (ml *mesListener) Halt() {
+func (ml *MessageListener) Halt() {
 	ml.haltchan <- struct{}{}
 }
 
-func (ml *mesListener) run() {
+func (ml *MessageListener) run() {
 	for {
 		select {
 		case <-ml.haltchan:

@@ -90,6 +90,7 @@ type Swarm struct {
 
 	local     *peer.Peer
 	listeners []net.Listener
+	haltroute chan struct{}
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
@@ -101,6 +102,7 @@ func NewSwarm(local *peer.Peer) *Swarm {
 		filterChans: make(map[PBWrapper_MessageType]*Chan),
 		toFilter:    make(chan *Message, 32),
 		newFilters:  make(chan *newFilterInfo),
+		haltroute:   make(chan struct{}),
 	}
 	go s.routeMessages()
 	go s.fanOut()
@@ -202,6 +204,12 @@ func (s *Swarm) Close() {
 
 	for _, list := range s.listeners {
 		list.Close()
+	}
+
+	s.haltroute <- struct{}{}
+
+	for _, filter := range s.filterChans {
+		filter.Close <- true
 	}
 }
 
@@ -347,6 +355,8 @@ func (s *Swarm) routeMessages() {
 				go s.muxChan(nch, gchan.Type)
 			}
 			gchan.resp <- nch
+		case <-s.haltroute:
+			return
 		}
 	}
 }

@@ -78,7 +78,7 @@ func TestTableUpdate(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		p := rt.Update(peers[rand.Intn(len(peers))])
 		if p != nil {
-			t.Log("evicted peer.")
+			//t.Log("evicted peer.")
 		}
 	}
 

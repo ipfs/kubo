@@ -2,10 +2,11 @@ package importer
 
 import (
 	"fmt"
-	dag "github.com/jbenet/go-ipfs/merkledag"
 	"io"
 	"io/ioutil"
 	"os"
+
+	dag "github.com/jbenet/go-ipfs/merkledag"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -23,11 +24,15 @@ func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
 	// todo: block-splitting based on rabin fingerprinting
 	// todo: block-splitting with user-defined function
 	// todo: block-splitting at all. :P
+	// todo: write mote todos
 
 	// totally just trusts the reported size. fix later.
 	if size > BlockSizeLimit { // 1 MB limit for now.
 		return nil, ErrSizeLimitExceeded
 	}
+
+	// Ensure that we dont get stuck reading way too much data
+	r = io.LimitReader(r, BlockSizeLimit)
 
 	// we're doing it live!
 	buf, err := ioutil.ReadAll(r)
@@ -52,7 +57,7 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	}
 
 	if stat.IsDir() {
-		return nil, fmt.Errorf("`fpath` is a directory")
+		return nil, fmt.Errorf("`%s` is a directory", fpath)
 	}
 
 	f, err := os.Open(fpath)

@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
@@ -30,7 +31,7 @@ func mountCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode()
+	n, err := localNode(true)
 	if err != nil {
 		return err
 	}
