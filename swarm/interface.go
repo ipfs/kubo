@@ -8,7 +8,7 @@ import (
 )
 
 type Network interface {
-	Find(u.Key) *peer.Peer
+	GetPeer(u.Key) *peer.Peer
 	Listen() error
 	ConnectNew(*ma.Multiaddr) (*peer.Peer, error)
 	GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error)

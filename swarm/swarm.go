@@ -378,7 +378,8 @@ func (s *Swarm) muxChan(ch *Chan, typ PBWrapper_MessageType) {
 	}
 }
 
-func (s *Swarm) Find(key u.Key) *peer.Peer {
+// GetPeer returns the peer in the swarm with given key id.
+func (s *Swarm) GetPeer(key u.Key) *peer.Peer {
 	s.connsLock.RLock()
 	defer s.connsLock.RUnlock()
 	conn, found := s.conns[key]
