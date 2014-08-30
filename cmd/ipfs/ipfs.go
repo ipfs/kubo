@@ -67,12 +67,12 @@ func main() {
 	return
 }
 
-func localNode() (*core.IpfsNode, error) {
+func localNode(online bool) (*core.IpfsNode, error) {
 	//todo implement config file flag
 	cfg, err := config.Load("")
 	if err != nil {
 		return nil, err
 	}
 
-	return core.NewIpfsNode(cfg)
+	return core.NewIpfsNode(cfg, online)
 }

@@ -55,7 +55,7 @@ type IpfsNode struct {
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
-func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
+func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("configuration required")
 	}
@@ -65,34 +65,37 @@ func NewIpfsNode(cfg *config.Config) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4001")
-	if err != nil {
-		return nil, err
-	}
-
-	local := &peer.Peer{
-		ID:        peer.ID(cfg.Identity.PeerID),
-		Addresses: []*ma.Multiaddr{maddr},
-	}
-
-	if len(local.ID) == 0 {
-		mh, err := u.Hash([]byte("blah blah blah ID"))
+	var swap *bitswap.BitSwap
+	if online {
+		maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4001")
 		if err != nil {
 			return nil, err
 		}
-		local.ID = peer.ID(mh)
+
+		local := &peer.Peer{
+			ID:        peer.ID(cfg.Identity.PeerID),
+			Addresses: []*ma.Multiaddr{maddr},
+		}
+
+		if len(local.ID) == 0 {
+			mh, err := u.Hash([]byte("blah blah blah ID"))
+			if err != nil {
+				return nil, err
+			}
+			local.ID = peer.ID(mh)
+		}
+
+		net := swarm.NewSwarm(local)
+		err = net.Listen()
+		if err != nil {
+			return nil, err
+		}
+
+		route := dht.NewDHT(local, net, d)
+		route.Start()
+
+		swap = bitswap.NewBitSwap(local, net, d, route)
 	}
-
-	net := swarm.NewSwarm(local)
-	err = net.Listen()
-	if err != nil {
-		return nil, err
-	}
-
-	route := dht.NewDHT(local, net, d)
-	route.Start()
-
-	swap := bitswap.NewBitSwap(local, net, d, route)
 
 	bs, err := bserv.NewBlockService(d, swap)
 	if err != nil {

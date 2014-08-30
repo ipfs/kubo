@@ -33,7 +33,7 @@ func WriteConfigFile(filename string, cfg interface{}) error {
 
 // WriteFile writes the buffer at filename
 func WriteFile(filename string, buf []byte) error {
-	err := os.MkdirAll(filepath.Dir(filename), 755)
+	err := os.MkdirAll(filepath.Dir(filename), 0775)
 	if err != nil {
 		return err
 	}

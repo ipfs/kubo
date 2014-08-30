@@ -27,7 +27,7 @@ func lsCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode()
+	n, err := localNode(false)
 	if err != nil {
 		return err
 	}
