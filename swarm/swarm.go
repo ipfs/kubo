@@ -452,8 +452,8 @@ func (s *Swarm) ConnectNew(addr *ma.Multiaddr) (*peer.Peer, error) {
 	return npeer, err
 }
 
-// Removes a given peer from the swarm and closes connections to it
-func (s *Swarm) Drop(p *peer.Peer) error {
+// CloseConnection removes a given peer from swarm + closes the connection
+func (s *Swarm) CloseConnection(p *peer.Peer) error {
 	s.connsLock.RLock()
 	conn, found := s.conns[u.Key(p.ID)]
 	s.connsLock.RUnlock()

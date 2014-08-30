@@ -512,7 +512,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 func (dht *IpfsDHT) Update(p *peer.Peer) {
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)
-		// Only drop the connection if no tables refer to this peer
+		// Only close the connection if no tables refer to this peer
 		if removed != nil {
 			found := false
 			for _, r := range dht.routingTables {
@@ -522,7 +522,7 @@ func (dht *IpfsDHT) Update(p *peer.Peer) {
 				}
 			}
 			if !found {
-				dht.network.Drop(removed)
+				dht.network.CloseConnection(removed)
 			}
 		}
 	}
