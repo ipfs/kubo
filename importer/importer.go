@@ -3,7 +3,6 @@ package importer
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -20,32 +19,17 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 
 // NewDagFromReader constructs a Merkle DAG from the given io.Reader.
 // size required for block construction.
-func NewDagFromReader(r io.Reader, size int64) (*dag.Node, error) {
-	// todo: block-splitting based on rabin fingerprinting
-	// todo: block-splitting with user-defined function
-	// todo: block-splitting at all. :P
-	// todo: write mote todos
+func NewDagFromReader(r io.Reader) (*dag.Node, error) {
+	blkChan := SplitterBySize(1024 * 512)(r)
+	root := &dag.Node{}
 
-	// totally just trusts the reported size. fix later.
-	if size > BlockSizeLimit { // 1 MB limit for now.
-		return nil, ErrSizeLimitExceeded
+	for blk := range blkChan {
+		child := &dag.Node{Data: blk}
+		err := root.AddNodeLink("", child)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	// Ensure that we dont get stuck reading way too much data
-	r = io.LimitReader(r, BlockSizeLimit)
-
-	// we're doing it live!
-	buf, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if int64(len(buf)) > BlockSizeLimit {
-		return nil, ErrSizeLimitExceeded // lying punk.
-	}
-
-	root := &dag.Node{Data: buf}
-	// no children for now because not block splitting yet
 	return root, nil
 }
 
@@ -66,5 +50,5 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	}
 	defer f.Close()
 
-	return NewDagFromReader(f, stat.Size())
+	return NewDagFromReader(f)
 }

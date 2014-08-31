@@ -1,15 +1,14 @@
 package importer
 
 import (
-	"testing"
-	"crypto/rand"
 	"bytes"
+	"crypto/rand"
+	"testing"
 )
 
 func TestDataSplitting(t *testing.T) {
 	buf := make([]byte, 16*1024*1024)
 	rand.Read(buf)
-
 	split := Rabin(buf)
 
 	if len(split) == 1 {
@@ -47,4 +46,3 @@ func TestDataSplitting(t *testing.T) {
 	t.Log(len(split))
 	t.Log(min, max, mxcount)
 }
-
