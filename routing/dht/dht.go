@@ -2,6 +2,7 @@ package dht
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"sync"
 	"time"
@@ -636,4 +637,11 @@ func (dht *IpfsDHT) peerFromInfo(pbp *PBDHTMessage_PBPeer) (*peer.Peer, error) {
 	}
 
 	return dht.network.GetConnection(peer.ID(pbp.GetId()), maddr)
+}
+
+// Builds up list of peers by requesting random peer IDs
+func (dht *IpfsDHT) Bootstrap() {
+	id := make([]byte, 16)
+	rand.Read(id)
+	dht.FindPeer(peer.ID(id), time.Second*10)
 }

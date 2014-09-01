@@ -340,6 +340,56 @@ func (dht *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, err
 	return nil, u.ErrNotFound
 }
 
+func (dht *IpfsDHT) findPeerMultiple(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
+	// Check if were already connected to them
+	p, _ := dht.Find(id)
+	if p != nil {
+		return p, nil
+	}
+
+	routeLevel := 0
+	peers := dht.routingTables[routeLevel].NearestPeers(kb.ConvertPeerID(id), AlphaValue)
+	if len(peers) == 0 {
+		return nil, kb.ErrLookupFailure
+	}
+
+	found := make(chan *peer.Peer)
+	after := time.After(timeout)
+
+	for _, p := range peers {
+		go func(p *peer.Peer) {
+			pmes, err := dht.findPeerSingle(p, id, timeout, routeLevel)
+			if err != nil {
+				u.DErr("getPeer error: %v\n", err)
+				return
+			}
+			plist := pmes.GetPeers()
+			if len(plist) == 0 {
+				routeLevel++
+			}
+			for _, fp := range plist {
+				nxtp, err := dht.peerFromInfo(fp)
+				if err != nil {
+					u.DErr("findPeer error: %v\n", err)
+					continue
+				}
+
+				if nxtp.ID.Equal(dht.self.ID) {
+					found <- nxtp
+					return
+				}
+			}
+		}(p)
+	}
+
+	select {
+	case p := <-found:
+		return p, nil
+	case <-after:
+		return nil, u.ErrTimeout
+	}
+}
+
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?

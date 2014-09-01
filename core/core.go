@@ -67,34 +67,10 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	var swap *bitswap.BitSwap
 	if online {
-		maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4001")
+		swap, err = loadBitswap(cfg, d)
 		if err != nil {
 			return nil, err
 		}
-
-		local := &peer.Peer{
-			ID:        peer.ID(cfg.Identity.PeerID),
-			Addresses: []*ma.Multiaddr{maddr},
-		}
-
-		if len(local.ID) == 0 {
-			mh, err := u.Hash([]byte("blah blah blah ID"))
-			if err != nil {
-				return nil, err
-			}
-			local.ID = peer.ID(mh)
-		}
-
-		net := swarm.NewSwarm(local)
-		err = net.Listen()
-		if err != nil {
-			return nil, err
-		}
-
-		route := dht.NewDHT(local, net, d)
-		route.Start()
-
-		swap = bitswap.NewBitSwap(local, net, d, route)
 	}
 
 	bs, err := bserv.NewBlockService(d, swap)
@@ -114,4 +90,48 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}
 
 	return n, nil
+}
+
+func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
+	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4001")
+	if err != nil {
+		return nil, err
+	}
+
+	local := &peer.Peer{
+		ID:        peer.ID(cfg.Identity.PeerID),
+		Addresses: []*ma.Multiaddr{maddr},
+	}
+
+	if len(local.ID) == 0 {
+		mh, err := u.Hash([]byte("blah blah blah ID"))
+		if err != nil {
+			return nil, err
+		}
+		local.ID = peer.ID(mh)
+	}
+
+	net := swarm.NewSwarm(local)
+	err = net.Listen()
+	if err != nil {
+		return nil, err
+	}
+
+	route := dht.NewDHT(local, net, d)
+	route.Start()
+
+	for _, p := range cfg.Peers {
+		maddr, err := ma.NewMultiaddr(p.Address)
+		if err != nil {
+			u.PErr("error: %v\n", err)
+			continue
+		}
+
+		_, err = route.Connect(maddr)
+		if err != nil {
+			u.PErr("Bootstrapping error: %v\n", err)
+		}
+	}
+
+	return bitswap.NewBitSwap(local, net, d, route), nil
 }

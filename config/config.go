@@ -1,13 +1,15 @@
 package config
 
 import (
-	u "github.com/jbenet/go-ipfs/util"
 	"os"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
-	PeerID string
+	PeerID  string
+	Address string
 }
 
 // Datastore tracks the configuration of the datastore.
@@ -16,10 +18,15 @@ type Datastore struct {
 	Path string
 }
 
+type SavedPeer struct {
+	Address string
+}
+
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  *Identity
 	Datastore *Datastore
+	Peers     []*SavedPeer
 }
 
 var defaultConfigFilePath = "~/.go-ipfs/config"
