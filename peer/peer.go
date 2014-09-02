@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"crypto"
 	"sync"
 	"time"
 
@@ -32,6 +33,9 @@ type Map map[u.Key]*Peer
 type Peer struct {
 	ID        ID
 	Addresses []*ma.Multiaddr
+
+	PubKey  crypto.PublicKey
+	PrivKey crypto.PrivateKey
 
 	latency   time.Duration
 	latenLock sync.RWMutex

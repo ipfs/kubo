@@ -1,3 +1,6 @@
+package identify;
+
 message Identify {
 	required bytes id = 1;
+	required bytes pubkey = 2;
 }

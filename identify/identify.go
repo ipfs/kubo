@@ -3,6 +3,7 @@
 package identify
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"io/ioutil"
 
+	proto "code.google.com/p/goprotobuf/proto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -17,13 +19,88 @@ import (
 // Perform initial communication with this peer to share node ID's and
 // initiate communication
 func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
-	// TODO: make this more... secure.
-	out <- self.ID
+	encoded, err := buildHandshake(self)
+	if err != nil {
+		return err
+	}
+	out <- encoded
 	resp := <-in
+
+	pbresp := new(Identify)
+	err = proto.Unmarshal(resp, pbresp)
+	if err != nil {
+		return err
+	}
+
+	// Verify that the given ID matches their given public key
+	if verifyErr := verifyID(peer.ID(pbresp.GetId()), pbresp.GetPubkey()); verifyErr != nil {
+		return verifyErr
+	}
+
+	pubkey, err := x509.ParsePKIXPublicKey(pbresp.GetPubkey())
+	if err != nil {
+		return err
+	}
+
+	// Challenge peer to ensure they own the given pubkey
+	secret := make([]byte, 32)
+	rand.Read(secret)
+	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey.(*rsa.PublicKey), secret)
+	if err != nil {
+		//... this is odd
+		return err
+	}
+
+	out <- encrypted
+	challenge := <-in
+
+	plain, err := rsa.DecryptPKCS1v15(rand.Reader, self.PrivKey.(*rsa.PrivateKey), challenge)
+	if err != nil {
+		return err
+	}
+
+	out <- plain
+	chalResp := <-in
+	if !bytes.Equal(chalResp, secret) {
+		return errors.New("Recieved incorrect challenge response!")
+	}
+
 	remote.ID = peer.ID(resp)
+	remote.PubKey = pubkey
 	u.DOut("[%s] identify: Got node id: %s\n", self.ID.Pretty(), remote.ID.Pretty())
 
 	return nil
+}
+
+func buildHandshake(self *peer.Peer) ([]byte, error) {
+	pkb, err := x509.MarshalPKIXPublicKey(self.PubKey)
+	if err != nil {
+		return nil, err
+	}
+
+	pmes := new(Identify)
+	pmes.Id = []byte(self.ID)
+	pmes.Pubkey = pkb
+
+	encoded, err := proto.Marshal(pmes)
+	if err != nil {
+		return nil, err
+	}
+
+	return encoded, nil
+}
+
+func verifyID(id peer.ID, pubkey []byte) error {
+	hash, err := u.Hash(pubkey)
+	if err != nil {
+		return err
+	}
+
+	if id.Equal(peer.ID(hash)) {
+		return nil
+	}
+
+	return errors.New("ID did not match public key!")
 }
 
 type KeyPair struct {
