@@ -1,6 +1,10 @@
 package config
 
 import (
+	"crypto"
+	"crypto/x509"
+	"encoding/base64"
+	"errors"
 	"os"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -9,6 +13,7 @@ import (
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
 	PeerID  string
+	PrivKey string
 	Address string
 }
 
@@ -29,8 +34,8 @@ type Config struct {
 	Peers     []*SavedPeer
 }
 
-var defaultConfigFilePath = "~/.go-ipfs/config"
-var defaultConfigFile = `{
+var DefaultConfigFilePath = "~/.go-ipfs/config"
+var DefaultConfigFile = `{
   "identity": {},
   "datastore": {
     "type": "leveldb",
@@ -39,10 +44,20 @@ var defaultConfigFile = `{
 }
 `
 
+func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error) {
+	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
+	if err != nil {
+		return nil, err
+	}
+
+	//pretend to actually decrypt private key
+	return x509.ParsePKCS1PrivateKey(pkb)
+}
+
 // Filename returns the proper tilde expanded config filename.
 func Filename(filename string) (string, error) {
 	if len(filename) == 0 {
-		filename = defaultConfigFilePath
+		filename = DefaultConfigFilePath
 	}
 
 	// tilde expansion on config file
@@ -56,11 +71,9 @@ func Load(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	// if nothing is there, write first config file.
+	// if nothing is there, fail. User must run 'ipfs init'
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		if err := WriteFile(filename, []byte(defaultConfigFile)); err != nil {
-			return nil, err
-		}
+		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg Config
@@ -80,5 +93,5 @@ func Load(filename string) (*Config, error) {
 
 // Set sets the value of a particular config key
 func Set(filename, key, value string) error {
-	return nil
+	return WriteConfigKey(filename, key, value)
 }

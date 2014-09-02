@@ -1,12 +1,17 @@
 package core
 
 import (
+	"crypto"
+	"crypto/rsa"
+	"errors"
 	"fmt"
 
 	ds "github.com/jbenet/datastore.go"
+	b58 "github.com/jbenet/go-base58"
 	"github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/identify"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -98,17 +103,28 @@ func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
 		return nil, err
 	}
 
+	pk, err := cfg.Identity.DecodePrivateKey("")
+	if err != nil {
+		return nil, err
+	}
+
+	var pubkey crypto.PublicKey
+	switch k := pk.(type) {
+	case *rsa.PrivateKey:
+		pubkey = &k.PublicKey
+	default:
+		return nil, identify.ErrUnsupportedKeyType
+	}
+
 	local := &peer.Peer{
-		ID:        peer.ID(cfg.Identity.PeerID),
+		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
 		Addresses: []*ma.Multiaddr{maddr},
+		PrivKey:   pk,
+		PubKey:    pubkey,
 	}
 
 	if len(local.ID) == 0 {
-		mh, err := u.Hash([]byte("blah blah blah ID"))
-		if err != nil {
-			return nil, err
-		}
-		local.ID = peer.ID(mh)
+		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
 	}
 
 	net := swarm.NewSwarm(local)

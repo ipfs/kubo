@@ -16,6 +16,9 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
+var ErrUnsupportedKeyType = errors.New("unsupported key type")
+
 // Perform initial communication with this peer to share node ID's and
 // initiate communication
 func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
@@ -149,6 +152,15 @@ func (pk *KeyPair) ID() (peer.ID, error) {
 		return nil, err
 	}
 	return peer.ID(hash), nil
+}
+
+func (pk *KeyPair) PrivBytes() []byte {
+	switch k := pk.Priv.(type) {
+	case *rsa.PrivateKey:
+		return x509.MarshalPKCS1PrivateKey(k)
+	default:
+		panic("Unsupported private key type.")
+	}
 }
 
 func (kp *KeyPair) Save(dir string) error {
