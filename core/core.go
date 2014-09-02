@@ -93,7 +93,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 }
 
 func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
-	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/4001")
+	maddr, err := ma.NewMultiaddr(cfg.Identity.Address)
 	if err != nil {
 		return nil, err
 	}

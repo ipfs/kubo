@@ -315,8 +315,9 @@ func (dht *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, err
 	for routeLevel < len(dht.routingTables) {
 		pmes, err := dht.findPeerSingle(p, id, timeout, routeLevel)
 		plist := pmes.GetPeers()
-		if len(plist) == 0 {
+		if plist == nil || len(plist) == 0 {
 			routeLevel++
+			continue
 		}
 		found := plist[0]
 

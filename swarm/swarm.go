@@ -184,10 +184,15 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 	maddr, err := ma.NewMultiaddr(string(addr))
 	if err != nil {
 		u.PErr("Got invalid address from peer.")
+		s.Error(err)
+		return
 	}
 	p.AddAddress(maddr)
 
-	s.StartConn(conn)
+	err = s.StartConn(conn)
+	if err != nil {
+		s.Error(err)
+	}
 }
 
 // Close closes a swarm.

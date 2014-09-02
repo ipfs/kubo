@@ -43,7 +43,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 	}
 
 	// Challenge peer to ensure they own the given pubkey
-	secret := make([]byte, 32)
+	secret := make([]byte, 16)
 	rand.Read(secret)
 	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey.(*rsa.PublicKey), secret)
 	if err != nil {
@@ -66,7 +66,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 		return errors.New("Recieved incorrect challenge response!")
 	}
 
-	remote.ID = peer.ID(resp)
+	remote.ID = peer.ID(pbresp.GetId())
 	remote.PubKey = pubkey
 	u.DOut("[%s] identify: Got node id: %s\n", self.ID.Pretty(), remote.ID.Pretty())
 

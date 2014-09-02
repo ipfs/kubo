@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/datastore.go"
+	identify "github.com/jbenet/go-ipfs/identify"
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
@@ -27,7 +28,17 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	for i := 0; i < 4; i++ {
 		p := new(peer.Peer)
 		p.AddAddress(addrs[i])
-		p.ID = peer.ID([]byte(fmt.Sprintf("peer_%d", i)))
+		kp, err := identify.GenKeypair(256)
+		if err != nil {
+			panic(err)
+		}
+		p.PubKey = kp.Pub
+		p.PrivKey = kp.Priv
+		id, err := kp.ID()
+		if err != nil {
+			panic(err)
+		}
+		p.ID = id
 		peers = append(peers, p)
 	}
 
@@ -46,8 +57,26 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	return addrs, peers, dhts
 }
 
+func makePeer(addr *ma.Multiaddr) *peer.Peer {
+	p := new(peer.Peer)
+	p.AddAddress(addr)
+	kp, err := identify.GenKeypair(256)
+	if err != nil {
+		panic(err)
+	}
+	p.PrivKey = kp.Priv
+	p.PubKey = kp.Pub
+	id, err := kp.ID()
+	if err != nil {
+		panic(err)
+	}
+
+	p.ID = id
+	return p
+}
+
 func TestPing(t *testing.T) {
-	u.Debug = false
+	u.Debug = true
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
 	if err != nil {
 		t.Fatal(err)
@@ -57,13 +86,8 @@ func TestPing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	peerA := new(peer.Peer)
-	peerA.AddAddress(addrA)
-	peerA.ID = peer.ID([]byte("peerA"))
-
-	peerB := new(peer.Peer)
-	peerB.AddAddress(addrB)
-	peerB.ID = peer.ID([]byte("peerB"))
+	peerA := makePeer(addrA)
+	peerB := makePeer(addrB)
 
 	neta := swarm.NewSwarm(peerA)
 	err = neta.Listen()
@@ -108,13 +132,8 @@ func TestValueGetSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	peerA := new(peer.Peer)
-	peerA.AddAddress(addrA)
-	peerA.ID = peer.ID([]byte("peerA"))
-
-	peerB := new(peer.Peer)
-	peerB.AddAddress(addrB)
-	peerB.ID = peer.ID([]byte("peerB"))
+	peerA := makePeer(addrA)
+	peerB := makePeer(addrB)
 
 	neta := swarm.NewSwarm(peerA)
 	err = neta.Listen()
