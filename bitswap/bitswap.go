@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	context "code.google.com/p/go.net/context"
+
 	"code.google.com/p/goprotobuf/proto"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -76,12 +78,12 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
+func (bs *BitSwap) GetBlock(ctx context.Context, k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
 	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
 	begin := time.Now()
 	tleft := timeout - time.Now().Sub(begin)
-	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
+	provs_ch := bs.routing.FindProvidersAsync(ctx, k, 20, timeout)
 
 	valchan := make(chan []byte)
 	after := time.After(tleft)

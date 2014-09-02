@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	context "code.google.com/p/go.net/context"
+
 	proto "code.google.com/p/goprotobuf/proto"
 
 	ma "github.com/jbenet/go-multiaddr"
@@ -184,7 +186,7 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 	return nil
 }
 
-func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Duration) chan *peer.Peer {
+func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int, timeout time.Duration) chan *peer.Peer {
 	peerOut := make(chan *peer.Peer, count)
 	go func() {
 		ps := newPeerSet()
@@ -202,7 +204,7 @@ func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Durati
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
 			go func() {
-				pmes, err := dht.findProvidersSingle(pp, key, 0, timeout)
+				pmes, err := dht.findProvidersSingle(ctx, pp, key, 0, timeout)
 				if err != nil {
 					u.PErr("%v\n", err)
 					return
@@ -241,7 +243,7 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*PBDHTMessage_PBPeer, ps *
 }
 
 // FindProviders searches for peers who can provide the value for given key.
-func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
+func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
 	ll := startNewRPC("FindProviders")
 	defer func() {
 		ll.EndLog()
@@ -254,7 +256,7 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 	}
 
 	for level := 0; level < len(dht.routingTables); {
-		pmes, err := dht.findProvidersSingle(p, key, level, timeout)
+		pmes, err := dht.findProvidersSingle(ctx, p, key, level, timeout)
 		if err != nil {
 			return nil, err
 		}

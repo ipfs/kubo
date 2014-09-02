@@ -15,6 +15,8 @@ import (
 
 	ds "github.com/jbenet/datastore.go"
 
+	context "code.google.com/p/go.net/context"
+
 	"code.google.com/p/goprotobuf/proto"
 )
 
@@ -575,7 +577,7 @@ func (dht *IpfsDHT) printTables() {
 	}
 }
 
-func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
 	pmes := Message{
 		Type:  PBDHTMessage_GET_PROVIDERS,
 		Key:   string(key),
