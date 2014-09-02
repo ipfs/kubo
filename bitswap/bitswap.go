@@ -1,8 +1,6 @@
 package bitswap
 
 import (
-	context "code.google.com/p/go.net/context"
-
 	"code.google.com/p/goprotobuf/proto"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -12,19 +10,12 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/datastore.go"
-
-	"errors"
-	"time"
 )
 
 // PartnerWantListMax is the bound for the number of keys we'll store per
 // partner. These are usually taken from the top of the Partner's WantList
 // advertisements. WantLists are sorted in terms of priority.
 const PartnerWantListMax = 10
-
-// MaxProvidersForGetBlock defines the maximum number of providers to locate
-// when BitSwap receives calls to GetBlock
-const MaxProvidersForGetBlock = 20
 
 // KeySet is just a convenient alias for maps of keys, where we only care
 // access/lookups.
@@ -80,83 +71,6 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 
 	go bs.handleMessages()
 	return bs
-}
-
-/* GetBlock attempts to retrieve the block given by |k| within the timeout
- * period enforced by |ctx|.
- *
- * Once a result is obtained, sends cancellation signal to remaining async
- * workers.
- */
-func (bs *BitSwap) GetBlock(ctx context.Context, k u.Key) (
-	*blocks.Block, error) {
-	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
-
-	childCtx, cancelFunc := context.WithCancel(ctx)
-
-	blockDataChan, errChan := bs.getBlockDataAsync(childCtx, k)
-
-	select {
-	case blkdata := <-blockDataChan:
-		cancelFunc()
-		return blocks.NewBlock(blkdata)
-	case err := <-errChan:
-		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-}
-
-/* Asynchronously fans out to many peers |p|.
- */
-func (bs *BitSwap) getBlockDataAsync(
-	ctx context.Context, k u.Key) (<-chan []byte, <-chan error) {
-
-	blockDataChan := make(chan []byte)
-	errChan := make(chan error)
-
-	go func() {
-		for p := range bs.routing.FindProvidersAsync(ctx, k, MaxProvidersForGetBlock) {
-			go func(provider *peer.Peer) {
-				block, err := bs.getBlock(ctx, k, provider)
-				if err != nil {
-					errChan <- err
-				} else {
-					blockDataChan <- block
-				}
-			}(p)
-		}
-		close(blockDataChan)
-		close(errChan)
-	}()
-
-	return blockDataChan, errChan
-}
-
-/* Retrieves data for key |k| from peer |p| within timeout enforced by |ctx|.
- */
-func (bs *BitSwap) getBlock(ctx context.Context, k u.Key, p *peer.Peer) ([]byte, error) {
-	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
-
-	deadline, ok := ctx.Deadline()
-	if !ok {
-		return nil, errors.New("Expected caller to provide a deadline")
-	}
-	timeout := deadline.Sub(time.Now())
-
-	pmes := new(PBMessage)
-	pmes.Wantlist = []string{string(k)}
-
-	resp := bs.listener.Listen(string(k), 1, timeout)
-	smes := swarm.NewMessage(p, pmes)
-	bs.meschan.Outgoing <- smes
-
-	select {
-	case resp_mes := <-resp:
-		return resp_mes.Data, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
 }
 
 // HaveBlock announces the existance of a block to BitSwap, potentially sending
