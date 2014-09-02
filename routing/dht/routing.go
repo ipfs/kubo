@@ -186,7 +186,7 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 	return nil
 }
 
-func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int, timeout time.Duration) chan *peer.Peer {
+func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) chan *peer.Peer {
 	peerOut := make(chan *peer.Peer, count)
 	go func() {
 		ps := newPeerSet()
@@ -204,7 +204,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
 			go func() {
-				pmes, err := dht.findProvidersSingle(ctx, pp, key, 0, timeout)
+				pmes, err := dht.findProvidersSingle(ctx, pp, key, 0)
 				if err != nil {
 					u.PErr("%v\n", err)
 					return
@@ -256,7 +256,7 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key, timeout time.D
 	}
 
 	for level := 0; level < len(dht.routingTables); {
-		pmes, err := dht.findProvidersSingle(ctx, p, key, level, timeout)
+		pmes, err := dht.findProvidersSingle(ctx, p, key, level)
 		if err != nil {
 			return nil, err
 		}

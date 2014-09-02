@@ -13,6 +13,7 @@ import (
 
 	ds "github.com/jbenet/datastore.go"
 
+	"errors"
 	"time"
 )
 
@@ -77,22 +78,33 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 	return bs
 }
 
-// GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) GetBlock(ctx context.Context, k u.Key, timeout time.Duration) (
+/* GetBlock attempts to retrieve a particular block from peers, within a
+ * timeout enforced by |ctx|.
+ *
+ * Asynchronously fans out the request to many peers |p|. Once a result is
+ * obtained, sends cancellation signal to remaining async workers.
+ *
+ * TODO(brian): "close(valchan)" will panic if worker sends a value after
+ * channel is closed. Therefore, senders should manage the channel. Return this
+ * channel from a method which (internally) has a goroutine that terminates and
+ * closes once all children have responded to the context's termination signal
+ */
+func (bs *BitSwap) GetBlock(parentCtx context.Context, k u.Key) (
 	*blocks.Block, error) {
 	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
-	begin := time.Now()
-	tleft := timeout - time.Now().Sub(begin)
-	provs_ch := bs.routing.FindProvidersAsync(ctx, k, 20, timeout)
+
+	ctx, cancelFunc := context.WithCancel(parentCtx)
+
+	const numProvidersDesired = 20
+	provs_ch := bs.routing.FindProvidersAsync(ctx, k, numProvidersDesired)
 
 	valchan := make(chan []byte)
-	after := time.After(tleft)
 
 	// TODO: when the data is received, shut down this for loop ASAP
 	go func() {
 		for p := range provs_ch {
 			go func(pr *peer.Peer) {
-				blk, err := bs.getBlock(k, pr, tleft)
+				blk, err := bs.getBlock(ctx, k, pr)
 				if err != nil {
 					u.PErr("getBlock returned: %v\n", err)
 					return
@@ -107,20 +119,29 @@ func (bs *BitSwap) GetBlock(ctx context.Context, k u.Key, timeout time.Duration)
 
 	select {
 	case blkdata := <-valchan:
+		cancelFunc()
 		close(valchan)
 		return blocks.NewBlock(blkdata)
-	case <-after:
+	case <-ctx.Done():
+		// TODO(brian): differentiate between DeadlineExceeded and Cancelled
 		return nil, u.ErrTimeout
 	}
 }
 
-func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
+/* Retrieves data for key |k| from peer |p| within timeout enforced by |ctx|.
+ */
+func (bs *BitSwap) getBlock(ctx context.Context, k u.Key, p *peer.Peer) ([]byte, error) {
 	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return nil, errors.New("Expected caller to provide a deadline")
+	}
+	timeout := deadline.Sub(time.Now())
 
 	pmes := new(PBMessage)
 	pmes.Wantlist = []string{string(k)}
 
-	after := time.After(timeout)
 	resp := bs.listener.Listen(string(k), 1, timeout)
 	smes := swarm.NewMessage(p, pmes)
 	bs.meschan.Outgoing <- smes
@@ -128,7 +149,7 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byt
 	select {
 	case resp_mes := <-resp:
 		return resp_mes.Data, nil
-	case <-after:
+	case <-ctx.Done():
 		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
 		return nil, u.ErrTimeout
 	}

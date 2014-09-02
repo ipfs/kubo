@@ -66,11 +66,8 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
 		u.DOut("Blockservice: Searching bitswap.\n")
-
-		// TODO(brian): ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
-		// drop in |ctx| and replace timeout handling with <-ctx.Done()
-
-		blk, err := s.Remote.GetBlock(context.TODO(), k, time.Second*5)
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+		blk, err := s.Remote.GetBlock(ctx, k)
 		if err != nil {
 			return nil, err
 		}

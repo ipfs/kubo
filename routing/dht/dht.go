@@ -577,7 +577,7 @@ func (dht *IpfsDHT) printTables() {
 	}
 }
 
-func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p *peer.Peer, key u.Key, level int) (*PBDHTMessage, error) {
 	pmes := Message{
 		Type:  PBDHTMessage_GET_PROVIDERS,
 		Key:   string(key),
@@ -589,9 +589,9 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p *peer.Peer, key u
 
 	listenChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 	dht.netChan.Outgoing <- mes
-	after := time.After(timeout)
 	select {
-	case <-after:
+	case <-ctx.Done():
+		// TODO(brian): differentiate between ctx errs
 		dht.listener.Unlisten(pmes.ID)
 		return nil, u.ErrTimeout
 	case resp := <-listenChan:
