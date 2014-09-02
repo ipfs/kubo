@@ -591,9 +591,8 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p *peer.Peer, key u
 	dht.netChan.Outgoing <- mes
 	select {
 	case <-ctx.Done():
-		// TODO(brian): differentiate between ctx errs
 		dht.listener.Unlisten(pmes.ID)
-		return nil, u.ErrTimeout
+		return nil, ctx.Err()
 	case resp := <-listenChan:
 		u.DOut("FindProviders: got response.\n")
 		pmesOut := new(PBDHTMessage)

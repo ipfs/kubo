@@ -186,6 +186,7 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 	return nil
 }
 
+// TODO(brian): signal errors to caller
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) chan *peer.Peer {
 	peerOut := make(chan *peer.Peer, count)
 	go func() {
@@ -205,6 +206,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 		for _, pp := range peers {
 			go func() {
 				pmes, err := dht.findProvidersSingle(ctx, pp, key, 0)
+				// TODO(brian): propagate error back up to caller
 				if err != nil {
 					u.PErr("%v\n", err)
 					return

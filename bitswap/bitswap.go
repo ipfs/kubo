@@ -22,6 +22,10 @@ import (
 // advertisements. WantLists are sorted in terms of priority.
 const PartnerWantListMax = 10
 
+// MaxProvidersForGetBlock defines the maximum number of providers to locate
+// when BitSwap receives calls to GetBlock
+const MaxProvidersForGetBlock = 20
+
 // KeySet is just a convenient alias for maps of keys, where we only care
 // access/lookups.
 type KeySet map[u.Key]struct{}
@@ -78,53 +82,55 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 	return bs
 }
 
-/* GetBlock attempts to retrieve a particular block from peers, within a
- * timeout enforced by |ctx|.
+/* GetBlock attempts to retrieve the block given by |k| within the timeout
+ * period enforced by |ctx|.
  *
- * Asynchronously fans out the request to many peers |p|. Once a result is
- * obtained, sends cancellation signal to remaining async workers.
- *
- * TODO(brian): "close(valchan)" will panic if worker sends a value after
- * channel is closed. Therefore, senders should manage the channel. Return this
- * channel from a method which (internally) has a goroutine that terminates and
- * closes once all children have responded to the context's termination signal
+ * Once a result is obtained, sends cancellation signal to remaining async
+ * workers.
  */
-func (bs *BitSwap) GetBlock(parentCtx context.Context, k u.Key) (
+func (bs *BitSwap) GetBlock(ctx context.Context, k u.Key) (
 	*blocks.Block, error) {
 	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
 
-	ctx, cancelFunc := context.WithCancel(parentCtx)
+	childCtx, cancelFunc := context.WithCancel(ctx)
 
-	const numProvidersDesired = 20
-	provs_ch := bs.routing.FindProvidersAsync(ctx, k, numProvidersDesired)
+	blockDataChan, errChan := bs.getBlockDataAsync(childCtx, k)
 
-	valchan := make(chan []byte)
+	select {
+	case blkdata := <-blockDataChan:
+		cancelFunc()
+		return blocks.NewBlock(blkdata)
+	case err := <-errChan:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
 
-	// TODO: when the data is received, shut down this for loop ASAP
+/* Asynchronously fans out to many peers |p|.
+ */
+func (bs *BitSwap) getBlockDataAsync(
+	ctx context.Context, k u.Key) (<-chan []byte, <-chan error) {
+
+	blockDataChan := make(chan []byte)
+	errChan := make(chan error)
+
 	go func() {
-		for p := range provs_ch {
-			go func(pr *peer.Peer) {
-				blk, err := bs.getBlock(ctx, k, pr)
+		for p := range bs.routing.FindProvidersAsync(ctx, k, MaxProvidersForGetBlock) {
+			go func(provider *peer.Peer) {
+				block, err := bs.getBlock(ctx, k, provider)
 				if err != nil {
-					u.PErr("getBlock returned: %v\n", err)
-					return
-				}
-				select {
-				case valchan <- blk:
-				default:
+					errChan <- err
+				} else {
+					blockDataChan <- block
 				}
 			}(p)
 		}
+		close(blockDataChan)
+		close(errChan)
 	}()
 
-	select {
-	case blkdata := <-valchan:
-		cancelFunc()
-		return blocks.NewBlock(blkdata)
-	case <-ctx.Done():
-		// TODO(brian): differentiate between DeadlineExceeded and Cancelled
-		return nil, u.ErrTimeout
-	}
+	return blockDataChan, errChan
 }
 
 /* Retrieves data for key |k| from peer |p| within timeout enforced by |ctx|.
@@ -149,8 +155,7 @@ func (bs *BitSwap) getBlock(ctx context.Context, k u.Key, p *peer.Peer) ([]byte,
 	case resp_mes := <-resp:
 		return resp_mes.Data, nil
 	case <-ctx.Done():
-		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
-		return nil, u.ErrTimeout
+		return nil, ctx.Err()
 	}
 }
 
