@@ -120,7 +120,6 @@ func (bs *BitSwap) GetBlock(parentCtx context.Context, k u.Key) (
 	select {
 	case blkdata := <-valchan:
 		cancelFunc()
-		close(valchan)
 		return blocks.NewBlock(blkdata)
 	case <-ctx.Done():
 		// TODO(brian): differentiate between DeadlineExceeded and Cancelled
