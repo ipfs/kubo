@@ -54,6 +54,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 	out <- encrypted
 	challenge := <-in
 
+	// Decrypt challenge and send plaintext to partner
 	plain, err := rsa.DecryptPKCS1v15(rand.Reader, self.PrivKey.(*rsa.PrivateKey), challenge)
 	if err != nil {
 		return err
@@ -108,15 +109,15 @@ type KeyPair struct {
 	Priv crypto.PrivateKey
 }
 
-func GenKeypair() (*KeyPair, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, 4096)
+func GenKeypair(bits int) (*KeyPair, error) {
+	priv, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
 		return nil, err
 	}
 
 	return &KeyPair{
 		Priv: priv,
-		Pub:  priv.PublicKey,
+		Pub:  &priv.PublicKey,
 	}, nil
 }
 
