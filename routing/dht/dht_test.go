@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/datastore.go"
+	ci "github.com/jbenet/go-ipfs/crypto"
 	identify "github.com/jbenet/go-ipfs/identify"
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
@@ -28,13 +29,13 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	for i := 0; i < 4; i++ {
 		p := new(peer.Peer)
 		p.AddAddress(addrs[i])
-		kp, err := identify.GenKeypair(256)
+		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 256)
 		if err != nil {
 			panic(err)
 		}
-		p.PubKey = kp.Pub
-		p.PrivKey = kp.Priv
-		id, err := kp.ID()
+		p.PubKey = pk
+		p.PrivKey = sk
+		id, err := identify.IdFromPubKey(pk)
 		if err != nil {
 			panic(err)
 		}
@@ -60,13 +61,13 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 func makePeer(addr *ma.Multiaddr) *peer.Peer {
 	p := new(peer.Peer)
 	p.AddAddress(addr)
-	kp, err := identify.GenKeypair(256)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 256)
 	if err != nil {
 		panic(err)
 	}
-	p.PrivKey = kp.Priv
-	p.PubKey = kp.Pub
-	id, err := kp.ID()
+	p.PrivKey = sk
+	p.PubKey = pk
+	id, err := identify.IdFromPubKey(pk)
 	if err != nil {
 		panic(err)
 	}

@@ -1,11 +1,11 @@
 package peer
 
 import (
-	"crypto"
 	"sync"
 	"time"
 
 	b58 "github.com/jbenet/go-base58"
+	ic "github.com/jbenet/go-ipfs/crypto"
 	u "github.com/jbenet/go-ipfs/util"
 	ma "github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-multihash"
@@ -34,8 +34,8 @@ type Peer struct {
 	ID        ID
 	Addresses []*ma.Multiaddr
 
-	PubKey  crypto.PublicKey
-	PrivKey crypto.PrivateKey
+	PrivKey ic.PrivKey
+	PubKey  ic.PubKey
 
 	latency   time.Duration
 	latenLock sync.RWMutex

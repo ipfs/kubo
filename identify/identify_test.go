@@ -3,15 +3,16 @@ package identify
 import (
 	"testing"
 
+	ci "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
 )
 
 func TestHandshake(t *testing.T) {
-	kpa, err := GenKeypair(512)
+	ska, pka, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kpb, err := GenKeypair(512)
+	skb, pkb, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,24 +20,24 @@ func TestHandshake(t *testing.T) {
 	cha := make(chan []byte, 5)
 	chb := make(chan []byte, 5)
 
-	ida, err := kpa.ID()
+	ida, err := IdFromPubKey(pka)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pa := &peer.Peer{
 		ID:      ida,
-		PubKey:  kpa.Pub,
-		PrivKey: kpa.Priv,
+		PubKey:  pka,
+		PrivKey: ska,
 	}
 
-	idb, err := kpb.ID()
+	idb, err := IdFromPubKey(pkb)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pb := &peer.Peer{
 		ID:      idb,
-		PubKey:  kpb.Pub,
-		PrivKey: kpb.Priv,
+		PubKey:  pkb,
+		PrivKey: skb,
 	}
 
 	go func() {

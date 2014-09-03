@@ -4,14 +4,10 @@ package identify
 
 import (
 	"bytes"
-	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"errors"
-	"io/ioutil"
 
 	proto "code.google.com/p/goprotobuf/proto"
+	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -40,15 +36,14 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 		return verifyErr
 	}
 
-	pubkey, err := x509.ParsePKIXPublicKey(pbresp.GetPubkey())
+	pubkey, err := ci.UnmarshalPublicKey(pbresp.GetPubkey())
 	if err != nil {
 		return err
 	}
 
 	// Challenge peer to ensure they own the given pubkey
-	secret := make([]byte, 16)
-	rand.Read(secret)
-	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey.(*rsa.PublicKey), secret)
+	secret := self.PrivKey.GenSecret()
+	encrypted, err := pubkey.Encrypt(secret)
 	if err != nil {
 		//... this is odd
 		return err
@@ -58,7 +53,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 	challenge := <-in
 
 	// Decrypt challenge and send plaintext to partner
-	plain, err := rsa.DecryptPKCS1v15(rand.Reader, self.PrivKey.(*rsa.PrivateKey), challenge)
+	plain, err := self.PrivKey.Decrypt(challenge)
 	if err != nil {
 		return err
 	}
@@ -77,7 +72,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) error {
 }
 
 func buildHandshake(self *peer.Peer) ([]byte, error) {
-	pkb, err := x509.MarshalPKIXPublicKey(self.PubKey)
+	pkb, err := self.PubKey.Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -107,73 +102,14 @@ func verifyID(id peer.ID, pubkey []byte) error {
 	return errors.New("ID did not match public key!")
 }
 
-type KeyPair struct {
-	Pub  crypto.PublicKey
-	Priv crypto.PrivateKey
-}
-
-func GenKeypair(bits int) (*KeyPair, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, bits)
+func IdFromPubKey(pk ci.PubKey) (peer.ID, error) {
+	b, err := pk.Bytes()
 	if err != nil {
 		return nil, err
 	}
-
-	return &KeyPair{
-		Priv: priv,
-		Pub:  &priv.PublicKey,
-	}, nil
-}
-
-func LoadKeypair(dir string) (*KeyPair, error) {
-	var kp KeyPair
-	pk_b, err := ioutil.ReadFile(dir + "/priv.key")
-	if err != nil {
-		return nil, err
-	}
-
-	priv, err := x509.ParsePKCS1PrivateKey(pk_b)
-	if err != nil {
-		return nil, err
-	}
-
-	kp.Priv = priv
-	kp.Pub = priv.PublicKey
-
-	return &kp, nil
-}
-
-func (pk *KeyPair) ID() (peer.ID, error) {
-	pub_b, err := x509.MarshalPKIXPublicKey(pk.Pub)
-	if err != nil {
-		return nil, err
-	}
-	hash, err := u.Hash(pub_b)
+	hash, err := u.Hash(b)
 	if err != nil {
 		return nil, err
 	}
 	return peer.ID(hash), nil
-}
-
-func (pk *KeyPair) PrivBytes() []byte {
-	switch k := pk.Priv.(type) {
-	case *rsa.PrivateKey:
-		return x509.MarshalPKCS1PrivateKey(k)
-	default:
-		panic("Unsupported private key type.")
-	}
-}
-
-func (kp *KeyPair) Save(dir string) error {
-	switch k := kp.Priv.(type) {
-	case *rsa.PrivateKey:
-		err := k.Validate()
-		if err != nil {
-			return err
-		}
-		pk_b := x509.MarshalPKCS1PrivateKey(k)
-		err = ioutil.WriteFile(dir+"/priv.key", pk_b, 0600)
-		return err
-	default:
-		return errors.New("invalid private key type.")
-	}
 }

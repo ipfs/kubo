@@ -8,7 +8,8 @@ import (
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
-	"github.com/jbenet/go-ipfs/identify"
+	ci "github.com/jbenet/go-ipfs/crypto"
+	identify "github.com/jbenet/go-ipfs/identify"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -54,16 +55,20 @@ func initCmd(c *commander.Command, inp []string) error {
 	if nbits < 1024 {
 		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
-	kp, err := identify.GenKeypair(nbits)
+
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return err
 	}
 
 	// pretend to encrypt key, then store it unencrypted
-	enckey := base64.StdEncoding.EncodeToString(kp.PrivBytes())
-	cfg.Identity.PrivKey = enckey
+	skbytes, err := sk.Bytes()
+	if err != nil {
+		return err
+	}
+	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := kp.ID()
+	id, err := identify.IdFromPubKey(pk)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,7 @@
 package core
 
 import (
-	"crypto"
-	"crypto/rsa"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
-	"github.com/jbenet/go-ipfs/identify"
+	ci "github.com/jbenet/go-ipfs/crypto"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -103,24 +102,21 @@ func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
 		return nil, err
 	}
 
-	pk, err := cfg.Identity.DecodePrivateKey("")
+	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
 	if err != nil {
 		return nil, err
 	}
 
-	var pubkey crypto.PublicKey
-	switch k := pk.(type) {
-	case *rsa.PrivateKey:
-		pubkey = &k.PublicKey
-	default:
-		return nil, identify.ErrUnsupportedKeyType
+	sk, err := ci.UnmarshalPrivateKey(skb)
+	if err != nil {
+		return nil, err
 	}
 
 	local := &peer.Peer{
 		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
 		Addresses: []*ma.Multiaddr{maddr},
-		PrivKey:   pk,
-		PubKey:    pubkey,
+		PrivKey:   sk,
+		PubKey:    sk.GetPublic(),
 	}
 
 	if len(local.ID) == 0 {
