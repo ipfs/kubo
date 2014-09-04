@@ -9,9 +9,13 @@ import (
 
 type ProviderManager struct {
 	providers map[u.Key][]*providerInfo
+	local     map[u.Key]struct{}
+	lpeer     peer.ID
+	getlocal  chan chan []u.Key
 	newprovs  chan *addProv
 	getprovs  chan *getProv
 	halt      chan struct{}
+	period    time.Duration
 }
 
 type addProv struct {
@@ -24,11 +28,13 @@ type getProv struct {
 	resp chan []*peer.Peer
 }
 
-func NewProviderManager() *ProviderManager {
+func NewProviderManager(local peer.ID) *ProviderManager {
 	pm := new(ProviderManager)
 	pm.getprovs = make(chan *getProv)
 	pm.newprovs = make(chan *addProv)
 	pm.providers = make(map[u.Key][]*providerInfo)
+	pm.getlocal = make(chan chan []u.Key)
+	pm.local = make(map[u.Key]struct{})
 	pm.halt = make(chan struct{})
 	go pm.run()
 	return pm
@@ -39,6 +45,9 @@ func (pm *ProviderManager) run() {
 	for {
 		select {
 		case np := <-pm.newprovs:
+			if np.val.ID.Equal(pm.lpeer) {
+				pm.local[np.k] = struct{}{}
+			}
 			pi := new(providerInfo)
 			pi.Creation = time.Now()
 			pi.Value = np.val
@@ -51,6 +60,12 @@ func (pm *ProviderManager) run() {
 				parr = append(parr, p.Value)
 			}
 			gp.resp <- parr
+		case lc := <-pm.getlocal:
+			var keys []u.Key
+			for k, _ := range pm.local {
+				keys = append(keys, k)
+			}
+			lc <- keys
 		case <-tick.C:
 			for k, provs := range pm.providers {
 				var filtered []*providerInfo
@@ -80,6 +95,12 @@ func (pm *ProviderManager) GetProviders(k u.Key) []*peer.Peer {
 	gp.resp = make(chan []*peer.Peer)
 	pm.getprovs <- gp
 	return <-gp.resp
+}
+
+func (pm *ProviderManager) GetLocal() []u.Key {
+	resp := make(chan []u.Key)
+	pm.getlocal <- resp
+	return <-resp
 }
 
 func (pm *ProviderManager) Halt() {

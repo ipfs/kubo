@@ -166,6 +166,7 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 
 // Provide makes this node announce that it can provide a value for the given key
 func (dht *IpfsDHT) Provide(key u.Key) error {
+	dht.providers.AddProvider(key, dht.self)
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if len(peers) == 0 {
 		return kb.ErrLookupFailure

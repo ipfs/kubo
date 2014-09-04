@@ -2,6 +2,7 @@ package dht
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"sync"
 	"time"
@@ -59,7 +60,7 @@ func NewDHT(p *peer.Peer, net swarm.Network, dstore ds.Datastore) *IpfsDHT {
 	dht.netChan = net.GetChannel(swarm.PBWrapper_DHT_MESSAGE)
 	dht.datastore = dstore
 	dht.self = p
-	dht.providers = NewProviderManager()
+	dht.providers = NewProviderManager(p.ID)
 	dht.shutdown = make(chan struct{})
 
 	dht.routingTables = make([]*kb.RoutingTable, 3)
@@ -293,7 +294,15 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *PBDHTMessage) {
 		Response: true,
 	}
 
+	has, err := dht.datastore.Has(ds.NewKey(pmes.GetKey()))
+	if err != nil {
+		dht.netChan.Errors <- err
+	}
+
 	providers := dht.providers.GetProviders(u.Key(pmes.GetKey()))
+	if has {
+		providers = append(providers, dht.self)
+	}
 	if providers == nil || len(providers) == 0 {
 		level := 0
 		if len(pmes.GetValue()) > 0 {
@@ -636,4 +645,19 @@ func (dht *IpfsDHT) peerFromInfo(pbp *PBDHTMessage_PBPeer) (*peer.Peer, error) {
 	}
 
 	return dht.network.GetConnection(peer.ID(pbp.GetId()), maddr)
+}
+
+func (dht *IpfsDHT) loadProvidableKeys() error {
+	kl := dht.datastore.KeyList()
+	for _, k := range kl {
+		dht.providers.AddProvider(u.Key(k.Bytes()), dht.self)
+	}
+	return nil
+}
+
+// Builds up list of peers by requesting random peer IDs
+func (dht *IpfsDHT) Bootstrap() {
+	id := make([]byte, 16)
+	rand.Read(id)
+	dht.FindPeer(peer.ID(id), time.Second*10)
 }
