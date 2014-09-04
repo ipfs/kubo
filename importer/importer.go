@@ -30,6 +30,9 @@ func NewDagFromReader(r io.Reader) (*dag.Node, error) {
 			return nil, err
 		}
 	}
+
+	fmt.Println(root.Links)
+
 	return root, nil
 }
 

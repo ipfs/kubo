@@ -12,7 +12,6 @@ import (
 	importer "github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
 )
 
 // Error indicating the max depth has been exceded.
@@ -121,14 +120,13 @@ func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 // addNode adds the node to the graph + local storage
 func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 	// add the file to the graph + local storage
-	k, err := n.DAG.Put(nd)
+	err := n.DAG.AddRecursive(nd)
 	if err != nil {
 		return err
 	}
 
-	u.POut("added %s %s\n", fpath, mh.Multihash(k).B58String())
-	return nil
+	u.POut("added %s\n", fpath)
 
 	// ensure we keep it. atm no-op
-	// return n.PinDagNode(root)
+	return n.PinDagNode(nd)
 }

@@ -37,9 +37,21 @@ func catCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
+		fmt.Println("Printing Data!")
 		_, err = fmt.Printf("%s", nd.Data)
 		if err != nil {
 			return err
+		}
+
+		fmt.Println("Printing child nodes:")
+		for _, subn := range nd.Links {
+			k := u.Key(subn.Hash)
+			blk, err := n.Blocks.GetBlock(k)
+			fmt.Printf("Getting link: %s\n", k.Pretty())
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(blk.Data))
 		}
 	}
 	return nil

@@ -147,3 +147,8 @@ func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
 
 	return bitswap.NewBitSwap(local, net, d, route), nil
 }
+
+func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
+	u.POut("Pinning node. Currently No-Op\n")
+	return nil
+}

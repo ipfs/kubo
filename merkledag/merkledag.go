@@ -55,6 +55,7 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 		Name: name,
 		Size: s,
 		Hash: h,
+		Node: that,
 	})
 	return nil
 }
@@ -97,8 +98,10 @@ type DAGService struct {
 	Blocks *bserv.BlockService
 }
 
-// Put adds a node to the DAGService, storing the block in the BlockService
-func (n *DAGService) Put(nd *Node) (u.Key, error) {
+// Add adds a node to the DAGService, storing the block in the BlockService
+func (n *DAGService) Add(nd *Node) (u.Key, error) {
+	k, _ := nd.Key()
+	u.DOut("DagService Add [%s]\n", k.Pretty())
 	if n == nil {
 		return "", fmt.Errorf("DAGService is nil")
 	}
@@ -114,6 +117,26 @@ func (n *DAGService) Put(nd *Node) (u.Key, error) {
 	}
 
 	return n.Blocks.AddBlock(b)
+}
+
+func (n *DAGService) AddRecursive(nd *Node) error {
+	_, err := n.Add(nd)
+	if err != nil {
+		return err
+	}
+
+	for _, link := range nd.Links {
+		fmt.Println("Adding link.")
+		if link.Node == nil {
+			panic("Why does this node have a nil link?\n")
+		}
+		err := n.AddRecursive(link.Node)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Get retrieves a node from the DAGService, fetching the block in the BlockService

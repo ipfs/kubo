@@ -22,7 +22,7 @@ type PrivKey interface {
 	// Decrypt a message encrypted with this keys public key
 	Decrypt([]byte) ([]byte, error)
 
-	// Return a public key paired with this private key
+	// Return the public key paired with this private key
 	GetPublic() PubKey
 
 	// Generate a secret string of bytes

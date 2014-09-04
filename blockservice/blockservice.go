@@ -57,7 +57,6 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		if !ok {
 			return nil, fmt.Errorf("data associated with %s is not a []byte", k)
 		}
-		u.DOut("Got data: %v\n", bdata)
 		return &blocks.Block{
 			Multihash: mh.Multihash(k),
 			Data:      bdata,
