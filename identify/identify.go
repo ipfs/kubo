@@ -34,7 +34,7 @@ var SupportedHashes = "SHA256,SHA512,SHA1"
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
 
 // Perform initial communication with this peer to share node ID's and
-// initiate communication
+// initiate communication.  (secureIn, secureOut, error)
 func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan []byte, error) {
 	// Generate and send Hello packet.
 	// Hello = (rand, PublicKey, Supported)
