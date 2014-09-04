@@ -4,18 +4,17 @@ package identify
 
 import (
 	"bytes"
+	"errors"
+	"strings"
+
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"errors"
 	"hash"
-	"math/big"
-	"strings"
 
 	proto "code.google.com/p/goprotobuf/proto"
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -95,7 +94,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan 
 		return nil, nil, err
 	}
 
-	epubkey, done, err := generateEPubKey(exchange) // Generate EphemeralPubKey
+	epubkey, done, err := ci.GenerateEKeyPair(exchange) // Generate EphemeralPubKey
 
 	var handshake bytes.Buffer // Gather corpus to sign.
 	handshake.Write(encoded)
@@ -144,87 +143,13 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan 
 	}
 
 	cmp := bytes.Compare(myPubKey, helloResp.GetPubkey())
-	mIV, tIV, mCKey, tCKey, mMKey, tMKey := keyGenerator(cmp, cipherType, hashType, secret)
+	mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
 
 	secureIn := make(chan []byte)
 	secureOut := make(chan []byte)
 
-	go func() {
-		myBlock, _ := aes.NewCipher(mCKey)
-		myCipher := cipher.NewCTR(myBlock, mIV)
-
-		theirBlock, _ := aes.NewCipher(tCKey)
-		theirCipher := cipher.NewCTR(theirBlock, tIV)
-
-		var myMac, theirMac hash.Hash
-		var macSize int
-
-		switch hashType {
-		case "SHA1":
-			myMac = hmac.New(sha1.New, mMKey)
-			theirMac = hmac.New(sha1.New, tMKey)
-			macSize = 20
-
-		case "SHA256":
-			myMac = hmac.New(sha256.New, mMKey)
-			theirMac = hmac.New(sha256.New, tMKey)
-			macSize = 32
-
-		case "SHA512":
-			myMac = hmac.New(sha512.New, mMKey)
-			theirMac = hmac.New(sha512.New, tMKey)
-			macSize = 64
-		}
-
-		for {
-			select {
-			case data, ok := <-secureOut:
-				if !ok {
-					return
-				}
-
-				if len(data) == 0 {
-					continue
-				}
-
-				buff := make([]byte, len(data)+macSize)
-
-				myCipher.XORKeyStream(buff, data)
-
-				myMac.Write(buff[0:len(data)])
-				copy(buff[len(data):], myMac.Sum(nil))
-				myMac.Reset()
-
-				out <- buff
-
-			case data, ok := <-in:
-				if !ok {
-					return
-				}
-
-				if len(data) <= macSize {
-					continue
-				}
-
-				mark := len(data) - macSize
-				buff := make([]byte, mark)
-
-				theirCipher.XORKeyStream(buff, data[0:mark])
-
-				theirMac.Write(data[0:mark])
-				expected := theirMac.Sum(nil)
-				theirMac.Reset()
-
-				hmacOk := hmac.Equal(data[mark:], expected)
-
-				if hmacOk {
-					secureIn <- buff
-				} else {
-					secureIn <- nil
-				}
-			}
-		}
-	}()
+	go secureInProxy(in, secureIn, hashType, tIV, tCKey, tMKey)
+	go secureOutProxy(out, secureOut, hashType, mIV, mCKey, mMKey)
 
 	finished := []byte("Finished")
 
@@ -240,6 +165,80 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan 
 	return secureIn, secureOut, nil
 }
 
+func makeMac(hashType string, key []byte) (hash.Hash, int) {
+	switch hashType {
+	case "SHA1":
+		return hmac.New(sha1.New, key), sha1.Size
+	case "SHA512":
+		return hmac.New(sha512.New, key), sha512.Size
+	default:
+		return hmac.New(sha256.New, key), sha256.Size
+	}
+}
+
+func secureInProxy(in, secureIn chan []byte, hashType string, tIV, tCKey, tMKey []byte) {
+	theirBlock, _ := aes.NewCipher(tCKey)
+	theirCipher := cipher.NewCTR(theirBlock, tIV)
+
+	theirMac, macSize := makeMac(hashType, tMKey)
+
+	for {
+		data, ok := <-in
+		if !ok {
+			return
+		}
+
+		if len(data) <= macSize {
+			continue
+		}
+
+		mark := len(data) - macSize
+		buff := make([]byte, mark)
+
+		theirCipher.XORKeyStream(buff, data[0:mark])
+
+		theirMac.Write(data[0:mark])
+		expected := theirMac.Sum(nil)
+		theirMac.Reset()
+
+		hmacOk := hmac.Equal(data[mark:], expected)
+
+		if hmacOk {
+			secureIn <- buff
+		} else {
+			secureIn <- nil
+		}
+	}
+}
+
+func secureOutProxy(out, secureOut chan []byte, hashType string, mIV, mCKey, mMKey []byte) {
+	myBlock, _ := aes.NewCipher(mCKey)
+	myCipher := cipher.NewCTR(myBlock, mIV)
+
+	myMac, macSize := makeMac(hashType, mMKey)
+
+	for {
+		data, ok := <-secureOut
+		if !ok {
+			return
+		}
+
+		if len(data) == 0 {
+			continue
+		}
+
+		buff := make([]byte, len(data)+macSize)
+
+		myCipher.XORKeyStream(buff, data)
+
+		myMac.Write(buff[0:len(data)])
+		copy(buff[len(data):], myMac.Sum(nil))
+		myMac.Reset()
+
+		out <- buff
+	}
+}
+
 func IdFromPubKey(pk ci.PubKey) (peer.ID, error) {
 	b, err := pk.Bytes()
 	if err != nil {
@@ -250,89 +249,6 @@ func IdFromPubKey(pk ci.PubKey) (peer.ID, error) {
 		return nil, err
 	}
 	return peer.ID(hash), nil
-}
-
-// Generates a set of keys for each party by stretching the shared key.
-// (myIV, theirIV, myCipherKey, theirCipherKey, myMACKey, theirMACKey)
-func keyGenerator(cmp int, cipherType string, hashType string, secret []byte) ([]byte, []byte, []byte, []byte, []byte, []byte) {
-	var cipherKeySize int
-	switch cipherType {
-	case "AES-128":
-		cipherKeySize = 16
-	case "AES-256":
-		cipherKeySize = 32
-	}
-
-	ivSize := 16
-	hmacKeySize := 20
-
-	seed := []byte("key expansion")
-
-	result := make([]byte, 2*(ivSize+cipherKeySize+hmacKeySize))
-
-	var h func() hash.Hash
-
-	switch hashType {
-	case "SHA1":
-		h = sha1.New
-	case "SHA256":
-		h = sha256.New
-	case "SHA512":
-		h = sha512.New
-	}
-
-	m := hmac.New(h, secret)
-	m.Write(seed)
-
-	a := m.Sum(nil)
-
-	j := 0
-	for j < len(result) {
-		m.Reset()
-		m.Write(a)
-		m.Write(seed)
-		b := m.Sum(nil)
-
-		todo := len(b)
-
-		if j+todo > len(result) {
-			todo = len(result) - j
-		}
-
-		copy(result[j:j+todo], b)
-
-		j += todo
-
-		m.Reset()
-		m.Write(a)
-		a = m.Sum(nil)
-	}
-
-	myResult := make([]byte, ivSize+cipherKeySize+hmacKeySize)
-	theirResult := make([]byte, ivSize+cipherKeySize+hmacKeySize)
-
-	half := len(result) / 2
-
-	if cmp == 1 {
-		copy(myResult, result[:half])
-		copy(theirResult, result[half:])
-	} else if cmp == -1 {
-		copy(myResult, result[half:])
-		copy(theirResult, result[:half])
-	} else { // Shouldn't happen, but oh well.
-		copy(myResult, result[half:])
-		copy(theirResult, result[half:])
-	}
-
-	myIV := myResult[0:ivSize]
-	myCKey := myResult[ivSize : ivSize+cipherKeySize]
-	myMKey := myResult[ivSize+cipherKeySize:]
-
-	theirIV := theirResult[0:ivSize]
-	theirCKey := theirResult[ivSize : ivSize+cipherKeySize]
-	theirMKey := theirResult[ivSize+cipherKeySize:]
-
-	return myIV, theirIV, myCKey, theirCKey, myMKey, theirMKey
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
@@ -371,97 +287,4 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 	}
 
 	return "", errors.New("No algorithms in common!")
-}
-
-// Generates an ephemeral public key and returns a function that will compute
-// the shared secret key.
-//
-// Focuses only on ECDH now, but can be made more general in the future.
-func generateEPubKey(exchange string) ([]byte, func([]byte) ([]byte, error), error) {
-	genKeyPair := func(curve elliptic.Curve) ([]byte, []byte, error) {
-		priv, x, y, err := elliptic.GenerateKey(curve, rand.Reader)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		var pubKey bytes.Buffer
-		pubKey.Write(x.Bytes())
-		pubKey.Write(y.Bytes())
-
-		return pubKey.Bytes(), priv, nil
-	}
-
-	genSec := func(curve elliptic.Curve, theirPub []byte, myPriv []byte) ([]byte, error) {
-		// Verify and unpack node's public key.
-		curveSize := curve.Params().BitSize
-
-		if len(theirPub) != (curveSize / 4) {
-			return nil, errors.New("Malformed public key.")
-		}
-
-		bound := (curveSize / 8)
-		x := big.NewInt(0)
-		y := big.NewInt(0)
-
-		x.SetBytes(theirPub[0:bound])
-		y.SetBytes(theirPub[bound : bound*2])
-
-		if !curve.IsOnCurve(x, y) {
-			return nil, errors.New("Invalid public key.")
-		}
-
-		// Generate shared secret.
-		secret, _ := curve.ScalarMult(x, y, myPriv)
-
-		return secret.Bytes(), nil
-	}
-
-	switch exchange {
-	case "P-224":
-		curve := elliptic.P224()
-		pub, priv, err := genKeyPair(curve)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		done := func(theirs []byte) ([]byte, error) { return genSec(curve, theirs, priv) }
-
-		return pub, done, nil
-
-	case "P-256":
-		curve := elliptic.P256()
-		pub, priv, err := genKeyPair(curve)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		done := func(theirs []byte) ([]byte, error) { return genSec(curve, theirs, priv) }
-
-		return pub, done, nil
-
-	case "P-384":
-		curve := elliptic.P384()
-		pub, priv, err := genKeyPair(curve)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		done := func(theirs []byte) ([]byte, error) { return genSec(curve, theirs, priv) }
-
-		return pub, done, nil
-
-	case "P-521":
-		curve := elliptic.P521()
-		pub, priv, err := genKeyPair(curve)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		done := func(theirs []byte) ([]byte, error) { return genSec(curve, theirs, priv) }
-
-		return pub, done, nil
-
-	}
-
-	return nil, nil, errors.New("Something silly happened.")
 }
