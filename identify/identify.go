@@ -4,8 +4,6 @@ package identify
 
 import (
 	"bytes"
-	"errors"
-
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
@@ -14,6 +12,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"errors"
 	"hash"
 	"math/big"
 	"strings"
@@ -86,12 +85,12 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan 
 		return nil, nil, err
 	}
 
-	cipherType, err := selectBest(SupportedExchanges, helloResp.GetCiphers())
+	cipherType, err := selectBest(SupportedCiphers, helloResp.GetCiphers())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hashType, err := selectBest(SupportedExchanges, helloResp.GetHashes())
+	hashType, err := selectBest(SupportedHashes, helloResp.GetHashes())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -249,10 +248,10 @@ func IdFromPubKey(pk ci.PubKey) (peer.ID, error) {
 func keyGenerator(cmp int, cipherType string, hashType string, secret []byte) ([]byte, []byte, []byte, []byte, []byte, []byte) {
 	var cipherKeySize int
 	switch cipherType {
-	case "AES128":
-		cipherKeySize = 2 * 16
-	case "AES256":
-		cipherKeySize = 2 * 32
+	case "AES-128":
+		cipherKeySize = 16
+	case "AES-256":
+		cipherKeySize = 32
 	}
 
 	ivSize := 16
@@ -387,7 +386,7 @@ func generateEPubKey(exchange string) ([]byte, func([]byte) ([]byte, error), err
 		// Verify and unpack node's public key.
 		curveSize := curve.Params().BitSize
 
-		if len(theirPub) != (curveSize / 2) {
+		if len(theirPub) != (curveSize / 4) {
 			return nil, errors.New("Malformed public key.")
 		}
 
