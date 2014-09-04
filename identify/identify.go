@@ -226,6 +226,15 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan 
 		}
 	}()
 
+	finished := []byte("Finished")
+
+	secureOut <- finished
+	resp2 := <-secureIn
+
+	if bytes.Compare(resp2, finished) != 0 {
+		return nil, nil, errors.New("Negotiation failed.")
+	}
+
 	u.DOut("[%s] identify: Got node id: %s\n", self.ID.Pretty(), remote.ID.Pretty())
 
 	return secureIn, secureOut, nil
