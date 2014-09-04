@@ -9,7 +9,8 @@ It is generated from these files:
 	message.proto
 
 It has these top-level messages:
-	Identify
+	Hello
+	Exchange
 */
 package identify
 
@@ -20,26 +21,74 @@ import math "math"
 var _ = proto.Marshal
 var _ = math.Inf
 
-type Identify struct {
-	Id               []byte `protobuf:"bytes,1,req,name=id" json:"id,omitempty"`
-	Pubkey           []byte `protobuf:"bytes,2,req,name=pubkey" json:"pubkey,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+type Hello struct {
+	Rand             []byte  `protobuf:"bytes,1,req,name=rand" json:"rand,omitempty"`
+	Pubkey           []byte  `protobuf:"bytes,2,req,name=pubkey" json:"pubkey,omitempty"`
+	Exchanges        *string `protobuf:"bytes,3,req,name=exchanges" json:"exchanges,omitempty"`
+	Ciphers          *string `protobuf:"bytes,4,req,name=ciphers" json:"ciphers,omitempty"`
+	Hashes           *string `protobuf:"bytes,5,req,name=hashes" json:"hashes,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *Identify) Reset()         { *m = Identify{} }
-func (m *Identify) String() string { return proto.CompactTextString(m) }
-func (*Identify) ProtoMessage()    {}
+func (m *Hello) Reset()         { *m = Hello{} }
+func (m *Hello) String() string { return proto.CompactTextString(m) }
+func (*Hello) ProtoMessage()    {}
 
-func (m *Identify) GetId() []byte {
+func (m *Hello) GetRand() []byte {
 	if m != nil {
-		return m.Id
+		return m.Rand
 	}
 	return nil
 }
 
-func (m *Identify) GetPubkey() []byte {
+func (m *Hello) GetPubkey() []byte {
 	if m != nil {
 		return m.Pubkey
+	}
+	return nil
+}
+
+func (m *Hello) GetExchanges() string {
+	if m != nil && m.Exchanges != nil {
+		return *m.Exchanges
+	}
+	return ""
+}
+
+func (m *Hello) GetCiphers() string {
+	if m != nil && m.Ciphers != nil {
+		return *m.Ciphers
+	}
+	return ""
+}
+
+func (m *Hello) GetHashes() string {
+	if m != nil && m.Hashes != nil {
+		return *m.Hashes
+	}
+	return ""
+}
+
+type Exchange struct {
+	Epubkey          []byte `protobuf:"bytes,1,req,name=epubkey" json:"epubkey,omitempty"`
+	Signature        []byte `protobuf:"bytes,2,req,name=signature" json:"signature,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Exchange) Reset()         { *m = Exchange{} }
+func (m *Exchange) String() string { return proto.CompactTextString(m) }
+func (*Exchange) ProtoMessage()    {}
+
+func (m *Exchange) GetEpubkey() []byte {
+	if m != nil {
+		return m.Epubkey
+	}
+	return nil
+}
+
+func (m *Exchange) GetSignature() []byte {
+	if m != nil {
+		return m.Signature
 	}
 	return nil
 }
