@@ -41,13 +41,13 @@ func TestHandshake(t *testing.T) {
 	}
 
 	go func() {
-		err := Handshake(pa, pb, cha, chb)
+		_, _, err := Handshake(pa, pb, cha, chb)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	err = Handshake(pb, pa, chb, cha)
+	_, _, err = Handshake(pb, pa, chb, cha)
 	if err != nil {
 		t.Fatal(err)
 	}
