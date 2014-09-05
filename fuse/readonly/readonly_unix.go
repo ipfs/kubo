@@ -6,6 +6,7 @@ package readonly
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -119,7 +120,13 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	u.DOut("Read node.\n")
-	return []byte(s.Nd.Data), nil
+	r, err := mdag.NewDagReader(s.Nd)
+	if err != nil {
+		return nil, err
+	}
+	// this is a terrible function... 'ReadAll'?
+	// what if i have a 6TB file? GG RAM.
+	return ioutil.ReadAll(r)
 }
 
 // Mount mounts an IpfsNode instance at a particular path. It
@@ -132,7 +139,13 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 
 	go func() {
 		<-sigc
-		Unmount(fpath)
+		for {
+			err := Unmount(fpath)
+			if err == nil {
+				return
+			}
+			time.Sleep(time.Millisecond * 10)
+		}
 	}()
 
 	c, err := fuse.Mount(fpath)

@@ -13,7 +13,8 @@ import (
 // ChanBuffer is the size of the buffer in the Conn Chan
 const ChanBuffer = 10
 
-const MaxMessageSize = 1 << 19
+// 1 MB
+const MaxMessageSize = 1 << 20
 
 // Conn represents a connection to another Peer (IPFS Node).
 type Conn struct {

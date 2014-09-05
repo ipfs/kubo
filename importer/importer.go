@@ -20,18 +20,20 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // NewDagFromReader constructs a Merkle DAG from the given io.Reader.
 // size required for block construction.
 func NewDagFromReader(r io.Reader) (*dag.Node, error) {
-	blkChan := SplitterBySize(1024 * 512)(r)
-	root := &dag.Node{}
+	return NewDagFromReaderWithSplitter(r, SplitterBySize(1024*512))
+}
+
+func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, error) {
+	blkChan := spl(r)
+	root := &dag.Node{Data: dag.FilePBData()}
 
 	for blk := range blkChan {
-		child := &dag.Node{Data: blk}
+		child := &dag.Node{Data: dag.WrapData(blk)}
 		err := root.AddNodeLink("", child)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	fmt.Println(root.Links)
 
 	return root, nil
 }

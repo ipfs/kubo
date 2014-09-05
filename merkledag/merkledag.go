@@ -3,6 +3,8 @@ package merkledag
 import (
 	"fmt"
 
+	"code.google.com/p/goprotobuf/proto"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	u "github.com/jbenet/go-ipfs/util"
@@ -151,4 +153,45 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 	}
 
 	return Decoded(b.Data)
+}
+
+func FilePBData() []byte {
+	pbfile := new(PBData)
+	typ := PBData_File
+	pbfile.Type = &typ
+
+	data, err := proto.Marshal(pbfile)
+	if err != nil {
+		//this really shouldnt happen, i promise
+		panic(err)
+	}
+	return data
+}
+
+func FolderPBData() []byte {
+	pbfile := new(PBData)
+	typ := PBData_Directory
+	pbfile.Type = &typ
+
+	data, err := proto.Marshal(pbfile)
+	if err != nil {
+		//this really shouldnt happen, i promise
+		panic(err)
+	}
+	return data
+}
+
+func WrapData(b []byte) []byte {
+	pbdata := new(PBData)
+	typ := PBData_Raw
+	pbdata.Data = b
+	pbdata.Type = &typ
+
+	out, err := proto.Marshal(pbdata)
+	if err != nil {
+		// This shouldnt happen. seriously.
+		panic(err)
+	}
+
+	return out
 }

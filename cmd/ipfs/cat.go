@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
+	bserv "github.com/jbenet/go-ipfs/blockservice"
+	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -37,21 +41,37 @@ func catCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		fmt.Println("Printing Data!")
-		_, err = fmt.Printf("%s", nd.Data)
+		err = ExpandDag(nd, n.Blocks)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("Printing child nodes:")
-		for _, subn := range nd.Links {
-			k := u.Key(subn.Hash)
-			blk, err := n.Blocks.GetBlock(k)
-			fmt.Printf("Getting link: %s\n", k.Pretty())
+		read, err := dag.NewDagReader(nd)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		_, err = io.Copy(os.Stdout, read)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+	}
+	return nil
+}
+
+// Expand all subnodes in this dag so printing can occur without error
+//TODO: this needs to be done MUCH better in a somewhat asynchronous way.
+//also should be moved elsewhere.
+func ExpandDag(nd *dag.Node, bs *bserv.BlockService) error {
+	for _, lnk := range nd.Links {
+		if lnk.Node == nil {
+			blk, err := bs.GetBlock(u.Key(lnk.Hash))
 			if err != nil {
 				return err
 			}
-			fmt.Println(string(blk.Data))
+			lnk.Node = &dag.Node{Data: dag.WrapData(blk.Data)}
 		}
 	}
 	return nil

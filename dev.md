@@ -31,10 +31,12 @@ There are multiple subpackages:
 - multiplexing connections (tcp atm)
 - peer addressing
 - dht - impl basic kademlia routing
+- bitswap - impl basic block exchange functionality
 
 ### What's in progress:
 
-- bitswap - impl basic block exchange functionality
+- crypto - building trust between peers in the network
+
 
 ### What's next:
 

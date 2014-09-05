@@ -85,7 +85,7 @@ func addPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 }
 
 func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
-	tree := &dag.Node{}
+	tree := &dag.Node{Data: dag.FolderPBData()}
 
 	files, err := ioutil.ReadDir(fpath)
 	if err != nil {
