@@ -24,7 +24,7 @@ func SplitterBySize(n int) BlockSplitter {
 					return
 				}
 				if nread < n {
-					chunk = chunk[:n]
+					chunk = chunk[:nread]
 				}
 				out <- chunk
 			}

@@ -279,6 +279,10 @@ func (s *Swarm) fanOut() {
 				return
 			}
 
+			if len(msg.Data) > MaxMessageSize {
+				s.Error(fmt.Errorf("Exceeded max message size! (tried to send len = %d)", len(msg.Data)))
+			}
+
 			s.connsLock.RLock()
 			conn, found := s.conns[msg.Peer.Key()]
 			s.connsLock.RUnlock()
@@ -459,6 +463,7 @@ func (s *Swarm) ConnectNew(addr *ma.Multiaddr) (*peer.Peer, error) {
 
 // Removes a given peer from the swarm and closes connections to it
 func (s *Swarm) Drop(p *peer.Peer) error {
+	u.DOut("Dropping peer: [%s]\n", p.ID.Pretty())
 	s.connsLock.RLock()
 	conn, found := s.conns[u.Key(p.ID)]
 	s.connsLock.RUnlock()

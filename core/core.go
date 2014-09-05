@@ -75,6 +75,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		if err != nil {
 			return nil, err
 		}
+		swap.SetStrategy(bitswap.YesManStrategy)
 	}
 
 	bs, err := bserv.NewBlockService(d, swap)

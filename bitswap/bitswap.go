@@ -220,6 +220,8 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 		}
 		bs.SendBlock(p, bblk)
 		ledg.SentBytes(len(blk))
+	} else {
+		u.DOut("Decided not to send block.")
 	}
 }
 
@@ -248,7 +250,7 @@ func (bs *BitSwap) GetLedger(p *peer.Peer) *Ledger {
 	}
 
 	l = new(Ledger)
-	l.Strategy = StandardStrategy
+	l.Strategy = bs.strategy
 	l.Partner = p
 	bs.partners[p.Key()] = l
 	return l

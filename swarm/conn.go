@@ -13,6 +13,8 @@ import (
 // ChanBuffer is the size of the buffer in the Conn Chan
 const ChanBuffer = 10
 
+const MaxMessageSize = 1 << 19
+
 // Conn represents a connection to another Peer (IPFS Node).
 type Conn struct {
 	Peer *peer.Peer
@@ -66,13 +68,14 @@ func newConnChans(c *Conn) error {
 	c.Closed = make(chan bool, 1)
 
 	go c.Outgoing.WriteTo(c.Conn)
-	go c.Incoming.ReadFrom(c.Conn, 1<<12)
+	go c.Incoming.ReadFrom(c.Conn, MaxMessageSize)
 
 	return nil
 }
 
 // Close closes the connection, and associated channels.
 func (s *Conn) Close() error {
+	u.DOut("Closing Conn.\n")
 	if s.Conn == nil {
 		return fmt.Errorf("Already closed") // already closed
 	}
