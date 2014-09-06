@@ -96,6 +96,8 @@ func (n *Node) Key() (u.Key, error) {
 // DAGService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
+// TODO: should cache Nodes that are in memory, and be
+//       able to free some of them when vm pressure is high
 type DAGService struct {
 	Blocks *bserv.BlockService
 }

@@ -32,3 +32,27 @@ func TestFileConsistency(t *testing.T) {
 		t.Fatal("Output not the same as input.")
 	}
 }
+
+//Test where calls to read are smaller than the chunk size
+func TestFileConsistencyLargeBlocks(t *testing.T) {
+	buf := new(bytes.Buffer)
+	io.CopyN(buf, rand.Reader, 4096*32)
+	should := buf.Bytes()
+	nd, err := NewDagFromReaderWithSplitter(buf, SplitterBySize(4096))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := dag.NewDagReader(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(out, should) {
+		t.Fatal("Output not the same as input.")
+	}
+}

@@ -192,7 +192,7 @@ func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Durati
 		provs := dht.providers.GetProviders(key)
 		for _, p := range provs {
 			count--
-			// NOTE: assuming that the list of peers is unique
+			// NOTE: assuming that this list of peers is unique
 			ps.Add(p)
 			peerOut <- p
 			if count <= 0 {

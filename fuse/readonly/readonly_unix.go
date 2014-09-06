@@ -74,6 +74,7 @@ func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 type Node struct {
 	Ipfs *core.IpfsNode
 	Nd   *mdag.Node
+	fd   *mdag.DagReader
 }
 
 // Attr returns the attributes of a given node.
@@ -120,7 +121,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	u.DOut("Read node.\n")
-	r, err := mdag.NewDagReader(s.Nd)
+	r, err := mdag.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
 	}
