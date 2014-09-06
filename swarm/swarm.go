@@ -172,7 +172,7 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 	}
 	newConnChans(conn)
 
-	err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	_, _, err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
 		u.PErr("%v\n", err.Error())
 		conn.Close()
@@ -424,7 +424,7 @@ func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error
 
 // Handle performing a handshake on a new connection and ensuring proper forward communication
 func (s *Swarm) handleDialedCon(conn *Conn) error {
-	err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	_, _, err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
 		return err
 	}

@@ -28,10 +28,6 @@ func (pk *RsaPublicKey) Verify(data, sig []byte) (bool, error) {
 	return true, nil
 }
 
-func (pk *RsaPublicKey) Encrypt(message []byte) ([]byte, error) {
-	return rsa.EncryptPKCS1v15(rand.Reader, pk.k, message)
-}
-
 func (pk *RsaPublicKey) Bytes() ([]byte, error) {
 	b, err := x509.MarshalPKIXPublicKey(pk.k)
 	if err != nil {
@@ -54,10 +50,6 @@ func (sk *RsaPrivateKey) GenSecret() []byte {
 func (sk *RsaPrivateKey) Sign(message []byte) ([]byte, error) {
 	hashed := sha256.Sum256(message)
 	return rsa.SignPKCS1v15(rand.Reader, sk.k, crypto.SHA256, hashed[:])
-}
-
-func (sk *RsaPrivateKey) Decrypt(ciphertext []byte) ([]byte, error) {
-	return rsa.DecryptPKCS1v15(rand.Reader, sk.k, ciphertext)
 }
 
 func (sk *RsaPrivateKey) GetPublic() PubKey {
