@@ -89,6 +89,10 @@ func TestSwarm(t *testing.T) {
 			t.Fatal("error swarm dialing to peer", err)
 		}
 
+		//Since we arent doing a handshake, set up 'secure' channels
+		conn.secIn = conn.Incoming.MsgChan
+		conn.secOut = conn.Outgoing.MsgChan
+
 		swarm.StartConn(conn)
 		// ok done, add it.
 		peers = append(peers, peer)

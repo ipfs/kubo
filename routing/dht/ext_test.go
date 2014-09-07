@@ -189,7 +189,6 @@ func TestNotFound(t *testing.T) {
 
 	// Reply with random peers to every message
 	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
-		t.Log("Handling message...")
 		pmes := new(PBDHTMessage)
 		err := proto.Unmarshal(mes.Data, pmes)
 		if err != nil {
@@ -252,7 +251,6 @@ func TestLessThanKResponses(t *testing.T) {
 
 	// Reply with random peers to every message
 	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
-		t.Log("Handling message...")
 		pmes := new(PBDHTMessage)
 		err := proto.Unmarshal(mes.Data, pmes)
 		if err != nil {

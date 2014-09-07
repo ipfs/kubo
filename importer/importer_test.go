@@ -18,7 +18,7 @@ func TestFileConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := dag.NewDagReader(nd)
+	r, err := dag.NewDagReader(nd, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestFileConsistencyLargeBlocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := dag.NewDagReader(nd)
+	r, err := dag.NewDagReader(nd, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
