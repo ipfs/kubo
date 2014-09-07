@@ -172,7 +172,7 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 	}
 	newConnChans(conn)
 
-	_, _, err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	sin, sout, err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
 		u.PErr("%v\n", err.Error())
 		conn.Close()
@@ -180,7 +180,7 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 	}
 
 	// Get address to contact remote peer from
-	addr := <-conn.Incoming.MsgChan
+	addr := <-sin
 	maddr, err := ma.NewMultiaddr(string(addr))
 	if err != nil {
 		u.PErr("Got invalid address from peer.")
@@ -188,6 +188,9 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 		return
 	}
 	p.AddAddress(maddr)
+
+	conn.secIn = sin
+	conn.secOut = sout
 
 	err = s.StartConn(conn)
 	if err != nil {
@@ -295,7 +298,7 @@ func (s *Swarm) fanOut() {
 			}
 
 			// queue it in the connection's buffer
-			conn.Outgoing.MsgChan <- msg.Data
+			conn.secOut <- msg.Data
 		}
 	}
 }
@@ -313,7 +316,7 @@ func (s *Swarm) fanIn(conn *Conn) {
 		case <-conn.Closed:
 			goto out
 
-		case data, ok := <-conn.Incoming.MsgChan:
+		case data, ok := <-conn.secIn:
 			if !ok {
 				e := fmt.Errorf("Error retrieving from conn: %v", conn.Peer.Key().Pretty())
 				s.Chan.Errors <- e
@@ -424,7 +427,7 @@ func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error
 
 // Handle performing a handshake on a new connection and ensuring proper forward communication
 func (s *Swarm) handleDialedCon(conn *Conn) error {
-	_, _, err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	sin, sout, err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
 		return err
 	}
@@ -433,10 +436,13 @@ func (s *Swarm) handleDialedCon(conn *Conn) error {
 	myaddr := s.local.NetAddress("tcp")
 	mastr, err := myaddr.String()
 	if err != nil {
-		errors.New("No local address to send to peer.")
+		return errors.New("No local address to send to peer.")
 	}
 
-	conn.Outgoing.MsgChan <- []byte(mastr)
+	sout <- []byte(mastr)
+
+	conn.secIn = sin
+	conn.secOut = sout
 
 	s.StartConn(conn)
 

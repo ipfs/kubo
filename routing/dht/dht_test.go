@@ -29,7 +29,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	for i := 0; i < 4; i++ {
 		p := new(peer.Peer)
 		p.AddAddress(addrs[i])
-		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 256)
+		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 		if err != nil {
 			panic(err)
 		}
@@ -61,7 +61,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 func makePeer(addr *ma.Multiaddr) *peer.Peer {
 	p := new(peer.Peer)
 	p.AddAddress(addr)
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 256)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		panic(err)
 	}

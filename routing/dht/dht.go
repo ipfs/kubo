@@ -648,7 +648,10 @@ func (dht *IpfsDHT) peerFromInfo(pbp *PBDHTMessage_PBPeer) (*peer.Peer, error) {
 }
 
 func (dht *IpfsDHT) loadProvidableKeys() error {
-	kl := dht.datastore.KeyList()
+	kl, err := dht.datastore.KeyList()
+	if err != nil {
+		return err
+	}
 	for _, k := range kl {
 		dht.providers.AddProvider(u.Key(k.Bytes()), dht.self)
 	}
