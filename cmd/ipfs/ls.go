@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -27,20 +31,20 @@ func lsCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode(false)
+	fmt.Println("hello")
+	com := daemon.NewCommand()
+	com.Command = "ls"
+	com.Args = inp
+	err := daemon.SendCommand(com, "localhost:12345")
 	if err != nil {
-		return err
-	}
-
-	for _, fn := range inp {
-		nd, err := n.Resolver.ResolvePath(fn)
+		fmt.Println(err)
+		n, err := localNode(false)
 		if err != nil {
 			return err
 		}
 
-		for _, link := range nd.Links {
-			u.POut("%s %d %s\n", link.Hash.B58String(), link.Size, link.Name)
-		}
+		daemon.ExecuteCommand(com, n, os.Stdout)
 	}
+
 	return nil
 }

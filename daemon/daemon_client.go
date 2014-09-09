@@ -2,28 +2,24 @@ package daemon
 
 import (
 	"encoding/json"
+	"io"
 	"net"
+	"os"
 )
 
-func SendCommand(command, server string) (string, error) {
+func SendCommand(com *Command, server string) error {
 	con, err := net.Dial("tcp", server)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	enc := json.NewEncoder(con)
-	err = enc.Encode(command)
+	err = enc.Encode(com)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	dec := json.NewDecoder(con)
+	io.Copy(os.Stdout, con)
 
-	var resp string
-	err = dec.Decode(&resp)
-	if err != nil {
-		return "", err
-	}
-
-	return resp, nil
+	return nil
 }

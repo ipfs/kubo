@@ -133,19 +133,24 @@ func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
 	route := dht.NewDHT(local, net, d)
 	route.Start()
 
-	for _, p := range cfg.Peers {
-		maddr, err := ma.NewMultiaddr(p.Address)
-		if err != nil {
-			u.PErr("error: %v\n", err)
-			continue
-		}
+	go func() {
+		u.DOut("setup: connecting to peers.\n")
+		for _, p := range cfg.Peers {
+			maddr, err := ma.NewMultiaddr(p.Address)
+			if err != nil {
+				u.PErr("error: %v\n", err)
+				continue
+			}
 
-		_, err = route.Connect(maddr)
-		if err != nil {
-			u.PErr("Bootstrapping error: %v\n", err)
+			u.DOut("setup: connect.\n")
+			_, err = route.Connect(maddr)
+			if err != nil {
+				u.PErr("Bootstrapping error: %v\n", err)
+			}
 		}
-	}
+	}()
 
+	u.DOut("setup: return new bitswap\n")
 	return bitswap.NewBitSwap(local, net, d, route), nil
 }
 

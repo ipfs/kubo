@@ -3,41 +3,54 @@ package daemon
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net"
-	"strings"
 
+	core "github.com/jbenet/go-ipfs/core"
+	commands "github.com/jbenet/go-ipfs/core/commands"
+	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 var ErrInvalidCommand = errors.New("invalid command")
 
 type DaemonListener struct {
-	list     net.Listener
-	CommChan chan *Command
-	closed   bool
+	node   *core.IpfsNode
+	list   net.Listener
+	closed bool
 }
 
-func NewDaemonListener(addr string) (*DaemonListener, error) {
+func NewDaemonListener(node *core.IpfsNode, addr string) (*DaemonListener, error) {
 	list, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("new daemon listener.")
 
 	return &DaemonListener{
-		list:     list,
-		CommChan: make(chan *Command),
+		node: node,
+		list: list,
 	}, nil
 }
 
 type Command struct {
-	command string
-	args    []string
-	resp    chan string
+	Command string
+	Args    []string
+	Opts    map[string]interface{}
+}
+
+func NewCommand() *Command {
+	return &Command{
+		Opts: make(map[string]interface{}),
+	}
 }
 
 func (dl *DaemonListener) Listen() {
+	fmt.Println("listen.")
 	for {
 		c, err := dl.list.Accept()
+		fmt.Println("Loop!")
 		if err != nil {
 			if !dl.closed {
 				u.PErr("DaemonListener Accept: %v\n", err)
@@ -49,59 +62,74 @@ func (dl *DaemonListener) Listen() {
 }
 
 func (dl *DaemonListener) handleConnection(c net.Conn) {
+	defer c.Close()
+
 	dec := json.NewDecoder(c)
-	enc := json.NewEncoder(c)
-	var com string
+
+	var com Command
 	err := dec.Decode(&com)
 	if err != nil {
-		err := enc.Encode(err.Error())
-		if err != nil {
-			u.PErr("DaemonListener decode: %v\n", err)
-		}
+		fmt.Fprintln(c, err)
 		return
 	}
+
 	u.DOut("Got command: %v\n", com)
-
-	cmd, err := parseCommand(com)
-	if err != nil {
-		err := enc.Encode(err.Error())
-		if err != nil {
-			u.PErr("DaemonListener parse: %v\n", err)
-		}
-		return
-	}
-
-	select {
-	case dl.CommChan <- cmd:
-	default:
-		u.PErr("Recieved command after closing...")
-		return
-	}
-
-	resp := <-cmd.resp
-	err = enc.Encode(resp)
-	if err != nil {
-		u.PErr("handleConnection: %v\n", err)
-	}
+	ExecuteCommand(&com, dl.node, c)
 }
 
-func parseCommand(cmdi string) (*Command, error) {
-	params := strings.Split(cmdi, " ")
-	if len(params) == 0 {
-		return nil, ErrInvalidCommand
+func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
+	u.DOut("executing command: %s\n", com.Command)
+	switch com.Command {
+	case "add":
+		depth := 1
+		if r, ok := com.Opts["r"].(bool); r && ok {
+			depth = -1
+		}
+		for _, path := range com.Args {
+			_, err := commands.AddPath(n, path, depth)
+			if err != nil {
+				fmt.Fprintf(out, "addFile error: %v\n", err)
+				continue
+			}
+		}
+	case "cat":
+		for _, fn := range com.Args {
+			nd, err := n.Resolver.ResolvePath(fn)
+			if err != nil {
+				fmt.Fprintf(out, "catFile error: %v\n", err)
+				return
+			}
+
+			read, err := dag.NewDagReader(nd, n.DAG)
+			if err != nil {
+				fmt.Fprintln(out, err)
+				continue
+			}
+
+			_, err = io.Copy(out, read)
+			if err != nil {
+				fmt.Fprintln(out, err)
+				continue
+			}
+		}
+	case "ls":
+		for _, fn := range com.Args {
+			nd, err := n.Resolver.ResolvePath(fn)
+			if err != nil {
+				fmt.Fprintf(out, "ls: %v\n", err)
+				return
+			}
+
+			for _, link := range nd.Links {
+				fmt.Fprintf(out, "%s %d %s\n", link.Hash.B58String(), link.Size, link.Name)
+			}
+		}
+	default:
+		fmt.Fprintf(out, "Invalid Command: '%s'\n", com.Command)
 	}
-
-	//TODO: some sort of validation here
-
-	return &Command{
-		command: params[0],
-		args:    params[1:],
-		resp:    make(chan string),
-	}, nil
 }
 
 func (dl *DaemonListener) Close() error {
 	dl.closed = true
-	close(dl.CommChan)
 	return dl.list.Close()
 }

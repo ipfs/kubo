@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"os"
 
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
-	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -29,28 +27,18 @@ func catCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode(false)
-	if err != nil {
-		return err
-	}
+	com := daemon.NewCommand()
+	com.Command = "cat"
+	com.Args = inp
 
-	for _, fn := range inp {
-		nd, err := n.Resolver.ResolvePath(fn)
+	err := daemon.SendCommand(com, "localhost:12345")
+	if err != nil {
+		n, err := localNode(false)
 		if err != nil {
 			return err
 		}
 
-		read, err := dag.NewDagReader(nd, n.DAG)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		_, err = io.Copy(os.Stdout, read)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
+		daemon.ExecuteCommand(com, n, os.Stdout)
 	}
 	return nil
 }

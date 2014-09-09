@@ -7,6 +7,7 @@ import (
 
 	"github.com/gonuts/flag"
 	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/daemon"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -26,15 +27,25 @@ var cmdIpfsMount = &commander.Command{
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
+	u.Debug = true
 	if len(inp) < 1 || len(inp[0]) == 0 {
 		u.POut(c.Long)
 		return nil
 	}
+	fmt.Println("wtf.")
 
 	n, err := localNode(true)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("starting new daemon listener...")
+	dl, err := daemon.NewDaemonListener(n, "localhost:12345")
+	if err != nil {
+		return err
+	}
+	go dl.Listen()
+	defer dl.Close()
 
 	mp := inp[0]
 	fmt.Printf("Mounting at %s\n", mp)
