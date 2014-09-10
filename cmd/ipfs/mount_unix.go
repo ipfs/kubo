@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	"github.com/jbenet/go-ipfs/daemon"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 	u "github.com/jbenet/go-ipfs/util"

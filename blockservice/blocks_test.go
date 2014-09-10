@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	ds "github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )

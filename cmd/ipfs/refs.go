@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
 )
 
 var cmdIpfsRefs = &commander.Command{

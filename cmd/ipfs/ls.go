@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -31,7 +31,6 @@ func lsCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	fmt.Println("hello")
 	com := daemon.NewCommand()
 	com.Command = "ls"
 	com.Args = inp

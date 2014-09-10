@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 )
 
 var cmdIpfsMount = &commander.Command{

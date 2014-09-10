@@ -2,7 +2,7 @@ package util
 
 import (
 	"bytes"
-	mh "github.com/jbenet/go-multihash"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"testing"
 )
 

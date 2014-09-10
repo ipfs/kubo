@@ -8,7 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 type RsaPrivateKey struct {

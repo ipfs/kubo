@@ -4,11 +4,11 @@ import (
 	"sync"
 	"time"
 
-	b58 "github.com/jbenet/go-base58"
+	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	ic "github.com/jbenet/go-ipfs/crypto"
 	u "github.com/jbenet/go-ipfs/util"
-	ma "github.com/jbenet/go-multiaddr"
-	mh "github.com/jbenet/go-multihash"
 
 	"bytes"
 )

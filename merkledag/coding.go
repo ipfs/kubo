@@ -3,7 +3,7 @@ package merkledag
 import (
 	"fmt"
 
-	mh "github.com/jbenet/go-multihash"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 // for now, we use a PBNode intermediate thing.

@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
-	daemon "github.com/jbenet/go-ipfs/daemon"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// Error indicating the max depth has been exceded.
+var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 var cmdIpfsAdd = &commander.Command{
 	UsageLine: "add",

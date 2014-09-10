@@ -3,12 +3,12 @@ package merkledag
 import (
 	"fmt"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
 )
 
 // NodeMap maps u.Keys to Nodes.
