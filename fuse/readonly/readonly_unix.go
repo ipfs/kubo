@@ -98,7 +98,11 @@ func (s *Node) Attr() fuse.Attr {
 	case mdag.PBData_File, mdag.PBData_Raw:
 		u.DOut("this is a file.\n")
 		size, _ := s.Nd.Size()
-		return fuse.Attr{Mode: 0444, Size: uint64(size)}
+		return fuse.Attr{
+			Mode:   0444,
+			Size:   uint64(size),
+			Blocks: uint64(len(s.Nd.Links)),
+		}
 	default:
 		u.PErr("Invalid data type.")
 		return fuse.Attr{}
