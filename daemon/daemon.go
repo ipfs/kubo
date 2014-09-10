@@ -27,7 +27,7 @@ type Command struct {
 	Opts    map[string]interface{}
 }
 
-func NewDaemonListener(Ipfsnode *core.IpfsNode, addr string) (*DaemonListener, error) {
+func NewDaemonListener(ipfsnode *core.IpfsNode, addr string) (*DaemonListener, error) {
 	list, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func NewDaemonListener(Ipfsnode *core.IpfsNode, addr string) (*DaemonListener, e
 	fmt.Println("New daemon listener initialized.")
 
 	return &DaemonListener{
-		node: Ipfsnode,
+		node: ipfsnode,
 		list: list,
 	}, nil
 }
@@ -77,7 +77,7 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 	ExecuteCommand(&command, dl.node, conn)
 }
 
-func ExecuteCommand(com *Command, Ipfsnode *core.IpfsNode, out io.Writer) {
+func ExecuteCommand(com *Command, ipfsnode *core.IpfsNode, out io.Writer) {
 	u.DOut("executing command: %s\n", com.Command)
 	switch com.Command {
 	case "add":
@@ -86,7 +86,7 @@ func ExecuteCommand(com *Command, Ipfsnode *core.IpfsNode, out io.Writer) {
 			depth = -1
 		}
 		for _, path := range com.Args {
-			_, err := commands.AddPath(Ipfsnode, path, depth)
+			_, err := commands.AddPath(ipfsnode, path, depth)
 			if err != nil {
 				fmt.Fprintf(out, "addFile error: %v\n", err)
 				continue
@@ -94,13 +94,13 @@ func ExecuteCommand(com *Command, Ipfsnode *core.IpfsNode, out io.Writer) {
 		}
 	case "cat":
 		for _, fn := range com.Args {
-			DAGnode, err := Ipfsnode.Resolver.ResolvePath(fn)
+			dagnode, err := ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
 				fmt.Fprintf(out, "catFile error: %v\n", err)
 				return
 			}
 
-			read, err := dag.NewDagReader(nd, Ipfsnode.DAG)
+			read, err := dag.NewDagReader(dagnode, ipfsnode.DAG)
 			if err != nil {
 				fmt.Fprintln(out, err)
 				continue
@@ -114,25 +114,25 @@ func ExecuteCommand(com *Command, Ipfsnode *core.IpfsNode, out io.Writer) {
 		}
 	case "ls":
 		for _, fn := range com.Args {
-			DAGnode, err := n.Resolver.ResolvePath(fn)
+			dagnode, err := ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
 				fmt.Fprintf(out, "ls error: %v\n", err)
 				return
 			}
 
-			for _, link := range nd.Links {
+			for _, link := range dagnode.Links {
 				fmt.Fprintf(out, "%s %d %s\n", link.Hash.B58String(), link.Size, link.Name)
 			}
 		}
 	case "pin":
 		for _, fn := range com.Args {
-			DAGnode, err := Ipfsnode.Resolver.ResolvePath(fn)
+			dagnode, err := ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
 				fmt.Fprintf(out, "pin error: %v\n", err)
 				return
 			}
 
-			err = Ipfsnode.PinDagNode(nd)
+			err = ipfsnode.PinDagNode(dagnode)
 			if err != nil {
 				fmt.Fprintf(out, "pin: %v\n", err)
 				return
