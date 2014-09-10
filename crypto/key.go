@@ -14,7 +14,7 @@ import (
 	"hash"
 	"math/big"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 var ErrBadKeyType = errors.New("invalid or unsupported key type")

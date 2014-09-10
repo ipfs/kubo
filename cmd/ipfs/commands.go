@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	u "github.com/jbenet/go-ipfs/util"
 	"strings"
 	"time"

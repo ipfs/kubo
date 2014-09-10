@@ -5,9 +5,9 @@ import (
 	"path"
 	"strings"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
 )
 
 // Resolver provides path resolution to IPFS

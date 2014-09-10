@@ -5,9 +5,9 @@ import (
 	"net"
 	"testing"
 
+	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	msgio "github.com/jbenet/go-msgio"
 )
 
 func pingListen(listener *net.TCPListener, peer *peer.Peer) {

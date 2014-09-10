@@ -1,7 +1,7 @@
 package dht
 
 import (
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 

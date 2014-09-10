@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	ds "github.com/jbenet/datastore.go"
-	b58 "github.com/jbenet/go-base58"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	"github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
@@ -18,7 +19,6 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
-	ma "github.com/jbenet/go-multiaddr"
 )
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.

@@ -1,8 +1,8 @@
 package blocks
 
 import (
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-multihash"
 )
 
 // Block is the ipfs blocks service. It is the way

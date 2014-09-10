@@ -1,0 +1,71 @@
+{
+	"ImportPath": "github.com/jbenet/go-ipfs",
+	"GoVersion": "go1.3.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "bazil.org/fuse",
+			"Rev": "a04507d54fc3610d38ee951402d8c4acab56c7b1"
+		},
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-12",
+			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.crypto/sha3",
+			"Comment": "null-219",
+			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+		},
+		{
+			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
+			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
+		},
+		{
+			"ImportPath": "code.google.com/p/goprotobuf/proto",
+			"Comment": "go.r60-152",
+			"Rev": "36be16571e14f67e114bb0af619e5de2c1591679"
+		},
+		{
+			"ImportPath": "code.google.com/p/snappy-go/snappy",
+			"Comment": "null-15",
+			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
+		},
+		{
+			"ImportPath": "github.com/gonuts/flag",
+			"Rev": "741a6cbd37a30dedc93f817e7de6aaf0ca38a493"
+		},
+		{
+			"ImportPath": "github.com/jbenet/commander",
+			"Rev": "e0cf317891f0ab6f1ac64dfcb754b4fb5e69f7df"
+		},
+		{
+			"ImportPath": "github.com/jbenet/datastore.go",
+			"Rev": "e89f0511689bb2d0608496e15491f241842de085"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-base58",
+			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-msgio",
+			"Rev": "c9069ab79c95aa0686347b516972c7329c4391f2"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr",
+			"Comment": "0.1.0-1-g99196c0",
+			"Rev": "99196c0d231f83eea7f6e47cf59cbb5a0b86b358"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multihash",
+			"Comment": "0.1.0-5-g1976046",
+			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
+		},
+		{
+			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
+			"Rev": "99056d50e56252fbe0021d5c893defca5a76baf8"
+		}
+	]
+}
