@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -13,14 +12,15 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var ErrInvalidCommand = errors.New("invalid command")
-
+//DaemonListener listens to an initialized IPFS node and can send it commands instead of
+//starting up a new set of connections
 type DaemonListener struct {
 	node   *core.IpfsNode
 	list   net.Listener
 	closed bool
 }
 
+//Command accepts user input and can be sent to the running IPFS node
 type Command struct {
 	Command string
 	Args    []string

@@ -5,15 +5,14 @@ import (
 	"io"
 	"net"
 	"os"
-	"time"	
+	"time"
 )
 
-
-//connects to the address on the network with a timeout and encodes the connection into JSON
+//SendCommand connects to the address on the network with a timeout and encodes the connection into JSON
 func SendCommand(command *Command, server string) error {
-	
+
 	conn, err := net.DialTimeout("tcp", server, time.Millisecond*300)
-	
+
 	if err != nil {
 		return err
 	}
