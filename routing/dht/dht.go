@@ -16,6 +16,8 @@ import (
 
 	ds "github.com/jbenet/datastore.go"
 
+	context "code.google.com/p/go.net/context"
+
 	"code.google.com/p/goprotobuf/proto"
 )
 
@@ -584,7 +586,7 @@ func (dht *IpfsDHT) printTables() {
 	}
 }
 
-func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p *peer.Peer, key u.Key, level int) (*PBDHTMessage, error) {
 	pmes := Message{
 		Type:  PBDHTMessage_GET_PROVIDERS,
 		Key:   string(key),
@@ -596,11 +598,10 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 
 	listenChan := dht.listener.Listen(pmes.ID, 1, time.Minute)
 	dht.netChan.Outgoing <- mes
-	after := time.After(timeout)
 	select {
-	case <-after:
+	case <-ctx.Done():
 		dht.listener.Unlisten(pmes.ID)
-		return nil, u.ErrTimeout
+		return nil, ctx.Err()
 	case resp := <-listenChan:
 		u.DOut("FindProviders: got response.\n")
 		pmesOut := new(PBDHTMessage)

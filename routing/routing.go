@@ -3,6 +3,8 @@ package routing
 import (
 	"time"
 
+	context "code.google.com/p/go.net/context"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -26,7 +28,7 @@ type IpfsRouting interface {
 	Provide(key u.Key) error
 
 	// FindProviders searches for peers who can provide the value for given key.
-	FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error)
+	FindProviders(ctx context.Context, key u.Key, timeout time.Duration) ([]*peer.Peer, error)
 
 	// Find specific Peer
 

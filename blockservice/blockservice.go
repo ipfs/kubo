@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	context "code.google.com/p/go.net/context"
+
 	ds "github.com/jbenet/datastore.go"
 	bitswap "github.com/jbenet/go-ipfs/bitswap"
 	blocks "github.com/jbenet/go-ipfs/blocks"
@@ -63,7 +65,8 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
 		u.DOut("Blockservice: Searching bitswap.\n")
-		blk, err := s.Remote.GetBlock(k, time.Second*5)
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+		blk, err := s.Remote.GetBlock(ctx, k)
 		if err != nil {
 			return nil, err
 		}

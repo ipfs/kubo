@@ -10,8 +10,6 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/datastore.go"
-
-	"time"
 )
 
 // PartnerWantListMax is the bound for the number of keys we'll store per
@@ -73,63 +71,6 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 
 	go bs.handleMessages()
 	return bs
-}
-
-// GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
-	*blocks.Block, error) {
-	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
-	begin := time.Now()
-	tleft := timeout - time.Now().Sub(begin)
-	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
-
-	valchan := make(chan []byte)
-	after := time.After(tleft)
-
-	// TODO: when the data is received, shut down this for loop ASAP
-	go func() {
-		for p := range provs_ch {
-			go func(pr *peer.Peer) {
-				blk, err := bs.getBlock(k, pr, tleft)
-				if err != nil {
-					u.PErr("getBlock returned: %v\n", err)
-					return
-				}
-				select {
-				case valchan <- blk:
-				default:
-				}
-			}(p)
-		}
-	}()
-
-	select {
-	case blkdata := <-valchan:
-		close(valchan)
-		return blocks.NewBlock(blkdata)
-	case <-after:
-		return nil, u.ErrTimeout
-	}
-}
-
-func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
-	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
-
-	pmes := new(PBMessage)
-	pmes.Wantlist = []string{string(k)}
-
-	after := time.After(timeout)
-	resp := bs.listener.Listen(string(k), 1, timeout)
-	smes := swarm.NewMessage(p, pmes)
-	bs.meschan.Outgoing <- smes
-
-	select {
-	case resp_mes := <-resp:
-		return resp_mes.Data, nil
-	case <-after:
-		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
-		return nil, u.ErrTimeout
-	}
 }
 
 // HaveBlock announces the existance of a block to BitSwap, potentially sending

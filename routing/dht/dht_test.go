@@ -3,6 +3,8 @@ package dht
 import (
 	"testing"
 
+	context "code.google.com/p/go.net/context"
+
 	ds "github.com/jbenet/datastore.go"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	identify "github.com/jbenet/go-ipfs/identify"
@@ -213,7 +215,7 @@ func TestProvides(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 60)
 
-	provs, err := dhts[0].FindProviders(u.Key("hello"), time.Second)
+	provs, err := dhts[0].FindProviders(context.TODO(), u.Key("hello"), time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
