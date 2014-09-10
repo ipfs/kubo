@@ -21,23 +21,23 @@ type DaemonListener struct {
 	closed bool
 }
 
-func NewDaemonListener(node *core.IpfsNode, addr string) (*DaemonListener, error) {
-	list, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("new daemon listener.")
-
-	return &DaemonListener{
-		node: node,
-		list: list,
-	}, nil
-}
-
 type Command struct {
 	Command string
 	Args    []string
 	Opts    map[string]interface{}
+}
+
+func NewDaemonListener(Ipfsnode *core.IpfsNode, addr string) (*DaemonListener, error) {
+	list, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("New daemon listener initialized.")
+
+	return &DaemonListener{
+		node: Ipfsnode,
+		list: list,
+	}, nil
 }
 
 func NewCommand() *Command {
@@ -49,7 +49,7 @@ func NewCommand() *Command {
 func (dl *DaemonListener) Listen() {
 	fmt.Println("listen.")
 	for {
-		c, err := dl.list.Accept()
+		conn, err := dl.list.Accept()
 		fmt.Println("Loop!")
 		if err != nil {
 			if !dl.closed {
@@ -57,27 +57,27 @@ func (dl *DaemonListener) Listen() {
 			}
 			return
 		}
-		go dl.handleConnection(c)
+		go dl.handleConnection(conn)
 	}
 }
 
-func (dl *DaemonListener) handleConnection(c net.Conn) {
-	defer c.Close()
+func (dl *DaemonListener) handleConnection(conn net.Conn) {
+	defer conn.Close()
 
-	dec := json.NewDecoder(c)
+	dec := json.NewDecoder(conn)
 
-	var com Command
-	err := dec.Decode(&com)
+	var command Command
+	err := dec.Decode(&command)
 	if err != nil {
-		fmt.Fprintln(c, err)
+		fmt.Fprintln(conn, err)
 		return
 	}
 
-	u.DOut("Got command: %v\n", com)
-	ExecuteCommand(&com, dl.node, c)
+	u.DOut("Got command: %v\n", command)
+	ExecuteCommand(&command, dl.node, conn)
 }
 
-func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
+func ExecuteCommand(com *Command, Ipfsnode *core.IpfsNode, out io.Writer) {
 	u.DOut("executing command: %s\n", com.Command)
 	switch com.Command {
 	case "add":
@@ -86,7 +86,7 @@ func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
 			depth = -1
 		}
 		for _, path := range com.Args {
-			_, err := commands.AddPath(n, path, depth)
+			_, err := commands.AddPath(Ipfsnode, path, depth)
 			if err != nil {
 				fmt.Fprintf(out, "addFile error: %v\n", err)
 				continue
@@ -94,13 +94,13 @@ func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
 		}
 	case "cat":
 		for _, fn := range com.Args {
-			nd, err := n.Resolver.ResolvePath(fn)
+			DAGnode, err := Ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
 				fmt.Fprintf(out, "catFile error: %v\n", err)
 				return
 			}
 
-			read, err := dag.NewDagReader(nd, n.DAG)
+			read, err := dag.NewDagReader(nd, Ipfsnode.DAG)
 			if err != nil {
 				fmt.Fprintln(out, err)
 				continue
@@ -114,9 +114,9 @@ func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
 		}
 	case "ls":
 		for _, fn := range com.Args {
-			nd, err := n.Resolver.ResolvePath(fn)
+			DAGnode, err := n.Resolver.ResolvePath(fn)
 			if err != nil {
-				fmt.Fprintf(out, "ls: %v\n", err)
+				fmt.Fprintf(out, "ls error: %v\n", err)
 				return
 			}
 
@@ -126,13 +126,13 @@ func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
 		}
 	case "pin":
 		for _, fn := range com.Args {
-			nd, err := n.Resolver.ResolvePath(fn)
+			DAGnode, err := Ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
-				fmt.Fprintf(out, "pin: %v\n", err)
+				fmt.Fprintf(out, "pin error: %v\n", err)
 				return
 			}
 
-			err = n.PinDagNode(nd)
+			err = Ipfsnode.PinDagNode(nd)
 			if err != nil {
 				fmt.Fprintf(out, "pin: %v\n", err)
 				return
