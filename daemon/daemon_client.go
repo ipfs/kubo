@@ -5,10 +5,11 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 )
 
 func SendCommand(com *Command, server string) error {
-	con, err := net.Dial("tcp", server)
+	con, err := net.DialTimeout("tcp", server, time.Millisecond*300)
 	if err != nil {
 		return err
 	}

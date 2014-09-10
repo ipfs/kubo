@@ -124,6 +124,20 @@ func ExecuteCommand(com *Command, n *core.IpfsNode, out io.Writer) {
 				fmt.Fprintf(out, "%s %d %s\n", link.Hash.B58String(), link.Size, link.Name)
 			}
 		}
+	case "pin":
+		for _, fn := range com.Args {
+			nd, err := n.Resolver.ResolvePath(fn)
+			if err != nil {
+				fmt.Fprintf(out, "pin: %v\n", err)
+				return
+			}
+
+			err = n.PinDagNode(nd)
+			if err != nil {
+				fmt.Fprintf(out, "pin: %v\n", err)
+				return
+			}
+		}
 	default:
 		fmt.Fprintf(out, "Invalid Command: '%s'\n", com.Command)
 	}
