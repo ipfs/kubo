@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"code.google.com/p/goprotobuf/proto"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	core "github.com/jbenet/go-ipfs/core"
@@ -72,20 +74,35 @@ func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 
 // Node is the core object representing a filesystem tree node.
 type Node struct {
-	Ipfs *core.IpfsNode
-	Nd   *mdag.Node
-	fd   *mdag.DagReader
+	Ipfs   *core.IpfsNode
+	Nd     *mdag.Node
+	fd     *mdag.DagReader
+	cached *mdag.PBData
+}
+
+func (s *Node) loadData() error {
+	s.cached = new(mdag.PBData)
+	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
 // Attr returns the attributes of a given node.
 func (s *Node) Attr() fuse.Attr {
 	u.DOut("Node attr.\n")
-	if len(s.Nd.Links) > 0 {
-		return fuse.Attr{Mode: os.ModeDir | 0555}
+	if s.cached == nil {
+		s.loadData()
 	}
-
-	size, _ := s.Nd.Size()
-	return fuse.Attr{Mode: 0444, Size: uint64(size)}
+	switch s.cached.GetType() {
+	case mdag.PBData_Directory:
+		u.DOut("this is a directory.\n")
+		return fuse.Attr{Mode: os.ModeDir | 0555}
+	case mdag.PBData_File, mdag.PBData_Raw:
+		u.DOut("this is a file.\n")
+		size, _ := s.Nd.Size()
+		return fuse.Attr{Mode: 0444, Size: uint64(size)}
+	default:
+		u.PErr("Invalid data type.")
+		return fuse.Attr{}
+	}
 }
 
 // Lookup performs a lookup under this node.

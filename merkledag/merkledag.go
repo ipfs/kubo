@@ -3,13 +3,16 @@ package merkledag
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = logging.MustGetLogger("commands")
 
 // NodeMap maps u.Keys to Nodes.
 // We cannot use []byte/Multihash for keys :(
@@ -105,7 +108,7 @@ type DAGService struct {
 // Add adds a node to the DAGService, storing the block in the BlockService
 func (n *DAGService) Add(nd *Node) (u.Key, error) {
 	k, _ := nd.Key()
-	u.DOut("DagService Add [%s]\n", k.Pretty())
+	log.Debug("DagService Add [%s]\n", k.Pretty())
 	if n == nil {
 		return "", fmt.Errorf("DAGService is nil")
 	}
@@ -126,6 +129,7 @@ func (n *DAGService) Add(nd *Node) (u.Key, error) {
 func (n *DAGService) AddRecursive(nd *Node) error {
 	_, err := n.Add(nd)
 	if err != nil {
+		log.Info("AddRecursive Error: %s\n", err)
 		return err
 	}
 

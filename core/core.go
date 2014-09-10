@@ -16,6 +16,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	netservice "github.com/jbenet/go-ipfs/net/service"

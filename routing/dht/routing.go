@@ -101,6 +101,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	dht.providers.AddProvider(key, dht.self)
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if len(peers) == 0 {
+		// Early out for no targets
 		return nil
 	}
 
