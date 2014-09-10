@@ -6,11 +6,11 @@ import (
 	"net"
 	"sync"
 
-	proto "code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ident "github.com/jbenet/go-ipfs/identify"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	ma "github.com/jbenet/go-multiaddr"
 )
 
 var ErrAlreadyOpen = errors.New("Error: Connection to this peer already open.")

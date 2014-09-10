@@ -7,8 +7,8 @@ import (
 	"os/user"
 	"strings"
 
-	b58 "github.com/jbenet/go-base58"
-	mh "github.com/jbenet/go-multihash"
+	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 // Debug is a global flag for debugging.

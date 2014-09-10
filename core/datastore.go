@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	ds "github.com/jbenet/datastore.go"
-	lds "github.com/jbenet/datastore.go/leveldb"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	lds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/leveldb"
 	config "github.com/jbenet/go-ipfs/config"
 )
 

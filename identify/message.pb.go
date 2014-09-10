@@ -14,7 +14,7 @@ It has these top-level messages:
 */
 package identify
 
-import proto "code.google.com/p/goprotobuf/proto"
+import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.

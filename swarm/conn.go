@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net"
 
+	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	msgio "github.com/jbenet/go-msgio"
-	ma "github.com/jbenet/go-multiaddr"
 )
 
 // ChanBuffer is the size of the buffer in the Conn Chan

@@ -3,13 +3,13 @@ package dht
 import (
 	"testing"
 
-	ds "github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	identify "github.com/jbenet/go-ipfs/identify"
 	peer "github.com/jbenet/go-ipfs/peer"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
-	ma "github.com/jbenet/go-multiaddr"
 
 	"fmt"
 	"time"

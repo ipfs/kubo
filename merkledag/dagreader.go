@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	proto "code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

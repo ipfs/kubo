@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	ds "github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	bitswap "github.com/jbenet/go-ipfs/bitswap"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 
-	mh "github.com/jbenet/go-multihash"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 // BlockService is a block datastore.

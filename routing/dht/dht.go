@@ -12,11 +12,11 @@ import (
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 
-	ma "github.com/jbenet/go-multiaddr"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	ds "github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 // TODO. SEE https://github.com/jbenet/node-ipfs/blob/master/submodules/ipfs-dht/index.js

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"

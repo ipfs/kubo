@@ -1,8 +1,8 @@
 package peer
 
 import (
-	ma "github.com/jbenet/go-multiaddr"
-	mh "github.com/jbenet/go-multihash"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"testing"
 )
 

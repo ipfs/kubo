@@ -4,7 +4,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
-	ma "github.com/jbenet/go-multiaddr"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 type Network interface {

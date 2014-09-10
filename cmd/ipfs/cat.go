@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )

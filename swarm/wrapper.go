@@ -1,6 +1,6 @@
 package swarm
 
-import "code.google.com/p/goprotobuf/proto"
+import "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 func Wrap(data []byte, typ PBWrapper_MessageType) ([]byte, error) {
 	wrapper := new(PBWrapper)
