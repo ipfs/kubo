@@ -44,7 +44,7 @@ type BitSwap struct {
 	// The Ledger has the peer.ID, and the peer connection works through net.
 	// Ledgers of known relationships (active or inactive) stored in datastore.
 	// Changes to the Ledger should be committed to the datastore.
-	partners map[u.Key]*Ledger
+	partners LedgerMap
 
 	// haveList is the set of keys we have values for. a map for fast lookups.
 	// haveList KeySet -- not needed. all values in datastore?
