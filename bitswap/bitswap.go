@@ -192,7 +192,7 @@ func (bs *BitSwap) handleMessages() {
 // and then if we do, check the ledger for whether or not we should send it.
 func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), u.Key(want).Pretty())
-	ledg := bs.GetLedger(p)
+	ledg := bs.getLedger(p)
 
 	dsk := ds.NewKey(want)
 	blk_i, err := bs.datastore.Get(dsk)
@@ -239,11 +239,11 @@ func (bs *BitSwap) blockReceive(p *peer.Peer, blk *blocks.Block) {
 	}
 	bs.listener.Respond(string(blk.Key()), mes)
 
-	ledger := bs.GetLedger(p)
+	ledger := bs.getLedger(p)
 	ledger.ReceivedBytes(len(blk.Data))
 }
 
-func (bs *BitSwap) GetLedger(p *peer.Peer) *Ledger {
+func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
 	l, ok := bs.partners[p.Key()]
 	if ok {
 		return l
