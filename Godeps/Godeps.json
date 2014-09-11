@@ -20,6 +20,11 @@
 			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
 		},
 		{
+			"ImportPath": "code.google.com/p/go.net/context",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
+		},
+		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
 			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
 		},
@@ -66,6 +71,10 @@
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "99056d50e56252fbe0021d5c893defca5a76baf8"
+		},
+		{
+			"ImportPath": "github.com/tuxychandru/pubsub",
+			"Rev": "02de8aa2db3d570c5ab1be5ba67b456fd0fb7c4e"
 		}
 	]
 }
