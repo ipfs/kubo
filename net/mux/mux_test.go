@@ -216,3 +216,70 @@ func TestSimultMuxer(t *testing.T) {
 	}
 
 }
+
+func TestStopping(t *testing.T) {
+
+	// setup
+	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
+	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
+	pid1 := ProtocolID_Test
+	pid2 := ProtocolID_Identify
+	mux1 := &Muxer{
+		Pipe: msg.NewPipe(10),
+		Protocols: ProtocolMap{
+			pid1: p1,
+			pid2: p2,
+		},
+	}
+	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
+	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
+
+	// run muxer
+	mux1.Start(context.Background())
+
+	// test outgoing p1
+	for _, s := range []string{"foo", "bar", "baz"} {
+		p1.Outgoing <- &msg.Message{Peer: peer1, Data: []byte(s)}
+		testWrappedMsg(t, <-mux1.Outgoing, pid1, []byte(s))
+	}
+
+	// test incoming p1
+	for _, s := range []string{"foo", "bar", "baz"} {
+		d, err := wrapData([]byte(s), pid1)
+		if err != nil {
+			t.Error(err)
+		}
+		mux1.Incoming <- &msg.Message{Peer: peer1, Data: d}
+		testMsg(t, <-p1.Incoming, []byte(s))
+	}
+
+	mux1.Stop()
+	if mux1.cancel != nil {
+		t.Error("mux.cancel should be nil")
+	}
+
+	// test outgoing p1
+	for _, s := range []string{"foo", "bar", "baz"} {
+		p1.Outgoing <- &msg.Message{Peer: peer1, Data: []byte(s)}
+		select {
+		case <-mux1.Outgoing:
+			t.Error("should not have received anything.")
+		case <-time.After(time.Millisecond):
+		}
+	}
+
+	// test incoming p1
+	for _, s := range []string{"foo", "bar", "baz"} {
+		d, err := wrapData([]byte(s), pid1)
+		if err != nil {
+			t.Error(err)
+		}
+		mux1.Incoming <- &msg.Message{Peer: peer1, Data: d}
+		select {
+		case <-p1.Incoming:
+			t.Error("should not have received anything.")
+		case <-time.After(time.Millisecond):
+		}
+	}
+
+}
