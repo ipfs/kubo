@@ -1,6 +1,7 @@
 package bitswap
 
 import (
+	"sync"
 	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -9,6 +10,7 @@ import (
 
 // Ledger stores the data exchange relationship between two peers.
 type Ledger struct {
+	lock sync.RWMutex
 
 	// Partner is the remote Peer.
 	Partner *peer.Peer
@@ -35,16 +37,25 @@ type Ledger struct {
 type LedgerMap map[u.Key]*Ledger
 
 func (l *Ledger) ShouldSend() bool {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	return l.Strategy(l)
 }
 
 func (l *Ledger) SentBytes(n int) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	l.exchangeCount++
 	l.lastExchange = time.Now()
 	l.Accounting.BytesSent += uint64(n)
 }
 
 func (l *Ledger) ReceivedBytes(n int) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	l.exchangeCount++
 	l.lastExchange = time.Now()
 	l.Accounting.BytesRecv += uint64(n)
@@ -52,10 +63,22 @@ func (l *Ledger) ReceivedBytes(n int) {
 
 // TODO: this needs to be different. We need timeouts.
 func (l *Ledger) Wants(k u.Key) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	l.wantList[k] = struct{}{}
 }
 
 func (l *Ledger) WantListContains(k u.Key) bool {
+	l.lock.RLock()
+	defer l.lock.RUnlock()
+
 	_, ok := l.wantList[k]
 	return ok
+}
+
+func (l *Ledger) ExchangeCount() uint64 {
+	l.lock.RLock()
+	defer l.lock.RUnlock()
+	return l.exchangeCount
 }
