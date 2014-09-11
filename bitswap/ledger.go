@@ -16,17 +16,17 @@ type Ledger struct {
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio
 
-	// FirstExchnage is the time of the first data exchange.
-	FirstExchange time.Time
+	// firstExchnage is the time of the first data exchange.
+	firstExchange time.Time
 
-	// LastExchange is the time of the last data exchange.
-	LastExchange time.Time
+	// lastExchange is the time of the last data exchange.
+	lastExchange time.Time
 
-	// Number of exchanges with this peer
-	ExchangeCount uint64
+	// exchangeCount is the number of exchanges with this peer
+	exchangeCount uint64
 
-	// WantList is a (bounded, small) set of keys that Partner desires.
-	WantList KeySet
+	// wantList is a (bounded, small) set of keys that Partner desires.
+	wantList KeySet
 
 	Strategy StrategyFunc
 }
@@ -39,23 +39,23 @@ func (l *Ledger) ShouldSend() bool {
 }
 
 func (l *Ledger) SentBytes(n int) {
-	l.ExchangeCount++
-	l.LastExchange = time.Now()
+	l.exchangeCount++
+	l.lastExchange = time.Now()
 	l.Accounting.BytesSent += uint64(n)
 }
 
 func (l *Ledger) ReceivedBytes(n int) {
-	l.ExchangeCount++
-	l.LastExchange = time.Now()
+	l.exchangeCount++
+	l.lastExchange = time.Now()
 	l.Accounting.BytesRecv += uint64(n)
 }
 
 // TODO: this needs to be different. We need timeouts.
 func (l *Ledger) Wants(k u.Key) {
-	l.WantList[k] = struct{}{}
+	l.wantList[k] = struct{}{}
 }
 
 func (l *Ledger) WantListContains(k u.Key) bool {
-	_, ok := l.WantList[k]
+	_, ok := l.wantList[k]
 	return ok
 }
