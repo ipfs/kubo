@@ -16,7 +16,7 @@ import (
 // ID is a byte slice representing the identity of a peer.
 type ID mh.Multihash
 
-// Utililty function for comparing two peer ID's
+// Equal is utililty function for comparing two peer ID's
 func (id ID) Equal(other ID) bool {
 	return bytes.Equal(id, other)
 }

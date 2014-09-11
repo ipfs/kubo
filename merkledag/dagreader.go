@@ -9,7 +9,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var ErrIsDir = errors.New("this dag node is a directory.")
+var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
