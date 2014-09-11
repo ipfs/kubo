@@ -1,4 +1,4 @@
-// The identify package handles how peers identify with eachother upon
+// Package identify handles how peers identify with eachother upon
 // connection to the network
 package identify
 
@@ -31,7 +31,7 @@ var SupportedHashes = "SHA256,SHA512,SHA1"
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
 
-// Perform initial communication with this peer to share node ID's and
+// Performs initial communication with this peer to share node ID's and
 // initiate communication.  (secureIn, secureOut, error)
 func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan []byte, error) {
 	// Generate and send Hello packet.
@@ -74,7 +74,7 @@ func Handshake(self, remote *peer.Peer, in, out chan []byte) (chan []byte, chan 
 		return nil, nil, err
 	}
 
-	remote.ID, err = IdFromPubKey(remote.PubKey)
+	remote.ID, err = IDFromPubKey(remote.PubKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -238,8 +238,8 @@ func secureOutProxy(out, secureOut chan []byte, hashType string, mIV, mCKey, mMK
 		out <- buff
 	}
 }
-
-func IdFromPubKey(pk ci.PubKey) (peer.ID, error) {
+// IDFromPubKey returns Nodes ID given its public key 
+func IDFromPubKey(pk ci.PubKey) (peer.ID, error) {
 	b, err := pk.Bytes()
 	if err != nil {
 		return nil, err

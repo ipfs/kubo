@@ -68,7 +68,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := identify.IdFromPubKey(pk)
+	id, err := identify.IDFromPubKey(pk)
 	if err != nil {
 		return err
 	}

@@ -35,7 +35,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 		}
 		p.PubKey = pk
 		p.PrivKey = sk
-		id, err := identify.IdFromPubKey(pk)
+		id, err := identify.IDFromPubKey(pk)
 		if err != nil {
 			panic(err)
 		}
@@ -67,7 +67,7 @@ func makePeer(addr *ma.Multiaddr) *peer.Peer {
 	}
 	p.PrivKey = sk
 	p.PubKey = pk
-	id, err := identify.IdFromPubKey(pk)
+	id, err := identify.IDFromPubKey(pk)
 	if err != nil {
 		panic(err)
 	}

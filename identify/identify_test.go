@@ -20,7 +20,7 @@ func TestHandshake(t *testing.T) {
 	cha := make(chan []byte, 5)
 	chb := make(chan []byte, 5)
 
-	ida, err := IdFromPubKey(pka)
+	ida, err := IDFromPubKey(pka)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestHandshake(t *testing.T) {
 		PrivKey: ska,
 	}
 
-	idb, err := IdFromPubKey(pkb)
+	idb, err := IDFromPubKey(pkb)
 	if err != nil {
 		t.Fatal(err)
 	}
