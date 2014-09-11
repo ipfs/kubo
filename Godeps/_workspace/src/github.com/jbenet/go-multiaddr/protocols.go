@@ -1,5 +1,6 @@
 package multiaddr
 
+// Protocol is a Multiaddr protocol description structure.
 type Protocol struct {
 	Code int
 	Size int
@@ -10,7 +11,6 @@ type Protocol struct {
 // 1. avoid parsing the csv
 // 2. ensuring errors in the csv don't screw up code.
 // 3. changing a number has to happen in two places.
-
 const (
 	P_IP4  = 4
 	P_TCP  = 6
@@ -20,6 +20,7 @@ const (
 	P_SCTP = 132
 )
 
+// Protocols is the list of multiaddr protocols supported by this module.
 var Protocols = []*Protocol{
 	&Protocol{P_IP4, 32, "ip4"},
 	&Protocol{P_TCP, 16, "tcp"},
@@ -32,6 +33,7 @@ var Protocols = []*Protocol{
 	// {443, 0, "https"},
 }
 
+// ProtocolWithName returns the Protocol description with given string name.
 func ProtocolWithName(s string) *Protocol {
 	for _, p := range Protocols {
 		if p.Name == s {
@@ -41,6 +43,7 @@ func ProtocolWithName(s string) *Protocol {
 	return nil
 }
 
+// ProtocolWithCode returns the Protocol description with given protocol code.
 func ProtocolWithCode(c int) *Protocol {
 	for _, p := range Protocols {
 		if p.Code == c {
