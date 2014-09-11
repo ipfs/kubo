@@ -152,15 +152,14 @@ func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count in
 
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
-			ppp := pp
-			go func() {
-				pmes, err := dht.findProvidersSingle(ctx, ppp, key, 0)
+			go func(p *peer.Peer) {
+				pmes, err := dht.findProvidersSingle(p, key, 0, timeout)
 				if err != nil {
 					u.PErr("%v\n", err)
 					return
 				}
-				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
-			}()
+				dht.addPeerListAsync(key, pmes.GetPeers(), ps, count, peerOut)
+			}(pp)
 		}
 
 	}()

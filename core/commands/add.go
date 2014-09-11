@@ -94,6 +94,7 @@ func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 		}
 	}
 
+	fmt.Printf("Adding dir: %s = %s\n", fpath)
 	return tree, addNode(n, tree, fpath)
 }
 
