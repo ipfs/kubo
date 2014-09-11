@@ -1,7 +1,6 @@
 package swarm
 
 import (
-	"fmt"
 	"net"
 	"testing"
 
@@ -30,7 +29,7 @@ func echoListen(listener *net.TCPListener) {
 	for {
 		c, err := listener.Accept()
 		if err == nil {
-			fmt.Println("accepeted")
+			// fmt.Println("accepeted")
 			go echo(c)
 		}
 	}
@@ -41,15 +40,15 @@ func echo(c net.Conn) {
 		data := make([]byte, 1024)
 		i, err := c.Read(data)
 		if err != nil {
-			fmt.Printf("error %v\n", err)
+			// fmt.Printf("error %v\n", err)
 			return
 		}
 		_, err = c.Write(data[:i])
 		if err != nil {
-			fmt.Printf("error %v\n", err)
+			// fmt.Printf("error %v\n", err)
 			return
 		}
-		fmt.Println("echoing", data[:i])
+		// fmt.Println("echoing", data[:i])
 	}
 }
 
@@ -71,11 +70,11 @@ func TestDial(t *testing.T) {
 		t.Fatal("error dialing peer", err)
 	}
 
-	fmt.Println("sending")
+	// fmt.Println("sending")
 	c.Outgoing.MsgChan <- []byte("beep")
 	c.Outgoing.MsgChan <- []byte("boop")
 	out := <-c.Incoming.MsgChan
-	fmt.Println("recving", string(out))
+	// fmt.Println("recving", string(out))
 	if string(out) != "beep" {
 		t.Error("unexpected conn output")
 	}
@@ -85,7 +84,7 @@ func TestDial(t *testing.T) {
 		t.Error("unexpected conn output")
 	}
 
-	fmt.Println("closing")
+	// fmt.Println("closing")
 	c.Close()
 	listener.Close()
 }
