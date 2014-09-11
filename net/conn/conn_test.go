@@ -2,11 +2,13 @@ package swarm
 
 import (
 	"fmt"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	peer "github.com/jbenet/go-ipfs/peer"
 	"net"
 	"testing"
+
+	peer "github.com/jbenet/go-ipfs/peer"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 func setupPeer(id string, addr string) (*peer.Peer, error) {
