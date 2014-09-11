@@ -29,8 +29,8 @@ type Conn struct {
 	secOut   chan<- []byte
 }
 
-// ConnMap maps Keys (Peer.IDs) to Connections.
-type ConnMap map[u.Key]*Conn
+// Map maps Keys (Peer.IDs) to Connections.
+type Map map[u.Key]*Conn
 
 // Dial connects to a particular peer, over a given network
 // Example: Dial("udp", peer)
