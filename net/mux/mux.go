@@ -81,8 +81,6 @@ func (m *Muxer) handleIncomingMessages(ctx context.Context) {
 			go m.handleIncomingMessage(ctx, msg)
 
 		case <-ctx.Done():
-			close(m.Incoming)
-			close(m.Outgoing)
 			return
 		}
 	}
