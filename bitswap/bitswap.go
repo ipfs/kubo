@@ -180,6 +180,7 @@ func (bs *BitSwap) handleMessages() {
 				}
 			}
 		case <-bs.haltChan:
+			bs.notifications.Shutdown()
 			return
 		}
 	}
