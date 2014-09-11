@@ -24,13 +24,13 @@ var _ = math.Inf
 type KeyType int32
 
 const (
-	KeyType_RSA KeyType = 0
+	KeyTypeRSA KeyType = 0
 )
 
-var KeyType_name = map[int32]string{
+var KeyTypeName = map[int32]string{
 	0: "RSA",
 }
-var KeyType_value = map[string]int32{
+var KeyTypeValue = map[string]int32{
 	"RSA": 0,
 }
 
@@ -40,10 +40,10 @@ func (x KeyType) Enum() *KeyType {
 	return p
 }
 func (x KeyType) String() string {
-	return proto.EnumName(KeyType_name, int32(x))
+	return proto.EnumName(KeyTypeName, int32(x))
 }
 func (x *KeyType) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(KeyType_value, data, "KeyType")
+	value, err := proto.UnmarshalJSONEnum(KeyTypeValue, data, "KeyType")
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (x *KeyType) UnmarshalJSON(data []byte) error {
 type PBPublicKey struct {
 	Type             *KeyType `protobuf:"varint,1,req,enum=crypto.KeyType" json:"Type,omitempty"`
 	Data             []byte   `protobuf:"bytes,2,req" json:"Data,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	XXXUnrecognized []byte   `json:"-"`
 }
 
 func (m *PBPublicKey) Reset()         { *m = PBPublicKey{} }
@@ -65,7 +65,7 @@ func (m *PBPublicKey) GetType() KeyType {
 	if m != nil && m.Type != nil {
 		return *m.Type
 	}
-	return KeyType_RSA
+	return KeyTypeRSA
 }
 
 func (m *PBPublicKey) GetData() []byte {
@@ -78,7 +78,7 @@ func (m *PBPublicKey) GetData() []byte {
 type PBPrivateKey struct {
 	Type             *KeyType `protobuf:"varint,1,req,enum=crypto.KeyType" json:"Type,omitempty"`
 	Data             []byte   `protobuf:"bytes,2,req" json:"Data,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	XXXUnrecognized []byte   `json:"-"`
 }
 
 func (m *PBPrivateKey) Reset()         { *m = PBPrivateKey{} }
@@ -89,7 +89,7 @@ func (m *PBPrivateKey) GetType() KeyType {
 	if m != nil && m.Type != nil {
 		return *m.Type
 	}
-	return KeyType_RSA
+	return KeyTypeRSA
 }
 
 func (m *PBPrivateKey) GetData() []byte {
@@ -100,5 +100,5 @@ func (m *PBPrivateKey) GetData() []byte {
 }
 
 func init() {
-	proto.RegisterEnum("crypto.KeyType", KeyType_name, KeyType_value)
+	proto.RegisterEnum("crypto.KeyType", KeyTypeName, KeyTypeValue)
 }
