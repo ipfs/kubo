@@ -45,7 +45,7 @@ type PubKey interface {
 	Bytes() ([]byte, error)
 }
 
-// Given a public key, generates the shared key.
+// GenSharedKey generates the shared key given a public key, 
 type GenSharedKey func([]byte) ([]byte, error)
 
 func GenerateKeyPair(typ, bits int) (PrivKey, PubKey, error) {
