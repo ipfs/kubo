@@ -49,3 +49,13 @@ func (l *Ledger) ReceivedBytes(n int) {
 	l.LastExchange = time.Now()
 	l.Accounting.BytesRecv += uint64(n)
 }
+
+// TODO: this needs to be different. We need timeouts.
+func (l *Ledger) Wants(k u.Key) {
+	l.WantList[k] = struct{}{}
+}
+
+func (l *Ledger) WantListContains(k u.Key) bool {
+	_, ok := l.WantList[k]
+	return ok
+}
