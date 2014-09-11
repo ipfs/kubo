@@ -238,7 +238,8 @@ func secureOutProxy(out, secureOut chan []byte, hashType string, mIV, mCKey, mMK
 		out <- buff
 	}
 }
-// IDFromPubKey returns Nodes ID given its public key 
+
+// IDFromPubKey returns Nodes ID given its public key
 func IDFromPubKey(pk ci.PubKey) (peer.ID, error) {
 	b, err := pk.Bytes()
 	if err != nil {
