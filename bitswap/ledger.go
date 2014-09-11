@@ -1,10 +1,10 @@
 package bitswap
 
 import (
+	"time"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-
-	"time"
 )
 
 // Ledger stores the data exchange relationship between two peers.
