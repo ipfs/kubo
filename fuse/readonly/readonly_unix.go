@@ -168,6 +168,7 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 			}
 			time.Sleep(time.Millisecond * 10)
 		}
+		ipfs.Swarm.Close()
 	}()
 
 	c, err := fuse.Mount(fpath)

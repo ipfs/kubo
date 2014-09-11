@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime/pprof"
+	"runtime"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
