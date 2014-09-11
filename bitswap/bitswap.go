@@ -115,13 +115,12 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
 	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
 
-	pmes := new(PBMessage)
-	pmes.Wantlist = []string{string(k)}
+	message := newMessage()
+	message.AppendWanted(k)
 
 	after := time.After(timeout)
 	resp := bs.listener.Listen(string(k), 1, timeout)
-	smes := swarm.NewMessage(p, pmes)
-	bs.meschan.Outgoing <- smes
+	bs.meschan.Outgoing <- message.ToSwarm(p)
 
 	select {
 	case resp_mes := <-resp:
@@ -149,11 +148,9 @@ func (bs *BitSwap) HaveBlock(blk *blocks.Block) error {
 }
 
 func (bs *BitSwap) SendBlock(p *peer.Peer, b *blocks.Block) {
-	pmes := new(PBMessage)
-	pmes.Blocks = [][]byte{b.Data}
-
-	swarm_mes := swarm.NewMessage(p, pmes)
-	bs.meschan.Outgoing <- swarm_mes
+	message := newMessage()
+	message.AppendBlock(b)
+	bs.meschan.Outgoing <- message.ToSwarm(p)
 }
 
 func (bs *BitSwap) handleMessages() {
@@ -257,14 +254,14 @@ func (bs *BitSwap) GetLedger(p *peer.Peer) *Ledger {
 }
 
 func (bs *BitSwap) SendWantList(wl KeySet) error {
-	pmes := new(PBMessage)
+	message := newMessage()
 	for k, _ := range wl {
-		pmes.Wantlist = append(pmes.Wantlist, string(k))
+		message.AppendWanted(k)
 	}
 
 	// Lets just ping everybody all at once
 	for _, ledger := range bs.partners {
-		bs.meschan.Outgoing <- swarm.NewMessage(ledger.Partner, pmes)
+		bs.meschan.Outgoing <- message.ToSwarm(ledger.Partner)
 	}
 
 	return nil
