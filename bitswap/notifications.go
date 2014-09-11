@@ -33,13 +33,11 @@ func (ps *notifications) Subscribe(ctx context.Context, k u.Key) <-chan *blocks.
 		select {
 		case val := <-subChan:
 			block, ok := val.(*blocks.Block)
-			if !ok {
-				return
+			if ok {
+				blockChannel <- block
 			}
-			blockChannel <- block
 		case <-ctx.Done():
 			ps.wrapped.Unsub(subChan, topic)
-			return
 		}
 	}()
 	return blockChannel
