@@ -1,0 +1,6 @@
+package service;
+
+message PBRequest {
+  required bytes Data = 1;
+  optional bytes Tag = 3;
+}
