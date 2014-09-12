@@ -29,6 +29,7 @@ func NewRoutingResolver(route routing.IpfsRouting, dagservice *mdag.DAGService) 
 func (r *RoutingResolver) Resolve(name string) (string, error) {
 	hash, err := mh.FromB58String(name)
 	if err != nil {
+		u.DOut("RoutingResolve: bad input hash: [%s]\n", name)
 		return "", err
 	}
 	// name should be a multihash. if it isn't, error out here.
@@ -43,6 +44,7 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 	inpsKey := u.Key(h)
 	val, err := r.routing.GetValue(inpsKey, time.Second*10)
 	if err != nil {
+		u.DOut("RoutingResolve get failed.\n")
 		return "", err
 	}
 
@@ -55,13 +57,14 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 	// name should be a public key retrievable from ipfs
 	// /ipfs/<name>
 	key := u.Key(hash)
-	node, err := r.dag.Get(key)
+	pkval, err := r.routing.GetValue(key, time.Second*10)
 	if err != nil {
+		u.DOut("RoutingResolve PubKey Get failed.\n")
 		return "", err
 	}
 
 	// get PublicKey from node.Data
-	pk, err := ci.UnmarshalPublicKey(node.Data)
+	pk, err := ci.UnmarshalPublicKey(pkval)
 	if err != nil {
 		return "", err
 	}

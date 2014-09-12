@@ -17,10 +17,13 @@ import (
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
-	peers := []*peer.Peer{}
+func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
+	err := dht.putLocal(key, value)
+	if err != nil {
+		return err
+	}
 
-	// get the peers we need to announce to
+	var peers []*peer.Peer
 	for _, route := range dht.routingTables {
 		npeers := route.NearestPeers(kb.ConvertKey(key), KValue)
 		peers = append(peers, npeers...)

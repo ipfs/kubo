@@ -1,5 +1,5 @@
 package namesys
 
-type NSResolver interface {
+type Resolver interface {
 	Resolve(string) (string, error)
 }
