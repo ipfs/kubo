@@ -64,21 +64,21 @@ func Rabin(b []byte) [][]byte {
 		poly = (poly * prime) + cur
 		curchecksum -= (uint64(b[i-1]) * prime)
 
-		if i-blkgBegI >= chunkMax {
+		if i-blkBegI >= chunkMax {
 			// push block
-			out = append(out, b[blkgBegI:i])
-			blkgBegI = i
+			out = append(out, b[blkBegI:i])
+			blkBegI = i
 		}
 
 		// first 13 bits of polynomial are 0
-		if poly%8192 == 0 && i-blkgBegI >= minBlkSize {
+		if poly%8192 == 0 && i-blkBegI >= minBlkSize {
 			// push block
-			out = append(out, b[blkgBegI:i])
-			blkgBegI = i
+			out = append(out, b[blkBegI:i])
+			blkBegI = i
 		}
 	}
-	if i > blkgBegI {
-		out = append(out, b[blkgBegI:])
+	if i > blkBegI {
+		out = append(out, b[blkBegI:])
 	}
 	return out
 }
