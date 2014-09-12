@@ -1,4 +1,4 @@
-package bitswap
+package notifications
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 func TestPublishSubscribe(t *testing.T) {
 	blockSent := getBlockOrFail(t, "Greetings from The Interval")
 
-	n := newNotifications()
+	n := New()
 	defer n.Shutdown()
 	ch := n.Subscribe(context.Background(), blockSent.Key())
 
@@ -28,7 +28,7 @@ func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 	impossibleDeadline := time.Nanosecond
 	fastExpiringCtx, _ := context.WithTimeout(context.Background(), impossibleDeadline)
 
-	n := newNotifications()
+	n := New()
 	defer n.Shutdown()
 	blockChannel := n.Subscribe(fastExpiringCtx, getBlockOrFail(t, "A Missed Connection").Key())
 
