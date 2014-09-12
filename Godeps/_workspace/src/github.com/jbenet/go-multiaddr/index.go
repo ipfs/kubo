@@ -5,22 +5,26 @@ import (
 	"strings"
 )
 
+// Multiaddr is the data structure representing a multiaddr
 type Multiaddr struct {
 	Bytes []byte
 }
 
+// NewMultiaddr parses and validates an input string, returning a *Multiaddr
 func NewMultiaddr(s string) (*Multiaddr, error) {
-	b, err := StringToBytes(s)
+	b, err := stringToBytes(s)
 	if err != nil {
 		return nil, err
 	}
 	return &Multiaddr{Bytes: b}, nil
 }
 
+// String returns the string representation of a Multiaddr
 func (m *Multiaddr) String() (string, error) {
-	return BytesToString(m.Bytes)
+	return bytesToString(m.Bytes)
 }
 
+// Protocols returns the list of protocols this Multiaddr has.
 func (m *Multiaddr) Protocols() (ret []*Protocol, err error) {
 
 	// panic handler, in case we try accessing bytes incorrectly.
@@ -44,12 +48,14 @@ func (m *Multiaddr) Protocols() (ret []*Protocol, err error) {
 	return ps, nil
 }
 
+// Encapsulate wraps a given Multiaddr, returning the resulting joined Multiaddr
 func (m *Multiaddr) Encapsulate(o *Multiaddr) *Multiaddr {
 	b := make([]byte, len(m.Bytes)+len(o.Bytes))
 	b = append(m.Bytes, o.Bytes...)
 	return &Multiaddr{Bytes: b}
 }
 
+// Decapsulate unwraps Multiaddr up until the given Multiaddr is found.
 func (m *Multiaddr) Decapsulate(o *Multiaddr) (*Multiaddr, error) {
 	s1, err := m.String()
 	if err != nil {
@@ -68,9 +74,10 @@ func (m *Multiaddr) Decapsulate(o *Multiaddr) (*Multiaddr, error) {
 	return NewMultiaddr(s1[:i])
 }
 
+// DialArgs is a convenience function returning arguments for use in net.Dial
 func (m *Multiaddr) DialArgs() (string, string, error) {
 	if !m.IsThinWaist() {
-		return "", "", fmt.Errorf("%s is not a 'thin waist' address.", m)
+		return "", "", fmt.Errorf("%s is not a 'thin waist' address", m)
 	}
 
 	str, err := m.String()
@@ -84,6 +91,8 @@ func (m *Multiaddr) DialArgs() (string, string, error) {
 	return network, host, nil
 }
 
+// IsThinWaist returns whether this multiaddr includes "Thin Waist" Protocols.
+// This means: /{IP4, IP6}/{TCP, UDP}
 func (m *Multiaddr) IsThinWaist() bool {
 	p, err := m.Protocols()
 	if err != nil {

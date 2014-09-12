@@ -1,17 +1,17 @@
 package bitswap
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"time"
+
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
-
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-
-	"time"
 )
 
 // PartnerWantListMax is the bound for the number of keys we'll store per
@@ -44,7 +44,7 @@ type BitSwap struct {
 	// The Ledger has the peer.ID, and the peer connection works through net.
 	// Ledgers of known relationships (active or inactive) stored in datastore.
 	// Changes to the Ledger should be committed to the datastore.
-	partners map[u.Key]*Ledger
+	partners LedgerMap
 
 	// haveList is the set of keys we have values for. a map for fast lookups.
 	// haveList KeySet -- not needed. all values in datastore?
@@ -136,7 +136,7 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byt
 func (bs *BitSwap) HaveBlock(blk *blocks.Block) error {
 	go func() {
 		for _, ledger := range bs.partners {
-			if _, ok := ledger.WantList[blk.Key()]; ok {
+			if ledger.WantListContains(blk.Key()) {
 				//send block to node
 				if ledger.ShouldSend() {
 					bs.SendBlock(ledger.Partner, blk)
@@ -189,14 +189,13 @@ func (bs *BitSwap) handleMessages() {
 // and then if we do, check the ledger for whether or not we should send it.
 func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), u.Key(want).Pretty())
-	ledg := bs.GetLedger(p)
+	ledger := bs.getLedger(p)
 
 	dsk := ds.NewKey(want)
 	blk_i, err := bs.datastore.Get(dsk)
 	if err != nil {
 		if err == ds.ErrNotFound {
-			// TODO: this needs to be different. We need timeouts.
-			ledg.WantList[u.Key(want)] = struct{}{}
+			ledger.Wants(u.Key(want))
 		}
 		u.PErr("datastore get error: %v\n", err)
 		return
@@ -208,7 +207,7 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 		return
 	}
 
-	if ledg.ShouldSend() {
+	if ledger.ShouldSend() {
 		u.DOut("Sending block to peer.\n")
 		bblk, err := blocks.NewBlock(blk)
 		if err != nil {
@@ -216,7 +215,7 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 			return
 		}
 		bs.SendBlock(p, bblk)
-		ledg.SentBytes(len(blk))
+		ledger.SentBytes(len(blk))
 	} else {
 		u.DOut("Decided not to send block.")
 	}
@@ -236,11 +235,11 @@ func (bs *BitSwap) blockReceive(p *peer.Peer, blk *blocks.Block) {
 	}
 	bs.listener.Respond(string(blk.Key()), mes)
 
-	ledger := bs.GetLedger(p)
+	ledger := bs.getLedger(p)
 	ledger.ReceivedBytes(len(blk.Data))
 }
 
-func (bs *BitSwap) GetLedger(p *peer.Peer) *Ledger {
+func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
 	l, ok := bs.partners[p.Key()]
 	if ok {
 		return l
@@ -273,7 +272,7 @@ func (bs *BitSwap) Halt() {
 
 func (bs *BitSwap) SetStrategy(sf StrategyFunc) {
 	bs.strategy = sf
-	for _, ledg := range bs.partners {
-		ledg.Strategy = sf
+	for _, ledger := range bs.partners {
+		ledger.Strategy = sf
 	}
 }

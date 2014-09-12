@@ -14,7 +14,7 @@ func TestStringToBytes(t *testing.T) {
 			t.Error("failed to decode hex", h)
 		}
 
-		b2, err := StringToBytes(s)
+		b2, err := stringToBytes(s)
 		if err != nil {
 			t.Error("failed to convert", s)
 		}
@@ -35,7 +35,7 @@ func TestBytesToString(t *testing.T) {
 			t.Error("failed to decode hex", h)
 		}
 
-		s2, err := BytesToString(b)
+		s2, err := bytesToString(b)
 		if err != nil {
 			t.Error("failed to convert", b)
 		}
