@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,6 +15,27 @@ import (
 
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
+
+func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
+	depth := 1
+	if r, ok := opts["r"].(bool); r && ok {
+		depth = -1
+	}
+	for _, path := range args {
+		nd, err := AddPath(n, path, depth)
+		if err != nil {
+			return fmt.Errorf("addFile error: %v", err)
+		}
+
+		k, err := nd.Key()
+		if err != nil {
+			return fmt.Errorf("addFile error: %v", err)
+		}
+
+		fmt.Fprintf(out, "Added node: %s = %s\n", path, k.Pretty())
+	}
+	return nil
+}
 
 func AddPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 	if depth == 0 {

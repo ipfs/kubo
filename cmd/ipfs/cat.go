@@ -6,6 +6,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -39,7 +40,7 @@ func catCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		err := daemon.ExecuteCommand(com, n, os.Stdout)
+		err = commands.Cat(n, com.Args, com.Opts, os.Stdout)
 		if err != nil {
 			fmt.Println(err)
 		}
