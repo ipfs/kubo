@@ -118,6 +118,10 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 }
 
 func initIdentity(cfg *config.Config) (*peer.Peer, error) {
+	if cfg.Identity == nil {
+		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
+	}
+
 	if len(cfg.Identity.PeerID) == 0 {
 		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
 	}
