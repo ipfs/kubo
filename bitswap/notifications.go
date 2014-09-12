@@ -22,8 +22,9 @@ func (ps *notifications) Publish(block *blocks.Block) {
 	ps.wrapped.Pub(block, topic)
 }
 
-// Sub returns a one-time use |blockChannel|. |blockChannel| returns nil if the
-// |ctx| times out or is cancelled
+// Subscribe returns a one-time use |blockChannel|. |blockChannel| returns nil
+// if the |ctx| times out or is cancelled. Then channel is closed after the
+// block given by |k| is sent.
 func (ps *notifications) Subscribe(ctx context.Context, k u.Key) <-chan *blocks.Block {
 	topic := string(k)
 	subChan := ps.wrapped.SubOnce(topic)
