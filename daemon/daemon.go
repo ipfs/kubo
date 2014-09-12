@@ -74,10 +74,13 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 	}
 
 	u.DOut("Got command: %v\n", command)
-	ExecuteCommand(&command, dl.node, conn)
+	err := ExecuteCommand(&command, dl.node, conn)
+	if err != nil {
+		fmt.Fprintln(conn, "%v\n", err)
+	}
 }
 
-func ExecuteCommand(com *Command, ipfsnode *core.IpfsNode, out io.Writer) {
+func ExecuteCommand(com *Command, ipfsnode *core.IpfsNode, out io.Writer) error {
 	u.DOut("executing command: %s\n", com.Command)
 	switch com.Command {
 	case "add":
@@ -86,38 +89,40 @@ func ExecuteCommand(com *Command, ipfsnode *core.IpfsNode, out io.Writer) {
 			depth = -1
 		}
 		for _, path := range com.Args {
-			_, err := commands.AddPath(ipfsnode, path, depth)
+			nd, err := commands.AddPath(ipfsnode, path, depth)
 			if err != nil {
-				fmt.Fprintf(out, "addFile error: %v\n", err)
-				continue
+				return fmt.Errorf("addFile error: %v", err)
 			}
+
+			k, err := nd.Key()
+			if err != nil {
+				return fmt.Errorf("addFile error: %v", err)
+			}
+
+			fmt.Fprintf(out, "Added node: %s = %s\n", path, k.Pretty())
 		}
 	case "cat":
 		for _, fn := range com.Args {
 			dagnode, err := ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
-				fmt.Fprintf(out, "catFile error: %v\n", err)
-				return
+				return fmt.Errorf("catFile error: %v", err)
 			}
 
 			read, err := dag.NewDagReader(dagnode, ipfsnode.DAG)
 			if err != nil {
-				fmt.Fprintln(out, err)
-				continue
+				return fmt.Errorf("cat error: %v", err)
 			}
 
 			_, err = io.Copy(out, read)
 			if err != nil {
-				fmt.Fprintln(out, err)
-				continue
+				return fmt.Errorf("cat error: %v", err)
 			}
 		}
 	case "ls":
 		for _, fn := range com.Args {
 			dagnode, err := ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
-				fmt.Fprintf(out, "ls error: %v\n", err)
-				return
+				return fmt.Errorf("ls error: %v", err)
 			}
 
 			for _, link := range dagnode.Links {
@@ -128,18 +133,16 @@ func ExecuteCommand(com *Command, ipfsnode *core.IpfsNode, out io.Writer) {
 		for _, fn := range com.Args {
 			dagnode, err := ipfsnode.Resolver.ResolvePath(fn)
 			if err != nil {
-				fmt.Fprintf(out, "pin error: %v\n", err)
-				return
+				return fmt.Errorf("pin error: %v", err)
 			}
 
 			err = ipfsnode.PinDagNode(dagnode)
 			if err != nil {
-				fmt.Fprintf(out, "pin: %v\n", err)
-				return
+				return fmt.Errorf("pin: %v", err)
 			}
 		}
 	default:
-		fmt.Fprintf(out, "Invalid Command: '%s'\n", com.Command)
+		return fmt.Errord("Invalid Command: '%s'", com.Command)
 	}
 }
 

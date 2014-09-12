@@ -42,7 +42,10 @@ func lsCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		daemon.ExecuteCommand(com, n, os.Stdout)
+		err := daemon.ExecuteCommand(com, n, os.Stdout)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	return nil

@@ -50,7 +50,10 @@ func addCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		daemon.ExecuteCommand(cmd, n, os.Stdout)
+		err := daemon.ExecuteCommand(cmd, n, os.Stdout)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 	return nil
 }
