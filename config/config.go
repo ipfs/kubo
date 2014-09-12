@@ -30,7 +30,7 @@ type SavedPeer struct {
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  *Identity
-	Datastore *Datastore
+	Datastore Datastore
 	Peers     []*SavedPeer
 }
 

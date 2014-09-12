@@ -6,12 +6,17 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-
-	cfg, err := Load(".ipfsconfig")
+	const filename = ".ipfsconfig"
+	cfgWritten := new(Config)
+	err := WriteConfigFile(filename, cfgWritten)
+	if err != nil {
+		t.Error(err)
+	}
+	cfgRead, err := Load(filename)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	fmt.Printf(cfg.Datastore.Path)
+	fmt.Printf(cfgRead.Datastore.Path)
 }
