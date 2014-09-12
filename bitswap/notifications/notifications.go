@@ -1,4 +1,4 @@
-package bitswap
+package notifications
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -8,16 +8,22 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type notifications struct {
+type PubSub interface {
+	Publish(block *blocks.Block)
+	Subscribe(ctx context.Context, k u.Key) <-chan *blocks.Block
+	Shutdown()
+}
+
+func New() PubSub {
+	const bufferSize = 16
+	return &impl{pubsub.New(bufferSize)}
+}
+
+type impl struct {
 	wrapped *pubsub.PubSub
 }
 
-func newNotifications() *notifications {
-	const bufferSize = 16
-	return &notifications{pubsub.New(bufferSize)}
-}
-
-func (ps *notifications) Publish(block *blocks.Block) {
+func (ps *impl) Publish(block *blocks.Block) {
 	topic := string(block.Key())
 	ps.wrapped.Pub(block, topic)
 }
@@ -25,7 +31,7 @@ func (ps *notifications) Publish(block *blocks.Block) {
 // Subscribe returns a one-time use |blockChannel|. |blockChannel| returns nil
 // if the |ctx| times out or is cancelled. Then channel is closed after the
 // block given by |k| is sent.
-func (ps *notifications) Subscribe(ctx context.Context, k u.Key) <-chan *blocks.Block {
+func (ps *impl) Subscribe(ctx context.Context, k u.Key) <-chan *blocks.Block {
 	topic := string(k)
 	subChan := ps.wrapped.SubOnce(topic)
 	blockChannel := make(chan *blocks.Block)
@@ -44,6 +50,6 @@ func (ps *notifications) Subscribe(ctx context.Context, k u.Key) <-chan *blocks.
 	return blockChannel
 }
 
-func (ps *notifications) Shutdown() {
+func (ps *impl) Shutdown() {
 	ps.wrapped.Shutdown()
 }

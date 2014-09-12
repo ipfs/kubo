@@ -7,6 +7,7 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
+	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -39,7 +40,7 @@ type BitSwap struct {
 	// routing interface for communication
 	routing *dht.IpfsDHT
 
-	notifications *notifications
+	notifications notifications.PubSub
 
 	// partners is a map of currently active bitswap relationships.
 	// The Ledger has the peer.ID, and the peer connection works through net.
@@ -69,7 +70,7 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 		routing:       r.(*dht.IpfsDHT),
 		meschan:       net.GetChannel(swarm.PBWrapper_BITSWAP),
 		haltChan:      make(chan struct{}),
-		notifications: newNotifications(),
+		notifications: notifications.New(),
 	}
 
 	go bs.handleMessages()
