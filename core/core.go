@@ -122,9 +122,15 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
 	}
 
-	maddr, err := ma.NewMultiaddr(cfg.Identity.Address)
-	if err != nil {
-		return nil, err
+	// address is optional
+	var addresses []*ma.Multiaddr
+	if len(cfg.Identity.Address) > 0 {
+		maddr, err := ma.NewMultiaddr(cfg.Identity.Address)
+		if err != nil {
+			return nil, err
+		}
+
+		addresses = []*ma.Multiaddr{ maddr }
 	}
 
 	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
@@ -139,7 +145,7 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 
 	return &peer.Peer{
 		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
-		Addresses: []*ma.Multiaddr{maddr},
+		Addresses: addresses,
 		PrivKey:   sk,
 		PubKey:    sk.GetPublic(),
 	}, nil
