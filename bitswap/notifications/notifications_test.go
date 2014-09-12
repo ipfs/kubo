@@ -18,9 +18,13 @@ func TestPublishSubscribe(t *testing.T) {
 	ch := n.Subscribe(context.Background(), blockSent.Key())
 
 	n.Publish(blockSent)
-	blockRecvd := <-ch
+	blockRecvd, ok := <-ch
+	if !ok {
+		t.Fail()
+	}
 
 	assertBlocksEqual(t, blockRecvd, blockSent)
+
 }
 
 func TestCarryOnWhenDeadlineExpires(t *testing.T) {
