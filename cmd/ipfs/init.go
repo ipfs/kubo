@@ -43,7 +43,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 	cfg := new(config.Config)
 
-	cfg.Datastore = new(config.Datastore)
+	cfg.Datastore = config.Datastore{}
 	dspath, err := u.TildeExpansion("~/.go-ipfs/datastore")
 	if err != nil {
 		return err

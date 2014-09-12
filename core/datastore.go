@@ -2,13 +2,14 @@ package core
 
 import (
 	"fmt"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	lds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/leveldb"
 	config "github.com/jbenet/go-ipfs/config"
 )
 
-func makeDatastore(cfg *config.Datastore) (ds.Datastore, error) {
-	if cfg == nil || len(cfg.Type) == 0 {
+func makeDatastore(cfg config.Datastore) (ds.Datastore, error) {
+	if len(cfg.Type) == 0 {
 		return nil, fmt.Errorf("config datastore.type required")
 	}
 
@@ -22,7 +23,7 @@ func makeDatastore(cfg *config.Datastore) (ds.Datastore, error) {
 	return nil, fmt.Errorf("Unknown datastore type: %s", cfg.Type)
 }
 
-func makeLevelDBDatastore(cfg *config.Datastore) (ds.Datastore, error) {
+func makeLevelDBDatastore(cfg config.Datastore) (ds.Datastore, error) {
 	if len(cfg.Path) == 0 {
 		return nil, fmt.Errorf("config datastore.path required for leveldb")
 	}
