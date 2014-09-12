@@ -9,7 +9,7 @@ It is generated from these files:
 	entry.proto
 
 It has these top-level messages:
-	InpsEntry
+	IpnsEntry
 */
 package namesys
 
@@ -20,24 +20,24 @@ import math "math"
 var _ = proto.Marshal
 var _ = math.Inf
 
-type InpsEntry struct {
+type IpnsEntry struct {
 	Value            []byte `protobuf:"bytes,1,req,name=value" json:"value,omitempty"`
 	Signature        []byte `protobuf:"bytes,2,req,name=signature" json:"signature,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
-func (m *InpsEntry) Reset()         { *m = InpsEntry{} }
-func (m *InpsEntry) String() string { return proto.CompactTextString(m) }
-func (*InpsEntry) ProtoMessage()    {}
+func (m *IpnsEntry) Reset()         { *m = IpnsEntry{} }
+func (m *IpnsEntry) String() string { return proto.CompactTextString(m) }
+func (*IpnsEntry) ProtoMessage()    {}
 
-func (m *InpsEntry) GetValue() []byte {
+func (m *IpnsEntry) GetValue() []byte {
 	if m != nil {
 		return m.Value
 	}
 	return nil
 }
 
-func (m *InpsEntry) GetSignature() []byte {
+func (m *IpnsEntry) GetSignature() []byte {
 	if m != nil {
 		return m.Signature
 	}

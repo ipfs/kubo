@@ -13,18 +13,17 @@ import (
 	mh "github.com/jbenet/go-multihash"
 )
 
-// RoutingName is the de-serialized name structure that is stored (serialized)
-// in the routing system. Basically, a hash + a digital signature. (serialization can be
-// protobuf, or a simple binary format)
-type RoutingName struct {
-	Hash      u.Key
-	Signature []byte
-}
-
 // RoutingResolver implements NSResolver for the main IPFS SFS-like naming
 type RoutingResolver struct {
 	routing routing.IpfsRouting
-	dag     mdag.DAGService
+	dag     *mdag.DAGService
+}
+
+func NewRoutingResolver(route routing.IpfsRouting, dagservice *mdag.DAGService) *RoutingResolver {
+	return &RoutingResolver{
+		routing: route,
+		dag:     dagservice,
+	}
 }
 
 func (r *RoutingResolver) Resolve(name string) (string, error) {
@@ -47,7 +46,7 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 		return "", err
 	}
 
-	entry := new(InpsEntry)
+	entry := new(IpnsEntry)
 	err = proto.Unmarshal(val, entry)
 	if err != nil {
 		return "", err

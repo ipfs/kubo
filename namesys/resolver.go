@@ -1,11 +1,24 @@
 package namesys
 
-import "strings"
+import (
+	"strings"
+
+	mdag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/routing"
+)
 
 type MasterResolver struct {
 	dns     *DNSResolver
 	routing *RoutingResolver
 	pro     *ProquintResolver
+}
+
+func NewMasterResolver(r routing.IpfsRouting, dag *mdag.DAGService) *MasterResolver {
+	mr := new(MasterResolver)
+	mr.dns = new(DNSResolver)
+	mr.pro = new(ProquintResolver)
+	mr.routing = NewRoutingResolver(r, dag)
+	return mr
 }
 
 func (mr *MasterResolver) Resolve(name string) (string, error) {
