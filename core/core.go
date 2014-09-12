@@ -69,13 +69,32 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	var swap *bitswap.BitSwap
+	local, err := initIdentity(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		net *swarm.Swarm
+		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
+		route* dht.IpfsDHT
+		swap *bitswap.BitSwap
+	)
+
 	if online {
-		swap, err = loadBitswap(cfg, d)
+		net = swarm.NewSwarm(local)
+		err = net.Listen()
 		if err != nil {
 			return nil, err
 		}
+
+		route = dht.NewDHT(local, net, d)
+		route.Start()
+
+		swap = bitswap.NewBitSwap(local, net, d, route)
 		swap.SetStrategy(bitswap.YesManStrategy)
+
+		go initConnections(cfg, route)
 	}
 
 	bs, err := bserv.NewBlockService(d, swap)
@@ -85,19 +104,24 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	dag := &merkledag.DAGService{Blocks: bs}
 
-	n := &IpfsNode{
+	return &IpfsNode{
 		Config:    cfg,
 		PeerMap:   &peer.Map{},
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-	}
-
-	return n, nil
+		BitSwap:   swap,
+		Identity:  local,
+		Routing:   route,
+	}, nil
 }
 
-func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
+func initIdentity(cfg *config.Config) (*peer.Peer, error) {
+	if len(cfg.Identity.PeerID) == 0 {
+		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
+	}
+
 	maddr, err := ma.NewMultiaddr(cfg.Identity.Address)
 	if err != nil {
 		return nil, err
@@ -113,26 +137,15 @@ func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
 		return nil, err
 	}
 
-	local := &peer.Peer{
+	return &peer.Peer{
 		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
 		Addresses: []*ma.Multiaddr{maddr},
 		PrivKey:   sk,
 		PubKey:    sk.GetPublic(),
-	}
+	}, nil
+}
 
-	if len(local.ID) == 0 {
-		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
-	}
-
-	net := swarm.NewSwarm(local)
-	err = net.Listen()
-	if err != nil {
-		return nil, err
-	}
-
-	route := dht.NewDHT(local, net, d)
-	route.Start()
-
+func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
 	for _, p := range cfg.Peers {
 		maddr, err := ma.NewMultiaddr(p.Address)
 		if err != nil {
@@ -145,8 +158,6 @@ func loadBitswap(cfg *config.Config, d ds.Datastore) (*bitswap.BitSwap, error) {
 			u.PErr("Bootstrapping error: %v\n", err)
 		}
 	}
-
-	return bitswap.NewBitSwap(local, net, d, route), nil
 }
 
 func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
