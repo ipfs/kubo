@@ -26,7 +26,7 @@ func (ps *notifications) Publish(block *blocks.Block) {
 // |ctx| times out or is cancelled
 func (ps *notifications) Subscribe(ctx context.Context, k u.Key) <-chan *blocks.Block {
 	topic := string(k)
-	subChan := ps.wrapped.Sub(topic)
+	subChan := ps.wrapped.SubOnce(topic)
 	blockChannel := make(chan *blocks.Block)
 	go func() {
 		defer close(blockChannel)
