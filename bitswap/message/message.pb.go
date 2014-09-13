@@ -11,7 +11,7 @@ It is generated from these files:
 It has these top-level messages:
 	PBMessage
 */
-package bitswap
+package message
 
 import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 import math "math"

@@ -1,4 +1,4 @@
-package bitswap
+package message
 
 import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -33,7 +33,7 @@ func newMessageFromProto(pb PBMessage) *message {
 	return &message{pb: pb}
 }
 
-func newMessage() *message {
+func New() *message {
 	return new(message)
 }
 
