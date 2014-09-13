@@ -31,22 +31,20 @@ var SupportedHashes = "SHA256,SHA512,SHA1"
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
 
-// Performs initial communication with this peer to share node ID's and
-// initiate communication.  (secureIn, secureOut, error)
-func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
+func genRandHello(self *peer.Peer) (*Hello, error) {
+	hello := new(Hello)
+
 	// Generate and send Hello packet.
 	// Hello = (rand, PublicKey, Supported)
 	nonce := make([]byte, 16)
 	_, err := rand.Read(nonce)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	hello := new(Hello)
 
 	myPubKey, err := self.PubKey.Bytes()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	hello.Rand = nonce
@@ -54,8 +52,18 @@ func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-
 	hello.Exchanges = &SupportedExchanges
 	hello.Ciphers = &SupportedCiphers
 	hello.Hashes = &SupportedHashes
+	return hello, nil
+}
 
-	encoded, err := proto.Marshal(hello)
+// Performs initial communication with this peer to share node ID's and
+// initiate communication.  (secureIn, secureOut, error)
+func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
+	h, err := genRandHello(self)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	encoded, err := proto.Marshal(h)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,6 +164,11 @@ func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-
 	}
 
 	secret, err := done(exchangeResp.GetEpubkey())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	myPubKey, err := self.PubKey.Bytes()
 	if err != nil {
 		return nil, nil, err
 	}
