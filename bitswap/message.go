@@ -8,6 +8,18 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+type BitSwapMessage interface {
+	AppendWanted(k u.Key)
+	AppendBlock(b *blocks.Block)
+	Exportable
+}
+
+type Exportable interface {
+	ToProto() *PBMessage
+	ToSwarm(p *peer.Peer) *swarm.Message
+	ToNet(p *peer.Peer) (nm.NetMessage, error)
+}
+
 // message wraps a proto message for convenience
 type message struct {
 	pb PBMessage
