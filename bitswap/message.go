@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	nm "github.com/jbenet/go-ipfs/net/message"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
@@ -39,6 +41,15 @@ func (m *message) AppendWanted(k u.Key) {
 
 func (m *message) AppendBlock(b *blocks.Block) {
 	m.pb.Blocks = append(m.pb.Blocks, b.Data)
+}
+
+func FromSwarm(sms swarm.Message) (BitSwapMessage, error) {
+	var protoMsg PBMessage
+	err := proto.Unmarshal(sms.Data, &protoMsg)
+	if err != nil {
+		return nil, err
+	}
+	return newMessageFromProto(protoMsg), nil
 }
 
 func (m *message) ToProto() *PBMessage {
