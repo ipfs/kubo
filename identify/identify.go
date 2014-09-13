@@ -16,8 +16,6 @@ import (
 	"crypto/sha512"
 	"hash"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -35,15 +33,34 @@ var ErrUnsupportedKeyType = errors.New("unsupported key type")
 
 // Performs initial communication with this peer to share node ID's and
 // initiate communication.  (secureIn, secureOut, error)
-func Handshake(ctx context.Context, self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
-
-	encodedHello, err := encodedProtoHello(self)
+func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
+	// Generate and send Hello packet.
+	// Hello = (rand, PublicKey, Supported)
+	nonce := make([]byte, 16)
+	_, err := rand.Read(nonce)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO(brian): select on |ctx|
-	out <- encodedHello
+	hello := new(Hello)
+
+	myPubKey, err := self.PubKey.Bytes()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hello.Rand = nonce
+	hello.Pubkey = myPubKey
+	hello.Exchanges = &SupportedExchanges
+	hello.Ciphers = &SupportedCiphers
+	hello.Hashes = &SupportedHashes
+
+	encoded, err := proto.Marshal(hello)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	out <- encoded
 
 	// Parse their Hello packet and generate an Exchange packet.
 	// Exchange = (EphemeralPubKey, Signature)
@@ -86,7 +103,7 @@ func Handshake(ctx context.Context, self, remote *peer.Peer, in <-chan []byte, o
 	}
 
 	var handshake bytes.Buffer // Gather corpus to sign.
-	handshake.Write(encodedHello)
+	handshake.Write(encoded)
 	handshake.Write(resp)
 	handshake.Write(epubkey)
 
@@ -120,7 +137,7 @@ func Handshake(ctx context.Context, self, remote *peer.Peer, in <-chan []byte, o
 	if err != nil {
 		return nil, nil, err
 	}
-	_, err = theirHandshake.Write(encodedHello)
+	_, err = theirHandshake.Write(encoded)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -139,11 +156,6 @@ func Handshake(ctx context.Context, self, remote *peer.Peer, in <-chan []byte, o
 	}
 
 	secret, err := done(exchangeResp.GetEpubkey())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	myPubKey, err := self.PubKey.Bytes()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -296,37 +308,4 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 	}
 
 	return "", errors.New("No algorithms in common!")
-}
-
-func genRandHello(self *peer.Peer) (*Hello, error) {
-	hello := new(Hello)
-
-	// Generate and send Hello packet.
-	// Hello = (rand, PublicKey, Supported)
-	nonce := make([]byte, 16)
-	_, err := rand.Read(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	myPubKey, err := self.PubKey.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	hello.Rand = nonce
-	hello.Pubkey = myPubKey
-	hello.Exchanges = &SupportedExchanges
-	hello.Ciphers = &SupportedCiphers
-	hello.Hashes = &SupportedHashes
-	return hello, nil
-}
-
-func encodedProtoHello(self *peer.Peer) ([]byte, error) {
-	h, err := genRandHello(self)
-	if err != nil {
-		return nil, err
-	}
-
-	return proto.Marshal(h)
 }

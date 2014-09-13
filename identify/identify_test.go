@@ -3,8 +3,6 @@ package identify
 import (
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	ci "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
 )
@@ -42,15 +40,14 @@ func TestHandshake(t *testing.T) {
 		PrivKey: skb,
 	}
 
-	ctx := context.Background()
 	go func() {
-		_, _, err := Handshake(ctx, pa, pb, cha, chb)
+		_, _, err := Handshake(pa, pb, cha, chb)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	_, _, err = Handshake(ctx, pb, pa, chb, cha)
+	_, _, err = Handshake(pb, pa, chb, cha)
 	if err != nil {
 		t.Fatal(err)
 	}
