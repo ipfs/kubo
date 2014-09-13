@@ -1,7 +1,10 @@
 package message
 
 import (
+	"errors"
+
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	netmsg "github.com/jbenet/go-ipfs/net/message"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	nm "github.com/jbenet/go-ipfs/net/message"
@@ -53,6 +56,10 @@ func (m *message) AppendWanted(k u.Key) {
 
 func (m *message) AppendBlock(b *blocks.Block) {
 	m.pb.Blocks = append(m.pb.Blocks, b.Data)
+}
+
+func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
+	return nil, errors.New("TODO implement")
 }
 
 func FromSwarm(sms swarm.Message) (BitSwapMessage, error) {
