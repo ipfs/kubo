@@ -34,19 +34,20 @@ func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 
 	n := New()
 	defer n.Shutdown()
-	blockChannel := n.Subscribe(fastExpiringCtx, getBlockOrFail(t, "A Missed Connection").Key())
+	block := getBlockOrFail(t, "A Missed Connection")
+	blockChannel := n.Subscribe(fastExpiringCtx, block.Key())
 
 	assertBlockChannelNil(t, blockChannel)
 }
 
-func assertBlockChannelNil(t *testing.T, blockChannel <-chan *blocks.Block) {
-	blockReceived := <-blockChannel
-	if blockReceived != nil {
+func assertBlockChannelNil(t *testing.T, blockChannel <-chan blocks.Block) {
+	_, ok := <-blockChannel
+	if ok {
 		t.Fail()
 	}
 }
 
-func assertBlocksEqual(t *testing.T, a, b *blocks.Block) {
+func assertBlocksEqual(t *testing.T, a, b blocks.Block) {
 	if !bytes.Equal(a.Data, b.Data) {
 		t.Fail()
 	}
@@ -55,10 +56,10 @@ func assertBlocksEqual(t *testing.T, a, b *blocks.Block) {
 	}
 }
 
-func getBlockOrFail(t *testing.T, msg string) *blocks.Block {
+func getBlockOrFail(t *testing.T, msg string) blocks.Block {
 	block, blockCreationErr := blocks.NewBlock([]byte(msg))
 	if blockCreationErr != nil {
 		t.Fail()
 	}
-	return block
+	return *block
 }

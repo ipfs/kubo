@@ -15,7 +15,7 @@ import (
 
 type BitSwapMessage interface {
 	Wantlist() []string
-	Blocks() [][]byte
+	Blocks() []blocks.Block
 	AppendWanted(k u.Key)
 	AppendBlock(b *blocks.Block)
 	Exportable
@@ -46,8 +46,16 @@ func (m *message) Wantlist() []string {
 }
 
 // TODO(brian): convert these into blocks
-func (m *message) Blocks() [][]byte {
-	return m.pb.Blocks
+func (m *message) Blocks() []blocks.Block {
+	bs := make([]blocks.Block, len(m.pb.Blocks))
+	for _, data := range m.pb.Blocks {
+		b, err := blocks.NewBlock(data)
+		if err != nil {
+			continue
+		}
+		bs = append(bs, *b)
+	}
+	return bs
 }
 
 func (m *message) AppendWanted(k u.Key) {

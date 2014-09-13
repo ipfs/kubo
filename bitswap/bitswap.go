@@ -93,7 +93,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	tleft := timeout - time.Now().Sub(begin)
 	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
 
-	blockChannel := make(chan *blocks.Block)
+	blockChannel := make(chan blocks.Block)
 	after := time.After(tleft)
 
 	// TODO: when the data is received, shut down this for loop ASAP
@@ -106,7 +106,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 					return
 				}
 				select {
-				case blockChannel <- blk:
+				case blockChannel <- *blk:
 				default:
 				}
 			}(p)
@@ -116,7 +116,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	select {
 	case block := <-blockChannel:
 		close(blockChannel)
-		return block, nil
+		return &block, nil
 	case <-after:
 		return nil, u.ErrTimeout
 	}
@@ -137,7 +137,7 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
 		return nil, u.ErrTimeout
 	}
-	return block, nil
+	return &block, nil
 }
 
 // HaveBlock announces the existance of a block to BitSwap, potentially sending
@@ -173,12 +173,7 @@ func (bs *BitSwap) handleMessages() {
 			}
 
 			if bsmsg.Blocks() != nil {
-				for _, blkData := range bsmsg.Blocks() {
-					blk, err := blocks.NewBlock(blkData)
-					if err != nil {
-						u.PErr("%v\n", err)
-						continue
-					}
+				for _, blk := range bsmsg.Blocks() {
 					go bs.blockReceive(mes.Peer, blk)
 				}
 			}
@@ -231,7 +226,7 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 	}
 }
 
-func (bs *BitSwap) blockReceive(p *peer.Peer, blk *blocks.Block) {
+func (bs *BitSwap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	u.DOut("blockReceive: %s\n", blk.Key().Pretty())
 	err := bs.datastore.Put(ds.NewKey(string(blk.Key())), blk.Data)
 	if err != nil {
@@ -286,5 +281,16 @@ func (bs *BitSwap) SetStrategy(sf StrategyFunc) {
 func (bs *BitSwap) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	bsmsg.BitSwapMessage, *peer.Peer, error) {
+	if incoming.Blocks() != nil {
+		for _, block := range incoming.Blocks() {
+			go bs.blockReceive(sender, block)
+		}
+	}
+
+	if incoming.Wantlist() != nil {
+		for _, want := range incoming.Wantlist() {
+			go bs.peerWantsBlock(sender, want)
+		}
+	}
 	return nil, nil, errors.New("TODO implement")
 }
