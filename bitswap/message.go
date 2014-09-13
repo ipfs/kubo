@@ -2,6 +2,7 @@ package bitswap
 
 import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	nm "github.com/jbenet/go-ipfs/net/message"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -35,4 +36,8 @@ func (m *message) ToProto() *PBMessage {
 
 func (m *message) ToSwarm(p *peer.Peer) *swarm.Message {
 	return swarm.NewMessage(p, m.ToProto())
+}
+
+func (m *message) ToNet(p *peer.Peer) (nm.NetMessage, error) {
+	return nm.FromObject(p, m.ToProto())
 }
