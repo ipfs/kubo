@@ -16,11 +16,11 @@ type PubSub interface {
 
 func New() PubSub {
 	const bufferSize = 16
-	return &impl{pubsub.New(bufferSize)}
+	return &impl{*pubsub.New(bufferSize)}
 }
 
 type impl struct {
-	wrapped *pubsub.PubSub
+	wrapped pubsub.PubSub
 }
 
 func (ps *impl) Publish(block *blocks.Block) {
