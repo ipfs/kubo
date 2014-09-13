@@ -32,14 +32,14 @@ func newPeer(t *testing.T, id string) *peer.Peer {
 	return &peer.Peer{ID: peer.ID(mh)}
 }
 
-func testMsg(t *testing.T, m *msg.Message, data []byte) {
-	if !bytes.Equal(data, m.Data) {
-		t.Errorf("Data does not match: %v != %v", data, m.Data)
+func testMsg(t *testing.T, m msg.NetMessage, data []byte) {
+	if !bytes.Equal(data, m.Data()) {
+		t.Errorf("Data does not match: %v != %v", data, m.Data())
 	}
 }
 
-func testWrappedMsg(t *testing.T, m *msg.Message, pid ProtocolID, data []byte) {
-	data2, pid2, err := unwrapData(m.Data)
+func testWrappedMsg(t *testing.T, m msg.NetMessage, pid ProtocolID, data []byte) {
+	data2, pid2, err := unwrapData(m.Data())
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,7 +76,7 @@ func TestSimpleMuxer(t *testing.T) {
 
 	// test outgoing p1
 	for _, s := range []string{"foo", "bar", "baz"} {
-		p1.Outgoing <- &msg.Message{Peer: peer1, Data: []byte(s)}
+		p1.Outgoing <- msg.New(peer1, []byte(s))
 		testWrappedMsg(t, <-mux1.Outgoing, pid1, []byte(s))
 	}
 
@@ -86,13 +86,13 @@ func TestSimpleMuxer(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mux1.Incoming <- &msg.Message{Peer: peer1, Data: d}
+		mux1.Incoming <- msg.New(peer1, d)
 		testMsg(t, <-p1.Incoming, []byte(s))
 	}
 
 	// test outgoing p2
 	for _, s := range []string{"foo", "bar", "baz"} {
-		p2.Outgoing <- &msg.Message{Peer: peer1, Data: []byte(s)}
+		p2.Outgoing <- msg.New(peer1, []byte(s))
 		testWrappedMsg(t, <-mux1.Outgoing, pid2, []byte(s))
 	}
 
@@ -102,7 +102,7 @@ func TestSimpleMuxer(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mux1.Incoming <- &msg.Message{Peer: peer1, Data: d}
+		mux1.Incoming <- msg.New(peer1, d)
 		testMsg(t, <-p2.Incoming, []byte(s))
 	}
 }
@@ -139,7 +139,7 @@ func TestSimultMuxer(t *testing.T) {
 		for i := 0; i < size; i++ {
 			<-limiter
 			s := fmt.Sprintf("proto %v out %v", pid, i)
-			m := &msg.Message{Peer: peer1, Data: []byte(s)}
+			m := msg.New(peer1, []byte(s))
 			mux1.Protocols[pid].GetPipe().Outgoing <- m
 			counts[pid][0][0]++
 			u.DOut("sent %v\n", s)
@@ -156,7 +156,7 @@ func TestSimultMuxer(t *testing.T) {
 				t.Error(err)
 			}
 
-			m := &msg.Message{Peer: peer1, Data: d}
+			m := msg.New(peer1, d)
 			mux1.Incoming <- m
 			counts[pid][1][0]++
 			u.DOut("sent %v\n", s)
@@ -167,7 +167,7 @@ func TestSimultMuxer(t *testing.T) {
 		for {
 			select {
 			case m := <-mux1.Outgoing:
-				data, pid, err := unwrapData(m.Data)
+				data, pid, err := unwrapData(m.Data())
 				if err != nil {
 					t.Error(err)
 				}
@@ -186,7 +186,7 @@ func TestSimultMuxer(t *testing.T) {
 			select {
 			case m := <-mux1.Protocols[pid].GetPipe().Incoming:
 				counts[pid][0][1]++
-				u.DOut("got %v\n", string(m.Data))
+				u.DOut("got %v\n", string(m.Data()))
 			case <-ctx.Done():
 				return
 			}
@@ -239,7 +239,7 @@ func TestStopping(t *testing.T) {
 
 	// test outgoing p1
 	for _, s := range []string{"foo", "bar", "baz"} {
-		p1.Outgoing <- &msg.Message{Peer: peer1, Data: []byte(s)}
+		p1.Outgoing <- msg.New(peer1, []byte(s))
 		testWrappedMsg(t, <-mux1.Outgoing, pid1, []byte(s))
 	}
 
@@ -249,7 +249,7 @@ func TestStopping(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mux1.Incoming <- &msg.Message{Peer: peer1, Data: d}
+		mux1.Incoming <- msg.New(peer1, d)
 		testMsg(t, <-p1.Incoming, []byte(s))
 	}
 
@@ -260,7 +260,7 @@ func TestStopping(t *testing.T) {
 
 	// test outgoing p1
 	for _, s := range []string{"foo", "bar", "baz"} {
-		p1.Outgoing <- &msg.Message{Peer: peer1, Data: []byte(s)}
+		p1.Outgoing <- msg.New(peer1, []byte(s))
 		select {
 		case <-mux1.Outgoing:
 			t.Error("should not have received anything.")
@@ -274,7 +274,7 @@ func TestStopping(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mux1.Incoming <- &msg.Message{Peer: peer1, Data: d}
+		mux1.Incoming <- msg.New(peer1, d)
 		select {
 		case <-p1.Incoming:
 			t.Error("should not have received anything.")

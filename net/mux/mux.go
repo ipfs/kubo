@@ -87,15 +87,15 @@ func (m *Muxer) handleIncomingMessages(ctx context.Context) {
 }
 
 // handleIncomingMessage routes message to the appropriate protocol.
-func (m *Muxer) handleIncomingMessage(ctx context.Context, m1 *msg.Message) {
+func (m *Muxer) handleIncomingMessage(ctx context.Context, m1 msg.NetMessage) {
 
-	data, pid, err := unwrapData(m1.Data)
+	data, pid, err := unwrapData(m1.Data())
 	if err != nil {
 		u.PErr("muxer de-serializing error: %v\n", err)
 		return
 	}
 
-	m2 := &msg.Message{Peer: m1.Peer, Data: data}
+	m2 := msg.New(m1.Peer(), data)
 	proto, found := m.Protocols[pid]
 	if !found {
 		u.PErr("muxer unknown protocol %v\n", pid)
@@ -125,14 +125,14 @@ func (m *Muxer) handleOutgoingMessages(ctx context.Context, pid ProtocolID, prot
 }
 
 // handleOutgoingMessage wraps out a message and sends it out the
-func (m *Muxer) handleOutgoingMessage(ctx context.Context, pid ProtocolID, m1 *msg.Message) {
-	data, err := wrapData(m1.Data, pid)
+func (m *Muxer) handleOutgoingMessage(ctx context.Context, pid ProtocolID, m1 msg.NetMessage) {
+	data, err := wrapData(m1.Data(), pid)
 	if err != nil {
 		u.PErr("muxer serializing error: %v\n", err)
 		return
 	}
 
-	m2 := &msg.Message{Peer: m1.Peer, Data: data}
+	m2 := msg.New(m1.Peer(), data)
 	select {
 	case m.GetPipe().Outgoing <- m2:
 	case <-ctx.Done():

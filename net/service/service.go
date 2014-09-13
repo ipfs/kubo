@@ -16,7 +16,7 @@ type Handler interface {
 
 	// HandleMessage receives an incoming message, and potentially returns
 	// a response message to send back.
-	HandleMessage(context.Context, *msg.Message) (*msg.Message, error)
+	HandleMessage(context.Context, msg.NetMessage) (msg.NetMessage, error)
 }
 
 // Service is a networking component that protocols can use to multiplex
@@ -69,16 +69,16 @@ func (s *Service) Stop() {
 }
 
 // SendMessage sends a message out
-func (s *Service) SendMessage(ctx context.Context, m *msg.Message, rid RequestID) error {
+func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
 
 	// serialize ServiceMessage wrapper
-	data, err := wrapData(m.Data, rid)
+	data, err := wrapData(m.Data(), rid)
 	if err != nil {
 		return err
 	}
 
 	// send message
-	m2 := &msg.Message{Peer: m.Peer, Data: data}
+	m2 := msg.New(m.Peer(), data)
 	select {
 	case s.Outgoing <- m2:
 	case <-ctx.Done():
@@ -89,10 +89,10 @@ func (s *Service) SendMessage(ctx context.Context, m *msg.Message, rid RequestID
 }
 
 // SendRequest sends a request message out and awaits a response.
-func (s *Service) SendRequest(ctx context.Context, m *msg.Message) (*msg.Message, error) {
+func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
 
 	// create a request
-	r, err := NewRequest(m.Peer.ID)
+	r, err := NewRequest(m.Peer().ID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,14 +145,14 @@ func (s *Service) handleIncomingMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) handleIncomingMessage(ctx context.Context, m *msg.Message) {
+func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	// unwrap the incoming message
-	data, rid, err := unwrapData(m.Data)
+	data, rid, err := unwrapData(m.Data())
 	if err != nil {
 		u.PErr("de-serializing error: %v\n", err)
 	}
-	m2 := &msg.Message{Peer: m.Peer, Data: data}
+	m2 := msg.New(m.Peer(), data)
 
 	// if it's a request (or has no RequestID), handle it
 	if rid == nil || rid.IsRequest() {
@@ -177,7 +177,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m *msg.Message) {
 		u.PErr("RequestID should identify a response here.\n")
 	}
 
-	key := RequestKey(m.Peer.ID, RequestID(rid))
+	key := RequestKey(m.Peer().ID, RequestID(rid))
 	s.RequestsLock.RLock()
 	r, found := s.Requests[key]
 	s.RequestsLock.RUnlock()

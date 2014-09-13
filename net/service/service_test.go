@@ -15,15 +15,15 @@ import (
 // ReverseHandler reverses all Data it receives and sends it back.
 type ReverseHandler struct{}
 
-func (t *ReverseHandler) HandleMessage(ctx context.Context, m *msg.Message) (
-	*msg.Message, error) {
+func (t *ReverseHandler) HandleMessage(ctx context.Context, m msg.NetMessage) (
+	msg.NetMessage, error) {
 
-	d := m.Data
+	d := m.Data()
 	for i, j := 0, len(d)-1; i < j; i, j = i+1, j-1 {
 		d[i], d[j] = d[j], d[i]
 	}
 
-	return &msg.Message{Peer: m.Peer, Data: d}, nil
+	return msg.New(m.Peer(), d), nil
 }
 
 func newPeer(t *testing.T, id string) *peer.Peer {
@@ -47,11 +47,11 @@ func TestServiceHandler(t *testing.T) {
 		t.Error(err)
 	}
 
-	m1 := &msg.Message{Peer: peer1, Data: d}
+	m1 := msg.New(peer1, d)
 	s.Incoming <- m1
 	m2 := <-s.Outgoing
 
-	d, rid, err := unwrapData(m2.Data)
+	d, rid, err := unwrapData(m2.Data())
 	if err != nil {
 		t.Error(err)
 	}
@@ -85,14 +85,14 @@ func TestServiceRequest(t *testing.T) {
 		}
 	}()
 
-	m1 := &msg.Message{Peer: peer1, Data: []byte("beep")}
+	m1 := msg.New(peer1, []byte("beep"))
 	m2, err := s1.SendRequest(ctx, m1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if !bytes.Equal(m2.Data, []byte("peeb")) {
-		t.Errorf("service handler data incorrect: %v != %v", m2.Data, "oof")
+	if !bytes.Equal(m2.Data(), []byte("peeb")) {
+		t.Errorf("service handler data incorrect: %v != %v", m2.Data(), "oof")
 	}
 }
 
@@ -117,7 +117,7 @@ func TestServiceRequestTimeout(t *testing.T) {
 		}
 	}()
 
-	m1 := &msg.Message{Peer: peer1, Data: []byte("beep")}
+	m1 := msg.New(peer1, []byte("beep"))
 	m2, err := s1.SendRequest(ctx, m1)
 	if err == nil || m2 != nil {
 		t.Error("should've timed out")
