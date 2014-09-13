@@ -4,7 +4,6 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
@@ -158,14 +157,14 @@ func (bs *BitSwap) handleMessages() {
 	for {
 		select {
 		case mes := <-bs.meschan.Incoming:
-			pmes := new(PBMessage)
-			err := proto.Unmarshal(mes.Data, pmes)
+			bsmsg, err := FromSwarm(*mes)
 			if err != nil {
 				u.PErr("%v\n", err)
 				continue
 			}
-			if pmes.Blocks != nil {
-				for _, blkData := range pmes.Blocks {
+
+			if bsmsg.Blocks() != nil {
+				for _, blkData := range bsmsg.Blocks() {
 					blk, err := blocks.NewBlock(blkData)
 					if err != nil {
 						u.PErr("%v\n", err)
@@ -175,8 +174,8 @@ func (bs *BitSwap) handleMessages() {
 				}
 			}
 
-			if pmes.Wantlist != nil {
-				for _, want := range pmes.Wantlist {
+			if bsmsg.Wantlist() != nil {
+				for _, want := range bsmsg.Wantlist() {
 					go bs.peerWantsBlock(mes.Peer, want)
 				}
 			}

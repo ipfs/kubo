@@ -11,6 +11,8 @@ import (
 )
 
 type BitSwapMessage interface {
+	Wantlist() []string
+	Blocks() [][]byte
 	AppendWanted(k u.Key)
 	AppendBlock(b *blocks.Block)
 	Exportable
@@ -33,6 +35,16 @@ func newMessageFromProto(pb PBMessage) *message {
 
 func newMessage() *message {
 	return new(message)
+}
+
+// TODO(brian): convert these into keys
+func (m *message) Wantlist() []string {
+	return m.pb.Wantlist
+}
+
+// TODO(brian): convert these into blocks
+func (m *message) Blocks() [][]byte {
+	return m.pb.Blocks
 }
 
 func (m *message) AppendWanted(k u.Key) {
