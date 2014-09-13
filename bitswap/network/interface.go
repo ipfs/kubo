@@ -15,6 +15,7 @@ type Sender interface {
 
 // TODO(brian): consider returning a NetMessage
 type Receiver interface {
-	ReceiveMessage(ctx context.Context, incoming bsmsg.BitSwapMessage) (
+	ReceiveMessage(
+		ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 		outgoing bsmsg.BitSwapMessage, destination *peer.Peer, err error)
 }
