@@ -34,15 +34,12 @@ func (m *message) Data() []byte {
 }
 
 // FromObject creates a message from a protobuf-marshallable message.
-func FromObject(p *peer.Peer, data proto.Message) (*message, error) {
+func FromObject(p *peer.Peer, data proto.Message) (NetMessage, error) {
 	bytes, err := proto.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	return &message{
-		peer: p,
-		data: bytes,
-	}, nil
+	return New(p, bytes), nil
 }
 
 // Pipe objects represent a bi-directional message channel.
