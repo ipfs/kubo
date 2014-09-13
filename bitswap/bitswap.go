@@ -6,6 +6,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
+	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
@@ -119,7 +120,7 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
 	blockChannel := bs.notifications.Subscribe(ctx, k)
 
-	message := newMessage()
+	message := bsmsg.New()
 	message.AppendWanted(k)
 	bs.meschan.Outgoing <- message.ToSwarm(p)
 
@@ -148,7 +149,7 @@ func (bs *BitSwap) HaveBlock(blk *blocks.Block) error {
 }
 
 func (bs *BitSwap) SendBlock(p *peer.Peer, b *blocks.Block) {
-	message := newMessage()
+	message := bsmsg.New()
 	message.AppendBlock(b)
 	bs.meschan.Outgoing <- message.ToSwarm(p)
 }
@@ -157,7 +158,7 @@ func (bs *BitSwap) handleMessages() {
 	for {
 		select {
 		case mes := <-bs.meschan.Incoming:
-			bsmsg, err := FromSwarm(*mes)
+			bsmsg, err := bsmsg.FromSwarm(*mes)
 			if err != nil {
 				u.PErr("%v\n", err)
 				continue
@@ -250,7 +251,7 @@ func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
 }
 
 func (bs *BitSwap) SendWantList(wl KeySet) error {
-	message := newMessage()
+	message := bsmsg.New()
 	for k, _ := range wl {
 		message.AppendWanted(k)
 	}
