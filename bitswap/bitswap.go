@@ -283,8 +283,8 @@ func (bs *BitSwap) SetStrategy(sf StrategyFunc) {
 	}
 }
 
-func (r *BitSwap) ReceiveMessage(
-	ctx context.Context, incoming bsmsg.BitSwapMessage) (
+func (bs *BitSwap) ReceiveMessage(
+	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	bsmsg.BitSwapMessage, *peer.Peer, error) {
 	return nil, nil, errors.New("TODO implement")
 }

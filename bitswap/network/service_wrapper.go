@@ -31,7 +31,7 @@ func (wrapper *handlerWrapper) HandleMessage(
 		return nil, err
 	}
 
-	bsmsg, p, err := wrapper.bitswapDelegate.ReceiveMessage(ctx, received)
+	bsmsg, p, err := wrapper.bitswapDelegate.ReceiveMessage(ctx, incoming.Peer(), received)
 	if err != nil {
 		return nil, err
 	}
