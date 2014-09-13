@@ -6,6 +6,8 @@ import (
 	"net"
 	"sync"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ident "github.com/jbenet/go-ipfs/identify"
@@ -162,6 +164,7 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 }
 
 // Handle getting ID from this peer and adding it into the map
+// TODO(brian): impl a cancellable context
 func (s *Swarm) handleNewConn(nconn net.Conn) {
 	p := new(peer.Peer)
 
@@ -172,7 +175,7 @@ func (s *Swarm) handleNewConn(nconn net.Conn) {
 	}
 	newConnChans(conn)
 
-	sin, sout, err := ident.Handshake(s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+	sin, sout, err := ident.Handshake(context.Background(), s.local, p, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
 		u.PErr("%v\n", err.Error())
 		conn.Close()
@@ -426,8 +429,10 @@ func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error
 }
 
 // Handle performing a handshake on a new connection and ensuring proper forward communication
+// TODO(brian): impl a cancellable context
 func (s *Swarm) handleDialedCon(conn *Conn) error {
-	sin, sout, err := ident.Handshake(s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
+
+	sin, sout, err := ident.Handshake(context.Background(), s.local, conn.Peer, conn.Incoming.MsgChan, conn.Outgoing.MsgChan)
 	if err != nil {
 		return err
 	}

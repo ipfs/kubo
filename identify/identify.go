@@ -16,6 +16,8 @@ import (
 	"crypto/sha512"
 	"hash"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -33,7 +35,7 @@ var ErrUnsupportedKeyType = errors.New("unsupported key type")
 
 // Performs initial communication with this peer to share node ID's and
 // initiate communication.  (secureIn, secureOut, error)
-func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
+func Handshake(ctx context.Context, self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
 
 	encodedHello, err := encodedProtoHello(self)
 	if err != nil {
@@ -84,7 +86,7 @@ func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-
 	}
 
 	var handshake bytes.Buffer // Gather corpus to sign.
-	handshake.Write(encoded)
+	handshake.Write(encodedHello)
 	handshake.Write(resp)
 	handshake.Write(epubkey)
 
@@ -118,7 +120,7 @@ func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-
 	if err != nil {
 		return nil, nil, err
 	}
-	_, err = theirHandshake.Write(encoded)
+	_, err = theirHandshake.Write(encodedHello)
 	if err != nil {
 		return nil, nil, err
 	}
