@@ -34,17 +34,14 @@ var ErrUnsupportedKeyType = errors.New("unsupported key type")
 // Performs initial communication with this peer to share node ID's and
 // initiate communication.  (secureIn, secureOut, error)
 func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
-	h, err := genRandHello(self)
+
+	encodedHello, err := encodedProtoHello(self)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	encoded, err := proto.Marshal(h)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	out <- encoded
+	// TODO(brian): select on |ctx|
+	out <- encodedHello
 
 	// Parse their Hello packet and generate an Exchange packet.
 	// Exchange = (EphemeralPubKey, Signature)
@@ -321,4 +318,13 @@ func genRandHello(self *peer.Peer) (*Hello, error) {
 	hello.Ciphers = &SupportedCiphers
 	hello.Hashes = &SupportedHashes
 	return hello, nil
+}
+
+func encodedProtoHello(self *peer.Peer) ([]byte, error) {
+	h, err := genRandHello(self)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(h)
 }
