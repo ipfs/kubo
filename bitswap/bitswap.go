@@ -1,12 +1,14 @@
 package bitswap
 
 import (
+	"errors"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
@@ -31,6 +33,7 @@ type BitSwap struct {
 	peer *peer.Peer
 
 	// net holds the connections to all peers.
+	sender  bsnet.Sender
 	net     swarm.Network
 	meschan *swarm.Chan
 
@@ -61,17 +64,22 @@ type BitSwap struct {
 
 // NewBitSwap creates a new BitSwap instance. It does not check its parameters.
 func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+	receiver := receiver{}
+	sender := bsnet.NewBSNetService(context.Background(), &receiver)
 	bs := &BitSwap{
-		peer:          p,
-		net:           net,
-		datastore:     d,
-		partners:      LedgerMap{},
-		wantList:      KeySet{},
-		routing:       r.(*dht.IpfsDHT),
+		peer:      p,
+		net:       net,
+		datastore: d,
+		partners:  LedgerMap{},
+		wantList:  KeySet{},
+		routing:   r.(*dht.IpfsDHT),
+		// TODO(brian): replace |meschan| with |sender| in BitSwap impl
 		meschan:       net.GetChannel(swarm.PBWrapper_BITSWAP),
+		sender:        sender,
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
 	}
+	receiver.Delegate(bs)
 
 	go bs.handleMessages()
 	return bs
@@ -273,4 +281,10 @@ func (bs *BitSwap) SetStrategy(sf StrategyFunc) {
 	for _, ledger := range bs.partners {
 		ledger.Strategy = sf
 	}
+}
+
+func (r *BitSwap) ReceiveMessage(
+	ctx context.Context, incoming bsmsg.BitSwapMessage) (
+	bsmsg.BitSwapMessage, *peer.Peer, error) {
+	return nil, nil, errors.New("TODO implement")
 }
