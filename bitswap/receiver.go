@@ -16,12 +16,12 @@ type receiver struct {
 }
 
 func (r *receiver) ReceiveMessage(
-	ctx context.Context, incoming bsmsg.BitSwapMessage) (
+	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	bsmsg.BitSwapMessage, *peer.Peer, error) {
 	if r.delegate == nil {
 		return nil, nil, nil
 	}
-	return r.delegate.ReceiveMessage(ctx, incoming)
+	return r.delegate.ReceiveMessage(ctx, sender, incoming)
 }
 
 func (r *receiver) Delegate(delegate bsnet.Receiver) {
