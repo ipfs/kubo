@@ -31,30 +31,6 @@ var SupportedHashes = "SHA256,SHA512,SHA1"
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
 
-func genRandHello(self *peer.Peer) (*Hello, error) {
-	hello := new(Hello)
-
-	// Generate and send Hello packet.
-	// Hello = (rand, PublicKey, Supported)
-	nonce := make([]byte, 16)
-	_, err := rand.Read(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	myPubKey, err := self.PubKey.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	hello.Rand = nonce
-	hello.Pubkey = myPubKey
-	hello.Exchanges = &SupportedExchanges
-	hello.Ciphers = &SupportedCiphers
-	hello.Hashes = &SupportedHashes
-	return hello, nil
-}
-
 // Performs initial communication with this peer to share node ID's and
 // initiate communication.  (secureIn, secureOut, error)
 func Handshake(self, remote *peer.Peer, in <-chan []byte, out chan<- []byte) (<-chan []byte, chan<- []byte, error) {
@@ -321,4 +297,28 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 	}
 
 	return "", errors.New("No algorithms in common!")
+}
+
+func genRandHello(self *peer.Peer) (*Hello, error) {
+	hello := new(Hello)
+
+	// Generate and send Hello packet.
+	// Hello = (rand, PublicKey, Supported)
+	nonce := make([]byte, 16)
+	_, err := rand.Read(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	myPubKey, err := self.PubKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	hello.Rand = nonce
+	hello.Pubkey = myPubKey
+	hello.Exchanges = &SupportedExchanges
+	hello.Ciphers = &SupportedCiphers
+	hello.Hashes = &SupportedHashes
+	return hello, nil
 }
