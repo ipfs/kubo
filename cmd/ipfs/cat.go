@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
@@ -29,6 +28,11 @@ func catCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
+	expanded, err := u.ExpandPathnames(inp)
+	if err != nil {
+		return err
+	}
+
 	com := daemon.NewCommand()
 	com.Command = "cat"
 	com.Args = inp
@@ -40,10 +44,7 @@ func catCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		err = commands.Cat(n, com.Args, com.Opts, os.Stdout)
-		if err != nil {
-			fmt.Println(err)
-		}
+		return commands.Cat(n, com.Args, com.Opts, os.Stdout)
 	}
 	return nil
 }

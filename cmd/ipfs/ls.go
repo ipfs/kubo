@@ -43,10 +43,7 @@ func lsCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		err = commands.Ls(n, com.Args, com.Opts, os.Stdout)
-		if err != nil {
-			fmt.Println(err)
-		}
+		return commands.Ls(n, com.Args, com.Opts, os.Stdout)
 	}
 
 	return nil

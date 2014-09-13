@@ -51,10 +51,7 @@ func addCmd(c *commander.Command, inp []string) error {
 			return err
 		}
 
-		err = commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
-		if err != nil {
-			fmt.Println(err)
-		}
+		return commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
 	}
 	return nil
 }
