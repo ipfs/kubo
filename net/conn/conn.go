@@ -6,6 +6,8 @@ import (
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
+	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -25,8 +27,7 @@ type Conn struct {
 	Closed   chan bool
 	Outgoing *msgio.Chan
 	Incoming *msgio.Chan
-	secIn    <-chan []byte
-	secOut   chan<- []byte
+	Secure   *spipe.SecurePipe
 }
 
 // Map maps Keys (Peer.IDs) to Connections.

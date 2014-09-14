@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	ident "github.com/jbenet/go-ipfs/identify"
+	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	u "github.com/jbenet/go-ipfs/util"
@@ -103,10 +103,9 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 
 	u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
 
-	// handshake TODO(jbenet) enable handshake
-	// if err := s.connHandshake(c); err != nil {
-	// 	return fmt.Errorf("Conn handshake error: %v", err)
-	// }
+	if err := s.connSecure(c); err != nil {
+		return fmt.Errorf("Conn securing error: %v", err)
+	}
 
 	// add to conns
 	s.connsLock.Lock()
@@ -122,12 +121,23 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	return nil
 }
 
-// connHandshake runs the handshake with the remote connection.
-func (s *Swarm) connHandshake(c *conn.Conn) error {
+// connSecure setups a secure remote connection.
+func (s *Swarm) connSecure(c *conn.Conn) error {
 
-	//TODO(jbenet) this Handshake stuff should be moved elsewhere.
-	// needs cleanup. needs context. use msg.Pipe.
-	return ident.Handshake(s.local, c.Peer, c.Incoming.MsgChan, c.Outgoing.MsgChan)
+	sp, err := spipe.NewSecurePipe(s.ctx, 10, s.local, c.Peer)
+	if err != nil {
+		return err
+	}
+
+	err = sp.Wrap(s.ctx, spipe.Duplex{
+		In:  c.Incoming.MsgChan,
+		Out: c.Outgoing.MsgChan,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
