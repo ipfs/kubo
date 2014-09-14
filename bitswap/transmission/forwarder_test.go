@@ -1,4 +1,4 @@
-package bitswap
+package transmission
 
 import (
 	"testing"
@@ -9,6 +9,8 @@ import (
 )
 
 func TestDoesntPanicIfDelegateNotPresent(t *testing.T) {
-	r := receiver{}
-	r.ReceiveMessage(context.Background(), &peer.Peer{}, bsmsg.New())
+	fwdr := Forwarder{}
+	fwdr.ReceiveMessage(context.Background(), &peer.Peer{}, bsmsg.New())
 }
+
+// TODO(brian): func TestForwardsMessageToDelegate(t *testing.T)

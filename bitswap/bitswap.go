@@ -64,7 +64,7 @@ type BitSwap struct {
 
 // NewBitSwap creates a new BitSwap instance. It does not check its parameters.
 func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
-	receiver := receiver{}
+	receiver := tx.Forwarder{}
 	sender := tx.NewBSNetService(context.Background(), &receiver)
 	bs := &BitSwap{
 		peer:      p,
