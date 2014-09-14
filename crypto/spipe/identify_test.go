@@ -1,4 +1,4 @@
-package identify
+package spipe
 
 import (
 	"testing"
