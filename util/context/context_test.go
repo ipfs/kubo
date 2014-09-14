@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	goctx "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 func TestChildLogsErrorThenParentCancels(t *testing.T) {
@@ -16,7 +18,8 @@ func TestChildLogsErrorThenParentCancels(t *testing.T) {
 	errorReceivingCtx, errs := WithErrorLog(Background())
 	middlemanA, cancelFunc := WithCancel(errorReceivingCtx)
 	middlemanB, _ := WithCancel(middlemanA)
-	errorReporter, _ := WithCancel(middlemanB)
+	middlemanC, _ := goctx.WithCancel(middlemanB) // the original go.net.context
+	errorReporter, _ := WithCancel(middlemanC)
 
 	expected := errors.New("err from errorReporter")
 	var goroutines sync.WaitGroup
