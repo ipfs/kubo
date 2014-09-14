@@ -99,7 +99,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		route.Start()
 
 		// TODO(brian): pass a context to bs for its async operations
-		swap = bitswap.NewBitSwap(local, net, d, route)
+		swap = bitswap.NewBitSwap(local, d, route)
 		swap.SetStrategy(bitswap.YesManStrategy)
 
 		// TODO(brian): pass a context to initConnections
