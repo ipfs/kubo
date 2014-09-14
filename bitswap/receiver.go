@@ -3,7 +3,7 @@ package bitswap
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
-	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
+	tx "github.com/jbenet/go-ipfs/bitswap/transmission"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
@@ -12,7 +12,7 @@ import (
 // as a constructor argument to BitSwap. However, the handler is BitSwap!
 // Hence, this receiver.
 type receiver struct {
-	delegate bsnet.Receiver
+	delegate tx.Receiver
 }
 
 func (r *receiver) ReceiveMessage(
@@ -24,6 +24,6 @@ func (r *receiver) ReceiveMessage(
 	return r.delegate.ReceiveMessage(ctx, sender, incoming)
 }
 
-func (r *receiver) Delegate(delegate bsnet.Receiver) {
+func (r *receiver) Delegate(delegate tx.Receiver) {
 	r.delegate = delegate
 }
