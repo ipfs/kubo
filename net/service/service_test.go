@@ -8,8 +8,8 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 
-	context "code.google.com/p/go.net/context"
-	mh "github.com/jbenet/go-multihash"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 // ReverseHandler reverses all Data it receives and sends it back.

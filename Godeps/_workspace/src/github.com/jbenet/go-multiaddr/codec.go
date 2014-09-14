@@ -66,12 +66,14 @@ func bytesToString(b []byte) (ret string, err error) {
 func addressStringToBytes(p *Protocol, s string) []byte {
 	switch p.Code {
 
-	// ipv4,6
-	case 4, 41:
+	case P_IP4: // ipv4
 		return net.ParseIP(s).To4()
 
+	case P_IP6: // ipv6
+		return net.ParseIP(s).To16()
+
 	// tcp udp dccp sctp
-	case 6, 17, 33, 132:
+	case P_TCP, P_UDP, P_DCCP, P_SCTP:
 		b := make([]byte, 2)
 		i, err := strconv.Atoi(s)
 		if err == nil {
@@ -87,11 +89,11 @@ func addressBytesToString(p *Protocol, b []byte) string {
 	switch p.Code {
 
 	// ipv4,6
-	case 4, 41:
+	case P_IP4, P_IP6:
 		return net.IP(b).String()
 
 	// tcp udp dccp sctp
-	case 6, 17, 33, 132:
+	case P_TCP, P_UDP, P_DCCP, P_SCTP:
 		i := binary.BigEndian.Uint16(b)
 		return strconv.Itoa(int(i))
 	}

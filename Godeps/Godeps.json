@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3.1",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
@@ -18,6 +18,11 @@
 			"ImportPath": "code.google.com/p/go.crypto/sha3",
 			"Comment": "null-219",
 			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.net/context",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
 		},
 		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
@@ -55,8 +60,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",
-			"Comment": "0.1.2",
-			"Rev": "b90678896b52c3e5a4c8176805c6facc3fe3eb82"
+			"Comment": "0.1.2-2-g0624ab3",
+			"Rev": "0624ab3bf754d013585c5d07f0100ba34901a689"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
