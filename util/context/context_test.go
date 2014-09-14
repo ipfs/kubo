@@ -58,22 +58,26 @@ func TestErrsDoNotLeakUpTree(t *testing.T) {
 
 func TestChildWithErrorLogCancelsWhenParentTimesOut(t *testing.T) {
 	parent, _ := WithTimeout(Background(), time.Nanosecond)
-	ctx, errs := WithErrorLog(parent)
-	select {
-	case <-ctx.Done():
-	case <-errs:
+	if !errorLoggingChildCancelsWhenParentCancels(parent) {
 		t.Fail()
 	}
 }
 
 func TestDeadline(t *testing.T) {
 	parent, _ := WithDeadline(Background(), time.Now())
+	if !errorLoggingChildCancelsWhenParentCancels(parent) {
+		t.Fail()
+	}
+}
+
+func errorLoggingChildCancelsWhenParentCancels(parent Context) bool {
 	ctx, errs := WithErrorLog(parent)
 	select {
 	case <-ctx.Done():
+		return true
 	case <-errs:
-		t.Fail()
 	}
+	return false
 }
 
 func TestWithValue(t *testing.T) {
