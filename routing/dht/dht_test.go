@@ -6,7 +6,7 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	identify "github.com/jbenet/go-ipfs/identify"
+	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -35,7 +35,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 		}
 		p.PubKey = pk
 		p.PrivKey = sk
-		id, err := identify.IDFromPubKey(pk)
+		id, err := spipe.IDFromPubKey(pk)
 		if err != nil {
 			panic(err)
 		}
@@ -67,7 +67,7 @@ func makePeer(addr *ma.Multiaddr) *peer.Peer {
 	}
 	p.PrivKey = sk
 	p.PubKey = pk
-	id, err := identify.IDFromPubKey(pk)
+	id, err := spipe.IDFromPubKey(pk)
 	if err != nil {
 		panic(err)
 	}
