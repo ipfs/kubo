@@ -25,6 +25,11 @@ func Background() Context {
 	return ctx
 }
 
+func TODO() Context {
+	ctx, _ := wrap(goctx.TODO(), ignoredFunc)
+	return ctx
+}
+
 // WithErrorLog derives a new logging context. The returned error channel
 // receives errors from the returned context as well as any other descendant
 // contexts derived from the returned context. However, if a descendant context

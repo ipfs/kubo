@@ -91,6 +91,16 @@ func TestChildGetsValuesFromParentContext(t *testing.T) {
 	}
 }
 
+func TestInheritFromTodoContext(t *testing.T) {
+	todoCtx := TODO()
+	cancellableCtx, cancelFunc := WithCancel(todoCtx)
+	cancelFunc()
+	if !errorLoggingChildCancelsWhenParentCancels(cancellableCtx) {
+		t.Fail()
+	}
+
+}
+
 func errorLoggingChildCancelsWhenParentCancels(parent Context) bool {
 	ctx, errs := WithErrorLog(parent)
 	select {
