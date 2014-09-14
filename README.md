@@ -1,4 +1,4 @@
-# ipfs implementation in go.
+# ipfs implementation in go. [![GoDoc](https://godoc.org/github.com/jbenet/go-ipfs?status.svg)](https://godoc.org/github.com/jbenet/go-ipfs)
 
 See: https://github.com/jbenet/ipfs
 
