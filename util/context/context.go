@@ -19,41 +19,44 @@ type Context interface {
 type CancelFunc goctx.CancelFunc
 
 func Background() Context {
-	return wrap(goctx.Background())
+	ctx, _ := wrap(goctx.Background(), ignoredFunc)
+	return ctx
 }
 
 func WithCancel(
 	parent goctx.Context) (Context, CancelFunc) {
 
-	ctx, cancelFunc := goctx.WithCancel(parent)
-	return wrap(ctx), CancelFunc(cancelFunc)
+	return wrap(goctx.WithCancel(parent))
 }
 
 func WithDeadline(
 	parent goctx.Context, deadline time.Time) (Context, CancelFunc) {
 
-	ctx, cancelFunc := goctx.WithDeadline(parent, deadline)
-	return wrap(ctx), CancelFunc(cancelFunc)
+	return wrap(goctx.WithDeadline(parent, deadline))
 }
 
 func WithTimeout(
 	parent goctx.Context, timeout time.Duration) (Context, CancelFunc) {
 
-	ctx, cancelFunc := goctx.WithTimeout(parent, timeout)
-	return wrap(ctx), CancelFunc(cancelFunc)
+	return wrap(goctx.WithTimeout(parent, timeout))
 }
 
 func WithValue(
 	parent goctx.Context, key interface{}, val interface{}) Context {
 
-	ctx := goctx.WithValue(parent, key, val)
-	return wrap(ctx)
+	ctx, _ := wrap(goctx.WithValue(parent, key, val), ignoredFunc)
+	return ctx
 }
 
-func wrap(ctx goctx.Context) *wrappedContext {
+// wrap() wraps |ctx| to extend its interface and turns |f| into a CancelFunc
+func wrap(ctx goctx.Context, f goctx.CancelFunc) (*wrappedContext, CancelFunc) {
 	w := &wrappedContext{Context: ctx}
-	return w
+	return w, CancelFunc(f)
 }
+
+// ignoredFunc is a placeholder value to be used in calls to wrap (when the
+// goctx factory method doesn't include a cancelFunc)
+var ignoredFunc = func() {}
 
 // wrappedContext implements this package's Context interface
 type wrappedContext struct {
