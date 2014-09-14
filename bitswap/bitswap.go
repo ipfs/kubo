@@ -192,15 +192,14 @@ func (bs *BitSwap) handleMessages() {
 
 // peerWantsBlock will check if we have the block in question,
 // and then if we do, check the ledger for whether or not we should send it.
-func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
-	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), u.Key(want).Pretty())
+func (bs *BitSwap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
+	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), wanted.Pretty())
 	ledger := bs.getLedger(p)
 
-	dsk := ds.NewKey(want)
-	blk_i, err := bs.datastore.Get(dsk)
+	blk_i, err := bs.datastore.Get(wanted.DatastoreKey())
 	if err != nil {
 		if err == ds.ErrNotFound {
-			ledger.Wants(u.Key(want))
+			ledger.Wants(wanted)
 		}
 		u.PErr("datastore get error: %v\n", err)
 		return
