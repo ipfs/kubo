@@ -16,28 +16,34 @@ type Context interface {
 	LogError(error)
 }
 
+type CancelFunc goctx.CancelFunc
+
+func Background() Context {
+	return wrap(goctx.Background())
+}
+
 func WithCancel(
-	parent goctx.Context) (Context, goctx.CancelFunc) {
+	parent goctx.Context) (Context, CancelFunc) {
 
 	ctx, cancelFunc := goctx.WithCancel(parent)
 	w := wrap(ctx)
-	return w, cancelFunc
+	return w, CancelFunc(cancelFunc)
 }
 
 func WithDeadline(
-	parent goctx.Context, deadline time.Time) (Context, goctx.CancelFunc) {
+	parent goctx.Context, deadline time.Time) (Context, CancelFunc) {
 
 	ctx, cancelFunc := goctx.WithDeadline(parent, deadline)
 	w := wrap(ctx)
-	return w, cancelFunc
+	return w, CancelFunc(cancelFunc)
 }
 
 func WithTimeout(
-	parent goctx.Context, timeout time.Duration) (Context, goctx.CancelFunc) {
+	parent goctx.Context, timeout time.Duration) (Context, CancelFunc) {
 
 	ctx, cancelFunc := goctx.WithTimeout(parent, timeout)
 	w := wrap(ctx)
-	return w, cancelFunc
+	return w, CancelFunc(cancelFunc)
 }
 
 func WithValue(
