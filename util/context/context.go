@@ -72,6 +72,9 @@ func WithValue(
 	return ctx
 }
 
+// ctxGeneratorFuncs are used to make it possible to share the deriveFrom
+// function despite the fact that each public factory method passes different
+// parameters. Thus ctxGeneratorFuncs are best implemented as closures.
 type ctxGeneratorFunc func() (goctx.Context, goctx.CancelFunc)
 
 // deriveFrom() derives a new child context from |parent| using the generator
