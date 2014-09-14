@@ -75,7 +75,7 @@ type Request struct {
 	PeerID peer.ID
 
 	// Response is the channel of incoming responses.
-	Response chan *msg.Message
+	Response chan msg.NetMessage
 }
 
 // NewRequest creates a request for given peer.ID
@@ -88,7 +88,7 @@ func NewRequest(pid peer.ID) (*Request, error) {
 	return &Request{
 		ID:       id,
 		PeerID:   pid,
-		Response: make(chan *msg.Message, 1),
+		Response: make(chan msg.NetMessage, 1),
 	}, nil
 }
 

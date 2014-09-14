@@ -1,4 +1,4 @@
-package bitswap
+package message
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 func TestAppendWanted(t *testing.T) {
 	const str = "foo"
-	m := newMessage()
+	m := New()
 	m.AppendWanted(u.Key(str))
 
 	if !contains(m.ToProto().GetWantlist(), str) {
@@ -37,7 +37,7 @@ func TestAppendBlock(t *testing.T) {
 	strs = append(strs, "Celeritas")
 	strs = append(strs, "Incendia")
 
-	m := newMessage()
+	m := New()
 	for _, str := range strs {
 		block, err := blocks.NewBlock([]byte(str))
 		if err != nil {
@@ -57,7 +57,7 @@ func TestAppendBlock(t *testing.T) {
 
 func TestCopyProtoByValue(t *testing.T) {
 	const str = "foo"
-	m := newMessage()
+	m := New()
 	protoBeforeAppend := m.ToProto()
 	m.AppendWanted(u.Key(str))
 	if contains(protoBeforeAppend.GetWantlist(), str) {

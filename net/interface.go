@@ -26,7 +26,7 @@ type Network interface {
 	GetProtocols() *mux.ProtocolMap
 
 	// SendMessage sends given Message out
-	SendMessage(*msg.Message) error
+	SendMessage(msg.NetMessage) error
 
 	// Close terminates all network operation
 	Close() error

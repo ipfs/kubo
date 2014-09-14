@@ -153,7 +153,7 @@ func (s *Swarm) fanOut() {
 			}
 
 			s.connsLock.RLock()
-			conn, found := s.conns[msg.Peer.Key()]
+			conn, found := s.conns[msg.Peer().Key()]
 			s.connsLock.RUnlock()
 
 			if !found {
@@ -164,7 +164,7 @@ func (s *Swarm) fanOut() {
 			}
 
 			// queue it in the connection's buffer
-			conn.Outgoing.MsgChan <- msg.Data
+			conn.Outgoing.MsgChan <- msg.Data()
 		}
 	}
 }
@@ -189,7 +189,7 @@ func (s *Swarm) fanIn(c *conn.Conn) {
 				goto out
 			}
 
-			msg := &msg.Message{Peer: c.Peer, Data: data}
+			msg := msg.New(c.Peer, data)
 			s.Incoming <- msg
 		}
 	}

@@ -1,11 +1,15 @@
 package bitswap
 
 import (
+	"errors"
 	"time"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
+	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
+	tx "github.com/jbenet/go-ipfs/bitswap/transmission"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -29,6 +33,7 @@ type BitSwap struct {
 	peer *peer.Peer
 
 	// net holds the connections to all peers.
+	sender  tx.Sender
 	net     swarm.Network
 	meschan *swarm.Chan
 
@@ -38,7 +43,7 @@ type BitSwap struct {
 	// routing interface for communication
 	routing *dht.IpfsDHT
 
-	listener *swarm.MessageListener
+	notifications notifications.PubSub
 
 	// partners is a map of currently active bitswap relationships.
 	// The Ledger has the peer.ID, and the peer connection works through net.
@@ -59,6 +64,8 @@ type BitSwap struct {
 
 // NewBitSwap creates a new BitSwap instance. It does not check its parameters.
 func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+	receiver := tx.Forwarder{}
+	sender := tx.NewBSNetService(context.Background(), &receiver)
 	bs := &BitSwap{
 		peer:      p,
 		net:       net,
@@ -66,10 +73,13 @@ func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsR
 		partners:  LedgerMap{},
 		wantList:  KeySet{},
 		routing:   r.(*dht.IpfsDHT),
-		meschan:   net.GetChannel(swarm.PBWrapper_BITSWAP),
-		haltChan:  make(chan struct{}),
-		listener:  swarm.NewMessageListener(),
+		// TODO(brian): replace |meschan| with |sender| in BitSwap impl
+		meschan:       net.GetChannel(swarm.PBWrapper_BITSWAP),
+		sender:        sender,
+		haltChan:      make(chan struct{}),
+		notifications: notifications.New(),
 	}
+	receiver.Delegate(bs)
 
 	go bs.handleMessages()
 	return bs
@@ -83,7 +93,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	tleft := timeout - time.Now().Sub(begin)
 	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
 
-	valchan := make(chan []byte)
+	blockChannel := make(chan blocks.Block)
 	after := time.After(tleft)
 
 	// TODO: when the data is received, shut down this for loop ASAP
@@ -96,7 +106,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 					return
 				}
 				select {
-				case valchan <- blk:
+				case blockChannel <- *blk:
 				default:
 				}
 			}(p)
@@ -104,31 +114,30 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	}()
 
 	select {
-	case blkdata := <-valchan:
-		close(valchan)
-		return blocks.NewBlock(blkdata)
+	case block := <-blockChannel:
+		close(blockChannel)
+		return &block, nil
 	case <-after:
 		return nil, u.ErrTimeout
 	}
 }
 
-func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
+func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*blocks.Block, error) {
 	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
 
-	message := newMessage()
-	message.AppendWanted(k)
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	blockChannel := bs.notifications.Subscribe(ctx, k)
 
-	after := time.After(timeout)
-	resp := bs.listener.Listen(string(k), 1, timeout)
+	message := bsmsg.New()
+	message.AppendWanted(k)
 	bs.meschan.Outgoing <- message.ToSwarm(p)
 
-	select {
-	case resp_mes := <-resp:
-		return resp_mes.Data, nil
-	case <-after:
+	block, ok := <-blockChannel
+	if !ok {
 		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
 		return nil, u.ErrTimeout
 	}
+	return &block, nil
 }
 
 // HaveBlock announces the existance of a block to BitSwap, potentially sending
@@ -148,7 +157,7 @@ func (bs *BitSwap) HaveBlock(blk *blocks.Block) error {
 }
 
 func (bs *BitSwap) SendBlock(p *peer.Peer, b *blocks.Block) {
-	message := newMessage()
+	message := bsmsg.New()
 	message.AppendBlock(b)
 	bs.meschan.Outgoing <- message.ToSwarm(p)
 }
@@ -157,29 +166,25 @@ func (bs *BitSwap) handleMessages() {
 	for {
 		select {
 		case mes := <-bs.meschan.Incoming:
-			pmes := new(PBMessage)
-			err := proto.Unmarshal(mes.Data, pmes)
+			bsmsg, err := bsmsg.FromSwarm(*mes)
 			if err != nil {
 				u.PErr("%v\n", err)
 				continue
 			}
-			if pmes.Blocks != nil {
-				for _, blkData := range pmes.Blocks {
-					blk, err := blocks.NewBlock(blkData)
-					if err != nil {
-						u.PErr("%v\n", err)
-						continue
-					}
+
+			if bsmsg.Blocks() != nil {
+				for _, blk := range bsmsg.Blocks() {
 					go bs.blockReceive(mes.Peer, blk)
 				}
 			}
 
-			if pmes.Wantlist != nil {
-				for _, want := range pmes.Wantlist {
+			if bsmsg.Wantlist() != nil {
+				for _, want := range bsmsg.Wantlist() {
 					go bs.peerWantsBlock(mes.Peer, want)
 				}
 			}
 		case <-bs.haltChan:
+			bs.notifications.Shutdown()
 			return
 		}
 	}
@@ -187,15 +192,14 @@ func (bs *BitSwap) handleMessages() {
 
 // peerWantsBlock will check if we have the block in question,
 // and then if we do, check the ledger for whether or not we should send it.
-func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
-	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), u.Key(want).Pretty())
+func (bs *BitSwap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
+	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), wanted.Pretty())
 	ledger := bs.getLedger(p)
 
-	dsk := ds.NewKey(want)
-	blk_i, err := bs.datastore.Get(dsk)
+	blk_i, err := bs.datastore.Get(wanted.DatastoreKey())
 	if err != nil {
 		if err == ds.ErrNotFound {
-			ledger.Wants(u.Key(want))
+			ledger.Wants(wanted)
 		}
 		u.PErr("datastore get error: %v\n", err)
 		return
@@ -221,7 +225,7 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, want string) {
 	}
 }
 
-func (bs *BitSwap) blockReceive(p *peer.Peer, blk *blocks.Block) {
+func (bs *BitSwap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	u.DOut("blockReceive: %s\n", blk.Key().Pretty())
 	err := bs.datastore.Put(ds.NewKey(string(blk.Key())), blk.Data)
 	if err != nil {
@@ -229,11 +233,7 @@ func (bs *BitSwap) blockReceive(p *peer.Peer, blk *blocks.Block) {
 		return
 	}
 
-	mes := &swarm.Message{
-		Peer: p,
-		Data: blk.Data,
-	}
-	bs.listener.Respond(string(blk.Key()), mes)
+	bs.notifications.Publish(blk)
 
 	ledger := bs.getLedger(p)
 	ledger.ReceivedBytes(len(blk.Data))
@@ -253,7 +253,7 @@ func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
 }
 
 func (bs *BitSwap) SendWantList(wl KeySet) error {
-	message := newMessage()
+	message := bsmsg.New()
 	for k, _ := range wl {
 		message.AppendWanted(k)
 	}
@@ -275,4 +275,21 @@ func (bs *BitSwap) SetStrategy(sf StrategyFunc) {
 	for _, ledger := range bs.partners {
 		ledger.Strategy = sf
 	}
+}
+
+func (bs *BitSwap) ReceiveMessage(
+	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
+	bsmsg.BitSwapMessage, *peer.Peer, error) {
+	if incoming.Blocks() != nil {
+		for _, block := range incoming.Blocks() {
+			go bs.blockReceive(sender, block)
+		}
+	}
+
+	if incoming.Wantlist() != nil {
+		for _, want := range incoming.Wantlist() {
+			go bs.peerWantsBlock(sender, want)
+		}
+	}
+	return nil, nil, errors.New("TODO implement")
 }
