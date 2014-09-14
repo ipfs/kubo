@@ -7,7 +7,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 // Handler is an interface that objects must implement in order to handle
