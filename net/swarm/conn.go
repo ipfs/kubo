@@ -103,10 +103,10 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 
 	u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
 
-	// handshake
-	if err := s.connHandshake(c); err != nil {
-		return fmt.Errorf("Conn handshake error: %v", err)
-	}
+	// handshake TODO(jbenet) enable handshake
+	// if err := s.connHandshake(c); err != nil {
+	// 	return fmt.Errorf("Conn handshake error: %v", err)
+	// }
 
 	// add to conns
 	s.connsLock.Lock()

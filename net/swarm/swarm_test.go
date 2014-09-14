@@ -19,7 +19,6 @@ func pingListen(t *testing.T, listener *net.TCPListener, peer *peer.Peer) {
 	for {
 		c, err := listener.Accept()
 		if err == nil {
-			fmt.Println("accepted")
 			go pong(t, c, peer)
 		}
 	}
@@ -78,10 +77,10 @@ func TestSwarm(t *testing.T) {
 	var peers []*peer.Peer
 	var listeners []net.Listener
 	peerNames := map[string]string{
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a30": "/ip4/127.0.0.1/tcp/1234",
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31": "/ip4/127.0.0.1/tcp/2345",
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32": "/ip4/127.0.0.1/tcp/3456",
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33": "/ip4/127.0.0.1/tcp/4567",
+		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34": "/ip4/127.0.0.1/tcp/5678",
 	}
 
 	for k, n := range peerNames {
@@ -103,13 +102,11 @@ func TestSwarm(t *testing.T) {
 		}
 		go pingListen(t, listener.(*net.TCPListener), peer)
 
-		u.POut("wat?\n")
 		_, err = swarm.Dial(peer)
 		if err != nil {
 			t.Fatal("error swarm dialing to peer", err)
 		}
 
-		u.POut("wut?\n")
 		// ok done, add it.
 		peers = append(peers, peer)
 		listeners = append(listeners, listener)
@@ -119,14 +116,12 @@ func TestSwarm(t *testing.T) {
 	for k := 0; k < MsgNum; k++ {
 		for _, p := range peers {
 			swarm.Outgoing <- &msg.Message{Peer: p, Data: []byte("ping")}
-			u.POut("sending ping to %v\n", p)
 		}
 	}
 
 	got := map[u.Key]int{}
 
 	for k := 0; k < (MsgNum * len(peers)); k++ {
-		u.POut("listening for ping...")
 		msg := <-swarm.Incoming
 		if string(msg.Data) != "pong" {
 			t.Error("unexpected conn output", msg.Data)
@@ -146,7 +141,6 @@ func TestSwarm(t *testing.T) {
 		}
 	}
 
-	fmt.Println("closing")
 	swarm.Close()
 	for _, listener := range listeners {
 		listener.(*net.TCPListener).Close()
