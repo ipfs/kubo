@@ -86,7 +86,7 @@ func (n *IpfsNetwork) GetProtocols() *mux.ProtocolMap {
 }
 
 // SendMessage sends given Message out
-func (n *IpfsNetwork) SendMessage(m *msg.Message) error {
+func (n *IpfsNetwork) SendMessage(m msg.NetMessage) error {
 	n.swarm.Outgoing <- m
 	return nil
 }
