@@ -8,21 +8,26 @@ import (
 )
 
 func TestChildLogsErrorThenParentCancels(t *testing.T) {
-	loggingCtx, errs := WithErrorLog(Background())
-	child, cancelFunc := WithCancel(loggingCtx)
-	grandchild, _ := WithCancel(child)
-	greatgrandchild, _ := WithCancel(grandchild)
+	// This tests two behaviors:
+	// 1. the errorReporter can send errors all the way back up the tree.
+	// 2. the errorReporter receives a cancellation signal when a middleman
+	// sends a cancellation signal
+	// TODO(brian): split this into two separate tests
+	errorReceivingCtx, errs := WithErrorLog(Background())
+	middlemanA, cancelFunc := WithCancel(errorReceivingCtx)
+	middlemanB, _ := WithCancel(middlemanA)
+	errorReporter, _ := WithCancel(middlemanB)
 
-	expected := errors.New("err from greatgrandchild")
+	expected := errors.New("err from errorReporter")
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		greatgrandchild.LogError(expected) // 0)
-		<-greatgrandchild.Done()           // 3) wait for cancelFunc()
-		wg.Done()                          // 4)
+		errorReporter.LogError(expected) // 0)
+		<-errorReporter.Done()           // 3) wait for cancelFunc()
+		wg.Done()                        // 4)
 	}()
 
-	received := <-errs // 1) ensure received greatgrandchild's err
+	received := <-errs // 1) ensure received errorReporter's err
 	cancelFunc()       // 2)
 	wg.Wait()          // 5) ensure child received cancellation signal
 
