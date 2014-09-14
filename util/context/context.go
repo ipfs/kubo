@@ -6,8 +6,6 @@ import (
 	goctx "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-// Context is a drop-in replacement for the go.net context. It adds error
-// reporting and general logging functionality.
 // TODO(brian): add logging
 type Context interface {
 	goctx.Context
@@ -17,26 +15,28 @@ type Context interface {
 	LogError(error)
 }
 
-// CancelFunc is the same as go.net.context.CancelFunc
+// A CancelFunc tells an operation to abandon its work.
 type CancelFunc goctx.CancelFunc
 
-// Background() simply wraps go.net.context.Background()
+// Background returns a non-nil, empty Context. It is never canceled, has no
+// values, and has no deadline.
 func Background() Context {
 	ctx, _ := wrap(goctx.Background(), ignoredFunc)
 	return ctx
 }
 
-// WithErrorLog derives a new logging context from |parent|. The returned error
-// channel receives errors from the returned context as well as any other
-// descendant contexts derived from the returned context. However, if a
-// descendant context |d| is derived using WithErrorLog, then the error channel
-// associated with |d| will capture errors for |d| and contexts derived from |d|.
+// WithErrorLog derives a new logging context. The returned error channel
+// receives errors from the returned context as well as any other descendant
+// contexts derived from the returned context. However, if a descendant context
+// |d| is derived using WithErrorLog, then the error channel associated with
+// |d| will capture errors for |d| and contexts derived from |d|.
 func WithErrorLog(parent goctx.Context) (Context, <-chan error) {
 	wrapper, _ := wrap(parent, ignoredFunc)
 	wrapper.LoggingErrors(true)
 	return wrapper, wrapper.Errs()
 }
 
+// WithCancel derives a cancellable context
 func WithCancel(parent goctx.Context) (Context, CancelFunc) {
 	generator := func() (goctx.Context, goctx.CancelFunc) {
 		return goctx.WithCancel(parent)
