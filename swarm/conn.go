@@ -25,8 +25,8 @@ type Conn struct {
 	Closed   chan bool
 	Outgoing *msgio.Chan
 	Incoming *msgio.Chan
-	secIn    chan []byte
-	secOut   chan []byte
+	secIn    <-chan []byte
+	secOut   chan<- []byte
 }
 
 // ConnMap maps Keys (Peer.IDs) to Connections.

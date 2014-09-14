@@ -32,14 +32,18 @@ func init() {
 }
 
 func initCmd(c *commander.Command, inp []string) error {
-	_, err := os.Lstat(config.DefaultConfigFilePath)
+	filename, err := config.Filename(config.DefaultConfigFilePath)
+	if err != nil {
+		return errors.New("Couldn't get home directory path")
+	}
+	fi, err := os.Lstat(filename)
 	force := c.Flag.Lookup("f").Value.Get().(bool)
-	if err != nil && !force {
+	if fi != nil || (err != nil && !os.IsNotExist(err)) && !force {
 		return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
 	}
 	cfg := new(config.Config)
 
-	cfg.Datastore = new(config.Datastore)
+	cfg.Datastore = config.Datastore{}
 	dspath, err := u.TildeExpansion("~/.go-ipfs/datastore")
 	if err != nil {
 		return err
@@ -68,7 +72,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := identify.IdFromPubKey(pk)
+	id, err := identify.IDFromPubKey(pk)
 	if err != nil {
 		return err
 	}

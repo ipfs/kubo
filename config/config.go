@@ -30,16 +30,17 @@ type SavedPeer struct {
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  *Identity
-	Datastore *Datastore
+	Datastore Datastore
 	Peers     []*SavedPeer
 }
 
-var DefaultConfigFilePath = "~/.go-ipfs/config"
-var DefaultConfigFile = `{
+const DefaultPathRoot = "~/.go-ipfs"
+const DefaultConfigFilePath = DefaultPathRoot + "/config"
+const DefaultConfigFile = `{
   "identity": {},
   "datastore": {
     "type": "leveldb",
-    "path": "~/.go-ipfs/datastore"
+    "path": "` + DefaultPathRoot + `/datastore"
   }
 }
 `

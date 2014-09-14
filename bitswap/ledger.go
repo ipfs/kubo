@@ -1,14 +1,16 @@
 package bitswap
 
 import (
+	"sync"
+	"time"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-
-	"time"
 )
 
 // Ledger stores the data exchange relationship between two peers.
 type Ledger struct {
+	lock sync.RWMutex
 
 	// Partner is the remote Peer.
 	Partner *peer.Peer
@@ -16,17 +18,17 @@ type Ledger struct {
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio
 
-	// FirstExchnage is the time of the first data exchange.
-	FirstExchange time.Time
+	// firstExchnage is the time of the first data exchange.
+	firstExchange time.Time
 
-	// LastExchange is the time of the last data exchange.
-	LastExchange time.Time
+	// lastExchange is the time of the last data exchange.
+	lastExchange time.Time
 
-	// Number of exchanges with this peer
-	ExchangeCount uint64
+	// exchangeCount is the number of exchanges with this peer
+	exchangeCount uint64
 
-	// WantList is a (bounded, small) set of keys that Partner desires.
-	WantList KeySet
+	// wantList is a (bounded, small) set of keys that Partner desires.
+	wantList KeySet
 
 	Strategy StrategyFunc
 }
@@ -35,17 +37,48 @@ type Ledger struct {
 type LedgerMap map[u.Key]*Ledger
 
 func (l *Ledger) ShouldSend() bool {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	return l.Strategy(l)
 }
 
 func (l *Ledger) SentBytes(n int) {
-	l.ExchangeCount++
-	l.LastExchange = time.Now()
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	l.exchangeCount++
+	l.lastExchange = time.Now()
 	l.Accounting.BytesSent += uint64(n)
 }
 
 func (l *Ledger) ReceivedBytes(n int) {
-	l.ExchangeCount++
-	l.LastExchange = time.Now()
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	l.exchangeCount++
+	l.lastExchange = time.Now()
 	l.Accounting.BytesRecv += uint64(n)
+}
+
+// TODO: this needs to be different. We need timeouts.
+func (l *Ledger) Wants(k u.Key) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	l.wantList[k] = struct{}{}
+}
+
+func (l *Ledger) WantListContains(k u.Key) bool {
+	l.lock.RLock()
+	defer l.lock.RUnlock()
+
+	_, ok := l.wantList[k]
+	return ok
+}
+
+func (l *Ledger) ExchangeCount() uint64 {
+	l.lock.RLock()
+	defer l.lock.RUnlock()
+	return l.exchangeCount
 }

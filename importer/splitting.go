@@ -34,12 +34,13 @@ func SplitterBySize(n int) BlockSplitter {
 }
 
 // TODO: this should take a reader, not a byte array. what if we're splitting a 3TB file?
+//Rabin Fingerprinting for file chunking
 func Rabin(b []byte) [][]byte {
 	var out [][]byte
 	windowsize := uint64(48)
-	chunk_max := 1024 * 16
-	min_blk_size := 2048
-	blk_beg_i := 0
+	chunkMax := 1024 * 16
+	minBlkSize := 2048
+	blkBegI := 0
 	prime := uint64(61)
 
 	var poly uint64
@@ -63,21 +64,21 @@ func Rabin(b []byte) [][]byte {
 		poly = (poly * prime) + cur
 		curchecksum -= (uint64(b[i-1]) * prime)
 
-		if i-blk_beg_i >= chunk_max {
+		if i-blkBegI >= chunkMax {
 			// push block
-			out = append(out, b[blk_beg_i:i])
-			blk_beg_i = i
+			out = append(out, b[blkBegI:i])
+			blkBegI = i
 		}
 
 		// first 13 bits of polynomial are 0
-		if poly%8192 == 0 && i-blk_beg_i >= min_blk_size {
+		if poly%8192 == 0 && i-blkBegI >= minBlkSize {
 			// push block
-			out = append(out, b[blk_beg_i:i])
-			blk_beg_i = i
+			out = append(out, b[blkBegI:i])
+			blkBegI = i
 		}
 	}
-	if i > blk_beg_i {
-		out = append(out, b[blk_beg_i:])
+	if i > blkBegI {
+		out = append(out, b[blkBegI:])
 	}
 	return out
 }
