@@ -80,11 +80,15 @@ func errorLoggingChildCancelsWhenParentCancels(parent Context) bool {
 	return false
 }
 
-func TestWithValue(t *testing.T) {
+func TestChildGetsValuesFromParentContext(t *testing.T) {
 	k := "foo"
 	v := "bar"
-	ctx := WithValue(Background(), k, v)
-	if ctx.Value(k) != v {
+	parent := WithValue(Background(), k, v)
+	if parent.Value(k) != v {
+		t.Fail()
+	}
+	child, _ := WithErrorLog(parent)
+	if child.Value(k) != v {
 		t.Fail()
 	}
 }
