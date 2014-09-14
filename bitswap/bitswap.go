@@ -8,8 +8,8 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
-	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
+	tx "github.com/jbenet/go-ipfs/bitswap/transmission"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -33,7 +33,7 @@ type BitSwap struct {
 	peer *peer.Peer
 
 	// net holds the connections to all peers.
-	sender  bsnet.Sender
+	sender  tx.Sender
 	net     swarm.Network
 	meschan *swarm.Chan
 
@@ -65,7 +65,7 @@ type BitSwap struct {
 // NewBitSwap creates a new BitSwap instance. It does not check its parameters.
 func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
 	receiver := receiver{}
-	sender := bsnet.NewBSNetService(context.Background(), &receiver)
+	sender := tx.NewBSNetService(context.Background(), &receiver)
 	bs := &BitSwap{
 		peer:      p,
 		net:       net,
