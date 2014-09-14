@@ -67,8 +67,13 @@ func TestChildWithErrorLogCancelsWhenParentTimesOut(t *testing.T) {
 }
 
 func TestDeadline(t *testing.T) {
-	ctx, _ := WithDeadline(Background(), time.Now())
-	<-ctx.Done()
+	parent, _ := WithDeadline(Background(), time.Now())
+	ctx, errs := WithErrorLog(parent)
+	select {
+	case <-ctx.Done():
+	case <-errs:
+		t.Fail()
+	}
 }
 
 func TestWithValue(t *testing.T) {
