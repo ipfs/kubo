@@ -3,9 +3,11 @@ package bitswap
 import (
 	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
+	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -38,7 +40,7 @@ type BitSwap struct {
 	// routing interface for communication
 	routing *dht.IpfsDHT
 
-	listener *swarm.MessageListener
+	notifications notifications.PubSub
 
 	// partners is a map of currently active bitswap relationships.
 	// The Ledger has the peer.ID, and the peer connection works through net.
@@ -60,15 +62,15 @@ type BitSwap struct {
 // NewBitSwap creates a new BitSwap instance. It does not check its parameters.
 func NewBitSwap(p *peer.Peer, net swarm.Network, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
 	bs := &BitSwap{
-		peer:      p,
-		net:       net,
-		datastore: d,
-		partners:  LedgerMap{},
-		wantList:  KeySet{},
-		routing:   r.(*dht.IpfsDHT),
-		meschan:   net.GetChannel(swarm.PBWrapper_BITSWAP),
-		haltChan:  make(chan struct{}),
-		listener:  swarm.NewMessageListener(),
+		peer:          p,
+		net:           net,
+		datastore:     d,
+		partners:      LedgerMap{},
+		wantList:      KeySet{},
+		routing:       r.(*dht.IpfsDHT),
+		meschan:       net.GetChannel(swarm.PBWrapper_BITSWAP),
+		haltChan:      make(chan struct{}),
+		notifications: notifications.New(),
 	}
 
 	go bs.handleMessages()
@@ -83,7 +85,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	tleft := timeout - time.Now().Sub(begin)
 	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
 
-	valchan := make(chan []byte)
+	blockChannel := make(chan *blocks.Block)
 	after := time.After(tleft)
 
 	// TODO: when the data is received, shut down this for loop ASAP
@@ -96,7 +98,7 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 					return
 				}
 				select {
-				case valchan <- blk:
+				case blockChannel <- blk:
 				default:
 				}
 			}(p)
@@ -104,31 +106,30 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 	}()
 
 	select {
-	case blkdata := <-valchan:
-		close(valchan)
-		return blocks.NewBlock(blkdata)
+	case block := <-blockChannel:
+		close(blockChannel)
+		return block, nil
 	case <-after:
 		return nil, u.ErrTimeout
 	}
 }
 
-func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) ([]byte, error) {
+func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*blocks.Block, error) {
 	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
+
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	blockChannel := bs.notifications.Subscribe(ctx, k)
 
 	message := newMessage()
 	message.AppendWanted(k)
-
-	after := time.After(timeout)
-	resp := bs.listener.Listen(string(k), 1, timeout)
 	bs.meschan.Outgoing <- message.ToSwarm(p)
 
-	select {
-	case resp_mes := <-resp:
-		return resp_mes.Data, nil
-	case <-after:
+	block, ok := <-blockChannel
+	if !ok {
 		u.PErr("getBlock for '%s' timed out.\n", k.Pretty())
 		return nil, u.ErrTimeout
 	}
+	return block, nil
 }
 
 // HaveBlock announces the existance of a block to BitSwap, potentially sending
@@ -180,6 +181,7 @@ func (bs *BitSwap) handleMessages() {
 				}
 			}
 		case <-bs.haltChan:
+			bs.notifications.Shutdown()
 			return
 		}
 	}
@@ -229,11 +231,7 @@ func (bs *BitSwap) blockReceive(p *peer.Peer, blk *blocks.Block) {
 		return
 	}
 
-	mes := &swarm.Message{
-		Peer: p,
-		Data: blk.Data,
-	}
-	bs.listener.Respond(string(blk.Key()), mes)
+	bs.notifications.Publish(blk)
 
 	ledger := bs.getLedger(p)
 	ledger.ReceivedBytes(len(blk.Data))
