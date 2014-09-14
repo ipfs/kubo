@@ -9,10 +9,10 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-func NewBSNetService(ctx context.Context, r Receiver) Sender {
+func NewServiceWrapper(ctx context.Context, r Receiver) Sender {
 	h := &handlerWrapper{r}
 	s := netservice.NewService(ctx, h)
-	return &serviceWrapper{*s}
+	return &senderWrapper{s}
 }
 
 // handlerWrapper is responsible for marshaling/unmarshaling NetMessages. It
@@ -47,11 +47,11 @@ func (wrapper *handlerWrapper) HandleMessage(
 	return outgoing, nil
 }
 
-type serviceWrapper struct {
-	serviceDelegate netservice.Service
+type senderWrapper struct {
+	serviceDelegate netservice.Sender
 }
 
-func (wrapper *serviceWrapper) SendMessage(
+func (wrapper *senderWrapper) SendMessage(
 	ctx context.Context, p *peer.Peer, outgoing bsmsg.Exportable) error {
 	nmsg, err := outgoing.ToNet(p)
 	if err != nil {
@@ -61,7 +61,7 @@ func (wrapper *serviceWrapper) SendMessage(
 	return wrapper.serviceDelegate.SendMessage(ctx, nmsg, req.ID)
 }
 
-func (wrapper *serviceWrapper) SendRequest(ctx context.Context,
+func (wrapper *senderWrapper) SendRequest(ctx context.Context,
 	p *peer.Peer, outgoing bsmsg.Exportable) (bsmsg.BitSwapMessage, error) {
 
 	outgoingMsg, err := outgoing.ToNet(p)
