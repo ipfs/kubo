@@ -6,7 +6,9 @@ import (
 	goctx "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-// Context adds additional functionality to the go.net context
+// Context is a drop-in extension to the go.net context. It adds error
+// reporting and general logging functionality.
+// TODO(brian): add logging
 type Context interface {
 	goctx.Context
 	// LogError sends error information to the actor who instantiated the
