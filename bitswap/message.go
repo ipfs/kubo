@@ -2,8 +2,8 @@ package bitswap
 
 import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
