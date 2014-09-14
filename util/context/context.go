@@ -26,32 +26,28 @@ func WithCancel(
 	parent goctx.Context) (Context, CancelFunc) {
 
 	ctx, cancelFunc := goctx.WithCancel(parent)
-	w := wrap(ctx)
-	return w, CancelFunc(cancelFunc)
+	return wrap(ctx), CancelFunc(cancelFunc)
 }
 
 func WithDeadline(
 	parent goctx.Context, deadline time.Time) (Context, CancelFunc) {
 
 	ctx, cancelFunc := goctx.WithDeadline(parent, deadline)
-	w := wrap(ctx)
-	return w, CancelFunc(cancelFunc)
+	return wrap(ctx), CancelFunc(cancelFunc)
 }
 
 func WithTimeout(
 	parent goctx.Context, timeout time.Duration) (Context, CancelFunc) {
 
 	ctx, cancelFunc := goctx.WithTimeout(parent, timeout)
-	w := wrap(ctx)
-	return w, CancelFunc(cancelFunc)
+	return wrap(ctx), CancelFunc(cancelFunc)
 }
 
 func WithValue(
 	parent goctx.Context, key interface{}, val interface{}) Context {
 
 	ctx := goctx.WithValue(parent, key, val)
-	w := wrap(ctx)
-	return w
+	return wrap(ctx)
 }
 
 func wrap(ctx goctx.Context) *wrappedContext {
