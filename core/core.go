@@ -46,7 +46,7 @@ type IpfsNode struct {
 	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	BitSwap *bitswap.BitSwap
+	BitSwap bitswap.BitSwap
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -81,7 +81,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		net *inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route *dht.IpfsDHT
-		swap  *bitswap.BitSwap
 	)
 
 	if online {
@@ -99,14 +98,14 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		route.Start()
 
 		// TODO(brian): pass a context to bs for its async operations
-		swap = bitswap.NewBitSwap(local, d, route)
-		swap.SetStrategy(bitswap.YesManStrategy)
+		bitswapSession := bitswap.NewSession(context.TODO(), local, d, route)
+		bitswapSession.SetStrategy(bitswap.YesManStrategy)
 
 		// TODO(brian): pass a context to initConnections
 		go initConnections(cfg, route)
 	}
 
-	bs, err := bserv.NewBlockService(d, swap)
+	bs, err := bserv.NewBlockService(d, bitswapSession)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +119,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-		BitSwap:   swap,
+		BitSwap:   bitswapSession,
 		Identity:  local,
 		Routing:   route,
 	}, nil

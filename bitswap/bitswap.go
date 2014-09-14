@@ -60,10 +60,15 @@ type BitSwap struct {
 	haltChan chan struct{}
 }
 
-// NewBitSwap creates a new BitSwap instance. It does not check its parameters.
-func NewBitSwap(p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+// NewSession initializes a bitswap session.
+func NewSession(parent context.Context, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+
+	// TODO(brian): define a contract for management of async operations that
+	// fall under bitswap's purview
+	ctx, _ := context.WithCancel(parent)
+
 	receiver := tx.Forwarder{}
-	sender := tx.NewBSNetService(context.Background(), &receiver)
+	sender := tx.NewServiceWrapper(ctx, &receiver)
 	bs := &BitSwap{
 		peer:          p,
 		datastore:     d,
