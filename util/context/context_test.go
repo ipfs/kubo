@@ -19,17 +19,17 @@ func TestChildLogsErrorThenParentCancels(t *testing.T) {
 	errorReporter, _ := WithCancel(middlemanB)
 
 	expected := errors.New("err from errorReporter")
-	var wg sync.WaitGroup
-	wg.Add(1)
+	var goroutines sync.WaitGroup
+	goroutines.Add(1)
 	go func() {
 		errorReporter.LogError(expected) // 0)
 		<-errorReporter.Done()           // 3) wait for cancelFunc()
-		wg.Done()                        // 4)
+		goroutines.Done()                // 4)
 	}()
 
 	received := <-errs // 1) ensure received errorReporter's err
 	cancelFunc()       // 2)
-	wg.Wait()          // 5) ensure child received cancellation signal
+	goroutines.Wait()  // 5) ensure child received cancellation signal
 
 	if received.Error() != expected.Error() {
 		t.Fail()
