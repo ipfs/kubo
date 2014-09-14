@@ -105,7 +105,6 @@ func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
 
 	select {
 	case blkdata := <-valchan:
-		close(valchan)
 		return blocks.NewBlock(blkdata)
 	case <-after:
 		return nil, u.ErrTimeout
