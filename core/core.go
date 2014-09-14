@@ -5,15 +5,18 @@ import (
 	"errors"
 	"fmt"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	"github.com/jbenet/go-ipfs/bitswap"
+
+	bitswap "github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	swarm "github.com/jbenet/go-ipfs/net/swarm"
+	inet "github.com/jbenet/go-ipfs/net"
+	mux "github.com/jbenet/go-ipfs/net/mux"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -37,7 +40,7 @@ type IpfsNode struct {
 	Datastore ds.Datastore
 
 	// the network message stream
-	Swarm *swarm.Swarm
+	Network inet.Network
 
 	// the routing system. recommend ipfs-dht
 	Routing routing.IpfsRouting
@@ -75,15 +78,18 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}
 
 	var (
-		net *swarm.Swarm
+		net *inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route *dht.IpfsDHT
 		swap  *bitswap.BitSwap
 	)
 
 	if online {
-		net = swarm.NewSwarm(local)
-		err = net.Listen()
+		// add protocol services here.
+		net, err := inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
+		// "1": dhtService,
+		// "2": bitswapService,
+		})
 		if err != nil {
 			return nil, err
 		}

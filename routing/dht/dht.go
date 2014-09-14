@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	swarm "github.com/jbenet/go-ipfs/net/swarm"
+	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
@@ -28,8 +28,7 @@ type IpfsDHT struct {
 	// NOTE: (currently, only a single table is used)
 	routingTables []*kb.RoutingTable
 
-	network swarm.Network
-	netChan *swarm.Chan
+	network inet.Network
 
 	// Local peer (yourself)
 	self *peer.Peer
@@ -48,9 +47,6 @@ type IpfsDHT struct {
 
 	//lock to make diagnostics work better
 	diaglock sync.Mutex
-
-	// listener is a server to register to listen for responses to messages
-	listener *swarm.MessageListener
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
