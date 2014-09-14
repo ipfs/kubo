@@ -110,15 +110,8 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 		return nil, errors.New("Attempted connection to self!")
 	}
 
-	k := peer.Key()
-
 	// check if we already have an open connection first
-	s.connsLock.RLock()
-	c, found := s.conns[k]
-	s.connsLock.RUnlock()
-	if found {
-		return c, nil
-	}
+	c := s.GetConnection(peer.ID)
 
 	// open connection to peer
 	c, err := conn.Dial("tcp", peer)
@@ -158,40 +151,22 @@ func (s *Swarm) DialAddr(addr *ma.Multiaddr) (*conn.Conn, error) {
 	return c, err
 }
 
-// GetPeer returns the peer in the swarm with given key id.
-func (s *Swarm) GetPeer(key u.Key) *peer.Peer {
+// GetConnection returns the connection in the swarm to given peer.ID
+func (s *Swarm) GetConnection(pid peer.ID) *conn.Conn {
 	s.connsLock.RLock()
-	conn, found := s.conns[key]
+	c, found := s.conns[u.Key(pid)]
 	s.connsLock.RUnlock()
 
 	if !found {
 		return nil
 	}
-	return conn.Peer
-}
-
-// GetConnection will check if we are already connected to the peer in question
-// and only open a new connection if we arent already
-func (s *Swarm) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error) {
-	p := &peer.Peer{
-		ID:        id,
-		Addresses: []*ma.Multiaddr{addr},
-	}
-
-	c, err := s.Dial(p)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.Peer, nil
+	return c
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection
 func (s *Swarm) CloseConnection(p *peer.Peer) error {
-	s.connsLock.RLock()
-	conn, found := s.conns[u.Key(p.ID)]
-	s.connsLock.RUnlock()
-	if !found {
+	c := s.GetConnection(p.ID)
+	if c == nil {
 		return u.ErrNotFound
 	}
 
@@ -199,7 +174,7 @@ func (s *Swarm) CloseConnection(p *peer.Peer) error {
 	delete(s.conns, u.Key(p.ID))
 	s.connsLock.Unlock()
 
-	return conn.Close()
+	return c.Close()
 }
 
 func (s *Swarm) Error(e error) {

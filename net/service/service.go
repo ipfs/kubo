@@ -68,6 +68,11 @@ func (s *Service) Stop() {
 	s.cancel = context.CancelFunc(nil)
 }
 
+// GetPipe implements the mux.Protocol interface
+func (s *Service) GetPipe() *msg.Pipe {
+	return s.Pipe
+}
+
 // SendMessage sends a message out
 func (s *Service) SendMessage(ctx context.Context, m *msg.Message, rid RequestID) error {
 
