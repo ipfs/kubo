@@ -4,21 +4,73 @@ import (
 	"errors"
 	"sync"
 	"testing"
-
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"time"
 )
 
-func TestClientLogErrorThenReturnOnCancel(t *testing.T) {
-	ctx, cancelFunc := WithCancel(context.Background())
+func TestChildLogsErrorThenParentCancels(t *testing.T) {
+	loggingCtx, errs := WithErrorLog(Background())
+	child, cancelFunc := WithCancel(loggingCtx)
+	grandchild, _ := WithCancel(child)
+	greatgrandchild, _ := WithCancel(grandchild)
+
+	expected := errors.New("err from greatgrandchild")
 	var wg sync.WaitGroup
 	wg.Add(1)
+	go func() {
+		greatgrandchild.LogError(expected) // 0)
+		<-greatgrandchild.Done()           // 3) wait for cancelFunc()
+		wg.Done()                          // 4)
+	}()
 
-	go func(ctx Context) {
-		ctx.LogError(errors.New("A mildly interesting event"))
-		wg.Done()    // 0th
-		<-ctx.Done() // 3rd
-	}(ctx)
+	received := <-errs // 1) ensure received greatgrandchild's err
+	cancelFunc()       // 2)
+	wg.Wait()          // 5) ensure child received cancellation signal
 
-	wg.Wait()    // 1st
-	cancelFunc() // 2nd
+	if received.Error() != expected.Error() {
+		t.Fail()
+	}
+}
+
+func TestErrsDoNotLeakUpTree(t *testing.T) {
+	alpha, a := WithErrorLog(Background())
+	beta, b := WithErrorLog(alpha)
+	delta, d := WithErrorLog(beta)
+	omega, expectedChan := WithErrorLog(delta)
+
+	expectedErr := errors.New("err from omega ctx")
+	go func() {
+		omega.LogError(expectedErr)
+	}()
+
+	select {
+	case <-a:
+		t.Fail()
+	case <-b:
+		t.Fail()
+	case <-d:
+		t.Fail()
+	case received := <-expectedChan:
+		if received.Error() != expectedErr.Error() {
+			t.Fail()
+		}
+	}
+}
+
+func TestTimeout(t *testing.T) {
+	ctx, _ := WithTimeout(Background(), time.Nanosecond)
+	<-ctx.Done()
+}
+
+func TestDeadline(t *testing.T) {
+	ctx, _ := WithDeadline(Background(), time.Now())
+	<-ctx.Done()
+}
+
+func TestWithValue(t *testing.T) {
+	k := "foo"
+	v := "bar"
+	ctx := WithValue(Background(), k, v)
+	if ctx.Value(k) != v {
+		t.Fail()
+	}
 }
