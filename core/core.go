@@ -13,11 +13,11 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
