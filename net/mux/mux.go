@@ -6,8 +6,8 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "code.google.com/p/go.net/context"
-	proto "code.google.com/p/goprotobuf/proto"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 // Protocol objects produce + consume raw data. They are added to the Muxer

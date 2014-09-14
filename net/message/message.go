@@ -3,7 +3,7 @@ package message
 import (
 	peer "github.com/jbenet/go-ipfs/peer"
 
-	proto "code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 // Message represents a packet of information sent to or received from a
