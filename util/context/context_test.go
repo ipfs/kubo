@@ -75,16 +75,6 @@ func TestDeadline(t *testing.T) {
 	}
 }
 
-func errorLoggingChildCancelsWhenParentCancels(parent Context) bool {
-	ctx, errs := WithErrorLog(parent)
-	select {
-	case <-ctx.Done():
-		return true
-	case <-errs:
-	}
-	return false
-}
-
 func TestChildGetsValuesFromParentContext(t *testing.T) {
 	k := "foo"
 	v := "bar"
@@ -96,4 +86,14 @@ func TestChildGetsValuesFromParentContext(t *testing.T) {
 	if child.Value(k) != v {
 		t.Fail()
 	}
+}
+
+func errorLoggingChildCancelsWhenParentCancels(parent Context) bool {
+	ctx, errs := WithErrorLog(parent)
+	select {
+	case <-ctx.Done():
+		return true
+	case <-errs:
+	}
+	return false
 }
