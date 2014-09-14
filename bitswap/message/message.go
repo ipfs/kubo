@@ -3,12 +3,10 @@ package message
 import (
 	"errors"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	nm "github.com/jbenet/go-ipfs/net/message"
-	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -23,7 +21,6 @@ type BitSwapMessage interface {
 
 type Exportable interface {
 	ToProto() *PBMessage
-	ToSwarm(p *peer.Peer) *swarm.Message
 	ToNet(p *peer.Peer) (nm.NetMessage, error)
 }
 
@@ -74,22 +71,9 @@ func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
 	return nil, errors.New("TODO implement")
 }
 
-func FromSwarm(sms swarm.Message) (BitSwapMessage, error) {
-	var protoMsg PBMessage
-	err := proto.Unmarshal(sms.Data, &protoMsg)
-	if err != nil {
-		return nil, err
-	}
-	return newMessageFromProto(protoMsg), nil
-}
-
 func (m *message) ToProto() *PBMessage {
 	cp := m.pb
 	return &cp
-}
-
-func (m *message) ToSwarm(p *peer.Peer) *swarm.Message {
-	return swarm.NewMessage(p, m.ToProto())
 }
 
 func (m *message) ToNet(p *peer.Peer) (nm.NetMessage, error) {
