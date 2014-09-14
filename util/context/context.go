@@ -6,24 +6,31 @@ import (
 	goctx "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-// Context is a drop-in extension to the go.net context. It adds error
+// Context is a drop-in replacement for the go.net context. It adds error
 // reporting and general logging functionality.
 // TODO(brian): add logging
 type Context interface {
 	goctx.Context
+
 	// LogError sends error information to the actor who instantiated the
 	// context. (non-blocking)
 	LogError(error)
 }
 
+// CancelFunc is the same as go.net.context.CancelFunc
 type CancelFunc goctx.CancelFunc
 
+// Background() simply wraps go.net.context.Background()
 func Background() Context {
 	ctx, _ := wrap(goctx.Background(), ignoredFunc)
 	return ctx
 }
 
-// WithErrorLog ignores the parent's logging behavior. Returns a channel from the
+// WithErrorLog derives a new logging context from |parent|. The returned error
+// channel receives errors from the returned context as well as any other
+// descendant contexts derived from the returned context. However, if a
+// descendant context |d| is derived using WithErrorLog, then the error channel
+// associated with |d| will capture errors for |d| and contexts derived from |d|.
 func WithErrorLog(parent goctx.Context) (Context, <-chan error) {
 	wrapper, _ := wrap(parent, ignoredFunc)
 	wrapper.LoggingErrors(true)
@@ -34,7 +41,7 @@ func WithCancel(parent goctx.Context) (Context, CancelFunc) {
 	generator := func() (goctx.Context, goctx.CancelFunc) {
 		return goctx.WithCancel(parent)
 	}
-	return z(parent, generator)
+	return deriveFrom(parent, generator)
 }
 
 func WithDeadline(
@@ -43,7 +50,7 @@ func WithDeadline(
 	generator := func() (goctx.Context, goctx.CancelFunc) {
 		return goctx.WithDeadline(parent, deadline)
 	}
-	return z(parent, generator)
+	return deriveFrom(parent, generator)
 }
 
 func WithTimeout(
@@ -52,7 +59,7 @@ func WithTimeout(
 	generator := func() (goctx.Context, goctx.CancelFunc) {
 		return goctx.WithTimeout(parent, timeout)
 	}
-	return z(parent, generator)
+	return deriveFrom(parent, generator)
 }
 
 func WithValue(
@@ -61,16 +68,21 @@ func WithValue(
 	generator := func() (goctx.Context, goctx.CancelFunc) {
 		return goctx.WithValue(parent, key, val), ignoredFunc
 	}
-	ctx, _ := z(parent, generator)
+	ctx, _ := deriveFrom(parent, generator)
 	return ctx
 }
 
 type ctxGeneratorFunc func() (goctx.Context, goctx.CancelFunc)
 
-// z ensures behavior is appropriately passed from parent |wc| to child iff
-// parent is a wrapped context and parent is logging
-// |g| is a context generator function used to generate the child
-func z(parent goctx.Context, g ctxGeneratorFunc) (Context, CancelFunc) {
+// deriveFrom() derives a new child context from |parent| using the generator
+// function |g|.
+//
+// Furthermore, deriveFrom() ensures behavior is appropriately passed from a
+// parent wrapped context to a child wrapped context.
+//
+// If |wc| has logging enabled, the child derived from |wc| will inherit wc's
+// behavior.
+func deriveFrom(parent goctx.Context, g ctxGeneratorFunc) (Context, CancelFunc) {
 	wc, isAWrappedContext := parent.(*wrappedContext)
 	if !isAWrappedContext {
 		// can happen when getting a context from another library
