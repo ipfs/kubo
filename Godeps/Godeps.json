@@ -71,6 +71,10 @@
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "99056d50e56252fbe0021d5c893defca5a76baf8"
+		},
+		{
+			"ImportPath": "github.com/tuxychandru/pubsub",
+			"Rev": "02de8aa2db3d570c5ab1be5ba67b456fd0fb7c4e"
 		}
 	]
 }

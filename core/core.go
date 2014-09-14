@@ -95,11 +95,14 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		}
 
 		route = dht.NewDHT(local, net, d)
+		// TODO(brian): pass a context to DHT for its async operations
 		route.Start()
 
+		// TODO(brian): pass a context to bs for its async operations
 		swap = bitswap.NewBitSwap(local, net, d, route)
 		swap.SetStrategy(bitswap.YesManStrategy)
 
+		// TODO(brian): pass a context to initConnections
 		go initConnections(cfg, route)
 	}
 
