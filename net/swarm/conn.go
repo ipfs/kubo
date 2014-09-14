@@ -10,7 +10,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	u "github.com/jbenet/go-ipfs/util"
 
-	ma "github.com/jbenet/go-multiaddr"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // Open listeners for each network the swarm should listen on
