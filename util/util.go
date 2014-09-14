@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
@@ -77,4 +78,16 @@ func DOut(format string, a ...interface{}) {
 	if Debug {
 		POut(format, a...)
 	}
+}
+
+func ExpandPathnames(paths []string) ([]string, error) {
+	var out []string
+	for _, p := range paths {
+		abspath, err := filepath.Abs(p)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, abspath)
+	}
+	return out, nil
 }

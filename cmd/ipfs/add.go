@@ -2,15 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	core "github.com/jbenet/go-ipfs/core"
-	importer "github.com/jbenet/go-ipfs/importer"
-	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/core/commands"
+	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -41,92 +38,20 @@ func addCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode(false)
+	cmd := daemon.NewCommand()
+	cmd.Command = "add"
+	fmt.Println(inp)
+	cmd.Args = inp
+	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
+	err := daemon.SendCommand(cmd, "localhost:12345")
 	if err != nil {
-		return err
-	}
-
-	recursive := c.Flag.Lookup("r").Value.Get().(bool)
-	var depth int
-	if recursive {
-		depth = -1
-	} else {
-		depth = 1
-	}
-
-	for _, fpath := range inp {
-		_, err := addPath(n, fpath, depth)
+		// Do locally
+		n, err := localNode(false)
 		if err != nil {
-			if !recursive {
-				return fmt.Errorf("%s is a directory. Use -r to add recursively", fpath)
-			}
-
-			u.PErr("error adding %s: %v\n", fpath, err)
-		}
-	}
-	return err
-}
-
-func addPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
-	if depth == 0 {
-		return nil, ErrDepthLimitExceeded
-	}
-
-	fi, err := os.Stat(fpath)
-	if err != nil {
-		return nil, err
-	}
-
-	if fi.IsDir() {
-		return addDir(n, fpath, depth)
-	}
-
-	return addFile(n, fpath, depth)
-}
-
-func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
-	tree := &dag.Node{Data: dag.FolderPBData()}
-
-	files, err := ioutil.ReadDir(fpath)
-	if err != nil {
-		return nil, err
-	}
-
-	// construct nodes for containing files.
-	for _, f := range files {
-		fp := filepath.Join(fpath, f.Name())
-		nd, err := addPath(n, fp, depth-1)
-		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if err = tree.AddNodeLink(f.Name(), nd); err != nil {
-			return nil, err
-		}
+		return commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
 	}
-
-	return tree, addNode(n, tree, fpath)
-}
-
-func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
-	root, err := importer.NewDagFromFile(fpath)
-	if err != nil {
-		return nil, err
-	}
-
-	return root, addNode(n, root, fpath)
-}
-
-// addNode adds the node to the graph + local storage
-func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
-	// add the file to the graph + local storage
-	err := n.DAG.AddRecursive(nd)
-	if err != nil {
-		return err
-	}
-
-	u.POut("added %s\n", fpath)
-
-	// ensure we keep it. atm no-op
-	return n.PinDagNode(nd)
+	return nil
 }
