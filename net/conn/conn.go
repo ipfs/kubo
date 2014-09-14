@@ -1,4 +1,4 @@
-package swarm
+package conn
 
 import (
 	"fmt"
@@ -32,6 +32,32 @@ type Conn struct {
 // Map maps Keys (Peer.IDs) to Connections.
 type Map map[u.Key]*Conn
 
+// NewConn constructs a new connection
+func NewConn(peer *peer.Peer, addr *ma.Multiaddr, nconn net.Conn) (*Conn, error) {
+	conn := &Conn{
+		Peer: peer,
+		Addr: addr,
+		Conn: nconn,
+	}
+
+	if err := conn.newChans(); err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+// NewNetConn constructs a new connection with given net.Conn
+func NewNetConn(nconn net.Conn) (*Conn, error) {
+
+	addr, err := ma.FromNetAddr(nconn.RemoteAddr())
+	if err != nil {
+		return nil, err
+	}
+
+	return NewConn(new(peer.Peer), addr, nconn)
+}
+
 // Dial connects to a particular peer, over a given network
 // Example: Dial("udp", peer)
 func Dial(network string, peer *peer.Peer) (*Conn, error) {
@@ -50,18 +76,11 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 		return nil, err
 	}
 
-	conn := &Conn{
-		Peer: peer,
-		Addr: addr,
-		Conn: nconn,
-	}
-
-	newConnChans(conn)
-	return conn, nil
+	return NewConn(peer, addr, nconn)
 }
 
 // Construct new channels for given Conn.
-func newConnChans(c *Conn) error {
+func (c *Conn) newChans() error {
 	if c.Outgoing != nil || c.Incoming != nil {
 		return fmt.Errorf("Conn already initialized")
 	}
@@ -77,18 +96,18 @@ func newConnChans(c *Conn) error {
 }
 
 // Close closes the connection, and associated channels.
-func (s *Conn) Close() error {
+func (c *Conn) Close() error {
 	u.DOut("Closing Conn.\n")
-	if s.Conn == nil {
+	if c.Conn == nil {
 		return fmt.Errorf("Already closed") // already closed
 	}
 
 	// closing net connection
-	err := s.Conn.Close()
-	s.Conn = nil
+	err := c.Conn.Close()
+	c.Conn = nil
 	// closing channels
-	s.Incoming.Close()
-	s.Outgoing.Close()
-	s.Closed <- true
+	c.Incoming.Close()
+	c.Outgoing.Close()
+	c.Closed <- true
 	return err
 }
