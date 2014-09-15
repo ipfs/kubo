@@ -6,12 +6,13 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 )
 
 func TestPublishSubscribe(t *testing.T) {
-	blockSent := getBlockOrFail(t, "Greetings from The Interval")
+	blockSent := testutil.NewBlockOrFail(t, "Greetings from The Interval")
 
 	n := New()
 	defer n.Shutdown()
@@ -34,7 +35,7 @@ func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 
 	n := New()
 	defer n.Shutdown()
-	block := getBlockOrFail(t, "A Missed Connection")
+	block := testutil.NewBlockOrFail(t, "A Missed Connection")
 	blockChannel := n.Subscribe(fastExpiringCtx, block.Key())
 
 	assertBlockChannelNil(t, blockChannel)
@@ -54,12 +55,4 @@ func assertBlocksEqual(t *testing.T, a, b blocks.Block) {
 	if a.Key() != b.Key() {
 		t.Fail()
 	}
-}
-
-func getBlockOrFail(t *testing.T, msg string) blocks.Block {
-	block, blockCreationErr := blocks.NewBlock([]byte(msg))
-	if blockCreationErr != nil {
-		t.Fail()
-	}
-	return *block
 }
