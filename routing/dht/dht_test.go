@@ -11,6 +11,7 @@ import (
 	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 
+	"bytes"
 	"fmt"
 	"time"
 )
@@ -179,6 +180,7 @@ func TestValueGetSet(t *testing.T) {
 	if string(val) != "world" {
 		t.Fatalf("Expected 'world' got '%s'", string(val))
 	}
+
 }
 
 func TestProvides(t *testing.T) {
@@ -203,6 +205,11 @@ func TestProvides(t *testing.T) {
 
 	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	bits, err := dhts[3].getLocal(u.Key("hello"))
+	if err != nil && bytes.Equal(bits, []byte("world")) {
 		t.Fatal(err)
 	}
 
