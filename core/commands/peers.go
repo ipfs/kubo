@@ -18,18 +18,16 @@ type peerInfo struct {
 
 func Peers(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
   enc := json.NewEncoder(out)
+  peers := make([]peerInfo, len(*n.PeerMap))
 
-  i := 0
-  peers := make([]*peerInfo, len(*n.PeerMap))
-
-  for _, p := range *n.PeerMap {
+  for i, p := range *n.PeerMap {
     addrs := make([]string, len(p.Addresses))
-    for i, addr := range p.Addresses {
+    for j, addr := range p.Addresses {
       addrStr, err := addr.String()
       if err != nil {
         return err
       }
-      addrs[i] = addrStr
+      addrs[j] = addrStr
     }
 
     pubkeyBytes, err := p.PubKey.Bytes()
@@ -37,14 +35,13 @@ func Peers(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.
       return err
     }
 
-    peer := &peerInfo{
+    peer := peerInfo{
       ID: p.ID.Pretty(),
       Addresses: addrs,
       PubKey: b58.Encode(pubkeyBytes),
       Latency: p.GetLatency().Nanoseconds(),
     }
     peers[i] = peer
-    i++
   }
 
   enc.Encode(peers)
