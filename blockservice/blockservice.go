@@ -16,11 +16,11 @@ import (
 // It uses an internal `datastore.Datastore` instance to store values.
 type BlockService struct {
 	Datastore ds.Datastore
-	Remote    *bitswap.BitSwap
+	Remote    bitswap.Exchange
 }
 
 // NewBlockService creates a BlockService with given datastore instance.
-func NewBlockService(d ds.Datastore, rem *bitswap.BitSwap) (*BlockService, error) {
+func NewBlockService(d ds.Datastore, rem bitswap.Exchange) (*BlockService, error) {
 	if d == nil {
 		return nil, fmt.Errorf("BlockService requires valid datastore")
 	}
