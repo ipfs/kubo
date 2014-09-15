@@ -37,16 +37,12 @@ type Service struct {
 }
 
 // NewService creates a service object with given type ID and Handler
-func NewService(ctx context.Context, h Handler) *Service {
-	s := &Service{
+func NewService(h Handler) *Service {
+	return &Service{
 		Handler:  h,
 		Requests: RequestMap{},
 		Pipe:     msg.NewPipe(10),
 	}
-
-	go s.handleIncomingMessages(ctx)
-
-	return s
 }
 
 // Start kicks off the Service goroutines.

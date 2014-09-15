@@ -11,7 +11,8 @@ import (
 
 func NewServiceWrapper(ctx context.Context, r Receiver) Sender {
 	h := &handlerWrapper{r}
-	s := netservice.NewService(ctx, h)
+	s := netservice.NewService(h)
+	s.Start(ctx)
 	return &senderWrapper{s}
 }
 
