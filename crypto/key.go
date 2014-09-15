@@ -27,6 +27,9 @@ type Key interface {
 	// Bytes returns a serialized, storeable representation of this key
 	Bytes() ([]byte, error)
 
+	// Hash returns the hash of this key
+	Hash() ([]byte, error)
+
 	// Equals checks whether two PubKeys are the same
 	Equals(Key) bool
 }

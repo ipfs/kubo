@@ -32,7 +32,7 @@ func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
 	}
 	namekey := u.Key(nameb).Pretty()
 
-	ipnskey, err := u.Hash([]byte("ipns:" + namekey))
+	ipnskey, err := u.Hash([]byte("/ipns/" + namekey))
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
 		return err
 	}
 
-	// Store ipns entry at h("ipns:"+b58(h(pubkey)))
+	// Store ipns entry at h("/ipns/"+b58(h(pubkey)))
 	err = p.routing.PutValue(u.Key(ipnskey), data)
 	if err != nil {
 		return err

@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type RsaPrivateKey struct {
@@ -46,6 +47,14 @@ func (pk *RsaPublicKey) Equals(k Key) bool {
 	return KeyEqual(pk, k)
 }
 
+func (pk *RsaPublicKey) Hash() ([]byte, error) {
+	pkb, err := pk.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return u.Hash(pkb)
+}
+
 func (sk *RsaPrivateKey) GenSecret() []byte {
 	buf := make([]byte, 16)
 	rand.Read(buf)
@@ -73,6 +82,14 @@ func (sk *RsaPrivateKey) Bytes() ([]byte, error) {
 // Equals checks whether this key is equal to another
 func (sk *RsaPrivateKey) Equals(k Key) bool {
 	return KeyEqual(sk, k)
+}
+
+func (sk *RsaPrivateKey) Hash() ([]byte, error) {
+	skb, err := sk.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return u.Hash(skb)
 }
 
 func UnmarshalRsaPrivateKey(b []byte) (*RsaPrivateKey, error) {

@@ -10,6 +10,11 @@ var _ = proquint.Encode
 
 type ProquintResolver struct{}
 
+func (r *ProquintResolver) Matches(name string) bool {
+	ok, err := proquint.IsProquint(name)
+	return err == nil && ok
+}
+
 func (r *ProquintResolver) Resolve(name string) (string, error) {
 	ok, err := proquint.IsProquint(name)
 	if err != nil {

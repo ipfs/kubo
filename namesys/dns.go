@@ -12,6 +12,10 @@ type DNSResolver struct {
 	// cache would need a timeout
 }
 
+func (r *DNSResolver) Matches(name string) bool {
+	return strings.Contains(name, ".")
+}
+
 func (r *DNSResolver) Resolve(name string) (string, error) {
 	txt, err := net.LookupTXT(name)
 	if err != nil {

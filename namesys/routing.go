@@ -26,6 +26,11 @@ func NewRoutingResolver(route routing.IpfsRouting, dagservice *mdag.DAGService) 
 	}
 }
 
+func (r *RoutingResolver) Matches(name string) bool {
+	_, err := mh.FromB58String(name)
+	return err == nil
+}
+
 func (r *RoutingResolver) Resolve(name string) (string, error) {
 	hash, err := mh.FromB58String(name)
 	if err != nil {
@@ -36,13 +41,13 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 
 	// use the routing system to get the name.
 	// /ipns/<name>
-	h, err := u.Hash([]byte("ipns:" + name))
+	h, err := u.Hash([]byte("/ipns/" + name))
 	if err != nil {
 		return "", err
 	}
 
-	inpsKey := u.Key(h)
-	val, err := r.routing.GetValue(inpsKey, time.Second*10)
+	ipnsKey := u.Key(h)
+	val, err := r.routing.GetValue(ipnsKey, time.Second*10)
 	if err != nil {
 		u.DOut("RoutingResolve get failed.\n")
 		return "", err
@@ -70,7 +75,7 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 	}
 
 	// check sig with pk
-	if ok, err := pk.Verify(entry.GetValue(), entry.GetSignature()); err != nil && ok {
+	if ok, err := pk.Verify(entry.GetValue(), entry.GetSignature()); err != nil || !ok {
 		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pk)
 	}
 

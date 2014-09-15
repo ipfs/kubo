@@ -1,34 +1,42 @@
 package namesys
 
 import (
-	"strings"
+	"errors"
 
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/routing"
 )
 
+var ErrCouldntResolve = errors.New("could not resolve name.")
+
 type MasterResolver struct {
-	dns     *DNSResolver
-	routing *RoutingResolver
-	pro     *ProquintResolver
+	res []Resolver
 }
 
 func NewMasterResolver(r routing.IpfsRouting, dag *mdag.DAGService) *MasterResolver {
 	mr := new(MasterResolver)
-	mr.dns = new(DNSResolver)
-	mr.pro = new(ProquintResolver)
-	mr.routing = NewRoutingResolver(r, dag)
+	mr.res = []Resolver{
+		new(DNSResolver),
+		new(ProquintResolver),
+		NewRoutingResolver(r, dag),
+	}
 	return mr
 }
 
 func (mr *MasterResolver) Resolve(name string) (string, error) {
-	if strings.Contains(name, ".") {
-		return mr.dns.Resolve(name)
+	for _, r := range mr.res {
+		if r.Matches(name) {
+			return r.Resolve(name)
+		}
 	}
+	return "", ErrCouldntResolve
+}
 
-	if strings.Contains(name, "-") {
-		return mr.pro.Resolve(name)
+func (mr *MasterResolver) Matches(name string) bool {
+	for _, r := range mr.res {
+		if r.Matches(name) {
+			return true
+		}
 	}
-
-	return mr.routing.Resolve(name)
+	return false
 }
