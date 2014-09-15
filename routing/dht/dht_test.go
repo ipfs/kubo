@@ -107,6 +107,8 @@ func TestPing(t *testing.T) {
 
 	dhtA.Start()
 	dhtB.Start()
+	defer dhtA.Halt()
+	defer dhtB.Halt()
 
 	_, err = dhtA.Connect(addrB)
 	if err != nil {
@@ -118,9 +120,6 @@ func TestPing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	dhtA.Halt()
-	dhtB.Halt()
 }
 
 func TestValueGetSet(t *testing.T) {
@@ -153,6 +152,8 @@ func TestValueGetSet(t *testing.T) {
 
 	dhtA.Start()
 	dhtB.Start()
+	defer dhtA.Halt()
+	defer dhtB.Halt()
 
 	errsa := dhtA.network.GetErrChan()
 	errsb := dhtB.network.GetErrChan()
@@ -187,6 +188,11 @@ func TestProvides(t *testing.T) {
 	u.Debug = false
 
 	addrs, _, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+		}
+	}()
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {
@@ -228,15 +234,16 @@ func TestProvides(t *testing.T) {
 	if len(provs) != 1 {
 		t.Fatal("Didnt get back providers")
 	}
-
-	for i := 0; i < 4; i++ {
-		dhts[i].Halt()
-	}
 }
 
 func TestLayeredGet(t *testing.T) {
 	u.Debug = false
 	addrs, _, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+		}
+	}()
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {
@@ -274,15 +281,17 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal("Got incorrect value.")
 	}
 
-	for i := 0; i < 4; i++ {
-		dhts[i].Halt()
-	}
 }
 
 func TestFindPeer(t *testing.T) {
 	u.Debug = false
 
 	addrs, peers, dhts := setupDHTS(4, t)
+	go func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+		}
+	}()
 
 	_, err := dhts[0].Connect(addrs[1])
 	if err != nil {
@@ -310,9 +319,5 @@ func TestFindPeer(t *testing.T) {
 
 	if !p.ID.Equal(peers[2].ID) {
 		t.Fatal("Didnt find expected peer.")
-	}
-
-	for i := 0; i < 4; i++ {
-		dhts[i].Halt()
 	}
 }
