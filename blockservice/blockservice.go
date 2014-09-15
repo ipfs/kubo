@@ -42,7 +42,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 		return k, err
 	}
 	if s.Remote != nil {
-		err = s.Remote.HaveBlock(b)
+		err = s.Remote.HasBlock(b)
 	}
 	return k, err
 }
@@ -65,7 +65,7 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
 		u.DOut("Blockservice: Searching bitswap.\n")
-		blk, err := s.Remote.GetBlock(k, time.Second*5)
+		blk, err := s.Remote.Block(k, time.Second*5)
 		if err != nil {
 			return nil, err
 		}

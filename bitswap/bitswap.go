@@ -85,7 +85,7 @@ func NewSession(parent context.Context, p *peer.Peer, d ds.Datastore, r routing.
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) GetBlock(k u.Key, timeout time.Duration) (
+func (bs *BitSwap) Block(k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
 	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
 	begin := time.Now()
@@ -139,9 +139,9 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 	return &block, nil
 }
 
-// HaveBlock announces the existance of a block to BitSwap, potentially sending
+// HasBlock announces the existance of a block to BitSwap, potentially sending
 // it to peers (Partners) whose WantLists include it.
-func (bs *BitSwap) HaveBlock(blk *blocks.Block) error {
+func (bs *BitSwap) HasBlock(blk *blocks.Block) error {
 	go func() {
 		for _, ledger := range bs.partners {
 			if ledger.WantListContains(blk.Key()) {
