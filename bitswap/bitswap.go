@@ -157,7 +157,8 @@ func (bs *BitSwap) HasBlock(blk *blocks.Block) error {
 
 func (bs *BitSwap) SendBlock(p *peer.Peer, b *blocks.Block) {
 	message := bsmsg.New()
-	message.AppendBlock(b)
+	// TODO(brian): change interface to accept value instead of pointer
+	message.AppendBlock(*b)
 	bs.sender.SendMessage(context.Background(), p, message)
 }
 
