@@ -109,7 +109,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 		// TODO(brian): pass a context to bs for its async operations
 		bitswapSession := bitswap.NewSession(context.TODO(), local, d, route)
-		bitswapSession.SetStrategy(bitswap.YesManStrategy)
 
 		// TODO(brian): pass a context to initConnections
 		go initConnections(cfg, route)
