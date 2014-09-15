@@ -25,6 +25,6 @@ func (_ *offlineExchange) Block(k u.Key, timeout time.Duration) (*blocks.Block, 
 }
 
 // HasBlock always returns nil.
-func (_ *offlineExchange) HasBlock(*blocks.Block) error {
+func (_ *offlineExchange) HasBlock(blocks.Block) error {
 	return nil
 }
