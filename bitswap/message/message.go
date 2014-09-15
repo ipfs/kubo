@@ -15,7 +15,7 @@ type BitSwapMessage interface {
 	Wantlist() []u.Key
 	Blocks() []blocks.Block
 	AppendWanted(k u.Key)
-	AppendBlock(b *blocks.Block)
+	AppendBlock(b blocks.Block)
 	Exportable
 }
 
@@ -63,7 +63,7 @@ func (m *message) AppendWanted(k u.Key) {
 	m.pb.Wantlist = append(m.pb.Wantlist, string(k))
 }
 
-func (m *message) AppendBlock(b *blocks.Block) {
+func (m *message) AppendBlock(b blocks.Block) {
 	m.pb.Blocks = append(m.pb.Blocks, b.Data)
 }
 
