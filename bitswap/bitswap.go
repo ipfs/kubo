@@ -141,7 +141,7 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 
 // HasBlock announces the existance of a block to BitSwap, potentially sending
 // it to peers (Partners) whose WantLists include it.
-func (bs *BitSwap) HasBlock(blk *blocks.Block) error {
+func (bs *BitSwap) HasBlock(blk blocks.Block) error {
 	go func() {
 		for _, ledger := range bs.partners {
 			if ledger.WantListContains(blk.Key()) {
@@ -155,10 +155,10 @@ func (bs *BitSwap) HasBlock(blk *blocks.Block) error {
 	return bs.routing.Provide(blk.Key())
 }
 
-func (bs *BitSwap) SendBlock(p *peer.Peer, b *blocks.Block) {
+func (bs *BitSwap) SendBlock(p *peer.Peer, b blocks.Block) {
 	message := bsmsg.New()
 	// TODO(brian): change interface to accept value instead of pointer
-	message.AppendBlock(*b)
+	message.AppendBlock(b)
 	bs.sender.SendMessage(context.Background(), p, message)
 }
 
@@ -190,7 +190,7 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
 			u.PErr("newBlock error: %v\n", err)
 			return
 		}
-		bs.SendBlock(p, bblk)
+		bs.SendBlock(p, *bblk)
 		ledger.SentBytes(len(blk))
 	} else {
 		u.DOut("Decided not to send block.")

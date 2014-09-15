@@ -18,5 +18,5 @@ type Exchange interface {
 	// TODO(brian): accept a value, not a pointer
 	// TODO(brian): remove error return value. Should callers be concerned with
 	// whether the block was made available on the network?
-	HasBlock(*blocks.Block) error
+	HasBlock(blocks.Block) error
 }

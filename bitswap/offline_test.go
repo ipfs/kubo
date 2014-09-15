@@ -20,7 +20,7 @@ func TestBlockReturnsErr(t *testing.T) {
 func TestHasBlockReturnsNil(t *testing.T) {
 	off := NewOfflineExchange()
 	block := testutil.NewBlockOrFail(t, "data")
-	err := off.HasBlock(&block)
+	err := off.HasBlock(block)
 	if err != nil {
 		t.Fatal("")
 	}
