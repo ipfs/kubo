@@ -11,13 +11,12 @@ type Exchange interface {
 
 	// Block returns the block associated with a given key.
 	// TODO(brian): pass a context instead of a timeout
-	// TODO(brian): rename -> Block
-	GetBlock(k u.Key, timeout time.Duration) (*blocks.Block, error)
+	Block(k u.Key, timeout time.Duration) (*blocks.Block, error)
 
 	// HasBlock asserts the existence of this block
 	// TODO(brian): rename -> HasBlock
 	// TODO(brian): accept a value, not a pointer
 	// TODO(brian): remove error return value. Should callers be concerned with
 	// whether the block was made available on the network?
-	HaveBlock(*blocks.Block) error
+	HasBlock(*blocks.Block) error
 }
