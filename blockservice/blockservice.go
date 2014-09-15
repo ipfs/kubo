@@ -35,6 +35,8 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	k := b.Key()
 	dsk := ds.NewKey(string(k))
 	u.DOut("storing [%s] in datastore\n", k.Pretty())
+	// TODO(brian): define a block datastore with a Put method which accepts a
+	// block parameter
 	err := s.Datastore.Put(dsk, b.Data)
 	if err != nil {
 		return k, err

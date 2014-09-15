@@ -105,6 +105,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		go initConnections(cfg, route)
 	}
 
+	// TODO(brian): when offline instantiate the BlockService with a bitswap
+	// session that simply doesn't return blocks
 	bs, err := bserv.NewBlockService(d, bitswapSession)
 	if err != nil {
 		return nil, err
