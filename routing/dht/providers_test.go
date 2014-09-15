@@ -12,13 +12,13 @@ func TestProviderManager(t *testing.T) {
 	p := NewProviderManager(mid)
 	a := u.Key("test")
 	p.AddProvider(a, &peer.Peer{})
-	resp := p.GetProviders(a)
-	resp2 := p.GetLocal()
-	if len(resp) != 1 {
-		t.Fatal("Could not retrieve provider.")
+	remotePeers := p.GetProviders(a)
+	localPeers := p.GetLocal()
+	if len(remotePeers) != 1 {
+		t.Fatal("Could not retrieve remote provider.")
 	}
-	if len(resp2) != 1 {
-		t.Fatal("Could not retrieve provider.")
+	if len(localPeers) != 1 {
+		t.Fatal("Could not retrieve local provider.")
 	}
 
 	p.Halt()
