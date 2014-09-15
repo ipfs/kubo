@@ -179,6 +179,7 @@ func TestValueGetSet(t *testing.T) {
 	if string(val) != "world" {
 		t.Fatalf("Expected 'world' got '%s'", string(val))
 	}
+
 }
 
 func TestProvides(t *testing.T) {
@@ -202,6 +203,11 @@ func TestProvides(t *testing.T) {
 	}
 
 	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[3].getLocal(u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
