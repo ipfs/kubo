@@ -78,6 +78,7 @@ func NewSession(parent context.Context, p *peer.Peer, d ds.Datastore, r routing.
 		sender:        sender,
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
+		strategy:      YesManStrategy,
 	}
 	receiver.Delegate(bs)
 
@@ -240,13 +241,6 @@ func (bs *BitSwap) SendWantList(wl KeySet) error {
 
 func (bs *BitSwap) Halt() {
 	bs.haltChan <- struct{}{}
-}
-
-func (bs *BitSwap) SetStrategy(sf StrategyFunc) {
-	bs.strategy = sf
-	for _, ledger := range bs.partners {
-		ledger.Strategy = sf
-	}
 }
 
 func (bs *BitSwap) ReceiveMessage(
