@@ -5,93 +5,79 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 )
 
-//pseudocode stolen from the internet
-func rollhash(S []byte) {
-	a := 10
-	mask := 0xfff
-	MOD := 33554383 //randomly chosen
-	windowSize := 16
-	an := 1
-	rollingHash := 0
-	for i := 0; i < windowSize; i++ {
-		rollingHash = (rollingHash*a + int(S[i])) % MOD
-		an = (an * a) % MOD
-	}
-	if rollingHash&mask == mask {
-		// "match"
-		fmt.Println("match")
-	}
-	for i := 1; i < len(S)-windowSize; i++ {
-		rollingHash = (rollingHash*a + int(S[i+windowSize-1]) - an*int(S[i-1])) % MOD
-		if rollingHash&mask == mask {
-			//print "match"
-			fmt.Println("match")
-		}
-	}
+type MaybeRabin struct {
+	mask       int
+	windowSize int
 }
 
-func ThisMightBeRabin(r io.Reader) chan []byte {
-	out := make(chan []byte)
+func NewMaybeRabin(avgBlkSize int) *MaybeRabin {
+	blkbits := uint(math.Log2(float64(avgBlkSize)))
+	rb := new(MaybeRabin)
+	rb.mask = (1 << blkbits) - 1
+	rb.windowSize = 16 // probably a good number...
+	return rb
+}
+
+func (mr *MaybeRabin) Split(r io.Reader) chan []byte {
+	out := make(chan []byte, 16)
 	go func() {
 		inbuf := bufio.NewReader(r)
 		blkbuf := new(bytes.Buffer)
 
-		// some bullshit numbers
-		a := 10
-		mask := 0xfff   //make this smaller for smaller blocks
-		MOD := 33554383 //randomly chosen
-		windowSize := 16
+		// some bullshit numbers i made up
+		a := 10         // honestly, no idea what this is
+		MOD := 33554383 // randomly chosen (seriously)
 		an := 1
 		rollingHash := 0
 
-		window := make([]byte, windowSize)
-		get := func(i int) int { return int(window[i%len(window)]) }
-		set := func(i int, val byte) { window[i%len(window)] = val }
+		// Window is a circular buffer
+		window := make([]byte, mr.windowSize)
+		push := func(i int, val byte) (outval int) {
+			outval = int(window[i%len(window)])
+			window[i%len(window)] = val
+			return
+		}
+
+		// Duplicate byte slice
 		dup := func(b []byte) []byte {
 			d := make([]byte, len(b))
 			copy(d, b)
 			return d
 		}
 
+		// Fill up the window
 		i := 0
-		for ; i < windowSize; i++ {
+		for ; i < mr.windowSize; i++ {
 			b, err := inbuf.ReadByte()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 			blkbuf.WriteByte(b)
-			window[i] = b
+			push(i, b)
 			rollingHash = (rollingHash*a + int(b)) % MOD
 			an = (an * a) % MOD
 		}
-		/* This is too short for a block
-		if rollingHash&mask == mask {
-			// "match"
-			fmt.Println("match")
-		}
-		*/
+
 		for ; true; i++ {
 			b, err := inbuf.ReadByte()
 			if err != nil {
 				break
 			}
-			outval := get(i)
-			set(i, b)
+			outval := push(i, b)
 			blkbuf.WriteByte(b)
-			rollingHash = (rollingHash*a + get(i) - an*outval) % MOD
-			if rollingHash&mask == mask {
-				//print "match"
+			rollingHash = (rollingHash*a + int(b) - an*outval) % MOD
+			if rollingHash&mr.mask == mr.mask {
 				out <- dup(blkbuf.Bytes())
 				blkbuf.Reset()
 			}
-			peek, err := inbuf.Peek(windowSize)
-			if err != nil {
-				break
-			}
-			if len(peek) != windowSize {
+
+			// Check if there are enough remaining
+			peek, err := inbuf.Peek(mr.windowSize)
+			if err != nil || len(peek) != mr.windowSize {
 				break
 			}
 		}

@@ -6,29 +6,33 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type BlockSplitter func(io.Reader) chan []byte
+type BlockSplitter interface {
+	Split(io.Reader) chan []byte
+}
 
-func SplitterBySize(n int) BlockSplitter {
-	return func(r io.Reader) chan []byte {
-		out := make(chan []byte)
-		go func(n int) {
-			defer close(out)
-			for {
-				chunk := make([]byte, n)
-				nread, err := r.Read(chunk)
-				if err != nil {
-					if err == io.EOF {
-						return
-					}
-					u.PErr("block split error: %v\n", err)
+type SizeSplitter struct {
+	Size int
+}
+
+func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
+	out := make(chan []byte)
+	go func() {
+		defer close(out)
+		for {
+			chunk := make([]byte, ss.Size)
+			nread, err := r.Read(chunk)
+			if err != nil {
+				if err == io.EOF {
 					return
 				}
-				if nread < n {
-					chunk = chunk[:nread]
-				}
-				out <- chunk
+				u.PErr("block split error: %v\n", err)
+				return
 			}
-		}(n)
-		return out
-	}
+			if nread < ss.Size {
+				chunk = chunk[:nread]
+			}
+			out <- chunk
+		}
+	}()
+	return out
 }

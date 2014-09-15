@@ -34,28 +34,13 @@ func TestBuildDag(t *testing.T) {
 
 //Test where calls to read are smaller than the chunk size
 func TestSizeBasedSplit(t *testing.T) {
-	bs := SplitterBySize(512)
+	bs := &SizeSplitter{512}
 	testFileConsistency(t, bs, 32*512)
-	bs = SplitterBySize(4096)
+	bs = &SizeSplitter{4096}
 	testFileConsistency(t, bs, 32*4096)
 
 	// Uneven offset
 	testFileConsistency(t, bs, 31*4095)
-}
-
-func TestOtherSplit(t *testing.T) {
-	//split := WhyrusleepingCantImplementRabin
-	//testFileConsistency(t, split, 4096*64)
-}
-
-type testData struct{ n uint64 }
-
-func (t *testData) Read(b []byte) (int, error) {
-	for i, _ := range b {
-		b[i] = byte(t.n % 256)
-		t.n++
-	}
-	return len(b), nil
 }
 
 func testFileConsistency(t *testing.T, bs BlockSplitter, nbytes int) {
@@ -95,27 +80,5 @@ func arrComp(a, b []byte) error {
 }
 
 func TestMaybeRabinConsistency(t *testing.T) {
-	testFileConsistency(t, ThisMightBeRabin, 256*4096)
-}
-
-func TestRabinSplit(t *testing.T) {
-
-	//Generate some random data
-	nbytes := 256 * 4096
-	buf := new(bytes.Buffer)
-	io.CopyN(buf, rand.Reader, int64(nbytes))
-	good := buf.Bytes()
-
-	// Get block generator for random data
-	ch := ThisMightBeRabin(buf)
-
-	i := 0
-	var blocks [][]byte
-	for blk := range ch {
-		if !bytes.Equal(blk, good[i:len(blk)+i]) {
-			t.Fatalf("bad block! %v", blk[:32])
-		}
-		i += len(blk)
-		blocks = append(blocks, blk)
-	}
+	testFileConsistency(t, NewMaybeRabin(4096), 256*4096)
 }
