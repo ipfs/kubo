@@ -17,7 +17,6 @@ type DagReader struct {
 	node     *Node
 	position int
 	buf      *bytes.Buffer
-	thisData []byte
 }
 
 func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
@@ -31,10 +30,9 @@ func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
 		return nil, ErrIsDir
 	case PBData_File:
 		return &DagReader{
-			node:     n,
-			thisData: pb.GetData(),
-			serv:     serv,
-			buf:      bytes.NewBuffer(pb.GetData()),
+			node: n,
+			serv: serv,
+			buf:  bytes.NewBuffer(pb.GetData()),
 		}, nil
 	case PBData_Raw:
 		return bytes.NewBuffer(pb.GetData()), nil
@@ -63,12 +61,12 @@ func (dr *DagReader) precalcNextBuf() error {
 	}
 	dr.position++
 
-	// TODO: dont assume a single layer of indirection
 	switch pb.GetType() {
 	case PBData_Directory:
 		panic("Why is there a directory under a file?")
 	case PBData_File:
-		//TODO: maybe have a PBData_Block type for indirect blocks?
+		//TODO: this *should* work, needs testing first
+		//return NewDagReader(nxt, dr.serv)
 		panic("Not yet handling different layers of indirection!")
 	case PBData_Raw:
 		dr.buf = bytes.NewBuffer(pb.GetData())
