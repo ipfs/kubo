@@ -25,7 +25,8 @@ func NewDagFromReader(r io.Reader) (*dag.Node, error) {
 
 func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, error) {
 	blkChan := spl.Split(r)
-	root := &dag.Node{Data: dag.FilePBData()}
+	first := <-blkChan
+	root := &dag.Node{Data: dag.FilePBData(first)}
 
 	for blk := range blkChan {
 		child := &dag.Node{Data: dag.WrapData(blk)}

@@ -9,8 +9,10 @@ import (
 )
 
 type MaybeRabin struct {
-	mask       int
-	windowSize int
+	mask         int
+	windowSize   int
+	MinBlockSize int
+	MaxBlockSize int
 }
 
 func NewMaybeRabin(avgBlkSize int) *MaybeRabin {
@@ -18,6 +20,8 @@ func NewMaybeRabin(avgBlkSize int) *MaybeRabin {
 	rb := new(MaybeRabin)
 	rb.mask = (1 << blkbits) - 1
 	rb.windowSize = 16 // probably a good number...
+	rb.MinBlockSize = avgBlkSize / 2
+	rb.MaxBlockSize = (avgBlkSize / 2) * 3
 	return rb
 }
 
@@ -70,7 +74,8 @@ func (mr *MaybeRabin) Split(r io.Reader) chan []byte {
 			outval := push(i, b)
 			blkbuf.WriteByte(b)
 			rollingHash = (rollingHash*a + int(b) - an*outval) % MOD
-			if rollingHash&mr.mask == mr.mask {
+			if (rollingHash&mr.mask == mr.mask && blkbuf.Len() > mr.MinBlockSize) ||
+				blkbuf.Len() >= mr.MaxBlockSize {
 				out <- dup(blkbuf.Bytes())
 				blkbuf.Reset()
 			}

@@ -82,3 +82,19 @@ func arrComp(a, b []byte) error {
 func TestMaybeRabinConsistency(t *testing.T) {
 	testFileConsistency(t, NewMaybeRabin(4096), 256*4096)
 }
+
+func TestRabinBlockSize(t *testing.T) {
+	buf := new(bytes.Buffer)
+	nbytes := 1024 * 1024
+	io.CopyN(buf, rand.Reader, int64(nbytes))
+	rab := NewMaybeRabin(4096)
+	blkch := rab.Split(buf)
+
+	var blocks [][]byte
+	for b := range blkch {
+		blocks = append(blocks, b)
+	}
+
+	fmt.Printf("Avg block size: %d\n", nbytes/len(blocks))
+
+}

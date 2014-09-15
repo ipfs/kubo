@@ -34,6 +34,7 @@ func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
 			node:     n,
 			thisData: pb.GetData(),
 			serv:     serv,
+			buf:      bytes.NewBuffer(pb.GetData()),
 		}, nil
 	case PBData_Raw:
 		return bytes.NewBuffer(pb.GetData()), nil
