@@ -161,6 +161,11 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	// if it's a request (or has no RequestID), handle it
 	if rid == nil || rid.IsRequest() {
+		if s.Handler == nil {
+			u.PErr("service dropped msg: %v\n", m)
+			return // no handler, drop it.
+		}
+
 		r1, err := s.Handler.HandleMessage(ctx, m2)
 		if err != nil {
 			u.PErr("handled message yielded error %v\n", err)
