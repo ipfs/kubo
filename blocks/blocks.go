@@ -5,8 +5,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// Block is the ipfs blocks service. It is the way
-// to retrieve blocks by the higher level ipfs modules
+// Block is a singular block of data in ipfs
 type Block struct {
 	Multihash mh.Multihash
 	Data      []byte

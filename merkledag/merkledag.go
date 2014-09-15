@@ -157,10 +157,11 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 	return Decoded(b.Data)
 }
 
-func FilePBData() []byte {
+func FilePBData(data []byte) []byte {
 	pbfile := new(PBData)
 	typ := PBData_File
 	pbfile.Type = &typ
+	pbfile.Data = data
 
 	data, err := proto.Marshal(pbfile)
 	if err != nil {
