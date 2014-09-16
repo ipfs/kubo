@@ -12,9 +12,9 @@ import (
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
 	Get(ID) (*Peer, error)
-	Add(*Peer) error
-	Remove(ID) error
-	All() (*map[u.Key]*Peer, error)
+	Put(*Peer) error
+	Delete(ID) error
+	All() (*Map, error)
 }
 
 type peerstore struct {
@@ -33,7 +33,8 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 	p.RLock()
 	defer p.RUnlock()
 
-	val, err := p.peers.Get(ds.NewKey(string(i)))
+	k := ds.NewKey(string(i))
+	val, err := p.peers.Get(k)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 	return peer, nil
 }
 
-func (p *peerstore) Add(peer *Peer) error {
+func (p *peerstore) Put(peer *Peer) error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -53,7 +54,7 @@ func (p *peerstore) Add(peer *Peer) error {
 	return p.peers.Put(k, peer)
 }
 
-func (p *peerstore) Remove(i ID) error {
+func (p *peerstore) Delete(i ID) error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -61,7 +62,7 @@ func (p *peerstore) Remove(i ID) error {
 	return p.peers.Delete(k)
 }
 
-func (p *peerstore) All() (*map[u.Key]*Peer, error) {
+func (p *peerstore) All() (*Map, error) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -70,7 +71,7 @@ func (p *peerstore) All() (*map[u.Key]*Peer, error) {
 		return nil, err
 	}
 
-	ps := &map[u.Key]*Peer{}
+	ps := &Map{}
 	for _, k := range l {
 		val, err := p.peers.Get(k)
 		if err != nil {
