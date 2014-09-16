@@ -6,6 +6,15 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+func newMessage(typ Message_MessageType, key string, level int) *Message {
+	m := &Message{
+		Type: &typ,
+		Key:  &key,
+	}
+	m.SetClusterLevel(level)
+	return m
+}
+
 func peerToPBPeer(p *peer.Peer) *Message_Peer {
 	pbp := new(Message_Peer)
 	if len(p.Addresses) == 0 || p.Addresses[0] == nil {
@@ -24,7 +33,7 @@ func peerToPBPeer(p *peer.Peer) *Message_Peer {
 }
 
 func peersToPBPeers(peers []*peer.Peer) []*Message_Peer {
-	pbpeers = make([]*Message_Peer, len(peers))
+	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
 		pbpeers[i] = peerToPBPeer(p)
 	}
@@ -34,18 +43,19 @@ func peersToPBPeers(peers []*peer.Peer) []*Message_Peer {
 // GetClusterLevel gets and adjusts the cluster level on the message.
 // a +/- 1 adjustment is needed to distinguish a valid first level (1) and
 // default "no value" protobuf behavior (0)
-func (m *Message) GetClusterLevel() int32 {
+func (m *Message) GetClusterLevel() int {
 	level := m.GetClusterLevelRaw() - 1
 	if level < 0 {
 		u.PErr("handleGetValue: no routing level specified, assuming 0\n")
 		level = 0
 	}
-	return level
+	return int(level)
 }
 
 // SetClusterLevel adjusts and sets the cluster level on the message.
 // a +/- 1 adjustment is needed to distinguish a valid first level (1) and
 // default "no value" protobuf behavior (0)
-func (m *Message) SetClusterLevel(level int32) {
-	m.ClusterLevelRaw = &level
+func (m *Message) SetClusterLevel(level int) {
+	lvl := int32(level)
+	m.ClusterLevelRaw = &lvl
 }

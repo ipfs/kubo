@@ -261,7 +261,7 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 		}
 		if pmes.GetSuccess() {
 			u.DOut("Got providers back from findProviders call!\n")
-			provs := dht.addPeerList(key, pmes.GetPeers())
+			provs := dht.addProviders(key, pmes.GetPeers())
 			ll.Success = true
 			return provs, nil
 		}
