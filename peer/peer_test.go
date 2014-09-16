@@ -1,9 +1,10 @@
 package peer
 
 import (
+	"testing"
+
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"testing"
 )
 
 func TestNetAddress(t *testing.T) {
@@ -29,6 +30,11 @@ func TestNetAddress(t *testing.T) {
 	p := Peer{ID: ID(mh)}
 	p.AddAddress(tcp)
 	p.AddAddress(udp)
+	p.AddAddress(tcp)
+
+	if len(p.Addresses) == 3 {
+		t.Error("added same address twice")
+	}
 
 	tcp2 := p.NetAddress("tcp")
 	if tcp2 != tcp {

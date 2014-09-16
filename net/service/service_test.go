@@ -39,8 +39,12 @@ func newPeer(t *testing.T, id string) *peer.Peer {
 func TestServiceHandler(t *testing.T) {
 	ctx := context.Background()
 	h := &ReverseHandler{}
-	s := NewService(ctx, h)
+	s := NewService(h)
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
+
+	if err := s.Start(ctx); err != nil {
+		t.Error(err)
+	}
 
 	d, err := wrapData([]byte("beep"), nil)
 	if err != nil {
@@ -67,8 +71,17 @@ func TestServiceHandler(t *testing.T) {
 
 func TestServiceRequest(t *testing.T) {
 	ctx := context.Background()
-	s1 := NewService(ctx, &ReverseHandler{})
-	s2 := NewService(ctx, &ReverseHandler{})
+	s1 := NewService(&ReverseHandler{})
+	s2 := NewService(&ReverseHandler{})
+
+	if err := s1.Start(ctx); err != nil {
+		t.Error(err)
+	}
+
+	if err := s2.Start(ctx); err != nil {
+		t.Error(err)
+	}
+
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 
 	// patch services together
@@ -98,9 +111,17 @@ func TestServiceRequest(t *testing.T) {
 
 func TestServiceRequestTimeout(t *testing.T) {
 	ctx, _ := context.WithTimeout(context.Background(), time.Millisecond)
-	s1 := NewService(ctx, &ReverseHandler{})
-	s2 := NewService(ctx, &ReverseHandler{})
+	s1 := NewService(&ReverseHandler{})
+	s2 := NewService(&ReverseHandler{})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
+
+	if err := s1.Start(ctx); err != nil {
+		t.Error(err)
+	}
+
+	if err := s2.Start(ctx); err != nil {
+		t.Error(err)
+	}
 
 	// patch services together
 	go func() {

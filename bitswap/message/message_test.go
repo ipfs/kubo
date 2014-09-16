@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestAppendWanted(t *testing.T) {
@@ -39,10 +39,7 @@ func TestAppendBlock(t *testing.T) {
 
 	m := New()
 	for _, str := range strs {
-		block, err := blocks.NewBlock([]byte(str))
-		if err != nil {
-			t.Fail()
-		}
+		block := testutil.NewBlockOrFail(t, str)
 		m.AppendBlock(block)
 	}
 

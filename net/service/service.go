@@ -37,16 +37,12 @@ type Service struct {
 }
 
 // NewService creates a service object with given type ID and Handler
-func NewService(ctx context.Context, h Handler) *Service {
-	s := &Service{
+func NewService(h Handler) *Service {
+	return &Service{
 		Handler:  h,
 		Requests: RequestMap{},
 		Pipe:     msg.NewPipe(10),
 	}
-
-	go s.handleIncomingMessages(ctx)
-
-	return s
 }
 
 // Start kicks off the Service goroutines.
@@ -73,8 +69,8 @@ func (s *Service) GetPipe() *msg.Pipe {
 	return s.Pipe
 }
 
-// SendMessage sends a message out
-func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
+// sendMessage sends a message out (actual leg work. SendMessage is to export w/o rid)
+func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
 
 	// serialize ServiceMessage wrapper
 	data, err := wrapData(m.Data(), rid)
@@ -91,6 +87,11 @@ func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage, rid Request
 	}
 
 	return nil
+}
+
+// SendMessage sends a message out
+func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage) error {
+	return s.sendMessage(ctx, m, nil)
 }
 
 // SendRequest sends a request message out and awaits a response.
@@ -122,7 +123,7 @@ func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 	}
 
 	// Send message
-	s.SendMessage(ctx, m, r.ID)
+	s.sendMessage(ctx, m, r.ID)
 
 	// wait for response
 	m = nil
@@ -161,6 +162,12 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	// if it's a request (or has no RequestID), handle it
 	if rid == nil || rid.IsRequest() {
+		if s.Handler == nil {
+			u.PErr("service dropped msg: %v\n", m)
+			return // no handler, drop it.
+		}
+
+		// should this be "go HandleMessage ... ?"
 		r1, err := s.Handler.HandleMessage(ctx, m2)
 		if err != nil {
 			u.PErr("handled message yielded error %v\n", err)
@@ -169,7 +176,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 		// if handler gave us a response, send it back out!
 		if r1 != nil {
-			err := s.SendMessage(ctx, r1, rid.Response())
+			err := s.sendMessage(ctx, r1, rid.Response())
 			if err != nil {
 				u.PErr("error sending response message: %v\n", err)
 			}
@@ -196,4 +203,8 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	case r.Response <- m2:
 	case <-ctx.Done():
 	}
+}
+
+func (s *Service) SetHandler(h Handler) {
+	s.Handler = h
 }

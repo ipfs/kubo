@@ -3,7 +3,10 @@ package net
 import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
+	srv "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -31,3 +34,16 @@ type Network interface {
 	// Close terminates all network operation
 	Close() error
 }
+
+// Sender interface for network services.
+type Sender interface {
+	// SendMessage sends out a given message, without expecting a response.
+	SendMessage(ctx context.Context, m msg.NetMessage) error
+
+	// SendRequest sends out a given message, and awaits a response.
+	// Set Deadlines or cancellations in the context.Context you pass in.
+	SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error)
+}
+
+// Handler interface for network services.
+type Handler srv.Handler
