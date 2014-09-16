@@ -43,6 +43,7 @@ func TestInitialization(t *testing.T) {
 		if n == nil || err != nil {
 			t.Error("Should have constructed.", i, err)
 		}
+		n.Close()
 	}
 
 	for i, c := range bad {
@@ -50,5 +51,6 @@ func TestInitialization(t *testing.T) {
 		if n != nil || err == nil {
 			t.Error("Should have failed to construct.", i)
 		}
+		n.Close()
 	}
 }

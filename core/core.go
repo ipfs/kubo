@@ -56,6 +56,7 @@ type IpfsNode struct {
 
 	// the name system, resolves paths to hashes
 	// Namesys *namesys.Namesys
+
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -77,8 +78,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	var (
 		net *swarm.Swarm
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
-		route* dht.IpfsDHT
-		swap *bitswap.BitSwap
+		route *dht.IpfsDHT
+		swap  *bitswap.BitSwap
 	)
 
 	if online {
@@ -134,7 +135,7 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 			return nil, err
 		}
 
-		addresses = []*ma.Multiaddr{ maddr }
+		addresses = []*ma.Multiaddr{maddr}
 	}
 
 	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
@@ -173,4 +174,21 @@ func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
 func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
 	u.POut("Pinning node. Currently No-Op\n")
 	return nil
+}
+
+func (n *IpfsNode) Close() (*IpfsNode, error) {
+	//n.Swarm.Close()
+
+	return &IpfsNode{
+		Config:    nil,
+		PeerMap:   nil,
+		Datastore: nil,
+		Blocks:    nil,
+		DAG:       nil,
+		Resolver:  nil,
+		BitSwap:   nil,
+		Identity:  nil,
+		Routing:   nil,
+	}, nil
+
 }
