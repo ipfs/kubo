@@ -48,6 +48,11 @@ func (p *Peer) Key() u.Key {
 
 // AddAddress adds the given Multiaddr address to Peer's addresses.
 func (p *Peer) AddAddress(a *ma.Multiaddr) {
+	for _, addr := range p.Addresses {
+		if addr.Equal(a) {
+			return
+		}
+	}
 	p.Addresses = append(p.Addresses, a)
 }
 
