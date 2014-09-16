@@ -1,11 +1,12 @@
 package http
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
 	mh "github.com/jbenet/go-multihash"
-	"net/http"
 )
 
 type ipfsHandler struct {
@@ -36,13 +37,13 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func ipfsPostHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode) {
-	root, err := importer.NewDagFromReader(r.Body, 1)
+	root, err := importer.NewDagFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	k, err := node.DAG.Put(root)
+	k, err := node.DAG.Add(root)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
