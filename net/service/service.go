@@ -69,8 +69,8 @@ func (s *Service) GetPipe() *msg.Pipe {
 	return s.Pipe
 }
 
-// SendMessage sends a message out
-func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
+// sendMessage sends a message out (actual leg work. SendMessage is to export w/o rid)
+func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
 
 	// serialize ServiceMessage wrapper
 	data, err := wrapData(m.Data(), rid)
@@ -87,6 +87,11 @@ func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage, rid Request
 	}
 
 	return nil
+}
+
+// SendMessage sends a message out
+func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage) error {
+	return s.sendMessage(ctx, m, nil)
 }
 
 // SendRequest sends a request message out and awaits a response.
@@ -118,7 +123,7 @@ func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 	}
 
 	// Send message
-	s.SendMessage(ctx, m, r.ID)
+	s.sendMessage(ctx, m, r.ID)
 
 	// wait for response
 	m = nil
@@ -170,7 +175,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 		// if handler gave us a response, send it back out!
 		if r1 != nil {
-			err := s.SendMessage(ctx, r1, rid.Response())
+			err := s.sendMessage(ctx, r1, rid.Response())
 			if err != nil {
 				u.PErr("error sending response message: %v\n", err)
 			}
