@@ -56,7 +56,7 @@ type bitswap struct {
 	// wantList is the set of keys we want values for. a map for fast lookups.
 	wantList KeySet
 
-	strategy StrategyFunc
+	strategy strategyFunc
 
 	haltChan chan struct{}
 }
@@ -74,7 +74,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
-		strategy:      YesManStrategy,
+		strategy:      yesManStrategy,
 	}
 	receiver.Delegate(bs)
 

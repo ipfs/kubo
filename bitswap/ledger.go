@@ -30,7 +30,7 @@ type Ledger struct {
 	// wantList is a (bounded, small) set of keys that Partner desires.
 	wantList KeySet
 
-	Strategy StrategyFunc
+	Strategy strategyFunc
 }
 
 // LedgerMap lists Ledgers by their Partner key.
