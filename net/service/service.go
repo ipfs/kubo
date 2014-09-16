@@ -167,6 +167,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 			return // no handler, drop it.
 		}
 
+		// should this be "go HandleMessage ... ?"
 		r1, err := s.Handler.HandleMessage(ctx, m2)
 		if err != nil {
 			u.PErr("handled message yielded error %v\n", err)
