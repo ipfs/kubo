@@ -211,7 +211,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	// first, is the key even a key?
 	key := pmes.GetKey()
 	if key == "" {
-		return nil, errors.New("handleGetValue but no key was provided.")
+		return nil, errors.New("handleGetValue but no key was provided")
 	}
 
 	// let's first check if we have the value locally.
