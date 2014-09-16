@@ -10,6 +10,14 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
 
+type ipfs interface {
+	ResolvePath(string) (*merkledag.Node, error)
+}
+
+type handler struct {
+	ipfs
+}
+
 type ipfsHandler struct {
 	node *core.IpfsNode
 }
@@ -17,17 +25,17 @@ type ipfsHandler struct {
 // Serve starts the http server
 func Serve(address string, node *core.IpfsNode) error {
 	r := mux.NewRouter()
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { ipfsPostHandler(w, r, node) }).Methods("POST")
-	r.PathPrefix("/").Handler(&ipfsHandler{node}).Methods("GET")
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { postHandler(w, r, node) }).Methods("POST")
+	r.PathPrefix("/").Handler(&handler{&ipfsHandler{node}}).Methods("GET")
 	http.Handle("/", r)
 
 	return http.ListenAndServe(address, nil)
 }
 
-func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (i *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
-	nd, err := resolvePath(path, i.node)
+	nd, err := i.ResolvePath(path)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -37,7 +45,7 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(nd.Data)
 }
 
-func ipfsPostHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode) {
+func postHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode) {
 	root, err := importer.NewDagFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -55,6 +63,6 @@ func ipfsPostHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode
 	w.Write([]byte(mh.Multihash(k).B58String()))
 }
 
-var resolvePath = func(path string, node *core.IpfsNode) (*merkledag.Node, error) {
-	return node.Resolver.ResolvePath(path)
+func (i *ipfsHandler) ResolvePath(path string) (*merkledag.Node, error) {
+	return i.node.Resolver.ResolvePath(path)
 }

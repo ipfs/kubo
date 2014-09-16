@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	core "github.com/jbenet/go-ipfs/core"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -16,19 +15,18 @@ type getTest struct {
 	body string
 }
 
-func setup() {
-	resolvePath = func(path string, node *core.IpfsNode) (*merkledag.Node, error) {
-		if path == "/QmUxtEgtan9M7acwc8SXF3MGpgpD9Ya8ViLNGEXQ6n9vfA" {
-			return &merkledag.Node{Data: []byte("some fine data")}, nil
-		}
+type testIpfsHandler struct{}
 
-		return nil, errors.New("")
+func (i *testIpfsHandler) ResolvePath(path string) (*merkledag.Node, error) {
+	if path == "/QmUxtEgtan9M7acwc8SXF3MGpgpD9Ya8ViLNGEXQ6n9vfA" {
+		return &merkledag.Node{Data: []byte("some fine data")}, nil
 	}
+
+	return nil, errors.New("")
 }
 
 func TestServeHTTP(t *testing.T) {
-	setup()
-	testhandler := &ipfsHandler{}
+	testhandler := &handler{&testIpfsHandler{}}
 	tests := []getTest{
 		{"/", http.StatusInternalServerError, ""},
 		{"/QmUxtEgtan9M7acwc8SXF3MGpgpD9Ya8ViLNGEXQ6n9vfA", http.StatusOK, "some fine data"},
