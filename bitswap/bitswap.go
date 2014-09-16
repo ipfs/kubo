@@ -11,6 +11,7 @@ import (
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
 	tx "github.com/jbenet/go-ipfs/bitswap/transmission"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	net "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
@@ -61,14 +62,14 @@ type BitSwap struct {
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+func NewSession(parent context.Context, s net.Sender, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
 
 	// TODO(brian): define a contract for management of async operations that
 	// fall under bitswap's purview
-	ctx, _ := context.WithCancel(parent)
+	// ctx, _ := context.WithCancel(parent)
 
 	receiver := tx.Forwarder{}
-	sender := tx.NewServiceWrapper(ctx, &receiver)
+	sender := tx.NewSender(s)
 	bs := &BitSwap{
 		peer:          p,
 		datastore:     d,

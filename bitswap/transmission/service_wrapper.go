@@ -4,21 +4,20 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
-	inet "github.com/jbenet/go-ipfs/net"
+	net "github.com/jbenet/go-ipfs/net"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
-	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// NewServiceWrapper handles protobuf marshalling
-func NewServiceWrapper(ctx context.Context, r Receiver) Sender {
-	h := &handlerWrapper{r}
-	s := netservice.NewService(h)
-	s.Start(ctx)
+// NewSender wraps the net.service.Sender to perform translation between
+// BitSwapMessage and NetMessage formats. This allows the BitSwap session to
+// ignore these details.
+func NewSender(s net.Sender) Sender {
 	return &senderWrapper{s}
 }
 
-// handlerWrapper is responsible for marshaling/unmarshaling NetMessages. It
+// handlerWrapper implements the net.service.Handler interface. It is
+// responsible for converting between
 // delegates calls to the BitSwap delegate.
 type handlerWrapper struct {
 	bitswapDelegate Receiver
@@ -51,7 +50,7 @@ func (wrapper *handlerWrapper) HandleMessage(
 }
 
 type senderWrapper struct {
-	serviceDelegate inet.Sender
+	serviceDelegate net.Sender
 }
 
 func (wrapper *senderWrapper) SendMessage(
