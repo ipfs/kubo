@@ -225,13 +225,14 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 			continue
 		}
 
-		np, err := dht.network.GetConnection(peer.ID(pb.GetId()), addr)
-		if err != nil {
-			u.PErr("%v\n", err.Error())
-			continue
+		// check if we already have this peer.
+		pr, _ := dht.peerstore.Get(peer.ID(pb.GetId()))
+		if pr == nil {
+			pr = &peer.Peer{ID: peer.ID(pb.GetId())}
+			dht.peerstore.Put(pr)
 		}
-
-		peers = append(peers, np)
+		pr.AddAddress(addr) // idempotent
+		peers = append(peers, pr)
 	}
 
 	if len(peers) > 0 {
@@ -257,33 +258,26 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p *peer.Peer,
 // from someone what do we do with it? Connect to each of them? randomly pick
 // one to get the value from? Or just connect to one at a time until we get a
 // successful connection and request the value from it?
-func (dht *IpfsDHT) getFromPeerList(key u.Key, timeout time.Duration,
-	peerlist []*Message_PBPeer, level int) ([]byte, error) {
-	for _, pinfo := range peerlist {
-		p, _ := dht.Find(peer.ID(pinfo.GetId()))
-		if p == nil {
-			maddr, err := ma.NewMultiaddr(pinfo.GetAddr())
-			if err != nil {
-				u.PErr("getValue error: %s\n", err)
-				continue
-			}
+func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
+	peerlist []*Message_Peer, level int) ([]byte, error) {
 
-			p, err = dht.network.GetConnection(peer.ID(pinfo.GetId()), maddr)
-			if err != nil {
-				u.PErr("getValue error: %s\n", err)
-				continue
-			}
-		}
-		pmes, err := dht.getValueSingle(p, key, timeout, level)
+	for _, pinfo := range peerlist {
+		p, err := dht.peerFromInfo(pinfo)
 		if err != nil {
 			u.DErr("getFromPeers error: %s\n", err)
 			continue
 		}
-		dht.providers.AddProvider(key, p)
 
-		// Make sure it was a successful get
-		if pmes.GetSuccess() && pmes.Value != nil {
-			return pmes.GetValue(), nil
+		pmes, err := dht.getValueSingle(ctx, p, key, level)
+		if err != nil {
+			u.DErr("getFromPeers error: %s\n", err)
+			continue
+		}
+
+		if value := pmes.GetValue(); value != nil {
+			// Success! We were given the value
+			dht.providers.AddProvider(key, p)
+			return value, nil
 		}
 	}
 	return nil, u.ErrNotFound
@@ -463,13 +457,32 @@ func (dht *IpfsDHT) betterPeerToQuery(pmes *Message) *peer.Peer {
 	return closer
 }
 
-func (dht *IpfsDHT) peerFromInfo(pbp *Message_PBPeer) (*peer.Peer, error) {
-	maddr, err := ma.NewMultiaddr(pbp.GetAddr())
-	if err != nil {
-		return nil, err
+func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
+
+	id := peer.ID(pbp.GetId())
+	p, _ := dht.peerstore.Get(id)
+	if p == nil {
+		p, _ = dht.Find(id)
+		if p != nil {
+			panic("somehow peer not getting into peerstore")
+		}
 	}
 
-	return dht.network.GetConnection(peer.ID(pbp.GetId()), maddr)
+	if p == nil {
+		maddr, err := ma.NewMultiaddr(pbp.GetAddr())
+		if err != nil {
+			return nil, err
+		}
+
+		// create new Peer
+		p := &peer.Peer{ID: id}
+		p.AddAddress(maddr)
+		dht.peerstore.Put(pr)
+	}
+
+	// dial connection
+	err = dht.network.Dial(p)
+	return p, err
 }
 
 func (dht *IpfsDHT) loadProvidableKeys() error {
