@@ -8,10 +8,9 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
-	tx "github.com/jbenet/go-ipfs/bitswap/transmission"
 	blocks "github.com/jbenet/go-ipfs/blocks"
-	net "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
@@ -34,7 +33,7 @@ type BitSwap struct {
 	peer *peer.Peer
 
 	// sender delivers messages on behalf of the session
-	sender tx.Sender
+	sender bsnet.NetworkAdapter
 
 	// datastore is the local database // Ledgers of known
 	datastore ds.Datastore
@@ -62,21 +61,16 @@ type BitSwap struct {
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s net.Sender, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
 
-	// TODO(brian): define a contract for management of async operations that
-	// fall under bitswap's purview
-	// ctx, _ := context.WithCancel(parent)
-
-	receiver := tx.Forwarder{}
-	sender := tx.NewSender(s)
+	receiver := bsnet.Forwarder{}
 	bs := &BitSwap{
 		peer:          p,
 		datastore:     d,
 		partners:      LedgerMap{},
 		wantList:      KeySet{},
 		routing:       r,
-		sender:        sender,
+		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
 		strategy:      YesManStrategy,
@@ -246,7 +240,7 @@ func (bs *BitSwap) Halt() {
 
 func (bs *BitSwap) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
-	bsmsg.BitSwapMessage, *peer.Peer, error) {
+	*peer.Peer, bsmsg.BitSwapMessage, error) {
 	if incoming.Blocks() != nil {
 		for _, block := range incoming.Blocks() {
 			go bs.blockReceive(sender, block)
@@ -255,6 +249,7 @@ func (bs *BitSwap) ReceiveMessage(
 
 	if incoming.Wantlist() != nil {
 		for _, want := range incoming.Wantlist() {
+			// TODO(brian): return the block synchronously
 			go bs.peerWantsBlock(sender, want)
 		}
 	}
