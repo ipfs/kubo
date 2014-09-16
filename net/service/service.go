@@ -204,3 +204,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	case <-ctx.Done():
 	}
 }
+
+func (s *Service) SetHandler(h Handler) {
+	s.Handler = h
+}
