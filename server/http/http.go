@@ -4,9 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
-	mh "github.com/jbenet/go-multihash"
+	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
 
 type ipfsHandler struct {
@@ -26,7 +27,7 @@ func Serve(address string, node *core.IpfsNode) error {
 func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
-	nd, err := i.node.Resolver.ResolvePath(path)
+	nd, err := resolvePath(path, i.node)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -52,4 +53,8 @@ func ipfsPostHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode
 	//TODO: return json representation of list instead
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(mh.Multihash(k).B58String()))
+}
+
+var resolvePath = func(path string, node *core.IpfsNode) (*merkledag.Node, error) {
+	return node.Resolver.ResolvePath(path)
 }
