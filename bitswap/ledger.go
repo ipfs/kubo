@@ -8,8 +8,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// Ledger stores the data exchange relationship between two peers.
-type Ledger struct {
+// ledger stores the data exchange relationship between two peers.
+type ledger struct {
 	lock sync.RWMutex
 
 	// Partner is the remote Peer.
@@ -34,16 +34,16 @@ type Ledger struct {
 }
 
 // LedgerMap lists Ledgers by their Partner key.
-type LedgerMap map[u.Key]*Ledger
+type ledgerMap map[u.Key]*ledger
 
-func (l *Ledger) ShouldSend() bool {
+func (l *ledger) ShouldSend() bool {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
 	return l.Strategy(l)
 }
 
-func (l *Ledger) SentBytes(n int) {
+func (l *ledger) SentBytes(n int) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -52,7 +52,7 @@ func (l *Ledger) SentBytes(n int) {
 	l.Accounting.BytesSent += uint64(n)
 }
 
-func (l *Ledger) ReceivedBytes(n int) {
+func (l *ledger) ReceivedBytes(n int) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -62,14 +62,14 @@ func (l *Ledger) ReceivedBytes(n int) {
 }
 
 // TODO: this needs to be different. We need timeouts.
-func (l *Ledger) Wants(k u.Key) {
+func (l *ledger) Wants(k u.Key) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
 	l.wantList[k] = struct{}{}
 }
 
-func (l *Ledger) WantListContains(k u.Key) bool {
+func (l *ledger) WantListContains(k u.Key) bool {
 	l.lock.RLock()
 	defer l.lock.RUnlock()
 
@@ -77,7 +77,7 @@ func (l *Ledger) WantListContains(k u.Key) bool {
 	return ok
 }
 
-func (l *Ledger) ExchangeCount() uint64 {
+func (l *ledger) ExchangeCount() uint64 {
 	l.lock.RLock()
 	defer l.lock.RUnlock()
 	return l.exchangeCount

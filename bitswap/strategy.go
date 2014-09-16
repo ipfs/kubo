@@ -5,13 +5,13 @@ import (
 	"math/rand"
 )
 
-type strategyFunc func(*Ledger) bool
+type strategyFunc func(*ledger) bool
 
-func standardStrategy(l *Ledger) bool {
+func standardStrategy(l *ledger) bool {
 	return rand.Float64() <= probabilitySend(l.Accounting.Value())
 }
 
-func yesManStrategy(l *Ledger) bool {
+func yesManStrategy(l *ledger) bool {
 	return true
 }
 
