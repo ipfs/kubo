@@ -21,6 +21,7 @@ func (id ID) Equal(other ID) bool {
 	return bytes.Equal(id, other)
 }
 
+// Pretty returns a b58-encoded string of the ID
 func (id ID) Pretty() string {
 	return b58.Encode(id)
 }
@@ -73,6 +74,7 @@ func (p *Peer) NetAddress(n string) *ma.Multiaddr {
 	return nil
 }
 
+// GetLatency retrieves the current latency measurement.
 func (p *Peer) GetLatency() (out time.Duration) {
 	p.latenLock.RLock()
 	out = p.latency
@@ -80,6 +82,7 @@ func (p *Peer) GetLatency() (out time.Duration) {
 	return
 }
 
+// SetLatency sets the latency measurement.
 // TODO: Instead of just keeping a single number,
 //		 keep a running average over the last hour or so
 func (p *Peer) SetLatency(laten time.Duration) {
