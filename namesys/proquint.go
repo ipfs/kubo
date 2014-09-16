@@ -6,8 +6,6 @@ import (
 	proquint "github.com/bren2010/proquint"
 )
 
-var _ = proquint.Encode
-
 type ProquintResolver struct{}
 
 func (r *ProquintResolver) Matches(name string) bool {
@@ -16,10 +14,7 @@ func (r *ProquintResolver) Matches(name string) bool {
 }
 
 func (r *ProquintResolver) Resolve(name string) (string, error) {
-	ok, err := proquint.IsProquint(name)
-	if err != nil {
-		return "", err
-	}
+	ok := r.Matches(name)
 	if !ok {
 		return "", errors.New("not a valid proquint string")
 	}

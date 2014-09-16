@@ -9,12 +9,12 @@ import (
 
 var ErrCouldntResolve = errors.New("could not resolve name.")
 
-type MasterResolver struct {
+type masterResolver struct {
 	res []Resolver
 }
 
-func NewMasterResolver(r routing.IpfsRouting, dag *mdag.DAGService) *MasterResolver {
-	mr := new(MasterResolver)
+func NewMasterResolver(r routing.IpfsRouting, dag *mdag.DAGService) Resolver {
+	mr := new(masterResolver)
 	mr.res = []Resolver{
 		new(DNSResolver),
 		new(ProquintResolver),
@@ -23,7 +23,7 @@ func NewMasterResolver(r routing.IpfsRouting, dag *mdag.DAGService) *MasterResol
 	return mr
 }
 
-func (mr *MasterResolver) Resolve(name string) (string, error) {
+func (mr *masterResolver) Resolve(name string) (string, error) {
 	for _, r := range mr.res {
 		if r.Matches(name) {
 			return r.Resolve(name)
@@ -32,7 +32,7 @@ func (mr *MasterResolver) Resolve(name string) (string, error) {
 	return "", ErrCouldntResolve
 }
 
-func (mr *MasterResolver) Matches(name string) bool {
+func (mr *masterResolver) Matches(name string) bool {
 	for _, r := range mr.res {
 		if r.Matches(name) {
 			return true
