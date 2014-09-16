@@ -21,18 +21,18 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 	switch t {
 	case Message_GET_VALUE:
 		return dht.handleGetValue
-	// case Message_PUT_VALUE:
-	// 	return dht.handlePutValue
+	case Message_PUT_VALUE:
+		return dht.handlePutValue
 	case Message_FIND_NODE:
 		return dht.handleFindPeer
-	// case Message_ADD_PROVIDER:
-	// 	return dht.handleAddProvider
-	// case Message_GET_PROVIDERS:
-	// 	return dht.handleGetProviders
+	case Message_ADD_PROVIDER:
+		return dht.handleAddProvider
+	case Message_GET_PROVIDERS:
+		return dht.handleGetProviders
 	case Message_PING:
 		return dht.handlePing
-	// case Message_DIAGNOSTIC:
-	// 	return dht.handleDiagnostic
+	case Message_DIAGNOSTIC:
+		return dht.handleDiagnostic
 	default:
 		return nil
 	}
