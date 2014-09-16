@@ -1,43 +1,54 @@
-package transmission
+package network
 
 import (
+	"errors"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
-	net "github.com/jbenet/go-ipfs/net"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// NewSender wraps the net.service.Sender to perform translation between
+// NewSender wraps a network Service to perform translation between
 // BitSwapMessage and NetMessage formats. This allows the BitSwap session to
 // ignore these details.
-func NewSender(s net.Sender) Sender {
-	return &senderWrapper{s}
+func NewNetworkAdapter(s NetworkService, r Receiver) NetworkAdapter {
+	adapter := networkAdapter{
+		networkService: s,
+		receiver:       r,
+	}
+	s.SetHandler(&adapter)
+	return &adapter
 }
 
-// handlerWrapper implements the net.service.Handler interface. It is
-// responsible for converting between
-// delegates calls to the BitSwap delegate.
-type handlerWrapper struct {
-	bitswapDelegate Receiver
+// networkAdapter implements NetworkAdapter
+type networkAdapter struct {
+	networkService NetworkService
+	receiver       Receiver
 }
 
 // HandleMessage marshals and unmarshals net messages, forwarding them to the
 // BitSwapMessage receiver
-func (wrapper *handlerWrapper) HandleMessage(
+func (adapter *networkAdapter) HandleMessage(
 	ctx context.Context, incoming netmsg.NetMessage) (netmsg.NetMessage, error) {
+
+	if adapter.receiver == nil {
+		return nil, errors.New("No receiver. NetMessage dropped")
+	}
 
 	received, err := bsmsg.FromNet(incoming)
 	if err != nil {
 		return nil, err
 	}
 
-	bsmsg, p, err := wrapper.bitswapDelegate.ReceiveMessage(ctx, incoming.Peer(), received)
+	p, bsmsg, err := adapter.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
 	if err != nil {
 		return nil, err
 	}
-	if bsmsg == nil {
+
+	// TODO(brian): put this in a helper function
+	if bsmsg == nil || p == nil {
 		return nil, nil
 	}
 
@@ -49,29 +60,34 @@ func (wrapper *handlerWrapper) HandleMessage(
 	return outgoing, nil
 }
 
-type senderWrapper struct {
-	serviceDelegate net.Sender
-}
+func (adapter *networkAdapter) SendMessage(
+	ctx context.Context,
+	p *peer.Peer,
+	outgoing bsmsg.BitSwapMessage) error {
 
-func (wrapper *senderWrapper) SendMessage(
-	ctx context.Context, p *peer.Peer, outgoing bsmsg.Exportable) error {
 	nmsg, err := outgoing.ToNet(p)
 	if err != nil {
 		return err
 	}
-	return wrapper.serviceDelegate.SendMessage(ctx, nmsg)
+	return adapter.networkService.SendMessage(ctx, nmsg)
 }
 
-func (wrapper *senderWrapper) SendRequest(ctx context.Context,
-	p *peer.Peer, outgoing bsmsg.Exportable) (bsmsg.BitSwapMessage, error) {
+func (adapter *networkAdapter) SendRequest(
+	ctx context.Context,
+	p *peer.Peer,
+	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
 	outgoingMsg, err := outgoing.ToNet(p)
 	if err != nil {
 		return nil, err
 	}
-	incomingMsg, err := wrapper.serviceDelegate.SendRequest(ctx, outgoingMsg)
+	incomingMsg, err := adapter.networkService.SendRequest(ctx, outgoingMsg)
 	if err != nil {
 		return nil, err
 	}
 	return bsmsg.FromNet(incomingMsg)
+}
+
+func (adapter *networkAdapter) SetDelegate(r Receiver) {
+	adapter.receiver = r
 }
