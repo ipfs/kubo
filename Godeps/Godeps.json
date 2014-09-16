@@ -60,8 +60,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",
-			"Comment": "0.1.2-2-g0624ab3",
-			"Rev": "0624ab3bf754d013585c5d07f0100ba34901a689"
+			"Comment": "0.1.2-3-g74443fc",
+			"Rev": "74443fca319c4c2f5e9968b8e268c30a4a74dc64"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
