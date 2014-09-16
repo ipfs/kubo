@@ -11,8 +11,8 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	blockstore "github.com/jbenet/go-ipfs/blockstore"
 	peer "github.com/jbenet/go-ipfs/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -27,19 +27,19 @@ const PartnerWantListMax = 10
 // access/lookups.
 type KeySet map[u.Key]struct{}
 
-// BitSwap instances implement the bitswap protocol.
-type BitSwap struct {
+// bitswap instances implement the bitswap protocol.
+type bitswap struct {
 	// peer is the identity of this (local) node.
 	peer *peer.Peer
 
 	// sender delivers messages on behalf of the session
 	sender bsnet.NetworkAdapter
 
-	// datastore is the local database // Ledgers of known
-	datastore ds.Datastore
+	// blockstore is the local database
+	blockstore blockstore.Blockstore
 
 	// routing interface for communication
-	routing routing.IpfsRouting
+	routing Directory
 
 	notifications notifications.PubSub
 
@@ -47,7 +47,7 @@ type BitSwap struct {
 	// The Ledger has the peer.ID, and the peer connection works through net.
 	// Ledgers of known relationships (active or inactive) stored in datastore.
 	// Changes to the Ledger should be committed to the datastore.
-	partners LedgerMap
+	partners ledgerMap
 
 	// haveList is the set of keys we have values for. a map for fast lookups.
 	// haveList KeySet -- not needed. all values in datastore?
@@ -55,25 +55,25 @@ type BitSwap struct {
 	// wantList is the set of keys we want values for. a map for fast lookups.
 	wantList KeySet
 
-	strategy StrategyFunc
+	strategy strategyFunc
 
 	haltChan chan struct{}
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Directory) Exchange {
 
 	receiver := bsnet.Forwarder{}
-	bs := &BitSwap{
+	bs := &bitswap{
 		peer:          p,
-		datastore:     d,
-		partners:      LedgerMap{},
+		blockstore:    blockstore.NewBlockstore(d),
+		partners:      ledgerMap{},
 		wantList:      KeySet{},
-		routing:       r,
+		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
-		strategy:      YesManStrategy,
+		strategy:      yesManStrategy,
 	}
 	receiver.Delegate(bs)
 
@@ -81,7 +81,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) Block(k u.Key, timeout time.Duration) (
+func (bs *bitswap) Block(k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
 	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
 	begin := time.Now()
@@ -117,7 +117,7 @@ func (bs *BitSwap) Block(k u.Key, timeout time.Duration) (
 	}
 }
 
-func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*blocks.Block, error) {
+func (bs *bitswap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*blocks.Block, error) {
 	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
 
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
@@ -135,9 +135,9 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 	return &block, nil
 }
 
-// HasBlock announces the existance of a block to BitSwap, potentially sending
+// HasBlock announces the existance of a block to bitswap, potentially sending
 // it to peers (Partners) whose WantLists include it.
-func (bs *BitSwap) HasBlock(blk blocks.Block) error {
+func (bs *bitswap) HasBlock(blk blocks.Block) error {
 	go func() {
 		for _, ledger := range bs.partners {
 			if ledger.WantListContains(blk.Key()) {
@@ -151,7 +151,9 @@ func (bs *BitSwap) HasBlock(blk blocks.Block) error {
 	return bs.routing.Provide(blk.Key())
 }
 
-func (bs *BitSwap) SendBlock(p *peer.Peer, b blocks.Block) {
+// TODO(brian): get a return value
+func (bs *bitswap) SendBlock(p *peer.Peer, b blocks.Block) {
+	u.DOut("Sending block to peer.\n")
 	message := bsmsg.New()
 	// TODO(brian): change interface to accept value instead of pointer
 	message.AppendBlock(b)
@@ -160,42 +162,28 @@ func (bs *BitSwap) SendBlock(p *peer.Peer, b blocks.Block) {
 
 // peerWantsBlock will check if we have the block in question,
 // and then if we do, check the ledger for whether or not we should send it.
-func (bs *BitSwap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
+func (bs *bitswap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
 	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), wanted.Pretty())
+
 	ledger := bs.getLedger(p)
 
-	blk_i, err := bs.datastore.Get(wanted.DatastoreKey())
-	if err != nil {
-		if err == ds.ErrNotFound {
-			ledger.Wants(wanted)
-		}
-		u.PErr("datastore get error: %v\n", err)
+	if !ledger.ShouldSend() {
 		return
 	}
 
-	blk, ok := blk_i.([]byte)
-	if !ok {
-		u.PErr("data conversion error.\n")
+	block, err := bs.blockstore.Get(wanted)
+	if err != nil { // TODO(brian): log/return the error
+		ledger.Wants(wanted)
 		return
 	}
-
-	if ledger.ShouldSend() {
-		u.DOut("Sending block to peer.\n")
-		bblk, err := blocks.NewBlock(blk)
-		if err != nil {
-			u.PErr("newBlock error: %v\n", err)
-			return
-		}
-		bs.SendBlock(p, *bblk)
-		ledger.SentBytes(len(blk))
-	} else {
-		u.DOut("Decided not to send block.")
-	}
+	bs.SendBlock(p, *block)
+	ledger.SentBytes(numBytes(*block))
 }
 
-func (bs *BitSwap) blockReceive(p *peer.Peer, blk blocks.Block) {
+// TODO(brian): return error
+func (bs *bitswap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	u.DOut("blockReceive: %s\n", blk.Key().Pretty())
-	err := bs.datastore.Put(ds.NewKey(string(blk.Key())), blk.Data)
+	err := bs.blockstore.Put(blk)
 	if err != nil {
 		u.PErr("blockReceive error: %v\n", err)
 		return
@@ -207,20 +195,20 @@ func (bs *BitSwap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	ledger.ReceivedBytes(len(blk.Data))
 }
 
-func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
+func (bs *bitswap) getLedger(p *peer.Peer) *ledger {
 	l, ok := bs.partners[p.Key()]
 	if ok {
 		return l
 	}
 
-	l = new(Ledger)
+	l = new(ledger)
 	l.Strategy = bs.strategy
 	l.Partner = p
 	bs.partners[p.Key()] = l
 	return l
 }
 
-func (bs *BitSwap) SendWantList(wl KeySet) error {
+func (bs *bitswap) SendWantList(wl KeySet) error {
 	message := bsmsg.New()
 	for k, _ := range wl {
 		message.AppendWanted(k)
@@ -234,11 +222,11 @@ func (bs *BitSwap) SendWantList(wl KeySet) error {
 	return nil
 }
 
-func (bs *BitSwap) Halt() {
+func (bs *bitswap) Halt() {
 	bs.haltChan <- struct{}{}
 }
 
-func (bs *BitSwap) ReceiveMessage(
+func (bs *bitswap) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage, error) {
 	if incoming.Blocks() != nil {
@@ -254,4 +242,8 @@ func (bs *BitSwap) ReceiveMessage(
 		}
 	}
 	return nil, nil, errors.New("TODO implement")
+}
+
+func numBytes(b blocks.Block) int {
+	return len(b.Data)
 }
