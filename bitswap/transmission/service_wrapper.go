@@ -58,8 +58,7 @@ func (wrapper *senderWrapper) SendMessage(
 	if err != nil {
 		return err
 	}
-	req, err := netservice.NewRequest(p.ID)
-	return wrapper.serviceDelegate.SendMessage(ctx, nmsg, req.ID)
+	return wrapper.serviceDelegate.SendMessage(ctx, nmsg)
 }
 
 func (wrapper *senderWrapper) SendRequest(ctx context.Context,
