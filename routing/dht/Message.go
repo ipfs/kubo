@@ -5,19 +5,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// Message is a a helper struct which makes working with protbuf types easier
-type Message struct {
-	Type     PBDHTMessage_MessageType
-	Key      string
-	Value    []byte
-	Response bool
-	ID       string
-	Success  bool
-	Peers    []*peer.Peer
-}
-
-func peerInfo(p *peer.Peer) *PBDHTMessage_PBPeer {
-	pbp := new(PBDHTMessage_PBPeer)
+func peerInfo(p *peer.Peer) *Message_Peer {
+	pbp := new(Message_Peer)
 	if len(p.Addresses) == 0 || p.Addresses[0] == nil {
 		pbp.Addr = proto.String("")
 	} else {
@@ -33,23 +22,16 @@ func peerInfo(p *peer.Peer) *PBDHTMessage_PBPeer {
 	return pbp
 }
 
-// ToProtobuf takes a Message and produces a protobuf with it.
-// TODO: building the protobuf message this way is a little wasteful
-//		 Unused fields wont be omitted, find a better way to do this
-func (m *Message) ToProtobuf() *PBDHTMessage {
-	pmes := new(PBDHTMessage)
-	if m.Value != nil {
-		pmes.Value = m.Value
-	}
+// GetClusterLevel gets and adjusts the cluster level on the message.
+// a +/- 1 adjustment is needed to distinguish a valid first level (1) and
+// default "no value" protobuf behavior (0)
+func (m *Message) GetClusterLevel() int32 {
+	return m.GetClusterLevelRaw() - 1
+}
 
-	pmes.Type = &m.Type
-	pmes.Key = &m.Key
-	pmes.Response = &m.Response
-	pmes.Id = &m.ID
-	pmes.Success = &m.Success
-	for _, p := range m.Peers {
-		pmes.Peers = append(pmes.Peers, peerInfo(p))
-	}
-
-	return pmes
+// SetClusterLevel adjusts and sets the cluster level on the message.
+// a +/- 1 adjustment is needed to distinguish a valid first level (1) and
+// default "no value" protobuf behavior (0)
+func (m *Message) SetClusterLevel(level int32) {
+	m.ClusterLevelRaw = &level
 }
