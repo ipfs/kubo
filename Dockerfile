@@ -8,7 +8,7 @@ COPY . /go/src/github.com/jbenet/go-ipfs
 
 RUN cd /go/src/github.com/jbenet/go-ipfs/cmd/ipfs && go install
 RUN ipfs init
-RUN ipfs config Identity.Address "/ip4/127.0.0.1/tcp/4001"
+RUN ipfs config Identity.Address "/ip4/0.0.0.0/tcp/4001"
 RUN mkdir /ipfs
 
 EXPOSE 4001
