@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
@@ -31,10 +30,6 @@ var ErrNotFound = errors.New("Error: Not Found.")
 
 // Key is a string representation of multihash for use with maps.
 type Key string
-
-func (k Key) DatastoreKey() ds.Key {
-	return ds.NewKey(string(k))
-}
 
 func (k Key) Pretty() string {
 	return b58.Encode([]byte(k))
