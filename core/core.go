@@ -175,20 +175,3 @@ func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
 	u.POut("Pinning node. Currently No-Op\n")
 	return nil
 }
-
-func (n *IpfsNode) Close() (*IpfsNode, error) {
-	//n.Swarm.Close()
-
-	return &IpfsNode{
-		Config:    nil,
-		PeerMap:   nil,
-		Datastore: nil,
-		Blocks:    nil,
-		DAG:       nil,
-		Resolver:  nil,
-		BitSwap:   nil,
-		Identity:  nil,
-		Routing:   nil,
-	}, nil
-
-}

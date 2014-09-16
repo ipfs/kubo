@@ -59,7 +59,6 @@ func TestDaemonListener(t *testing.T) {
 		if closeErr != nil {
 			t.Fatal(closeErr)
 		}
-		node.Close()
 
 	}
 
