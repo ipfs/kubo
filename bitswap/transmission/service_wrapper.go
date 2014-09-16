@@ -4,11 +4,13 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	inet "github.com/jbenet/go-ipfs/net"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
+// NewServiceWrapper handles protobuf marshalling
 func NewServiceWrapper(ctx context.Context, r Receiver) Sender {
 	h := &handlerWrapper{r}
 	s := netservice.NewService(h)
@@ -49,7 +51,7 @@ func (wrapper *handlerWrapper) HandleMessage(
 }
 
 type senderWrapper struct {
-	serviceDelegate netservice.Sender
+	serviceDelegate inet.Sender
 }
 
 func (wrapper *senderWrapper) SendMessage(
