@@ -2,7 +2,7 @@ package dht;
 
 //run `protoc --go_out=. *.proto` to generate
 
-message PBDHTMessage {
+message Message {
 	enum MessageType {
 		PUT_VALUE = 0;
 		GET_VALUE = 1;
@@ -13,22 +13,30 @@ message PBDHTMessage {
 		DIAGNOSTIC = 6;
 	}
 
-	message PBPeer {
+	message Peer {
 		required string id = 1;
 		required string addr = 2;
 	}
 
+	// defines what type of message it is.
 	required MessageType type = 1;
+
+	// defines what coral cluster level this query/response belongs to.
+	optional int32 clusterLevelRaw = 10;
+
+	// Used to specify the key associated with this message.
+	// PUT_VALUE, GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
 	optional string key = 2;
+
+	// Used to return a value
+	// PUT_VALUE, GET_VALUE
 	optional bytes value = 3;
 
-	// Unique ID of this message, used to match queries with responses
-	required string id = 4;
+	// Used to return peers closer to a key in a query
+	// GET_VALUE, GET_PROVIDERS, FIND_NODE
+	repeated Peer closerPeers = 8;
 
-	// Signals whether or not this message is a response to another message
-	optional bool response = 5;
-	optional bool success = 6;
-
-	// Used for returning peers from queries (normally, peers closer to X)
-	repeated PBPeer peers = 7; 
+	// Used to return Providers
+	// GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
+	repeated Peer providerPeers = 9;
 }
