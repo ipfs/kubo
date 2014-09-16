@@ -6,6 +6,40 @@ import (
 	"testing"
 )
 
+func newMultiaddr(t *testing.T, a string) *Multiaddr {
+	m, err := NewMultiaddr(a)
+	if err != nil {
+		t.Error(err)
+	}
+	return m
+}
+
+func TestEqual(t *testing.T) {
+	m1 := newMultiaddr(t, "/ip4/127.0.0.1/udp/1234")
+	m2 := newMultiaddr(t, "/ip4/127.0.0.1/tcp/1234")
+	m3 := newMultiaddr(t, "/ip4/127.0.0.1/tcp/1234")
+
+	if m1.Equal(m2) {
+		t.Error("should not be equal")
+	}
+
+	if m2.Equal(m1) {
+		t.Error("should not be equal")
+	}
+
+	if !m2.Equal(m3) {
+		t.Error("should be equal")
+	}
+
+	if !m3.Equal(m2) {
+		t.Error("should be equal")
+	}
+
+	if !m1.Equal(m1) {
+		t.Error("should be equal")
+	}
+}
+
 func TestStringToBytes(t *testing.T) {
 
 	testString := func(s string, h string) {
