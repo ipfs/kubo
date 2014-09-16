@@ -34,8 +34,8 @@ type IpfsNode struct {
 	// the local node's identity
 	Identity *peer.Peer
 
-	// the map of other nodes (Peer instances)
-	PeerMap *peer.Map
+	// storage for other Peer instances
+	Peerstore *peer.Peerstore
 
 	// the local datastore
 	Datastore ds.Datastore
@@ -77,6 +77,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	peerstore := peer.NewPeerstore()
 
 	var (
 		net *inet.Network
@@ -125,7 +127,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	return &IpfsNode{
 		Config:    cfg,
-		PeerMap:   &peer.Map{},
+		Peerstore: peerstore,
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
