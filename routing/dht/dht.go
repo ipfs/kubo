@@ -280,7 +280,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 }
 
 // Store a value in this peer local storage
-func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
 	dskey := ds.NewKey(pmes.GetKey())
@@ -291,7 +291,7 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *PBDHTMessage) {
 	}
 }
 
-func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) {
 	u.DOut("[%s] Responding to ping from [%s]!\n", dht.self.ID.Pretty(), p.ID.Pretty())
 	resp := Message{
 		Type:     pmes.GetType(),
@@ -302,7 +302,7 @@ func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *PBDHTMessage) {
 	dht.netChan.Outgoing <- swarm.NewMessage(p, resp.ToProtobuf())
 }
 
-func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) {
 	resp := Message{
 		Type:     pmes.GetType(),
 		ID:       pmes.GetId(),
@@ -335,9 +335,9 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *PBDHTMessage) {
 	resp.Success = true
 }
 
-func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) {
 	resp := Message{
-		Type:     PBDHTMessage_GET_PROVIDERS,
+		Type:     Message_GET_PROVIDERS,
 		Key:      pmes.GetKey(),
 		ID:       pmes.GetId(),
 		Response: true,
@@ -378,7 +378,7 @@ type providerInfo struct {
 	Value    *peer.Peer
 }
 
-func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) {
 	key := u.Key(pmes.GetKey())
 	u.DOut("[%s] Adding [%s] as a provider for '%s'\n", dht.self.ID.Pretty(), p.ID.Pretty(), peer.ID(key).Pretty())
 	dht.providers.AddProvider(key, p)
@@ -393,7 +393,7 @@ func (dht *IpfsDHT) Halt() {
 }
 
 // NOTE: not yet finished, low priority
-func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *Message) {
 	seq := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 	listenChan := dht.listener.Listen(pmes.GetId(), len(seq), time.Second*30)
 
@@ -415,7 +415,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 			//Timeout, return what we have
 			goto out
 		case reqResp := <-listenChan:
-			pmesOut := new(PBDHTMessage)
+			pmesOut := new(Message)
 			err := proto.Unmarshal(reqResp.Data, pmesOut)
 			if err != nil {
 				// It broke? eh, whatever, keep going
@@ -428,7 +428,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *PBDHTMessage) {
 
 out:
 	resp := Message{
-		Type:     PBDHTMessage_DIAGNOSTIC,
+		Type:     Message_DIAGNOSTIC,
 		ID:       pmes.GetId(),
 		Value:    buf.Bytes(),
 		Response: true,
@@ -481,9 +481,9 @@ func (dht *IpfsDHT) getValueOrPeers(p *peer.Peer, key u.Key, timeout time.Durati
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
-func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duration, level int) (*PBDHTMessage, error) {
+func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duration, level int) (*Message, error) {
 	pmes := Message{
-		Type:  PBDHTMessage_GET_VALUE,
+		Type:  Message_GET_VALUE,
 		Key:   string(key),
 		Value: []byte{byte(level)},
 		ID:    swarm.GenerateMessageID(),
@@ -507,7 +507,7 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 		}
 		roundtrip := time.Since(t)
 		resp.Peer.SetLatency(roundtrip)
-		pmesOut := new(PBDHTMessage)
+		pmesOut := new(Message)
 		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
 			return nil, err
@@ -521,7 +521,7 @@ func (dht *IpfsDHT) getValueSingle(p *peer.Peer, key u.Key, timeout time.Duratio
 // one to get the value from? Or just connect to one at a time until we get a
 // successful connection and request the value from it?
 func (dht *IpfsDHT) getFromPeerList(key u.Key, timeout time.Duration,
-	peerlist []*PBDHTMessage_PBPeer, level int) ([]byte, error) {
+	peerlist []*Message_PBPeer, level int) ([]byte, error) {
 	for _, pinfo := range peerlist {
 		p, _ := dht.Find(peer.ID(pinfo.GetId()))
 		if p == nil {
@@ -597,9 +597,9 @@ func (dht *IpfsDHT) Find(id peer.ID) (*peer.Peer, *kb.RoutingTable) {
 	return nil, nil
 }
 
-func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Duration, level int) (*PBDHTMessage, error) {
+func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Duration, level int) (*Message, error) {
 	pmes := Message{
-		Type:  PBDHTMessage_FIND_NODE,
+		Type:  Message_FIND_NODE,
 		Key:   string(id),
 		ID:    swarm.GenerateMessageID(),
 		Value: []byte{byte(level)},
@@ -617,7 +617,7 @@ func (dht *IpfsDHT) findPeerSingle(p *peer.Peer, id peer.ID, timeout time.Durati
 	case resp := <-listenChan:
 		roundtrip := time.Since(t)
 		resp.Peer.SetLatency(roundtrip)
-		pmesOut := new(PBDHTMessage)
+		pmesOut := new(Message)
 		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
 			return nil, err
@@ -633,9 +633,9 @@ func (dht *IpfsDHT) printTables() {
 	}
 }
 
-func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, timeout time.Duration) (*PBDHTMessage, error) {
+func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, timeout time.Duration) (*Message, error) {
 	pmes := Message{
-		Type:  PBDHTMessage_GET_PROVIDERS,
+		Type:  Message_GET_PROVIDERS,
 		Key:   string(key),
 		ID:    swarm.GenerateMessageID(),
 		Value: []byte{byte(level)},
@@ -652,7 +652,7 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 		return nil, u.ErrTimeout
 	case resp := <-listenChan:
 		u.DOut("FindProviders: got response.\n")
-		pmesOut := new(PBDHTMessage)
+		pmesOut := new(Message)
 		err := proto.Unmarshal(resp.Data, pmesOut)
 		if err != nil {
 			return nil, err
@@ -663,7 +663,7 @@ func (dht *IpfsDHT) findProvidersSingle(p *peer.Peer, key u.Key, level int, time
 }
 
 // TODO: Could be done async
-func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer.Peer {
+func (dht *IpfsDHT) addPeerList(key u.Key, peers []*Message_PBPeer) []*peer.Peer {
 	var provArr []*peer.Peer
 	for _, prov := range peers {
 		// Dont add outselves to the list
@@ -687,7 +687,7 @@ func (dht *IpfsDHT) addPeerList(key u.Key, peers []*PBDHTMessage_PBPeer) []*peer
 	return provArr
 }
 
-func (dht *IpfsDHT) peerFromInfo(pbp *PBDHTMessage_PBPeer) (*peer.Peer, error) {
+func (dht *IpfsDHT) peerFromInfo(pbp *Message_PBPeer) (*peer.Peer, error) {
 	maddr, err := ma.NewMultiaddr(pbp.GetAddr())
 	if err != nil {
 		return nil, err
