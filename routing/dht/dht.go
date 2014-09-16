@@ -302,24 +302,25 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 	return dht.datastore.Put(ds.NewKey(string(key)), value)
 }
 
-// Update TODO(chas) Document this function
+// Update signals to all routingTables to Update their last-seen status
+// on the given peer.
 func (dht *IpfsDHT) Update(p *peer.Peer) {
+	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)
 		// Only close the connection if no tables refer to this peer
 		if removed != nil {
-			found := false
-			for _, r := range dht.routingTables {
-				if r.Find(removed.ID) != nil {
-					found = true
-					break
-				}
-			}
-			if !found {
-				dht.network.CloseConnection(removed)
-			}
+			removedCount++
 		}
 	}
+
+	// Only close the connection if no tables refer to this peer
+	// if removedCount == len(dht.routingTables) {
+	// 	dht.network.ClosePeer(p)
+	// }
+	// ACTUALLY, no, let's not just close the connection. it may be connected
+	// due to other things. it seems that we just need connection timeouts
+	// after some deadline of inactivity.
 }
 
 // Find looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
