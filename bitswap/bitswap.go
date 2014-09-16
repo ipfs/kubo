@@ -48,7 +48,7 @@ type bitswap struct {
 	// The Ledger has the peer.ID, and the peer connection works through net.
 	// Ledgers of known relationships (active or inactive) stored in datastore.
 	// Changes to the Ledger should be committed to the datastore.
-	partners LedgerMap
+	partners ledgerMap
 
 	// haveList is the set of keys we have values for. a map for fast lookups.
 	// haveList KeySet -- not needed. all values in datastore?
@@ -68,7 +68,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 	bs := &bitswap{
 		peer:          p,
 		blockstore:    blockstore.NewBlockstore(d),
-		partners:      LedgerMap{},
+		partners:      ledgerMap{},
 		wantList:      KeySet{},
 		routing:       r,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
@@ -196,13 +196,13 @@ func (bs *bitswap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	ledger.ReceivedBytes(len(blk.Data))
 }
 
-func (bs *bitswap) getLedger(p *peer.Peer) *Ledger {
+func (bs *bitswap) getLedger(p *peer.Peer) *ledger {
 	l, ok := bs.partners[p.Key()]
 	if ok {
 		return l
 	}
 
-	l = new(Ledger)
+	l = new(ledger)
 	l.Strategy = bs.strategy
 	l.Partner = p
 	bs.partners[p.Key()] = l
