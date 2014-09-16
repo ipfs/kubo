@@ -19,3 +19,10 @@ type Receiver interface {
 		ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 		outgoing bsmsg.BitSwapMessage, destination *peer.Peer, err error)
 }
+
+// TODO(brian): move this to go-ipfs/net package
+type NetworkService interface {
+	SendRequest(ctx context.Context, m netmsg.NetMessage) (netmsg.NetMessage, error)
+	SendMessage(ctx context.Context, m netmsg.NetMessage) error
+	SetHandler(netservice.Handler)
+}
