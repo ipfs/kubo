@@ -185,75 +185,98 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 }
 
 func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) error {
-	pmes := Message{
-		Type:  PBDHTMessage_PUT_VALUE,
-		Key:   key,
+	typ := Message_PUT_VALUE
+	pmes := &Message{
+		Type:  &typ,
+		Key:   &key,
 		Value: value,
-		ID:    swarm.GenerateMessageID(),
 	}
 
-	mes := swarm.NewMessage(p, pmes.ToProtobuf())
-	dht.netChan.Outgoing <- mes
-	return nil
+	mes, err := msg.FromObject(p, pmes)
+	if err != nil {
+		return err
+	}
+	return dht.sender.SendMessage(context.TODO(), mes)
 }
 
-func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *PBDHTMessage) {
+func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error) {
 	u.DOut("handleGetValue for key: %s\n", pmes.GetKey())
-	dskey := ds.NewKey(pmes.GetKey())
+
+	// setup response
 	resp := &Message{
-		Response: true,
-		ID:       pmes.GetId(),
-		Key:      pmes.GetKey(),
+		Type: pmes.Type,
+		Key:  pmes.Key,
 	}
+
+	// first, is the key even a key?
+	key := pmes.GetKey()
+	if key == "" {
+		return nil, errors.New("handleGetValue but no key was provided.")
+	}
+
+	// let's first check if we have the value locally.
+	dskey := ds.NewKey(pmes.GetKey())
 	iVal, err := dht.datastore.Get(dskey)
+
+	// if we got an unexpected error, bail.
+	if err != ds.ErrNotFound {
+		return nil, err
+	}
+
+	// if we have the value, respond with it!
 	if err == nil {
 		u.DOut("handleGetValue success!\n")
-		resp.Success = true
-		resp.Value = iVal.([]byte)
-	} else if err == ds.ErrNotFound {
-		// Check if we know any providers for the requested value
-		provs := dht.providers.GetProviders(u.Key(pmes.GetKey()))
-		if len(provs) > 0 {
-			u.DOut("handleGetValue returning %d provider[s]\n", len(provs))
-			resp.Peers = provs
-			resp.Success = true
-		} else {
-			// No providers?
-			// Find closest peer on given cluster to desired key and reply with that info
 
-			level := 0
-			if len(pmes.GetValue()) < 1 {
-				// TODO: maybe return an error? Defaulting isnt a good idea IMO
-				u.PErr("handleGetValue: no routing level specified, assuming 0\n")
-			} else {
-				level = int(pmes.GetValue()[0]) // Using value field to specify cluster level
-			}
-			u.DOut("handleGetValue searching level %d clusters\n", level)
-
-			closer := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
-
-			if closer.ID.Equal(dht.self.ID) {
-				u.DOut("Attempted to return self! this shouldnt happen...\n")
-				resp.Peers = nil
-				goto out
-			}
-			// If this peer is closer than the one from the table, return nil
-			if kb.Closer(dht.self.ID, closer.ID, u.Key(pmes.GetKey())) {
-				resp.Peers = nil
-				u.DOut("handleGetValue could not find a closer node than myself.\n")
-			} else {
-				u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
-				resp.Peers = []*peer.Peer{closer}
-			}
+		byts, ok := iVal.([]byte)
+		if !ok {
+			return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
 		}
-	} else {
-		//temp: what other errors can a datastore return?
-		panic(err)
+
+		resp.Value = byts
+		return resp, nil
 	}
 
-out:
-	mes := swarm.NewMessage(p, resp.ToProtobuf())
-	dht.netChan.Outgoing <- mes
+	// if we know any providers for the requested value, return those.
+	provs := dht.providers.GetProviders(u.Key(pmes.GetKey()))
+	if len(provs) > 0 {
+		u.DOut("handleGetValue returning %d provider[s]\n", len(provs))
+		resp.ProviderPeers = provs
+		return resp, nil
+	}
+
+	// Find closest peer on given cluster to desired key and reply with that info
+	// TODO: this should probably be decomposed.
+
+	// stored levels are > 1, to distinguish missing levels.
+	level := pmes.GetClusterLevel()
+	if level < 0 {
+		// TODO: maybe return an error? Defaulting isnt a good idea IMO
+		u.PErr("handleGetValue: no routing level specified, assuming 0\n")
+		level = 0
+	}
+	u.DOut("handleGetValue searching level %d clusters\n", level)
+
+	ck := kb.ConvertKey(u.Key(pmes.GetKey()))
+	closer := dht.routingTables[level].NearestPeer(ck)
+
+	// if closer peer is self, return nil
+	if closer.ID.Equal(dht.self.ID) {
+		u.DOut("Attempted to return self! this shouldnt happen...\n")
+		resp.CloserPeers = nil
+		return resp, nil
+	}
+
+	// if self is closer than the one from the table, return nil
+	if kb.Closer(dht.self.ID, closer.ID, u.Key(pmes.GetKey())) {
+		u.DOut("handleGetValue could not find a closer node than myself.\n")
+		resp.CloserPeers = nil
+		return resp, nil
+	}
+
+	// we got a closer peer, it seems. return it.
+	u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
+	resp.CloserPeers = []*peer.Peer{closer}
+	return resp, nil
 }
 
 // Store a value in this peer local storage
