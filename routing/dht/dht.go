@@ -169,14 +169,14 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 		return dht.handleGetValue
 	// case Message_PUT_VALUE:
 	// 	return dht.handlePutValue
-	// case Message_FIND_NODE:
-	// 	return dht.handleFindPeer
+	case Message_FIND_NODE:
+		return dht.handleFindPeer
 	// case Message_ADD_PROVIDER:
 	// 	return dht.handleAddProvider
 	// case Message_GET_PROVIDERS:
 	// 	return dht.handleGetProviders
-	// case Message_PING:
-	// 	return dht.handlePing
+	case Message_PING:
+		return dht.handlePing
 	// case Message_DIAGNOSTIC:
 	// 	return dht.handleDiagnostic
 	default:
@@ -240,7 +240,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	provs := dht.providers.GetProviders(u.Key(pmes.GetKey()))
 	if len(provs) > 0 {
 		u.DOut("handleGetValue returning %d provider[s]\n", len(provs))
-		resp.ProviderPeers = provs
+		resp.ProviderPeers = peersToPBPeers(provs)
 		return resp, nil
 	}
 
@@ -249,11 +249,6 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 
 	// stored levels are > 1, to distinguish missing levels.
 	level := pmes.GetClusterLevel()
-	if level < 0 {
-		// TODO: maybe return an error? Defaulting isnt a good idea IMO
-		u.PErr("handleGetValue: no routing level specified, assuming 0\n")
-		level = 0
-	}
 	u.DOut("handleGetValue searching level %d clusters\n", level)
 
 	ck := kb.ConvertKey(u.Key(pmes.GetKey()))
@@ -275,7 +270,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 
 	// we got a closer peer, it seems. return it.
 	u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
-	resp.CloserPeers = []*peer.Peer{closer}
+	resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
 	return resp, nil
 }
 
@@ -291,48 +286,37 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) {
 	}
 }
 
-func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) {
+func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {
 	u.DOut("[%s] Responding to ping from [%s]!\n", dht.self.ID.Pretty(), p.ID.Pretty())
-	resp := Message{
-		Type:     pmes.GetType(),
-		Response: true,
-		ID:       pmes.GetId(),
-	}
-
-	dht.netChan.Outgoing <- swarm.NewMessage(p, resp.ToProtobuf())
+	return &Message{Type: pmes.Type}, nil
 }
 
-func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) {
-	resp := Message{
-		Type:     pmes.GetType(),
-		ID:       pmes.GetId(),
-		Response: true,
-	}
-	defer func() {
-		mes := swarm.NewMessage(p, resp.ToProtobuf())
-		dht.netChan.Outgoing <- mes
-	}()
-	level := pmes.GetValue()[0]
+func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error) {
+	resp := &Message{Type: pmes.Type}
+
+	level := pmes.GetClusterLevel()
 	u.DOut("handleFindPeer: searching for '%s'\n", peer.ID(pmes.GetKey()).Pretty())
-	closest := dht.routingTables[level].NearestPeer(kb.ConvertKey(u.Key(pmes.GetKey())))
+
+	ck := kb.ConvertKey(u.Key(pmes.GetKey()))
+	closest := dht.routingTables[level].NearestPeer(ck)
 	if closest == nil {
 		u.PErr("handleFindPeer: could not find anything.\n")
-		return
+		return resp, nil
 	}
 
 	if len(closest.Addresses) == 0 {
 		u.PErr("handleFindPeer: no addresses for connected peer...\n")
-		return
+		return resp, nil
 	}
 
 	// If the found peer further away than this peer...
 	if kb.Closer(dht.self.ID, closest.ID, u.Key(pmes.GetKey())) {
-		return
+		return resp, nil
 	}
 
 	u.DOut("handleFindPeer: sending back '%s'\n", closest.ID.Pretty())
-	resp.Peers = []*peer.Peer{closest}
-	resp.Success = true
+	resp.CloserPeers = peersToPBPeers([]*peer.Peer{closest})
+	return resp, nil
 }
 
 func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) {
