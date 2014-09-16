@@ -17,6 +17,7 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	inet "github.com/jbenet/go-ipfs/net"
 	mux "github.com/jbenet/go-ipfs/net/mux"
+	netservice "github.com/jbenet/go-ipfs/net/service"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -85,15 +86,24 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	if online {
 		// add protocol services here.
+		ctx := context.TODO() // derive this from a higher context.
+
+		dhts := netservice.Service(nil) // nil handler for now, need to patch it
+		if err := dhts.Start(ctx); err != nil {
+			return nil, err
+		}
+
 		net, err := inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
-		// "1": dhtService,
-		// "2": bitswapService,
+			netservice.ProtocolID_Routing: dhtService,
+			// netservice.ProtocolID_Bitswap: bitswapService,
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		route = dht.NewDHT(local, net, d)
+		route = dht.NewDHT(local, net, dhts, d)
+		dhts.Handler = route // wire the handler to the service.
+
 		// TODO(brian): pass a context to DHT for its async operations
 		route.Start()
 
