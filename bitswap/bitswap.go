@@ -13,7 +13,6 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blockstore"
 	peer "github.com/jbenet/go-ipfs/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -40,7 +39,7 @@ type bitswap struct {
 	blockstore blockstore.Blockstore
 
 	// routing interface for communication
-	routing routing.IpfsRouting
+	routing Directory
 
 	notifications notifications.PubSub
 
@@ -62,7 +61,7 @@ type bitswap struct {
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) Exchange {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Directory) Exchange {
 
 	receiver := bsnet.Forwarder{}
 	bs := &bitswap{
@@ -70,7 +69,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 		blockstore:    blockstore.NewBlockstore(d),
 		partners:      ledgerMap{},
 		wantList:      KeySet{},
-		routing:       r,
+		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
