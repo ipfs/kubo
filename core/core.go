@@ -103,7 +103,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 			return nil, err
 		}
 
-		route = dht.NewDHT(local, net, dhts, d)
+		route = dht.NewDHT(local, peerstore, net, dhts, d)
 		dhts.Handler = route // wire the handler to the service.
 
 		// TODO(brian): pass a context to DHT for its async operations

@@ -36,6 +36,9 @@ type IpfsDHT struct {
 	// Local peer (yourself)
 	self *peer.Peer
 
+	// Other peers
+	peerstore peer.Peerstore
+
 	// Local data
 	datastore ds.Datastore
 	dslock    sync.Mutex
@@ -53,12 +56,13 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(p *peer.Peer, net inet.Network, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
+func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.network = net
 	dht.sender = sender
 	dht.datastore = dstore
 	dht.self = p
+	dht.peerstore = ps
 
 	dht.providers = NewProviderManager(p.ID)
 	dht.shutdown = make(chan struct{})
