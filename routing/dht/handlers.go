@@ -40,11 +40,8 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 
 func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) error {
 	typ := Message_PUT_VALUE
-	pmes := &Message{
-		Type:  &typ,
-		Key:   &key,
-		Value: value,
-	}
+	pmes := newMessage(Message_PUT_VALUE, string(key), 0)
+	pmes.Value = value
 
 	mes, err := msg.FromObject(p, pmes)
 	if err != nil {
@@ -57,10 +54,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	u.DOut("handleGetValue for key: %s\n", pmes.GetKey())
 
 	// setup response
-	resp := &Message{
-		Type: pmes.Type,
-		Key:  pmes.Key,
-	}
+	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// first, is the key even a key?
 	key := pmes.GetKey()
@@ -113,24 +107,22 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 }
 
 // Store a value in this peer local storage
-func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) {
+func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
 	dskey := ds.NewKey(pmes.GetKey())
 	err := dht.datastore.Put(dskey, pmes.GetValue())
-	if err != nil {
-		// For now, just panic, handle this better later maybe
-		panic(err)
-	}
+	return nil, err
 }
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {
 	u.DOut("[%s] Responding to ping from [%s]!\n", dht.self.ID.Pretty(), p.ID.Pretty())
-	return &Message{Type: pmes.Type}, nil
+
+	return newMessage(pmes.GetType(), "", int(pmes.GetClusterLevel())), nil
 }
 
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error) {
-	resp := &Message{Type: pmes.Type}
+	resp := newMessage(pmes.GetType(), "", pmes.GetClusterLevel())
 	var closest *peer.Peer
 
 	// if looking for self... special case where we send it on CloserPeers.
@@ -156,10 +148,7 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error
 }
 
 func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, error) {
-	resp := &Message{
-		Type: pmes.Type,
-		Key:  pmes.Key,
-	}
+	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// check if we have this value, to add ourselves as provider.
 	has, err := dht.datastore.Has(ds.NewKey(pmes.GetKey()))
@@ -193,11 +182,14 @@ type providerInfo struct {
 	Value    *peer.Peer
 }
 
-func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) {
+func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, error) {
 	key := u.Key(pmes.GetKey())
+
 	u.DOut("[%s] Adding [%s] as a provider for '%s'\n",
 		dht.self.ID.Pretty(), p.ID.Pretty(), peer.ID(key).Pretty())
+
 	dht.providers.AddProvider(key, p)
+	return nil, nil
 }
 
 // Halt stops all communications from this peer and shut down
