@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/daemon"
 	h "github.com/jbenet/go-ipfs/server/http"
 )
 
@@ -36,13 +38,20 @@ func serveHttpCmd(c *commander.Command, _ []string) error {
 		return errors.New("invalid port number")
 	}
 
-	hostname := c.Flag.Lookup("hostname").Value.Get().(string)
-
-	n, err := localNode()
+	n, err := localNode(true)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("starting new daemon listener...")
+	dl, err := daemon.NewDaemonListener(n, "localhost:12345")
+	if err != nil {
+		return err
+	}
+	go dl.Listen()
+	defer dl.Close()
+
+	hostname := c.Flag.Lookup("hostname").Value.Get().(string)
 	address := fmt.Sprintf("%s:%d", hostname, port)
 	fmt.Printf("Serving on %s\n", address)
 
