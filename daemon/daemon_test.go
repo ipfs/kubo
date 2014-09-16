@@ -7,11 +7,12 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	identify "github.com/jbenet/go-ipfs/identify"
 )
 
 func TestDaemonListener(t *testing.T) {
 
-	priv, _, err := ci.GenerateKeyPair(ci.RSA, 512)
+	priv, pub, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,10 +21,12 @@ func TestDaemonListener(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	ident, _ := identify.IDFromPubKey(pub)
 	privKey := base64.StdEncoding.EncodeToString(prbytes)
+	pID := ident.Pretty()
 
 	id := &config.Identity{
-		PeerID:  "QmNgdzLieYi8tgfo2WfTUzNVH5hQK9oAYGVf6dxN12NrHt",
+		PeerID:  pID,
 		Address: "/ip4/127.0.0.1/tcp/8000",
 		PrivKey: privKey,
 	}
