@@ -28,8 +28,8 @@ const PartnerWantListMax = 10
 // access/lookups.
 type KeySet map[u.Key]struct{}
 
-// BitSwap instances implement the bitswap protocol.
-type BitSwap struct {
+// bitswap instances implement the bitswap protocol.
+type bitswap struct {
 	// peer is the identity of this (local) node.
 	peer *peer.Peer
 
@@ -62,10 +62,10 @@ type BitSwap struct {
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) *BitSwap {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, r routing.IpfsRouting) Exchange {
 
 	receiver := bsnet.Forwarder{}
-	bs := &BitSwap{
+	bs := &bitswap{
 		peer:          p,
 		blockstore:    blockstore.NewBlockstore(d),
 		partners:      LedgerMap{},
@@ -82,7 +82,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *BitSwap) Block(k u.Key, timeout time.Duration) (
+func (bs *bitswap) Block(k u.Key, timeout time.Duration) (
 	*blocks.Block, error) {
 	u.DOut("Bitswap GetBlock: '%s'\n", k.Pretty())
 	begin := time.Now()
@@ -118,7 +118,7 @@ func (bs *BitSwap) Block(k u.Key, timeout time.Duration) (
 	}
 }
 
-func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*blocks.Block, error) {
+func (bs *bitswap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*blocks.Block, error) {
 	u.DOut("[%s] getBlock '%s' from [%s]\n", bs.peer.ID.Pretty(), k.Pretty(), p.ID.Pretty())
 
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
@@ -136,9 +136,9 @@ func (bs *BitSwap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 	return &block, nil
 }
 
-// HasBlock announces the existance of a block to BitSwap, potentially sending
+// HasBlock announces the existance of a block to bitswap, potentially sending
 // it to peers (Partners) whose WantLists include it.
-func (bs *BitSwap) HasBlock(blk blocks.Block) error {
+func (bs *bitswap) HasBlock(blk blocks.Block) error {
 	go func() {
 		for _, ledger := range bs.partners {
 			if ledger.WantListContains(blk.Key()) {
@@ -153,7 +153,7 @@ func (bs *BitSwap) HasBlock(blk blocks.Block) error {
 }
 
 // TODO(brian): get a return value
-func (bs *BitSwap) SendBlock(p *peer.Peer, b blocks.Block) {
+func (bs *bitswap) SendBlock(p *peer.Peer, b blocks.Block) {
 	u.DOut("Sending block to peer.\n")
 	message := bsmsg.New()
 	// TODO(brian): change interface to accept value instead of pointer
@@ -163,7 +163,7 @@ func (bs *BitSwap) SendBlock(p *peer.Peer, b blocks.Block) {
 
 // peerWantsBlock will check if we have the block in question,
 // and then if we do, check the ledger for whether or not we should send it.
-func (bs *BitSwap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
+func (bs *bitswap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
 	u.DOut("peer [%s] wants block [%s]\n", p.ID.Pretty(), wanted.Pretty())
 
 	ledger := bs.getLedger(p)
@@ -182,7 +182,7 @@ func (bs *BitSwap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
 }
 
 // TODO(brian): return error
-func (bs *BitSwap) blockReceive(p *peer.Peer, blk blocks.Block) {
+func (bs *bitswap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	u.DOut("blockReceive: %s\n", blk.Key().Pretty())
 	err := bs.blockstore.Put(blk)
 	if err != nil {
@@ -196,7 +196,7 @@ func (bs *BitSwap) blockReceive(p *peer.Peer, blk blocks.Block) {
 	ledger.ReceivedBytes(len(blk.Data))
 }
 
-func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
+func (bs *bitswap) getLedger(p *peer.Peer) *Ledger {
 	l, ok := bs.partners[p.Key()]
 	if ok {
 		return l
@@ -209,7 +209,7 @@ func (bs *BitSwap) getLedger(p *peer.Peer) *Ledger {
 	return l
 }
 
-func (bs *BitSwap) SendWantList(wl KeySet) error {
+func (bs *bitswap) SendWantList(wl KeySet) error {
 	message := bsmsg.New()
 	for k, _ := range wl {
 		message.AppendWanted(k)
@@ -223,11 +223,11 @@ func (bs *BitSwap) SendWantList(wl KeySet) error {
 	return nil
 }
 
-func (bs *BitSwap) Halt() {
+func (bs *bitswap) Halt() {
 	bs.haltChan <- struct{}{}
 }
 
-func (bs *BitSwap) ReceiveMessage(
+func (bs *bitswap) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage, error) {
 	if incoming.Blocks() != nil {
