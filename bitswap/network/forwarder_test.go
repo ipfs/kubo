@@ -1,4 +1,4 @@
-package transmission
+package network
 
 import (
 	"testing"
@@ -13,4 +13,14 @@ func TestDoesntPanicIfDelegateNotPresent(t *testing.T) {
 	fwdr.ReceiveMessage(context.Background(), &peer.Peer{}, bsmsg.New())
 }
 
-// TODO(brian): func TestForwardsMessageToDelegate(t *testing.T)
+func TestForwardsMessageToDelegate(t *testing.T) {
+	fwdr := Forwarder{delegate: &EchoDelegate{}}
+	fwdr.ReceiveMessage(context.Background(), &peer.Peer{}, bsmsg.New())
+}
+
+type EchoDelegate struct{}
+
+func (d *EchoDelegate) ReceiveMessage(ctx context.Context, p *peer.Peer,
+	incoming bsmsg.BitSwapMessage) (*peer.Peer, bsmsg.BitSwapMessage, error) {
+	return p, incoming, nil
+}

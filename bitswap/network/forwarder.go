@@ -1,4 +1,4 @@
-package transmission
+package network
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -6,17 +6,17 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// Forwarder breaks the circular dependency between bitswap and its sender
-// NB: A sender is instantiated with a handler and this sender is then passed
-// as a constructor argument to BitSwap. However, the handler is BitSwap!
-// Hence, this receiver.
+// Forwarder receives messages and forwards them to the delegate.
+//
+// Forwarder breaks the circular dependency between the BitSwap Session and the
+// Network Service.
 type Forwarder struct {
 	delegate Receiver
 }
 
 func (r *Forwarder) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
-	bsmsg.BitSwapMessage, *peer.Peer, error) {
+	*peer.Peer, bsmsg.BitSwapMessage, error) {
 	if r.delegate == nil {
 		return nil, nil, nil
 	}
