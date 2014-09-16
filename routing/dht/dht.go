@@ -280,7 +280,12 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return v.([]byte), nil
+
+	byt, ok := v.([]byte)
+	if !ok {
+		return byt, errors.New("value stored in datastore not []byte")
+	}
+	return byt, nil
 }
 
 func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
