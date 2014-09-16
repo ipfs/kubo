@@ -194,25 +194,27 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 		return nil, nil, err
 	}
 
-	if pmes.GetSuccess() {
-		if pmes.Value == nil { // We were given provider[s]
-			val, err := dht.getFromPeerList(key, timeout, pmes.GetPeers(), level)
-			if err != nil {
-				return nil, nil, err
-			}
-			return val, nil, nil
-		}
-
+	if value := pmes.GetValue(); value != nil {
 		// Success! We were given the value
-		return pmes.GetValue(), nil, nil
+		return value, nil, nil
 	}
 
-	// We were given a closer node
+	// TODO decide on providers. This probably shouldn't be happening.
+	// if prv := pmes.GetProviderPeers(); prv != nil && len(prv) > 0 {
+	// 	val, err := dht.getFromPeerList(key, timeout,, level)
+	// 	if err != nil {
+	// 		return nil, nil, err
+	// 	}
+	// 	return val, nil, nil
+	// }
+
+	// Perhaps we were given closer peers
 	var peers []*peer.Peer
-	for _, pb := range pmes.GetPeers() {
+	for _, pb := range pmes.GetCloserPeers() {
 		if peer.ID(pb.GetId()).Equal(dht.self.ID) {
 			continue
 		}
+
 		addr, err := ma.NewMultiaddr(pb.GetAddr())
 		if err != nil {
 			u.PErr("%v\n", err.Error())
@@ -227,7 +229,12 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 
 		peers = append(peers, np)
 	}
-	return nil, peers, nil
+
+	if len(peers) > 0 {
+		return nil, peers, nil
+	}
+
+	return nil, nil, errors.New("NotFound. did not get value or closer peers.")
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
