@@ -47,7 +47,7 @@ type IpfsNode struct {
 	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	BitSwap bitswap.BitSwap
+	BitSwap bitswap.Exchange
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -80,37 +80,48 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	peerstore := peer.NewPeerstore()
 
+	// FIXME(brian): This is a bit dangerous. If any of the vars declared in
+	// this block are assigned inside of the "if online" block using the ":="
+	// declaration syntax, the compiler permits re-declaration. This is rather
+	// undesirable
 	var (
-		net *inet.Network
+		net inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
-		route *dht.IpfsDHT
+		route           *dht.IpfsDHT
+		exchangeSession bitswap.Exchange
 	)
 
 	if online {
 		// add protocol services here.
 		ctx := context.TODO() // derive this from a higher context.
 
-		dhts := netservice.Service(nil) // nil handler for now, need to patch it
-		if err := dhts.Start(ctx); err != nil {
+		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
+		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
+
+		if err := dhtService.Start(ctx); err != nil {
+			return nil, err
+		}
+		if err := exchangeService.Start(ctx); err != nil {
 			return nil, err
 		}
 
-		net, err := inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
-			netservice.ProtocolID_Routing: dhtService,
-			// netservice.ProtocolID_Bitswap: bitswapService,
+		net, err = inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
+			mux.ProtocolID_Routing:  dhtService,
+			mux.ProtocolID_Exchange: exchangeService,
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		route = dht.NewDHT(local, peerstore, net, dhts, d)
-		dhts.Handler = route // wire the handler to the service.
+		route = dht.NewDHT(local, peerstore, net, dhtService, d)
+		// TODO(brian): perform this inside NewDHT factory method
+		dhtService.Handler = route // wire the handler to the service.
 
 		// TODO(brian): pass a context to DHT for its async operations
 		route.Start()
 
 		// TODO(brian): pass a context to bs for its async operations
-		bitswapSession := bitswap.NewSession(context.TODO(), local, d, route)
+		exchangeSession = bitswap.NewSession(ctx, exchangeService, local, d, route)
 
 		// TODO(brian): pass a context to initConnections
 		go initConnections(cfg, route)
@@ -118,7 +129,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
 	// session that simply doesn't return blocks
-	bs, err := bserv.NewBlockService(d, bitswapSession)
+	bs, err := bserv.NewBlockService(d, exchangeSession)
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +138,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	return &IpfsNode{
 		Config:    cfg,
-		Peerstore: peerstore,
+		Peerstore: &peerstore,
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-		BitSwap:   bitswapSession,
+		BitSwap:   exchangeSession,
 		Identity:  local,
 		Routing:   route,
 	}, nil
