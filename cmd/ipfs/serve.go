@@ -38,7 +38,12 @@ func serveHttpCmd(c *commander.Command, _ []string) error {
 		return errors.New("invalid port number")
 	}
 
-	n, err := localNode(true)
+	conf, err := getConfigDir(c.Parent.Parent)
+	if err != nil {
+		return err
+	}
+
+	n, err := localNode(conf, true)
 	if err != nil {
 		return err
 	}
