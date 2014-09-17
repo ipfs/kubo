@@ -3,6 +3,7 @@ package queue
 import (
 	"container/heap"
 	"math/big"
+	"sync"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	ks "github.com/jbenet/go-ipfs/routing/keyspace"
@@ -25,17 +26,19 @@ type distancePQ struct {
 
 	// peers is a heap of peerDistance items
 	peers []*peerDistance
+
+	sync.RWMutex
 }
 
-func (pq distancePQ) Len() int {
+func (pq *distancePQ) Len() int {
 	return len(pq.peers)
 }
 
-func (pq distancePQ) Less(i, j int) bool {
+func (pq *distancePQ) Less(i, j int) bool {
 	return -1 == pq.peers[i].distance.Cmp(pq.peers[j].distance)
 }
 
-func (pq distancePQ) Swap(i, j int) {
+func (pq *distancePQ) Swap(i, j int) {
 	p := pq.peers
 	p[i], p[j] = p[j], p[i]
 }
@@ -54,6 +57,9 @@ func (pq *distancePQ) Pop() interface{} {
 }
 
 func (pq *distancePQ) Enqueue(p *peer.Peer) {
+	pq.Lock()
+	defer pq.Unlock()
+
 	distance := ks.XORKeySpace.Key(p.ID).Distance(pq.from)
 
 	heap.Push(pq, &peerDistance{
@@ -63,6 +69,9 @@ func (pq *distancePQ) Enqueue(p *peer.Peer) {
 }
 
 func (pq *distancePQ) Dequeue() *peer.Peer {
+	pq.Lock()
+	defer pq.Unlock()
+
 	if len(pq.peers) < 1 {
 		panic("called Dequeue on an empty PeerQueue")
 		// will panic internally anyway, but we can help debug here
