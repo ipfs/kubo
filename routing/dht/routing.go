@@ -123,7 +123,7 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 }
 
 // FindProvidersAsync runs FindProviders and sends back results over a channel
-func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Duration) chan *peer.Peer {
+func (dht *IpfsDHT) FindProvidersAsync(key u.Key, count int, timeout time.Duration) <-chan *peer.Peer {
 	ctx, _ := context.WithTimeout(context.TODO(), timeout)
 
 	peerOut := make(chan *peer.Peer, count)
