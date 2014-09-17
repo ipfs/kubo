@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gorilla/context"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gorilla/context"
 )
 
 type routeTest struct {
