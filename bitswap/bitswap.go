@@ -52,9 +52,6 @@ type bitswap struct {
 	// haveList is the set of keys we have values for. a map for fast lookups.
 	// haveList KeySet -- not needed. all values in datastore?
 
-	// wantList is the set of keys we want values for. a map for fast lookups.
-	wantList KeySet
-
 	strategy strategyFunc
 
 	haltChan chan struct{}
@@ -68,7 +65,6 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 		peer:          p,
 		blockstore:    blockstore.NewBlockstore(d),
 		partners:      ledgerMap{},
-		wantList:      KeySet{},
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 		haltChan:      make(chan struct{}),
@@ -206,20 +202,6 @@ func (bs *bitswap) getLedger(p *peer.Peer) *ledger {
 	l.Partner = p
 	bs.partners[p.Key()] = l
 	return l
-}
-
-func (bs *bitswap) SendWantList(wl KeySet) error {
-	message := bsmsg.New()
-	for k, _ := range wl {
-		message.AppendWanted(k)
-	}
-
-	// Lets just ping everybody all at once
-	for _, ledger := range bs.partners {
-		bs.sender.SendMessage(context.TODO(), ledger.Partner, message)
-	}
-
-	return nil
 }
 
 func (bs *bitswap) Halt() {
