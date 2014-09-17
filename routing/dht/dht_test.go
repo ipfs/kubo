@@ -3,11 +3,16 @@ package dht
 import (
 	"testing"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	ci "github.com/jbenet/go-ipfs/crypto"
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
-	swarm "github.com/jbenet/go-ipfs/net/swarm"
+	inet "github.com/jbenet/go-ipfs/net"
+	mux "github.com/jbenet/go-ipfs/net/mux"
+	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -15,6 +20,30 @@ import (
 	"fmt"
 	"time"
 )
+
+func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
+	ctx := context.TODO()
+
+	peerstore := peer.NewPeerstore()
+
+	ctx, _ = context.WithCancel(ctx)
+	dhts := netservice.NewService(nil) // nil handler for now, need to patch it
+	if err := dhts.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	net, err := inet.NewIpfsNetwork(context.TODO(), p, &mux.ProtocolMap{
+		mux.ProtocolID_Routing: dhts,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := NewDHT(p, peerstore, net, dhts, ds.NewMapDatastore())
+	dhts.Handler = d
+	d.Start()
+	return d
+}
 
 func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
 	var addrs []*ma.Multiaddr
@@ -46,14 +75,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 
 	var dhts []*IpfsDHT
 	for i := 0; i < 4; i++ {
-		net := swarm.NewSwarm(peers[i])
-		err := net.Listen()
-		if err != nil {
-			t.Fatal(err)
-		}
-		d := NewDHT(peers[i], net, ds.NewMapDatastore())
-		dhts = append(dhts, d)
-		d.Start()
+		dhts[i] = setupDHT(t, peers[i])
 	}
 
 	return addrs, peers, dhts
@@ -91,19 +113,8 @@ func TestPing(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	neta := swarm.NewSwarm(peerA)
-	err = neta.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtA := NewDHT(peerA, neta, ds.NewMapDatastore())
-
-	netb := swarm.NewSwarm(peerB)
-	err = netb.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtB := NewDHT(peerB, netb, ds.NewMapDatastore())
+	dhtA := setupDHT(t, peerA)
+	dhtB := setupDHT(t, peerB)
 
 	dhtA.Start()
 	dhtB.Start()
@@ -136,35 +147,13 @@ func TestValueGetSet(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	neta := swarm.NewSwarm(peerA)
-	err = neta.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtA := NewDHT(peerA, neta, ds.NewMapDatastore())
-
-	netb := swarm.NewSwarm(peerB)
-	err = netb.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtB := NewDHT(peerB, netb, ds.NewMapDatastore())
+	dhtA := setupDHT(t, peerA)
+	dhtB := setupDHT(t, peerB)
 
 	dhtA.Start()
 	dhtB.Start()
 	defer dhtA.Halt()
 	defer dhtB.Halt()
-
-	errsa := dhtA.network.GetErrChan()
-	errsb := dhtB.network.GetErrChan()
-	go func() {
-		select {
-		case err := <-errsa:
-			t.Fatal(err)
-		case err := <-errsb:
-			t.Fatal(err)
-		}
-	}()
 
 	_, err = dhtA.Connect(addrB)
 	if err != nil {
