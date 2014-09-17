@@ -28,18 +28,16 @@ func catCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	expanded, err := u.ExpandPathnames(inp)
-	if err != nil {
-		return err
-	}
-
 	com := daemon.NewCommand()
 	com.Command = "cat"
-	com.Args = expanded
+	com.Args = inp
 
-	err = daemon.SendCommand(com, "localhost:12345")
+	err := daemon.SendCommand(com, "localhost:12345")
 	if err != nil {
-		conf := getConfig(c.Parent)
+		conf, err := getConfigDir(c.Parent)
+		if err != nil {
+			return err
+		}
 		n, err := localNode(conf, false)
 		if err != nil {
 			return err

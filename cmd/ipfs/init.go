@@ -32,12 +32,27 @@ func init() {
 }
 
 func initCmd(c *commander.Command, inp []string) error {
-	filename, err := config.Filename(config.DefaultConfigFilePath)
+	configpath, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
+	if configpath == "" {
+		configpath, err = u.TildeExpansion("~/.go-ipfs")
+		if err != nil {
+			return err
+		}
+	}
+
+	filename, err := config.Filename(configpath + "/config")
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
 	}
+
 	fi, err := os.Lstat(filename)
-	force := c.Flag.Lookup("f").Value.Get().(bool)
+	force, ok := c.Flag.Lookup("f").Value.Get().(bool)
+	if !ok {
+		return errors.New("failed to parse force flag")
+	}
 	if fi != nil || (err != nil && !os.IsNotExist(err)) && !force {
 		return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
 	}
@@ -55,7 +70,10 @@ func initCmd(c *commander.Command, inp []string) error {
 	// This needs thought
 	// cfg.Identity.Address = ""
 
-	nbits := c.Flag.Lookup("b").Value.Get().(int)
+	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
+	if !ok {
+		return errors.New("failed to get bits flag")
+	}
 	if nbits < 1024 {
 		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}

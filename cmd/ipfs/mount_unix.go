@@ -33,7 +33,10 @@ func mountCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	conf := getConfig(c.Parent)
+	conf, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
 	n, err := localNode(conf, true)
 	if err != nil {
 		return err

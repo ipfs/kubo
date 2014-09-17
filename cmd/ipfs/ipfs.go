@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -52,7 +53,7 @@ Use "ipfs help <command>" for more information about a command.
 }
 
 func init() {
-	CmdIpfs.Flag.String("c", "~/.go-ipfs/config", "specify config file")
+	CmdIpfs.Flag.String("c", config.DefaultPathRoot, "specify config directory")
 }
 
 func ipfsCmd(c *commander.Command, args []string) error {
@@ -72,9 +73,8 @@ func main() {
 	return
 }
 
-func localNode(conf string, online bool) (*core.IpfsNode, error) {
-	//todo implement config file flag
-	cfg, err := config.Load(conf)
+func localNode(confdir string, online bool) (*core.IpfsNode, error) {
+	cfg, err := config.Load(confdir + "/config")
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +84,14 @@ func localNode(conf string, online bool) (*core.IpfsNode, error) {
 
 // Gets the config "-c" flag from the command, or returns
 // the empty string
-func getConfig(c *commander.Command) string {
+func getConfigDir(c *commander.Command) (string, error) {
 	conf := c.Flag.Lookup("c").Value.Get()
-	confStr, ok := conf.(string)
-	if ok {
-		return confStr
+	if conf == nil {
+		return "", nil
 	}
-	return ""
+	confStr, ok := conf.(string)
+	if !ok {
+		return "", errors.New("failed to retrieve config flag value.")
+	}
+	return confStr, nil
 }
