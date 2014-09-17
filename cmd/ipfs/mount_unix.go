@@ -27,19 +27,18 @@ var cmdIpfsMount = &commander.Command{
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
-	u.Debug = true
+	u.Debug = false
 	if len(inp) < 1 || len(inp[0]) == 0 {
 		u.POut(c.Long)
 		return nil
 	}
-	fmt.Println("wtf.")
 
-	n, err := localNode(true)
+	conf := getConfig(c.Parent)
+	n, err := localNode(conf, true)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("starting new daemon listener...")
 	dl, err := daemon.NewDaemonListener(n, "localhost:12345")
 	if err != nil {
 		return err

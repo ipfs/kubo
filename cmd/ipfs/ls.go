@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
@@ -37,8 +36,8 @@ func lsCmd(c *commander.Command, inp []string) error {
 	com.Args = inp
 	err := daemon.SendCommand(com, "localhost:12345")
 	if err != nil {
-		fmt.Println(err)
-		n, err := localNode(false)
+		conf := getConfig(c.Parent)
+		n, err := localNode(conf, false)
 		if err != nil {
 			return err
 		}

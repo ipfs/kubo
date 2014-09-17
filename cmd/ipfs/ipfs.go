@@ -6,7 +6,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	config "github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -51,6 +51,10 @@ Use "ipfs help <command>" for more information about a command.
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
 
+func init() {
+	CmdIpfs.Flag.String("c", "~/.go-ipfs/config", "specify config file")
+}
+
 func ipfsCmd(c *commander.Command, args []string) error {
 	u.POut(c.Long)
 	return nil
@@ -68,12 +72,23 @@ func main() {
 	return
 }
 
-func localNode(online bool) (*core.IpfsNode, error) {
+func localNode(conf string, online bool) (*core.IpfsNode, error) {
 	//todo implement config file flag
-	cfg, err := config.Load("")
+	cfg, err := config.Load(conf)
 	if err != nil {
 		return nil, err
 	}
 
 	return core.NewIpfsNode(cfg, online)
+}
+
+// Gets the config "-c" flag from the command, or returns
+// the empty string
+func getConfig(c *commander.Command) string {
+	conf := c.Flag.Lookup("c").Value.Get()
+	confStr, ok := conf.(string)
+	if ok {
+		return confStr
+	}
+	return ""
 }

@@ -39,7 +39,8 @@ func catCmd(c *commander.Command, inp []string) error {
 
 	err = daemon.SendCommand(com, "localhost:12345")
 	if err != nil {
-		n, err := localNode(false)
+		conf := getConfig(c.Parent)
+		n, err := localNode(conf, false)
 		if err != nil {
 			return err
 		}

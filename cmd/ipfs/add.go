@@ -46,7 +46,8 @@ func addCmd(c *commander.Command, inp []string) error {
 	err := daemon.SendCommand(cmd, "localhost:12345")
 	if err != nil {
 		// Do locally
-		n, err := localNode(false)
+		conf := getConfig(c.Parent)
+		n, err := localNode(conf, false)
 		if err != nil {
 			return err
 		}

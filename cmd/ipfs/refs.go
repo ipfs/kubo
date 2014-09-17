@@ -1,10 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
+	commands "github.com/jbenet/go-ipfs/core/commands"
+	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -36,52 +38,21 @@ func refCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	n, err := localNode(false)
+	cmd := daemon.NewCommand()
+	cmd.Command = "refs"
+	cmd.Args = inp
+	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
+	cmd.Opts["u"] = c.Flag.Lookup("u").Value.Get()
+	err := daemon.SendCommand(cmd, "localhost:12345")
 	if err != nil {
-		return err
-	}
-
-	recursive := c.Flag.Lookup("r").Value.Get().(bool)
-	unique := c.Flag.Lookup("u").Value.Get().(bool)
-	refsSeen := map[u.Key]bool{}
-
-	printRef := func(h mh.Multihash) {
-		if unique {
-			_, found := refsSeen[u.Key(h)]
-			if found {
-				return
-			}
-			refsSeen[u.Key(h)] = true
-		}
-
-		u.POut("%s\n", h.B58String())
-	}
-
-	var printRefs func(nd *mdag.Node, recursive bool)
-	printRefs = func(nd *mdag.Node, recursive bool) {
-
-		for _, link := range nd.Links {
-			printRef(link.Hash)
-
-			if recursive {
-				nd, err := n.DAG.Get(u.Key(link.Hash))
-				if err != nil {
-					u.PErr("error: cannot retrieve %s (%s)\n", link.Hash.B58String(), err)
-					return
-				}
-
-				printRefs(nd, recursive)
-			}
-		}
-	}
-
-	for _, fn := range inp {
-		nd, err := n.Resolver.ResolvePath(fn)
+		// Do locally
+		conf := getConfig(c.Parent)
+		n, err := localNode(conf, false)
 		if err != nil {
 			return err
 		}
 
-		printRefs(nd, recursive)
+		return commands.Refs(n, cmd.Args, cmd.Opts, os.Stdout)
 	}
 	return nil
 }
