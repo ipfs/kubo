@@ -10,7 +10,6 @@ import (
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 )
 
@@ -36,18 +35,6 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 	default:
 		return nil
 	}
-}
-
-func (dht *IpfsDHT) putValueToNetwork(p *peer.Peer, key string, value []byte) error {
-	typ := Message_PUT_VALUE
-	pmes := newMessage(Message_PUT_VALUE, string(key), 0)
-	pmes.Value = value
-
-	mes, err := msg.FromObject(p, pmes)
-	if err != nil {
-		return err
-	}
-	return dht.sender.SendMessage(context.TODO(), mes)
 }
 
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error) {
@@ -205,7 +192,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, err
 	seq := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 
 	for _, ps := range seq {
-		mes, err := msg.FromObject(ps, pmes)
+		_, err := msg.FromObject(ps, pmes)
 		if err != nil {
 			u.PErr("handleDiagnostics error creating message: %v\n", err)
 			continue

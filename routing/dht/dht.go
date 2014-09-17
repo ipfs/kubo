@@ -142,7 +142,6 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) (msg.
 		Message_MessageType_name[int32(pmes.GetType())], mPeer.ID.Pretty())
 
 	// get handler for this msg type.
-	var resp *Message
 	handler := dht.handlerForMsgType(pmes.GetType())
 	if handler == nil {
 		return nil, errors.New("Recieved invalid message type")
@@ -188,6 +187,27 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 	}
 
 	return rpmes, nil
+}
+
+func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p *peer.Peer, key string, value []byte) error {
+	pmes := newMessage(Message_PUT_VALUE, string(key), 0)
+	pmes.Value = value
+
+	mes, err := msg.FromObject(p, pmes)
+	if err != nil {
+		return err
+	}
+	return dht.sender.SendMessage(ctx, mes)
+}
+
+func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) error {
+	pmes := newMessage(Message_ADD_PROVIDER, string(key), 0)
+
+	mes, err := msg.FromObject(p, pmes)
+	if err != nil {
+		return err
+	}
+	return dht.sender.SendMessage(ctx, mes)
 }
 
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
@@ -406,6 +426,12 @@ func (dht *IpfsDHT) betterPeerToQuery(pmes *Message) *peer.Peer {
 func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 
 	id := peer.ID(pbp.GetId())
+
+	// continue if it's ourselves
+	if id.Equal(dht.self.ID) {
+		return nil, errors.New("found self")
+	}
+
 	p, _ := dht.peerstore.Get(id)
 	if p == nil {
 		p, _ = dht.Find(id)
