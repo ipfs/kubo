@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gorilla/mux"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	core "github.com/jbenet/go-ipfs/core"
 )

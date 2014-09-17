@@ -47,6 +47,14 @@
 			"Rev": "741a6cbd37a30dedc93f817e7de6aaf0ca38a493"
 		},
 		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "4b8fbc56f3b2400a7c7ea3dba9b3539787c486b6"
+		},
+		{
 			"ImportPath": "github.com/jbenet/commander",
 			"Rev": "e0cf317891f0ab6f1ac64dfcb754b4fb5e69f7df"
 		},
