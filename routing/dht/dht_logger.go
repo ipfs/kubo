@@ -36,3 +36,8 @@ func (l *logDhtRPC) Print() {
 		u.DOut(string(b))
 	}
 }
+
+func (l *logDhtRPC) EndAndPrint() {
+	l.EndLog()
+	l.Print()
+}
