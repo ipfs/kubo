@@ -1,17 +1,21 @@
 package queue
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 func newPeer(id string) *peer.Peer {
 	return &peer.Peer{ID: peer.ID(id)}
 }
 
-func TestPeerstore(t *testing.T) {
+func TestQueue(t *testing.T) {
 
 	p1 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31")
 	p2 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32")
@@ -57,6 +61,60 @@ func TestPeerstore(t *testing.T) {
 
 	if pq.Dequeue() != p2 {
 		t.Error("ordering failed")
+	}
+
+}
+
+func newPeerTime(t time.Time) *peer.Peer {
+	s := fmt.Sprintf("hmmm time: %v", t)
+	h, _ := u.Hash([]byte(s))
+	return &peer.Peer{ID: peer.ID(h)}
+}
+
+func TestSyncQueue(t *testing.T) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
+
+	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
+	cq := NewChanQueue(ctx, pq)
+	countIn := 0
+	countOut := 0
+
+	produce := func() {
+		tick := time.Tick(time.Millisecond)
+		for {
+			select {
+			case tim := <-tick:
+				countIn++
+				cq.EnqChan <- newPeerTime(tim)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+
+	consume := func() {
+		for {
+			select {
+			case <-cq.DeqChan:
+				countOut++
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+
+	for i := 0; i < 10; i++ {
+		go produce()
+		go produce()
+		go consume()
+	}
+
+	select {
+	case <-ctx.Done():
+	}
+
+	if countIn != countOut {
+		t.Errorf("didnt get them all out: %d/%d", countOut, countIn)
 	}
 
 }
