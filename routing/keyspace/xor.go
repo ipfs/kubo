@@ -21,19 +21,19 @@ func (s *xorKeySpace) Key(id []byte) Key {
 	return Key{
 		Space:    s,
 		Original: id,
-		Adjusted: key,
+		Bytes:    key,
 	}
 }
 
 // Equal returns whether keys are equal in this key space
 func (s *xorKeySpace) Equal(k1, k2 Key) bool {
-	return bytes.Equal(k1.Adjusted, k2.Adjusted)
+	return bytes.Equal(k1.Bytes, k2.Bytes)
 }
 
 // Distance returns the distance metric in this key space
 func (s *xorKeySpace) Distance(k1, k2 Key) *big.Int {
 	// XOR the keys
-	k3 := XOR(k1.Adjusted, k2.Adjusted)
+	k3 := XOR(k1.Bytes, k2.Bytes)
 
 	// interpret it as an integer
 	dist := big.NewInt(0).SetBytes(k3)
@@ -42,8 +42,8 @@ func (s *xorKeySpace) Distance(k1, k2 Key) *big.Int {
 
 // Less returns whether the first key is smaller than the second.
 func (s *xorKeySpace) Less(k1, k2 Key) bool {
-	a := k1.Adjusted
-	b := k2.Adjusted
+	a := k1.Bytes
+	b := k2.Bytes
 	for i := 0; i < len(a); i++ {
 		if a[i] != b[i] {
 			return a[i] < b[i]

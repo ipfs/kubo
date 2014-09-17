@@ -69,16 +69,16 @@ func TestXorKeySpace(t *testing.T) {
 			t.Errorf("Key not eq. %v != %v", set[0], set[1])
 		}
 
-		if !bytes.Equal(set[0].Adjusted, set[1].Adjusted) {
-			t.Errorf("Key gen failed. %v != %v", set[0].Adjusted, set[1].Adjusted)
+		if !bytes.Equal(set[0].Bytes, set[1].Bytes) {
+			t.Errorf("Key gen failed. %v != %v", set[0].Bytes, set[1].Bytes)
 		}
 
 		if !bytes.Equal(set[0].Original, ids[i]) {
 			t.Errorf("ptrs to original. %v != %v", set[0].Original, ids[i])
 		}
 
-		if len(set[0].Adjusted) != 32 {
-			t.Errorf("key length incorrect. 32 != %d", len(set[0].Adjusted))
+		if len(set[0].Bytes) != 32 {
+			t.Errorf("key length incorrect. 32 != %d", len(set[0].Bytes))
 		}
 	}
 
@@ -110,7 +110,7 @@ func TestDistancesAndCenterSorting(t *testing.T) {
 
 	keys := make([]Key, len(adjs))
 	for i, a := range adjs {
-		keys[i] = Key{Space: XORKeySpace, Adjusted: a}
+		keys[i] = Key{Space: XORKeySpace, Bytes: a}
 	}
 
 	cmp := func(a int, b *big.Int) int {
@@ -126,8 +126,8 @@ func TestDistancesAndCenterSorting(t *testing.T) {
 	}
 
 	d1 := keys[2].Distance(keys[5])
-	d2 := XOR(keys[2].Adjusted, keys[5].Adjusted)
-	d2 = d2[len(keys[2].Adjusted)-len(d1.Bytes()):] // skip empty space for big
+	d2 := XOR(keys[2].Bytes, keys[5].Bytes)
+	d2 = d2[len(keys[2].Bytes)-len(d1.Bytes()):] // skip empty space for big
 	if !bytes.Equal(d1.Bytes(), d2) {
 		t.Errorf("bytes should be the same. %v == %v", d1.Bytes(), d2)
 	}
@@ -139,7 +139,7 @@ func TestDistancesAndCenterSorting(t *testing.T) {
 	keys2 := SortByDistance(XORKeySpace, keys[2], keys)
 	order := []int{2, 3, 4, 5, 1, 0}
 	for i, o := range order {
-		if !bytes.Equal(keys[o].Adjusted, keys2[i].Adjusted) {
+		if !bytes.Equal(keys[o].Bytes, keys2[i].Bytes) {
 			t.Errorf("order is wrong. %d?? %v == %v", o, keys[o], keys2[i])
 		}
 	}

@@ -8,7 +8,7 @@ import (
 
 // Key represents an identifier in a KeySpace. It holds a reference to the
 // associated KeySpace, as well references to both the Original identifier,
-// as well as the new, KeySpace Adjusted one.
+// as well as the new, KeySpace Bytes one.
 type Key struct {
 
 	// Space is the KeySpace this Key is related to.
@@ -17,8 +17,8 @@ type Key struct {
 	// Original is the original value of the identifier
 	Original []byte
 
-	// Adjusted is the new value of the identifier, in the KeySpace.
-	Adjusted []byte
+	// Bytes is the new value of the identifier, in the KeySpace.
+	Bytes []byte
 }
 
 // Equal returns whether this key is equal to another.
