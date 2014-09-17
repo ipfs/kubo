@@ -48,7 +48,7 @@ func TestBucket(t *testing.T) {
 	llist := b.list
 	for e := llist.Front(); e != nil; e = e.Next() {
 		p := ConvertPeerID(e.Value.(*peer.Peer).ID)
-		cpl := xor(p, localID).commonPrefixLen()
+		cpl := commonPrefixLen(p, localID)
 		if cpl > 0 {
 			t.Fatalf("Split failed. found id with cpl > 0 in 0 bucket")
 		}
@@ -57,7 +57,7 @@ func TestBucket(t *testing.T) {
 	rlist := spl.list
 	for e := rlist.Front(); e != nil; e = e.Next() {
 		p := ConvertPeerID(e.Value.(*peer.Peer).ID)
-		cpl := xor(p, localID).commonPrefixLen()
+		cpl := commonPrefixLen(p, localID)
 		if cpl == 0 {
 			t.Fatalf("Split failed. found id with cpl == 0 in non 0 bucket")
 		}
