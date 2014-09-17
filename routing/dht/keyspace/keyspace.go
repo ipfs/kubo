@@ -86,9 +86,11 @@ func (s byDistanceToCenter) Less(i, j int) bool {
 // It returns a new list, where the Keys toSort have been sorted by their
 // distance to the center Key.
 func SortByDistance(sp KeySpace, center Key, toSort []Key) []Key {
+	toSortCopy := make([]Key, len(toSort))
+	copy(toSortCopy, toSort)
 	bdtc := &byDistanceToCenter{
 		Center: center,
-		Keys:   toSort[:], // copy
+		Keys:   toSortCopy, // copy
 	}
 	sort.Sort(bdtc)
 	return bdtc.Keys

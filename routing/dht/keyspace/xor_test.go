@@ -97,7 +97,7 @@ func TestXorKeySpace(t *testing.T) {
 	}
 }
 
-func TestCenterSorting(t *testing.T) {
+func TestDistancesAndCenterSorting(t *testing.T) {
 
 	adjs := [][]byte{
 		[]byte{173, 149, 19, 27, 192, 183, 153, 192, 177, 175, 71, 127, 177, 79, 207, 38, 166, 169, 247, 96, 121, 228, 139, 240, 144, 172, 183, 232, 54, 123, 253, 14},
@@ -134,6 +134,14 @@ func TestCenterSorting(t *testing.T) {
 
 	if -1 != cmp(2<<32, keys[2].Distance(keys[5])) {
 		t.Errorf("2<<32 should be smaller")
+	}
+
+	keys2 := SortByDistance(XORKeySpace, keys[2], keys)
+	order := []int{2, 3, 4, 5, 1, 0}
+	for i, o := range order {
+		if !bytes.Equal(keys[o].Adjusted, keys2[i].Adjusted) {
+			t.Errorf("order is wrong. %d?? %v == %v", o, keys[o], keys2[i])
+		}
 	}
 
 }
