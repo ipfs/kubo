@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	ks "github.com/jbenet/go-ipfs/routing/keyspace"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -13,8 +14,7 @@ import (
 // behaviour
 var ErrLookupFailure = errors.New("failed to find any peer in table")
 
-// ID for IpfsDHT should be a byte slice, to allow for simpler operations
-// (xor). DHT ids are based on the peer.IDs.
+// ID for IpfsDHT is in the XORKeySpace
 //
 // The type dht.ID signifies that its contents have been hashed from either a
 // peer.ID or a util.Key. This unifies the keyspace
@@ -25,55 +25,17 @@ func (id ID) equal(other ID) bool {
 }
 
 func (id ID) less(other ID) bool {
-	a, b := equalizeSizes(id, other)
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return a[i] < b[i]
-		}
-	}
-	return len(a) < len(b)
-}
-
-func (id ID) commonPrefixLen() int {
-	for i := 0; i < len(id); i++ {
-		for j := 0; j < 8; j++ {
-			if (id[i]>>uint8(7-j))&0x1 != 0 {
-				return i*8 + j
-			}
-		}
-	}
-	return len(id)*8 - 1
-}
-
-func prefLen(a, b ID) int {
-	return xor(a, b).commonPrefixLen()
+	a := ks.Key{Space: ks.XORKeySpace, Adjusted: id}
+	b := ks.Key{Space: ks.XORKeySpace, Adjusted: other}
+	return a.Less(b)
 }
 
 func xor(a, b ID) ID {
-	a, b = equalizeSizes(a, b)
-
-	c := make(ID, len(a))
-	for i := 0; i < len(a); i++ {
-		c[i] = a[i] ^ b[i]
-	}
-	return c
+	return ID(ks.XOR(a, b))
 }
 
-func equalizeSizes(a, b ID) (ID, ID) {
-	la := len(a)
-	lb := len(b)
-
-	if la < lb {
-		na := make([]byte, lb)
-		copy(na, a)
-		a = na
-	} else if lb < la {
-		nb := make([]byte, la)
-		copy(nb, b)
-		b = nb
-	}
-
-	return a, b
+func commonPrefixLen(a, b ID) int {
+	return ks.ZeroPrefixLen(ks.XOR(a, b))
 }
 
 // ConvertPeerID creates a DHT ID by hashing a Peer ID (Multihash)
