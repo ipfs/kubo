@@ -25,8 +25,8 @@ func (id ID) equal(other ID) bool {
 }
 
 func (id ID) less(other ID) bool {
-	a := ks.Key{Space: ks.XORKeySpace, Adjusted: id}
-	b := ks.Key{Space: ks.XORKeySpace, Adjusted: other}
+	a := ks.Key{Space: ks.XORKeySpace, Bytes: id}
+	b := ks.Key{Space: ks.XORKeySpace, Bytes: other}
 	return a.Less(b)
 }
 
