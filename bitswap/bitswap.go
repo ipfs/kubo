@@ -139,7 +139,7 @@ func (bs *bitswap) HasBlock(blk blocks.Block) error {
 			if ledger.WantListContains(blk.Key()) {
 				//send block to node
 				if ledger.ShouldSend() {
-					bs.SendBlock(ledger.Partner, blk)
+					bs.sendBlock(ledger.Partner, blk)
 				}
 			}
 		}
@@ -148,7 +148,7 @@ func (bs *bitswap) HasBlock(blk blocks.Block) error {
 }
 
 // TODO(brian): get a return value
-func (bs *bitswap) SendBlock(p *peer.Peer, b blocks.Block) {
+func (bs *bitswap) sendBlock(p *peer.Peer, b blocks.Block) {
 	u.DOut("Sending block to peer.\n")
 	message := bsmsg.New()
 	// TODO(brian): change interface to accept value instead of pointer
@@ -172,7 +172,7 @@ func (bs *bitswap) peerWantsBlock(p *peer.Peer, wanted u.Key) {
 		ledger.Wants(wanted)
 		return
 	}
-	bs.SendBlock(p, *block)
+	bs.sendBlock(p, *block)
 	ledger.SentBytes(numBytes(*block))
 }
 
