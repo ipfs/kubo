@@ -7,6 +7,9 @@ import peer "github.com/jbenet/go-ipfs/peer"
 // a KeySpace, latency measurements, trustworthiness, reputation, etc.
 type PeerQueue interface {
 
+	// Len returns the number of items in PeerQueue
+	Len() int
+
 	// Enqueue adds this node to the queue.
 	Enqueue(*peer.Peer)
 
