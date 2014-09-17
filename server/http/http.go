@@ -1,32 +1,24 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	core "github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/importer"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
-
-type ipfs interface {
-	ResolvePath(string) (*merkledag.Node, error)
-}
 
 type handler struct {
 	ipfs
 }
 
-type ipfsHandler struct {
-	node *core.IpfsNode
-}
-
 // Serve starts the http server
 func Serve(address string, node *core.IpfsNode) error {
 	r := mux.NewRouter()
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { postHandler(w, r, node) }).Methods("POST")
-	r.PathPrefix("/").Handler(&handler{&ipfsHandler{node}}).Methods("GET")
+	handler := &handler{&ipfsHandler{node}}
+	r.HandleFunc("/", handler.postHandler).Methods("POST")
+	r.PathPrefix("/").Handler(handler).Methods("GET")
 	http.Handle("/", r)
 
 	return http.ListenAndServe(address, nil)
@@ -45,24 +37,22 @@ func (i *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(nd.Data)
 }
 
-func postHandler(w http.ResponseWriter, r *http.Request, node *core.IpfsNode) {
-	root, err := importer.NewDagFromReader(r.Body)
+func (i *handler) postHandler(w http.ResponseWriter, r *http.Request) {
+	nd, err := i.NewDagFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
-	k, err := node.DAG.Add(root)
+	k, err := i.AddNodeToDAG(nd)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
 	//TODO: return json representation of list instead
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(mh.Multihash(k).B58String()))
-}
-
-func (i *ipfsHandler) ResolvePath(path string) (*merkledag.Node, error) {
-	return i.node.Resolver.ResolvePath(path)
 }

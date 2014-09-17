@@ -2,34 +2,29 @@ package http
 
 import (
 	"errors"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	dag "github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
-type getTest struct {
-	url  string
-	code int
-	body string
-}
-
-type testIpfsHandler struct{}
-
-func (i *testIpfsHandler) ResolvePath(path string) (*merkledag.Node, error) {
-	if path == "/QmUxtEgtan9M7acwc8SXF3MGpgpD9Ya8ViLNGEXQ6n9vfA" {
-		return &merkledag.Node{Data: []byte("some fine data")}, nil
-	}
-
-	return nil, errors.New("")
+type test struct {
+	url      string
+	code     int
+	reqbody  string
+	respbody string
 }
 
 func TestServeHTTP(t *testing.T) {
 	testhandler := &handler{&testIpfsHandler{}}
-	tests := []getTest{
-		{"/", http.StatusInternalServerError, ""},
-		{"/QmUxtEgtan9M7acwc8SXF3MGpgpD9Ya8ViLNGEXQ6n9vfA", http.StatusOK, "some fine data"},
+	tests := []test{
+		{"/", http.StatusInternalServerError, "", ""},
+		{"/hash", http.StatusOK, "", "some fine data"},
 	}
 
 	for _, test := range tests {
@@ -41,9 +36,59 @@ func TestServeHTTP(t *testing.T) {
 			t.Error("expected status code", test.code, "received", resp.Code)
 		}
 
-		if resp.Body.String() != test.body {
-			t.Error("expected body:", test.body)
+		if resp.Body.String() != test.respbody {
+			t.Error("expected body:", test.respbody)
 			t.Error("received body:", resp.Body)
 		}
 	}
+}
+
+func TestPostHandler(t *testing.T) {
+	testhandler := &handler{&testIpfsHandler{}}
+	tests := []test{
+		{"/", http.StatusInternalServerError, "", ""},
+		{"/", http.StatusInternalServerError, "something that causes an error in adding to DAG", ""},
+		{"/", http.StatusCreated, "some fine data", "jSQBpNSebeYbPBjs1vp"},
+	}
+
+	for _, test := range tests {
+		req, _ := http.NewRequest("POST", test.url, strings.NewReader(test.reqbody))
+		resp := httptest.NewRecorder()
+		testhandler.postHandler(resp, req)
+
+		if resp.Code != test.code {
+			t.Error("expected status code", test.code, "received", resp.Code)
+		}
+
+		if resp.Body.String() != test.respbody {
+			t.Error("expected body:", test.respbody)
+			t.Error("received body:", resp.Body)
+		}
+	}
+}
+
+type testIpfsHandler struct{}
+
+func (i *testIpfsHandler) ResolvePath(path string) (*dag.Node, error) {
+	if path == "/hash" {
+		return &dag.Node{Data: []byte("some fine data")}, nil
+	}
+
+	return nil, errors.New("")
+}
+
+func (i *testIpfsHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
+	if data, err := ioutil.ReadAll(r); err == nil {
+		return &dag.Node{Data: data}, nil
+	}
+
+	return nil, errors.New("")
+}
+
+func (i *testIpfsHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
+	if len(nd.Data) != 0 && string(nd.Data) != "something that causes an error in adding to DAG" {
+		return u.Key(nd.Data), nil
+	}
+
+	return "", errors.New("")
 }
