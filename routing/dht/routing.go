@@ -10,9 +10,9 @@ import (
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
+	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -261,7 +261,7 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 		}
 		if pmes.GetSuccess() {
 			u.DOut("Got providers back from findProviders call!\n")
-			provs := dht.addPeerList(key, pmes.GetPeers())
+			provs := dht.addProviders(key, pmes.GetPeers())
 			ll.Success = true
 			return provs, nil
 		}

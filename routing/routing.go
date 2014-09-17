@@ -10,6 +10,7 @@ import (
 // IpfsRouting is the routing module interface
 // It is implemented by things like DHTs, etc.
 type IpfsRouting interface {
+	FindProvidersAsync(u.Key, int, time.Duration) <-chan *peer.Peer
 
 	// Basic Put/Get
 

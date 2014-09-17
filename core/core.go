@@ -5,19 +5,23 @@ import (
 	"errors"
 	"fmt"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	"github.com/jbenet/go-ipfs/bitswap"
+
+	bitswap "github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	inet "github.com/jbenet/go-ipfs/net"
+	mux "github.com/jbenet/go-ipfs/net/mux"
+	netservice "github.com/jbenet/go-ipfs/net/service"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -30,20 +34,20 @@ type IpfsNode struct {
 	// the local node's identity
 	Identity *peer.Peer
 
-	// the map of other nodes (Peer instances)
-	PeerMap *peer.Map
+	// storage for other Peer instances
+	Peerstore *peer.Peerstore
 
 	// the local datastore
 	Datastore ds.Datastore
 
 	// the network message stream
-	Swarm *swarm.Swarm
+	Network inet.Network
 
 	// the routing system. recommend ipfs-dht
 	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	BitSwap *bitswap.BitSwap
+	BitSwap bitswap.BitSwap
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -75,30 +79,48 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, err
 	}
 
+	peerstore := peer.NewPeerstore()
+
 	var (
-		net *swarm.Swarm
+		net *inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route *dht.IpfsDHT
-		swap  *bitswap.BitSwap
+
 	)
 
 	if online {
-		net = swarm.NewSwarm(local)
-		err = net.Listen()
+		// add protocol services here.
+		ctx := context.TODO() // derive this from a higher context.
+
+		dhts := netservice.Service(nil) // nil handler for now, need to patch it
+		if err := dhts.Start(ctx); err != nil {
+			return nil, err
+		}
+
+		net, err := inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
+			netservice.ProtocolID_Routing: dhtService,
+			// netservice.ProtocolID_Bitswap: bitswapService,
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		route = dht.NewDHT(local, net, d)
+		route = dht.NewDHT(local, peerstore, net, dhts, d)
+		dhts.Handler = route // wire the handler to the service.
+
+		// TODO(brian): pass a context to DHT for its async operations
 		route.Start()
 
-		swap = bitswap.NewBitSwap(local, net, d, route)
-		swap.SetStrategy(bitswap.YesManStrategy)
+		// TODO(brian): pass a context to bs for its async operations
+		bitswapSession := bitswap.NewSession(context.TODO(), local, d, route)
 
+		// TODO(brian): pass a context to initConnections
 		go initConnections(cfg, route)
 	}
 
-	bs, err := bserv.NewBlockService(d, swap)
+	// TODO(brian): when offline instantiate the BlockService with a bitswap
+	// session that simply doesn't return blocks
+	bs, err := bserv.NewBlockService(d, bitswapSession)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +129,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	return &IpfsNode{
 		Config:    cfg,
-		PeerMap:   &peer.Map{},
+		Peerstore: peerstore,
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-		BitSwap:   swap,
+		BitSwap:   bitswapSession,
 		Identity:  local,
 		Routing:   route,
 	}, nil

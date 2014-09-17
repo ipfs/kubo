@@ -7,7 +7,7 @@ import (
 
 func TestRaceConditions(t *testing.T) {
 	const numberOfExpectedExchanges = 10000
-	l := new(Ledger)
+	l := new(ledger)
 	var wg sync.WaitGroup
 	for i := 0; i < numberOfExpectedExchanges; i++ {
 		wg.Add(1)
