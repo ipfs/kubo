@@ -287,7 +287,7 @@ func TestFindPeer(t *testing.T) {
 	u.Debug = false
 
 	addrs, peers, dhts := setupDHTS(4, t)
-	go func() {
+	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
 		}
