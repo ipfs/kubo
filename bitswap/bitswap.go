@@ -24,10 +24,6 @@ import (
 // advertisements. WantLists are sorted in terms of priority.
 const PartnerWantListMax = 10
 
-// KeySet is just a convenient alias for maps of keys, where we only care
-// access/lookups.
-type KeySet map[u.Key]struct{}
-
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
 	// peer is the identity of this (local) node.
@@ -59,6 +55,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
+		strategist:    strategy.New(d),
 		peer:          p,
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
