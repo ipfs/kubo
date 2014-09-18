@@ -1,4 +1,4 @@
-package bitswap
+package strategy
 
 import (
 	"sync"
