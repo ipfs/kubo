@@ -57,11 +57,11 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 	// FIXME(brian): instantiate a concrete Strategist
 	receiver := bsnet.Forwarder{}
 	bs := &bitswap{
-		peer:          p,
 		blockstore:    blockstore.NewBlockstore(d),
+		notifications: notifications.New(),
+		peer:          p,
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
-		notifications: notifications.New(),
 	}
 	receiver.Delegate(bs)
 
