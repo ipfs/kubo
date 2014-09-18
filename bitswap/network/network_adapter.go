@@ -10,22 +10,22 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// NewSender wraps a network Service to perform translation between
+// networkAdapter implements NetworkAdapter
+type networkAdapter struct {
+	networkService NetService
+	receiver       Receiver
+}
+
+// NewNetworkAdapter wraps a network Service and Receiver to perform translation between
 // BitSwapMessage and NetMessage formats. This allows the BitSwap session to
 // ignore these details.
-func NewNetworkAdapter(s NetworkService, r Receiver) NetworkAdapter {
+func NewNetworkAdapter(s NetworkService, r Receiver) NetAdapter {
 	adapter := networkAdapter{
 		networkService: s,
 		receiver:       r,
 	}
 	s.SetHandler(&adapter)
 	return &adapter
-}
-
-// networkAdapter implements NetworkAdapter
-type networkAdapter struct {
-	networkService NetworkService
-	receiver       Receiver
 }
 
 // HandleMessage marshals and unmarshals net messages, forwarding them to the
@@ -90,4 +90,5 @@ func (adapter *networkAdapter) SendRequest(
 
 func (adapter *networkAdapter) SetDelegate(r Receiver) {
 	adapter.receiver = r
+
 }
