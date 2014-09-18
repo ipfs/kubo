@@ -1,4 +1,4 @@
-package bitswap
+package strategy
 
 import (
 	"sync"
@@ -7,6 +7,10 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// keySet is just a convenient alias for maps of keys, where we only care
+// access/lookups.
+type keySet map[u.Key]struct{}
 
 // ledger stores the data exchange relationship between two peers.
 type ledger struct {
@@ -28,7 +32,7 @@ type ledger struct {
 	exchangeCount uint64
 
 	// wantList is a (bounded, small) set of keys that Partner desires.
-	wantList KeySet
+	wantList keySet
 
 	Strategy strategyFunc
 }
