@@ -55,7 +55,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
-		strategist:    strategy.New(d),
+		strategist:    strategy.New(),
 		peer:          p,
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
