@@ -49,11 +49,6 @@ type bitswap struct {
 	// interact with partners.
 	// TODO(brian): save the strategist's state to the datastore
 	strategist strategy.Strategist
-
-	// haveList is the set of keys we have values for. a map for fast lookups.
-	// haveList KeySet -- not needed. all values in datastore?
-
-	haltChan chan struct{}
 }
 
 // NewSession initializes a bitswap session.
@@ -66,7 +61,6 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 		blockstore:    blockstore.NewBlockstore(d),
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
-		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
 	}
 	receiver.Delegate(bs)
@@ -154,10 +148,6 @@ func (bs *bitswap) send(p *peer.Peer, b blocks.Block) {
 	// FIXME(brian): pass ctx
 	bs.sender.SendMessage(context.Background(), p, message)
 	bs.strategist.MessageSent(p, message)
-}
-
-func (bs *bitswap) Halt() {
-	bs.haltChan <- struct{}{}
 }
 
 // TODO(brian): handle errors
