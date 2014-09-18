@@ -7,8 +7,6 @@ import (
 )
 
 type Strategy interface {
-	Accountant
-
 	// Returns a slice of Peers that
 	Peers() []*peer.Peer
 
@@ -20,9 +18,7 @@ type Strategy interface {
 
 	// Seed initializes the decider to a deterministic state
 	Seed(int64)
-}
 
-type Accountant interface {
 	// MessageReceived records receipt of message for accounting purposes
 	MessageReceived(*peer.Peer, bsmsg.BitSwapMessage) error
 
