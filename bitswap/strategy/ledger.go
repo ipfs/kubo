@@ -14,6 +14,7 @@ type keySet map[u.Key]struct{}
 
 func newLedger(p *peer.Peer, strategy strategyFunc) *ledger {
 	return &ledger{
+		wantList: keySet{},
 		Strategy: strategy,
 		Partner:  p,
 	}

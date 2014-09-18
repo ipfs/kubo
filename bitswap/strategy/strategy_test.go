@@ -5,6 +5,7 @@ import (
 
 	message "github.com/jbenet/go-ipfs/bitswap/message"
 	"github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 type peerAndStrategist struct {
@@ -16,6 +17,23 @@ func newPeerAndStrategist(idStr string) peerAndStrategist {
 	return peerAndStrategist{
 		Peer:       &peer.Peer{ID: peer.ID(idStr)},
 		Strategist: New(),
+	}
+}
+
+func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
+	beggar := newPeerAndStrategist("can't be chooser")
+	chooser := newPeerAndStrategist("chooses JIF")
+
+	block := testutil.NewBlockOrFail(t, "data wanted by beggar")
+
+	messageFromBeggarToChooser := message.New()
+	messageFromBeggarToChooser.AppendWanted(block.Key())
+
+	chooser.MessageReceived(beggar.Peer, messageFromBeggarToChooser)
+	// for this test, doesn't matter if you record that beggar sent
+
+	if !chooser.IsWantedByPeer(block.Key(), beggar.Peer) {
+		t.Fatal("chooser failed to record that beggar wants block")
 	}
 }
 
