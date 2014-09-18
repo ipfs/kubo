@@ -9,7 +9,7 @@ import (
 )
 
 // TODO declare thread-safe datastore
-func New() Strategist {
+func New() Strategy {
 	return &strategist{
 		ledgerMap:    ledgerMap{},
 		strategyFunc: yesManStrategy,
@@ -36,12 +36,12 @@ func (s *strategist) Peers() []*peer.Peer {
 	return response
 }
 
-func (s *strategist) IsWantedByPeer(k u.Key, p *peer.Peer) bool {
+func (s *strategist) BlockIsWantedByPeer(k u.Key, p *peer.Peer) bool {
 	ledger := s.ledger(p)
 	return ledger.WantListContains(k)
 }
 
-func (s *strategist) ShouldSendToPeer(k u.Key, p *peer.Peer) bool {
+func (s *strategist) ShouldSendBlockToPeer(k u.Key, p *peer.Peer) bool {
 	ledger := s.ledger(p)
 	return ledger.ShouldSend()
 }
