@@ -50,12 +50,8 @@ type bitswap struct {
 	// TODO(brian): save the strategist's state to the datastore
 	strategist strategy.Strategist
 
-	partners ledgerMap
-
 	// haveList is the set of keys we have values for. a map for fast lookups.
 	// haveList KeySet -- not needed. all values in datastore?
-
-	strategy strategyFunc
 
 	haltChan chan struct{}
 }
@@ -68,12 +64,10 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 	bs := &bitswap{
 		peer:          p,
 		blockstore:    blockstore.NewBlockstore(d),
-		partners:      ledgerMap{},
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 		haltChan:      make(chan struct{}),
 		notifications: notifications.New(),
-		strategy:      yesManStrategy,
 	}
 	receiver.Delegate(bs)
 
