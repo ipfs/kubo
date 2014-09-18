@@ -10,7 +10,7 @@ import (
 	identify "github.com/jbenet/go-ipfs/identify"
 )
 
-func TestDaemonListener(t *testing.T) {
+func TestInitializeDaemonListener(t *testing.T) {
 
 	priv, pub, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
