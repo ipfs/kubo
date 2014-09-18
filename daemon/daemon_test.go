@@ -1,16 +1,15 @@
 package daemon
 
 import (
-	"testing"
-    "encoding/base64"
+	"encoding/base64"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	identify "github.com/jbenet/go-ipfs/identify"
+	"testing"
 )
 
 func TestInitializeDaemonListener(t *testing.T) {
-
 
 	priv, pub, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
@@ -24,7 +23,6 @@ func TestInitializeDaemonListener(t *testing.T) {
 	ident, _ := identify.IDFromPubKey(pub)
 	privKey := base64.StdEncoding.EncodeToString(prbytes)
 	pID := ident.Pretty()
-
 
 	id := &config.Identity{
 		PeerID:  pID,
