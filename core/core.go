@@ -56,6 +56,7 @@ type IpfsNode struct {
 
 	// the name system, resolves paths to hashes
 	// Namesys *namesys.Namesys
+
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -77,8 +78,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	var (
 		net *swarm.Swarm
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
-		route* dht.IpfsDHT
-		swap *bitswap.BitSwap
+		route *dht.IpfsDHT
+		swap  *bitswap.BitSwap
 	)
 
 	if online {
@@ -134,7 +135,7 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 			return nil, err
 		}
 
-		addresses = []*ma.Multiaddr{ maddr }
+		addresses = []*ma.Multiaddr{maddr}
 	}
 
 	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
