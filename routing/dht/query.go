@@ -117,28 +117,29 @@ func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
 	// so workers are working.
 
 	// wait until they're done.
+	err := u.ErrNotFound
+
 	select {
 	case <-r.peersRemaining.Done():
 		r.cancel() // ran all and nothing. cancel all outstanding workers.
-
 		r.RLock()
 		defer r.RUnlock()
 
 		if len(r.errs) > 0 {
-			return nil, r.errs[0]
+			err = r.errs[0]
 		}
-		return nil, u.ErrNotFound
 
 	case <-r.ctx.Done():
 		r.RLock()
 		defer r.RUnlock()
-
-		if r.result != nil && r.result.success {
-			return r.result, nil
-		}
-		return nil, r.ctx.Err()
+		err = r.ctx.Err()
 	}
 
+	if r.result != nil && r.result.success {
+		return r.result, nil
+	}
+
+	return nil, err
 }
 
 func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {

@@ -89,6 +89,8 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		return nil, err
 	}
 
+	u.DOut("[%s] GetValue %v %v\n", dht.self.ID.Pretty(), key, result.value)
+
 	if result.value == nil {
 		return nil, u.ErrNotFound
 	}

@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"bytes"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -190,15 +191,20 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 	return rpmes, nil
 }
 
-func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p *peer.Peer, key string, value []byte) error {
+func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p *peer.Peer,
+	key string, value []byte) error {
+
 	pmes := newMessage(Message_PUT_VALUE, string(key), 0)
 	pmes.Value = value
-
-	mes, err := msg.FromObject(p, pmes)
+	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
-	return dht.sender.SendMessage(ctx, mes)
+
+	if !bytes.Equal(rpmes.Value, pmes.Value) {
+		return errors.New("value not put correctly")
+	}
+	return nil
 }
 
 func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) error {

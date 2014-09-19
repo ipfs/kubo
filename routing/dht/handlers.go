@@ -38,7 +38,7 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 }
 
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error) {
-	u.DOut("handleGetValue for key: %s\n", pmes.GetKey())
+	u.DOut("[%s] handleGetValue for key: %s\n", dht.self.ID.Pretty(), pmes.GetKey())
 
 	// setup response
 	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
@@ -50,11 +50,13 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	}
 
 	// let's first check if we have the value locally.
+	u.DOut("[%s] handleGetValue looking into ds\n", dht.self.ID.Pretty())
 	dskey := ds.NewKey(pmes.GetKey())
 	iVal, err := dht.datastore.Get(dskey)
+	u.DOut("[%s] handleGetValue looking into ds GOT %v\n", dht.self.ID.Pretty(), iVal)
 
 	// if we got an unexpected error, bail.
-	if err != ds.ErrNotFound {
+	if err != nil && err != ds.ErrNotFound {
 		return nil, err
 	}
 
@@ -63,7 +65,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 
 	// if we have the value, send it back
 	if err == nil {
-		u.DOut("handleGetValue success!\n")
+		u.DOut("[%s] handleGetValue success!\n", dht.self.ID.Pretty())
 
 		byts, ok := iVal.([]byte)
 		if !ok {
@@ -85,7 +87,6 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	if closer != nil {
 		u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
 		resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
-		return resp, nil
 	}
 
 	return resp, nil
@@ -97,8 +98,8 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error
 	defer dht.dslock.Unlock()
 	dskey := ds.NewKey(pmes.GetKey())
 	err := dht.datastore.Put(dskey, pmes.GetValue())
-	u.DOut("[%s] handlePutValue %v %v", dht.self.ID.Pretty(), dskey, pmes.GetValue())
-	return nil, err
+	u.DOut("[%s] handlePutValue %v %v\n", dht.self.ID.Pretty(), dskey, pmes.GetValue())
+	return pmes, err
 }
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {

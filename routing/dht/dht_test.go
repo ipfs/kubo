@@ -117,7 +117,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestValueGetSet(t *testing.T) {
-	u.Debug = false
+	u.Debug = true
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 	if err != nil {
 		t.Fatal(err)
