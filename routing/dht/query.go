@@ -12,7 +12,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-const maxQueryConcurrency = 5
+var maxQueryConcurrency = AlphaValue
 
 type dhtQuery struct {
 	// the key we're querying for
