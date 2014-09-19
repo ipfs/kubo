@@ -72,9 +72,8 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 }
 
 // Connect to a new peer at the given address, ping and add to the routing table
-func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
-	maddrstr, _ := addr.String()
-	u.DOut("Connect to new peer: %s\n", maddrstr)
+func (dht *IpfsDHT) Connect(npeer *peer.Peer) (*peer.Peer, error) {
+	u.DOut("Connect to new peer: %s\n", npeer.ID.Pretty())
 
 	// TODO(jbenet,whyrusleeping)
 	//
@@ -85,8 +84,6 @@ func (dht *IpfsDHT) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
 	//
 	//   /ip4/10.20.30.40/tcp/1234/ipfs/Qxhxxchxzcncxnzcnxzcxzm
 	//
-	npeer := &peer.Peer{}
-	npeer.AddAddress(addr)
 	err := dht.network.DialPeer(npeer)
 	if err != nil {
 		return nil, err
