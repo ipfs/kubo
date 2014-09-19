@@ -2,7 +2,8 @@ package bitswap
 
 import (
 	"testing"
-	"time"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -10,7 +11,7 @@ import (
 
 func TestBlockReturnsErr(t *testing.T) {
 	off := NewOfflineExchange()
-	_, err := off.Block(u.Key("foo"), time.Second)
+	_, err := off.Block(context.TODO(), u.Key("foo"))
 	if err != nil {
 		return // as desired
 	}

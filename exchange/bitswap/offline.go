@@ -2,7 +2,8 @@ package bitswap
 
 import (
 	"errors"
-	"time"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	exchange "github.com/jbenet/go-ipfs/exchange"
@@ -21,7 +22,7 @@ type offlineExchange struct {
 // Block returns nil to signal that a block could not be retrieved for the
 // given key.
 // NB: This function may return before the timeout expires.
-func (_ *offlineExchange) Block(k u.Key, timeout time.Duration) (*blocks.Block, error) {
+func (_ *offlineExchange) Block(context.Context, u.Key) (*blocks.Block, error) {
 	return nil, errors.New("Block unavailable. Operating in offline mode")
 }
 

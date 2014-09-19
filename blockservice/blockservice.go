@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	u "github.com/jbenet/go-ipfs/util"
-
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 // BlockService is a block datastore.
@@ -65,7 +66,8 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
 		u.DOut("Blockservice: Searching bitswap.\n")
-		blk, err := s.Remote.Block(k, time.Second*5)
+		ctx, _ := context.WithTimeout(context.TODO(), 5*time.Second)
+		blk, err := s.Remote.Block(ctx, k)
 		if err != nil {
 			return nil, err
 		}

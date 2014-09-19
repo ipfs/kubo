@@ -2,7 +2,6 @@ package bitswap
 
 import (
 	"errors"
-	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -65,18 +64,14 @@ type bitswap struct {
 	strategy strategy.Strategy
 }
 
-// GetBlock attempts to retrieve a particular block from peers, within timeout.
-func (bs *bitswap) Block(k u.Key, timeout time.Duration) (
+// GetBlock attempts to retrieve a particular block from peers within the
+// deadline enforced by the context
+func (bs *bitswap) Block(ctx context.Context, k u.Key) (
 	*blocks.Block, error) {
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
 
-	// TODO replace timeout with ctx in routing interface
-	begin := time.Now()
-	tleft := timeout - time.Now().Sub(begin)
 	provs_ch := bs.routing.FindProvidersAsync(ctx, k, 20)
 
 	blockChannel := make(chan blocks.Block)
-	after := time.After(tleft)
 
 	// TODO: when the data is received, shut down this for loop ASAP
 	go func() {
@@ -98,8 +93,8 @@ func (bs *bitswap) Block(k u.Key, timeout time.Duration) (
 	case block := <-blockChannel:
 		close(blockChannel)
 		return &block, nil
-	case <-after:
-		return nil, u.ErrTimeout
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 }
 
