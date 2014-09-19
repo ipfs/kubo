@@ -63,9 +63,12 @@ type bitswap struct {
 
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context
+//
+// TODO ensure only one active request per key
 func (bs *bitswap) Block(ctx context.Context, k u.Key) (*blocks.Block, error) {
 
-	provs_ch := bs.routing.FindProvidersAsync(ctx, k, 20)
+	const maxProviders = 20
+	provs_ch := bs.routing.FindProvidersAsync(ctx, k, maxProviders)
 
 	blockChannel := make(chan blocks.Block)
 
