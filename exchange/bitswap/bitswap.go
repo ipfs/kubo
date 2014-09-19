@@ -168,7 +168,7 @@ func (bs *bitswap) ReceiveMessage(
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p *peer.Peer, m bsmsg.BitSwapMessage) {
-	bs.sender.SendMessage(context.Background(), p, m)
+	bs.sender.SendMessage(ctx, p, m)
 	bs.strategy.MessageSent(p, m)
 }
 
