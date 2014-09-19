@@ -118,6 +118,7 @@ func (bs *bitswap) ReceiveMessage(
 		for _, block := range incoming.Blocks() {
 			go bs.blockstore.Put(block) // FIXME(brian): err ignored
 			go bs.notifications.Publish(block)
+			go bs.HasBlock(ctx, block) // FIXME err ignored
 		}
 	}
 
