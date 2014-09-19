@@ -81,6 +81,8 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 		err = commands.Ls(dl.node, command.Args, command.Opts, conn)
 	case "pin":
 		err = commands.Pin(dl.node, command.Args, command.Opts, conn)
+	case "peers":
+		err = commands.Peers(dl.node, command.Args, command.Opts, conn)
 	default:
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}

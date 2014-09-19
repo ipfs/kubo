@@ -76,6 +76,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	var (
 		net *swarm.Swarm
+		peers *peer.Map
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route* dht.IpfsDHT
 		swap *bitswap.BitSwap
@@ -88,13 +89,15 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 			return nil, err
 		}
 
+		peers = &peer.Map{}
+
 		route = dht.NewDHT(local, net, d)
 		route.Start()
 
 		swap = bitswap.NewBitSwap(local, net, d, route)
 		swap.SetStrategy(bitswap.YesManStrategy)
 
-		go initConnections(cfg, route)
+		go initConnections(cfg, peers, route)
 	}
 
 	bs, err := bserv.NewBlockService(d, swap)
@@ -106,7 +109,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	return &IpfsNode{
 		Config:    cfg,
-		PeerMap:   &peer.Map{},
+		PeerMap:   peers,
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
@@ -155,18 +158,20 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 	}, nil
 }
 
-func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
-	for _, p := range cfg.Peers {
-		maddr, err := ma.NewMultiaddr(p.Address)
+func initConnections(cfg *config.Config, peers *peer.Map, route *dht.IpfsDHT) {
+	for _, sp := range cfg.Peers {
+		maddr, err := ma.NewMultiaddr(sp.Address)
 		if err != nil {
 			u.PErr("error: %v\n", err)
 			continue
 		}
 
-		_, err = route.Connect(maddr)
+		p, err := route.Connect(maddr)
 		if err != nil {
 			u.PErr("Bootstrapping error: %v\n", err)
 		}
+
+		(*peers)[p.Key()] = p
 	}
 }
 
