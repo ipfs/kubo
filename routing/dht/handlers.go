@@ -180,8 +180,6 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 // Halt stops all communications from this peer and shut down
 // TODO -- remove this in favor of context
 func (dht *IpfsDHT) Halt() {
-	dht.shutdown <- struct{}{}
-	dht.network.Close()
 	dht.providers.Halt()
 }
 
