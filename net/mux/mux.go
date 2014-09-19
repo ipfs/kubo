@@ -41,6 +41,10 @@ func (m *Muxer) GetPipe() *msg.Pipe {
 
 // Start kicks off the Muxer goroutines.
 func (m *Muxer) Start(ctx context.Context) error {
+	if m == nil {
+		panic("nix muxer")
+	}
+
 	if m.cancel != nil {
 		return errors.New("Muxer already started.")
 	}
@@ -75,7 +79,12 @@ func (m *Muxer) AddProtocol(p Protocol, pid ProtocolID) error {
 // handleIncoming consumes the messages on the m.Incoming channel and
 // routes them appropriately (to the protocols).
 func (m *Muxer) handleIncomingMessages(ctx context.Context) {
+
 	for {
+		if m == nil {
+			panic("nix muxer")
+		}
+
 		select {
 		case msg := <-m.Incoming:
 			go m.handleIncomingMessage(ctx, msg)
