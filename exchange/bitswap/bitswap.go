@@ -7,15 +7,26 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
-	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
-	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
-	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
-	strategy "github.com/jbenet/go-ipfs/bitswap/strategy"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blockstore"
+	exchange "github.com/jbenet/go-ipfs/exchange"
+	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
+	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
+	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// TODO rename -> Router?
+type Routing interface {
+	// FindProvidersAsync returns a channel of providers for the given key
+	// TODO replace with timeout with context
+	FindProvidersAsync(u.Key, int, time.Duration) <-chan *peer.Peer
+
+	// Provide provides the key to the network
+	Provide(key u.Key) error
+}
 
 // TODO(brian): ensure messages are being received
 
@@ -37,25 +48,25 @@ type bitswap struct {
 	blockstore blockstore.Blockstore
 
 	// routing interface for communication
-	routing Directory
+	routing Routing
 
 	notifications notifications.PubSub
 
-	// strategist listens to network traffic and makes decisions about how to
+	// strategy listens to network traffic and makes decisions about how to
 	// interact with partners.
-	// TODO(brian): save the strategist's state to the datastore
-	strategist strategy.Strategist
+	// TODO(brian): save the strategy's state to the datastore
+	strategy strategy.Strategy
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Directory) Exchange {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
 
 	// FIXME(brian): instantiate a concrete Strategist
 	receiver := bsnet.Forwarder{}
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
-		strategist:    strategy.New(d),
+		strategy:      strategy.New(),
 		peer:          p,
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
@@ -112,7 +123,7 @@ func (bs *bitswap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 	// that accounting is _always_ performed when SendMessage and
 	// ReceiveMessage are called
 	bs.sender.SendMessage(ctx, p, message)
-	bs.strategist.MessageSent(p, message)
+	bs.strategy.MessageSent(p, message)
 
 	block, ok := <-blockChannel
 	if !ok {
@@ -122,9 +133,9 @@ func (bs *bitswap) getBlock(k u.Key, p *peer.Peer, timeout time.Duration) (*bloc
 }
 
 func (bs *bitswap) sendToPeersThatWant(block blocks.Block) {
-	for _, p := range bs.strategist.Peers() {
-		if bs.strategist.IsWantedByPeer(block.Key(), p) {
-			if bs.strategist.ShouldSendToPeer(block.Key(), p) {
+	for _, p := range bs.strategy.Peers() {
+		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
+			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
 				go bs.send(p, block)
 			}
 		}
@@ -144,7 +155,7 @@ func (bs *bitswap) send(p *peer.Peer, b blocks.Block) {
 	message.AppendBlock(b)
 	// FIXME(brian): pass ctx
 	bs.sender.SendMessage(context.Background(), p, message)
-	bs.strategist.MessageSent(p, message)
+	bs.strategy.MessageSent(p, message)
 }
 
 // TODO(brian): handle errors
@@ -152,7 +163,7 @@ func (bs *bitswap) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage, error) {
 
-	bs.strategist.MessageReceived(sender, incoming)
+	bs.strategy.MessageReceived(sender, incoming)
 
 	if incoming.Blocks() != nil {
 		for _, block := range incoming.Blocks() {
@@ -163,7 +174,7 @@ func (bs *bitswap) ReceiveMessage(
 
 	if incoming.Wantlist() != nil {
 		for _, key := range incoming.Wantlist() {
-			if bs.strategist.ShouldSendToPeer(key, sender) {
+			if bs.strategy.ShouldSendBlockToPeer(key, sender) {
 				block, errBlockNotFound := bs.blockstore.Get(key)
 				if errBlockNotFound != nil {
 					// TODO(brian): log/return the error

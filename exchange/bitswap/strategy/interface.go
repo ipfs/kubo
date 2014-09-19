@@ -1,28 +1,24 @@
 package strategy
 
 import (
-	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type Strategist interface {
-	Accountant
-
+type Strategy interface {
 	// Returns a slice of Peers that
 	Peers() []*peer.Peer
 
 	// WantList returns the WantList for the given Peer
-	IsWantedByPeer(u.Key, *peer.Peer) bool
+	BlockIsWantedByPeer(u.Key, *peer.Peer) bool
 
 	// ShouldSendTo(Peer) decides whether to send data to this Peer
-	ShouldSendToPeer(u.Key, *peer.Peer) bool
+	ShouldSendBlockToPeer(u.Key, *peer.Peer) bool
 
 	// Seed initializes the decider to a deterministic state
 	Seed(int64)
-}
 
-type Accountant interface {
 	// MessageReceived records receipt of message for accounting purposes
 	MessageReceived(*peer.Peer, bsmsg.BitSwapMessage) error
 

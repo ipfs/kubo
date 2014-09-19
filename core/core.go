@@ -10,10 +10,11 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	bitswap "github.com/jbenet/go-ipfs/bitswap"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	exchange "github.com/jbenet/go-ipfs/exchange"
+	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	inet "github.com/jbenet/go-ipfs/net"
 	mux "github.com/jbenet/go-ipfs/net/mux"
@@ -47,7 +48,7 @@ type IpfsNode struct {
 	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	BitSwap bitswap.Exchange
+	Exchange exchange.Interface
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -88,7 +89,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		net inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route           *dht.IpfsDHT
-		exchangeSession bitswap.Exchange
+		exchangeSession exchange.Interface
 	)
 
 	if online {
@@ -140,7 +141,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-		BitSwap:   exchangeSession,
+		Exchange:  exchangeSession,
 		Identity:  local,
 		Routing:   route,
 	}, nil
