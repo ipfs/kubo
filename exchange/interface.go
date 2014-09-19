@@ -1,4 +1,4 @@
-package bitswap
+package exchange
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
