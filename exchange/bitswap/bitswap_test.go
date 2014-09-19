@@ -33,16 +33,42 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 	net := LocalNetwork()
 	rs := newRoutingServer()
-	ipfs := session(net, rs, []byte("peer id"))
-	// ctx := context.Background()
-	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	block := testutil.NewBlockOrFail(t, "block")
 
+	block := testutil.NewBlockOrFail(t, "block")
 	rs.Announce(&peer.Peer{}, block.Key()) // but not on network
 
-	_, err := ipfs.exchange.Block(ctx, block.Key())
+	solo := session(net, rs, []byte("peer id"))
+
+	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+	_, err := solo.exchange.Block(ctx, block.Key())
+
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
+	}
+}
+
+// TestGetBlockAfterRequesting...
+
+func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
+	t.Skip("Failing. Work in progress")
+
+	net := LocalNetwork()
+	rs := newRoutingServer()
+	block := testutil.NewBlockOrFail(t, "block")
+
+	hasBlock := session(net, rs, []byte("hasBlock"))
+
+	rs.Announce(hasBlock.peer, block.Key())
+	hasBlock.blockstore.Put(block)
+	hasBlock.exchange.HasBlock(context.Background(), block)
+
+	wantsBlock := session(net, rs, []byte("wantsBlock"))
+
+	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	_, err := wantsBlock.exchange.Block(ctx, block.Key())
+	if err != nil {
+		t.Log(err)
+		t.Fatal("Expected to succeed")
 	}
 }
 
