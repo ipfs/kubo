@@ -24,10 +24,11 @@ type Routing interface {
 	Provide(key u.Key) error
 }
 
-// NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
+// NetMessageSession initializes a BitSwap session that communicates over the
+// provided NetMessage service
+func NetMessageSession(parent context.Context, s bsnet.NetMessageService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
 
-	networkAdapter := bsnet.NewNetworkAdapter(s, nil)
+	networkAdapter := bsnet.NetMessageAdapter(s, nil)
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
@@ -44,7 +45,7 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 type bitswap struct {
 
 	// sender delivers messages on behalf of the session
-	sender bsnet.NetworkAdapter
+	sender bsnet.Adapter
 
 	// blockstore is the local database
 	// NB: ensure threadsafety

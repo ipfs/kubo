@@ -10,27 +10,27 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// NewSender wraps a network Service to perform translation between
-// BitSwapMessage and NetMessage formats. This allows the BitSwap session to
-// ignore these details.
-func NewNetworkAdapter(s NetworkService, r Receiver) NetworkAdapter {
-	adapter := networkAdapter{
-		networkService: s,
-		receiver:       r,
+// NetMessageAdapter wraps a NetMessage network service
+func NetMessageAdapter(s NetMessageService, r Receiver) Adapter {
+	adapter := impl{
+		nms:      s,
+		receiver: r,
 	}
 	s.SetHandler(&adapter)
 	return &adapter
 }
 
-// networkAdapter implements NetworkAdapter
-type networkAdapter struct {
-	networkService NetworkService
-	receiver       Receiver
+// implements an Adapter that integrates with a NetMessage network service
+type impl struct {
+	nms NetMessageService
+
+	// inbound messages from the network are forwarded to the receiver
+	receiver Receiver
 }
 
 // HandleMessage marshals and unmarshals net messages, forwarding them to the
 // BitSwapMessage receiver
-func (adapter *networkAdapter) HandleMessage(
+func (adapter *impl) HandleMessage(
 	ctx context.Context, incoming netmsg.NetMessage) (netmsg.NetMessage, error) {
 
 	if adapter.receiver == nil {
@@ -60,7 +60,7 @@ func (adapter *networkAdapter) HandleMessage(
 	return outgoing, nil
 }
 
-func (adapter *networkAdapter) SendMessage(
+func (adapter *impl) SendMessage(
 	ctx context.Context,
 	p *peer.Peer,
 	outgoing bsmsg.BitSwapMessage) error {
@@ -69,10 +69,10 @@ func (adapter *networkAdapter) SendMessage(
 	if err != nil {
 		return err
 	}
-	return adapter.networkService.SendMessage(ctx, nmsg)
+	return adapter.nms.SendMessage(ctx, nmsg)
 }
 
-func (adapter *networkAdapter) SendRequest(
+func (adapter *impl) SendRequest(
 	ctx context.Context,
 	p *peer.Peer,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
@@ -81,13 +81,13 @@ func (adapter *networkAdapter) SendRequest(
 	if err != nil {
 		return nil, err
 	}
-	incomingMsg, err := adapter.networkService.SendRequest(ctx, outgoingMsg)
+	incomingMsg, err := adapter.nms.SendRequest(ctx, outgoingMsg)
 	if err != nil {
 		return nil, err
 	}
 	return bsmsg.FromNet(incomingMsg)
 }
 
-func (adapter *networkAdapter) SetDelegate(r Receiver) {
+func (adapter *impl) SetDelegate(r Receiver) {
 	adapter.receiver = r
 }
