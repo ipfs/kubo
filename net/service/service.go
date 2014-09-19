@@ -10,6 +10,10 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+// ErrNoResponse is returned by Service when a Request did not get a response,
+// and no other error happened
+var ErrNoResponse = errors.New("no response to request")
+
 // Handler is an interface that objects must implement in order to handle
 // a service's requests.
 type Handler interface {
@@ -134,6 +138,10 @@ func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 		err = ctx.Err()
 	}
 
+	if m == nil {
+		return nil, ErrNoResponse
+	}
+
 	return m, err
 }
 
@@ -205,6 +213,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	}
 }
 
+// SetHandler assigns the request Handler for this service.
 func (s *Service) SetHandler(h Handler) {
 	s.Handler = h
 }
