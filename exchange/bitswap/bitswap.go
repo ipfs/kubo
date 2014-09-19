@@ -28,13 +28,6 @@ type Routing interface {
 	Provide(key u.Key) error
 }
 
-// TODO(brian): ensure messages are being received
-
-// PartnerWantListMax is the bound for the number of keys we'll store per
-// partner. These are usually taken from the top of the Partner's WantList
-// advertisements. WantLists are sorted in terms of priority.
-const PartnerWantListMax = 10
-
 // NewSession initializes a bitswap session.
 func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
 
