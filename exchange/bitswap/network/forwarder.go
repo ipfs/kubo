@@ -2,7 +2,7 @@ package network
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 

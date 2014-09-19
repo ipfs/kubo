@@ -5,8 +5,8 @@ import (
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	bitswap "github.com/jbenet/go-ipfs/bitswap"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	exchange "github.com/jbenet/go-ipfs/exchange"
 	u "github.com/jbenet/go-ipfs/util"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -16,11 +16,11 @@ import (
 // It uses an internal `datastore.Datastore` instance to store values.
 type BlockService struct {
 	Datastore ds.Datastore
-	Remote    bitswap.Exchange
+	Remote    exchange.Exchange
 }
 
 // NewBlockService creates a BlockService with given datastore instance.
-func NewBlockService(d ds.Datastore, rem bitswap.Exchange) (*BlockService, error) {
+func NewBlockService(d ds.Datastore, rem exchange.Exchange) (*BlockService, error) {
 	if d == nil {
 		return nil, fmt.Errorf("BlockService requires valid datastore")
 	}

@@ -5,10 +5,11 @@ import (
 	"time"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	exchange "github.com/jbenet/go-ipfs/exchange"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func NewOfflineExchange() Exchange {
+func NewOfflineExchange() exchange.Exchange {
 	return &offlineExchange{}
 }
 

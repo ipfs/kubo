@@ -3,7 +3,7 @@ package strategy
 import (
 	"errors"
 
-	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	"github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
