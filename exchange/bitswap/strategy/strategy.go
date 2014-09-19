@@ -51,6 +51,13 @@ func (s *strategist) Seed(int64) {
 }
 
 func (s *strategist) MessageReceived(p *peer.Peer, m bsmsg.BitSwapMessage) error {
+	// TODO find a more elegant way to handle this check
+	if p == nil {
+		return errors.New("Strategy received nil peer")
+	}
+	if m == nil {
+		return errors.New("Strategy received nil message")
+	}
 	l := s.ledger(p)
 	for _, key := range m.Wantlist() {
 		l.Wants(key)
