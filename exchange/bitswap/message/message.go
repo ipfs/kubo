@@ -26,45 +26,45 @@ type Exportable interface {
 
 // message wraps a proto message for convenience
 type message struct {
-	pb PBMessage
-}
-
-func newMessageFromProto(pb PBMessage) *message {
-	return &message{pb: pb}
+	wantlist []u.Key
+	blocks   []blocks.Block
 }
 
 func New() *message {
 	return new(message)
 }
 
+func newMessageFromProto(pbm PBMessage) (BitSwapMessage, error) {
+	m := New()
+	for _, s := range pbm.GetWantlist() {
+		m.AppendWanted(u.Key(s))
+	}
+	for _, d := range pbm.GetBlocks() {
+		b, err := blocks.NewBlock(d)
+		if err != nil {
+			return nil, err
+		}
+		m.AppendBlock(*b)
+	}
+	return m, nil
+}
+
 // TODO(brian): convert these into keys
 func (m *message) Wantlist() []u.Key {
-	wl := make([]u.Key, len(m.pb.Wantlist))
-	for _, str := range m.pb.Wantlist {
-		wl = append(wl, u.Key(str))
-	}
-	return wl
+	return m.wantlist
 }
 
 // TODO(brian): convert these into blocks
 func (m *message) Blocks() []blocks.Block {
-	bs := make([]blocks.Block, len(m.pb.Blocks))
-	for _, data := range m.pb.Blocks {
-		b, err := blocks.NewBlock(data)
-		if err != nil {
-			continue
-		}
-		bs = append(bs, *b)
-	}
-	return bs
+	return m.blocks
 }
 
 func (m *message) AppendWanted(k u.Key) {
-	m.pb.Wantlist = append(m.pb.Wantlist, string(k))
+	m.wantlist = append(m.wantlist, k)
 }
 
 func (m *message) AppendBlock(b blocks.Block) {
-	m.pb.Blocks = append(m.pb.Blocks, b.Data)
+	m.blocks = append(m.blocks, b)
 }
 
 func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
@@ -72,8 +72,14 @@ func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
 }
 
 func (m *message) ToProto() *PBMessage {
-	cp := m.pb
-	return &cp
+	pb := new(PBMessage)
+	for _, k := range m.Wantlist() {
+		pb.Wantlist = append(pb.Wantlist, string(k))
+	}
+	for _, b := range m.Blocks() {
+		pb.Blocks = append(pb.Blocks, b.Data)
+	}
+	return pb
 }
 
 func (m *message) ToNet(p *peer.Peer) (nm.NetMessage, error) {

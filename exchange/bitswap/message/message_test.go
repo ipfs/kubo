@@ -25,7 +25,10 @@ func TestNewMessageFromProto(t *testing.T) {
 	if !contains(protoMessage.Wantlist, str) {
 		t.Fail()
 	}
-	m := newMessageFromProto(*protoMessage)
+	m, err := newMessageFromProto(*protoMessage)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !contains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
 	}
@@ -47,6 +50,29 @@ func TestAppendBlock(t *testing.T) {
 	for _, blockbytes := range m.ToProto().GetBlocks() {
 		s := bytes.NewBuffer(blockbytes).String()
 		if !contains(strs, s) {
+			t.Fail()
+		}
+	}
+}
+
+func TestWantlist(t *testing.T) {
+	keystrs := []string{"foo", "bar", "baz", "bat"}
+	m := New()
+	for _, s := range keystrs {
+		m.AppendWanted(u.Key(s))
+	}
+	exported := m.Wantlist()
+
+	for _, k := range exported {
+		present := false
+		for _, s := range keystrs {
+
+			if s == string(k) {
+				present = true
+			}
+		}
+		if !present {
+			t.Logf("%v isn't in original list", string(k))
 			t.Fail()
 		}
 	}
