@@ -26,6 +26,11 @@ func (id ID) Pretty() string {
 	return b58.Encode(id)
 }
 
+// DecodePrettyID returns a b58-encoded string of the ID
+func DecodePrettyID(s string) ID {
+	return b58.Decode(s)
+}
+
 // Map maps Key (string) : *Peer (slices are not comparable).
 type Map map[u.Key]*Peer
 
