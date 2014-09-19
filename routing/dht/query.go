@@ -1,19 +1,45 @@
 package dht
 
 import (
+	"sync"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	queue "github.com/jbenet/go-ipfs/peer/queue"
+	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
+	todoctr "github.com/jbenet/go-ipfs/util/todocounter"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+const maxQueryConcurrency = 5
+
 type dhtQuery struct {
-	// a PeerQueue
-	peers queue.PeerQueue
+	// the key we're querying for
+	key u.Key
 
 	// the function to execute per peer
 	qfunc queryFunc
+
+	// the concurrency parameter
+	concurrency int
+}
+
+type dhtQueryResult struct {
+	value         []byte       // GetValue
+	peer          *peer.Peer   // FindPeer
+	providerPeers []*peer.Peer // GetProviders
+	closerPeers   []*peer.Peer // *
+	success       bool
+}
+
+// constructs query
+func newQuery(k u.Key, f queryFunc) *dhtQuery {
+	return &dhtQuery{
+		key:         k,
+		qfunc:       f,
+		concurrency: maxQueryConcurrency,
+	}
 }
 
 // QueryFunc is a function that runs a particular query with a given peer.
@@ -21,65 +47,170 @@ type dhtQuery struct {
 // - the value
 // - a list of peers potentially better able to serve the query
 // - an error
-type queryFunc func(context.Context, *peer.Peer) (interface{}, []*peer.Peer, error)
+type queryFunc func(context.Context, *peer.Peer) (*dhtQueryResult, error)
 
-func (q *dhtQuery) Run(ctx context.Context, concurrency int) (interface{}, error) {
-	// get own cancel function to signal when we've found the value
+// Run runs the query at hand. pass in a list of peers to use first.
+func (q *dhtQuery) Run(ctx context.Context, peers []*peer.Peer) (*dhtQueryResult, error) {
+	runner := newQueryRunner(ctx, q)
+	return runner.Run(peers)
+}
+
+type dhtQueryRunner struct {
+
+	// the query to run
+	query *dhtQuery
+
+	// peersToQuery is a list of peers remaining to query
+	peersToQuery *queue.ChanQueue
+
+	// peersSeen are all the peers queried. used to prevent querying same peer 2x
+	peersSeen peer.Map
+
+	// rateLimit is a channel used to rate limit our processing (semaphore)
+	rateLimit chan struct{}
+
+	// peersRemaining is a counter of peers remaining (toQuery + processing)
+	peersRemaining todoctr.Counter
+
+	// context
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// result
+	result *dhtQueryResult
+
+	// result errors
+	errs []error
+
+	// lock for concurrent access to fields
+	sync.RWMutex
+}
+
+func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 	ctx, cancel := context.WithCancel(ctx)
 
-	// the variable waiting to be populated upon success
-	var result interface{}
+	return &dhtQueryRunner{
+		ctx:            ctx,
+		cancel:         cancel,
+		query:          q,
+		peersToQuery:   queue.NewChanQueue(ctx, queue.NewXORDistancePQ(q.key)),
+		peersRemaining: todoctr.NewSyncCounter(),
+		peersSeen:      peer.Map{},
+		rateLimit:      make(chan struct{}, q.concurrency),
+	}
+}
 
-	// chanQueue is how workers receive their work
-	chanQueue := queue.NewChanQueue(ctx, q.peers)
-
-	// worker
-	worker := func() {
-		for {
-			select {
-			case p := <-chanQueue.DeqChan:
-
-				val, closer, err := q.qfunc(ctx, p)
-				if err != nil {
-					u.PErr("error running query: %v\n", err)
-					continue
-				}
-
-				if val != nil {
-					result = val
-					cancel() // signal we're done.
-					return
-				}
-
-				if closer != nil {
-					for _, p := range closer {
-						select {
-						case chanQueue.EnqChan <- p:
-						case <-ctx.Done():
-							return
-						}
-					}
-				}
-
-			case <-ctx.Done():
-				return
-			}
-		}
+func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
+	// setup concurrency rate limiting
+	for i := 0; i < r.query.concurrency; i++ {
+		r.rateLimit <- struct{}{}
 	}
 
-	// launch all workers
-	for i := 0; i < concurrency; i++ {
-		go worker()
+	// add all the peers we got first.
+	for _, p := range peers {
+		r.addPeerToQuery(p, nil) // don't have access to self here...
 	}
 
 	// wait until we're done. yep.
 	select {
-	case <-ctx.Done():
+	case <-r.peersRemaining.Done():
+		r.cancel() // ran all and nothing. cancel all outstanding workers.
+
+		r.RLock()
+		defer r.RUnlock()
+
+		if len(r.errs) > 0 {
+			return nil, r.errs[0]
+		}
+		return nil, u.ErrNotFound
+
+	case <-r.ctx.Done():
+		r.RLock()
+		defer r.RUnlock()
+
+		if r.result != nil && r.result.success {
+			return r.result, nil
+		}
+		return nil, r.ctx.Err()
 	}
 
-	if result != nil {
-		return result, nil
+}
+
+func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
+	if next == nil {
+		// wtf why are peers nil?!?
+		u.PErr("Query getting nil peers!!!\n")
+		return
 	}
 
-	return nil, ctx.Err()
+	// if new peer further away than whom we got it from, bother (loops)
+	if benchmark != nil && kb.Closer(benchmark.ID, next.ID, r.query.key) {
+		return
+	}
+
+	// if already seen, no need.
+	r.Lock()
+	_, found := r.peersSeen[next.Key()]
+	if found {
+		r.Unlock()
+		return
+	}
+	r.peersSeen[next.Key()] = next
+	r.Unlock()
+
+	// do this after unlocking to prevent possible deadlocks.
+	r.peersRemaining.Increment(1)
+	select {
+	case r.peersToQuery.EnqChan <- next:
+	case <-r.ctx.Done():
+	}
+}
+
+func (r *dhtQueryRunner) spawnWorkers(p *peer.Peer) {
+	for {
+		select {
+		case <-r.peersRemaining.Done():
+			return
+
+		case <-r.ctx.Done():
+			return
+
+		case p := <-r.peersToQuery.DeqChan:
+			go r.queryPeer(p)
+		}
+	}
+}
+
+func (r *dhtQueryRunner) queryPeer(p *peer.Peer) {
+	// make sure we rate limit concurrency.
+	select {
+	case <-r.rateLimit:
+	case <-r.ctx.Done():
+		r.peersRemaining.Decrement(1)
+		return
+	}
+
+	// finally, run the query against this peer
+	res, err := r.query.qfunc(r.ctx, p)
+
+	if err != nil {
+		r.Lock()
+		r.errs = append(r.errs, err)
+		r.Unlock()
+
+	} else if res.success {
+		r.Lock()
+		r.result = res
+		r.Unlock()
+		r.cancel() // signal to everyone that we're done.
+
+	} else if res.closerPeers != nil {
+		for _, next := range res.closerPeers {
+			r.addPeerToQuery(next, p)
+		}
+	}
+
+	// signal we're done proccessing peer p
+	r.peersRemaining.Decrement(1)
+	r.rateLimit <- struct{}{}
 }

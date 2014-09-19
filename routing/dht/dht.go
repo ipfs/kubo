@@ -177,6 +177,9 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 	if err != nil {
 		return nil, err
 	}
+	if rmes == nil {
+		return nil, errors.New("no response to request")
+	}
 
 	rtt := time.Since(start)
 	rmes.Peer().SetLatency(rtt)
@@ -218,19 +221,22 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 		return nil, nil, err
 	}
 
+	u.POut("pmes.GetValue() %v\n", pmes.GetValue())
 	if value := pmes.GetValue(); value != nil {
 		// Success! We were given the value
+		u.POut("getValueOrPeers: got value\n")
 		return value, nil, nil
 	}
 
 	// TODO decide on providers. This probably shouldn't be happening.
-	// if prv := pmes.GetProviderPeers(); prv != nil && len(prv) > 0 {
-	// 	val, err := dht.getFromPeerList(key, timeout,, level)
-	// 	if err != nil {
-	// 		return nil, nil, err
-	// 	}
-	// 	return val, nil, nil
-	// }
+	if prv := pmes.GetProviderPeers(); prv != nil && len(prv) > 0 {
+		val, err := dht.getFromPeerList(ctx, key, prv, level)
+		if err != nil {
+			return nil, nil, err
+		}
+		u.POut("getValueOrPeers: get from providers\n")
+		return val, nil, nil
+	}
 
 	// Perhaps we were given closer peers
 	var peers []*peer.Peer
@@ -256,10 +262,12 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 	}
 
 	if len(peers) > 0 {
+		u.POut("getValueOrPeers: peers\n")
 		return nil, peers, nil
 	}
 
-	return nil, nil, errors.New("NotFound. did not get value or closer peers.")
+	u.POut("getValueOrPeers: u.ErrNotFound\n")
+	return nil, nil, u.ErrNotFound
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters

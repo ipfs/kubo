@@ -58,7 +58,10 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 		return nil, err
 	}
 
-	// if we have the value, respond with it!
+	// Note: changed the behavior here to return _as much_ info as possible
+	// (potentially all of {value, closer peers, provider})
+
+	// if we have the value, send it back
 	if err == nil {
 		u.DOut("handleGetValue success!\n")
 
@@ -68,7 +71,6 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 		}
 
 		resp.Value = byts
-		return resp, nil
 	}
 
 	// if we know any providers for the requested value, return those.
@@ -76,20 +78,16 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	if len(provs) > 0 {
 		u.DOut("handleGetValue returning %d provider[s]\n", len(provs))
 		resp.ProviderPeers = peersToPBPeers(provs)
-		return resp, nil
 	}
 
 	// Find closest peer on given cluster to desired key and reply with that info
 	closer := dht.betterPeerToQuery(pmes)
-	if closer == nil {
-		u.DOut("handleGetValue could not find a closer node than myself.\n")
-		resp.CloserPeers = nil
+	if closer != nil {
+		u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
+		resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
 		return resp, nil
 	}
 
-	// we got a closer peer, it seems. return it.
-	u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
-	resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
 	return resp, nil
 }
 
