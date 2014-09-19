@@ -3,14 +3,11 @@ package dht
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	peer "github.com/jbenet/go-ipfs/peer"
-	queue "github.com/jbenet/go-ipfs/peer/queue"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -24,28 +21,23 @@ import (
 func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	ctx := context.TODO()
 
-	query := &dhtQuery{}
-	query.peers = queue.NewXORDistancePQ(key)
+	peers := []*peer.Peer{}
 
 	// get the peers we need to announce to
 	for _, route := range dht.routingTables {
-		peers := route.NearestPeers(kb.ConvertKey(key), KValue)
-		for _, p := range peers {
-			if p == nil {
-				// this shouldn't be happening.
-				panic("p should not be nil")
-			}
+		npeers := route.NearestPeers(kb.ConvertKey(key), KValue)
+		peers = append(peers, npeers...)
+	}
 
-			query.peers.Enqueue(p)
+	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
+		err := dht.putValueToNetwork(ctx, p, string(key), value)
+		if err != nil {
+			return nil, err
 		}
-	}
+		return &dhtQueryResult{success: true}, nil
+	})
 
-	query.qfunc = func(ctx context.Context, p *peer.Peer) (interface{}, []*peer.Peer, error) {
-		dht.putValueToNetwork(ctx, p, string(key), value)
-		return nil, nil, nil
-	}
-
-	_, err := query.Run(ctx, query.peers.Len())
+	_, err := query.Run(ctx, peers)
 	return err
 }
 
@@ -63,7 +55,6 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	val, err := dht.getLocal(key)
 	if err == nil {
 		ll.Success = true
-		u.DOut("Found local, returning.\n")
 		return val, nil
 	}
 
@@ -74,30 +65,33 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 		return nil, kb.ErrLookupFailure
 	}
 
-	query := &dhtQuery{}
-	query.peers = queue.NewXORDistancePQ(key)
+	// setup the Query
+	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
 
-	// get the peers we need to announce to
-	for _, p := range closest {
-		query.peers.Enqueue(p)
-	}
+		val, peers, err := dht.getValueOrPeers(ctx, p, key, routeLevel)
+		if err != nil {
+			return nil, err
+		}
 
-	// setup the Query Function
-	query.qfunc = func(ctx context.Context, p *peer.Peer) (interface{}, []*peer.Peer, error) {
-		return dht.getValueOrPeers(ctx, p, key, routeLevel)
-	}
+		res := &dhtQueryResult{value: val, closerPeers: peers}
+		if val != nil {
+			res.success = true
+		}
+
+		return res, nil
+	})
 
 	// run it!
-	result, err := query.Run(ctx, query.peers.Len())
+	result, err := query.Run(ctx, closest)
 	if err != nil {
 		return nil, err
 	}
 
-	byt, ok := result.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("received non-byte slice value")
+	if result.value == nil {
+		return nil, u.ErrNotFound
 	}
-	return byt, nil
+
+	return result.value, nil
 }
 
 // Value provider layer of indirection.
@@ -278,25 +272,19 @@ func (dht *IpfsDHT) findPeerMultiple(id peer.ID, timeout time.Duration) (*peer.P
 		return p, nil
 	}
 
-	query := &dhtQuery{}
-	query.peers = queue.NewXORDistancePQ(u.Key(id))
-
 	// get the peers we need to announce to
 	routeLevel := 0
 	peers := dht.routingTables[routeLevel].NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if len(peers) == 0 {
 		return nil, kb.ErrLookupFailure
 	}
-	for _, p := range peers {
-		query.peers.Enqueue(p)
-	}
 
 	// setup query function
-	query.qfunc = func(ctx context.Context, p *peer.Peer) (interface{}, []*peer.Peer, error) {
+	query := newQuery(u.Key(id), func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
 		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
 		if err != nil {
 			u.DErr("getPeer error: %v\n", err)
-			return nil, nil, err
+			return nil, err
 		}
 
 		plist := pmes.GetCloserPeers()
@@ -313,25 +301,24 @@ func (dht *IpfsDHT) findPeerMultiple(id peer.ID, timeout time.Duration) (*peer.P
 			}
 
 			if nxtp.ID.Equal(id) {
-				return nxtp, nil, nil
+				return &dhtQueryResult{peer: nxtp, success: true}, nil
 			}
 
 			nxtprs[i] = nxtp
 		}
 
-		return nil, nxtprs, nil
-	}
+		return &dhtQueryResult{closerPeers: nxtprs}, nil
+	})
 
-	p5, err := query.Run(ctx, query.peers.Len())
+	result, err := query.Run(ctx, peers)
 	if err != nil {
 		return nil, err
 	}
 
-	p6, ok := p5.(*peer.Peer)
-	if !ok {
-		return nil, errors.New("received non peer object")
+	if result.peer == nil {
+		return nil, u.ErrNotFound
 	}
-	return p6, nil
+	return result.peer, nil
 }
 
 // Ping a peer, log the time it took
@@ -350,21 +337,14 @@ func (dht *IpfsDHT) getDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 	ctx, _ := context.WithTimeout(context.TODO(), timeout)
 
 	u.DOut("Begin Diagnostic")
-	query := &dhtQuery{}
-	query.peers = queue.NewXORDistancePQ(u.Key(dht.self.ID))
-
-	targets := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
-	for _, p := range targets {
-		query.peers.Enqueue(p)
-	}
-
+	peers := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 	var out []*diagInfo
 
-	query.qfunc = func(ctx context.Context, p *peer.Peer) (interface{}, []*peer.Peer, error) {
+	query := newQuery(dht.self.Key(), func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
 		pmes := newMessage(Message_DIAGNOSTIC, "", 0)
 		rpmes, err := dht.sendRequest(ctx, p, pmes)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		dec := json.NewDecoder(bytes.NewBuffer(rpmes.GetValue()))
@@ -377,9 +357,9 @@ func (dht *IpfsDHT) getDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
 
 			out = append(out, di)
 		}
-		return nil, nil, nil
-	}
+		return &dhtQueryResult{success: true}, nil
+	})
 
-	_, err := query.Run(ctx, query.peers.Len())
+	_, err := query.Run(ctx, peers)
 	return out, err
 }

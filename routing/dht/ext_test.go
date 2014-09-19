@@ -18,14 +18,23 @@ import (
 	"time"
 )
 
+// mesHandleFunc is a function that takes in outgoing messages
+// and can respond to them, simulating other peers on the network.
+// returning nil will chose not to respond and pass the message onto the
+// next registered handler
+type mesHandleFunc func(msg.NetMessage) msg.NetMessage
+
 // fauxNet is a standin for a swarm.Network in order to more easily recreate
 // different testing scenarios
 type fauxSender struct {
 	handlers []mesHandleFunc
 }
 
-func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
+func (f *fauxSender) AddHandler(fn func(msg.NetMessage) msg.NetMessage) {
+	f.handlers = append(f.handlers, fn)
+}
 
+func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
 	for _, h := range f.handlers {
 		reply := h(m)
 		if reply != nil {
@@ -33,7 +42,12 @@ func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.Net
 		}
 	}
 
-	return nil, nil
+	// no reply? ok force a timeout
+	select {
+	case <-ctx.Done():
+	}
+
+	return nil, ctx.Err()
 }
 
 func (f *fauxSender) SendMessage(ctx context.Context, m msg.NetMessage) error {
@@ -49,17 +63,6 @@ func (f *fauxSender) SendMessage(ctx context.Context, m msg.NetMessage) error {
 // fauxNet is a standin for a swarm.Network in order to more easily recreate
 // different testing scenarios
 type fauxNet struct {
-	handlers []mesHandleFunc
-}
-
-// mesHandleFunc is a function that takes in outgoing messages
-// and can respond to them, simulating other peers on the network.
-// returning nil will chose not to respond and pass the message onto the
-// next registered handler
-type mesHandleFunc func(msg.NetMessage) msg.NetMessage
-
-func (f *fauxNet) AddHandler(fn func(msg.NetMessage) msg.NetMessage) {
-	f.handlers = append(f.handlers, fn)
 }
 
 // DialPeer attempts to establish a connection to a given peer
@@ -98,25 +101,23 @@ func TestGetFailures(t *testing.T) {
 	local.ID = peer.ID("test_peer")
 
 	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
-
 	other := &peer.Peer{ID: peer.ID("other_peer")}
-
-	d.Start()
-
 	d.Update(other)
 
 	// This one should time out
+	// u.POut("Timout Test\n")
 	_, err := d.GetValue(u.Key("test"), time.Millisecond*10)
 	if err != nil {
-		if err != u.ErrTimeout {
-			t.Fatal("Got different error than we expected.")
+		if err != context.DeadlineExceeded {
+			t.Fatal("Got different error than we expected", err)
 		}
 	} else {
 		t.Fatal("Did not get expected error!")
 	}
 
+	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
-	fn.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
 		pmes := new(Message)
 		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
@@ -140,18 +141,7 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal("expected error, got none.")
 	}
 
-	success := make(chan struct{})
-	fn.handlers = nil
-	fn.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
-		resp := new(Message)
-		err := proto.Unmarshal(mes.Data(), resp)
-		if err != nil {
-			t.Fatal(err)
-		}
-		success <- struct{}{}
-		return nil
-	})
-
+	fs.handlers = nil
 	// Now we test this DHT's handleGetValue failure
 	typ := Message_GET_VALUE
 	str := "hello"
@@ -161,17 +151,32 @@ func TestGetFailures(t *testing.T) {
 		Value: []byte{0},
 	}
 
+	// u.POut("handleGetValue Test\n")
 	mes, err := msg.FromObject(other, &req)
 	if err != nil {
 		t.Error(err)
 	}
 
-	mes, err = fs.SendRequest(ctx, mes)
+	mes, err = d.HandleMessage(ctx, mes)
 	if err != nil {
 		t.Error(err)
 	}
 
-	<-success
+	pmes := new(Message)
+	err = proto.Unmarshal(mes.Data(), pmes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pmes.GetValue() != nil {
+		t.Fatal("shouldnt have value")
+	}
+	if pmes.GetCloserPeers() != nil {
+		t.Fatal("shouldnt have closer peers")
+	}
+	if pmes.GetProviderPeers() != nil {
+		t.Fatal("shouldnt have provider peers")
+	}
+
 }
 
 // TODO: Maybe put these in some sort of "ipfs_testutil" package
@@ -192,7 +197,6 @@ func TestNotFound(t *testing.T) {
 	peerstore := peer.NewPeerstore()
 
 	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
-	d.Start()
 
 	var ps []*peer.Peer
 	for i := 0; i < 5; i++ {
@@ -201,7 +205,7 @@ func TestNotFound(t *testing.T) {
 	}
 
 	// Reply with random peers to every message
-	fn.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
 		pmes := new(Message)
 		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
@@ -228,7 +232,8 @@ func TestNotFound(t *testing.T) {
 
 	})
 
-	_, err := d.GetValue(u.Key("hello"), time.Second*30)
+	v, err := d.GetValue(u.Key("hello"), time.Second*5)
+	u.POut("get value got %v\n", v)
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:
@@ -254,7 +259,6 @@ func TestLessThanKResponses(t *testing.T) {
 	local.ID = peer.ID("test_peer")
 
 	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
-	d.Start()
 
 	var ps []*peer.Peer
 	for i := 0; i < 5; i++ {
@@ -264,7 +268,7 @@ func TestLessThanKResponses(t *testing.T) {
 	other := _randPeer()
 
 	// Reply with random peers to every message
-	fn.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
 		pmes := new(Message)
 		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
