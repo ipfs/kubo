@@ -101,11 +101,13 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 		return errors.New("Tried to start nil connection.")
 	}
 
-	u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
+	// u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
 
 	if err := s.connSecure(c); err != nil {
 		return fmt.Errorf("Conn securing error: %v", err)
 	}
+
+	// u.DOut("Secured connection: %s\n", c.Peer.Key().Pretty())
 
 	// add to conns
 	s.connsLock.Lock()
