@@ -36,7 +36,7 @@ func NewIpfsNetwork(ctx context.Context, local *peer.Peer,
 
 	in := &IpfsNetwork{
 		local:  local,
-		muxer:  &mux.Muxer{Protocols: *pmap},
+		muxer:  mux.NewMuxer(*pmap),
 		ctx:    ctx,
 		cancel: cancel,
 	}

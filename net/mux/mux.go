@@ -34,6 +34,14 @@ type Muxer struct {
 	*msg.Pipe
 }
 
+// NewMuxer constructs a muxer given a protocol map.
+func NewMuxer(mp ProtocolMap) *Muxer {
+	return &Muxer{
+		Protocols: mp,
+		Pipe:      msg.NewPipe(10),
+	}
+}
+
 // GetPipe implements the Protocol interface
 func (m *Muxer) GetPipe() *msg.Pipe {
 	return m.Pipe
