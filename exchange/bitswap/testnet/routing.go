@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -18,10 +19,10 @@ type RoutingServer interface {
 
 	// TODO
 	// Returns a Routing instance configured to query this hash table
-	Client(*peer.Peer) Routing
+	Client(*peer.Peer) bsnet.Routing
 }
 
-func newRoutingServer() RoutingServer {
+func VirtualRoutingServer() RoutingServer {
 	return &hashTable{
 		m: make(map[u.Key]map[*peer.Peer]bool),
 	}
@@ -61,7 +62,7 @@ func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
 }
 
 // TODO
-func (rs *hashTable) Client(p *peer.Peer) Routing {
+func (rs *hashTable) Client(p *peer.Peer) bsnet.Routing {
 	return &routingClient{
 		peer:      p,
 		hashTable: rs,

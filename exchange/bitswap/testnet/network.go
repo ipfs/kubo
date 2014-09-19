@@ -30,7 +30,7 @@ type Network interface {
 
 // network impl
 
-func LocalNetwork() Network {
+func VirtualNetwork() Network {
 	return &network{
 		clients: make(map[util.Key]bsnet.Receiver),
 	}

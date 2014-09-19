@@ -17,18 +17,9 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// TODO rename -> Router?
-type Routing interface {
-	// FindProvidersAsync returns a channel of providers for the given key
-	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
-
-	// Provide provides the key to the network
-	Provide(key u.Key) error
-}
-
 // NetMessageSession initializes a BitSwap session that communicates over the
 // provided NetMessage service
-func NetMessageSession(parent context.Context, s bsnet.NetMessageService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
+func NetMessageSession(parent context.Context, s bsnet.NetMessageService, p *peer.Peer, d ds.Datastore, directory bsnet.Routing) exchange.Interface {
 
 	networkAdapter := bsnet.NetMessageAdapter(s, nil)
 	bs := &bitswap{
@@ -54,7 +45,7 @@ type bitswap struct {
 	blockstore blockstore.Blockstore
 
 	// routing interface for communication
-	routing Routing
+	routing bsnet.Routing
 
 	notifications notifications.PubSub
 

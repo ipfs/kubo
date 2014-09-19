@@ -11,14 +11,15 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
+	testnet "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestGetBlockTimeout(t *testing.T) {
 
-	net := LocalNetwork()
-	rs := newRoutingServer()
+	net := testnet.VirtualNetwork()
+	rs := testnet.VirtualRoutingServer()
 	ipfs := session(net, rs, []byte("peer id"))
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	block := testutil.NewBlockOrFail(t, "block")
@@ -31,8 +32,8 @@ func TestGetBlockTimeout(t *testing.T) {
 
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
-	net := LocalNetwork()
-	rs := newRoutingServer()
+	net := testnet.VirtualNetwork()
+	rs := testnet.VirtualRoutingServer()
 
 	block := testutil.NewBlockOrFail(t, "block")
 	rs.Announce(&peer.Peer{}, block.Key()) // but not on network
@@ -52,8 +53,8 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	t.Skip("Failing. Work in progress")
 
-	net := LocalNetwork()
-	rs := newRoutingServer()
+	net := testnet.VirtualNetwork()
+	rs := testnet.VirtualRoutingServer()
 	block := testutil.NewBlockOrFail(t, "block")
 
 	hasBlock := session(net, rs, []byte("hasBlock"))
@@ -78,7 +79,7 @@ type ipfs struct {
 	blockstore bstore.Blockstore
 }
 
-func session(net Network, rs RoutingServer, id peer.ID) ipfs {
+func session(net testnet.Network, rs testnet.RoutingServer, id peer.ID) ipfs {
 	p := &peer.Peer{}
 
 	adapter := net.Adapter(p)

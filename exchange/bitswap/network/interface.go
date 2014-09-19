@@ -7,6 +7,7 @@ import (
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // Adapter provides network connectivity for BitSwap sessions
@@ -40,4 +41,13 @@ type NetMessageService interface {
 	SendRequest(ctx context.Context, m netmsg.NetMessage) (netmsg.NetMessage, error)
 	SendMessage(ctx context.Context, m netmsg.NetMessage) error
 	SetHandler(netservice.Handler)
+}
+
+// TODO rename -> Router?
+type Routing interface {
+	// FindProvidersAsync returns a channel of providers for the given key
+	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
+
+	// Provide provides the key to the network
+	Provide(key u.Key) error
 }

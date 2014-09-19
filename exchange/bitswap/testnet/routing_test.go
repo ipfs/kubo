@@ -29,7 +29,7 @@ func TestSetAndGet(t *testing.T) {
 		ID: pid,
 	}
 	k := u.Key("42")
-	rs := newRoutingServer()
+	rs := VirtualRoutingServer()
 	err := rs.Announce(p, k)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestClientFindProviders(t *testing.T) {
 	peer := &peer.Peer{
 		ID: []byte("42"),
 	}
-	rs := newRoutingServer()
+	rs := VirtualRoutingServer()
 	client := rs.Client(peer)
 	k := u.Key("hello")
 	err := client.Provide(k)
@@ -83,7 +83,7 @@ func TestClientFindProviders(t *testing.T) {
 }
 
 func TestClientOverMax(t *testing.T) {
-	rs := newRoutingServer()
+	rs := VirtualRoutingServer()
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
@@ -115,7 +115,7 @@ func TestClientOverMax(t *testing.T) {
 
 // TODO does dht ensure won't receive self as a provider? probably not.
 func TestCanceledContext(t *testing.T) {
-	rs := newRoutingServer()
+	rs := VirtualRoutingServer()
 	k := u.Key("hello")
 
 	t.Log("async'ly announce infinite stream of providers for key")

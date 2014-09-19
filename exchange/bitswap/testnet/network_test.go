@@ -12,7 +12,7 @@ import (
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {
-	net := LocalNetwork()
+	net := VirtualNetwork()
 
 	idOfRecipient := []byte("recipient")
 
@@ -59,7 +59,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 }
 
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
-	net := LocalNetwork()
+	net := VirtualNetwork()
 	idOfResponder := []byte("responder")
 	waiter := net.Adapter(&peer.Peer{ID: []byte("waiter")})
 	responder := net.Adapter(&peer.Peer{ID: idOfResponder})
