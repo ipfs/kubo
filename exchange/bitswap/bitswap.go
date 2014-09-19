@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	"errors"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
@@ -87,6 +89,9 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 				// get better guarantees. May need shared sequence numbers.
 				bs.strategy.MessageSent(p, message)
 
+				if response == nil {
+					return
+				}
 				bs.ReceiveMessage(ctx, p, response)
 			}(i)
 		}
@@ -112,6 +117,12 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 func (bs *bitswap) ReceiveMessage(
 	ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage, error) {
+	if p == nil {
+		return nil, nil, errors.New("Received nil Peer")
+	}
+	if incoming == nil {
+		return nil, nil, errors.New("Received nil Message")
+	}
 
 	bs.strategy.MessageReceived(p, incoming)
 
