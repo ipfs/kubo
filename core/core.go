@@ -186,13 +186,21 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 
 func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
 	for _, p := range cfg.Peers {
+		if p.PeerID == "" {
+			u.PErr("error: peer does not include PeerID. %v\n", p)
+		}
+
 		maddr, err := ma.NewMultiaddr(p.Address)
 		if err != nil {
 			u.PErr("error: %v\n", err)
 			continue
 		}
 
-		_, err = route.Connect(maddr)
+		// setup peer
+		npeer := &peer.Peer{ID: peer.DecodePrettyID(p.PeerID)}
+		npeer.AddAddress(maddr)
+
+		_, err = route.Connect(npeer)
 		if err != nil {
 			u.PErr("Bootstrapping error: %v\n", err)
 		}

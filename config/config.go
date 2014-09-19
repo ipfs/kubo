@@ -25,6 +25,7 @@ type Datastore struct {
 
 type SavedPeer struct {
 	Address string
+	PeerID  string // until multiaddr supports ipfs, use another field.
 }
 
 // Config is used to load IPFS config files.
