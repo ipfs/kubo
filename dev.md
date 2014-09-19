@@ -32,19 +32,18 @@ There are multiple subpackages:
 - peer addressing
 - dht - impl basic kademlia routing
 - bitswap - impl basic block exchange functionality
+- crypto - building trust between peers in the network
+- block splitting on import - Rabin fingerprints, etc
 
 ### What's in progress:
 
-- crypto - building trust between peers in the network
+- ipns - impl `/ipns` obj publishing + path resolution
+- expose objects to the web at `http://ipfs.io/<path>`
 
 
 ### What's next:
 
-- ipns - impl `/ipns` obj publishing + path resolution
-- **(at this point should have func similar to bittorrent)**
-- block splitting on import - Rabin fingerprints, etc
 - version control - `commit` like data structure
-- expose objects to the web at `http://ipfs.io/<path>`
 - more...
 
 ## Cool demos

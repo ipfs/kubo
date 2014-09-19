@@ -4,7 +4,6 @@ See: https://github.com/jbenet/ipfs
 
 Please put all issues regarding IPFS _design_ in the
 [ipfs repo issues](https://github.com/jbenet/ipfs/issues).
-
 Please put all issues regarding go IPFS _implementation_ in [this repo](https://github.com/jbenet/go-ipfs/issues).
 
 ## Install
@@ -64,12 +63,7 @@ Guidelines:
 
 ## Todo
 
-Ipfs is still under heavy development, there is a lot to be done!
-
-- [ ] Finish Bitswap
-- [ ] Connect fuse interface to Blockservice
-- [ ] Write tests for bitswap
-- [ ] Come up with more TODO items
+Ipfs is nearing an alpha release. Things left to be done are all marked as [Issues](https://github.com/jbenet/gp-ipfs/issues)
 
 ## Development Dependencies
 
