@@ -31,16 +31,15 @@ type Routing interface {
 // NewSession initializes a bitswap session.
 func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
 
-	// FIXME(brian): instantiate a concrete Strategist
-	receiver := bsnet.Forwarder{}
+	adapter := bsnet.NewNetworkAdapter(s, nil)
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
 		strategy:      strategy.New(),
 		routing:       directory,
-		sender:        bsnet.NewNetworkAdapter(s, &receiver),
+		sender:        adapter,
 	}
-	receiver.Delegate(bs)
+	adapter.SetDelegate(bs)
 
 	return bs
 }
