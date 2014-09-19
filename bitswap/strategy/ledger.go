@@ -12,6 +12,14 @@ import (
 // access/lookups.
 type keySet map[u.Key]struct{}
 
+func newLedger(p *peer.Peer, strategy strategyFunc) *ledger {
+	return &ledger{
+		wantList: keySet{},
+		Strategy: strategy,
+		Partner:  p,
+	}
+}
+
 // ledger stores the data exchange relationship between two peers.
 type ledger struct {
 	lock sync.RWMutex
@@ -36,9 +44,6 @@ type ledger struct {
 
 	Strategy strategyFunc
 }
-
-// LedgerMap lists Ledgers by their Partner key.
-type ledgerMap map[u.Key]*ledger
 
 func (l *ledger) ShouldSend() bool {
 	l.lock.Lock()

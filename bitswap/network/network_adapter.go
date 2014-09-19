@@ -2,30 +2,28 @@ package network
 
 import (
 	"errors"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// NewSender wraps a network Service to perform translation between
+// networkAdapter wraps NetService and Receiver
+type networkAdapter struct {
+	networkService NetService
+	receiver       Receiver
+}
+
+// NewNetworkAdapter wraps a network Service and Receiver to perform translation between
 // BitSwapMessage and NetMessage formats. This allows the BitSwap session to
 // ignore these details.
-func NewNetworkAdapter(s NetworkService, r Receiver) NetworkAdapter {
+func NewNetworkAdapter(s NetService, r Receiver) NetAdapter {
 	adapter := networkAdapter{
 		networkService: s,
 		receiver:       r,
 	}
 	s.SetHandler(&adapter)
 	return &adapter
-}
-
-// networkAdapter implements NetworkAdapter
-type networkAdapter struct {
-	networkService NetworkService
-	receiver       Receiver
 }
 
 // HandleMessage marshals and unmarshals net messages, forwarding them to the
@@ -90,4 +88,5 @@ func (adapter *networkAdapter) SendRequest(
 
 func (adapter *networkAdapter) SetDelegate(r Receiver) {
 	adapter.receiver = r
+
 }

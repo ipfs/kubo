@@ -9,8 +9,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// NetworkAdapter mediates the exchange's communication with the network.
-type NetworkAdapter interface {
+// NetAdapter mediates the exchange's communication with the network.
+type NetAdapter interface {
 
 	// SendMessage sends a BitSwap message to a peer.
 	SendMessage(
@@ -29,6 +29,7 @@ type NetworkAdapter interface {
 	SetDelegate(Receiver)
 }
 
+//Receiver gets the bitswap message from the sender and outputs the destination for it
 type Receiver interface {
 	ReceiveMessage(
 		ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
@@ -36,7 +37,7 @@ type Receiver interface {
 }
 
 // TODO(brian): move this to go-ipfs/net package
-type NetworkService interface {
+type NetService interface {
 	SendRequest(ctx context.Context, m netmsg.NetMessage) (netmsg.NetMessage, error)
 	SendMessage(ctx context.Context, m netmsg.NetMessage) error
 	SetHandler(netservice.Handler)
