@@ -9,7 +9,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func NewOfflineExchange() exchange.Exchange {
+func NewOfflineExchange() exchange.Interface {
 	return &offlineExchange{}
 }
 

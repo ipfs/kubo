@@ -48,7 +48,7 @@ type IpfsNode struct {
 	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	BitSwap exchange.Exchange
+	Exchange exchange.Interface
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -89,7 +89,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		net inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route           *dht.IpfsDHT
-		exchangeSession exchange.Exchange
+		exchangeSession exchange.Interface
 	)
 
 	if online {
@@ -141,7 +141,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-		BitSwap:   exchangeSession,
+		Exchange:  exchangeSession,
 		Identity:  local,
 		Routing:   route,
 	}, nil

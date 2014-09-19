@@ -4,11 +4,12 @@ import (
 	"time"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
-	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type Exchange interface {
+// Any type that implements exchange.Interface may be used as an IPFS block
+// exchange protocol.
+type Interface interface {
 
 	// Block returns the block associated with a given key.
 	// TODO(brian): pass a context instead of a timeout
@@ -20,9 +21,4 @@ type Exchange interface {
 	// TODO(brian): remove error return value. Should callers be concerned with
 	// whether the block was made available on the network?
 	HasBlock(blocks.Block) error
-}
-
-type Directory interface {
-	FindProvidersAsync(u.Key, int, time.Duration) <-chan *peer.Peer
-	Provide(key u.Key) error
 }
