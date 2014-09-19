@@ -117,32 +117,28 @@ func (bs *bitswap) ReceiveMessage(
 
 	bs.strategy.MessageReceived(p, incoming)
 
-	if incoming.Blocks() != nil {
-		for _, block := range incoming.Blocks() {
-			err := bs.blockstore.Put(block) // FIXME(brian): err ignored
-			if err != nil {
-				return nil, nil, err
-			}
-			bs.notifications.Publish(block)
-			err = bs.HasBlock(ctx, block) // FIXME err ignored
-			if err != nil {
-				return nil, nil, err
-			}
+	for _, block := range incoming.Blocks() {
+		err := bs.blockstore.Put(block) // FIXME(brian): err ignored
+		if err != nil {
+			return nil, nil, err
+		}
+		bs.notifications.Publish(block)
+		err = bs.HasBlock(ctx, block) // FIXME err ignored
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 
-	if incoming.Wantlist() != nil {
-		for _, key := range incoming.Wantlist() {
-			if bs.strategy.ShouldSendBlockToPeer(key, p) {
-				block, errBlockNotFound := bs.blockstore.Get(key)
-				if errBlockNotFound != nil {
-					return nil, nil, errBlockNotFound
-				}
-				message := bsmsg.New()
-				message.AppendBlock(*block)
-				defer bs.strategy.MessageSent(p, message)
-				return p, message, nil
+	for _, key := range incoming.Wantlist() {
+		if bs.strategy.ShouldSendBlockToPeer(key, p) {
+			block, errBlockNotFound := bs.blockstore.Get(key)
+			if errBlockNotFound != nil {
+				return nil, nil, errBlockNotFound
 			}
+			message := bsmsg.New()
+			message.AppendBlock(*block)
+			defer bs.strategy.MessageSent(p, message)
+			return p, message, nil
 		}
 	}
 	return nil, nil, nil
