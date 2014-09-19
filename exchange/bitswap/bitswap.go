@@ -44,7 +44,6 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
 		strategy:      strategy.New(),
-		peer:          p,
 		routing:       directory,
 		sender:        bsnet.NewNetworkAdapter(s, &receiver),
 	}
@@ -55,8 +54,6 @@ func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d 
 
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
-	// peer is the identity of this (local) node.
-	peer *peer.Peer
 
 	// sender delivers messages on behalf of the session
 	sender bsnet.NetworkAdapter
