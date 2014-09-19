@@ -208,13 +208,18 @@ func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p *peer.Peer,
 }
 
 func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) error {
-	pmes := newMessage(Message_ADD_PROVIDER, string(key), 0)
 
-	mes, err := msg.FromObject(p, pmes)
+	pmes := newMessage(Message_ADD_PROVIDER, string(key), 0)
+	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
-	return dht.sender.SendMessage(ctx, mes)
+
+	if *rpmes.Key != *pmes.Key {
+		return errors.New("provider not added correctly")
+	}
+
+	return nil
 }
 
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,

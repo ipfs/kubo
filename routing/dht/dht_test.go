@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"bytes"
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -44,7 +45,7 @@ func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
 
 func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
 	var addrs []*ma.Multiaddr
-	for i := 0; i < 4; i++ {
+	for i := 0; i < n; i++ {
 		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
 		if err != nil {
 			t.Fatal(err)
@@ -53,13 +54,13 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	}
 
 	var peers []*peer.Peer
-	for i := 0; i < 4; i++ {
+	for i := 0; i < n; i++ {
 		p := makePeer(addrs[i])
 		peers = append(peers, p)
 	}
 
-	var dhts []*IpfsDHT
-	for i := 0; i < 4; i++ {
+	dhts := make([]*IpfsDHT, n)
+	for i := 0; i < n; i++ {
 		dhts[i] = setupDHT(t, peers[i])
 	}
 

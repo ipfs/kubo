@@ -90,7 +90,6 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 	}
 
 	u.DOut("[%s] GetValue %v %v\n", dht.self.ID.Pretty(), key, result.value)
-
 	if result.value == nil {
 		return nil, u.ErrNotFound
 	}
@@ -111,6 +110,8 @@ func (dht *IpfsDHT) Provide(key u.Key) error {
 		return kb.ErrLookupFailure
 	}
 
+	//TODO FIX: this doesn't work! it needs to be sent to the actual nearest peers.
+	// `peers` are the closest peers we have, not the ones that should get the value.
 	for _, p := range peers {
 		err := dht.putProvider(ctx, p, string(key))
 		if err != nil {
