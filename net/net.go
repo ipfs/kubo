@@ -53,6 +53,9 @@ func NewIpfsNetwork(ctx context.Context, local *peer.Peer,
 		return nil, err
 	}
 
+	// remember to wire components together.
+	in.muxer.Pipe.ConnectTo(in.swarm.Pipe)
+
 	return in, nil
 }
 

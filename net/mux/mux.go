@@ -94,7 +94,10 @@ func (m *Muxer) handleIncomingMessages(ctx context.Context) {
 		}
 
 		select {
-		case msg := <-m.Incoming:
+		case msg, more := <-m.Incoming:
+			if !more {
+				return
+			}
 			go m.handleIncomingMessage(ctx, msg)
 
 		case <-ctx.Done():
@@ -132,7 +135,10 @@ func (m *Muxer) handleIncomingMessage(ctx context.Context, m1 msg.NetMessage) {
 func (m *Muxer) handleOutgoingMessages(ctx context.Context, pid ProtocolID, proto Protocol) {
 	for {
 		select {
-		case msg := <-proto.GetPipe().Outgoing:
+		case msg, more := <-proto.GetPipe().Outgoing:
+			if !more {
+				return
+			}
 			go m.handleOutgoingMessage(ctx, pid, msg)
 
 		case <-ctx.Done():

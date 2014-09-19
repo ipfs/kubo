@@ -82,6 +82,8 @@ func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid Request
 		return err
 	}
 
+	// u.DOut("Service send message [to = %s]\n", m.Peer().ID.Pretty())
+
 	// send message
 	m2 := msg.New(m.Peer(), data)
 	select {
@@ -150,7 +152,10 @@ func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 func (s *Service) handleIncomingMessages(ctx context.Context) {
 	for {
 		select {
-		case m := <-s.Incoming:
+		case m, more := <-s.Incoming:
+			if !more {
+				return
+			}
 			go s.handleIncomingMessage(ctx, m)
 
 		case <-ctx.Done():

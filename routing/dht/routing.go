@@ -30,6 +30,7 @@ func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	}
 
 	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
+		u.DOut("[%s] PutValue qry part %v\n", dht.self.ID.Pretty(), p.ID.Pretty())
 		err := dht.putValueToNetwork(ctx, p, string(key), value)
 		if err != nil {
 			return nil, err
@@ -38,6 +39,7 @@ func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
 	})
 
 	_, err := query.Run(ctx, peers)
+	u.DOut("[%s] PutValue %v %v\n", dht.self.ID.Pretty(), key, value)
 	return err
 }
 

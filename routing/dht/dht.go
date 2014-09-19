@@ -125,7 +125,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) (msg.
 	dht.Update(mPeer)
 
 	// Print out diagnostic
-	u.DOut("[peer: %s]\nGot message type: '%s' [from = %s]\n",
+	u.DOut("[peer: %s] Got message type: '%s' [from = %s]\n",
 		dht.self.ID.Pretty(),
 		Message_MessageType_name[int32(pmes.GetType())], mPeer.ID.Pretty())
 
@@ -139,6 +139,11 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) (msg.
 	rpmes, err := handler(mPeer, pmes)
 	if err != nil {
 		return nil, err
+	}
+
+	// if nil response, return it before serializing
+	if rpmes == nil {
+		return nil, nil
 	}
 
 	// serialize response msg
@@ -160,6 +165,11 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 	}
 
 	start := time.Now()
+
+	// Print out diagnostic
+	u.DOut("[peer: %s] Sent message type: '%s' [to = %s]\n",
+		dht.self.ID.Pretty(),
+		Message_MessageType_name[int32(pmes.GetType())], p.ID.Pretty())
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
 	if err != nil {
@@ -209,10 +219,10 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 		return nil, nil, err
 	}
 
-	u.POut("pmes.GetValue() %v\n", pmes.GetValue())
+	u.DOut("pmes.GetValue() %v\n", pmes.GetValue())
 	if value := pmes.GetValue(); value != nil {
 		// Success! We were given the value
-		u.POut("getValueOrPeers: got value\n")
+		u.DOut("getValueOrPeers: got value\n")
 		return value, nil, nil
 	}
 
@@ -222,7 +232,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 		if err != nil {
 			return nil, nil, err
 		}
-		u.POut("getValueOrPeers: get from providers\n")
+		u.DOut("getValueOrPeers: get from providers\n")
 		return val, nil, nil
 	}
 
@@ -250,11 +260,11 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 	}
 
 	if len(peers) > 0 {
-		u.POut("getValueOrPeers: peers\n")
+		u.DOut("getValueOrPeers: peers\n")
 		return nil, peers, nil
 	}
 
-	u.POut("getValueOrPeers: u.ErrNotFound\n")
+	u.DOut("getValueOrPeers: u.ErrNotFound\n")
 	return nil, nil, u.ErrNotFound
 }
 

@@ -221,6 +221,7 @@ func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
 			return
 		}
 
+		// u.DOut("[peer %s] secure in [from = %s] %d\n", s.local.ID.Pretty(), s.remote.ID.Pretty(), len(data))
 		if len(data) <= macSize {
 			continue
 		}
@@ -268,6 +269,7 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 		copy(buff[len(data):], myMac.Sum(nil))
 		myMac.Reset()
 
+		// u.DOut("[peer %s] secure out [to = %s] %d\n", s.local.ID.Pretty(), s.remote.ID.Pretty(), len(buff))
 		s.insecure.Out <- buff
 	}
 }

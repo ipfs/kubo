@@ -97,6 +97,7 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error
 	defer dht.dslock.Unlock()
 	dskey := ds.NewKey(pmes.GetKey())
 	err := dht.datastore.Put(dskey, pmes.GetValue())
+	u.DOut("[%s] handlePutValue %v %v", dht.self.ID.Pretty(), dskey, pmes.GetValue())
 	return nil, err
 }
 

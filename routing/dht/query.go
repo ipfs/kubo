@@ -163,7 +163,7 @@ func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
 	r.peersSeen[next.Key()] = next
 	r.Unlock()
 
-	u.POut("adding peer to query: %v\n", next.ID.Pretty())
+	u.DOut("adding peer to query: %v\n", next.ID.Pretty())
 
 	// do this after unlocking to prevent possible deadlocks.
 	r.peersRemaining.Increment(1)
@@ -187,14 +187,14 @@ func (r *dhtQueryRunner) spawnWorkers() {
 			if !more {
 				return // channel closed.
 			}
-			u.POut("spawning worker for: %v\n", p.ID.Pretty())
+			u.DOut("spawning worker for: %v\n", p.ID.Pretty())
 			go r.queryPeer(p)
 		}
 	}
 }
 
 func (r *dhtQueryRunner) queryPeer(p *peer.Peer) {
-	u.POut("spawned worker for: %v\n", p.ID.Pretty())
+	u.DOut("spawned worker for: %v\n", p.ID.Pretty())
 
 	// make sure we rate limit concurrency.
 	select {
@@ -204,33 +204,33 @@ func (r *dhtQueryRunner) queryPeer(p *peer.Peer) {
 		return
 	}
 
-	u.POut("running worker for: %v\n", p.ID.Pretty())
+	u.DOut("running worker for: %v\n", p.ID.Pretty())
 
 	// finally, run the query against this peer
 	res, err := r.query.qfunc(r.ctx, p)
 
 	if err != nil {
-		u.POut("ERROR worker for: %v %v\n", p.ID.Pretty(), err)
+		u.DOut("ERROR worker for: %v %v\n", p.ID.Pretty(), err)
 		r.Lock()
 		r.errs = append(r.errs, err)
 		r.Unlock()
 
 	} else if res.success {
-		u.POut("SUCCESS worker for: %v\n", p.ID.Pretty(), res)
+		u.DOut("SUCCESS worker for: %v\n", p.ID.Pretty(), res)
 		r.Lock()
 		r.result = res
 		r.Unlock()
 		r.cancel() // signal to everyone that we're done.
 
 	} else if res.closerPeers != nil {
-		u.POut("PEERS CLOSER -- worker for: %v\n", p.ID.Pretty())
+		u.DOut("PEERS CLOSER -- worker for: %v\n", p.ID.Pretty())
 		for _, next := range res.closerPeers {
 			r.addPeerToQuery(next, p)
 		}
 	}
 
 	// signal we're done proccessing peer p
-	u.POut("completing worker for: %v\n", p.ID.Pretty())
+	u.DOut("completing worker for: %v\n", p.ID.Pretty())
 	r.peersRemaining.Decrement(1)
 	r.rateLimit <- struct{}{}
 }

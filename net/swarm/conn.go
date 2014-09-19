@@ -101,13 +101,13 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 		return errors.New("Tried to start nil connection.")
 	}
 
-	// u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
+	u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
 
 	if err := s.connSecure(c); err != nil {
 		return fmt.Errorf("Conn securing error: %v", err)
 	}
 
-	// u.DOut("Secured connection: %s\n", c.Peer.Key().Pretty())
+	u.DOut("Secured connection: %s\n", c.Peer.Key().Pretty())
 
 	// add to conns
 	s.connsLock.Lock()
@@ -139,6 +139,7 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 		return err
 	}
 
+	c.Secure = sp
 	return nil
 }
 
@@ -165,8 +166,11 @@ func (s *Swarm) fanOut() {
 				continue
 			}
 
+			// u.DOut("[peer: %s] Sent message [to = %s]\n",
+			// 	s.local.ID.Pretty(), msg.Peer().ID.Pretty())
+
 			// queue it in the connection's buffer
-			conn.Outgoing.MsgChan <- msg.Data()
+			conn.Secure.Out <- msg.Data()
 		}
 	}
 }
@@ -184,12 +188,15 @@ func (s *Swarm) fanIn(c *conn.Conn) {
 		case <-c.Closed:
 			goto out
 
-		case data, ok := <-c.Incoming.MsgChan:
+		case data, ok := <-c.Secure.In:
 			if !ok {
 				e := fmt.Errorf("Error retrieving from conn: %v", c.Peer.Key().Pretty())
 				s.errChan <- e
 				goto out
 			}
+
+			// u.DOut("[peer: %s] Received message [from = %s]\n",
+			// 	s.local.ID.Pretty(), c.Peer.ID.Pretty())
 
 			msg := msg.New(c.Peer, data)
 			s.Incoming <- msg

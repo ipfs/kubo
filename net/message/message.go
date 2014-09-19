@@ -6,11 +6,13 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
+// NetMessage is the interface for the message
 type NetMessage interface {
 	Peer() *peer.Peer
 	Data() []byte
 }
 
+// New is the interface for constructing a new message.
 func New(p *peer.Peer, data []byte) NetMessage {
 	return &message{peer: p, data: data}
 }
@@ -54,4 +56,23 @@ func NewPipe(bufsize int) *Pipe {
 		Incoming: make(chan NetMessage, bufsize),
 		Outgoing: make(chan NetMessage, bufsize),
 	}
+}
+
+// ConnectTo connects this pipe to another, using a context for termination.
+func (p *Pipe) ConnectTo(p2 *Pipe) {
+	connectChans(p.Outgoing, p2.Outgoing)
+	connectChans(p2.Incoming, p.Incoming)
+}
+
+func connectChans(a, b chan NetMessage) {
+	go func() {
+		for {
+			m, more := <-a
+			if !more {
+				close(b)
+				return
+			}
+			b <- m
+		}
+	}()
 }
