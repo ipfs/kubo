@@ -119,9 +119,15 @@ func (bs *bitswap) ReceiveMessage(
 
 	if incoming.Blocks() != nil {
 		for _, block := range incoming.Blocks() {
-			bs.blockstore.Put(block) // FIXME(brian): err ignored
+			err := bs.blockstore.Put(block) // FIXME(brian): err ignored
+			if err != nil {
+				return nil, nil, err
+			}
 			bs.notifications.Publish(block)
-			bs.HasBlock(ctx, block) // FIXME err ignored
+			err = bs.HasBlock(ctx, block) // FIXME err ignored
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
@@ -134,7 +140,8 @@ func (bs *bitswap) ReceiveMessage(
 				}
 				message := bsmsg.New()
 				message.AppendBlock(*block)
-				bs.send(ctx, p, message)
+				defer bs.strategy.MessageSent(p, message)
+				return p, message, nil
 			}
 		}
 	}

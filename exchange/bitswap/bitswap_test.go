@@ -1,6 +1,7 @@
 package bitswap
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -20,11 +21,13 @@ func TestGetBlockTimeout(t *testing.T) {
 
 	net := testnet.VirtualNetwork()
 	rs := testnet.VirtualRoutingServer()
-	ipfs := session(net, rs, []byte("peer id"))
+
+	self := session(net, rs, []byte("peer id"))
+
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	block := testutil.NewBlockOrFail(t, "block")
+	_, err := self.exchange.Block(ctx, block.Key())
 
-	_, err := ipfs.exchange.Block(ctx, block.Key())
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
 	}
@@ -59,28 +62,35 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	hasBlock := session(net, rs, []byte("hasBlock"))
 
-	rs.Announce(hasBlock.peer, block.Key())
-	hasBlock.blockstore.Put(block)
-	hasBlock.exchange.HasBlock(context.Background(), block)
+	if err := hasBlock.blockstore.Put(block); err != nil {
+		t.Fatal(err)
+	}
+	if err := hasBlock.exchange.HasBlock(context.Background(), block); err != nil {
+		t.Fatal(err)
+	}
 
 	wantsBlock := session(net, rs, []byte("wantsBlock"))
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
-	_, err := wantsBlock.exchange.Block(ctx, block.Key())
+	received, err := wantsBlock.exchange.Block(ctx, block.Key())
 	if err != nil {
 		t.Log(err)
 		t.Fatal("Expected to succeed")
 	}
+
+	if !bytes.Equal(block.Data, received.Data) {
+		t.Fatal("Data doesn't match")
+	}
 }
 
-type ipfs struct {
+type testnetBitSwap struct {
 	peer       *peer.Peer
 	exchange   exchange.Interface
 	blockstore bstore.Blockstore
 }
 
-func session(net testnet.Network, rs testnet.RoutingServer, id peer.ID) ipfs {
-	p := &peer.Peer{}
+func session(net testnet.Network, rs testnet.RoutingServer, id peer.ID) testnetBitSwap {
+	p := &peer.Peer{ID: id}
 
 	adapter := net.Adapter(p)
 	htc := rs.Client(p)
@@ -94,7 +104,7 @@ func session(net testnet.Network, rs testnet.RoutingServer, id peer.ID) ipfs {
 		sender:        adapter,
 	}
 	adapter.SetDelegate(bs)
-	return ipfs{
+	return testnetBitSwap{
 		peer:       p,
 		exchange:   bs,
 		blockstore: blockstore,
