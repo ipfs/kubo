@@ -155,10 +155,6 @@ func (bs *bitswap) send(ctx context.Context, p *peer.Peer, m bsmsg.BitSwapMessag
 	bs.strategy.MessageSent(p, m)
 }
 
-func numBytes(b blocks.Block) int {
-	return len(b.Data)
-}
-
 func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) {
 	for _, p := range bs.strategy.Peers() {
 		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
