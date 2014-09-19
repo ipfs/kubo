@@ -7,12 +7,13 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
-	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
-	bsnet "github.com/jbenet/go-ipfs/bitswap/network"
-	notifications "github.com/jbenet/go-ipfs/bitswap/notifications"
-	strategy "github.com/jbenet/go-ipfs/bitswap/strategy"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blockstore"
+	exchange "github.com/jbenet/go-ipfs/exchange"
+	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
+	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
+	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -37,7 +38,7 @@ type bitswap struct {
 	blockstore blockstore.Blockstore
 
 	// routing interface for communication
-	routing Directory
+	routing exchange.Directory
 
 	notifications notifications.PubSub
 
@@ -48,7 +49,7 @@ type bitswap struct {
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Directory) Exchange {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory exchange.Directory) exchange.Exchange {
 
 	// FIXME(brian): instantiate a concrete Strategist
 	receiver := bsnet.Forwarder{}

@@ -4,7 +4,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	netservice "github.com/jbenet/go-ipfs/net/service"
 
-	bsmsg "github.com/jbenet/go-ipfs/bitswap/message"
+	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
