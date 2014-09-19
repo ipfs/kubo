@@ -1,8 +1,6 @@
 package bitswap
 
 import (
-	"errors"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
@@ -20,7 +18,6 @@ import (
 // TODO rename -> Router?
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
-	// TODO replace with timeout with context
 	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
 
 	// Provide provides the key to the network
@@ -66,8 +63,7 @@ type bitswap struct {
 
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context
-func (bs *bitswap) Block(ctx context.Context, k u.Key) (
-	*blocks.Block, error) {
+func (bs *bitswap) Block(ctx context.Context, k u.Key) (*blocks.Block, error) {
 
 	provs_ch := bs.routing.FindProvidersAsync(ctx, k, 20)
 
@@ -161,7 +157,7 @@ func (bs *bitswap) ReceiveMessage(
 			}
 		}
 	}
-	return nil, nil, errors.New("TODO implement")
+	return nil, nil, nil
 }
 
 // send strives to ensure that accounting is always performed when a message is
