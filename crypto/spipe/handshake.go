@@ -5,6 +5,7 @@ package spipe
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 
 	"crypto/aes"
@@ -48,6 +49,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
+	// u.DOut("handshake: %s <--> %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
 	myPubKey, err := s.local.PubKey.Bytes()
 	if err != nil {
 		return err
@@ -65,6 +67,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
+	// u.POut("sending encoded handshake\n")
 	s.insecure.Out <- encoded
 
 	// Parse their Propose packet and generate an Exchange packet.
@@ -73,9 +76,10 @@ func (s *SecurePipe) handshake() error {
 	select {
 	case <-s.ctx.Done():
 		return ErrClosed
-	case resp = <-s.Duplex.In:
+	case resp = <-s.insecure.In:
 	}
 
+	// u.POut("received encoded handshake\n")
 	proposeResp := new(Propose)
 	err = proto.Unmarshal(resp, proposeResp)
 	if err != nil {
@@ -98,6 +102,7 @@ func (s *SecurePipe) handshake() error {
 	} else if s.remote.ID == nil {
 		s.remote.ID = remoteID
 	}
+	// u.POut("Remote Peer Identified as %s\n", s.remote.ID.Pretty())
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
@@ -114,6 +119,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
+	// u.POut("Selected %s %s %s\n", exchange, cipherType, hashType)
 	epubkey, done, err := ci.GenerateEKeyPair(exchange) // Generate EphemeralPubKey
 
 	var handshake bytes.Buffer // Gather corpus to sign.
@@ -153,6 +159,7 @@ func (s *SecurePipe) handshake() error {
 	theirHandshake.Write(encoded)
 	theirHandshake.Write(exchangeResp.GetEpubkey())
 
+	// u.POut("Remote Peer Identified as %s\n", s.remote.ID.Pretty())
 	ok, err := s.remote.PubKey.Verify(theirHandshake.Bytes(), exchangeResp.GetSignature())
 	if err != nil {
 		return err
@@ -180,7 +187,7 @@ func (s *SecurePipe) handshake() error {
 	select {
 	case <-s.ctx.Done():
 		return ErrClosed
-	case resp2 = <-s.Duplex.In:
+	case resp2 = <-s.In:
 	}
 
 	if bytes.Compare(resp2, finished) != 0 {
