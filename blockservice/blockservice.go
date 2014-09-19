@@ -43,7 +43,8 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 		return k, err
 	}
 	if s.Remote != nil {
-		err = s.Remote.HasBlock(*b)
+		ctx := context.TODO()
+		err = s.Remote.HasBlock(ctx, *b)
 	}
 	return k, err
 }

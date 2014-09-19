@@ -128,8 +128,7 @@ func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) 
 
 // HasBlock announces the existance of a block to bitswap, potentially sending
 // it to peers (Partners) whose WantLists include it.
-func (bs *bitswap) HasBlock(blk blocks.Block) error {
-	ctx := context.TODO()
+func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 	go bs.sendToPeersThatWant(ctx, blk)
 	return bs.routing.Provide(blk.Key())
 }

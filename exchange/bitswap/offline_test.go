@@ -11,7 +11,7 @@ import (
 
 func TestBlockReturnsErr(t *testing.T) {
 	off := NewOfflineExchange()
-	_, err := off.Block(context.TODO(), u.Key("foo"))
+	_, err := off.Block(context.Background(), u.Key("foo"))
 	if err != nil {
 		return // as desired
 	}
@@ -21,7 +21,7 @@ func TestBlockReturnsErr(t *testing.T) {
 func TestHasBlockReturnsNil(t *testing.T) {
 	off := NewOfflineExchange()
 	block := testutil.NewBlockOrFail(t, "data")
-	err := off.HasBlock(block)
+	err := off.HasBlock(context.Background(), block)
 	if err != nil {
 		t.Fatal("")
 	}

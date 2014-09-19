@@ -27,6 +27,6 @@ func (_ *offlineExchange) Block(context.Context, u.Key) (*blocks.Block, error) {
 }
 
 // HasBlock always returns nil.
-func (_ *offlineExchange) HasBlock(blocks.Block) error {
+func (_ *offlineExchange) HasBlock(context.Context, blocks.Block) error {
 	return nil
 }

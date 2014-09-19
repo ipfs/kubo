@@ -12,13 +12,9 @@ import (
 type Interface interface {
 
 	// Block returns the block associated with a given key.
-	// TODO(brian): pass a context instead of a timeout
 	Block(context.Context, u.Key) (*blocks.Block, error)
 
-	// HasBlock asserts the existence of this block
-	// TODO(brian): rename -> HasBlock
-	// TODO(brian): accept a value, not a pointer
-	// TODO(brian): remove error return value. Should callers be concerned with
-	// whether the block was made available on the network?
-	HasBlock(blocks.Block) error
+	// TODO Should callers be concerned with whether the block was made
+	// available on the network?
+	HasBlock(context.Context, blocks.Block) error
 }
