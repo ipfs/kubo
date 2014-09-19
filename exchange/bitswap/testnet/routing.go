@@ -24,13 +24,13 @@ type RoutingServer interface {
 
 func VirtualRoutingServer() RoutingServer {
 	return &hashTable{
-		m: make(map[u.Key]map[*peer.Peer]bool),
+		providers: make(map[u.Key]peer.Map),
 	}
 }
 
 type hashTable struct {
-	lock sync.RWMutex
-	m    map[u.Key]map[*peer.Peer]bool
+	lock      sync.RWMutex
+	providers map[u.Key]peer.Map
 }
 
 var TODO = errors.New("TODO")
@@ -39,11 +39,11 @@ func (rs *hashTable) Announce(p *peer.Peer, k u.Key) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
-	_, ok := rs.m[k]
+	_, ok := rs.providers[k]
 	if !ok {
-		rs.m[k] = make(map[*peer.Peer]bool)
+		rs.providers[k] = make(peer.Map)
 	}
-	rs.m[k][p] = true
+	rs.providers[k][p.Key()] = p
 	return nil
 }
 
@@ -51,11 +51,11 @@ func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
 	ret := make([]*peer.Peer, 0)
-	peerset, ok := rs.m[k]
+	peerset, ok := rs.providers[k]
 	if !ok {
 		return ret
 	}
-	for peer, _ := range peerset {
+	for _, peer := range peerset {
 		ret = append(ret, peer)
 	}
 	return ret
