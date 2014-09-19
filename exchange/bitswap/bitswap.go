@@ -18,6 +18,16 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// TODO rename -> Router?
+type Routing interface {
+	// FindProvidersAsync returns a channel of providers for the given key
+	// TODO replace with timeout with context
+	FindProvidersAsync(u.Key, int, time.Duration) <-chan *peer.Peer
+
+	// Provide provides the key to the network
+	Provide(key u.Key) error
+}
+
 // TODO(brian): ensure messages are being received
 
 // PartnerWantListMax is the bound for the number of keys we'll store per
@@ -38,7 +48,7 @@ type bitswap struct {
 	blockstore blockstore.Blockstore
 
 	// routing interface for communication
-	routing exchange.Directory
+	routing Routing
 
 	notifications notifications.PubSub
 
@@ -49,7 +59,7 @@ type bitswap struct {
 }
 
 // NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory exchange.Directory) exchange.Exchange {
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
 
 	// FIXME(brian): instantiate a concrete Strategist
 	receiver := bsnet.Forwarder{}
