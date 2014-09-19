@@ -12,17 +12,18 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
-	testnet "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
+	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestGetBlockTimeout(t *testing.T) {
 
-	net := testnet.VirtualNetwork()
-	rs := testnet.VirtualRoutingServer()
+	net := tn.VirtualNetwork()
+	rs := tn.VirtualRoutingServer()
+	g := NewSessionGenerator(net, rs)
 
-	self := session(net, rs, []byte("peer id"))
+	self := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	block := testutil.NewBlockOrFail(t, "block")
@@ -35,13 +36,14 @@ func TestGetBlockTimeout(t *testing.T) {
 
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
-	net := testnet.VirtualNetwork()
-	rs := testnet.VirtualRoutingServer()
+	net := tn.VirtualNetwork()
+	rs := tn.VirtualRoutingServer()
+	g := NewSessionGenerator(net, rs)
 
 	block := testutil.NewBlockOrFail(t, "block")
 	rs.Announce(&peer.Peer{}, block.Key()) // but not on network
 
-	solo := session(net, rs, []byte("peer id"))
+	solo := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	_, err := solo.exchange.Block(ctx, block.Key())
@@ -55,11 +57,12 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
-	net := testnet.VirtualNetwork()
-	rs := testnet.VirtualRoutingServer()
+	net := tn.VirtualNetwork()
+	rs := tn.VirtualRoutingServer()
 	block := testutil.NewBlockOrFail(t, "block")
+	g := NewSessionGenerator(net, rs)
 
-	hasBlock := session(net, rs, []byte("hasBlock"))
+	hasBlock := g.Next()
 
 	if err := hasBlock.blockstore.Put(block); err != nil {
 		t.Fatal(err)
@@ -68,7 +71,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantsBlock := session(net, rs, []byte("wantsBlock"))
+	wantsBlock := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
 	received, err := wantsBlock.exchange.Block(ctx, block.Key())
@@ -82,13 +85,45 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	}
 }
 
+func TestSendToWantingPeer(t *testing.T) {
+	t.Log("I get a file from peer |w|. In this message, I receive |w|'s wants")
+	t.Log("Peer |w| tells me it wants file |f|, but I don't have it")
+	t.Log("Later, peer |o| sends |f| to me")
+	t.Log("After receiving |f| from |o|, I send it to the wanting peer |w|")
+}
+
+func NewSessionGenerator(
+	net tn.Network, rs tn.RoutingServer) SessionGenerator {
+	return SessionGenerator{
+		net: net,
+		rs:  rs,
+		seq: 0,
+	}
+}
+
+type SessionGenerator struct {
+	seq int
+	net tn.Network
+	rs  tn.RoutingServer
+}
+
+func (g *SessionGenerator) Next() testnetBitSwap {
+	g.seq++
+	return session(g.net, g.rs, []byte(string(g.seq)))
+}
+
 type testnetBitSwap struct {
 	peer       *peer.Peer
 	exchange   exchange.Interface
 	blockstore bstore.Blockstore
 }
 
-func session(net testnet.Network, rs testnet.RoutingServer, id peer.ID) testnetBitSwap {
+// session creates a test bitswap session.
+//
+// NB: It's easy make mistakes by providing the same peer ID to two different
+// sessions. To safeguard, use the SessionGenerator to generate sessions. It's
+// just a much better idea.
+func session(net tn.Network, rs tn.RoutingServer, id peer.ID) testnetBitSwap {
 	p := &peer.Peer{ID: id}
 
 	adapter := net.Adapter(p)
@@ -108,10 +143,4 @@ func session(net testnet.Network, rs testnet.RoutingServer, id peer.ID) testnetB
 		exchange:   bs,
 		blockstore: blockstore,
 	}
-}
-
-func TestSendToWantingPeer(t *testing.T) {
-	t.Log("Peer |w| tells me it wants file, but I don't have it")
-	t.Log("Then another peer |o| sends it to me")
-	t.Log("After receiving the file from |o|, I send it to the wanting peer |w|")
 }
