@@ -82,7 +82,7 @@ func (m *Muxer) handleIncomingMessages(ctx context.Context) {
 
 	for {
 		if m == nil {
-			panic("nix muxer")
+			panic("nil muxer")
 		}
 
 		select {

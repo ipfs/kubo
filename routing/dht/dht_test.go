@@ -41,7 +41,6 @@ func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
 
 	d := NewDHT(p, peerstore, net, dhts, ds.NewMapDatastore())
 	dhts.Handler = d
-	d.Start()
 	return d
 }
 
@@ -116,8 +115,6 @@ func TestPing(t *testing.T) {
 	dhtA := setupDHT(t, peerA)
 	dhtB := setupDHT(t, peerB)
 
-	dhtA.Start()
-	dhtB.Start()
 	defer dhtA.Halt()
 	defer dhtB.Halt()
 
@@ -150,8 +147,6 @@ func TestValueGetSet(t *testing.T) {
 	dhtA := setupDHT(t, peerA)
 	dhtB := setupDHT(t, peerB)
 
-	dhtA.Start()
-	dhtB.Start()
 	defer dhtA.Halt()
 	defer dhtB.Halt()
 

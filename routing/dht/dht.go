@@ -45,9 +45,6 @@ type IpfsDHT struct {
 
 	providers *ProviderManager
 
-	// Signal to shutdown dht
-	shutdown chan struct{}
-
 	// When this peer started up
 	birth time.Time
 
@@ -65,7 +62,6 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 	dht.peerstore = ps
 
 	dht.providers = NewProviderManager(p.ID)
-	dht.shutdown = make(chan struct{})
 
 	dht.routingTables = make([]*kb.RoutingTable, 3)
 	dht.routingTables[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*30)
@@ -73,11 +69,6 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
 	dht.birth = time.Now()
 	return dht
-}
-
-// Start up background goroutines needed by the DHT
-func (dht *IpfsDHT) Start() {
-	panic("the service is already started. rmv this method")
 }
 
 // Connect to a new peer at the given address, ping and add to the routing table
