@@ -87,9 +87,16 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	s.remote.ID, err = IDFromPubKey(s.remote.PubKey)
+	remoteID, err := IDFromPubKey(s.remote.PubKey)
 	if err != nil {
 		return err
+	}
+
+	if s.remote.ID != nil && !remoteID.Equal(s.remote.ID) {
+		e := "Expected pubkey does not match sent pubkey: %v - %v"
+		return fmt.Errorf(e, s.remote.ID.Pretty(), remoteID.Pretty())
+	} else if s.remote.ID == nil {
+		s.remote.ID = remoteID
 	}
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
