@@ -20,17 +20,17 @@ type TestProtocol struct {
 	*msg.Pipe
 }
 
-type S struct{}
-type R struct{}
+type FauxSender struct{}
+type FauxReceiver struct{}
 
-func (s *S) SendMessage(ctx context.Context, m netmsg.NetMessage) error {
+func (s *FauxSender) SendMessage(ctx context.Context, m netmsg.NetMessage) error {
 	return nil
 }
-func (s *S) SendRequest(ctx context.Context, m netmsg.NetMessage) (netmsg.NetMessage, error) {
+func (s *FauxSender) SendRequest(ctx context.Context, m netmsg.NetMessage) (netmsg.NetMessage, error) {
 	return nil, nil
 }
-func (s *S) SetHandler(netservice.Handler) {}
-func (r *R) ReceiveMessage(ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
+func (s *FauxSender) SetHandler(netservice.Handler) {}
+func (r *FauxReceiver) ReceiveMessage(ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	destination *peer.Peer, outgoing bsmsg.BitSwapMessage, err error) {
 	return nil, nil, nil
 }
@@ -76,23 +76,11 @@ func makePeer(addr *ma.Multiaddr) *peer.Peer {
 }
 
 func TestNetworkAdapter(t *testing.T) {
-	w
-	s := &S{}
-	r := &R{}
+	s := &FauxSender{}
+	r := &FauxReceiver{}
 	netAdapter := NewNetworkAdapter(s, r)
 
-	//test for Handle Message
-	var x = "foo"
-	pid1 := mux.ProtocolID_Test
-	d, _ := wrapData([]byte(x), pid1)
-	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
-	m2 := msg.New(peer1, d)
 	ctx := context.Background()
-	_, errHandle := netAdapter.HandleMessage(ctx, m2)
-	if errHandle != nil {
-		//Dependent on the brian's TODO method being implemented, failing otherwise
-		//	t.Error(errHandle)
-	}
 
 	//test for Send Message
 	addrA, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")

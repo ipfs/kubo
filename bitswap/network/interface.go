@@ -24,12 +24,6 @@ type NetAdapter interface {
 		*peer.Peer,
 		bsmsg.BitSwapMessage) (incoming bsmsg.BitSwapMessage, err error)
 
-	// HandleMessage marshals and unmarshals net messages, forwarding them to the
-	// BitSwapMessage receiver
-	HandleMessage(
-		ctx context.Context,
-		incoming netmsg.NetMessage) (netmsg.NetMessage, error)
-
 	// SetDelegate registers the Reciver to handle messages received from the
 	// network.
 	SetDelegate(Receiver)

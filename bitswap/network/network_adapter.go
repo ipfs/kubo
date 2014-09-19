@@ -8,7 +8,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-// networkAdapter implements NetworkAdapter
+// networkAdapter wraps NetService and Receiver
 type networkAdapter struct {
 	networkService NetService
 	receiver       Receiver
@@ -17,7 +17,7 @@ type networkAdapter struct {
 // NewNetworkAdapter wraps a network Service and Receiver to perform translation between
 // BitSwapMessage and NetMessage formats. This allows the BitSwap session to
 // ignore these details.
-func NewNetworkAdapter(s NetworkService, r Receiver) NetAdapter {
+func NewNetworkAdapter(s NetService, r Receiver) NetAdapter {
 	adapter := networkAdapter{
 		networkService: s,
 		receiver:       r,
