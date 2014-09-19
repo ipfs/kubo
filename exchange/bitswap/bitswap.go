@@ -35,6 +35,24 @@ type Routing interface {
 // advertisements. WantLists are sorted in terms of priority.
 const PartnerWantListMax = 10
 
+// NewSession initializes a bitswap session.
+func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
+
+	// FIXME(brian): instantiate a concrete Strategist
+	receiver := bsnet.Forwarder{}
+	bs := &bitswap{
+		blockstore:    blockstore.NewBlockstore(d),
+		notifications: notifications.New(),
+		strategy:      strategy.New(),
+		peer:          p,
+		routing:       directory,
+		sender:        bsnet.NewNetworkAdapter(s, &receiver),
+	}
+	receiver.Delegate(bs)
+
+	return bs
+}
+
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
 	// peer is the identity of this (local) node.
@@ -56,24 +74,6 @@ type bitswap struct {
 	// interact with partners.
 	// TODO(brian): save the strategy's state to the datastore
 	strategy strategy.Strategy
-}
-
-// NewSession initializes a bitswap session.
-func NewSession(parent context.Context, s bsnet.NetworkService, p *peer.Peer, d ds.Datastore, directory Routing) exchange.Interface {
-
-	// FIXME(brian): instantiate a concrete Strategist
-	receiver := bsnet.Forwarder{}
-	bs := &bitswap{
-		blockstore:    blockstore.NewBlockstore(d),
-		notifications: notifications.New(),
-		strategy:      strategy.New(),
-		peer:          p,
-		routing:       directory,
-		sender:        bsnet.NewNetworkAdapter(s, &receiver),
-	}
-	receiver.Delegate(bs)
-
-	return bs
 }
 
 // GetBlock attempts to retrieve a particular block from peers, within timeout.
@@ -149,15 +149,6 @@ func (bs *bitswap) HasBlock(blk blocks.Block) error {
 	return bs.routing.Provide(blk.Key())
 }
 
-// TODO(brian): get a return value
-func (bs *bitswap) send(p *peer.Peer, b blocks.Block) {
-	message := bsmsg.New()
-	message.AppendBlock(b)
-	// FIXME(brian): pass ctx
-	bs.sender.SendMessage(context.Background(), p, message)
-	bs.strategy.MessageSent(p, message)
-}
-
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(
 	ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
@@ -185,6 +176,15 @@ func (bs *bitswap) ReceiveMessage(
 		}
 	}
 	return nil, nil, errors.New("TODO implement")
+}
+
+// TODO(brian): get a return value
+func (bs *bitswap) send(p *peer.Peer, b blocks.Block) {
+	message := bsmsg.New()
+	message.AppendBlock(b)
+	// FIXME(brian): pass ctx
+	bs.sender.SendMessage(context.Background(), p, message)
+	bs.strategy.MessageSent(p, message)
 }
 
 func numBytes(b blocks.Block) int {
