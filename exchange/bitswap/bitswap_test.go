@@ -54,7 +54,6 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 // TestGetBlockAfterRequesting...
 
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
-	t.Skip("Failing. Work in progress")
 
 	net := testnet.VirtualNetwork()
 	rs := testnet.VirtualRoutingServer()
