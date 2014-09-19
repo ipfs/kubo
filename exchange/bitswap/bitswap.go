@@ -22,7 +22,7 @@ import (
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
 	// TODO replace with timeout with context
-	FindProvidersAsync(u.Key, int, time.Duration) <-chan *peer.Peer
+	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
 
 	// Provide provides the key to the network
 	Provide(key u.Key) error
@@ -74,7 +74,7 @@ func (bs *bitswap) Block(k u.Key, timeout time.Duration) (
 	// TODO replace timeout with ctx in routing interface
 	begin := time.Now()
 	tleft := timeout - time.Now().Sub(begin)
-	provs_ch := bs.routing.FindProvidersAsync(k, 20, timeout)
+	provs_ch := bs.routing.FindProvidersAsync(ctx, k, 20)
 
 	blockChannel := make(chan blocks.Block)
 	after := time.After(tleft)

@@ -3,6 +3,8 @@ package routing
 import (
 	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -10,7 +12,7 @@ import (
 // IpfsRouting is the routing module interface
 // It is implemented by things like DHTs, etc.
 type IpfsRouting interface {
-	FindProvidersAsync(u.Key, int, time.Duration) <-chan *peer.Peer
+	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
 
 	// Basic Put/Get
 
