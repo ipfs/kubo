@@ -24,6 +24,10 @@ type Strategy interface {
 
 	// MessageSent records sending of message for accounting purposes
 	MessageSent(*peer.Peer, bsmsg.BitSwapMessage) error
+
+	NumBytesSentTo(*peer.Peer) uint64
+
+	NumBytesReceivedFrom(*peer.Peer) uint64
 }
 
 type WantList interface {

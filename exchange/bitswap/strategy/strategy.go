@@ -76,6 +76,14 @@ func (s *strategist) MessageSent(p *peer.Peer, m bsmsg.BitSwapMessage) error {
 	return nil
 }
 
+func (s *strategist) NumBytesSentTo(p *peer.Peer) uint64 {
+	return s.ledger(p).Accounting.BytesSent
+}
+
+func (s *strategist) NumBytesReceivedFrom(p *peer.Peer) uint64 {
+	return s.ledger(p).Accounting.BytesRecv
+}
+
 // ledger lazily instantiates a ledger
 func (s *strategist) ledger(p *peer.Peer) *ledger {
 	l, ok := s.ledgerMap[peerKey(p.Key())]
