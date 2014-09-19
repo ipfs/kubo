@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -60,13 +60,10 @@ func TestSimpleMuxer(t *testing.T) {
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	pid1 := ProtocolID_Test
 	pid2 := ProtocolID_Routing
-	mux1 := &Muxer{
-		Pipe: msg.NewPipe(10),
-		Protocols: ProtocolMap{
-			pid1: p1,
-			pid2: p2,
-		},
-	}
+	mux1 := NewMuxer(ProtocolMap{
+		pid1: p1,
+		pid2: p2,
+	})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
 
@@ -114,13 +111,10 @@ func TestSimultMuxer(t *testing.T) {
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	pid1 := ProtocolID_Test
 	pid2 := ProtocolID_Identify
-	mux1 := &Muxer{
-		Pipe: msg.NewPipe(10),
-		Protocols: ProtocolMap{
-			pid1: p1,
-			pid2: p2,
-		},
-	}
+	mux1 := NewMuxer(ProtocolMap{
+		pid1: p1,
+		pid2: p2,
+	})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
 
@@ -224,13 +218,10 @@ func TestStopping(t *testing.T) {
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	pid1 := ProtocolID_Test
 	pid2 := ProtocolID_Identify
-	mux1 := &Muxer{
-		Pipe: msg.NewPipe(10),
-		Protocols: ProtocolMap{
-			pid1: p1,
-			pid2: p2,
-		},
-	}
+	mux1 := NewMuxer(ProtocolMap{
+		pid1: p1,
+		pid2: p2,
+	})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
 
