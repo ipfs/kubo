@@ -2,6 +2,7 @@ package bitswap
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -58,6 +59,12 @@ func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
 	for _, peer := range peerset {
 		ret = append(ret, peer)
 	}
+
+	for i := range ret {
+		j := rand.Intn(i + 1)
+		ret[i], ret[j] = ret[j], ret[i]
+	}
+
 	return ret
 }
 
