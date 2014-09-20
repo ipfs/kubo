@@ -7,10 +7,11 @@ import (
 )
 
 type Strategy interface {
-	// Returns a slice of Peers that
+	// Returns a slice of Peers with whom the local node has active sessions
 	Peers() []*peer.Peer
 
-	// WantList returns the WantList for the given Peer
+	// BlockIsWantedByPeer returns true if peer wants the block given by this
+	// key
 	BlockIsWantedByPeer(u.Key, *peer.Peer) bool
 
 	// ShouldSendTo(Peer) decides whether to send data to this Peer
