@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -85,6 +86,79 @@ func TestCopyProtoByValue(t *testing.T) {
 	m.AppendWanted(u.Key(str))
 	if contains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
+	}
+}
+
+func TestToNetMethodSetsPeer(t *testing.T) {
+	m := New()
+	p := &peer.Peer{ID: []byte("X")}
+	netmsg, err := m.ToNet(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !(netmsg.Peer().Key() == p.Key()) {
+		t.Fatal("Peer key is different")
+	}
+}
+
+func TestToNetFromNetPreservesWantList(t *testing.T) {
+	original := New()
+	original.AppendWanted(u.Key("M"))
+	original.AppendWanted(u.Key("B"))
+	original.AppendWanted(u.Key("D"))
+	original.AppendWanted(u.Key("T"))
+	original.AppendWanted(u.Key("F"))
+
+	netmsg, err := original.ToNet(&peer.Peer{ID: []byte("X")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	copied, err := FromNet(netmsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keys := make(map[u.Key]bool)
+	for _, k := range copied.Wantlist() {
+		keys[k] = true
+	}
+
+	for _, k := range original.Wantlist() {
+		if _, ok := keys[k]; !ok {
+			t.Fatalf("Key Missing: \"%v\"", k)
+		}
+	}
+}
+
+func TestToAndFromNetMessage(t *testing.T) {
+
+	original := New()
+	original.AppendBlock(testutil.NewBlockOrFail(t, "W"))
+	original.AppendBlock(testutil.NewBlockOrFail(t, "E"))
+	original.AppendBlock(testutil.NewBlockOrFail(t, "F"))
+	original.AppendBlock(testutil.NewBlockOrFail(t, "M"))
+
+	p := &peer.Peer{ID: []byte("X")}
+	netmsg, err := original.ToNet(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m2, err := FromNet(netmsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keys := make(map[u.Key]bool)
+	for _, b := range m2.Blocks() {
+		keys[b.Key()] = true
+	}
+
+	for _, b := range original.Blocks() {
+		if _, ok := keys[b.Key()]; !ok {
+			t.Fail()
+		}
 	}
 }
 

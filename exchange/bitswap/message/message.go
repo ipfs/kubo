@@ -1,11 +1,9 @@
 package message
 
 import (
-	"errors"
-
-	netmsg "github.com/jbenet/go-ipfs/net/message"
-
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	netmsg "github.com/jbenet/go-ipfs/net/message"
 	nm "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -68,7 +66,15 @@ func (m *message) AppendBlock(b blocks.Block) {
 }
 
 func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
-	return nil, errors.New("TODO implement")
+	pb := new(PBMessage)
+	if err := proto.Unmarshal(nmsg.Data(), pb); err != nil {
+		return nil, err
+	}
+	m, err := newMessageFromProto(*pb)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (m *message) ToProto() *PBMessage {
