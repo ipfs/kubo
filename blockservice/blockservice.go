@@ -26,7 +26,7 @@ func NewBlockService(d ds.Datastore, rem exchange.Interface) (*BlockService, err
 		return nil, fmt.Errorf("BlockService requires valid datastore")
 	}
 	if rem == nil {
-		u.PErr("Caution: blockservice running in local (offline) mode.\n")
+		u.DErr("Caution: blockservice running in local (offline) mode.\n")
 	}
 	return &BlockService{Datastore: d, Remote: rem}, nil
 }
