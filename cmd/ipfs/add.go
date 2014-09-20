@@ -40,7 +40,6 @@ func addCmd(c *commander.Command, inp []string) error {
 
 	cmd := daemon.NewCommand()
 	cmd.Command = "add"
-	fmt.Println(inp)
 	cmd.Args = inp
 	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
 	err := daemon.SendCommand(cmd, "localhost:12345")
