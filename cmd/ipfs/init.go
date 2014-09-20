@@ -43,6 +43,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		}
 	}
 
+	u.POut("initializing ipfs node at %s\n", configpath)
 	filename, err := config.Filename(configpath + "/config")
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
@@ -53,8 +54,10 @@ func initCmd(c *commander.Command, inp []string) error {
 	if !ok {
 		return errors.New("failed to parse force flag")
 	}
-	if fi != nil || (err != nil && !os.IsNotExist(err)) && !force {
-		return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
+	if fi != nil || (err != nil && !os.IsNotExist(err)) {
+		if !force {
+			return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
+		}
 	}
 	cfg := new(config.Config)
 
@@ -78,6 +81,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
+	u.POut("generating key pair\n")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return err
