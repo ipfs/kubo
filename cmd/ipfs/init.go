@@ -101,10 +101,20 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 	cfg.Identity.PeerID = id.Pretty()
 
+	// Use these hardcoded bootstrap peers for now.
+	cfg.Peers = []*config.SavedPeer{
+		&config.SavedPeer{
+			// mars.i.ipfs.io
+			PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+			Address: "/ip4/104.131.131.82/tcp/4001",
+		},
+	}
+
 	path, err := u.TildeExpansion(config.DefaultConfigFilePath)
 	if err != nil {
 		return err
 	}
+
 	err = config.WriteConfigFile(path, cfg)
 	if err != nil {
 		return err
