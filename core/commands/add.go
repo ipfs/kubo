@@ -99,7 +99,12 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 		return err
 	}
 
-	u.POut("added %s\n", fpath)
+	k, err := nd.Key()
+	if err != nil {
+		return err
+	}
+
+	u.POut("added %s %s\n", k.Pretty(), fpath)
 
 	// ensure we keep it. atm no-op
 	return n.PinDagNode(nd)
