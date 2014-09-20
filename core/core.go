@@ -207,7 +207,8 @@ func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
 	}
 }
 
+// PinDagNode ensures a given node is stored persistently locally.
 func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
-	u.POut("Pinning node. Currently No-Op\n")
+	u.DOut("Pinning node. Currently No-Op\n")
 	return nil
 }

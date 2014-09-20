@@ -26,7 +26,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		nd, err := AddPath(n, path, depth)
 		if err != nil {
 			if err == ErrDepthLimitExceeded && depth == 1 {
-				err = errors.New("use -r to recursively add directories.")
+				err = errors.New("use -r to recursively add directories")
 			}
 			return fmt.Errorf("addFile error: %v", err)
 		}

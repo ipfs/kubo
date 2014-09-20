@@ -31,6 +31,7 @@ var ErrNotFound = errors.New("Error: Not Found.")
 // Key is a string representation of multihash for use with maps.
 type Key string
 
+// Pretty returns Key in a b58 encoded string
 func (k Key) Pretty() string {
 	return b58.Encode([]byte(k))
 }
@@ -80,6 +81,7 @@ func DOut(format string, a ...interface{}) {
 	}
 }
 
+// ExpandPathnames takes a set of paths and turns them into absolute paths
 func ExpandPathnames(paths []string) ([]string, error) {
 	var out []string
 	for _, p := range paths {
