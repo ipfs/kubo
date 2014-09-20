@@ -83,7 +83,8 @@ func initCmd(c *commander.Command, inp []string) error {
 		return err
 	}
 
-	// pretend to encrypt key, then store it unencrypted
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
 	skbytes, err := sk.Bytes()
 	if err != nil {
 		return err

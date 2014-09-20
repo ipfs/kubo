@@ -52,7 +52,8 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 		return nil, err
 	}
 
-	//pretend to actually decrypt private key
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
 	return x509.ParsePKCS1PrivateKey(pkb)
 }
 
