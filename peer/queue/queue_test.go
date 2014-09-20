@@ -76,15 +76,18 @@ func TestSyncQueue(t *testing.T) {
 
 	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	cq := NewChanQueue(ctx, pq)
-	countIn := 0
-	countOut := 0
 
-	produce := func() {
+	max := 100000
+	consumerN := 10
+	countsIn := make([]int, consumerN*2)
+	countsOut := make([]int, consumerN)
+
+	produce := func(p int) {
 		tick := time.Tick(time.Millisecond)
-		for {
+		for i := 0; i < max; i++ {
 			select {
 			case tim := <-tick:
-				countIn++
+				countsIn[p]++
 				cq.EnqChan <- newPeerTime(tim)
 			case <-ctx.Done():
 				return
@@ -92,29 +95,37 @@ func TestSyncQueue(t *testing.T) {
 		}
 	}
 
-	consume := func() {
+	consume := func(c int) {
 		for {
 			select {
 			case <-cq.DeqChan:
-				countOut++
+				countsOut[c]++
 			case <-ctx.Done():
 				return
 			}
 		}
 	}
 
-	for i := 0; i < 10; i++ {
-		go produce()
-		go produce()
-		go consume()
+	// make n * 2 producers and n consumers
+	for i := 0; i < consumerN; i++ {
+		go produce(i)
+		go produce(consumerN + i)
+		go consume(i)
 	}
 
 	select {
 	case <-ctx.Done():
 	}
 
-	if countIn != countOut {
-		t.Errorf("didnt get them all out: %d/%d", countOut, countIn)
+	sum := func(ns []int) int {
+		total := 0
+		for _, n := range ns {
+			total += n
+		}
+		return total
 	}
 
+	if sum(countsIn) != sum(countsOut) {
+		t.Errorf("didnt get all of them out: %d/%d", countsOut, countsIn)
+	}
 }
