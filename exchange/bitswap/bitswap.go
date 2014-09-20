@@ -114,9 +114,9 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 }
 
 // TODO(brian): handle errors
-func (bs *bitswap) ReceiveMessage(
-	ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
+func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage, error) {
+
 	if p == nil {
 		return nil, nil, errors.New("Received nil Peer")
 	}
