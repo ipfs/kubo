@@ -92,6 +92,8 @@ func (f *fauxNet) SendMessage(msg.NetMessage) error {
 func (f *fauxNet) Close() error { return nil }
 
 func TestGetFailures(t *testing.T) {
+	// t.Skip("skipping test because it makes a lot of output")
+
 	ctx := context.Background()
 	fn := &fauxNet{}
 	fs := &fauxSender{}
@@ -189,6 +191,8 @@ func _randPeer() *peer.Peer {
 }
 
 func TestNotFound(t *testing.T) {
+	// t.Skip("skipping test because it makes a lot of output")
+
 	fn := &fauxNet{}
 	fs := &fauxSender{}
 
@@ -233,7 +237,7 @@ func TestNotFound(t *testing.T) {
 	})
 
 	v, err := d.GetValue(u.Key("hello"), time.Second*5)
-	u.POut("get value got %v\n", v)
+	u.DOut("get value got %v\n", v)
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:
@@ -251,6 +255,8 @@ func TestNotFound(t *testing.T) {
 // If less than K nodes are in the entire network, it should fail when we make
 // a GET rpc and nobody has the value
 func TestLessThanKResponses(t *testing.T) {
+	// t.Skip("skipping test because it makes a lot of output")
+
 	u.Debug = false
 	fn := &fauxNet{}
 	fs := &fauxSender{}

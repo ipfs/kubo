@@ -86,7 +86,9 @@ func makePeer(addr *ma.Multiaddr) *peer.Peer {
 }
 
 func TestPing(t *testing.T) {
-	u.Debug = true
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +106,8 @@ func TestPing(t *testing.T) {
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
 	_, err = dhtA.Connect(peerB)
 	if err != nil {
@@ -118,7 +122,9 @@ func TestPing(t *testing.T) {
 }
 
 func TestValueGetSet(t *testing.T) {
-	u.Debug = true
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 	if err != nil {
 		t.Fatal(err)
@@ -136,6 +142,8 @@ func TestValueGetSet(t *testing.T) {
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
 	_, err = dhtA.Connect(peerB)
 	if err != nil {
@@ -155,140 +163,149 @@ func TestValueGetSet(t *testing.T) {
 
 }
 
-// func TestProvides(t *testing.T) {
-// 	u.Debug = false
-//
-// 	_, peers, dhts := setupDHTS(4, t)
-// 	defer func() {
-// 		for i := 0; i < 4; i++ {
-// 			dhts[i].Halt()
-// 		}
-// 	}()
-//
-// 	_, err := dhts[0].Connect(peers[1])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	_, err = dhts[1].Connect(peers[2])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	_, err = dhts[1].Connect(peers[3])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	bits, err := dhts[3].getLocal(u.Key("hello"))
-// 	if err != nil && bytes.Equal(bits, []byte("world")) {
-// 		t.Fatal(err)
-// 	}
-//
-// 	err = dhts[3].Provide(u.Key("hello"))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	time.Sleep(time.Millisecond * 60)
-//
-// 	provs, err := dhts[0].FindProviders(u.Key("hello"), time.Second)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	if len(provs) != 1 {
-// 		t.Fatal("Didnt get back providers")
-// 	}
-// }
-//
-// func TestLayeredGet(t *testing.T) {
-// 	u.Debug = false
-// 	addrs, _, dhts := setupDHTS(4, t)
-// 	defer func() {
-// 		for i := 0; i < 4; i++ {
-// 			dhts[i].Halt()
-// 		}
-// 	}()
-//
-// 	_, err := dhts[0].Connect(addrs[1])
-// 	if err != nil {
-// 		t.Fatalf("Failed to connect: %s", err)
-// 	}
-//
-// 	_, err = dhts[1].Connect(addrs[2])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	_, err = dhts[1].Connect(addrs[3])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	err = dhts[3].Provide(u.Key("hello"))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	time.Sleep(time.Millisecond * 60)
-//
-// 	val, err := dhts[0].GetValue(u.Key("hello"), time.Second)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	if string(val) != "world" {
-// 		t.Fatal("Got incorrect value.")
-// 	}
-//
-// }
-//
-// func TestFindPeer(t *testing.T) {
-// 	u.Debug = false
-//
-// 	addrs, peers, dhts := setupDHTS(4, t)
-// 	go func() {
-// 		for i := 0; i < 4; i++ {
-// 			dhts[i].Halt()
-// 		}
-// 	}()
-//
-// 	_, err := dhts[0].Connect(addrs[1])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	_, err = dhts[1].Connect(addrs[2])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	_, err = dhts[1].Connect(addrs[3])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	p, err := dhts[0].FindPeer(peers[2].ID, time.Second)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	if p == nil {
-// 		t.Fatal("Failed to find peer.")
-// 	}
-//
-// 	if !p.ID.Equal(peers[2].ID) {
-// 		t.Fatal("Didnt find expected peer.")
-// 	}
-// }
+func TestProvides(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
+
+	_, peers, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+			defer dhts[i].network.Close()
+		}
+	}()
+
+	_, err := dhts[0].Connect(peers[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bits, err := dhts[3].getLocal(u.Key("hello"))
+	if err != nil && bytes.Equal(bits, []byte("world")) {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].Provide(u.Key("hello"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 60)
+
+	provs, err := dhts[0].FindProviders(u.Key("hello"), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(provs) != 1 {
+		t.Fatal("Didnt get back providers")
+	}
+}
+
+func TestLayeredGet(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
+	_, peers, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+			defer dhts[i].network.Close()
+		}
+	}()
+
+	_, err := dhts[0].Connect(peers[1])
+	if err != nil {
+		t.Fatalf("Failed to connect: %s", err)
+	}
+
+	_, err = dhts[1].Connect(peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].Provide(u.Key("hello"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 60)
+
+	val, err := dhts[0].GetValue(u.Key("hello"), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(val) != "world" {
+		t.Fatal("Got incorrect value.")
+	}
+
+}
+
+func TestFindPeer(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
+
+	_, peers, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+			dhts[i].network.Close()
+		}
+	}()
+
+	_, err := dhts[0].Connect(peers[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := dhts[0].FindPeer(peers[2].ID, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if p == nil {
+		t.Fatal("Failed to find peer.")
+	}
+
+	if !p.ID.Equal(peers[2].ID) {
+		t.Fatal("Didnt find expected peer.")
+	}
+}

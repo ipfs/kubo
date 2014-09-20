@@ -46,7 +46,7 @@ func peersToPBPeers(peers []*peer.Peer) []*Message_Peer {
 func (m *Message) GetClusterLevel() int {
 	level := m.GetClusterLevelRaw() - 1
 	if level < 0 {
-		u.PErr("GetClusterLevel: no routing level specified, assuming 0\n")
+		u.DErr("GetClusterLevel: no routing level specified, assuming 0\n")
 		level = 0
 	}
 	return int(level)

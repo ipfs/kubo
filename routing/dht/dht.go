@@ -215,6 +215,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) e
 		return err
 	}
 
+	u.DOut("[%s] putProvider: %s for %s\n", dht.self.ID.Pretty(), p.ID.Pretty(), key)
 	if *rpmes.Key != *pmes.Key {
 		return errors.New("provider not added correctly")
 	}
@@ -393,6 +394,8 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []*peer.Peer 
 			continue
 		}
 
+		u.DOut("[%s] adding provider: %s for %s", dht.self.ID.Pretty(), p, key)
+
 		// Dont add outselves to the list
 		if p.ID.Equal(dht.self.ID) {
 			continue
@@ -464,7 +467,7 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 		}
 
 		// create new Peer
-		p := &peer.Peer{ID: id}
+		p = &peer.Peer{ID: id}
 		p.AddAddress(maddr)
 		dht.peerstore.Put(p)
 	}

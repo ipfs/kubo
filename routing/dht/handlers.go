@@ -176,7 +176,7 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 		dht.self.ID.Pretty(), p.ID.Pretty(), peer.ID(key).Pretty())
 
 	dht.providers.AddProvider(key, p)
-	return nil, nil
+	return pmes, nil // send back same msg as confirmation.
 }
 
 // Halt stops all communications from this peer and shut down
