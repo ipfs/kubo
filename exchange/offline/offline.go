@@ -10,6 +10,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var OfflineMode = errors.New("Block unavailable. Operating in offline mode")
+
 func NewOfflineExchange() exchange.Interface {
 	return &offlineExchange{}
 }
@@ -23,7 +25,7 @@ type offlineExchange struct {
 // given key.
 // NB: This function may return before the timeout expires.
 func (_ *offlineExchange) Block(context.Context, u.Key) (*blocks.Block, error) {
-	return nil, errors.New("Block unavailable. Operating in offline mode")
+	return nil, OfflineMode
 }
 
 // HasBlock always returns nil.
