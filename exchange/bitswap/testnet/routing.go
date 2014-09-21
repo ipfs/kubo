@@ -1,7 +1,6 @@
 package bitswap
 
 import (
-	"errors"
 	"math/rand"
 	"sync"
 
@@ -12,13 +11,10 @@ import (
 )
 
 type RoutingServer interface {
-	// TODO
 	Announce(*peer.Peer, u.Key) error
 
-	// TODO
 	Providers(u.Key) []*peer.Peer
 
-	// TODO
 	// Returns a Routing instance configured to query this hash table
 	Client(*peer.Peer) bsnet.Routing
 }
@@ -33,8 +29,6 @@ type hashTable struct {
 	lock      sync.RWMutex
 	providers map[u.Key]peer.Map
 }
-
-var TODO = errors.New("TODO")
 
 func (rs *hashTable) Announce(p *peer.Peer, k u.Key) error {
 	rs.lock.Lock()
@@ -68,7 +62,6 @@ func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
 	return ret
 }
 
-// TODO
 func (rs *hashTable) Client(p *peer.Peer) bsnet.Routing {
 	return &routingClient{
 		peer:      p,
