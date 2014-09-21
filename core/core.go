@@ -118,7 +118,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		// TODO(brian): perform this inside NewDHT factory method
 		dhtService.Handler = route // wire the handler to the service.
 
-		exchangeSession = bitswap.NetMessageSession(ctx, exchangeService, local, d, route)
+		exchangeSession = bitswap.NetMessageSession(ctx, local, exchangeService, route, d)
 
 		// TODO(brian): pass a context to initConnections
 		go initConnections(ctx, cfg, peerstore, route)
