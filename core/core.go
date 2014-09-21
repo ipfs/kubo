@@ -121,7 +121,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		exchangeSession = bitswap.NetMessageSession(ctx, exchangeService, local, d, route)
 
 		// TODO(brian): pass a context to initConnections
-		go initConnections(cfg, route)
+		go initConnections(cfg, peerstore, route)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
@@ -184,7 +184,7 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 	}, nil
 }
 
-func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
+func initConnections(cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
 	for _, p := range cfg.Peers {
 		if p.PeerID == "" {
 			u.PErr("error: peer does not include PeerID. %v\n", p)
@@ -200,8 +200,12 @@ func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
 		npeer := &peer.Peer{ID: peer.DecodePrettyID(p.PeerID)}
 		npeer.AddAddress(maddr)
 
-		_, err = route.Connect(npeer)
-		if err != nil {
+		if err = pstore.Put(npeer); err != nil {
+			u.PErr("Bootstrapping error: %v\n", err)
+			continue
+		}
+
+		if _, err = route.Connect(npeer); err != nil {
 			u.PErr("Bootstrapping error: %v\n", err)
 		}
 	}
