@@ -36,7 +36,7 @@ type IpfsNode struct {
 	Identity *peer.Peer
 
 	// storage for other Peer instances
-	Peerstore *peer.Peerstore
+	Peerstore peer.Peerstore
 
 	// the local datastore
 	Datastore ds.Datastore
@@ -135,7 +135,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	return &IpfsNode{
 		Config:    cfg,
-		Peerstore: &peerstore,
+		Peerstore: peerstore,
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
