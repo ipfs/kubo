@@ -71,7 +71,7 @@ func initCmd(c *commander.Command, inp []string) error {
 
 	cfg.Identity = new(config.Identity)
 	// This needs thought
-	// cfg.Identity.Address = ""
+	cfg.Identity.Address = "/ip4/127.0.0.1/tcp/4001"
 
 	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
 	if !ok {

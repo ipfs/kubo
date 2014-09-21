@@ -30,9 +30,10 @@ type SavedPeer struct {
 
 // Config is used to load IPFS config files.
 type Config struct {
-	Identity  *Identity
-	Datastore Datastore
-	Peers     []*SavedPeer
+	Identity   *Identity    // local node's peer identity
+	Datastore  Datastore    // local node's storage
+	RPCAddress string       // local node's RPC address
+	Peers      []*SavedPeer // local nodes's bootstrap peers
 }
 
 const DefaultPathRoot = "~/.go-ipfs"
