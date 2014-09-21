@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
@@ -42,6 +43,11 @@ func mountCmd(c *commander.Command, inp []string) error {
 	n, err := localNode(conf, true)
 	if err != nil {
 		return err
+	}
+
+	// launch the RPC endpoint.
+	if n.Config.RPCAddress == "" {
+		return errors.New("no config.RPCAddress endpoint supplied")
 	}
 
 	maddr, err := ma.NewMultiaddr(n.Config.RPCAddress)

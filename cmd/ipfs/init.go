@@ -71,7 +71,10 @@ func initCmd(c *commander.Command, inp []string) error {
 
 	cfg.Identity = new(config.Identity)
 	// This needs thought
-	cfg.Identity.Address = "/ip4/127.0.0.1/tcp/4001"
+	cfg.Identity.Address = "/ip4/127.0.0.1/tcp/5001"
+
+	// local RPC endpoint
+	cfg.RPCAddress = "/ip4/127.0.0.1/tcp/4001"
 
 	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
 	if !ok {
