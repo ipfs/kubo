@@ -49,5 +49,5 @@ type Routing interface {
 	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
 
 	// Provide provides the key to the network
-	Provide(key u.Key) error
+	Provide(context.Context, u.Key) error
 }

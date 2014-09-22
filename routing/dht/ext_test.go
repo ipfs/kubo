@@ -108,7 +108,8 @@ func TestGetFailures(t *testing.T) {
 
 	// This one should time out
 	// u.POut("Timout Test\n")
-	_, err := d.GetValue(u.Key("test"), time.Millisecond*10)
+	ctx1, _ := context.WithTimeout(context.Background(), time.Second)
+	_, err := d.GetValue(ctx1, u.Key("test"))
 	if err != nil {
 		if err != context.DeadlineExceeded {
 			t.Fatal("Got different error than we expected", err)
@@ -134,7 +135,8 @@ func TestGetFailures(t *testing.T) {
 	})
 
 	// This one should fail with NotFound
-	_, err = d.GetValue(u.Key("test"), time.Millisecond*1000)
+	ctx2, _ := context.WithTimeout(context.Background(), time.Second)
+	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
 		if err != u.ErrNotFound {
 			t.Fatalf("Expected ErrNotFound, got: %s", err)
@@ -236,7 +238,8 @@ func TestNotFound(t *testing.T) {
 
 	})
 
-	v, err := d.GetValue(u.Key("hello"), time.Second*5)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	v, err := d.GetValue(ctx, u.Key("hello"))
 	u.DOut("get value got %v\n", v)
 	if err != nil {
 		switch err {
@@ -299,7 +302,8 @@ func TestLessThanKResponses(t *testing.T) {
 
 	})
 
-	_, err := d.GetValue(u.Key("hello"), time.Second*30)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*30)
+	_, err := d.GetValue(ctx, u.Key("hello"))
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:

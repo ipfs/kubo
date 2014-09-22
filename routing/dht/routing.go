@@ -3,7 +3,6 @@ package dht
 import (
 	"bytes"
 	"encoding/json"
-	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -18,9 +17,7 @@ import (
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
-	ctx := context.TODO()
-
+func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
 	peers := []*peer.Peer{}
 
 	// get the peers we need to announce to
@@ -46,11 +43,9 @@ func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
 // GetValue searches for the value corresponding to given Key.
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
-func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
+func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	ll := startNewRPC("GET")
 	defer ll.EndAndPrint()
-
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
@@ -101,8 +96,7 @@ func (dht *IpfsDHT) GetValue(key u.Key, timeout time.Duration) ([]byte, error) {
 // This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
 
 // Provide makes this node announce that it can provide a value for the given key
-func (dht *IpfsDHT) Provide(key u.Key) error {
-	ctx := context.TODO()
+func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 
 	dht.providers.AddProvider(key, dht.self)
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
@@ -174,11 +168,9 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 }
 
 // FindProviders searches for peers who can provide the value for given key.
-func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error) {
+func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
 	ll := startNewRPC("FindProviders")
 	ll.EndAndPrint()
-
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
 
 	// get closest peer
 	u.DOut("Find providers for: '%s'\n", key)
@@ -223,8 +215,7 @@ func (dht *IpfsDHT) FindProviders(key u.Key, timeout time.Duration) ([]*peer.Pee
 // Find specific Peer
 
 // FindPeer searches for a peer with given ID.
-func (dht *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
+func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error) {
 
 	// Check if were already connected to them
 	p, _ := dht.Find(id)
@@ -266,8 +257,7 @@ func (dht *IpfsDHT) FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, err
 	return nil, u.ErrNotFound
 }
 
-func (dht *IpfsDHT) findPeerMultiple(id peer.ID, timeout time.Duration) (*peer.Peer, error) {
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
+func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Peer, error) {
 
 	// Check if were already connected to them
 	p, _ := dht.Find(id)
@@ -325,9 +315,7 @@ func (dht *IpfsDHT) findPeerMultiple(id peer.ID, timeout time.Duration) (*peer.P
 }
 
 // Ping a peer, log the time it took
-func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
-
+func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	u.DOut("Enter Ping.\n")
 
@@ -336,8 +324,7 @@ func (dht *IpfsDHT) Ping(p *peer.Peer, timeout time.Duration) error {
 	return err
 }
 
-func (dht *IpfsDHT) getDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
+func (dht *IpfsDHT) getDiagnostic(ctx context.Context) ([]*diagInfo, error) {
 
 	u.DOut("Begin Diagnostic")
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)

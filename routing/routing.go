@@ -1,8 +1,6 @@
 package routing
 
 import (
-	"time"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -17,22 +15,22 @@ type IpfsRouting interface {
 	// Basic Put/Get
 
 	// PutValue adds value corresponding to given Key.
-	PutValue(key u.Key, value []byte) error
+	PutValue(context.Context, u.Key, []byte) error
 
 	// GetValue searches for the value corresponding to given Key.
-	GetValue(key u.Key, timeout time.Duration) ([]byte, error)
+	GetValue(context.Context, u.Key) ([]byte, error)
 
 	// Value provider layer of indirection.
 	// This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
 
 	// Announce that this node can provide value for given key
-	Provide(key u.Key) error
+	Provide(context.Context, u.Key) error
 
 	// FindProviders searches for peers who can provide the value for given key.
-	FindProviders(key u.Key, timeout time.Duration) ([]*peer.Peer, error)
+	FindProviders(context.Context, u.Key) ([]*peer.Peer, error)
 
 	// Find specific Peer
 
 	// FindPeer searches for a peer with given ID.
-	FindPeer(id peer.ID, timeout time.Duration) (*peer.Peer, error)
+	FindPeer(context.Context, peer.ID) (*peer.Peer, error)
 }

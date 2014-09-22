@@ -22,7 +22,7 @@ import (
 )
 
 func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
-	ctx, _ := context.WithCancel(context.TODO())
+	ctx := context.Background()
 
 	peerstore := peer.NewPeerstore()
 
@@ -150,9 +150,11 @@ func TestValueGetSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dhtA.PutValue("hello", []byte("world"))
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	dhtA.PutValue(ctxT, "hello", []byte("world"))
 
-	val, err := dhtA.GetValue("hello", time.Second*2)
+	ctxT, _ = context.WithTimeout(context.Background(), time.Second*2)
+	val, err := dhtA.GetValue(ctxT, "hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,12 +210,70 @@ func TestProvides(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 60)
 
-	provs, err := dhts[0].FindProviders(u.Key("hello"), time.Second)
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	provs, err := dhts[0].FindProviders(ctxT, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if len(provs) != 1 {
+		t.Fatal("Didnt get back providers")
+	}
+}
+
+func TestProvidesAsync(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
+
+	_, peers, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+			defer dhts[i].network.Close()
+		}
+	}()
+
+	_, err := dhts[0].Connect(peers[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bits, err := dhts[3].getLocal(u.Key("hello"))
+	if err != nil && bytes.Equal(bits, []byte("world")) {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].Provide(u.Key("hello"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 60)
+
+	ctx, _ := context.WithTimeout(context.TODO(), time.Millisecond*300)
+	provs := dhts[0].FindProvidersAsync(ctx, u.Key("hello"), 5)
+	select {
+	case p := <-provs:
+		if !p.ID.Equal(dhts[3].self.ID) {
+			t.Fatalf("got a provider, but not the right one. %v", p.ID.Pretty())
+		}
+	case <-ctx.Done():
 		t.Fatal("Didnt get back providers")
 	}
 }
@@ -257,7 +317,8 @@ func TestLayeredGet(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 60)
 
-	val, err := dhts[0].GetValue(u.Key("hello"), time.Second)
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	val, err := dhts[0].GetValue(ctxT, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +357,8 @@ func TestFindPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p, err := dhts[0].FindPeer(peers[2].ID, time.Second)
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	p, err := dhts[0].FindPeer(ctxT, peers[2].ID)
 	if err != nil {
 		t.Fatal(err)
 	}

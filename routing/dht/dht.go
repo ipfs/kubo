@@ -73,7 +73,7 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 }
 
 // Connect to a new peer at the given address, ping and add to the routing table
-func (dht *IpfsDHT) Connect(npeer *peer.Peer) (*peer.Peer, error) {
+func (dht *IpfsDHT) Connect(ctx context.Context, npeer *peer.Peer) (*peer.Peer, error) {
 	u.DOut("Connect to new peer: %s\n", npeer.ID.Pretty())
 
 	// TODO(jbenet,whyrusleeping)
@@ -92,7 +92,7 @@ func (dht *IpfsDHT) Connect(npeer *peer.Peer) (*peer.Peer, error) {
 
 	// Ping new peer to register in their routing table
 	// NOTE: this should be done better...
-	err = dht.Ping(npeer, time.Second*2)
+	err = dht.Ping(ctx, npeer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
@@ -497,8 +497,8 @@ func (dht *IpfsDHT) loadProvidableKeys() error {
 }
 
 // Bootstrap builds up list of peers by requesting random peer IDs
-func (dht *IpfsDHT) Bootstrap() {
+func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	id := make([]byte, 16)
 	rand.Read(id)
-	dht.FindPeer(peer.ID(id), time.Second*10)
+	dht.FindPeer(ctx, peer.ID(id))
 }

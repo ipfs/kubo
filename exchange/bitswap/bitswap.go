@@ -103,7 +103,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 // it to peers (Partners) whose WantLists include it.
 func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 	bs.sendToPeersThatWant(ctx, blk)
-	return bs.routing.Provide(blk.Key())
+	return bs.routing.Provide(ctx, blk.Key())
 }
 
 // TODO(brian): handle errors
