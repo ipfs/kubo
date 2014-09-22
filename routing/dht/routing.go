@@ -335,10 +335,11 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	u.DOut("Enter Ping.\n")
+	u.DOut("[%s] ping %s start\n", dht.self.ID.Pretty(), p.ID.Pretty())
 
 	pmes := newMessage(Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
+	u.DOut("[%s] ping %s end (err = %s)\n", dht.self.ID.Pretty(), p.ID.Pretty(), err)
 	return err
 }
 
