@@ -4,6 +4,8 @@ import (
 	"net"
 	"strings"
 
+	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -16,6 +18,8 @@ func (r *DNSResolver) Matches(name string) bool {
 	return strings.Contains(name, ".")
 }
 
+// TXT records for a given domain name should contain a b58
+// encoded multihash.
 func (r *DNSResolver) Resolve(name string) (string, error) {
 	txt, err := net.LookupTXT(name)
 	if err != nil {
@@ -23,15 +27,17 @@ func (r *DNSResolver) Resolve(name string) (string, error) {
 	}
 
 	for _, t := range txt {
-		pair := strings.Split(t, "=")
-		if len(pair) < 2 {
-			// Log error?
-			u.DErr("Incorrectly formatted text record.")
+		chk := b58.Decode(t)
+		if len(chk) == 0 {
 			continue
 		}
-		if pair[0] == name {
-			return pair[1], nil
+
+		_, err := mh.Cast(chk)
+		if err != nil {
+			continue
 		}
+		return t, nil
 	}
+
 	return "", u.ErrNotFound
 }

@@ -345,6 +345,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 // Update signals to all routingTables to Update their last-seen status
 // on the given peer.
 func (dht *IpfsDHT) Update(p *peer.Peer) {
+	u.DOut("updating peer: [%s] latency = %f\n", p.ID.Pretty(), p.GetLatency().Seconds())
 	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)

@@ -7,9 +7,9 @@ import (
 	bs "github.com/jbenet/go-ipfs/blockservice"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/net/swarm"
 	"github.com/jbenet/go-ipfs/peer"
 	"github.com/jbenet/go-ipfs/routing/dht"
-	"github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

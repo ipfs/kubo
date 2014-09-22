@@ -1,6 +1,7 @@
 package namesys
 
 import (
+	"code.google.com/p/go.net/context"
 	"code.google.com/p/goprotobuf/proto"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -16,6 +17,7 @@ type IpnsPublisher struct {
 
 // Publish accepts a keypair and a value,
 func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
+	ctx := context.TODO()
 	data, err := CreateEntryData(k, value)
 	if err != nil {
 		return err
@@ -38,13 +40,13 @@ func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
 	}
 
 	// Store associated public key
-	err = p.routing.PutValue(u.Key(nameb), pkbytes)
+	err = p.routing.PutValue(ctx, u.Key(nameb), pkbytes)
 	if err != nil {
 		return err
 	}
 
 	// Store ipns entry at h("/ipns/"+b58(h(pubkey)))
-	err = p.routing.PutValue(u.Key(ipnskey), data)
+	err = p.routing.PutValue(ctx, u.Key(ipnskey), data)
 	if err != nil {
 		return err
 	}

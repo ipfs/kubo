@@ -17,7 +17,7 @@ import (
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
+func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
 	err := dht.putLocal(key, value)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (dht *IpfsDHT) PutValue(key u.Key, value []byte) error {
 		return &dhtQueryResult{success: true}, nil
 	})
 
-	_, err := query.Run(ctx, peers)
+	_, err = query.Run(ctx, peers)
 	u.DOut("[%s] PutValue %v %v\n", dht.self.ID.Pretty(), key, value)
 	return err
 }
@@ -104,8 +104,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	dht.providers.AddProvider(key, dht.self)
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if len(peers) == 0 {
-		// Early out for no targets
-		return nil
+		return kb.ErrLookupFailure
 	}
 
 	//TODO FIX: this doesn't work! it needs to be sent to the actual nearest peers.
@@ -156,12 +155,12 @@ func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count in
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
 			go func(p *peer.Peer) {
-				pmes, err := dht.findProvidersSingle(p, key, 0, timeout)
+				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
 				if err != nil {
 					u.PErr("%v\n", err)
 					return
 				}
-				dht.addPeerListAsync(key, pmes.GetPeers(), ps, count, peerOut)
+				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
 			}(pp)
 		}
 
@@ -190,11 +189,8 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 
 // FindProviders searches for peers who can provide the value for given key.
 func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
-	ll := startNewRPC("FindProviders")
-	ll.EndAndPrint()
-
 	// get closest peer
-	u.DOut("Find providers for: '%s'\n", key)
+	u.DOut("Find providers for: '%s'\n", key.Pretty())
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, nil

@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/gonuts/flag"
-	"github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -27,18 +28,22 @@ func pinCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	com := daemon.NewCommand()
-	com.Command = "pin"
-	com.Args = inp
+	cmd := daemon.NewCommand()
+	cmd.Command = "pin"
+	cmd.Args = inp
 
-	err := daemon.SendCommand(com, "localhost:12345")
+	err := daemon.SendCommand(cmd, "localhost:12345")
 	if err != nil {
-		n, err := localNode(false)
+		conf, err := getConfigDir(c.Parent)
+		if err != nil {
+			return err
+		}
+		n, err := localNode(conf, false)
 		if err != nil {
 			return err
 		}
 
-		daemon.ExecuteCommand(com, n, os.Stdout)
+		return commands.Pin(n, cmd.Args, cmd.Opts, os.Stdout)
 	}
 	return nil
 }

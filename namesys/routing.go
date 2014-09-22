@@ -2,8 +2,8 @@ package namesys
 
 import (
 	"fmt"
-	"time"
 
+	"code.google.com/p/go.net/context"
 	"code.google.com/p/goprotobuf/proto"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -11,7 +11,10 @@ import (
 	"github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 	mh "github.com/jbenet/go-multihash"
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("namesys")
 
 // RoutingResolver implements NSResolver for the main IPFS SFS-like naming
 type RoutingResolver struct {
@@ -32,9 +35,10 @@ func (r *RoutingResolver) Matches(name string) bool {
 }
 
 func (r *RoutingResolver) Resolve(name string) (string, error) {
+	ctx := context.TODO()
 	hash, err := mh.FromB58String(name)
 	if err != nil {
-		u.DOut("RoutingResolve: bad input hash: [%s]\n", name)
+		log.Warning("RoutingResolve: bad input hash: [%s]\n", name)
 		return "", err
 	}
 	// name should be a multihash. if it isn't, error out here.
@@ -47,9 +51,9 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 	}
 
 	ipnsKey := u.Key(h)
-	val, err := r.routing.GetValue(ipnsKey, time.Second*10)
+	val, err := r.routing.GetValue(ctx, ipnsKey)
 	if err != nil {
-		u.DOut("RoutingResolve get failed.\n")
+		log.Warning("RoutingResolve get failed.")
 		return "", err
 	}
 
@@ -62,9 +66,9 @@ func (r *RoutingResolver) Resolve(name string) (string, error) {
 	// name should be a public key retrievable from ipfs
 	// /ipfs/<name>
 	key := u.Key(hash)
-	pkval, err := r.routing.GetValue(key, time.Second*10)
+	pkval, err := r.routing.GetValue(ctx, key)
 	if err != nil {
-		u.DOut("RoutingResolve PubKey Get failed.\n")
+		log.Warning("RoutingResolve PubKey Get failed.")
 		return "", err
 	}
 
