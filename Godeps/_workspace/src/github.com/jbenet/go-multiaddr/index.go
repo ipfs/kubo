@@ -1,6 +1,7 @@
 package multiaddr
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 )
@@ -17,6 +18,11 @@ func NewMultiaddr(s string) (*Multiaddr, error) {
 		return nil, err
 	}
 	return &Multiaddr{Bytes: b}, nil
+}
+
+// Equal tests whether two multiaddrs are equal
+func (m *Multiaddr) Equal(m2 *Multiaddr) bool {
+	return bytes.Equal(m.Bytes, m2.Bytes)
 }
 
 // String returns the string representation of a Multiaddr

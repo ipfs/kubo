@@ -5,19 +5,24 @@ import (
 	"errors"
 	"fmt"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	"github.com/jbenet/go-ipfs/bitswap"
+
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	exchange "github.com/jbenet/go-ipfs/exchange"
+	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	inet "github.com/jbenet/go-ipfs/net"
+	mux "github.com/jbenet/go-ipfs/net/mux"
+	netservice "github.com/jbenet/go-ipfs/net/service"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -30,20 +35,20 @@ type IpfsNode struct {
 	// the local node's identity
 	Identity *peer.Peer
 
-	// the map of other nodes (Peer instances)
-	PeerMap *peer.Map
+	// storage for other Peer instances
+	Peerstore peer.Peerstore
 
 	// the local datastore
 	Datastore ds.Datastore
 
 	// the network message stream
-	Swarm *swarm.Swarm
+	Network inet.Network
 
 	// the routing system. recommend ipfs-dht
 	Routing routing.IpfsRouting
 
 	// the block exchange + strategy (bitswap)
-	BitSwap *bitswap.BitSwap
+	Exchange exchange.Interface
 
 	// the block service, get/add blocks.
 	Blocks *bserv.BlockService
@@ -74,30 +79,55 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, err
 	}
 
+	peerstore := peer.NewPeerstore()
+
+	// FIXME(brian): This is a bit dangerous. If any of the vars declared in
+	// this block are assigned inside of the "if online" block using the ":="
+	// declaration syntax, the compiler permits re-declaration. This is rather
+	// undesirable
 	var (
-		net *swarm.Swarm
+		net inet.Network
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
-		route* dht.IpfsDHT
-		swap *bitswap.BitSwap
+		route           *dht.IpfsDHT
+		exchangeSession exchange.Interface
 	)
 
 	if online {
-		net = swarm.NewSwarm(local)
-		err = net.Listen()
+		// add protocol services here.
+		ctx := context.TODO() // derive this from a higher context.
+
+		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
+		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
+
+		if err := dhtService.Start(ctx); err != nil {
+			return nil, err
+		}
+		if err := exchangeService.Start(ctx); err != nil {
+			return nil, err
+		}
+
+		net, err = inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
+			mux.ProtocolID_Routing:  dhtService,
+			mux.ProtocolID_Exchange: exchangeService,
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		route = dht.NewDHT(local, net, d)
-		route.Start()
+		route = dht.NewDHT(local, peerstore, net, dhtService, d)
+		// TODO(brian): perform this inside NewDHT factory method
+		dhtService.Handler = route // wire the handler to the service.
 
-		swap = bitswap.NewBitSwap(local, net, d, route)
-		swap.SetStrategy(bitswap.YesManStrategy)
+		const alwaysSendToPeer = true // use YesManStrategy
+		exchangeSession = bitswap.NetMessageSession(ctx, local, exchangeService, route, d, alwaysSendToPeer)
 
-		go initConnections(cfg, route)
+		// TODO(brian): pass a context to initConnections
+		go initConnections(ctx, cfg, peerstore, route)
 	}
 
-	bs, err := bserv.NewBlockService(d, swap)
+	// TODO(brian): when offline instantiate the BlockService with a bitswap
+	// session that simply doesn't return blocks
+	bs, err := bserv.NewBlockService(d, exchangeSession)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +136,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	return &IpfsNode{
 		Config:    cfg,
-		PeerMap:   &peer.Map{},
+		Peerstore: peerstore,
 		Datastore: d,
 		Blocks:    bs,
 		DAG:       dag,
 		Resolver:  &path.Resolver{DAG: dag},
-		BitSwap:   swap,
+		Exchange:  exchangeSession,
 		Identity:  local,
 		Routing:   route,
 	}, nil
@@ -134,7 +164,7 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 			return nil, err
 		}
 
-		addresses = []*ma.Multiaddr{ maddr }
+		addresses = []*ma.Multiaddr{maddr}
 	}
 
 	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
@@ -155,22 +185,35 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 	}, nil
 }
 
-func initConnections(cfg *config.Config, route *dht.IpfsDHT) {
+func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
 	for _, p := range cfg.Peers {
+		if p.PeerID == "" {
+			u.PErr("error: peer does not include PeerID. %v\n", p)
+		}
+
 		maddr, err := ma.NewMultiaddr(p.Address)
 		if err != nil {
 			u.PErr("error: %v\n", err)
 			continue
 		}
 
-		_, err = route.Connect(maddr)
-		if err != nil {
+		// setup peer
+		npeer := &peer.Peer{ID: peer.DecodePrettyID(p.PeerID)}
+		npeer.AddAddress(maddr)
+
+		if err = pstore.Put(npeer); err != nil {
+			u.PErr("Bootstrapping error: %v\n", err)
+			continue
+		}
+
+		if _, err = route.Connect(ctx, npeer); err != nil {
 			u.PErr("Bootstrapping error: %v\n", err)
 		}
 	}
 }
 
+// PinDagNode ensures a given node is stored persistently locally.
 func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
-	u.POut("Pinning node. Currently No-Op\n")
+	u.DOut("Pinning node. Currently No-Op\n")
 	return nil
 }

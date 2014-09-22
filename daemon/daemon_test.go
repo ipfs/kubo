@@ -2,11 +2,13 @@ package daemon
 
 import (
 	"encoding/base64"
+	"testing"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	identify "github.com/jbenet/go-ipfs/identify"
-	"testing"
+	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 )
 
 func TestInitializeDaemonListener(t *testing.T) {
@@ -20,7 +22,7 @@ func TestInitializeDaemonListener(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ident, _ := identify.IDFromPubKey(pub)
+	ident, _ := spipe.IDFromPubKey(pub)
 	privKey := base64.StdEncoding.EncodeToString(prbytes)
 	pID := ident.Pretty()
 
@@ -50,7 +52,11 @@ func TestInitializeDaemonListener(t *testing.T) {
 	for _, c := range nodeConfigs {
 
 		node, _ := core.NewIpfsNode(c, false)
-		dl, initErr := NewDaemonListener(node, "localhost:1327")
+		addr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1327")
+		if err != nil {
+			t.Fatal(err)
+		}
+		dl, initErr := NewDaemonListener(node, addr)
 		if initErr != nil {
 			t.Fatal(initErr)
 		}

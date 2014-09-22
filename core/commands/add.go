@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,6 +25,9 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 	for _, path := range args {
 		nd, err := AddPath(n, path, depth)
 		if err != nil {
+			if err == ErrDepthLimitExceeded && depth == 1 {
+				err = errors.New("use -r to recursively add directories")
+			}
 			return fmt.Errorf("addFile error: %v", err)
 		}
 
@@ -32,7 +36,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 			return fmt.Errorf("addFile error: %v", err)
 		}
 
-		fmt.Fprintf(out, "Added node: %s = %s\n", path, k.Pretty())
+		fmt.Fprintf(out, "added %s %s\n", k.Pretty(), path)
 	}
 	return nil
 }
@@ -95,7 +99,12 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 		return err
 	}
 
-	u.POut("added %s\n", fpath)
+	k, err := nd.Key()
+	if err != nil {
+		return err
+	}
+
+	u.POut("added %s %s\n", k.Pretty(), fpath)
 
 	// ensure we keep it. atm no-op
 	return n.PinDagNode(nd)

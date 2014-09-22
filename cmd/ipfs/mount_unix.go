@@ -3,10 +3,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	"github.com/jbenet/go-ipfs/daemon"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 	u "github.com/jbenet/go-ipfs/util"
@@ -42,7 +45,17 @@ func mountCmd(c *commander.Command, inp []string) error {
 		return err
 	}
 
-	dl, err := daemon.NewDaemonListener(n, "localhost:12345")
+	// launch the RPC endpoint.
+	if n.Config.RPCAddress == "" {
+		return errors.New("no config.RPCAddress endpoint supplied")
+	}
+
+	maddr, err := ma.NewMultiaddr(n.Config.RPCAddress)
+	if err != nil {
+		return err
+	}
+
+	dl, err := daemon.NewDaemonListener(n, maddr)
 	if err != nil {
 		return err
 	}

@@ -130,7 +130,6 @@ func (n *DAGService) AddRecursive(nd *Node) error {
 	}
 
 	for _, link := range nd.Links {
-		fmt.Println("Adding link.")
 		if link.Node == nil {
 			panic("Why does this node have a nil link?\n")
 		}

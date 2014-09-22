@@ -25,13 +25,15 @@ type Datastore struct {
 
 type SavedPeer struct {
 	Address string
+	PeerID  string // until multiaddr supports ipfs, use another field.
 }
 
 // Config is used to load IPFS config files.
 type Config struct {
-	Identity  *Identity
-	Datastore Datastore
-	Peers     []*SavedPeer
+	Identity   *Identity    // local node's peer identity
+	Datastore  Datastore    // local node's storage
+	RPCAddress string       // local node's RPC address
+	Peers      []*SavedPeer // local nodes's bootstrap peers
 }
 
 const DefaultPathRoot = "~/.go-ipfs"
@@ -51,7 +53,8 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 		return nil, err
 	}
 
-	//pretend to actually decrypt private key
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
 	return x509.ParsePKCS1PrivateKey(pkb)
 }
 

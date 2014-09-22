@@ -1,24 +1,51 @@
 package dht
 
 import (
+	"bytes"
 	"testing"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	ci "github.com/jbenet/go-ipfs/crypto"
-	identify "github.com/jbenet/go-ipfs/identify"
+	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
+	inet "github.com/jbenet/go-ipfs/net"
+	mux "github.com/jbenet/go-ipfs/net/mux"
+	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 
-	"bytes"
 	"fmt"
 	"time"
 )
 
+func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
+	ctx := context.Background()
+
+	peerstore := peer.NewPeerstore()
+
+	dhts := netservice.NewService(nil) // nil handler for now, need to patch it
+	if err := dhts.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	net, err := inet.NewIpfsNetwork(ctx, p, &mux.ProtocolMap{
+		mux.ProtocolID_Routing: dhts,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := NewDHT(p, peerstore, net, dhts, ds.NewMapDatastore())
+	dhts.Handler = d
+	return d
+}
+
 func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
 	var addrs []*ma.Multiaddr
-	for i := 0; i < 4; i++ {
+	for i := 0; i < n; i++ {
 		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
 		if err != nil {
 			t.Fatal(err)
@@ -27,33 +54,14 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	}
 
 	var peers []*peer.Peer
-	for i := 0; i < 4; i++ {
-		p := new(peer.Peer)
-		p.AddAddress(addrs[i])
-		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
-		if err != nil {
-			panic(err)
-		}
-		p.PubKey = pk
-		p.PrivKey = sk
-		id, err := identify.IDFromPubKey(pk)
-		if err != nil {
-			panic(err)
-		}
-		p.ID = id
+	for i := 0; i < n; i++ {
+		p := makePeer(addrs[i])
 		peers = append(peers, p)
 	}
 
-	var dhts []*IpfsDHT
-	for i := 0; i < 4; i++ {
-		net := swarm.NewSwarm(peers[i])
-		err := net.Listen()
-		if err != nil {
-			t.Fatal(err)
-		}
-		d := NewDHT(peers[i], net, ds.NewMapDatastore())
-		dhts = append(dhts, d)
-		d.Start()
+	dhts := make([]*IpfsDHT, n)
+	for i := 0; i < n; i++ {
+		dhts[i] = setupDHT(t, peers[i])
 	}
 
 	return addrs, peers, dhts
@@ -68,7 +76,7 @@ func makePeer(addr *ma.Multiaddr) *peer.Peer {
 	}
 	p.PrivKey = sk
 	p.PubKey = pk
-	id, err := identify.IDFromPubKey(pk)
+	id, err := spipe.IDFromPubKey(pk)
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +86,9 @@ func makePeer(addr *ma.Multiaddr) *peer.Peer {
 }
 
 func TestPing(t *testing.T) {
-	u.Debug = true
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
 	if err != nil {
 		t.Fatal(err)
@@ -91,38 +101,30 @@ func TestPing(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	neta := swarm.NewSwarm(peerA)
-	err = neta.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtA := NewDHT(peerA, neta, ds.NewMapDatastore())
+	dhtA := setupDHT(t, peerA)
+	dhtB := setupDHT(t, peerB)
 
-	netb := swarm.NewSwarm(peerB)
-	err = netb.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtB := NewDHT(peerB, netb, ds.NewMapDatastore())
-
-	dhtA.Start()
-	dhtB.Start()
 	defer dhtA.Halt()
 	defer dhtB.Halt()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
-	_, err = dhtA.Connect(addrB)
+	_, err = dhtA.Connect(context.Background(), peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//Test that we can ping the node
-	err = dhtA.Ping(peerB, time.Second*2)
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Millisecond)
+	err = dhtA.Ping(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestValueGetSet(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
 	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 	if err != nil {
@@ -136,44 +138,24 @@ func TestValueGetSet(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	neta := swarm.NewSwarm(peerA)
-	err = neta.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtA := NewDHT(peerA, neta, ds.NewMapDatastore())
+	dhtA := setupDHT(t, peerA)
+	dhtB := setupDHT(t, peerB)
 
-	netb := swarm.NewSwarm(peerB)
-	err = netb.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dhtB := NewDHT(peerB, netb, ds.NewMapDatastore())
-
-	dhtA.Start()
-	dhtB.Start()
 	defer dhtA.Halt()
 	defer dhtB.Halt()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
-	errsa := dhtA.network.GetErrChan()
-	errsb := dhtB.network.GetErrChan()
-	go func() {
-		select {
-		case err := <-errsa:
-			t.Fatal(err)
-		case err := <-errsb:
-			t.Fatal(err)
-		}
-	}()
-
-	_, err = dhtA.Connect(addrB)
+	_, err = dhtA.Connect(context.Background(), peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dhtA.PutValue("hello", []byte("world"))
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	dhtA.PutValue(ctxT, "hello", []byte("world"))
 
-	val, err := dhtA.GetValue("hello", time.Second*2)
+	ctxT, _ = context.WithTimeout(context.Background(), time.Second*2)
+	val, err := dhtA.GetValue(ctxT, "hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,26 +167,29 @@ func TestValueGetSet(t *testing.T) {
 }
 
 func TestProvides(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
 	u.Debug = false
 
-	addrs, _, dhts := setupDHTS(4, t)
+	_, peers, dhts := setupDHTS(4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
+			defer dhts[i].network.Close()
 		}
 	}()
 
-	_, err := dhts[0].Connect(addrs[1])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(addrs[2])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(addrs[3])
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,14 +204,15 @@ func TestProvides(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(u.Key("hello"))
+	err = dhts[3].Provide(context.Background(), u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 60)
 
-	provs, err := dhts[0].FindProviders(u.Key("hello"), time.Second)
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	provs, err := dhts[0].FindProviders(ctxT, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,26 +222,30 @@ func TestProvides(t *testing.T) {
 	}
 }
 
-func TestLayeredGet(t *testing.T) {
+func TestProvidesAsync(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
 	u.Debug = false
-	addrs, _, dhts := setupDHTS(4, t)
+
+	_, peers, dhts := setupDHTS(4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
+			defer dhts[i].network.Close()
 		}
 	}()
 
-	_, err := dhts[0].Connect(addrs[1])
-	if err != nil {
-		t.Fatalf("Failed to connect: %s", err)
-	}
-
-	_, err = dhts[1].Connect(addrs[2])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(addrs[3])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,14 +255,71 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(u.Key("hello"))
+	bits, err := dhts[3].getLocal(u.Key("hello"))
+	if err != nil && bytes.Equal(bits, []byte("world")) {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].Provide(context.Background(), u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 60)
 
-	val, err := dhts[0].GetValue(u.Key("hello"), time.Second)
+	ctx, _ := context.WithTimeout(context.TODO(), time.Millisecond*300)
+	provs := dhts[0].FindProvidersAsync(ctx, u.Key("hello"), 5)
+	select {
+	case p := <-provs:
+		if !p.ID.Equal(dhts[3].self.ID) {
+			t.Fatalf("got a provider, but not the right one. %v", p.ID.Pretty())
+		}
+	case <-ctx.Done():
+		t.Fatal("Didnt get back providers")
+	}
+}
+
+func TestLayeredGet(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
+	_, peers, dhts := setupDHTS(4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Halt()
+			defer dhts[i].network.Close()
+		}
+	}()
+
+	_, err := dhts[0].Connect(context.Background(), peers[1])
+	if err != nil {
+		t.Fatalf("Failed to connect: %s", err)
+	}
+
+	_, err = dhts[1].Connect(context.Background(), peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dhts[1].Connect(context.Background(), peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[3].Provide(context.Background(), u.Key("hello"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 60)
+
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	val, err := dhts[0].GetValue(ctxT, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -284,31 +331,35 @@ func TestLayeredGet(t *testing.T) {
 }
 
 func TestFindPeer(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
 	u.Debug = false
 
-	addrs, peers, dhts := setupDHTS(4, t)
+	_, peers, dhts := setupDHTS(4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
+			dhts[i].network.Close()
 		}
 	}()
 
-	_, err := dhts[0].Connect(addrs[1])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(addrs[2])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(addrs[3])
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	p, err := dhts[0].FindPeer(peers[2].ID, time.Second)
+	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	p, err := dhts[0].FindPeer(ctxT, peers[2].ID)
 	if err != nil {
 		t.Fatal(err)
 	}

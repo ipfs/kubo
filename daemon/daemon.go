@@ -8,10 +8,12 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-//DaemonListener listens to an initialized IPFS node and can send it commands instead of
-//starting up a new set of connections
+// DaemonListener listens to an initialized IPFS node and can send it commands instead of
+// starting up a new set of connections
 type DaemonListener struct {
 	node   *core.IpfsNode
 	list   net.Listener
@@ -25,8 +27,13 @@ type Command struct {
 	Opts    map[string]interface{}
 }
 
-func NewDaemonListener(ipfsnode *core.IpfsNode, addr string) (*DaemonListener, error) {
-	list, err := net.Listen("tcp", addr)
+func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr) (*DaemonListener, error) {
+	network, host, err := addr.DialArgs()
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := net.Listen(network, host)
 	if err != nil {
 		return nil, err
 	}

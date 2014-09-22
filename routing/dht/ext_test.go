@@ -5,128 +5,138 @@ import (
 
 	crand "crypto/rand"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	msg "github.com/jbenet/go-ipfs/net/message"
+	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
-	swarm "github.com/jbenet/go-ipfs/swarm"
 	u "github.com/jbenet/go-ipfs/util"
 
 	"time"
 )
 
-// fauxNet is a standin for a swarm.Network in order to more easily recreate
-// different testing scenarios
-type fauxNet struct {
-	Chan     *swarm.Chan
-	handlers []mesHandleFunc
-
-	swarm.Network
-}
-
 // mesHandleFunc is a function that takes in outgoing messages
 // and can respond to them, simulating other peers on the network.
 // returning nil will chose not to respond and pass the message onto the
 // next registered handler
-type mesHandleFunc func(*swarm.Message) *swarm.Message
+type mesHandleFunc func(msg.NetMessage) msg.NetMessage
 
-func newFauxNet() *fauxNet {
-	fn := new(fauxNet)
-	fn.Chan = swarm.NewChan(8)
-
-	return fn
+// fauxNet is a standin for a swarm.Network in order to more easily recreate
+// different testing scenarios
+type fauxSender struct {
+	handlers []mesHandleFunc
 }
 
-// Instead of 'Listening' Start up a goroutine that will check
-// all outgoing messages against registered message handlers,
-// and reply if needed
-func (f *fauxNet) Listen() error {
-	go func() {
-		for {
-			select {
-			case in := <-f.Chan.Outgoing:
-				for _, h := range f.handlers {
-					reply := h(in)
-					if reply != nil {
-						f.Chan.Incoming <- reply
-						break
-					}
-				}
-			}
-		}
-	}()
-	return nil
-}
-
-func (f *fauxNet) AddHandler(fn func(*swarm.Message) *swarm.Message) {
+func (f *fauxSender) AddHandler(fn func(msg.NetMessage) msg.NetMessage) {
 	f.handlers = append(f.handlers, fn)
 }
 
-func (f *fauxNet) Send(mes *swarm.Message) {
-	f.Chan.Outgoing <- mes
+func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
+	for _, h := range f.handlers {
+		reply := h(m)
+		if reply != nil {
+			return reply, nil
+		}
+	}
+
+	// no reply? ok force a timeout
+	select {
+	case <-ctx.Done():
+	}
+
+	return nil, ctx.Err()
 }
 
-func (f *fauxNet) GetErrChan() chan error {
-	return f.Chan.Errors
+func (f *fauxSender) SendMessage(ctx context.Context, m msg.NetMessage) error {
+	for _, h := range f.handlers {
+		reply := h(m)
+		if reply != nil {
+			return nil
+		}
+	}
+	return nil
 }
 
-func (f *fauxNet) GetChannel(t swarm.PBWrapper_MessageType) *swarm.Chan {
-	return f.Chan
+// fauxNet is a standin for a swarm.Network in order to more easily recreate
+// different testing scenarios
+type fauxNet struct {
 }
 
-func (f *fauxNet) Connect(addr *ma.Multiaddr) (*peer.Peer, error) {
-	return nil, nil
+// DialPeer attempts to establish a connection to a given peer
+func (f *fauxNet) DialPeer(*peer.Peer) error {
+	return nil
 }
 
-func (f *fauxNet) GetConnection(id peer.ID, addr *ma.Multiaddr) (*peer.Peer, error) {
-	return &peer.Peer{ID: id, Addresses: []*ma.Multiaddr{addr}}, nil
+// ClosePeer connection to peer
+func (f *fauxNet) ClosePeer(*peer.Peer) error {
+	return nil
 }
+
+// IsConnected returns whether a connection to given peer exists.
+func (f *fauxNet) IsConnected(*peer.Peer) (bool, error) {
+	return true, nil
+}
+
+// GetProtocols returns the protocols registered in the network.
+func (f *fauxNet) GetProtocols() *mux.ProtocolMap { return nil }
+
+// SendMessage sends given Message out
+func (f *fauxNet) SendMessage(msg.NetMessage) error {
+	return nil
+}
+
+// Close terminates all network operation
+func (f *fauxNet) Close() error { return nil }
 
 func TestGetFailures(t *testing.T) {
-	fn := newFauxNet()
-	fn.Listen()
+	// t.Skip("skipping test because it makes a lot of output")
 
+	ctx := context.Background()
+	fn := &fauxNet{}
+	fs := &fauxSender{}
+
+	peerstore := peer.NewPeerstore()
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, fn, ds.NewMapDatastore())
-
+	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
 	other := &peer.Peer{ID: peer.ID("other_peer")}
-
-	d.Start()
-
 	d.Update(other)
 
 	// This one should time out
-	_, err := d.GetValue(u.Key("test"), time.Millisecond*10)
+	// u.POut("Timout Test\n")
+	ctx1, _ := context.WithTimeout(context.Background(), time.Second)
+	_, err := d.GetValue(ctx1, u.Key("test"))
 	if err != nil {
-		if err != u.ErrTimeout {
-			t.Fatal("Got different error than we expected.")
+		if err != context.DeadlineExceeded {
+			t.Fatal("Got different error than we expected", err)
 		}
 	} else {
 		t.Fatal("Did not get expected error!")
 	}
 
+	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
-	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
-		pmes := new(PBDHTMessage)
-		err := proto.Unmarshal(mes.Data, pmes)
+	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+		pmes := new(Message)
+		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		resp := Message{
-			Type:     pmes.GetType(),
-			ID:       pmes.GetId(),
-			Response: true,
-			Success:  false,
+		resp := &Message{
+			Type: pmes.Type,
 		}
-		return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
+		m, err := msg.FromObject(mes.Peer(), resp)
+		return m
 	})
 
 	// This one should fail with NotFound
-	_, err = d.GetValue(u.Key("test"), time.Millisecond*1000)
+	ctx2, _ := context.WithTimeout(context.Background(), time.Second)
+	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
 		if err != u.ErrNotFound {
 			t.Fatalf("Expected ErrNotFound, got: %s", err)
@@ -135,31 +145,42 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal("expected error, got none.")
 	}
 
-	success := make(chan struct{})
-	fn.handlers = nil
-	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
-		resp := new(PBDHTMessage)
-		err := proto.Unmarshal(mes.Data, resp)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if resp.GetSuccess() {
-			t.Fatal("Get returned success when it shouldnt have.")
-		}
-		success <- struct{}{}
-		return nil
-	})
-
+	fs.handlers = nil
 	// Now we test this DHT's handleGetValue failure
+	typ := Message_GET_VALUE
+	str := "hello"
 	req := Message{
-		Type:  PBDHTMessage_GET_VALUE,
-		Key:   "hello",
-		ID:    swarm.GenerateMessageID(),
+		Type:  &typ,
+		Key:   &str,
 		Value: []byte{0},
 	}
-	fn.Chan.Incoming <- swarm.NewMessage(other, req.ToProtobuf())
 
-	<-success
+	// u.POut("handleGetValue Test\n")
+	mes, err := msg.FromObject(other, &req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	mes, err = d.HandleMessage(ctx, mes)
+	if err != nil {
+		t.Error(err)
+	}
+
+	pmes := new(Message)
+	err = proto.Unmarshal(mes.Data(), pmes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pmes.GetValue() != nil {
+		t.Fatal("shouldnt have value")
+	}
+	if pmes.GetCloserPeers() != nil {
+		t.Fatal("shouldnt have closer peers")
+	}
+	if pmes.GetProviderPeers() != nil {
+		t.Fatal("shouldnt have provider peers")
+	}
+
 }
 
 // TODO: Maybe put these in some sort of "ipfs_testutil" package
@@ -172,14 +193,16 @@ func _randPeer() *peer.Peer {
 }
 
 func TestNotFound(t *testing.T) {
-	fn := newFauxNet()
-	fn.Listen()
+	// t.Skip("skipping test because it makes a lot of output")
+
+	fn := &fauxNet{}
+	fs := &fauxSender{}
 
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
+	peerstore := peer.NewPeerstore()
 
-	d := NewDHT(local, fn, ds.NewMapDatastore())
-	d.Start()
+	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
 
 	var ps []*peer.Peer
 	for i := 0; i < 5; i++ {
@@ -188,33 +211,36 @@ func TestNotFound(t *testing.T) {
 	}
 
 	// Reply with random peers to every message
-	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
-		pmes := new(PBDHTMessage)
-		err := proto.Unmarshal(mes.Data, pmes)
+	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+		pmes := new(Message)
+		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		switch pmes.GetType() {
-		case PBDHTMessage_GET_VALUE:
-			resp := Message{
-				Type:     pmes.GetType(),
-				ID:       pmes.GetId(),
-				Response: true,
-				Success:  false,
-			}
+		case Message_GET_VALUE:
+			resp := &Message{Type: pmes.Type}
 
+			peers := []*peer.Peer{}
 			for i := 0; i < 7; i++ {
-				resp.Peers = append(resp.Peers, _randPeer())
+				peers = append(peers, _randPeer())
 			}
-			return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
+			resp.CloserPeers = peersToPBPeers(peers)
+			mes, err := msg.FromObject(mes.Peer(), resp)
+			if err != nil {
+				t.Error(err)
+			}
+			return mes
 		default:
 			panic("Shouldnt recieve this.")
 		}
 
 	})
 
-	_, err := d.GetValue(u.Key("hello"), time.Second*30)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	v, err := d.GetValue(ctx, u.Key("hello"))
+	u.DOut("get value got %v\n", v)
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:
@@ -232,15 +258,16 @@ func TestNotFound(t *testing.T) {
 // If less than K nodes are in the entire network, it should fail when we make
 // a GET rpc and nobody has the value
 func TestLessThanKResponses(t *testing.T) {
-	u.Debug = false
-	fn := newFauxNet()
-	fn.Listen()
+	// t.Skip("skipping test because it makes a lot of output")
 
+	u.Debug = false
+	fn := &fauxNet{}
+	fs := &fauxSender{}
+	peerstore := peer.NewPeerstore()
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, fn, ds.NewMapDatastore())
-	d.Start()
+	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
 
 	var ps []*peer.Peer
 	for i := 0; i < 5; i++ {
@@ -250,31 +277,33 @@ func TestLessThanKResponses(t *testing.T) {
 	other := _randPeer()
 
 	// Reply with random peers to every message
-	fn.AddHandler(func(mes *swarm.Message) *swarm.Message {
-		pmes := new(PBDHTMessage)
-		err := proto.Unmarshal(mes.Data, pmes)
+	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+		pmes := new(Message)
+		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		switch pmes.GetType() {
-		case PBDHTMessage_GET_VALUE:
-			resp := Message{
-				Type:     pmes.GetType(),
-				ID:       pmes.GetId(),
-				Response: true,
-				Success:  false,
-				Peers:    []*peer.Peer{other},
+		case Message_GET_VALUE:
+			resp := &Message{
+				Type:        pmes.Type,
+				CloserPeers: peersToPBPeers([]*peer.Peer{other}),
 			}
 
-			return swarm.NewMessage(mes.Peer, resp.ToProtobuf())
+			mes, err := msg.FromObject(mes.Peer(), resp)
+			if err != nil {
+				t.Error(err)
+			}
+			return mes
 		default:
 			panic("Shouldnt recieve this.")
 		}
 
 	})
 
-	_, err := d.GetValue(u.Key("hello"), time.Second*30)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*30)
+	_, err := d.GetValue(ctx, u.Key("hello"))
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:

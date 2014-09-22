@@ -1,0 +1,6 @@
+package message;
+
+message PBMessage {
+	repeated string wantlist = 1;
+	repeated bytes blocks = 2;
+}

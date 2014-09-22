@@ -9,7 +9,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	identify "github.com/jbenet/go-ipfs/identify"
+	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -43,6 +43,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		}
 	}
 
+	u.POut("initializing ipfs node at %s\n", configpath)
 	filename, err := config.Filename(configpath + "/config")
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
@@ -53,8 +54,10 @@ func initCmd(c *commander.Command, inp []string) error {
 	if !ok {
 		return errors.New("failed to parse force flag")
 	}
-	if fi != nil || (err != nil && !os.IsNotExist(err)) && !force {
-		return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
+	if fi != nil || (err != nil && !os.IsNotExist(err)) {
+		if !force {
+			return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
+		}
 	}
 	cfg := new(config.Config)
 
@@ -68,7 +71,10 @@ func initCmd(c *commander.Command, inp []string) error {
 
 	cfg.Identity = new(config.Identity)
 	// This needs thought
-	// cfg.Identity.Address = ""
+	cfg.Identity.Address = "/ip4/127.0.0.1/tcp/5001"
+
+	// local RPC endpoint
+	cfg.RPCAddress = "/ip4/127.0.0.1/tcp/4001"
 
 	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
 	if !ok {
@@ -78,28 +84,40 @@ func initCmd(c *commander.Command, inp []string) error {
 		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
+	u.POut("generating key pair\n")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return err
 	}
 
-	// pretend to encrypt key, then store it unencrypted
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
 	skbytes, err := sk.Bytes()
 	if err != nil {
 		return err
 	}
 	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := identify.IDFromPubKey(pk)
+	id, err := spipe.IDFromPubKey(pk)
 	if err != nil {
 		return err
 	}
 	cfg.Identity.PeerID = id.Pretty()
 
+	// Use these hardcoded bootstrap peers for now.
+	cfg.Peers = []*config.SavedPeer{
+		&config.SavedPeer{
+			// mars.i.ipfs.io
+			PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+			Address: "/ip4/104.131.131.82/tcp/4001",
+		},
+	}
+
 	path, err := u.TildeExpansion(config.DefaultConfigFilePath)
 	if err != nil {
 		return err
 	}
+
 	err = config.WriteConfigFile(path, cfg)
 	if err != nil {
 		return err
