@@ -2,7 +2,6 @@ package bitswap
 
 import (
 	"errors"
-	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -66,17 +65,13 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	// TODO add to wantlist
 	promise := bs.notifications.Subscribe(ctx, k)
 
-	// const maxProviders = 20
-	// using non-async version for now.
-	peersToQuery, err := bs.routing.FindProviders(ctx, k)
-	if err != nil {
-		return nil, fmt.Errorf("No providers found for %d (%v)", k, err)
-	}
+	const maxProviders = 20
+	peersToQuery := bs.routing.FindProvidersAsync(ctx, k, maxProviders)
 
 	go func() {
 		message := bsmsg.New()
 		message.AppendWanted(k)
-		for _, iiiii := range peersToQuery {
+		for iiiii := range peersToQuery {
 			// u.DOut("bitswap got peersToQuery: %s\n", iiiii)
 			go func(p *peer.Peer) {
 				response, err := bs.sender.SendRequest(ctx, p, message)
