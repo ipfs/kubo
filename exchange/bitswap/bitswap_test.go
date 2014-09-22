@@ -16,6 +16,7 @@ import (
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
+	util "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
@@ -145,7 +146,10 @@ func getOrFail(bitswap instance, b *blocks.Block, t *testing.T, wg *sync.WaitGro
 	wg.Done()
 }
 
+// TODO simplify this test. get to the _essence_!
 func TestSendToWantingPeer(t *testing.T) {
+	util.Debug = true
+
 	net := tn.VirtualNetwork()
 	rs := tn.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
@@ -155,48 +159,55 @@ func TestSendToWantingPeer(t *testing.T) {
 	w := sg.Next()
 	o := sg.Next()
 
+	t.Logf("Session %v\n", me.peer.Key().Pretty())
+	t.Logf("Session %v\n", w.peer.Key().Pretty())
+	t.Logf("Session %v\n", o.peer.Key().Pretty())
+
 	alpha := bg.Next()
 
-	const timeout = 100 * time.Millisecond
-	const wait = 100 * time.Millisecond
+	const timeout = 1 * time.Millisecond // FIXME don't depend on time
 
-	t.Log("Peer |w| attempts to get a file |alpha|. NB: alpha not available")
+	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer.Key().Pretty(), alpha.Key().Pretty())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
 	_, err := w.exchange.Block(ctx, alpha.Key())
 	if err == nil {
-		t.Error("Expected alpha to NOT be available")
+		t.Fatalf("Expected %v to NOT be available", alpha.Key().Pretty())
 	}
-	time.Sleep(wait)
 
-	t.Log("Peer |w| announces availability of a file |beta|")
 	beta := bg.Next()
+	t.Logf("Peer %v announes availability  of %v\n", w.peer.Key().Pretty(), beta.Key().Pretty())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	if err := w.blockstore.Put(beta); err != nil {
+		t.Fatal(err)
+	}
 	w.exchange.HasBlock(ctx, beta)
-	time.Sleep(wait)
 
-	t.Log("I request and get |beta| from |w|. In the message, I receive |w|'s wants [alpha]")
-	t.Log("I don't have alpha, but I keep it on my wantlist.")
+	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer.Key().Pretty(), beta.Key().Pretty(), w.peer.Key().Pretty(), alpha.Key().Pretty())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	me.exchange.Block(ctx, beta.Key())
-	time.Sleep(wait)
+	if _, err := me.exchange.Block(ctx, beta.Key()); err != nil {
+		t.Fatal(err)
+	}
 
-	t.Log("Peer |o| announces the availability of |alpha|")
+	t.Logf("%v announces availability of %v\n", o.peer.Key().Pretty(), alpha.Key().Pretty())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	if err := o.blockstore.Put(alpha); err != nil {
+		t.Fatal(err)
+	}
 	o.exchange.HasBlock(ctx, alpha)
-	time.Sleep(wait)
 
-	t.Log("I request |alpha| for myself.")
+	t.Logf("%v requests %v\n", me.peer.Key().Pretty(), alpha.Key().Pretty())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	me.exchange.Block(ctx, alpha.Key())
-	time.Sleep(wait)
+	if _, err := me.exchange.Block(ctx, alpha.Key()); err != nil {
+		t.Fatal(err)
+	}
 
-	t.Log("After receiving |f| from |o|, I send it to the wanting peer |w|")
+	t.Logf("%v should now have %v\n", w.peer.Key().Pretty(), alpha.Key().Pretty())
 	block, err := w.blockstore.Get(alpha.Key())
 	if err != nil {
 		t.Fatal("Should not have received an error")
 	}
 	if block.Key() != alpha.Key() {
-		t.Error("Expected to receive alpha from me")
+		t.Fatal("Expected to receive alpha from me")
 	}
 }
 
@@ -278,6 +289,9 @@ func session(net tn.Network, rs tn.RoutingServer, id peer.ID) instance {
 		strategy:      strategy.New(),
 		routing:       htc,
 		sender:        adapter,
+		wantlist: WantList{
+			data: make(map[util.Key]struct{}),
+		},
 	}
 	adapter.SetDelegate(bs)
 	return instance{

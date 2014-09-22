@@ -2,6 +2,7 @@ package bitswap
 
 import (
 	"errors"
+	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -28,6 +29,9 @@ func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageS
 		strategy:      strategy.New(),
 		routing:       directory,
 		sender:        networkAdapter,
+		wantlist: WantList{
+			data: make(map[u.Key]struct{}),
+		},
 	}
 	networkAdapter.SetDelegate(bs)
 
@@ -53,6 +57,39 @@ type bitswap struct {
 	// interact with partners.
 	// TODO(brian): save the strategy's state to the datastore
 	strategy strategy.Strategy
+
+	wantlist WantList
+}
+
+type WantList struct {
+	lock sync.RWMutex
+	data map[u.Key]struct{}
+}
+
+func (wl *WantList) Add(k u.Key) {
+	u.DOut("Adding %v to Wantlist\n", k.Pretty())
+	wl.lock.Lock()
+	defer wl.lock.Unlock()
+
+	wl.data[k] = struct{}{}
+}
+
+func (wl *WantList) Remove(k u.Key) {
+	u.DOut("Removing %v from Wantlist\n", k.Pretty())
+	wl.lock.Lock()
+	defer wl.lock.Unlock()
+
+	delete(wl.data, k)
+}
+
+func (wl *WantList) Keys() []u.Key {
+	wl.lock.RLock()
+	defer wl.lock.RUnlock()
+	keys := make([]u.Key, 0)
+	for k, _ := range wl.data {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -60,9 +97,10 @@ type bitswap struct {
 //
 // TODO ensure only one active request per key
 func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error) {
+	u.DOut("Get Block %v\n", k.Pretty())
 
 	ctx, cancelFunc := context.WithCancel(parent)
-	// TODO add to wantlist
+	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
 
 	const maxProviders = 20
@@ -70,6 +108,9 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 
 	go func() {
 		message := bsmsg.New()
+		for _, wanted := range bs.wantlist.Keys() {
+			message.AppendWanted(wanted)
+		}
 		message.AppendWanted(k)
 		for iiiii := range peersToQuery {
 			// u.DOut("bitswap got peersToQuery: %s\n", iiiii)
@@ -94,6 +135,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	select {
 	case block := <-promise:
 		cancelFunc()
+		bs.wantlist.Remove(k)
 		// TODO remove from wantlist
 		return &block, nil
 	case <-parent.Done():
@@ -104,6 +146,8 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 // HasBlock announces the existance of a block to bitswap, potentially sending
 // it to peers (Partners) whose WantLists include it.
 func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
+	u.DOut("Has Block %v\n", blk.Key().Pretty())
+	bs.wantlist.Remove(blk.Key())
 	bs.sendToPeersThatWant(ctx, blk)
 	return bs.routing.Provide(ctx, blk.Key())
 }
@@ -111,6 +155,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage, error) {
+	u.DOut("ReceiveMessage from %v\n", p.Key().Pretty())
 
 	if p == nil {
 		return nil, nil, errors.New("Received nil Peer")
@@ -132,19 +177,21 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bs
 		}(block)
 	}
 
+	message := bsmsg.New()
+	for _, wanted := range bs.wantlist.Keys() {
+		message.AppendWanted(wanted)
+	}
 	for _, key := range incoming.Wantlist() {
 		if bs.strategy.ShouldSendBlockToPeer(key, p) {
-			block, errBlockNotFound := bs.blockstore.Get(key)
-			if errBlockNotFound != nil {
-				return nil, nil, errBlockNotFound
+			if block, errBlockNotFound := bs.blockstore.Get(key); errBlockNotFound != nil {
+				continue
+			} else {
+				message.AppendBlock(*block)
 			}
-			message := bsmsg.New()
-			message.AppendBlock(*block)
-			defer bs.strategy.MessageSent(p, message)
-			return p, message, nil
 		}
 	}
-	return nil, nil, nil
+	defer bs.strategy.MessageSent(p, message)
+	return p, message, nil
 }
 
 // send strives to ensure that accounting is always performed when a message is
@@ -155,11 +202,16 @@ func (bs *bitswap) send(ctx context.Context, p *peer.Peer, m bsmsg.BitSwapMessag
 }
 
 func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) {
+	u.DOut("Sending %v to peers that want it\n", block.Key().Pretty())
 	for _, p := range bs.strategy.Peers() {
 		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
+			u.DOut("%v wants %v\n", p.Key().Pretty(), block.Key().Pretty())
 			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
 				message := bsmsg.New()
 				message.AppendBlock(block)
+				for _, wanted := range bs.wantlist.Keys() {
+					message.AppendWanted(wanted)
+				}
 				go bs.send(ctx, p, message)
 			}
 		}
