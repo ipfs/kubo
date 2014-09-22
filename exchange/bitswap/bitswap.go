@@ -19,13 +19,13 @@ import (
 
 // NetMessageSession initializes a BitSwap session that communicates over the
 // provided NetMessage service
-func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageService, directory bsnet.Routing, d ds.Datastore) exchange.Interface {
+func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageService, directory bsnet.Routing, d ds.Datastore, nice bool) exchange.Interface {
 
 	networkAdapter := bsnet.NetMessageAdapter(s, nil)
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
-		strategy:      strategy.New(),
+		strategy:      strategy.New(nice),
 		routing:       directory,
 		sender:        networkAdapter,
 		wantlist:      u.NewKeySet(),

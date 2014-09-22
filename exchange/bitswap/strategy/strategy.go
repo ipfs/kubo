@@ -9,10 +9,19 @@ import (
 )
 
 // TODO declare thread-safe datastore
-func New() Strategy {
+// TODO niceness should be on a per-peer basis. Use-case: Certain peers are
+// "trusted" and/or controlled by a single human user. The user may want for
+// these peers to exchange data freely
+func New(nice bool) Strategy {
+	var stratFunc strategyFunc
+	if nice {
+		stratFunc = yesManStrategy
+	} else {
+		stratFunc = standardStrategy
+	}
 	return &strategist{
 		ledgerMap:    ledgerMap{},
-		strategyFunc: yesManStrategy,
+		strategyFunc: stratFunc,
 	}
 }
 

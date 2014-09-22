@@ -17,7 +17,7 @@ type peerAndStrategist struct {
 func newPeerAndStrategist(idStr string) peerAndStrategist {
 	return peerAndStrategist{
 		Peer:     &peer.Peer{ID: peer.ID(idStr)},
-		Strategy: New(),
+		Strategy: New(true),
 	}
 }
 

@@ -283,10 +283,11 @@ func session(net tn.Network, rs tn.RoutingServer, id peer.ID) instance {
 	htc := rs.Client(p)
 
 	blockstore := bstore.NewBlockstore(ds.NewMapDatastore())
+	const alwaysSendToPeer = true
 	bs := &bitswap{
 		blockstore:    blockstore,
 		notifications: notifications.New(),
-		strategy:      strategy.New(),
+		strategy:      strategy.New(alwaysSendToPeer),
 		routing:       htc,
 		sender:        adapter,
 		wantlist:      util.NewKeySet(),

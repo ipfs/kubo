@@ -7,6 +7,9 @@ import (
 
 type strategyFunc func(*ledger) bool
 
+// TODO avoid using rand.Float64 method. it uses a singleton lock and may cause
+// performance issues. Instead, instantiate a rand struct and use that to call
+// Float64()
 func standardStrategy(l *ledger) bool {
 	return rand.Float64() <= probabilitySend(l.Accounting.Value())
 }
