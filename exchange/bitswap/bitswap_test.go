@@ -289,9 +289,7 @@ func session(net tn.Network, rs tn.RoutingServer, id peer.ID) instance {
 		strategy:      strategy.New(),
 		routing:       htc,
 		sender:        adapter,
-		wantlist: WantList{
-			data: make(map[util.Key]struct{}),
-		},
+		wantlist:      util.NewKeySet(),
 	}
 	adapter.SetDelegate(bs)
 	return instance{

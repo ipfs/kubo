@@ -30,21 +30,3 @@ type Strategy interface {
 
 	NumBytesReceivedFrom(*peer.Peer) uint64
 }
-
-type WantList interface {
-	// Peer returns the owner of the WantList
-	Peer() *peer.Peer
-
-	// Intersection returns the keys common to both WantLists
-	Intersection(WantList) WantList
-
-	KeySet
-}
-
-// TODO(brian): potentially move this somewhere more generic. For now, it's
-// useful in BitSwap operations.
-
-type KeySet interface {
-	Contains(u.Key) bool
-	Keys() []u.Key
-}

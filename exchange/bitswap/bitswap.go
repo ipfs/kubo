@@ -2,7 +2,6 @@ package bitswap
 
 import (
 	"errors"
-	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -29,9 +28,7 @@ func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageS
 		strategy:      strategy.New(),
 		routing:       directory,
 		sender:        networkAdapter,
-		wantlist: WantList{
-			data: make(map[u.Key]struct{}),
-		},
+		wantlist:      u.NewKeySet(),
 	}
 	networkAdapter.SetDelegate(bs)
 
@@ -58,38 +55,7 @@ type bitswap struct {
 	// TODO(brian): save the strategy's state to the datastore
 	strategy strategy.Strategy
 
-	wantlist WantList
-}
-
-type WantList struct {
-	lock sync.RWMutex
-	data map[u.Key]struct{}
-}
-
-func (wl *WantList) Add(k u.Key) {
-	u.DOut("Adding %v to Wantlist\n", k.Pretty())
-	wl.lock.Lock()
-	defer wl.lock.Unlock()
-
-	wl.data[k] = struct{}{}
-}
-
-func (wl *WantList) Remove(k u.Key) {
-	u.DOut("Removing %v from Wantlist\n", k.Pretty())
-	wl.lock.Lock()
-	defer wl.lock.Unlock()
-
-	delete(wl.data, k)
-}
-
-func (wl *WantList) Keys() []u.Key {
-	wl.lock.RLock()
-	defer wl.lock.RUnlock()
-	keys := make([]u.Key, 0)
-	for k, _ := range wl.data {
-		keys = append(keys, k)
-	}
-	return keys
+	wantlist u.KeySet
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
