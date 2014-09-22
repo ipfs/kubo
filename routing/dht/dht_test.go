@@ -109,13 +109,14 @@ func TestPing(t *testing.T) {
 	defer dhtA.network.Close()
 	defer dhtB.network.Close()
 
-	_, err = dhtA.Connect(peerB)
+	_, err = dhtA.Connect(context.Background(), peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//Test that we can ping the node
-	err = dhtA.Ping(peerB, time.Second*2)
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Millisecond)
+	err = dhtA.Ping(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +146,7 @@ func TestValueGetSet(t *testing.T) {
 	defer dhtA.network.Close()
 	defer dhtB.network.Close()
 
-	_, err = dhtA.Connect(peerB)
+	_, err = dhtA.Connect(context.Background(), peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,17 +179,17 @@ func TestProvides(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(peers[1])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[2])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[3])
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +204,7 @@ func TestProvides(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(u.Key("hello"))
+	err = dhts[3].Provide(context.Background(), u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,17 +235,17 @@ func TestProvidesAsync(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(peers[1])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[2])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[3])
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +260,7 @@ func TestProvidesAsync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(u.Key("hello"))
+	err = dhts[3].Provide(context.Background(), u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,17 +291,17 @@ func TestLayeredGet(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(peers[1])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatalf("Failed to connect: %s", err)
 	}
 
-	_, err = dhts[1].Connect(peers[2])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[3])
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,7 +311,7 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(u.Key("hello"))
+	err = dhts[3].Provide(context.Background(), u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,17 +343,17 @@ func TestFindPeer(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(peers[1])
+	_, err := dhts[0].Connect(context.Background(), peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[2])
+	_, err = dhts[1].Connect(context.Background(), peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(peers[3])
+	_, err = dhts[1].Connect(context.Background(), peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
