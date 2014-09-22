@@ -89,6 +89,9 @@ func (s *strategist) MessageSent(p *peer.Peer, m bsmsg.BitSwapMessage) error {
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 	}
+
+	// TODO remove these blocks from peer's want list
+
 	return nil
 }
 
