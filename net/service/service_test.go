@@ -15,15 +15,14 @@ import (
 // ReverseHandler reverses all Data it receives and sends it back.
 type ReverseHandler struct{}
 
-func (t *ReverseHandler) HandleMessage(ctx context.Context, m msg.NetMessage) (
-	msg.NetMessage, error) {
+func (t *ReverseHandler) HandleMessage(ctx context.Context, m msg.NetMessage) msg.NetMessage {
 
 	d := m.Data()
 	for i, j := 0, len(d)-1; i < j; i, j = i+1, j-1 {
 		d[i], d[j] = d[j], d[i]
 	}
 
-	return msg.New(m.Peer(), d), nil
+	return msg.New(m.Peer(), d)
 }
 
 func newPeer(t *testing.T, id string) *peer.Peer {
