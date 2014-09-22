@@ -115,7 +115,7 @@ func TestSwarm(t *testing.T) {
 	MsgNum := 1000
 	for k := 0; k < MsgNum; k++ {
 		for _, p := range peers {
-			swarm.Outgoing <- &msg.Message{Peer: p, Data: []byte("ping")}
+			swarm.Outgoing <- msg.New(p, []byte("ping"))
 		}
 	}
 
@@ -123,12 +123,12 @@ func TestSwarm(t *testing.T) {
 
 	for k := 0; k < (MsgNum * len(peers)); k++ {
 		msg := <-swarm.Incoming
-		if string(msg.Data) != "pong" {
+		if string(msg.Data()) != "pong" {
 			t.Error("unexpected conn output", msg.Data)
 		}
 
-		n, _ := got[msg.Peer.Key()]
-		got[msg.Peer.Key()] = n + 1
+		n, _ := got[msg.Peer().Key()]
+		got[msg.Peer().Key()] = n + 1
 	}
 
 	if len(peers) != len(got) {
