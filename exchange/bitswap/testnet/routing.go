@@ -92,6 +92,6 @@ func (a *routingClient) FindProvidersAsync(ctx context.Context, k u.Key, max int
 	return out
 }
 
-func (a *routingClient) Provide(key u.Key) error {
+func (a *routingClient) Provide(_ context.Context, key u.Key) error {
 	return a.hashTable.Announce(a.peer, key)
 }

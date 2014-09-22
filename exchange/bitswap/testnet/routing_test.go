@@ -53,7 +53,7 @@ func TestClientFindProviders(t *testing.T) {
 	rs := VirtualRoutingServer()
 	client := rs.Client(peer)
 	k := u.Key("hello")
-	err := client.Provide(k)
+	err := client.Provide(context.Background(), k)
 	if err != nil {
 		t.Fatal(err)
 	}
