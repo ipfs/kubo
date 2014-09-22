@@ -29,32 +29,32 @@ type impl struct {
 // HandleMessage marshals and unmarshals net messages, forwarding them to the
 // BitSwapMessage receiver
 func (adapter *impl) HandleMessage(
-	ctx context.Context, incoming netmsg.NetMessage) (netmsg.NetMessage, error) {
+	ctx context.Context, incoming netmsg.NetMessage) netmsg.NetMessage {
 
 	if adapter.receiver == nil {
-		return nil, nil
+		return nil
 	}
 
 	received, err := bsmsg.FromNet(incoming)
 	if err != nil {
-		adapter.receiver.ReceiveError(err)
-		return nil, nil
+		go adapter.receiver.ReceiveError(err)
+		return nil
 	}
 
 	p, bsmsg := adapter.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
 
 	// TODO(brian): put this in a helper function
 	if bsmsg == nil || p == nil {
-		return nil, nil
+		return nil
 	}
 
 	outgoing, err := bsmsg.ToNet(p)
 	if err != nil {
-		adapter.receiver.ReceiveError(err)
-		return nil, nil
+		go adapter.receiver.ReceiveError(err)
+		return nil
 	}
 
-	return outgoing, nil
+	return outgoing
 }
 
 func (adapter *impl) SendMessage(

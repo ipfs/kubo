@@ -103,23 +103,26 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer *peer.Peer) (*peer.Peer, 
 }
 
 // HandleMessage implements the inet.Handler interface.
-func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) (msg.NetMessage, error) {
+func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.NetMessage {
 
 	mData := mes.Data()
 	if mData == nil {
-		return nil, errors.New("message did not include Data")
+		// TODO handle/log err
+		return nil
 	}
 
 	mPeer := mes.Peer()
 	if mPeer == nil {
-		return nil, errors.New("message did not include a Peer")
+		// TODO handle/log err
+		return nil
 	}
 
 	// deserialize msg
 	pmes := new(Message)
 	err := proto.Unmarshal(mData, pmes)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to decode protobuf message: %v\n", err)
+		// TODO handle/log err
+		return nil
 	}
 
 	// update the peer (on valid msgs only)
@@ -133,27 +136,30 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) (msg.
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
 	if handler == nil {
-		return nil, errors.New("Recieved invalid message type")
+		// TODO handle/log err
+		return nil
 	}
 
 	// dispatch handler.
 	rpmes, err := handler(mPeer, pmes)
 	if err != nil {
-		return nil, err
+		// TODO handle/log err
+		return nil
 	}
 
 	// if nil response, return it before serializing
 	if rpmes == nil {
-		return nil, nil
+		return nil
 	}
 
 	// serialize response msg
 	rmes, err := msg.FromObject(mPeer, rpmes)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to encode protobuf message: %v\n", err)
+		// TODO handle/log err
+		return nil
 	}
 
-	return rmes, nil
+	return rmes
 }
 
 // sendRequest sends out a request using dht.sender, but also makes sure to
