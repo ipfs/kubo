@@ -2,6 +2,7 @@ package bitswap
 
 import (
 	"errors"
+	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -65,12 +66,18 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	// TODO add to wantlist
 	promise := bs.notifications.Subscribe(ctx, k)
 
+	// const maxProviders = 20
+	// using non-async version for now.
+	peersToQuery, err := bs.routing.FindProviders(ctx, k)
+	if err != nil {
+		return nil, fmt.Errorf("No providers found for %d (%v)", k, err)
+	}
+
 	go func() {
-		const maxProviders = 20
-		peersToQuery := bs.routing.FindProvidersAsync(ctx, k, maxProviders)
 		message := bsmsg.New()
 		message.AppendWanted(k)
-		for iiiii := range peersToQuery {
+		for _, iiiii := range peersToQuery {
+			// u.DOut("bitswap got peersToQuery: %s\n", iiiii)
 			go func(p *peer.Peer) {
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
@@ -125,9 +132,9 @@ func (bs *bitswap) ReceiveMessage(
 			continue // FIXME(brian): err ignored
 		}
 		go bs.notifications.Publish(block)
-		go func() {
+		go func(block blocks.Block) {
 			_ = bs.HasBlock(ctx, block) // FIXME err ignored
-		}()
+		}(block)
 	}
 
 	for _, key := range incoming.Wantlist() {

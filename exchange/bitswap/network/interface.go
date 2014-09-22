@@ -46,7 +46,11 @@ type NetMessageService interface {
 // TODO rename -> Router?
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
-	FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
+	// FindProvidersAsync(context.Context, u.Key, int) <-chan *peer.Peer
+	// ^--- removed this for now because has some bugs apparently.
+
+	// FindProviders returns the providers for the given key
+	FindProviders(context.Context, u.Key) ([]*peer.Peer, error)
 
 	// Provide provides the key to the network
 	Provide(context.Context, u.Key) error
