@@ -1,8 +1,6 @@
 package network
 
 import (
-	"errors"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
@@ -34,18 +32,16 @@ func (adapter *impl) HandleMessage(
 	ctx context.Context, incoming netmsg.NetMessage) (netmsg.NetMessage, error) {
 
 	if adapter.receiver == nil {
-		return nil, errors.New("No receiver. NetMessage dropped")
+		return nil, nil
 	}
 
 	received, err := bsmsg.FromNet(incoming)
 	if err != nil {
-		return nil, err
+		adapter.receiver.ReceiveError(err)
+		return nil, nil
 	}
 
-	p, bsmsg, err := adapter.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
-	if err != nil {
-		return nil, err
-	}
+	p, bsmsg := adapter.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
 
 	// TODO(brian): put this in a helper function
 	if bsmsg == nil || p == nil {
@@ -54,7 +50,8 @@ func (adapter *impl) HandleMessage(
 
 	outgoing, err := bsmsg.ToNet(p)
 	if err != nil {
-		return nil, err
+		adapter.receiver.ReceiveError(err)
+		return nil, nil
 	}
 
 	return outgoing, nil

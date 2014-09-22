@@ -1,8 +1,6 @@
 package bitswap
 
 import (
-	"errors"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 
@@ -120,14 +118,16 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
-	*peer.Peer, bsmsg.BitSwapMessage, error) {
+	*peer.Peer, bsmsg.BitSwapMessage) {
 	u.DOut("ReceiveMessage from %v\n", p.Key().Pretty())
 
 	if p == nil {
-		return nil, nil, errors.New("Received nil Peer")
+		// TODO propagate the error upward
+		return nil, nil
 	}
 	if incoming == nil {
-		return nil, nil, errors.New("Received nil Message")
+		// TODO propagate the error upward
+		return nil, nil
 	}
 
 	bs.strategy.MessageReceived(p, incoming) // FIRST
@@ -157,7 +157,12 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bs
 		}
 	}
 	defer bs.strategy.MessageSent(p, message)
-	return p, message, nil
+	return p, message
+}
+
+func (bs *bitswap) ReceiveError(err error) {
+	// TODO log the network error
+	// TODO bubble the network error up to the parent context/error logger
 }
 
 // send strives to ensure that accounting is always performed when a message is
