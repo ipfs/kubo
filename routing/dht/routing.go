@@ -115,8 +115,26 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	return nil
 }
 
-// FindProvidersAsync runs FindProviders and sends back results over a channel
+// NB: not actually async. Used to keep the interface consistent while the
+// actual async method, FindProvidersAsync2 is under construction
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan *peer.Peer {
+	ch := make(chan *peer.Peer)
+	providers, err := dht.FindProviders(ctx, key)
+	if err != nil {
+		close(ch)
+		return ch
+	}
+	go func() {
+		defer close(ch)
+		for _, p := range providers {
+			ch <- p
+		}
+	}()
+	return ch
+}
+
+// FIXME: there's a bug here!
+func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count int) <-chan *peer.Peer {
 	peerOut := make(chan *peer.Peer, count)
 	go func() {
 		ps := newPeerSet()
