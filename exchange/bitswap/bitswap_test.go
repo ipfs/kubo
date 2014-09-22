@@ -146,10 +146,58 @@ func getOrFail(bitswap instance, b *blocks.Block, t *testing.T, wg *sync.WaitGro
 }
 
 func TestSendToWantingPeer(t *testing.T) {
-	t.Log("I get a file from peer |w|. In this message, I receive |w|'s wants")
-	t.Log("Peer |w| tells me it wants file |f|, but I don't have it")
-	t.Log("Later, peer |o| sends |f| to me")
+	net := tn.VirtualNetwork()
+	rs := tn.VirtualRoutingServer()
+	sg := NewSessionGenerator(net, rs)
+	bg := NewBlockGenerator(t)
+
+	me := sg.Next()
+	w := sg.Next()
+	o := sg.Next()
+
+	alpha := bg.Next()
+
+	const timeout = 100 * time.Millisecond
+	const wait = 100 * time.Millisecond
+
+	t.Log("Peer |w| attempts to get a file |alpha|. NB: alpha not available")
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	_, err := w.exchange.Block(ctx, alpha.Key())
+	if err == nil {
+		t.Error("Expected alpha to NOT be available")
+	}
+	time.Sleep(wait)
+
+	t.Log("Peer |w| announces availability of a file |beta|")
+	beta := bg.Next()
+	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	w.exchange.HasBlock(ctx, beta)
+	time.Sleep(wait)
+
+	t.Log("I request and get |beta| from |w|. In the message, I receive |w|'s wants [alpha]")
+	t.Log("I don't have alpha, but I keep it on my wantlist.")
+	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	me.exchange.Block(ctx, beta.Key())
+	time.Sleep(wait)
+
+	t.Log("Peer |o| announces the availability of |alpha|")
+	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	o.exchange.HasBlock(ctx, alpha)
+	time.Sleep(wait)
+
+	t.Log("I request |alpha| for myself.")
+	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	me.exchange.Block(ctx, alpha.Key())
+	time.Sleep(wait)
+
 	t.Log("After receiving |f| from |o|, I send it to the wanting peer |w|")
+	block, err := w.blockstore.Get(alpha.Key())
+	if err != nil {
+		t.Fatal("Should not have received an error")
+	}
+	if block.Key() != alpha.Key() {
+		t.Error("Expected to receive alpha from me")
+	}
 }
 
 func NewBlockGenerator(t *testing.T) BlockGenerator {
