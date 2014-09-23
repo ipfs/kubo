@@ -1,23 +1,18 @@
-package bitswap
+package mock
 
 import (
 	"bytes"
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-)
-import (
 	"github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 func TestKeyNotFound(t *testing.T) {
 
-	rs := func() RoutingServer {
-		// TODO fields
-		return &hashTable{}
-	}()
-	empty := rs.Providers(u.Key("not there"))
+	vrs := VirtualRoutingServer()
+	empty := vrs.Providers(u.Key("not there"))
 	if len(empty) != 0 {
 		t.Fatal("should be empty")
 	}
@@ -47,11 +42,10 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	peer := &peer.Peer{
-		ID: []byte("42"),
-	}
+	peer := &peer.Peer{ID: []byte("42")}
 	rs := VirtualRoutingServer()
 	client := rs.Client(peer)
+
 	k := u.Key("hello")
 	err := client.Provide(context.Background(), k)
 	if err != nil {
@@ -102,7 +96,9 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	client := rs.Client(&peer.Peer{ID: []byte("TODO")})
+	peer := &peer.Peer{ID: []byte("TODO")}
+	client := rs.Client(peer)
+
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	i := 0
 	for _ = range providersFromClient {
@@ -133,7 +129,8 @@ func TestCanceledContext(t *testing.T) {
 		}
 	}()
 
-	client := rs.Client(&peer.Peer{ID: []byte("peer id doesn't matter")})
+	local := &peer.Peer{ID: []byte("peer id doesn't matter")}
+	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
 	t.Log("context cancellation could simply take lower priority")
