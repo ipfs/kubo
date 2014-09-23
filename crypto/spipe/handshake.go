@@ -67,8 +67,12 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	// u.POut("sending encoded handshake\n")
-	s.insecure.Out <- encoded
+	// Send our Propose packet
+	select {
+	case s.insecure.Out <- encoded:
+	case <-s.ctx.Done():
+		return ErrClosed
+	}
 
 	// Parse their Propose packet and generate an Exchange packet.
 	// Exchange = (EphemeralPubKey, Signature)
@@ -137,7 +141,12 @@ func (s *SecurePipe) handshake() error {
 
 	exEncoded, err := proto.Marshal(exPacket)
 
-	s.insecure.Out <- exEncoded
+	// send out Exchange packet
+	select {
+	case s.insecure.Out <- exEncoded:
+	case <-s.ctx.Done():
+		return ErrClosed
+	}
 
 	// Parse their Exchange packet and generate a Finish packet.
 	// Finish = E('Finish')
@@ -182,7 +191,14 @@ func (s *SecurePipe) handshake() error {
 
 	finished := []byte("Finished")
 
-	s.Out <- finished
+	// send finished msg
+	select {
+	case <-s.ctx.Done():
+		return ErrClosed
+	case s.Out <- finished:
+	}
+
+	// recv finished msg
 	var resp2 []byte
 	select {
 	case <-s.ctx.Done():
@@ -194,7 +210,7 @@ func (s *SecurePipe) handshake() error {
 		return errors.New("Negotiation failed.")
 	}
 
-	u.DOut("[%s] identify: Got node id: %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
+	u.DOut("[%s] handshake: Got node id: %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
 	return nil
 }
 

@@ -104,8 +104,7 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {
 	u.DOut("[%s] Responding to ping from [%s]!\n", dht.self.ID.Pretty(), p.ID.Pretty())
-
-	return newMessage(pmes.GetType(), "", int(pmes.GetClusterLevel())), nil
+	return pmes, nil
 }
 
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error) {
