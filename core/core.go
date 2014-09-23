@@ -74,11 +74,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	local, err := initIdentity(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	peerstore := peer.NewPeerstore()
 
 	// FIXME(brian): This is a bit dangerous. If any of the vars declared in
@@ -90,11 +85,19 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route           *dht.IpfsDHT
 		exchangeSession exchange.Interface
+		local           *peer.Peer
 	)
 
 	if online {
 		// add protocol services here.
 		ctx := context.TODO() // derive this from a higher context.
+
+		// when not online, don't need to parse private keys (yet)
+		local, err := initIdentity(cfg)
+		if err != nil {
+			cancel()
+			return nil, err
+		}
 
 		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
 		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
