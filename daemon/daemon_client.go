@@ -8,7 +8,9 @@ import (
 	"net"
 	"os"
 
+	lock "github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -46,6 +48,21 @@ func getDaemonAddr(confdir string) (string, error) {
 // address of the daemon is retrieved from the configuration directory, where
 // live daemons write their addresses to special files.
 func SendCommand(command *Command, confdir string) error {
+	//check if daemon is running
+	log.Info("Checking if daemon is running...")
+	var err error
+	confdir, err = u.TildeExpansion(confdir)
+	if err != nil {
+		return err
+	}
+	lk, err := lock.Lock(confdir + "/daemon.lock")
+	if err == nil {
+		return ErrDaemonNotRunning
+		lk.Close()
+	}
+
+	log.Info("Daemon is running! %s", err)
+
 	server, err := getDaemonAddr(confdir)
 	if err != nil {
 		return err
