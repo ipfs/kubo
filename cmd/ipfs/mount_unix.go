@@ -54,7 +54,7 @@ func mountCmd(c *commander.Command, inp []string) error {
 		return err
 	}
 
-	dl, err := daemon.NewDaemonListener(n, maddr)
+	dl, err := daemon.NewDaemonListener(n, maddr, conf)
 	if err != nil {
 		return err
 	}

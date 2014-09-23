@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
@@ -37,18 +38,26 @@ func addCmd(c *commander.Command, inp []string) error {
 		u.POut(c.Long)
 		return nil
 	}
+	conf, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
+
+	for i, fi := range inp {
+		abspath, err := filepath.Abs(fi)
+		if err != nil {
+			return err
+		}
+		inp[i] = abspath
+	}
 
 	cmd := daemon.NewCommand()
 	cmd.Command = "add"
 	cmd.Args = inp
 	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
-	err := daemon.SendCommand(cmd, "localhost:12345")
+	err = daemon.SendCommand(cmd, conf)
 	if err != nil {
 		// Do locally
-		conf, err := getConfigDir(c.Parent)
-		if err != nil {
-			return err
-		}
 		n, err := localNode(conf, false)
 		if err != nil {
 			return err

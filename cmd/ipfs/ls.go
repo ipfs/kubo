@@ -30,16 +30,16 @@ func lsCmd(c *commander.Command, inp []string) error {
 		u.POut(c.Long)
 		return nil
 	}
+	conf, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
 
 	com := daemon.NewCommand()
 	com.Command = "ls"
 	com.Args = inp
-	err := daemon.SendCommand(com, "localhost:12345")
+	err = daemon.SendCommand(com, conf)
 	if err != nil {
-		conf, err := getConfigDir(c.Parent)
-		if err != nil {
-			return err
-		}
 		n, err := localNode(conf, false)
 		if err != nil {
 			return err

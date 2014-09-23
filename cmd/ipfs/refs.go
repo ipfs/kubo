@@ -38,18 +38,19 @@ func refCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
+	conf, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
+
 	cmd := daemon.NewCommand()
 	cmd.Command = "refs"
 	cmd.Args = inp
 	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
 	cmd.Opts["u"] = c.Flag.Lookup("u").Value.Get()
-	err := daemon.SendCommand(cmd, "localhost:12345")
+	err = daemon.SendCommand(cmd, conf)
 	if err != nil {
 		// Do locally
-		conf, err := getConfigDir(c.Parent)
-		if err != nil {
-			return err
-		}
 		n, err := localNode(conf, false)
 		if err != nil {
 			return err

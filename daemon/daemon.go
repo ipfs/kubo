@@ -3,14 +3,20 @@ package daemon
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"os"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/op/go-logging"
 
+	"github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
+
+var log = logging.MustGetLogger("daemon")
 
 // DaemonListener listens to an initialized IPFS node and can send it commands instead of
 // starting up a new set of connections
@@ -18,6 +24,7 @@ type DaemonListener struct {
 	node   *core.IpfsNode
 	list   net.Listener
 	closed bool
+	lk     io.Closer
 }
 
 //Command accepts user input and can be sent to the running IPFS node
@@ -27,21 +34,46 @@ type Command struct {
 	Opts    map[string]interface{}
 }
 
-func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr) (*DaemonListener, error) {
+func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir string) (*DaemonListener, error) {
+	var err error
+	confdir, err = u.TildeExpansion(confdir)
+	if err != nil {
+		return nil, err
+	}
+
+	lk, err := lock.Lock(confdir + "/daemon.lock")
+	if err != nil {
+		return nil, err
+	}
+
 	network, host, err := addr.DialArgs()
 	if err != nil {
 		return nil, err
 	}
 
+	ofi, err := os.Create(confdir + "/rpcaddress")
+	if err != nil {
+		log.Warning("Could not create rpcaddress file: %s", err)
+		return nil, err
+	}
+
+	_, err = ofi.Write([]byte(host))
+	if err != nil {
+		log.Warning("Could not write to rpcaddress file: %s", err)
+		return nil, err
+	}
+	ofi.Close()
+
 	list, err := net.Listen(network, host)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("New daemon listener initialized.")
+	log.Info("New daemon listener initialized.")
 
 	return &DaemonListener{
 		node: ipfsnode,
 		list: list,
+		lk:   lk,
 	}, nil
 }
 
@@ -60,6 +92,7 @@ func (dl *DaemonListener) Listen() {
 			if !dl.closed {
 				u.PErr("DaemonListener Accept: %v\n", err)
 			}
+			dl.lk.Close()
 			return
 		}
 		go dl.handleConnection(conn)
