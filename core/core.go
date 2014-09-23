@@ -68,15 +68,19 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	// derive this from a higher context.
 	// cancel if we need to fail early.
 	ctx, cancel := context.WithCancel(context.TODO())
+	success := false // flip to true after all sub-system inits succeed
+	defer func() {
+		if !success {
+			cancel()
+		}
+	}()
 
 	if cfg == nil {
-		cancel()
 		return nil, fmt.Errorf("configuration required")
 	}
 
 	d, err := makeDatastore(cfg.Datastore)
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
@@ -99,7 +103,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		// when not online, don't need to parse private keys (yet)
 		local, err := initIdentity(cfg)
 		if err != nil {
-			cancel()
 			return nil, err
 		}
 
@@ -107,11 +110,9 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
 
 		if err := dhtService.Start(ctx); err != nil {
-			cancel()
 			return nil, err
 		}
 		if err := exchangeService.Start(ctx); err != nil {
-			cancel()
 			return nil, err
 		}
 
@@ -121,7 +122,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 			// add protocol services here.
 		})
 		if err != nil {
-			cancel()
 			return nil, err
 		}
 
@@ -140,12 +140,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	// session that simply doesn't return blocks
 	bs, err := bserv.NewBlockService(d, exchangeSession)
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
 	dag := &merkledag.DAGService{Blocks: bs}
 
+	success = true
 	return &IpfsNode{
 		Config:    cfg,
 		Peerstore: peerstore,
