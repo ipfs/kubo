@@ -20,7 +20,7 @@ type MockRouter struct {
 	peer      *peer.Peer
 }
 
-func NewMockRouter(local *peer.Peer, dstore ds.Datastore) *MockRouter {
+func NewMockRouter(local *peer.Peer, dstore ds.Datastore) routing.IpfsRouting {
 	return &MockRouter{
 		datastore: dstore,
 		peer:      local,
@@ -84,6 +84,8 @@ type RoutingServer interface {
 	Announce(*peer.Peer, u.Key) error
 
 	Providers(u.Key) []*peer.Peer
+
+	Client(p *peer.Peer) routing.IpfsRouting
 }
 
 func VirtualRoutingServer() RoutingServer {
@@ -127,4 +129,11 @@ func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
 	}
 
 	return ret
+}
+
+func (rs *hashTable) Client(p *peer.Peer) routing.IpfsRouting {
+	return &MockRouter{
+		peer:      p,
+		hashTable: rs,
+	}
 }

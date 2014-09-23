@@ -43,12 +43,10 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	peer := &peer.Peer{
-		ID: []byte("42"),
-	}
+	peer := &peer.Peer{ID: []byte("42")}
 	rs := mock.VirtualRoutingServer()
-	client := mock.NewMockRouter(peer, nil)
-	client.SetRoutingServer(rs)
+	client := rs.Client(peer)
+
 	k := u.Key("hello")
 	err := client.Provide(context.Background(), k)
 	if err != nil {
@@ -99,8 +97,9 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	client := mock.NewMockRouter(&peer.Peer{ID: []byte("TODO")}, nil)
-	client.SetRoutingServer(rs)
+	peer := &peer.Peer{ID: []byte("TODO")}
+	client := rs.Client(peer)
+
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	i := 0
 	for _ = range providersFromClient {
@@ -132,8 +131,7 @@ func TestCanceledContext(t *testing.T) {
 	}()
 
 	local := &peer.Peer{ID: []byte("peer id doesn't matter")}
-	client := mock.NewMockRouter(local, nil)
-	client.SetRoutingServer(rs)
+	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
 	t.Log("context cancellation could simply take lower priority")
