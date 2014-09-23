@@ -63,7 +63,7 @@ Guidelines:
 
 ## Todo
 
-Ipfs is nearing an alpha release. Things left to be done are all marked as [Issues](https://github.com/jbenet/gp-ipfs/issues)
+IPFS is nearing an alpha release. Things left to be done are all marked as [Issues](https://github.com/jbenet/go-ipfs/issues)
 
 ## Development Dependencies
 
