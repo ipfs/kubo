@@ -194,7 +194,7 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer,
 	u.DOut("Find providers for: '%s'\n", key)
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
-		return nil, kb.ErrLookupFailure
+		return nil, nil
 	}
 
 	for level := 0; level < len(dht.routingTables); {

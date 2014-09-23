@@ -62,7 +62,7 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	// u.Debug = true
+	u.Debug = true
 	err := CmdIpfs.Dispatch(os.Args[1:])
 	if err != nil {
 		if len(err.Error()) > 0 {

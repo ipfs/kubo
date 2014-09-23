@@ -30,7 +30,6 @@ var cmdIpfsMount = &commander.Command{
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
-	u.Debug = false
 	if len(inp) < 1 || len(inp[0]) == 0 {
 		u.POut(c.Long)
 		return nil
