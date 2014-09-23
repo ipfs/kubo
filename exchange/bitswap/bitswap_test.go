@@ -281,8 +281,7 @@ func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
 	p := &peer.Peer{ID: id}
 
 	adapter := net.Adapter(p)
-	htc := mock.NewMockRouter(p, nil)
-	htc.SetRoutingServer(rs)
+	htc := rs.Client(p)
 
 	blockstore := bstore.NewBlockstore(ds.NewMapDatastore())
 	const alwaysSendToPeer = true
