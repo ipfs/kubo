@@ -5,19 +5,15 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-)
-import (
 	"github.com/jbenet/go-ipfs/peer"
+	mock "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 func TestKeyNotFound(t *testing.T) {
 
-	rs := func() RoutingServer {
-		// TODO fields
-		return &hashTable{}
-	}()
-	empty := rs.Providers(u.Key("not there"))
+	vrs := mock.VirtualRoutingServer()
+	empty := vrs.Providers(u.Key("not there"))
 	if len(empty) != 0 {
 		t.Fatal("should be empty")
 	}
@@ -29,7 +25,7 @@ func TestSetAndGet(t *testing.T) {
 		ID: pid,
 	}
 	k := u.Key("42")
-	rs := VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	err := rs.Announce(p, k)
 	if err != nil {
 		t.Fatal(err)
@@ -50,8 +46,9 @@ func TestClientFindProviders(t *testing.T) {
 	peer := &peer.Peer{
 		ID: []byte("42"),
 	}
-	rs := VirtualRoutingServer()
-	client := rs.Client(peer)
+	rs := mock.VirtualRoutingServer()
+	client := mock.NewMockRouter(peer, nil)
+	client.SetRoutingServer(rs)
 	k := u.Key("hello")
 	err := client.Provide(context.Background(), k)
 	if err != nil {
@@ -83,7 +80,7 @@ func TestClientFindProviders(t *testing.T) {
 }
 
 func TestClientOverMax(t *testing.T) {
-	rs := VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
@@ -102,7 +99,8 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	client := rs.Client(&peer.Peer{ID: []byte("TODO")})
+	client := mock.NewMockRouter(&peer.Peer{ID: []byte("TODO")}, nil)
+	client.SetRoutingServer(rs)
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	i := 0
 	for _ = range providersFromClient {
@@ -115,7 +113,7 @@ func TestClientOverMax(t *testing.T) {
 
 // TODO does dht ensure won't receive self as a provider? probably not.
 func TestCanceledContext(t *testing.T) {
-	rs := VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	k := u.Key("hello")
 
 	t.Log("async'ly announce infinite stream of providers for key")
@@ -133,7 +131,9 @@ func TestCanceledContext(t *testing.T) {
 		}
 	}()
 
-	client := rs.Client(&peer.Peer{ID: []byte("peer id doesn't matter")})
+	local := &peer.Peer{ID: []byte("peer id doesn't matter")}
+	client := mock.NewMockRouter(local, nil)
+	client.SetRoutingServer(rs)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
 	t.Log("context cancellation could simply take lower priority")

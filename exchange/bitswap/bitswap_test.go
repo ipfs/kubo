@@ -16,6 +16,7 @@ import (
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
+	mock "github.com/jbenet/go-ipfs/routing/mock"
 	util "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -23,7 +24,7 @@ import (
 func TestGetBlockTimeout(t *testing.T) {
 
 	net := tn.VirtualNetwork()
-	rs := tn.VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	g := NewSessionGenerator(net, rs)
 
 	self := g.Next()
@@ -40,7 +41,7 @@ func TestGetBlockTimeout(t *testing.T) {
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 	net := tn.VirtualNetwork()
-	rs := tn.VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	g := NewSessionGenerator(net, rs)
 
 	block := testutil.NewBlockOrFail(t, "block")
@@ -61,7 +62,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	net := tn.VirtualNetwork()
-	rs := tn.VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	block := testutil.NewBlockOrFail(t, "block")
 	g := NewSessionGenerator(net, rs)
 
@@ -90,7 +91,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 func TestSwarm(t *testing.T) {
 	net := tn.VirtualNetwork()
-	rs := tn.VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := NewBlockGenerator(t)
 
@@ -151,7 +152,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	util.Debug = true
 
 	net := tn.VirtualNetwork()
-	rs := tn.VirtualRoutingServer()
+	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := NewBlockGenerator(t)
 
@@ -237,7 +238,7 @@ func (bg *BlockGenerator) Blocks(n int) []*blocks.Block {
 }
 
 func NewSessionGenerator(
-	net tn.Network, rs tn.RoutingServer) SessionGenerator {
+	net tn.Network, rs mock.RoutingServer) SessionGenerator {
 	return SessionGenerator{
 		net: net,
 		rs:  rs,
@@ -248,7 +249,7 @@ func NewSessionGenerator(
 type SessionGenerator struct {
 	seq int
 	net tn.Network
-	rs  tn.RoutingServer
+	rs  mock.RoutingServer
 }
 
 func (g *SessionGenerator) Next() instance {
@@ -276,11 +277,12 @@ type instance struct {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(net tn.Network, rs tn.RoutingServer, id peer.ID) instance {
+func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
 	p := &peer.Peer{ID: id}
 
 	adapter := net.Adapter(p)
-	htc := rs.Client(p)
+	htc := mock.NewMockRouter(p, nil)
+	htc.SetRoutingServer(rs)
 
 	blockstore := bstore.NewBlockstore(ds.NewMapDatastore())
 	const alwaysSendToPeer = true
