@@ -65,12 +65,18 @@ type IpfsNode struct {
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
 func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
+	// derive this from a higher context.
+	// cancel if we need to fail early.
+	ctx, cancel := context.WithCancel(context.TODO())
+
 	if cfg == nil {
+		cancel()
 		return nil, fmt.Errorf("configuration required")
 	}
 
 	d, err := makeDatastore(cfg.Datastore)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
@@ -89,8 +95,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	)
 
 	if online {
-		// add protocol services here.
-		ctx := context.TODO() // derive this from a higher context.
 
 		// when not online, don't need to parse private keys (yet)
 		local, err := initIdentity(cfg)
@@ -103,17 +107,21 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
 
 		if err := dhtService.Start(ctx); err != nil {
+			cancel()
 			return nil, err
 		}
 		if err := exchangeService.Start(ctx); err != nil {
+			cancel()
 			return nil, err
 		}
 
 		net, err = inet.NewIpfsNetwork(context.TODO(), local, peerstore, &mux.ProtocolMap{
 			mux.ProtocolID_Routing:  dhtService,
 			mux.ProtocolID_Exchange: exchangeService,
+			// add protocol services here.
 		})
 		if err != nil {
+			cancel()
 			return nil, err
 		}
 
@@ -132,6 +140,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	// session that simply doesn't return blocks
 	bs, err := bserv.NewBlockService(d, exchangeSession)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
