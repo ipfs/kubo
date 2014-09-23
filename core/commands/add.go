@@ -17,12 +17,25 @@ import (
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
+// Add is a command that imports files and directories -- given as arguments -- into ipfs.
 func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
 	depth := 1
+
+	// if recursive, set depth to reflect so
 	if r, ok := opts["r"].(bool); r && ok {
 		depth = -1
 	}
+
+	// add every path in args
 	for _, path := range args {
+
+		// get absolute path, as incoming arg may be relative
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("addFile error: %v", err)
+		}
+
+		// Add the file
 		nd, err := AddPath(n, path, depth)
 		if err != nil {
 			if err == ErrDepthLimitExceeded && depth == 1 {
@@ -31,6 +44,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 			return fmt.Errorf("addFile error: %v", err)
 		}
 
+		// get the key to print it
 		k, err := nd.Key()
 		if err != nil {
 			return fmt.Errorf("addFile error: %v", err)
@@ -41,6 +55,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 	return nil
 }
 
+// AddPath adds a particular path to ipfs.
 func AddPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 	if depth == 0 {
 		return nil, ErrDepthLimitExceeded
