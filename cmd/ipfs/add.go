@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
@@ -57,11 +58,17 @@ func addCmd(c *commander.Command, inp []string) error {
 	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
 	err = daemon.SendCommand(cmd, conf)
 	if err != nil {
+		fmt.Println(err)
 		// Do locally
+
+		now := time.Now()
 		n, err := localNode(conf, false)
 		if err != nil {
 			return err
 		}
+
+		took := time.Now().Sub(now)
+		fmt.Printf("localNode creation took %s\n", took.String())
 
 		return commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
 	}

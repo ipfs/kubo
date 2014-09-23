@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
@@ -63,7 +64,15 @@ func ipfsCmd(c *commander.Command, args []string) error {
 
 func main() {
 	u.Debug = true
-	err := CmdIpfs.Dispatch(os.Args[1:])
+	ofi, err := os.Create("cpu.prof")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	pprof.StartCPUProfile(ofi)
+	defer ofi.Close()
+	defer pprof.StopCPUProfile()
+	err = CmdIpfs.Dispatch(os.Args[1:])
 	if err != nil {
 		if len(err.Error()) > 0 {
 			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
