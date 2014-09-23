@@ -115,8 +115,14 @@ func TestPing(t *testing.T) {
 	}
 
 	//Test that we can ping the node
-	ctx, _ := context.WithTimeout(context.Background(), 2*time.Millisecond)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Millisecond)
 	err = dhtA.Ping(ctx, peerB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, _ = context.WithTimeout(context.Background(), 5*time.Millisecond)
+	err = dhtB.Ping(ctx, peerA)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,6 +170,15 @@ func TestValueGetSet(t *testing.T) {
 		t.Fatalf("Expected 'world' got '%s'", string(val))
 	}
 
+	ctxT, _ = context.WithTimeout(context.Background(), time.Second*2)
+	val, err = dhtB.GetValue(ctxT, "hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(val) != "world" {
+		t.Fatalf("Expected 'world' got '%s'", string(val))
+	}
 }
 
 func TestProvides(t *testing.T) {
