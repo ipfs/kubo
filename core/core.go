@@ -186,7 +186,7 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 }
 
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
-	for _, p := range cfg.Peers {
+	for _, p := range cfg.Bootstrap {
 		if p.PeerID == "" {
 			u.PErr("error: peer does not include PeerID. %v\n", p)
 		}

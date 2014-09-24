@@ -39,7 +39,7 @@ type Config struct {
 	Identity  Identity         // local node's peer identity
 	Datastore Datastore        // local node's storage
 	Addresses Addresses        // local node's addresses
-	Peers     []*BootstrapPeer // local nodes's bootstrap peers
+	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 
 // DefaultPathRoot is the default parth for the IPFS node's root dir.

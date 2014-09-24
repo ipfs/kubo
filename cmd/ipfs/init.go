@@ -106,7 +106,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg.Identity.PeerID = id.Pretty()
 
 	// Use these hardcoded bootstrap peers for now.
-	cfg.Peers = []*config.BootstrapPeer{
+	cfg.Bootstrap = []*config.BootstrapPeer{
 		&config.BootstrapPeer{
 			// mars.i.ipfs.io
 			PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
