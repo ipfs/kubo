@@ -6,12 +6,18 @@ import (
 	"net"
 	"os"
 	"time"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 //SendCommand connects to the address on the network with a timeout and encodes the connection into JSON
-func SendCommand(command *Command, server string) error {
+func SendCommand(command *Command, server *ma.Multiaddr) error {
+	network, host, err := server.DialArgs()
+	if err != nil {
+		return err
+	}
 
-	conn, err := net.DialTimeout("tcp", server, time.Millisecond*300)
+	conn, err := net.DialTimeout(network, host, time.Millisecond*300)
 
 	if err != nil {
 		return err
