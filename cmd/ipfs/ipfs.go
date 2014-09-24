@@ -4,7 +4,7 @@ import (
 	"github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/spf13/cobra"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
 // The IPFS command tree. It is an instance of `cobra.Command`.

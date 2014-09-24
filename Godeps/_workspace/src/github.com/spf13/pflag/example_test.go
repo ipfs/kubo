@@ -3,32 +3,22 @@
 // license that can be found in the LICENSE file.
 
 // These examples demonstrate more intricate uses of the flag package.
-package flag_test
+package pflag_test
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"strings"
 	"time"
+
+	flag "github.com/ogier/pflag"
 )
 
 // Example 1: A single string flag called "species" with default value "gopher".
 var species = flag.String("species", "gopher", "the species we are studying")
 
-// Example 2: Two flags sharing a variable, so we can have a shorthand.
-// The order of initialization is undefined, so make sure both use the
-// same default value. They must be set up with an init function.
-var gopherType string
-
-func init() {
-	const (
-		defaultGopher = "pocket"
-		usage         = "the variety of gopher"
-	)
-	flag.StringVar(&gopherType, "gopher_type", defaultGopher, usage)
-	flag.StringVar(&gopherType, "g", defaultGopher, usage+" (shorthand)")
-}
+// Example 2: A flag with a shorthand letter.
+var gopherType = flag.StringP("gopher_type", "g", "pocket", "the variety of gopher")
 
 // Example 3: A user-defined flag type, a slice of durations.
 type interval []time.Duration

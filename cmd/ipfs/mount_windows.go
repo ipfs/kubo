@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/spf13/cobra"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
 var cmdIpfsMount = &cobra.Command{

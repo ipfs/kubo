@@ -4,7 +4,7 @@ import (
 	"errors"
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/spf13/cobra"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"

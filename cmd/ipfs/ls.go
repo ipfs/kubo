@@ -6,7 +6,7 @@ import (
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/spf13/cobra"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
 var cmdIpfsLs = &cobra.Command{

@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3.1",
 	"Packages": [
 		"./..."
 	],
@@ -39,14 +39,6 @@
 			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
 		},
 		{
-			"ImportPath": "github.com/gonuts/flag",
-			"Rev": "741a6cbd37a30dedc93f817e7de6aaf0ca38a493"
-		},
-		{
-			"ImportPath": "github.com/jbenet/commander",
-			"Rev": "e0cf317891f0ab6f1ac64dfcb754b4fb5e69f7df"
-		},
-		{
 			"ImportPath": "github.com/jbenet/datastore.go",
 			"Rev": "e89f0511689bb2d0608496e15491f241842de085"
 		},
@@ -67,6 +59,14 @@
 			"ImportPath": "github.com/jbenet/go-multihash",
 			"Comment": "0.1.0-5-g1976046",
 			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
+		},
+		{
+			"ImportPath": "github.com/spf13/cobra",
+			"Rev": "d8ec18ee745d79d236ddaee7271c3b166dd4933a"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Rev": "463bdc838f2b35e9307e91d480878bda5fff7232"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",

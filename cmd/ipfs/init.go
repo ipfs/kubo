@@ -8,7 +8,7 @@ import (
 	ci "github.com/jbenet/go-ipfs/crypto"
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/spf13/cobra"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
 var cmdIpfsInit = &cobra.Command{
