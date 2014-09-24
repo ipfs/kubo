@@ -3,15 +3,15 @@ package main
 import (
 	"os"
 
-	"github.com/spf13/cobra"
 	commands "github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 )
 
 var cmdIpfsRefs = &cobra.Command{
-	Use: "refs",
-	Short:     "List link hashes from an object.",
+	Use:   "refs",
+	Short: "List link hashes from an object.",
 	Long: `ipfs refs <ipfs-path> - List link hashes from an object..
 
     Retrieves the object named by <ipfs-path> and displays the link
@@ -22,13 +22,14 @@ var cmdIpfsRefs = &cobra.Command{
     Note: list all refs recursively with -r.
 
 `,
-	Run:  refCmd,
+	Run: refCmd,
 }
 
 var (
 	refsRecursive bool
-	unique bool
+	unique        bool
 )
+
 func init() {
 	cmdIpfsRefs.Flags().BoolVarP(&refsRecursive, "recursive", "r", false, "recursive: list refs recursively")
 	cmdIpfsRefs.Flags().BoolVarP(&unique, "unique", "u", false, "unique: list each ref only once")

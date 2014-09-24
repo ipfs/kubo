@@ -2,17 +2,17 @@ package main
 
 import (
 	"errors"
-	"github.com/spf13/cobra"
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
 )
 
 var cmdIpfsConfig = &cobra.Command{
-	Use: "config",
-	Short:     "Get/Set ipfs config values",
+	Use:   "config",
+	Short: "Get/Set ipfs config values",
 	Long: `ipfs config [<key>] [<value>] - Get/Set ipfs config values.
 
     ipfs config <key>          - Get value of <key>
@@ -31,13 +31,14 @@ Examples:
       ipfs config datastore.path ~/.go-ipfs/datastore
 
 `,
-	Run:  configCmd,
+	Run: configCmd,
 }
 
 var (
 	edit bool
 	show bool
 )
+
 func init() {
 	cmdIpfsConfig.Flags().BoolVarP(&edit, "edit", "e", false, "Edit config file in $EDITOR")
 	cmdIpfsConfig.Flags().BoolVarP(&show, "show", "s", false, "Show config file")

@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/spf13/cobra"
 
 	"github.com/jbenet/go-ipfs/daemon"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
@@ -14,8 +14,8 @@ import (
 )
 
 var cmdIpfsMount = &cobra.Command{
-	Use: "mount",
-	Short:     "Mount an ipfs read-only mountpoint.",
+	Use:   "mount",
+	Short: "Mount an ipfs read-only mountpoint.",
 	Long: `ipfs mount <os-path> - Mount an ipfs read-only mountpoint.
 
     Mount ipfs at a read-only mountpoint on the OS. All ipfs objects
@@ -23,7 +23,7 @@ var cmdIpfsMount = &cobra.Command{
     not be listable, as it is virtual. Accessing known paths directly.
 
 `,
-	Run:  mountCmd,
+	Run: mountCmd,
 }
 
 func init() {

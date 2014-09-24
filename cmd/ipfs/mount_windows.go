@@ -6,14 +6,14 @@ import (
 )
 
 var cmdIpfsMount = &cobra.Command{
-	Use: "mount",
-	Short:     "Mount an ipfs read-only mountpoint.",
-	Long:      `Not yet implemented on windows.`,
-	Run:       mountCmd,
+	Use:   "mount",
+	Short: "Mount an ipfs read-only mountpoint.",
+	Long:  `Not yet implemented on windows.`,
+	Run:   mountCmd,
 }
 
 func init() {
-  CmdIpfs.AddCommand(cmdIpfsMount)
+	CmdIpfs.AddCommand(cmdIpfsMount)
 }
 
 func mountCmd(c *cobra.Command, inp []string) {

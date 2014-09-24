@@ -3,21 +3,21 @@ package main
 import (
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 )
 
 var cmdIpfsCat = &cobra.Command{
-	Use: "cat",
-	Short:     "Show ipfs object data.",
+	Use:   "cat",
+	Short: "Show ipfs object data.",
 	Long: `ipfs cat <ipfs-path> - Show ipfs object data.
 
     Retrieves the object named by <ipfs-path> and displays the Data
     it contains.
 `,
-	Run:  catCmd,
+	Run: catCmd,
 }
 
 func init() {

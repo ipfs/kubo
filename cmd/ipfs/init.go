@@ -4,30 +4,30 @@ import (
 	"encoding/base64"
 	"os"
 
-	"github.com/spf13/cobra"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 )
 
 var cmdIpfsInit = &cobra.Command{
-	Use: "init",
-	Short:     "Initialize ipfs local configuration",
+	Use:   "init",
+	Short: "Initialize ipfs local configuration",
 	Long: `ipfs init
 
 	Initializes ipfs configuration files and generates a
 	new keypair.
 `,
-	Run:  initCmd,
+	Run: initCmd,
 }
 
-
 var (
-	bits int
+	bits       int
 	passphrase string
-	force bool
+	force      bool
 )
+
 func init() {
 	cmdIpfsInit.Flags().IntVarP(&bits, "bits", "b", 4096, "number of bits for keypair")
 	cmdIpfsInit.Flags().StringVarP(&passphrase, "passphrase", "p", "", "passphrase for encrypting keys")

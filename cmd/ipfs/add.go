@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 )
 
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 var cmdIpfsAdd = &cobra.Command{
-	Use: "add",
-	Short:     "Add an object to ipfs.",
+	Use:   "add",
+	Short: "Add an object to ipfs.",
 	Long: `ipfs add <path>... - Add objects to ipfs.
 
     Adds contents of <path> to ipfs. Use -r to add directories.
@@ -23,10 +23,11 @@ var cmdIpfsAdd = &cobra.Command{
     MerkleDAG. A smarter partial add with a staging area (like git)
     remains to be implemented.
 `,
-	Run:  addCmd,
+	Run: addCmd,
 }
 
 var recursive bool
+
 func init() {
 	cmdIpfsAdd.Flags().BoolVarP(&recursive, "recursive", "r", false, "add objects recursively")
 	CmdIpfs.AddCommand(cmdIpfsAdd)

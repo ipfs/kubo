@@ -3,15 +3,15 @@ package main
 import (
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 )
 
 var cmdIpfsLs = &cobra.Command{
-	Use: "ls",
-	Short:     "List links from an object.",
+	Use:   "ls",
+	Short: "List links from an object.",
 	Long: `ipfs ls <ipfs-path> - List links from an object.
 
     Retrieves the object named by <ipfs-path> and displays the links
@@ -20,7 +20,7 @@ var cmdIpfsLs = &cobra.Command{
     <link base58 hash> <link size in bytes> <link name>
 
 `,
-	Run:  lsCmd,
+	Run: lsCmd,
 }
 
 func init() {

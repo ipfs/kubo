@@ -1,22 +1,23 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/spf13/cobra"
 )
 
 // The IPFS command tree. It is an instance of `cobra.Command`.
 var CmdIpfs = &cobra.Command{
-	Use: "ipfs [<flags>] <command> [<args>]",
-	Short:     "global versioned p2p merkledag file system",
+	Use:   "ipfs [<flags>] <command> [<args>]",
+	Short: "global versioned p2p merkledag file system",
 	Long: `ipfs - global versioned p2p merkledag file system
 Learn more at http://ipfs.io
 `,
 }
 
 var configDir string
+
 func init() {
 	CmdIpfs.PersistentFlags().StringVarP(&configDir, "config", "c", config.DefaultPathRoot, "config directory")
 }
