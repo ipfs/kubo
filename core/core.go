@@ -148,7 +148,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 }
 
 func initIdentity(cfg *config.Config) (*peer.Peer, error) {
-	if cfg.Identity == nil {
+	if cfg.Identity.PeerID == "" {
 		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
 	}
 
@@ -158,8 +158,8 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 
 	// address is optional
 	var addresses []*ma.Multiaddr
-	if len(cfg.Identity.Address) > 0 {
-		maddr, err := ma.NewMultiaddr(cfg.Identity.Address)
+	if len(cfg.Addresses.Swarm) > 0 {
+		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
 		if err != nil {
 			return nil, err
 		}

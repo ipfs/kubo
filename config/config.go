@@ -14,7 +14,6 @@ import (
 type Identity struct {
 	PeerID  string
 	PrivKey string
-	Address string
 }
 
 // Datastore tracks the configuration of the datastore.
@@ -23,30 +22,33 @@ type Datastore struct {
 	Path string
 }
 
-type SavedPeer struct {
+// Addresses stores the (string) multiaddr addresses for the node.
+type Addresses struct {
+	Swarm string // address for the swarm network
+	API   string // address for the local API (RPC)
+}
+
+// BootstrapPeer is a peer used to bootstrap the network.
+type BootstrapPeer struct {
 	Address string
 	PeerID  string // until multiaddr supports ipfs, use another field.
 }
 
 // Config is used to load IPFS config files.
 type Config struct {
-	Identity   *Identity    // local node's peer identity
-	Datastore  Datastore    // local node's storage
-	RPCAddress string       // local node's RPC address
-	Peers      []*SavedPeer // local nodes's bootstrap peers
+	Identity  Identity         // local node's peer identity
+	Datastore Datastore        // local node's storage
+	Addresses Addresses        // local node's addresses
+	Peers     []*BootstrapPeer // local nodes's bootstrap peers
 }
 
+// DefaultPathRoot is the default parth for the IPFS node's root dir.
 const DefaultPathRoot = "~/.go-ipfs"
-const DefaultConfigFilePath = DefaultPathRoot + "/config"
-const DefaultConfigFile = `{
-  "identity": {},
-  "datastore": {
-    "type": "leveldb",
-    "path": "` + DefaultPathRoot + `/datastore"
-  }
-}
-`
 
+// DefaultConfigFilePath points to the ipfs node config file.
+const DefaultConfigFilePath = DefaultPathRoot + "/config"
+
+// DecodePrivateKey is a helper to decode the users PrivateKey
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
 	if err != nil {
