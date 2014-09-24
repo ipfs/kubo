@@ -41,13 +41,6 @@ func initCmd(c *cobra.Command, inp []string) {
 		u.PErr(err.Error())
 		return
 	}
-	if configpath == "" {
-		configpath, err = u.TildeExpansion("~/.go-ipfs")
-		if err != nil {
-			u.PErr(err.Error())
-			return
-		}
-	}
 
 	u.POut("initializing ipfs node at %s\n", configpath)
 	filename, err := config.Filename(configpath + "/config")

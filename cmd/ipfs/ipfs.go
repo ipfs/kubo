@@ -16,8 +16,9 @@ Learn more at http://ipfs.io
 `,
 }
 
+var configDir string
 func init() {
-	CmdIpfs.PersistentFlags().StringP("config", "c", config.DefaultPathRoot, "config directory")
+	CmdIpfs.PersistentFlags().StringVarP(&configDir, "config", "c", config.DefaultPathRoot, "config directory")
 }
 
 func main() {
@@ -37,6 +38,8 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 // Gets the config "-c" flag from the command, or returns
 // the empty string
 func getConfigDir(c *cobra.Command) (string, error) {
-	conf := c.Flags().Lookup("c").Value.String()
-	return conf, nil
+	if configDir == "" {
+		return u.TildeExpansion("~/.go-ipfs")
+	}
+	return u.TildeExpansion(configDir)
 }
