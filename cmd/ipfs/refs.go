@@ -5,7 +5,9 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	commands "github.com/jbenet/go-ipfs/core/commands"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -43,18 +45,28 @@ func refCmd(c *commander.Command, inp []string) error {
 	cmd.Args = inp
 	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
 	cmd.Opts["u"] = c.Flag.Lookup("u").Value.Get()
-	err := daemon.SendCommand(cmd, "localhost:12345")
+
+	com := daemon.NewCommand()
+	com.Command = "cat"
+	com.Args = inp
+
+	confDir, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
+	conf, err := config.Load(confDir + "/config")
+	dAddr, err := ma.NewMultiaddr(conf.RPCAddress)
+	if err != nil {
+		return err
+	}
+
+	err = daemon.SendCommand(cmd, dAddr)
 	if err != nil {
 		// Do locally
-		conf, err := getConfigDir(c.Parent)
+		n, err := localNode(confDir, false)
 		if err != nil {
 			return err
 		}
-		n, err := localNode(conf, false)
-		if err != nil {
-			return err
-		}
-
 		return commands.Refs(n, cmd.Args, cmd.Opts, os.Stdout)
 	}
 	return nil

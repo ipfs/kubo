@@ -339,7 +339,7 @@ func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 
 	pmes := newMessage(Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
-	u.DOut("[%s] ping %s end (err = %s)\n", dht.self.ID.Pretty(), p.ID.Pretty(), err)
+	u.DOut("[%s] ping %s end (err = %v)\n", dht.self.ID.Pretty(), p.ID.Pretty(), err)
 	return err
 }
 
