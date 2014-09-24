@@ -12,8 +12,8 @@ var CmdIpfs = &cobra.Command{
 	Use: "ipfs [<flags>] <command> [<args>]",
 	Short:     "global versioned p2p merkledag file system",
 	Long: `ipfs - global versioned p2p merkledag file system
-	Learn more at http://ipfs.io
-	`,
+Learn more at http://ipfs.io
+`,
 }
 
 func init() {

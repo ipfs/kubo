@@ -2,9 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/spf13/cobra"
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
 	"io"
@@ -12,8 +10,8 @@ import (
 	"os/exec"
 )
 
-var cmdIpfsConfig = &commander.Command{
-	UsageLine: "config",
+var cmdIpfsConfig = &cobra.Command{
+	Use: "config",
 	Short:     "Get/Set ipfs config values",
 	Long: `ipfs config [<key>] [<value>] - Get/Set ipfs config values.
 
@@ -34,69 +32,82 @@ Examples:
 
 `,
 	Run:  configCmd,
-	Flag: *flag.NewFlagSet("ipfs-config", flag.ExitOnError),
 }
 
+var (
+	edit bool
+	show bool
+)
 func init() {
-	cmdIpfsConfig.Flag.Bool("edit", false, "Edit config file in $EDITOR")
-	cmdIpfsConfig.Flag.Bool("show", false, "Show config file")
+	cmdIpfsConfig.Flags().BoolVarP(&edit, "edit", "e", false, "Edit config file in $EDITOR")
+	cmdIpfsConfig.Flags().BoolVarP(&show, "show", "s", false, "Show config file")
+	CmdIpfs.AddCommand(cmdIpfsConfig)
 }
 
-func configCmd(c *commander.Command, inp []string) error {
+func configCmd(c *cobra.Command, inp []string) {
 
 	// todo: implement --config filename flag.
 	filename, err := config.Filename("")
 	if err != nil {
-		return err
+		u.PErr(err.Error())
+		return
 	}
 
 	// if editing, open the editor
-	if c.Flag.Lookup("edit").Value.Get().(bool) {
-		return configEditor(filename)
+	if edit {
+		err = configEditor(filename)
+		if err != nil {
+			u.PErr(err.Error())
+			return
+		}
 	}
 
 	// if showing, cat the file
-	if c.Flag.Lookup("show").Value.Get().(bool) {
-		return configCat(filename)
+	if show {
+		err = configCat(filename)
+		if err != nil {
+			u.PErr(err.Error())
+			return
+		}
 	}
 
 	if len(inp) == 0 {
 		// "ipfs config" run without parameters
 		u.POut(c.Long)
-		return nil
+		return
 	}
 
 	// Getter (1 param)
 	if len(inp) == 1 {
 		value, err := config.ReadConfigKey(filename, inp[0])
 		if err != nil {
-			return fmt.Errorf("Failed to get config value: %s", err)
+			u.PErr("Failed to get config value: %s", err)
+			return
 		}
 
 		strval, ok := value.(string)
 		if ok {
 			u.POut("%s\n", strval)
-			return nil
+			return
 		}
 
 		if err := config.Encode(os.Stdout, value); err != nil {
-			return fmt.Errorf("Failed to encode config value: %s", err)
+			u.PErr("Failed to encode config value: %s", err)
+			return
 		}
 		u.POut("\n")
-		return nil
+		return
 	}
 
 	// Setter (>1 params)
 	err = config.WriteConfigKey(filename, inp[0], inp[1])
 	if err != nil {
-		return fmt.Errorf("Failed to set config value: %s", err)
+		u.PErr("Failed to set config value: %s", err)
+		return
 	}
-
-	return nil
 }
 
 func configCat(filename string) error {
-
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -111,7 +122,6 @@ func configCat(filename string) error {
 }
 
 func configEditor(filename string) error {
-
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		return errors.New("ENV variable $EDITOR not set")

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/spf13/cobra"
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
@@ -14,8 +13,8 @@ import (
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
-var cmdIpfsAdd = &commander.Command{
-	UsageLine: "add",
+var cmdIpfsAdd = &cobra.Command{
+	Use: "add",
 	Short:     "Add an object to ipfs.",
 	Long: `ipfs add <path>... - Add objects to ipfs.
 
@@ -25,36 +24,42 @@ var cmdIpfsAdd = &commander.Command{
     remains to be implemented.
 `,
 	Run:  addCmd,
-	Flag: *flag.NewFlagSet("ipfs-add", flag.ExitOnError),
 }
 
+var recursive bool
 func init() {
-	cmdIpfsAdd.Flag.Bool("r", false, "add objects recursively")
+	cmdIpfsAdd.Flags().BoolVarP(&recursive, "recursive", "r", false, "add objects recursively")
+	CmdIpfs.AddCommand(cmdIpfsAdd)
 }
 
-func addCmd(c *commander.Command, inp []string) error {
+func addCmd(c *cobra.Command, inp []string) {
 	if len(inp) < 1 {
 		u.POut(c.Long)
-		return nil
+		return
 	}
 
 	cmd := daemon.NewCommand()
 	cmd.Command = "add"
 	cmd.Args = inp
-	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
+	cmd.Opts["r"] = recursive
 	err := daemon.SendCommand(cmd, "localhost:12345")
 	if err != nil {
 		// Do locally
-		conf, err := getConfigDir(c.Parent)
+		conf, err := getConfigDir(c)
 		if err != nil {
-			return err
+			u.PErr(err.Error())
+			return
 		}
 		n, err := localNode(conf, false)
 		if err != nil {
-			return err
+			u.PErr(err.Error())
+			return
 		}
 
-		return commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
+		err = commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
+		if err != nil {
+			u.PErr(err.Error())
+			return
+		}
 	}
-	return nil
 }
