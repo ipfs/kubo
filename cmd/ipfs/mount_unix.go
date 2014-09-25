@@ -11,6 +11,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	"github.com/jbenet/go-ipfs/daemon"
+	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -27,6 +28,10 @@ var cmdIpfsMount = &commander.Command{
 `,
 	Run:  mountCmd,
 	Flag: *flag.NewFlagSet("ipfs-mount", flag.ExitOnError),
+}
+
+func init() {
+	cmdIpfsMount.Flag.String("n", "", "specify a mountpoint for ipns")
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
@@ -66,5 +71,16 @@ func mountCmd(c *commander.Command, inp []string) error {
 
 	mp := inp[0]
 	fmt.Printf("Mounting at %s\n", mp)
+
+	ns, ok := c.Flag.Lookup("n").Value.Get().(string)
+	if ok {
+		go func() {
+			err = ipns.Mount(n, ns, mp)
+			if err != nil {
+				fmt.Printf("Error mounting ipns: %s\n", err)
+			}
+		}()
+	}
+
 	return rofs.Mount(n, mp)
 }
