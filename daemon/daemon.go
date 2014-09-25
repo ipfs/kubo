@@ -3,12 +3,12 @@ package daemon
 import (
 	"encoding/json"
 	"fmt"
+	"errors"
 	"net"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
-
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -25,6 +25,20 @@ type Command struct {
 	Command string
 	Args    []string
 	Opts    map[string]interface{}
+}
+
+func NewRPCDaemonListener(ipfsnode *core.IpfsNode) (*DaemonListener, error) {
+	// launch the API RPC endpoint.
+	if ipfsnode.Config.Addresses.API == "" {
+		return nil, errors.New("no config.RPCAddress endpoint supplied")
+	}
+
+	maddr, err := ma.NewMultiaddr(ipfsnode.Config.Addresses.API)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewDaemonListener(ipfsnode, maddr)
 }
 
 func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr) (*DaemonListener, error) {
