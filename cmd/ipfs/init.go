@@ -37,15 +37,9 @@ func initCmd(c *commander.Command, inp []string) error {
 	if err != nil {
 		return err
 	}
-	if configpath == "" {
-		configpath, err = u.TildeExpansion("~/.go-ipfs")
-		if err != nil {
-			return err
-		}
-	}
 
 	u.POut("initializing ipfs node at %s\n", configpath)
-	filename, err := config.Filename(configpath + "/config")
+	filename, err := config.GetConfigFilePath(configpath)
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
 	}
@@ -69,10 +63,11 @@ func initCmd(c *commander.Command, inp []string) error {
 
 	cfg.Datastore = config.Datastore{}
 	if len(dspath) == 0 {
-		dspath, err = u.TildeExpansion("~/.go-ipfs/datastore")
+		dspath, err = config.GetDefaultPathRoot()
 		if err != nil {
 			return err
 		}
+		dspath = dspath + "/datastore"
 	}
 	cfg.Datastore.Path = dspath
 	cfg.Datastore.Type = "leveldb"
@@ -122,12 +117,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		},
 	}
 
-	path, err := u.TildeExpansion(config.DefaultConfigFilePath)
-	if err != nil {
-		return err
-	}
-
-	err = config.WriteConfigFile(path, cfg)
+	err = config.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return err
 	}

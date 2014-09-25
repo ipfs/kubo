@@ -42,11 +42,26 @@ type Config struct {
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 
-// DefaultPathRoot is the default parth for the IPFS node's root dir.
-const DefaultPathRoot = "~/.go-ipfs"
+// Return the default configuration root directory
+func GetDefaultPathRoot() (string, error) {
+	dir := os.Getenv("IPFS_CONFIG_DIR")
+	var err error
+	if len(dir) == 0 {
+		dir, err = u.TildeExpansion("~/.go-ipfs")
+	}
+	return dir, err
+}
 
-// DefaultConfigFilePath points to the ipfs node config file.
-const DefaultConfigFilePath = DefaultPathRoot + "/config"
+// Return the configuration file path given a configuration root directory
+// If the configuration root directory is empty, use the default one
+func GetConfigFilePath(configroot string) (string, error) {
+	if len(configroot) == 0 {
+		dir, err := GetDefaultPathRoot()
+		return dir+"/config", err
+	} else {
+		return configroot+"/config", nil
+	}
+}
 
 // DecodePrivateKey is a helper to decode the users PrivateKey
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error) {
@@ -60,30 +75,15 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 	return x509.ParsePKCS1PrivateKey(pkb)
 }
 
-// Filename returns the proper tilde expanded config filename.
-func Filename(filename string) (string, error) {
-	if len(filename) == 0 {
-		filename = DefaultConfigFilePath
-	}
-
-	// tilde expansion on config file
-	return u.TildeExpansion(filename)
-}
-
 // Load reads given file and returns the read config, or error.
 func Load(filename string) (*Config, error) {
-	filename, err := Filename(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	// if nothing is there, fail. User must run 'ipfs init'
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg Config
-	err = ReadConfigFile(filename, &cfg)
+	err := ReadConfigFile(filename, &cfg)
 	if err != nil {
 		return nil, err
 	}
