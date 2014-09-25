@@ -1,6 +1,8 @@
 package namesys
 
 import (
+	"time"
+
 	"code.google.com/p/go.net/context"
 	"code.google.com/p/goprotobuf/proto"
 
@@ -15,8 +17,16 @@ type IpnsPublisher struct {
 	routing routing.IpfsRouting
 }
 
+func NewPublisher(dag *mdag.DAGService, route routing.IpfsRouting) *IpnsPublisher {
+	return &IpnsPublisher{
+		dag:     dag,
+		routing: route,
+	}
+}
+
 // Publish accepts a keypair and a value,
 func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
+	log.Debug("namesys: Publish %s", value.Pretty())
 	ctx := context.TODO()
 	data, err := CreateEntryData(k, value)
 	if err != nil {
@@ -40,13 +50,15 @@ func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
 	}
 
 	// Store associated public key
-	err = p.routing.PutValue(ctx, u.Key(nameb), pkbytes)
+	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*4))
+	err = p.routing.PutValue(timectx, u.Key(nameb), pkbytes)
 	if err != nil {
 		return err
 	}
 
 	// Store ipns entry at h("/ipns/"+b58(h(pubkey)))
-	err = p.routing.PutValue(ctx, u.Key(ipnskey), data)
+	timectx, _ = context.WithDeadline(ctx, time.Now().Add(time.Second*4))
+	err = p.routing.PutValue(timectx, u.Key(ipnskey), data)
 	if err != nil {
 		return err
 	}

@@ -101,6 +101,11 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 }
 
 func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
+	log.Debug("Run query with %d peers.", len(peers))
+	if len(peers) == 0 {
+		log.Warning("Running query with no peers!")
+		return nil, nil
+	}
 	// setup concurrency rate limiting
 	for i := 0; i < r.query.concurrency; i++ {
 		r.rateLimit <- struct{}{}
@@ -164,7 +169,7 @@ func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
 	r.peersSeen[next.Key()] = next
 	r.Unlock()
 
-	u.DOut("adding peer to query: %v\n", next.ID.Pretty())
+	log.Debug("adding peer to query: %v\n", next.ID.Pretty())
 
 	// do this after unlocking to prevent possible deadlocks.
 	r.peersRemaining.Increment(1)
