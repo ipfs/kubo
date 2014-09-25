@@ -4,10 +4,12 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/base64"
+	"path/filepath"
 	"errors"
 	"os"
 
-	u "github.com/jbenet/go-ipfs/util"
+	u   "github.com/jbenet/go-ipfs/util"
+	xdg "github.com/mildred/go-xdg"
 )
 
 // Identity tracks the configuration of the local node's identity.
@@ -36,16 +38,30 @@ type Config struct {
 	Peers      []*SavedPeer // local nodes's bootstrap peers
 }
 
-const DefaultPathRoot = "~/.go-ipfs"
-const DefaultConfigFilePath = DefaultPathRoot + "/config"
 const DefaultConfigFile = `{
   "identity": {},
   "datastore": {
     "type": "leveldb",
-    "path": "` + DefaultPathRoot + `/datastore"
+    "path": "datastore"
   }
 }
 `
+
+func (ds Datastore) GetPath() (string, error) {
+	path := ds.Path
+	if len(path) == 0 {
+		path = "go-ipfs/datastore"
+	}
+	if filepath.IsAbs(path) {
+		return path, nil
+	} else {
+		return xdg.Data.EnsureDir(path);
+	}
+}
+
+func WriteConfigFilePath() (string, error) {
+	return xdg.Config.FindHome("go-ipfs/config")
+}
 
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
@@ -61,14 +77,14 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 // Filename returns the proper tilde expanded config filename.
 func Filename(filename string) (string, error) {
 	if len(filename) == 0 {
-		filename = DefaultConfigFilePath
+		return xdg.Config.Find("go-ipfs/config")
 	}
 
 	// tilde expansion on config file
 	return u.TildeExpansion(filename)
 }
 
-// Load reads given file and returns the read config, or error.
+// Load reads given file (empty string to get default file) and returns the read config, or error.
 func Load(filename string) (*Config, error) {
 	filename, err := Filename(filename)
 	if err != nil {

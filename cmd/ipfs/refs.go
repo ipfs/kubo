@@ -46,7 +46,7 @@ func refCmd(c *commander.Command, inp []string) error {
 	err := daemon.SendCommand(cmd, "localhost:12345")
 	if err != nil {
 		// Do locally
-		conf, err := getConfigDir(c.Parent)
+		conf, err := getConfigFlag(c.Parent)
 		if err != nil {
 			return err
 		}
