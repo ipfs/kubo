@@ -24,9 +24,14 @@ func makeDatastore(cfg config.Datastore) (ds.Datastore, error) {
 }
 
 func makeLevelDBDatastore(cfg config.Datastore) (ds.Datastore, error) {
-	if len(cfg.Path) == 0 {
+	path, err := cfg.GetPath()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(path) == 0 {
 		return nil, fmt.Errorf("config datastore.path required for leveldb")
 	}
 
-	return lds.NewDatastore(cfg.Path, nil)
+	return lds.NewDatastore(path, nil)
 }

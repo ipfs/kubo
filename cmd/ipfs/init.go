@@ -29,24 +29,30 @@ func init() {
 	cmdIpfsInit.Flag.Int("b", 4096, "number of bits for keypair")
 	cmdIpfsInit.Flag.String("p", "", "passphrase for encrypting keys")
 	cmdIpfsInit.Flag.Bool("f", false, "force overwrite of existing config")
+	cmdIpfsInit.Flag.String("d", "", "Change default datastore location")
 }
 
 func initCmd(c *commander.Command, inp []string) error {
-	configpath, err := getConfigDir(c.Parent)
+	configpath, err := getConfigFlag(c.Parent)
 	if err != nil {
 		return err
 	}
 	if configpath == "" {
-		configpath, err = u.TildeExpansion("~/.go-ipfs")
+		configpath, err = config.WriteConfigFilePath()
 		if err != nil {
 			return err
 		}
 	}
 
 	u.POut("initializing ipfs node at %s\n", configpath)
-	filename, err := config.Filename(configpath + "/config")
+	filename, err := config.Filename(configpath)
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
+	}
+
+	dataStorePath, ok := c.Flag.Lookup("d").Value.Get().(string)
+	if !ok {
+		return errors.New("failed to parse datastore flag")
 	}
 
 	fi, err := os.Lstat(filename)
@@ -62,7 +68,8 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg := new(config.Config)
 
 	cfg.Datastore = config.Datastore{}
-	dspath, err := u.TildeExpansion("~/.go-ipfs/datastore")
+	cfg.Datastore.Path = dataStorePath
+	dspath, err := cfg.Datastore.GetPath()
 	if err != nil {
 		return err
 	}
@@ -113,7 +120,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		},
 	}
 
-	path, err := u.TildeExpansion(config.DefaultConfigFilePath)
+	path, err := config.WriteConfigFilePath()
 	if err != nil {
 		return err
 	}

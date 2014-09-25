@@ -35,7 +35,7 @@ func mountCmd(c *commander.Command, inp []string) error {
 		return nil
 	}
 
-	conf, err := getConfigDir(c.Parent)
+	conf, err := getConfigFlag(c.Parent)
 	if err != nil {
 		return err
 	}

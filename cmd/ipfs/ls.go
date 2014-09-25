@@ -36,7 +36,7 @@ func lsCmd(c *commander.Command, inp []string) error {
 	com.Args = inp
 	err := daemon.SendCommand(com, "localhost:12345")
 	if err != nil {
-		conf, err := getConfigDir(c.Parent)
+		conf, err := getConfigFlag(c.Parent)
 		if err != nil {
 			return err
 		}
