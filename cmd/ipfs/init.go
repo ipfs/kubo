@@ -29,6 +29,7 @@ func init() {
 	cmdIpfsInit.Flag.Int("b", 4096, "number of bits for keypair")
 	cmdIpfsInit.Flag.String("p", "", "passphrase for encrypting keys")
 	cmdIpfsInit.Flag.Bool("f", false, "force overwrite of existing config")
+	cmdIpfsInit.Flag.String("d", "", "Change default datastore location")
 }
 
 func initCmd(c *commander.Command, inp []string) error {
@@ -49,6 +50,11 @@ func initCmd(c *commander.Command, inp []string) error {
 		return errors.New("Couldn't get home directory path")
 	}
 
+	dspath, ok := c.Flag.Lookup("d").Value.Get().(string)
+	if !ok {
+		return errors.New("failed to parse datastore flag")
+	}
+
 	fi, err := os.Lstat(filename)
 	force, ok := c.Flag.Lookup("f").Value.Get().(bool)
 	if !ok {
@@ -62,9 +68,11 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg := new(config.Config)
 
 	cfg.Datastore = config.Datastore{}
-	dspath, err := u.TildeExpansion("~/.go-ipfs/datastore")
-	if err != nil {
-		return err
+	if len(dspath) == 0 {
+		dspath, err = u.TildeExpansion("~/.go-ipfs/datastore")
+		if err != nil {
+			return err
+		}
 	}
 	cfg.Datastore.Path = dspath
 	cfg.Datastore.Type = "leveldb"
