@@ -53,7 +53,7 @@ Use "ipfs help <command>" for more information about a command.
 }
 
 func init() {
-	config, err := config.GetDefaultPathRoot()
+	config, err := config.PathRoot()
 	if err != nil {
 		config = ""
 	}
@@ -78,7 +78,7 @@ func main() {
 }
 
 func localNode(confdir string, online bool) (*core.IpfsNode, error) {
-	filename, err := config.GetConfigFilePath(confdir)
+	filename, err := config.Filename(confdir)
 	if err != nil {
 		return nil, err
 	}
@@ -96,14 +96,14 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 func getConfigDir(c *commander.Command) (string, error) {
 	conf := c.Flag.Lookup("c").Value.Get()
 	if conf == nil {
-		return config.GetDefaultPathRoot()
+		return config.PathRoot()
 	}
 	confStr, ok := conf.(string)
 	if !ok {
 		return "", errors.New("failed to retrieve config flag value.")
 	}
 	if len(confStr) == 0 {
-		return config.GetDefaultPathRoot()
+		return config.PathRoot()
 	}
 
 	return u.TildeExpansion(confStr)

@@ -49,7 +49,7 @@ func configCmd(c *commander.Command, inp []string) error {
 		return err
 	}
 
-	filename, err := config.GetConfigFilePath(confdir)
+	filename, err := config.Filename(confdir)
 	if err != nil {
 		return err
 	}

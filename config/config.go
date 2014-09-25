@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"os"
+	"path/filepath"
 
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -42,25 +43,42 @@ type Config struct {
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 
-// Return the default configuration root directory
-func GetDefaultPathRoot() (string, error) {
-	dir := os.Getenv("IPFS_CONFIG_DIR")
+const DefaultPathRoot = "~/.go-ipfs"
+const DefaultConfigFile = "config"
+const DefaultDataStoreDirectory = "datastore"
+const EnvDir = "IPFS_DIR"
+
+// PathRoot returns the default configuration root directory
+func PathRoot() (string, error) {
+	dir := os.Getenv(EnvDir)
 	var err error
 	if len(dir) == 0 {
-		dir, err = u.TildeExpansion("~/.go-ipfs")
+		dir, err = u.TildeExpansion(DefaultPathRoot)
 	}
 	return dir, err
 }
 
-// Return the configuration file path given a configuration root directory
-// If the configuration root directory is empty, use the default one
-func GetConfigFilePath(configroot string) (string, error) {
+// Path returns the path `extension` relative to the configuration root. If an
+// empty string is provided for `configroot`, the default root is used.
+func Path(configroot, extension string) (string, error) {
 	if len(configroot) == 0 {
-		dir, err := GetDefaultPathRoot()
-		return dir+"/config", err
+		dir, err := PathRoot()
+		return filepath.Join(dir, extension), err
 	} else {
-		return configroot+"/config", nil
+		return filepath.Join(configroot, extension), nil
 	}
+}
+
+// DataStorePath returns the default data store path given a configuration root
+// (set an empty string to have the default configuration root)
+func DataStorePath(configroot string) (string, error) {
+	return Path(configroot, DefaultDataStoreDirectory);
+}
+
+// Filename returns the configuration file path given a configuration root
+// directory. If the configuration root directory is empty, use the default one
+func Filename(configroot string) (string, error) {
+	return Path(configroot, DefaultConfigFile);
 }
 
 // DecodePrivateKey is a helper to decode the users PrivateKey

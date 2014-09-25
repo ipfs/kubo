@@ -39,7 +39,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 
 	u.POut("initializing ipfs node at %s\n", configpath)
-	filename, err := config.GetConfigFilePath(configpath)
+	filename, err := config.Filename(configpath)
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
 	}
@@ -63,11 +63,10 @@ func initCmd(c *commander.Command, inp []string) error {
 
 	cfg.Datastore = config.Datastore{}
 	if len(dspath) == 0 {
-		dspath, err = config.GetDefaultPathRoot()
+		dspath, err = config.DataStorePath("")
 		if err != nil {
 			return err
 		}
-		dspath = dspath + "/datastore"
 	}
 	cfg.Datastore.Path = dspath
 	cfg.Datastore.Type = "leveldb"
