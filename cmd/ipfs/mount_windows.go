@@ -2,18 +2,20 @@ package main
 
 import (
 	"errors"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
-var cmdIpfsMount = &commander.Command{
-	UsageLine: "mount",
-	Short:     "Mount an ipfs read-only mountpoint.",
-	Long:      `Not yet implemented on windows.`,
-	Run:       mountCmd,
-	Flag:      *flag.NewFlagSet("ipfs-mount", flag.ExitOnError),
+var cmdIpfsMount = &cobra.Command{
+	Use:   "mount",
+	Short: "Mount an ipfs read-only mountpoint.",
+	Long:  `Not yet implemented on windows.`,
+	Run:   mountCmd,
 }
 
-func mountCmd(c *commander.Command, inp []string) error {
-	return errors.New("mount not yet implemented on windows")
+func init() {
+	CmdIpfs.AddCommand(cmdIpfsMount)
+}
+
+func mountCmd(c *cobra.Command, inp []string) {
+	u.PErr(errors.New("mount not yet implemented on windows"))
 }

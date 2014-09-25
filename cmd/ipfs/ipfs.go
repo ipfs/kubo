@@ -1,76 +1,30 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	"os"
-
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	"github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
-// The IPFS command tree. It is an instance of `commander.Command`.
-var CmdIpfs = &commander.Command{
-	UsageLine: "ipfs [<flags>] <command> [<args>]",
-	Short:     "global versioned p2p merkledag file system",
+// The IPFS command tree. It is an instance of `cobra.Command`.
+var CmdIpfs = &cobra.Command{
+	Use:   "ipfs [<flags>] <command> [<args>]",
+	Short: "global versioned p2p merkledag file system",
 	Long: `ipfs - global versioned p2p merkledag file system
-
-Basic commands:
-
-    add <path>    Add an object to ipfs.
-    cat <ref>     Show ipfs object data.
-    ls <ref>      List links from an object.
-    refs <ref>    List link hashes from an object.
-
-Tool commands:
-
-    config        Manage configuration.
-    version       Show ipfs version information.
-    commands      List all available commands.
-
-Advanced Commands:
-
-    mount         Mount an ipfs read-only mountpoint.
-
-Use "ipfs help <command>" for more information about a command.
+Learn more at http://ipfs.io
 `,
-	Run: ipfsCmd,
-	Subcommands: []*commander.Command{
-		cmdIpfsAdd,
-		cmdIpfsCat,
-		cmdIpfsLs,
-		cmdIpfsRefs,
-		cmdIpfsConfig,
-		cmdIpfsVersion,
-		cmdIpfsCommands,
-		cmdIpfsMount,
-		cmdIpfsInit,
-	},
-	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
+
+var configDir string
 
 func init() {
-	CmdIpfs.Flag.String("c", config.DefaultPathRoot, "specify config directory")
-}
-
-func ipfsCmd(c *commander.Command, args []string) error {
-	u.POut(c.Long)
-	return nil
+	CmdIpfs.PersistentFlags().StringVarP(&configDir, "config", "c", config.DefaultPathRoot, "config directory")
 }
 
 func main() {
 	u.Debug = true
-	err := CmdIpfs.Dispatch(os.Args[1:])
-	if err != nil {
-		if len(err.Error()) > 0 {
-			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
-		}
-		os.Exit(1)
-	}
-	return
+	CmdIpfs.Execute()
 }
 
 func localNode(confdir string, online bool) (*core.IpfsNode, error) {
@@ -84,14 +38,9 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 
 // Gets the config "-c" flag from the command, or returns
 // the empty string
-func getConfigDir(c *commander.Command) (string, error) {
-	conf := c.Flag.Lookup("c").Value.Get()
-	if conf == nil {
-		return "", nil
+func getConfigDir(c *cobra.Command) (string, error) {
+	if configDir == "" {
+		return u.TildeExpansion("~/.go-ipfs")
 	}
-	confStr, ok := conf.(string)
-	if !ok {
-		return "", errors.New("failed to retrieve config flag value.")
-	}
-	return confStr, nil
+	return u.TildeExpansion(configDir)
 }

@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package flag_test
+package pflag_test
 
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
-	. "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	. "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/pflag"
 )
 
 var (
@@ -97,7 +98,7 @@ func TestEverything(t *testing.T) {
 func TestUsage(t *testing.T) {
 	called := false
 	ResetForTesting(func() { called = true })
-	if CommandLine().Parse([]string{"-x"}) == nil {
+	if GetCommandLine().Parse([]string{"--x"}) == nil {
 		t.Error("parse did not fail for unknown flag")
 	}
 	if !called {
@@ -111,6 +112,7 @@ func testParse(f *FlagSet, t *testing.T) {
 	}
 	boolFlag := f.Bool("bool", false, "bool value")
 	bool2Flag := f.Bool("bool2", false, "bool2 value")
+	bool3Flag := f.Bool("bool3", false, "bool3 value")
 	intFlag := f.Int("int", 0, "int value")
 	int64Flag := f.Int64("int64", 0, "int64 value")
 	uintFlag := f.Uint("uint", 0, "uint value")
@@ -120,15 +122,16 @@ func testParse(f *FlagSet, t *testing.T) {
 	durationFlag := f.Duration("duration", 5*time.Second, "time.Duration value")
 	extra := "one-extra-argument"
 	args := []string{
-		"-bool",
-		"-bool2=true",
-		"--int", "22",
-		"--int64", "0x23",
-		"-uint", "24",
-		"--uint64", "25",
-		"-string", "hello",
-		"-float64", "2718e28",
-		"-duration", "2m",
+		"--bool",
+		"--bool2=true",
+		"--bool3=false",
+		"--int=22",
+		"--int64=0x23",
+		"--uint=24",
+		"--uint64=25",
+		"--string=hello",
+		"--float64=2718e28",
+		"--duration=2m",
 		extra,
 	}
 	if err := f.Parse(args); err != nil {
@@ -142,6 +145,9 @@ func testParse(f *FlagSet, t *testing.T) {
 	}
 	if *bool2Flag != true {
 		t.Error("bool2 flag should be true, is ", *bool2Flag)
+	}
+	if *bool3Flag != false {
+		t.Error("bool3 flag should be false, is ", *bool2Flag)
 	}
 	if *intFlag != 22 {
 		t.Error("int flag should be 22, is ", *intFlag)
@@ -171,9 +177,56 @@ func testParse(f *FlagSet, t *testing.T) {
 	}
 }
 
+func TestShorthand(t *testing.T) {
+	f := NewFlagSet("shorthand", ContinueOnError)
+	if f.Parsed() {
+		t.Error("f.Parse() = true before Parse")
+	}
+	boolaFlag := f.BoolP("boola", "a", false, "bool value")
+	boolbFlag := f.BoolP("boolb", "b", false, "bool2 value")
+	boolcFlag := f.BoolP("boolc", "c", false, "bool3 value")
+	stringFlag := f.StringP("string", "s", "0", "string value")
+	extra := "interspersed-argument"
+	notaflag := "--i-look-like-a-flag"
+	args := []string{
+		"-ab",
+		extra,
+		"-cs",
+		"hello",
+		"--",
+		notaflag,
+	}
+	f.SetOutput(ioutil.Discard)
+	if err := f.Parse(args); err == nil {
+		t.Error("--i-look-like-a-flag should throw an error")
+	}
+	if !f.Parsed() {
+		t.Error("f.Parse() = false after Parse")
+	}
+	if *boolaFlag != true {
+		t.Error("boola flag should be true, is ", *boolaFlag)
+	}
+	if *boolbFlag != true {
+		t.Error("boolb flag should be true, is ", *boolbFlag)
+	}
+	if *boolcFlag != true {
+		t.Error("boolc flag should be true, is ", *boolcFlag)
+	}
+	if *stringFlag != "hello" {
+		t.Error("string flag should be `hello`, is ", *stringFlag)
+	}
+	if len(f.Args()) != 2 {
+		t.Error("expected one argument, got", len(f.Args()))
+	} else if f.Args()[0] != extra {
+		t.Errorf("expected argument %q got %q", extra, f.Args()[0])
+	} else if f.Args()[1] != notaflag {
+		t.Errorf("expected argument %q got %q", notaflag, f.Args()[1])
+	}
+}
+
 func TestParse(t *testing.T) {
 	ResetForTesting(func() { t.Error("bad parse") })
-	testParse(CommandLine(), t)
+	testParse(GetCommandLine(), t)
 }
 
 func TestFlagSetParse(t *testing.T) {
@@ -192,14 +245,12 @@ func (f *flagVar) Set(value string) error {
 	return nil
 }
 
-func (f *flagVar) Get() interface{} { return []string(*f) }
-
 func TestUserDefined(t *testing.T) {
 	var flags FlagSet
 	flags.Init("test", ContinueOnError)
 	var v flagVar
-	flags.Var(&v, "v", "usage")
-	if err := flags.Parse([]string{"-v", "1", "-v", "2", "-v=3"}); err != nil {
+	flags.VarP(&v, "v", "v", "usage")
+	if err := flags.Parse([]string{"--v=1", "-v2", "-v", "3"}); err != nil {
 		t.Error(err)
 	}
 	if len(v) != 3 {
@@ -216,8 +267,8 @@ func TestSetOutput(t *testing.T) {
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
 	flags.Init("test", ContinueOnError)
-	flags.Parse([]string{"-unknown"})
-	if out := buf.String(); !strings.Contains(out, "-unknown") {
+	flags.Parse([]string{"--unknown"})
+	if out := buf.String(); !strings.Contains(out, "--unknown") {
 		t.Logf("expected output mentioning unknown; got %q", out)
 	}
 }
@@ -228,13 +279,13 @@ func TestChangingArgs(t *testing.T) {
 	ResetForTesting(func() { t.Fatal("bad parse") })
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
-	os.Args = []string{"cmd", "-before", "subcmd", "-after", "args"}
+	os.Args = []string{"cmd", "--before", "subcmd"}
 	before := Bool("before", false, "")
-	if err := CommandLine().Parse(os.Args[1:]); err != nil {
+	if err := GetCommandLine().Parse(os.Args[1:]); err != nil {
 		t.Fatal(err)
 	}
 	cmd := Arg(0)
-	os.Args = Args()
+	os.Args = []string{"subcmd", "--after", "args"}
 	after := Bool("after", false, "")
 	Parse()
 	args := Args()
@@ -252,19 +303,19 @@ func TestHelp(t *testing.T) {
 	var flag bool
 	fs.BoolVar(&flag, "flag", false, "regular flag")
 	// Regular flag invocation should work
-	err := fs.Parse([]string{"-flag=true"})
+	err := fs.Parse([]string{"--flag=true"})
 	if err != nil {
 		t.Fatal("expected no error; got ", err)
 	}
 	if !flag {
-		t.Error("flag was not set by -flag")
+		t.Error("flag was not set by --flag")
 	}
 	if helpCalled {
 		t.Error("help called for regular flag")
 		helpCalled = false // reset for next test
 	}
 	// Help flag should work as expected.
-	err = fs.Parse([]string{"-help"})
+	err = fs.Parse([]string{"--help"})
 	if err == nil {
 		t.Fatal("error expected")
 	}
@@ -278,11 +329,26 @@ func TestHelp(t *testing.T) {
 	var help bool
 	fs.BoolVar(&help, "help", false, "help flag")
 	helpCalled = false
-	err = fs.Parse([]string{"-help"})
+	err = fs.Parse([]string{"--help"})
 	if err != nil {
-		t.Fatal("expected no error for defined -help; got ", err)
+		t.Fatal("expected no error for defined --help; got ", err)
 	}
 	if helpCalled {
 		t.Fatal("help was called; should not have been for defined help flag")
+	}
+}
+
+func TestNoInterspersed(t *testing.T) {
+	f := NewFlagSet("test", ContinueOnError)
+	f.SetInterspersed(false)
+	f.Bool("true", true, "always true")
+	f.Bool("false", false, "always false")
+	err := f.Parse([]string{"--true", "break", "--false"})
+	if err != nil {
+		t.Fatal("expected no error; got ", err)
+	}
+	args := f.Args()
+	if len(args) != 2 || args[0] != "break" || args[1] != "--false" {
+		t.Fatal("expected interspersed options/non-options to fail")
 	}
 }

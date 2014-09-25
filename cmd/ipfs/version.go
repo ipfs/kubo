@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/spf13/cobra"
 )
 
 // The IPFS version.
 const Version = "0.1.0"
 
-var cmdIpfsVersion = &commander.Command{
-	UsageLine: "version",
-	Short:     "Show ipfs version information.",
+var cmdIpfsVersion = &cobra.Command{
+	Use:   "version",
+	Short: "Show ipfs version information.",
 	Long: `ipfs version - Show ipfs version information.
 
     Returns the current version of ipfs and exits.
@@ -18,15 +18,16 @@ var cmdIpfsVersion = &commander.Command{
 	Run: versionCmd,
 }
 
+var number bool
+
 func init() {
-	cmdIpfsVersion.Flag.Bool("number", false, "show only the number")
+	cmdIpfsVersion.Flags().BoolVarP(&number, "number", "n", false, "show only the number")
+	CmdIpfs.AddCommand(cmdIpfsVersion)
 }
 
-func versionCmd(c *commander.Command, _ []string) error {
-	number := c.Flag.Lookup("number").Value.Get().(bool)
+func versionCmd(c *cobra.Command, _ []string) {
 	if !number {
 		u.POut("ipfs version ")
 	}
 	u.POut("%s\n", Version)
-	return nil
 }
