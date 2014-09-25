@@ -76,18 +76,7 @@ func (n *network) deliver(
 		return errors.New("Invalid input")
 	}
 
-	nextPeer, nextMsg, err := r.ReceiveMessage(context.TODO(), from, message)
-	if err != nil {
-
-		// TODO should this error be returned across network boundary?
-
-		// TODO this raises an interesting question about network contract. How
-		// can the network be expected to behave under different failure
-		// conditions? What if peer is unreachable? Will we know if messages
-		// aren't delivered?
-
-		return err
-	}
+	nextPeer, nextMsg := r.ReceiveMessage(context.TODO(), from, message)
 
 	if (nextPeer == nil && nextMsg != nil) || (nextMsg == nil && nextPeer != nil) {
 		return errors.New("Malformed client request")
@@ -119,15 +108,12 @@ func (n *network) SendRequest(
 	if !ok {
 		return nil, errors.New("Cannot locate peer on network")
 	}
-	nextPeer, nextMsg, err := r.ReceiveMessage(context.TODO(), from, message)
-	if err != nil {
-		return nil, err
-		// TODO return nil, NoResponse
-	}
+	nextPeer, nextMsg := r.ReceiveMessage(context.TODO(), from, message)
 
 	// TODO dedupe code
 	if (nextPeer == nil && nextMsg != nil) || (nextMsg == nil && nextPeer != nil) {
-		return nil, errors.New("Malformed client request")
+		r.ReceiveError(errors.New("Malformed client request"))
+		return nil, nil
 	}
 
 	// TODO dedupe code
@@ -144,7 +130,7 @@ func (n *network) SendRequest(
 			}
 			n.deliver(nextReceiver, nextPeer, nextMsg)
 		}()
-		return nil, NoResponse
+		return nil, nil
 	}
 	return nextMsg, nil
 }

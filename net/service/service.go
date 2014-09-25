@@ -20,7 +20,7 @@ type Handler interface {
 
 	// HandleMessage receives an incoming message, and potentially returns
 	// a response message to send back.
-	HandleMessage(context.Context, msg.NetMessage) (msg.NetMessage, error)
+	HandleMessage(context.Context, msg.NetMessage) msg.NetMessage
 }
 
 // Service is a networking component that protocols can use to multiplex
@@ -181,11 +181,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 		}
 
 		// should this be "go HandleMessage ... ?"
-		r1, err := s.Handler.HandleMessage(ctx, m2)
-		if err != nil {
-			u.PErr("handled message yielded error %v\n", err)
-			return
-		}
+		r1 := s.Handler.HandleMessage(ctx, m2)
 
 		// if handler gave us a response, send it back out!
 		if r1 != nil {

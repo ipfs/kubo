@@ -33,7 +33,9 @@ type Adapter interface {
 type Receiver interface {
 	ReceiveMessage(
 		ctx context.Context, sender *peer.Peer, incoming bsmsg.BitSwapMessage) (
-		destination *peer.Peer, outgoing bsmsg.BitSwapMessage, err error)
+		destination *peer.Peer, outgoing bsmsg.BitSwapMessage)
+
+	ReceiveError(error)
 }
 
 // TODO(brian): move this to go-ipfs/net package

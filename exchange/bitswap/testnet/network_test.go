@@ -26,7 +26,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 		ctx context.Context,
 		from *peer.Peer,
 		incoming bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage, error) {
+		*peer.Peer, bsmsg.BitSwapMessage) {
 
 		t.Log("Recipient received a message from the network")
 
@@ -35,7 +35,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 		m := bsmsg.New()
 		m.AppendBlock(testutil.NewBlockOrFail(t, expectedStr))
 
-		return from, m, nil
+		return from, m
 	}))
 
 	t.Log("Build a message and send a synchronous request to recipient")
@@ -74,19 +74,19 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 		ctx context.Context,
 		fromWaiter *peer.Peer,
 		msgFromWaiter bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage, error) {
+		*peer.Peer, bsmsg.BitSwapMessage) {
 
 		msgToWaiter := bsmsg.New()
 		msgToWaiter.AppendBlock(testutil.NewBlockOrFail(t, expectedStr))
 
-		return fromWaiter, msgToWaiter, nil
+		return fromWaiter, msgToWaiter
 	}))
 
 	waiter.SetDelegate(lambda(func(
 		ctx context.Context,
 		fromResponder *peer.Peer,
 		msgFromResponder bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage, error) {
+		*peer.Peer, bsmsg.BitSwapMessage) {
 
 		// TODO assert that this came from the correct peer and that the message contents are as expected
 		ok := false
@@ -101,7 +101,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 			t.Fatal("Message not received from the responder")
 
 		}
-		return nil, nil, nil
+		return nil, nil
 	}))
 
 	messageSentAsync := bsmsg.New()
@@ -116,7 +116,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 }
 
 type receiverFunc func(ctx context.Context, p *peer.Peer,
-	incoming bsmsg.BitSwapMessage) (*peer.Peer, bsmsg.BitSwapMessage, error)
+	incoming bsmsg.BitSwapMessage) (*peer.Peer, bsmsg.BitSwapMessage)
 
 // lambda returns a Receiver instance given a receiver function
 func lambda(f receiverFunc) bsnet.Receiver {
@@ -126,13 +126,16 @@ func lambda(f receiverFunc) bsnet.Receiver {
 }
 
 type lambdaImpl struct {
-	f func(ctx context.Context, p *peer.Peer,
-		incoming bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage, error)
+	f func(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
+		*peer.Peer, bsmsg.BitSwapMessage)
 }
 
 func (lam *lambdaImpl) ReceiveMessage(ctx context.Context,
 	p *peer.Peer, incoming bsmsg.BitSwapMessage) (
-	*peer.Peer, bsmsg.BitSwapMessage, error) {
+	*peer.Peer, bsmsg.BitSwapMessage) {
 	return lam.f(ctx, p, incoming)
+}
+
+func (lam *lambdaImpl) ReceiveError(err error) {
+	// TODO log error
 }

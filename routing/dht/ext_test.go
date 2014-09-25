@@ -161,10 +161,7 @@ func TestGetFailures(t *testing.T) {
 		t.Error(err)
 	}
 
-	mes, err = d.HandleMessage(ctx, mes)
-	if err != nil {
-		t.Error(err)
-	}
+	mes = d.HandleMessage(ctx, mes)
 
 	pmes := new(Message)
 	err = proto.Unmarshal(mes.Data(), pmes)
