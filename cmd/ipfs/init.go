@@ -69,12 +69,13 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg.Datastore.Path = dspath
 	cfg.Datastore.Type = "leveldb"
 
-	cfg.Identity = new(config.Identity)
-	// This needs thought
-	cfg.Identity.Address = "/ip4/127.0.0.1/tcp/5001"
+	cfg.Identity = config.Identity{}
 
-	// local RPC endpoint
-	cfg.RPCAddress = "/ip4/127.0.0.1/tcp/4001"
+	// setup the node addresses.
+	cfg.Addresses = config.Addresses{
+		Swarm: "/ip4/0.0.0.0/tcp/4001",
+		API:   "/ip4/127.0.0.1/tcp/5001",
+	}
 
 	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
 	if !ok {
@@ -105,8 +106,8 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg.Identity.PeerID = id.Pretty()
 
 	// Use these hardcoded bootstrap peers for now.
-	cfg.Peers = []*config.SavedPeer{
-		&config.SavedPeer{
+	cfg.Bootstrap = []*config.BootstrapPeer{
+		&config.BootstrapPeer{
 			// mars.i.ipfs.io
 			PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 			Address: "/ip4/104.131.131.82/tcp/4001",

@@ -44,12 +44,12 @@ func mountCmd(c *commander.Command, inp []string) error {
 		return err
 	}
 
-	// launch the RPC endpoint.
-	if n.Config.RPCAddress == "" {
+	// launch the API RPC endpoint.
+	if n.Config.Addresses.API == "" {
 		return errors.New("no config.RPCAddress endpoint supplied")
 	}
 
-	maddr, err := ma.NewMultiaddr(n.Config.RPCAddress)
+	maddr, err := ma.NewMultiaddr(n.Config.Addresses.API)
 	if err != nil {
 		return err
 	}
