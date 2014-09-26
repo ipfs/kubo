@@ -67,7 +67,7 @@ func NewDagInNode(r io.Reader, n *dag.Node) error {
 
 	blkChan := DefaultSplitter.Split(r)
 	first := <-blkChan
-	n.Data = first
+	n.Data = dag.FilePBData(first)
 
 	for blk := range blkChan {
 		child := &dag.Node{Data: dag.WrapData(blk)}

@@ -35,6 +35,7 @@ func (r *RoutingResolver) Matches(name string) bool {
 }
 
 func (r *RoutingResolver) Resolve(name string) (string, error) {
+	log.Debug("RoutingResolve: '%s'", name)
 	ctx := context.TODO()
 	hash, err := mh.FromB58String(name)
 	if err != nil {

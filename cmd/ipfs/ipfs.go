@@ -53,6 +53,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsServe,
 		cmdIpfsRun,
 		cmdIpfsPub,
+		cmdIpfsResolve,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }

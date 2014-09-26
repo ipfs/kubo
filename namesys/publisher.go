@@ -25,8 +25,8 @@ func NewPublisher(dag *mdag.DAGService, route routing.IpfsRouting) *IpnsPublishe
 }
 
 // Publish accepts a keypair and a value,
-func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
-	log.Debug("namesys: Publish %s", value.Pretty())
+func (p *IpnsPublisher) Publish(k ci.PrivKey, value string) error {
+	log.Debug("namesys: Publish %s", value)
 	ctx := context.TODO()
 	data, err := CreateEntryData(k, value)
 	if err != nil {
@@ -66,7 +66,7 @@ func (p *IpnsPublisher) Publish(k ci.PrivKey, value u.Key) error {
 	return nil
 }
 
-func CreateEntryData(pk ci.PrivKey, val u.Key) ([]byte, error) {
+func CreateEntryData(pk ci.PrivKey, val string) ([]byte, error) {
 	entry := new(IpnsEntry)
 	sig, err := pk.Sign([]byte(val))
 	if err != nil {

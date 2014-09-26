@@ -7,9 +7,8 @@ import (
 	bs "github.com/jbenet/go-ipfs/blockservice"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/net/swarm"
 	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/routing/dht"
+	mock "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -17,9 +16,8 @@ func TestRoutingResolve(t *testing.T) {
 	local := &peer.Peer{
 		ID: []byte("testID"),
 	}
-	net := swarm.NewSwarm(local)
 	lds := ds.NewMapDatastore()
-	d := dht.NewDHT(local, net, lds)
+	d := mock.NewMockRouter(local, lds)
 
 	bserv, err := bs.NewBlockService(lds, nil)
 	if err != nil {
@@ -40,7 +38,7 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = pub.Publish(privk, u.Key("Hello"))
+	err = pub.Publish(privk, "Hello")
 	if err != nil {
 		t.Fatal(err)
 	}

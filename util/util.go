@@ -11,7 +11,16 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	"github.com/op/go-logging"
 )
+
+var format = "%{color}%{time} %{shortfile} %{level}: %{color:reset}%{message}"
+
+func init() {
+	backend := logging.NewLogBackend(os.Stderr, "", 0)
+	logging.SetBackend(backend)
+	logging.SetFormatter(logging.MustStringFormatter(format))
+}
 
 // Debug is a global flag for debugging.
 var Debug bool
@@ -40,6 +49,14 @@ func (k Key) Pretty() string {
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
 func Hash(data []byte) (mh.Multihash, error) {
 	return mh.Sum(data, mh.SHA2_256, -1)
+}
+
+func IsValidHash(s string) bool {
+	out := b58.Decode(s)
+	if out == nil || len(out) == 0 {
+		return false
+	}
+	return true
 }
 
 // TildeExpansion expands a filename, which may begin with a tilde.

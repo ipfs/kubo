@@ -8,7 +8,10 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("path")
 
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.
@@ -20,7 +23,7 @@ type Resolver struct {
 // path component as a hash (key) of the first node, then resolves
 // all other components walking the links, with ResolveLinks.
 func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
-	u.DOut("Resolve: '%s'\n", fpath)
+	log.Debug("Resolve: '%s'", fpath)
 	fpath = path.Clean(fpath)
 
 	parts := strings.Split(fpath, "/")
@@ -66,10 +69,12 @@ func (s *Resolver) ResolveLinks(ndd *merkledag.Node, names []string) (
 	for _, name := range names {
 
 		var next u.Key
+		var nlink *merkledag.Link
 		// for each of the links in nd, the current object
 		for _, link := range nd.Links {
 			if link.Name == name {
 				next = u.Key(link.Hash)
+				nlink = link
 				break
 			}
 		}
@@ -80,10 +85,15 @@ func (s *Resolver) ResolveLinks(ndd *merkledag.Node, names []string) (
 			return nil, fmt.Errorf("no link named %q under %s", name, h2)
 		}
 
-		// fetch object for link and assign to nd
-		nd, err = s.DAG.Get(next)
-		if err != nil {
-			return nd, err
+		if nlink.Node == nil {
+			// fetch object for link and assign to nd
+			nd, err = s.DAG.Get(next)
+			if err != nil {
+				return nd, err
+			}
+			nlink.Node = nd
+		} else {
+			nd = nlink.Node
 		}
 	}
 	return

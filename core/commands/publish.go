@@ -21,10 +21,9 @@ func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 	}
 
 	k := n.Identity.PrivKey
-	val := u.Key(args[0])
 
 	pub := nsys.NewPublisher(n.DAG, n.Routing)
-	err := pub.Publish(k, val)
+	err := pub.Publish(k, args[0])
 	if err != nil {
 		return err
 	}
@@ -33,7 +32,7 @@ func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Published %s to %s\n", val, u.Key(hash).Pretty())
+	fmt.Fprintf(out, "Published %s to %s\n", args[0], u.Key(hash).Pretty())
 
 	return nil
 }

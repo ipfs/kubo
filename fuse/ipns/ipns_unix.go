@@ -2,6 +2,7 @@ package ipns
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -83,6 +84,11 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 			continue
 		}
 
+		if !u.IsValidHash(pointsTo) {
+			log.Critical("Got back bad data from namesys resolve! [%s]", pointsTo)
+			return nil, nil
+		}
+
 		node, err := n.Resolver.ResolvePath(pointsTo)
 		if err != nil {
 			log.Warning("Failed to resolve value from ipns entry in ipfs")
@@ -120,7 +126,7 @@ func (*Root) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("ipns: Root Lookup: '%s'", name)
+	log.Debug("ipns: Root Lookup: '%s' [intr = %s]", name, intr.String())
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -139,14 +145,14 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 		return nd, nil
 	}
 
-	log.Debug("ipns: Falling back to resolution.")
+	log.Debug("ipns: Falling back to resolution for [%s].", name)
 	resolved, err := s.Ipfs.Namesys.Resolve(name)
 	if err != nil {
 		log.Error("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
 	}
 
-	return &Link{s.IpfsRoot + "/" + resolved}, nil
+	return &Link{s.IpfsRoot + "/" + u.Key(resolved).Pretty()}, nil
 }
 
 // ReadDir reads a particular directory. Disallowed for root.
@@ -221,7 +227,7 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("ipns node Lookup '%s'", name)
+	log.Debug("ipns: node Lookup '%s'", name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -276,7 +282,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 	if n.dataBuf == nil {
 		n.dataBuf = new(bytes.Buffer)
 	}
-	log.Debug("ipns Node Write: flags = %s, offset = %d, size = %d", req.Flags.String(), req.Offset, len(req.Data))
+	log.Debug("ipns: Node Write: flags = %s, offset = %d, size = %d", req.Flags.String(), req.Offset, len(req.Data))
 	if req.Offset == 0 {
 		n.dataBuf.Reset()
 		n.dataBuf.Write(req.Data)
@@ -298,10 +304,17 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		// but for now, since the buf is all in memory anyways...
 		err := imp.NewDagInNode(n.dataBuf, n.Nd)
 		if err != nil {
-			log.Error("ipns Flush error: %s", err)
+			log.Error("ipns: Flush error: %s", err)
 			// return fuse.EVERYBAD
 			return fuse.ENODATA
 		}
+
+		read, err := mdag.NewDagReader(n.Nd, n.Ipfs.DAG)
+		if err != nil {
+			panic(err)
+		}
+
+		io.Copy(os.Stdout, read)
 
 		var root *Node
 		if n.nsRoot != nil {
@@ -312,13 +325,13 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 
 		err = root.Nd.Update()
 		if err != nil {
-			log.Error("ipns dag tree update failed: %s", err)
+			log.Error("ipns: dag tree update failed: %s", err)
 			return fuse.ENODATA
 		}
 
 		err = n.Ipfs.DAG.AddRecursive(root.Nd)
 		if err != nil {
-			log.Critical("ipns Dag Add Error: %s", err)
+			log.Critical("ipns: Dag Add Error: %s", err)
 		}
 
 		n.changed = false
@@ -332,9 +345,9 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		}
 		log.Debug("Publishing changes!")
 
-		err = n.Ipfs.Publisher.Publish(root.key, ndkey)
+		err = n.Ipfs.Publisher.Publish(root.key, ndkey.Pretty())
 		if err != nil {
-			log.Error("ipns Publish Failed: %s", err)
+			log.Error("ipns: Publish Failed: %s", err)
 		}
 	}
 	return nil
@@ -433,5 +446,6 @@ func (l *Link) Attr() fuse.Attr {
 }
 
 func (l *Link) Readlink(req *fuse.ReadlinkRequest, intr fs.Intr) (string, fuse.Error) {
+	log.Debug("ReadLink: %s", l.Target)
 	return l.Target, nil
 }

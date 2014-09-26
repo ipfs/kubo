@@ -133,6 +133,8 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 		err = commands.Pin(dl.node, command.Args, command.Opts, conn)
 	case "publish":
 		err = commands.Publish(dl.node, command.Args, command.Opts, conn)
+	case "resolve":
+		err = commands.Resolve(dl.node, command.Args, command.Opts, conn)
 	default:
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}
