@@ -11,11 +11,14 @@ import (
 	"syscall"
 	"time"
 
+	"bytes"
+
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	imp "github.com/jbenet/go-ipfs/importer"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/op/go-logging"
@@ -61,6 +64,33 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 			return nil, err
 		}
 		root.LocalLink = &Link{u.Key(hash).Pretty()}
+	}
+
+	for _, k := range keys {
+		hash, err := k.GetPublic().Hash()
+		if err != nil {
+			log.Error("failed to hash public key.")
+			continue
+		}
+		name := u.Key(hash).Pretty()
+		nd := new(Node)
+		nd.Ipfs = n
+		nd.key = k
+
+		pointsTo, err := n.Namesys.Resolve(name)
+		if err != nil {
+			log.Warning("Could not resolve value for local ipns entry")
+			continue
+		}
+
+		node, err := n.Resolver.ResolvePath(pointsTo)
+		if err != nil {
+			log.Warning("Failed to resolve value from ipns entry in ipfs")
+			continue
+		}
+
+		nd.Nd = node
+		root.LocalDirs[name] = nd
 	}
 
 	return root, nil
@@ -147,10 +177,17 @@ func (r *Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	nsRoot *Node
+
+	// Private keys held by nodes at the root of a keyspace
+	key ci.PrivKey
+
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	fd     *mdag.DagReader
 	cached *mdag.PBData
+
+	dataBuf *bytes.Buffer
+	changed bool
 }
 
 func (s *Node) loadData() error {
@@ -172,7 +209,7 @@ func (s *Node) Attr() fuse.Attr {
 		u.DOut("this is a file.\n")
 		size, _ := s.Nd.Size()
 		return fuse.Attr{
-			Mode:   0444,
+			Mode:   0666,
 			Size:   uint64(size),
 			Blocks: uint64(len(s.Nd.Links)),
 		}
@@ -184,14 +221,25 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	u.DOut("Lookup '%s'\n", name)
+	log.Debug("ipns node Lookup '%s'", name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
 	}
 
-	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
+	child := &Node{
+		Ipfs: s.Ipfs,
+		Nd:   nd,
+	}
+
+	if s.nsRoot == nil {
+		child.nsRoot = s
+	} else {
+		child.nsRoot = s.nsRoot
+	}
+
+	return child, nil
 }
 
 // ReadDir reads the link structure as directory entries
@@ -222,6 +270,67 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	// this is a terrible function... 'ReadAll'?
 	// what if i have a 6TB file? GG RAM.
 	return ioutil.ReadAll(r)
+}
+
+func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
+	if n.dataBuf == nil {
+		n.dataBuf = new(bytes.Buffer)
+	}
+	log.Debug("ipns Node Write: flags = %s, offset = %d, size = %d", req.Flags.String(), req.Offset, len(req.Data))
+	if req.Offset == 0 {
+		n.dataBuf.Reset()
+		n.dataBuf.Write(req.Data)
+		n.changed = true
+		resp.Size = len(req.Data)
+	} else {
+		log.Error("Unhandled write to offset!")
+	}
+	return nil
+}
+
+func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
+	log.Debug("Got flush request!")
+
+	if n.changed {
+		//TODO:
+		// This operation holds everything in memory,
+		// should be changed to stream the block creation/storage
+		// but for now, since the buf is all in memory anyways...
+		nnode, err := imp.NewDagFromReader(n.dataBuf)
+		if err != nil {
+			log.Error("ipns Flush error: %s", err)
+			// return fuse.EVERYBAD
+			return fuse.ENODATA
+		}
+
+		err = n.Ipfs.DAG.AddRecursive(nnode)
+		if err != nil {
+			log.Critical("ipns Dag Add Error: %s", err)
+		}
+
+		n.Nd = nnode
+		n.changed = false
+		n.dataBuf = nil
+
+		ndkey, err := nnode.Key()
+		if err != nil {
+			log.Error("getKey error: %s", err)
+			// return fuse.ETHISREALLYSUCKS
+			return fuse.ENODATA
+		}
+		log.Debug("Publishing changes!")
+
+		err = n.Ipfs.Publisher.Publish(n.key, ndkey)
+		if err != nil {
+			log.Error("ipns Publish Failed: %s", err)
+		}
+	}
+	return nil
+}
+
+func (n *Node) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
+	log.Debug("Got fsync request!")
+	return nil
 }
 
 // Mount mounts an IpfsNode instance at a particular path. It
