@@ -2,6 +2,7 @@ package queue
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -72,18 +73,21 @@ func newPeerTime(t time.Time) *peer.Peer {
 }
 
 func TestSyncQueue(t *testing.T) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*4)
+	ctx := context.Background()
 
 	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	cq := NewChanQueue(ctx, pq)
+	wg := sync.WaitGroup{}
 
-	max := 100000
+	max := 10000
 	consumerN := 10
 	countsIn := make([]int, consumerN*2)
 	countsOut := make([]int, consumerN)
 
 	produce := func(p int) {
-		tick := time.Tick(time.Millisecond)
+		defer wg.Done()
+
+		tick := time.Tick(time.Microsecond * 100)
 		for i := 0; i < max; i++ {
 			select {
 			case tim := <-tick:
@@ -96,10 +100,15 @@ func TestSyncQueue(t *testing.T) {
 	}
 
 	consume := func(c int) {
+		defer wg.Done()
+
 		for {
 			select {
 			case <-cq.DeqChan:
 				countsOut[c]++
+				if countsOut[c] >= max*2 {
+					return
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -108,14 +117,13 @@ func TestSyncQueue(t *testing.T) {
 
 	// make n * 2 producers and n consumers
 	for i := 0; i < consumerN; i++ {
+		wg.Add(3)
 		go produce(i)
 		go produce(consumerN + i)
 		go consume(i)
 	}
 
-	select {
-	case <-ctx.Done():
-	}
+	wg.Wait()
 
 	sum := func(ns []int) int {
 		total := 0
@@ -126,6 +134,6 @@ func TestSyncQueue(t *testing.T) {
 	}
 
 	if sum(countsIn) != sum(countsOut) {
-		t.Errorf("didnt get all of them out: %d/%d", countsOut, countsIn)
+		t.Errorf("didnt get all of them out: %d/%d", sum(countsOut), sum(countsIn))
 	}
 }
