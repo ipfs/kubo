@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"path/filepath"
 	"errors"
 	"os"
 
@@ -70,6 +71,18 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 	cfg.Datastore.Path = dspath
 	cfg.Datastore.Type = "leveldb"
+
+	// Construct the data store if missing
+	if err := os.MkdirAll(dspath, os.ModeDir); err != nil {
+		return err
+	}
+
+	// Check the directory is writeable
+	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
+		os.Remove(f.Name())
+	} else {
+		return errors.New("Datastore '" + dspath + "' is not writeable")
+	}
 
 	cfg.Identity = config.Identity{}
 
