@@ -34,6 +34,7 @@ Tool commands:
 Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
+    webserver     Start a webserver
 
 Use "ipfs help <command>" for more information about a command.
 `,
@@ -47,6 +48,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsVersion,
 		cmdIpfsCommands,
 		cmdIpfsMount,
+		cmdIpfsWebserver,
 		cmdIpfsInit,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
