@@ -14,13 +14,15 @@ var BlockSizeLimit = int64(1048576) // 1 MB
 // ErrSizeLimitExceeded signals that a block is larger than BlockSizeLimit.
 var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 
+var DefaultSplitter = &SizeSplitter{1024 * 512}
+
 // todo: incremental construction with an ipfs node. dumping constructed
 // objects into the datastore, to avoid buffering all in memory
 
 // NewDagFromReader constructs a Merkle DAG from the given io.Reader.
 // size required for block construction.
 func NewDagFromReader(r io.Reader) (*dag.Node, error) {
-	return NewDagFromReaderWithSplitter(r, &SizeSplitter{1024 * 512})
+	return NewDagFromReaderWithSplitter(r, DefaultSplitter)
 }
 
 func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, error) {
@@ -57,4 +59,23 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	defer f.Close()
 
 	return NewDagFromReader(f)
+}
+
+// TODO: this needs a better name
+func NewDagInNode(r io.Reader, n *dag.Node) error {
+	n.Links = nil
+
+	blkChan := DefaultSplitter.Split(r)
+	first := <-blkChan
+	n.Data = first
+
+	for blk := range blkChan {
+		child := &dag.Node{Data: dag.WrapData(blk)}
+		err := n.AddNodeLink("", child)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

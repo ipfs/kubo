@@ -296,23 +296,35 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		// This operation holds everything in memory,
 		// should be changed to stream the block creation/storage
 		// but for now, since the buf is all in memory anyways...
-		nnode, err := imp.NewDagFromReader(n.dataBuf)
+		err := imp.NewDagInNode(n.dataBuf, n.Nd)
 		if err != nil {
 			log.Error("ipns Flush error: %s", err)
 			// return fuse.EVERYBAD
 			return fuse.ENODATA
 		}
 
-		err = n.Ipfs.DAG.AddRecursive(nnode)
+		var root *Node
+		if n.nsRoot != nil {
+			root = n.nsRoot
+		} else {
+			root = n
+		}
+
+		err = root.Nd.Update()
+		if err != nil {
+			log.Error("ipns dag tree update failed: %s", err)
+			return fuse.ENODATA
+		}
+
+		err = n.Ipfs.DAG.AddRecursive(root.Nd)
 		if err != nil {
 			log.Critical("ipns Dag Add Error: %s", err)
 		}
 
-		n.Nd = nnode
 		n.changed = false
 		n.dataBuf = nil
 
-		ndkey, err := nnode.Key()
+		ndkey, err := root.Nd.Key()
 		if err != nil {
 			log.Error("getKey error: %s", err)
 			// return fuse.ETHISREALLYSUCKS
@@ -320,7 +332,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		}
 		log.Debug("Publishing changes!")
 
-		err = n.Ipfs.Publisher.Publish(n.key, ndkey)
+		err = n.Ipfs.Publisher.Publish(root.key, ndkey)
 		if err != nil {
 			log.Error("ipns Publish Failed: %s", err)
 		}
