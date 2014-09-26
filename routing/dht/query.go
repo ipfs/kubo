@@ -106,6 +106,7 @@ func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
 		log.Warning("Running query with no peers!")
 		return nil, nil
 	}
+
 	// setup concurrency rate limiting
 	for i := 0; i < r.query.concurrency; i++ {
 		r.rateLimit <- struct{}{}

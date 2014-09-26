@@ -47,14 +47,13 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
-	ll := startNewRPC("GET")
-	defer ll.EndAndPrint()
+	log.Debug("Get Value [%s]", key.Pretty())
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
 	val, err := dht.getLocal(key)
 	if err == nil {
-		ll.Success = true
+		log.Debug("Got value locally!")
 		return val, nil
 	}
 
