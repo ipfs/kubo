@@ -71,7 +71,9 @@ func TestSwarm(t *testing.T) {
 		t.Fatal("error setting up peer", err)
 	}
 
-	swarm, err := NewSwarm(context.Background(), local)
+	peerstore := peer.NewPeerstore()
+
+	swarm, err := NewSwarm(context.Background(), local, peerstore)
 	if err != nil {
 		t.Error(err)
 	}

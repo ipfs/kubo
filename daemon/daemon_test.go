@@ -26,9 +26,8 @@ func TestInitializeDaemonListener(t *testing.T) {
 	privKey := base64.StdEncoding.EncodeToString(prbytes)
 	pID := ident.Pretty()
 
-	id := &config.Identity{
+	id := config.Identity{
 		PeerID:  pID,
-		Address: "/ip4/127.0.0.1/tcp/8000",
 		PrivKey: privKey,
 	}
 
@@ -38,6 +37,10 @@ func TestInitializeDaemonListener(t *testing.T) {
 			Datastore: config.Datastore{
 				Type: "memory",
 			},
+			Addresses: config.Addresses{
+				Swarm: "/ip4/0.0.0.0/tcp/4001",
+				API:   "/ip4/127.0.0.1/tcp/8000",
+			},
 		},
 
 		&config.Config{
@@ -45,6 +48,10 @@ func TestInitializeDaemonListener(t *testing.T) {
 			Datastore: config.Datastore{
 				Type: "leveldb",
 				Path: ".testdb",
+			},
+			Addresses: config.Addresses{
+				Swarm: "/ip4/0.0.0.0/tcp/4001",
+				API:   "/ip4/127.0.0.1/tcp/8000",
 			},
 		},
 	}
