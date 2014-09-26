@@ -183,6 +183,7 @@ func (r *Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	nsRoot *Node
+	name   string
 
 	// Private keys held by nodes at the root of a keyspace
 	key ci.PrivKey
@@ -192,6 +193,7 @@ type Node struct {
 	fd     *mdag.DagReader
 	cached *mdag.PBData
 
+	// For writing
 	dataBuf *bytes.Buffer
 	changed bool
 }
@@ -227,25 +229,30 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("ipns: node Lookup '%s'", name)
+	log.Debug("ipns: node[%s] Lookup '%s' [intr= %s]", s.name, name, intr.String())
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
 	}
 
+	return s.makeChild(name, nd), nil
+}
+
+func (n *Node) makeChild(name string, node *mdag.Node) *Node {
 	child := &Node{
-		Ipfs: s.Ipfs,
-		Nd:   nd,
+		Ipfs: n.Ipfs,
+		Nd:   node,
+		name: name,
 	}
 
-	if s.nsRoot == nil {
-		child.nsRoot = s
+	if n.nsRoot == nil {
+		child.nsRoot = n
 	} else {
-		child.nsRoot = s.nsRoot
+		child.nsRoot = n.nsRoot
 	}
 
-	return child, nil
+	return child
 }
 
 // ReadDir reads the link structure as directory entries
@@ -356,6 +363,55 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 func (n *Node) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
 	log.Debug("Got fsync request!")
 	return nil
+}
+
+func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+	log.Debug("Got mkdir request!")
+	dagnd := new(mdag.Node)
+	dagnd.Data = mdag.FolderPBData()
+	n.Nd.AddNodeLink(req.Name, dagnd)
+	n.changed = true
+
+	child := &Node{
+		Ipfs: n.Ipfs,
+		Nd:   dagnd,
+	}
+
+	if n.nsRoot == nil {
+		child.nsRoot = n
+	} else {
+		child.nsRoot = n.nsRoot
+	}
+
+	return child, nil
+}
+
+func (n *Node) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+	log.Debug("Got mknod request!")
+	return nil, nil
+}
+func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
+	log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
+	return n, nil
+}
+
+func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
+	log.Debug("Got create request!")
+	nd := new(mdag.Node)
+	nd.Data = mdag.FilePBData(nil)
+	child := n.makeChild(req.Name, nd)
+
+	err := n.Nd.AddNodeLink(req.Name, nd)
+	if err != nil {
+		log.Error("Error adding child to node: %s", err)
+		return nil, nil, fuse.ENOENT
+	}
+	return child, nil, nil
+}
+
+func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
+	log.Debug("Got Remove request!")
+	return fuse.EIO
 }
 
 // Mount mounts an IpfsNode instance at a particular path. It
