@@ -72,7 +72,7 @@ func newPeerTime(t time.Time) *peer.Peer {
 }
 
 func TestSyncQueue(t *testing.T) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*4)
 
 	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	cq := NewChanQueue(ctx, pq)
