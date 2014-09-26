@@ -73,7 +73,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg.Datastore.Type = "leveldb"
 
 	// Construct the data store if missing
-	if err := os.MkdirAll(dspath, os.ModeDir); err != nil {
+	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
 		return err
 	}
 
