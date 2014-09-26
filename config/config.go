@@ -63,7 +63,12 @@ func PathRoot() (string, error) {
 func Path(configroot, extension string) (string, error) {
 	if len(configroot) == 0 {
 		dir, err := PathRoot()
-		return filepath.Join(dir, extension), err
+		if err != nil {
+			return "", err
+		} else {
+			return filepath.Join(dir, extension), nil
+		}
+
 	} else {
 		return filepath.Join(configroot, extension), nil
 	}
