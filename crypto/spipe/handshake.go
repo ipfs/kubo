@@ -90,23 +90,18 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	s.remote.PubKey, err = ci.UnmarshalPublicKey(proposeResp.GetPubkey())
+	// get remote identity
+	remotePubKey, err := ci.UnmarshalPublicKey(proposeResp.GetPubkey())
 	if err != nil {
 		return err
 	}
 
-	remoteID, err := IDFromPubKey(s.remote.PubKey)
+	// get or construct peer
+	s.remote, err = getOrConstructPeer(s.peers, remotePubKey)
 	if err != nil {
 		return err
 	}
-
-	if s.remote.ID != nil && !remoteID.Equal(s.remote.ID) {
-		e := "Expected pubkey does not match sent pubkey: %v - %v"
-		return fmt.Errorf(e, s.remote.ID.Pretty(), remoteID.Pretty())
-	} else if s.remote.ID == nil {
-		s.remote.ID = remoteID
-	}
-	// u.POut("Remote Peer Identified as %s\n", s.remote.ID.Pretty())
+	u.DOut("[%s] Remote Peer Identified as %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
@@ -339,4 +334,63 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 	}
 
 	return "", errors.New("No algorithms in common!")
+}
+
+// getOrConstructPeer attempts to fetch a peer from a peerstore.
+// if succeeds, verify ID and PubKey match.
+// else, construct it.
+func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error) {
+
+	rid, err := IDFromPubKey(rpk)
+	if err != nil {
+		return nil, err
+	}
+
+	npeer, err := peers.Get(rid)
+	if err != nil {
+		if err != peer.ErrNotFound {
+			return nil, err // unexpected error happened.
+		}
+
+		// dont have peer, so construct it + add it to peerstore.
+		npeer = &peer.Peer{ID: rid, PubKey: rpk}
+		if err := peers.Put(npeer); err != nil {
+			return nil, err
+		}
+
+		// done, return the newly constructed peer.
+		return npeer, nil
+	}
+
+	// did have it locally.
+
+	// let's verify ID
+	if !npeer.ID.Equal(rid) {
+		e := "Expected peer.ID does not match sent pubkey's hash: %v - %v"
+		return nil, fmt.Errorf(e, npeer.ID.Pretty(), rid.Pretty())
+	}
+
+	if npeer.PubKey == nil {
+		// didn't have a pubkey, just set it.
+		npeer.PubKey = rpk
+		return npeer, nil
+	}
+
+	// did have pubkey, let's verify it's really the same.
+	// this shouldn't ever happen, given we hashed, etc, but it could mean
+	// expected code (or protocol) invariants violated.
+
+	lb, err1 := npeer.PubKey.Bytes()
+	if err1 != nil {
+		return nil, err1
+	}
+	rb, err2 := rpk.Bytes()
+	if err2 != nil {
+		return nil, err2
+	}
+
+	if !bytes.Equal(lb, rb) {
+		return nil, fmt.Errorf("WARNING: PubKey mismatch: %v", npeer.ID.Pretty())
+	}
+	return npeer, nil
 }
