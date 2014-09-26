@@ -30,7 +30,7 @@ type IpfsNetwork struct {
 
 // NewIpfsNetwork is the structure that implements the network interface
 func NewIpfsNetwork(ctx context.Context, local *peer.Peer,
-	pmap *mux.ProtocolMap) (*IpfsNetwork, error) {
+	peers peer.Peerstore, pmap *mux.ProtocolMap) (*IpfsNetwork, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -47,7 +47,7 @@ func NewIpfsNetwork(ctx context.Context, local *peer.Peer,
 		return nil, err
 	}
 
-	in.swarm, err = swarm.NewSwarm(ctx, local)
+	in.swarm, err = swarm.NewSwarm(ctx, local, peers)
 	if err != nil {
 		cancel()
 		return nil, err

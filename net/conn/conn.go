@@ -48,17 +48,6 @@ func NewConn(peer *peer.Peer, addr *ma.Multiaddr, nconn net.Conn) (*Conn, error)
 	return conn, nil
 }
 
-// NewNetConn constructs a new connection with given net.Conn
-func NewNetConn(nconn net.Conn) (*Conn, error) {
-
-	addr, err := ma.FromNetAddr(nconn.RemoteAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	return NewConn(new(peer.Peer), addr, nconn)
-}
-
 // Dial connects to a particular peer, over a given network
 // Example: Dial("udp", peer)
 func Dial(network string, peer *peer.Peer) (*Conn, error) {
@@ -111,4 +100,10 @@ func (c *Conn) Close() error {
 	c.Outgoing.Close()
 	c.Closed <- true
 	return err
+}
+
+// NetConnMultiaddr returns the net.Conn's address, recast as a multiaddr.
+// (consider moving this directly into the multiaddr package)
+func NetConnMultiaddr(nconn net.Conn) (*ma.Multiaddr, error) {
+	return ma.FromNetAddr(nconn.RemoteAddr())
 }

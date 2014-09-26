@@ -76,15 +76,19 @@ func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
 // Handle getting ID from this peer, handshake, and adding it into the map
 func (s *Swarm) handleIncomingConn(nconn net.Conn) {
 
-	c, err := conn.NewNetConn(nconn)
+	addr, err := conn.NetConnMultiaddr(nconn)
 	if err != nil {
 		s.errChan <- err
 		return
 	}
 
-	//TODO(jbenet) the peer might potentially already be in the global PeerBook.
-	// maybe use the handshake to populate peer.
-	c.Peer.AddAddress(c.Addr)
+	// Construct conn with nil peer for now, because we don't know its ID yet.
+	// connSetup will figure this out, and pull out / construct the peer.
+	c, err := conn.NewConn(nil, addr, nconn)
+	if err != nil {
+		s.errChan <- err
+		return
+	}
 
 	// Setup the new connection
 	err = s.connSetup(c)
@@ -101,13 +105,21 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 		return errors.New("Tried to start nil connection.")
 	}
 
-	u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
+	if c.Peer != nil {
+		u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
+	} else {
+		u.DOut("Starting connection: [unknown peer]\n")
+	}
 
 	if err := s.connSecure(c); err != nil {
 		return fmt.Errorf("Conn securing error: %v", err)
 	}
 
 	u.DOut("Secured connection: %s\n", c.Peer.Key().Pretty())
+
+	//TODO(jbenet) the peer might potentially already be in the global PeerBook.
+	// maybe use the handshake to populate peer.
+	c.Peer.AddAddress(c.Addr)
 
 	// add to conns
 	s.connsLock.Lock()
@@ -126,7 +138,7 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 // connSecure setups a secure remote connection.
 func (s *Swarm) connSecure(c *conn.Conn) error {
 
-	sp, err := spipe.NewSecurePipe(s.ctx, 10, s.local, c.Peer)
+	sp, err := spipe.NewSecurePipe(s.ctx, 10, s.local, s.peers)
 	if err != nil {
 		return err
 	}
@@ -137,6 +149,13 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if c.Peer == nil {
+		c.Peer = sp.RemotePeer()
+
+	} else if c.Peer != sp.RemotePeer() {
+		panic("peers not being constructed correctly.")
 	}
 
 	c.Secure = sp
