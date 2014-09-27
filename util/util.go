@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
@@ -26,7 +27,7 @@ var ErrTimeout = errors.New("Error: Call timed out.")
 var ErrSearchIncomplete = errors.New("Error: Search Incomplete.")
 
 // ErrNotFound is returned when a search fails to find anything
-var ErrNotFound = errors.New("Error: Not Found.")
+var ErrNotFound = ds.ErrNotFound
 
 // Key is a string representation of multihash for use with maps.
 type Key string
