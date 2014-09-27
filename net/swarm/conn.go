@@ -117,8 +117,7 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 
 	u.DOut("Secured connection: %s\n", c.Peer.Key().Pretty())
 
-	//TODO(jbenet) the peer might potentially already be in the global PeerBook.
-	// maybe use the handshake to populate peer.
+	// add address of connection to Peer. Maybe it should happen in connSecure.
 	c.Peer.AddAddress(c.Addr)
 
 	// add to conns
