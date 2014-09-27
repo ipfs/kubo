@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 
-	lock "github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -43,10 +42,10 @@ func getDaemonAddr(confdir string) (string, error) {
 	return string(line), nil
 }
 
-// SendCommand issues a command (of type daemon.Command) to the daemon, if it
-// is running (if not, errors out). This is done over network RPC API. The
-// address of the daemon is retrieved from the configuration directory, where
-// live daemons write their addresses to special files.
+// SendCommand attempts to run the command over a currently-running daemon.
+// If there is no running daemon, returns ErrDaemonNotRunning. This is done
+// over network RPC API. The address of the daemon is retrieved from the config
+// directory, where live daemons write their addresses to special files.
 func SendCommand(command *Command, confdir string) error {
 	//check if daemon is running
 	log.Info("Checking if daemon is running...")
@@ -55,10 +54,10 @@ func SendCommand(command *Command, confdir string) error {
 	if err != nil {
 		return err
 	}
-	lk, err := lock.Lock(confdir + "/daemon.lock")
+	lk, err := daemonLock(confdir)
 	if err == nil {
-		return ErrDaemonNotRunning
 		lk.Close()
+		return ErrDaemonNotRunning
 	}
 
 	log.Info("Daemon is running! %s", err)

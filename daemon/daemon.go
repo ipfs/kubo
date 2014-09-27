@@ -6,17 +6,21 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/op/go-logging"
+	logging "github.com/op/go-logging"
 
 	"github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 var log = logging.MustGetLogger("daemon")
+
+// LockFile is the filename of the daemon lock, relative to config dir
+const LockFile = "daemon.lock"
 
 // DaemonListener listens to an initialized IPFS node and can send it commands instead of
 // starting up a new set of connections
@@ -41,7 +45,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir stri
 		return nil, err
 	}
 
-	lk, err := lock.Lock(confdir + "/daemon.lock")
+	lk, err := daemonLock(confdir)
 	if err != nil {
 		return nil, err
 	}
@@ -132,4 +136,8 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 func (dl *DaemonListener) Close() error {
 	dl.closed = true
 	return dl.list.Close()
+}
+
+func daemonLock(confdir string) (io.Closer, error) {
+	return lock.Lock(path.Join(confdir, LockFile))
 }
