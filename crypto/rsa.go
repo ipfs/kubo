@@ -41,6 +41,11 @@ func (pk *RsaPublicKey) Bytes() ([]byte, error) {
 	return proto.Marshal(pbmes)
 }
 
+// Equals checks whether this key is equal to another
+func (pk *RsaPublicKey) Equals(k Key) bool {
+	return KeyEqual(pk, k)
+}
+
 func (sk *RsaPrivateKey) GenSecret() []byte {
 	buf := make([]byte, 16)
 	rand.Read(buf)
@@ -63,6 +68,11 @@ func (sk *RsaPrivateKey) Bytes() ([]byte, error) {
 	pbmes.Type = &typ
 	pbmes.Data = b
 	return proto.Marshal(pbmes)
+}
+
+// Equals checks whether this key is equal to another
+func (sk *RsaPrivateKey) Equals(k Key) bool {
+	return KeyEqual(sk, k)
 }
 
 func UnmarshalRsaPrivateKey(b []byte) (*RsaPrivateKey, error) {

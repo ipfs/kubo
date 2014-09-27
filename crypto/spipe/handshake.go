@@ -379,17 +379,7 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error)
 	// did have pubkey, let's verify it's really the same.
 	// this shouldn't ever happen, given we hashed, etc, but it could mean
 	// expected code (or protocol) invariants violated.
-
-	lb, err1 := npeer.PubKey.Bytes()
-	if err1 != nil {
-		return nil, err1
-	}
-	rb, err2 := rpk.Bytes()
-	if err2 != nil {
-		return nil, err2
-	}
-
-	if !bytes.Equal(lb, rb) {
+	if !npeer.PubKey.Equals(rpk) {
 		return nil, fmt.Errorf("WARNING: PubKey mismatch: %v", npeer.ID.Pretty())
 	}
 	return npeer, nil
