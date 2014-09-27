@@ -72,15 +72,22 @@ func mountCmd(c *commander.Command, inp []string) error {
 	mp := inp[0]
 	fmt.Printf("Mounting at %s\n", mp)
 
+	var ipnsDone chan struct{}
 	ns, ok := c.Flag.Lookup("n").Value.Get().(string)
 	if ok {
+		ipnsDone = make(chan struct{})
 		go func() {
 			err = ipns.Mount(n, ns, mp)
 			if err != nil {
 				fmt.Printf("Error mounting ipns: %s\n", err)
 			}
+			ipnsDone <- struct{}{}
 		}()
 	}
 
-	return rofs.Mount(n, mp)
+	err = rofs.Mount(n, mp)
+	if ipnsDone != nil {
+		<-ipnsDone
+	}
+	return err
 }
