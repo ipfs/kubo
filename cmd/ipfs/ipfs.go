@@ -93,5 +93,6 @@ func getConfigDir(c *commander.Command) (string, error) {
 	if !ok {
 		return "", errors.New("failed to retrieve config flag value.")
 	}
-	return confStr, nil
+
+	return u.TildeExpansion(confStr)
 }

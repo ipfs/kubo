@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	"github.com/jbenet/go-ipfs/core/commands"
-	"github.com/jbenet/go-ipfs/daemon"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 // Error indicating the max depth has been exceded.
@@ -32,29 +29,4 @@ func init() {
 	cmdIpfsAdd.Flag.Bool("r", false, "add objects recursively")
 }
 
-func addCmd(c *commander.Command, inp []string) error {
-	if len(inp) < 1 {
-		u.POut(c.Long)
-		return nil
-	}
-
-	cmd := daemon.NewCommand()
-	cmd.Command = "add"
-	cmd.Args = inp
-	cmd.Opts["r"] = c.Flag.Lookup("r").Value.Get()
-	err := daemon.SendCommand(cmd, "localhost:12345")
-	if err != nil {
-		// Do locally
-		conf, err := getConfigDir(c.Parent)
-		if err != nil {
-			return err
-		}
-		n, err := localNode(conf, false)
-		if err != nil {
-			return err
-		}
-
-		return commands.Add(n, cmd.Args, cmd.Opts, os.Stdout)
-	}
-	return nil
-}
+var addCmd = MakeCommand("add", []string{"r"}, commands.Add)

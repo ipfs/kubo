@@ -5,14 +5,24 @@ import (
 	"io"
 	"net"
 	"os"
-	"time"
+
+	ma "github.com/jbenet/go-multiaddr"
 )
 
 //SendCommand connects to the address on the network with a timeout and encodes the connection into JSON
 func SendCommand(command *Command, server string) error {
 
-	conn, err := net.DialTimeout("tcp", server, time.Millisecond*300)
+	maddr, err := ma.NewMultiaddr(server)
+	if err != nil {
+		return err
+	}
 
+	network, host, err := maddr.DialArgs()
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.Dial(network, host)
 	if err != nil {
 		return err
 	}

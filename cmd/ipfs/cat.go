@@ -1,13 +1,9 @@
 package main
 
 import (
-	"os"
-
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	"github.com/jbenet/go-ipfs/core/commands"
-	"github.com/jbenet/go-ipfs/daemon"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var cmdIpfsCat = &commander.Command{
@@ -22,6 +18,9 @@ var cmdIpfsCat = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-cat", flag.ExitOnError),
 }
 
+var catCmd = MakeCommand("cat", nil, commands.Cat)
+
+/*
 func catCmd(c *commander.Command, inp []string) error {
 	if len(inp) < 1 {
 		u.POut(c.Long)
@@ -47,3 +46,4 @@ func catCmd(c *commander.Command, inp []string) error {
 	}
 	return nil
 }
+*/

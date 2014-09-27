@@ -37,10 +37,12 @@ func mountCmd(c *commander.Command, inp []string) error {
 
 	conf, err := getConfigDir(c.Parent)
 	if err != nil {
+		fmt.Println("Couldnt get config dir")
 		return err
 	}
 	n, err := localNode(conf, true)
 	if err != nil {
+		fmt.Println("Local node creation failed.")
 		return err
 	}
 
@@ -56,6 +58,7 @@ func mountCmd(c *commander.Command, inp []string) error {
 
 	dl, err := daemon.NewDaemonListener(n, maddr)
 	if err != nil {
+		fmt.Println("Failed to create daemon listener.")
 		return err
 	}
 	go dl.Listen()
@@ -63,6 +66,5 @@ func mountCmd(c *commander.Command, inp []string) error {
 
 	mp := inp[0]
 	fmt.Printf("Mounting at %s\n", mp)
-
 	return rofs.Mount(n, mp)
 }

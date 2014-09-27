@@ -59,7 +59,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	routeLevel := 0
 	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if closest == nil || len(closest) == 0 {
-		return nil, kb.ErrLookupFailure
+		return nil, nil
 	}
 
 	// setup the Query
@@ -101,7 +101,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	dht.providers.AddProvider(key, dht.self)
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if len(peers) == 0 {
-		return kb.ErrLookupFailure
+		return nil
 	}
 
 	//TODO FIX: this doesn't work! it needs to be sent to the actual nearest peers.
@@ -245,7 +245,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error
 	routeLevel := 0
 	p = dht.routingTables[routeLevel].NearestPeer(kb.ConvertPeerID(id))
 	if p == nil {
-		return nil, kb.ErrLookupFailure
+		return nil, nil
 	}
 	if p.ID.Equal(id) {
 		return p, nil
@@ -287,7 +287,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 	routeLevel := 0
 	peers := dht.routingTables[routeLevel].NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if len(peers) == 0 {
-		return nil, kb.ErrLookupFailure
+		return nil, nil
 	}
 
 	// setup query function

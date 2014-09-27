@@ -45,6 +45,13 @@ Advanced Commands:
 Use "ipfs help <command>" for more information about a command.
 ```
 
+## Getting Started
+To start using ipfs, you must first initialize ipfs's config files on your system, this is done with `ipfs init`. See `ipfs help init` for information on arguments it takes. After initialization is complete, you can use `ipfs mount`, `ipfs add` and any of the other commands to explore!
+
+
+NOTE: if you have previously installed ipfs before and you are running into problems getting it to work, try deleting (or backing up somewhere else) your config directory (~/.go-ipfs/config by default) and rerunning `ipfs init`. 
+
+
 ## Contributing
 
 go-ipfs is MIT licensed open source software. We welcome contributions big and small! Please make sure to check the [issues](https://github.com/jbenet/go-ipfs/issues). Search the closed ones before reporting things, and help us with the open ones.
