@@ -15,7 +15,7 @@ type DNSResolver struct {
 }
 
 func (r *DNSResolver) Matches(name string) bool {
-	return strings.Contains(name, ".")
+	return strings.Contains(name, ".") && !strings.HasPrefix(name, ".")
 }
 
 // TXT records for a given domain name should contain a b58

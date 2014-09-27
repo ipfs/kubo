@@ -65,6 +65,16 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 	return nil
 }
 
+func (n *Node) RemoveNodeLink(name string) error {
+	for i, l := range n.Links {
+		if l.Name == name {
+			n.Links = append(n.Links[:i], n.Links[i+1:]...)
+			return nil
+		}
+	}
+	return u.ErrNotFound
+}
+
 // Size returns the total size of the data addressed by node,
 // including the total sizes of references.
 func (n *Node) Size() (uint64, error) {
