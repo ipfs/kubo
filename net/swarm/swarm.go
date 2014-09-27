@@ -46,6 +46,9 @@ type Swarm struct {
 	// local is the peer this swarm represents
 	local *peer.Peer
 
+	// peers is a collection of peers for swarm to use
+	peers peer.Peerstore
+
 	// Swarm includes a Pipe object.
 	*msg.Pipe
 
@@ -65,11 +68,12 @@ type Swarm struct {
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
-func NewSwarm(ctx context.Context, local *peer.Peer) (*Swarm, error) {
+func NewSwarm(ctx context.Context, local *peer.Peer, ps peer.Peerstore) (*Swarm, error) {
 	s := &Swarm{
 		Pipe:    msg.NewPipe(10),
 		conns:   conn.Map{},
 		local:   local,
+		peers:   ps,
 		errChan: make(chan error, 100),
 	}
 
@@ -112,9 +116,18 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 
 	// check if we already have an open connection first
 	c := s.GetConnection(peer.ID)
+	if c != nil {
+		return c, nil
+	}
+
+	// check if we don't have the peer in Peerstore
+	err := s.peers.Put(peer)
+	if err != nil {
+		return nil, err
+	}
 
 	// open connection to peer
-	c, err := conn.Dial("tcp", peer)
+	c, err = conn.Dial("tcp", peer)
 	if err != nil {
 		return nil, err
 	}

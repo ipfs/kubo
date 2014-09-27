@@ -9,6 +9,10 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 )
 
+// ErrNotFound signals a peer wasn't found. this is here to avoid having to
+// leak the ds abstraction to clients of Peerstore, just for the error.
+var ErrNotFound = ds.ErrNotFound
+
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
 	Get(ID) (*Peer, error)

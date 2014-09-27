@@ -23,7 +23,17 @@ const (
 	RSA = iota
 )
 
+type Key interface {
+	// Bytes returns a serialized, storeable representation of this key
+	Bytes() ([]byte, error)
+
+	// Equals checks whether two PubKeys are the same
+	Equals(Key) bool
+}
+
 type PrivKey interface {
+	Key
+
 	// Cryptographically sign the given bytes
 	Sign([]byte) ([]byte, error)
 
@@ -32,17 +42,13 @@ type PrivKey interface {
 
 	// Generate a secret string of bytes
 	GenSecret() []byte
-
-	// Bytes returns a serialized, storeable representation of this key
-	Bytes() ([]byte, error)
 }
 
 type PubKey interface {
+	Key
+
 	// Verify that 'sig' is the signed hash of 'data'
 	Verify(data []byte, sig []byte) (bool, error)
-
-	// Bytes returns a serialized, storeable representation of this key
-	Bytes() ([]byte, error)
 }
 
 // Given a public key, generates the shared key.
@@ -228,4 +234,15 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 	default:
 		return nil, ErrBadKeyType
 	}
+}
+
+// KeyEqual checks whether two
+func KeyEqual(k1, k2 Key) bool {
+	if k1 == k2 {
+		return true
+	}
+
+	b1, err1 := k1.Bytes()
+	b2, err2 := k2.Bytes()
+	return bytes.Equal(b1, b2) && err1 == err2
 }

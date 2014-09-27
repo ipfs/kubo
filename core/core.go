@@ -106,7 +106,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 			return nil, err
 		}
 
-		net, err = inet.NewIpfsNetwork(context.TODO(), local, &mux.ProtocolMap{
+		net, err = inet.NewIpfsNetwork(context.TODO(), local, peerstore, &mux.ProtocolMap{
 			mux.ProtocolID_Routing:  dhtService,
 			mux.ProtocolID_Exchange: exchangeService,
 		})

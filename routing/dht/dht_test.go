@@ -31,7 +31,7 @@ func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
 		t.Fatal(err)
 	}
 
-	net, err := inet.NewIpfsNetwork(ctx, p, &mux.ProtocolMap{
+	net, err := inet.NewIpfsNetwork(ctx, p, peerstore, &mux.ProtocolMap{
 		mux.ProtocolID_Routing: dhts,
 	})
 	if err != nil {

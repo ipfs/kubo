@@ -229,13 +229,13 @@ func TestStopping(t *testing.T) {
 	mux1.Start(context.Background())
 
 	// test outgoing p1
-	for _, s := range []string{"foo", "bar", "baz"} {
+	for _, s := range []string{"foo1", "bar1", "baz1"} {
 		p1.Outgoing <- msg.New(peer1, []byte(s))
 		testWrappedMsg(t, <-mux1.Outgoing, pid1, []byte(s))
 	}
 
 	// test incoming p1
-	for _, s := range []string{"foo", "bar", "baz"} {
+	for _, s := range []string{"foo2", "bar2", "baz2"} {
 		d, err := wrapData([]byte(s), pid1)
 		if err != nil {
 			t.Error(err)
@@ -250,17 +250,17 @@ func TestStopping(t *testing.T) {
 	}
 
 	// test outgoing p1
-	for _, s := range []string{"foo", "bar", "baz"} {
+	for _, s := range []string{"foo3", "bar3", "baz3"} {
 		p1.Outgoing <- msg.New(peer1, []byte(s))
 		select {
-		case <-mux1.Outgoing:
-			t.Error("should not have received anything.")
+		case m := <-mux1.Outgoing:
+			t.Errorf("should not have received anything. Got: %v", string(m.Data()))
 		case <-time.After(time.Millisecond):
 		}
 	}
 
 	// test incoming p1
-	for _, s := range []string{"foo", "bar", "baz"} {
+	for _, s := range []string{"foo4", "bar4", "baz4"} {
 		d, err := wrapData([]byte(s), pid1)
 		if err != nil {
 			t.Error(err)
