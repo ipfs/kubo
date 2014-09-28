@@ -7,13 +7,14 @@ import (
 	"net"
 	"os"
 	"path"
+	"sync"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
 	logging "github.com/op/go-logging"
 
-	"github.com/camlistore/lock"
+	lock "github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -28,6 +29,7 @@ type DaemonListener struct {
 	node   *core.IpfsNode
 	list   net.Listener
 	closed bool
+	wg     sync.WaitGroup
 	lk     io.Closer
 }
 
@@ -88,13 +90,17 @@ func NewCommand() *Command {
 }
 
 func (dl *DaemonListener) Listen() {
-	fmt.Println("listen.")
+	if dl.closed {
+		panic("attempting to listen on a closed daemon Listener")
+	}
+
+	dl.wg.Add(1)
+	log.Info("daemon listening")
 	for {
 		conn, err := dl.list.Accept()
-		fmt.Println("Loop!")
 		if err != nil {
 			if !dl.closed {
-				u.PErr("DaemonListener Accept: %v\n", err)
+				log.Warning("DaemonListener Accept: %v", err)
 			}
 			dl.lk.Close()
 			return
@@ -135,7 +141,10 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 
 func (dl *DaemonListener) Close() error {
 	dl.closed = true
-	return dl.list.Close()
+	err := dl.list.Close()
+	dl.wg.Wait() // wait till done before releasing lock.
+	dl.lk.Close()
+	return err
 }
 
 func daemonLock(confdir string) (io.Closer, error) {

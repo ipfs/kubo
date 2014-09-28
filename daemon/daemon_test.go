@@ -63,7 +63,7 @@ func TestInitializeDaemonListener(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		dl, initErr := NewDaemonListener(node, addr)
+		dl, initErr := NewDaemonListener(node, addr, ".")
 		if initErr != nil {
 			t.Fatal(initErr)
 		}
