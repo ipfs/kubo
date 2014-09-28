@@ -6,6 +6,8 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	"github.com/jbenet/go-ipfs/daemon"
 	h "github.com/jbenet/go-ipfs/server/http"
 )
@@ -48,9 +50,19 @@ func serveHttpCmd(c *commander.Command, _ []string) error {
 		return err
 	}
 
-	fmt.Println("starting new daemon listener...")
-	dl, err := daemon.NewDaemonListener(n, "localhost:12345")
+	// launch the API RPC endpoint.
+	if n.Config.Addresses.API == "" {
+		return errors.New("no config.RPCAddress endpoint supplied")
+	}
+
+	maddr, err := ma.NewMultiaddr(n.Config.Addresses.API)
 	if err != nil {
+		return err
+	}
+
+	dl, err := daemon.NewDaemonListener(n, maddr)
+	if err != nil {
+		fmt.Println("Failed to create daemon listener.")
 		return err
 	}
 	go dl.Listen()
