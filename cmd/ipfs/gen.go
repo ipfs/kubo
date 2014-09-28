@@ -14,7 +14,8 @@ import (
 
 type CommanderFunc func(*commander.Command, []string) error
 
-// Wraps a commands.CmdFunc so that it may be safely run by the commander library
+// MakeCommand Wraps a commands.CmdFunc so that it may be safely run by the
+// commander library
 func MakeCommand(cmdName string, expargs []string, cmdFn commands.CmdFunc) CommanderFunc {
 	return func(c *commander.Command, inp []string) error {
 		if len(inp) < 1 {
