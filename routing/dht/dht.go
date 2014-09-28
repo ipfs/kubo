@@ -77,7 +77,7 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer *peer.Peer) (*peer.Peer, error) {
-	u.DOut("Connect to new peer: %s\n", npeer.ID.Pretty())
+	log.Debug("Connect to new peer: %s\n", npeer.ID.Pretty())
 
 	// TODO(jbenet,whyrusleeping)
 	//
@@ -132,7 +132,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	dht.Update(mPeer)
 
 	// Print out diagnostic
-	u.DOut("[peer: %s] Got message type: '%s' [from = %s]\n",
+	log.Debug("[peer: %s] Got message type: '%s' [from = %s]\n",
 		dht.self.ID.Pretty(),
 		Message_MessageType_name[int32(pmes.GetType())], mPeer.ID.Pretty())
 
@@ -177,7 +177,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 	start := time.Now()
 
 	// Print out diagnostic
-	u.DOut("[peer: %s] Sent message type: '%s' [to = %s]\n",
+	log.Debug("[peer: %s] Sent message type: '%s' [to = %s]\n",
 		dht.self.ID.Pretty(),
 		Message_MessageType_name[int32(pmes.GetType())], p.ID.Pretty())
 
@@ -224,7 +224,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) e
 		return err
 	}
 
-	u.DOut("[%s] putProvider: %s for %s\n", dht.self.ID.Pretty(), p.ID.Pretty(), key)
+	log.Debug("[%s] putProvider: %s for %s", dht.self.ID.Pretty(), p.ID.Pretty(), key)
 	if *rpmes.Key != *pmes.Key {
 		return errors.New("provider not added correctly")
 	}
@@ -240,10 +240,10 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 		return nil, nil, err
 	}
 
-	u.DOut("pmes.GetValue() %v\n", pmes.GetValue())
+	log.Debug("pmes.GetValue() %v", pmes.GetValue())
 	if value := pmes.GetValue(); value != nil {
 		// Success! We were given the value
-		u.DOut("getValueOrPeers: got value\n")
+		log.Debug("getValueOrPeers: got value")
 		return value, nil, nil
 	}
 
@@ -253,7 +253,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 		if err != nil {
 			return nil, nil, err
 		}
-		u.DOut("getValueOrPeers: get from providers\n")
+		log.Debug("getValueOrPeers: get from providers")
 		return val, nil, nil
 	}
 
@@ -266,7 +266,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 
 		addr, err := ma.NewMultiaddr(pb.GetAddr())
 		if err != nil {
-			u.PErr("%v\n", err.Error())
+			log.Error("%v", err.Error())
 			continue
 		}
 
@@ -281,11 +281,11 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 	}
 
 	if len(peers) > 0 {
-		u.DOut("getValueOrPeers: peers\n")
+		u.DOut("getValueOrPeers: peers")
 		return nil, peers, nil
 	}
 
-	u.DOut("getValueOrPeers: u.ErrNotFound\n")
+	log.Warning("getValueOrPeers: u.ErrNotFound")
 	return nil, nil, u.ErrNotFound
 }
 
@@ -307,13 +307,13 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 	for _, pinfo := range peerlist {
 		p, err := dht.ensureConnectedToPeer(pinfo)
 		if err != nil {
-			u.DErr("getFromPeers error: %s\n", err)
+			log.Error("getFromPeers error: %s", err)
 			continue
 		}
 
 		pmes, err := dht.getValueSingle(ctx, p, key, level)
 		if err != nil {
-			u.DErr("getFromPeers error: %s\n", err)
+			log.Error("getFromPeers error: %s\n", err)
 			continue
 		}
 
@@ -348,7 +348,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 // Update signals to all routingTables to Update their last-seen status
 // on the given peer.
 func (dht *IpfsDHT) Update(p *peer.Peer) {
-	u.DOut("updating peer: [%s] latency = %f\n", p.ID.Pretty(), p.GetLatency().Seconds())
+	log.Debug("updating peer: [%s] latency = %f\n", p.ID.Pretty(), p.GetLatency().Seconds())
 	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)
@@ -404,7 +404,7 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []*peer.Peer 
 			continue
 		}
 
-		u.DOut("[%s] adding provider: %s for %s", dht.self.ID.Pretty(), p, key)
+		log.Debug("[%s] adding provider: %s for %s", dht.self.ID.Pretty(), p, key)
 
 		// Dont add outselves to the list
 		if p.ID.Equal(dht.self.ID) {
@@ -439,7 +439,7 @@ func (dht *IpfsDHT) betterPeerToQuery(pmes *Message) *peer.Peer {
 
 	// == to self? nil
 	if closer.ID.Equal(dht.self.ID) {
-		u.DOut("Attempted to return self! this shouldnt happen...\n")
+		log.Error("Attempted to return self! this shouldnt happen...")
 		return nil
 	}
 

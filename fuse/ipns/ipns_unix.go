@@ -79,7 +79,9 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 
 		pointsTo, err := n.Namesys.Resolve(name)
 		if err != nil {
-			log.Warning("Could not resolve value for local ipns entry")
+			log.Warning("Could not resolve value for local ipns entry, providing empty dir")
+			nd.Nd = &mdag.Node{Data: mdag.FolderPBData()}
+			root.LocalDirs[name] = nd
 			continue
 		}
 
@@ -147,16 +149,16 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	log.Debug("ipns: Falling back to resolution for [%s].", name)
 	resolved, err := s.Ipfs.Namesys.Resolve(name)
 	if err != nil {
-		log.Error("ipns: namesys resolve error: %s", err)
+		log.Warning("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
 	}
 
-	return &Link{s.IpfsRoot + "/" + u.Key(resolved).Pretty()}, nil
+	return &Link{s.IpfsRoot + "/" + resolved}, nil
 }
 
 // ReadDir reads a particular directory. Disallowed for root.
 func (r *Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	u.DOut("Read Root.\n")
+	log.Debug("Read Root.")
 	listing := []fuse.Dirent{
 		fuse.Dirent{
 			Name: "local",
@@ -255,7 +257,7 @@ func (n *Node) makeChild(name string, node *mdag.Node) *Node {
 
 // ReadDir reads the link structure as directory entries
 func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	u.DOut("Node ReadDir\n")
+	log.Debug("Node ReadDir")
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
 		n := link.Name
@@ -370,10 +372,8 @@ func (n *Node) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
 
 func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
 	log.Debug("Got mkdir request!")
-	dagnd := new(mdag.Node)
-	dagnd.Data = mdag.FolderPBData()
+	dagnd := &mdag.Node{Data: mdag.FolderPBData()}
 	n.Nd.AddNodeLink(req.Name, dagnd)
-	n.changed = true
 
 	child := &Node{
 		Ipfs: n.Ipfs,
@@ -386,6 +386,7 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 		child.nsRoot = n.nsRoot
 	}
 
+	n.changed = true
 	n.updateTree()
 
 	return child, nil
@@ -404,8 +405,9 @@ func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr
 
 func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
 	log.Debug("Got create request: %s", req.Name)
-	nd := new(mdag.Node)
-	nd.Data = mdag.FilePBData(nil)
+
+	// New 'empty' file
+	nd := &mdag.Node{Data: mdag.FilePBData(nil)}
 	child := n.makeChild(req.Name, nd)
 
 	err := n.Nd.AddNodeLink(req.Name, nd)
@@ -544,4 +546,38 @@ func (l *Link) Attr() fuse.Attr {
 func (l *Link) Readlink(req *fuse.ReadlinkRequest, intr fs.Intr) (string, fuse.Error) {
 	log.Debug("ReadLink: %s", l.Target)
 	return l.Target, nil
+}
+
+type Republisher struct {
+	Timeout time.Duration
+	Publish chan struct{}
+	node    *Node
+}
+
+func NewRepublisher(n *Node, tout time.Duration) *Republisher {
+	return &Republisher{
+		Timeout: tout,
+		Publish: make(chan struct{}),
+		node:    n,
+	}
+}
+
+func (np *Republisher) Run() {
+	for _ := range np.Publish {
+		timer := time.After(np.Timeout)
+		for {
+			select {
+			case <-timer:
+				//Do the publish!
+				err := np.node.updateTree()
+				if err != nil {
+					log.Critical("updateTree error: %s", err)
+				}
+				goto done
+			case <-np.Publish:
+				timer = time.After(np.Timeout)
+			}
+		}
+	done:
+	}
 }

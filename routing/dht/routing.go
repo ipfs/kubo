@@ -86,7 +86,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 		return nil, err
 	}
 
-	u.DOut("[%s] GetValue %v %v\n", dht.self.ID.Pretty(), key, result.value)
+	log.Debug("GetValue %v %v", key, result.value)
 	if result.value == nil {
 		return nil, u.ErrNotFound
 	}
@@ -189,7 +189,7 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 // FindProviders searches for peers who can provide the value for given key.
 func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
 	// get closest peer
-	u.DOut("Find providers for: '%s'\n", key.Pretty())
+	log.Debug("Find providers for: '%s'", key.Pretty())
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, nil
@@ -333,17 +333,17 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	u.DOut("[%s] ping %s start\n", dht.self.ID.Pretty(), p.ID.Pretty())
+	log.Info("ping %s start", p.ID.Pretty())
 
 	pmes := newMessage(Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
-	u.DOut("[%s] ping %s end (err = %s)\n", dht.self.ID.Pretty(), p.ID.Pretty(), err)
+	log.Info("ping %s end (err = %s)", p.ID.Pretty(), err)
 	return err
 }
 
 func (dht *IpfsDHT) getDiagnostic(ctx context.Context) ([]*diagInfo, error) {
 
-	u.DOut("Begin Diagnostic")
+	log.Info("Begin Diagnostic")
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 	var out []*diagInfo
 

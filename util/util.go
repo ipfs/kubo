@@ -14,7 +14,7 @@ import (
 	"github.com/op/go-logging"
 )
 
-var format = "%{color}%{time} %{shortfile} %{level}: %{color:reset}%{message}"
+var format = "%{color}%{time:01-02 15:04:05.9999} %{shortfile} %{level}: %{color:reset}%{message}"
 
 func init() {
 	backend := logging.NewLogBackend(os.Stderr, "", 0)

@@ -21,7 +21,10 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("ipfs")
 
 // FileSystem is the readonly Ipfs Fuse Filesystem.
 type FileSystem struct {
@@ -50,7 +53,7 @@ func (*Root) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	u.DOut("Root Lookup: '%s'\n", name)
+	log.Debug("Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -68,7 +71,7 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 // ReadDir reads a particular directory. Disallowed for root.
 func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	u.DOut("Read Root.\n")
+	log.Debug("Read Root.")
 	return nil, fuse.EPERM
 }
 
@@ -87,16 +90,14 @@ func (s *Node) loadData() error {
 
 // Attr returns the attributes of a given node.
 func (s *Node) Attr() fuse.Attr {
-	u.DOut("Node attr.\n")
+	log.Debug("Node attr.")
 	if s.cached == nil {
 		s.loadData()
 	}
 	switch s.cached.GetType() {
 	case mdag.PBData_Directory:
-		u.DOut("this is a directory.\n")
 		return fuse.Attr{Mode: os.ModeDir | 0555}
 	case mdag.PBData_File, mdag.PBData_Raw:
-		u.DOut("this is a file.\n")
 		size, _ := s.Nd.Size()
 		return fuse.Attr{
 			Mode:   0444,
@@ -111,7 +112,7 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	u.DOut("Lookup '%s'\n", name)
+	log.Debug("Lookup '%s'", name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -123,7 +124,7 @@ func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 // ReadDir reads the link structure as directory entries
 func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	u.DOut("Node ReadDir\n")
+	log.Debug("Node ReadDir")
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
 		n := link.Name
@@ -193,7 +194,7 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 // Unmount attempts to unmount the provided FUSE mount point, forcibly
 // if necessary.
 func Unmount(point string) error {
-	fmt.Printf("Unmounting %s...\n", point)
+	log.Info("Unmounting %s...", point)
 
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
