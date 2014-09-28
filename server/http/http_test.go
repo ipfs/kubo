@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -25,6 +26,7 @@ func TestServeHTTP(t *testing.T) {
 	tests := []test{
 		{"/", http.StatusInternalServerError, "", ""},
 		{"/hash", http.StatusOK, "", "some fine data"},
+		{"/hash2", http.StatusInternalServerError, "", ""},
 	}
 
 	for _, test := range tests {
@@ -74,6 +76,10 @@ func (i *testIpfsHandler) ResolvePath(path string) (*dag.Node, error) {
 		return &dag.Node{Data: []byte("some fine data")}, nil
 	}
 
+	if path == "/hash2" {
+		return &dag.Node{Data: []byte("data that breaks dagreader")}, nil
+	}
+
 	return nil, errors.New("")
 }
 
@@ -91,4 +97,12 @@ func (i *testIpfsHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 	}
 
 	return "", errors.New("")
+}
+
+func (i *testIpfsHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
+	if string(nd.Data) != "data that breaks dagreader" {
+		return bytes.NewReader(nd.Data), nil
+	}
+
+	return nil, errors.New("")
 }

@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -30,11 +31,19 @@ func (i *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	nd, err := i.ResolvePath(path)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
-	// TODO: return json object containing the tree data if it's a folder
-	w.Write(nd.Data)
+	dr, err := i.NewDagReader(nd)
+	if err != nil {
+		// TODO: return json object containing the tree data if it's a directory (err == ErrIsDir)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println(err)
+		return
+	}
+
+	io.Copy(w, dr)
 }
 
 func (i *handler) postHandler(w http.ResponseWriter, r *http.Request) {
