@@ -44,8 +44,12 @@ func init() {
 
 func configCmd(c *commander.Command, inp []string) error {
 
-	// todo: implement --config filename flag.
-	filename, err := config.Filename("")
+	confdir, err := getConfigDir(c.Parent)
+	if err != nil {
+		return err
+	}
+
+	filename, err := config.Filename(confdir)
 	if err != nil {
 		return err
 	}

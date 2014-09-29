@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"path/filepath"
 	"errors"
 	"os"
 
@@ -29,6 +30,7 @@ func init() {
 	cmdIpfsInit.Flag.Int("b", 4096, "number of bits for keypair")
 	cmdIpfsInit.Flag.String("p", "", "passphrase for encrypting keys")
 	cmdIpfsInit.Flag.Bool("f", false, "force overwrite of existing config")
+	cmdIpfsInit.Flag.String("d", "", "Change default datastore location")
 }
 
 func initCmd(c *commander.Command, inp []string) error {
@@ -36,17 +38,16 @@ func initCmd(c *commander.Command, inp []string) error {
 	if err != nil {
 		return err
 	}
-	if configpath == "" {
-		configpath, err = u.TildeExpansion("~/.go-ipfs")
-		if err != nil {
-			return err
-		}
-	}
 
 	u.POut("initializing ipfs node at %s\n", configpath)
-	filename, err := config.Filename(configpath + "/config")
+	filename, err := config.Filename(configpath)
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
+	}
+
+	dspath, ok := c.Flag.Lookup("d").Value.Get().(string)
+	if !ok {
+		return errors.New("failed to parse datastore flag")
 	}
 
 	fi, err := os.Lstat(filename)
@@ -62,12 +63,26 @@ func initCmd(c *commander.Command, inp []string) error {
 	cfg := new(config.Config)
 
 	cfg.Datastore = config.Datastore{}
-	dspath, err := u.TildeExpansion("~/.go-ipfs/datastore")
-	if err != nil {
-		return err
+	if len(dspath) == 0 {
+		dspath, err = config.DataStorePath("")
+		if err != nil {
+			return err
+		}
 	}
 	cfg.Datastore.Path = dspath
 	cfg.Datastore.Type = "leveldb"
+
+	// Construct the data store if missing
+	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Check the directory is writeable
+	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
+		os.Remove(f.Name())
+	} else {
+		return errors.New("Datastore '" + dspath + "' is not writeable")
+	}
 
 	cfg.Identity = config.Identity{}
 
@@ -114,12 +129,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		},
 	}
 
-	path, err := u.TildeExpansion(config.DefaultConfigFilePath)
-	if err != nil {
-		return err
-	}
-
-	err = config.WriteConfigFile(path, cfg)
+	err = config.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return err
 	}

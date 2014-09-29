@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"os"
+	"path/filepath"
 
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -42,11 +43,48 @@ type Config struct {
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 
-// DefaultPathRoot is the default parth for the IPFS node's root dir.
 const DefaultPathRoot = "~/.go-ipfs"
+const DefaultConfigFile = "config"
+const DefaultDataStoreDirectory = "datastore"
+const EnvDir = "IPFS_DIR"
 
-// DefaultConfigFilePath points to the ipfs node config file.
-const DefaultConfigFilePath = DefaultPathRoot + "/config"
+// PathRoot returns the default configuration root directory
+func PathRoot() (string, error) {
+	dir := os.Getenv(EnvDir)
+	var err error
+	if len(dir) == 0 {
+		dir, err = u.TildeExpansion(DefaultPathRoot)
+	}
+	return dir, err
+}
+
+// Path returns the path `extension` relative to the configuration root. If an
+// empty string is provided for `configroot`, the default root is used.
+func Path(configroot, extension string) (string, error) {
+	if len(configroot) == 0 {
+		dir, err := PathRoot()
+		if err != nil {
+			return "", err
+		} else {
+			return filepath.Join(dir, extension), nil
+		}
+
+	} else {
+		return filepath.Join(configroot, extension), nil
+	}
+}
+
+// DataStorePath returns the default data store path given a configuration root
+// (set an empty string to have the default configuration root)
+func DataStorePath(configroot string) (string, error) {
+	return Path(configroot, DefaultDataStoreDirectory);
+}
+
+// Filename returns the configuration file path given a configuration root
+// directory. If the configuration root directory is empty, use the default one
+func Filename(configroot string) (string, error) {
+	return Path(configroot, DefaultConfigFile);
+}
 
 // DecodePrivateKey is a helper to decode the users PrivateKey
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error) {
@@ -60,30 +98,15 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 	return x509.ParsePKCS1PrivateKey(pkb)
 }
 
-// Filename returns the proper tilde expanded config filename.
-func Filename(filename string) (string, error) {
-	if len(filename) == 0 {
-		filename = DefaultConfigFilePath
-	}
-
-	// tilde expansion on config file
-	return u.TildeExpansion(filename)
-}
-
 // Load reads given file and returns the read config, or error.
 func Load(filename string) (*Config, error) {
-	filename, err := Filename(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	// if nothing is there, fail. User must run 'ipfs init'
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg Config
-	err = ReadConfigFile(filename, &cfg)
+	err := ReadConfigFile(filename, &cfg)
 	if err != nil {
 		return nil, err
 	}

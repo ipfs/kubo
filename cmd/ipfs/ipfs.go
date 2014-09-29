@@ -53,7 +53,11 @@ Use "ipfs help <command>" for more information about a command.
 }
 
 func init() {
-	CmdIpfs.Flag.String("c", config.DefaultPathRoot, "specify config directory")
+	config, err := config.PathRoot()
+	if err != nil {
+		config = ""
+	}
+	CmdIpfs.Flag.String("c", config, "specify config directory")
 }
 
 func ipfsCmd(c *commander.Command, args []string) error {
@@ -74,7 +78,12 @@ func main() {
 }
 
 func localNode(confdir string, online bool) (*core.IpfsNode, error) {
-	cfg, err := config.Load(confdir + "/config")
+	filename, err := config.Filename(confdir)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := config.Load(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -83,15 +92,18 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 }
 
 // Gets the config "-c" flag from the command, or returns
-// the empty string
+// the default configuration root directory
 func getConfigDir(c *commander.Command) (string, error) {
 	conf := c.Flag.Lookup("c").Value.Get()
 	if conf == nil {
-		return "", nil
+		return config.PathRoot()
 	}
 	confStr, ok := conf.(string)
 	if !ok {
 		return "", errors.New("failed to retrieve config flag value.")
+	}
+	if len(confStr) == 0 {
+		return config.PathRoot()
 	}
 
 	return u.TildeExpansion(confStr)
