@@ -77,13 +77,13 @@ func Path(configroot, extension string) (string, error) {
 // DataStorePath returns the default data store path given a configuration root
 // (set an empty string to have the default configuration root)
 func DataStorePath(configroot string) (string, error) {
-	return Path(configroot, DefaultDataStoreDirectory);
+	return Path(configroot, DefaultDataStoreDirectory)
 }
 
 // Filename returns the configuration file path given a configuration root
 // directory. If the configuration root directory is empty, use the default one
 func Filename(configroot string) (string, error) {
-	return Path(configroot, DefaultConfigFile);
+	return Path(configroot, DefaultConfigFile)
 }
 
 // DecodePrivateKey is a helper to decode the users PrivateKey
