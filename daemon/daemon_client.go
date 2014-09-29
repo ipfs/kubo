@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 
-	ma "github.com/jbenet/go-multiaddr"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 //SendCommand connects to the address on the network with a timeout and encodes the connection into JSON
