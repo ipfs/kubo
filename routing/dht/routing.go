@@ -18,7 +18,7 @@ import (
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
 func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
-	log.Debug("PutValue %s %v", key.Pretty(), value)
+	log.Debug("PutValue %s", key.Pretty())
 	err := dht.putLocal(key, value)
 	if err != nil {
 		return err

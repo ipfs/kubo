@@ -177,8 +177,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 	start := time.Now()
 
 	// Print out diagnostic
-	log.Debug("[peer: %s] Sent message type: '%s' [to = %s]\n",
-		dht.self.ID.Pretty(),
+	log.Debug("Sent message type: '%s' [to = %s]",
 		Message_MessageType_name[int32(pmes.GetType())], p.ID.Pretty())
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
@@ -281,7 +280,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p *peer.Peer,
 	}
 
 	if len(peers) > 0 {
-		u.DOut("getValueOrPeers: peers")
+		log.Debug("getValueOrPeers: peers")
 		return nil, peers, nil
 	}
 
@@ -400,7 +399,7 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []*peer.Peer 
 	for _, prov := range peers {
 		p, err := dht.peerFromInfo(prov)
 		if err != nil {
-			u.PErr("error getting peer from info: %v\n", err)
+			log.Error("error getting peer from info: %v", err)
 			continue
 		}
 

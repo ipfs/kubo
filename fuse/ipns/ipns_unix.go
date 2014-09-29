@@ -76,6 +76,9 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 		nd := new(Node)
 		nd.Ipfs = n
 		nd.key = k
+		nd.repub = NewRepublisher(nd, time.Millisecond*10)
+
+		go nd.repub.Run()
 
 		pointsTo, err := n.Namesys.Resolve(name)
 		if err != nil {
@@ -184,6 +187,8 @@ func (r *Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	nsRoot *Node
+
+	repub *Republisher
 
 	// Name really only for logging purposes
 	name string
@@ -316,14 +321,18 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 			return fuse.ENODATA
 		}
 
-		err = n.updateTree()
-		if err != nil {
-			log.Error("updateTree failed: %s", err)
-			return fuse.ENODATA
-		}
-
+		n.sendPublishSignal()
 	}
 	return nil
+}
+
+func (n *Node) sendPublishSignal() {
+	root := n.nsRoot
+	if root == nil {
+		root = n
+	}
+
+	root.repub.Publish <- struct{}{}
 }
 
 func (n *Node) updateTree() error {
@@ -387,7 +396,7 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 	}
 
 	n.changed = true
-	n.updateTree()
+	n.sendPublishSignal()
 
 	return child, nil
 }
@@ -425,6 +434,8 @@ func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 		log.Error("Remove: No such file.")
 		return fuse.ENOENT
 	}
+	n.changed = true
+	n.sendPublishSignal()
 	return nil
 }
 
@@ -471,7 +482,7 @@ func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) error {
 			if err == nil {
 				return
 			}
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 100)
 		}
 		ipfs.Network.Close()
 	}()
@@ -563,12 +574,13 @@ func NewRepublisher(n *Node, tout time.Duration) *Republisher {
 }
 
 func (np *Republisher) Run() {
-	for _ := range np.Publish {
+	for _ = range np.Publish {
 		timer := time.After(np.Timeout)
 		for {
 			select {
 			case <-timer:
 				//Do the publish!
+				log.Info("Publishing Changes!")
 				err := np.node.updateTree()
 				if err != nil {
 					log.Critical("updateTree error: %s", err)
