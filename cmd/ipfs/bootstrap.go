@@ -9,6 +9,8 @@ import (
     "io/ioutil"
     "encoding/json"
 	u "github.com/jbenet/go-ipfs/util"
+    "strings"
+	
 	
 	
 	
@@ -37,19 +39,6 @@ type Config struct {
 	Bootstrap []Peer
 }
 
-var in = `{
-    "peers": [
-        {
-            "pid": 1,
-            "address": "127.0.0.1:17001"
-        },
-        {
-            "pid": 2,
-            "address": "127.0.0.1:17002"
-        }
-    ]
-}`
-
 
 
 func bootstrapCmd(c *commander.Command, inp []string) error {
@@ -67,8 +56,10 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 		fmt.Print("Error:", err)
 	 }
 
- 	fmt.Printf("%#v\n", conf)
-	fmt.Printf("%#v\n", conf.Bootstrap[0].PeerID)
+	//concat
+    s := []string{conf.Bootstrap[0].Address, "/", conf.Bootstrap[0].PeerID, "\n"}
+     fmt.Printf(strings.Join(s, ""))
+	
 	return nil
 
  }
