@@ -24,9 +24,9 @@ type test struct {
 func TestServeHTTP(t *testing.T) {
 	testhandler := &handler{&testIpfsHandler{}}
 	tests := []test{
-		{"/", http.StatusInternalServerError, "", ""},
-		{"/hash", http.StatusOK, "", "some fine data"},
-		{"/hash2", http.StatusInternalServerError, "", ""},
+		{"/ipfs/", http.StatusInternalServerError, "", ""},
+		{"/ipfs/hash", http.StatusOK, "", "some fine data"},
+		{"/ipfs/hash2", http.StatusInternalServerError, "", ""},
 	}
 
 	for _, test := range tests {
@@ -48,9 +48,9 @@ func TestServeHTTP(t *testing.T) {
 func TestPostHandler(t *testing.T) {
 	testhandler := &handler{&testIpfsHandler{}}
 	tests := []test{
-		{"/", http.StatusInternalServerError, "", ""},
-		{"/", http.StatusInternalServerError, "something that causes an error in adding to DAG", ""},
-		{"/", http.StatusCreated, "some fine data", "jSQBpNSebeYbPBjs1vp"},
+		{"/ifps/", http.StatusInternalServerError, "", ""},
+		{"/ipfs/", http.StatusInternalServerError, "something that causes an error in adding to DAG", ""},
+		{"/ipfs/", http.StatusCreated, "some fine data", "jSQBpNSebeYbPBjs1vp"},
 	}
 
 	for _, test := range tests {
