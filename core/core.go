@@ -86,6 +86,11 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	peerstore := peer.NewPeerstore()
 
+	local, err := initIdentity(cfg, online)
+	if err != nil {
+		return nil, err
+	}
+
 	// FIXME(brian): This is a bit dangerous. If any of the vars declared in
 	// this block are assigned inside of the "if online" block using the ":="
 	// declaration syntax, the compiler permits re-declaration. This is rather
@@ -95,16 +100,9 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route           *dht.IpfsDHT
 		exchangeSession exchange.Interface
-		local           *peer.Peer
 	)
 
 	if online {
-
-		// when not online, don't need to parse private keys (yet)
-		local, err := initIdentity(cfg)
-		if err != nil {
-			return nil, err
-		}
 
 		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
 		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
@@ -159,7 +157,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}, nil
 }
 
-func initIdentity(cfg *config.Config) (*peer.Peer, error) {
+func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 	if cfg.Identity.PeerID == "" {
 		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -179,21 +177,31 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 		addresses = []*ma.Multiaddr{maddr}
 	}
 
-	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		sk ci.PrivKey
+		pk ci.PubKey
+	)
 
-	sk, err := ci.UnmarshalPrivateKey(skb)
-	if err != nil {
-		return nil, err
+	// when not online, don't need to parse private keys (yet)
+	if !online {
+		skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
+		if err != nil {
+			return nil, err
+		}
+
+		sk, err = ci.UnmarshalPrivateKey(skb)
+		if err != nil {
+			return nil, err
+		}
+
+		pk = sk.GetPublic()
 	}
 
 	return &peer.Peer{
 		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
 		Addresses: addresses,
 		PrivKey:   sk,
-		PubKey:    sk.GetPublic(),
+		PubKey:    pk,
 	}, nil
 }
 
