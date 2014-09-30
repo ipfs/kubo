@@ -39,6 +39,10 @@
 			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
 		},
 		{
+			"ImportPath": "github.com/camlistore/lock",
+			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
+		},
+		{
 			"ImportPath": "github.com/gonuts/flag",
 			"Rev": "741a6cbd37a30dedc93f817e7de6aaf0ca38a493"
 		},
@@ -67,6 +71,10 @@
 			"ImportPath": "github.com/jbenet/go-multihash",
 			"Comment": "0.1.0-5-g1976046",
 			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
+		},
+		{
+			"ImportPath": "github.com/op/go-logging",
+			"Rev": "3df864a88c7f005e676db4f026a4fe2f14929be3"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",

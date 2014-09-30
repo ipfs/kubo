@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"encoding/base64"
+	"os"
 	"testing"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -47,13 +48,19 @@ func TestInitializeDaemonListener(t *testing.T) {
 			Identity: id,
 			Datastore: config.Datastore{
 				Type: "leveldb",
-				Path: ".testdb",
+				Path: ".test/datastore",
 			},
 			Addresses: config.Addresses{
 				Swarm: "/ip4/0.0.0.0/tcp/4001",
 				API:   "/ip4/127.0.0.1/tcp/8000",
 			},
 		},
+	}
+
+	var tempConfigDir = ".test"
+	err = os.MkdirAll(tempConfigDir, os.ModeDir|0777)
+	if err != nil {
+		t.Fatalf("error making temp config dir: %v", err)
 	}
 
 	for _, c := range nodeConfigs {
@@ -63,7 +70,8 @@ func TestInitializeDaemonListener(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		dl, initErr := NewDaemonListener(node, addr)
+
+		dl, initErr := NewDaemonListener(node, addr, tempConfigDir)
 		if initErr != nil {
 			t.Fatal(initErr)
 		}

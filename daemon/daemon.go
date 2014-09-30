@@ -3,14 +3,25 @@ package daemon
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"os"
+	"path"
+	"sync"
 
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
 
+	lock "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
+
+var log = logging.MustGetLogger("daemon")
+
+// LockFile is the filename of the daemon lock, relative to config dir
+const LockFile = "daemon.lock"
 
 // DaemonListener listens to an initialized IPFS node and can send it commands instead of
 // starting up a new set of connections
@@ -18,6 +29,8 @@ type DaemonListener struct {
 	node   *core.IpfsNode
 	list   net.Listener
 	closed bool
+	wg     sync.WaitGroup
+	lk     io.Closer
 }
 
 //Command accepts user input and can be sent to the running IPFS node
@@ -27,21 +40,46 @@ type Command struct {
 	Opts    map[string]interface{}
 }
 
-func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr) (*DaemonListener, error) {
+func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir string) (*DaemonListener, error) {
+	var err error
+	confdir, err = u.TildeExpansion(confdir)
+	if err != nil {
+		return nil, err
+	}
+
+	lk, err := daemonLock(confdir)
+	if err != nil {
+		return nil, err
+	}
+
 	network, host, err := addr.DialArgs()
 	if err != nil {
 		return nil, err
 	}
 
+	ofi, err := os.Create(confdir + "/rpcaddress")
+	if err != nil {
+		log.Warning("Could not create rpcaddress file: %s", err)
+		return nil, err
+	}
+
+	_, err = ofi.Write([]byte(host))
+	if err != nil {
+		log.Warning("Could not write to rpcaddress file: %s", err)
+		return nil, err
+	}
+	ofi.Close()
+
 	list, err := net.Listen(network, host)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("New daemon listener initialized.")
+	log.Info("New daemon listener initialized.")
 
 	return &DaemonListener{
 		node: ipfsnode,
 		list: list,
+		lk:   lk,
 	}, nil
 }
 
@@ -52,14 +90,19 @@ func NewCommand() *Command {
 }
 
 func (dl *DaemonListener) Listen() {
-	fmt.Println("listen.")
+	if dl.closed {
+		panic("attempting to listen on a closed daemon Listener")
+	}
+
+	dl.wg.Add(1)
+	log.Info("daemon listening")
 	for {
 		conn, err := dl.list.Accept()
-		fmt.Println("Loop!")
 		if err != nil {
 			if !dl.closed {
-				u.PErr("DaemonListener Accept: %v\n", err)
+				log.Warning("DaemonListener Accept: %v", err)
 			}
+			dl.lk.Close()
 			return
 		}
 		go dl.handleConnection(conn)
@@ -98,5 +141,12 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 
 func (dl *DaemonListener) Close() error {
 	dl.closed = true
-	return dl.list.Close()
+	err := dl.list.Close()
+	dl.wg.Wait() // wait till done before releasing lock.
+	dl.lk.Close()
+	return err
+}
+
+func daemonLock(confdir string) (io.Closer, error) {
+	return lock.Lock(path.Join(confdir, LockFile))
 }

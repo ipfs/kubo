@@ -12,6 +12,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// CommanderFunc is a function that can be passed into the Commander library as
+// a command handler. Defined here because commander lacks this definition.
 type CommanderFunc func(*commander.Command, []string) error
 
 // MakeCommand Wraps a commands.CmdFunc so that it may be safely run by the

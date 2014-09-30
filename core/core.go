@@ -65,6 +65,16 @@ type IpfsNode struct {
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
 func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
+	// derive this from a higher context.
+	// cancel if we need to fail early.
+	ctx, cancel := context.WithCancel(context.TODO())
+	success := false // flip to true after all sub-system inits succeed
+	defer func() {
+		if !success {
+			cancel()
+		}
+	}()
+
 	if cfg == nil {
 		return nil, fmt.Errorf("configuration required")
 	}
@@ -74,12 +84,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	local, err := initIdentity(cfg)
+	peerstore := peer.NewPeerstore()
+
+	local, err := initIdentity(cfg, online)
 	if err != nil {
 		return nil, err
 	}
-
-	peerstore := peer.NewPeerstore()
 
 	// FIXME(brian): This is a bit dangerous. If any of the vars declared in
 	// this block are assigned inside of the "if online" block using the ":="
@@ -93,8 +103,6 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	)
 
 	if online {
-		// add protocol services here.
-		ctx := context.TODO() // derive this from a higher context.
 
 		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
 		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
@@ -109,6 +117,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		net, err = inet.NewIpfsNetwork(context.TODO(), local, peerstore, &mux.ProtocolMap{
 			mux.ProtocolID_Routing:  dhtService,
 			mux.ProtocolID_Exchange: exchangeService,
+			// add protocol services here.
 		})
 		if err != nil {
 			return nil, err
@@ -134,6 +143,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	dag := &merkledag.DAGService{Blocks: bs}
 
+	success = true
 	return &IpfsNode{
 		Config:    cfg,
 		Peerstore: peerstore,
@@ -147,7 +157,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}, nil
 }
 
-func initIdentity(cfg *config.Config) (*peer.Peer, error) {
+func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 	if cfg.Identity.PeerID == "" {
 		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -167,21 +177,31 @@ func initIdentity(cfg *config.Config) (*peer.Peer, error) {
 		addresses = []*ma.Multiaddr{maddr}
 	}
 
-	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		sk ci.PrivKey
+		pk ci.PubKey
+	)
 
-	sk, err := ci.UnmarshalPrivateKey(skb)
-	if err != nil {
-		return nil, err
+	// when not online, don't need to parse private keys (yet)
+	if !online {
+		skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
+		if err != nil {
+			return nil, err
+		}
+
+		sk, err = ci.UnmarshalPrivateKey(skb)
+		if err != nil {
+			return nil, err
+		}
+
+		pk = sk.GetPublic()
 	}
 
 	return &peer.Peer{
 		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
 		Addresses: addresses,
 		PrivKey:   sk,
-		PubKey:    sk.GetPublic(),
+		PubKey:    pk,
 	}, nil
 }
 
