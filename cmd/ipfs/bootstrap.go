@@ -71,10 +71,26 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 		
 	  switch arg := inp[0]; arg {
 	      case "add":
-			  fmt.Println("YO")
+			  if len(inp) == 1 {
+				  fmt.Println("No peer specified.")
+				  return nil
+			  }
+			  
+			  //TODO add the peer to the config file
+			  fmt.Println(inp[1])
+			  
+			  
 			  return nil
 	      case "remove":
-			  fmt.Println("YO")
+			  if len(inp) == 1 {
+				  fmt.Println("No peer specified.")
+				  return nil
+			  }
+			  
+			  //TODO remove the peer from the config file 
+			  fmt.Println(inp[1])
+			  
+			  
 			  return nil
 	  }
 	
