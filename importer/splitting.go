@@ -23,6 +23,9 @@ func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
 			nread, err := r.Read(chunk)
 			if err != nil {
 				if err == io.EOF {
+					if nread > 0 {
+						out <- chunk[:nread]
+					}
 					return
 				}
 				u.PErr("block split error: %v\n", err)
