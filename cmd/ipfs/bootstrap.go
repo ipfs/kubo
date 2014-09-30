@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	"github.com/jbenet/go-ipfs/core/commands"
+	//"github.com/jbenet/go-ipfs/core/commands"
+	"fmt"
 )
 
 
@@ -21,3 +21,10 @@ var cmdIpfsBootstrap = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-bootstrap", flag.ExitOnError),
 }
 
+func bootstrapCmd(c *commander.Command, inp []string) error {
+	
+	fmt.Printf("\n Test \n")
+	
+	return nil
+
+}
