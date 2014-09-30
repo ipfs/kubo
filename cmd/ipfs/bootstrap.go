@@ -56,9 +56,14 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 		fmt.Print("Error:", err)
 	 }
 
-	//concat
-    s := []string{conf.Bootstrap[0].Address, "/", conf.Bootstrap[0].PeerID, "\n"}
-     fmt.Printf(strings.Join(s, ""))
+	
+	 //printing list of peers
+	for i, _ := range conf.Bootstrap {
+		
+	    s := []string{conf.Bootstrap[i].Address, "/", conf.Bootstrap[i].PeerID, "\n"}
+	     fmt.Printf(strings.Join(s, ""))
+	}
+ 
 	
 	return nil
 
