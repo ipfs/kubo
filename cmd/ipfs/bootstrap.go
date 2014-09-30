@@ -7,10 +7,9 @@ import (
 	//"github.com/jbenet/go-ipfs/core/commands"
 	"fmt"
     "io/ioutil"
-    "encoding/json"
+   "encoding/json"
 	u "github.com/jbenet/go-ipfs/util"
     "strings"
-	
 	
 	
 	
@@ -43,29 +42,43 @@ type Config struct {
 
 func bootstrapCmd(c *commander.Command, inp []string) error {
 	
-	
-	configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
-    dat, _ := ioutil.ReadFile(configpath)
-    var configText = string(dat)
-	
-	
-	 var conf Config
- 	 err := json.Unmarshal([]byte(configText), &conf)
-
-	 if err != nil {
-		fmt.Print("Error:", err)
-	 }
-
-	
-	 //printing list of peers
-	for i, _ := range conf.Bootstrap {
+	if len(inp) == 0 {
 		
-	    s := []string{conf.Bootstrap[i].Address, "/", conf.Bootstrap[i].PeerID, "\n"}
-	     fmt.Printf(strings.Join(s, ""))
-	}
- 
+		configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
+		    dat, _ := ioutil.ReadFile(configpath)
+		    var configText = string(dat)
+
+
+		 var conf Config
+		  	 err := json.Unmarshal([]byte(configText), &conf)
+
+		 	 if err != nil {
+		 		fmt.Print("Error:", err)
+		 	 }
+
+
+		 	 //printing list of peers
+		 	for i, _ := range conf.Bootstrap {
+
+		 	    s := []string{conf.Bootstrap[i].Address, "/", conf.Bootstrap[i].PeerID, "\n"}
+		 	     fmt.Printf(strings.Join(s, ""))
+		 	}
+
+		return nil
+		
+	    }
+		
+		
+	  switch arg := inp[0]; arg {
+	      case "add":
+			  fmt.Println("YO")
+			  return nil
+	      case "remove":
+			  fmt.Println("YO")
+			  return nil
+	  }
 	
-	return nil
+	  return nil
 
  }
 
