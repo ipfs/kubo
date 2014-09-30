@@ -8,6 +8,8 @@ import (
 	"fmt"
     "io/ioutil"
     "encoding/json"
+	u "github.com/jbenet/go-ipfs/util"
+	
 	
 	
 )
@@ -53,7 +55,8 @@ var in = `{
 func bootstrapCmd(c *commander.Command, inp []string) error {
 	
 	
-    dat, _ := ioutil.ReadFile("$HOME/.go-ipfs/config")
+	configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
+    dat, _ := ioutil.ReadFile(configpath)
     var configText = string(dat)
 	
 	
@@ -69,17 +72,4 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 	return nil
 
  }
-//
-// func (q *JSONData) FromJSON(file string) error {
-//
-//     //Reading JSON file
-//     J, err := ioutil.ReadFile(file)
-//     if err != nil {
-// 		panic(err)
-// 	}
-//
-//
-//     var data = &q
-//     //Umarshalling JSON into struct
-//     return json.Unmarshal(J, data)
-// }
+
