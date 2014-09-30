@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gorilla/mux"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
 	core "github.com/jbenet/go-ipfs/core"
 )
 
@@ -15,18 +17,23 @@ type handler struct {
 }
 
 // Serve starts the http server
-func Serve(address string, node *core.IpfsNode) error {
+func Serve(address *ma.Multiaddr, node *core.IpfsNode) error {
 	r := mux.NewRouter()
 	handler := &handler{&ipfsHandler{node}}
-	r.HandleFunc("/", handler.postHandler).Methods("POST")
-	r.PathPrefix("/").Handler(handler).Methods("GET")
+	r.HandleFunc("/ipfs/", handler.postHandler).Methods("POST")
+	r.PathPrefix("/ipfs/").Handler(handler).Methods("GET")
 	http.Handle("/", r)
 
-	return http.ListenAndServe(address, nil)
+	_, host, err := address.DialArgs()
+	if err != nil {
+		return err
+	}
+
+	return http.ListenAndServe(host, nil)
 }
 
 func (i *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
+	path := r.URL.Path[5:]
 
 	nd, err := i.ResolvePath(path)
 	if err != nil {

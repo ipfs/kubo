@@ -30,16 +30,10 @@ var cmdIpfsServeHttp = &commander.Command{
 }
 
 func init() {
-	cmdIpfsServeHttp.Flag.Uint("port", 8080, "Port number")
-	cmdIpfsServeHttp.Flag.String("hostname", "localhost", "Hostname")
+	cmdIpfsServeHttp.Flag.String("address", "/ip4/127.0.0.1/tcp/8080", "Listen Address")
 }
 
 func serveHttpCmd(c *commander.Command, _ []string) error {
-	port := c.Flag.Lookup("port").Value.Get().(uint)
-	if port < 1 || port > 65535 {
-		return errors.New("invalid port number")
-	}
-
 	conf, err := getConfigDir(c.Parent.Parent)
 	if err != nil {
 		return err
@@ -68,9 +62,12 @@ func serveHttpCmd(c *commander.Command, _ []string) error {
 	go dl.Listen()
 	defer dl.Close()
 
-	hostname := c.Flag.Lookup("hostname").Value.Get().(string)
-	address := fmt.Sprintf("%s:%d", hostname, port)
-	fmt.Printf("Serving on %s\n", address)
+	address := c.Flag.Lookup("address").Value.Get().(string)
+	maddr, err = ma.NewMultiaddr(address)
+	if err != nil {
+		return err
+	}
 
-	return h.Serve(address, n)
+	fmt.Printf("Serving on %s\n", address)
+	return h.Serve(maddr, n)
 }
