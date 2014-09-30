@@ -183,7 +183,7 @@ func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 	)
 
 	// when not online, don't need to parse private keys (yet)
-	if !online {
+	if online {
 		skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
 		if err != nil {
 			return nil, err
