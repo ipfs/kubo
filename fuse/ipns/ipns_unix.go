@@ -13,15 +13,15 @@ import (
 
 	"bytes"
 
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	"github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	imp "github.com/jbenet/go-ipfs/importer"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/op/go-logging"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("ipns")

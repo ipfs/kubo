@@ -39,6 +39,10 @@
 			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
 		},
 		{
+			"ImportPath": "github.com/bren2010/proquint",
+			"Rev": "5958552242606512f714d2e93513b380f43f9991"
+		},
+		{
 			"ImportPath": "github.com/camlistore/lock",
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
 		},

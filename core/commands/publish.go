@@ -7,7 +7,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/op/go-logging"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	nsys "github.com/jbenet/go-ipfs/namesys"
 )

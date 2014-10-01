@@ -3,7 +3,7 @@ package namesys
 import (
 	"errors"
 
-	proquint "github.com/bren2010/proquint"
+	proquint "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/bren2010/proquint"
 )
 
 type ProquintResolver struct{}
