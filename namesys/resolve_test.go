@@ -28,7 +28,7 @@ func TestRoutingResolve(t *testing.T) {
 
 	resolve := NewMasterResolver(d, dag)
 
-	pub := IpnsPublisher{
+	pub := ipnsPublisher{
 		dag:     dag,
 		routing: d,
 	}

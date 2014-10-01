@@ -12,20 +12,24 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type IpnsPublisher struct {
+type ipnsPublisher struct {
 	dag     *mdag.DAGService
 	routing routing.IpfsRouting
 }
 
-func NewPublisher(dag *mdag.DAGService, route routing.IpfsRouting) *IpnsPublisher {
-	return &IpnsPublisher{
+type Publisher interface {
+	Publish(ci.PrivKey, string) error
+}
+
+func NewPublisher(dag *mdag.DAGService, route routing.IpfsRouting) Publisher {
+	return &ipnsPublisher{
 		dag:     dag,
 		routing: route,
 	}
 }
 
 // Publish accepts a keypair and a value,
-func (p *IpnsPublisher) Publish(k ci.PrivKey, value string) error {
+func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 	log.Debug("namesys: Publish %s", value)
 	ctx := context.TODO()
 	data, err := CreateEntryData(k, value)

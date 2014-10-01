@@ -64,7 +64,7 @@ type IpfsNode struct {
 	Namesys namesys.Resolver
 
 	// the routing publisher
-	Publisher *namesys.IpnsPublisher
+	Publisher namesys.Publisher
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
