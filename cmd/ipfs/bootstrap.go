@@ -81,7 +81,7 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			  
 			  
 			  	
-			  
+			  if strings.Contains(inp[1], "/")  {
 
 			  	var stringArr = strings.SplitAfterN(inp[1], "/", 6)
 		 	    s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
@@ -107,7 +107,11 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 						panic(err)
 					}
 				
-				
+			}
+			
+			if !strings.Contains(inp[1], "/") {
+				return nil
+			}	
 				
 			  return nil
 	      case "remove":
@@ -122,10 +126,13 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 		  	  var stringArr = strings.SplitAfterN(inp[1], "/", 6)
 	 	      s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
 			  var peerID = stringArr[5]
-              var address = strings.Join(s, "")
+              var addressPretrim = strings.Join(s, "")
+			  var address = strings.TrimSuffix(addressPretrim, "/")
+			  
 			  
 			  
 		    	configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
+				fmt.Println("here we go", peerID, address)
 		    	err2 := RemoveSpecificPeerfromFile(configpath, peerID, address)
 		    	if(err2 != nil) {
 		    		panic(err2)
@@ -242,12 +249,13 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 	
 	 //find line with peer data 
 	 for i, line := range lines {
+		 
 		 if(strings.Contains(line, peerID) && strings.Contains(line,address)) {
 			 
 		
 			 fmt.Println("FOUND IT!" , i )
 			  //remove it 
-			     lines = append(lines[:i], lines[i+1:]...)
+		   lines = append(lines[:i], lines[i+1:]...)
 		 }
 	 }
  
@@ -294,8 +302,9 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 	
 	 //find line with peer data 
 	 for i, line := range lines {
+		 
 		 if(strings.Contains(line, address))  {
-			 fmt.Println("FOUND IT!" , i )
+			 fmt.Println("FOUND IT!" , i, line)
 			  //remove it 
 			     lines = append(lines[:i], lines[i+1:]...)
 		 }
