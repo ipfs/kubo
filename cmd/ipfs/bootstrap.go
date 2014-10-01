@@ -143,10 +143,17 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			if !strings.Contains(inp[1], "/") {
 				
   		    	configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
-  		    	err2 := RemovePeerfromFile(configpath, inp[1])
-  		    	if(err2 != nil) {
-  		    		panic(err2)
-  			    }
+				
+				
+				for {
+	  		    	peersRemoved, _ := RemovePeerfromFile(configpath, inp[1])
+				    if peersRemoved == 0 {
+				        break
+				    }
+				}
+				
+				
+				
 			}		  
 			  
 			  return nil
@@ -276,16 +283,16 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
      return nil
  }
  
- func RemovePeerfromFile(filename string, address string) error {
+ func RemovePeerfromFile(filename string, address string) (int, error) {
      // open the file
      file, err := os.Open(filename)
      if err != nil {
-         return err
+         return 0, err
      }
      // get the file permissions (for later)
      info, err := file.Stat()
      if err != nil {
-         return err
+         return 0, err
      }
      perm := info.Mode()
      // read the file line by line
@@ -295,36 +302,55 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
      }
      // close the file
      if err = file.Close(); err != nil {
-         return err
+         return 0 ,err
      }
    
 	
-	
-	 //find line with peer data 
+	 var numPeers = 0
+	 
 	 for i, line := range lines {
 		 
 		 if(strings.Contains(line, address))  {
 			 fmt.Println("FOUND IT!" , i, line)
 			  //remove it 
 			     lines = append(lines[:i], lines[i+1:]...)
+				 numPeers++
 		 }
 	 }
+ 
+	 
+	 
+	 fmt.Println("Removed", numPeers, "Peers")
+ //
+ // 	 var numPeers = 0
+ // 	 //find line with peer data
+ // 	 for i, line := range lines {
+ // 		 if(strings.Contains(line, address))  {
+ // 			 fmt.Println("FOUND IT!" , i, line)
+ // 			  //remove it
+ //
+ // //
+ //
+ // 			     lines = append(lines[:i], lines[i+1:]...)
+ // 				 numPeers++
+ // 		 }
+ // 	 }
  
 
      
      // O_TRUNC will truncate the file upon open
      file, err = os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, perm)
      if err != nil {
-         return err
+         return 0, err
      }
      defer file.Close()
      // write the lines back to the file
      for _, line := range lines {
          if _, err = file.WriteString(line + "\n"); err != nil {
-             return err
+             return 0, err
          }
      }
-     return nil
+     return numPeers, nil
  }
  
 
