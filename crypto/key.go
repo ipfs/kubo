@@ -15,6 +15,8 @@ import (
 	"math/big"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var ErrBadKeyType = errors.New("invalid or unsupported key type")
@@ -248,4 +250,13 @@ func KeyEqual(k1, k2 Key) bool {
 	b1, err1 := k1.Bytes()
 	b2, err2 := k2.Bytes()
 	return bytes.Equal(b1, b2) && err1 == err2
+}
+
+// KeyHash hashes a key.
+func KeyHash(k Key) ([]byte, error) {
+	kb, err := k.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return u.Hash(kb)
 }

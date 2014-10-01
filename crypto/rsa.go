@@ -9,7 +9,6 @@ import (
 	"errors"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 type RsaPrivateKey struct {
@@ -48,11 +47,7 @@ func (pk *RsaPublicKey) Equals(k Key) bool {
 }
 
 func (pk *RsaPublicKey) Hash() ([]byte, error) {
-	pkb, err := pk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return u.Hash(pkb)
+	return KeyHash(pk)
 }
 
 func (sk *RsaPrivateKey) GenSecret() []byte {
@@ -85,11 +80,7 @@ func (sk *RsaPrivateKey) Equals(k Key) bool {
 }
 
 func (sk *RsaPrivateKey) Hash() ([]byte, error) {
-	skb, err := sk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return u.Hash(skb)
+	return KeyHash(sk)
 }
 
 func UnmarshalRsaPrivateKey(b []byte) (*RsaPrivateKey, error) {
