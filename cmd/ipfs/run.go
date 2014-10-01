@@ -32,11 +32,11 @@ func runCmd(c *commander.Command, inp []string) error {
 	}
 
 	// launch the RPC endpoint.
-	if n.Config.RPCAddress == "" {
-		return errors.New("no config.RPCAddress endpoint supplied")
+	if n.Config.Addresses.API == "" {
+		return errors.New("no config.Addresses.API endpoint supplied")
 	}
 
-	maddr, err := ma.NewMultiaddr(n.Config.RPCAddress)
+	maddr, err := ma.NewMultiaddr(n.Config.Addresses.API)
 	if err != nil {
 		return err
 	}
