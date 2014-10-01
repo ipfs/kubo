@@ -240,8 +240,13 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 	}
 }
 
-// PinDagNode ensures a given node is stored persistently locally.
+// PinDagNode ensures a given node is stored persistently locally
 func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
-	u.DOut("Pinning node. Currently No-Op\n")
+	return n.PinDagNodeRecursively(nd, 1)
+}
+
+// PinDagNodeRecursively ensures a given node is stored persistently locally
+func (n *IpfsNode) PinDagNodeRecursively(nd *merkledag.Node, depth int) error {
+	u.DOut("Pinning node recursively. Currently No-Op\n")
 	return nil
 }

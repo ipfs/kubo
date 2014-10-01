@@ -133,5 +133,5 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 	u.POut("added %s %s\n", k.Pretty(), fpath)
 
 	// ensure we keep it. atm no-op
-	return n.PinDagNode(nd)
+	return n.PinDagNodeRecursively(nd, -1)
 }
