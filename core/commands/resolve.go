@@ -13,6 +13,6 @@ func Resolve(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 		return err
 	}
 
-	fmt.Fprintf(out, "%s -> %s\n", args[0], res)
+	fmt.Fprintf(out, "%s\n", res)
 	return nil
 }
