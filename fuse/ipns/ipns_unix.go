@@ -195,6 +195,8 @@ type Node struct {
 	name string
 
 	// Private keys held by nodes at the root of a keyspace
+	// WARNING(security): the PrivKey interface is currently insecure
+	// (holds the raw key). It will be secured later.
 	key ci.PrivKey
 
 	Ipfs   *core.IpfsNode
