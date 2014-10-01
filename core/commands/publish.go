@@ -29,7 +29,7 @@ func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Published %s to %s\n", args[0], u.Key(hash).Pretty())
+	fmt.Fprintf(out, "published mapping %s to %s\n", u.Key(hash).Pretty(), args[0])
 
 	return nil
 }
