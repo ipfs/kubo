@@ -108,8 +108,22 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			  //TODO remove the peer from the config file 
 			  //1 find the peer that matches
 			  //delete that peer from the file (iout)
-			  fmt.Println(inp[1])
 			  
+			  //get peer id and string
+		  	  var stringArr = strings.SplitAfterN(inp[1], "/", 6)
+	 	      s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
+			  var peerID = stringArr[5]
+              var address = strings.Join(s, "")
+			  
+			  
+			  //remove peer
+		    	configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
+			
+		    	err2 := RemovePeerfromFile(configpath, peerID, address)
+		    	if(err2 != nil) {
+		    		panic(err2)
+			    }
+			  			  
 			  
 			  return nil
 	  }
@@ -177,4 +191,56 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
      }
      return nil
  }
+ 
+ func RemovePeerfromFile(filename string, peerID string, address string) error {
+     // open the file
+     file, err := os.Open(filename)
+     if err != nil {
+         return err
+     }
+     // get the file permissions (for later)
+     info, err := file.Stat()
+     if err != nil {
+         return err
+     }
+     perm := info.Mode()
+     // read the file line by line
+     lines := []string{}
+     for scanner := bufio.NewScanner(file); scanner.Scan(); {
+         lines = append(lines, scanner.Text())
+     }
+     // close the file
+     if err = file.Close(); err != nil {
+         return err
+     }
+    
+	 //find line with peer data 
+	 for i, line := range lines {
+		 if(strings.Contains(line, peerID) && strings.Contains(line,address)) {
+			 
+			 
+			 
+			 fmt.Println("FOUND IT!" , i )
+			  //remove it 
+			     lines = append(lines[:i], lines[i+1:]...)
+		 }
+	 }
+	
+	
+     
+     // O_TRUNC will truncate the file upon open
+     file, err = os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, perm)
+     if err != nil {
+         return err
+     }
+     defer file.Close()
+     // write the lines back to the file
+     for _, line := range lines {
+         if _, err = file.WriteString(line + "\n"); err != nil {
+             return err
+         }
+     }
+     return nil
+ }
+ 
 
