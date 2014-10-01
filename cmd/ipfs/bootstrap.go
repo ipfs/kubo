@@ -31,8 +31,9 @@ var cmdIpfsBootstrap = &commander.Command{
 
 
 type Peer struct {
-	PeerID     string
 	Address string
+	PeerID  string
+	
 }
 
 type Config struct {
@@ -60,9 +61,7 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 
 		 	 //printing list of peers
 		 	for i, _ := range conf.Bootstrap {
-
-                fmt.Println(conf.Bootstrap[i])
-		 	    s := []string{conf.Bootstrap[i].Address, "/", conf.Bootstrap[i].PeerID, "\n"}
+		 	    s := []string{conf.Bootstrap[i].Address, conf.Bootstrap[i].PeerID, "\n"}
 		 	     fmt.Printf(strings.Join(s, ""))
 		 	}
 
@@ -77,19 +76,10 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 				  fmt.Println("No peer specified.")
 				  return nil
 			  }
-			  
-			  
-
 			  	var stringArr = strings.SplitAfterN(inp[1], "/", 6)
 		 	    s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
 				var peerID = stringArr[5]
                 var address = strings.Join(s, "")
-			
-				
-		     	fmt.Printf("the peer ID is : %q\n the address is: %q\n", peerID, address)
-			   
-  
-  
 				//bootstrap object created of user entered peer data
   				peer := Peer{
 	  				  		PeerID:    peerID,
@@ -97,22 +87,6 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 
 
 	  				}
-					
- 				
-					
-	// 				peers := []Peer{peer}
-	// 				 config := Config {
-	//  						Bootstrap: peers,
-	//  					}
-	//
-	//
-	// 				b, err := json.Marshal(config)
-	// 	  			os.Stdout.Write(b)
-	// 				if(err != nil) {
-	// 					panic(err)
-	// 				}
-	//
-	
 					b, err := json.Marshal(peer)
 					if (err != nil) {
 						panic(err)
@@ -120,15 +94,10 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 					
 					configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
 					
-					err := AddPeertoFile(configpath, b)
-					if(err != nil) {
+					err2 := AddPeertoFile(configpath, b)
+					if(err2 != nil) {
 						panic(err)
 					}
-					
-			  fmt.Println(inp[1])
-			  
-			  
-			  
 			  return nil
 	      case "remove":
 			  if len(inp) == 1 {
@@ -171,12 +140,23 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
          return err
      }
     
-	
 	 //find line with ] 
 	 for i, line := range lines {
 		 if(strings.ContainsRune(line, ']')) {
 			 //take the line before... and append/write to it
-			 lines[i-1]
+			 
+			 // make the slice longer
+			 lines = append(lines, "")
+			 // shift each element back
+			 copy(lines[i+1:], lines[i:])
+			 // now you can insert the new line at i
+			 
+			 s := string(peerData)
+			 c := byte(',')
+			 var appendedPeer = string(c)
+ 			 appendedPeer += s
+			 
+			 lines[i] = string(appendedPeer)
 			 
 		 }
 	 }
