@@ -20,6 +20,7 @@ var cmdIpfsPin = &commander.Command{
 
 func init() {
 	cmdIpfsPin.Flag.Bool("r", false, "pin objects recursively")
+	cmdIpfsPin.Flag.Int("d", 1, "recursive depth")
 }
 
-var pinCmd = MakeCommand("pin", []string{"r"}, commands.Pin)
+var pinCmd = MakeCommand("pin", []string{"r", "d"}, commands.Pin)
