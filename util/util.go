@@ -11,16 +11,11 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
-var format = "%{color}%{time:01-02 15:04:05.9999} %{shortfile} %{level}: %{color:reset}%{message}"
-
-func init() {
-	backend := logging.NewLogBackend(os.Stderr, "", 0)
-	logging.SetBackend(backend)
-	logging.SetFormatter(logging.MustStringFormatter(format))
-}
+// LogFormat is the format used for our logger.
+var LogFormat = "%{color}%{time:01-02 15:04:05.9999} %{shortfile} %{level}: %{color:reset}%{message}"
 
 // Debug is a global flag for debugging.
 var Debug bool
@@ -51,6 +46,7 @@ func Hash(data []byte) (mh.Multihash, error) {
 	return mh.Sum(data, mh.SHA2_256, -1)
 }
 
+// IsValidHash checks whether a given hash is valid (b58 decodable, len > 0)
 func IsValidHash(s string) bool {
 	out := b58.Decode(s)
 	if out == nil || len(out) == 0 {
@@ -97,6 +93,18 @@ func DOut(format string, a ...interface{}) {
 	if Debug {
 		POut(format, a...)
 	}
+}
+
+// SetupLogging will initialize the logger backend and set the flags.
+func SetupLogging() {
+	backend := logging.NewLogBackend(os.Stderr, "", 0)
+	logging.SetBackend(backend)
+	if Debug {
+		logging.SetLevel(logging.DEBUG, "")
+	} else {
+		logging.SetLevel(logging.ERROR, "")
+	}
+	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 }
 
 // ExpandPathnames takes a set of paths and turns them into absolute paths

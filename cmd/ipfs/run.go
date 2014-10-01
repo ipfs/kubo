@@ -7,7 +7,6 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	"github.com/jbenet/go-ipfs/daemon"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var cmdIpfsRun = &commander.Command{
@@ -20,8 +19,6 @@ var cmdIpfsRun = &commander.Command{
 }
 
 func runCmd(c *commander.Command, inp []string) error {
-	u.Debug = true
-
 	conf, err := getConfigDir(c.Parent)
 	if err != nil {
 		return err

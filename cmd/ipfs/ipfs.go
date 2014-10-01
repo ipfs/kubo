@@ -6,9 +6,10 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	"github.com/jbenet/go-ipfs/config"
+	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+
+	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -72,16 +73,24 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	u.Debug = true
-	ofi, err := os.Create("cpu.prof")
-	if err != nil {
-		fmt.Println(err)
-		return
+	u.Debug = false
+
+	// setup logging
+	u.SetupLogging()
+
+	// if debugging, setup profiling.
+	if u.Debug {
+		ofi, err := os.Create("cpu.prof")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		pprof.StartCPUProfile(ofi)
+		defer ofi.Close()
+		defer pprof.StopCPUProfile()
 	}
-	pprof.StartCPUProfile(ofi)
-	defer ofi.Close()
-	defer pprof.StopCPUProfile()
-	err = CmdIpfs.Dispatch(os.Args[1:])
+
+	err := CmdIpfs.Dispatch(os.Args[1:])
 	if err != nil {
 		if len(err.Error()) > 0 {
 			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
@@ -114,7 +123,7 @@ func getConfigDir(c *commander.Command) (string, error) {
 	}
 	confStr, ok := conf.(string)
 	if !ok {
-		return "", errors.New("failed to retrieve config flag value.")
+		return "", errors.New("failed to retrieve config flag value")
 	}
 	if len(confStr) == 0 {
 		return config.PathRoot()
