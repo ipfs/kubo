@@ -61,7 +61,7 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 
 		 	 //printing list of peers
 		 	for i, _ := range conf.Bootstrap {
-		 	    s := []string{conf.Bootstrap[i].Address, conf.Bootstrap[i].PeerID, "\n"}
+		 	    s := []string{conf.Bootstrap[i].Address, "/", conf.Bootstrap[i].PeerID, "\n"}
 		 	     fmt.Printf(strings.Join(s, ""))
 		 	}
 
@@ -86,7 +86,8 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			  	var stringArr = strings.SplitAfterN(inp[1], "/", 6)
 		 	    s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
 				var peerID = stringArr[5]
-                var address = strings.Join(s, "")
+                var addressPretrim = strings.Join(s, "")
+				var address = strings.TrimSuffix(addressPretrim, "/")
 				//bootstrap object created of user entered peer data
   				peer := Peer{
 	  				  		PeerID:    peerID,
@@ -169,9 +170,12 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
      if err = file.Close(); err != nil {
          return err
      }
-    
+	 
+	 //write it only once
+	 var x = 0
 	 //find line with ] 
 	 for i, line := range lines {
+		 if x == 0 {
 		 if(strings.ContainsRune(line, ']')) {
 			 //take the line before... and append/write to it
 			 
@@ -187,8 +191,12 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
  			 appendedPeer += s
 			 
 			 lines[i] = string(appendedPeer)
-			 
+			 fmt.Println("Added Peer to Config")
+			 x++
 		 }
+	 }
+	 
+		 
 	 }
 	
 	
