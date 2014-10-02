@@ -13,7 +13,6 @@ import (
 	"github.com/jbenet/go-ipfs/daemon"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var cmdIpfsMount = &commander.Command{
@@ -36,11 +35,6 @@ func init() {
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
-	if len(inp) < 1 || len(inp[0]) == 0 {
-		u.POut(c.Long)
-		return nil
-	}
-
 	conf, err := getConfigDir(c.Parent)
 	if err != nil {
 		fmt.Println("Couldnt get config dir")
