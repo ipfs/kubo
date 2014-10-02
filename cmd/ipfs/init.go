@@ -92,6 +92,12 @@ func initCmd(c *commander.Command, inp []string) error {
 		API:   "/ip4/127.0.0.1/tcp/5001",
 	}
 
+	// setup the node mount points.
+	cfg.Mounts = config.Mounts{
+		IPFS: "/ipfs",
+		IPNS: "/ipns",
+	}
+
 	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
 	if !ok {
 		return errors.New("failed to get bits flag")

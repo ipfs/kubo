@@ -29,6 +29,12 @@ type Addresses struct {
 	API   string // address for the local API (RPC)
 }
 
+// Mounts stores the (string) mount points
+type Mounts struct {
+	IPFS string
+	IPNS string
+}
+
 // BootstrapPeer is a peer used to bootstrap the network.
 type BootstrapPeer struct {
 	Address string
@@ -40,6 +46,7 @@ type Config struct {
 	Identity  Identity         // local node's peer identity
 	Datastore Datastore        // local node's storage
 	Addresses Addresses        // local node's addresses
+	Mounts    Mounts           // local node's mount points
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 

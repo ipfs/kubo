@@ -3,14 +3,12 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	"github.com/jbenet/go-ipfs/daemon"
+	core "github.com/jbenet/go-ipfs/core"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 )
@@ -30,59 +28,64 @@ var cmdIpfsMount = &commander.Command{
 }
 
 func init() {
+	cmdIpfsMount.Flag.String("f", "", "specify a mountpoint for ipfs")
 	cmdIpfsMount.Flag.String("n", "", "specify a mountpoint for ipns")
-	cmdIpfsMount.Flag.String("f", "/ipfs", "specify a mountpoint for ipfs")
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
-	conf, err := getConfigDir(c.Parent)
-	if err != nil {
-		fmt.Println("Couldnt get config dir")
-		return err
-	}
-	n, err := localNode(conf, true)
-	if err != nil {
-		fmt.Println("Local node creation failed.")
-		return err
-	}
 
-	// launch the API RPC endpoint.
-	if n.Config.Addresses.API == "" {
-		return errors.New("no config.RPCAddress endpoint supplied")
-	}
-
-	maddr, err := ma.NewMultiaddr(n.Config.Addresses.API)
+	cc, err := setupCmdContext(c, true)
 	if err != nil {
 		return err
 	}
+	defer cc.daemon.Close()
 
-	dl, err := daemon.NewDaemonListener(n, maddr, conf)
-	if err != nil {
-		fmt.Println("Failed to create daemon listener.")
-		return err
+	// update fsdir with flag.
+	fsdir := cc.node.Config.Mounts.IPFS
+	if val, ok := c.Flag.Lookup("f").Value.Get().(string); ok && val != "" {
+		fsdir = val
 	}
-	go dl.Listen()
-	defer dl.Close()
+	fsdone := mountIpfs(cc.node, fsdir)
 
-	mp := c.Flag.Lookup("f").Value.Get().(string)
-	fmt.Printf("Mounting at %s\n", mp)
-
-	var ipnsDone chan struct{}
-	ns, ok := c.Flag.Lookup("n").Value.Get().(string)
-	if ok && ns != "" {
-		ipnsDone = make(chan struct{})
-		go func() {
-			err = ipns.Mount(n, ns, mp)
-			if err != nil {
-				fmt.Printf("Error mounting ipns: %s\n", err)
-			}
-			ipnsDone <- struct{}{}
-		}()
+	// get default mount points
+	nsdir := cc.node.Config.Mounts.IPNS
+	if val, ok := c.Flag.Lookup("n").Value.Get().(string); ok && val != "" {
+		nsdir = val
 	}
+	nsdone := mountIpns(cc.node, nsdir, fsdir)
 
-	err = rofs.Mount(n, mp)
-	if ipnsDone != nil {
-		<-ipnsDone
+	// wait till mounts are done.
+	err1 := <-fsdone
+	err2 := <-nsdone
+
+	if err1 != nil {
+		return err1
 	}
-	return err
+	return err2
+}
+
+func mountIpfs(node *core.IpfsNode, fsdir string) <-chan error {
+	done := make(chan error)
+	fmt.Printf("mounting ipfs at %s\n", fsdir)
+
+	go func() {
+		err := rofs.Mount(node, fsdir)
+		done <- err
+		close(done)
+	}()
+
+	return done
+}
+
+func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
+	done := make(chan error)
+	fmt.Printf("mounting ipns at %s\n", nsdir)
+
+	go func() {
+		err := ipns.Mount(node, nsdir, fsdir)
+		done <- err
+		close(done)
+	}()
+
+	return done
 }
