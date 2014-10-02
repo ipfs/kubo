@@ -14,7 +14,7 @@ import (
 
 var cmdIpfsBootstrap = &commander.Command{
 	UsageLine: "bootstrap",
-	Short:     "Show a list of bootsrapped addresses.",
+	Short:     "Show a list of bootstrapped addresses.",
 	Long: `ipfs bootstrap <add/remove> <address>... - show/add/remove bootstrapped addresses
 
 	Shows a list of bootstrapped addresses. use 'add' or 'remove' followed
