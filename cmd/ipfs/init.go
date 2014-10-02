@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/base64"
-	"path/filepath"
 	"errors"
 	"os"
+	"path/filepath"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"

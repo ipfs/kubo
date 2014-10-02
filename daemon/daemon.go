@@ -94,7 +94,10 @@ func (dl *DaemonListener) Listen() {
 		panic("attempting to listen on a closed daemon Listener")
 	}
 
+	// add ourselves to workgroup. and remove ourselves when done.
 	dl.wg.Add(1)
+	defer dl.wg.Done()
+
 	log.Info("daemon listening")
 	for {
 		conn, err := dl.list.Accept()
@@ -102,7 +105,6 @@ func (dl *DaemonListener) Listen() {
 			if !dl.closed {
 				log.Warning("DaemonListener Accept: %v", err)
 			}
-			dl.lk.Close()
 			return
 		}
 		go dl.handleConnection(conn)
