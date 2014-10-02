@@ -32,7 +32,7 @@ func makeCommand(cmdDesc command) commanderFunc {
 			u.POut(c.Long)
 			return nil
 		}
-		confdir, err := getConfigDir(c.Parent)
+		confdir, err := getConfigDir(c)
 		if err != nil {
 			return err
 		}

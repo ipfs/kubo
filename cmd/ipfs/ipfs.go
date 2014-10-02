@@ -56,8 +56,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsInit,
 		cmdIpfsServe,
 		cmdIpfsRun,
-		cmdIpfsPub,
-		cmdIpfsResolve,
+		cmdIpfsName,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
@@ -124,7 +123,11 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 // Gets the config "-c" flag from the command, or returns
 // the default configuration root directory
 func getConfigDir(c *commander.Command) (string, error) {
-	conf := c.Flag.Lookup("c").Value.Get()
+	root := c
+	for root.Parent != nil {
+		root = root.Parent
+	}
+	conf := root.Flag.Lookup("c").Value.Get()
 	if conf == nil {
 		return config.PathRoot()
 	}
