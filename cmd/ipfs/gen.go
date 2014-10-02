@@ -47,12 +47,11 @@ func makeCommand(cmdDesc command) commanderFunc {
 
 		err = daemon.SendCommand(cmd, confdir)
 		if err != nil {
-			fmt.Printf("Executing command locally: %s", err)
+			log.Info("Executing command locally: %s", err)
 			// Do locally
 			n, err := localNode(confdir, cmdDesc.online)
 			if err != nil {
-				fmt.Println("Local node creation failed.")
-				return err
+				return fmt.Errorf("Local node creation failed: %v", err)
 			}
 
 			return cmdDesc.cmdFn(n, cmd.Args, cmd.Opts, os.Stdout)
