@@ -1,12 +1,12 @@
 package main
 
 import (
-	"errors"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	"github.com/jbenet/go-ipfs/daemon"
 )
 
 var cmdIpfsRun = &commander.Command{
@@ -19,30 +19,18 @@ var cmdIpfsRun = &commander.Command{
 }
 
 func runCmd(c *commander.Command, inp []string) error {
-	conf, err := getConfigDir(c.Parent)
-	if err != nil {
-		return err
-	}
-	n, err := localNode(conf, true)
+	cc, err := setupCmdContext(c, true)
 	if err != nil {
 		return err
 	}
 
-	// launch the RPC endpoint.
-	if n.Config.Addresses.API == "" {
-		return errors.New("no config.Addresses.API endpoint supplied")
-	}
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
+		syscall.SIGTERM, syscall.SIGQUIT)
 
-	maddr, err := ma.NewMultiaddr(n.Config.Addresses.API)
-	if err != nil {
-		return err
-	}
+	// wait until we get a signal to exit.
+	<-sigc
 
-	dl, err := daemon.NewDaemonListener(n, maddr, conf)
-	if err != nil {
-		return err
-	}
-	dl.Listen()
-	dl.Close()
+	cc.daemon.Close()
 	return nil
 }

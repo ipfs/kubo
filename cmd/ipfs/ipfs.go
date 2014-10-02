@@ -8,9 +8,11 @@ import (
 
 	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
+	daemon "github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -100,6 +102,7 @@ func main() {
 	return
 }
 
+// localNode constructs a node
 func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 	filename, err := config.Filename(confdir)
 	if err != nil {
@@ -130,4 +133,51 @@ func getConfigDir(c *commander.Command) (string, error) {
 	}
 
 	return u.TildeExpansion(confStr)
+}
+
+// cmdContext is a wrapper structure that keeps a node, a daemonlistener, and
+// a config directory together. These three are needed for most commands.
+type cmdContext struct {
+	node      *core.IpfsNode
+	daemon    *daemon.DaemonListener
+	configDir string
+}
+
+// setupCmdContext initializes a cmdContext structure from a given command.
+func setupCmdContext(c *commander.Command, online bool) (cc cmdContext, err error) {
+	cc.configDir, err = getConfigDir(c.Parent.Parent)
+	if err != nil {
+		return
+	}
+
+	cc.node, err = localNode(cc.configDir, online)
+	if err != nil {
+		return
+	}
+
+	cc.daemon, err = setupDaemon(cc.configDir, cc.node)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// setupDaemon sets up the daemon corresponding to given node.
+func setupDaemon(confdir string, node *core.IpfsNode) (*daemon.DaemonListener, error) {
+	if node.Config.Addresses.API == "" {
+		return nil, errors.New("no config.Addresses.API endpoint supplied")
+	}
+
+	maddr, err := ma.NewMultiaddr(node.Config.Addresses.API)
+	if err != nil {
+		return nil, err
+	}
+
+	dl, err := daemon.NewDaemonListener(node, maddr, confdir)
+	if err != nil {
+		return nil, err
+	}
+	go dl.Listen()
+	return dl, nil
 }
