@@ -63,7 +63,12 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir stri
 		return nil, err
 	}
 
-	_, err = ofi.Write([]byte(host))
+	mstr, err := addr.String()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = ofi.Write([]byte(mstr))
 	if err != nil {
 		log.Warning("Could not write to rpcaddress file: %s", err)
 		return nil, err

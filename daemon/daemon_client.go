@@ -67,6 +67,7 @@ func SendCommand(command *Command, confdir string) error {
 		return err
 	}
 
+	log.Info("Daemon address: %s", server)
 	maddr, err := ma.NewMultiaddr(server)
 	if err != nil {
 		return err
