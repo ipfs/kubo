@@ -18,7 +18,12 @@ var cmdIpfsCat = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-cat", flag.ExitOnError),
 }
 
-var catCmd = MakeCommand("cat", nil, commands.Cat)
+var catCmd = makeCommand(command{
+	name:  "cat",
+	args:  1,
+	flags: nil,
+	cmdFn: commands.Cat,
+})
 
 /*
 func catCmd(c *commander.Command, inp []string) error {

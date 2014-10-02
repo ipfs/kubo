@@ -21,4 +21,9 @@ var cmdIpfsLs = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-ls", flag.ExitOnError),
 }
 
-var lsCmd = MakeCommand("ls", nil, commands.Ls)
+var lsCmd = makeCommand(command{
+	name:  "ls",
+	args:  1,
+	flags: nil,
+	cmdFn: commands.Ls,
+})

@@ -23,4 +23,9 @@ func init() {
 	cmdIpfsPin.Flag.Int("d", 1, "recursive depth")
 }
 
-var pinCmd = MakeCommand("pin", []string{"r", "d"}, commands.Pin)
+var pinCmd = makeCommand(command{
+	name:  "pin",
+	args:  1,
+	flags: []string{"r", "d"},
+	cmdFn: commands.Pin,
+})
