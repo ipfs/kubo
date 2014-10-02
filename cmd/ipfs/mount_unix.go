@@ -32,6 +32,7 @@ var cmdIpfsMount = &commander.Command{
 
 func init() {
 	cmdIpfsMount.Flag.String("n", "", "specify a mountpoint for ipns")
+	cmdIpfsMount.Flag.String("f", "/ipfs", "specify a mountpoint for ipfs")
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
@@ -69,12 +70,12 @@ func mountCmd(c *commander.Command, inp []string) error {
 	go dl.Listen()
 	defer dl.Close()
 
-	mp := inp[0]
+	mp := c.Flag.Lookup("f").Value.Get().(string)
 	fmt.Printf("Mounting at %s\n", mp)
 
 	var ipnsDone chan struct{}
 	ns, ok := c.Flag.Lookup("n").Value.Get().(string)
-	if ok {
+	if ok && ns != "" {
 		ipnsDone = make(chan struct{})
 		go func() {
 			err = ipns.Mount(n, ns, mp)
