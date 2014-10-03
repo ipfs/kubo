@@ -34,15 +34,6 @@ Commands:
 	Flag: *flag.NewFlagSet("ipfs-bootstrap", flag.ExitOnError),
 }
 
-type Peer struct {
-	Address string
-	PeerID  string
-}
-
-type Config struct {
-	Bootstrap []Peer
-}
-
 func bootstrapCmd(c *commander.Command, inp []string) error {
 
 	if len(inp) == 0 || inp[0] == "list" {
@@ -122,19 +113,15 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 				return readErr
 			}
 
-			for i := range cfg.Bootstrap {
-
-				fmt.Println(i)
-				for i, val := range cfg.Bootstrap {
-
-					if val.PeerID == peer.PeerID && val.Address == peer.Address {
-
-						cfg.Bootstrap = append(cfg.Bootstrap[:i], cfg.Bootstrap[i+1:]...)
-					}
-
+			i := 0
+			for _, v := range cfg.Bootstrap {
+				if v.PeerID == peer.PeerID && v.Address == peer.Address {
+					continue
 				}
-
+				cfg.Bootstrap[i] = v
+				i++
 			}
+			cfg.Bootstrap = cfg.Bootstrap[:i]
 
 			writeErr := config.WriteConfigFile(configpath, cfg)
 			if writeErr != nil {
@@ -154,17 +141,15 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			return readErr
 		}
 
-		for i := range cfg.Bootstrap {
-
-			for i, val := range cfg.Bootstrap {
-				if val.PeerID == peerID {
-					cfg.Bootstrap = append(cfg.Bootstrap[:i], cfg.Bootstrap[i+1:]...)
-
-				}
+		i := 0
+		for _, v := range cfg.Bootstrap {
+			if v.PeerID == peerID {
+				continue
 			}
-			fmt.Println(i)
-
+			cfg.Bootstrap[i] = v
+			i++
 		}
+		cfg.Bootstrap = cfg.Bootstrap[:i]
 
 		writeErr := config.WriteConfigFile(configpath, cfg)
 		if writeErr != nil {
