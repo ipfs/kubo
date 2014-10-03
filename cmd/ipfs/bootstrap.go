@@ -1,24 +1,34 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	u "github.com/jbenet/go-ipfs/util"
-	"io/ioutil"
-	"os"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	config "github.com/jbenet/go-ipfs/config"
 	"strings"
 )
 
 var cmdIpfsBootstrap = &commander.Command{
 	UsageLine: "bootstrap",
 	Short:     "Show a list of bootstrapped addresses.",
-	Long: `ipfs bootstrap <add/remove> <address>... - show/add/remove bootstrapped addresses
+	Long: `ipfs bootstrap - show, or manipulate bootstrap node addresses
 
-	Shows a list of bootstrapped addresses. use 'add' or 'remove' followed
-	by a specified <address> to add/remove it from the list.
+SECURITY WARNING:
+
+The bootstrap command manipulates the "bootstrap list", which contains 
+the addresses of bootstrap nodes. These are the *trusted peers* from 
+which to learn about other peers in the network. Only edit this list 
+if you understand the risks of adding or removing nodes from this list.
+
+Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
+
+Commands:
+
+  list               Show the boostrap list.
+  add <address>      Add a node's address to the bootstrap list.
+  remove <address>   Remove an address from the bootstrap list.
+
 `,
 	Run:  bootstrapCmd,
 	Flag: *flag.NewFlagSet("ipfs-bootstrap", flag.ExitOnError),
@@ -35,25 +45,16 @@ type Config struct {
 
 func bootstrapCmd(c *commander.Command, inp []string) error {
 
-	if len(inp) == 0 {
+	if len(inp) == 0 || inp[0] == "list" {
 
-		configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
-		dat, _ := ioutil.ReadFile(configpath)
-		var configText = string(dat)
+		configpath, _ := config.Filename("~/.go-ipfs/config")
+		var cfg config.Config
+		config.ReadConfigFile(configpath, &cfg)
 
-		var conf Config
-		err := json.Unmarshal([]byte(configText), &conf)
-
-		if err != nil {
-			fmt.Print("Error:", err)
-		}
-
-		//printing list of peers
-		for i := range conf.Bootstrap {
-			s := []string{conf.Bootstrap[i].Address, "/", conf.Bootstrap[i].PeerID, "\n"}
+		for i := range cfg.Bootstrap {
+			s := []string{cfg.Bootstrap[i].Address, "/", cfg.Bootstrap[i].PeerID, "\n"}
 			fmt.Printf(strings.Join(s, ""))
 		}
-
 		return nil
 
 	}
@@ -65,36 +66,33 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			return nil
 		}
 
-		if strings.Contains(inp[1], "/") {
-
-			var stringArr = strings.SplitAfterN(inp[1], "/", 6)
-			s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
-			var peerID = stringArr[5]
-			var addressPretrim = strings.Join(s, "")
-			var address = strings.TrimSuffix(addressPretrim, "/")
-			peer := Peer{
-				PeerID:  peerID,
-				Address: address,
-			}
-			b, err := json.Marshal(peer)
-			if err != nil {
-				panic(err)
-			}
-
-			configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
-
-			err2 := AddPeertoFile(configpath, b)
-			if err2 != nil {
-				panic(err)
-			}
-
+		var pID = inp[1][len(inp[1])-46:]
+		var ip = strings.TrimSuffix(inp[1], pID)
+		maddr, err := ma.NewMultiaddr(strings.TrimSuffix(ip, "/"))
+		var address, _ = maddr.String()
+		if err != nil {
+			return err
 		}
 
-		if !strings.Contains(inp[1], "/") {
-			fmt.Println("Added 0 Peers")
-			return nil
+		peer := config.BootstrapPeer{
+			Address: address,
+			PeerID:  pID,
 		}
 
+		configpath, _ := config.Filename("~/.go-ipfs/config")
+		var cfg config.Config
+		readErr := config.ReadConfigFile(configpath, &cfg)
+		if readErr != nil {
+			return readErr
+		}
+
+		addedPeer := append(cfg.Bootstrap, &peer)
+		cfg.Bootstrap = addedPeer
+
+		writeErr := config.WriteConfigFile(configpath, cfg)
+		if writeErr != nil {
+			return writeErr
+		}
 		return nil
 	case "remove":
 		if len(inp) == 1 {
@@ -104,180 +102,76 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 
 		if strings.Contains(inp[1], "/") {
 
-			var stringArr = strings.SplitAfterN(inp[1], "/", 6)
-			s := []string{stringArr[0], stringArr[1], stringArr[2], stringArr[3], stringArr[4]}
-			var peerID = stringArr[5]
-			var addressPretrim = strings.Join(s, "")
-			var address = strings.TrimSuffix(addressPretrim, "/")
-
-			configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
-			fmt.Println("here we go", peerID, address)
-			err2 := RemoveSpecificPeerfromFile(configpath, peerID, address)
-			if err2 != nil {
-				panic(err2)
+			var pID = inp[1][len(inp[1])-46:]
+			var ip = strings.TrimSuffix(inp[1], pID)
+			maddr, err := ma.NewMultiaddr(strings.TrimSuffix(ip, "/"))
+			var address, _ = maddr.String()
+			if err != nil {
+				return err
 			}
 
+			peer := config.BootstrapPeer{
+				Address: address,
+				PeerID:  pID,
+			}
+
+			configpath, _ := config.Filename("~/.go-ipfs/config")
+			var cfg config.Config
+			readErr := config.ReadConfigFile(configpath, &cfg)
+			if readErr != nil {
+				return readErr
+			}
+
+			for i := range cfg.Bootstrap {
+
+				fmt.Println(i)
+				for i, val := range cfg.Bootstrap {
+
+					if val.PeerID == peer.PeerID && val.Address == peer.Address {
+
+						cfg.Bootstrap = append(cfg.Bootstrap[:i], cfg.Bootstrap[i+1:]...)
+					}
+
+				}
+
+			}
+
+			writeErr := config.WriteConfigFile(configpath, cfg)
+			if writeErr != nil {
+				return writeErr
+			}
+		}
+	}
+
+	if !strings.Contains(inp[1], "/") {
+
+		var peerID = inp[1]
+
+		configpath, _ := config.Filename("~/.go-ipfs/config")
+		var cfg config.Config
+		readErr := config.ReadConfigFile(configpath, &cfg)
+		if readErr != nil {
+			return readErr
 		}
 
-		if !strings.Contains(inp[1], "/") {
+		for i := range cfg.Bootstrap {
 
-			configpath, _ := u.TildeExpansion("~/.go-ipfs/config")
+			for i, val := range cfg.Bootstrap {
+				if val.PeerID == peerID {
+					cfg.Bootstrap = append(cfg.Bootstrap[:i], cfg.Bootstrap[i+1:]...)
 
-			for {
-				peersRemoved, _ := RemovePeerfromFile(configpath, inp[1])
-				if peersRemoved == 0 {
-					break
 				}
 			}
+			fmt.Println(i)
 
 		}
 
-		return nil
-	}
+		writeErr := config.WriteConfigFile(configpath, cfg)
+		if writeErr != nil {
+			return writeErr
+		}
 
+	}
 	return nil
 
-}
-
-func AddPeertoFile(filename string, peerData []byte) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	perm := info.Mode()
-	lines := []string{}
-	for scanner := bufio.NewScanner(file); scanner.Scan(); {
-		lines = append(lines, scanner.Text())
-	}
-	if err = file.Close(); err != nil {
-		return err
-	}
-
-	//write it only once
-	var x = 0
-	for i, line := range lines {
-		if x == 0 {
-			if strings.ContainsRune(line, ']') {
-				//take the line before... and append/write to it
-
-				// make the slice longer
-				lines = append(lines, "")
-				// shift each element back
-				copy(lines[i+1:], lines[i:])
-				// now you can insert the new line at i
-
-				s := string(peerData)
-				c := byte(',')
-				var appendedPeer = string(c)
-				appendedPeer += s
-
-				lines[i] = string(appendedPeer)
-				fmt.Println("Added Peer to Config")
-				x++
-			}
-		}
-
-	}
-
-	file, err = os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, perm)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	for _, line := range lines {
-		if _, err = file.WriteString(line + "\n"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RemoveSpecificPeerfromFile(filename string, peerID string, address string) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	perm := info.Mode()
-	lines := []string{}
-	for scanner := bufio.NewScanner(file); scanner.Scan(); {
-		lines = append(lines, scanner.Text())
-	}
-	if err = file.Close(); err != nil {
-		return err
-	}
-
-	//find line with peer data
-	for i, line := range lines {
-
-		if strings.Contains(line, peerID) && strings.Contains(line, address) {
-
-			fmt.Println("FOUND IT!", i)
-			//remove it
-			lines = append(lines[:i], lines[i+1:]...)
-		}
-	}
-
-	file, err = os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, perm)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	for _, line := range lines {
-		if _, err = file.WriteString(line + "\n"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RemovePeerfromFile(filename string, address string) (int, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return 0, err
-	}
-	info, err := file.Stat()
-	if err != nil {
-		return 0, err
-	}
-	perm := info.Mode()
-	lines := []string{}
-	for scanner := bufio.NewScanner(file); scanner.Scan(); {
-		lines = append(lines, scanner.Text())
-	}
-	if err = file.Close(); err != nil {
-		return 0, err
-	}
-
-	var numPeers = 0
-	for i, line := range lines {
-
-		if strings.Contains(line, address) {
-			fmt.Println("FOUND IT!", i, line)
-			//remove it
-			lines = append(lines[:i], lines[i+1:]...)
-			numPeers++
-		}
-	}
-
-	fmt.Println("Removed", numPeers, "Peers")
-
-	file, err = os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, perm)
-	if err != nil {
-		return 0, err
-	}
-	defer file.Close()
-	for _, line := range lines {
-		if _, err = file.WriteString(line + "\n"); err != nil {
-			return 0, err
-		}
-	}
-	return numPeers, nil
 }
