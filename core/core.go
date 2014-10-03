@@ -43,7 +43,7 @@ type IpfsNode struct {
 	Peerstore peer.Peerstore
 
 	// the local datastore
-	Datastore ds.Datastore
+	Datastore ds.ThreadSafeDatastore
 
 	// the network message stream
 	Network inet.Network
