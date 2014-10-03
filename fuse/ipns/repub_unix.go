@@ -3,34 +3,45 @@ package ipns
 import "time"
 
 type Republisher struct {
-	Timeout time.Duration
-	Publish chan struct{}
-	node    *Node
+	TimeoutLong  time.Duration
+	TimeoutShort time.Duration
+	Publish      chan struct{}
+	node         *Node
 }
 
-func NewRepublisher(n *Node, tout time.Duration) *Republisher {
+func NewRepublisher(n *Node, tshort, tlong time.Duration) *Republisher {
 	return &Republisher{
-		Timeout: tout,
-		Publish: make(chan struct{}),
-		node:    n,
+		TimeoutShort: tshort,
+		TimeoutLong:  tlong,
+		Publish:      make(chan struct{}),
+		node:         n,
 	}
 }
 
 func (np *Republisher) Run() {
 	for _ = range np.Publish {
-		timer := time.After(np.Timeout)
+		quick := time.After(np.TimeoutShort)
+		longer := time.After(np.TimeoutLong)
 		for {
 			select {
-			case <-timer:
+			case <-quick:
 				//Do the publish!
 				log.Info("Publishing Changes!")
-				err := np.node.updateTree()
+				err := np.node.republishRoot()
 				if err != nil {
-					log.Critical("updateTree error: %s", err)
+					log.Critical("republishRoot error: %s", err)
+				}
+				goto done
+			case <-longer:
+				//Do the publish!
+				log.Info("Publishing Changes!")
+				err := np.node.republishRoot()
+				if err != nil {
+					log.Critical("republishRoot error: %s", err)
 				}
 				goto done
 			case <-np.Publish:
-				timer = time.After(np.Timeout)
+				quick = time.After(np.TimeoutShort)
 			}
 		}
 	done:

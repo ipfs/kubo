@@ -99,11 +99,15 @@ func DOut(format string, a ...interface{}) {
 func SetupLogging() {
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	logging.SetBackend(backend)
-	if Debug {
-		logging.SetLevel(logging.DEBUG, "")
-	} else {
-		logging.SetLevel(logging.ERROR, "")
-	}
+	/*
+		if Debug {
+			logging.SetLevel(logging.DEBUG, "")
+		} else {
+			logging.SetLevel(logging.ERROR, "")
+		}
+	*/
+	logging.SetLevel(logging.ERROR, "merkledag")
+	logging.SetLevel(logging.ERROR, "blockservice")
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 }
 

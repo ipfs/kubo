@@ -75,6 +75,16 @@ func (n *Node) RemoveNodeLink(name string) error {
 	return u.ErrNotFound
 }
 
+func (n *Node) Copy() *Node {
+	nnode := new(Node)
+	nnode.Data = make([]byte, len(n.Data))
+	copy(nnode.Data, n.Data)
+
+	nnode.Links = make([]*Link, len(n.Links))
+	copy(nnode.Links, n.Links)
+	return nnode
+}
+
 // Size returns the total size of the data addressed by node,
 // including the total sizes of references.
 func (n *Node) Size() (uint64, error) {
