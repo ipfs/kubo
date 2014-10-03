@@ -1,13 +1,12 @@
 package ipns
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
-
-	"bytes"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
@@ -205,7 +204,7 @@ type Node struct {
 	cached *mdag.PBData
 
 	// For writing
-	dataBuf *bytes.Buffer
+	writerBuf WriteAtBuf
 }
 
 func (s *Node) loadData() error {
@@ -290,21 +289,25 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	}
 	// this is a terrible function... 'ReadAll'?
 	// what if i have a 6TB file? GG RAM.
-	return ioutil.ReadAll(r)
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.Error("[%s] Readall error: %s", s.name, err)
+		return nil, err
+	}
+	if len(b) > 4 {
+		log.Debug("ReadAll trailing bytes: %v", b[len(b)-4:])
+	}
+	return b, nil
 }
 
 func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
 	log.Debug("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
-	if n.dataBuf == nil {
-		n.dataBuf = new(bytes.Buffer)
+	if n.writerBuf == nil {
+		n.writerBuf = NewWriterAtFromBytes(nil)
 	}
-	if req.Offset == 0 {
-		n.dataBuf.Reset()
-		n.dataBuf.Write(req.Data)
-		resp.Size = len(req.Data)
-	} else {
-		log.Error("Unhandled write to offset!")
-		n.dataBuf = nil
+	_, err := n.writerBuf.WriteAt(req.Data, req.Offset)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -312,7 +315,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 	log.Debug("Got flush request [%s]!", n.name)
 
-	if n.dataBuf != nil {
+	if n.writerBuf != nil {
 		//TODO:
 		// This operation holds everything in memory,
 		// should be changed to stream the block creation/storage
@@ -321,9 +324,10 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		//NOTE:
 		// This should only occur on a file object, if this were to be a
 		// folder, bad things would happen.
-		newNode, err := imp.NewDagFromReader(n.dataBuf)
+		buf := bytes.NewReader(n.writerBuf.Bytes())
+		newNode, err := imp.NewDagFromReader(buf)
 		if err != nil {
-			log.Critical("error creating dag from dataBuf: %s", err)
+			log.Critical("error creating dag from writerBuf: %s", err)
 			return fuse.ENODATA
 		}
 		if n.parent != nil {
@@ -350,7 +354,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		fmt.Println(string(b))
 		//
 
-		n.dataBuf = nil
+		n.writerBuf = nil
 
 		n.wasChanged()
 	}
@@ -382,7 +386,7 @@ func (n *Node) republishRoot() error {
 		return err
 	}
 
-	n.dataBuf = nil
+	n.writerBuf = nil
 
 	ndkey, err := root.Nd.Key()
 	if err != nil {
