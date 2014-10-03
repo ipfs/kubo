@@ -43,10 +43,16 @@ func TestSizeBasedSplit(t *testing.T) {
 	testFileConsistency(t, bs, 31*4095)
 }
 
+func dup(b []byte) []byte {
+	o := make([]byte, len(b))
+	copy(o, b)
+	return o
+}
+
 func testFileConsistency(t *testing.T, bs BlockSplitter, nbytes int) {
 	buf := new(bytes.Buffer)
 	io.CopyN(buf, rand.Reader, int64(nbytes))
-	should := buf.Bytes()
+	should := dup(buf.Bytes())
 	nd, err := NewDagFromReaderWithSplitter(buf, bs)
 	if err != nil {
 		t.Fatal(err)

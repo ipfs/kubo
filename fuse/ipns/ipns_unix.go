@@ -206,7 +206,6 @@ type Node struct {
 
 	// For writing
 	dataBuf *bytes.Buffer
-	changed bool
 }
 
 func (s *Node) loadData() error {
@@ -302,18 +301,18 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 	if req.Offset == 0 {
 		n.dataBuf.Reset()
 		n.dataBuf.Write(req.Data)
-		n.changed = true
 		resp.Size = len(req.Data)
 	} else {
 		log.Error("Unhandled write to offset!")
+		n.dataBuf = nil
 	}
 	return nil
 }
 
 func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
-	log.Debug("Got flush request!")
+	log.Debug("Got flush request [%s]!", n.name)
 
-	if n.changed {
+	if n.dataBuf != nil {
 		//TODO:
 		// This operation holds everything in memory,
 		// should be changed to stream the block creation/storage
@@ -350,6 +349,8 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		fmt.Printf("READ %d BYTES\n", len(b))
 		fmt.Println(string(b))
 		//
+
+		n.dataBuf = nil
 
 		n.wasChanged()
 	}
