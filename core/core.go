@@ -127,7 +127,9 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		// TODO(brian): perform this inside NewDHT factory method
 		dhtService.Handler = route // wire the handler to the service.
 
+		//Clarification- this is here because the bitswap strategy still has to be completely worked out
 		const alwaysSendToPeer = true // use YesManStrategy
+
 		exchangeSession = bitswap.NetMessageSession(ctx, local, exchangeService, route, d, alwaysSendToPeer)
 
 		// TODO(brian): pass a context to initConnections
