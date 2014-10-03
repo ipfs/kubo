@@ -309,6 +309,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 	if err != nil {
 		return err
 	}
+	resp.Size = len(req.Data)
 	return nil
 }
 
@@ -442,15 +443,15 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 	return child, nil
 }
 
-func (n *Node) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("Got mknod request!")
-	return nil, nil
-}
-
 func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
 	//log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
 	//TODO: check open flags and truncate if necessary
 	return n, nil
+}
+
+func (n *Node) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+	log.Debug("Got mknod request!")
+	return nil, nil
 }
 
 func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {

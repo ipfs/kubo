@@ -46,6 +46,14 @@ type Link struct {
 
 // AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
+	// DEBUG CODE
+	for _, l := range n.Links {
+		if l.Name == name {
+			panic("Trying to add child that already exists!")
+		}
+	}
+	//
+
 	s, err := that.Size()
 	if err != nil {
 		return err
