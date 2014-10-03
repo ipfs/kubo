@@ -1,0 +1,43 @@
+{
+	"ImportPath": "github.com/jbenet/datastore.go",
+	"GoVersion": "go1.3.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-12",
+			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
+		},
+		{
+			"ImportPath": "code.google.com/p/snappy-go/snappy",
+			"Comment": "null-15",
+			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
+		},
+		{
+			"ImportPath": "github.com/codahale/blake2",
+			"Rev": "3fa823583afba430e8fc7cdbcc670dbf90bfacc4"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/golang-lru",
+			"Rev": "4dfff096c4973178c8f35cf6dd1a732a0a139370"
+		},
+		{
+			"ImportPath": "github.com/mattbaird/elastigo/api",
+			"Rev": "041b88c1fcf6489a5721ede24378ce1253b9159d"
+		},
+		{
+			"ImportPath": "github.com/mattbaird/elastigo/core",
+			"Rev": "041b88c1fcf6489a5721ede24378ce1253b9159d"
+		},
+		{
+			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
+			"Rev": "9bca75c48d6c31becfbb127702b425e7226052e3"
+		},
+		{
+			"ImportPath": "gopkg.in/check.v1",
+			"Rev": "91ae5f88a67b14891cfd43895b01164f6c120420"
+		}
+	]
+}

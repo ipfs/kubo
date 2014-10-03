@@ -13,7 +13,7 @@ type Datastore struct {
 
 type Options opt.Options
 
-func NewDatastore(path string, opts *Options) (*Datastore, error) {
+func NewDatastore(path string, opts *Options) (ds.ThreadSafeDatastore, error) {
 	var nopts opt.Options
 	if opts != nil {
 		nopts = opt.Options(*opts)
@@ -76,3 +76,5 @@ func (d *Datastore) KeyList() ([]ds.Key, error) {
 func (d *Datastore) Close() (err error) {
 	return d.DB.Close()
 }
+
+func (d *Datastore) IsThreadSafe() {}

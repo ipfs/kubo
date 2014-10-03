@@ -5,7 +5,7 @@ import (
 )
 
 /*
-A Datastore represents storage for any key-value pair.
+Datastore represents storage for any key-value pair.
 
 Datastores are general enough to be backed by all kinds of different storage:
 in-memory caches, databases, a remote datastore, flat files on disk, etc.
@@ -27,7 +27,6 @@ and thus it should behave predictably and handle exceptional conditions with
 proper error reporting. Thus, all Datastore calls may return errors, which
 should be checked by callers.
 */
-
 type Datastore interface {
 	// Put stores the object `value` named by `key`.
 	//
@@ -53,20 +52,27 @@ type Datastore interface {
 	// Delete removes the value for given `key`.
 	Delete(key Key) (err error)
 
-	// Returns a list of keys in the datastore
+	// KeyList returns a list of keys in the datastore
 	KeyList() ([]Key, error)
+}
+
+// ThreadSafeDatastore is an interface that all threadsafe datastore should
+// implement to leverage type safety checks.
+type ThreadSafeDatastore interface {
+	Datastore
+	IsThreadSafe()
 }
 
 // Errors
 
 // ErrNotFound is returned by Get, Has, and Delete when a datastore does not
 // map the given key to a value.
-var ErrNotFound = errors.New("datastore: key not found.")
+var ErrNotFound = errors.New("datastore: key not found")
 
 // ErrInvalidType is returned by Put when a given value is incopatible with
 // the type the datastore supports. This means a conversion (or serialization)
 // is needed beforehand.
-var ErrInvalidType = errors.New("datastore: invalid type error.")
+var ErrInvalidType = errors.New("datastore: invalid type error")
 
 // GetBackedHas provides a default Datastore.Has implementation.
 // It exists so Datastore.Has implementations can use it, like so:

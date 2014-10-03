@@ -27,7 +27,7 @@ type blockstore struct {
 }
 
 func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
-	maybeData, err := bs.datastore.Get(toDatastoreKey(k))
+	maybeData, err := bs.datastore.Get(k.DsKey())
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +39,5 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {
-	return bs.datastore.Put(toDatastoreKey(block.Key()), block.Data)
-}
-
-func toDatastoreKey(k u.Key) ds.Key {
-	return ds.NewKey(string(k))
+	return bs.datastore.Put(block.Key().DsKey(), block.Data)
 }
