@@ -8,6 +8,17 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+type strategist struct {
+	ledgerMap
+	strategyFunc
+}
+
+// LedgerMap lists Ledgers by their Partner key.
+type ledgerMap map[peerKey]*ledger
+
+// FIXME share this externally
+type peerKey u.Key
+
 // TODO declare thread-safe datastore
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
 // "trusted" and/or controlled by a single human user. The user may want for
@@ -24,17 +35,6 @@ func New(nice bool) Strategy {
 		strategyFunc: stratFunc,
 	}
 }
-
-type strategist struct {
-	ledgerMap
-	strategyFunc
-}
-
-// LedgerMap lists Ledgers by their Partner key.
-type ledgerMap map[peerKey]*ledger
-
-// FIXME share this externally
-type peerKey u.Key
 
 // Peers returns a list of peers
 func (s *strategist) Peers() []*peer.Peer {
@@ -90,7 +90,17 @@ func (s *strategist) MessageSent(p *peer.Peer, m bsmsg.BitSwapMessage) error {
 		l.SentBytes(len(block.Data))
 	}
 
-	// TODO remove these blocks from peer's want list
+	for _, block := range m.Blocks() {
+
+		// TODO remove these blocks from peer's want list
+
+		m.Wantlist()
+
+		slice1 := m
+
+		Remove(block.Key())
+
+	}
 
 	return nil
 }
