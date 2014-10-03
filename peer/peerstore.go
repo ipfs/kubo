@@ -37,7 +37,7 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 	p.RLock()
 	defer p.RUnlock()
 
-	k := ds.NewKey(string(i))
+	k := u.Key(i).DsKey()
 	val, err := p.peers.Get(k)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (p *peerstore) Put(peer *Peer) error {
 	p.Lock()
 	defer p.Unlock()
 
-	k := ds.NewKey(string(peer.ID))
+	k := u.Key(peer.ID).DsKey()
 	return p.peers.Put(k, peer)
 }
 
@@ -62,7 +62,7 @@ func (p *peerstore) Delete(i ID) error {
 	p.Lock()
 	defer p.Unlock()
 
-	k := ds.NewKey(string(i))
+	k := u.Key(i).DsKey()
 	return p.peers.Delete(k)
 }
 
@@ -84,7 +84,7 @@ func (p *peerstore) All() (*Map, error) {
 
 		pval, ok := val.(*Peer)
 		if ok {
-			(*ps)[u.Key(k.String())] = pval
+			(*ps)[u.Key(pval.ID)] = pval
 		}
 	}
 	return ps, nil

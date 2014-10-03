@@ -33,11 +33,11 @@ func (mr *MockRouter) SetRoutingServer(rs RoutingServer) {
 }
 
 func (mr *MockRouter) PutValue(ctx context.Context, key u.Key, val []byte) error {
-	return mr.datastore.Put(ds.NewKey(string(key)), val)
+	return mr.datastore.Put(key.DsKey(), val)
 }
 
 func (mr *MockRouter) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
-	v, err := mr.datastore.Get(ds.NewKey(string(key)))
+	v, err := mr.datastore.Get(key.DsKey())
 	if err != nil {
 		return nil, err
 	}

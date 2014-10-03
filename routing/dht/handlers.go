@@ -51,7 +51,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 
 	// let's first check if we have the value locally.
 	u.DOut("[%s] handleGetValue looking into ds\n", dht.self.ID.Pretty())
-	dskey := ds.NewKey(pmes.GetKey())
+	dskey := u.Key(pmes.GetKey()).DsKey()
 	iVal, err := dht.datastore.Get(dskey)
 	u.DOut("[%s] handleGetValue looking into ds GOT %v\n", dht.self.ID.Pretty(), iVal)
 
@@ -96,7 +96,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
-	dskey := ds.NewKey(pmes.GetKey())
+	dskey := u.Key(pmes.GetKey()).DsKey()
 	err := dht.datastore.Put(dskey, pmes.GetValue())
 	u.DOut("[%s] handlePutValue %v %v\n", dht.self.ID.Pretty(), dskey, pmes.GetValue())
 	return pmes, err
@@ -137,7 +137,8 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, e
 	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// check if we have this value, to add ourselves as provider.
-	has, err := dht.datastore.Has(ds.NewKey(pmes.GetKey()))
+	dsk := u.Key(pmes.GetKey()).DsKey()
+	has, err := dht.datastore.Has(dsk)
 	if err != nil && err != ds.ErrNotFound {
 		u.PErr("unexpected datastore error: %v\n", err)
 		has = false

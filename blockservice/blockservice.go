@@ -7,7 +7,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	exchange "github.com/jbenet/go-ipfs/exchange"
@@ -37,11 +37,10 @@ func NewBlockService(d ds.Datastore, rem exchange.Interface) (*BlockService, err
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	k := b.Key()
-	dsk := ds.NewKey(string(k))
 	log.Debug("storing [%s] in datastore", k.Pretty())
 	// TODO(brian): define a block datastore with a Put method which accepts a
 	// block parameter
-	err := s.Datastore.Put(dsk, b.Data)
+	err := s.Datastore.Put(k.DsKey(), b.Data)
 	if err != nil {
 		return k, err
 	}
@@ -56,8 +55,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 	log.Debug("BlockService GetBlock: '%s'", k.Pretty())
-	dsk := ds.NewKey(string(k))
-	datai, err := s.Datastore.Get(dsk)
+	datai, err := s.Datastore.Get(k.DsKey())
 	if err == nil {
 		log.Debug("Blockservice: Got data in datastore.")
 		bdata, ok := datai.([]byte)

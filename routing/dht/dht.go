@@ -13,11 +13,11 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
@@ -328,7 +328,7 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
-	v, err := dht.datastore.Get(ds.NewKey(string(key)))
+	v, err := dht.datastore.Get(key.DsKey())
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +341,7 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 }
 
 func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
-	return dht.datastore.Put(ds.NewKey(string(key)), value)
+	return dht.datastore.Put(key.DsKey(), value)
 }
 
 // Update signals to all routingTables to Update their last-seen status
@@ -494,13 +494,19 @@ func (dht *IpfsDHT) ensureConnectedToPeer(pbp *Message_Peer) (*peer.Peer, error)
 	return p, err
 }
 
+//TODO: this should be smarter about which keys it selects.
 func (dht *IpfsDHT) loadProvidableKeys() error {
 	kl, err := dht.datastore.KeyList()
 	if err != nil {
 		return err
 	}
-	for _, k := range kl {
-		dht.providers.AddProvider(u.Key(k.Bytes()), dht.self)
+	for _, dsk := range kl {
+		k := u.KeyFromDsKey(dsk)
+		if len(k) == 0 {
+			log.Error("loadProvidableKeys error: %v", dsk)
+		}
+
+		dht.providers.AddProvider(k, dht.self)
 	}
 	return nil
 }

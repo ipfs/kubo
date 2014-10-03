@@ -44,7 +44,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	block := testutil.NewBlockOrFail(t, "some data")
 
 	datastore := ds.NewMapDatastore()
-	datastore.Put(toDatastoreKey(block.Key()), "data that isn't a block!")
+	datastore.Put(block.Key().DsKey(), "data that isn't a block!")
 
 	blockstore := NewBlockstore(datastore)
 

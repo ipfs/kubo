@@ -41,6 +41,18 @@ func (k Key) Pretty() string {
 	return b58.Encode([]byte(k))
 }
 
+// DsKey returns a Datastore key
+func (k Key) DsKey() ds.Key {
+	return ds.NewKey(k.Pretty())
+}
+
+// KeyFromDsKey returns a Datastore key
+func KeyFromDsKey(dsk ds.Key) Key {
+	l := dsk.List()
+	enc := l[len(l)-1]
+	return Key(b58.Decode(enc))
+}
+
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
 func Hash(data []byte) (mh.Multihash, error) {
 	return mh.Sum(data, mh.SHA2_256, -1)
