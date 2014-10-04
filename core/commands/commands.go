@@ -4,10 +4,9 @@ import (
 	"io"
 
 	"github.com/jbenet/go-ipfs/core"
-
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
-var log = logging.MustGetLogger("commands")
+var log = u.Logger("commands")
 
 type CmdFunc func(*core.IpfsNode, []string, map[string]interface{}, io.Writer) error

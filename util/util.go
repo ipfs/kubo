@@ -107,6 +107,8 @@ func DOut(format string, a ...interface{}) {
 	}
 }
 
+var loggers = []string{}
+
 // SetupLogging will initialize the logger backend and set the flags.
 func SetupLogging() {
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
@@ -118,9 +120,19 @@ func SetupLogging() {
 			logging.SetLevel(logging.ERROR, "")
 		}
 	*/
-	logging.SetLevel(logging.ERROR, "merkledag")
-	logging.SetLevel(logging.ERROR, "blockservice")
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
+
+	for _, n := range loggers {
+		logging.SetLevel(logging.ERROR, n)
+	}
+}
+
+// Logger retrieves a particular logger + initializes it at a particular level
+func Logger(name string) *logging.Logger {
+	log := logging.MustGetLogger(name)
+	// logging.SetLevel(lvl, name) // can't set level here.
+	loggers = append(loggers, name)
+	return log
 }
 
 // ExpandPathnames takes a set of paths and turns them into absolute paths

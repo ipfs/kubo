@@ -8,10 +8,9 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("path")
+var log = u.Logger("path")
 
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.

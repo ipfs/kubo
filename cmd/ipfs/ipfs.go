@@ -9,7 +9,6 @@ import (
 	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
@@ -62,7 +61,7 @@ Use "ipfs help <command>" for more information about a command.
 }
 
 // log is the command logger
-var log = logging.MustGetLogger("cmd/ipfs")
+var log = u.Logger("cmd/ipfs")
 
 func init() {
 	config, err := config.PathRoot()

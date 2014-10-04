@@ -9,7 +9,6 @@ import (
 	"path"
 	"sync"
 
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
@@ -18,7 +17,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-var log = logging.MustGetLogger("daemon")
+var log = u.Logger("daemon")
 
 // LockFile is the filename of the daemon lock, relative to config dir
 const LockFile = "daemon.lock"

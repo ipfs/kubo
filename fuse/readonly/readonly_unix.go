@@ -21,10 +21,9 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("ipfs")
+var log = u.Logger("ipfs")
 
 // FileSystem is the readonly Ipfs Fuse Filesystem.
 type FileSystem struct {

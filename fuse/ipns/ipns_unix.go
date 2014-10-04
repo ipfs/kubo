@@ -10,7 +10,6 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	"github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -19,7 +18,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var log = logging.MustGetLogger("ipns")
+var log = u.Logger("ipns")
 
 // FileSystem is the readwrite IPNS Fuse Filesystem.
 type FileSystem struct {

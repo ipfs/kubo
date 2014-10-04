@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
@@ -12,7 +11,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var log = logging.MustGetLogger("merkledag")
+var log = u.Logger("merkledag")
 
 // NodeMap maps u.Keys to Nodes.
 // We cannot use []byte/Multihash for keys :(
