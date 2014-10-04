@@ -6,15 +6,14 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
-var log = u.Logger("namesys", logging.ERROR)
+var log = u.Logger("namesys")
 
 // RoutingResolver implements NSResolver for the main IPFS SFS-like naming
 type RoutingResolver struct {
