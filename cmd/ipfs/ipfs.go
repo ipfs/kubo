@@ -62,7 +62,7 @@ Use "ipfs help <command>" for more information about a command.
 }
 
 // log is the command logger
-var log = logging.MustGetLogger("cmd/ipfs")
+var log = u.Logger("cmd/ipfs", logging.ERROR)
 
 func init() {
 	config, err := config.PathRoot()

@@ -118,9 +118,14 @@ func SetupLogging() {
 			logging.SetLevel(logging.ERROR, "")
 		}
 	*/
-	logging.SetLevel(logging.ERROR, "merkledag")
-	logging.SetLevel(logging.ERROR, "blockservice")
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
+}
+
+// Logger retrieves a particular logger + initializes it at a particular level
+func Logger(name string, lvl logging.Level) *logging.Logger {
+	log := logging.MustGetLogger(name)
+	logging.SetLevel(lvl, name)
+	return log
 }
 
 // ExpandPathnames takes a set of paths and turns them into absolute paths

@@ -14,7 +14,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var log = logging.MustGetLogger("blockservice")
+var log = u.Logger("blockservice", logging.ERROR)
 
 // BlockService is a block datastore.
 // It uses an internal `datastore.Datastore` instance to store values.

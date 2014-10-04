@@ -28,7 +28,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var log = logging.MustGetLogger("core")
+var log = u.Logger("core", logging.ERROR)
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {

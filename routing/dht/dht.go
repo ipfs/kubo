@@ -22,7 +22,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
-var log = logging.MustGetLogger("dht")
+var log = u.Logger("dht", logging.ERROR)
 
 // TODO. SEE https://github.com/jbenet/node-ipfs/blob/master/submodules/ipfs-dht/index.js
 

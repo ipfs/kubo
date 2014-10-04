@@ -11,7 +11,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("path")
+var log = u.Logger("path", logging.ERROR)
 
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.

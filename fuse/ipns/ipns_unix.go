@@ -20,7 +20,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var log = logging.MustGetLogger("ipns")
+var log = u.Logger("ipns", logging.ERROR)
 
 // FileSystem is the readwrite IPNS Fuse Filesystem.
 type FileSystem struct {

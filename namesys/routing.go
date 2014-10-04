@@ -14,7 +14,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("namesys")
+var log = u.Logger("namesys", logging.ERROR)
 
 // RoutingResolver implements NSResolver for the main IPFS SFS-like naming
 type RoutingResolver struct {
