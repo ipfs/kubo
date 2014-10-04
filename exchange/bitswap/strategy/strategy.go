@@ -8,23 +8,6 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// TODO declare thread-safe datastore
-// TODO niceness should be on a per-peer basis. Use-case: Certain peers are
-// "trusted" and/or controlled by a single human user. The user may want for
-// these peers to exchange data freely
-func New(nice bool) Strategy {
-	var stratFunc strategyFunc
-	if nice {
-		stratFunc = yesManStrategy
-	} else {
-		stratFunc = standardStrategy
-	}
-	return &strategist{
-		ledgerMap:    ledgerMap{},
-		strategyFunc: stratFunc,
-	}
-}
-
 type strategist struct {
 	ledgerMap
 	strategyFunc
@@ -35,6 +18,23 @@ type ledgerMap map[peerKey]*ledger
 
 // FIXME share this externally
 type peerKey u.Key
+
+// TODO declare thread-safe datastore
+// TODO niceness should be on a per-peer basis. Use-case: Certain peers are
+// "trusted" and/or controlled by a single human user. The user may want for
+// these peers to exchange data freely
+func New(trusted bool) Strategy {
+	var stratFunc strategyFunc
+	if trusted {
+		stratFunc = yesManStrategy
+	} else {
+		stratFunc = standardStrategy
+	}
+	return &strategist{
+		ledgerMap:    ledgerMap{},
+		strategyFunc: stratFunc,
+	}
+}
 
 // Peers returns a list of peers
 func (s *strategist) Peers() []*peer.Peer {
@@ -89,7 +89,6 @@ func (s *strategist) MessageSent(p *peer.Peer, m bsmsg.BitSwapMessage) error {
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 	}
-
 	// TODO remove these blocks from peer's want list
 
 	return nil
