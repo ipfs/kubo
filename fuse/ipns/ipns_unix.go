@@ -70,7 +70,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 		nd := new(Node)
 		nd.Ipfs = n
 		nd.key = k
-		nd.repub = NewRepublisher(nd, time.Millisecond*10, time.Second)
+		nd.repub = NewRepublisher(nd, time.Millisecond*5, time.Millisecond*500)
 
 		go nd.repub.Run()
 
@@ -249,6 +249,7 @@ func (n *Node) makeChild(name string, node *mdag.Node) *Node {
 		Nd:     node,
 		name:   name,
 		nsRoot: n.nsRoot,
+		parent: n,
 	}
 
 	if n.nsRoot == nil {
@@ -322,11 +323,13 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		// folder, bad things would happen.
 		buf := bytes.NewReader(n.writerBuf.Bytes())
 		newNode, err := imp.NewDagFromReader(buf)
+		log.Debug("flush: new data = %v", newNode.Data)
 		if err != nil {
 			log.Critical("error creating dag from writerBuf: %s", err)
 			return err
 		}
 		if n.parent != nil {
+			log.Debug("updating self in parent!")
 			err := n.parent.update(n.name, newNode)
 			if err != nil {
 				log.Critical("error in updating ipns dag tree: %s", err)
@@ -529,6 +532,7 @@ func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fus
 }
 
 func (n *Node) update(name string, newnode *mdag.Node) error {
+	log.Debug("update '%s' in '%s'", name, n.name)
 	nnode := n.Nd.Copy()
 	err := nnode.RemoveNodeLink(name)
 	if err != nil {
@@ -537,7 +541,7 @@ func (n *Node) update(name string, newnode *mdag.Node) error {
 	nnode.AddNodeLink(name, newnode)
 
 	if n.parent != nil {
-		err := n.parent.update(n.name, newnode)
+		err := n.parent.update(n.name, nnode)
 		if err != nil {
 			return err
 		}

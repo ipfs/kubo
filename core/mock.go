@@ -7,6 +7,7 @@ import (
 	ci "github.com/jbenet/go-ipfs/crypto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
+	path "github.com/jbenet/go-ipfs/path"
 	"github.com/jbenet/go-ipfs/peer"
 	mdht "github.com/jbenet/go-ipfs/routing/mock"
 )
@@ -29,6 +30,7 @@ func NewMockNode() (*IpfsNode, error) {
 
 	// Routing
 	dht := mdht.NewMockRouter(nd.Identity, nd.Datastore)
+	nd.Routing = dht
 
 	// Bitswap
 	//??
@@ -38,9 +40,16 @@ func NewMockNode() (*IpfsNode, error) {
 		return nil, err
 	}
 
-	dserv := &mdag.DAGService{bserv}
+	nd.DAG = &mdag.DAGService{bserv}
 
 	// Namespace resolver
-	nd.Namesys = nsys.NewMasterResolver(dht, dserv)
+	nd.Namesys = nsys.NewMasterResolver(dht, nd.DAG)
+
+	// Publisher
+	nd.Publisher = nsys.NewPublisher(nd.DAG, dht)
+
+	// Path resolver
+	nd.Resolver = &path.Resolver{nd.DAG}
+
 	return nd, nil
 }

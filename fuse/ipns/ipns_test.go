@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 	"github.com/jbenet/go-ipfs/core"
@@ -17,24 +18,9 @@ func randBytes(size int) []byte {
 	return b
 }
 
-func TestIpnsBasicIO(t *testing.T) {
-	localnode, err := core.NewMockNode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fs, err := NewIpns(localnode, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	mnt, err := fstest.MountedT(t, fs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer mnt.Close()
-
-	data := randBytes(12345)
-	fi, err := os.Create(mnt.Dir + "/local/testfile")
+func writeFile(t *testing.T, size int, path string) ([]byte, error) {
+	data := randBytes(size)
+	fi, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,23 +34,78 @@ func TestIpnsBasicIO(t *testing.T) {
 		t.Fatal("Didnt write proper amount!")
 	}
 
-	fi.Close()
-
-	//TODO: maybe wait for the publish to happen? or not, should test both cases
-
-	fi, err = os.Open(mnt.Dir + "/local/testfile")
+	err = fi.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rbuf, err := ioutil.ReadAll(fi)
+	return data, nil
+}
+
+func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
+	var err error
+	if node == nil {
+		node, err = core.NewMockNode()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	fs, err := NewIpns(node, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	fi.Close()
+	mnt, err := fstest.MountedT(t, fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return node, mnt
+}
+
+func TestIpnsBasicIO(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	fname := mnt.Dir + "/local/testfile"
+	data, err := writeFile(t, 12345, fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rbuf, err := ioutil.ReadFile(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(rbuf, data) {
 		t.Fatal("Incorrect Read!")
 	}
+}
 
+func TestFilePersistence(t *testing.T) {
+	node, mnt := setupIpnsTest(t, nil)
+
+	fname := "/local/atestfile"
+	data, err := writeFile(t, 127, mnt.Dir+fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Wait for publish: TODO: make publish happen faster in tests
+	time.Sleep(time.Millisecond * 40)
+
+	mnt.Close()
+
+	node, mnt = setupIpnsTest(t, node)
+	defer mnt.Close()
+
+	rbuf, err := ioutil.ReadFile(mnt.Dir + fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(rbuf, data) {
+		t.Fatalf("File data changed between mounts! sizes differ: %d != %d", len(data), len(rbuf))
+	}
 }
