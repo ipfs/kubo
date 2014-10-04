@@ -11,7 +11,8 @@ type strategyFunc func(*ledger) bool
 // performance issues. Instead, instantiate a rand struct and use that to call
 // Float64()
 func standardStrategy(l *ledger) bool {
-	return rand.Float64() <= probabilitySend(l.Accounting.Value())
+	r := rand.New(rand.NewSource(1234))
+	return r.Float64() <= probabilitySend(l.Accounting.Value())
 }
 
 func yesManStrategy(l *ledger) bool {
