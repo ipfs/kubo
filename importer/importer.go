@@ -30,12 +30,14 @@ func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, er
 	first := <-blkChan
 	root := &dag.Node{Data: dag.FilePBData(first)}
 
+	i := 0
 	for blk := range blkChan {
 		child := &dag.Node{Data: dag.WrapData(blk)}
-		err := root.AddNodeLink("", child)
+		err := root.AddNodeLink(fmt.Sprintf("%d", i), child)
 		if err != nil {
 			return nil, err
 		}
+		i++
 	}
 
 	return root, nil
@@ -69,12 +71,14 @@ func NewDagInNode(r io.Reader, n *dag.Node) error {
 	first := <-blkChan
 	n.Data = dag.FilePBData(first)
 
+	i := 0
 	for blk := range blkChan {
 		child := &dag.Node{Data: dag.WrapData(blk)}
-		err := n.AddNodeLink("", child)
+		err := n.AddNodeLink(fmt.Sprintf("%d", i), child)
 		if err != nil {
 			return err
 		}
+		i++
 	}
 
 	return nil

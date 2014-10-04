@@ -282,7 +282,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-	log.Debug("ipns: ReadAll Node")
+	log.Debug("ipns: ReadAll [%s]", s.name)
 	r, err := mdag.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
@@ -297,6 +297,7 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	if len(b) > 4 {
 		log.Debug("ReadAll trailing bytes: %v", b[len(b)-4:])
 	}
+	fmt.Println(b)
 	return b, nil
 }
 
@@ -329,14 +330,14 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		newNode, err := imp.NewDagFromReader(buf)
 		if err != nil {
 			log.Critical("error creating dag from writerBuf: %s", err)
-			return fuse.ENODATA
+			return err
 		}
 		if n.parent != nil {
 			err := n.parent.update(n.name, newNode)
 			if err != nil {
 				log.Critical("error in updating ipns dag tree: %s", err)
 				// return fuse.ETHISISPRETTYBAD
-				return fuse.ENOSYS
+				return err
 			}
 		}
 		n.Nd = newNode
@@ -353,6 +354,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		fmt.Println("VERIFICATION READ")
 		fmt.Printf("READ %d BYTES\n", len(b))
 		fmt.Println(string(b))
+		fmt.Println(b)
 		//
 
 		n.writerBuf = nil
