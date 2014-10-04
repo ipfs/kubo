@@ -30,35 +30,37 @@ Commands:
   remove <address>   Remove an address from the bootstrap list.
 
 `,
-	Run:  bootstrapCmd,
+	Run: bootstrapCmd,
+	Subcommands: []*commander.Command{
+		cmdIpfsBootstrapRemove,
+		cmdIpfsBootstrapAdd,
+	},
 	Flag: *flag.NewFlagSet("ipfs-bootstrap", flag.ExitOnError),
 }
 
-func bootstrapCmd(c *commander.Command, inp []string) error {
+var cmdIpfsBootstrapRemove = &commander.Command{
+	UsageLine: "remove",
+	Run:       IpfsBootstrapRemoveCmd,
+	Flag:      *flag.NewFlagSet("ipfs-bootstrap-remove", flag.ExitOnError),
+}
 
-	if len(inp) == 0 || inp[0] == "list" {
+var cmdIpfsBootstrapAdd = &commander.Command{
+	UsageLine: "add",
+	Run:       IpfsBootstrapAddCmd,
+	Flag:      *flag.NewFlagSet("ipfs-bootstrap-add", flag.ExitOnError),
+}
 
-		configpath, _ := config.Filename("~/.go-ipfs/config")
-		var cfg config.Config
-		config.ReadConfigFile(configpath, &cfg)
+func IpfsBootstrapRemoveCmd(c *commander.Command, inp []string) error {
 
-		for i := range cfg.Bootstrap {
-			s := []string{cfg.Bootstrap[i].Address, "/", cfg.Bootstrap[i].PeerID, "\n"}
-			fmt.Printf(strings.Join(s, ""))
-		}
+	if len(inp) == 0 {
+		fmt.Println("No peer specified.")
 		return nil
-
 	}
 
-	switch arg := inp[0]; arg {
-	case "add":
-		if len(inp) == 1 {
-			fmt.Println("No peer specified.")
-			return nil
-		}
+	if strings.Contains(inp[0], "/") {
 
-		var pID = inp[1][len(inp[1])-46:]
-		var ip = strings.TrimSuffix(inp[1], pID)
+		var pID = inp[0][len(inp[0])-46:]
+		var ip = strings.TrimSuffix(inp[0], pID)
 		maddr, err := ma.NewMultiaddr(strings.TrimSuffix(ip, "/"))
 		var address, _ = maddr.String()
 		if err != nil {
@@ -77,62 +79,25 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 			return readErr
 		}
 
-		addedPeer := append(cfg.Bootstrap, &peer)
-		cfg.Bootstrap = addedPeer
+		i := 0
+		for _, v := range cfg.Bootstrap {
+			if v.PeerID == peer.PeerID && v.Address == peer.Address {
+				continue
+			}
+			cfg.Bootstrap[i] = v
+			i++
+		}
+		cfg.Bootstrap = cfg.Bootstrap[:i]
 
 		writeErr := config.WriteConfigFile(configpath, cfg)
 		if writeErr != nil {
 			return writeErr
 		}
-		return nil
-	case "remove":
-		if len(inp) == 1 {
-			fmt.Println("No peer specified.")
-			return nil
-		}
-
-		if strings.Contains(inp[1], "/") {
-
-			var pID = inp[1][len(inp[1])-46:]
-			var ip = strings.TrimSuffix(inp[1], pID)
-			maddr, err := ma.NewMultiaddr(strings.TrimSuffix(ip, "/"))
-			var address, _ = maddr.String()
-			if err != nil {
-				return err
-			}
-
-			peer := config.BootstrapPeer{
-				Address: address,
-				PeerID:  pID,
-			}
-
-			configpath, _ := config.Filename("~/.go-ipfs/config")
-			var cfg config.Config
-			readErr := config.ReadConfigFile(configpath, &cfg)
-			if readErr != nil {
-				return readErr
-			}
-
-			i := 0
-			for _, v := range cfg.Bootstrap {
-				if v.PeerID == peer.PeerID && v.Address == peer.Address {
-					continue
-				}
-				cfg.Bootstrap[i] = v
-				i++
-			}
-			cfg.Bootstrap = cfg.Bootstrap[:i]
-
-			writeErr := config.WriteConfigFile(configpath, cfg)
-			if writeErr != nil {
-				return writeErr
-			}
-		}
 	}
 
-	if !strings.Contains(inp[1], "/") {
+	if !strings.Contains(inp[0], "/") {
 
-		var peerID = inp[1]
+		var peerID = inp[0]
 
 		configpath, _ := config.Filename("~/.go-ipfs/config")
 		var cfg config.Config
@@ -157,6 +122,57 @@ func bootstrapCmd(c *commander.Command, inp []string) error {
 		}
 
 	}
+	return nil
+}
+
+func IpfsBootstrapAddCmd(c *commander.Command, inp []string) error {
+
+	if len(inp) == 0 {
+		fmt.Println("No peer specified.")
+		return nil
+	}
+
+	var pID = inp[0][len(inp[0])-46:]
+	var ip = strings.TrimSuffix(inp[0], pID)
+	maddr, err := ma.NewMultiaddr(strings.TrimSuffix(ip, "/"))
+	var address, _ = maddr.String()
+	if err != nil {
+		return err
+	}
+
+	peer := config.BootstrapPeer{
+		Address: address,
+		PeerID:  pID,
+	}
+
+	configpath, _ := config.Filename("~/.go-ipfs/config")
+	var cfg config.Config
+	readErr := config.ReadConfigFile(configpath, &cfg)
+	if readErr != nil {
+		return readErr
+	}
+
+	addedPeer := append(cfg.Bootstrap, &peer)
+	cfg.Bootstrap = addedPeer
+
+	writeErr := config.WriteConfigFile(configpath, cfg)
+	if writeErr != nil {
+		return writeErr
+	}
+	return nil
+	return nil
+}
+func bootstrapCmd(c *commander.Command, inp []string) error {
+
+	configpath, _ := config.Filename("~/.go-ipfs/config")
+	var cfg config.Config
+	config.ReadConfigFile(configpath, &cfg)
+
+	for i := range cfg.Bootstrap {
+		s := []string{cfg.Bootstrap[i].Address, "/", cfg.Bootstrap[i].PeerID, "\n"}
+		fmt.Printf(strings.Join(s, ""))
+	}
+
 	return nil
 
 }
