@@ -2,7 +2,6 @@ package ipns
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -294,10 +293,6 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 		log.Error("[%s] Readall error: %s", s.name, err)
 		return nil, err
 	}
-	if len(b) > 4 {
-		log.Debug("ReadAll trailing bytes: %v", b[len(b)-4:])
-	}
-	fmt.Println(b)
 	return b, nil
 }
 
@@ -342,7 +337,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		}
 		n.Nd = newNode
 
-		//TEMP
+		/*/TEMP
 		dr, err := mdag.NewDagReader(n.Nd, n.Ipfs.DAG)
 		if err != nil {
 			log.Critical("Verification read failed.")
@@ -355,7 +350,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		fmt.Printf("READ %d BYTES\n", len(b))
 		fmt.Println(string(b))
 		fmt.Println(b)
-		//
+		//*/
 
 		n.writerBuf = nil
 

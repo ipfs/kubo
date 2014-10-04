@@ -1,7 +1,9 @@
 package ipns
 
 import (
+	"bytes"
 	"crypto/rand"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -29,6 +31,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer mnt.Close()
 
 	data := randBytes(12345)
 	fi, err := os.Create(mnt.Dir + "/local/testfile")
@@ -54,16 +57,14 @@ func TestIpnsBasicIO(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rbuf := make([]byte, len(data))
-	n, err = fi.Read(rbuf)
+	rbuf, err := ioutil.ReadAll(fi)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if n != len(rbuf) {
-		t.Fatal("Failed to read correct amount!")
-	}
-
 	fi.Close()
+
+	if !bytes.Equal(rbuf, data) {
+		t.Fatal("Incorrect Read!")
+	}
 
 }
