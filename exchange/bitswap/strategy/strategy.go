@@ -23,9 +23,9 @@ type peerKey u.Key
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
 // "trusted" and/or controlled by a single human user. The user may want for
 // these peers to exchange data freely
-func New(nice bool) Strategy {
+func New(trusted bool) Strategy {
 	var stratFunc strategyFunc
-	if nice {
+	if trusted {
 		stratFunc = yesManStrategy
 	} else {
 		stratFunc = standardStrategy
@@ -89,18 +89,7 @@ func (s *strategist) MessageSent(p *peer.Peer, m bsmsg.BitSwapMessage) error {
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 	}
-
-	for _, block := range m.Blocks() {
-
-		// TODO remove these blocks from peer's want list
-
-		m.Wantlist()
-
-		slice1 := m
-
-		Remove(block.Key())
-
-	}
+	// TODO remove these blocks from peer's want list
 
 	return nil
 }
