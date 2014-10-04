@@ -1,10 +1,9 @@
-package testutil
+package core
 
 import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/sync"
 	bs "github.com/jbenet/go-ipfs/blockservice"
-	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
@@ -12,10 +11,8 @@ import (
 	mdht "github.com/jbenet/go-ipfs/routing/mock"
 )
 
-var _ = core.IpfsNode{}
-
-func NewMockNode() (*core.IpfsNode, error) {
-	nd := new(core.IpfsNode)
+func NewMockNode() (*IpfsNode, error) {
+	nd := new(IpfsNode)
 
 	//Generate Identity
 	nd.Identity = &peer.Peer{ID: []byte("TESTING")}

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	"github.com/jbenet/go-ipfs/core"
 )
 
 func randBytes(size int) []byte {
@@ -18,7 +18,7 @@ func randBytes(size int) []byte {
 }
 
 func TestIpnsBasicIO(t *testing.T) {
-	localnode, err := testutil.NewMockNode()
+	localnode, err := core.NewMockNode()
 	if err != nil {
 		t.Fatal(err)
 	}
