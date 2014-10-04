@@ -36,7 +36,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		}
 
 		// Add the file
-		nd, err := AddPath(n, path, depth)
+		_, err = AddPath(n, path, depth)
 		if err != nil {
 			if err == ErrDepthLimitExceeded && depth == 1 {
 				err = errors.New("use -r to recursively add directories")
@@ -45,12 +45,13 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		}
 
 		// get the key to print it
-		k, err := nd.Key()
-		if err != nil {
-			return fmt.Errorf("addFile error: %v", err)
-		}
-
-		fmt.Fprintf(out, "added %s %s\n", k.Pretty(), path)
+		// k, err := nd.Key()
+		// if err != nil {
+		// 	return fmt.Errorf("addFile error: %v", err)
+		// }
+		//
+		// Commenting out of here, because it's already in addNode below.
+		// fmt.Fprintf(out, "added %s %s\n", k.Pretty(), path)
 	}
 	return nil
 }
