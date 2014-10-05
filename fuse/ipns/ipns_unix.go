@@ -219,10 +219,14 @@ func (s *Node) Attr() fuse.Attr {
 	case mdag.PBData_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
 	case mdag.PBData_File, mdag.PBData_Raw:
-		size, _ := s.Nd.Size()
+		size, err := s.Nd.DataSize()
+		if err != nil {
+			log.Error("Error getting size of file: %s", err)
+			size = 0
+		}
 		return fuse.Attr{
 			Mode:   0666,
-			Size:   uint64(size),
+			Size:   size,
 			Blocks: uint64(len(s.Nd.Links)),
 		}
 	default:
@@ -323,7 +327,6 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		// folder, bad things would happen.
 		buf := bytes.NewReader(n.writerBuf.Bytes())
 		newNode, err := imp.NewDagFromReader(buf)
-		log.Debug("flush: new data = %v", newNode.Data)
 		if err != nil {
 			log.Critical("error creating dag from writerBuf: %s", err)
 			return err
@@ -457,7 +460,7 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 	log.Debug("Got create request: %s", req.Name)
 
 	// New 'empty' file
-	nd := &mdag.Node{Data: mdag.FilePBData(nil)}
+	nd := &mdag.Node{Data: mdag.FilePBData(nil, 0)}
 	child := n.makeChild(req.Name, nd)
 
 	nnode := n.Nd.Copy()

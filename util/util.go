@@ -122,9 +122,11 @@ func SetupLogging() {
 	*/
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	for _, n := range loggers {
-		logging.SetLevel(logging.ERROR, n)
-	}
+	/*
+		for _, n := range loggers {
+			logging.SetLevel(logging.ERROR, n)
+		}
+	*/
 }
 
 // Logger retrieves a particular logger + initializes it at a particular level

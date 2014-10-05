@@ -9,4 +9,5 @@ message PBData {
 
 	required DataType Type = 1;
 	optional bytes Data = 2;
+	optional uint64 filesize = 3;
 }

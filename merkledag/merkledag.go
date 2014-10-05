@@ -1,6 +1,7 @@
 package merkledag
 
 import (
+	"errors"
 	"fmt"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -107,6 +108,25 @@ func (n *Node) Size() (uint64, error) {
 	return s, nil
 }
 
+func (n *Node) DataSize() (uint64, error) {
+	pbdata := new(PBData)
+	err := proto.Unmarshal(n.Data, pbdata)
+	if err != nil {
+		return 0, err
+	}
+
+	switch pbdata.GetType() {
+	case PBData_Directory:
+		return 0, errors.New("Cant get data size of directory!")
+	case PBData_File:
+		return pbdata.GetFilesize(), nil
+	case PBData_Raw:
+		return uint64(len(pbdata.GetData())), nil
+	default:
+		return 0, errors.New("Unrecognized node data type!")
+	}
+}
+
 // Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
 	b, err := n.Encoded(false)
@@ -211,11 +231,12 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 	return Decoded(b.Data)
 }
 
-func FilePBData(data []byte) []byte {
+func FilePBData(data []byte, totalsize uint64) []byte {
 	pbfile := new(PBData)
 	typ := PBData_File
 	pbfile.Type = &typ
 	pbfile.Data = data
+	pbfile.Filesize = proto.Uint64(totalsize)
 
 	data, err := proto.Marshal(pbfile)
 	if err != nil {

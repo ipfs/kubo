@@ -18,7 +18,7 @@ func randBytes(size int) []byte {
 	return b
 }
 
-func writeFile(t *testing.T, size int, path string) ([]byte, error) {
+func writeFile(t *testing.T, size int, path string) []byte {
 	data := randBytes(size)
 	fi, err := os.Create(path)
 	if err != nil {
@@ -39,7 +39,7 @@ func writeFile(t *testing.T, size int, path string) ([]byte, error) {
 		t.Fatal(err)
 	}
 
-	return data, nil
+	return data
 }
 
 func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
@@ -68,10 +68,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	defer mnt.Close()
 
 	fname := mnt.Dir + "/local/testfile"
-	data, err := writeFile(t, 12345, fname)
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := writeFile(t, 12345, fname)
 
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {
@@ -87,10 +84,7 @@ func TestFilePersistence(t *testing.T) {
 	node, mnt := setupIpnsTest(t, nil)
 
 	fname := "/local/atestfile"
-	data, err := writeFile(t, 127, mnt.Dir+fname)
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := writeFile(t, 127, mnt.Dir+fname)
 
 	// Wait for publish: TODO: make publish happen faster in tests
 	time.Sleep(time.Millisecond * 40)
@@ -107,5 +101,22 @@ func TestFilePersistence(t *testing.T) {
 
 	if !bytes.Equal(rbuf, data) {
 		t.Fatalf("File data changed between mounts! sizes differ: %d != %d", len(data), len(rbuf))
+	}
+}
+
+func TestFileSizeReporting(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	fname := mnt.Dir + "/local/sizecheck"
+	data := writeFile(t, 5555, fname)
+
+	finfo, err := os.Stat(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if finfo.Size() != int64(len(data)) {
+		t.Fatal("Read incorrect size from stat!")
 	}
 }

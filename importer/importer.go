@@ -28,10 +28,12 @@ func NewDagFromReader(r io.Reader) (*dag.Node, error) {
 func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, error) {
 	blkChan := spl.Split(r)
 	first := <-blkChan
-	root := &dag.Node{Data: dag.FilePBData(first)}
+	root := &dag.Node{}
 
 	i := 0
+	totalsize := uint64(len(first))
 	for blk := range blkChan {
+		totalsize += uint64(len(blk))
 		child := &dag.Node{Data: dag.WrapData(blk)}
 		err := root.AddNodeLink(fmt.Sprintf("%d", i), child)
 		if err != nil {
@@ -40,6 +42,7 @@ func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, er
 		i++
 	}
 
+	root.Data = dag.FilePBData(first, totalsize)
 	return root, nil
 }
 
@@ -61,25 +64,4 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	defer f.Close()
 
 	return NewDagFromReader(f)
-}
-
-// TODO: this needs a better name
-func NewDagInNode(r io.Reader, n *dag.Node) error {
-	n.Links = nil
-
-	blkChan := DefaultSplitter.Split(r)
-	first := <-blkChan
-	n.Data = dag.FilePBData(first)
-
-	i := 0
-	for blk := range blkChan {
-		child := &dag.Node{Data: dag.WrapData(blk)}
-		err := n.AddNodeLink(fmt.Sprintf("%d", i), child)
-		if err != nil {
-			return err
-		}
-		i++
-	}
-
-	return nil
 }

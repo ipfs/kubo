@@ -13,7 +13,7 @@ It has these top-level messages:
 */
 package merkledag
 
-import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+import proto "code.google.com/p/goprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -59,6 +59,7 @@ func (x *PBData_DataType) UnmarshalJSON(data []byte) error {
 type PBData struct {
 	Type             *PBData_DataType `protobuf:"varint,1,req,enum=merkledag.PBData_DataType" json:"Type,omitempty"`
 	Data             []byte           `protobuf:"bytes,2,opt" json:"Data,omitempty"`
+	Filesize         *uint64          `protobuf:"varint,3,opt,name=filesize" json:"filesize,omitempty"`
 	XXX_unrecognized []byte           `json:"-"`
 }
 
@@ -78,6 +79,13 @@ func (m *PBData) GetData() []byte {
 		return m.Data
 	}
 	return nil
+}
+
+func (m *PBData) GetFilesize() uint64 {
+	if m != nil && m.Filesize != nil {
+		return *m.Filesize
+	}
+	return 0
 }
 
 func init() {
