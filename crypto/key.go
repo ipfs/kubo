@@ -3,6 +3,7 @@ package crypto
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"crypto/elliptic"
 	"crypto/hmac"
@@ -105,7 +106,8 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 		curveSize := curve.Params().BitSize
 
 		if len(theirPub) != (curveSize / 4) {
-			return nil, errors.New("Malformed public key.")
+			u.PErr("Malformed public key: %v", theirPub)
+			return nil, fmt.Errorf("Malformed public key: %v != %v", len(theirPub), (curveSize / 4))
 		}
 
 		bound := (curveSize / 8)
