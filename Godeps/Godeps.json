@@ -71,6 +71,10 @@
 			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-is-domain",
+			"Rev": "93b717f2ae17838a265e30277275ee99ee7198d6"
+		},
+		{
 			"ImportPath": "github.com/jbenet/go-msgio",
 			"Rev": "c9069ab79c95aa0686347b516972c7329c4391f2"
 		},
