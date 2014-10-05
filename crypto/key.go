@@ -13,7 +13,6 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"hash"
-	"math/big"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -97,25 +96,15 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 		return nil, nil, err
 	}
 
-	var pubKey bytes.Buffer
-	pubKey.Write(x.Bytes())
-	pubKey.Write(y.Bytes())
+	pubKey := elliptic.Marshal(curve, x, y)
+	u.PErr("GenerateEKeyPair %d\n", len(pubKey))
 
 	done := func(theirPub []byte) ([]byte, error) {
 		// Verify and unpack node's public key.
-		curveSize := curve.Params().BitSize
-
-		if len(theirPub) != (curveSize / 4) {
-			u.PErr("Malformed public key: %v", theirPub)
-			return nil, fmt.Errorf("Malformed public key: %v != %v", len(theirPub), (curveSize / 4))
+		x, y := elliptic.Unmarshal(curve, theirPub)
+		if x == nil {
+			return nil, fmt.Errorf("Malformed public key: %d %v", len(theirPub), theirPub)
 		}
-
-		bound := (curveSize / 8)
-		x := big.NewInt(0)
-		y := big.NewInt(0)
-
-		x.SetBytes(theirPub[0:bound])
-		y.SetBytes(theirPub[bound : bound*2])
 
 		if !curve.IsOnCurve(x, y) {
 			return nil, errors.New("Invalid public key.")
@@ -127,7 +116,7 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 		return secret.Bytes(), nil
 	}
 
-	return pubKey.Bytes(), done, nil
+	return pubKey, done, nil
 }
 
 // Generates a set of keys for each party by stretching the shared key.
