@@ -129,8 +129,10 @@ func initCmd(c *commander.Command, inp []string) error {
 		},
 	}
 
+	// tracking ipfs version used to generate the init folder and adding update checker default setting.
 	cfg.Updates = config.Updates{
-		Check: "error",
+		Check:   "error",
+		Version: currentVersion.String(),
 	}
 
 	err = config.WriteConfigFile(filename, cfg)
