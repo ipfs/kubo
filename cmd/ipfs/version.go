@@ -1,6 +1,7 @@
 package main
 
 import (
+	semver "github.com/coreos/go-semver/semver"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -18,7 +19,10 @@ var cmdIpfsVersion = &commander.Command{
 	Run: versionCmd,
 }
 
+var currentVersion *semver.Version
+
 func init() {
+	currentVersion, _ = semver.NewVersion(Version)
 	cmdIpfsVersion.Flag.Bool("number", false, "show only the number")
 }
 

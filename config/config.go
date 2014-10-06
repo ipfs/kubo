@@ -47,7 +47,8 @@ func (bp *BootstrapPeer) String() string {
 
 // Updates regulates checking and downloading for application's most recent version
 type Updates struct {
-	Check string `json:"check"` // "ignore" for do not check, "warn" and "error" for reacting when obsolete
+	Check   string `json:"check"`    // "ignore" for do not check, "warn" and "error" for reacting when obsolete
+	Version string `json: "version"` // ipfs version for which config was generated
 }
 
 // Config is used to load IPFS config files.
