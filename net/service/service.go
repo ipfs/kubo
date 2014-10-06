@@ -82,7 +82,7 @@ func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid Request
 		return err
 	}
 
-	// u.DOut("Service send message [to = %s]\n", m.Peer().ID.Pretty())
+	// u.DOut("Service send message [to = %s]\n", m.Peer())
 
 	// send message
 	m2 := msg.New(m.Peer(), data)

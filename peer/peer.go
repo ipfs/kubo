@@ -16,6 +16,11 @@ import (
 // ID is a byte slice representing the identity of a peer.
 type ID mh.Multihash
 
+// String is utililty function for printing out peer ID strings.
+func (id ID) String() string {
+	return id.Pretty()
+}
+
 // Equal is utililty function for comparing two peer ID's
 func (id ID) Equal(other ID) bool {
 	return bytes.Equal(id, other)
@@ -46,6 +51,11 @@ type Peer struct {
 	latency time.Duration
 
 	sync.RWMutex
+}
+
+// String prints out the peer.
+func (p *Peer) String() string {
+	return "[Peer " + p.ID.Pretty() + "]"
 }
 
 // Key returns the ID as a Key (string) for maps.

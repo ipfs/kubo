@@ -52,7 +52,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		// }
 		//
 		// Commenting out of here, because it's already in addNode below.
-		// fmt.Fprintf(out, "added %s %s\n", k.Pretty(), path)
+		// fmt.Fprintf(out, "added %s %s\n", k, path)
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 		return nil, err
 	}
 
-	log.Info("Adding file: %s = %s\n", fpath, k.Pretty())
+	log.Info("Adding file: %s = %s\n", fpath, k)
 	for _, l := range root.Links {
 		log.Info("SubBlock: %s\n", l.Hash.B58String())
 	}
@@ -131,7 +131,7 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 		return err
 	}
 
-	u.POut("added %s %s\n", k.Pretty(), fpath)
+	u.POut("added %s %s\n", k, fpath)
 
 	// ensure we keep it. atm no-op
 	return n.PinDagNodeRecursively(nd, -1)

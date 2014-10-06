@@ -76,7 +76,7 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer *peer.Peer) (*peer.Peer, error) {
-	log.Debug("Connect to new peer: %s\n", npeer.ID.Pretty())
+	log.Debug("Connect to new peer: %s\n", npeer)
 
 	// TODO(jbenet,whyrusleeping)
 	//
@@ -132,8 +132,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 
 	// Print out diagnostic
 	log.Debug("[peer: %s] Got message type: '%s' [from = %s]\n",
-		dht.self.ID.Pretty(),
-		Message_MessageType_name[int32(pmes.GetType())], mPeer.ID.Pretty())
+		dht.self, Message_MessageType_name[int32(pmes.GetType())], mPeer)
 
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
@@ -177,7 +176,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p *peer.Peer, pmes *Message
 
 	// Print out diagnostic
 	log.Debug("Sent message type: '%s' [to = %s]",
-		Message_MessageType_name[int32(pmes.GetType())], p.ID.Pretty())
+		Message_MessageType_name[int32(pmes.GetType())], p)
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
 	if err != nil {
@@ -222,7 +221,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) e
 		return err
 	}
 
-	log.Debug("[%s] putProvider: %s for %s", dht.self.ID.Pretty(), p.ID.Pretty(), key)
+	log.Debug("[%s] putProvider: %s for %s", dht.self, p, key)
 	if *rpmes.Key != *pmes.Key {
 		return errors.New("provider not added correctly")
 	}
@@ -346,7 +345,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 // Update signals to all routingTables to Update their last-seen status
 // on the given peer.
 func (dht *IpfsDHT) Update(p *peer.Peer) {
-	log.Debug("updating peer: [%s] latency = %f\n", p.ID.Pretty(), p.GetLatency().Seconds())
+	log.Debug("updating peer: [%s] latency = %f\n", p, p.GetLatency().Seconds())
 	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)
@@ -402,7 +401,7 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []*peer.Peer 
 			continue
 		}
 
-		log.Debug("[%s] adding provider: %s for %s", dht.self.ID.Pretty(), p, key)
+		log.Debug("[%s] adding provider: %s for %s", dht.self, p, key)
 
 		// Dont add outselves to the list
 		if p.ID.Equal(dht.self.ID) {

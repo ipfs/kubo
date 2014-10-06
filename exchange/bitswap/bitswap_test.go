@@ -160,49 +160,49 @@ func TestSendToWantingPeer(t *testing.T) {
 	w := sg.Next()
 	o := sg.Next()
 
-	t.Logf("Session %v\n", me.peer.Key().Pretty())
-	t.Logf("Session %v\n", w.peer.Key().Pretty())
-	t.Logf("Session %v\n", o.peer.Key().Pretty())
+	t.Logf("Session %v\n", me.peer)
+	t.Logf("Session %v\n", w.peer)
+	t.Logf("Session %v\n", o.peer)
 
 	alpha := bg.Next()
 
 	const timeout = 1 * time.Millisecond // FIXME don't depend on time
 
-	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer, alpha.Key())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
 	_, err := w.exchange.Block(ctx, alpha.Key())
 	if err == nil {
-		t.Fatalf("Expected %v to NOT be available", alpha.Key().Pretty())
+		t.Fatalf("Expected %v to NOT be available", alpha.Key())
 	}
 
 	beta := bg.Next()
-	t.Logf("Peer %v announes availability  of %v\n", w.peer.Key().Pretty(), beta.Key().Pretty())
+	t.Logf("Peer %v announes availability  of %v\n", w.peer, beta.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
 	if err := w.blockstore.Put(beta); err != nil {
 		t.Fatal(err)
 	}
 	w.exchange.HasBlock(ctx, beta)
 
-	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer.Key().Pretty(), beta.Key().Pretty(), w.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer, beta.Key(), w.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
 	if _, err := me.exchange.Block(ctx, beta.Key()); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%v announces availability of %v\n", o.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v announces availability of %v\n", o.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
 	if err := o.blockstore.Put(alpha); err != nil {
 		t.Fatal(err)
 	}
 	o.exchange.HasBlock(ctx, alpha)
 
-	t.Logf("%v requests %v\n", me.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v requests %v\n", me.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
 	if _, err := me.exchange.Block(ctx, alpha.Key()); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%v should now have %v\n", w.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v should now have %v\n", w.peer, alpha.Key())
 	block, err := w.blockstore.Get(alpha.Key())
 	if err != nil {
 		t.Fatal("Should not have received an error")
