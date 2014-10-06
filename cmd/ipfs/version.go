@@ -13,7 +13,7 @@ import (
 
 // The IPFS version.
 const (
-	Version                   = "0.2.0"
+	Version                   = "0.1.0"
 	EndpointURLLatestReleases = "https://api.github.com/repos/jbenet/go-ipfs/tags"
 	VersionErrorShort         = `Warning: You are running version %s of go-ipfs. The latest version is %s.`
 	VersionErrorLong          = `
