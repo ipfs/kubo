@@ -67,7 +67,8 @@ var log = u.Logger("cmd/ipfs")
 func init() {
 	config, err := config.PathRoot()
 	if err != nil {
-		config = ""
+		u.POut("Failure initializing the default Config Directory: ", err)
+		os.Exit(1)
 	}
 	CmdIpfs.Flag.String("c", config, "specify config directory")
 }
