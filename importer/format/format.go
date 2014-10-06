@@ -8,6 +8,15 @@ import (
 	"code.google.com/p/goprotobuf/proto"
 )
 
+func FromBytes(data []byte) (*PBData, error) {
+	pbdata := new(PBData)
+	err := proto.Unmarshal(data, pbdata)
+	if err != nil {
+		return nil, err
+	}
+	return pbdata, nil
+}
+
 func FilePBData(data []byte, totalsize uint64) []byte {
 	pbfile := new(PBData)
 	typ := PBData_File
@@ -51,6 +60,15 @@ func WrapData(b []byte) []byte {
 	return out
 }
 
+func UnwrapData(data []byte) ([]byte, error) {
+	pbdata := new(PBData)
+	err := proto.Unmarshal(data, pbdata)
+	if err != nil {
+		return nil, err
+	}
+	return pbdata.GetData(), nil
+}
+
 func DataSize(data []byte) (uint64, error) {
 	pbdata := new(PBData)
 	err := proto.Unmarshal(data, pbdata)
@@ -68,4 +86,25 @@ func DataSize(data []byte) (uint64, error) {
 	default:
 		return 0, errors.New("Unrecognized node data type!")
 	}
+}
+
+type MultiBlock struct {
+	Data       []byte
+	blocksizes []uint64
+	subtotal   uint64
+}
+
+func (mb *MultiBlock) AddBlockSize(s uint64) {
+	mb.subtotal += s
+	mb.blocksizes = append(mb.blocksizes, s)
+}
+
+func (mb *MultiBlock) GetBytes() ([]byte, error) {
+	pbn := new(PBData)
+	t := PBData_File
+	pbn.Type = &t
+	pbn.Filesize = proto.Uint64(uint64(len(mb.Data)) + mb.subtotal)
+	pbn.Blocksizes = mb.blocksizes
+	pbn.Data = mb.Data
+	return proto.Marshal(pbn)
 }

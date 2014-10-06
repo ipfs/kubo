@@ -32,10 +32,11 @@ func NewDagWriter(ds *dag.DAGService, splitter imp.StreamSplitter) *DagWriter {
 func (dw *DagWriter) startSplitter() {
 	blkchan := dw.splitter.Split(dw.splChan)
 	first := <-blkchan
+	mbf := new(ft.MultiBlock)
 	root := new(dag.Node)
-	fileSize := uint64(0)
+
 	for blkData := range blkchan {
-		fileSize += uint64(len(blkData))
+		mbf.AddBlockSize(uint64(len(blkData)))
 		node := &dag.Node{Data: ft.WrapData(blkData)}
 		_, err := dw.dagserv.Add(node)
 		if err != nil {
@@ -50,8 +51,16 @@ func (dw *DagWriter) startSplitter() {
 			return
 		}
 	}
-	root.Data = ft.FilePBData(first, fileSize)
-	_, err := dw.dagserv.Add(root)
+	mbf.Data = first
+	data, err := mbf.GetBytes()
+	if err != nil {
+		dw.seterr = err
+		log.Critical("Failed generating bytes for multiblock file: %s", err)
+		return
+	}
+	root.Data = data
+
+	_, err = dw.dagserv.Add(root)
 	if err != nil {
 		dw.seterr = err
 		log.Critical("Got error adding created node to dagservice: %s", err)

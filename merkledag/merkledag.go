@@ -34,9 +34,6 @@ type Link struct {
 	// cumulative size of target object
 	Size uint64
 
-	// cumulative size of data stored in object
-	DataSize uint64
-
 	// multihash of the target object
 	Hash mh.Multihash
 
@@ -44,45 +41,45 @@ type Link struct {
 	Node *Node
 }
 
-// AddNodeLink adds a link to another node.
-func (n *Node) AddNodeLink(name string, that *Node) error {
-	s, err := that.Size()
+func MakeLink(n *Node) (*Link, error) {
+	s, err := n.Size()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	h, err := that.Multihash()
+	h, err := n.Multihash()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	n.Links = append(n.Links, &Link{
-		Name: name,
+	return &Link{
 		Size: s,
 		Hash: h,
-		Node: that,
-	})
+	}, nil
+}
+
+// AddNodeLink adds a link to another node.
+func (n *Node) AddNodeLink(name string, that *Node) error {
+	lnk, err := MakeLink(that)
+	if err != nil {
+		return err
+	}
+	lnk.Name = name
+	lnk.Node = that
+
+	n.Links = append(n.Links, lnk)
 	return nil
 }
 
 // AddNodeLink adds a link to another node. without keeping a reference to
 // the child node
 func (n *Node) AddNodeLinkClean(name string, that *Node) error {
-	s, err := that.Size()
+	lnk, err := MakeLink(that)
 	if err != nil {
 		return err
 	}
+	lnk.Name = name
 
-	h, err := that.Multihash()
-	if err != nil {
-		return err
-	}
-
-	n.Links = append(n.Links, &Link{
-		Name: name,
-		Size: s,
-		Hash: h,
-	})
+	n.Links = append(n.Links, lnk)
 	return nil
 }
 

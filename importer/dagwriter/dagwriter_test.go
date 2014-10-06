@@ -100,3 +100,28 @@ func TestMassiveWrite(t *testing.T) {
 	}
 	dw.Close()
 }
+
+func BenchmarkDagWriter(b *testing.B) {
+	dstore := ds.NewNullDatastore()
+	bserv, err := bs.NewBlockService(dstore, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	dag := &mdag.DAGService{bserv}
+
+	b.ResetTimer()
+	nbytes := int64(b.N)
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(nbytes)
+		dw := NewDagWriter(dag, &imp.SizeSplitter2{4096})
+		n, err := io.CopyN(dw, &datasource{}, nbytes)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if n != nbytes {
+			b.Fatal("Incorrect copy size.")
+		}
+		dw.Close()
+	}
+
+}

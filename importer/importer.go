@@ -31,19 +31,23 @@ func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, er
 	first := <-blkChan
 	root := &dag.Node{}
 
-	i := 0
-	totalsize := uint64(len(first))
+	mbf := new(ft.MultiBlock)
 	for blk := range blkChan {
-		totalsize += uint64(len(blk))
+		mbf.AddBlockSize(uint64(len(blk)))
 		child := &dag.Node{Data: ft.WrapData(blk)}
-		err := root.AddNodeLink(fmt.Sprintf("%d", i), child)
+		err := root.AddNodeLink("", child)
 		if err != nil {
 			return nil, err
 		}
-		i++
 	}
 
-	root.Data = ft.FilePBData(first, totalsize)
+	mbf.Data = first
+	data, err := mbf.GetBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	root.Data = data
 	return root, nil
 }
 
