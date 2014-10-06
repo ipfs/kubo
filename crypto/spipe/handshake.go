@@ -119,7 +119,7 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	// u.POut("Selected %s %s %s\n", exchange, cipherType, hashType)
-	epubkey, done, err := ci.GenerateEKeyPair(exchange) // Generate EphemeralPubKey
+	epubkey, genSharedKey, err := ci.GenerateEKeyPair(exchange) // Generate EphemeralPubKey
 
 	var handshake bytes.Buffer // Gather corpus to sign.
 	handshake.Write(encoded)
@@ -173,7 +173,7 @@ func (s *SecurePipe) handshake() error {
 		return errors.New("Bad signature!")
 	}
 
-	secret, err := done(exchangeResp.GetEpubkey())
+	secret, err := genSharedKey(exchangeResp.GetEpubkey())
 	if err != nil {
 		return err
 	}
