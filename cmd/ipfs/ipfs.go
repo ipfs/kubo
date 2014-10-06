@@ -20,6 +20,7 @@ var CmdIpfs = &commander.Command{
 
 Basic commands:
 
+    init          Initialize ipfs local configuration.
     add <path>    Add an object to ipfs.
     cat <ref>     Show ipfs object data.
     ls <ref>      List links from an object.
