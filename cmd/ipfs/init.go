@@ -135,6 +135,10 @@ func initCmd(c *commander.Command, inp []string) error {
 		},
 	}
 
+	cfg.Updates = config.Updates{
+		Check: "error",
+	}
+
 	err = config.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return err
