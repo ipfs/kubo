@@ -6,8 +6,14 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// OLD
 type BlockSplitter interface {
 	Split(io.Reader) chan []byte
+}
+
+// NEW
+type StreamSplitter interface {
+	Split(chan []byte) chan []byte
 }
 
 type SizeSplitter struct {
@@ -35,6 +41,29 @@ func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
 				chunk = chunk[:nread]
 			}
 			out <- chunk
+		}
+	}()
+	return out
+}
+
+type SizeSplitter2 struct {
+	Size int
+}
+
+func (ss *SizeSplitter2) Split(in chan []byte) chan []byte {
+	out := make(chan []byte)
+	go func() {
+		defer close(out)
+		var buf []byte
+		for b := range in {
+			buf = append(buf, b...)
+			for len(buf) > ss.Size {
+				out <- buf[:ss.Size]
+				buf = buf[ss.Size:]
+			}
+		}
+		if len(buf) > 0 {
+			out <- buf
 		}
 	}()
 	return out

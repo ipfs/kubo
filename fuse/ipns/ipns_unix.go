@@ -14,6 +14,7 @@ import (
 	"github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	imp "github.com/jbenet/go-ipfs/importer"
+	ft "github.com/jbenet/go-ipfs/importer/format"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -77,7 +78,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 		pointsTo, err := n.Namesys.Resolve(name)
 		if err != nil {
 			log.Warning("Could not resolve value for local ipns entry, providing empty dir")
-			nd.Nd = &mdag.Node{Data: mdag.FolderPBData()}
+			nd.Nd = &mdag.Node{Data: ft.FolderPBData()}
 			root.LocalDirs[name] = nd
 			continue
 		}
@@ -199,14 +200,14 @@ type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	fd     *mdag.DagReader
-	cached *mdag.PBData
+	cached *ft.PBData
 
 	// For writing
 	writerBuf WriteAtBuf
 }
 
 func (s *Node) loadData() error {
-	s.cached = new(mdag.PBData)
+	s.cached = new(ft.PBData)
 	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
@@ -216,10 +217,10 @@ func (s *Node) Attr() fuse.Attr {
 		s.loadData()
 	}
 	switch s.cached.GetType() {
-	case mdag.PBData_Directory:
+	case ft.PBData_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
-	case mdag.PBData_File, mdag.PBData_Raw:
-		size, err := s.Nd.DataSize()
+	case ft.PBData_File, ft.PBData_Raw:
+		size, err := ft.DataSize(s.Nd.Data)
 		if err != nil {
 			log.Error("Error getting size of file: %s", err)
 			size = 0
@@ -414,7 +415,7 @@ func (n *Node) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
 
 func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
 	log.Debug("Got mkdir request!")
-	dagnd := &mdag.Node{Data: mdag.FolderPBData()}
+	dagnd := &mdag.Node{Data: ft.FolderPBData()}
 	nnode := n.Nd.Copy()
 	nnode.AddNodeLink(req.Name, dagnd)
 
@@ -448,6 +449,12 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
 	//log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
 	//TODO: check open flags and truncate if necessary
+	if req.Flags&fuse.OpenTruncate != 0 {
+		log.Warning("Need to truncate file!")
+	}
+	if req.Flags&fuse.OpenAppend != 0 {
+		log.Warning("Need to append to file!")
+	}
 	return n, nil
 }
 
@@ -460,7 +467,7 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 	log.Debug("Got create request: %s", req.Name)
 
 	// New 'empty' file
-	nd := &mdag.Node{Data: mdag.FilePBData(nil, 0)}
+	nd := &mdag.Node{Data: ft.FilePBData(nil, 0)}
 	child := n.makeChild(req.Name, nd)
 
 	nnode := n.Nd.Copy()

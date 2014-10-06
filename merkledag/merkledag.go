@@ -1,10 +1,7 @@
 package merkledag
 
 import (
-	"errors"
 	"fmt"
-
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
@@ -37,6 +34,9 @@ type Link struct {
 	// cumulative size of target object
 	Size uint64
 
+	// cumulative size of data stored in object
+	DataSize uint64
+
 	// multihash of the target object
 	Hash mh.Multihash
 
@@ -46,14 +46,6 @@ type Link struct {
 
 // AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
-	// DEBUG CODE
-	for _, l := range n.Links {
-		if l.Name == name {
-			panic("Trying to add child that already exists!")
-		}
-	}
-	//
-
 	s, err := that.Size()
 	if err != nil {
 		return err
@@ -73,6 +65,27 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 	return nil
 }
 
+// AddNodeLink adds a link to another node. without keeping a reference to
+// the child node
+func (n *Node) AddNodeLinkClean(name string, that *Node) error {
+	s, err := that.Size()
+	if err != nil {
+		return err
+	}
+
+	h, err := that.Multihash()
+	if err != nil {
+		return err
+	}
+
+	n.Links = append(n.Links, &Link{
+		Name: name,
+		Size: s,
+		Hash: h,
+	})
+	return nil
+}
+
 func (n *Node) RemoveNodeLink(name string) error {
 	for i, l := range n.Links {
 		if l.Name == name {
@@ -83,6 +96,8 @@ func (n *Node) RemoveNodeLink(name string) error {
 	return u.ErrNotFound
 }
 
+// Copy returns a copy of the node.
+// NOTE: does not make copies of Node objects in the links.
 func (n *Node) Copy() *Node {
 	nnode := new(Node)
 	nnode.Data = make([]byte, len(n.Data))
@@ -106,25 +121,6 @@ func (n *Node) Size() (uint64, error) {
 		s += l.Size
 	}
 	return s, nil
-}
-
-func (n *Node) DataSize() (uint64, error) {
-	pbdata := new(PBData)
-	err := proto.Unmarshal(n.Data, pbdata)
-	if err != nil {
-		return 0, err
-	}
-
-	switch pbdata.GetType() {
-	case PBData_Directory:
-		return 0, errors.New("Cant get data size of directory!")
-	case PBData_File:
-		return pbdata.GetFilesize(), nil
-	case PBData_Raw:
-		return uint64(len(pbdata.GetData())), nil
-	default:
-		return 0, errors.New("Unrecognized node data type!")
-	}
 }
 
 // Multihash hashes the encoded data of this node.
@@ -229,47 +225,4 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 	}
 
 	return Decoded(b.Data)
-}
-
-func FilePBData(data []byte, totalsize uint64) []byte {
-	pbfile := new(PBData)
-	typ := PBData_File
-	pbfile.Type = &typ
-	pbfile.Data = data
-	pbfile.Filesize = proto.Uint64(totalsize)
-
-	data, err := proto.Marshal(pbfile)
-	if err != nil {
-		//this really shouldnt happen, i promise
-		panic(err)
-	}
-	return data
-}
-
-func FolderPBData() []byte {
-	pbfile := new(PBData)
-	typ := PBData_Directory
-	pbfile.Type = &typ
-
-	data, err := proto.Marshal(pbfile)
-	if err != nil {
-		//this really shouldnt happen, i promise
-		panic(err)
-	}
-	return data
-}
-
-func WrapData(b []byte) []byte {
-	pbdata := new(PBData)
-	typ := PBData_Raw
-	pbdata.Data = b
-	pbdata.Type = &typ
-
-	out, err := proto.Marshal(pbdata)
-	if err != nil {
-		// This shouldnt happen. seriously.
-		panic(err)
-	}
-
-	return out
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	core "github.com/jbenet/go-ipfs/core"
+	ft "github.com/jbenet/go-ipfs/importer/format"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -79,11 +80,11 @@ type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	fd     *mdag.DagReader
-	cached *mdag.PBData
+	cached *ft.PBData
 }
 
 func (s *Node) loadData() error {
-	s.cached = new(mdag.PBData)
+	s.cached = new(ft.PBData)
 	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
@@ -94,9 +95,9 @@ func (s *Node) Attr() fuse.Attr {
 		s.loadData()
 	}
 	switch s.cached.GetType() {
-	case mdag.PBData_Directory:
+	case ft.PBData_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
-	case mdag.PBData_File, mdag.PBData_Raw:
+	case ft.PBData_File, ft.PBData_Raw:
 		size, _ := s.Nd.Size()
 		return fuse.Attr{
 			Mode:   0444,

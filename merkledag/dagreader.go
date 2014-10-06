@@ -6,6 +6,7 @@ import (
 	"io"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ft "github.com/jbenet/go-ipfs/importer/format"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -20,21 +21,21 @@ type DagReader struct {
 }
 
 func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
-	pb := new(PBData)
+	pb := new(ft.PBData)
 	err := proto.Unmarshal(n.Data, pb)
 	if err != nil {
 		return nil, err
 	}
 	switch pb.GetType() {
-	case PBData_Directory:
+	case ft.PBData_Directory:
 		return nil, ErrIsDir
-	case PBData_File:
+	case ft.PBData_File:
 		return &DagReader{
 			node: n,
 			serv: serv,
 			buf:  bytes.NewBuffer(pb.GetData()),
 		}, nil
-	case PBData_Raw:
+	case ft.PBData_Raw:
 		return bytes.NewBuffer(pb.GetData()), nil
 	default:
 		panic("Unrecognized node type!")
@@ -54,7 +55,7 @@ func (dr *DagReader) precalcNextBuf() error {
 		}
 		nxt = nxtNode
 	}
-	pb := new(PBData)
+	pb := new(ft.PBData)
 	err := proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
 		return err
@@ -62,13 +63,13 @@ func (dr *DagReader) precalcNextBuf() error {
 	dr.position++
 
 	switch pb.GetType() {
-	case PBData_Directory:
+	case ft.PBData_Directory:
 		panic("Why is there a directory under a file?")
-	case PBData_File:
+	case ft.PBData_File:
 		//TODO: this *should* work, needs testing first
 		//return NewDagReader(nxt, dr.serv)
 		panic("Not yet handling different layers of indirection!")
-	case PBData_Raw:
+	case ft.PBData_Raw:
 		dr.buf = bytes.NewBuffer(pb.GetData())
 		return nil
 	default:

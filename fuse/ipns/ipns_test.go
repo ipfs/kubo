@@ -63,6 +63,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 	return node, mnt
 }
 
+// Test writing a file and reading it back
 func TestIpnsBasicIO(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
@@ -80,6 +81,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	}
 }
 
+// Test to make sure file changes persist over mounts of ipns
 func TestFilePersistence(t *testing.T) {
 	node, mnt := setupIpnsTest(t, nil)
 
@@ -104,6 +106,7 @@ func TestFilePersistence(t *testing.T) {
 	}
 }
 
+// Test to make sure the filesystem reports file sizes correctly
 func TestFileSizeReporting(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
@@ -118,5 +121,93 @@ func TestFileSizeReporting(t *testing.T) {
 
 	if finfo.Size() != int64(len(data)) {
 		t.Fatal("Read incorrect size from stat!")
+	}
+}
+
+// Test to make sure you cant create multiple entries with the same name
+func TestDoubleEntryFailure(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	dname := mnt.Dir + "/local/thisisadir"
+	err := os.Mkdir(dname, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.Mkdir(dname, 0777)
+	if err == nil {
+		t.Fatal("Should have gotten error one creating new directory.")
+	}
+}
+
+func TestAppendFile(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	fname := mnt.Dir + "/local/file"
+	data := writeFile(t, 1300, fname)
+
+	fi, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nudata := randBytes(500)
+
+	n, err := fi.Write(nudata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = fi.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n != len(nudata) {
+		t.Fatal("Failed to write enough bytes.")
+	}
+
+	data = append(data, nudata...)
+
+	rbuf, err := ioutil.ReadFile(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(rbuf, data) {
+		t.Fatal("Data inconsistent!")
+	}
+}
+
+// Test writing a medium sized file one byte at a time
+func TestMultiWrite(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	fpath := mnt.Dir + "/local/file"
+	fi, err := os.Create(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := randBytes(1001)
+	for i := 0; i < len(data); i++ {
+		n, err := fi.Write(data[i : i+1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("Somehow wrote the wrong number of bytes! (n != 1)")
+		}
+	}
+	fi.Close()
+
+	rbuf, err := ioutil.ReadFile(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(rbuf, data) {
+		t.Fatal("File on disk did not match bytes written")
 	}
 }

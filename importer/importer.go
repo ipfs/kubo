@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	ft "github.com/jbenet/go-ipfs/importer/format"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -34,7 +35,7 @@ func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, er
 	totalsize := uint64(len(first))
 	for blk := range blkChan {
 		totalsize += uint64(len(blk))
-		child := &dag.Node{Data: dag.WrapData(blk)}
+		child := &dag.Node{Data: ft.WrapData(blk)}
 		err := root.AddNodeLink(fmt.Sprintf("%d", i), child)
 		if err != nil {
 			return nil, err
@@ -42,7 +43,7 @@ func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, er
 		i++
 	}
 
-	root.Data = dag.FilePBData(first, totalsize)
+	root.Data = ft.FilePBData(first, totalsize)
 	return root, nil
 }
 

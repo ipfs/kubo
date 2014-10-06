@@ -10,6 +10,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
+	ft "github.com/jbenet/go-ipfs/importer/format"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -75,7 +76,7 @@ func AddPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 }
 
 func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
-	tree := &dag.Node{Data: dag.FolderPBData()}
+	tree := &dag.Node{Data: ft.FolderPBData()}
 
 	files, err := ioutil.ReadDir(fpath)
 	if err != nil {

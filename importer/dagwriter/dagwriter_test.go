@@ -1,0 +1,102 @@
+package dagwriter
+
+import (
+	"testing"
+
+	"io"
+
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	bs "github.com/jbenet/go-ipfs/blockservice"
+	imp "github.com/jbenet/go-ipfs/importer"
+	mdag "github.com/jbenet/go-ipfs/merkledag"
+)
+
+type datasource struct {
+	i int
+}
+
+func (d *datasource) Read(b []byte) (int, error) {
+	for i, _ := range b {
+		b[i] = byte(d.i % 256)
+		d.i++
+	}
+	return len(b), nil
+}
+
+func (d *datasource) Matches(t *testing.T, r io.Reader, length int) bool {
+	b := make([]byte, 100)
+	i := 0
+	for {
+		n, err := r.Read(b)
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
+		for _, v := range b[:n] {
+			if v != byte(i%256) {
+				t.Fatalf("Buffers differed at byte: %d (%d != %d)", i, v, (i % 256))
+			}
+			i++
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+	if i != length {
+		t.Fatalf("Incorrect length. (%d != %d)", i, length)
+	}
+	return true
+}
+
+func TestDagWriter(t *testing.T) {
+	dstore := ds.NewMapDatastore()
+	bserv, err := bs.NewBlockService(dstore, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dag := &mdag.DAGService{bserv}
+	dw := NewDagWriter(dag, &imp.SizeSplitter2{4096})
+
+	nbytes := int64(1024 * 1024 * 2)
+	n, err := io.CopyN(dw, &datasource{}, nbytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n != nbytes {
+		t.Fatal("Copied incorrect amount of bytes!")
+	}
+
+	dw.Close()
+
+	node := dw.GetNode()
+	read, err := mdag.NewDagReader(node, dag)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := &datasource{}
+	if !d.Matches(t, read, int(nbytes)) {
+		t.Fatal("Failed to validate!")
+	}
+}
+
+func TestMassiveWrite(t *testing.T) {
+	t.SkipNow()
+	dstore := ds.NewNullDatastore()
+	bserv, err := bs.NewBlockService(dstore, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dag := &mdag.DAGService{bserv}
+	dw := NewDagWriter(dag, &imp.SizeSplitter2{4096})
+
+	nbytes := int64(1024 * 1024 * 1024 * 16)
+	n, err := io.CopyN(dw, &datasource{}, nbytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != nbytes {
+		t.Fatal("Incorrect copy size.")
+	}
+	dw.Close()
+}
