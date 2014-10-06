@@ -39,7 +39,7 @@ type Command struct {
 	Opts    map[string]interface{}
 }
 
-func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir string) (*DaemonListener, error) {
+func NewDaemonListener(ipfsnode *core.IpfsNode, addr ma.Multiaddr, confdir string) (*DaemonListener, error) {
 	var err error
 	confdir, err = u.TildeExpansion(confdir)
 	if err != nil {
@@ -51,7 +51,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir stri
 		return nil, err
 	}
 
-	network, host, err := addr.DialArgs()
+	network, host, err := ma.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +62,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir stri
 		return nil, err
 	}
 
-	mstr, err := addr.String()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ofi.Write([]byte(mstr))
+	_, err = ofi.Write([]byte(addr.String()))
 	if err != nil {
 		log.Warning("Could not write to rpcaddress file: %s", err)
 		return nil, err

@@ -177,14 +177,14 @@ func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 	}
 
 	// address is optional
-	var addresses []*ma.Multiaddr
+	var addresses []ma.Multiaddr
 	if len(cfg.Addresses.Swarm) > 0 {
 		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
 		if err != nil {
 			return nil, err
 		}
 
-		addresses = []*ma.Multiaddr{maddr}
+		addresses = []ma.Multiaddr{maddr}
 	}
 
 	var (

@@ -38,7 +38,7 @@ type Map map[u.Key]*Peer
 // ID, and relevant Addresses.
 type Peer struct {
 	ID        ID
-	Addresses []*ma.Multiaddr
+	Addresses []ma.Multiaddr
 
 	PrivKey ic.PrivKey
 	PubKey  ic.PubKey
@@ -54,7 +54,7 @@ func (p *Peer) Key() u.Key {
 }
 
 // AddAddress adds the given Multiaddr address to Peer's addresses.
-func (p *Peer) AddAddress(a *ma.Multiaddr) {
+func (p *Peer) AddAddress(a ma.Multiaddr) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -67,17 +67,12 @@ func (p *Peer) AddAddress(a *ma.Multiaddr) {
 }
 
 // NetAddress returns the first Multiaddr found for a given network.
-func (p *Peer) NetAddress(n string) *ma.Multiaddr {
+func (p *Peer) NetAddress(n string) ma.Multiaddr {
 	p.RLock()
 	defer p.RUnlock()
 
 	for _, a := range p.Addresses {
-		ps, err := a.Protocols()
-		if err != nil {
-			continue // invalid addr
-		}
-
-		for _, p := range ps {
+		for _, p := range a.Protocols() {
 			if p.Name == n {
 				return a
 			}

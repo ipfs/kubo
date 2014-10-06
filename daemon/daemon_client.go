@@ -73,7 +73,7 @@ func SendCommand(command *Command, confdir string) error {
 		return err
 	}
 
-	network, host, err := maddr.DialArgs()
+	network, host, err := ma.DialArgs(maddr)
 
 	conn, err := net.Dial(network, host)
 	if err != nil {

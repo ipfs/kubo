@@ -184,7 +184,7 @@ func TestGetFailures(t *testing.T) {
 func _randPeer() *peer.Peer {
 	p := new(peer.Peer)
 	p.ID = make(peer.ID, 16)
-	p.Addresses = []*ma.Multiaddr{nil}
+	p.Addresses = []ma.Multiaddr{nil}
 	crand.Read(p.ID)
 	return p
 }

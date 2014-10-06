@@ -37,8 +37,8 @@ func (s *Swarm) listen() error {
 }
 
 // Listen for new connections on the given multiaddr
-func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
-	netstr, addr, err := maddr.DialArgs()
+func (s *Swarm) connListen(maddr ma.Multiaddr) error {
+	netstr, addr, err := ma.DialArgs(maddr)
 	if err != nil {
 		return err
 	}

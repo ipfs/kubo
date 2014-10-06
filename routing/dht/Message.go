@@ -20,11 +20,7 @@ func peerToPBPeer(p *peer.Peer) *Message_Peer {
 	if len(p.Addresses) == 0 || p.Addresses[0] == nil {
 		pbp.Addr = proto.String("")
 	} else {
-		addr, err := p.Addresses[0].String()
-		if err != nil {
-			//Temp: what situations could cause this?
-			panic(err)
-		}
+		addr := p.Addresses[0].String()
 		pbp.Addr = &addr
 	}
 	pid := string(p.ID)
