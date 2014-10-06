@@ -52,7 +52,6 @@ func MakeCommand(cmdName string, expargs []string, cmdFn commands.CmdFunc) Comma
 			// Do locally
 			n, err := localNode(confdir, false)
 			if err != nil {
-				fmt.Println("Local node creation failed.")
 				return err
 			}
 
