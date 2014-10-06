@@ -249,5 +249,5 @@ func KeyHash(k Key) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return u.Hash(kb)
+	return u.Hash(kb), nil
 }

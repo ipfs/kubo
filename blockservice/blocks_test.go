@@ -23,12 +23,7 @@ func TestBlocks(t *testing.T) {
 		return
 	}
 
-	h, err := u.Hash([]byte("beep boop"))
-	if err != nil {
-		t.Error("failed to hash data", err)
-		return
-	}
-
+	h := u.Hash([]byte("beep boop"))
 	if !bytes.Equal(b.Multihash, h) {
 		t.Error("Block Multihash and data multihash not equal")
 	}

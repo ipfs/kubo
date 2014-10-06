@@ -54,8 +54,15 @@ func KeyFromDsKey(dsk ds.Key) Key {
 }
 
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
-func Hash(data []byte) (mh.Multihash, error) {
-	return mh.Sum(data, mh.SHA2_256, -1)
+func Hash(data []byte) mh.Multihash {
+	h, err := mh.Sum(data, mh.SHA2_256, -1)
+	if err != nil {
+		// this error can be safely ignored (panic) because multihash only fails
+		// from the selection of hash function. If the fn + length are valid, it
+		// won't error.
+		panic("multihash failed to hash using SHA2_256.")
+	}
+	return h
 }
 
 // IsValidHash checks whether a given hash is valid (b58 decodable, len > 0)

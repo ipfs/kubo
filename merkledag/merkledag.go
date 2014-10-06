@@ -130,7 +130,7 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	return u.Hash(b)
+	return u.Hash(b), nil
 }
 
 // Key returns the Multihash as a key, for maps.

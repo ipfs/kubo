@@ -13,11 +13,7 @@ type Block struct {
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
 func NewBlock(data []byte) (*Block, error) {
-	h, err := u.Hash(data)
-	if err != nil {
-		return nil, err
-	}
-	return &Block{Data: data, Multihash: h}, nil
+	return &Block{Data: data, Multihash: u.Hash(data)}, nil
 }
 
 // Key returns the block's Multihash as a Key value.

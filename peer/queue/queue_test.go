@@ -68,7 +68,7 @@ func TestQueue(t *testing.T) {
 
 func newPeerTime(t time.Time) *peer.Peer {
 	s := fmt.Sprintf("hmmm time: %v", t)
-	h, _ := u.Hash([]byte(s))
+	h := u.Hash([]byte(s))
 	return &peer.Peer{ID: peer.ID(h)}
 }
 

@@ -292,25 +292,15 @@ func IDFromPubKey(pk ci.PubKey) (peer.ID, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash, err := u.Hash(b)
-	if err != nil {
-		return nil, err
-	}
+	hash := u.Hash(b)
 	return peer.ID(hash), nil
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
 func selectBest(myPrefs, theirPrefs string) (string, error) {
 	// Person with greatest hash gets first choice.
-	myHash, err := u.Hash([]byte(myPrefs))
-	if err != nil {
-		return "", err
-	}
-
-	theirHash, err := u.Hash([]byte(theirPrefs))
-	if err != nil {
-		return "", err
-	}
+	myHash := u.Hash([]byte(myPrefs))
+	theirHash := u.Hash([]byte(theirPrefs))
 
 	cmp := bytes.Compare(myHash, theirHash)
 	var firstChoiceArr, secChoiceArr []string
