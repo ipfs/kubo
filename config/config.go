@@ -39,11 +39,17 @@ func (bp *BootstrapPeer) String() string {
 	return bp.Address + "/" + bp.PeerID
 }
 
+// Updates regulates checking and downloading for application's most recent version
+type Updates struct {
+	Check string // "ignore" for do not check, "warn" and "error" for reacting when obsolete
+}
+
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  Identity         // local node's peer identity
 	Datastore Datastore        // local node's storage
 	Addresses Addresses        // local node's addresses
+	Updates   Updates          // local node's version management
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 
