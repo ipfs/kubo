@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {
@@ -33,7 +33,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 		// TODO test contents of incoming message
 
 		m := bsmsg.New()
-		m.AppendBlock(testutil.NewBlockOrFail(t, expectedStr))
+		m.AppendBlock(*blocks.NewBlock([]byte(expectedStr)))
 
 		return from, m
 	}))
@@ -41,7 +41,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 	t.Log("Build a message and send a synchronous request to recipient")
 
 	message := bsmsg.New()
-	message.AppendBlock(testutil.NewBlockOrFail(t, "data"))
+	message.AppendBlock(*blocks.NewBlock([]byte("data")))
 	response, err := initiator.SendRequest(
 		context.Background(), &peer.Peer{ID: idOfRecipient}, message)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 		*peer.Peer, bsmsg.BitSwapMessage) {
 
 		msgToWaiter := bsmsg.New()
-		msgToWaiter.AppendBlock(testutil.NewBlockOrFail(t, expectedStr))
+		msgToWaiter.AppendBlock(*blocks.NewBlock([]byte(expectedStr)))
 
 		return fromWaiter, msgToWaiter
 	}))
@@ -105,7 +105,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	}))
 
 	messageSentAsync := bsmsg.New()
-	messageSentAsync.AppendBlock(testutil.NewBlockOrFail(t, "data"))
+	messageSentAsync.AppendBlock(*blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
 		context.Background(), &peer.Peer{ID: idOfResponder}, messageSentAsync)
 	if errSending != nil {

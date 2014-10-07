@@ -35,7 +35,7 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 	if !ok {
 		return nil, ValueTypeMismatch
 	}
-	return blocks.NewBlock(bdata)
+	return blocks.NewBlock(bdata), nil
 }
 
 func (bs *blockstore) Put(block blocks.Block) error {

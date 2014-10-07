@@ -3,6 +3,8 @@ package merkledag
 import (
 	"fmt"
 
+	u "github.com/jbenet/go-ipfs/util"
+
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
@@ -76,6 +78,7 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 		if err != nil {
 			return []byte{}, err
 		}
+		n.cached = u.Hash(n.encoded)
 	}
 
 	return n.encoded, nil

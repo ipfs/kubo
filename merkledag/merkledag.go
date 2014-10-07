@@ -24,6 +24,8 @@ type Node struct {
 
 	// cache encoded/marshaled value
 	encoded []byte
+
+	cached mh.Multihash
 }
 
 // Link represents an IPFS Merkle DAG Link between Nodes.
@@ -122,12 +124,12 @@ func (n *Node) Size() (uint64, error) {
 
 // Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
-	b, err := n.Encoded(false)
+	_, err := n.Encoded(false)
 	if err != nil {
 		return nil, err
 	}
 
-	return u.Hash(b), nil
+	return n.cached, nil
 }
 
 // Key returns the Multihash as a key, for maps.
@@ -183,7 +185,9 @@ func (n *DAGService) Add(nd *Node) (u.Key, error) {
 		return "", err
 	}
 
-	b, err := blocks.NewBlock(d)
+	b := new(blocks.Block)
+	b.Data = d
+	b.Multihash, err = nd.Multihash()
 	if err != nil {
 		return "", err
 	}

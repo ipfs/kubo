@@ -9,7 +9,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	"github.com/jbenet/go-ipfs/blocks"
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	bstore "github.com/jbenet/go-ipfs/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
@@ -18,7 +18,6 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
 	util "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestGetBlockTimeout(t *testing.T) {
@@ -30,7 +29,7 @@ func TestGetBlockTimeout(t *testing.T) {
 	self := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	block := testutil.NewBlockOrFail(t, "block")
+	block := blocks.NewBlock([]byte("block"))
 	_, err := self.exchange.Block(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
@@ -44,7 +43,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	rs := mock.VirtualRoutingServer()
 	g := NewSessionGenerator(net, rs)
 
-	block := testutil.NewBlockOrFail(t, "block")
+	block := blocks.NewBlock([]byte("block"))
 	rs.Announce(&peer.Peer{}, block.Key()) // but not on network
 
 	solo := g.Next()
@@ -63,15 +62,15 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
-	block := testutil.NewBlockOrFail(t, "block")
+	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
 
 	hasBlock := g.Next()
 
-	if err := hasBlock.blockstore.Put(block); err != nil {
+	if err := hasBlock.blockstore.Put(*block); err != nil {
 		t.Fatal(err)
 	}
-	if err := hasBlock.exchange.HasBlock(context.Background(), block); err != nil {
+	if err := hasBlock.exchange.HasBlock(context.Background(), *block); err != nil {
 		t.Fatal(err)
 	}
 
@@ -93,7 +92,7 @@ func TestSwarm(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator(t)
+	bg := NewBlockGenerator()
 
 	t.Log("Create a ton of instances, and just a few blocks")
 
@@ -154,7 +153,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator(t)
+	bg := NewBlockGenerator()
 
 	me := sg.Next()
 	w := sg.Next()
@@ -212,20 +211,17 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 }
 
-func NewBlockGenerator(t *testing.T) BlockGenerator {
-	return BlockGenerator{
-		T: t,
-	}
+func NewBlockGenerator() BlockGenerator {
+	return BlockGenerator{}
 }
 
 type BlockGenerator struct {
-	*testing.T // b/c block generation can fail
-	seq        int
+	seq int
 }
 
 func (bg *BlockGenerator) Next() blocks.Block {
 	bg.seq++
-	return testutil.NewBlockOrFail(bg.T, string(bg.seq))
+	return *blocks.NewBlock([]byte(string(bg.seq)))
 }
 
 func (bg *BlockGenerator) Blocks(n int) []*blocks.Block {

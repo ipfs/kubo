@@ -110,7 +110,7 @@ func BenchmarkDagWriter(b *testing.B) {
 	dag := &mdag.DAGService{bserv}
 
 	b.ResetTimer()
-	nbytes := int64(b.N)
+	nbytes := int64(100000)
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(nbytes)
 		dw := NewDagWriter(dag, &imp.SizeSplitter{4096})

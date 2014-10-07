@@ -46,14 +46,14 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		return 0, errors.New("Attempted to perform write starting past end of file")
 	}
 
-	// This shouldnt be necessary if we do subblocks sizes properly
-	newsize := dm.pbdata.GetFilesize()
-	if uint64(len(b))+offset > dm.pbdata.GetFilesize() {
-		newsize = uint64(len(b)) + offset
-	}
-
 	// First need to find where we are writing at
 	end := uint64(len(b)) + offset
+
+	// This shouldnt be necessary if we do subblocks sizes properly
+	newsize := dm.pbdata.GetFilesize()
+	if end > dm.pbdata.GetFilesize() {
+		newsize = end
+	}
 	zeroblocklen := uint64(len(dm.pbdata.Data))
 	origlen := len(b)
 

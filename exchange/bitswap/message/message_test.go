@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/jbenet/go-ipfs/blocks"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestAppendWanted(t *testing.T) {
@@ -26,10 +26,7 @@ func TestNewMessageFromProto(t *testing.T) {
 	if !contains(protoMessage.Wantlist, str) {
 		t.Fail()
 	}
-	m, err := newMessageFromProto(*protoMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	m := newMessageFromProto(*protoMessage)
 	if !contains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
 	}
@@ -43,8 +40,8 @@ func TestAppendBlock(t *testing.T) {
 
 	m := New()
 	for _, str := range strs {
-		block := testutil.NewBlockOrFail(t, str)
-		m.AppendBlock(block)
+		block := blocks.NewBlock([]byte(str))
+		m.AppendBlock(*block)
 	}
 
 	// assert strings are in proto message
@@ -134,10 +131,10 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 func TestToAndFromNetMessage(t *testing.T) {
 
 	original := New()
-	original.AppendBlock(testutil.NewBlockOrFail(t, "W"))
-	original.AppendBlock(testutil.NewBlockOrFail(t, "E"))
-	original.AppendBlock(testutil.NewBlockOrFail(t, "F"))
-	original.AppendBlock(testutil.NewBlockOrFail(t, "M"))
+	original.AppendBlock(*blocks.NewBlock([]byte("W")))
+	original.AppendBlock(*blocks.NewBlock([]byte("E")))
+	original.AppendBlock(*blocks.NewBlock([]byte("F")))
+	original.AppendBlock(*blocks.NewBlock([]byte("M")))
 
 	p := &peer.Peer{ID: []byte("X")}
 	netmsg, err := original.ToNet(p)

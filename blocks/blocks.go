@@ -12,8 +12,8 @@ type Block struct {
 }
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
-func NewBlock(data []byte) (*Block, error) {
-	return &Block{Data: data, Multihash: u.Hash(data)}, nil
+func NewBlock(data []byte) *Block {
+	return &Block{Data: data, Multihash: u.Hash(data)}
 }
 
 // Key returns the block's Multihash as a Key value.
