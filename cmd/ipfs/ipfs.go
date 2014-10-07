@@ -13,6 +13,7 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	daemon "github.com/jbenet/go-ipfs/daemon"
+	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -120,7 +121,7 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 	}
 
 	if cfg.Version.Check != config.CheckIgnore {
-		obsolete := checkForUpdates()
+		obsolete := updates.CheckForUpdates()
 		if obsolete != nil {
 			if cfg.Version.Check == config.CheckError {
 				return nil, obsolete
