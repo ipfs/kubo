@@ -51,6 +51,12 @@ type Version struct {
 	Current string `json:"current"` // ipfs version for which config was generated
 }
 
+const (
+	CheckError  = "error"  // value for Version.Check to raise error and exit if version is obsolete
+	CheckWarn   = "warn"   // value for Version.Check to show warning message if version is obsolete
+	CheckIgnore = "ignore" // value for Version.Check to not perform update check
+)
+
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  Identity         // local node's peer identity
