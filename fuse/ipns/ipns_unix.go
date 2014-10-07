@@ -1,7 +1,6 @@
 package ipns
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	imp "github.com/jbenet/go-ipfs/importer"
+	dt "github.com/jbenet/go-ipfs/importer/dagwriter"
 	ft "github.com/jbenet/go-ipfs/importer/format"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
@@ -199,11 +199,8 @@ type Node struct {
 
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
-	fd     *mdag.DagReader
+	dagMod *dt.DagModifier
 	cached *ft.PBData
-
-	// For writing
-	writerBuf WriteAtBuf
 }
 
 func (s *Node) loadData() error {
@@ -303,35 +300,32 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 
 func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
 	log.Debug("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
-	if n.writerBuf == nil {
-		n.writerBuf = NewWriterAtFromBytes(nil)
+	if n.dagMod == nil {
+		dmod, err := dt.NewDagModifier(n.Nd, n.Ipfs.DAG, imp.DefaultSplitter)
+		if err != nil {
+			log.Error("Error creating dag modifier: %s", err)
+			return err
+		}
+		n.dagMod = dmod
 	}
-	_, err := n.writerBuf.WriteAt(req.Data, req.Offset)
+	wrote, err := n.dagMod.WriteAt(req.Data, uint64(req.Offset))
 	if err != nil {
 		return err
 	}
-	resp.Size = len(req.Data)
+	resp.Size = wrote
 	return nil
 }
 
 func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 	log.Debug("Got flush request [%s]!", n.name)
 
-	if n.writerBuf != nil {
-		//TODO:
-		// This operation holds everything in memory,
-		// should be changed to stream the block creation/storage
-		// but for now, since the buf is all in memory anyways...
-
-		//NOTE:
-		// This should only occur on a file object, if this were to be a
-		// folder, bad things would happen.
-		buf := bytes.NewReader(n.writerBuf.Bytes())
-		newNode, err := imp.NewDagFromReader(buf)
+	if n.dagMod != nil {
+		newNode, err := n.dagMod.GetNode()
 		if err != nil {
-			log.Critical("error creating dag from writerBuf: %s", err)
+			log.Error("Error getting dag node from dagMod: %s", err)
 			return err
 		}
+
 		if n.parent != nil {
 			log.Debug("updating self in parent!")
 			err := n.parent.update(n.name, newNode)
@@ -358,7 +352,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		fmt.Println(b)
 		//*/
 
-		n.writerBuf = nil
+		n.dagMod = nil
 
 		n.wasChanged()
 	}
@@ -389,8 +383,6 @@ func (n *Node) republishRoot() error {
 		log.Critical("ipns: Dag Add Error: %s", err)
 		return err
 	}
-
-	n.writerBuf = nil
 
 	ndkey, err := root.Nd.Key()
 	if err != nil {
@@ -451,8 +443,9 @@ func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr
 	//TODO: check open flags and truncate if necessary
 	if req.Flags&fuse.OpenTruncate != 0 {
 		log.Warning("Need to truncate file!")
-	}
-	if req.Flags&fuse.OpenAppend != 0 {
+		n.cached = nil
+		n.Nd = &mdag.Node{Data: ft.FilePBData(nil, 0)}
+	} else if req.Flags&fuse.OpenAppend != 0 {
 		log.Warning("Need to append to file!")
 	}
 	return n, nil

@@ -109,8 +109,6 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 	for i, size := range dm.pbdata.Blocksizes[startsubblk:] {
 		if end > traversed {
 			changed = append(changed, i+startsubblk)
-		} else if end == traversed {
-			break
 		} else {
 			break
 		}
@@ -122,6 +120,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		}
 	}
 
+	// If our write starts in the middle of a block...
 	var midlnk *mdag.Link
 	if mid >= 0 {
 		midlnk = dm.curNode.Links[mid]
@@ -139,6 +138,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		b = append(b, data[midoff:]...)
 	}
 
+	// Generate new sub-blocks, and sizes
 	subblocks := splitBytes(b, dm.splitter)
 	var links []*mdag.Link
 	var sizes []uint64
@@ -159,8 +159,10 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 
 	// This is disgusting
 	if len(changed) > 0 {
-		dm.curNode.Links = append(dm.curNode.Links[:changed[0]], append(links, dm.curNode.Links[changed[len(changed)-1]+1:]...)...)
-		dm.pbdata.Blocksizes = append(dm.pbdata.Blocksizes[:changed[0]], append(sizes, dm.pbdata.Blocksizes[changed[len(changed)-1]+1:]...)...)
+		sechalflink := append(links, dm.curNode.Links[changed[len(changed)-1]+1:]...)
+		dm.curNode.Links = append(dm.curNode.Links[:changed[0]], sechalflink...)
+		sechalfblks := append(sizes, dm.pbdata.Blocksizes[changed[len(changed)-1]+1:]...)
+		dm.pbdata.Blocksizes = append(dm.pbdata.Blocksizes[:changed[0]], sechalfblks...)
 	} else {
 		dm.curNode.Links = append(dm.curNode.Links, links...)
 		dm.pbdata.Blocksizes = append(dm.pbdata.Blocksizes, sizes...)
