@@ -4,45 +4,17 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 	bs "github.com/jbenet/go-ipfs/blockservice"
 	imp "github.com/jbenet/go-ipfs/importer"
 	ft "github.com/jbenet/go-ipfs/importer/format"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 )
-
-type randGen struct {
-	src rand.Source
-}
-
-func newRand() *randGen {
-	return &randGen{rand.NewSource(time.Now().UnixNano())}
-}
-
-func (r *randGen) Read(p []byte) (n int, err error) {
-	todo := len(p)
-	offset := 0
-	for {
-		val := int64(r.src.Int63())
-		for i := 0; i < 8; i++ {
-			p[offset] = byte(val & 0xff)
-			todo--
-			if todo == 0 {
-				return len(p), nil
-			}
-			offset++
-			val >>= 8
-		}
-	}
-
-	panic("unreachable")
-}
 
 func getMockDagServ(t *testing.T) *mdag.DAGService {
 	dstore := ds.NewMapDatastore()
@@ -54,9 +26,9 @@ func getMockDagServ(t *testing.T) *mdag.DAGService {
 }
 
 func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	dw := NewDagWriter(dserv, &imp.SizeSplitter2{500})
+	dw := NewDagWriter(dserv, &imp.SizeSplitter{500})
 
-	n, err := io.CopyN(dw, newRand(), size)
+	n, err := io.CopyN(dw, u.NewFastRand(), size)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +54,7 @@ func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.No
 
 func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) []byte {
 	newdata := make([]byte, size)
-	r := newRand()
+	r := u.NewFastRand()
 	r.Read(newdata)
 
 	if size+beg > uint64(len(orig)) {
@@ -127,7 +99,7 @@ func TestDagModifierBasic(t *testing.T) {
 	dserv := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000)
 
-	dagmod, err := NewDagModifier(n, dserv)
+	dagmod, err := NewDagModifier(n, dserv, &imp.SizeSplitter{512})
 	if err != nil {
 		t.Fatal(err)
 	}

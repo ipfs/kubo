@@ -15,11 +15,11 @@ type DagWriter struct {
 	totalSize int64
 	splChan   chan []byte
 	done      chan struct{}
-	splitter  imp.StreamSplitter
+	splitter  imp.BlockSplitter
 	seterr    error
 }
 
-func NewDagWriter(ds *dag.DAGService, splitter imp.StreamSplitter) *DagWriter {
+func NewDagWriter(ds *dag.DAGService, splitter imp.BlockSplitter) *DagWriter {
 	dw := new(DagWriter)
 	dw.dagserv = ds
 	dw.splChan = make(chan []byte, 8)
@@ -30,7 +30,8 @@ func NewDagWriter(ds *dag.DAGService, splitter imp.StreamSplitter) *DagWriter {
 }
 
 func (dw *DagWriter) startSplitter() {
-	blkchan := dw.splitter.Split(dw.splChan)
+	r := util.NewByteChanReader(dw.splChan)
+	blkchan := dw.splitter.Split(r)
 	first := <-blkchan
 	mbf := new(ft.MultiBlock)
 	root := new(dag.Node)

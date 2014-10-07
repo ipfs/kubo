@@ -1,6 +1,7 @@
 package dagwriter
 
 import (
+	"bytes"
 	"errors"
 
 	"code.google.com/p/goprotobuf/proto"
@@ -18,19 +19,21 @@ type DagModifier struct {
 	dagserv *mdag.DAGService
 	curNode *mdag.Node
 
-	pbdata *ft.PBData
+	pbdata   *ft.PBData
+	splitter imp.BlockSplitter
 }
 
-func NewDagModifier(from *mdag.Node, serv *mdag.DAGService) (*DagModifier, error) {
+func NewDagModifier(from *mdag.Node, serv *mdag.DAGService, spl imp.BlockSplitter) (*DagModifier, error) {
 	pbd, err := ft.FromBytes(from.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DagModifier{
-		curNode: from.Copy(),
-		dagserv: serv,
-		pbdata:  pbd,
+		curNode:  from.Copy(),
+		dagserv:  serv,
+		pbdata:   pbd,
+		splitter: spl,
 	}, nil
 }
 
@@ -136,8 +139,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		b = append(b, data[midoff:]...)
 	}
 
-	// TODO: dont assume a splitting func here
-	subblocks := splitBytes(b, &imp.SizeSplitter2{512})
+	subblocks := splitBytes(b, dm.splitter)
 	var links []*mdag.Link
 	var sizes []uint64
 	for _, sb := range subblocks {
@@ -168,11 +170,8 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 	return origlen, nil
 }
 
-func splitBytes(b []byte, spl imp.StreamSplitter) [][]byte {
-	ch := make(chan []byte)
-	out := spl.Split(ch)
-	ch <- b
-	close(ch)
+func splitBytes(b []byte, spl imp.BlockSplitter) [][]byte {
+	out := spl.Split(bytes.NewReader(b))
 	var arr [][]byte
 	for blk := range out {
 		arr = append(arr, blk)

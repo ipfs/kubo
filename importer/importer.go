@@ -7,7 +7,10 @@ import (
 
 	ft "github.com/jbenet/go-ipfs/importer/format"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/util"
 )
+
+var log = util.Logger("importer")
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
 var BlockSizeLimit = int64(1048576) // 1 MB
