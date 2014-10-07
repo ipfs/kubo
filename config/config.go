@@ -45,10 +45,10 @@ func (bp *BootstrapPeer) String() string {
 	return bp.Address + "/" + bp.PeerID
 }
 
-// Updates regulates checking and downloading for application's most recent version
-type Updates struct {
-	Check   string `json:"check"`    // "ignore" for do not check, "warn" and "error" for reacting when obsolete
-	Version string `json: "version"` // ipfs version for which config was generated
+// Version regulates checking if the most recent version is run
+type Version struct {
+	Check   string `json:"check"`   // "ignore" for do not check, "warn" and "error" for reacting when obsolete
+	Current string `json:"current"` // ipfs version for which config was generated
 }
 
 // Config is used to load IPFS config files.
@@ -57,7 +57,7 @@ type Config struct {
 	Datastore Datastore        // local node's storage
 	Addresses Addresses        // local node's addresses
 	Mounts    Mounts           // local node's mount points
-	Updates   Updates          // local node's version management
+	Version   Version          // local node's version management
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 

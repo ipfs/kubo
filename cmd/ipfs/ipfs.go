@@ -119,11 +119,11 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 		return nil, err
 	}
 
-	if cfg.Updates.Check != "ignore" {
+	if cfg.Version.Check != "ignore" {
 		obsolete := checkForUpdates()
 		if obsolete != nil {
 			fmt.Println(obsolete)
-			if cfg.Updates.Check == "error" {
+			if cfg.Version.Check == "error" {
 				return nil, obsolete
 			}
 		}
