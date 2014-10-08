@@ -24,9 +24,9 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 
 func TestPutThenGetBlock(t *testing.T) {
 	bs := NewBlockstore(ds.NewMapDatastore())
-	block := blocks.NewBlock("some data")
+	block := blocks.NewBlock([]byte("some data"))
 
-	err := bs.Put(block)
+	err := bs.Put(*block)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestPutThenGetBlock(t *testing.T) {
 }
 
 func TestValueTypeMismatch(t *testing.T) {
-	block := blocks.NewBlock("some data")
+	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
 	datastore.Put(block.Key().DsKey(), "data that isn't a block!")

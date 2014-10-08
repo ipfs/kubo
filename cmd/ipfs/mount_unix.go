@@ -78,6 +78,9 @@ func mountIpfs(node *core.IpfsNode, fsdir string) <-chan error {
 }
 
 func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
+	if nsdir == "" {
+		return nil
+	}
 	done := make(chan error)
 	fmt.Printf("mounting ipns at %s\n", nsdir)
 
