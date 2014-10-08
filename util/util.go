@@ -154,13 +154,14 @@ func SetupLogging() {
 	logging.SetBackend(backend)
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	/*
-		if Debug {
-			logging.SetLevel(logging.DEBUG, "")
-		} else {
-			logging.SetLevel(logging.ERROR, "")
-		}
-	*/
+	// just uncomment Debug = True right here for all logging.
+	// but please don't commit that.
+	// Debug = True
+	if Debug {
+		logging.SetLevel(logging.DEBUG, "")
+	} else {
+		logging.SetLevel(logging.ERROR, "")
+	}
 
 	for n, log := range loggers {
 		logging.SetLevel(logging.ERROR, n)
