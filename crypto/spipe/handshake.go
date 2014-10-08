@@ -101,7 +101,7 @@ func (s *SecurePipe) handshake() error {
 	if err != nil {
 		return err
 	}
-	u.DOut("[%s] Remote Peer Identified as %s\n", s.local, s.remote)
+	u.DOut("%s Remote Peer Identified as %s\n", s.local, s.remote)
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *SecurePipe) handshake() error {
 		return errors.New("Negotiation failed.")
 	}
 
-	u.DOut("[%s] handshake: Got node id: %s\n", s.local, s.remote)
+	u.DOut("%s handshake: Got node id: %s\n", s.local, s.remote)
 	return nil
 }
 

@@ -287,7 +287,7 @@ func TestProvidesAsync(t *testing.T) {
 	select {
 	case p := <-provs:
 		if !p.ID.Equal(dhts[3].self.ID) {
-			t.Fatalf("got a provider, but not the right one. %v", p.ID.Pretty())
+			t.Fatalf("got a provider, but not the right one. %s", p)
 		}
 	case <-ctx.Done():
 		t.Fatal("Didnt get back providers")

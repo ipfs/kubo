@@ -38,7 +38,7 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 }
 
 func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error) {
-	u.DOut("[%s] handleGetValue for key: %s\n", dht.self.ID.Pretty(), pmes.GetKey())
+	log.Debug("%s handleGetValue for key: %s\n", dht.self, pmes.GetKey())
 
 	// setup response
 	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
@@ -50,10 +50,10 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	}
 
 	// let's first check if we have the value locally.
-	u.DOut("[%s] handleGetValue looking into ds\n", dht.self.ID.Pretty())
+	log.Debug("%s handleGetValue looking into ds\n", dht.self)
 	dskey := u.Key(pmes.GetKey()).DsKey()
 	iVal, err := dht.datastore.Get(dskey)
-	u.DOut("[%s] handleGetValue looking into ds GOT %v\n", dht.self.ID.Pretty(), iVal)
+	log.Debug("%s handleGetValue looking into ds GOT %v\n", dht.self, iVal)
 
 	// if we got an unexpected error, bail.
 	if err != nil && err != ds.ErrNotFound {
@@ -65,7 +65,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 
 	// if we have the value, send it back
 	if err == nil {
-		u.DOut("[%s] handleGetValue success!\n", dht.self.ID.Pretty())
+		log.Debug("%s handleGetValue success!\n", dht.self)
 
 		byts, ok := iVal.([]byte)
 		if !ok {
@@ -78,14 +78,14 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	// if we know any providers for the requested value, return those.
 	provs := dht.providers.GetProviders(u.Key(pmes.GetKey()))
 	if len(provs) > 0 {
-		u.DOut("handleGetValue returning %d provider[s]\n", len(provs))
+		log.Debug("handleGetValue returning %d provider[s]\n", len(provs))
 		resp.ProviderPeers = peersToPBPeers(provs)
 	}
 
 	// Find closest peer on given cluster to desired key and reply with that info
 	closer := dht.betterPeerToQuery(pmes)
 	if closer != nil {
-		u.DOut("handleGetValue returning a closer peer: '%s'\n", closer.ID.Pretty())
+		log.Debug("handleGetValue returning a closer peer: '%s'\n", closer)
 		resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
 	}
 
@@ -98,12 +98,12 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error
 	defer dht.dslock.Unlock()
 	dskey := u.Key(pmes.GetKey()).DsKey()
 	err := dht.datastore.Put(dskey, pmes.GetValue())
-	u.DOut("[%s] handlePutValue %v %v\n", dht.self.ID.Pretty(), dskey, pmes.GetValue())
+	log.Debug("%s handlePutValue %v %v\n", dht.self, dskey, pmes.GetValue())
 	return pmes, err
 }
 
 func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {
-	u.DOut("[%s] Responding to ping from [%s]!\n", dht.self.ID.Pretty(), p.ID.Pretty())
+	log.Debug("%s Responding to ping from %s!\n", dht.self, p)
 	return pmes, nil
 }
 
@@ -119,16 +119,16 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error
 	}
 
 	if closest == nil {
-		u.PErr("handleFindPeer: could not find anything.\n")
+		log.Error("handleFindPeer: could not find anything.\n")
 		return resp, nil
 	}
 
 	if len(closest.Addresses) == 0 {
-		u.PErr("handleFindPeer: no addresses for connected peer...\n")
+		log.Error("handleFindPeer: no addresses for connected peer...\n")
 		return resp, nil
 	}
 
-	u.DOut("handleFindPeer: sending back '%s'\n", closest.ID.Pretty())
+	log.Debug("handleFindPeer: sending back '%s'\n", closest)
 	resp.CloserPeers = peersToPBPeers([]*peer.Peer{closest})
 	return resp, nil
 }
@@ -140,7 +140,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, e
 	dsk := u.Key(pmes.GetKey()).DsKey()
 	has, err := dht.datastore.Has(dsk)
 	if err != nil && err != ds.ErrNotFound {
-		u.PErr("unexpected datastore error: %v\n", err)
+		log.Error("unexpected datastore error: %v\n", err)
 		has = false
 	}
 
@@ -172,8 +172,7 @@ type providerInfo struct {
 func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, error) {
 	key := u.Key(pmes.GetKey())
 
-	u.DOut("[%s] Adding [%s] as a provider for '%s'\n",
-		dht.self.ID.Pretty(), p.ID.Pretty(), peer.ID(key).Pretty())
+	log.Debug("%s adding %s as a provider for '%s'\n", dht.self, p, peer.ID(key))
 
 	dht.providers.AddProvider(key, p)
 	return pmes, nil // send back same msg as confirmation.
@@ -192,7 +191,7 @@ func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, err
 	for _, ps := range seq {
 		_, err := msg.FromObject(ps, pmes)
 		if err != nil {
-			u.PErr("handleDiagnostics error creating message: %v\n", err)
+			log.Error("handleDiagnostics error creating message: %v\n", err)
 			continue
 		}
 		// dht.sender.SendRequest(context.TODO(), mes)

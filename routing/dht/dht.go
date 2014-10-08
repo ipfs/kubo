@@ -221,7 +221,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) e
 		return err
 	}
 
-	log.Debug("[%s] putProvider: %s for %s", dht.self, p, key)
+	log.Debug("%s putProvider: %s for %s", dht.self, p, key)
 	if *rpmes.Key != *pmes.Key {
 		return errors.New("provider not added correctly")
 	}
@@ -345,7 +345,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 // Update signals to all routingTables to Update their last-seen status
 // on the given peer.
 func (dht *IpfsDHT) Update(p *peer.Peer) {
-	log.Debug("updating peer: [%s] latency = %f\n", p, p.GetLatency().Seconds())
+	log.Debug("updating peer: %s latency = %f\n", p, p.GetLatency().Seconds())
 	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)
@@ -401,7 +401,7 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []*peer.Peer 
 			continue
 		}
 
-		log.Debug("[%s] adding provider: %s for %s", dht.self, p, key)
+		log.Debug("%s adding provider: %s for %s", dht.self, p, key)
 
 		// Dont add outselves to the list
 		if p.ID.Equal(dht.self.ID) {

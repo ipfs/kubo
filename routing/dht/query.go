@@ -151,7 +151,7 @@ func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
 func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
 	if next == nil {
 		// wtf why are peers nil?!?
-		u.PErr("Query getting nil peers!!!\n")
+		log.Error("Query getting nil peers!!!\n")
 		return
 	}
 
@@ -170,7 +170,7 @@ func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
 	r.peersSeen[next.Key()] = next
 	r.Unlock()
 
-	log.Debug("adding peer to query: %v\n", next.ID.Pretty())
+	log.Debug("adding peer to query: %v\n", next)
 
 	// do this after unlocking to prevent possible deadlocks.
 	r.peersRemaining.Increment(1)
@@ -194,14 +194,14 @@ func (r *dhtQueryRunner) spawnWorkers() {
 			if !more {
 				return // channel closed.
 			}
-			u.DOut("spawning worker for: %v\n", p.ID.Pretty())
+			log.Debug("spawning worker for: %v\n", p)
 			go r.queryPeer(p)
 		}
 	}
 }
 
 func (r *dhtQueryRunner) queryPeer(p *peer.Peer) {
-	u.DOut("spawned worker for: %v\n", p.ID.Pretty())
+	log.Debug("spawned worker for: %v\n", p)
 
 	// make sure we rate limit concurrency.
 	select {
@@ -211,33 +211,33 @@ func (r *dhtQueryRunner) queryPeer(p *peer.Peer) {
 		return
 	}
 
-	u.DOut("running worker for: %v\n", p.ID.Pretty())
+	log.Debug("running worker for: %v\n", p)
 
 	// finally, run the query against this peer
 	res, err := r.query.qfunc(r.ctx, p)
 
 	if err != nil {
-		u.DOut("ERROR worker for: %v %v\n", p.ID.Pretty(), err)
+		log.Debug("ERROR worker for: %v %v\n", p, err)
 		r.Lock()
 		r.errs = append(r.errs, err)
 		r.Unlock()
 
 	} else if res.success {
-		u.DOut("SUCCESS worker for: %v\n", p.ID.Pretty(), res)
+		log.Debug("SUCCESS worker for: %v\n", p, res)
 		r.Lock()
 		r.result = res
 		r.Unlock()
 		r.cancel() // signal to everyone that we're done.
 
 	} else if res.closerPeers != nil {
-		u.DOut("PEERS CLOSER -- worker for: %v\n", p.ID.Pretty())
+		log.Debug("PEERS CLOSER -- worker for: %v\n", p)
 		for _, next := range res.closerPeers {
 			r.addPeerToQuery(next, p)
 		}
 	}
 
 	// signal we're done proccessing peer p
-	u.DOut("completing worker for: %v\n", p.ID.Pretty())
+	log.Debug("completing worker for: %v\n", p)
 	r.peersRemaining.Decrement(1)
 	r.rateLimit <- struct{}{}
 }

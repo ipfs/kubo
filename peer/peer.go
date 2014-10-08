@@ -55,7 +55,7 @@ type Peer struct {
 
 // String prints out the peer.
 func (p *Peer) String() string {
-	return "[Peer " + p.ID.Pretty() + "]"
+	return "[Peer " + p.ID.String() + "]"
 }
 
 // Key returns the ID as a Key (string) for maps.

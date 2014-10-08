@@ -41,7 +41,7 @@ type Key string
 
 // String is utililty function for printing out keys as strings (Pretty).
 func (k Key) String() string {
-	return key.Pretty()
+	return k.Pretty()
 }
 
 // Pretty returns Key in a b58 encoded string

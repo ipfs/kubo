@@ -18,7 +18,7 @@ import (
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
 func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
-	log.Debug("PutValue %s", key.Pretty())
+	log.Debug("PutValue %s", key)
 	err := dht.putLocal(key, value)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 	}
 
 	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
-		log.Debug("[%s] PutValue qry part %v", dht.self.ID.Pretty(), p.ID.Pretty())
+		log.Debug("%s PutValue qry part %v", dht.self, p)
 		err := dht.putValueToNetwork(ctx, p, string(key), value)
 		if err != nil {
 			return nil, err
@@ -47,7 +47,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
-	log.Debug("Get Value [%s]", key.Pretty())
+	log.Debug("Get Value [%s]", key)
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
@@ -189,7 +189,7 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 // FindProviders searches for peers who can provide the value for given key.
 func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
 	// get closest peer
-	log.Debug("Find providers for: '%s'", key.Pretty())
+	log.Debug("Find providers for: '%s'", key)
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
 		return nil, nil
@@ -333,11 +333,11 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	log.Info("ping %s start", p.ID.Pretty())
+	log.Info("ping %s start", p)
 
 	pmes := newMessage(Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
-	log.Info("ping %s end (err = %s)", p.ID.Pretty(), err)
+	log.Info("ping %s end (err = %s)", p, err)
 	return err
 }
 
