@@ -9,7 +9,8 @@ import (
 	"time"
 
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	"github.com/jbenet/go-ipfs/core"
+	core "github.com/jbenet/go-ipfs/core"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 func randBytes(size int) []byte {
@@ -19,7 +20,10 @@ func randBytes(size int) []byte {
 }
 
 func writeFile(t *testing.T, size int, path string) []byte {
-	data := randBytes(size)
+	return writeFileData(t, randBytes(size), path)
+}
+
+func writeFileData(t *testing.T, data []byte, path string) []byte {
 	fi, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
@@ -177,6 +181,106 @@ func TestAppendFile(t *testing.T) {
 	if !bytes.Equal(rbuf, data) {
 		t.Fatal("Data inconsistent!")
 	}
+}
+
+func TestFastRepublish(t *testing.T) {
+
+	// make timeout noticeable.
+	osrt := shortRepublishTimeout
+	shortRepublishTimeout = time.Millisecond * 100
+
+	olrt := longRepublishTimeout
+	longRepublishTimeout = time.Second
+
+	node, mnt := setupIpnsTest(t, nil)
+
+	h, err := node.Identity.PrivKey.GetPublic().Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pubkeyHash := u.Key(h).Pretty()
+
+	// set them back
+	defer func() {
+		shortRepublishTimeout = osrt
+		longRepublishTimeout = olrt
+		mnt.Close()
+	}()
+
+	closed := make(chan struct{})
+	dataA := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	dataB := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+
+	fname := mnt.Dir + "/local/file"
+
+	// get first resolved hash
+	log.Debug("publishing first hash")
+	writeFileData(t, dataA, fname) // random
+	<-time.After(shortRepublishTimeout * 11 / 10)
+	log.Debug("resolving first hash")
+	resolvedHash, err := node.Namesys.Resolve(pubkeyHash)
+	if err != nil {
+		t.Fatal("resolve err:", pubkeyHash, err)
+	}
+
+	// constantly keep writing to the file
+	go func() {
+		for {
+			select {
+			case <-closed:
+				return
+
+			case <-time.After(shortRepublishTimeout * 8 / 10):
+				writeFileData(t, dataB, fname)
+			}
+		}
+	}()
+
+	hasPublished := func() bool {
+		res, err := node.Namesys.Resolve(pubkeyHash)
+		if err != nil {
+			t.Fatal("resolve err: %v", err)
+		}
+		return res != resolvedHash
+	}
+
+	// test things
+
+	// at this point, should not have written dataA and not have written dataB
+	rbuf, err := ioutil.ReadFile(fname)
+	if err != nil || !bytes.Equal(rbuf, dataA) {
+		t.Fatal("Data inconsistent! %v %v", err, string(rbuf))
+	}
+
+	if hasPublished() {
+		t.Fatal("published (wrote)")
+	}
+
+	<-time.After(shortRepublishTimeout * 11 / 10)
+
+	// at this point, should have written written dataB, but not published it
+	rbuf, err = ioutil.ReadFile(fname)
+	if err != nil || !bytes.Equal(rbuf, dataB) {
+		t.Fatal("Data inconsistent! %v %v", err, string(rbuf))
+	}
+
+	if hasPublished() {
+		t.Fatal("published (wrote)")
+	}
+
+	<-time.After(longRepublishTimeout * 11 / 10)
+
+	// at this point, should have written written dataB, and published it
+	rbuf, err = ioutil.ReadFile(fname)
+	if err != nil || !bytes.Equal(rbuf, dataB) {
+		t.Fatal("Data inconsistent! %v %v", err, string(rbuf))
+	}
+
+	if !hasPublished() {
+		t.Fatal("not published")
+	}
+
+	close(closed)
 }
 
 // Test writing a medium sized file one byte at a time

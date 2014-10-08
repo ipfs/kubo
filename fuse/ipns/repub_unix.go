@@ -22,28 +22,21 @@ func (np *Republisher) Run() {
 	for _ = range np.Publish {
 		quick := time.After(np.TimeoutShort)
 		longer := time.After(np.TimeoutLong)
-		for {
-			select {
-			case <-quick:
-				//Do the publish!
-				log.Info("Publishing Changes!")
-				err := np.node.republishRoot()
-				if err != nil {
-					log.Critical("republishRoot error: %s", err)
-				}
-				goto done
-			case <-longer:
-				//Do the publish!
-				log.Info("Publishing Changes!")
-				err := np.node.republishRoot()
-				if err != nil {
-					log.Critical("republishRoot error: %s", err)
-				}
-				goto done
-			case <-np.Publish:
-				quick = time.After(np.TimeoutShort)
-			}
+
+	wait:
+		select {
+		case <-quick:
+		case <-longer:
+		case <-np.Publish:
+			quick = time.After(np.TimeoutShort)
+			goto wait
 		}
-	done:
+
+		log.Info("Publishing Changes!")
+		err := np.node.republishRoot()
+		if err != nil {
+			log.Critical("republishRoot error: %s", err)
+		}
+
 	}
 }

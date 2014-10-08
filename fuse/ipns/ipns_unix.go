@@ -21,6 +21,11 @@ import (
 
 var log = u.Logger("ipns")
 
+var (
+	shortRepublishTimeout = time.Millisecond * 5
+	longRepublishTimeout  = time.Millisecond * 500
+)
+
 // FileSystem is the readwrite IPNS Fuse Filesystem.
 type FileSystem struct {
 	Ipfs     *core.IpfsNode
@@ -71,7 +76,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 		nd := new(Node)
 		nd.Ipfs = n
 		nd.key = k
-		nd.repub = NewRepublisher(nd, time.Millisecond*5, time.Millisecond*500)
+		nd.repub = NewRepublisher(nd, shortRepublishTimeout, longRepublishTimeout)
 
 		go nd.repub.Run()
 
