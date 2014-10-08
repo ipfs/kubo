@@ -216,7 +216,10 @@ func (s *Node) loadData() error {
 // Attr returns the attributes of a given node.
 func (s *Node) Attr() fuse.Attr {
 	if s.cached == nil {
-		s.loadData()
+		err := s.loadData()
+		if err != nil {
+			log.Error("Error loading PBData for file: '%s'", s.name)
+		}
 	}
 	switch s.cached.GetType() {
 	case ft.PBData_Directory:
@@ -259,6 +262,7 @@ func (n *Node) makeChild(name string, node *mdag.Node) *Node {
 		parent: n,
 	}
 
+	// Always ensure that each child knows where the root is
 	if n.nsRoot == nil {
 		child.nsRoot = n
 	} else {
@@ -305,7 +309,9 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 
 func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
 	log.Debug("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
+
 	if n.dagMod == nil {
+		// Create a DagModifier to allow us to change the existing dag node
 		dmod, err := dt.NewDagModifier(n.Nd, n.Ipfs.DAG, imp.DefaultSplitter)
 		if err != nil {
 			log.Error("Error creating dag modifier: %s", err)
@@ -324,6 +330,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 	log.Debug("Got flush request [%s]!", n.name)
 
+	// If a write has happened
 	if n.dagMod != nil {
 		newNode, err := n.dagMod.GetNode()
 		if err != nil {
@@ -364,6 +371,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 	return nil
 }
 
+// Signal that a node in this tree was changed so the root can republish
 func (n *Node) wasChanged() {
 	root := n.nsRoot
 	if root == nil {
@@ -375,6 +383,8 @@ func (n *Node) wasChanged() {
 
 func (n *Node) republishRoot() error {
 	log.Debug("Republish root")
+
+	// We should already be the root, this is just a sanity check
 	var root *Node
 	if n.nsRoot != nil {
 		root = n.nsRoot
@@ -392,7 +402,6 @@ func (n *Node) republishRoot() error {
 	ndkey, err := root.Nd.Key()
 	if err != nil {
 		log.Error("getKey error: %s", err)
-		// return fuse.ETHISREALLYSUCKS
 		return err
 	}
 	log.Debug("Publishing changes!")
@@ -432,8 +441,7 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 		err := n.parent.update(n.name, nnode)
 		if err != nil {
 			log.Critical("Error updating node: %s", err)
-			// Can we panic, please?
-			return nil, fuse.ENODATA
+			return nil, err
 		}
 	}
 	n.Nd = nnode
@@ -473,14 +481,14 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 	err := nnode.AddNodeLink(req.Name, nd)
 	if err != nil {
 		log.Error("Error adding child to node: %s", err)
-		return nil, nil, fuse.ENOENT
+		return nil, nil, err
 	}
 	if n.parent != nil {
 		err := n.parent.update(n.name, nnode)
 		if err != nil {
 			log.Critical("Error updating node: %s", err)
 			// Can we panic, please?
-			return nil, nil, fuse.ENODATA
+			return nil, nil, err
 		}
 	}
 	n.Nd = nnode
@@ -502,8 +510,7 @@ func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 		err := n.parent.update(n.name, nnode)
 		if err != nil {
 			log.Critical("Error updating node: %s", err)
-			// Can we panic, please?
-			return fuse.ENODATA
+			return err
 		}
 	}
 	n.Nd = nnode
@@ -530,15 +537,16 @@ func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fus
 		err := newDir.Nd.AddNodeLink(req.NewName, mdn)
 		if err != nil {
 			log.Error("Error adding node to new dir on rename: %s", err)
-			return fuse.ENOENT
+			return err
 		}
 	default:
 		log.Critical("Unknown node type for rename target dir!")
-		return fuse.ENOENT
+		return err
 	}
 	return nil
 }
 
+// Updates the child of this node, specified by name to the given newnode
 func (n *Node) update(name string, newnode *mdag.Node) error {
 	log.Debug("update '%s' in '%s'", name, n.name)
 	nnode := n.Nd.Copy()
