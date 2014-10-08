@@ -8,6 +8,10 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
+var ErrMalformedFileFormat = errors.New("malformed data in file format")
+var ErrInvalidDirLocation = errors.New("found directory node in unexpected place")
+var ErrUnrecognizedType = errors.New("unrecognized node type")
+
 func FromBytes(data []byte) (*PBData, error) {
 	pbdata := new(PBData)
 	err := proto.Unmarshal(data, pbdata)
@@ -26,12 +30,17 @@ func FilePBData(data []byte, totalsize uint64) []byte {
 
 	data, err := proto.Marshal(pbfile)
 	if err != nil {
-		//this really shouldnt happen, i promise
+		// This really shouldnt happen, i promise
+		// The only failure case for marshal is if required fields
+		// are not filled out, and they all are. If the proto object
+		// gets changed and nobody updates this function, the code
+		// should panic due to programmer error
 		panic(err)
 	}
 	return data
 }
 
+// Returns Bytes that represent a Directory
 func FolderPBData() []byte {
 	pbfile := new(PBData)
 	typ := PBData_Directory

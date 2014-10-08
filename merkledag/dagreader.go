@@ -20,6 +20,8 @@ type DagReader struct {
 	buf      *bytes.Buffer
 }
 
+// NewDagReader creates a new reader object that reads the data represented by the given
+// node, using the passed in DAGService for data retreival
 func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
 	pb := new(ft.PBData)
 	err := proto.Unmarshal(n.Data, pb)
@@ -29,6 +31,7 @@ func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
 
 	switch pb.GetType() {
 	case ft.PBData_Directory:
+		// Dont allow reading directories
 		return nil, ErrIsDir
 	case ft.PBData_File:
 		return &DagReader{
@@ -37,12 +40,15 @@ func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
 			buf:  bytes.NewBuffer(pb.GetData()),
 		}, nil
 	case ft.PBData_Raw:
+		// Raw block will just be a single level, return a byte buffer
 		return bytes.NewBuffer(pb.GetData()), nil
 	default:
-		panic("Unrecognized node type!")
+		return nil, ft.ErrUnrecognizedType
 	}
 }
 
+// Follows the next link in line and loads it from the DAGService,
+// setting the next buffer to read from
 func (dr *DagReader) precalcNextBuf() error {
 	if dr.position >= len(dr.node.Links) {
 		return io.EOF
@@ -65,7 +71,7 @@ func (dr *DagReader) precalcNextBuf() error {
 
 	switch pb.GetType() {
 	case ft.PBData_Directory:
-		panic("Why is there a directory under a file?")
+		return ft.ErrInvalidDirLocation
 	case ft.PBData_File:
 		//TODO: this *should* work, needs testing first
 		//return NewDagReader(nxt, dr.serv)
@@ -74,11 +80,12 @@ func (dr *DagReader) precalcNextBuf() error {
 		dr.buf = bytes.NewBuffer(pb.GetData())
 		return nil
 	default:
-		panic("Unrecognized node type!")
+		return ft.ErrUnrecognizedType
 	}
 }
 
 func (dr *DagReader) Read(b []byte) (int, error) {
+	// If no cached buffer, load one
 	if dr.buf == nil {
 		err := dr.precalcNextBuf()
 		if err != nil {
@@ -87,16 +94,22 @@ func (dr *DagReader) Read(b []byte) (int, error) {
 	}
 	total := 0
 	for {
+		// Attempt to fill bytes from cached buffer
 		n, err := dr.buf.Read(b[total:])
 		total += n
 		if err != nil {
+			// EOF is expected
 			if err != io.EOF {
 				return total, err
 			}
 		}
+
+		// If weve read enough bytes, return
 		if total == len(b) {
 			return total, nil
 		}
+
+		// Otherwise, load up the next block
 		err = dr.precalcNextBuf()
 		if err != nil {
 			return total, err

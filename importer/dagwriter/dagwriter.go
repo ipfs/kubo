@@ -29,14 +29,23 @@ func NewDagWriter(ds *dag.DAGService, splitter imp.BlockSplitter) *DagWriter {
 	return dw
 }
 
+// startSplitter manages splitting incoming bytes and
+// creating dag nodes from them. Created nodes are stored
+// in the DAGService and then released to the GC.
 func (dw *DagWriter) startSplitter() {
+
+	// Since the splitter functions take a reader (and should!)
+	// we wrap our byte chan input in a reader
 	r := util.NewByteChanReader(dw.splChan)
 	blkchan := dw.splitter.Split(r)
+
+	// First data block is reserved for storage in the root node
 	first := <-blkchan
 	mbf := new(ft.MultiBlock)
 	root := new(dag.Node)
 
 	for blkData := range blkchan {
+		// Store the block size in the root node
 		mbf.AddBlockSize(uint64(len(blkData)))
 		node := &dag.Node{Data: ft.WrapData(blkData)}
 		_, err := dw.dagserv.Add(node)
@@ -45,6 +54,8 @@ func (dw *DagWriter) startSplitter() {
 			log.Critical("Got error adding created node to dagservice: %s", err)
 			return
 		}
+
+		// Add a link to this node without storing a reference to the memory
 		err = root.AddNodeLinkClean("", node)
 		if err != nil {
 			dw.seterr = err
@@ -52,6 +63,8 @@ func (dw *DagWriter) startSplitter() {
 			return
 		}
 	}
+
+	// Generate the root node data
 	mbf.Data = first
 	data, err := mbf.GetBytes()
 	if err != nil {
@@ -61,6 +74,7 @@ func (dw *DagWriter) startSplitter() {
 	}
 	root.Data = data
 
+	// Add root node to the dagservice
 	_, err = dw.dagserv.Add(root)
 	if err != nil {
 		dw.seterr = err
@@ -79,6 +93,9 @@ func (dw *DagWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// Close the splitters input channel and wait for it to finish
+// Must be called to finish up splitting, otherwise split method
+// will never halt
 func (dw *DagWriter) Close() error {
 	close(dw.splChan)
 	<-dw.done

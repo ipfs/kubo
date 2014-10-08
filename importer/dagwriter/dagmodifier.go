@@ -87,18 +87,16 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 				if err != nil {
 					return 0, err
 				}
+
+				// We have to rewrite the data before our write in this block.
 				b = append(data[:offset-traversed], b...)
 				break
 			}
 			traversed += size
 		}
 		if startsubblk == len(dm.pbdata.Blocksizes) {
-			// TODO: something?
-			/*
-				if traversed < offset {
-					return 0, errors.New("Tried to start write outside bounds of file.")
-				}
-			*/
+			// TODO: Im not sure if theres any case that isnt being handled here.
+			// leaving this note here as a future reference in case something breaks
 		}
 	}
 
@@ -157,7 +155,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		sizes = append(sizes, uint64(len(sb)))
 	}
 
-	// This is disgusting
+	// This is disgusting (and can be rewritten if performance demands)
 	if len(changed) > 0 {
 		sechalflink := append(links, dm.curNode.Links[changed[len(changed)-1]+1:]...)
 		dm.curNode.Links = append(dm.curNode.Links[:changed[0]], sechalflink...)
@@ -172,6 +170,8 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 	return origlen, nil
 }
 
+// splitBytes uses a splitterFunc to turn a large array of bytes
+// into many smaller arrays of bytes
 func splitBytes(b []byte, spl imp.BlockSplitter) [][]byte {
 	out := spl.Split(bytes.NewReader(b))
 	var arr [][]byte
@@ -181,6 +181,7 @@ func splitBytes(b []byte, spl imp.BlockSplitter) [][]byte {
 	return arr
 }
 
+// GetNode gets the modified DAG Node
 func (dm *DagModifier) GetNode() (*mdag.Node, error) {
 	b, err := proto.Marshal(dm.pbdata)
 	if err != nil {
