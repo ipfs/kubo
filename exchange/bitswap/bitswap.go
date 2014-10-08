@@ -134,7 +134,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bs
 
 	for _, block := range incoming.Blocks() {
 		// TODO verify blocks?
-		if err := bs.blockstore.Put(block); err != nil {
+		if err := bs.blockstore.Put(&block); err != nil {
 			continue // FIXME(brian): err ignored
 		}
 		go bs.notifications.Publish(block)

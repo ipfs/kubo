@@ -67,7 +67,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	hasBlock := g.Next()
 
-	if err := hasBlock.blockstore.Put(*block); err != nil {
+	if err := hasBlock.blockstore.Put(block); err != nil {
 		t.Fatal(err)
 	}
 	if err := hasBlock.exchange.HasBlock(context.Background(), *block); err != nil {
@@ -106,7 +106,7 @@ func TestSwarm(t *testing.T) {
 
 	first := instances[0]
 	for _, b := range blocks {
-		first.blockstore.Put(*b)
+		first.blockstore.Put(b)
 		first.exchange.HasBlock(context.Background(), *b)
 		rs.Announce(first.peer, b.Key())
 	}
@@ -177,7 +177,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	beta := bg.Next()
 	t.Logf("Peer %v announes availability  of %v\n", w.peer, beta.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := w.blockstore.Put(beta); err != nil {
+	if err := w.blockstore.Put(&beta); err != nil {
 		t.Fatal(err)
 	}
 	w.exchange.HasBlock(ctx, beta)
@@ -190,7 +190,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	t.Logf("%v announces availability of %v\n", o.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := o.blockstore.Put(alpha); err != nil {
+	if err := o.blockstore.Put(&alpha); err != nil {
 		t.Fatal(err)
 	}
 	o.exchange.HasBlock(ctx, alpha)
