@@ -55,14 +55,34 @@ func (k Key) Pretty() string {
 
 // DsKey returns a Datastore key
 func (k Key) DsKey() ds.Key {
-	return ds.NewKey(k.Pretty())
+	return ds.NewKey(string(k))
 }
 
 // KeyFromDsKey returns a Datastore key
 func KeyFromDsKey(dsk ds.Key) Key {
-	l := dsk.List()
-	enc := l[len(l)-1]
-	return Key(b58.Decode(enc))
+	return Key(dsk.BaseNamespace())
+}
+
+// DsKeyB58Encode returns a B58 encoded Datastore key
+// TODO: this is hacky because it encodes every path component. some
+// path components may be proper strings already...
+func DsKeyB58Encode(dsk ds.Key) ds.Key {
+	k := ds.NewKey("/")
+	for _, n := range dsk.Namespaces() {
+		k = k.Child(b58.Encode([]byte(n)))
+	}
+	return k
+}
+
+// DsKeyB58Decode returns a b58 decoded Datastore key
+// TODO: this is hacky because it encodes every path component. some
+// path components may be proper strings already...
+func DsKeyB58Decode(dsk ds.Key) ds.Key {
+	k := ds.NewKey("/")
+	for _, n := range dsk.Namespaces() {
+		k = k.Child(string(b58.Decode(n)))
+	}
+	return k
 }
 
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
@@ -134,13 +154,14 @@ func SetupLogging() {
 	logging.SetBackend(backend)
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	/*
-		if Debug {
-			logging.SetLevel(logging.DEBUG, "")
-		} else {
-			logging.SetLevel(logging.ERROR, "")
-		}
-	*/
+	// just uncomment Debug = True right here for all logging.
+	// but please don't commit that.
+	// Debug = True
+	if Debug {
+		logging.SetLevel(logging.DEBUG, "")
+	} else {
+		logging.SetLevel(logging.ERROR, "")
+	}
 
 	for n, log := range loggers {
 		logging.SetLevel(logging.ERROR, n)
