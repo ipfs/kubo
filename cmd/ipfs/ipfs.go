@@ -80,7 +80,7 @@ func main() {
 	u.Debug = false
 
 	// setup logging
-	u.SetupLogging()
+	// u.SetupLogging() done in an init() block now.
 
 	// if debugging, setup profiling.
 	if u.Debug {

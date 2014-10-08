@@ -17,8 +17,12 @@ import (
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
+func init() {
+	SetupLogging()
+}
+
 // LogFormat is the format used for our logger.
-var LogFormat = "%{color}%{time:01-02 15:04:05.9999} %{shortfile} %{level}: %{color:reset}%{message}"
+var LogFormat = "%{color}%{time:2006-01-02 15:04:05.999999} %{shortfile} %{level}: %{color:reset}%{message}"
 
 // Debug is a global flag for debugging.
 var Debug bool
@@ -122,12 +126,14 @@ func DOut(format string, a ...interface{}) {
 	}
 }
 
-var loggers = []string{}
+var loggers = map[string]*logging.Logger{}
 
 // SetupLogging will initialize the logger backend and set the flags.
 func SetupLogging() {
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	logging.SetBackend(backend)
+	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
+
 	/*
 		if Debug {
 			logging.SetLevel(logging.DEBUG, "")
@@ -135,10 +141,10 @@ func SetupLogging() {
 			logging.SetLevel(logging.ERROR, "")
 		}
 	*/
-	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	for _, n := range loggers {
+	for n, log := range loggers {
 		logging.SetLevel(logging.ERROR, n)
+		log.Error("setting logger: %s to %v\n", n, logging.ERROR)
 	}
 }
 
@@ -146,7 +152,7 @@ func SetupLogging() {
 func Logger(name string) *logging.Logger {
 	log := logging.MustGetLogger(name)
 	// logging.SetLevel(lvl, name) // can't set level here.
-	loggers = append(loggers, name)
+	loggers[name] = log
 	return log
 }
 
