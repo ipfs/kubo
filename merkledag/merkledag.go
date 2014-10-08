@@ -138,31 +138,6 @@ func (n *Node) Key() (u.Key, error) {
 	return u.Key(h), err
 }
 
-// Recursively update all hash links and size values in the tree
-func (n *Node) Update() error {
-	log.Debug("node update")
-	for _, l := range n.Links {
-		if l.Node != nil {
-			err := l.Node.Update()
-			if err != nil {
-				return err
-			}
-			nhash, err := l.Node.Multihash()
-			if err != nil {
-				return err
-			}
-			l.Hash = nhash
-			size, err := l.Node.Size()
-			if err != nil {
-				return err
-			}
-			l.Size = size
-		}
-	}
-	_, err := n.Encoded(true)
-	return err
-}
-
 // DAGService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService

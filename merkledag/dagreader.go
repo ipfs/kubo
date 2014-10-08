@@ -26,6 +26,7 @@ func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	switch pb.GetType() {
 	case ft.PBData_Directory:
 		return nil, ErrIsDir
