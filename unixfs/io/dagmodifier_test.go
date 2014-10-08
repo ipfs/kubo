@@ -146,6 +146,47 @@ func TestDagModifierBasic(t *testing.T) {
 	}
 }
 
+func TestMultiWrite(t *testing.T) {
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
+
+	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := make([]byte, 4000)
+	u.NewFastRand().Read(data)
+
+	for i := 0; i < len(data); i++ {
+		n, err := dagmod.WriteAt(data[i:i+1], uint64(i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("Somehow wrote the wrong number of bytes! (n != 1)")
+		}
+	}
+	nd, err := dagmod.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	read, err := NewDagReader(nd, dserv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rbuf, err := ioutil.ReadAll(read)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(rbuf, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func arrComp(a, b []byte) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))
