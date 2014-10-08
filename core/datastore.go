@@ -5,9 +5,12 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	fsds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/fs"
+	ktds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/keytransform"
 	lds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/leveldb"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/sync"
+
 	config "github.com/jbenet/go-ipfs/config"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
@@ -28,7 +31,8 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
 		if err != nil {
 			return nil, err
 		}
-		return syncds.MutexWrap(d), nil
+		ktd := ktds.WrapDatastore(d, u.DsKeyB58Encode)
+		return syncds.MutexWrap(ktd), nil
 	}
 
 	return nil, fmt.Errorf("Unknown datastore type: %s", cfg.Type)
