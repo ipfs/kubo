@@ -137,6 +137,7 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, e
 	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// check if we have this value, to add ourselves as provider.
+	log.Debug("handling GetProviders: '%s'", pmes.GetKey())
 	dsk := u.Key(pmes.GetKey()).DsKey()
 	has, err := dht.datastore.Has(dsk)
 	if err != nil && err != ds.ErrNotFound {

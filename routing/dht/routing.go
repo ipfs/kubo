@@ -192,6 +192,7 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer,
 	log.Debug("Find providers for: '%s'", key)
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
+		log.Warning("Got no nearest peer for find providers: '%s'", key)
 		return nil, nil
 	}
 
