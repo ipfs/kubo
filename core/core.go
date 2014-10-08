@@ -63,10 +63,7 @@ type IpfsNode struct {
 	Resolver *path.Resolver
 
 	// the name system, resolves paths to hashes
-	Namesys namesys.Resolver
-
-	// the routing publisher
-	Publisher namesys.Publisher
+	Namesys namesys.NameSystem
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -148,8 +145,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}
 
 	dag := &merkledag.DAGService{Blocks: bs}
-	resolve := namesys.NewMasterResolver(route, dag)
-	publisher := namesys.NewPublisher(dag, route)
+	ns := namesys.NewNameSystem(route)
 
 	success = true
 	return &IpfsNode{
@@ -162,8 +158,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Exchange:  exchangeSession,
 		Identity:  local,
 		Routing:   route,
-		Namesys:   resolve,
-		Publisher: publisher,
+		Namesys:   ns,
 	}, nil
 }
 

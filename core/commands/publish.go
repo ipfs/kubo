@@ -19,7 +19,7 @@ func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 
 	k := n.Identity.PrivKey
 
-	pub := nsys.NewPublisher(n.DAG, n.Routing)
+	pub := nsys.NewRoutingPublisher(n.Routing)
 	err := pub.Publish(k, args[0])
 	if err != nil {
 		return err

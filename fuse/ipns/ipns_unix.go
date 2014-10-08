@@ -397,7 +397,7 @@ func (n *Node) republishRoot() error {
 	}
 	log.Debug("Publishing changes!")
 
-	err = n.Ipfs.Publisher.Publish(root.key, ndkey.Pretty())
+	err = n.Ipfs.Namesys.Publish(root.key, ndkey.Pretty())
 	if err != nil {
 		log.Error("ipns: Publish Failed: %s", err)
 		return err

@@ -8,13 +8,15 @@ import (
 
 type ProquintResolver struct{}
 
-func (r *ProquintResolver) Matches(name string) bool {
+// CanResolve implements Resolver. Checks whether the name is a proquint string.
+func (r *ProquintResolver) CanResolve(name string) bool {
 	ok, err := proquint.IsProquint(name)
 	return err == nil && ok
 }
 
+// Resolve implements Resolver. Decodes the proquint string.
 func (r *ProquintResolver) Resolve(name string) (string, error) {
-	ok := r.Matches(name)
+	ok := r.CanResolve(name)
 	if !ok {
 		return "", errors.New("not a valid proquint string")
 	}

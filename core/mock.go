@@ -43,10 +43,7 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.DAG = &mdag.DAGService{bserv}
 
 	// Namespace resolver
-	nd.Namesys = nsys.NewMasterResolver(dht, nd.DAG)
-
-	// Publisher
-	nd.Publisher = nsys.NewPublisher(nd.DAG, dht)
+	nd.Namesys = nsys.NewNameSystem(dht)
 
 	// Path resolver
 	nd.Resolver = &path.Resolver{nd.DAG}

@@ -7,32 +7,26 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// ipnsPublisher is capable of publishing and resolving names to the IPFS
+// routing system.
 type ipnsPublisher struct {
-	dag     *mdag.DAGService
 	routing routing.IpfsRouting
 }
 
-type Publisher interface {
-	Publish(ci.PrivKey, string) error
+// NewRoutingPublisher constructs a publisher for the IPFS Routing name system.
+func NewRoutingPublisher(route routing.IpfsRouting) Publisher {
+	return &ipnsPublisher{routing: route}
 }
 
-func NewPublisher(dag *mdag.DAGService, route routing.IpfsRouting) Publisher {
-	return &ipnsPublisher{
-		dag:     dag,
-		routing: route,
-	}
-}
-
-// Publish accepts a keypair and a value,
+// Publish implements Publisher. Accepts a keypair and a value,
 func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 	log.Debug("namesys: Publish %s", value)
 	ctx := context.TODO()
-	data, err := CreateEntryData(k, value)
+	data, err := createRoutingEntryData(k, value)
 	if err != nil {
 		return err
 	}
@@ -63,7 +57,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 	return nil
 }
 
-func CreateEntryData(pk ci.PrivKey, val string) ([]byte, error) {
+func createRoutingEntryData(pk ci.PrivKey, val string) ([]byte, error) {
 	entry := new(IpnsEntry)
 	sig, err := pk.Sign([]byte(val))
 	if err != nil {

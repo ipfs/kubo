@@ -8,32 +8,32 @@ import (
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/routing"
+	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 var log = u.Logger("namesys")
 
-// RoutingResolver implements NSResolver for the main IPFS SFS-like naming
-type RoutingResolver struct {
+// routingResolver implements NSResolver for the main IPFS SFS-like naming
+type routingResolver struct {
 	routing routing.IpfsRouting
-	dag     *mdag.DAGService
 }
 
-func NewRoutingResolver(route routing.IpfsRouting, dagservice *mdag.DAGService) *RoutingResolver {
-	return &RoutingResolver{
-		routing: route,
-		dag:     dagservice,
-	}
+// NewRoutingResolver constructs a name resolver using the IPFS Routing system
+// to implement SFS-like naming on top.
+func NewRoutingResolver(route routing.IpfsRouting) Resolver {
+	return &routingResolver{routing: route}
 }
 
-func (r *RoutingResolver) Matches(name string) bool {
+// CanResolve implements Resolver. Checks whether name is a b58 encoded string.
+func (r *routingResolver) CanResolve(name string) bool {
 	_, err := mh.FromB58String(name)
 	return err == nil
 }
 
-func (r *RoutingResolver) Resolve(name string) (string, error) {
+// Resolve implements Resolver. Uses the IPFS routing system to resolve SFS-like
+// names.
+func (r *routingResolver) Resolve(name string) (string, error) {
 	log.Debug("RoutingResolve: '%s'", name)
 	ctx := context.TODO()
 	hash, err := mh.FromB58String(name)

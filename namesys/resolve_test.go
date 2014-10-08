@@ -4,9 +4,7 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	bs "github.com/jbenet/go-ipfs/blockservice"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/peer"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
@@ -19,26 +17,15 @@ func TestRoutingResolve(t *testing.T) {
 	lds := ds.NewMapDatastore()
 	d := mock.NewMockRouter(local, lds)
 
-	bserv, err := bs.NewBlockService(lds, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dag := &mdag.DAGService{Blocks: bserv}
-
-	resolve := NewMasterResolver(d, dag)
-
-	pub := ipnsPublisher{
-		dag:     dag,
-		routing: d,
-	}
+	resolver := NewRoutingResolver(d)
+	publisher := NewRoutingPublisher(d)
 
 	privk, pubk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = pub.Publish(privk, "Hello")
+	err = publisher.Publish(privk, "Hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +36,7 @@ func TestRoutingResolve(t *testing.T) {
 	}
 
 	pkhash := u.Hash(pubkb)
-	res, err := resolve.Resolve(u.Key(pkhash).Pretty())
+	res, err := resolver.Resolve(u.Key(pkhash).Pretty())
 	if err != nil {
 		t.Fatal(err)
 	}
