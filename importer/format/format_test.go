@@ -3,7 +3,7 @@ package format
 import (
 	"testing"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 func TestMultiBlock(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	imp "github.com/jbenet/go-ipfs/importer"
 	ft "github.com/jbenet/go-ipfs/importer/format"

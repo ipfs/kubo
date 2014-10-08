@@ -5,7 +5,7 @@ package format
 import (
 	"errors"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 func FromBytes(data []byte) (*PBData, error) {
