@@ -26,7 +26,7 @@ func TestPutThenGetBlock(t *testing.T) {
 	bs := NewBlockstore(ds.NewMapDatastore())
 	block := blocks.NewBlock([]byte("some data"))
 
-	err := bs.Put(*block)
+	err := bs.Put(block)
 	if err != nil {
 		t.Fatal(err)
 	}
