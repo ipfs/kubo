@@ -19,8 +19,9 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	core "github.com/jbenet/go-ipfs/core"
-	ft "github.com/jbenet/go-ipfs/importer/format"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -79,7 +80,7 @@ func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
-	fd     *mdag.DagReader
+	fd     *uio.DagReader
 	cached *ft.PBData
 }
 
@@ -143,7 +144,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	u.DOut("Read node.\n")
-	r, err := mdag.NewDagReader(s.Nd, s.Ipfs.DAG)
+	r, err := uio.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package ipns
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,10 +13,10 @@ import (
 
 	"github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	imp "github.com/jbenet/go-ipfs/importer"
-	dt "github.com/jbenet/go-ipfs/importer/dagwriter"
-	ft "github.com/jbenet/go-ipfs/importer/format"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -204,7 +205,7 @@ type Node struct {
 
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
-	dagMod *dt.DagModifier
+	dagMod *uio.DagModifier
 	cached *ft.PBData
 }
 
@@ -293,7 +294,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	log.Debug("ipns: ReadAll [%s]", s.name)
-	r, err := mdag.NewDagReader(s.Nd, s.Ipfs.DAG)
+	r, err := uio.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +313,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 
 	if n.dagMod == nil {
 		// Create a DagModifier to allow us to change the existing dag node
-		dmod, err := dt.NewDagModifier(n.Nd, n.Ipfs.DAG, imp.DefaultSplitter)
+		dmod, err := uio.NewDagModifier(n.Nd, n.Ipfs.DAG, chunk.DefaultSplitter)
 		if err != nil {
 			log.Error("Error creating dag modifier: %s", err)
 			return err
@@ -541,7 +542,7 @@ func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fus
 		}
 	default:
 		log.Critical("Unknown node type for rename target dir!")
-		return err
+		return errors.New("Unknown fs node type!")
 	}
 	return nil
 }

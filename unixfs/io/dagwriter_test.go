@@ -1,4 +1,4 @@
-package dagwriter
+package io
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	bs "github.com/jbenet/go-ipfs/blockservice"
-	imp "github.com/jbenet/go-ipfs/importer"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -54,7 +54,7 @@ func TestDagWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	dag := &mdag.DAGService{bserv}
-	dw := NewDagWriter(dag, &imp.SizeSplitter{4096})
+	dw := NewDagWriter(dag, &chunk.SizeSplitter{4096})
 
 	nbytes := int64(1024 * 1024 * 2)
 	n, err := io.CopyN(dw, &datasource{}, nbytes)
@@ -69,7 +69,7 @@ func TestDagWriter(t *testing.T) {
 	dw.Close()
 
 	node := dw.GetNode()
-	read, err := mdag.NewDagReader(node, dag)
+	read, err := NewDagReader(node, dag)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestMassiveWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	dag := &mdag.DAGService{bserv}
-	dw := NewDagWriter(dag, &imp.SizeSplitter{4096})
+	dw := NewDagWriter(dag, &chunk.SizeSplitter{4096})
 
 	nbytes := int64(1024 * 1024 * 1024 * 16)
 	n, err := io.CopyN(dw, &datasource{}, nbytes)
@@ -113,7 +113,7 @@ func BenchmarkDagWriter(b *testing.B) {
 	nbytes := int64(100000)
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(nbytes)
-		dw := NewDagWriter(dag, &imp.SizeSplitter{4096})
+		dw := NewDagWriter(dag, &chunk.SizeSplitter{4096})
 		n, err := io.CopyN(dw, &datasource{}, nbytes)
 		if err != nil {
 			b.Fatal(err)

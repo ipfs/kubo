@@ -1,6 +1,14 @@
-package importer
+package chunk
 
-import "io"
+import (
+	"io"
+
+	"github.com/jbenet/go-ipfs/util"
+)
+
+var log = util.Logger("chunk")
+
+var DefaultSplitter = &SizeSplitter{1024 * 512}
 
 type BlockSplitter interface {
 	Split(r io.Reader) chan []byte

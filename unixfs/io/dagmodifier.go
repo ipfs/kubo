@@ -1,4 +1,4 @@
-package dagwriter
+package io
 
 import (
 	"bytes"
@@ -6,9 +6,9 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	imp "github.com/jbenet/go-ipfs/importer"
-	ft "github.com/jbenet/go-ipfs/importer/format"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -20,10 +20,10 @@ type DagModifier struct {
 	curNode *mdag.Node
 
 	pbdata   *ft.PBData
-	splitter imp.BlockSplitter
+	splitter chunk.BlockSplitter
 }
 
-func NewDagModifier(from *mdag.Node, serv *mdag.DAGService, spl imp.BlockSplitter) (*DagModifier, error) {
+func NewDagModifier(from *mdag.Node, serv *mdag.DAGService, spl chunk.BlockSplitter) (*DagModifier, error) {
 	pbd, err := ft.FromBytes(from.Data)
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 
 // splitBytes uses a splitterFunc to turn a large array of bytes
 // into many smaller arrays of bytes
-func splitBytes(b []byte, spl imp.BlockSplitter) [][]byte {
+func splitBytes(b []byte, spl chunk.BlockSplitter) [][]byte {
 	out := spl.Split(bytes.NewReader(b))
 	var arr [][]byte
 	for blk := range out {

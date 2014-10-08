@@ -10,8 +10,8 @@ import (
 
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
-	ft "github.com/jbenet/go-ipfs/importer/format"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

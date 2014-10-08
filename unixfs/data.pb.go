@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package format is a generated protocol buffer package.
+Package unixfs is a generated protocol buffer package.
 
 It is generated from these files:
 	data.proto
@@ -11,9 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	PBData
 */
-package format
+package unixfs
 
-import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+import proto "code.google.com/p/goprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -57,7 +57,7 @@ func (x *PBData_DataType) UnmarshalJSON(data []byte) error {
 }
 
 type PBData struct {
-	Type             *PBData_DataType `protobuf:"varint,1,req,enum=format.PBData_DataType" json:"Type,omitempty"`
+	Type             *PBData_DataType `protobuf:"varint,1,req,enum=unixfs.PBData_DataType" json:"Type,omitempty"`
 	Data             []byte           `protobuf:"bytes,2,opt" json:"Data,omitempty"`
 	Filesize         *uint64          `protobuf:"varint,3,opt,name=filesize" json:"filesize,omitempty"`
 	Blocksizes       []uint64         `protobuf:"varint,4,rep,name=blocksizes" json:"blocksizes,omitempty"`
@@ -97,5 +97,5 @@ func (m *PBData) GetBlocksizes() []uint64 {
 }
 
 func init() {
-	proto.RegisterEnum("format.PBData_DataType", PBData_DataType_name, PBData_DataType_value)
+	proto.RegisterEnum("unixfs.PBData_DataType", PBData_DataType_name, PBData_DataType_value)
 }

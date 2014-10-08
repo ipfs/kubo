@@ -1,4 +1,4 @@
-package merkledag
+package io
 
 import (
 	"bytes"
@@ -6,7 +6,8 @@ import (
 	"io"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	ft "github.com/jbenet/go-ipfs/importer/format"
+	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -14,15 +15,15 @@ var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv     *DAGService
-	node     *Node
+	serv     *mdag.DAGService
+	node     *mdag.Node
 	position int
 	buf      *bytes.Buffer
 }
 
 // NewDagReader creates a new reader object that reads the data represented by the given
 // node, using the passed in DAGService for data retreival
-func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
+func NewDagReader(n *mdag.Node, serv *mdag.DAGService) (io.Reader, error) {
 	pb := new(ft.PBData)
 	err := proto.Unmarshal(n.Data, pb)
 	if err != nil {

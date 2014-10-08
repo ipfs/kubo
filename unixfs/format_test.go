@@ -1,4 +1,4 @@
-package format
+package unixfs
 
 import (
 	"testing"

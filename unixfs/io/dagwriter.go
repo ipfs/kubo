@@ -1,9 +1,9 @@
-package dagwriter
+package io
 
 import (
-	imp "github.com/jbenet/go-ipfs/importer"
-	ft "github.com/jbenet/go-ipfs/importer/format"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	"github.com/jbenet/go-ipfs/util"
 )
 
@@ -15,11 +15,11 @@ type DagWriter struct {
 	totalSize int64
 	splChan   chan []byte
 	done      chan struct{}
-	splitter  imp.BlockSplitter
+	splitter  chunk.BlockSplitter
 	seterr    error
 }
 
-func NewDagWriter(ds *dag.DAGService, splitter imp.BlockSplitter) *DagWriter {
+func NewDagWriter(ds *dag.DAGService, splitter chunk.BlockSplitter) *DagWriter {
 	dw := new(DagWriter)
 	dw.dagserv = ds
 	dw.splChan = make(chan []byte, 8)

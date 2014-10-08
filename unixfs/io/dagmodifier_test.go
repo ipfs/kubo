@@ -1,4 +1,4 @@
-package dagwriter
+package io
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 	bs "github.com/jbenet/go-ipfs/blockservice"
-	imp "github.com/jbenet/go-ipfs/importer"
-	ft "github.com/jbenet/go-ipfs/importer/format"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -26,7 +26,7 @@ func getMockDagServ(t *testing.T) *mdag.DAGService {
 }
 
 func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	dw := NewDagWriter(dserv, &imp.SizeSplitter{500})
+	dw := NewDagWriter(dserv, &chunk.SizeSplitter{500})
 
 	n, err := io.CopyN(dw, u.NewFastRand(), size)
 	if err != nil {
@@ -39,7 +39,7 @@ func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.No
 	dw.Close()
 	node := dw.GetNode()
 
-	dr, err := mdag.NewDagReader(node, dserv)
+	dr, err := NewDagReader(node, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 		t.Fatal(err)
 	}
 
-	rd, err := mdag.NewDagReader(nd, dm.dagserv)
+	rd, err := NewDagReader(nd, dm.dagserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestDagModifierBasic(t *testing.T) {
 	dserv := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000)
 
-	dagmod, err := NewDagModifier(n, dserv, &imp.SizeSplitter{512})
+	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
 	if err != nil {
 		t.Fatal(err)
 	}
