@@ -39,7 +39,11 @@ var ErrNotFound = ds.ErrNotFound
 // Key is a string representation of multihash for use with maps.
 type Key string
 
-// Pretty returns Key in a b58 encoded string
+// String returns Key in a b58 encoded string
+func (k Key) String() string {
+	return b58.Encode([]byte(k))
+}
+
 func (k Key) Pretty() string {
 	return b58.Encode([]byte(k))
 }

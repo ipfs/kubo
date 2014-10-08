@@ -175,7 +175,7 @@ type DAGService struct {
 // Add adds a node to the DAGService, storing the block in the BlockService
 func (n *DAGService) Add(nd *Node) (u.Key, error) {
 	k, _ := nd.Key()
-	log.Debug("DagService Add [%s]\n", k.Pretty())
+	log.Debug("DagService Add [%s]", k)
 	if n == nil {
 		return "", fmt.Errorf("DAGService is nil")
 	}
