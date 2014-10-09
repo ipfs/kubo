@@ -29,6 +29,8 @@ const (
   `
 )
 
+var log = u.Logger("updates")
+
 var currentVersion *semver.Version
 
 func init() {
@@ -44,7 +46,7 @@ func CheckForUpdates() error {
 	resp, err := http.Get(EndpointURLLatestReleases)
 	if err != nil {
 		// can't reach the endpoint, coud be firewall, or no internet connection or something else
-		// will just silently move on
+		log.Error("update check: error connecting to API endpoint for newer versions: %v", err)
 		return nil
 	}
 	var body interface{}
@@ -53,7 +55,7 @@ func CheckForUpdates() error {
 	if !ok {
 		// the response body does not seem to meet specified Github API format
 		// https://developer.github.com/v3/repos/#list-tags
-		// will just silently move on
+		log.Error("update check: API endpoint for newer versions does not seem to be in Github API specified format")
 		return nil
 	}
 	for _, r := range releases {
