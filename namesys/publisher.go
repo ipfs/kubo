@@ -1,10 +1,12 @@
 package namesys
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -25,6 +27,13 @@ func NewRoutingPublisher(route routing.IpfsRouting) Publisher {
 // Publish implements Publisher. Accepts a keypair and a value,
 func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 	log.Debug("namesys: Publish %s", value)
+
+	// validate `value` is a ref (multihash)
+	_, err := mh.FromB58String(value)
+	if err != nil {
+		return fmt.Errorf("publish value must be str multihash. %v", err)
+	}
+
 	ctx := context.TODO()
 	data, err := createRoutingEntryData(k, value)
 	if err != nil {

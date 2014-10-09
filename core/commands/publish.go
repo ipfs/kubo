@@ -13,14 +13,32 @@ import (
 
 func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
 	log.Debug("Begin Publish")
+
 	if n.Identity == nil {
 		return errors.New("Identity not loaded!")
 	}
 
+	// name := ""
+	ref := ""
+
+	switch len(args) {
+	case 2:
+		// name = args[0]
+		ref = args[1]
+		return errors.New("keychains not yet implemented")
+	case 1:
+		// name = n.Identity.ID.String()
+		ref = args[0]
+
+	default:
+		return fmt.Errorf("Publish expects 1 or 2 args; got %d.", len(args))
+	}
+
+	// later, n.Keychain.Get(name).PrivKey
 	k := n.Identity.PrivKey
 
 	pub := nsys.NewRoutingPublisher(n.Routing)
-	err := pub.Publish(k, args[0])
+	err := pub.Publish(k, ref)
 	if err != nil {
 		return err
 	}
@@ -29,7 +47,7 @@ func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "published mapping %s to %s\n", u.Key(hash), args[0])
+	fmt.Fprintf(out, "published name %s to %s\n", u.Key(hash), ref)
 
 	return nil
 }
