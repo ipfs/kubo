@@ -9,7 +9,6 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -167,6 +166,7 @@ func TestSimultMuxer(t *testing.T) {
 				}
 
 				// log.Debug("got %v", string(data))
+				_ = data
 				counts[pid][1][1]++
 
 			case <-ctx.Done():
@@ -181,6 +181,7 @@ func TestSimultMuxer(t *testing.T) {
 			case m := <-mux1.Protocols[pid].GetPipe().Incoming:
 				counts[pid][0][1]++
 				// log.Debug("got %v", string(m.Data()))
+				_ = m
 			case <-ctx.Done():
 				return
 			}
