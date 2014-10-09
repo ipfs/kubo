@@ -201,5 +201,15 @@ func (s *Swarm) GetErrChan() chan error {
 	return s.errChan
 }
 
+func (s *Swarm) GetPeerList() []*peer.Peer {
+	var out []*peer.Peer
+	s.connsLock.Lock()
+	for _, p := range s.conns {
+		out = append(out, p.Peer)
+	}
+	s.connsLock.Unlock()
+	return out
+}
+
 // Temporary to ensure that the Swarm always matches the Network interface as we are changing it
 // var _ Network = &Swarm{}

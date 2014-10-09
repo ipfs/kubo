@@ -13,6 +13,7 @@ import (
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
@@ -64,6 +65,9 @@ type IpfsNode struct {
 
 	// the name system, resolves paths to hashes
 	Namesys namesys.NameSystem
+
+	// the diagnostics service
+	Diagnostics *diag.Diagnostics
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -103,12 +107,14 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
 		route           *dht.IpfsDHT
 		exchangeSession exchange.Interface
+		diagnostics     *diag.Diagnostics
 	)
 
 	if online {
 
 		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
 		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
+		diagService := netservice.NewService(nil)
 
 		if err := dhtService.Start(ctx); err != nil {
 			return nil, err
@@ -118,13 +124,17 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		}
 
 		net, err = inet.NewIpfsNetwork(context.TODO(), local, peerstore, &mux.ProtocolMap{
-			mux.ProtocolID_Routing:  dhtService,
-			mux.ProtocolID_Exchange: exchangeService,
+			mux.ProtocolID_Routing:    dhtService,
+			mux.ProtocolID_Exchange:   exchangeService,
+			mux.ProtocolID_Diagnostic: diagService,
 			// add protocol services here.
 		})
 		if err != nil {
 			return nil, err
 		}
+
+		diagnostics = diag.NewDiagnostics(local, net, diagService)
+		diagService.Handler = diagnostics
 
 		route = dht.NewDHT(local, peerstore, net, dhtService, d)
 		// TODO(brian): perform this inside NewDHT factory method
@@ -149,16 +159,17 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	success = true
 	return &IpfsNode{
-		Config:    cfg,
-		Peerstore: peerstore,
-		Datastore: d,
-		Blocks:    bs,
-		DAG:       dag,
-		Resolver:  &path.Resolver{DAG: dag},
-		Exchange:  exchangeSession,
-		Identity:  local,
-		Routing:   route,
-		Namesys:   ns,
+		Config:      cfg,
+		Peerstore:   peerstore,
+		Datastore:   d,
+		Blocks:      bs,
+		DAG:         dag,
+		Resolver:    &path.Resolver{DAG: dag},
+		Exchange:    exchangeSession,
+		Identity:    local,
+		Routing:     route,
+		Namesys:     ns,
+		Diagnostics: diagnostics,
 	}, nil
 }
 

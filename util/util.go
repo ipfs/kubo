@@ -153,6 +153,13 @@ func SetupLogging() {
 	}
 }
 
+func AllLoggersOn() {
+	for n, log := range loggers {
+		logging.SetLevel(logging.DEBUG, n)
+		log.Error("setting logger: %s to %v\n", n, logging.DEBUG)
+	}
+}
+
 // Logger retrieves a particular logger + initializes it at a particular level
 func Logger(name string) *logging.Logger {
 	log := logging.MustGetLogger(name)

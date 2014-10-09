@@ -107,3 +107,8 @@ func (n *IpfsNetwork) Close() error {
 	n.cancel = nil
 	return nil
 }
+
+// XXX
+func (n *IpfsNetwork) GetSwarm() *swarm.Swarm {
+	return n.swarm
+}

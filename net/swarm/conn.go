@@ -122,10 +122,12 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	// add to conns
 	s.connsLock.Lock()
 	if _, ok := s.conns[c.Peer.Key()]; ok {
+		log.Debug("Conn already open!")
 		s.connsLock.Unlock()
 		return ErrAlreadyOpen
 	}
 	s.conns[c.Peer.Key()] = c
+	log.Debug("Added conn to map!")
 	s.connsLock.Unlock()
 
 	// kick off reader goroutine
