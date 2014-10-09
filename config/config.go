@@ -41,6 +41,10 @@ type BootstrapPeer struct {
 	PeerID  string // until multiaddr supports ipfs, use another field.
 }
 
+func (bp *BootstrapPeer) String() string {
+	return bp.Address + "/" + bp.PeerID
+}
+
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  Identity         // local node's peer identity

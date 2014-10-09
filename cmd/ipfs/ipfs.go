@@ -56,6 +56,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsServe,
 		cmdIpfsRun,
 		cmdIpfsName,
+		cmdIpfsBootstrap,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
@@ -122,23 +123,32 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 // Gets the config "-c" flag from the command, or returns
 // the default configuration root directory
 func getConfigDir(c *commander.Command) (string, error) {
-	root := c
-	for root.Parent != nil {
-		root = root.Parent
-	}
-	conf := root.Flag.Lookup("c").Value.Get()
-	if conf == nil {
-		return config.PathRoot()
-	}
-	confStr, ok := conf.(string)
-	if !ok {
-		return "", errors.New("failed to retrieve config flag value")
-	}
-	if len(confStr) == 0 {
-		return config.PathRoot()
+
+	// use the root cmd (that's where config is specified)
+	for ; c.Parent != nil; c = c.Parent {
 	}
 
-	return u.TildeExpansion(confStr)
+	// flag should be defined on root.
+	param := c.Flag.Lookup("c").Value.Get().(string)
+	if param != "" {
+		return u.TildeExpansion(param)
+	}
+
+	return config.PathRoot()
+}
+
+func getConfig(c *commander.Command) (*config.Config, error) {
+	confdir, err := getConfigDir(c)
+	if err != nil {
+		return nil, err
+	}
+
+	filename, err := config.Filename(confdir)
+	if err != nil {
+		return nil, err
+	}
+
+	return config.Load(filename)
 }
 
 // cmdContext is a wrapper structure that keeps a node, a daemonlistener, and
