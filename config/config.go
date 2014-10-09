@@ -45,18 +45,6 @@ func (bp *BootstrapPeer) String() string {
 	return bp.Address + "/" + bp.PeerID
 }
 
-// Version regulates checking if the most recent version is run
-type Version struct {
-	Check   string // "ignore" for do not check, "warn" and "error" for reacting when obsolete
-	Current string // ipfs version for which config was generated
-}
-
-const (
-	CheckError  = "error"  // value for Version.Check to raise error and exit if version is obsolete
-	CheckWarn   = "warn"   // value for Version.Check to show warning message if version is obsolete
-	CheckIgnore = "ignore" // value for Version.Check to not perform update check
-)
-
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  Identity         // local node's peer identity

@@ -120,13 +120,16 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 		return nil, err
 	}
 
-	if cfg.Version.Check != config.CheckIgnore {
+	if cfg.Version.EligibleForUpdateCheck() {
 		obsolete := updates.CheckForUpdates()
 		if obsolete != nil {
 			if cfg.Version.Check == config.CheckError {
 				return nil, obsolete
 			}
 			log.Warning(fmt.Sprintf("%v", obsolete)) // when "warn" version.check mode we just show warning message
+		} else {
+			// update most recent check timestamp in config
+			cfg.RecordCurrentUpdateCheck(filename)
 		}
 	}
 
