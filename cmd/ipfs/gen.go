@@ -1,61 +1,60 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// CommanderFunc is a function that can be passed into the Commander library as
-// a command handler. Defined here because commander lacks this definition.
-type CommanderFunc func(*commander.Command, []string) error
+// command is the descriptor of an ipfs daemon command.
+// Used with makeCommand to proxy over commands via the daemon.
+type command struct {
+	name   string
+	args   int
+	flags  []string
+	online bool
+	cmdFn  commands.CmdFunc
+}
 
-// MakeCommand Wraps a commands.CmdFunc so that it may be safely run by the
+// commanderFunc is a function that can be passed into the Commander library as
+// a command handler. Defined here because commander lacks this definition.
+type commanderFunc func(*commander.Command, []string) error
+
+// makeCommand Wraps a commands.CmdFunc so that it may be safely run by the
 // commander library
-func MakeCommand(cmdName string, expargs []string, cmdFn commands.CmdFunc) CommanderFunc {
+func makeCommand(cmdDesc command) commanderFunc {
 	return func(c *commander.Command, inp []string) error {
-		if len(inp) < 1 {
+		if len(inp) < cmdDesc.args {
 			u.POut(c.Long)
 			return nil
 		}
-		confdir, err := getConfigDir(c.Parent)
+		confdir, err := getConfigDir(c)
 		if err != nil {
 			return err
-		}
-
-		confapi, err := config.ReadConfigKey(confdir+"/config", "Addresses.API")
-		if err != nil {
-			return err
-		}
-
-		apiaddr, ok := confapi.(string)
-		if !ok {
-			return errors.New("ApiAddress in config file was not a string")
 		}
 
 		cmd := daemon.NewCommand()
-		cmd.Command = cmdName
+		cmd.Command = cmdDesc.name
 		cmd.Args = inp
 
-		for _, a := range expargs {
+		for _, a := range cmdDesc.flags {
 			cmd.Opts[a] = c.Flag.Lookup(a).Value.Get()
 		}
-		err = daemon.SendCommand(cmd, apiaddr)
+
+		err = daemon.SendCommand(cmd, confdir)
 		if err != nil {
-			fmt.Printf("Executing command locally: %s", err)
+			log.Info("Executing command locally: %s", err)
 			// Do locally
-			n, err := localNode(confdir, false)
+			n, err := localNode(confdir, cmdDesc.online)
 			if err != nil {
-				return err
+				return fmt.Errorf("Local node creation failed: %v", err)
 			}
 
-			return cmdFn(n, cmd.Args, cmd.Opts, os.Stdout)
+			return cmdDesc.cmdFn(n, cmd.Args, cmd.Opts, os.Stdout)
 		}
 		return nil
 	}

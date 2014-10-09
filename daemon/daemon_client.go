@@ -60,19 +60,20 @@ func SendCommand(command *Command, confdir string) error {
 		return ErrDaemonNotRunning
 	}
 
-	log.Info("Daemon is running! %s", err)
+	log.Info("Daemon is running! [reason = %s]", err)
 
 	server, err := getDaemonAddr(confdir)
 	if err != nil {
 		return err
 	}
 
+	log.Info("Daemon address: %s", server)
 	maddr, err := ma.NewMultiaddr(server)
 	if err != nil {
 		return err
 	}
 
-	network, host, err := maddr.DialArgs()
+	network, host, err := ma.DialArgs(maddr)
 
 	conn, err := net.Dial(network, host)
 	if err != nil {

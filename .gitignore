@@ -6,3 +6,4 @@ cpu.prof
 *.out
 *.test
 *.orig
+*~

@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/jbenet/go-ipfs/core"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
 func Cat(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
@@ -15,7 +15,7 @@ func Cat(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 			return fmt.Errorf("catFile error: %v", err)
 		}
 
-		read, err := mdag.NewDagReader(dagnode, n.DAG)
+		read, err := uio.NewDagReader(dagnode, n.DAG)
 		if err != nil {
 			return fmt.Errorf("cat error: %v", err)
 		}

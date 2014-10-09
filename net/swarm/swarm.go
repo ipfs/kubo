@@ -15,6 +15,8 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+var log = u.Logger("swarm")
+
 // ErrAlreadyOpen signals that a connection to a peer is already open.
 var ErrAlreadyOpen = errors.New("Error: Connection to this peer already open.")
 
@@ -143,7 +145,7 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 // DialAddr is for connecting to a peer when you know their addr but not their ID.
 // Should only be used when sure that not connected to peer in question
 // TODO(jbenet) merge with Dial? need way to patch back.
-func (s *Swarm) DialAddr(addr *ma.Multiaddr) (*conn.Conn, error) {
+func (s *Swarm) DialAddr(addr ma.Multiaddr) (*conn.Conn, error) {
 	if addr == nil {
 		return nil, errors.New("addr must be a non-nil Multiaddr")
 	}

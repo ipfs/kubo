@@ -222,10 +222,7 @@ func bootstrapInputToPeers(input []string) ([]*config.BootstrapPeer, error) {
 				return nil, err
 			}
 
-			addrS, err = maddr.String()
-			if err != nil {
-				return nil, err
-			}
+			addrS = maddr.String()
 		}
 
 		// make sure idS parses as a peer.ID

@@ -1,13 +1,17 @@
-package importer
+package chunk
 
 import (
 	"io"
 
-	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util"
 )
 
+var log = util.Logger("chunk")
+
+var DefaultSplitter = &SizeSplitter{1024 * 512}
+
 type BlockSplitter interface {
-	Split(io.Reader) chan []byte
+	Split(r io.Reader) chan []byte
 }
 
 type SizeSplitter struct {
@@ -28,7 +32,7 @@ func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
 					}
 					return
 				}
-				u.PErr("block split error: %v\n", err)
+				log.Error("Block split error: %s", err)
 				return
 			}
 			if nread < ss.Size {

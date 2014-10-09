@@ -9,7 +9,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	"github.com/jbenet/go-ipfs/blocks"
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	bstore "github.com/jbenet/go-ipfs/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
@@ -18,7 +18,6 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
 	util "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestGetBlockTimeout(t *testing.T) {
@@ -30,7 +29,7 @@ func TestGetBlockTimeout(t *testing.T) {
 	self := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	block := testutil.NewBlockOrFail(t, "block")
+	block := blocks.NewBlock([]byte("block"))
 	_, err := self.exchange.Block(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
@@ -44,7 +43,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	rs := mock.VirtualRoutingServer()
 	g := NewSessionGenerator(net, rs)
 
-	block := testutil.NewBlockOrFail(t, "block")
+	block := blocks.NewBlock([]byte("block"))
 	rs.Announce(&peer.Peer{}, block.Key()) // but not on network
 
 	solo := g.Next()
@@ -63,7 +62,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
-	block := testutil.NewBlockOrFail(t, "block")
+	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
 
 	hasBlock := g.Next()
@@ -71,7 +70,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	if err := hasBlock.blockstore.Put(block); err != nil {
 		t.Fatal(err)
 	}
-	if err := hasBlock.exchange.HasBlock(context.Background(), block); err != nil {
+	if err := hasBlock.exchange.HasBlock(context.Background(), *block); err != nil {
 		t.Fatal(err)
 	}
 
@@ -93,7 +92,7 @@ func TestSwarm(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator(t)
+	bg := NewBlockGenerator()
 
 	t.Log("Create a ton of instances, and just a few blocks")
 
@@ -107,7 +106,7 @@ func TestSwarm(t *testing.T) {
 
 	first := instances[0]
 	for _, b := range blocks {
-		first.blockstore.Put(*b)
+		first.blockstore.Put(b)
 		first.exchange.HasBlock(context.Background(), *b)
 		rs.Announce(first.peer, b.Key())
 	}
@@ -154,55 +153,55 @@ func TestSendToWantingPeer(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator(t)
+	bg := NewBlockGenerator()
 
 	me := sg.Next()
 	w := sg.Next()
 	o := sg.Next()
 
-	t.Logf("Session %v\n", me.peer.Key().Pretty())
-	t.Logf("Session %v\n", w.peer.Key().Pretty())
-	t.Logf("Session %v\n", o.peer.Key().Pretty())
+	t.Logf("Session %v\n", me.peer)
+	t.Logf("Session %v\n", w.peer)
+	t.Logf("Session %v\n", o.peer)
 
 	alpha := bg.Next()
 
 	const timeout = 1 * time.Millisecond // FIXME don't depend on time
 
-	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer, alpha.Key())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
 	_, err := w.exchange.Block(ctx, alpha.Key())
 	if err == nil {
-		t.Fatalf("Expected %v to NOT be available", alpha.Key().Pretty())
+		t.Fatalf("Expected %v to NOT be available", alpha.Key())
 	}
 
 	beta := bg.Next()
-	t.Logf("Peer %v announes availability  of %v\n", w.peer.Key().Pretty(), beta.Key().Pretty())
+	t.Logf("Peer %v announes availability  of %v\n", w.peer, beta.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := w.blockstore.Put(beta); err != nil {
+	if err := w.blockstore.Put(&beta); err != nil {
 		t.Fatal(err)
 	}
 	w.exchange.HasBlock(ctx, beta)
 
-	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer.Key().Pretty(), beta.Key().Pretty(), w.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer, beta.Key(), w.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
 	if _, err := me.exchange.Block(ctx, beta.Key()); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%v announces availability of %v\n", o.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v announces availability of %v\n", o.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := o.blockstore.Put(alpha); err != nil {
+	if err := o.blockstore.Put(&alpha); err != nil {
 		t.Fatal(err)
 	}
 	o.exchange.HasBlock(ctx, alpha)
 
-	t.Logf("%v requests %v\n", me.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v requests %v\n", me.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
 	if _, err := me.exchange.Block(ctx, alpha.Key()); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%v should now have %v\n", w.peer.Key().Pretty(), alpha.Key().Pretty())
+	t.Logf("%v should now have %v\n", w.peer, alpha.Key())
 	block, err := w.blockstore.Get(alpha.Key())
 	if err != nil {
 		t.Fatal("Should not have received an error")
@@ -212,20 +211,17 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 }
 
-func NewBlockGenerator(t *testing.T) BlockGenerator {
-	return BlockGenerator{
-		T: t,
-	}
+func NewBlockGenerator() BlockGenerator {
+	return BlockGenerator{}
 }
 
 type BlockGenerator struct {
-	*testing.T // b/c block generation can fail
-	seq        int
+	seq int
 }
 
 func (bg *BlockGenerator) Next() blocks.Block {
 	bg.seq++
-	return testutil.NewBlockOrFail(bg.T, string(bg.seq))
+	return *blocks.NewBlock([]byte(string(bg.seq)))
 }
 
 func (bg *BlockGenerator) Blocks(n int) []*blocks.Block {

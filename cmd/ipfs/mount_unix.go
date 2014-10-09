@@ -3,16 +3,14 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	"github.com/jbenet/go-ipfs/daemon"
+	core "github.com/jbenet/go-ipfs/core"
+	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var cmdIpfsMount = &commander.Command{
@@ -29,42 +27,68 @@ var cmdIpfsMount = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-mount", flag.ExitOnError),
 }
 
+func init() {
+	cmdIpfsMount.Flag.String("f", "", "specify a mountpoint for ipfs")
+	cmdIpfsMount.Flag.String("n", "", "specify a mountpoint for ipns")
+}
+
 func mountCmd(c *commander.Command, inp []string) error {
-	if len(inp) < 1 || len(inp[0]) == 0 {
-		u.POut(c.Long)
+
+	cc, err := setupCmdContext(c, true)
+	if err != nil {
+		return err
+	}
+	defer cc.daemon.Close()
+
+	// update fsdir with flag.
+	fsdir := cc.node.Config.Mounts.IPFS
+	if val, ok := c.Flag.Lookup("f").Value.Get().(string); ok && val != "" {
+		fsdir = val
+	}
+	fsdone := mountIpfs(cc.node, fsdir)
+
+	// get default mount points
+	nsdir := cc.node.Config.Mounts.IPNS
+	if val, ok := c.Flag.Lookup("n").Value.Get().(string); ok && val != "" {
+		nsdir = val
+	}
+	nsdone := mountIpns(cc.node, nsdir, fsdir)
+
+	// wait till mounts are done.
+	err1 := <-fsdone
+	err2 := <-nsdone
+
+	if err1 != nil {
+		return err1
+	}
+	return err2
+}
+
+func mountIpfs(node *core.IpfsNode, fsdir string) <-chan error {
+	done := make(chan error)
+	fmt.Printf("mounting ipfs at %s\n", fsdir)
+
+	go func() {
+		err := rofs.Mount(node, fsdir)
+		done <- err
+		close(done)
+	}()
+
+	return done
+}
+
+func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
+	if nsdir == "" {
 		return nil
 	}
+	done := make(chan error)
+	fmt.Printf("mounting ipns at %s\n", nsdir)
 
-	conf, err := getConfigDir(c.Parent)
-	if err != nil {
-		fmt.Println("Couldnt get config dir")
-		return err
-	}
-	n, err := localNode(conf, true)
-	if err != nil {
-		fmt.Println("Local node creation failed.")
-		return err
-	}
+	go func() {
+		err := ipns.Mount(node, nsdir, fsdir)
+		done <- err
+		close(done)
+	}()
 
-	// launch the API RPC endpoint.
-	if n.Config.Addresses.API == "" {
-		return errors.New("no config.RPCAddress endpoint supplied")
-	}
-
-	maddr, err := ma.NewMultiaddr(n.Config.Addresses.API)
-	if err != nil {
-		return err
-	}
-
-	dl, err := daemon.NewDaemonListener(n, maddr, conf)
-	if err != nil {
-		fmt.Println("Failed to create daemon listener.")
-		return err
-	}
-	go dl.Listen()
-	defer dl.Close()
-
-	mp := inp[0]
-	fmt.Printf("Mounting at %s\n", mp)
-	return rofs.Mount(n, mp)
+	return done
 }

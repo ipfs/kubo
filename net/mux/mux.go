@@ -11,6 +11,8 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
+var log = u.Logger("muxer")
+
 // Protocol objects produce + consume raw data. They are added to the Muxer
 // with a ProtocolID, which is added to outgoing payloads. Muxer properly
 // encapsulates and decapsulates when interfacing with its Protocols. The
@@ -125,21 +127,21 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 
 	data, pid, err := unwrapData(m1.Data())
 	if err != nil {
-		u.PErr("muxer de-serializing error: %v\n", err)
+		log.Error("muxer de-serializing error: %v", err)
 		return
 	}
 
 	m2 := msg.New(m1.Peer(), data)
 	proto, found := m.Protocols[pid]
 	if !found {
-		u.PErr("muxer unknown protocol %v\n", pid)
+		log.Error("muxer unknown protocol %v", pid)
 		return
 	}
 
 	select {
 	case proto.GetPipe().Incoming <- m2:
 	case <-m.ctx.Done():
-		u.PErr("%v\n", m.ctx.Err())
+		log.Error("%s", m.ctx.Err())
 		return
 	}
 }
@@ -167,7 +169,7 @@ func (m *Muxer) handleOutgoingMessages(pid ProtocolID, proto Protocol) {
 func (m *Muxer) handleOutgoingMessage(pid ProtocolID, m1 msg.NetMessage) {
 	data, err := wrapData(m1.Data(), pid)
 	if err != nil {
-		u.PErr("muxer serializing error: %v\n", err)
+		log.Error("muxer serializing error: %v", err)
 		return
 	}
 

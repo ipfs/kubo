@@ -2,8 +2,9 @@ package merkledag
 
 import (
 	"fmt"
-	u "github.com/jbenet/go-ipfs/util"
 	"testing"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 func TestNode(t *testing.T) {

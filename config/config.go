@@ -29,6 +29,12 @@ type Addresses struct {
 	API   string // address for the local API (RPC)
 }
 
+// Mounts stores the (string) mount points
+type Mounts struct {
+	IPFS string
+	IPNS string
+}
+
 // BootstrapPeer is a peer used to bootstrap the network.
 type BootstrapPeer struct {
 	Address string
@@ -57,12 +63,20 @@ type Config struct {
 	Datastore Datastore        // local node's storage
 	Addresses Addresses        // local node's addresses
 	Version   Version          // local node's version management
+	Mounts    Mounts           // local node's mount points
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }
 
+// DefaultPathRoot is the path to the default config dir location.
 const DefaultPathRoot = "~/.go-ipfs"
+
+// DefaultConfigFile is the filename of the configuration file
 const DefaultConfigFile = "config"
+
+// DefaultDataStoreDirectory is the directory to store all the local IPFS data.
 const DefaultDataStoreDirectory = "datastore"
+
+// EnvDir is the environment variable used to change the path root.
 const EnvDir = "IPFS_DIR"
 
 // PathRoot returns the default configuration root directory
@@ -82,13 +96,11 @@ func Path(configroot, extension string) (string, error) {
 		dir, err := PathRoot()
 		if err != nil {
 			return "", err
-		} else {
-			return filepath.Join(dir, extension), nil
 		}
+		return filepath.Join(dir, extension), nil
 
-	} else {
-		return filepath.Join(configroot, extension), nil
 	}
+	return filepath.Join(configroot, extension), nil
 }
 
 // DataStorePath returns the default data store path given a configuration root

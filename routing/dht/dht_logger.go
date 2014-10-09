@@ -3,8 +3,6 @@ package dht
 import (
 	"encoding/json"
 	"time"
-
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 type logDhtRPC struct {
@@ -31,9 +29,9 @@ func (l *logDhtRPC) EndLog() {
 func (l *logDhtRPC) Print() {
 	b, err := json.Marshal(l)
 	if err != nil {
-		u.DOut(err.Error())
+		log.Debug(err.Error())
 	} else {
-		u.DOut(string(b))
+		log.Debug(string(b))
 	}
 }
 

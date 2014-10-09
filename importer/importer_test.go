@@ -9,9 +9,13 @@ import (
 	"os"
 	"testing"
 
-	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/importer/chunk"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
+// NOTE:
+// These tests tests a combination of unixfs/io/dagreader and importer/chunk.
+// Maybe split them up somehow?
 func TestBuildDag(t *testing.T) {
 	td := os.TempDir()
 	fi, err := os.Create(td + "/tmpfi")
@@ -34,24 +38,30 @@ func TestBuildDag(t *testing.T) {
 
 //Test where calls to read are smaller than the chunk size
 func TestSizeBasedSplit(t *testing.T) {
-	bs := &SizeSplitter{512}
+	bs := &chunk.SizeSplitter{512}
 	testFileConsistency(t, bs, 32*512)
-	bs = &SizeSplitter{4096}
+	bs = &chunk.SizeSplitter{4096}
 	testFileConsistency(t, bs, 32*4096)
 
 	// Uneven offset
 	testFileConsistency(t, bs, 31*4095)
 }
 
-func testFileConsistency(t *testing.T, bs BlockSplitter, nbytes int) {
+func dup(b []byte) []byte {
+	o := make([]byte, len(b))
+	copy(o, b)
+	return o
+}
+
+func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
 	buf := new(bytes.Buffer)
 	io.CopyN(buf, rand.Reader, int64(nbytes))
-	should := buf.Bytes()
+	should := dup(buf.Bytes())
 	nd, err := NewDagFromReaderWithSplitter(buf, bs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := dag.NewDagReader(nd, nil)
+	r, err := uio.NewDagReader(nd, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,14 +90,14 @@ func arrComp(a, b []byte) error {
 }
 
 func TestMaybeRabinConsistency(t *testing.T) {
-	testFileConsistency(t, NewMaybeRabin(4096), 256*4096)
+	testFileConsistency(t, chunk.NewMaybeRabin(4096), 256*4096)
 }
 
 func TestRabinBlockSize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	nbytes := 1024 * 1024
 	io.CopyN(buf, rand.Reader, int64(nbytes))
-	rab := NewMaybeRabin(4096)
+	rab := chunk.NewMaybeRabin(4096)
 	blkch := rab.Split(buf)
 
 	var blocks [][]byte

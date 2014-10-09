@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 type peerAndStrategist struct {
@@ -30,7 +30,7 @@ func TestConsistentAccounting(t *testing.T) {
 
 		m := message.New()
 		content := []string{"this", "is", "message", "i"}
-		m.AppendBlock(testutil.NewBlockOrFail(t, strings.Join(content, " ")))
+		m.AppendBlock(*blocks.NewBlock([]byte(strings.Join(content, " "))))
 
 		sender.MessageSent(receiver.Peer, m)
 		receiver.MessageReceived(sender.Peer, m)
@@ -57,7 +57,7 @@ func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
 	beggar := newPeerAndStrategist("can't be chooser")
 	chooser := newPeerAndStrategist("chooses JIF")
 
-	block := testutil.NewBlockOrFail(t, "data wanted by beggar")
+	block := blocks.NewBlock([]byte("data wanted by beggar"))
 
 	messageFromBeggarToChooser := message.New()
 	messageFromBeggarToChooser.AppendWanted(block.Key())

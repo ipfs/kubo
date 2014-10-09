@@ -11,6 +11,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("table")
+
 // RoutingTable defines the routing table.
 type RoutingTable struct {
 
@@ -116,7 +118,7 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 		}
 		peerArr = append(peerArr, &pd)
 		if e == nil {
-			u.POut("list element was nil.\n")
+			log.Debug("list element was nil.\n")
 			return peerArr
 		}
 	}
@@ -138,6 +140,8 @@ func (rt *RoutingTable) NearestPeer(id ID) *peer.Peer {
 	if len(peers) > 0 {
 		return peers[0]
 	}
+
+	log.Error("NearestPeer: Returning nil, table size = %d", rt.Size())
 	return nil
 }
 

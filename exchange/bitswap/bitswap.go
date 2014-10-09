@@ -15,6 +15,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("bitswap")
+
 // NetMessageSession initializes a BitSwap session that communicates over the
 // provided NetMessage service
 func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageService, directory bsnet.Routing, d ds.Datastore, nice bool) exchange.Interface {
@@ -61,7 +63,7 @@ type bitswap struct {
 //
 // TODO ensure only one active request per key
 func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error) {
-	u.DOut("Get Block %v\n", k.Pretty())
+	log.Debug("Get Block %v", k)
 
 	ctx, cancelFunc := context.WithCancel(parent)
 	bs.wantlist.Add(k)
@@ -77,7 +79,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		}
 		message.AppendWanted(k)
 		for iiiii := range peersToQuery {
-			// u.DOut("bitswap got peersToQuery: %s\n", iiiii)
+			// log.Debug("bitswap got peersToQuery: %s", iiiii)
 			go func(p *peer.Peer) {
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
@@ -110,7 +112,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 // HasBlock announces the existance of a block to bitswap, potentially sending
 // it to peers (Partners) whose WantLists include it.
 func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
-	u.DOut("Has Block %v\n", blk.Key().Pretty())
+	log.Debug("Has Block %v", blk.Key())
 	bs.wantlist.Remove(blk.Key())
 	bs.sendToPeersThatWant(ctx, blk)
 	return bs.routing.Provide(ctx, blk.Key())
@@ -119,7 +121,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
 	*peer.Peer, bsmsg.BitSwapMessage) {
-	u.DOut("ReceiveMessage from %v\n", p.Key().Pretty())
+	log.Debug("ReceiveMessage from %v", p.Key())
 
 	if p == nil {
 		// TODO propagate the error upward
@@ -134,7 +136,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bs
 
 	for _, block := range incoming.Blocks() {
 		// TODO verify blocks?
-		if err := bs.blockstore.Put(block); err != nil {
+		if err := bs.blockstore.Put(&block); err != nil {
 			continue // FIXME(brian): err ignored
 		}
 		go bs.notifications.Publish(block)
@@ -173,10 +175,10 @@ func (bs *bitswap) send(ctx context.Context, p *peer.Peer, m bsmsg.BitSwapMessag
 }
 
 func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) {
-	u.DOut("Sending %v to peers that want it\n", block.Key().Pretty())
+	log.Debug("Sending %v to peers that want it", block.Key())
 	for _, p := range bs.strategy.Peers() {
 		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
-			u.DOut("%v wants %v\n", p.Key().Pretty(), block.Key().Pretty())
+			log.Debug("%v wants %v", p, block.Key())
 			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
 				message := bsmsg.New()
 				message.AppendBlock(block)

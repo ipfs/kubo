@@ -12,6 +12,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("conn")
+
 // ChanBuffer is the size of the buffer in the Conn Chan
 const ChanBuffer = 10
 
@@ -21,7 +23,7 @@ const MaxMessageSize = 1 << 20
 // Conn represents a connection to another Peer (IPFS Node).
 type Conn struct {
 	Peer *peer.Peer
-	Addr *ma.Multiaddr
+	Addr ma.Multiaddr
 	Conn net.Conn
 
 	Closed   chan bool
@@ -34,7 +36,7 @@ type Conn struct {
 type Map map[u.Key]*Conn
 
 // NewConn constructs a new connection
-func NewConn(peer *peer.Peer, addr *ma.Multiaddr, nconn net.Conn) (*Conn, error) {
+func NewConn(peer *peer.Peer, addr ma.Multiaddr, nconn net.Conn) (*Conn, error) {
 	conn := &Conn{
 		Peer: peer,
 		Addr: addr,
@@ -56,7 +58,7 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 		return nil, fmt.Errorf("No address for network %s", network)
 	}
 
-	network, host, err := addr.DialArgs()
+	network, host, err := ma.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +89,7 @@ func (c *Conn) newChans() error {
 
 // Close closes the connection, and associated channels.
 func (c *Conn) Close() error {
-	u.DOut("Closing Conn.\n")
+	log.Debug("Closing Conn with %v", c.Peer)
 	if c.Conn == nil {
 		return fmt.Errorf("Already closed") // already closed
 	}
@@ -104,6 +106,6 @@ func (c *Conn) Close() error {
 
 // NetConnMultiaddr returns the net.Conn's address, recast as a multiaddr.
 // (consider moving this directly into the multiaddr package)
-func NetConnMultiaddr(nconn net.Conn) (*ma.Multiaddr, error) {
+func NetConnMultiaddr(nconn net.Conn) (ma.Multiaddr, error) {
 	return ma.FromNetAddr(nconn.RemoteAddr())
 }

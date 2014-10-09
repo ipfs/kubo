@@ -1,4 +1,4 @@
-package merkledag
+package io
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"io"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -13,34 +15,41 @@ var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv     *DAGService
-	node     *Node
+	serv     *mdag.DAGService
+	node     *mdag.Node
 	position int
 	buf      *bytes.Buffer
 }
 
-func NewDagReader(n *Node, serv *DAGService) (io.Reader, error) {
-	pb := new(PBData)
+// NewDagReader creates a new reader object that reads the data represented by the given
+// node, using the passed in DAGService for data retreival
+func NewDagReader(n *mdag.Node, serv *mdag.DAGService) (io.Reader, error) {
+	pb := new(ft.PBData)
 	err := proto.Unmarshal(n.Data, pb)
 	if err != nil {
 		return nil, err
 	}
+
 	switch pb.GetType() {
-	case PBData_Directory:
+	case ft.PBData_Directory:
+		// Dont allow reading directories
 		return nil, ErrIsDir
-	case PBData_File:
+	case ft.PBData_File:
 		return &DagReader{
 			node: n,
 			serv: serv,
 			buf:  bytes.NewBuffer(pb.GetData()),
 		}, nil
-	case PBData_Raw:
+	case ft.PBData_Raw:
+		// Raw block will just be a single level, return a byte buffer
 		return bytes.NewBuffer(pb.GetData()), nil
 	default:
-		panic("Unrecognized node type!")
+		return nil, ft.ErrUnrecognizedType
 	}
 }
 
+// Follows the next link in line and loads it from the DAGService,
+// setting the next buffer to read from
 func (dr *DagReader) precalcNextBuf() error {
 	if dr.position >= len(dr.node.Links) {
 		return io.EOF
@@ -54,7 +63,7 @@ func (dr *DagReader) precalcNextBuf() error {
 		}
 		nxt = nxtNode
 	}
-	pb := new(PBData)
+	pb := new(ft.PBData)
 	err := proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
 		return err
@@ -62,21 +71,22 @@ func (dr *DagReader) precalcNextBuf() error {
 	dr.position++
 
 	switch pb.GetType() {
-	case PBData_Directory:
-		panic("Why is there a directory under a file?")
-	case PBData_File:
+	case ft.PBData_Directory:
+		return ft.ErrInvalidDirLocation
+	case ft.PBData_File:
 		//TODO: this *should* work, needs testing first
 		//return NewDagReader(nxt, dr.serv)
 		panic("Not yet handling different layers of indirection!")
-	case PBData_Raw:
+	case ft.PBData_Raw:
 		dr.buf = bytes.NewBuffer(pb.GetData())
 		return nil
 	default:
-		panic("Unrecognized node type!")
+		return ft.ErrUnrecognizedType
 	}
 }
 
 func (dr *DagReader) Read(b []byte) (int, error) {
+	// If no cached buffer, load one
 	if dr.buf == nil {
 		err := dr.precalcNextBuf()
 		if err != nil {
@@ -85,16 +95,22 @@ func (dr *DagReader) Read(b []byte) (int, error) {
 	}
 	total := 0
 	for {
+		// Attempt to fill bytes from cached buffer
 		n, err := dr.buf.Read(b[total:])
 		total += n
 		if err != nil {
+			// EOF is expected
 			if err != io.EOF {
 				return total, err
 			}
 		}
+
+		// If weve read enough bytes, return
 		if total == len(b) {
 			return total, nil
 		}
+
+		// Otherwise, load up the next block
 		err = dr.precalcNextBuf()
 		if err != nil {
 			return total, err

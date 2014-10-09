@@ -14,12 +14,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	core "github.com/jbenet/go-ipfs/core"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("ipfs")
 
 // FileSystem is the readonly Ipfs Fuse Filesystem.
 type FileSystem struct {
@@ -48,7 +54,7 @@ func (*Root) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	u.DOut("Root Lookup: '%s'\n", name)
+	log.Debug("Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -66,31 +72,48 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 // ReadDir reads a particular directory. Disallowed for root.
 func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	u.DOut("Read Root.\n")
+	log.Debug("Read Root.")
 	return nil, fuse.EPERM
 }
 
 // Node is the core object representing a filesystem tree node.
 type Node struct {
-	Ipfs *core.IpfsNode
-	Nd   *mdag.Node
-	fd   *mdag.DagReader
+	Ipfs   *core.IpfsNode
+	Nd     *mdag.Node
+	fd     *uio.DagReader
+	cached *ft.PBData
+}
+
+func (s *Node) loadData() error {
+	s.cached = new(ft.PBData)
+	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
 // Attr returns the attributes of a given node.
 func (s *Node) Attr() fuse.Attr {
-	u.DOut("Node attr.\n")
-	if len(s.Nd.Links) > 0 {
-		return fuse.Attr{Mode: os.ModeDir | 0555}
+	log.Debug("Node attr.")
+	if s.cached == nil {
+		s.loadData()
 	}
-
-	size, _ := s.Nd.Size()
-	return fuse.Attr{Mode: 0444, Size: uint64(size)}
+	switch s.cached.GetType() {
+	case ft.PBData_Directory:
+		return fuse.Attr{Mode: os.ModeDir | 0555}
+	case ft.PBData_File, ft.PBData_Raw:
+		size, _ := s.Nd.Size()
+		return fuse.Attr{
+			Mode:   0444,
+			Size:   uint64(size),
+			Blocks: uint64(len(s.Nd.Links)),
+		}
+	default:
+		log.Error("Invalid data type.")
+		return fuse.Attr{}
+	}
 }
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	u.DOut("Lookup '%s'\n", name)
+	log.Debug("Lookup '%s'", name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -102,7 +125,7 @@ func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 // ReadDir reads the link structure as directory entries
 func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	u.DOut("Node ReadDir\n")
+	log.Debug("Node ReadDir")
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
 		n := link.Name
@@ -120,8 +143,8 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-	u.DOut("Read node.\n")
-	r, err := mdag.NewDagReader(s.Nd, s.Ipfs.DAG)
+	log.Debug("Read node.")
+	r, err := uio.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +170,7 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 			}
 			time.Sleep(time.Millisecond * 10)
 		}
+		ipfs.Network.Close()
 	}()
 
 	c, err := fuse.Mount(fpath)
@@ -171,7 +195,7 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 // Unmount attempts to unmount the provided FUSE mount point, forcibly
 // if necessary.
 func Unmount(point string) error {
-	fmt.Printf("Unmounting %s...\n", point)
+	log.Info("Unmounting %s...", point)
 
 	var cmd *exec.Cmd
 	switch runtime.GOOS {

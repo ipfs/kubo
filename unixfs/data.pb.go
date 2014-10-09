@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package merkledag is a generated protocol buffer package.
+Package unixfs is a generated protocol buffer package.
 
 It is generated from these files:
 	data.proto
@@ -11,7 +11,7 @@ It is generated from these files:
 It has these top-level messages:
 	PBData
 */
-package merkledag
+package unixfs
 
 import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 import math "math"
@@ -57,8 +57,10 @@ func (x *PBData_DataType) UnmarshalJSON(data []byte) error {
 }
 
 type PBData struct {
-	Type             *PBData_DataType `protobuf:"varint,1,req,enum=merkledag.PBData_DataType" json:"Type,omitempty"`
+	Type             *PBData_DataType `protobuf:"varint,1,req,enum=unixfs.PBData_DataType" json:"Type,omitempty"`
 	Data             []byte           `protobuf:"bytes,2,opt" json:"Data,omitempty"`
+	Filesize         *uint64          `protobuf:"varint,3,opt,name=filesize" json:"filesize,omitempty"`
+	Blocksizes       []uint64         `protobuf:"varint,4,rep,name=blocksizes" json:"blocksizes,omitempty"`
 	XXX_unrecognized []byte           `json:"-"`
 }
 
@@ -80,6 +82,20 @@ func (m *PBData) GetData() []byte {
 	return nil
 }
 
+func (m *PBData) GetFilesize() uint64 {
+	if m != nil && m.Filesize != nil {
+		return *m.Filesize
+	}
+	return 0
+}
+
+func (m *PBData) GetBlocksizes() []uint64 {
+	if m != nil {
+		return m.Blocksizes
+	}
+	return nil
+}
+
 func init() {
-	proto.RegisterEnum("merkledag.PBData_DataType", PBData_DataType_name, PBData_DataType_value)
+	proto.RegisterEnum("unixfs.PBData_DataType", PBData_DataType_name, PBData_DataType_value)
 }

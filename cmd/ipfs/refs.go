@@ -28,4 +28,9 @@ func init() {
 	cmdIpfsRefs.Flag.Bool("u", false, "unique: list each ref only once")
 }
 
-var refCmd = MakeCommand("refs", []string{"r", "u"}, commands.Refs)
+var refCmd = makeCommand(command{
+	name:  "refs",
+	args:  1,
+	flags: []string{"r", "u"},
+	cmdFn: commands.Refs,
+})

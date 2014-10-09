@@ -10,6 +10,8 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+var log = u.Logger("service")
+
 // ErrNoResponse is returned by Service when a Request did not get a response,
 // and no other error happened
 var ErrNoResponse = errors.New("no response to request")
@@ -82,7 +84,7 @@ func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid Request
 		return err
 	}
 
-	// u.DOut("Service send message [to = %s]\n", m.Peer().ID.Pretty())
+	// log.Debug("Service send message [to = %s]", m.Peer())
 
 	// send message
 	m2 := msg.New(m.Peer(), data)
@@ -169,14 +171,14 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	// unwrap the incoming message
 	data, rid, err := unwrapData(m.Data())
 	if err != nil {
-		u.PErr("de-serializing error: %v\n", err)
+		log.Error("de-serializing error: %v", err)
 	}
 	m2 := msg.New(m.Peer(), data)
 
 	// if it's a request (or has no RequestID), handle it
 	if rid == nil || rid.IsRequest() {
 		if s.Handler == nil {
-			u.PErr("service dropped msg: %v\n", m)
+			log.Error("service dropped msg: %v", m)
 			return // no handler, drop it.
 		}
 
@@ -187,7 +189,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 		if r1 != nil {
 			err := s.sendMessage(ctx, r1, rid.Response())
 			if err != nil {
-				u.PErr("error sending response message: %v\n", err)
+				log.Error("error sending response message: %v", err)
 			}
 		}
 		return
@@ -195,7 +197,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	// Otherwise, it is a response. handle it.
 	if !rid.IsResponse() {
-		u.PErr("RequestID should identify a response here.\n")
+		log.Error("RequestID should identify a response here.")
 	}
 
 	key := RequestKey(m.Peer().ID, RequestID(rid))
@@ -204,7 +206,7 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	s.RequestsLock.RUnlock()
 
 	if !found {
-		u.PErr("no request key %v (timeout?)\n", []byte(key))
+		log.Error("no request key %v (timeout?)", []byte(key))
 		return
 	}
 

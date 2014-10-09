@@ -3,6 +3,7 @@ package crypto
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"crypto/elliptic"
 	"crypto/hmac"
@@ -12,10 +13,13 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"hash"
-	"math/big"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("crypto")
 
 var ErrBadKeyType = errors.New("invalid or unsupported key type")
 
@@ -26,6 +30,9 @@ const (
 type Key interface {
 	// Bytes returns a serialized, storeable representation of this key
 	Bytes() ([]byte, error)
+
+	// Hash returns the hash of this key
+	Hash() ([]byte, error)
 
 	// Equals checks whether two PubKeys are the same
 	Equals(Key) bool
@@ -91,24 +98,15 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 		return nil, nil, err
 	}
 
-	var pubKey bytes.Buffer
-	pubKey.Write(x.Bytes())
-	pubKey.Write(y.Bytes())
+	pubKey := elliptic.Marshal(curve, x, y)
+	log.Debug("GenerateEKeyPair %d", len(pubKey))
 
 	done := func(theirPub []byte) ([]byte, error) {
 		// Verify and unpack node's public key.
-		curveSize := curve.Params().BitSize
-
-		if len(theirPub) != (curveSize / 4) {
-			return nil, errors.New("Malformed public key.")
+		x, y := elliptic.Unmarshal(curve, theirPub)
+		if x == nil {
+			return nil, fmt.Errorf("Malformed public key: %d %v", len(theirPub), theirPub)
 		}
-
-		bound := (curveSize / 8)
-		x := big.NewInt(0)
-		y := big.NewInt(0)
-
-		x.SetBytes(theirPub[0:bound])
-		y.SetBytes(theirPub[bound : bound*2])
 
 		if !curve.IsOnCurve(x, y) {
 			return nil, errors.New("Invalid public key.")
@@ -120,7 +118,7 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 		return secret.Bytes(), nil
 	}
 
-	return pubKey.Bytes(), done, nil
+	return pubKey, done, nil
 }
 
 // Generates a set of keys for each party by stretching the shared key.
@@ -245,4 +243,13 @@ func KeyEqual(k1, k2 Key) bool {
 	b1, err1 := k1.Bytes()
 	b2, err2 := k2.Bytes()
 	return bytes.Equal(b1, b2) && err1 == err2
+}
+
+// KeyHash hashes a key.
+func KeyHash(k Key) ([]byte, error) {
+	kb, err := k.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return u.Hash(kb), nil
 }

@@ -184,7 +184,7 @@ func TestGetFailures(t *testing.T) {
 func _randPeer() *peer.Peer {
 	p := new(peer.Peer)
 	p.ID = make(peer.ID, 16)
-	p.Addresses = []*ma.Multiaddr{nil}
+	p.Addresses = []ma.Multiaddr{nil}
 	crand.Read(p.ID)
 	return p
 }
@@ -237,7 +237,7 @@ func TestNotFound(t *testing.T) {
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
 	v, err := d.GetValue(ctx, u.Key("hello"))
-	u.DOut("get value got %v\n", v)
+	log.Debug("get value got %v", v)
 	if err != nil {
 		switch err {
 		case u.ErrNotFound:

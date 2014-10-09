@@ -1,14 +1,18 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime/pprof"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	"github.com/jbenet/go-ipfs/config"
+	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
+	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
+	daemon "github.com/jbenet/go-ipfs/daemon"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -52,10 +56,15 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsMount,
 		cmdIpfsInit,
 		cmdIpfsServe,
+		cmdIpfsRun,
+		cmdIpfsName,
 		cmdIpfsBootstrap,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
+
+// log is the command logger
+var log = u.Logger("cmd/ipfs")
 
 func init() {
 	config, err := config.PathRoot()
@@ -72,16 +81,24 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	u.Debug = true
-	ofi, err := os.Create("cpu.prof")
-	if err != nil {
-		fmt.Println(err)
-		return
+	u.Debug = false
+
+	// setup logging
+	// u.SetupLogging() done in an init() block now.
+
+	// if debugging, setup profiling.
+	if u.Debug {
+		ofi, err := os.Create("cpu.prof")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		pprof.StartCPUProfile(ofi)
+		defer ofi.Close()
+		defer pprof.StopCPUProfile()
 	}
-	pprof.StartCPUProfile(ofi)
-	defer ofi.Close()
-	defer pprof.StopCPUProfile()
-	err = CmdIpfs.Dispatch(os.Args[1:])
+
+	err := CmdIpfs.Dispatch(os.Args[1:])
 	if err != nil {
 		if len(err.Error()) > 0 {
 			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
@@ -91,6 +108,7 @@ func main() {
 	return
 }
 
+// localNode constructs a node
 func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 	filename, err := config.Filename(confdir)
 	if err != nil {
@@ -144,4 +162,55 @@ func getConfig(c *commander.Command) (*config.Config, error) {
 	}
 
 	return config.Load(filename)
+}
+
+// cmdContext is a wrapper structure that keeps a node, a daemonlistener, and
+// a config directory together. These three are needed for most commands.
+type cmdContext struct {
+	node      *core.IpfsNode
+	daemon    *daemon.DaemonListener
+	configDir string
+}
+
+// setupCmdContext initializes a cmdContext structure from a given command.
+func setupCmdContext(c *commander.Command, online bool) (cc cmdContext, err error) {
+	rootCmd := c
+	for ; rootCmd.Parent != nil; rootCmd = c.Parent {
+	}
+
+	cc.configDir, err = getConfigDir(rootCmd)
+	if err != nil {
+		return
+	}
+
+	cc.node, err = localNode(cc.configDir, online)
+	if err != nil {
+		return
+	}
+
+	cc.daemon, err = setupDaemon(cc.configDir, cc.node)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// setupDaemon sets up the daemon corresponding to given node.
+func setupDaemon(confdir string, node *core.IpfsNode) (*daemon.DaemonListener, error) {
+	if node.Config.Addresses.API == "" {
+		return nil, errors.New("no config.Addresses.API endpoint supplied")
+	}
+
+	maddr, err := ma.NewMultiaddr(node.Config.Addresses.API)
+	if err != nil {
+		return nil, err
+	}
+
+	dl, err := daemon.NewDaemonListener(node, maddr, confdir)
+	if err != nil {
+		return nil, err
+	}
+	go dl.Listen()
+	return dl, nil
 }
