@@ -58,3 +58,58 @@ func TestOptionValidation(t *testing.T) {
     t.Error("Should have passed")
   }
 }
+
+func TestRegistration(t *testing.T) {
+  cmds := []*Command{
+    &Command{
+      Options: []Option{
+        Option{ []string{ "beep" }, Int },
+      },
+      f: func(req *Request) (interface{}, error) {
+        return nil, nil
+      },
+    },
+
+    &Command{
+      Options: []Option{
+        Option{ []string{ "boop" }, Int },
+      },
+      f: func(req *Request) (interface{}, error) {
+        return nil, nil
+      },
+    },
+
+    &Command{
+      Options: []Option{
+        Option{ []string{ "boop" }, String },
+      },
+      f: func(req *Request) (interface{}, error) {
+        return nil, nil
+      },
+    },
+
+    &Command{
+      Options: []Option{
+        Option{ []string{ "bop" }, String },
+      },
+      f: func(req *Request) (interface{}, error) {
+        return nil, nil
+      },
+    },
+  }
+
+  err := cmds[0].Register("foo", cmds[1])
+  if err != nil {
+    t.Error("Should have passed")
+  }
+
+  err = cmds[0].Register("bar", cmds[2])
+  if err == nil {
+    t.Error("Should have failed (option name collision)")
+  }
+
+  err = cmds[0].Register("foo", cmds[3])
+  if err == nil {
+    t.Error("Should have failed (subcommand name collision)")
+  }
+}
