@@ -122,7 +122,7 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 		return
 	}
 
-	u.DOut("Got command: %v\n", command)
+	log.Debug("Got command: %v", command)
 	switch command.Command {
 	case "add":
 		err = commands.Add(dl.node, command.Args, command.Opts, conn)

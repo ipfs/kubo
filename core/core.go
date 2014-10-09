@@ -213,12 +213,12 @@ func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
 	for _, p := range cfg.Bootstrap {
 		if p.PeerID == "" {
-			u.PErr("error: peer does not include PeerID. %v\n", p)
+			log.Error("error: peer does not include PeerID. %v", p)
 		}
 
 		maddr, err := ma.NewMultiaddr(p.Address)
 		if err != nil {
-			u.PErr("error: %v\n", err)
+			log.Error("%s", err)
 			continue
 		}
 
@@ -227,12 +227,12 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		npeer.AddAddress(maddr)
 
 		if err = pstore.Put(npeer); err != nil {
-			u.PErr("Bootstrapping error: %v\n", err)
+			log.Error("Bootstrapping error: %v", err)
 			continue
 		}
 
 		if _, err = route.Connect(ctx, npeer); err != nil {
-			u.PErr("Bootstrapping error: %v\n", err)
+			log.Error("Bootstrapping error: %v", err)
 		}
 	}
 }
@@ -244,6 +244,6 @@ func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
 
 // PinDagNodeRecursively ensures a given node is stored persistently locally
 func (n *IpfsNode) PinDagNodeRecursively(nd *merkledag.Node, depth int) error {
-	u.DOut("Pinning node recursively. Currently No-Op\n")
+	log.Debug("Pinning node recursively. Currently No-Op")
 	return nil
 }

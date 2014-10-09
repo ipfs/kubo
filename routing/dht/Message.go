@@ -3,7 +3,6 @@ package dht
 import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 func newMessage(typ Message_MessageType, key string, level int) *Message {
@@ -42,7 +41,7 @@ func peersToPBPeers(peers []*peer.Peer) []*Message_Peer {
 func (m *Message) GetClusterLevel() int {
 	level := m.GetClusterLevelRaw() - 1
 	if level < 0 {
-		u.DErr("GetClusterLevel: no routing level specified, assuming 0\n")
+		log.Error("GetClusterLevel: no routing level specified, assuming 0")
 		level = 0
 	}
 	return int(level)

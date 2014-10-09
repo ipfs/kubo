@@ -106,7 +106,7 @@ func (s *Node) Attr() fuse.Attr {
 			Blocks: uint64(len(s.Nd.Links)),
 		}
 	default:
-		u.PErr("Invalid data type.")
+		log.Error("Invalid data type.")
 		return fuse.Attr{}
 	}
 }
@@ -143,7 +143,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-	u.DOut("Read node.\n")
+	log.Debug("Read node.")
 	r, err := uio.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err

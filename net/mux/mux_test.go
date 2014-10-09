@@ -136,7 +136,7 @@ func TestSimultMuxer(t *testing.T) {
 			m := msg.New(peer1, []byte(s))
 			mux1.Protocols[pid].GetPipe().Outgoing <- m
 			counts[pid][0][0]++
-			u.DOut("sent %v\n", s)
+			// log.Debug("sent %v", s)
 		}
 	}
 
@@ -153,7 +153,7 @@ func TestSimultMuxer(t *testing.T) {
 			m := msg.New(peer1, d)
 			mux1.Incoming <- m
 			counts[pid][1][0]++
-			u.DOut("sent %v\n", s)
+			// log.Debug("sent %v", s)
 		}
 	}
 
@@ -166,7 +166,7 @@ func TestSimultMuxer(t *testing.T) {
 					t.Error(err)
 				}
 
-				u.DOut("got %v\n", string(data))
+				// log.Debug("got %v", string(data))
 				counts[pid][1][1]++
 
 			case <-ctx.Done():
@@ -180,7 +180,7 @@ func TestSimultMuxer(t *testing.T) {
 			select {
 			case m := <-mux1.Protocols[pid].GetPipe().Incoming:
 				counts[pid][0][1]++
-				u.DOut("got %v\n", string(m.Data()))
+				// log.Debug("got %v", string(m.Data()))
 			case <-ctx.Done():
 				return
 			}

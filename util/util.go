@@ -130,22 +130,6 @@ func POut(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stdout, format, a...)
 }
 
-// DErr is a shorthand debug printing function to output to Stderr.
-// Will only print if Debug is true.
-func DErr(format string, a ...interface{}) {
-	if Debug {
-		PErr(format, a...)
-	}
-}
-
-// DOut is a shorthand debug printing function to output to Stdout.
-// Will only print if Debug is true.
-func DOut(format string, a ...interface{}) {
-	if Debug {
-		POut(format, a...)
-	}
-}
-
 var loggers = map[string]*logging.Logger{}
 
 // SetupLogging will initialize the logger backend and set the flags.

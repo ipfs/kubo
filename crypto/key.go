@@ -19,6 +19,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("crypto")
+
 var ErrBadKeyType = errors.New("invalid or unsupported key type")
 
 const (
@@ -97,7 +99,7 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 	}
 
 	pubKey := elliptic.Marshal(curve, x, y)
-	u.PErr("GenerateEKeyPair %d\n", len(pubKey))
+	log.Debug("GenerateEKeyPair %d", len(pubKey))
 
 	done := func(theirPub []byte) ([]byte, error) {
 		// Verify and unpack node's public key.

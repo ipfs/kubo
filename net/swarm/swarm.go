@@ -15,6 +15,8 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+var log = u.Logger("swarm")
+
 // ErrAlreadyOpen signals that a connection to a peer is already open.
 var ErrAlreadyOpen = errors.New("Error: Connection to this peer already open.")
 

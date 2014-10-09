@@ -23,6 +23,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("handshake")
+
 // List of supported ECDH curves
 var SupportedExchanges = "P-256,P-224,P-384,P-521"
 
@@ -49,7 +51,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	// u.DOut("handshake: %s <--> %s\n", s.local, s.remote)
+	log.Debug("handshake: %s <--> %s", s.local, s.remote)
 	myPubKey, err := s.local.PubKey.Bytes()
 	if err != nil {
 		return err
@@ -101,7 +103,7 @@ func (s *SecurePipe) handshake() error {
 	if err != nil {
 		return err
 	}
-	u.DOut("%s Remote Peer Identified as %s\n", s.local, s.remote)
+	log.Debug("%s Remote Peer Identified as %s", s.local, s.remote)
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
@@ -205,7 +207,7 @@ func (s *SecurePipe) handshake() error {
 		return errors.New("Negotiation failed.")
 	}
 
-	u.DOut("%s handshake: Got node id: %s\n", s.local, s.remote)
+	log.Debug("%s handshake: Got node id: %s", s.local, s.remote)
 	return nil
 }
 
@@ -233,7 +235,7 @@ func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
 			return
 		}
 
-		// u.DOut("[peer %s] secure in [from = %s] %d\n", s.local, s.remote, len(data))
+		// log.Debug("[peer %s] secure in [from = %s] %d", s.local, s.remote, len(data))
 		if len(data) <= macSize {
 			continue
 		}
@@ -281,7 +283,7 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 		copy(buff[len(data):], myMac.Sum(nil))
 		myMac.Reset()
 
-		// u.DOut("[peer %s] secure out [to = %s] %d\n", s.local, s.remote, len(buff))
+		// log.Debug("[peer %s] secure out [to = %s] %d", s.local, s.remote, len(buff))
 		s.insecure.Out <- buff
 	}
 }

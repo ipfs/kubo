@@ -156,7 +156,7 @@ func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count in
 			go func(p *peer.Peer) {
 				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
 				if err != nil {
-					u.PErr("%v\n", err)
+					log.Error("%s", err)
 					return
 				}
 				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
@@ -207,11 +207,11 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer,
 		// handle providers
 		provs := pmes.GetProviderPeers()
 		if provs != nil {
-			u.DOut("Got providers back from findProviders call!\n")
+			log.Debug("Got providers back from findProviders call!")
 			return dht.addProviders(key, provs), nil
 		}
 
-		u.DOut("Didnt get providers, just closer peers.\n")
+		log.Debug("Didnt get providers, just closer peers.")
 		closer := pmes.GetCloserPeers()
 		if len(closer) == 0 {
 			level++
@@ -220,7 +220,7 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer,
 
 		np, err := dht.peerFromInfo(closer[0])
 		if err != nil {
-			u.DOut("no peerFromInfo")
+			log.Debug("no peerFromInfo")
 			level++
 			continue
 		}
@@ -293,7 +293,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 	query := newQuery(u.Key(id), func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
 		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
 		if err != nil {
-			u.DErr("getPeer error: %v\n", err)
+			log.Error("%s getPeer error: %v", dht.self, err)
 			return nil, err
 		}
 
@@ -306,7 +306,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 		for i, fp := range plist {
 			nxtp, err := dht.peerFromInfo(fp)
 			if err != nil {
-				u.DErr("findPeer error: %v\n", err)
+				log.Error("%s findPeer error: %v", dht.self, err)
 				continue
 			}
 

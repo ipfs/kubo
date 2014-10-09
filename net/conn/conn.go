@@ -12,6 +12,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("conn")
+
 // ChanBuffer is the size of the buffer in the Conn Chan
 const ChanBuffer = 10
 
@@ -87,7 +89,7 @@ func (c *Conn) newChans() error {
 
 // Close closes the connection, and associated channels.
 func (c *Conn) Close() error {
-	u.DOut("Closing Conn.\n")
+	log.Debug("Closing Conn with %v", c.Peer)
 	if c.Conn == nil {
 		return fmt.Errorf("Already closed") // already closed
 	}

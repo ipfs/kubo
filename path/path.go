@@ -40,11 +40,11 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 	// first element in the path is a b58 hash (for now)
 	h, err := mh.FromB58String(parts[0])
 	if err != nil {
-		u.DOut("given path element is not a base58 string.\n")
+		log.Debug("given path element is not a base58 string.\n")
 		return nil, err
 	}
 
-	u.DOut("Resolve dag get.\n")
+	log.Debug("Resolve dag get.\n")
 	nd, err := s.DAG.Get(u.Key(h))
 	if err != nil {
 		return nil, err

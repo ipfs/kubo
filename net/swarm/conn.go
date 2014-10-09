@@ -8,7 +8,6 @@ import (
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
-	u "github.com/jbenet/go-ipfs/util"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
@@ -26,7 +25,7 @@ func (s *Swarm) listen() error {
 		if err != nil {
 			hasErr = true
 			retErr.Errors[i] = err
-			u.PErr("Failed to listen on: %s [%s]", addr, err)
+			log.Error("Failed to listen on: %s [%s]", addr, err)
 		}
 	}
 
@@ -106,16 +105,16 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	}
 
 	if c.Peer != nil {
-		u.DOut("Starting connection: %s\n", c.Peer)
+		log.Debug("Starting connection: %s", c.Peer)
 	} else {
-		u.DOut("Starting connection: [unknown peer]\n")
+		log.Debug("Starting connection: [unknown peer]")
 	}
 
 	if err := s.connSecure(c); err != nil {
 		return fmt.Errorf("Conn securing error: %v", err)
 	}
 
-	u.DOut("Secured connection: %s\n", c.Peer)
+	log.Debug("Secured connection: %s", c.Peer)
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	c.Peer.AddAddress(c.Addr)
@@ -184,7 +183,7 @@ func (s *Swarm) fanOut() {
 				continue
 			}
 
-			// u.DOut("[peer: %s] Sent message [to = %s]\n", s.local, msg.Peer())
+			// log.Debug("[peer: %s] Sent message [to = %s]", s.local, msg.Peer())
 
 			// queue it in the connection's buffer
 			conn.Secure.Out <- msg.Data()
@@ -212,7 +211,7 @@ func (s *Swarm) fanIn(c *conn.Conn) {
 				goto out
 			}
 
-			// u.DOut("[peer: %s] Received message [from = %s]\n", s.local, c.Peer)
+			// log.Debug("[peer: %s] Received message [from = %s]", s.local, c.Peer)
 
 			msg := msg.New(c.Peer, data)
 			s.Incoming <- msg
