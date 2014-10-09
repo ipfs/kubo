@@ -13,6 +13,17 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+func maybeSkipFuseTests(t *testing.T) bool {
+	v := "TEST_NO_FUSE"
+	n := strings.ToLower(os.Getenv(v))
+	skip := n != "" && n != "false" && n != "f"
+
+	if skip {
+		t.Skipf("Skipping FUSE tests (%s=%s)", v, n)
+	}
+	return skip
+}
+
 func randBytes(size int) []byte {
 	b := make([]byte, size)
 	rand.Read(b)
@@ -47,6 +58,8 @@ func writeFileData(t *testing.T, data []byte, path string) []byte {
 }
 
 func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
+	maybeSkipFuseTests(t)
+
 	var err error
 	if node == nil {
 		node, err = core.NewMockNode()
