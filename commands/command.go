@@ -19,7 +19,13 @@ func (c *Command) Register(id string, sub *Command) error {
     c.subcommands = make(map[string]*Command)
   }
 
-  // TODO: check for duplicate option names
+  // check for duplicate option names (only checks downwards)
+  names := make(map[string]bool)
+  c.checkOptions(names)
+  err := sub.checkOptions(names)
+  if err != nil {
+    return err
+  }
 
   if _, ok := c.subcommands[id]; ok {
     return fmt.Errorf("There is already a subcommand registered with id '%s'", id)
@@ -82,4 +88,24 @@ func (c *Command) Call(path []string, req *Request) (interface{}, error) {
 // Sub returns the subcommand with the given id
 func (c *Command) Sub(id string) *Command {
   return c.subcommands[id]
+}
+
+func (c *Command) checkOptions(names map[string]bool) error {
+  for _, opt := range c.Options {
+    for _, name := range opt.Names {
+      if _, ok := names[name]; ok {
+        return fmt.Errorf("Multiple options are using the same name ('%s')", name)
+      }
+      names[name] = true
+    }
+  }
+
+  for _, cmd := range c.subcommands {
+    err := cmd.checkOptions(names)
+    if err != nil {
+      return err
+    }
+  }
+
+  return nil
 }
