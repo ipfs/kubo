@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/coreos/go-semver/semver"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 const (
@@ -34,7 +35,7 @@ func init() {
 	var err error
 	currentVersion, err = semver.NewVersion(Version)
 	if err != nil {
-		fmt.Printf("The const Version literal in version.go needs to be in semver format: %s \n", Version)
+		u.PErr("The const Version literal in version.go needs to be in semver format: %s \n", Version)
 		os.Exit(1)
 	}
 }

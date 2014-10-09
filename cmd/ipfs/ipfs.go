@@ -126,7 +126,7 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 			if cfg.Version.Check == config.CheckError {
 				return nil, obsolete
 			}
-			fmt.Println(obsolete) // when "warn" version.check mode we just show warning message
+			log.Warning(fmt.Sprintf("%v", obsolete)) // when "warn" version.check mode we just show warning message
 		}
 	}
 

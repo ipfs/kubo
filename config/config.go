@@ -47,8 +47,8 @@ func (bp *BootstrapPeer) String() string {
 
 // Version regulates checking if the most recent version is run
 type Version struct {
-	Check   string `json:"check"`   // "ignore" for do not check, "warn" and "error" for reacting when obsolete
-	Current string `json:"current"` // ipfs version for which config was generated
+	Check   string // "ignore" for do not check, "warn" and "error" for reacting when obsolete
+	Current string // ipfs version for which config was generated
 }
 
 const (
