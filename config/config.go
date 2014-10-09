@@ -50,6 +50,7 @@ type Config struct {
 	Identity  Identity         // local node's peer identity
 	Datastore Datastore        // local node's storage
 	Addresses Addresses        // local node's addresses
+	Version   Version          // local node's version management
 	Mounts    Mounts           // local node's mount points
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 }

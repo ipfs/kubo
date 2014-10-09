@@ -13,6 +13,7 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	daemon "github.com/jbenet/go-ipfs/daemon"
+	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -24,6 +25,7 @@ var CmdIpfs = &commander.Command{
 
 Basic commands:
 
+    init          Initialize ipfs local configuration.
     add <path>    Add an object to ipfs.
     cat <ref>     Show ipfs object data.
     ls <ref>      List links from an object.
@@ -67,7 +69,8 @@ var log = u.Logger("cmd/ipfs")
 func init() {
 	config, err := config.PathRoot()
 	if err != nil {
-		config = ""
+		u.POut("Failure initializing the default Config Directory: ", err)
+		os.Exit(1)
 	}
 	CmdIpfs.Flag.String("c", config, "specify config directory")
 }
@@ -115,6 +118,19 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 	cfg, err := config.Load(filename)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.Version.EligibleForUpdateCheck() {
+		obsolete := updates.CheckForUpdates()
+		if obsolete != nil {
+			if cfg.Version.Check == config.CheckError {
+				return nil, obsolete
+			}
+			log.Warning(fmt.Sprintf("%v", obsolete)) // when "warn" version.check mode we just show warning message
+		} else {
+			// update most recent check timestamp in config
+			cfg.RecordCurrentUpdateCheck(filename)
+		}
 	}
 
 	return core.NewIpfsNode(cfg, online)
