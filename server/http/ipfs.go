@@ -6,6 +6,7 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -33,5 +34,5 @@ func (i *ipfsHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 }
 
 func (i *ipfsHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
-	return dag.NewDagReader(nd, i.node.DAG)
+	return uio.NewDagReader(nd, i.node.DAG)
 }

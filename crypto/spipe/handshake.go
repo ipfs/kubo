@@ -49,7 +49,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	// u.DOut("handshake: %s <--> %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
+	// u.DOut("handshake: %s <--> %s\n", s.local, s.remote)
 	myPubKey, err := s.local.PubKey.Bytes()
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (s *SecurePipe) handshake() error {
 	if err != nil {
 		return err
 	}
-	u.DOut("[%s] Remote Peer Identified as %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
+	u.DOut("%s Remote Peer Identified as %s\n", s.local, s.remote)
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	// u.POut("Selected %s %s %s\n", exchange, cipherType, hashType)
-	epubkey, done, err := ci.GenerateEKeyPair(exchange) // Generate EphemeralPubKey
+	epubkey, genSharedKey, err := ci.GenerateEKeyPair(exchange) // Generate EphemeralPubKey
 
 	var handshake bytes.Buffer // Gather corpus to sign.
 	handshake.Write(encoded)
@@ -163,7 +163,7 @@ func (s *SecurePipe) handshake() error {
 	theirHandshake.Write(encoded)
 	theirHandshake.Write(exchangeResp.GetEpubkey())
 
-	// u.POut("Remote Peer Identified as %s\n", s.remote.ID.Pretty())
+	// u.POut("Remote Peer Identified as %s\n", s.remote)
 	ok, err := s.remote.PubKey.Verify(theirHandshake.Bytes(), exchangeResp.GetSignature())
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (s *SecurePipe) handshake() error {
 		return errors.New("Bad signature!")
 	}
 
-	secret, err := done(exchangeResp.GetEpubkey())
+	secret, err := genSharedKey(exchangeResp.GetEpubkey())
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (s *SecurePipe) handshake() error {
 		return errors.New("Negotiation failed.")
 	}
 
-	u.DOut("[%s] handshake: Got node id: %s\n", s.local.ID.Pretty(), s.remote.ID.Pretty())
+	u.DOut("%s handshake: Got node id: %s\n", s.local, s.remote)
 	return nil
 }
 
@@ -229,10 +229,11 @@ func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
 	for {
 		data, ok := <-s.insecure.In
 		if !ok {
+			close(s.Duplex.In)
 			return
 		}
 
-		// u.DOut("[peer %s] secure in [from = %s] %d\n", s.local.ID.Pretty(), s.remote.ID.Pretty(), len(data))
+		// u.DOut("[peer %s] secure in [from = %s] %d\n", s.local, s.remote, len(data))
 		if len(data) <= macSize {
 			continue
 		}
@@ -280,7 +281,7 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 		copy(buff[len(data):], myMac.Sum(nil))
 		myMac.Reset()
 
-		// u.DOut("[peer %s] secure out [to = %s] %d\n", s.local.ID.Pretty(), s.remote.ID.Pretty(), len(buff))
+		// u.DOut("[peer %s] secure out [to = %s] %d\n", s.local, s.remote, len(buff))
 		s.insecure.Out <- buff
 	}
 }
@@ -291,25 +292,15 @@ func IDFromPubKey(pk ci.PubKey) (peer.ID, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash, err := u.Hash(b)
-	if err != nil {
-		return nil, err
-	}
+	hash := u.Hash(b)
 	return peer.ID(hash), nil
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
 func selectBest(myPrefs, theirPrefs string) (string, error) {
 	// Person with greatest hash gets first choice.
-	myHash, err := u.Hash([]byte(myPrefs))
-	if err != nil {
-		return "", err
-	}
-
-	theirHash, err := u.Hash([]byte(theirPrefs))
-	if err != nil {
-		return "", err
-	}
+	myHash := u.Hash([]byte(myPrefs))
+	theirHash := u.Hash([]byte(theirPrefs))
 
 	cmp := bytes.Compare(myHash, theirHash)
 	var firstChoiceArr, secChoiceArr []string
@@ -367,7 +358,7 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error)
 	// let's verify ID
 	if !npeer.ID.Equal(rid) {
 		e := "Expected peer.ID does not match sent pubkey's hash: %v - %v"
-		return nil, fmt.Errorf(e, npeer.ID.Pretty(), rid.Pretty())
+		return nil, fmt.Errorf(e, npeer, rid)
 	}
 
 	if npeer.PubKey == nil {
@@ -380,7 +371,7 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error)
 	// this shouldn't ever happen, given we hashed, etc, but it could mean
 	// expected code (or protocol) invariants violated.
 	if !npeer.PubKey.Equals(rpk) {
-		return nil, fmt.Errorf("WARNING: PubKey mismatch: %v", npeer.ID.Pretty())
+		return nil, fmt.Errorf("WARNING: PubKey mismatch: %v", npeer)
 	}
 	return npeer, nil
 }

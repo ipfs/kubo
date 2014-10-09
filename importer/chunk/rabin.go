@@ -1,4 +1,4 @@
-package importer
+package chunk
 
 import (
 	"bufio"
@@ -92,43 +92,3 @@ func (mr *MaybeRabin) Split(r io.Reader) chan []byte {
 	}()
 	return out
 }
-
-/*
-func WhyrusleepingCantImplementRabin(r io.Reader) chan []byte {
-	out := make(chan []byte, 4)
-	go func() {
-		buf := bufio.NewReader(r)
-		blkbuf := new(bytes.Buffer)
-		window := make([]byte, 16)
-		var val uint64
-		prime := uint64(61)
-
-		get := func(i int) uint64 {
-			return uint64(window[i%len(window)])
-		}
-
-		set := func(i int, val byte) {
-			window[i%len(window)] = val
-		}
-
-		for i := 0; ; i++ {
-			curb, err := buf.ReadByte()
-			if err != nil {
-				break
-			}
-			set(i, curb)
-			blkbuf.WriteByte(curb)
-
-			hash := md5.Sum(window)
-			if hash[0] == 0 && hash[1] == 0 {
-				out <- blkbuf.Bytes()
-				blkbuf.Reset()
-			}
-		}
-		out <- blkbuf.Bytes()
-		close(out)
-	}()
-
-	return out
-}
-*/

@@ -101,7 +101,7 @@ func TestTableFind(t *testing.T) {
 		rt.Update(peers[i])
 	}
 
-	t.Logf("Searching for peer: '%s'", peers[2].ID.Pretty())
+	t.Logf("Searching for peer: '%s'", peers[2])
 	found := rt.NearestPeer(ConvertPeerID(peers[2].ID))
 	if !found.ID.Equal(peers[2].ID) {
 		t.Fatalf("Failed to lookup known node...")
@@ -118,7 +118,7 @@ func TestTableFindMultiple(t *testing.T) {
 		rt.Update(peers[i])
 	}
 
-	t.Logf("Searching for peer: '%s'", peers[2].ID.Pretty())
+	t.Logf("Searching for peer: '%s'", peers[2])
 	found := rt.NearestPeers(ConvertPeerID(peers[2].ID), 15)
 	if len(found) != 15 {
 		t.Fatalf("Got back different number of peers than we expected.")

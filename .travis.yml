@@ -8,3 +8,5 @@ go:
 
 script:
   - go test -v ./...
+
+env: TEST_NO_FUSE=1

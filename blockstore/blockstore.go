@@ -13,7 +13,7 @@ var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
 type Blockstore interface {
 	Get(u.Key) (*blocks.Block, error)
-	Put(blocks.Block) error
+	Put(*blocks.Block) error
 }
 
 func NewBlockstore(d ds.Datastore) Blockstore {
@@ -27,7 +27,7 @@ type blockstore struct {
 }
 
 func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
-	maybeData, err := bs.datastore.Get(toDatastoreKey(k))
+	maybeData, err := bs.datastore.Get(k.DsKey())
 	if err != nil {
 		return nil, err
 	}
@@ -35,13 +35,9 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 	if !ok {
 		return nil, ValueTypeMismatch
 	}
-	return blocks.NewBlock(bdata)
+	return blocks.NewBlock(bdata), nil
 }
 
-func (bs *blockstore) Put(block blocks.Block) error {
-	return bs.datastore.Put(toDatastoreKey(block.Key()), block.Data)
-}
-
-func toDatastoreKey(k u.Key) ds.Key {
-	return ds.NewKey(string(k))
+func (bs *blockstore) Put(block *blocks.Block) error {
+	return bs.datastore.Put(block.Key().DsKey(), block.Data)
 }

@@ -16,6 +16,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	netservice "github.com/jbenet/go-ipfs/net/service"
@@ -25,6 +26,8 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("core")
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
@@ -39,7 +42,7 @@ type IpfsNode struct {
 	Peerstore peer.Peerstore
 
 	// the local datastore
-	Datastore ds.Datastore
+	Datastore ds.ThreadSafeDatastore
 
 	// the network message stream
 	Network inet.Network
@@ -60,7 +63,7 @@ type IpfsNode struct {
 	Resolver *path.Resolver
 
 	// the name system, resolves paths to hashes
-	// Namesys *namesys.Namesys
+	Namesys namesys.NameSystem
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -142,6 +145,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}
 
 	dag := &merkledag.DAGService{Blocks: bs}
+	ns := namesys.NewNameSystem(route)
 
 	success = true
 	return &IpfsNode{
@@ -154,6 +158,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Exchange:  exchangeSession,
 		Identity:  local,
 		Routing:   route,
+		Namesys:   ns,
 	}, nil
 }
 
@@ -167,14 +172,14 @@ func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 	}
 
 	// address is optional
-	var addresses []*ma.Multiaddr
+	var addresses []ma.Multiaddr
 	if len(cfg.Addresses.Swarm) > 0 {
 		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
 		if err != nil {
 			return nil, err
 		}
 
-		addresses = []*ma.Multiaddr{maddr}
+		addresses = []ma.Multiaddr{maddr}
 	}
 
 	var (
@@ -232,8 +237,13 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 	}
 }
 
-// PinDagNode ensures a given node is stored persistently locally.
+// PinDagNode ensures a given node is stored persistently locally
 func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
-	u.DOut("Pinning node. Currently No-Op\n")
+	return n.PinDagNodeRecursively(nd, 1)
+}
+
+// PinDagNodeRecursively ensures a given node is stored persistently locally
+func (n *IpfsNode) PinDagNodeRecursively(nd *merkledag.Node, depth int) error {
+	u.DOut("Pinning node recursively. Currently No-Op\n")
 	return nil
 }

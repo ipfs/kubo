@@ -3,15 +3,26 @@ package util
 import (
 	"errors"
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
+	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
+
+func init() {
+	SetupLogging()
+}
+
+// LogFormat is the format used for our logger.
+var LogFormat = "%{color}%{time:2006-01-02 15:04:05.999999} %{shortfile} %{level}: %{color:reset}%{message}"
 
 // Debug is a global flag for debugging.
 var Debug bool
@@ -32,14 +43,67 @@ var ErrNotFound = ds.ErrNotFound
 // Key is a string representation of multihash for use with maps.
 type Key string
 
+// String is utililty function for printing out keys as strings (Pretty).
+func (k Key) String() string {
+	return k.Pretty()
+}
+
 // Pretty returns Key in a b58 encoded string
 func (k Key) Pretty() string {
 	return b58.Encode([]byte(k))
 }
 
+// DsKey returns a Datastore key
+func (k Key) DsKey() ds.Key {
+	return ds.NewKey(string(k))
+}
+
+// KeyFromDsKey returns a Datastore key
+func KeyFromDsKey(dsk ds.Key) Key {
+	return Key(dsk.BaseNamespace())
+}
+
+// DsKeyB58Encode returns a B58 encoded Datastore key
+// TODO: this is hacky because it encodes every path component. some
+// path components may be proper strings already...
+func DsKeyB58Encode(dsk ds.Key) ds.Key {
+	k := ds.NewKey("/")
+	for _, n := range dsk.Namespaces() {
+		k = k.Child(b58.Encode([]byte(n)))
+	}
+	return k
+}
+
+// DsKeyB58Decode returns a b58 decoded Datastore key
+// TODO: this is hacky because it encodes every path component. some
+// path components may be proper strings already...
+func DsKeyB58Decode(dsk ds.Key) ds.Key {
+	k := ds.NewKey("/")
+	for _, n := range dsk.Namespaces() {
+		k = k.Child(string(b58.Decode(n)))
+	}
+	return k
+}
+
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
-func Hash(data []byte) (mh.Multihash, error) {
-	return mh.Sum(data, mh.SHA2_256, -1)
+func Hash(data []byte) mh.Multihash {
+	h, err := mh.Sum(data, mh.SHA2_256, -1)
+	if err != nil {
+		// this error can be safely ignored (panic) because multihash only fails
+		// from the selection of hash function. If the fn + length are valid, it
+		// won't error.
+		panic("multihash failed to hash using SHA2_256.")
+	}
+	return h
+}
+
+// IsValidHash checks whether a given hash is valid (b58 decodable, len > 0)
+func IsValidHash(s string) bool {
+	out := b58.Decode(s)
+	if out == nil || len(out) == 0 {
+		return false
+	}
+	return true
 }
 
 // TildeExpansion expands a filename, which may begin with a tilde.
@@ -82,6 +146,37 @@ func DOut(format string, a ...interface{}) {
 	}
 }
 
+var loggers = map[string]*logging.Logger{}
+
+// SetupLogging will initialize the logger backend and set the flags.
+func SetupLogging() {
+	backend := logging.NewLogBackend(os.Stderr, "", 0)
+	logging.SetBackend(backend)
+	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
+
+	// just uncomment Debug = True right here for all logging.
+	// but please don't commit that.
+	// Debug = True
+	if Debug {
+		logging.SetLevel(logging.DEBUG, "")
+	} else {
+		logging.SetLevel(logging.ERROR, "")
+	}
+
+	for n, log := range loggers {
+		logging.SetLevel(logging.ERROR, n)
+		log.Error("setting logger: %s to %v\n", n, logging.ERROR)
+	}
+}
+
+// Logger retrieves a particular logger + initializes it at a particular level
+func Logger(name string) *logging.Logger {
+	log := logging.MustGetLogger(name)
+	// logging.SetLevel(lvl, name) // can't set level here.
+	loggers[name] = log
+	return log
+}
+
 // ExpandPathnames takes a set of paths and turns them into absolute paths
 func ExpandPathnames(paths []string) ([]string, error) {
 	var out []string
@@ -93,4 +188,77 @@ func ExpandPathnames(paths []string) ([]string, error) {
 		out = append(out, abspath)
 	}
 	return out, nil
+}
+
+// byteChanReader wraps a byte chan in a reader
+type byteChanReader struct {
+	in  chan []byte
+	buf []byte
+}
+
+func NewByteChanReader(in chan []byte) io.Reader {
+	return &byteChanReader{in: in}
+}
+
+func (bcr *byteChanReader) Read(b []byte) (int, error) {
+	if len(bcr.buf) == 0 {
+		data, ok := <-bcr.in
+		if !ok {
+			return 0, io.EOF
+		}
+		bcr.buf = data
+	}
+
+	if len(bcr.buf) >= len(b) {
+		copy(b, bcr.buf)
+		bcr.buf = bcr.buf[len(b):]
+		return len(b), nil
+	}
+
+	copy(b, bcr.buf)
+	b = b[len(bcr.buf):]
+	totread := len(bcr.buf)
+
+	for data := range bcr.in {
+		if len(data) > len(b) {
+			totread += len(b)
+			copy(b, data[:len(b)])
+			bcr.buf = data[len(b):]
+			return totread, nil
+		}
+		copy(b, data)
+		totread += len(data)
+		b = b[len(data):]
+		if len(b) == 0 {
+			return totread, nil
+		}
+	}
+	return totread, io.EOF
+}
+
+type randGen struct {
+	src rand.Source
+}
+
+func NewFastRand() io.Reader {
+	return &randGen{rand.NewSource(time.Now().UnixNano())}
+}
+
+func (r *randGen) Read(p []byte) (n int, err error) {
+	todo := len(p)
+	offset := 0
+	for {
+		val := int64(r.src.Int63())
+		for i := 0; i < 8; i++ {
+			p[offset] = byte(val & 0xff)
+			todo--
+			if todo == 0 {
+				return len(p), nil
+			}
+			offset++
+			val >>= 8
+		}
+	}
+
+	panic("unreachable")
 }

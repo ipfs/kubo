@@ -18,16 +18,20 @@ import (
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
 func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
-	peers := []*peer.Peer{}
+	log.Debug("PutValue %s", key)
+	err := dht.putLocal(key, value)
+	if err != nil {
+		return err
+	}
 
-	// get the peers we need to announce to
+	var peers []*peer.Peer
 	for _, route := range dht.routingTables {
 		npeers := route.NearestPeers(kb.ConvertKey(key), KValue)
 		peers = append(peers, npeers...)
 	}
 
 	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
-		u.DOut("[%s] PutValue qry part %v\n", dht.self.ID.Pretty(), p.ID.Pretty())
+		log.Debug("%s PutValue qry part %v", dht.self, p)
 		err := dht.putValueToNetwork(ctx, p, string(key), value)
 		if err != nil {
 			return nil, err
@@ -35,8 +39,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return &dhtQueryResult{success: true}, nil
 	})
 
-	_, err := query.Run(ctx, peers)
-	u.DOut("[%s] PutValue %v %v\n", dht.self.ID.Pretty(), key, value)
+	_, err = query.Run(ctx, peers)
 	return err
 }
 
@@ -44,14 +47,13 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
-	ll := startNewRPC("GET")
-	defer ll.EndAndPrint()
+	log.Debug("Get Value [%s]", key)
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
 	val, err := dht.getLocal(key)
 	if err == nil {
-		ll.Success = true
+		log.Debug("Got value locally!")
 		return val, nil
 	}
 
@@ -84,7 +86,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 		return nil, err
 	}
 
-	u.DOut("[%s] GetValue %v %v\n", dht.self.ID.Pretty(), key, result.value)
+	log.Debug("GetValue %v %v", key, result.value)
 	if result.value == nil {
 		return nil, u.ErrNotFound
 	}
@@ -151,15 +153,14 @@ func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count in
 
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
-			ppp := pp
-			go func() {
-				pmes, err := dht.findProvidersSingle(ctx, ppp, key, 0)
+			go func(p *peer.Peer) {
+				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
 				if err != nil {
 					u.PErr("%v\n", err)
 					return
 				}
 				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
-			}()
+			}(pp)
 		}
 
 	}()
@@ -187,13 +188,11 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 
 // FindProviders searches for peers who can provide the value for given key.
 func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
-	ll := startNewRPC("FindProviders")
-	ll.EndAndPrint()
-
 	// get closest peer
-	u.DOut("Find providers for: '%s'\n", key)
+	log.Debug("Find providers for: '%s'", key)
 	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
 	if p == nil {
+		log.Warning("Got no nearest peer for find providers: '%s'", key)
 		return nil, nil
 	}
 
@@ -335,17 +334,17 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	u.DOut("[%s] ping %s start\n", dht.self.ID.Pretty(), p.ID.Pretty())
+	log.Info("ping %s start", p)
 
 	pmes := newMessage(Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
-	u.DOut("[%s] ping %s end (err = %s)\n", dht.self.ID.Pretty(), p.ID.Pretty(), err)
+	log.Info("ping %s end (err = %s)", p, err)
 	return err
 }
 
 func (dht *IpfsDHT) getDiagnostic(ctx context.Context) ([]*diagInfo, error) {
 
-	u.DOut("Begin Diagnostic")
+	log.Info("Begin Diagnostic")
 	peers := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
 	var out []*diagInfo
 

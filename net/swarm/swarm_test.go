@@ -95,7 +95,7 @@ func TestSwarm(t *testing.T) {
 		if a == nil {
 			t.Fatal("error setting up peer (addr is nil)", peer)
 		}
-		n, h, err := a.DialArgs()
+		n, h, err := ma.DialArgs(a)
 		if err != nil {
 			t.Fatal("error getting dial args from addr")
 		}

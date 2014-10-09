@@ -16,6 +16,11 @@ import (
 // ID is a byte slice representing the identity of a peer.
 type ID mh.Multihash
 
+// String is utililty function for printing out peer ID strings.
+func (id ID) String() string {
+	return id.Pretty()
+}
+
 // Equal is utililty function for comparing two peer ID's
 func (id ID) Equal(other ID) bool {
 	return bytes.Equal(id, other)
@@ -38,7 +43,7 @@ type Map map[u.Key]*Peer
 // ID, and relevant Addresses.
 type Peer struct {
 	ID        ID
-	Addresses []*ma.Multiaddr
+	Addresses []ma.Multiaddr
 
 	PrivKey ic.PrivKey
 	PubKey  ic.PubKey
@@ -48,13 +53,18 @@ type Peer struct {
 	sync.RWMutex
 }
 
+// String prints out the peer.
+func (p *Peer) String() string {
+	return "[Peer " + p.ID.String() + "]"
+}
+
 // Key returns the ID as a Key (string) for maps.
 func (p *Peer) Key() u.Key {
 	return u.Key(p.ID)
 }
 
 // AddAddress adds the given Multiaddr address to Peer's addresses.
-func (p *Peer) AddAddress(a *ma.Multiaddr) {
+func (p *Peer) AddAddress(a ma.Multiaddr) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -67,17 +77,12 @@ func (p *Peer) AddAddress(a *ma.Multiaddr) {
 }
 
 // NetAddress returns the first Multiaddr found for a given network.
-func (p *Peer) NetAddress(n string) *ma.Multiaddr {
+func (p *Peer) NetAddress(n string) ma.Multiaddr {
 	p.RLock()
 	defer p.RUnlock()
 
 	for _, a := range p.Addresses {
-		ps, err := a.Protocols()
-		if err != nil {
-			continue // invalid addr
-		}
-
-		for _, p := range ps {
+		for _, p := range a.Protocols() {
 			if p.Name == n {
 				return a
 			}

@@ -29,4 +29,9 @@ func init() {
 	cmdIpfsAdd.Flag.Bool("r", false, "add objects recursively")
 }
 
-var addCmd = MakeCommand("add", []string{"r"}, commands.Add)
+var addCmd = makeCommand(command{
+	name:  "add",
+	args:  1,
+	flags: []string{"r"},
+	cmdFn: commands.Add,
+})

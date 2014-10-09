@@ -113,8 +113,8 @@ func TestDistancesAndCenterSorting(t *testing.T) {
 		keys[i] = Key{Space: XORKeySpace, Bytes: a}
 	}
 
-	cmp := func(a int, b *big.Int) int {
-		return big.NewInt(int64(a)).Cmp(b)
+	cmp := func(a int64, b *big.Int) int {
+		return big.NewInt(a).Cmp(b)
 	}
 
 	if 0 != cmp(0, keys[2].Distance(keys[3])) {

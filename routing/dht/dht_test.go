@@ -43,8 +43,8 @@ func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
 	return d
 }
 
-func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
-	var addrs []*ma.Multiaddr
+func setupDHTS(n int, t *testing.T) ([]ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
+	var addrs []ma.Multiaddr
 	for i := 0; i < n; i++ {
 		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
 		if err != nil {
@@ -67,7 +67,7 @@ func setupDHTS(n int, t *testing.T) ([]*ma.Multiaddr, []*peer.Peer, []*IpfsDHT) 
 	return addrs, peers, dhts
 }
 
-func makePeer(addr *ma.Multiaddr) *peer.Peer {
+func makePeer(addr ma.Multiaddr) *peer.Peer {
 	p := new(peer.Peer)
 	p.AddAddress(addr)
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
@@ -287,7 +287,7 @@ func TestProvidesAsync(t *testing.T) {
 	select {
 	case p := <-provs:
 		if !p.ID.Equal(dhts[3].self.ID) {
-			t.Fatalf("got a provider, but not the right one. %v", p.ID.Pretty())
+			t.Fatalf("got a provider, but not the right one. %s", p)
 		}
 	case <-ctx.Done():
 		t.Fatal("Didnt get back providers")

@@ -9,7 +9,6 @@ import (
 	"path"
 	"sync"
 
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
@@ -18,7 +17,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-var log = logging.MustGetLogger("daemon")
+var log = u.Logger("daemon")
 
 // LockFile is the filename of the daemon lock, relative to config dir
 const LockFile = "daemon.lock"
@@ -40,7 +39,7 @@ type Command struct {
 	Opts    map[string]interface{}
 }
 
-func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir string) (*DaemonListener, error) {
+func NewDaemonListener(ipfsnode *core.IpfsNode, addr ma.Multiaddr, confdir string) (*DaemonListener, error) {
 	var err error
 	confdir, err = u.TildeExpansion(confdir)
 	if err != nil {
@@ -52,7 +51,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir stri
 		return nil, err
 	}
 
-	network, host, err := addr.DialArgs()
+	network, host, err := ma.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +62,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr *ma.Multiaddr, confdir stri
 		return nil, err
 	}
 
-	_, err = ofi.Write([]byte(host))
+	_, err = ofi.Write([]byte(addr.String()))
 	if err != nil {
 		log.Warning("Could not write to rpcaddress file: %s", err)
 		return nil, err
@@ -133,6 +132,10 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 		err = commands.Ls(dl.node, command.Args, command.Opts, conn)
 	case "pin":
 		err = commands.Pin(dl.node, command.Args, command.Opts, conn)
+	case "publish":
+		err = commands.Publish(dl.node, command.Args, command.Opts, conn)
+	case "resolve":
+		err = commands.Resolve(dl.node, command.Args, command.Opts, conn)
 	default:
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}

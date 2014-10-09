@@ -6,20 +6,11 @@ func TestBlocksBasic(t *testing.T) {
 
 	// Test empty data
 	empty := []byte{}
-	_, err := NewBlock(empty)
-	if err != nil {
-		t.Fatal(err)
-	}
+	NewBlock(empty)
 
 	// Test nil case
-	_, err = NewBlock(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	NewBlock(nil)
 
 	// Test some data
-	_, err = NewBlock([]byte("Hello world!"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	NewBlock([]byte("Hello world!"))
 }

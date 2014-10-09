@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // TODO(brian): TestGetReturnsNil
@@ -24,7 +24,7 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 
 func TestPutThenGetBlock(t *testing.T) {
 	bs := NewBlockstore(ds.NewMapDatastore())
-	block := testutil.NewBlockOrFail(t, "some data")
+	block := blocks.NewBlock([]byte("some data"))
 
 	err := bs.Put(block)
 	if err != nil {
@@ -41,10 +41,10 @@ func TestPutThenGetBlock(t *testing.T) {
 }
 
 func TestValueTypeMismatch(t *testing.T) {
-	block := testutil.NewBlockOrFail(t, "some data")
+	block := blocks.NewBlock([]byte("some data"))
 
 	datastore := ds.NewMapDatastore()
-	datastore.Put(toDatastoreKey(block.Key()), "data that isn't a block!")
+	datastore.Put(block.Key().DsKey(), "data that isn't a block!")
 
 	blockstore := NewBlockstore(datastore)
 

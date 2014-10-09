@@ -32,19 +32,16 @@ func New() *message {
 	return new(message)
 }
 
-func newMessageFromProto(pbm PBMessage) (BitSwapMessage, error) {
+func newMessageFromProto(pbm PBMessage) BitSwapMessage {
 	m := New()
 	for _, s := range pbm.GetWantlist() {
 		m.AppendWanted(u.Key(s))
 	}
 	for _, d := range pbm.GetBlocks() {
-		b, err := blocks.NewBlock(d)
-		if err != nil {
-			return nil, err
-		}
+		b := blocks.NewBlock(d)
 		m.AppendBlock(*b)
 	}
-	return m, nil
+	return m
 }
 
 // TODO(brian): convert these into keys
@@ -70,10 +67,7 @@ func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
 	if err := proto.Unmarshal(nmsg.Data(), pb); err != nil {
 		return nil, err
 	}
-	m, err := newMessageFromProto(*pb)
-	if err != nil {
-		return nil, err
-	}
+	m := newMessageFromProto(*pb)
 	return m, nil
 }
 

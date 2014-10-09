@@ -82,6 +82,5 @@ func (s *SecurePipe) Close() error {
 
 	s.cancel()
 	s.cancel = nil
-	close(s.In)
 	return nil
 }

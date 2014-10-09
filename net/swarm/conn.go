@@ -37,8 +37,8 @@ func (s *Swarm) listen() error {
 }
 
 // Listen for new connections on the given multiaddr
-func (s *Swarm) connListen(maddr *ma.Multiaddr) error {
-	netstr, addr, err := maddr.DialArgs()
+func (s *Swarm) connListen(maddr ma.Multiaddr) error {
+	netstr, addr, err := ma.DialArgs(maddr)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	}
 
 	if c.Peer != nil {
-		u.DOut("Starting connection: %s\n", c.Peer.Key().Pretty())
+		u.DOut("Starting connection: %s\n", c.Peer)
 	} else {
 		u.DOut("Starting connection: [unknown peer]\n")
 	}
@@ -115,7 +115,7 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 		return fmt.Errorf("Conn securing error: %v", err)
 	}
 
-	u.DOut("Secured connection: %s\n", c.Peer.Key().Pretty())
+	u.DOut("Secured connection: %s\n", c.Peer)
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	c.Peer.AddAddress(c.Addr)
@@ -184,8 +184,7 @@ func (s *Swarm) fanOut() {
 				continue
 			}
 
-			// u.DOut("[peer: %s] Sent message [to = %s]\n",
-			// 	s.local.ID.Pretty(), msg.Peer().ID.Pretty())
+			// u.DOut("[peer: %s] Sent message [to = %s]\n", s.local, msg.Peer())
 
 			// queue it in the connection's buffer
 			conn.Secure.Out <- msg.Data()
@@ -208,13 +207,12 @@ func (s *Swarm) fanIn(c *conn.Conn) {
 
 		case data, ok := <-c.Secure.In:
 			if !ok {
-				e := fmt.Errorf("Error retrieving from conn: %v", c.Peer.Key().Pretty())
+				e := fmt.Errorf("Error retrieving from conn: %v", c.Peer)
 				s.errChan <- e
 				goto out
 			}
 
-			// u.DOut("[peer: %s] Received message [from = %s]\n",
-			// 	s.local.ID.Pretty(), c.Peer.ID.Pretty())
+			// u.DOut("[peer: %s] Received message [from = %s]\n", s.local, c.Peer)
 
 			msg := msg.New(c.Peer, data)
 			s.Incoming <- msg

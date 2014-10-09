@@ -3,13 +3,13 @@ package merkledag
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("merkledag")
 
 // NodeMap maps u.Keys to Nodes.
 // We cannot use []byte/Multihash for keys :(
@@ -24,6 +24,8 @@ type Node struct {
 
 	// cache encoded/marshaled value
 	encoded []byte
+
+	cached mh.Multihash
 }
 
 // Link represents an IPFS Merkle DAG Link between Nodes.
@@ -41,25 +43,68 @@ type Link struct {
 	Node *Node
 }
 
-// AddNodeLink adds a link to another node.
-func (n *Node) AddNodeLink(name string, that *Node) error {
-	s, err := that.Size()
+func MakeLink(n *Node) (*Link, error) {
+	s, err := n.Size()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	h, err := that.Multihash()
+	h, err := n.Multihash()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	n.Links = append(n.Links, &Link{
-		Name: name,
+	return &Link{
 		Size: s,
 		Hash: h,
-		Node: that,
-	})
+	}, nil
+}
+
+// AddNodeLink adds a link to another node.
+func (n *Node) AddNodeLink(name string, that *Node) error {
+	lnk, err := MakeLink(that)
+	if err != nil {
+		return err
+	}
+	lnk.Name = name
+	lnk.Node = that
+
+	n.Links = append(n.Links, lnk)
 	return nil
+}
+
+// AddNodeLink adds a link to another node. without keeping a reference to
+// the child node
+func (n *Node) AddNodeLinkClean(name string, that *Node) error {
+	lnk, err := MakeLink(that)
+	if err != nil {
+		return err
+	}
+	lnk.Name = name
+
+	n.Links = append(n.Links, lnk)
+	return nil
+}
+
+func (n *Node) RemoveNodeLink(name string) error {
+	for i, l := range n.Links {
+		if l.Name == name {
+			n.Links = append(n.Links[:i], n.Links[i+1:]...)
+			return nil
+		}
+	}
+	return u.ErrNotFound
+}
+
+// Copy returns a copy of the node.
+// NOTE: does not make copies of Node objects in the links.
+func (n *Node) Copy() *Node {
+	nnode := new(Node)
+	nnode.Data = make([]byte, len(n.Data))
+	copy(nnode.Data, n.Data)
+
+	nnode.Links = make([]*Link, len(n.Links))
+	copy(nnode.Links, n.Links)
+	return nnode
 }
 
 // Size returns the total size of the data addressed by node,
@@ -79,12 +124,12 @@ func (n *Node) Size() (uint64, error) {
 
 // Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
-	b, err := n.Encoded(false)
+	_, err := n.Encoded(false)
 	if err != nil {
 		return nil, err
 	}
 
-	return u.Hash(b)
+	return n.cached, nil
 }
 
 // Key returns the Multihash as a key, for maps.
@@ -105,7 +150,7 @@ type DAGService struct {
 // Add adds a node to the DAGService, storing the block in the BlockService
 func (n *DAGService) Add(nd *Node) (u.Key, error) {
 	k, _ := nd.Key()
-	u.DOut("DagService Add [%s]\n", k.Pretty())
+	log.Debug("DagService Add [%s]", k)
 	if n == nil {
 		return "", fmt.Errorf("DAGService is nil")
 	}
@@ -115,7 +160,9 @@ func (n *DAGService) Add(nd *Node) (u.Key, error) {
 		return "", err
 	}
 
-	b, err := blocks.NewBlock(d)
+	b := new(blocks.Block)
+	b.Data = d
+	b.Multihash, err = nd.Multihash()
 	if err != nil {
 		return "", err
 	}
@@ -126,16 +173,16 @@ func (n *DAGService) Add(nd *Node) (u.Key, error) {
 func (n *DAGService) AddRecursive(nd *Node) error {
 	_, err := n.Add(nd)
 	if err != nil {
+		log.Info("AddRecursive Error: %s\n", err)
 		return err
 	}
 
 	for _, link := range nd.Links {
-		if link.Node == nil {
-			panic("Why does this node have a nil link?\n")
-		}
-		err := n.AddRecursive(link.Node)
-		if err != nil {
-			return err
+		if link.Node != nil {
+			err := n.AddRecursive(link.Node)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -154,46 +201,4 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 	}
 
 	return Decoded(b.Data)
-}
-
-func FilePBData(data []byte) []byte {
-	pbfile := new(PBData)
-	typ := PBData_File
-	pbfile.Type = &typ
-	pbfile.Data = data
-
-	data, err := proto.Marshal(pbfile)
-	if err != nil {
-		//this really shouldnt happen, i promise
-		panic(err)
-	}
-	return data
-}
-
-func FolderPBData() []byte {
-	pbfile := new(PBData)
-	typ := PBData_Directory
-	pbfile.Type = &typ
-
-	data, err := proto.Marshal(pbfile)
-	if err != nil {
-		//this really shouldnt happen, i promise
-		panic(err)
-	}
-	return data
-}
-
-func WrapData(b []byte) []byte {
-	pbdata := new(PBData)
-	typ := PBData_Raw
-	pbdata.Data = b
-	pbdata.Type = &typ
-
-	out, err := proto.Marshal(pbdata)
-	if err != nil {
-		// This shouldnt happen. seriously.
-		panic(err)
-	}
-
-	return out
 }

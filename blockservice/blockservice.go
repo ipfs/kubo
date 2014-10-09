@@ -13,6 +13,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("blockservice")
+
 // BlockService is a block datastore.
 // It uses an internal `datastore.Datastore` instance to store values.
 type BlockService struct {
@@ -26,7 +28,7 @@ func NewBlockService(d ds.Datastore, rem exchange.Interface) (*BlockService, err
 		return nil, fmt.Errorf("BlockService requires valid datastore")
 	}
 	if rem == nil {
-		u.DErr("Caution: blockservice running in local (offline) mode.\n")
+		log.Warning("blockservice running in local (offline) mode.")
 	}
 	return &BlockService{Datastore: d, Remote: rem}, nil
 }
@@ -34,11 +36,10 @@ func NewBlockService(d ds.Datastore, rem exchange.Interface) (*BlockService, err
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	k := b.Key()
-	dsk := ds.NewKey(string(k))
-	u.DOut("storing [%s] in datastore\n", k.Pretty())
+	log.Debug("blockservice: storing [%s] in datastore", k)
 	// TODO(brian): define a block datastore with a Put method which accepts a
 	// block parameter
-	err := s.Datastore.Put(dsk, b.Data)
+	err := s.Datastore.Put(k.DsKey(), b.Data)
 	if err != nil {
 		return k, err
 	}
@@ -52,11 +53,10 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
-	u.DOut("BlockService GetBlock: '%s'\n", k.Pretty())
-	dsk := ds.NewKey(string(k))
-	datai, err := s.Datastore.Get(dsk)
+	log.Debug("BlockService GetBlock: '%s'", k)
+	datai, err := s.Datastore.Get(k.DsKey())
 	if err == nil {
-		u.DOut("Blockservice: Got data in datastore.\n")
+		log.Debug("Blockservice: Got data in datastore.")
 		bdata, ok := datai.([]byte)
 		if !ok {
 			return nil, fmt.Errorf("data associated with %s is not a []byte", k)
@@ -66,7 +66,7 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 			Data:      bdata,
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
-		u.DOut("Blockservice: Searching bitswap.\n")
+		log.Debug("Blockservice: Searching bitswap.")
 		ctx, _ := context.WithTimeout(context.TODO(), 5*time.Second)
 		blk, err := s.Remote.Block(ctx, k)
 		if err != nil {
@@ -74,7 +74,7 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		}
 		return blk, nil
 	} else {
-		u.DOut("Blockservice GetBlock: Not found.\n")
+		log.Debug("Blockservice GetBlock: Not found.")
 		return nil, u.ErrNotFound
 	}
 }

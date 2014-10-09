@@ -5,8 +5,13 @@ import (
 	"io"
 	"os"
 
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
+	"github.com/jbenet/go-ipfs/util"
 )
+
+var log = util.Logger("importer")
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
 var BlockSizeLimit = int64(1048576) // 1 MB
@@ -20,22 +25,31 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // NewDagFromReader constructs a Merkle DAG from the given io.Reader.
 // size required for block construction.
 func NewDagFromReader(r io.Reader) (*dag.Node, error) {
-	return NewDagFromReaderWithSplitter(r, &SizeSplitter{1024 * 512})
+	return NewDagFromReaderWithSplitter(r, chunk.DefaultSplitter)
 }
 
-func NewDagFromReaderWithSplitter(r io.Reader, spl BlockSplitter) (*dag.Node, error) {
+func NewDagFromReaderWithSplitter(r io.Reader, spl chunk.BlockSplitter) (*dag.Node, error) {
 	blkChan := spl.Split(r)
 	first := <-blkChan
-	root := &dag.Node{Data: dag.FilePBData(first)}
+	root := &dag.Node{}
 
+	mbf := new(ft.MultiBlock)
 	for blk := range blkChan {
-		child := &dag.Node{Data: dag.WrapData(blk)}
+		mbf.AddBlockSize(uint64(len(blk)))
+		child := &dag.Node{Data: ft.WrapData(blk)}
 		err := root.AddNodeLink("", child)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	mbf.Data = first
+	data, err := mbf.GetBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	root.Data = data
 	return root, nil
 }
 

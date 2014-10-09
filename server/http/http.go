@@ -17,14 +17,14 @@ type handler struct {
 }
 
 // Serve starts the http server
-func Serve(address *ma.Multiaddr, node *core.IpfsNode) error {
+func Serve(address ma.Multiaddr, node *core.IpfsNode) error {
 	r := mux.NewRouter()
 	handler := &handler{&ipfsHandler{node}}
 	r.HandleFunc("/ipfs/", handler.postHandler).Methods("POST")
 	r.PathPrefix("/ipfs/").Handler(handler).Methods("GET")
 	http.Handle("/", r)
 
-	_, host, err := address.DialArgs()
+	_, host, err := ma.DialArgs(address)
 	if err != nil {
 		return err
 	}

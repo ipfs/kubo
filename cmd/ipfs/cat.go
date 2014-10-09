@@ -18,33 +18,9 @@ var cmdIpfsCat = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-cat", flag.ExitOnError),
 }
 
-var catCmd = MakeCommand("cat", nil, commands.Cat)
-
-/*
-func catCmd(c *commander.Command, inp []string) error {
-	if len(inp) < 1 {
-		u.POut(c.Long)
-		return nil
-	}
-
-	conf, err := getConfigDir(c.Parent)
-	if err != nil {
-		return err
-	}
-
-	com := daemon.NewCommand()
-	com.Command = "cat"
-	com.Args = inp
-
-	err = daemon.SendCommand(com, conf)
-	if err != nil {
-		n, err := localNode(conf, false)
-		if err != nil {
-			return err
-		}
-
-		return commands.Cat(n, com.Args, com.Opts, os.Stdout)
-	}
-	return nil
-}
-*/
+var catCmd = makeCommand(command{
+	name:  "cat",
+	args:  1,
+	flags: nil,
+	cmdFn: commands.Cat,
+})

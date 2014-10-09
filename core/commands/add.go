@@ -11,6 +11,7 @@ import (
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -36,7 +37,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		}
 
 		// Add the file
-		nd, err := AddPath(n, path, depth)
+		_, err = AddPath(n, path, depth)
 		if err != nil {
 			if err == ErrDepthLimitExceeded && depth == 1 {
 				err = errors.New("use -r to recursively add directories")
@@ -45,12 +46,13 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		}
 
 		// get the key to print it
-		k, err := nd.Key()
-		if err != nil {
-			return fmt.Errorf("addFile error: %v", err)
-		}
-
-		fmt.Fprintf(out, "added %s %s\n", k.Pretty(), path)
+		// k, err := nd.Key()
+		// if err != nil {
+		// 	return fmt.Errorf("addFile error: %v", err)
+		// }
+		//
+		// Commenting out of here, because it's already in addNode below.
+		// fmt.Fprintf(out, "added %s %s\n", k, path)
 	}
 	return nil
 }
@@ -74,7 +76,7 @@ func AddPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 }
 
 func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
-	tree := &dag.Node{Data: dag.FolderPBData()}
+	tree := &dag.Node{Data: ft.FolderPBData()}
 
 	files, err := ioutil.ReadDir(fpath)
 	if err != nil {
@@ -103,6 +105,16 @@ func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 		return nil, err
 	}
 
+	k, err := root.Key()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("Adding file: %s = %s\n", fpath, k)
+	for _, l := range root.Links {
+		log.Info("SubBlock: %s\n", l.Hash.B58String())
+	}
+
 	return root, addNode(n, root, fpath)
 }
 
@@ -119,8 +131,8 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 		return err
 	}
 
-	u.POut("added %s %s\n", k.Pretty(), fpath)
+	u.POut("added %s %s\n", k, fpath)
 
 	// ensure we keep it. atm no-op
-	return n.PinDagNode(nd)
+	return n.PinDagNodeRecursively(nd, -1)
 }
