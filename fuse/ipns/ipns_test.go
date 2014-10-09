@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -298,6 +300,11 @@ func TestFastRepublish(t *testing.T) {
 
 // Test writing a medium sized file one byte at a time
 func TestMultiWrite(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		link := "https://github.com/jbenet/go-ipfs/issues/147"
+		t.Skipf("Skipping as is broken in OSX. See %s", link)
+	}
+
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
