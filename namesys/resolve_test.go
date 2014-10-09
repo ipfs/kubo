@@ -26,6 +26,12 @@ func TestRoutingResolve(t *testing.T) {
 	}
 
 	err = publisher.Publish(privk, "Hello")
+	if err == nil {
+		t.Fatal("should have errored out when publishing a non-multihash val")
+	}
+
+	h := u.Key(u.Hash([]byte("Hello"))).Pretty()
+	err = publisher.Publish(privk, h)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +47,7 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res != "Hello" {
+	if res != h {
 		t.Fatal("Got back incorrect value.")
 	}
 }
