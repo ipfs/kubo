@@ -82,7 +82,6 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	u.AllLoggersOn()
 	u.Debug = false
 
 	// setup logging
