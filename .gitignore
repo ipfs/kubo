@@ -1,3 +1,6 @@
+# ipfs can generate profiling dump files
+cpu.prof
+
 *.swp
 .ipfsconfig
 *.out

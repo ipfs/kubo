@@ -11,6 +11,7 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
+	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -133,6 +134,12 @@ func initCmd(c *commander.Command, inp []string) error {
 			PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 			Address: "/ip4/104.131.131.82/tcp/4001",
 		},
+	}
+
+	// tracking ipfs version used to generate the init folder and adding update checker default setting.
+	cfg.Version = config.Version{
+		Check:   "error",
+		Current: updates.Version,
 	}
 
 	err = config.WriteConfigFile(filename, cfg)
