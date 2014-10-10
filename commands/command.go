@@ -21,6 +21,7 @@ func (c *Command) Register(id string, sub *Command) error {
 
   // check for duplicate option names (only checks downwards)
   names := make(map[string]bool)
+  globalCommand.checkOptions(names)
   c.checkOptions(names)
   err := sub.checkOptions(names)
   if err != nil {
@@ -39,6 +40,7 @@ func (c *Command) Register(id string, sub *Command) error {
 func (c *Command) Call(path []string, req *Request) (interface{}, error) {
   options := make([]Option, len(c.Options))
   copy(options, c.Options)
+  options = append(options, globalOptions...)
   cmd := c
 
   if path != nil {
