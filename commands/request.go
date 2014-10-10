@@ -10,6 +10,14 @@ func (r *Request) Option(name string) interface{} {
   return r.options[name]
 }
 
+func (r *Request) SetOption(option Option, value interface{}) {
+  // saves the option value in the map, indexed by each name
+  // (so commands can retrieve it using any of the names)
+  for _, name := range option.Names {
+    r.options[name] = value
+  }
+}
+
 func (r *Request) Arguments() []string {
   return r.arguments
 }
