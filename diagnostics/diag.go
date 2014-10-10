@@ -195,6 +195,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p *peer.Peer, pmes *Messa
 }
 
 func (d *Diagnostics) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, error) {
+	log.Debug("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
 	resp := newMessage(pmes.GetDiagID())
 	d.diagLock.Lock()
 	_, found := d.diagMap[pmes.GetDiagID()]
