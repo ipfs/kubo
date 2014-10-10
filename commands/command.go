@@ -9,7 +9,7 @@ import (
 type Command struct {
   Help string
   Options []Option
-  f func(*Request) (interface{}, error)
+  f func(*Request, *Response)
   subcommands map[string]*Command
 }
 
@@ -37,11 +37,12 @@ func (c *Command) Register(id string, sub *Command) error {
 }
 
 // Call invokes the command at the given subcommand path
-func (c *Command) Call(path []string, req *Request) (interface{}, error) {
+func (c *Command) Call(path []string, req *Request) *Response {
   options := make([]Option, len(c.Options))
   copy(options, c.Options)
   options = append(options, globalOptions...)
   cmd := c
+  res := &Response{ req: req }
 
   if path != nil {
     for i, id := range path {
@@ -49,7 +50,8 @@ func (c *Command) Call(path []string, req *Request) (interface{}, error) {
 
       if cmd == nil {
         pathS := strings.Join(path[0:i], "/")
-        return nil, fmt.Errorf("Undefined command: '%s'", pathS)
+        res.SetError(fmt.Errorf("Undefined command: '%s'", pathS), Client)
+        return res
       }
 
       options = append(options, cmd.Options...)
@@ -67,24 +69,29 @@ func (c *Command) Call(path []string, req *Request) (interface{}, error) {
     opt, ok := optionsMap[k]
 
     if !ok {
-      return nil, fmt.Errorf("Unrecognized command option: '%s'", k)
+      res.SetError(fmt.Errorf("Unrecognized command option: '%s'", k), Client)
+      return res
     }
 
     for _, name := range opt.Names {
       if _, ok = req.options[name]; name != k && ok {
-        return nil, fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
-          k, name)
+        res.SetError(fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
+          k, name), Client)
+        return res
       }
     }
 
     kind := reflect.TypeOf(v).Kind()
     if kind != opt.Type {
-      return nil, fmt.Errorf("Option '%s' should be type '%s', but got type '%s'",
-        k, opt.Type.String(), kind.String())
+      res.SetError(fmt.Errorf("Option '%s' should be type '%s', but got type '%s'",
+        k, opt.Type.String(), kind.String()), Client)
+      return res
     }
   }
 
-  return cmd.f(req)
+  cmd.f(req, res)
+
+  return res
 }
 
 // Sub returns the subcommand with the given id
