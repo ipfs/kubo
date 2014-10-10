@@ -11,6 +11,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("config")
+
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
 	PeerID  string
