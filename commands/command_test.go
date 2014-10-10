@@ -57,6 +57,13 @@ func TestOptionValidation(t *testing.T) {
   if err != nil {
     t.Error("Should have passed")
   }
+
+  req = NewRequest()
+  req.options["enc"] = "json"
+  _, err = cmd.Call(nil, req)
+  if err != nil {
+    t.Error("Should have passed")
+  }
 }
 
 func TestRegistration(t *testing.T) {
@@ -96,6 +103,15 @@ func TestRegistration(t *testing.T) {
         return nil, nil
       },
     },
+
+    &Command{
+      Options: []Option{
+        Option{ []string{ "enc" }, String },
+      },
+      f: func(req *Request) (interface{}, error) {
+        return nil, nil
+      },
+    },
   }
 
   err := cmds[0].Register("foo", cmds[1])
@@ -111,5 +127,10 @@ func TestRegistration(t *testing.T) {
   err = cmds[0].Register("foo", cmds[3])
   if err == nil {
     t.Error("Should have failed (subcommand name collision)")
+  }
+
+  err = cmds[0].Register("baz", cmds[4])
+  if err == nil {
+    t.Error("Should have failed (option name collision with global options)")
   }
 }
