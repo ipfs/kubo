@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"sync"
-	"time"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
@@ -138,14 +137,7 @@ func (dl *DaemonListener) handleConnection(conn net.Conn) {
 	case "resolve":
 		err = commands.Resolve(dl.node, command.Args, command.Opts, conn)
 	case "diag":
-		log.Debug("DIAGNOSTIC!")
-		info, err := dl.node.Diagnostics.GetDiagnostic(time.Second * 20)
-		if err != nil {
-			fmt.Fprintln(conn, err)
-			return
-		}
-		enc := json.NewEncoder(conn)
-		err = enc.Encode(info)
+		err = commands.Diag(dl.node, command.Args, command.Opts, conn)
 	default:
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}
