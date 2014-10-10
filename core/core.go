@@ -122,6 +122,9 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		if err := exchangeService.Start(ctx); err != nil {
 			return nil, err
 		}
+		if err := diagService.Start(ctx); err != nil {
+			return nil, err
+		}
 
 		net, err = inet.NewIpfsNetwork(context.TODO(), local, peerstore, &mux.ProtocolMap{
 			mux.ProtocolID_Routing:    dhtService,
