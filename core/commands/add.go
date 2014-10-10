@@ -12,7 +12,6 @@ import (
 	"github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 // Error indicating the max depth has been exceded.
@@ -30,14 +29,8 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 	// add every path in args
 	for _, path := range args {
 
-		// get absolute path, as incoming arg may be relative
-		path, err := filepath.Abs(path)
-		if err != nil {
-			return fmt.Errorf("addFile error: %v", err)
-		}
-
 		// Add the file
-		_, err = AddPath(n, path, depth)
+		_, err := AddPath(n, path, depth, out)
 		if err != nil {
 			if err == ErrDepthLimitExceeded && depth == 1 {
 				err = errors.New("use -r to recursively add directories")
@@ -58,7 +51,7 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 }
 
 // AddPath adds a particular path to ipfs.
-func AddPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
+func AddPath(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
 	if depth == 0 {
 		return nil, ErrDepthLimitExceeded
 	}
@@ -69,13 +62,13 @@ func AddPath(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 	}
 
 	if fi.IsDir() {
-		return addDir(n, fpath, depth)
+		return addDir(n, fpath, depth, out)
 	}
 
-	return addFile(n, fpath, depth)
+	return addFile(n, fpath, depth, out)
 }
 
-func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
+func addDir(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
 	tree := &dag.Node{Data: ft.FolderPBData()}
 
 	files, err := ioutil.ReadDir(fpath)
@@ -86,7 +79,7 @@ func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 	// construct nodes for containing files.
 	for _, f := range files {
 		fp := filepath.Join(fpath, f.Name())
-		nd, err := AddPath(n, fp, depth-1)
+		nd, err := AddPath(n, fp, depth-1, out)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +92,7 @@ func addDir(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 	return tree, addNode(n, tree, fpath)
 }
 
-func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
 	root, err := importer.NewDagFromFile(fpath)
 	if err != nil {
 		return nil, err
@@ -110,9 +103,9 @@ func addFile(n *core.IpfsNode, fpath string, depth int) (*dag.Node, error) {
 		return nil, err
 	}
 
-	log.Info("Adding file: %s = %s\n", fpath, k)
+	fmt.Fprintf(out, "Adding file: %s = %s\n", fpath, k)
 	for _, l := range root.Links {
-		log.Info("SubBlock: %s\n", l.Hash.B58String())
+		fmt.Fprintf(out, "SubBlock: %s\n", l.Hash.B58String())
 	}
 
 	return root, addNode(n, root, fpath)
@@ -125,13 +118,6 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
 	if err != nil {
 		return err
 	}
-
-	k, err := nd.Key()
-	if err != nil {
-		return err
-	}
-
-	u.POut("added %s %s\n", k, fpath)
 
 	// ensure we keep it. atm no-op
 	return n.PinDagNodeRecursively(nd, -1)

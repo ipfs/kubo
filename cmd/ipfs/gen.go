@@ -13,11 +13,12 @@ import (
 // command is the descriptor of an ipfs daemon command.
 // Used with makeCommand to proxy over commands via the daemon.
 type command struct {
-	name   string
-	args   int
-	flags  []string
-	online bool
-	cmdFn  commands.CmdFunc
+	name      string
+	args      int
+	flags     []string
+	online    bool
+	cmdFn     commands.CmdFunc
+	argFilter func(string) (string, error)
 }
 
 // commanderFunc is a function that can be passed into the Commander library as
@@ -39,7 +40,17 @@ func makeCommand(cmdDesc command) commanderFunc {
 
 		cmd := daemon.NewCommand()
 		cmd.Command = cmdDesc.name
-		cmd.Args = inp
+		if cmdDesc.argFilter != nil {
+			for _, a := range inp {
+				s, err := cmdDesc.argFilter(a)
+				if err != nil {
+					return err
+				}
+				cmd.Args = append(cmd.Args, s)
+			}
+		} else {
+			cmd.Args = inp
+		}
 
 		for _, a := range cmdDesc.flags {
 			cmd.Opts[a] = c.Flag.Lookup(a).Value.Get()

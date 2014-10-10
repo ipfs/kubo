@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
@@ -30,8 +31,9 @@ func init() {
 }
 
 var addCmd = makeCommand(command{
-	name:  "add",
-	args:  1,
-	flags: []string{"r"},
-	cmdFn: commands.Add,
+	name:      "add",
+	args:      1,
+	flags:     []string{"r"},
+	cmdFn:     commands.Add,
+	argFilter: filepath.Abs,
 })
