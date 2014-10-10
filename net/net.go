@@ -108,7 +108,6 @@ func (n *IpfsNetwork) Close() error {
 	return nil
 }
 
-// XXX
-func (n *IpfsNetwork) GetSwarm() *swarm.Swarm {
-	return n.swarm
+func (n *IpfsNetwork) GetPeerList() []*peer.Peer {
+	return n.swarm.GetPeerList()
 }

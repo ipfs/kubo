@@ -21,6 +21,8 @@ import (
 
 var log = util.Logger("diagnostics")
 
+const ResponseTimeout = time.Second * 10
+
 type Diagnostics struct {
 	network net.Network
 	sender  net.Sender
@@ -64,14 +66,7 @@ func (di *diagInfo) Marshal() []byte {
 }
 
 func (d *Diagnostics) getPeers() []*peer.Peer {
-	// <HACKY>
-	n, ok := d.network.(*net.IpfsNetwork)
-	if !ok {
-		return nil
-	}
-	s := n.GetSwarm()
-	return s.GetPeerList()
-	// </HACKY>
+	return d.network.GetPeerList()
 }
 
 func (d *Diagnostics) getDiagInfo() *diagInfo {
@@ -112,28 +107,48 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) 
 	out = append(out, di)
 
 	pmes := newMessage(diagID)
+
+	respdata := make(chan []byte)
+	sends := 0
 	for _, p := range peers {
 		log.Debug("Sending getDiagnostic to: %s", p)
-		data, err := d.getDiagnosticFromPeer(ctx, p, pmes)
-		if err != nil {
-			log.Error("GetDiagnostic error: %v", err)
+		sends++
+		go func(p *peer.Peer) {
+			data, err := d.getDiagnosticFromPeer(ctx, p, pmes)
+			if err != nil {
+				log.Error("GetDiagnostic error: %v", err)
+				respdata <- nil
+				return
+			}
+			respdata <- data
+		}(p)
+	}
+
+	for i := 0; i < sends; i++ {
+		data := <-respdata
+		if data == nil {
 			continue
 		}
-		buf := bytes.NewBuffer(data)
-		dec := json.NewDecoder(buf)
-		for {
-			di := new(diagInfo)
-			err := dec.Decode(di)
-			if err != nil {
-				if err != io.EOF {
-					log.Error("error decoding diagInfo: %v", err)
-				}
-				break
-			}
-			out = append(out, di)
-		}
+		out = AppendDiagnostics(data, out)
 	}
 	return out, nil
+}
+
+func AppendDiagnostics(data []byte, cur []*diagInfo) []*diagInfo {
+	buf := bytes.NewBuffer(data)
+	dec := json.NewDecoder(buf)
+	for {
+		di := new(diagInfo)
+		err := dec.Decode(di)
+		if err != nil {
+			if err != io.EOF {
+				log.Error("error decoding diagInfo: %v", err)
+			}
+			break
+		}
+		cur = append(cur, di)
+	}
+	return cur
 }
 
 // TODO: this method no longer needed.
@@ -179,7 +194,6 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p *peer.Peer, pmes *Messa
 	return rpmes, nil
 }
 
-// NOTE: not yet finished, low priority
 func (d *Diagnostics) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, error) {
 	resp := newMessage(pmes.GetDiagID())
 	d.diagLock.Lock()
@@ -195,16 +209,26 @@ func (d *Diagnostics) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, e
 	di := d.getDiagInfo()
 	buf.Write(di.Marshal())
 
-	ctx, _ := context.WithTimeout(context.TODO(), time.Second*10)
+	ctx, _ := context.WithTimeout(context.TODO(), ResponseTimeout)
 
+	respdata := make(chan []byte)
+	sendcount := 0
 	for _, p := range d.getPeers() {
 		log.Debug("Sending diagnostic request to peer: %s", p)
-		out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
-		if err != nil {
-			log.Error("getDiagnostic error: %v", err)
-			continue
-		}
-		_, err = buf.Write(out)
+		go func(p *peer.Peer) {
+			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
+			if err != nil {
+				log.Error("getDiagnostic error: %v", err)
+				respdata <- nil
+				return
+			}
+			respdata <- out
+		}(p)
+	}
+
+	for i := 0; i < sendcount; i++ {
+		out := <-respdata
+		_, err := buf.Write(out)
 		if err != nil {
 			log.Error("getDiagnostic write output error: %v", err)
 			continue

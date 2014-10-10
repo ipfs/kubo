@@ -18,7 +18,10 @@ func Diag(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.W
 	if err != nil {
 		return err
 	}
-	raw := opts["raw"].(bool)
+	raw, ok := opts["raw"].(bool)
+	if !ok {
+		return errors.New("incorrect value to parameter 'raw'")
+	}
 	if raw {
 		enc := json.NewEncoder(out)
 		err = enc.Encode(info)

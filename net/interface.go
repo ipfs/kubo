@@ -28,6 +28,9 @@ type Network interface {
 	// GetProtocols returns the protocols registered in the network.
 	GetProtocols() *mux.ProtocolMap
 
+	// GetPeerList returns the list of peers currently connected in this network.
+	GetPeerList() []*peer.Peer
+
 	// SendMessage sends given Message out
 	SendMessage(msg.NetMessage) error
 

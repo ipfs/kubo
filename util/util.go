@@ -138,25 +138,24 @@ func SetupLogging() {
 	logging.SetBackend(backend)
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	// just uncomment Debug = True right here for all logging.
-	// but please don't commit that.
-	// Debug = True
-	if Debug {
-		logging.SetLevel(logging.DEBUG, "")
-	} else {
-		logging.SetLevel(logging.ERROR, "")
-	}
+	logging.SetLevel(logging.ERROR, "")
 
 	for n, log := range loggers {
 		logging.SetLevel(logging.ERROR, n)
-		log.Error("setting logger: %s to %v\n", n, logging.ERROR)
+		log.Error("setting logger: %s to %v", n, logging.ERROR)
+	}
+
+	logenv := os.Getenv("IPFS_LOGGING")
+	if logenv == "all" {
+		AllLoggersOn()
 	}
 }
 
 func AllLoggersOn() {
+	logging.SetLevel(logging.DEBUG, "")
 	for n, log := range loggers {
 		logging.SetLevel(logging.DEBUG, n)
-		log.Error("setting logger: %s to %v\n", n, logging.DEBUG)
+		log.Error("setting logger: %s to %v", n, logging.DEBUG)
 	}
 }
 

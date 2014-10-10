@@ -203,11 +203,11 @@ func (s *Swarm) GetErrChan() chan error {
 
 func (s *Swarm) GetPeerList() []*peer.Peer {
 	var out []*peer.Peer
-	s.connsLock.Lock()
+	s.connsLock.RLock()
 	for _, p := range s.conns {
 		out = append(out, p.Peer)
 	}
-	s.connsLock.Unlock()
+	s.connsLock.RUnlock()
 	return out
 }
 

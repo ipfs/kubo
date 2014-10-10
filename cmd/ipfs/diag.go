@@ -8,16 +8,16 @@ import (
 )
 
 var cmdIpfsDiag = &commander.Command{
-	UsageLine: "diag",
+	UsageLine: "net-diag",
 	Short:     "Generate a diagnostics report",
-	Long: `ipfs diag - Generate a diagnostics report.
+	Long: `ipfs net-diag - Generate a diagnostics report.
 
 	Sends out a message to each node in the network recursively
 	requesting a listing of data about them including number of
 	connected peers and latencies between them.
 `,
 	Run:  diagCmd,
-	Flag: *flag.NewFlagSet("ipfs-diag", flag.ExitOnError),
+	Flag: *flag.NewFlagSet("ipfs-net-diag", flag.ExitOnError),
 }
 
 func init() {
