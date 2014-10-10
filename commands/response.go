@@ -16,8 +16,8 @@ const (
 
 // Error is a struct for marshalling errors
 type Error struct {
-  message string
-  code ErrorType
+  Message string
+  Code ErrorType
 }
 
 type EncodingType string
@@ -50,6 +50,10 @@ func (r *Response) FormatError() Error {
 }
 
 func (r *Response) Marshal() ([]byte, error) {
+  if r.Error == nil && r.Value == nil {
+    return nil, fmt.Errorf("No error or value set, there is nothing to marshal")
+  }
+
   enc := r.req.Option("enc")
   if enc == nil {
     return nil, fmt.Errorf("No encoding type was specified")
@@ -61,5 +65,10 @@ func (r *Response) Marshal() ([]byte, error) {
     return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
   }
 
-  return marshaller(r.Value)
+  if r.Error != nil {
+    err := r.FormatError()
+    return marshaller(err)
+  } else {
+    return marshaller(r.Value)
+  }
 }
