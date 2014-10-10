@@ -7,6 +7,12 @@ const (
   // TODO: add more types of errors for better error-specific handling
 )
 
+// Error is a struct for marshalling errors
+type Error struct {
+  message string
+  code ErrorType
+}
+
 type Response struct {
   req *Request
   Error error
@@ -17,6 +23,10 @@ type Response struct {
 func (r *Response) SetError(err error, errType ErrorType) {
   r.Error = err
   r.ErrorType = errType
+}
+
+func (r *Response) FormatError() Error {
+  return Error{ r.Error.Error(), r.ErrorType }
 }
 
 /*func (r *Response) Encode() ([]byte, error) {
