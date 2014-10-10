@@ -88,6 +88,10 @@ func (f *fauxNet) SendMessage(msg.NetMessage) error {
 	return nil
 }
 
+func (f *fauxNet) GetPeerList() []*peer.Peer {
+	return nil
+}
+
 // Close terminates all network operation
 func (f *fauxNet) Close() error { return nil }
 
