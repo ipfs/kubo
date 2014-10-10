@@ -20,9 +20,13 @@ var cmdIpfsDiag = &commander.Command{
 	Flag: *flag.NewFlagSet("ipfs-diag", flag.ExitOnError),
 }
 
+func init() {
+	cmdIpfsDiag.Flag.Bool("raw", false, "print raw json output")
+}
+
 var diagCmd = makeCommand(command{
 	name:  "diag",
 	args:  0,
-	flags: nil,
+	flags: []string{"raw"},
 	cmdFn: commands.Diag,
 })
