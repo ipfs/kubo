@@ -4,12 +4,13 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
+	inet "github.com/jbenet/go-ipfs/net"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
 // NetMessageAdapter wraps a NetMessage network service
-func NetMessageAdapter(s NetMessageService, r Receiver) Adapter {
+func NetMessageAdapter(s inet.Service, r Receiver) Adapter {
 	adapter := impl{
 		nms:      s,
 		receiver: r,
@@ -20,7 +21,7 @@ func NetMessageAdapter(s NetMessageService, r Receiver) Adapter {
 
 // implements an Adapter that integrates with a NetMessage network service
 type impl struct {
-	nms NetMessageService
+	nms inet.Service
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver

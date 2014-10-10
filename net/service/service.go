@@ -25,9 +25,35 @@ type Handler interface {
 	HandleMessage(context.Context, msg.NetMessage) msg.NetMessage
 }
 
+// Sender interface for network services.
+type Sender interface {
+	// SendMessage sends out a given message, without expecting a response.
+	SendMessage(ctx context.Context, m msg.NetMessage) error
+
+	// SendRequest sends out a given message, and awaits a response.
+	// Set Deadlines or cancellations in the context.Context you pass in.
+	SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error)
+}
+
+// Service is an interface for a net resource with both outgoing (sender) and
+// incomig (SetHandler) requests.
+type Service interface {
+	Sender
+
+	// Start + Stop Service
+	Start(ctx context.Context) error
+	Stop()
+
+	// GetPipe
+	GetPipe() *msg.Pipe
+
+	// SetHandler assigns the request Handler for this service.
+	SetHandler(Handler)
+}
+
 // Service is a networking component that protocols can use to multiplex
 // messages over the same channel, and to issue + handle requests.
-type Service struct {
+type service struct {
 	// Handler is the object registered to handle incoming requests.
 	Handler Handler
 
@@ -43,8 +69,8 @@ type Service struct {
 }
 
 // NewService creates a service object with given type ID and Handler
-func NewService(h Handler) *Service {
-	return &Service{
+func NewService(h Handler) Service {
+	return &service{
 		Handler:  h,
 		Requests: RequestMap{},
 		Pipe:     msg.NewPipe(10),
@@ -52,7 +78,7 @@ func NewService(h Handler) *Service {
 }
 
 // Start kicks off the Service goroutines.
-func (s *Service) Start(ctx context.Context) error {
+func (s *service) Start(ctx context.Context) error {
 	if s.cancel != nil {
 		return errors.New("Service already started.")
 	}
@@ -65,18 +91,18 @@ func (s *Service) Start(ctx context.Context) error {
 }
 
 // Stop stops Service activity.
-func (s *Service) Stop() {
+func (s *service) Stop() {
 	s.cancel()
 	s.cancel = context.CancelFunc(nil)
 }
 
 // GetPipe implements the mux.Protocol interface
-func (s *Service) GetPipe() *msg.Pipe {
+func (s *service) GetPipe() *msg.Pipe {
 	return s.Pipe
 }
 
 // sendMessage sends a message out (actual leg work. SendMessage is to export w/o rid)
-func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
+func (s *service) sendMessage(ctx context.Context, m msg.NetMessage, rid RequestID) error {
 
 	// serialize ServiceMessage wrapper
 	data, err := wrapData(m.Data(), rid)
@@ -98,12 +124,12 @@ func (s *Service) sendMessage(ctx context.Context, m msg.NetMessage, rid Request
 }
 
 // SendMessage sends a message out
-func (s *Service) SendMessage(ctx context.Context, m msg.NetMessage) error {
+func (s *service) SendMessage(ctx context.Context, m msg.NetMessage) error {
 	return s.sendMessage(ctx, m, nil)
 }
 
 // SendRequest sends a request message out and awaits a response.
-func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
+func (s *service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
 
 	// create a request
 	r, err := NewRequest(m.Peer().ID)
@@ -151,7 +177,7 @@ func (s *Service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 
 // handleIncoming consumes the messages on the s.Incoming channel and
 // routes them appropriately (to requests, or handler).
-func (s *Service) handleIncomingMessages(ctx context.Context) {
+func (s *service) handleIncomingMessages(ctx context.Context) {
 	for {
 		select {
 		case m, more := <-s.Incoming:
@@ -166,7 +192,7 @@ func (s *Service) handleIncomingMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
+func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	// unwrap the incoming message
 	data, rid, err := unwrapData(m.Data())
@@ -217,6 +243,6 @@ func (s *Service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 }
 
 // SetHandler assigns the request Handler for this service.
-func (s *Service) SetHandler(h Handler) {
+func (s *service) SetHandler(h Handler) {
 	s.Handler = h
 }

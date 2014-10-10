@@ -2,10 +2,8 @@ package network
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	netservice "github.com/jbenet/go-ipfs/net/service"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -36,13 +34,6 @@ type Receiver interface {
 		destination *peer.Peer, outgoing bsmsg.BitSwapMessage)
 
 	ReceiveError(error)
-}
-
-// TODO(brian): move this to go-ipfs/net package
-type NetMessageService interface {
-	SendRequest(ctx context.Context, m netmsg.NetMessage) (netmsg.NetMessage, error)
-	SendMessage(ctx context.Context, m netmsg.NetMessage) error
-	SetHandler(netservice.Handler)
 }
 
 // TODO rename -> Router?

@@ -126,7 +126,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 			return nil, err
 		}
 
-		net, err = inet.NewIpfsNetwork(context.TODO(), local, peerstore, &mux.ProtocolMap{
+		net, err = inet.NewIpfsNetwork(ctx, local, peerstore, &mux.ProtocolMap{
 			mux.ProtocolID_Routing:    dhtService,
 			mux.ProtocolID_Exchange:   exchangeService,
 			mux.ProtocolID_Diagnostic: diagService,
@@ -137,14 +137,14 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		}
 
 		diagnostics = diag.NewDiagnostics(local, net, diagService)
-		diagService.Handler = diagnostics
+		diagService.SetHandler(diagnostics)
 
 		route = dht.NewDHT(local, peerstore, net, dhtService, d)
 		// TODO(brian): perform this inside NewDHT factory method
-		dhtService.Handler = route // wire the handler to the service.
+		dhtService.SetHandler(route) // wire the handler to the service.
 
 		const alwaysSendToPeer = true // use YesManStrategy
-		exchangeSession = bitswap.NetMessageSession(ctx, local, exchangeService, route, d, alwaysSendToPeer)
+		exchangeSession = bitswap.NetMessageSession(ctx, local, net, exchangeService, route, d, alwaysSendToPeer)
 
 		// TODO(brian): pass a context to initConnections
 		go initConnections(ctx, cfg, peerstore, route)

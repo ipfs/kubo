@@ -11,6 +11,7 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
+	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -19,14 +20,17 @@ var log = u.Logger("bitswap")
 
 // NetMessageSession initializes a BitSwap session that communicates over the
 // provided NetMessage service
-func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageService, directory bsnet.Routing, d ds.Datastore, nice bool) exchange.Interface {
+func NetMessageSession(parent context.Context, p *peer.Peer,
+	net inet.Network, srv inet.Service, directory bsnet.Routing,
+	d ds.Datastore, nice bool) exchange.Interface {
 
-	networkAdapter := bsnet.NetMessageAdapter(s, nil)
+	networkAdapter := bsnet.NetMessageAdapter(srv, nil)
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
 		strategy:      strategy.New(nice),
 		routing:       directory,
+		network:       net,
 		sender:        networkAdapter,
 		wantlist:      u.NewKeySet(),
 	}
@@ -37,6 +41,9 @@ func NetMessageSession(parent context.Context, p *peer.Peer, s bsnet.NetMessageS
 
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
+
+	// network maintains connections to the outside world.
+	network inet.Network
 
 	// sender delivers messages on behalf of the session
 	sender bsnet.Adapter
@@ -79,7 +86,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		}
 		message.AppendWanted(k)
 		for iiiii := range peersToQuery {
-			// log.Debug("bitswap got peersToQuery: %s", iiiii)
+			log.Debug("bitswap got peersToQuery: %s", iiiii)
 			go func(p *peer.Peer) {
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
