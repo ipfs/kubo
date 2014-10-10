@@ -20,7 +20,7 @@ func TestMarshalling(t *testing.T) {
     t.Error("Should have failed (no encoding type specified in request)")
   }
 
-  req.options["enc"] = Json
+  req.SetOption(globalOptions[0], Json)
   bytes, err := res.Marshal()
   if err != nil {
     t.Error("Should have passed")
