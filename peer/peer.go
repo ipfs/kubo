@@ -105,6 +105,10 @@ func (p *Peer) GetLatency() (out time.Duration) {
 // Yep, should be EWMA or something. (-jbenet)
 func (p *Peer) SetLatency(laten time.Duration) {
 	p.Lock()
-	p.latency = laten
+	if p.latency == 0 {
+		p.latency = laten
+	} else {
+		p.latency = ((p.latency * 9) + laten) / 10
+	}
 	p.Unlock()
 }
