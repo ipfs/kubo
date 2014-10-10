@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"time"
 
@@ -9,6 +10,9 @@ import (
 )
 
 func Diag(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
+	if n.Diagnostics == nil {
+		return errors.New("Cannot run diagnostic in offline mode!")
+	}
 	info, err := n.Diagnostics.GetDiagnostic(time.Second * 20)
 	if err != nil {
 		return err
