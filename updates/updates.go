@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
