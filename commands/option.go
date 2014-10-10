@@ -15,6 +15,17 @@ const (
 type Option struct {
   Names []string      // a list of unique names to
   Type reflect.Kind           // value must be this type
+
+  // TODO: add more features(?):
   //Default interface{} // the default value (ignored if `Required` is true)
   //Required bool       // whether or not the option must be provided
+}
+
+// options that are used by this package
+var globalOptions []Option = []Option{
+  Option{ []string{ "enc", "encoding" }, String },
+}
+// the above array of Options, wrapped in a Command
+var globalCommand *Command = &Command{
+  Options: globalOptions,
 }
