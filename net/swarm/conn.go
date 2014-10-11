@@ -10,6 +10,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 // Open listeners for each network the swarm should listen on
@@ -37,7 +38,7 @@ func (s *Swarm) listen() error {
 
 // Listen for new connections on the given multiaddr
 func (s *Swarm) connListen(maddr ma.Multiaddr) error {
-	netstr, addr, err := ma.DialArgs(maddr)
+	netstr, addr, err := manet.DialArgs(maddr)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -58,7 +59,7 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 		return nil, fmt.Errorf("No address for network %s", network)
 	}
 
-	network, host, err := ma.DialArgs(addr)
+	network, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -107,5 +108,5 @@ func (c *Conn) Close() error {
 // NetConnMultiaddr returns the net.Conn's address, recast as a multiaddr.
 // (consider moving this directly into the multiaddr package)
 func NetConnMultiaddr(nconn net.Conn) (ma.Multiaddr, error) {
-	return ma.FromNetAddr(nconn.RemoteAddr())
+	return manet.FromNetAddr(nconn.RemoteAddr())
 }

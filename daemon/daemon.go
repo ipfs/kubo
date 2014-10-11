@@ -15,6 +15,7 @@ import (
 
 	lock "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 var log = u.Logger("daemon")
@@ -51,7 +52,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr ma.Multiaddr, confdir strin
 		return nil, err
 	}
 
-	network, host, err := ma.DialArgs(addr)
+	network, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}

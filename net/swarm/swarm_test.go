@@ -12,6 +12,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
@@ -95,7 +96,7 @@ func TestSwarm(t *testing.T) {
 		if a == nil {
 			t.Fatal("error setting up peer (addr is nil)", peer)
 		}
-		n, h, err := ma.DialArgs(a)
+		n, h, err := manet.DialArgs(a)
 		if err != nil {
 			t.Fatal("error getting dial args from addr")
 		}
