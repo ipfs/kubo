@@ -49,6 +49,7 @@ type Service interface {
 
 	// SetHandler assigns the request Handler for this service.
 	SetHandler(Handler)
+	GetHandler() Handler
 }
 
 // Service is a networking component that protocols can use to multiplex
@@ -245,4 +246,9 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 // SetHandler assigns the request Handler for this service.
 func (s *service) SetHandler(h Handler) {
 	s.Handler = h
+}
+
+// GetHandler returns the request Handler for this service.
+func (s *service) GetHandler() Handler {
+	return s.Handler
 }

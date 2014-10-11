@@ -39,7 +39,7 @@ func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
 	}
 
 	d := NewDHT(p, peerstore, net, dhts, ds.NewMapDatastore())
-	dhts.Handler = d
+	dhts.SetHandler(d)
 	return d
 }
 

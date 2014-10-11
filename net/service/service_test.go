@@ -51,8 +51,8 @@ func TestServiceHandler(t *testing.T) {
 	}
 
 	m1 := msg.New(peer1, d)
-	s.Incoming <- m1
-	m2 := <-s.Outgoing
+	s.GetPipe().Incoming <- m1
+	m2 := <-s.GetPipe().Outgoing
 
 	d, rid, err := unwrapData(m2.Data())
 	if err != nil {
@@ -87,10 +87,10 @@ func TestServiceRequest(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case m := <-s1.Outgoing:
-				s2.Incoming <- m
-			case m := <-s2.Outgoing:
-				s1.Incoming <- m
+			case m := <-s1.GetPipe().Outgoing:
+				s2.GetPipe().Incoming <- m
+			case m := <-s2.GetPipe().Outgoing:
+				s1.GetPipe().Incoming <- m
 			case <-ctx.Done():
 				return
 			}
@@ -127,10 +127,10 @@ func TestServiceRequestTimeout(t *testing.T) {
 		for {
 			<-time.After(time.Millisecond)
 			select {
-			case m := <-s1.Outgoing:
-				s2.Incoming <- m
-			case m := <-s2.Outgoing:
-				s1.Incoming <- m
+			case m := <-s1.GetPipe().Outgoing:
+				s2.GetPipe().Incoming <- m
+			case m := <-s2.GetPipe().Outgoing:
+				s1.GetPipe().Incoming <- m
 			case <-ctx.Done():
 				return
 			}
