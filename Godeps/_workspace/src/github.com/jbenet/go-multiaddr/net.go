@@ -65,6 +65,27 @@ func FromNetAddr(a net.Addr) (Multiaddr, error) {
 	}
 }
 
+// ToNetAddr converts a Multiaddr to a net.Addr
+// Must be ThinWaist. acceptable protocol stacks are:
+// /ip{4,6}/{tcp, udp}
+func ToNetAddr(ma Multiaddr) (net.Addr, error) {
+	network, host, err := DialArgs(ma)
+	if err != nil {
+		return nil, err
+	}
+
+	switch network {
+	case "tcp":
+		return net.ResolveTCPAddr(network, host)
+	case "udp":
+		return net.ResolveUDPAddr(network, host)
+	case "ip":
+		return net.ResolveIPAddr(network, host)
+	}
+
+	return nil, fmt.Errorf("network not supported: %s", network)
+}
+
 // FromIP converts a net.IP type to a Multiaddr.
 func FromIP(ip net.IP) (Multiaddr, error) {
 	switch {
@@ -85,8 +106,12 @@ func DialArgs(m Multiaddr) (string, string, error) {
 
 	str := m.String()
 	parts := strings.Split(str, "/")[1:]
-	network := parts[2]
 
+	if len(parts) == 2 { // only IP
+		return parts[0], parts[1], nil
+	}
+
+	network := parts[2]
 	var host string
 	switch parts[0] {
 	case "ip4":
@@ -98,16 +123,28 @@ func DialArgs(m Multiaddr) (string, string, error) {
 }
 
 // IsThinWaist returns whether a Multiaddr starts with "Thin Waist" Protocols.
-// This means: /{IP4, IP6}/{TCP, UDP}
+// This means: /{IP4, IP6}[/{TCP, UDP}]
 func IsThinWaist(m Multiaddr) bool {
 	p := m.Protocols()
+
+	// nothing? not even a waist.
+	if len(p) == 0 {
+		return false
+	}
+
 	if p[0].Code != P_IP4 && p[0].Code != P_IP6 {
 		return false
 	}
 
-	if p[1].Code != P_TCP && p[1].Code != P_UDP {
-		return false
+	// only IP? still counts.
+	if len(p) == 1 {
+		return true
 	}
 
-	return true
+	switch p[1].Code {
+	case P_TCP, P_UDP, P_IP4, P_IP6:
+		return true
+	default:
+		return false
+	}
 }

@@ -9,6 +9,10 @@ import (
 )
 
 func stringToBytes(s string) ([]byte, error) {
+
+	// consume trailing slashes
+	s = strings.TrimRight(s, "/")
+
 	b := []byte{}
 	sp := strings.Split(s, "/")
 

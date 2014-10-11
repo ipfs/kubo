@@ -18,6 +18,44 @@ func testConvert(t *testing.T, s string, gen GenFunc) {
 	}
 }
 
+func testToNetAddr(t *testing.T, maddr, ntwk, addr string) {
+	m, err := NewMultiaddr(maddr)
+	if err != nil {
+		t.Fatal("failed to generate.")
+	}
+
+	naddr, err := ToNetAddr(m)
+	if addr == "" { // should fail
+		if err == nil {
+			t.Fatalf("failed to error: %s", m)
+		}
+		return
+	}
+
+	// shouldn't fail
+	if err != nil {
+		t.Fatalf("failed to convert to net addr: %s", m)
+	}
+
+	if naddr.String() != addr {
+		t.Fatalf("naddr.Address() == %s != %s", naddr, addr)
+	}
+
+	if naddr.Network() != ntwk {
+		t.Fatalf("naddr.Network() == %s != %s", naddr.Network(), ntwk)
+	}
+
+	// should convert properly
+	switch ntwk {
+	case "tcp":
+		_ = naddr.(*net.TCPAddr)
+	case "udp":
+		_ = naddr.(*net.UDPAddr)
+	case "ip":
+		_ = naddr.(*net.IPAddr)
+	}
+}
+
 func TestFromIP4(t *testing.T) {
 	testConvert(t, "/ip4/10.20.30.40", func() (Multiaddr, error) {
 		return FromIP(net.ParseIP("10.20.30.40"))
@@ -46,6 +84,34 @@ func TestFromUDP(t *testing.T) {
 			Port: 1234,
 		})
 	})
+}
+
+func TestThinWaist(t *testing.T) {
+	addrs := map[string]bool{
+		"/ip4/127.0.0.1/udp/1234":              true,
+		"/ip4/127.0.0.1/tcp/1234":              true,
+		"/ip4/127.0.0.1/udp/1234/tcp/1234":     true,
+		"/ip4/127.0.0.1/tcp/12345/ip4/1.2.3.4": true,
+		"/ip6/::1/tcp/80":                      true,
+		"/ip6/::1/udp/80":                      true,
+		"/ip6/::1":                             true,
+		"/tcp/1234/ip4/1.2.3.4":                false,
+		"/tcp/1234":                            false,
+		"/tcp/1234/udp/1234":                   false,
+		"/ip4/1.2.3.4/ip4/2.3.4.5":             true,
+		"/ip6/::1/ip4/2.3.4.5":                 true,
+	}
+
+	for a, res := range addrs {
+		ma, err := NewMultiaddr(a)
+		if err != nil {
+			t.Fatalf("failed to construct Multiaddr: %s", a)
+		}
+
+		if IsThinWaist(ma) != res {
+			t.Fatalf("IsThinWaist(%s) != %v", a, res)
+		}
+	}
 }
 
 func TestDialArgs(t *testing.T) {
