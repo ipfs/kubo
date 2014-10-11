@@ -3,7 +3,6 @@ package swarm
 import (
 	"errors"
 	"fmt"
-	"net"
 	"sync"
 
 	conn "github.com/jbenet/go-ipfs/net/conn"
@@ -13,6 +12,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 var log = u.Logger("swarm")
@@ -62,7 +62,7 @@ type Swarm struct {
 	connsLock sync.RWMutex
 
 	// listeners for each network address
-	listeners []net.Listener
+	listeners []manet.Listener
 
 	// cancel is an internal function used to stop the Swarm's processing.
 	cancel context.CancelFunc

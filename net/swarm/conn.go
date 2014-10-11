@@ -3,7 +3,6 @@ package swarm
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
@@ -26,7 +25,7 @@ func (s *Swarm) listen() error {
 		if err != nil {
 			hasErr = true
 			retErr.Errors[i] = err
-			log.Error("Failed to listen on: %s [%s]", addr, err)
+			log.Error("Failed to listen on: %s - %s", addr, err)
 		}
 	}
 
@@ -38,12 +37,7 @@ func (s *Swarm) listen() error {
 
 // Listen for new connections on the given multiaddr
 func (s *Swarm) connListen(maddr ma.Multiaddr) error {
-	netstr, addr, err := manet.DialArgs(maddr)
-	if err != nil {
-		return err
-	}
-
-	list, err := net.Listen(netstr, addr)
+	list, err := manet.Listen(maddr)
 	if err != nil {
 		return err
 	}
@@ -56,8 +50,7 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 		for {
 			nconn, err := list.Accept()
 			if err != nil {
-				e := fmt.Errorf("Failed to accept connection: %s - %s [%s]",
-					netstr, addr, err)
+				e := fmt.Errorf("Failed to accept connection: %s - %s", maddr, err)
 				s.errChan <- e
 
 				// if cancel is nil, we're closed.
@@ -74,13 +67,9 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 }
 
 // Handle getting ID from this peer, handshake, and adding it into the map
-func (s *Swarm) handleIncomingConn(nconn net.Conn) {
+func (s *Swarm) handleIncomingConn(nconn manet.Conn) {
 
-	addr, err := conn.NetConnMultiaddr(nconn)
-	if err != nil {
-		s.errChan <- err
-		return
-	}
+	addr := nconn.RemoteMultiaddr()
 
 	// Construct conn with nil peer for now, because we don't know its ID yet.
 	// connSetup will figure this out, and pull out / construct the peer.
