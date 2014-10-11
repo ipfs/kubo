@@ -112,7 +112,10 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	log.Debug("%s secured connection: %s", c.Local, c.Remote)
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
-	c.Remote.AddAddress(c.Conn.RemoteMultiaddr())
+	// NOT adding this address here, because the incoming address in TCP
+	// is an EPHEMERAL address, and not the address we want to keep around.
+	// addresses should be figured out through the DHT.
+	// c.Remote.AddAddress(c.Conn.RemoteMultiaddr())
 
 	// add to conns
 	s.connsLock.Lock()
