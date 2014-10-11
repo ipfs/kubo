@@ -1,15 +1,17 @@
-package multiaddr
+package net
 
 import (
 	"fmt"
 	"net"
 	"strings"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 var errIncorrectNetAddr = fmt.Errorf("incorrect network addr conversion")
 
 // FromNetAddr converts a net.Addr type to a Multiaddr.
-func FromNetAddr(a net.Addr) (Multiaddr, error) {
+func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 	switch a.Network() {
 	case "tcp", "tcp4", "tcp6":
 		ac, ok := a.(*net.TCPAddr)
@@ -24,7 +26,7 @@ func FromNetAddr(a net.Addr) (Multiaddr, error) {
 		}
 
 		// Get TCP Addr
-		tcpm, err := NewMultiaddr(fmt.Sprintf("/tcp/%d", ac.Port))
+		tcpm, err := ma.NewMultiaddr(fmt.Sprintf("/tcp/%d", ac.Port))
 		if err != nil {
 			return nil, errIncorrectNetAddr
 		}
@@ -45,7 +47,7 @@ func FromNetAddr(a net.Addr) (Multiaddr, error) {
 		}
 
 		// Get UDP Addr
-		udpm, err := NewMultiaddr(fmt.Sprintf("/udp/%d", ac.Port))
+		udpm, err := ma.NewMultiaddr(fmt.Sprintf("/udp/%d", ac.Port))
 		if err != nil {
 			return nil, errIncorrectNetAddr
 		}
@@ -68,8 +70,8 @@ func FromNetAddr(a net.Addr) (Multiaddr, error) {
 // ToNetAddr converts a Multiaddr to a net.Addr
 // Must be ThinWaist. acceptable protocol stacks are:
 // /ip{4,6}/{tcp, udp}
-func ToNetAddr(ma Multiaddr) (net.Addr, error) {
-	network, host, err := DialArgs(ma)
+func ToNetAddr(maddr ma.Multiaddr) (net.Addr, error) {
+	network, host, err := DialArgs(maddr)
 	if err != nil {
 		return nil, err
 	}
@@ -87,19 +89,19 @@ func ToNetAddr(ma Multiaddr) (net.Addr, error) {
 }
 
 // FromIP converts a net.IP type to a Multiaddr.
-func FromIP(ip net.IP) (Multiaddr, error) {
+func FromIP(ip net.IP) (ma.Multiaddr, error) {
 	switch {
 	case ip.To4() != nil:
-		return NewMultiaddr("/ip4/" + ip.String())
+		return ma.NewMultiaddr("/ip4/" + ip.String())
 	case ip.To16() != nil:
-		return NewMultiaddr("/ip6/" + ip.String())
+		return ma.NewMultiaddr("/ip6/" + ip.String())
 	default:
 		return nil, errIncorrectNetAddr
 	}
 }
 
 // DialArgs is a convenience function returning arguments for use in net.Dial
-func DialArgs(m Multiaddr) (string, string, error) {
+func DialArgs(m ma.Multiaddr) (string, string, error) {
 	if !IsThinWaist(m) {
 		return "", "", fmt.Errorf("%s is not a 'thin waist' address", m)
 	}
@@ -124,7 +126,7 @@ func DialArgs(m Multiaddr) (string, string, error) {
 
 // IsThinWaist returns whether a Multiaddr starts with "Thin Waist" Protocols.
 // This means: /{IP4, IP6}[/{TCP, UDP}]
-func IsThinWaist(m Multiaddr) bool {
+func IsThinWaist(m ma.Multiaddr) bool {
 	p := m.Protocols()
 
 	// nothing? not even a waist.
@@ -132,7 +134,7 @@ func IsThinWaist(m Multiaddr) bool {
 		return false
 	}
 
-	if p[0].Code != P_IP4 && p[0].Code != P_IP6 {
+	if p[0].Code != ma.P_IP4 && p[0].Code != ma.P_IP6 {
 		return false
 	}
 
@@ -142,7 +144,7 @@ func IsThinWaist(m Multiaddr) bool {
 	}
 
 	switch p[1].Code {
-	case P_TCP, P_UDP, P_IP4, P_IP6:
+	case ma.P_TCP, ma.P_UDP, ma.P_IP4, ma.P_IP6:
 		return true
 	default:
 		return false

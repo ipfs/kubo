@@ -2,7 +2,6 @@ package swarm
 
 import (
 	"fmt"
-	"net"
 	"testing"
 
 	msg "github.com/jbenet/go-ipfs/net/message"
@@ -12,10 +11,11 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
-func pingListen(t *testing.T, listener *net.TCPListener, peer *peer.Peer) {
+func pingListen(t *testing.T, listener manet.Listener, peer *peer.Peer) {
 	for {
 		c, err := listener.Accept()
 		if err == nil {
@@ -24,7 +24,7 @@ func pingListen(t *testing.T, listener *net.TCPListener, peer *peer.Peer) {
 	}
 }
 
-func pong(t *testing.T, c net.Conn, peer *peer.Peer) {
+func pong(t *testing.T, c manet.Conn, peer *peer.Peer) {
 	mrw := msgio.NewReadWriter(c)
 	for {
 		data := make([]byte, 1024)
@@ -78,7 +78,7 @@ func TestSwarm(t *testing.T) {
 		t.Error(err)
 	}
 	var peers []*peer.Peer
-	var listeners []net.Listener
+	var listeners []manet.Listener
 	peerNames := map[string]string{
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31": "/ip4/127.0.0.1/tcp/2345",
 		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32": "/ip4/127.0.0.1/tcp/3456",
@@ -95,15 +95,11 @@ func TestSwarm(t *testing.T) {
 		if a == nil {
 			t.Fatal("error setting up peer (addr is nil)", peer)
 		}
-		n, h, err := ma.DialArgs(a)
-		if err != nil {
-			t.Fatal("error getting dial args from addr")
-		}
-		listener, err := net.Listen(n, h)
+		listener, err := manet.Listen(a)
 		if err != nil {
 			t.Fatal("error setting up listener", err)
 		}
-		go pingListen(t, listener.(*net.TCPListener), peer)
+		go pingListen(t, listener, peer)
 
 		_, err = swarm.Dial(peer)
 		if err != nil {
@@ -146,6 +142,6 @@ func TestSwarm(t *testing.T) {
 
 	swarm.Close()
 	for _, listener := range listeners {
-		listener.(*net.TCPListener).Close()
+		listener.Close()
 	}
 }

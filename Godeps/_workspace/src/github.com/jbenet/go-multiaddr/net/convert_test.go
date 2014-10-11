@@ -1,11 +1,13 @@
-package multiaddr
+package net
 
 import (
 	"net"
 	"testing"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-type GenFunc func() (Multiaddr, error)
+type GenFunc func() (ma.Multiaddr, error)
 
 func testConvert(t *testing.T, s string, gen GenFunc) {
 	m, err := gen()
@@ -19,7 +21,7 @@ func testConvert(t *testing.T, s string, gen GenFunc) {
 }
 
 func testToNetAddr(t *testing.T, maddr, ntwk, addr string) {
-	m, err := NewMultiaddr(maddr)
+	m, err := ma.NewMultiaddr(maddr)
 	if err != nil {
 		t.Fatal("failed to generate.")
 	}
@@ -57,19 +59,19 @@ func testToNetAddr(t *testing.T, maddr, ntwk, addr string) {
 }
 
 func TestFromIP4(t *testing.T) {
-	testConvert(t, "/ip4/10.20.30.40", func() (Multiaddr, error) {
+	testConvert(t, "/ip4/10.20.30.40", func() (ma.Multiaddr, error) {
 		return FromIP(net.ParseIP("10.20.30.40"))
 	})
 }
 
 func TestFromIP6(t *testing.T) {
-	testConvert(t, "/ip6/2001:4860:0:2001::68", func() (Multiaddr, error) {
+	testConvert(t, "/ip6/2001:4860:0:2001::68", func() (ma.Multiaddr, error) {
 		return FromIP(net.ParseIP("2001:4860:0:2001::68"))
 	})
 }
 
 func TestFromTCP(t *testing.T) {
-	testConvert(t, "/ip4/10.20.30.40/tcp/1234", func() (Multiaddr, error) {
+	testConvert(t, "/ip4/10.20.30.40/tcp/1234", func() (ma.Multiaddr, error) {
 		return FromNetAddr(&net.TCPAddr{
 			IP:   net.ParseIP("10.20.30.40"),
 			Port: 1234,
@@ -78,7 +80,7 @@ func TestFromTCP(t *testing.T) {
 }
 
 func TestFromUDP(t *testing.T) {
-	testConvert(t, "/ip4/10.20.30.40/udp/1234", func() (Multiaddr, error) {
+	testConvert(t, "/ip4/10.20.30.40/udp/1234", func() (ma.Multiaddr, error) {
 		return FromNetAddr(&net.UDPAddr{
 			IP:   net.ParseIP("10.20.30.40"),
 			Port: 1234,
@@ -103,19 +105,19 @@ func TestThinWaist(t *testing.T) {
 	}
 
 	for a, res := range addrs {
-		ma, err := NewMultiaddr(a)
+		m, err := ma.NewMultiaddr(a)
 		if err != nil {
 			t.Fatalf("failed to construct Multiaddr: %s", a)
 		}
 
-		if IsThinWaist(ma) != res {
+		if IsThinWaist(m) != res {
 			t.Fatalf("IsThinWaist(%s) != %v", a, res)
 		}
 	}
 }
 
 func TestDialArgs(t *testing.T) {
-	m, err := NewMultiaddr("/ip4/127.0.0.1/udp/1234")
+	m, err := ma.NewMultiaddr("/ip4/127.0.0.1/udp/1234")
 	if err != nil {
 		t.Fatal("failed to construct", "/ip4/127.0.0.1/udp/1234")
 	}

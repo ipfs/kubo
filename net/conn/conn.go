@@ -2,10 +2,10 @@ package conn
 
 import (
 	"fmt"
-	"net"
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -24,7 +24,7 @@ const MaxMessageSize = 1 << 20
 type Conn struct {
 	Peer *peer.Peer
 	Addr ma.Multiaddr
-	Conn net.Conn
+	Conn manet.Conn
 
 	Closed   chan bool
 	Outgoing *msgio.Chan
@@ -36,11 +36,11 @@ type Conn struct {
 type Map map[u.Key]*Conn
 
 // NewConn constructs a new connection
-func NewConn(peer *peer.Peer, addr ma.Multiaddr, nconn net.Conn) (*Conn, error) {
+func NewConn(peer *peer.Peer, addr ma.Multiaddr, mconn manet.Conn) (*Conn, error) {
 	conn := &Conn{
 		Peer: peer,
 		Addr: addr,
-		Conn: nconn,
+		Conn: mconn,
 	}
 
 	if err := conn.newChans(); err != nil {
@@ -58,12 +58,7 @@ func Dial(network string, peer *peer.Peer) (*Conn, error) {
 		return nil, fmt.Errorf("No address for network %s", network)
 	}
 
-	network, host, err := ma.DialArgs(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	nconn, err := net.Dial(network, host)
+	nconn, err := manet.Dial(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -102,10 +97,4 @@ func (c *Conn) Close() error {
 	c.Outgoing.Close()
 	c.Closed <- true
 	return err
-}
-
-// NetConnMultiaddr returns the net.Conn's address, recast as a multiaddr.
-// (consider moving this directly into the multiaddr package)
-func NetConnMultiaddr(nconn net.Conn) (ma.Multiaddr, error) {
-	return ma.FromNetAddr(nconn.RemoteAddr())
 }

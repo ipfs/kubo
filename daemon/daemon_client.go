@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"os"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -73,9 +73,7 @@ func SendCommand(command *Command, confdir string) error {
 		return err
 	}
 
-	network, host, err := ma.DialArgs(maddr)
-
-	conn, err := net.Dial(network, host)
+	conn, err := manet.Dial(maddr)
 	if err != nil {
 		return err
 	}

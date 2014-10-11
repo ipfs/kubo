@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path"
 	"sync"
@@ -15,6 +14,7 @@ import (
 
 	lock "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 var log = u.Logger("daemon")
@@ -26,7 +26,7 @@ const LockFile = "daemon.lock"
 // starting up a new set of connections
 type DaemonListener struct {
 	node   *core.IpfsNode
-	list   net.Listener
+	list   manet.Listener
 	closed bool
 	wg     sync.WaitGroup
 	lk     io.Closer
@@ -51,11 +51,6 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr ma.Multiaddr, confdir strin
 		return nil, err
 	}
 
-	network, host, err := ma.DialArgs(addr)
-	if err != nil {
-		return nil, err
-	}
-
 	ofi, err := os.Create(confdir + "/rpcaddress")
 	if err != nil {
 		log.Warning("Could not create rpcaddress file: %s", err)
@@ -69,7 +64,7 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr ma.Multiaddr, confdir strin
 	}
 	ofi.Close()
 
-	list, err := net.Listen(network, host)
+	list, err := manet.Listen(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +105,7 @@ func (dl *DaemonListener) Listen() {
 	}
 }
 
-func (dl *DaemonListener) handleConnection(conn net.Conn) {
+func (dl *DaemonListener) handleConnection(conn manet.Conn) {
 	defer conn.Close()
 
 	dec := json.NewDecoder(conn)

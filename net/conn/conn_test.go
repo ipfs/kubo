@@ -1,12 +1,12 @@
 package conn
 
 import (
-	"net"
 	"testing"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
@@ -26,7 +26,7 @@ func setupPeer(id string, addr string) (*peer.Peer, error) {
 	return p, nil
 }
 
-func echoListen(listener *net.TCPListener) {
+func echoListen(listener manet.Listener) {
 	for {
 		c, err := listener.Accept()
 		if err == nil {
@@ -36,7 +36,7 @@ func echoListen(listener *net.TCPListener) {
 	}
 }
 
-func echo(c net.Conn) {
+func echo(c manet.Conn) {
 	for {
 		data := make([]byte, 1024)
 		i, err := c.Read(data)
@@ -55,11 +55,15 @@ func echo(c net.Conn) {
 
 func TestDial(t *testing.T) {
 
-	listener, err := net.Listen("tcp", "127.0.0.1:1234")
+	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1234")
+	if err != nil {
+		t.Fatal("failure to parse multiaddr")
+	}
+	listener, err := manet.Listen(maddr)
 	if err != nil {
 		t.Fatal("error setting up listener", err)
 	}
-	go echoListen(listener.(*net.TCPListener))
+	go echoListen(listener)
 
 	p, err := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33", "/ip4/127.0.0.1/tcp/1234")
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gorilla/mux"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	core "github.com/jbenet/go-ipfs/core"
@@ -24,7 +25,7 @@ func Serve(address ma.Multiaddr, node *core.IpfsNode) error {
 	r.PathPrefix("/ipfs/").Handler(handler).Methods("GET")
 	http.Handle("/", r)
 
-	_, host, err := ma.DialArgs(address)
+	_, host, err := manet.DialArgs(address)
 	if err != nil {
 		return err
 	}
