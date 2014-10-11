@@ -24,13 +24,12 @@ func NetMessageSession(parent context.Context, p *peer.Peer,
 	net inet.Network, srv inet.Service, directory bsnet.Routing,
 	d ds.Datastore, nice bool) exchange.Interface {
 
-	networkAdapter := bsnet.NetMessageAdapter(srv, nil)
+	networkAdapter := bsnet.NetMessageAdapter(srv, net, nil)
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notifications.New(),
 		strategy:      strategy.New(nice),
 		routing:       directory,
-		network:       net,
 		sender:        networkAdapter,
 		wantlist:      u.NewKeySet(),
 	}
@@ -41,9 +40,6 @@ func NetMessageSession(parent context.Context, p *peer.Peer,
 
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
-
-	// network maintains connections to the outside world.
-	network inet.Network
 
 	// sender delivers messages on behalf of the session
 	sender bsnet.Adapter
@@ -88,8 +84,16 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		for iiiii := range peersToQuery {
 			log.Debug("bitswap got peersToQuery: %s", iiiii)
 			go func(p *peer.Peer) {
+
+				err := bs.sender.DialPeer(p)
+				if err != nil {
+					log.Error("Error sender.DialPeer(%s)", p)
+					return
+				}
+
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
+					log.Error("Error sender.SendRequest(%s)", p)
 					return
 				}
 				// FIXME ensure accounting is handled correctly when
