@@ -3,8 +3,6 @@ package swarm
 import (
 	"errors"
 	"fmt"
-	"net"
-	"syscall"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
@@ -277,25 +275,26 @@ out:
 	s.connsLock.Unlock()
 }
 
-func setSocketReuse(l manet.Listener) error {
-	nl := l.NetListener()
-
-	// for now only TCP. TODO change this when more networks.
-	file, err := nl.(*net.TCPListener).File()
-	if err != nil {
-		return err
-	}
-
-	fd := file.Fd()
-	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
-	if err != nil {
-		return err
-	}
-
-	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+// Commenting out because it's platform specific
+// func setSocketReuse(l manet.Listener) error {
+// 	nl := l.NetListener()
+//
+// 	// for now only TCP. TODO change this when more networks.
+// 	file, err := nl.(*net.TCPListener).File()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	fd := file.Fd()
+// 	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+// }
