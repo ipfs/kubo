@@ -368,8 +368,8 @@ func (dht *IpfsDHT) Update(p *peer.Peer) {
 	// after some deadline of inactivity.
 }
 
-// Find looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
-func (dht *IpfsDHT) Find(id peer.ID) (*peer.Peer, *kb.RoutingTable) {
+// FindLocal looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
+func (dht *IpfsDHT) FindLocal(id peer.ID) (*peer.Peer, *kb.RoutingTable) {
 	for _, table := range dht.routingTables {
 		p := table.Find(id)
 		if p != nil {
@@ -465,7 +465,7 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 
 	p, _ := dht.peerstore.Get(id)
 	if p == nil {
-		p, _ = dht.Find(id)
+		p, _ = dht.FindLocal(id)
 		if p != nil {
 			panic("somehow peer not getting into peerstore")
 		}
