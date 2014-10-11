@@ -2,27 +2,19 @@ package util
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"math/rand"
-	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 )
 
 func init() {
 	SetupLogging()
 }
-
-// LogFormat is the format used for our logger.
-var LogFormat = "%{color}%{time:2006-01-02 15:04:05.999999} %{shortfile} %{level}: %{color:reset}%{message}"
 
 // Debug is a global flag for debugging.
 var Debug bool
@@ -40,72 +32,6 @@ var ErrSearchIncomplete = errors.New("Error: Search Incomplete.")
 // ErrNotFound is returned when a search fails to find anything
 var ErrNotFound = ds.ErrNotFound
 
-// Key is a string representation of multihash for use with maps.
-type Key string
-
-// String is utililty function for printing out keys as strings (Pretty).
-func (k Key) String() string {
-	return k.Pretty()
-}
-
-// Pretty returns Key in a b58 encoded string
-func (k Key) Pretty() string {
-	return b58.Encode([]byte(k))
-}
-
-// DsKey returns a Datastore key
-func (k Key) DsKey() ds.Key {
-	return ds.NewKey(string(k))
-}
-
-// KeyFromDsKey returns a Datastore key
-func KeyFromDsKey(dsk ds.Key) Key {
-	return Key(dsk.BaseNamespace())
-}
-
-// DsKeyB58Encode returns a B58 encoded Datastore key
-// TODO: this is hacky because it encodes every path component. some
-// path components may be proper strings already...
-func DsKeyB58Encode(dsk ds.Key) ds.Key {
-	k := ds.NewKey("/")
-	for _, n := range dsk.Namespaces() {
-		k = k.Child(b58.Encode([]byte(n)))
-	}
-	return k
-}
-
-// DsKeyB58Decode returns a b58 decoded Datastore key
-// TODO: this is hacky because it encodes every path component. some
-// path components may be proper strings already...
-func DsKeyB58Decode(dsk ds.Key) ds.Key {
-	k := ds.NewKey("/")
-	for _, n := range dsk.Namespaces() {
-		k = k.Child(string(b58.Decode(n)))
-	}
-	return k
-}
-
-// Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
-func Hash(data []byte) mh.Multihash {
-	h, err := mh.Sum(data, mh.SHA2_256, -1)
-	if err != nil {
-		// this error can be safely ignored (panic) because multihash only fails
-		// from the selection of hash function. If the fn + length are valid, it
-		// won't error.
-		panic("multihash failed to hash using SHA2_256.")
-	}
-	return h
-}
-
-// IsValidHash checks whether a given hash is valid (b58 decodable, len > 0)
-func IsValidHash(s string) bool {
-	out := b58.Decode(s)
-	if out == nil || len(out) == 0 {
-		return false
-	}
-	return true
-}
-
 // TildeExpansion expands a filename, which may begin with a tilde.
 func TildeExpansion(filename string) (string, error) {
 	if strings.HasPrefix(filename, "~/") {
@@ -118,53 +44,6 @@ func TildeExpansion(filename string) (string, error) {
 		filename = strings.Replace(filename, "~/", dir, 1)
 	}
 	return filename, nil
-}
-
-// PErr is a shorthand printing function to output to Stderr.
-func PErr(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, a...)
-}
-
-// POut is a shorthand printing function to output to Stdout.
-func POut(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stdout, format, a...)
-}
-
-var loggers = map[string]*logging.Logger{}
-
-// SetupLogging will initialize the logger backend and set the flags.
-func SetupLogging() {
-	backend := logging.NewLogBackend(os.Stderr, "", 0)
-	logging.SetBackend(backend)
-	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
-
-	logging.SetLevel(logging.ERROR, "")
-
-	for n, log := range loggers {
-		logging.SetLevel(logging.ERROR, n)
-		log.Error("setting logger: %s to %v", n, logging.ERROR)
-	}
-
-	logenv := os.Getenv("IPFS_LOGGING")
-	if logenv == "all" {
-		AllLoggersOn()
-	}
-}
-
-func AllLoggersOn() {
-	logging.SetLevel(logging.DEBUG, "")
-	for n, log := range loggers {
-		logging.SetLevel(logging.DEBUG, n)
-		log.Error("setting logger: %s to %v", n, logging.DEBUG)
-	}
-}
-
-// Logger retrieves a particular logger + initializes it at a particular level
-func Logger(name string) *logging.Logger {
-	log := logging.MustGetLogger(name)
-	// logging.SetLevel(lvl, name) // can't set level here.
-	loggers[name] = log
-	return log
 }
 
 // ExpandPathnames takes a set of paths and turns them into absolute paths
