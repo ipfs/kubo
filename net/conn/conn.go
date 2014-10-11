@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
@@ -22,9 +21,9 @@ const MaxMessageSize = 1 << 20
 
 // Conn represents a connection to another Peer (IPFS Node).
 type Conn struct {
-	Peer *peer.Peer
-	Addr ma.Multiaddr
-	Conn manet.Conn
+	Local  *peer.Peer
+	Remote *peer.Peer
+	Conn   manet.Conn
 
 	Closed   chan bool
 	Outgoing *msgio.Chan
@@ -36,11 +35,11 @@ type Conn struct {
 type Map map[u.Key]*Conn
 
 // NewConn constructs a new connection
-func NewConn(peer *peer.Peer, addr ma.Multiaddr, mconn manet.Conn) (*Conn, error) {
+func NewConn(local, remote *peer.Peer, mconn manet.Conn) (*Conn, error) {
 	conn := &Conn{
-		Peer: peer,
-		Addr: addr,
-		Conn: mconn,
+		Local:  local,
+		Remote: remote,
+		Conn:   mconn,
 	}
 
 	if err := conn.newChans(); err != nil {
@@ -52,18 +51,28 @@ func NewConn(peer *peer.Peer, addr ma.Multiaddr, mconn manet.Conn) (*Conn, error
 
 // Dial connects to a particular peer, over a given network
 // Example: Dial("udp", peer)
-func Dial(network string, peer *peer.Peer) (*Conn, error) {
-	addr := peer.NetAddress(network)
-	if addr == nil {
-		return nil, fmt.Errorf("No address for network %s", network)
+func Dial(network string, local, remote *peer.Peer) (*Conn, error) {
+	laddr := local.NetAddress(network)
+	if laddr == nil {
+		return nil, fmt.Errorf("No local address for network %s", network)
 	}
 
-	nconn, err := manet.Dial(addr)
+	raddr := remote.NetAddress(network)
+	if raddr == nil {
+		return nil, fmt.Errorf("No remote address for network %s", network)
+	}
+
+	// TODO: try to get reusing addr/ports to work.
+	// dialer := manet.Dialer{LocalAddr: laddr}
+	dialer := manet.Dialer{}
+
+	log.Info("%s %s dialing %s %s", local, laddr, remote, raddr)
+	nconn, err := dialer.Dial(raddr)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewConn(peer, addr, nconn)
+	return NewConn(local, remote, nconn)
 }
 
 // Construct new channels for given Conn.
@@ -84,7 +93,7 @@ func (c *Conn) newChans() error {
 
 // Close closes the connection, and associated channels.
 func (c *Conn) Close() error {
-	log.Debug("Closing Conn with %v", c.Peer)
+	log.Debug("%s closing Conn with %s", c.Local, c.Remote)
 	if c.Conn == nil {
 		return fmt.Errorf("Already closed") // already closed
 	}
