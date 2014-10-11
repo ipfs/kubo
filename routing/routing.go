@@ -26,11 +26,7 @@ type IpfsRouting interface {
 	// Announce that this node can provide value for given key
 	Provide(context.Context, u.Key) error
 
-	// FindProviders searches for peers who can provide the value for given key.
-	FindProviders(context.Context, u.Key) ([]*peer.Peer, error)
-
 	// Find specific Peer
-
 	// FindPeer searches for a peer with given ID.
 	FindPeer(context.Context, peer.ID) (*peer.Peer, error)
 }
