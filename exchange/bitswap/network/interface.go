@@ -11,6 +11,9 @@ import (
 // Adapter provides network connectivity for BitSwap sessions
 type Adapter interface {
 
+	// DialPeer ensures there is a connection to peer.
+	DialPeer(*peer.Peer) error
+
 	// SendMessage sends a BitSwap message to a peer.
 	SendMessage(
 		context.Context,

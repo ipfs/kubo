@@ -10,9 +10,10 @@ import (
 )
 
 // NetMessageAdapter wraps a NetMessage network service
-func NetMessageAdapter(s inet.Service, r Receiver) Adapter {
+func NetMessageAdapter(s inet.Service, n inet.Network, r Receiver) Adapter {
 	adapter := impl{
 		nms:      s,
+		net:      n,
 		receiver: r,
 	}
 	s.SetHandler(&adapter)
@@ -22,6 +23,7 @@ func NetMessageAdapter(s inet.Service, r Receiver) Adapter {
 // implements an Adapter that integrates with a NetMessage network service
 type impl struct {
 	nms inet.Service
+	net inet.Network
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
@@ -56,6 +58,10 @@ func (adapter *impl) HandleMessage(
 	}
 
 	return outgoing
+}
+
+func (adapter *impl) DialPeer(p *peer.Peer) error {
+	return adapter.DialPeer(p)
 }
 
 func (adapter *impl) SendMessage(
