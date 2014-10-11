@@ -175,6 +175,19 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 
 	log.Debug("%s adding %s as a provider for '%s'\n", dht.self, p, peer.ID(key))
 
+	// add provider should use the address given in the message
+	for _, pb := range pmes.GetCloserPeers() {
+		if peer.ID(pb.GetId()).Equal(p.ID) {
+
+			addr, err := pb.Address()
+			if err != nil {
+				log.Error("provider %s error with address %s", p, *pb.Addr)
+				continue
+			}
+			p.AddAddress(addr)
+		}
+	}
+
 	dht.providers.AddProvider(key, p)
 	return pmes, nil // send back same msg as confirmation.
 }
