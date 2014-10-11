@@ -3,6 +3,8 @@ package swarm
 import (
 	"errors"
 	"fmt"
+	"net"
+	"syscall"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
@@ -42,6 +44,11 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 		return err
 	}
 
+	// make sure port can be reused. TOOD this doesn't work...
+	// if err := setSocketReuse(list); err != nil {
+	// 	return err
+	// }
+
 	// NOTE: this may require a lock around it later. currently, only run on setup
 	s.listeners = append(s.listeners, list)
 
@@ -69,11 +76,9 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 // Handle getting ID from this peer, handshake, and adding it into the map
 func (s *Swarm) handleIncomingConn(nconn manet.Conn) {
 
-	addr := nconn.RemoteMultiaddr()
-
 	// Construct conn with nil peer for now, because we don't know its ID yet.
 	// connSetup will figure this out, and pull out / construct the peer.
-	c, err := conn.NewConn(nil, addr, nconn)
+	c, err := conn.NewConn(s.local, nil, nconn)
 	if err != nil {
 		s.errChan <- err
 		return
@@ -94,29 +99,29 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 		return errors.New("Tried to start nil connection.")
 	}
 
-	if c.Peer != nil {
-		log.Debug("Starting connection: %s", c.Peer)
+	if c.Remote != nil {
+		log.Debug("%s Starting connection: %s", c.Local, c.Remote)
 	} else {
-		log.Debug("Starting connection: [unknown peer]")
+		log.Debug("%s Starting connection: [unknown peer]", c.Local)
 	}
 
 	if err := s.connSecure(c); err != nil {
 		return fmt.Errorf("Conn securing error: %v", err)
 	}
 
-	log.Debug("Secured connection: %s", c.Peer)
+	log.Debug("%s secured connection: %s", c.Local, c.Remote)
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
-	c.Peer.AddAddress(c.Addr)
+	c.Remote.AddAddress(c.Conn.RemoteMultiaddr())
 
 	// add to conns
 	s.connsLock.Lock()
-	if _, ok := s.conns[c.Peer.Key()]; ok {
+	if _, ok := s.conns[c.Remote.Key()]; ok {
 		log.Debug("Conn already open!")
 		s.connsLock.Unlock()
 		return ErrAlreadyOpen
 	}
-	s.conns[c.Peer.Key()] = c
+	s.conns[c.Remote.Key()] = c
 	log.Debug("Added conn to map!")
 	s.connsLock.Unlock()
 
@@ -141,10 +146,10 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 		return err
 	}
 
-	if c.Peer == nil {
-		c.Peer = sp.RemotePeer()
+	if c.Remote == nil {
+		c.Remote = sp.RemotePeer()
 
-	} else if c.Peer != sp.RemotePeer() {
+	} else if c.Remote != sp.RemotePeer() {
 		panic("peers not being constructed correctly.")
 	}
 
@@ -198,20 +203,43 @@ func (s *Swarm) fanIn(c *conn.Conn) {
 
 		case data, ok := <-c.Secure.In:
 			if !ok {
-				e := fmt.Errorf("Error retrieving from conn: %v", c.Peer)
+				e := fmt.Errorf("Error retrieving from conn: %v", c.Remote)
 				s.errChan <- e
 				goto out
 			}
 
 			// log.Debug("[peer: %s] Received message [from = %s]", s.local, c.Peer)
 
-			msg := msg.New(c.Peer, data)
+			msg := msg.New(c.Remote, data)
 			s.Incoming <- msg
 		}
 	}
 
 out:
 	s.connsLock.Lock()
-	delete(s.conns, c.Peer.Key())
+	delete(s.conns, c.Remote.Key())
 	s.connsLock.Unlock()
+}
+
+func setSocketReuse(l manet.Listener) error {
+	nl := l.NetListener()
+
+	// for now only TCP. TODO change this when more networks.
+	file, err := nl.(*net.TCPListener).File()
+	if err != nil {
+		return err
+	}
+
+	fd := file.Fd()
+	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+	if err != nil {
+		return err
+	}
+
+	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

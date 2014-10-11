@@ -129,7 +129,7 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 	}
 
 	// open connection to peer
-	c, err = conn.Dial("tcp", peer)
+	c, err = conn.Dial("tcp", s.local, peer)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *Swarm) DialAddr(addr ma.Multiaddr) (*conn.Conn, error) {
 	npeer := new(peer.Peer)
 	npeer.AddAddress(addr)
 
-	c, err := conn.Dial("tcp", npeer)
+	c, err := conn.Dial("tcp", s.local, npeer)
 	if err != nil {
 		return nil, err
 	}
@@ -201,11 +201,12 @@ func (s *Swarm) GetErrChan() chan error {
 	return s.errChan
 }
 
+// GetPeerList returns a copy of the set of peers swarm is connected to.
 func (s *Swarm) GetPeerList() []*peer.Peer {
 	var out []*peer.Peer
 	s.connsLock.RLock()
 	for _, p := range s.conns {
-		out = append(out, p.Peer)
+		out = append(out, p.Remote)
 	}
 	s.connsLock.RUnlock()
 	return out
