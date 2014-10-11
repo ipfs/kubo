@@ -216,6 +216,10 @@ func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p *peer.Peer,
 func (dht *IpfsDHT) putProvider(ctx context.Context, p *peer.Peer, key string) error {
 
 	pmes := newMessage(Message_ADD_PROVIDER, string(key), 0)
+
+	// add self as the provider
+	pmes.ProviderPeers = peersToPBPeers([]*peer.Peer{dht.self})
+
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
 		return err
