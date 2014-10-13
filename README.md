@@ -8,7 +8,7 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-[Install Go](http://golang.org/doc/install). Then:
+[Install Go 1.2+](http://golang.org/doc/install). Then:
 
 ```
 go get github.com/jbenet/go-ipfs/cmd/ipfs
