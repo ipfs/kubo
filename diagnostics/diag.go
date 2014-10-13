@@ -1,4 +1,4 @@
-package diagnostic
+package diagnostics
 
 import (
 	"bytes"

@@ -108,6 +108,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		route           *dht.IpfsDHT
 		exchangeSession exchange.Interface
 		diagnostics     *diag.Diagnostics
+		network         inet.Network
 	)
 
 	if online {
@@ -135,6 +136,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		if err != nil {
 			return nil, err
 		}
+		network = net
 
 		diagnostics = diag.NewDiagnostics(local, net, diagService)
 		diagService.SetHandler(diagnostics)
@@ -173,6 +175,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Routing:     route,
 		Namesys:     ns,
 		Diagnostics: diagnostics,
+		Network:     network,
 	}, nil
 }
 
