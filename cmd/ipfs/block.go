@@ -12,7 +12,7 @@ var cmdIpfsBlock = &commander.Command{
 	Long: `ipfs block (get|put) - get/put **raw** ipfs blocks.
 
     ipfs block get <key> > valfile    - get block of <key> and write it to valfile
-    ipfs block put <key>  < valfile   - pipe valfile to block <key>
+    ipfs block put < valfile          - saves the conents of valfile and returns it's <key>
 `,
 	// Run: blockGetCmd,
 	Subcommands: []*commander.Command{
@@ -24,7 +24,7 @@ var cmdIpfsBlock = &commander.Command{
 
 var cmdIpfsBlockGet = &commander.Command{
 	UsageLine: "get",
-	Short:     "get a row ipfs block",
+	Short:     "get a raw ipfs block",
 	Run: makeCommand(command{
 		name:   "blockGet",
 		args:   1,
@@ -36,10 +36,10 @@ var cmdIpfsBlockGet = &commander.Command{
 
 var cmdIpfsBlockPut = &commander.Command{
 	UsageLine: "put",
-	Short:     "put a row ipfs block",
+	Short:     "put a raw ipfs block",
 	Run: makeCommand(command{
 		name:   "blockPut",
-		args:   1,
+		args:   0,
 		flags:  nil,
 		online: true,
 		cmdFn:  commands.BlockPut,
