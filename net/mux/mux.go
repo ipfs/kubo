@@ -36,6 +36,12 @@ type Muxer struct {
 	ctx    context.Context
 	wg     sync.WaitGroup
 
+	bwiLock sync.Mutex
+	bwIn    uint64
+
+	bwoLock sync.Mutex
+	bwOut   uint64
+
 	*msg.Pipe
 }
 
@@ -74,6 +80,17 @@ func (m *Muxer) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (m *Muxer) GetBandwidthTotals() (in uint64, out uint64) {
+	m.bwiLock.Lock()
+	in = m.bwIn
+	m.bwiLock.Unlock()
+
+	m.bwoLock.Lock()
+	out = m.bwOut
+	m.bwoLock.Unlock()
+	return
 }
 
 // Stop stops muxer activity.
@@ -125,6 +142,11 @@ func (m *Muxer) handleIncomingMessages() {
 // handleIncomingMessage routes message to the appropriate protocol.
 func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 
+	m.bwiLock.Lock()
+	// TODO: compensate for overhead
+	m.bwIn += uint64(len(m1.Data()))
+	m.bwiLock.Unlock()
+
 	data, pid, err := unwrapData(m1.Data())
 	if err != nil {
 		log.Error("muxer de-serializing error: %v", err)
@@ -172,6 +194,11 @@ func (m *Muxer) handleOutgoingMessage(pid ProtocolID, m1 msg.NetMessage) {
 		log.Error("muxer serializing error: %v", err)
 		return
 	}
+
+	m.bwoLock.Lock()
+	// TODO: compensate for overhead
+	m.bwOut += uint64(len(data))
+	m.bwoLock.Unlock()
 
 	m2 := msg.New(m1.Peer(), data)
 	select {
