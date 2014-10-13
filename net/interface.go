@@ -29,6 +29,10 @@ type Network interface {
 	// GetPeerList returns the list of peers currently connected in this network.
 	GetPeerList() []*peer.Peer
 
+	// GetBandwidthTotals returns the total number of bytes passed through
+	// the network since it was instantiated
+	GetBandwidthTotals() (uint64, uint64)
+
 	// SendMessage sends given Message out
 	SendMessage(msg.NetMessage) error
 
