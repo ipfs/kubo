@@ -16,10 +16,13 @@ cd $GOPATH/src/github.com/jbenet/go-ipfs/cmd/ipfs
 go install
 ```
 
-NOTE: `git` and mercurial (`hg`) are required in order for `go get` to fetch
-all dependencies.
+NOTE:
 
-If you are interested in development, please install the development
+* `git` and mercurial (`hg`) are required in order for `go get` to fetch
+all dependencies.
+* Package managers often contain out-of-date `golang` packages.
+  Compilation from source is recommended.
+* If you are interested in development, please install the development
 dependencies as well.
 
 ## Usage
