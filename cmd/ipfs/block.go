@@ -36,7 +36,7 @@ var cmdIpfsBlockGet = &commander.Command{
 	UsageLine: "get",
 	Short:     "get a row ipfs block",
 	Run: makeCommand(command{
-		name:   "get",
+		name:   "blockGet",
 		args:   1,
 		flags:  nil,
 		online: true,
@@ -48,7 +48,7 @@ var cmdIpfsBlockPut = &commander.Command{
 	UsageLine: "put",
 	Short:     "put a row ipfs block",
 	Run: makeCommand(command{
-		name:   "put",
+		name:   "blockPut",
 		args:   1,
 		flags:  nil,
 		online: true,

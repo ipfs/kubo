@@ -133,6 +133,10 @@ func (dl *DaemonListener) handleConnection(conn manet.Conn) {
 		err = commands.Resolve(dl.node, command.Args, command.Opts, conn)
 	case "diag":
 		err = commands.Diag(dl.node, command.Args, command.Opts, conn)
+	case "blockGet":
+		err = commands.BlockGet(dl.node, command.Args, command.Opts, conn)
+	case "blockPut":
+		err = commands.BlockPut(dl.node, command.Args, command.Opts, conn)
 	default:
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}
