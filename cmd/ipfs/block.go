@@ -13,16 +13,6 @@ var cmdIpfsBlock = &commander.Command{
 
     ipfs block get <key> > valfile    - get block of <key> and write it to valfile
     ipfs block put <key>  < valfile   - pipe valfile to block <key>
-Examples:
-
-  Get the value of the 'datastore.path' key:
-
-      ipfs config datastore.path
-
-  Set the value of the 'datastore.path' key:
-
-      ipfs config datastore.path ~/.go-ipfs/datastore
-
 `,
 	// Run: blockGetCmd,
 	Subcommands: []*commander.Command{
