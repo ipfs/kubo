@@ -45,8 +45,11 @@ func BlockPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out 
 	b := blocks.NewBlock(data)
 	log.Debug("BlockPut key: '%q'", b.Key())
 
-	_, err = n.Blocks.AddBlock(b)
-	log.Debug("BlockPut Done. Err: %q", err)
+	k, err := n.Blocks.AddBlock(b)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "added as '%s'\n", k)
 
-	return err
+	return nil
 }
