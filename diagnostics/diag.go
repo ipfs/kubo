@@ -53,6 +53,8 @@ type DiagInfo struct {
 	Connections []connDiagInfo
 	Keys        []string
 	LifeSpan    time.Duration
+	BwIn        uint64
+	BwOut       uint64
 	CodeVersion string
 }
 
@@ -75,6 +77,7 @@ func (d *Diagnostics) getDiagInfo() *DiagInfo {
 	di.ID = d.self.ID.Pretty()
 	di.LifeSpan = time.Since(d.birth)
 	di.Keys = nil // Currently no way to query datastore
+	di.BwIn, di.BwOut = d.network.GetBandwidthTotals()
 
 	for _, p := range d.getPeers() {
 		di.Connections = append(di.Connections, connDiagInfo{p.GetLatency(), p.ID.Pretty()})
