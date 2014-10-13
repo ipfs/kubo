@@ -38,14 +38,6 @@ func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 			return fmt.Errorf("addFile error: %v", err)
 		}
 
-		// get the key to print it
-		// k, err := nd.Key()
-		// if err != nil {
-		// 	return fmt.Errorf("addFile error: %v", err)
-		// }
-		//
-		// Commenting out of here, because it's already in addNode below.
-		// fmt.Fprintf(out, "added %s %s\n", k, path)
 	}
 	return nil
 }
@@ -89,7 +81,9 @@ func addDir(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node
 		}
 	}
 
-	return tree, addNode(n, tree, fpath)
+	log.Info("adding dir: %s", fpath)
+
+	return tree, addNode(n, tree, fpath, out)
 }
 
 func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
@@ -98,26 +92,30 @@ func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Nod
 		return nil, err
 	}
 
-	k, err := root.Key()
-	if err != nil {
-		return nil, err
-	}
+	log.Info("adding file: %s", fpath)
 
-	fmt.Fprintf(out, "Adding file: %s = %s\n", fpath, k)
 	for _, l := range root.Links {
-		fmt.Fprintf(out, "SubBlock: %s\n", l.Hash.B58String())
+		log.Info("adding subblock: %s %s", l.Name, l.Hash.B58String())
 	}
 
-	return root, addNode(n, root, fpath)
+	return root, addNode(n, root, fpath, out)
 }
 
 // addNode adds the node to the graph + local storage
-func addNode(n *core.IpfsNode, nd *dag.Node, fpath string) error {
+func addNode(n *core.IpfsNode, nd *dag.Node, fpath string, out io.Writer) error {
 	// add the file to the graph + local storage
 	err := n.DAG.AddRecursive(nd)
 	if err != nil {
 		return err
 	}
+
+	k, err := nd.Key()
+	if err != nil {
+		return err
+	}
+
+	// output that we've added this node
+	fmt.Fprintf(out, "added %s %s\n", k, fpath)
 
 	// ensure we keep it. atm no-op
 	return n.PinDagNodeRecursively(nd, -1)

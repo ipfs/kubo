@@ -124,6 +124,7 @@ func (n *Node) Size() (uint64, error) {
 
 // Multihash hashes the encoded data of this node.
 func (n *Node) Multihash() (mh.Multihash, error) {
+	// Note: Encoded generates the hash and puts it in n.cached.
 	_, err := n.Encoded(false)
 	if err != nil {
 		return nil, err
