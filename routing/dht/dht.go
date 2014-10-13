@@ -472,7 +472,7 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 	}
 
 	if p == nil {
-		maddr, err := ma.NewMultiaddr(pbp.GetAddr())
+		maddr, err := pbp.Address()
 		if err != nil {
 			return nil, err
 		}
@@ -481,6 +481,7 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 		p = &peer.Peer{ID: id}
 		p.AddAddress(maddr)
 		dht.peerstore.Put(p)
+		log.Info("dht found new peer: %s %s", p, maddr)
 	}
 	return p, nil
 }

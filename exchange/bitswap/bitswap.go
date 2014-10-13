@@ -85,6 +85,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 			log.Debug("bitswap got peersToQuery: %s", iiiii)
 			go func(p *peer.Peer) {
 
+				log.Debug("bitswap dialing peer: %s", p)
 				err := bs.sender.DialPeer(p)
 				if err != nil {
 					log.Error("Error sender.DialPeer(%s)", p)
