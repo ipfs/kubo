@@ -62,6 +62,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsName,
 		cmdIpfsBootstrap,
 		cmdIpfsDiag,
+		cmdIpfsBlock,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
