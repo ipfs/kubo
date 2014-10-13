@@ -1,44 +1,52 @@
 package commands
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// BlockGet retrives a raw ipfs block from the node's BlockService
 func BlockGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	k := u.Key(args[0])
-	u.PErr("Getting block[%s]\n", k)
 
-	b, err := n.Blocks.GetBlock(k)
-	if err != nil {
-		return err
+	if !u.IsValidHash(args[0]) {
+		return fmt.Errorf("block get: not a valid hash")
 	}
 
-	out.Write(b.Data)
-	return nil
+	h, err := mh.FromB58String(args[0])
+	if err != nil {
+		return fmt.Errorf("block get: %v", err)
+	}
+
+	k := u.Key(h)
+	log.Debug("BlockGet key: '%q'", k)
+	b, err := n.Blocks.GetBlock(k)
+	if err != nil {
+		return fmt.Errorf("block get: %v", err)
+	}
+
+	_, err = out.Write(b.Data)
+	return err
 }
 
+// BlockPut reads everything from conn and saves the data to the nodes BlockService
 func BlockPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-
 	data, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		return err
 	}
 
 	b := blocks.NewBlock(data)
-	u.PErr("Putting block[%s]\n", b.Key())
+	log.Debug("BlockPut key: '%q'", b.Key())
 
-	key, err := n.Blocks.AddBlock(b)
-	if err != nil {
-		return err
-	}
+	_, err = n.Blocks.AddBlock(b)
+	log.Debug("BlockPut Done. Err: %q", err)
 
-	u.PErr("Done. Key: %s\n", key)
-
-	return nil
+	return err
 }
