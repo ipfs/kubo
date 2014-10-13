@@ -48,7 +48,7 @@ type connDiagInfo struct {
 	ID      string
 }
 
-type diagInfo struct {
+type DiagInfo struct {
 	ID          string
 	Connections []connDiagInfo
 	Keys        []string
@@ -56,7 +56,7 @@ type diagInfo struct {
 	CodeVersion string
 }
 
-func (di *diagInfo) Marshal() []byte {
+func (di *DiagInfo) Marshal() []byte {
 	b, err := json.Marshal(di)
 	if err != nil {
 		panic(err)
@@ -69,8 +69,8 @@ func (d *Diagnostics) getPeers() []*peer.Peer {
 	return d.network.GetPeerList()
 }
 
-func (d *Diagnostics) getDiagInfo() *diagInfo {
-	di := new(diagInfo)
+func (d *Diagnostics) getDiagInfo() *DiagInfo {
+	di := new(DiagInfo)
 	di.CodeVersion = "github.com/jbenet/go-ipfs"
 	di.ID = d.self.ID.Pretty()
 	di.LifeSpan = time.Since(d.birth)
@@ -88,7 +88,7 @@ func newID() string {
 	return string(id)
 }
 
-func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) {
+func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) {
 	log.Debug("Getting diagnostic.")
 	ctx, _ := context.WithTimeout(context.TODO(), timeout)
 
@@ -102,7 +102,7 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) 
 	peers := d.getPeers()
 	log.Debug("Sending diagnostic request to %d peers.", len(peers))
 
-	var out []*diagInfo
+	var out []*DiagInfo
 	di := d.getDiagInfo()
 	out = append(out, di)
 
@@ -134,15 +134,15 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*diagInfo, error) 
 	return out, nil
 }
 
-func AppendDiagnostics(data []byte, cur []*diagInfo) []*diagInfo {
+func AppendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
 	buf := bytes.NewBuffer(data)
 	dec := json.NewDecoder(buf)
 	for {
-		di := new(diagInfo)
+		di := new(DiagInfo)
 		err := dec.Decode(di)
 		if err != nil {
 			if err != io.EOF {
-				log.Error("error decoding diagInfo: %v", err)
+				log.Error("error decoding DiagInfo: %v", err)
 			}
 			break
 		}
@@ -216,6 +216,7 @@ func (d *Diagnostics) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, e
 	sendcount := 0
 	for _, p := range d.getPeers() {
 		log.Debug("Sending diagnostic request to peer: %s", p)
+		sendcount++
 		go func(p *peer.Peer) {
 			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
 			if err != nil {
