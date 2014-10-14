@@ -15,8 +15,13 @@ func TestOptionParsing(t *testing.T) {
   }
   cmd.Register("test", &commands.Command{})
 
-  opts, input, err := parseOptions([]string{ "--beep", "--boop=5 lol", "test2", "-cVb", "beep" },
-    []string{"test"}, cmd)
+  path := []string{"test"}
+  options, err := cmd.GetOptions(path)
+  if err != nil {
+    t.Error(err)
+  }
+
+  opts, input, err := parseOptions([]string{ "--beep", "--boop=5 lol", "test2", "-cVb", "beep" }, options)
   /*for k, v := range opts {
     fmt.Printf("%s: %s\n", k, v)
   }

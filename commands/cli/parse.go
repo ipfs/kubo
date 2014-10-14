@@ -13,7 +13,12 @@ func Parse(input []string, root *commands.Command) ([]string, []string, map[stri
     return nil, nil, nil, err
   }
 
-  opts, args, err := parseOptions(input, path, root)
+  options, err := root.GetOptions(path)
+  if err != nil {
+    return nil, nil, nil, err
+  }
+
+  opts, args, err := parseOptions(input, options)
   if err != nil {
     return nil, nil, nil, err
   }
@@ -44,12 +49,7 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
 
 // parseOptions parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
-func parseOptions(input, path []string, root *commands.Command) (map[string]string, []string, error) {
-  options, err := root.GetOptions(path)
-  if err != nil {
-    return nil, nil, err
-  }
-
+func parseOptions(input []string, options map[string]commands.Option) (map[string]string, []string, error) {
   opts := make(map[string]string)
   args := make([]string, 0)
 
