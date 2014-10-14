@@ -8,12 +8,15 @@ import (
 
 var cmdIpfsBlock = &commander.Command{
 	UsageLine: "block",
-	Short:     "get/put **raw** ipfs blocks",
-	Long: `ipfs block (get|put) - get/put **raw** ipfs blocks.
+	Short:     "manipulate raw ipfs blocks",
+	Long: `ipfs block - manipulate raw ipfs blocks
 
-    ipfs block get <key> > valfile    - get block of <key> and write it to valfile
-    ipfs block put < valfile          - saves the conents of valfile and returns it's <key>
-`,
+    ipfs block get <key>  - get and output block named by <key>
+    ipfs block put        - store stdin as a block, outputs <key>
+
+ipfs block is a plumbing command used to manipulate raw ipfs blocks.
+Reads from stdin or writes to stdout, and <key> is a base58 encoded
+multihash.`,
 	// Run: blockGetCmd,
 	Subcommands: []*commander.Command{
 		cmdIpfsBlockGet,
@@ -23,8 +26,12 @@ var cmdIpfsBlock = &commander.Command{
 }
 
 var cmdIpfsBlockGet = &commander.Command{
-	UsageLine: "get",
-	Short:     "get a raw ipfs block",
+	UsageLine: "get <key>",
+	Short:     "get and output block named by <key>",
+	Long: `ipfs get <key> - get and output block named by <key>
+
+ipfs block get is a plumbing command for retreiving raw ipfs blocks.
+It outputs to stdout, and <key> is a base58 encoded multihash.`,
 	Run: makeCommand(command{
 		name:   "blockGet",
 		args:   1,
@@ -36,7 +43,11 @@ var cmdIpfsBlockGet = &commander.Command{
 
 var cmdIpfsBlockPut = &commander.Command{
 	UsageLine: "put",
-	Short:     "put a raw ipfs block",
+	Short:     "store stdin as a block, outputs <key>",
+	Long: `ipfs put - store stdin as a block, outputs <key>
+
+ipfs block put is a plumbing command for storing raw ipfs blocks.
+It reads from stding, and <key> is a base58 encoded multihash.`,
 	Run: makeCommand(command{
 		name:   "blockPut",
 		args:   0,
