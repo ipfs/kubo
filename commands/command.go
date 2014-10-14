@@ -38,35 +38,17 @@ func (c *Command) Register(id string, sub *Command) error {
 
 // Call invokes the command at the given subcommand path
 func (c *Command) Call(path []string, req *Request) *Response {
-	options := make([]Option, len(c.Options))
-	copy(options, c.Options)
-	options = append(options, globalOptions...)
 	cmd := c
 	res := &Response{req: req}
 
-	if path != nil {
-		for i, id := range path {
-			cmd = c.Sub(id)
-
-			if cmd == nil {
-				pathS := strings.Join(path[0:i], "/")
-				res.SetError(fmt.Errorf("Undefined command: '%s'", pathS), Client)
-				return res
-			}
-
-			options = append(options, cmd.Options...)
-		}
-	}
-
-	optionsMap := make(map[string]Option)
-	for _, opt := range options {
-		for _, name := range opt.Names {
-			optionsMap[name] = opt
-		}
-	}
+  options, err := cmd.GetOptions(path)
+  if err != nil {
+    res.SetError(err, Client)
+    return res
+  }
 
 	for k, v := range req.options {
-		opt, ok := optionsMap[k]
+		opt, ok := options[k]
 
 		if !ok {
 			res.SetError(fmt.Errorf("Unrecognized command option: '%s'", k), Client)
@@ -92,6 +74,35 @@ func (c *Command) Call(path []string, req *Request) *Response {
 	cmd.f(req, res)
 
 	return res
+}
+
+// GetOptions gets the options in the given path of commands
+func (c *Command) GetOptions(path []string) (map[string]Option, error) {
+  options := make([]Option, len(c.Options))
+  copy(options, c.Options)
+  options = append(options, globalOptions...)
+
+  if path != nil {
+    for i, id := range path {
+      cmd := c.Sub(id)
+
+      if cmd == nil {
+        pathS := strings.Join(path[0:i], "/")
+        return nil, fmt.Errorf("Undefined command: '%s'", pathS)
+      }
+
+      options = append(options, cmd.Options...)
+    }
+  }
+
+  optionsMap := make(map[string]Option)
+  for _, opt := range options {
+    for _, name := range opt.Names {
+      optionsMap[name] = opt
+    }
+  }
+
+  return optionsMap, nil
 }
 
 // Sub returns the subcommand with the given id
