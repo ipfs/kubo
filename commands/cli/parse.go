@@ -13,7 +13,12 @@ func Parse(input []string, root *commands.Command) ([]string, []string, map[stri
     return nil, nil, nil, err
   }
 
-  return nil, nil, opts, nil
+  path, args, err := path(input, root)
+  if err != nil {
+    return nil, nil, nil, err
+  }
+
+  return path, args, opts, nil
 }
 
 // options parses the raw string values of the given options
@@ -89,4 +94,22 @@ func options(input []string, root *commands.Command) (map[string]string, []strin
   }
 
   return opts, cleanInput, nil
+}
+
+// path takes the command line (without options) and splits it into the command path and arguments
+func path(input []string, root *commands.Command) ([]string, []string, error) {
+  cmd := root
+  i := 0
+
+  for _, blob := range input {
+    cmd := cmd.Sub(blob)
+
+    if cmd == nil {
+      break
+    }
+
+    i++
+  }
+
+  return input[:i], input[i:], nil
 }
