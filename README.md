@@ -26,9 +26,9 @@ all dependencies.
   compile with `CGO_ENABLED=1`
 * If you are interested in development, please install the development
 dependencies as well.
-* **WARNING: older versions of OSX FUSE can cause kernel panics when mounting!**
-  We strongly recommend you use the [latest version](http://osxfuse.github.io/) of OSX FUSE.
-  ([read these IRC logs for help upgrading](https://botbot.me/freenode/ipfs/2014-10-13/?msg=23406704&page=2))
+* **WARNING: older versions of OSX FUSE can cause kernel panics on Mac when mounting!**
+  * To install or upgrade with a binary package, download the latest version of [OSX FUSE](OSX FUSE).
+  * Alternatively, you can install FUSE with brew: `brew update && brew install osxfuse`. If you receive the error `osxfuse: osxfuse is already installed from the binary distribution and conflicts with this formula.`, then Uninstall OSX FUSE binary from System Preferences and attempt to `brew install osxfuse` again.
 
 
 ## Usage
