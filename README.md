@@ -28,7 +28,7 @@ all dependencies.
 dependencies as well.
 * **WARNING: older versions of OSX FUSE can cause kernel panics on Mac when mounting!**
   * To install or upgrade with a binary package, download the latest version of [OSX FUSE](OSX FUSE).
-  * Alternatively, you can install FUSE with brew: `brew update && brew install osxfuse`. If you receive the error `osxfuse: osxfuse is already installed from the binary distribution and conflicts with this formula.`, then Uninstall OSX FUSE binary from System Preferences and attempt to `brew install osxfuse` again.
+  * Alternatively, you can install FUSE with brew: `brew update && brew install osxfuse`. If you receive the error `osxfuse: osxfuse is already installed from the binary distribution and conflicts with this formula.` then uninstall OSX FUSE binary from System Preferences before attempting to `brew install osxfuse` again.
 
 
 ## Usage
