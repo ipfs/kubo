@@ -184,7 +184,7 @@ type cmdContext struct {
 // setupCmdContext initializes a cmdContext structure from a given command.
 func setupCmdContext(c *commander.Command, online bool) (cc cmdContext, err error) {
 	rootCmd := c
-	for ; rootCmd.Parent != nil; rootCmd = c.Parent {
+	for ; rootCmd.Parent != nil; rootCmd = rootCmd.Parent {
 	}
 
 	cc.configDir, err = getConfigDir(rootCmd)
