@@ -8,12 +8,12 @@ import (
 )
 
 func Parse(input []string, root *commands.Command) ([]string, []string, map[string]string, error) {
-  opts, input, err := parseOptions(input, root)
+  path, input, err := parsePath(input, root)
   if err != nil {
     return nil, nil, nil, err
   }
 
-  path, args, err := parsePath(input, root)
+  opts, args, err := parseOptions(input, path, root)
   if err != nil {
     return nil, nil, nil, err
   }
@@ -21,11 +21,38 @@ func Parse(input []string, root *commands.Command) ([]string, []string, map[stri
   return path, args, opts, nil
 }
 
+
+// path gets the command path from the command line input
+func parsePath(input []string, root *commands.Command) ([]string, []string, error) {
+  cmd := root
+  i := 0
+
+  for _, blob := range input {
+    if strings.HasPrefix(blob, "-") {
+      break
+    }
+
+    cmd := cmd.Sub(blob)
+    if cmd == nil {
+      break
+    }
+
+    i++
+  }
+
+  return input[:i], input[i:], nil
+}
+
 // options parses the raw string values of the given options
-// returns the parsed options as strings, along with the CLI input minus option blobs
-func parseOptions(input []string, root *commands.Command) (map[string]string, []string, error) {
+// returns the parsed options as strings, along with the CLI args
+func parseOptions(input, path []string, root *commands.Command) (map[string]string, []string, error) {
+  _, err := root.GetOptions(path)
+  if err != nil {
+    return nil, nil, err
+  }
+
   opts := make(map[string]string)
-  cleanInput := make([]string, 0)
+  args := make([]string, 0)
 
   // TODO: error if one option is defined multiple times
 
@@ -89,27 +116,9 @@ func parseOptions(input []string, root *commands.Command) (map[string]string, []
       // TODO: interpret next blob as value if the last option isn't a bool
 
     } else {
-      cleanInput = append(cleanInput, blob)
+      args = append(args, blob)
     }
   }
 
-  return opts, cleanInput, nil
-}
-
-// path takes the command line (without options) and splits it into the command path and arguments
-func parsePath(input []string, root *commands.Command) ([]string, []string, error) {
-  cmd := root
-  i := 0
-
-  for _, blob := range input {
-    cmd := cmd.Sub(blob)
-
-    if cmd == nil {
-      break
-    }
-
-    i++
-  }
-
-  return input[:i], input[i:], nil
+  return opts, args, nil
 }
