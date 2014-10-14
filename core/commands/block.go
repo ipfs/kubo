@@ -37,6 +37,7 @@ func BlockGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out 
 
 // BlockPut reads everything from conn and saves the data to the nodes BlockService
 func BlockPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
+	// TODO: this should read from an io.Reader arg
 	data, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		return err
