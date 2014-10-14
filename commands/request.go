@@ -2,8 +2,13 @@ package commands
 
 // Request represents a call to a command from a consumer
 type Request struct {
+	path			[]string
 	options   map[string]interface{}
 	arguments []string
+}
+
+func (r *Request) Path() []string {
+	return r.path
 }
 
 func (r *Request) Option(name string) interface{} {
@@ -24,6 +29,7 @@ func (r *Request) Arguments() []string {
 
 func NewRequest() *Request {
 	return &Request{
+		make([]string, 0),
 		make(map[string]interface{}),
 		make([]string, 0),
 	}

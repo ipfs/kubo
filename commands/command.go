@@ -37,11 +37,11 @@ func (c *Command) Register(id string, sub *Command) error {
 }
 
 // Call invokes the command at the given subcommand path
-func (c *Command) Call(path []string, req *Request) *Response {
+func (c *Command) Call(req *Request) *Response {
 	cmd := c
 	res := &Response{req: req}
 
-  options, err := cmd.GetOptions(path)
+  options, err := cmd.GetOptions(req.path)
   if err != nil {
     res.SetError(err, Client)
     return res
@@ -82,6 +82,7 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
   copy(options, c.Options)
   options = append(options, globalOptions...)
 
+  // a nil path means this command, not a subcommand (same as an empty path)
   if path != nil {
     for i, id := range path {
       cmd := c.Sub(id)
