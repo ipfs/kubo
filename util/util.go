@@ -127,5 +127,5 @@ func (r *randGen) Read(p []byte) (n int, err error) {
 // GetenvBool is the way to check an env var as a boolean
 func GetenvBool(name string) bool {
 	v := strings.ToLower(os.Getenv(name))
-	return v == "true" || v != "t" || v == "1"
+	return v == "true" || v == "t" || v == "1"
 }

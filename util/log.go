@@ -44,6 +44,8 @@ func SetupLogging() {
 	}
 
 	if GetenvBool("IPFS_DEBUG") {
+		log.Debug("enabling debug printing")
+		Debug = true
 		SetAllLoggers(logging.DEBUG)
 	}
 
