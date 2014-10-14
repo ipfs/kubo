@@ -4,7 +4,9 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -120,4 +122,10 @@ func (r *randGen) Read(p []byte) (n int, err error) {
 	}
 
 	panic("unreachable")
+}
+
+// GetenvBool is the way to check an env var as a boolean
+func GetenvBool(name string) bool {
+	v := strings.ToLower(os.Getenv(name))
+	return v == "true" || v != "t" || v == "1"
 }

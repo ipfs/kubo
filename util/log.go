@@ -11,6 +11,8 @@ func init() {
 	SetupLogging()
 }
 
+var log = Logger("util")
+
 // LogFormat is the format used for our logger.
 var LogFormat = "%{color}%{time:2006-01-02 15:04:05.999999} %{shortfile} %{level}: %{color:reset}%{message}"
 
@@ -28,32 +30,37 @@ func SetupLogging() {
 	logging.SetBackend(backend)
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	lvl := logging.ERROR
+	// always prnt critical and error?
+	SetAllLoggers(logging.CRITICAL)
+	SetAllLoggers(logging.ERROR)
 
-	var err error
 	if logenv := os.Getenv("IPFS_LOGGING"); logenv != "" {
-		lvl, err = logging.LogLevel(logenv)
+		lvl, err := logging.LogLevel(logenv)
 		if err != nil {
 			log.Error("invalid logging level: %s\n", logenv)
-			lvl = logging.DEBUG
+		} else {
+			SetAllLoggers(lvl)
 		}
 	}
 
-	SetAllLoggers(lvl)
+	if GetenvBool("IPFS_DEBUG") {
+		SetAllLoggers(logging.DEBUG)
+	}
+
 }
 
+// SetAllLoggers changes the logging.Level of all loggers to lvl
 func SetAllLoggers(lvl logging.Level) {
 	logging.SetLevel(lvl, "")
 	for n, log := range loggers {
 		logging.SetLevel(lvl, n)
-		log.Error("setting logger: %s to %v", n, lvl)
+		log.Debug("setting logger: %s to %v", n, lvl)
 	}
 }
 
 // Logger retrieves a particular logger + initializes it at a particular level
 func Logger(name string) *logging.Logger {
 	log := logging.MustGetLogger(name)
-	// logging.SetLevel(lvl, name) // can't set level here.
 	loggers[name] = log
 	return log
 }
