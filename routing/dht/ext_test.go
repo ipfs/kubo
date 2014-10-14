@@ -92,6 +92,10 @@ func (f *fauxNet) GetPeerList() []*peer.Peer {
 	return nil
 }
 
+func (f *fauxNet) GetBandwidthTotals() (uint64, uint64) {
+	return 0, 0
+}
+
 // Close terminates all network operation
 func (f *fauxNet) Close() error { return nil }
 

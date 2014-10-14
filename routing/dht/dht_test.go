@@ -390,3 +390,47 @@ func TestFindPeer(t *testing.T) {
 		t.Fatal("Didnt find expected peer.")
 	}
 }
+
+func TestConnectCollision(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+
+	u.Debug = false
+	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	peerA := makePeer(addrA)
+	peerB := makePeer(addrB)
+
+	dhtA := setupDHT(t, peerA)
+	dhtB := setupDHT(t, peerB)
+
+	defer dhtA.Halt()
+	defer dhtB.Halt()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
+
+	done := make(chan struct{})
+	go func() {
+		_, err = dhtA.Connect(context.Background(), peerB)
+		if err != nil {
+			t.Fatal(err)
+		}
+		done <- struct{}{}
+	}()
+	go func() {
+		_, err = dhtB.Connect(context.Background(), peerA)
+		if err != nil {
+			t.Fatal(err)
+		}
+		done <- struct{}{}
+	}()
+
+	<-done
+	<-done
+}
