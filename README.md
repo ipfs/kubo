@@ -8,7 +8,7 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-[Install Go](http://golang.org/doc/install). Then:
+[Install Go 1.2+](http://golang.org/doc/install). Then:
 
 ```
 go get github.com/jbenet/go-ipfs/cmd/ipfs
@@ -16,10 +16,13 @@ cd $GOPATH/src/github.com/jbenet/go-ipfs/cmd/ipfs
 go install
 ```
 
-NOTE: `git` and mercurial (`hg`) are required in order for `go get` to fetch
-all dependencies.
+NOTE:
 
-If you are interested in development, please install the development
+* `git` and mercurial (`hg`) are required in order for `go get` to fetch
+all dependencies.
+* Package managers often contain out-of-date `golang` packages.
+  Compilation from source is recommended.
+* If you are interested in development, please install the development
 dependencies as well.
 
 ## Usage
