@@ -111,3 +111,7 @@ func (n *IpfsNetwork) Close() error {
 func (n *IpfsNetwork) GetPeerList() []*peer.Peer {
 	return n.swarm.GetPeerList()
 }
+
+func (n *IpfsNetwork) GetBandwidthTotals() (in uint64, out uint64) {
+	return n.muxer.GetBandwidthTotals()
+}

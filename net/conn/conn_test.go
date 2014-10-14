@@ -65,12 +65,17 @@ func TestDial(t *testing.T) {
 	}
 	go echoListen(listener)
 
-	p, err := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33", "/ip4/127.0.0.1/tcp/1234")
+	p1, err := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33", "/ip4/127.0.0.1/tcp/1234")
 	if err != nil {
 		t.Fatal("error setting up peer", err)
 	}
 
-	c, err := Dial("tcp", p)
+	p2, err := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34", "/ip4/127.0.0.1/tcp/3456")
+	if err != nil {
+		t.Fatal("error setting up peer", err)
+	}
+
+	c, err := Dial("tcp", p2, p1)
 	if err != nil {
 		t.Fatal("error dialing peer", err)
 	}

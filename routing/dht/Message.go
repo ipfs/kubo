@@ -1,7 +1,10 @@
 package dht
 
 import (
+	"errors"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
@@ -33,6 +36,14 @@ func peersToPBPeers(peers []*peer.Peer) []*Message_Peer {
 		pbpeers[i] = peerToPBPeer(p)
 	}
 	return pbpeers
+}
+
+// Address returns a multiaddr associated with the Message_Peer entry
+func (m *Message_Peer) Address() (ma.Multiaddr, error) {
+	if m == nil {
+		return nil, errors.New("MessagePeer is nil")
+	}
+	return ma.NewMultiaddr(*m.Addr)
 }
 
 // GetClusterLevel gets and adjusts the cluster level on the message.

@@ -11,7 +11,6 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
@@ -129,7 +128,7 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 	}
 
 	// open connection to peer
-	c, err = conn.Dial("tcp", peer)
+	c, err = conn.Dial("tcp", s.local, peer)
 	if err != nil {
 		return nil, err
 	}
@@ -140,30 +139,6 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 	}
 
 	return c, nil
-}
-
-// DialAddr is for connecting to a peer when you know their addr but not their ID.
-// Should only be used when sure that not connected to peer in question
-// TODO(jbenet) merge with Dial? need way to patch back.
-func (s *Swarm) DialAddr(addr ma.Multiaddr) (*conn.Conn, error) {
-	if addr == nil {
-		return nil, errors.New("addr must be a non-nil Multiaddr")
-	}
-
-	npeer := new(peer.Peer)
-	npeer.AddAddress(addr)
-
-	c, err := conn.Dial("tcp", npeer)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.connSetup(c); err != nil {
-		c.Close()
-		return nil, err
-	}
-
-	return c, err
 }
 
 // GetConnection returns the connection in the swarm to given peer.ID
@@ -201,11 +176,12 @@ func (s *Swarm) GetErrChan() chan error {
 	return s.errChan
 }
 
+// GetPeerList returns a copy of the set of peers swarm is connected to.
 func (s *Swarm) GetPeerList() []*peer.Peer {
 	var out []*peer.Peer
 	s.connsLock.RLock()
 	for _, p := range s.conns {
-		out = append(out, p.Peer)
+		out = append(out, p.Remote)
 	}
 	s.connsLock.RUnlock()
 	return out

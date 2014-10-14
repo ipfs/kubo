@@ -227,13 +227,16 @@ func TestProvides(t *testing.T) {
 	time.Sleep(time.Millisecond * 60)
 
 	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
-	provs, err := dhts[0].FindProviders(ctxT, u.Key("hello"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	provchan := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 1)
 
-	if len(provs) != 1 {
-		t.Fatal("Didnt get back providers")
+	after := time.After(time.Second)
+	select {
+	case prov := <-provchan:
+		if prov == nil {
+			t.Fatal("Got back nil provider")
+		}
+	case <-after:
+		t.Fatal("Did not get a provider back.")
 	}
 }
 
