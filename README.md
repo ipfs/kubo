@@ -26,9 +26,9 @@ all dependencies.
   compile with `CGO_ENABLED=1`
 * If you are interested in development, please install the development
 dependencies as well.
-* **WARNING: older versions of OSX FUSE can cause kernel panics when mounting!**
-  We strongly recommend you use the [latest version](http://osxfuse.github.io/) of OSX FUSE.
-  ([read these IRC logs for help upgrading](https://botbot.me/freenode/ipfs/2014-10-13/?msg=23406704&page=2))
+* **WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!**
+  We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
+  (See https://github.com/jbenet/go-ipfs/issues/177)
 
 
 ## Usage
