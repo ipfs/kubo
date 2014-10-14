@@ -8,7 +8,7 @@ import (
 )
 
 func TestOptionParsing(t *testing.T) {
-  opts, input, err := options([]string{ "test", "--beep", "--boop=\"5", "lol\"", "test2", "-cV" }, nil)
+  opts, input, err := parseOptions([]string{ "test", "--beep", "--boop=\"5", "lol\"", "test2", "-cV" }, nil)
   /*for k, v := range opts {
     fmt.Printf("%s: %s\n", k, v)
   }
@@ -25,7 +25,7 @@ func TestOptionParsing(t *testing.T) {
 
   cmd := &commands.Command{}
   cmd.Register("test", &commands.Command{})
-  path, args, err := path([]string{ "test", "beep", "boop" }, cmd)
+  path, args, err := parsePath([]string{ "test", "beep", "boop" }, cmd)
   if err != nil {
     t.Error("Should have passed")
   }

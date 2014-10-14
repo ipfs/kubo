@@ -8,12 +8,12 @@ import (
 )
 
 func Parse(input []string, root *commands.Command) ([]string, []string, map[string]string, error) {
-  opts, input, err := options(input, root)
+  opts, input, err := parseOptions(input, root)
   if err != nil {
     return nil, nil, nil, err
   }
 
-  path, args, err := path(input, root)
+  path, args, err := parsePath(input, root)
   if err != nil {
     return nil, nil, nil, err
   }
@@ -23,7 +23,7 @@ func Parse(input []string, root *commands.Command) ([]string, []string, map[stri
 
 // options parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI input minus option blobs
-func options(input []string, root *commands.Command) (map[string]string, []string, error) {
+func parseOptions(input []string, root *commands.Command) (map[string]string, []string, error) {
   opts := make(map[string]string)
   cleanInput := make([]string, 0)
 
@@ -97,7 +97,7 @@ func options(input []string, root *commands.Command) (map[string]string, []strin
 }
 
 // path takes the command line (without options) and splits it into the command path and arguments
-func path(input []string, root *commands.Command) ([]string, []string, error) {
+func parsePath(input []string, root *commands.Command) ([]string, []string, error) {
   cmd := root
   i := 0
 
