@@ -11,6 +11,10 @@ func (r *Request) Path() []string {
 	return r.path
 }
 
+func (r *Request) SetPath(path []string) {
+	r.path = path
+}
+
 func (r *Request) Option(name string) interface{} {
 	return r.options[name]
 }
