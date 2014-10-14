@@ -21,8 +21,7 @@ func Parse(input []string, root *commands.Command) ([]string, []string, map[stri
   return path, args, opts, nil
 }
 
-
-// path gets the command path from the command line input
+// parsePath gets the command path from the command line input
 func parsePath(input []string, root *commands.Command) ([]string, []string, error) {
   cmd := root
   i := 0
@@ -43,7 +42,7 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
   return input[:i], input[i:], nil
 }
 
-// options parses the raw string values of the given options
+// parseOptions parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
 func parseOptions(input, path []string, root *commands.Command) (map[string]string, []string, error) {
   options, err := root.GetOptions(path)
@@ -67,37 +66,6 @@ func parseOptions(input, path []string, root *commands.Command) (map[string]stri
         split := strings.SplitN(name, "=", 2)
         name = split[0]
         value = split[1]
-      }
-
-      if strings.Contains(name, "-") {
-        return nil, nil, fmt.Errorf("Invalid option blob: '%s' (Shouldn't contain '-')", input[i])
-      }
-
-      if value != "" && strings.Contains(value, "\"") {
-        // TODO: ignore escaped quotations (--foo="\"")
-        if !strings.HasPrefix(value, "\"") {
-          return nil, nil, fmt.Errorf("Invalid option blob: '%s' (Quotation wasn't at the start of value)", input[i])
-        }
-
-        value = value[1:]
-
-        for {
-          if strings.HasSuffix(value, "\"") {
-            value = value[:len(value)-1]
-            break
-          }
-
-          i++
-          if i >= len(input) {
-            return nil, nil, fmt.Errorf("Unterminated string: '%s'", value)
-          }
-
-          value += " " + input[i]
-        }
-
-        if strings.Contains(value, "\"") {
-          return nil, nil, fmt.Errorf("Invalid option blob: '%s' (Value contains unescaped quotation)", value)
-        }
       }
 
       opts[name] = value
