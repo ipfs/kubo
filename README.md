@@ -26,6 +26,10 @@ all dependencies.
   compile with `CGO_ENABLED=1`
 * If you are interested in development, please install the development
 dependencies as well.
+* **WARNING: older versions of OSX FUSE can cause kernel panics when mounting!**
+  We strongly recommend you use the [latest version](http://osxfuse.github.io/) of OSX FUSE.
+  ([read these IRC logs for help upgrading](https://botbot.me/freenode/ipfs/2014-10-13/?msg=23406704&page=2))
+
 
 ## Usage
 
@@ -62,13 +66,13 @@ arguments it takes. After initialization is complete, you can use `ipfs mount`,
 
 NOTE: if you have previously installed ipfs before and you are running into
 problems getting it to work, try deleting (or backing up somewhere else) your
-config directory (~/.go-ipfs by default) and rerunning `ipfs init`. 
+config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
 
 
 ## Contributing
 
 go-ipfs is MIT licensed open source software. We welcome contributions big and
-small! Please make sure to check the 
+small! Please make sure to check the
 [issues](https://github.com/jbenet/go-ipfs/issues). Search the closed ones
 before reporting things, and help us with the open ones.
 
