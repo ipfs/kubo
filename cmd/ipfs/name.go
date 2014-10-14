@@ -43,7 +43,7 @@ Resolve te value of another name:
   QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 `,
-	Run:  addCmd,
+	Run:  nameCmd,
 	Flag: *flag.NewFlagSet("ipfs-name", flag.ExitOnError),
 	Subcommands: []*commander.Command{
 		cmdIpfsPub,
