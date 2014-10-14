@@ -46,7 +46,7 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
 // options parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
 func parseOptions(input, path []string, root *commands.Command) (map[string]string, []string, error) {
-  _, err := root.GetOptions(path)
+  options, err := root.GetOptions(path)
   if err != nil {
     return nil, nil, err
   }
@@ -109,11 +109,21 @@ func parseOptions(input, path []string, root *commands.Command) (map[string]stri
         return nil, nil, fmt.Errorf("Invalid option blob: '%s'", input[i])
       }
 
+      nameS := ""
       for _, name := range blob {
-        opts[string(name)] = ""
+        nameS = string(name)
+        opts[nameS] = ""
       }
 
-      // TODO: interpret next blob as value if the last option isn't a bool
+      if nameS != "" {
+        opt, ok := options[nameS]
+        if ok && opt.Type != commands.Bool {
+          i++
+          if i <= len(input) {
+            opts[nameS] = input[i]
+          }
+        }
+      }
 
     } else {
       args = append(args, blob)
