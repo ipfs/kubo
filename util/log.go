@@ -17,11 +17,6 @@ var LogFormat = "%{color}%{time:2006-01-02 15:04:05.999999} %{shortfile} %{level
 // loggers is the set of loggers in the system
 var loggers = map[string]*logging.Logger{}
 
-// PErr is a shorthand printing function to output to Stderr.
-func PErr(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, a...)
-}
-
 // POut is a shorthand printing function to output to Stdout.
 func POut(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stdout, format, a...)
@@ -39,8 +34,7 @@ func SetupLogging() {
 	if logenv := os.Getenv("IPFS_LOGGING"); logenv != "" {
 		lvl, err = logging.LogLevel(logenv)
 		if err != nil {
-			PErr("invalid logging level: %s\n", logenv)
-			PErr("using logging.DEBUG\n")
+			log.Error("invalid logging level: %s\n", logenv)
 			lvl = logging.DEBUG
 		}
 	}

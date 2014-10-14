@@ -37,7 +37,7 @@ func init() {
 	var err error
 	currentVersion, err = semver.NewVersion(Version)
 	if err != nil {
-		u.PErr("The const Version literal in version.go needs to be in semver format: %s \n", Version)
+		log.Error("The const Version literal in version.go needs to be in semver format: %s \n", Version)
 		os.Exit(1)
 	}
 }
