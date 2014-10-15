@@ -13,10 +13,6 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
 
-func init() {
-	SetupLogging()
-}
-
 // Debug is a global flag for debugging.
 var Debug bool
 
