@@ -16,14 +16,14 @@ import (
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
-	dagserv *mdag.DAGService
+	dagserv mdag.DAGService
 	curNode *mdag.Node
 
 	pbdata   *ft.PBData
 	splitter chunk.BlockSplitter
 }
 
-func NewDagModifier(from *mdag.Node, serv *mdag.DAGService, spl chunk.BlockSplitter) (*DagModifier, error) {
+func NewDagModifier(from *mdag.Node, serv mdag.DAGService, spl chunk.BlockSplitter) (*DagModifier, error) {
 	pbd, err := ft.FromBytes(from.Data)
 	if err != nil {
 		return nil, err

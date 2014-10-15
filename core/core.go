@@ -58,7 +58,7 @@ type IpfsNode struct {
 	Blocks *bserv.BlockService
 
 	// the merkle dag service, get/add objects.
-	DAG *merkledag.DAGService
+	DAG merkledag.DAGService
 
 	// the path resolution system
 	Resolver *path.Resolver
@@ -157,7 +157,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	dag := &merkledag.DAGService{Blocks: bs}
+	dag := merkledag.NewDAGService(bs)
 	ns := namesys.NewNameSystem(route)
 
 	success = true

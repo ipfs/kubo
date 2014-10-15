@@ -10,7 +10,7 @@ import (
 var log = util.Logger("dagwriter")
 
 type DagWriter struct {
-	dagserv   *dag.DAGService
+	dagserv   dag.DAGService
 	node      *dag.Node
 	totalSize int64
 	splChan   chan []byte
@@ -19,7 +19,7 @@ type DagWriter struct {
 	seterr    error
 }
 
-func NewDagWriter(ds *dag.DAGService, splitter chunk.BlockSplitter) *DagWriter {
+func NewDagWriter(ds dag.DAGService, splitter chunk.BlockSplitter) *DagWriter {
 	dw := new(DagWriter)
 	dw.dagserv = ds
 	dw.splChan = make(chan []byte, 8)

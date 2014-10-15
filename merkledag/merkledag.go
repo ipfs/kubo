@@ -140,20 +140,31 @@ func (n *Node) Key() (u.Key, error) {
 }
 
 // DAGService is an IPFS Merkle DAG service.
+type DAGService interface {
+	Add(*Node) (u.Key, error)
+	AddRecursive(*Node) error
+	Get(u.Key) (*Node, error)
+}
+
+func NewDAGService(bs *bserv.BlockService) DAGService {
+	return &dagService{bs}
+}
+
+// dagService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
-type DAGService struct {
+type dagService struct {
 	Blocks *bserv.BlockService
 }
 
-// Add adds a node to the DAGService, storing the block in the BlockService
-func (n *DAGService) Add(nd *Node) (u.Key, error) {
+// Add adds a node to the dagService, storing the block in the BlockService
+func (n *dagService) Add(nd *Node) (u.Key, error) {
 	k, _ := nd.Key()
 	log.Debug("DagService Add [%s]", k)
 	if n == nil {
-		return "", fmt.Errorf("DAGService is nil")
+		return "", fmt.Errorf("dagService is nil")
 	}
 
 	d, err := nd.Encoded(false)
@@ -171,7 +182,7 @@ func (n *DAGService) Add(nd *Node) (u.Key, error) {
 	return n.Blocks.AddBlock(b)
 }
 
-func (n *DAGService) AddRecursive(nd *Node) error {
+func (n *dagService) AddRecursive(nd *Node) error {
 	_, err := n.Add(nd)
 	if err != nil {
 		log.Info("AddRecursive Error: %s\n", err)
@@ -190,10 +201,10 @@ func (n *DAGService) AddRecursive(nd *Node) error {
 	return nil
 }
 
-// Get retrieves a node from the DAGService, fetching the block in the BlockService
-func (n *DAGService) Get(k u.Key) (*Node, error) {
+// Get retrieves a node from the dagService, fetching the block in the BlockService
+func (n *dagService) Get(k u.Key) (*Node, error) {
 	if n == nil {
-		return nil, fmt.Errorf("DAGService is nil")
+		return nil, fmt.Errorf("dagService is nil")
 	}
 
 	b, err := n.Blocks.GetBlock(k)
