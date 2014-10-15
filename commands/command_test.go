@@ -62,6 +62,20 @@ func TestOptionValidation(t *testing.T) {
 	if res.Error != nil {
 		t.Error("Should have passed")
 	}
+
+	req = NewRequest()
+	req.options["b"] = "100"
+	res = cmd.Call(req)
+	if res.Error != nil {
+		t.Error("Should have passed")
+	}
+
+	req = NewRequest()
+	req.options["b"] = ":)"
+	res = cmd.Call(req)
+	if res.Error == nil {
+		t.Error(res.Error, "Should have failed (string value not convertible to int)")
+	}
 }
 
 func TestRegistration(t *testing.T) {
