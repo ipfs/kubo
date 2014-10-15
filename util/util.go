@@ -5,7 +5,6 @@ import (
 	"io"
 	"math/rand"
 	"path/filepath"
-	"strings"
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -34,14 +33,7 @@ var ErrNotFound = ds.ErrNotFound
 
 // TildeExpansion expands a filename, which may begin with a tilde.
 func TildeExpansion(filename string) (string, error) {
-	if strings.HasPrefix(filename, "~/") {
-		var err error
-		filename, err = homedir.Expand(filename)
-		if err != nil {
-			return "", err
-		}
-	}
-	return filename, nil
+	return homedir.Expand(filename)
 }
 
 // ExpandPathnames takes a set of paths and turns them into absolute paths
