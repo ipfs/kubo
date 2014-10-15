@@ -86,10 +86,7 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	u.Debug = false
-
-	// setup logging
-	// u.SetupLogging() done in an init() block now.
+	u.Debug = u.GetenvBool("IPFS_DEBUG")
 
 	// if debugging, setup profiling.
 	if u.Debug {

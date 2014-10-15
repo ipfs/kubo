@@ -30,24 +30,22 @@ func SetupLogging() {
 	logging.SetBackend(backend)
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	// always print critical and error?
-	SetAllLoggers(logging.CRITICAL)
-	SetAllLoggers(logging.ERROR)
+	lvl := logging.ERROR
 
 	if logenv := os.Getenv("IPFS_LOGGING"); logenv != "" {
-		lvl, err := logging.LogLevel(logenv)
+		var err error
+		lvl, err = logging.LogLevel(logenv)
 		if err != nil {
-			log.Error("logging.LogLevel() Error: %q\n", err)
-		} else {
-			SetAllLoggers(lvl)
+			log.Error("logging.LogLevel() Error: %q", err)
+			lvl = logging.ERROR // reset to ERROR, could be undefined now(?)
 		}
 	}
 
-	if GetenvBool("IPFS_DEBUG") {
-		log.Info("enabling debug printing")
-		Debug = true
-		SetAllLoggers(logging.DEBUG)
+	if Debug {
+		lvl = logging.DEBUG
 	}
+
+	SetAllLoggers(lvl)
 
 }
 
