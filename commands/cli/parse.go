@@ -7,23 +7,23 @@ import (
   "github.com/jbenet/go-ipfs/commands"
 )
 
-func Parse(input []string, root *commands.Command) ([]string, []string, map[string]string, error) {
+func Parse(input []string, root *commands.Command) (*commands.Request, error) {
   path, input, err := parsePath(input, root)
   if err != nil {
-    return nil, nil, nil, err
+    return nil, err
   }
 
   options, err := root.GetOptions(path)
   if err != nil {
-    return nil, nil, nil, err
+    return nil, err
   }
 
   opts, args, err := parseOptions(input, options)
   if err != nil {
-    return nil, nil, nil, err
+    return nil, err
   }
 
-  return path, args, opts, nil
+  return commands.NewRequest(path, opts, args), nil
 }
 
 // parsePath gets the command path from the command line input
@@ -49,8 +49,8 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
 
 // parseOptions parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
-func parseOptions(input []string, options map[string]commands.Option) (map[string]string, []string, error) {
-  opts := make(map[string]string)
+func parseOptions(input []string, options map[string]commands.Option) (map[string]interface{}, []string, error) {
+  opts := make(map[string]interface{})
   args := make([]string, 0)
 
   // TODO: error if one option is defined multiple times
