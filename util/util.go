@@ -4,12 +4,12 @@ import (
 	"errors"
 	"io"
 	"math/rand"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
 
 func init() {
@@ -35,7 +35,11 @@ var ErrNotFound = ds.ErrNotFound
 // TildeExpansion expands a filename, which may begin with a tilde.
 func TildeExpansion(filename string) (string, error) {
 	if strings.HasPrefix(filename, "~/") {
-		filename = strings.Replace(filename, "~", os.Getenv("HOME"), 1)
+		var err error
+		filename, err = homedir.Expand(filename)
+		if err != nil {
+			return "", err
+		}
 	}
 	return filename, nil
 }
