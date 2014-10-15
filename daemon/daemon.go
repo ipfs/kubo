@@ -141,6 +141,7 @@ func (dl *DaemonListener) handleConnection(conn manet.Conn) {
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}
 	if err != nil {
+		log.Error("%s: %s", command.Command, err)
 		fmt.Fprintln(conn, err)
 	}
 }
