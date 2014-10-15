@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -47,29 +46,11 @@ func (c *Command) Call(req *Request) *Response {
     return res
   }
 
-	for k, v := range req.options {
-		opt, ok := options[k]
-
-		if !ok {
-			res.SetError(fmt.Errorf("Unrecognized command option: '%s'", k), Client)
-			return res
-		}
-
-		for _, name := range opt.Names {
-			if _, ok = req.options[name]; name != k && ok {
-				res.SetError(fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
-					k, name), Client)
-				return res
-			}
-		}
-
-		kind := reflect.TypeOf(v).Kind()
-		if kind != opt.Type {
-			res.SetError(fmt.Errorf("Option '%s' should be type '%s', but got type '%s'",
-				k, opt.Type.String(), kind.String()), Client)
-			return res
-		}
-	}
+	err = req.convertOptions(options)
+  if err != nil {
+    res.SetError(err, Client)
+    return res
+  }
 
 	cmd.f(req, res)
 

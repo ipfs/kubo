@@ -7,7 +7,7 @@ const (
 	Bool    = reflect.Bool
 	Int     = reflect.Int
 	Uint    = reflect.Uint
-	Float   = reflect.Float32
+	Float   = reflect.Float64
 	String  = reflect.String
 )
 
