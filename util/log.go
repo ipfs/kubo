@@ -60,9 +60,19 @@ func SetAllLoggers(lvl logging.Level) {
 	}
 }
 
-// Logger retrieves a particular logger + initializes it at a particular level
+// Logger retrieves a particular logger
 func Logger(name string) *logging.Logger {
 	log := logging.MustGetLogger(name)
 	loggers[name] = log
 	return log
+}
+
+// SetLogLevel changes the log level of a specific subsystem
+func SetLogLevel(name, level string) error {
+	_, ok := loggers[name]
+	if !ok {
+		return ErrNoSuchLogger
+	}
+
+	return ErrNotImplemented
 }

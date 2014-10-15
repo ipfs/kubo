@@ -33,6 +33,9 @@ var ErrSearchIncomplete = errors.New("Error: Search Incomplete.")
 // ErrNotFound is returned when a search fails to find anything
 var ErrNotFound = ds.ErrNotFound
 
+// ErrNoSuchLogger is returned when the util pkg is asked for a non existant logger
+var ErrNoSuchLogger = errors.New("Error: No such logger")
+
 // TildeExpansion expands a filename, which may begin with a tilde.
 func TildeExpansion(filename string) (string, error) {
 	return homedir.Expand(filename)
