@@ -43,7 +43,7 @@ func printRefs(n *core.IpfsNode, nd *mdag.Node, refSeen map[u.Key]bool, recursiv
 		if recursive {
 			nd, err := n.DAG.Get(u.Key(link.Hash))
 			if err != nil {
-				u.PErr("error: cannot retrieve %s (%s)\n", link.Hash.B58String(), err)
+				log.Error("error: cannot retrieve %s (%s)\n", link.Hash.B58String(), err)
 				return
 			}
 

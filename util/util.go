@@ -4,16 +4,14 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
-
-func init() {
-	SetupLogging()
-}
 
 // Debug is a global flag for debugging.
 var Debug bool
@@ -30,6 +28,9 @@ var ErrSearchIncomplete = errors.New("Error: Search Incomplete.")
 
 // ErrNotFound is returned when a search fails to find anything
 var ErrNotFound = ds.ErrNotFound
+
+// ErrNoSuchLogger is returned when the util pkg is asked for a non existant logger
+var ErrNoSuchLogger = errors.New("Error: No such logger")
 
 // TildeExpansion expands a filename, which may begin with a tilde.
 func TildeExpansion(filename string) (string, error) {
@@ -120,4 +121,10 @@ func (r *randGen) Read(p []byte) (n int, err error) {
 	}
 
 	panic("unreachable")
+}
+
+// GetenvBool is the way to check an env var as a boolean
+func GetenvBool(name string) bool {
+	v := strings.ToLower(os.Getenv(name))
+	return v == "true" || v == "t" || v == "1"
 }

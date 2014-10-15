@@ -63,6 +63,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsBootstrap,
 		cmdIpfsDiag,
 		cmdIpfsBlock,
+		cmdIpfsLog,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
 }
@@ -73,7 +74,7 @@ var log = u.Logger("cmd/ipfs")
 func init() {
 	config, err := config.PathRoot()
 	if err != nil {
-		u.POut("Failure initializing the default Config Directory: ", err)
+		fmt.Fprintln(os.Stderr, "Failure initializing the default Config Directory: ", err)
 		os.Exit(1)
 	}
 	CmdIpfs.Flag.String("c", config, "specify config directory")
@@ -85,10 +86,7 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	u.Debug = false
-
-	// setup logging
-	// u.SetupLogging() done in an init() block now.
+	u.Debug = u.GetenvBool("IPFS_DEBUG")
 
 	// if debugging, setup profiling.
 	if u.Debug {
