@@ -93,6 +93,10 @@
 			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
 		},
 		{
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
+		},
+		{
 			"ImportPath": "github.com/op/go-logging",
 			"Rev": "3df864a88c7f005e676db4f026a4fe2f14929be3"
 		},

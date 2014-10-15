@@ -22,8 +22,6 @@ NOTES:
 all dependencies.
 * Package managers often contain out-of-date `golang` packages.
   Compilation from source is recommended.
-* go-ipfs depends on cgo. In case you've disabled cgo, you'll need to
-  compile with `CGO_ENABLED=1`
 * If you are interested in development, please install the development
 dependencies as well.
 * **WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!**
