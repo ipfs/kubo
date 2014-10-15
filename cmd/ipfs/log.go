@@ -13,7 +13,7 @@ var cmdIpfsLog = &commander.Command{
 
     ipfs log dht error       - log error messages from the dht subsystem
     ipfs log merkledag debug - print debug output from the merkledag subsystem
-
+		ipfs log * critical      - change all subsystems to only log critical errors
 
 ipfs block is a utility command used to change the logging output of a running daemon.`,
 	Run:  logCmd,
