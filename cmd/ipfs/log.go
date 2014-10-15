@@ -7,15 +7,15 @@ import (
 )
 
 var cmdIpfsLog = &commander.Command{
-	UsageLine: "log",
-	Short:     "switch logging levels of the daemon",
-	Long: `ipfs log - manipulate raw ipfs blocks
+	UsageLine: "log <name> <level> ",
+	Short:     "switch logging levels of a running daemon",
+	Long: `ipfs log <name> <level> - switch logging levels of a running daemon
 
-    ipfs log dht error       - log error messages from the dht subsystem
-    ipfs log merkledag debug - print debug output from the merkledag subsystem
-		ipfs log * critical      - change all subsystems to only log critical errors
+   <name> is a the subsystem logging identifier. Use * for all subsystems.
+   <level> is one of: debug, info, notice, warning, error, critical
 
-ipfs block is a utility command used to change the logging output of a running daemon.`,
+ipfs log is a utility command used to change the logging output of a running daemon.
+`,
 	Run:  logCmd,
 	Flag: *flag.NewFlagSet("ipfs-log", flag.ExitOnError),
 }
