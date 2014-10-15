@@ -53,16 +53,19 @@ type IpfsDHT struct {
 
 	//lock to make diagnostics work better
 	diaglock sync.Mutex
+
+	ctx context.Context
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
+func NewDHT(ctx context.Context, p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.network = net
 	dht.sender = sender
 	dht.datastore = dstore
 	dht.self = p
 	dht.peerstore = ps
+	dht.ctx = ctx
 
 	dht.providers = NewProviderManager(p.ID)
 
@@ -71,6 +74,8 @@ func NewDHT(p *peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sende
 	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Millisecond*1000)
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
 	dht.birth = time.Now()
+
+	go dht.PingRoutine(time.Second * 10)
 	return dht
 }
 
@@ -137,7 +142,6 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
 	if handler == nil {
-		// TODO handle/log err
 		log.Error("got back nil handler from handlerForMsgType")
 		return nil
 	}
@@ -350,7 +354,7 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 
 	byt, ok := v.([]byte)
 	if !ok {
-		return byt, errors.New("value stored in datastore not []byte")
+		return nil, errors.New("value stored in datastore not []byte")
 	}
 	return byt, nil
 }
@@ -531,6 +535,27 @@ func (dht *IpfsDHT) loadProvidableKeys() error {
 		dht.providers.AddProvider(k, dht.self)
 	}
 	return nil
+}
+
+func (dht *IpfsDHT) PingRoutine(t time.Duration) {
+	tick := time.Tick(t)
+	for {
+		select {
+		case <-tick:
+			id := make([]byte, 16)
+			rand.Read(id)
+			peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(u.Key(id)), 5)
+			for _, p := range peers {
+				ctx, _ := context.WithTimeout(dht.ctx, time.Second*5)
+				err := dht.Ping(ctx, p)
+				if err != nil {
+					log.Error("Ping error: %s", err)
+				}
+			}
+		case <-dht.ctx.Done():
+			return
+		}
+	}
 }
 
 // Bootstrap builds up list of peers by requesting random peer IDs

@@ -1,8 +1,6 @@
 package dht
 
 import (
-	"bytes"
-	"encoding/json"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -62,6 +60,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	routeLevel := 0
 	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if closest == nil || len(closest) == 0 {
+		log.Warning("Got no peers back from routing table!")
 		return nil, nil
 	}
 
@@ -281,34 +280,4 @@ func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	_, err := dht.sendRequest(ctx, p, pmes)
 	log.Info("ping %s end (err = %s)", p, err)
 	return err
-}
-
-func (dht *IpfsDHT) getDiagnostic(ctx context.Context) ([]*diagInfo, error) {
-
-	log.Info("Begin Diagnostic")
-	peers := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
-	var out []*diagInfo
-
-	query := newQuery(dht.self.Key(), func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
-		pmes := newMessage(Message_DIAGNOSTIC, "", 0)
-		rpmes, err := dht.sendRequest(ctx, p, pmes)
-		if err != nil {
-			return nil, err
-		}
-
-		dec := json.NewDecoder(bytes.NewBuffer(rpmes.GetValue()))
-		for {
-			di := new(diagInfo)
-			err := dec.Decode(di)
-			if err != nil {
-				break
-			}
-
-			out = append(out, di)
-		}
-		return &dhtQueryResult{success: true}, nil
-	})
-
-	_, err := query.Run(ctx, peers)
-	return out, err
 }

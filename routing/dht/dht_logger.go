@@ -2,6 +2,7 @@ package dht
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -29,10 +30,14 @@ func (l *logDhtRPC) EndLog() {
 func (l *logDhtRPC) Print() {
 	b, err := json.Marshal(l)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Debug("Error marshaling logDhtRPC object: %s", err)
 	} else {
 		log.Debug(string(b))
 	}
+}
+
+func (l *logDhtRPC) String() string {
+	return fmt.Sprintf("DHT RPC: %s took %s, success = %s", l.Type, l.Duration, l.Success)
 }
 
 func (l *logDhtRPC) EndAndPrint() {

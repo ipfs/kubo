@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -32,8 +30,6 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 		return dht.handleGetProviders
 	case Message_PING:
 		return dht.handlePing
-	case Message_DIAGNOSTIC:
-		return dht.handleDiagnostic
 	default:
 		return nil
 	}
@@ -210,54 +206,4 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 // TODO -- remove this in favor of context
 func (dht *IpfsDHT) Halt() {
 	dht.providers.Halt()
-}
-
-// NOTE: not yet finished, low priority
-func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, error) {
-	seq := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
-
-	for _, ps := range seq {
-		_, err := msg.FromObject(ps, pmes)
-		if err != nil {
-			log.Error("handleDiagnostics error creating message: %v\n", err)
-			continue
-		}
-		// dht.sender.SendRequest(context.TODO(), mes)
-	}
-	return nil, errors.New("not yet ported back")
-
-	// 	buf := new(bytes.Buffer)
-	// 	di := dht.getDiagInfo()
-	// 	buf.Write(di.Marshal())
-	//
-	// 	// NOTE: this shouldnt be a hardcoded value
-	// 	after := time.After(time.Second * 20)
-	// 	count := len(seq)
-	// 	for count > 0 {
-	// 		select {
-	// 		case <-after:
-	// 			//Timeout, return what we have
-	// 			goto out
-	// 		case reqResp := <-listenChan:
-	// 			pmesOut := new(Message)
-	// 			err := proto.Unmarshal(reqResp.Data, pmesOut)
-	// 			if err != nil {
-	// 				// It broke? eh, whatever, keep going
-	// 				continue
-	// 			}
-	// 			buf.Write(reqResp.Data)
-	// 			count--
-	// 		}
-	// 	}
-	//
-	// out:
-	// 	resp := Message{
-	// 		Type:     Message_DIAGNOSTIC,
-	// 		ID:       pmes.GetId(),
-	// 		Value:    buf.Bytes(),
-	// 		Response: true,
-	// 	}
-	//
-	// 	mes := swarm.NewMessage(p, resp.ToProtobuf())
-	// 	dht.netChan.Outgoing <- mes
 }

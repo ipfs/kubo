@@ -141,7 +141,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		diagnostics = diag.NewDiagnostics(local, net, diagService)
 		diagService.SetHandler(diagnostics)
 
-		route = dht.NewDHT(local, peerstore, net, dhtService, d)
+		route = dht.NewDHT(ctx, local, peerstore, net, dhtService, d)
 		// TODO(brian): perform this inside NewDHT factory method
 		dhtService.SetHandler(route) // wire the handler to the service.
 
