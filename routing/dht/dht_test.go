@@ -431,6 +431,15 @@ func TestConnectCollision(t *testing.T) {
 		done <- struct{}{}
 	}()
 
-	<-done
-	<-done
+	timeout := time.After(time.Second * 5)
+	select {
+	case <-done:
+	case <-timeout:
+		t.Fatal("Timeout received!")
+	}
+	select {
+	case <-done:
+	case <-timeout:
+		t.Fatal("Timeout received!")
+	}
 }
