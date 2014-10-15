@@ -96,10 +96,15 @@ func (r *Request) convertOptions(options map[string]Option) error {
 	return nil
 }
 
-func NewRequest() *Request {
-	return &Request{
-		make([]string, 0),
-		make(map[string]interface{}),
-		make([]string, 0),
+func NewRequest(path []string, opts map[string]interface{}, args []string) *Request {
+	if path == nil {
+		path = 	make([]string, 0)
 	}
+	if opts == nil {
+		opts = make(map[string]interface{})
+	}
+	if args == nil {
+		args = make([]string, 0)
+	}
+	return &Request{path, opts, args}
 }
