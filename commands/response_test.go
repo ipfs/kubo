@@ -18,15 +18,24 @@ func TestMarshalling(t *testing.T) {
 		Value: TestOutput{"beep", "boop", 1337},
 	}
 
-	_, err := res.Marshal()
+	// get command global options so we can set the encoding option
+	cmd := Command{}
+	options, err := cmd.GetOptions(nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = res.Marshal()
 	if err == nil {
 		t.Error("Should have failed (no encoding type specified in request)")
 	}
 
-	req.SetOption(globalOptions[0], Json)
+	req.SetOption("enc", Json)
+	req.convertOptions(options)
+
 	bytes, err := res.Marshal()
 	if err != nil {
-		t.Error("Should have passed")
+		t.Error(err, "Should have passed")
 	}
 	output := string(bytes)
 	if output != "{\"Foo\":\"beep\",\"Bar\":\"boop\",\"Baz\":1337}" {

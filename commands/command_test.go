@@ -15,7 +15,7 @@ func TestOptionValidation(t *testing.T) {
 	req.options["foo"] = 5
 	res := cmd.Call(req)
 	if res.Error == nil {
-		t.Error("Should have failed (unrecognized command)")
+		t.Error("Should have failed (unrecognized option)")
 	}
 
 	req = NewRequest()
@@ -37,7 +37,7 @@ func TestOptionValidation(t *testing.T) {
 	req.options["beep"] = 5
 	res = cmd.Call(req)
 	if res.Error != nil {
-		t.Error("Should have passed")
+		t.Error(res.Error, "Should have passed")
 	}
 
 	req = NewRequest()
