@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 	"math/rand"
-	"os/user"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -35,13 +35,7 @@ var ErrNotFound = ds.ErrNotFound
 // TildeExpansion expands a filename, which may begin with a tilde.
 func TildeExpansion(filename string) (string, error) {
 	if strings.HasPrefix(filename, "~/") {
-		usr, err := user.Current()
-		if err != nil {
-			return "", err
-		}
-
-		dir := usr.HomeDir + "/"
-		filename = strings.Replace(filename, "~/", dir, 1)
+		filename = strings.Replace(filename, "~", os.Getenv("HOME"), 1)
 	}
 	return filename, nil
 }
