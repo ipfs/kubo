@@ -30,21 +30,21 @@ func SetupLogging() {
 	logging.SetBackend(backend)
 	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
 
-	// always prnt critical and error?
+	// always print critical and error?
 	SetAllLoggers(logging.CRITICAL)
 	SetAllLoggers(logging.ERROR)
 
 	if logenv := os.Getenv("IPFS_LOGGING"); logenv != "" {
 		lvl, err := logging.LogLevel(logenv)
 		if err != nil {
-			log.Error("invalid logging level: %s\n", logenv)
+			log.Error("logging.LogLevel() Error: %q\n", err)
 		} else {
 			SetAllLoggers(lvl)
 		}
 	}
 
 	if GetenvBool("IPFS_DEBUG") {
-		log.Debug("enabling debug printing")
+		log.Info("enabling debug printing")
 		Debug = true
 		SetAllLoggers(logging.DEBUG)
 	}
@@ -56,7 +56,7 @@ func SetAllLoggers(lvl logging.Level) {
 	logging.SetLevel(lvl, "")
 	for n, log := range loggers {
 		logging.SetLevel(lvl, n)
-		log.Debug("setting logger: %s to %v", n, lvl)
+		log.Notice("setting logger: %q to %v", n, lvl)
 	}
 }
 
@@ -68,11 +68,27 @@ func Logger(name string) *logging.Logger {
 }
 
 // SetLogLevel changes the log level of a specific subsystem
+// name=="*" changes all subsystems
 func SetLogLevel(name, level string) error {
+	lvl, err := logging.LogLevel(level)
+	if err != nil {
+		return err
+	}
+
+	// wildcard, change all
+	if name == "*" {
+		SetAllLoggers(lvl)
+		return nil
+	}
+
+	// Check if we have a logger by that name
+	// logging.SetLevel() can't tell us...
 	_, ok := loggers[name]
 	if !ok {
 		return ErrNoSuchLogger
 	}
 
-	return ErrNotImplemented
+	logging.SetLevel(lvl, name)
+
+	return nil
 }

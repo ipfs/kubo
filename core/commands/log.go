@@ -13,6 +13,6 @@ func Log(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 		return err
 	}
 
-	log.Info("Changed Log of '%q' to '%q'", args[0], args[1])
+	log.Info("Changed LogLevel of %q to %q", args[0], args[1])
 	return nil
 }
