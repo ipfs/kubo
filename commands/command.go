@@ -91,6 +91,14 @@ func (c *Command) Resolve(path []string) ([]*Command, error) {
   return cmds, nil
 }
 
+func (c *Command) Get(path []string) (*Command, error) {
+  cmds, err := c.Resolve(path)
+  if err != nil {
+    return nil, err
+  }
+  return cmds[len(cmds) - 1], nil
+}
+
 // GetOptions gets the options in the given path of commands
 func (c *Command) GetOptions(path []string) (map[string]Option, error) {
   options := make([]Option, len(c.Options))
