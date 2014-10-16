@@ -13,7 +13,6 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 func pong(ctx context.Context, swarm *Swarm) {
@@ -30,35 +29,34 @@ func pong(ctx context.Context, swarm *Swarm) {
 	}
 }
 
-func setupPeer(t *testing.T, id string, addr string) *peer.Peer {
+func setupPeer(t *testing.T, addr string) *peer.Peer {
 	tcp, err := ma.NewMultiaddr(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	mh, err := mh.FromHexString(id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	p := &peer.Peer{ID: peer.ID(mh)}
-
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	id, err := peer.IDFromPubKey(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := &peer.Peer{ID: id}
 	p.PrivKey = sk
 	p.PubKey = pk
-
 	p.AddAddress(tcp)
-	return p
+	return p, nil
 }
 
 func makeSwarms(ctx context.Context, t *testing.T, peers map[string]string) []*Swarm {
 	swarms := []*Swarm{}
 
 	for key, addr := range peers {
-		local := setupPeer(t, key, addr)
+		local := setupPeer(t, addr)
 		peerstore := peer.NewPeerstore()
 		swarm, err := NewSwarm(ctx, local, peerstore)
 		if err != nil {
