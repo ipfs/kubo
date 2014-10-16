@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"strings"
+  "errors"
 )
 
 type Command struct {
@@ -11,6 +12,8 @@ type Command struct {
 	f           func(*Request, *Response)
 	subcommands map[string]*Command
 }
+
+var NotCallableError = errors.New("This command can't be called directly. Try one of its subcommands.")
 
 // Register adds a subcommand
 func (c *Command) Register(id string, sub *Command) error {
@@ -37,10 +40,21 @@ func (c *Command) Register(id string, sub *Command) error {
 
 // Call invokes the command at the given subcommand path
 func (c *Command) Call(req *Request) *Response {
-	cmd := c
 	res := &Response{req: req}
 
-  options, err := cmd.GetOptions(req.path)
+  cmds, err := c.Resolve(req.path)
+  if err != nil {
+    res.SetError(err, Client)
+    return res
+  }
+  cmd := cmds[len(cmds)-1]
+
+  if(cmd.f == nil) {
+    res.SetError(NotCallableError, Client)
+    return res
+  }
+
+  options, err := c.GetOptions(req.path)
   if err != nil {
     res.SetError(err, Client)
     return res
@@ -57,24 +71,38 @@ func (c *Command) Call(req *Request) *Response {
 	return res
 }
 
+// Resolve gets the subcommands at the given path
+func (c *Command) Resolve(path []string) ([]*Command, error) {
+  cmds := make([]*Command, len(path) + 1)
+  cmds[0] = c
+
+  cmd := c
+  for i, name := range path {
+    cmd = cmd.Sub(name)
+
+    if cmd == nil {
+      pathS := strings.Join(path[0:i], "/")
+      return nil, fmt.Errorf("Undefined command: '%s'", pathS)
+    }
+
+    cmds[i+1] = cmd
+  }
+
+  return cmds, nil
+}
+
 // GetOptions gets the options in the given path of commands
 func (c *Command) GetOptions(path []string) (map[string]Option, error) {
   options := make([]Option, len(c.Options))
   copy(options, c.Options)
   options = append(options, globalOptions...)
 
-  // a nil path means this command, not a subcommand (same as an empty path)
-  if path != nil {
-    for i, id := range path {
-      cmd := c.Sub(id)
-
-      if cmd == nil {
-        pathS := strings.Join(path[0:i], "/")
-        return nil, fmt.Errorf("Undefined command: '%s'", pathS)
-      }
-
-      options = append(options, cmd.Options...)
-    }
+  cmds, err := c.Resolve(path)
+  if err != nil {
+    return nil, err
+  }
+  for _, cmd := range cmds {
+    options = append(options, cmd.Options...)
   }
 
   optionsMap := make(map[string]Option)
