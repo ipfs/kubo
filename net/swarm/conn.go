@@ -164,6 +164,7 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 	var remoteVersion, myVersion *version.SemVer
 	myVersion = version.Current()
 
+	// BUG(cryptix): do we need to use a NetMessage here?
 	myVersionMsg, err := msg.FromObject(s.local, myVersion)
 	if err != nil {
 		return fmt.Errorf("connVersionExchange: could not prepare local version: %q", err)
@@ -215,7 +216,12 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 		}
 	}
 
-	return errors.New("not yet")
+	if !version.Compatible(myVersion, remoteVersion) {
+		remote.Close()
+		return errors.New("protocol missmatch")
+	}
+
+	return nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
