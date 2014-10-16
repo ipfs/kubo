@@ -11,7 +11,7 @@ type TestOutput struct {
 }
 
 func TestMarshalling(t *testing.T) {
-	req := NewRequest()
+	req := NewEmptyRequest()
 
 	res := Response{
 		req:   req,
