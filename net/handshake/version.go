@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+	updates "github.com/jbenet/go-ipfs/updates"
+
+	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 )
 
 // currentVersion holds the current protocol version for a client running this code
@@ -18,9 +20,9 @@ func init() {
 	}
 }
 
-// Current returns the current protocol version as a protobuf message
-func Current() *semver.Version {
-	return currentVersion
+// CurrentHandshake returns the current protocol version as a protobuf message
+func CurrentHandshake() *Handshake1 {
+	return NewHandshake1(currentVersion.String(), "go-ipfs/"+updates.Version)
 }
 
 // ErrVersionMismatch is returned when two clients don't share a protocol version

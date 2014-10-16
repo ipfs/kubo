@@ -161,63 +161,44 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 // connVersionExchange exchanges local and remote versions and compares them
 // closes remote and returns an error in case of major difference
 func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
-	var remoteVersion, myVersion *handshake.SemVer
-	myVersion = handshake.Current()
+	var remoteHandshake, localHandshake *handshake.Handshake1
+	localHandshake = handshake.CurrentHandshake()
 
-	// BUG(cryptix): do we need to use a NetMessage here?
-	myVersionMsg, err := msg.FromObject(s.local, myVersion)
+	myVerBytes, err := proto.Marshal(localHandshake)
 	if err != nil {
-		return fmt.Errorf("connVersionExchange: could not prepare local version: %q", err)
+		return err
 	}
 
-	// buffered channel to send our version just once
-	outBuf := make(chan []byte, 1)
-	outBuf <- myVersionMsg.Data()
+	remote.Secure.Out <- myVerBytes
 
-	var gotTheirs, sendMine bool
-	for {
-		if gotTheirs && sendMine {
-			break
+	log.Debug("Send my version(%s) [to = %s]", localHandshake, remote.Peer)
+
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+
+	case <-remote.Closed:
+		return errors.New("remote closed connection during version exchange")
+
+	case data, ok := <-remote.Secure.In:
+		if !ok {
+			return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
 		}
 
-		select {
-		case <-s.ctx.Done():
-			// close Conn.
-			remote.Close()
-			return nil // BUG(cryptix): should this be an error?
-
-		case <-remote.Closed:
-			return errors.New("remote closed connection during version exchange")
-
-		case our, ok := <-outBuf:
-			if ok {
-				remote.Secure.Out <- our
-				sendMine = true
-				close(outBuf) // only send local version once
-				log.Debug("Send my version(%s) [to = %s]", myVersion, remote.Peer)
-			}
-
-		case data, ok := <-remote.Secure.In:
-			if !ok {
-				return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
-			}
-
-			remoteVersion = new(handshake.SemVer)
-			err = proto.Unmarshal(data, remoteVersion)
-			if err != nil {
-				s.Close()
-				return fmt.Errorf("connSetup: could not decode remote version: %q", err)
-			}
-			gotTheirs = true
-			log.Debug("Received remote version(%s) [from = %s]", remoteVersion, remote.Peer)
-
-			// BUG(cryptix): could add another case here to trigger resending our version
+		remoteHandshake = new(handshake.Handshake1)
+		err = proto.Unmarshal(data, remoteHandshake)
+		if err != nil {
+			s.Close()
+			return fmt.Errorf("connSetup: could not decode remote version: %q", err)
 		}
+
+		log.Debug("Received remote version(%s) [from = %s]", remoteHandshake, remote.Peer)
 	}
 
-	if !handshake.Compatible(myVersion, remoteVersion) {
+	if err := handshake.Compatible(localHandshake, remoteHandshake); err != nil {
+		log.Info("%s (%s) incompatible version with %s (%s)", s.local, localHandshake, remote.Peer, remoteHandshake)
 		remote.Close()
-		return handshake.ErrVersionMismatch
+		return err
 	}
 
 	log.Debug("[peer: %s] Version compatible", remote.Peer)
