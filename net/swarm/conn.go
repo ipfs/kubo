@@ -169,6 +169,10 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 		return fmt.Errorf("connVersionExchange: could not prepare local version: %q", err)
 	}
 
+	// buffered channel to send our version just once
+	outBuf := make(chan []byte, 1)
+	outBuf <- myVersionMsg.Data()
+
 	var gotTheirs, sendMine bool
 	for {
 		if gotTheirs && sendMine {
@@ -184,9 +188,13 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 		case <-remote.Closed:
 			return errors.New("remote closed connection during version exchange")
 
-		case remote.Secure.Out <- myVersionMsg.Data():
-			log.Debug("[peer: %s] Send my version(%s) to %s", s.local, myVersion, remote.Peer)
-			sendMine = true
+		case our, ok := <-outBuf:
+			if ok {
+				remote.Secure.Out <- our
+				sendMine = true
+				close(outBuf) // only send local version once
+				log.Debug("[peer: %s] Send my version(%s) to %s", s.local, myVersion, remote.Peer)
+			}
 
 		case data, ok := <-remote.Secure.In:
 			if !ok {
@@ -202,6 +210,8 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 				return fmt.Errorf("connSetup: could not decode remote version: %q", err)
 			}
 			gotTheirs = true
+
+			// BUG(cryptix): could add another case here to trigger resending our version
 		}
 	}
 
