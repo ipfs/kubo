@@ -1,20 +1,16 @@
 package version
 
-import (
-	"testing"
-
-	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
-)
+import "testing"
 
 func TestCompatible(t *testing.T) {
 	tcases := []struct {
-		a, b     semver.Version
+		a, b     *SemVer
 		expected bool
 	}{
-		{semver.Version{Major: 0}, semver.Version{Major: 0}, true},
-		{semver.Version{Major: 1}, semver.Version{Major: 0}, true},
-		{semver.Version{Major: 1}, semver.Version{Major: 1}, true},
-		{semver.Version{Major: 0}, semver.Version{Major: 1}, false},
+		{NewSemVer(0, 0, 0), NewSemVer(0, 0, 0), true},
+		{NewSemVer(0, 0, 0), NewSemVer(1, 0, 0), false},
+		{NewSemVer(1, 0, 0), NewSemVer(0, 0, 0), false},
+		{NewSemVer(1, 0, 0), NewSemVer(1, 0, 0), true},
 	}
 
 	for i, tcase := range tcases {

@@ -215,7 +215,7 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 		}
 	}
 
-	if !version.Compatible(myVersion.Convert(), remoteVersion.Convert()) {
+	if !version.Compatible(myVersion, remoteVersion) {
 		remote.Close()
 		return errors.New("protocol missmatch")
 	}
