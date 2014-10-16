@@ -21,8 +21,9 @@ func (r *Request) SetPath(path []string) {
 	r.path = path
 }
 
-func (r *Request) Option(name string) interface{} {
-	return r.options[name]
+func (r *Request) Option(name string) (interface{}, bool) {
+	val, ok := r.options[name]
+	return val, ok
 }
 
 func (r *Request) SetOption(name string, value interface{}) {
