@@ -136,3 +136,24 @@ func TestRegistration(t *testing.T) {
 		t.Error("Should have failed (option name collision with global options)")
 	}
 }
+
+func TestResolving(t *testing.T) {
+	cmd := &Command{}
+	cmdA := &Command{}
+	cmdB := &Command{}
+	cmdB2 := &Command{}
+	cmdC := &Command{}
+
+	cmd.Register("a", cmdA)
+	cmdA.Register("B", cmdB2)
+	cmdA.Register("b", cmdB)
+	cmdB.Register("c", cmdC)
+
+	cmds, err := cmd.Resolve([]string{"a","b","c"})
+	if err != nil {
+		t.Error(err)
+	}
+	if len(cmds) != 4 || cmds[0] != cmd || cmds[1] != cmdA || cmds[2] != cmdB || cmds[3] != cmdC {
+		t.Error("Returned command path is different than expected", cmds)
+	}
+}
