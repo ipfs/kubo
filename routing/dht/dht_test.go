@@ -10,7 +10,6 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
-	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	inet "github.com/jbenet/go-ipfs/net"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	netservice "github.com/jbenet/go-ipfs/net/service"
@@ -74,7 +73,7 @@ func makePeer(addr ma.Multiaddr) *peer.Peer {
 	}
 	p.PrivKey = sk
 	p.PubKey = pk
-	id, err := spipe.IDFromPubKey(pk)
+	id, err := peer.IDFromPubKey(pk)
 	if err != nil {
 		panic(err)
 	}

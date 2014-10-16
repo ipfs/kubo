@@ -9,7 +9,7 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
+	peer "github.com/jbenet/go-ipfs/peer"
 )
 
 func TestInitializeDaemonListener(t *testing.T) {
@@ -23,7 +23,7 @@ func TestInitializeDaemonListener(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ident, _ := spipe.IDFromPubKey(pub)
+	ident, _ := peer.IDFromPubKey(pub)
 	privKey := base64.StdEncoding.EncodeToString(prbytes)
 	pID := ident.Pretty()
 

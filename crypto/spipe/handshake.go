@@ -288,16 +288,6 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 	}
 }
 
-// IDFromPubKey retrieves a Public Key from the peer given by pk
-func IDFromPubKey(pk ci.PubKey) (peer.ID, error) {
-	b, err := pk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	hash := u.Hash(b)
-	return peer.ID(hash), nil
-}
-
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
 func selectBest(myPrefs, theirPrefs string) (string, error) {
 	// Person with greatest hash gets first choice.
@@ -334,7 +324,7 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 // else, construct it.
 func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error) {
 
-	rid, err := IDFromPubKey(rpk)
+	rid, err := peer.IDFromPubKey(rpk)
 	if err != nil {
 		return nil, err
 	}
