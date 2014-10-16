@@ -1,23 +1,54 @@
 package handshake
 
+import (
+	"errors"
+	"fmt"
+
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+)
+
 // currentVersion holds the current protocol version for a client running this code
-var currentVersion = NewSemVer(0, 0, 1)
+var currentVersion *semver.Version
+
+func init() {
+	var err error
+	currentVersion, err = semver.NewVersion("0.0.1")
+	if err != nil {
+		panic(fmt.Errorf("invalid protocol version: %v", err))
+	}
+}
 
 // Current returns the current protocol version as a protobuf message
-func Current() *SemVer {
+func Current() *semver.Version {
 	return currentVersion
 }
 
+// ErrVersionMismatch is returned when two clients don't share a protocol version
+var ErrVersionMismatch = errors.New("protocol missmatch")
+
 // Compatible checks wether two versions are compatible
-func Compatible(a, b *SemVer) bool {
-	return *a.Major == *b.Major // protobuf fields are pointers
+// returns nil if they are fine
+func Compatible(handshakeA, handshakeB *Handshake1) error {
+	a, err := semver.NewVersion(*handshakeA.ProtocolVersion)
+	if err != nil {
+		return err
+	}
+	b, err := semver.NewVersion(*handshakeB.ProtocolVersion)
+	if err != nil {
+		return err
+	}
+
+	if a.Major != b.Major {
+		return ErrVersionMismatch
+	}
+
+	return nil
 }
 
-// NewSemVer constructs a new protobuf SemVer
-func NewSemVer(major, minor, patch int64) *SemVer {
-	s := new(SemVer)
-	s.Major = &major
-	s.Minor = &minor
-	s.Patch = &patch
-	return s
+// NewHandshake1 creates a new Handshake1 from the two strings
+func NewHandshake1(protoVer, agentVer string) *Handshake1 {
+	return &Handshake1{
+		ProtocolVersion: &protoVer,
+		AgentVersion:    &agentVer,
+	}
 }

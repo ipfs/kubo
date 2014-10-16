@@ -9,47 +9,42 @@ It is generated from these files:
 	semver.proto
 
 It has these top-level messages:
-	SemVer
+	Handshake1
 */
 package handshake
 
-import proto "code.google.com/p/gogoprotobuf/proto"
+import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = math.Inf
 
-type SemVer struct {
-	Major            *int64 `protobuf:"varint,1,opt,name=major" json:"major,omitempty"`
-	Minor            *int64 `protobuf:"varint,2,opt,name=minor" json:"minor,omitempty"`
-	Patch            *int64 `protobuf:"varint,3,opt,name=patch" json:"patch,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+type Handshake1 struct {
+	// protocolVersion determines compatibility between peers
+	ProtocolVersion *string `protobuf:"bytes,1,opt,name=protocolVersion" json:"protocolVersion,omitempty"`
+	// agentVersion is like a UserAgent string in browsers, or client version in bittorrent
+	// includes the client name and client. e.g.   "go-ipfs/0.1.0"
+	AgentVersion     *string `protobuf:"bytes,2,opt,name=agentVersion" json:"agentVersion,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *SemVer) Reset()         { *m = SemVer{} }
-func (m *SemVer) String() string { return proto.CompactTextString(m) }
-func (*SemVer) ProtoMessage()    {}
+func (m *Handshake1) Reset()         { *m = Handshake1{} }
+func (m *Handshake1) String() string { return proto.CompactTextString(m) }
+func (*Handshake1) ProtoMessage()    {}
 
-func (m *SemVer) GetMajor() int64 {
-	if m != nil && m.Major != nil {
-		return *m.Major
+func (m *Handshake1) GetProtocolVersion() string {
+	if m != nil && m.ProtocolVersion != nil {
+		return *m.ProtocolVersion
 	}
-	return 0
+	return ""
 }
 
-func (m *SemVer) GetMinor() int64 {
-	if m != nil && m.Minor != nil {
-		return *m.Minor
+func (m *Handshake1) GetAgentVersion() string {
+	if m != nil && m.AgentVersion != nil {
+		return *m.AgentVersion
 	}
-	return 0
-}
-
-func (m *SemVer) GetPatch() int64 {
-	if m != nil && m.Patch != nil {
-		return *m.Patch
-	}
-	return 0
+	return ""
 }
 
 func init() {

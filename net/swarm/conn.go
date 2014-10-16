@@ -217,7 +217,7 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 
 	if !handshake.Compatible(myVersion, remoteVersion) {
 		remote.Close()
-		return errors.New("protocol missmatch")
+		return handshake.ErrVersionMismatch
 	}
 
 	log.Debug("[peer: %s] Version compatible", remote.Peer)
