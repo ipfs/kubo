@@ -59,6 +59,14 @@ func MakeLink(n *Node) (*Link, error) {
 	}, nil
 }
 
+func (l *Link) GetNode(serv *DAGService) (*Node, error) {
+	if l.Node != nil {
+		return l.Node, nil
+	}
+
+	return serv.Get(u.Key(l.Hash))
+}
+
 // AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
 	lnk, err := MakeLink(that)
