@@ -49,13 +49,13 @@ func setupPeer(t *testing.T, addr string) *peer.Peer {
 	p.PrivKey = sk
 	p.PubKey = pk
 	p.AddAddress(tcp)
-	return p, nil
+	return p
 }
 
 func makeSwarms(ctx context.Context, t *testing.T, peers map[string]string) []*Swarm {
 	swarms := []*Swarm{}
 
-	for key, addr := range peers {
+	for _, addr := range peers {
 		local := setupPeer(t, addr)
 		peerstore := peer.NewPeerstore()
 		swarm, err := NewSwarm(ctx, local, peerstore)

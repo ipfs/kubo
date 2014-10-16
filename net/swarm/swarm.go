@@ -11,7 +11,6 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 var log = u.Logger("swarm")
@@ -61,7 +60,7 @@ type Swarm struct {
 	connsLock sync.RWMutex
 
 	// listeners for each network address
-	listeners []manet.Listener
+	listeners []conn.Listener
 
 	// cancel is an internal function used to stop the Swarm's processing.
 	cancel context.CancelFunc
@@ -110,7 +109,7 @@ func (s *Swarm) Close() error {
 // etc. to achive connection.
 //
 // For now, Dial uses only TCP. This will be extended.
-func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
+func (s *Swarm) Dial(peer *peer.Peer) (conn.Conn, error) {
 	if peer.ID.Equal(s.local.ID) {
 		return nil, errors.New("Attempted connection to self!")
 	}
@@ -128,7 +127,12 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 	}
 
 	// open connection to peer
-	c, err = conn.Dial("tcp", s.local, peer)
+	d := &conn.Dialer{
+		LocalPeer: s.local,
+		Peerstore: s.peers,
+	}
+
+	c, err = d.Dial(s.ctx, "tcp", s.local)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +146,7 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 }
 
 // GetConnection returns the connection in the swarm to given peer.ID
-func (s *Swarm) GetConnection(pid peer.ID) *conn.Conn {
+func (s *Swarm) GetConnection(pid peer.ID) conn.Conn {
 	s.connsLock.RLock()
 	c, found := s.conns[u.Key(pid)]
 	s.connsLock.RUnlock()
@@ -181,7 +185,7 @@ func (s *Swarm) GetPeerList() []*peer.Peer {
 	var out []*peer.Peer
 	s.connsLock.RLock()
 	for _, p := range s.conns {
-		out = append(out, p.Remote)
+		out = append(out, p.RemotePeer())
 	}
 	s.connsLock.RUnlock()
 	return out

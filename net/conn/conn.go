@@ -52,7 +52,7 @@ type singleConn struct {
 }
 
 // Map maps Keys (Peer.IDs) to Connections.
-type Map map[u.Key]*Conn
+type Map map[u.Key]Conn
 
 // newConn constructs a new connection
 func newSingleConn(ctx context.Context, local, remote *peer.Peer,
@@ -171,6 +171,7 @@ func (c *singleConn) waitToClose(ctx context.Context) {
 	// closing channels
 	c.insecure.outgoing.Close()
 	c.secure.Close()
+	close(c.msgpipe.Incoming)
 }
 
 // IsOpen returns whether this Conn is open or closed.
