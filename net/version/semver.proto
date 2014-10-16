@@ -1,0 +1,8 @@
+package version;
+
+message SemVer {
+	optional int64 major = 1;
+	optional int64 minor = 2;
+	optional int64 patch = 3;
+	// BUG(cryptix): do we need PreRelease and Metadata too?
+}

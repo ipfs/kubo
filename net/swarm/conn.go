@@ -7,7 +7,9 @@ import (
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
+	version "github.com/jbenet/go-ipfs/net/version"
 
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
@@ -109,6 +111,10 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	c.Peer.AddAddress(c.Addr)
 
+	if err := s.connVersionExchange(c); err != nil {
+		return fmt.Errorf("Conn version exchange error: %v", err)
+	}
+
 	// add to conns
 	s.connsLock.Lock()
 	if _, ok := s.conns[c.Peer.Key()]; ok {
@@ -150,6 +156,56 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 
 	c.Secure = sp
 	return nil
+}
+
+// connVersionExchange exchanges local and remote versions and compares them
+// closes remote and returns an error in case of major difference
+func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
+	var remoteVersion, myVersion *version.SemVer
+	myVersion = version.Current()
+
+	myVersionMsg, err := msg.FromObject(s.local, myVersion)
+	if err != nil {
+		return fmt.Errorf("connVersionExchange: could not prepare local version: %q", err)
+	}
+
+	var gotTheirs, sendMine bool
+	for {
+		if gotTheirs && sendMine {
+			break
+		}
+
+		select {
+		case <-s.ctx.Done():
+			// close Conn.
+			remote.Close()
+			return nil // BUG(cryptix): should this be an error?
+
+		case <-remote.Closed:
+			return errors.New("remote closed connection during version exchange")
+
+		case remote.Secure.Out <- myVersionMsg.Data():
+			log.Debug("[peer: %s] Send my version(%s) to %s", s.local, myVersion, remote.Peer)
+			sendMine = true
+
+		case data, ok := <-remote.Secure.In:
+			if !ok {
+				return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
+			}
+
+			log.Debug("[peer: %s] Received message [from = %s]", s.local, remote.Peer)
+
+			remoteVersion = new(version.SemVer)
+			err = proto.Unmarshal(data, remoteVersion)
+			if err != nil {
+				s.Close()
+				return fmt.Errorf("connSetup: could not decode remote version: %q", err)
+			}
+			gotTheirs = true
+		}
+	}
+
+	return errors.New("not yet")
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
