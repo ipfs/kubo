@@ -1,0 +1,12 @@
+package handshake;
+
+message Handshake1 {
+    // protocolVersion determines compatibility between peers
+    optional string protocolVersion = 1; // semver
+
+    // agentVersion is like a UserAgent string in browsers, or client version in bittorrent
+    // includes the client name and client. e.g.   "go-ipfs/0.1.0"
+    optional string agentVersion = 2; // semver
+
+    // we'll have more fields here later.
+}

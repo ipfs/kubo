@@ -6,8 +6,10 @@ import (
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
+	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	msg "github.com/jbenet/go-ipfs/net/message"
 
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
@@ -109,6 +111,10 @@ func (s *Swarm) connSetup(c *conn.Conn) error {
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	c.Peer.AddAddress(c.Addr)
 
+	if err := s.connVersionExchange(c); err != nil {
+		return fmt.Errorf("Conn version exchange error: %v", err)
+	}
+
 	// add to conns
 	s.connsLock.Lock()
 	if _, ok := s.conns[c.Peer.Key()]; ok {
@@ -149,6 +155,53 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 	}
 
 	c.Secure = sp
+	return nil
+}
+
+// connVersionExchange exchanges local and remote versions and compares them
+// closes remote and returns an error in case of major difference
+func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
+	var remoteHandshake, localHandshake *handshake.Handshake1
+	localHandshake = handshake.CurrentHandshake()
+
+	myVerBytes, err := proto.Marshal(localHandshake)
+	if err != nil {
+		return err
+	}
+
+	remote.Secure.Out <- myVerBytes
+
+	log.Debug("Send my version(%s) [to = %s]", localHandshake, remote.Peer)
+
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+
+	case <-remote.Closed:
+		return errors.New("remote closed connection during version exchange")
+
+	case data, ok := <-remote.Secure.In:
+		if !ok {
+			return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
+		}
+
+		remoteHandshake = new(handshake.Handshake1)
+		err = proto.Unmarshal(data, remoteHandshake)
+		if err != nil {
+			s.Close()
+			return fmt.Errorf("connSetup: could not decode remote version: %q", err)
+		}
+
+		log.Debug("Received remote version(%s) [from = %s]", remoteHandshake, remote.Peer)
+	}
+
+	if err := handshake.Compatible(localHandshake, remoteHandshake); err != nil {
+		log.Info("%s (%s) incompatible version with %s (%s)", s.local, localHandshake, remote.Peer, remoteHandshake)
+		remote.Close()
+		return err
+	}
+
+	log.Debug("[peer: %s] Version compatible", remote.Peer)
 	return nil
 }
 
