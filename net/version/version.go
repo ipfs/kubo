@@ -14,10 +14,8 @@ func Current() *SemVer {
 }
 
 // Compatible checks wether two versions are compatible
-func Compatible(a, b *SemVer) bool {
-	aConv := fromPBSemVer(a)
-	bConv := fromPBSemVer(b)
-	return aConv.LessThan(*bConv)
+func Compatible(a, b semver.Version) bool {
+	return !a.LessThan(b)
 }
 
 // toPBSemVar converts a coreos/semver to our protobuf SemVer
@@ -30,9 +28,9 @@ func toPBSemVer(in *semver.Version) (out *SemVer) {
 	}
 }
 
-// toPBSemVar converts our protobuf SemVer to a coreos/semver
-func fromPBSemVer(in *SemVer) *semver.Version {
-	return &semver.Version{
+// Convert our protobuf SemVer to a coreos/semver
+func (in SemVer) Convert() semver.Version {
+	return semver.Version{
 		Major: *in.Major,
 		Minor: *in.Minor,
 		Patch: *in.Patch,

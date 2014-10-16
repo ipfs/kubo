@@ -194,15 +194,13 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 				remote.Secure.Out <- our
 				sendMine = true
 				close(outBuf) // only send local version once
-				log.Debug("[peer: %s] Send my version(%s) to %s", s.local, myVersion, remote.Peer)
+				log.Debug("Send my version(%s) [to = %s]", myVersion, remote.Peer)
 			}
 
 		case data, ok := <-remote.Secure.In:
 			if !ok {
 				return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
 			}
-
-			log.Debug("[peer: %s] Received message [from = %s]", s.local, remote.Peer)
 
 			remoteVersion = new(version.SemVer)
 			err = proto.Unmarshal(data, remoteVersion)
@@ -211,16 +209,18 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 				return fmt.Errorf("connSetup: could not decode remote version: %q", err)
 			}
 			gotTheirs = true
+			log.Debug("Received remote version(%s) [from = %s]", remoteVersion, remote.Peer)
 
 			// BUG(cryptix): could add another case here to trigger resending our version
 		}
 	}
 
-	if !version.Compatible(myVersion, remoteVersion) {
+	if !version.Compatible(myVersion.Convert(), remoteVersion.Convert()) {
 		remote.Close()
 		return errors.New("protocol missmatch")
 	}
 
+	log.Debug("[peer: %s] Version compatible", remote.Peer)
 	return nil
 }
 
