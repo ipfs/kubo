@@ -1,9 +1,9 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"strings"
-  "errors"
 )
 
 type Command struct {
@@ -42,29 +42,29 @@ func (c *Command) Register(id string, sub *Command) error {
 func (c *Command) Call(req *Request) *Response {
 	res := &Response{req: req}
 
-  cmds, err := c.Resolve(req.path)
-  if err != nil {
-    res.SetError(err, Client)
-    return res
-  }
-  cmd := cmds[len(cmds)-1]
+	cmds, err := c.Resolve(req.path)
+	if err != nil {
+		res.SetError(err, Client)
+		return res
+	}
+	cmd := cmds[len(cmds)-1]
 
-  if(cmd.f == nil) {
-    res.SetError(NotCallableError, Client)
-    return res
-  }
+	if cmd.f == nil {
+		res.SetError(NotCallableError, Client)
+		return res
+	}
 
-  options, err := c.GetOptions(req.path)
-  if err != nil {
-    res.SetError(err, Client)
-    return res
-  }
+	options, err := c.GetOptions(req.path)
+	if err != nil {
+		res.SetError(err, Client)
+		return res
+	}
 
 	err = req.convertOptions(options)
-  if err != nil {
-    res.SetError(err, Client)
-    return res
-  }
+	if err != nil {
+		res.SetError(err, Client)
+		return res
+	}
 
 	cmd.f(req, res)
 
@@ -73,54 +73,54 @@ func (c *Command) Call(req *Request) *Response {
 
 // Resolve gets the subcommands at the given path
 func (c *Command) Resolve(path []string) ([]*Command, error) {
-  cmds := make([]*Command, len(path) + 1)
-  cmds[0] = c
+	cmds := make([]*Command, len(path)+1)
+	cmds[0] = c
 
-  cmd := c
-  for i, name := range path {
-    cmd = cmd.Sub(name)
+	cmd := c
+	for i, name := range path {
+		cmd = cmd.Sub(name)
 
-    if cmd == nil {
-      pathS := strings.Join(path[0:i], "/")
-      return nil, fmt.Errorf("Undefined command: '%s'", pathS)
-    }
+		if cmd == nil {
+			pathS := strings.Join(path[0:i], "/")
+			return nil, fmt.Errorf("Undefined command: '%s'", pathS)
+		}
 
-    cmds[i+1] = cmd
-  }
+		cmds[i+1] = cmd
+	}
 
-  return cmds, nil
+	return cmds, nil
 }
 
 func (c *Command) Get(path []string) (*Command, error) {
-  cmds, err := c.Resolve(path)
-  if err != nil {
-    return nil, err
-  }
-  return cmds[len(cmds) - 1], nil
+	cmds, err := c.Resolve(path)
+	if err != nil {
+		return nil, err
+	}
+	return cmds[len(cmds)-1], nil
 }
 
 // GetOptions gets the options in the given path of commands
 func (c *Command) GetOptions(path []string) (map[string]Option, error) {
-  options := make([]Option, len(c.Options))
-  copy(options, c.Options)
-  options = append(options, globalOptions...)
+	options := make([]Option, len(c.Options))
+	copy(options, c.Options)
+	options = append(options, globalOptions...)
 
-  cmds, err := c.Resolve(path)
-  if err != nil {
-    return nil, err
-  }
-  for _, cmd := range cmds {
-    options = append(options, cmd.Options...)
-  }
+	cmds, err := c.Resolve(path)
+	if err != nil {
+		return nil, err
+	}
+	for _, cmd := range cmds {
+		options = append(options, cmd.Options...)
+	}
 
-  optionsMap := make(map[string]Option)
-  for _, opt := range options {
-    for _, name := range opt.Names {
-      optionsMap[name] = opt
-    }
-  }
+	optionsMap := make(map[string]Option)
+	for _, opt := range options {
+		for _, name := range opt.Names {
+			optionsMap[name] = opt
+		}
+	}
 
-  return optionsMap, nil
+	return optionsMap, nil
 }
 
 // Sub returns the subcommand with the given id

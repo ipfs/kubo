@@ -149,7 +149,7 @@ func TestResolving(t *testing.T) {
 	cmdA.Register("b", cmdB)
 	cmdB.Register("c", cmdC)
 
-	cmds, err := cmd.Resolve([]string{"a","b","c"})
+	cmds, err := cmd.Resolve([]string{"a", "b", "c"})
 	if err != nil {
 		t.Error(err)
 	}

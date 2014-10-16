@@ -8,7 +8,7 @@ import (
 
 // Request represents a call to a command from a consumer
 type Request struct {
-	path			[]string
+	path      []string
 	options   map[string]interface{}
 	arguments []string
 }
@@ -33,21 +33,22 @@ func (r *Request) Arguments() []string {
 	return r.arguments
 }
 
-type converter func(string)(interface{}, error)
+type converter func(string) (interface{}, error)
+
 var converters map[reflect.Kind]converter = map[reflect.Kind]converter{
-	Bool: func(v string)(interface{}, error) {
+	Bool: func(v string) (interface{}, error) {
 		if v == "" {
 			return true, nil
 		}
 		return strconv.ParseBool(v)
 	},
-	Int: func(v string)(interface{}, error) {
+	Int: func(v string) (interface{}, error) {
 		return strconv.ParseInt(v, 0, 32)
 	},
-	Uint: func(v string)(interface{}, error) {
+	Uint: func(v string) (interface{}, error) {
 		return strconv.ParseInt(v, 0, 32)
 	},
-	Float: func(v string)(interface{}, error) {
+	Float: func(v string) (interface{}, error) {
 		return strconv.ParseFloat(v, 64)
 	},
 }
@@ -88,7 +89,7 @@ func (r *Request) convertOptions(options map[string]Option) error {
 					k, name)
 			}
 
-		  converted[name] = value
+			converted[name] = value
 		}
 	}
 
@@ -102,7 +103,7 @@ func NewEmptyRequest() *Request {
 
 func NewRequest(path []string, opts map[string]interface{}, args []string) *Request {
 	if path == nil {
-		path = 	make([]string, 0)
+		path = make([]string, 0)
 	}
 	if opts == nil {
 		opts = make(map[string]interface{})
