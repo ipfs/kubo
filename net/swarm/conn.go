@@ -6,8 +6,8 @@ import (
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
+	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	msg "github.com/jbenet/go-ipfs/net/message"
-	version "github.com/jbenet/go-ipfs/net/version"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -161,8 +161,8 @@ func (s *Swarm) connSecure(c *conn.Conn) error {
 // connVersionExchange exchanges local and remote versions and compares them
 // closes remote and returns an error in case of major difference
 func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
-	var remoteVersion, myVersion *version.SemVer
-	myVersion = version.Current()
+	var remoteVersion, myVersion *handshake.SemVer
+	myVersion = handshake.Current()
 
 	// BUG(cryptix): do we need to use a NetMessage here?
 	myVersionMsg, err := msg.FromObject(s.local, myVersion)
@@ -202,7 +202,7 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 				return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
 			}
 
-			remoteVersion = new(version.SemVer)
+			remoteVersion = new(handshake.SemVer)
 			err = proto.Unmarshal(data, remoteVersion)
 			if err != nil {
 				s.Close()
@@ -215,7 +215,7 @@ func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
 		}
 	}
 
-	if !version.Compatible(myVersion, remoteVersion) {
+	if !handshake.Compatible(myVersion, remoteVersion) {
 		remote.Close()
 		return errors.New("protocol missmatch")
 	}

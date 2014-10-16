@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package version is a generated protocol buffer package.
+Package handshake is a generated protocol buffer package.
 
 It is generated from these files:
 	semver.proto
@@ -11,9 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	SemVer
 */
-package version
+package handshake
 
-import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import proto "code.google.com/p/gogoprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.

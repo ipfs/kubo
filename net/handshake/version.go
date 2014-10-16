@@ -1,4 +1,4 @@
-package version
+package handshake
 
 // currentVersion holds the current protocol version for a client running this code
 var currentVersion = NewSemVer(0, 0, 1)

@@ -1,4 +1,4 @@
-package version;
+package handshake;
 
 message SemVer {
 	optional int64 major = 1;
