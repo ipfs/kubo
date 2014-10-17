@@ -132,7 +132,7 @@ func (s *Swarm) Dial(peer *peer.Peer) (conn.Conn, error) {
 		Peerstore: s.peers,
 	}
 
-	c, err = d.Dial(s.ctx, "tcp", s.local)
+	c, err = d.Dial(s.ctx, "tcp", peer)
 	if err != nil {
 		return nil, err
 	}
