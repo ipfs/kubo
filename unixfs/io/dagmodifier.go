@@ -3,6 +3,7 @@ package io
 import (
 	"bytes"
 	"errors"
+	"io"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -173,10 +174,20 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 // splitBytes uses a splitterFunc to turn a large array of bytes
 // into many smaller arrays of bytes
 func splitBytes(b []byte, spl chunk.BlockSplitter) [][]byte {
-	out := spl.Split(bytes.NewReader(b))
+	spl.Push(bytes.NewReader(b))
+
+	var blk []byte
 	var arr [][]byte
-	for blk := range out {
+	var err error
+	for {
+		blk, err = spl.Next()
 		arr = append(arr, blk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 	return arr
 }

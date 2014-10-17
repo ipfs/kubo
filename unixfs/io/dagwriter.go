@@ -1,6 +1,9 @@
 package io
 
 import (
+	"bytes"
+	"io"
+
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
@@ -10,95 +13,166 @@ import (
 var log = util.Logger("dagwriter")
 
 type DagWriter struct {
-	dagserv   dag.DAGService
-	node      *dag.Node
-	totalSize int64
-	splChan   chan []byte
-	done      chan struct{}
-	splitter  chunk.BlockSplitter
-	seterr    error
+	buf   bytes.Buffer
+	first []byte
+	mbf   ft.MultiBlock
+	root  dag.Node
+
+	dagserv  dag.DAGService
+	splitter chunk.BlockSplitter
+
+	node   *dag.Node
+	seterr error
 }
 
 func NewDagWriter(ds dag.DAGService, splitter chunk.BlockSplitter) *DagWriter {
-	dw := new(DagWriter)
-	dw.dagserv = ds
-	dw.splChan = make(chan []byte, 8)
-	dw.splitter = splitter
-	dw.done = make(chan struct{})
-	go dw.startSplitter()
+	dw := &DagWriter{
+		dagserv:  ds,
+		splitter: splitter,
+	}
+	dw.splitter.Push(&dw.buf)
 	return dw
 }
 
-// startSplitter manages splitting incoming bytes and
-// creating dag nodes from them. Created nodes are stored
-// in the DAGService and then released to the GC.
-func (dw *DagWriter) startSplitter() {
-
-	// Since the splitter functions take a reader (and should!)
-	// we wrap our byte chan input in a reader
-	r := util.NewByteChanReader(dw.splChan)
-	blkchan := dw.splitter.Split(r)
-
-	// First data block is reserved for storage in the root node
-	first := <-blkchan
-	mbf := new(ft.MultiBlock)
-	root := new(dag.Node)
-
-	for blkData := range blkchan {
-		// Store the block size in the root node
-		mbf.AddBlockSize(uint64(len(blkData)))
-		node := &dag.Node{Data: ft.WrapData(blkData)}
-		_, err := dw.dagserv.Add(node)
-		if err != nil {
-			dw.seterr = err
-			log.Critical("Got error adding created node to dagservice: %s", err)
-			return
-		}
-
-		// Add a link to this node without storing a reference to the memory
-		err = root.AddNodeLinkClean("", node)
-		if err != nil {
-			dw.seterr = err
-			log.Critical("Got error adding created node to root node: %s", err)
-			return
-		}
-	}
-
-	// Generate the root node data
-	mbf.Data = first
-	data, err := mbf.GetBytes()
-	if err != nil {
-		dw.seterr = err
-		log.Critical("Failed generating bytes for multiblock file: %s", err)
-		return
-	}
-	root.Data = data
-
-	// Add root node to the dagservice
-	_, err = dw.dagserv.Add(root)
+func (dw *DagWriter) processBlock(blk []byte) (err error) {
+	// Store the block size in the root node
+	dw.mbf.AddBlockSize(uint64(len(blk)))
+	node := &dag.Node{Data: ft.WrapData(blk)}
+	_, err = dw.dagserv.Add(node)
 	if err != nil {
 		dw.seterr = err
 		log.Critical("Got error adding created node to dagservice: %s", err)
 		return
 	}
-	dw.node = root
-	dw.done <- struct{}{}
+
+	// Add a link to this node without storing a reference to the memory
+	err = dw.root.AddNodeLinkClean("", node)
+	if err != nil {
+		dw.seterr = err
+		log.Critical("Got error adding created node to root node: %s", err)
+	}
+	return
 }
 
-func (dw *DagWriter) Write(b []byte) (int, error) {
+func (dw *DagWriter) next() error {
+	var err error
+	if dw.first == nil {
+		dw.first, err = dw.splitter.Next()
+		return err
+	}
+
+	// splitter should not return an error when using dw.buf
+	blk, _ := dw.splitter.Next()
+	return dw.processBlock(blk)
+}
+
+func (dw *DagWriter) Write(b []byte) (n int, err error) {
 	if dw.seterr != nil {
 		return 0, dw.seterr
 	}
-	dw.splChan <- b
-	return len(b), nil
+
+	var N, max int
+	for len(b) != 0 {
+		max = dw.splitter.Size()
+		if len(b) > max {
+			N, err = dw.buf.Write(b[:max])
+		} else {
+			N, err = dw.buf.Write(b)
+		}
+		b = b[N:]
+		n += N
+
+		if dw.buf.Len() >= max {
+			err = dw.next()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
 }
 
-// Close the splitters input channel and wait for it to finish
-// Must be called to finish up splitting, otherwise split method
-// will never halt
-func (dw *DagWriter) Close() error {
-	close(dw.splChan)
-	<-dw.done
+// ReadFrom reads data from r until EOF or error.
+// The return value n is the number of bytes read.
+// Any error except io.EOF encountered during the
+// read is also returned.
+//
+// The io.Copy function uses ReaderFrom if available.
+func (dw *DagWriter) ReadFrom(r io.Reader) (n int64, err error) {
+	// flush out buffer
+	for dw.buf.Len() != 0 {
+		err = dw.next()
+		if err != nil {
+			return
+		}
+	}
+
+	dw.splitter.Push(r)
+
+	if dw.first == nil {
+		dw.first, err = dw.splitter.Next()
+		n += int64(len(dw.first))
+		if err != nil {
+			if err == io.EOF {
+				return n, nil
+			}
+			return
+		}
+	}
+	var blk []byte
+	for {
+		blk, err = dw.splitter.Next()
+		n += int64(len(blk))
+		if err == nil {
+			err = dw.processBlock(blk)
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				return n, nil
+			}
+			return
+		}
+	}
+}
+
+// Flush the splitter and generate a dag.Node.
+func (dw *DagWriter) Close() (err error) {
+	var blk []byte
+	for {
+		blk, err = dw.splitter.Next()
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+				break
+			}
+			return err
+		}
+
+		err = dw.processBlock(blk)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Generate the root node data
+	dw.mbf.Data = dw.first
+	data, err := dw.mbf.GetBytes()
+	if err != nil {
+		dw.seterr = err
+		log.Critical("Failed generating bytes for multiblock file: %s", err)
+		return err
+	}
+	dw.root.Data = data
+
+	// Add root node to the dagservice
+	_, err = dw.dagserv.Add(&dw.root)
+	if err != nil {
+		dw.seterr = err
+		log.Critical("Got error adding created node to dagservice: %s", err)
+		return err
+	}
+	dw.node = &dw.root
 	return nil
 }
 

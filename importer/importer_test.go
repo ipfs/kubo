@@ -38,9 +38,9 @@ func TestBuildDag(t *testing.T) {
 
 //Test where calls to read are smaller than the chunk size
 func TestSizeBasedSplit(t *testing.T) {
-	bs := &chunk.SizeSplitter{512}
+	bs := chunk.NewSizeSplitter(512)
 	testFileConsistency(t, bs, 32*512)
-	bs = &chunk.SizeSplitter{4096}
+	bs = chunk.NewSizeSplitter(4096)
 	testFileConsistency(t, bs, 32*4096)
 
 	// Uneven offset
@@ -94,17 +94,25 @@ func TestMaybeRabinConsistency(t *testing.T) {
 }
 
 func TestRabinBlockSize(t *testing.T) {
-	buf := new(bytes.Buffer)
 	nbytes := 1024 * 1024
-	io.CopyN(buf, rand.Reader, int64(nbytes))
 	rab := chunk.NewMaybeRabin(4096)
-	blkch := rab.Split(buf)
+	rab.Push(
+		&io.LimitedReader{
+			R: rand.Reader,
+			N: int64(nbytes),
+		},
+	)
 
-	var blocks [][]byte
-	for b := range blkch {
-		blocks = append(blocks, b)
+	var nblocks int
+	for {
+		_, err := rab.Next()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal(err.Error())
+		}
+		nblocks = nblocks + 1
 	}
-
-	fmt.Printf("Avg block size: %d\n", nbytes/len(blocks))
-
+	fmt.Printf("Avg block size: %d\n", nbytes/nblocks)
 }

@@ -29,15 +29,29 @@ func NewDagFromReader(r io.Reader) (*dag.Node, error) {
 }
 
 func NewDagFromReaderWithSplitter(r io.Reader, spl chunk.BlockSplitter) (*dag.Node, error) {
-	blkChan := spl.Split(r)
-	first := <-blkChan
+	// get rid of the r argument and push the r into spl up in NewDagFromReader
+	spl.Push(r)
+
+	first, err := spl.Next()
+	if err != nil {
+		return nil, err
+	}
+
 	root := &dag.Node{}
 
 	mbf := new(ft.MultiBlock)
-	for blk := range blkChan {
+	for {
+		blk, err := spl.Next()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+
 		mbf.AddBlockSize(uint64(len(blk)))
 		child := &dag.Node{Data: ft.WrapData(blk)}
-		err := root.AddNodeLink("", child)
+		err = root.AddNodeLink("", child)
 		if err != nil {
 			return nil, err
 		}

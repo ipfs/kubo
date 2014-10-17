@@ -16,17 +16,17 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 )
 
-func getMockDagServ(t *testing.T) *mdag.DAGService {
+func getMockDagServ(t *testing.T) mdag.DAGService {
 	dstore := ds.NewMapDatastore()
 	bserv, err := bs.NewBlockService(dstore, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &mdag.DAGService{bserv}
+	return mdag.NewDAGService(bserv)
 }
 
-func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	dw := NewDagWriter(dserv, &chunk.SizeSplitter{500})
+func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
+	dw := NewDagWriter(dserv, chunk.NewSizeSplitter(500))
 
 	n, err := io.CopyN(dw, u.NewFastRand(), size)
 	if err != nil {
@@ -36,7 +36,11 @@ func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.No
 		t.Fatal("Incorrect copy amount!")
 	}
 
-	dw.Close()
+	err = dw.Close()
+	if err != nil {
+		t.Fatal("DagWriter failed to close,", err)
+	}
+
 	node := dw.GetNode()
 
 	dr, err := NewDagReader(node, dserv)
@@ -99,7 +103,7 @@ func TestDagModifierBasic(t *testing.T) {
 	dserv := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
+	dagmod, err := NewDagModifier(n, dserv, chunk.NewSizeSplitter(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +154,7 @@ func TestMultiWrite(t *testing.T) {
 	dserv := getMockDagServ(t)
 	_, n := getNode(t, dserv, 0)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
+	dagmod, err := NewDagModifier(n, dserv, chunk.NewSizeSplitter(512))
 	if err != nil {
 		t.Fatal(err)
 	}
