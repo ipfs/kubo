@@ -18,7 +18,7 @@ var ansiGray = "\033[0;37m"
 // LogFormats is a map of formats used for our logger, keyed by name.
 var LogFormats = map[string]string{
 	"default": "%{color}%{time:2006-01-02 15:04:05.999999} %{level} %{shortfile}:	%{color:reset}%{message}",
-	"color": ansiGray + "%{time:15:04:05.999} %{color}%{level} " + ansiGray + "%{shortfile}:	%{color:reset}%{message}",
+	"color": ansiGray + "%{time:15:04:05.999} %{color}%{level}:	%{color:reset}%{message} " + ansiGray + "%{shortfile}%{color:reset}",
 }
 
 // Logging environment variables
