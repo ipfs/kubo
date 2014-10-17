@@ -13,8 +13,19 @@ func init() {
 
 var log = Logger("util")
 
-// LogFormat is the format used for our logger.
-var LogFormat = "%{color}%{time:2006-01-02 15:04:05.999999} %{shortfile} %{level}: %{color:reset}%{message}"
+var ansiGray = "\033[0;37m"
+
+// LogFormats is a map of formats used for our logger, keyed by name.
+var LogFormats = map[string]string{
+	"default": "%{color}%{time:2006-01-02 15:04:05.999999} %{level} %{shortfile}:	%{color:reset}%{message}",
+	"color": ansiGray + "%{time:15:04:05.999} %{color}%{level} " + ansiGray + "%{shortfile}:	%{color:reset}%{message}",
+}
+
+// Logging environment variables
+const (
+	envLogging    = "IPFS_LOGGING"
+	envLoggingFmt = "IPFS_LOGGING_FMT"
+)
 
 // loggers is the set of loggers in the system
 var loggers = map[string]*logging.Logger{}
@@ -26,13 +37,19 @@ func POut(format string, a ...interface{}) {
 
 // SetupLogging will initialize the logger backend and set the flags.
 func SetupLogging() {
+
+	fmt := LogFormats[os.Getenv(envLoggingFmt)]
+	if fmt == "" {
+		fmt = LogFormats["default"]
+	}
+
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	logging.SetBackend(backend)
-	logging.SetFormatter(logging.MustStringFormatter(LogFormat))
+	logging.SetFormatter(logging.MustStringFormatter(fmt))
 
 	lvl := logging.ERROR
 
-	if logenv := os.Getenv("IPFS_LOGGING"); logenv != "" {
+	if logenv := os.Getenv(envLogging); logenv != "" {
 		var err error
 		lvl, err = logging.LogLevel(logenv)
 		if err != nil {
