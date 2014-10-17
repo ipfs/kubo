@@ -15,19 +15,22 @@ type Pinner interface {
 type pinner struct {
 	recursePin set.BlockSet
 	directPin  set.BlockSet
-	indirPin   set.BlockSet
+	indirPin   indirectPin
 	dserv      *mdag.DAGService
 	dstore     ds.Datastore
 }
 
 func NewPinner(dstore ds.Datastore, serv *mdag.DAGService) Pinner {
+
+	// Load set from given datastore...
 	rcset := set.NewDBWrapperSet(dstore, "/pinned/recurse/", set.NewSimpleBlockSet())
 	dirset := set.NewDBWrapperSet(dstore, "/pinned/direct/", set.NewSimpleBlockSet())
-	indset := set.NewDBWrapperSet(dstore, "/pinned/indirect/", set.NewRefCountBlockSet())
+
+	nsdstore := dstore // WRAP IN NAMESPACE
 	return &pinner{
 		recursePin: rcset,
 		directPin:  dirset,
-		indirPin:   indset,
+		indirPin:   newIndirectPin(nsdstore),
 		dserv:      serv,
 		dstore:     dstore,
 	}
@@ -99,7 +102,7 @@ func (p *pinner) pinIndirectRecurse(node *mdag.Node) error {
 		return err
 	}
 
-	p.indirPin.AddBlock(k)
+	p.indirPin.Increment(k)
 	return p.pinLinks(node)
 }
 
