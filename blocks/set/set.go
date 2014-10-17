@@ -5,6 +5,8 @@ import (
 	"github.com/jbenet/go-ipfs/util"
 )
 
+var log = util.Logger("blockset")
+
 type BlockSet interface {
 	AddBlock(util.Key)
 	RemoveBlock(util.Key)

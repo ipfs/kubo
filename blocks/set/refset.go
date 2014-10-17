@@ -1,8 +1,7 @@
-package pin
+package set
 
 import (
 	"github.com/jbenet/go-ipfs/blocks/bloom"
-	"github.com/jbenet/go-ipfs/blocks/set"
 	"github.com/jbenet/go-ipfs/util"
 )
 
@@ -10,7 +9,7 @@ type refCntBlockSet struct {
 	blocks map[util.Key]int
 }
 
-func NewRefCountBlockSet() set.BlockSet {
+func NewRefCountBlockSet() BlockSet {
 	return &refCntBlockSet{blocks: make(map[util.Key]int)}
 }
 

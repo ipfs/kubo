@@ -17,14 +17,19 @@ type pinner struct {
 	directPin  set.BlockSet
 	indirPin   set.BlockSet
 	dserv      *mdag.DAGService
+	dstore     ds.Datastore
 }
 
 func NewPinner(dstore ds.Datastore, serv *mdag.DAGService) Pinner {
+	rcset := set.NewDBWrapperSet(dstore, "/pinned/recurse/", set.NewSimpleBlockSet())
+	dirset := set.NewDBWrapperSet(dstore, "/pinned/direct/", set.NewSimpleBlockSet())
+	indset := set.NewDBWrapperSet(dstore, "/pinned/indirect/", set.NewRefCountBlockSet())
 	return &pinner{
-		recursePin: set.NewSimpleBlockSet(),
-		directPin:  set.NewSimpleBlockSet(),
-		indirPin:   NewRefCountBlockSet(),
+		recursePin: rcset,
+		directPin:  dirset,
+		indirPin:   indset,
 		dserv:      serv,
+		dstore:     dstore,
 	}
 }
 
@@ -52,7 +57,39 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 }
 
 func (p *pinner) Unpin(k util.Key, recurse bool) error {
-	panic("not yet implemented!")
+	if recurse {
+		p.recursePin.RemoveBlock(k)
+		node, err := p.dserv.Get(k)
+		if err != nil {
+			return err
+		}
+
+		return p.unpinLinks(node)
+	} else {
+		p.directPin.RemoveBlock(k)
+	}
+	return nil
+}
+
+func (p *pinner) unpinLinks(node *mdag.Node) error {
+	for _, l := range node.Links {
+		node, err := l.GetNode(p.dserv)
+		if err != nil {
+			return err
+		}
+
+		k, err := node.Key()
+		if err != nil {
+			return err
+		}
+
+		p.recursePin.RemoveBlock(k)
+
+		err = p.unpinLinks(node)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package bloom
 
 import (
+	"errors"
 	"fmt"
 	"hash"
 	"hash/adler32"
@@ -12,6 +13,7 @@ import (
 type Filter interface {
 	Add([]byte)
 	Find([]byte) bool
+	Merge(Filter) (Filter, error)
 }
 
 func BasicFilter() Filter {
@@ -67,4 +69,27 @@ func bytesMod(b []byte, modulo int64) int64 {
 	result.Mod(i, bigmod)
 
 	return result.Int64()
+}
+
+func (f *filter) Merge(o Filter) (Filter, error) {
+	casfil, ok := o.(*filter)
+	if !ok {
+		return nil, errors.New("Unsupported filter type")
+	}
+
+	if len(casfil.filter) != len(f.filter) {
+		return nil, errors.New("filter lengths must match!")
+	}
+
+	nfilt := new(filter)
+
+	// this bit is sketchy, need a way of comparing hash functions
+	nfilt.hashes = f.hashes
+
+	nfilt.filter = make([]byte, len(f.filter))
+	for i, v := range f.filter {
+		nfilt.filter[i] = v | casfil.filter[i]
+	}
+
+	return nfilt, nil
 }
