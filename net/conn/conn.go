@@ -45,7 +45,6 @@ type singleConn struct {
 	// context + cancel
 	ctx    context.Context
 	cancel context.CancelFunc
-	closed chan struct{}
 
 	secure   *spipe.SecurePipe
 	insecure *msgioPipe
@@ -67,7 +66,6 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 		maconn:   maconn,
 		ctx:      ctx,
 		cancel:   cancel,
-		closed:   make(chan struct{}),
 		insecure: newMsgioPipe(10),
 		msgpipe:  msg.NewPipe(10),
 	}
@@ -77,7 +75,7 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 	// setup the various io goroutines
 	go conn.insecure.outgoing.WriteTo(maconn)
 	go conn.insecure.incoming.ReadFrom(maconn, MaxMessageSize)
-	go conn.waitToClose(ctx)
+	go conn.waitToClose()
 
 	// perform secure handshake before returning this connection.
 	if err := conn.secureHandshake(peers); err != nil {
@@ -101,11 +99,13 @@ func (c *singleConn) secureHandshake(peers peer.Peerstore) error {
 	}
 
 	// spipe performs the secure handshake, which takes multiple RTT
-	var err error
-	c.secure, err = spipe.NewSecurePipe(c.ctx, 10, c.local, peers, insecure)
+	sp, err := spipe.NewSecurePipe(c.ctx, 10, c.local, peers, insecure)
 	if err != nil {
 		return err
 	}
+
+	// assign it into the conn object
+	c.secure = sp
 
 	if c.remote == nil {
 		c.remote = c.secure.RemotePeer()
@@ -157,9 +157,9 @@ func (c *singleConn) wrapInMsgs() {
 }
 
 // waitToClose waits on the given context's Done before closing Conn.
-func (c *singleConn) waitToClose(ctx context.Context) {
+func (c *singleConn) waitToClose() {
 	select {
-	case <-ctx.Done():
+	case <-c.ctx.Done():
 	}
 
 	// close underlying connection
@@ -167,15 +167,16 @@ func (c *singleConn) waitToClose(ctx context.Context) {
 
 	// closing channels
 	c.insecure.outgoing.Close()
-	c.secure.Close()
+	if c.secure != nil { // may never have gotten here.
+		c.secure.Close()
+	}
 	close(c.msgpipe.Incoming)
-	close(c.closed)
 }
 
 // isClosed returns whether this Conn is open or closed.
 func (c *singleConn) isClosed() bool {
 	select {
-	case <-c.closed:
+	case <-c.ctx.Done():
 		return true
 	default:
 		return false
@@ -280,7 +281,6 @@ type listener struct {
 	// ctx + cancel func
 	ctx    context.Context
 	cancel context.CancelFunc
-	closed chan struct{}
 }
 
 // waitToClose is needed to hand
@@ -290,12 +290,11 @@ func (l *listener) waitToClose() {
 	}
 
 	l.Listener.Close()
-	close(l.closed)
 }
 
 func (l *listener) isClosed() bool {
 	select {
-	case <-l.closed:
+	case <-l.ctx.Done():
 		return true
 	default:
 		return false
@@ -368,7 +367,6 @@ func (l *listener) Close() error {
 	}
 
 	l.cancel()
-	<-l.closed
 	return nil
 }
 
@@ -388,7 +386,6 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local *peer.Peer, peers peer
 	l := &listener{
 		ctx:      ctx,
 		cancel:   cancel,
-		closed:   make(chan struct{}),
 		Listener: ml,
 		maddr:    addr,
 		peers:    peers,
