@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"errors"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -9,7 +8,6 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
-	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -40,22 +38,20 @@ type singleConn struct {
 	local  *peer.Peer
 	remote *peer.Peer
 	maconn manet.Conn
-
-	secure   *spipe.SecurePipe
-	insecure *msgioPipe
+	msgio  *msgioPipe
 
 	ContextCloser
 }
 
 // newConn constructs a new connection
 func newSingleConn(ctx context.Context, local, remote *peer.Peer,
-	peers peer.Peerstore, maconn manet.Conn) (Conn, error) {
+	maconn manet.Conn) (Conn, error) {
 
 	conn := &singleConn{
-		local:    local,
-		remote:   remote,
-		maconn:   maconn,
-		insecure: newMsgioPipe(10),
+		local:  local,
+		remote: remote,
+		maconn: maconn,
+		msgio:  newMsgioPipe(10),
 	}
 
 	conn.ContextCloser = NewContextCloser(ctx, conn.close)
@@ -63,50 +59,10 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 	log.Info("newSingleConn: %v to %v", local, remote)
 
 	// setup the various io goroutines
-	go conn.insecure.outgoing.WriteTo(maconn)
-	go conn.insecure.incoming.ReadFrom(maconn, MaxMessageSize)
-
-	// perform secure handshake before returning this connection.
-	if err := conn.secureHandshake(peers); err != nil {
-		conn.Close()
-		return nil, err
-	}
+	go conn.msgio.outgoing.WriteTo(maconn)
+	go conn.msgio.incoming.ReadFrom(maconn, MaxMessageSize)
 
 	return conn, nil
-}
-
-// secureHandshake performs the spipe secure handshake.
-func (c *singleConn) secureHandshake(peers peer.Peerstore) error {
-	if c.secure != nil {
-		return errors.New("Conn is already secured or being secured.")
-	}
-
-	// setup a Duplex pipe for spipe
-	insecure := spipe.Duplex{
-		In:  c.insecure.incoming.MsgChan,
-		Out: c.insecure.outgoing.MsgChan,
-	}
-
-	// spipe performs the secure handshake, which takes multiple RTT
-	sp, err := spipe.NewSecurePipe(c.Context(), 10, c.local, peers, insecure)
-	if err != nil {
-		return err
-	}
-
-	// assign it into the conn object
-	c.secure = sp
-
-	if c.remote == nil {
-		c.remote = c.secure.RemotePeer()
-
-	} else if c.remote != c.secure.RemotePeer() {
-		// this panic is here because this would be an insidious programmer error
-		// that we need to ensure we catch.
-		log.Error("%v != %v", c.remote, c.secure.RemotePeer())
-		panic("peers not being constructed correctly.")
-	}
-
-	return nil
 }
 
 // close is the internal close function, called by ContextCloser.Close
@@ -115,13 +71,7 @@ func (c *singleConn) close() error {
 
 	// close underlying connection
 	err := c.maconn.Close()
-
-	// closing channels
-	c.insecure.outgoing.Close()
-	if c.secure != nil { // may never have gotten here.
-		c.secure.Close()
-	}
-
+	c.msgio.outgoing.Close()
 	return err
 }
 
@@ -137,12 +87,12 @@ func (c *singleConn) RemotePeer() *peer.Peer {
 
 // In returns a readable message channel
 func (c *singleConn) In() <-chan []byte {
-	return c.secure.In
+	return c.msgio.incoming.MsgChan
 }
 
 // Out returns a writable message channel
 func (c *singleConn) Out() chan<- []byte {
-	return c.secure.Out
+	return c.msgio.outgoing.MsgChan
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
@@ -186,7 +136,12 @@ func (d *Dialer) Dial(ctx context.Context, network string, remote *peer.Peer) (C
 		log.Error("Error putting peer into peerstore: %s", remote)
 	}
 
-	return newSingleConn(ctx, d.LocalPeer, remote, d.Peerstore, maconn)
+	c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
+	if err != nil {
+		return nil, err
+	}
+
+	return newSecureConn(ctx, c, d.Peerstore)
 }
 
 // listener is an object that can accept connections. It implements Listener
@@ -240,13 +195,21 @@ func (l *listener) listen() {
 	// handle is a goroutine work function that handles the handshake.
 	// it's here only so that accepting new connections can happen quickly.
 	handle := func(maconn manet.Conn) {
-		c, err := newSingleConn(l.Context(), l.local, nil, l.peers, maconn)
+		defer func() { <-sem }() // release
+
+		c, err := newSingleConn(l.Context(), l.local, nil, maconn)
 		if err != nil {
 			log.Error("Error accepting connection: %v", err)
-		} else {
-			l.conns <- c
+			return
 		}
-		<-sem // release
+
+		sc, err := newSecureConn(l.Context(), c, l.peers)
+		if err != nil {
+			log.Error("Error securing connection: %v", err)
+			return
+		}
+
+		l.conns <- sc
 	}
 
 	for {

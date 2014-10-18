@@ -1,6 +1,8 @@
 package conn
 
 import (
+	"errors"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
@@ -62,13 +64,14 @@ func (c *contextCloser) Done() Wait {
 func (c *contextCloser) Close() error {
 	select {
 	case <-c.Done():
-		panic("closed twice")
+		// panic("closed twice")
+		return errors.New("closed twice")
 	default:
 	}
 
-	c.cancel()           // release anyone waiting on the context
 	err := c.closeFunc() // actually run the close logic
 	close(c.closed)      // relase everyone waiting on Done
+	c.cancel()           // release anyone waiting on the context
 	return err
 }
 

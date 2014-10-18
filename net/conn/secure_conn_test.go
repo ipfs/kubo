@@ -9,13 +9,32 @@ import (
 	"testing"
 	"time"
 
+	peer "github.com/jbenet/go-ipfs/peer"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-func TestClose(t *testing.T) {
+func setupSecureConn(t *testing.T, c Conn) Conn {
+	c, ok := c.(*secureConn)
+	if ok {
+		return c
+	}
+
+	// shouldn't happen, because dial + listen already return secure conns.
+	s, err := newSecureConn(c.Context(), c, peer.NewPeerstore())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func TestSecureClose(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/1234", "/ip4/127.0.0.1/tcp/2345")
+
+	c1 = setupSecureConn(t, c1)
+	c2 = setupSecureConn(t, c2)
 
 	select {
 	case <-c1.Done():
@@ -44,10 +63,13 @@ func TestClose(t *testing.T) {
 	cancel() // close the listener :P
 }
 
-func TestCancel(t *testing.T) {
+func TestSecureCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/1234", "/ip4/127.0.0.1/tcp/2345")
+
+	c1 = setupSecureConn(t, c1)
+	c2 = setupSecureConn(t, c2)
 
 	select {
 	case <-c1.Done():
@@ -77,7 +99,7 @@ func TestCancel(t *testing.T) {
 
 }
 
-func TestCloseLeak(t *testing.T) {
+func TestSecureCloseLeak(t *testing.T) {
 
 	var wg sync.WaitGroup
 
@@ -86,6 +108,9 @@ func TestCloseLeak(t *testing.T) {
 		a2 := strconv.Itoa(p2)
 		ctx, cancel := context.WithCancel(context.Background())
 		c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
+
+		c1 = setupSecureConn(t, c1)
+		c2 = setupSecureConn(t, c2)
 
 		for i := 0; i < num; i++ {
 			b1 := []byte("beep")
