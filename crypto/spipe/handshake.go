@@ -18,6 +18,7 @@ import (
 	"hash"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -229,7 +230,15 @@ func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
 	theirMac, macSize := makeMac(hashType, tMKey)
 
 	for {
-		data, ok := <-s.insecure.In
+		var data []byte
+		ok := true
+
+		select {
+		case <-s.ctx.Done():
+			ok = false // return out
+		case data, ok = <-s.insecure.In:
+		}
+
 		if !ok {
 			close(s.Duplex.In)
 			return
@@ -266,8 +275,17 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 	myMac, macSize := makeMac(hashType, mMKey)
 
 	for {
-		data, ok := <-s.Out
+		var data []byte
+		ok := true
+
+		select {
+		case <-s.ctx.Done():
+			ok = false // return out
+		case data, ok = <-s.Out:
+		}
+
 		if !ok {
+			close(s.insecure.Out)
 			return
 		}
 
@@ -363,7 +381,8 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error)
 	// this shouldn't ever happen, given we hashed, etc, but it could mean
 	// expected code (or protocol) invariants violated.
 	if !npeer.PubKey.Equals(rpk) {
-		return nil, fmt.Errorf("WARNING: PubKey mismatch: %v", npeer)
+		log.Error("WARNING: PubKey mismatch: %v", npeer)
+		panic("secure channel pubkey mismatch")
 	}
 	return npeer, nil
 }

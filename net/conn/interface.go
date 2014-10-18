@@ -12,6 +12,8 @@ type Map map[u.Key]Conn
 
 // Conn is a generic message-based Peer-to-Peer connection.
 type Conn interface {
+	// implement ContextCloser too!
+	ContextCloser
 
 	// LocalPeer is the Peer on this side
 	LocalPeer() *peer.Peer
@@ -26,7 +28,7 @@ type Conn interface {
 	Out() chan<- []byte
 
 	// Close ends the connection
-	Close() error
+	// Close() error  -- already in ContextCloser
 }
 
 // Listener is an object that can accept connections. It matches net.Listener
