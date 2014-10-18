@@ -1,6 +1,7 @@
 package cli
 
 import (
+  "fmt"
   "strings"
 
   "github.com/jbenet/go-ipfs/commands"
@@ -47,8 +48,6 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
   opts := make(map[string]interface{})
   args := make([]string, 0)
 
-  // TODO: error if one option is defined multiple times
-
   for i := 0; i < len(input); i++ {
     blob := input[i]
 
@@ -65,6 +64,10 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
         split := strings.SplitN(name, "=", 2)
         name = split[0]
         value = split[1]
+      }
+
+      if _, ok := opts[name]; ok {
+        return nil, nil, fmt.Errorf("Duplicate values for option '%s'", name)
       }
 
       opts[name] = value
