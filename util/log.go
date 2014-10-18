@@ -41,6 +41,7 @@ func SetupLogging() {
 		}
 	}
 
+	Debug = GetenvBool("IPFS_DEBUG")
 	if Debug {
 		lvl = logging.DEBUG
 	}
