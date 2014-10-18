@@ -15,13 +15,7 @@ func TestOptionParsing(t *testing.T) {
   }
   cmd.Register("test", &commands.Command{})
 
-  path := []string{"test"}
-  options, err := cmd.GetOptions(path)
-  if err != nil {
-    t.Error(err)
-  }
-
-  opts, input, err := parseOptions([]string{ "--beep", "--boop=5 lol", "test2", "-cVb", "beep" }, options)
+  opts, input, err := parseOptions([]string{ "--beep", "-boop=lol", "test2", "-c", "beep", "--foo=5" })
   /*for k, v := range opts {
     fmt.Printf("%s: %s\n", k, v)
   }
@@ -29,10 +23,10 @@ func TestOptionParsing(t *testing.T) {
   if err != nil {
     t.Error("Should have passed")
   }
-  if len(opts) != 5 || opts["c"] != "" || opts["V"] != "" || opts["beep"] != "" || opts["boop"] != "5 lol" || opts["b"] != "beep" {
+  if len(opts) != 4 || opts["beep"] != "" || opts["boop"] != "lol" || opts["c"] != "" || opts["foo"] != "5" {
     t.Error("Returned options were defferent than expected: %v", opts)
   }
-  if len(input) != 1 || input[0] != "test2" {
+  if len(input) != 2 || input[0] != "test2" || input[1] != "beep" {
     t.Error("Returned input was different than expected: %v", input)
   }
 
