@@ -37,6 +37,10 @@ Tool commands:
     version       Show ipfs version information.
     commands      List all available commands.
 
+Plumbing commands:
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+
 Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
@@ -63,6 +67,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsBootstrap,
 		cmdIpfsDiag,
 		cmdIpfsBlock,
+		cmdIpfsObject,
 		cmdIpfsLog,
 	},
 	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
