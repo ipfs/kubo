@@ -23,6 +23,8 @@ import (
 
 var log = u.Logger("dht")
 
+const doPinging = true
+
 // TODO. SEE https://github.com/jbenet/node-ipfs/blob/master/submodules/ipfs-dht/index.js
 
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
@@ -75,7 +77,9 @@ func NewDHT(ctx context.Context, p *peer.Peer, ps peer.Peerstore, net inet.Netwo
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID), time.Hour)
 	dht.birth = time.Now()
 
-	go dht.PingRoutine(time.Second * 10)
+	if doPinging {
+		go dht.PingRoutine(time.Second * 10)
+	}
 	return dht
 }
 
@@ -562,5 +566,8 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	id := make([]byte, 16)
 	rand.Read(id)
-	dht.FindPeer(ctx, peer.ID(id))
+	_, err := dht.FindPeer(ctx, peer.ID(id))
+	if err != nil {
+		log.Error("Bootstrap peer error: %s", err)
+	}
 }
