@@ -35,13 +35,16 @@ var currentVersion *semver.Version
 
 func init() {
 	var err error
-	currentVersion, err = semver.NewVersion(Version)
+	currentVersion, err = parseVersion()
 	if err != nil {
-		log.Error("The const Version literal in version.go needs to be in semver format: %s \n", Version)
+		log.Error("illegal version number in code: %q\n", Version)
 		os.Exit(1)
 	}
 }
 
+func parseVersion() (*semver.Version, error) {
+	return semver.NewVersion(Version)
+}
 func CheckForUpdates() error {
 	resp, err := http.Get(EndpointURLLatestReleases)
 	if err != nil {
