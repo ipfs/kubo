@@ -1,11 +1,14 @@
 package conn
 
 import (
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	u "github.com/jbenet/go-ipfs/util"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
+
+// Map maps Keys (Peer.IDs) to Connections.
+type Map map[u.Key]Conn
 
 // Conn is a generic message-based Peer-to-Peer connection.
 type Conn interface {
@@ -16,11 +19,11 @@ type Conn interface {
 	// RemotePeer is the Peer on the remote side
 	RemotePeer() *peer.Peer
 
-	// MsgIn returns a readable message channel
-	MsgIn() <-chan msg.NetMessage
+	// In returns a readable message channel
+	In() <-chan []byte
 
-	// MsgOut returns a writable message channel
-	MsgOut() chan<- msg.NetMessage
+	// Out returns a writable message channel
+	Out() chan<- []byte
 
 	// Close ends the connection
 	Close() error

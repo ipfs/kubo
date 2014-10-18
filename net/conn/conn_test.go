@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -50,8 +49,8 @@ func echo(ctx context.Context, c Conn) {
 		select {
 		case <-ctx.Done():
 			return
-		case m := <-c.MsgIn():
-			c.MsgOut() <- m
+		case m := <-c.In():
+			c.Out() <- m
 		}
 	}
 }
@@ -93,19 +92,19 @@ func TestDialer(t *testing.T) {
 	}
 
 	// fmt.Println("sending")
-	c.MsgOut() <- msg.New(p2, []byte("beep"))
-	c.MsgOut() <- msg.New(p2, []byte("boop"))
+	c.Out() <- []byte("beep")
+	c.Out() <- []byte("boop")
 
-	out := <-c.MsgIn()
+	out := <-c.In()
 	// fmt.Println("recving", string(out))
-	data := string(out.Data())
+	data := string(out)
 	if data != "beep" {
 		t.Error("unexpected conn output", data)
 	}
 
-	out = <-c.MsgIn()
-	data = string(out.Data())
-	if string(out.Data()) != "boop" {
+	out = <-c.In()
+	data = string(out)
+	if string(out) != "boop" {
 		t.Error("unexpected conn output", data)
 	}
 

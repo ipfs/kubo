@@ -10,7 +10,6 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -48,11 +47,7 @@ type singleConn struct {
 
 	secure   *spipe.SecurePipe
 	insecure *msgioPipe
-	msgpipe  *msg.Pipe
 }
-
-// Map maps Keys (Peer.IDs) to Connections.
-type Map map[u.Key]Conn
 
 // newConn constructs a new connection
 func newSingleConn(ctx context.Context, local, remote *peer.Peer,
@@ -67,7 +62,6 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 		ctx:      ctx,
 		cancel:   cancel,
 		insecure: newMsgioPipe(10),
-		msgpipe:  msg.NewPipe(10),
 	}
 
 	log.Info("newSingleConn: %v to %v", local, remote)
@@ -117,43 +111,7 @@ func (c *singleConn) secureHandshake(peers peer.Peerstore) error {
 		panic("peers not being constructed correctly.")
 	}
 
-	// silly we have to do it this way.
-	go c.unwrapOutMsgs()
-	go c.wrapInMsgs()
-
 	return nil
-}
-
-// unwrapOutMsgs sends just the raw data of a message through secure
-func (c *singleConn) unwrapOutMsgs() {
-	for {
-		select {
-		case <-c.ctx.Done():
-			return
-		case m, more := <-c.msgpipe.Outgoing:
-			if !more {
-				return
-			}
-
-			c.secure.Out <- m.Data()
-		}
-	}
-}
-
-// wrapInMsgs wraps a message
-func (c *singleConn) wrapInMsgs() {
-	for {
-		select {
-		case <-c.ctx.Done():
-			return
-		case d, more := <-c.secure.In:
-			if !more {
-				return
-			}
-
-			c.msgpipe.Incoming <- msg.New(c.remote, d)
-		}
-	}
 }
 
 // waitToClose waits on the given context's Done before closing Conn.
@@ -170,7 +128,6 @@ func (c *singleConn) waitToClose() {
 	if c.secure != nil { // may never have gotten here.
 		c.secure.Close()
 	}
-	close(c.msgpipe.Incoming)
 }
 
 // isClosed returns whether this Conn is open or closed.
@@ -205,14 +162,14 @@ func (c *singleConn) RemotePeer() *peer.Peer {
 	return c.remote
 }
 
-// MsgIn returns a readable message channel
-func (c *singleConn) MsgIn() <-chan msg.NetMessage {
-	return c.msgpipe.Incoming
+// In returns a readable message channel
+func (c *singleConn) In() <-chan []byte {
+	return c.secure.In
 }
 
-// MsgOut returns a writable message channel
-func (c *singleConn) MsgOut() chan<- msg.NetMessage {
-	return c.msgpipe.Outgoing
+// Out returns a writable message channel
+func (c *singleConn) Out() chan<- []byte {
+	return c.secure.Out
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
