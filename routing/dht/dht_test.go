@@ -21,9 +21,7 @@ import (
 	"time"
 )
 
-func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
-	ctx := context.Background()
-
+func setupDHT(ctx context.Context, t *testing.T, p *peer.Peer) *IpfsDHT {
 	peerstore := peer.NewPeerstore()
 
 	dhts := netservice.NewService(nil) // nil handler for now, need to patch it
@@ -38,12 +36,12 @@ func setupDHT(t *testing.T, p *peer.Peer) *IpfsDHT {
 		t.Fatal(err)
 	}
 
-	d := NewDHT(p, peerstore, net, dhts, ds.NewMapDatastore())
+	d := NewDHT(ctx, p, peerstore, net, dhts, ds.NewMapDatastore())
 	dhts.SetHandler(d)
 	return d
 }
 
-func setupDHTS(n int, t *testing.T) ([]ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
+func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
 	var addrs []ma.Multiaddr
 	for i := 0; i < n; i++ {
 		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
@@ -61,7 +59,7 @@ func setupDHTS(n int, t *testing.T) ([]ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
 
 	dhts := make([]*IpfsDHT, n)
 	for i := 0; i < n; i++ {
-		dhts[i] = setupDHT(t, peers[i])
+		dhts[i] = setupDHT(ctx, t, peers[i])
 	}
 
 	return addrs, peers, dhts
@@ -87,7 +85,7 @@ func makePeer(addr ma.Multiaddr) *peer.Peer {
 
 func TestPing(t *testing.T) {
 	// t.Skip("skipping test to debug another")
-
+	ctx := context.Background()
 	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
 	if err != nil {
@@ -101,28 +99,28 @@ func TestPing(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	dhtA := setupDHT(t, peerA)
-	dhtB := setupDHT(t, peerB)
+	dhtA := setupDHT(ctx, t, peerA)
+	dhtB := setupDHT(ctx, t, peerB)
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
 	defer dhtA.network.Close()
 	defer dhtB.network.Close()
 
-	_, err = dhtA.Connect(context.Background(), peerB)
+	_, err = dhtA.Connect(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//Test that we can ping the node
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Millisecond)
-	err = dhtA.Ping(ctx, peerB)
+	ctxT, _ := context.WithTimeout(ctx, 5*time.Millisecond)
+	err = dhtA.Ping(ctxT, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, _ = context.WithTimeout(context.Background(), 5*time.Millisecond)
-	err = dhtB.Ping(ctx, peerA)
+	ctxT, _ = context.WithTimeout(ctx, 5*time.Millisecond)
+	err = dhtB.Ping(ctxT, peerA)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,6 +129,7 @@ func TestPing(t *testing.T) {
 func TestValueGetSet(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
+	ctx := context.Background()
 	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 	if err != nil {
@@ -144,23 +143,23 @@ func TestValueGetSet(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	dhtA := setupDHT(t, peerA)
-	dhtB := setupDHT(t, peerB)
+	dhtA := setupDHT(ctx, t, peerA)
+	dhtB := setupDHT(ctx, t, peerB)
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
 	defer dhtA.network.Close()
 	defer dhtB.network.Close()
 
-	_, err = dhtA.Connect(context.Background(), peerB)
+	_, err = dhtA.Connect(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	dhtA.PutValue(ctxT, "hello", []byte("world"))
 
-	ctxT, _ = context.WithTimeout(context.Background(), time.Second*2)
+	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
 	val, err := dhtA.GetValue(ctxT, "hello")
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +169,7 @@ func TestValueGetSet(t *testing.T) {
 		t.Fatalf("Expected 'world' got '%s'", string(val))
 	}
 
-	ctxT, _ = context.WithTimeout(context.Background(), time.Second*2)
+	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
 	val, err = dhtB.GetValue(ctxT, "hello")
 	if err != nil {
 		t.Fatal(err)
@@ -183,10 +182,11 @@ func TestValueGetSet(t *testing.T) {
 
 func TestProvides(t *testing.T) {
 	// t.Skip("skipping test to debug another")
+	ctx := context.Background()
 
 	u.Debug = false
 
-	_, peers, dhts := setupDHTS(4, t)
+	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
@@ -194,17 +194,17 @@ func TestProvides(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(context.Background(), peers[1])
+	_, err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[2])
+	_, err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[3])
+	_, err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,14 +219,14 @@ func TestProvides(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(context.Background(), u.Key("hello"))
+	err = dhts[3].Provide(ctx, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 60)
 
-	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	provchan := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 1)
 
 	after := time.After(time.Second)
@@ -243,9 +243,10 @@ func TestProvides(t *testing.T) {
 func TestProvidesAsync(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
+	ctx := context.Background()
 	u.Debug = false
 
-	_, peers, dhts := setupDHTS(4, t)
+	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
@@ -253,17 +254,17 @@ func TestProvidesAsync(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(context.Background(), peers[1])
+	_, err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[2])
+	_, err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[3])
+	_, err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,21 +279,21 @@ func TestProvidesAsync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(context.Background(), u.Key("hello"))
+	err = dhts[3].Provide(ctx, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 60)
 
-	ctx, _ := context.WithTimeout(context.TODO(), time.Millisecond*300)
-	provs := dhts[0].FindProvidersAsync(ctx, u.Key("hello"), 5)
+	ctxT, _ := context.WithTimeout(ctx, time.Millisecond*300)
+	provs := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 5)
 	select {
 	case p := <-provs:
 		if !p.ID.Equal(dhts[3].self.ID) {
 			t.Fatalf("got a provider, but not the right one. %s", p)
 		}
-	case <-ctx.Done():
+	case <-ctxT.Done():
 		t.Fatal("Didnt get back providers")
 	}
 }
@@ -300,8 +301,9 @@ func TestProvidesAsync(t *testing.T) {
 func TestLayeredGet(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
+	ctx := context.Background()
 	u.Debug = false
-	_, peers, dhts := setupDHTS(4, t)
+	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
@@ -309,17 +311,17 @@ func TestLayeredGet(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(context.Background(), peers[1])
+	_, err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatalf("Failed to connect: %s", err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[2])
+	_, err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[3])
+	_, err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,14 +331,14 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(context.Background(), u.Key("hello"))
+	err = dhts[3].Provide(ctx, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(time.Millisecond * 60)
 
-	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	val, err := dhts[0].GetValue(ctxT, u.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
@@ -351,9 +353,10 @@ func TestLayeredGet(t *testing.T) {
 func TestFindPeer(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
+	ctx := context.Background()
 	u.Debug = false
 
-	_, peers, dhts := setupDHTS(4, t)
+	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
@@ -361,22 +364,22 @@ func TestFindPeer(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(context.Background(), peers[1])
+	_, err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[2])
+	_, err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(context.Background(), peers[3])
+	_, err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctxT, _ := context.WithTimeout(context.Background(), time.Second)
+	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	p, err := dhts[0].FindPeer(ctxT, peers[2].ID)
 	if err != nil {
 		t.Fatal(err)
@@ -394,6 +397,7 @@ func TestFindPeer(t *testing.T) {
 func TestConnectCollision(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
+	ctx := context.Background()
 	u.Debug = false
 	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 	if err != nil {
@@ -407,8 +411,8 @@ func TestConnectCollision(t *testing.T) {
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
 
-	dhtA := setupDHT(t, peerA)
-	dhtB := setupDHT(t, peerB)
+	dhtA := setupDHT(ctx, t, peerA)
+	dhtB := setupDHT(ctx, t, peerB)
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
@@ -417,14 +421,14 @@ func TestConnectCollision(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		_, err = dhtA.Connect(context.Background(), peerB)
+		_, err = dhtA.Connect(ctx, peerB)
 		if err != nil {
 			t.Fatal(err)
 		}
 		done <- struct{}{}
 	}()
 	go func() {
-		_, err = dhtB.Connect(context.Background(), peerA)
+		_, err = dhtB.Connect(ctx, peerA)
 		if err != nil {
 			t.Fatal(err)
 		}
