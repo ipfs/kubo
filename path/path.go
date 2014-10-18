@@ -15,7 +15,7 @@ var log = u.Logger("path")
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.
 type Resolver struct {
-	DAG *merkledag.DAGService
+	DAG merkledag.DAGService
 }
 
 // ResolvePath fetches the node for given path. It uses the first

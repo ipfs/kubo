@@ -8,38 +8,59 @@ import (
 
 var log = util.Logger("chunk")
 
-var DefaultSplitter = &SizeSplitter{1024 * 512}
+var DefaultSplitter = &SizeSplitter{size: 1024 * 512}
 
+// BlockSplitter is the interface to a block splitting algorithm.
 type BlockSplitter interface {
-	Split(r io.Reader) chan []byte
+
+	// Size returns the maximum block size that this BlockSplitter may produce,
+	// or the maximum amount of data the BlockSplitter may buffer,
+	// whichever is larger.
+	Size() int
+
+	// Next returns a block split from the underlying reader.
+	// io.EOF is returned when the both last Reader and any splitting buffers
+	// are exausted.
+	Next() ([]byte, error)
+
+	// Push causes the Reader to start reading from a new io.Reader.
+	// When an EOF error is seen from the new io.Reader, it is popped
+	// and the Reader continues to read from the next most recent io.Reader.
+	Push(io.Reader)
 }
 
 type SizeSplitter struct {
-	Size int
+	size    int
+	readers []io.Reader
 }
 
-func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
-	out := make(chan []byte)
-	go func() {
-		defer close(out)
-		for {
-			chunk := make([]byte, ss.Size)
-			nread, err := r.Read(chunk)
-			if err != nil {
-				if err == io.EOF {
-					if nread > 0 {
-						out <- chunk[:nread]
-					}
-					return
-				}
-				log.Error("Block split error: %s", err)
-				return
-			}
-			if nread < ss.Size {
-				chunk = chunk[:nread]
-			}
-			out <- chunk
+func (ss *SizeSplitter) Size() int { return ss.size }
+
+func (ss *SizeSplitter) Next() (b []byte, err error) {
+	b = make([]byte, ss.size)
+
+	var n, N, ri int
+	for len(ss.readers) > 0 {
+		ri = len(ss.readers) - 1
+		N, err = ss.readers[ri].Read(b[n:])
+		n += N
+		if err == io.EOF {
+			ss.readers = ss.readers[:ri]
+			err = nil
 		}
-	}()
-	return out
+		if n == ss.size {
+			return
+		}
+	}
+	if n == 0 {
+		return nil, io.EOF
+	}
+	b = b[:n]
+	return
 }
+
+func (ss *SizeSplitter) Push(r io.Reader) {
+	ss.readers = append(ss.readers, r)
+}
+
+func NewSizeSplitter(size int) *SizeSplitter { return &SizeSplitter{size: size} }

@@ -3,7 +3,6 @@ package chunk
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"math"
 )
@@ -13,6 +12,13 @@ type MaybeRabin struct {
 	windowSize   int
 	MinBlockSize int
 	MaxBlockSize int
+	inbuf        *bufio.Reader
+	buf          bytes.Buffer
+	window       []byte // Window is a circular buffer
+	wi           int    // window index
+	rollingHash  int
+	an           int
+	readers      []io.Reader
 }
 
 func NewMaybeRabin(avgBlkSize int) *MaybeRabin {
@@ -22,73 +28,87 @@ func NewMaybeRabin(avgBlkSize int) *MaybeRabin {
 	rb.windowSize = 16 // probably a good number...
 	rb.MinBlockSize = avgBlkSize / 2
 	rb.MaxBlockSize = (avgBlkSize / 2) * 3
+	rb.window = make([]byte, rb.windowSize)
+	rb.an = 1
 	return rb
 }
 
-func (mr *MaybeRabin) Split(r io.Reader) chan []byte {
-	out := make(chan []byte, 16)
-	go func() {
-		inbuf := bufio.NewReader(r)
-		blkbuf := new(bytes.Buffer)
+func (mr *MaybeRabin) push(val byte) (outval int) {
+	outval = int(mr.window[mr.wi%len(mr.window)])
+	mr.window[mr.wi%len(mr.window)] = val
+	return
+}
 
-		// some bullshit numbers i made up
-		a := 10         // honestly, no idea what this is
-		MOD := 33554383 // randomly chosen (seriously)
-		an := 1
-		rollingHash := 0
+// Duplicate byte slice
+func dup(b []byte) []byte {
+	d := make([]byte, len(b))
+	copy(d, b)
+	return d
+}
 
-		// Window is a circular buffer
-		window := make([]byte, mr.windowSize)
-		push := func(i int, val byte) (outval int) {
-			outval = int(window[i%len(window)])
-			window[i%len(window)] = val
-			return
-		}
+func (mr *MaybeRabin) nextReader() ([]byte, error) {
+	if len(mr.readers) == 0 {
+		mr.inbuf = nil
+		return mr.buf.Bytes(), nil
+	}
+	ri := len(mr.readers) - 1
+	mr.inbuf = bufio.NewReader(mr.readers[ri])
+	mr.readers = mr.readers[:ri]
+	return mr.Next()
+}
 
-		// Duplicate byte slice
-		dup := func(b []byte) []byte {
-			d := make([]byte, len(b))
-			copy(d, b)
-			return d
-		}
+func (mr *MaybeRabin) Next() ([]byte, error) {
+	if mr.inbuf == nil {
+		return nil, io.EOF
+	}
 
-		// Fill up the window
-		i := 0
-		for ; i < mr.windowSize; i++ {
-			b, err := inbuf.ReadByte()
-			if err != nil {
-				fmt.Println(err)
-				return
+	// some bullshit numbers i made up
+	a := 10         // honestly, no idea what this is
+	MOD := 33554383 // randomly chosen (seriously)
+
+	var b byte
+	var err error
+	// Fill up the window
+	for ; mr.wi < mr.windowSize; mr.wi++ {
+		b, err = mr.inbuf.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				return mr.nextReader()
 			}
-			blkbuf.WriteByte(b)
-			push(i, b)
-			rollingHash = (rollingHash*a + int(b)) % MOD
-			an = (an * a) % MOD
+			return nil, err
 		}
+		mr.buf.WriteByte(b)
+		mr.push(b)
+		mr.rollingHash = (mr.rollingHash*a + int(b)) % MOD
+		mr.an = (mr.an * a) % MOD
+	}
 
-		for ; true; i++ {
-			b, err := inbuf.ReadByte()
-			if err != nil {
-				break
-			}
-			outval := push(i, b)
-			blkbuf.WriteByte(b)
-			rollingHash = (rollingHash*a + int(b) - an*outval) % MOD
-			if (rollingHash&mr.mask == mr.mask && blkbuf.Len() > mr.MinBlockSize) ||
-				blkbuf.Len() >= mr.MaxBlockSize {
-				out <- dup(blkbuf.Bytes())
-				blkbuf.Reset()
-			}
-
-			// Check if there are enough remaining
-			peek, err := inbuf.Peek(mr.windowSize)
-			if err != nil || len(peek) != mr.windowSize {
-				break
-			}
+	for ; true; mr.wi++ {
+		b, err = mr.inbuf.ReadByte()
+		if err != nil {
+			break
 		}
-		io.Copy(blkbuf, inbuf)
-		out <- blkbuf.Bytes()
-		close(out)
-	}()
-	return out
+		outval := mr.push(b)
+		mr.buf.WriteByte(b)
+		mr.rollingHash = (mr.rollingHash*a + int(b) - mr.an*outval) % MOD
+		if (mr.rollingHash&mr.mask == mr.mask && mr.buf.Len() > mr.MinBlockSize) || mr.buf.Len() >= mr.MaxBlockSize {
+			block := dup(mr.buf.Bytes())
+			mr.buf.Reset()
+			return block, nil
+		}
+	}
+	if err == io.EOF {
+		return mr.nextReader()
+	}
+	return nil, err
+}
+
+func (mr *MaybeRabin) Size() int { return mr.MaxBlockSize }
+
+func (mr *MaybeRabin) Push(r io.Reader) {
+	if mr.inbuf == nil {
+		mr.inbuf = bufio.NewReader(r)
+	} else {
+		mr.readers = append(mr.readers, r)
+	}
 }

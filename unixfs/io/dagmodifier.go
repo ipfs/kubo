@@ -3,6 +3,7 @@ package io
 import (
 	"bytes"
 	"errors"
+	"io"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -16,14 +17,14 @@ import (
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant
 type DagModifier struct {
-	dagserv *mdag.DAGService
+	dagserv mdag.DAGService
 	curNode *mdag.Node
 
 	pbdata   *ft.PBData
 	splitter chunk.BlockSplitter
 }
 
-func NewDagModifier(from *mdag.Node, serv *mdag.DAGService, spl chunk.BlockSplitter) (*DagModifier, error) {
+func NewDagModifier(from *mdag.Node, serv mdag.DAGService, spl chunk.BlockSplitter) (*DagModifier, error) {
 	pbd, err := ft.FromBytes(from.Data)
 	if err != nil {
 		return nil, err
@@ -173,10 +174,20 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 // splitBytes uses a splitterFunc to turn a large array of bytes
 // into many smaller arrays of bytes
 func splitBytes(b []byte, spl chunk.BlockSplitter) [][]byte {
-	out := spl.Split(bytes.NewReader(b))
+	spl.Push(bytes.NewReader(b))
+
+	var blk []byte
 	var arr [][]byte
-	for blk := range out {
+	var err error
+	for {
+		blk, err = spl.Next()
 		arr = append(arr, blk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 	return arr
 }
