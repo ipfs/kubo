@@ -86,8 +86,6 @@ func ipfsCmd(c *commander.Command, args []string) error {
 }
 
 func main() {
-	u.Debug = u.GetenvBool("IPFS_DEBUG")
-
 	// if debugging, setup profiling.
 	if u.Debug {
 		ofi, err := os.Create("cpu.prof")
