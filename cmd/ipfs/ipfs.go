@@ -68,6 +68,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsDiag,
 		cmdIpfsBlock,
 		cmdIpfsObject,
+		cmdIpfsUpdate,
 		cmdIpfsLog,
 		cmdIpfsPin,
 	},
