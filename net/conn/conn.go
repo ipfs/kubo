@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
@@ -14,11 +15,16 @@ import (
 
 var log = u.Logger("conn")
 
-// ChanBuffer is the size of the buffer in the Conn Chan
-const ChanBuffer = 10
+const (
+	// ChanBuffer is the size of the buffer in the Conn Chan
+	ChanBuffer = 10
 
-// 1 MB
-const MaxMessageSize = 1 << 20
+	// MaxMessageSize is the size of the largest single message
+	MaxMessageSize = 1 << 20 // 1 MB
+
+	// HandshakeTimeout for when nodes first connect
+	HandshakeTimeout = time.Second * 5
+)
 
 // msgioPipe is a pipe using msgio channels.
 type msgioPipe struct {
@@ -61,6 +67,13 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 	// setup the various io goroutines
 	go conn.msgio.outgoing.WriteTo(maconn)
 	go conn.msgio.incoming.ReadFrom(maconn, MaxMessageSize)
+
+	// version handshake
+	ctxT, _ := context.WithTimeout(ctx, HandshakeTimeout)
+	if err := VersionHandshake(ctxT, conn); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("Version handshake: %s", err)
+	}
 
 	return conn, nil
 }

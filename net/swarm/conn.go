@@ -5,10 +5,8 @@ import (
 	"fmt"
 
 	conn "github.com/jbenet/go-ipfs/net/conn"
-	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	msg "github.com/jbenet/go-ipfs/net/message"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -93,10 +91,6 @@ func (s *Swarm) connSetup(c conn.Conn) error {
 	// addresses should be figured out through the DHT.
 	// c.Remote.AddAddress(c.Conn.RemoteMultiaddr())
 
-	if err := s.connVersionExchange(c); err != nil {
-		return fmt.Errorf("Conn version exchange error: %v", err)
-	}
-
 	// add to conns
 	s.connsLock.Lock()
 	if _, ok := s.conns[c.RemotePeer().Key()]; ok {
@@ -110,54 +104,6 @@ func (s *Swarm) connSetup(c conn.Conn) error {
 
 	// kick off reader goroutine
 	go s.fanIn(c)
-	return nil
-}
-
-// connVersionExchange exchanges local and remote versions and compares them
-// closes remote and returns an error in case of major difference
-func (s *Swarm) connVersionExchange(r conn.Conn) error {
-	rpeer := r.RemotePeer()
-
-	var remoteH, localH *handshake.Handshake1
-	localH = handshake.CurrentHandshake()
-
-	myVerBytes, err := proto.Marshal(localH)
-	if err != nil {
-		return err
-	}
-
-	r.Out() <- myVerBytes
-	log.Debug("Sent my version(%s) [to = %s]", localH, rpeer)
-
-	select {
-	case <-s.ctx.Done():
-		return s.ctx.Err()
-
-	// case <-remote.Done():
-	// 	return errors.New("remote closed connection during version exchange")
-
-	case data, ok := <-r.In():
-		if !ok {
-			return fmt.Errorf("Error retrieving from conn: %v", rpeer)
-		}
-
-		remoteH = new(handshake.Handshake1)
-		err = proto.Unmarshal(data, remoteH)
-		if err != nil {
-			s.Close()
-			return fmt.Errorf("connSetup: could not decode remote version: %q", err)
-		}
-
-		log.Debug("Received remote version(%s) [from = %s]", remoteH, rpeer)
-	}
-
-	if err := handshake.Compatible(localH, remoteH); err != nil {
-		log.Info("%s (%s) incompatible version with %s (%s)", s.local, localH, rpeer, remoteH)
-		r.Close()
-		return err
-	}
-
-	log.Debug("[peer: %s] Version compatible", rpeer)
 	return nil
 }
 
