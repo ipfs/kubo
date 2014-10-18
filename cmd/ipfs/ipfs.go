@@ -7,6 +7,7 @@ import (
 	"runtime/pprof"
 
 	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
 	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
@@ -126,18 +127,17 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 	}
 
 	if cfg.Version.ShouldCheckForUpdate() {
-		obsolete := updates.CheckForUpdates()
-		if obsolete != nil {
-			if cfg.Version.Check == config.CheckError {
-				return nil, obsolete
-			}
+		_, err := updates.CheckForUpdate()
+		if err != nil {
+			if err != check.NoUpdateAvailable {
+				log.Error("Error while checking for update: %v\n", err)
+				return nil, err
 
-			// when "warn" version.check mode we just show warning message
-			log.Warning(fmt.Sprintf("%v", obsolete))
-		} else {
-			// update most recent check timestamp in config
-			config.RecordUpdateCheck(cfg, filename)
+			}
+			log.Notice("No update available")
 		}
+
+		config.RecordUpdateCheck(cfg, filename)
 	}
 
 	return core.NewIpfsNode(cfg, online)
