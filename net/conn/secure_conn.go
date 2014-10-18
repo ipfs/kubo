@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -90,6 +91,21 @@ func (c *secureConn) close() error {
 		err = c.secure.Close()
 	}
 	return err
+}
+
+// ID is an identifier unique to this connection.
+func (c *secureConn) ID() string {
+	return ID(c)
+}
+
+// LocalMultiaddr is the Multiaddr on this side
+func (c *secureConn) LocalMultiaddr() ma.Multiaddr {
+	return c.insecure.LocalMultiaddr()
+}
+
+// RemoteMultiaddr is the Multiaddr on the remote side
+func (c *secureConn) RemoteMultiaddr() ma.Multiaddr {
+	return c.insecure.RemoteMultiaddr()
 }
 
 // LocalPeer is the Peer on this side

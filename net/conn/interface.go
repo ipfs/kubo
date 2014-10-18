@@ -15,8 +15,17 @@ type Conn interface {
 	// implement ContextCloser too!
 	ContextCloser
 
+	// ID is an identifier unique to this connection.
+	ID() string
+
+	// LocalMultiaddr is the Multiaddr on this side
+	LocalMultiaddr() ma.Multiaddr
+
 	// LocalPeer is the Peer on this side
 	LocalPeer() *peer.Peer
+
+	// RemoteMultiaddr is the Multiaddr on the remote side
+	RemoteMultiaddr() ma.Multiaddr
 
 	// RemotePeer is the Peer on the remote side
 	RemotePeer() *peer.Peer

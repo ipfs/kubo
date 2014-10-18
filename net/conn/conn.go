@@ -88,6 +88,21 @@ func (c *singleConn) close() error {
 	return err
 }
 
+// ID is an identifier unique to this connection.
+func (c *singleConn) ID() string {
+	return ID(c)
+}
+
+// LocalMultiaddr is the Multiaddr on this side
+func (c *singleConn) LocalMultiaddr() ma.Multiaddr {
+	return c.maconn.LocalMultiaddr()
+}
+
+// RemoteMultiaddr is the Multiaddr on the remote side
+func (c *singleConn) RemoteMultiaddr() ma.Multiaddr {
+	return c.maconn.RemoteMultiaddr()
+}
+
 // LocalPeer is the Peer on this side
 func (c *singleConn) LocalPeer() *peer.Peer {
 	return c.local
@@ -106,6 +121,16 @@ func (c *singleConn) In() <-chan []byte {
 // Out returns a writable message channel
 func (c *singleConn) Out() chan<- []byte {
 	return c.msgio.outgoing.MsgChan
+}
+
+// ID returns the
+func ID(c Conn) string {
+	l := fmt.Sprintf("%s/%s", c.LocalMultiaddr(), c.LocalPeer().ID)
+	r := fmt.Sprintf("%s/%s", c.RemoteMultiaddr(), c.RemotePeer().ID)
+	lh := u.Hash([]byte(l))
+	rh := u.Hash([]byte(r))
+	ch := u.XOR(lh, rh)
+	return u.Key(ch).Pretty()
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
