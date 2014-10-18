@@ -30,6 +30,11 @@ func TestOptionParsing(t *testing.T) {
     t.Error("Returned input was different than expected: %v", input)
   }
 
+  _, _, err = parseOptions([]string{ "-beep=1", "-boop=2", "-beep=3" })
+  if err == nil {
+    t.Error("Should have failed (duplicate option name)")
+  }
+
   path, args, err := parsePath([]string{ "test", "beep", "boop" }, cmd)
   if err != nil {
     t.Error("Should have passed")
