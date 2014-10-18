@@ -22,6 +22,13 @@ type Version struct {
 	// CheckPeriod is the time duration over which the update check will not be performed
 	// (Note: cannot use time.Duration because marshalling with json breaks it)
 	CheckPeriod string
+
+	// AutoUpdate is optional and has these these options:
+	// - "never" do not auto-update
+	// - "patch" auto-update on new patch versions
+	// - "minor" auto-update on new minor (or patch) versions (Default)
+	// - "major" auto-update on any new version
+	AutoUpdate string
 }
 
 // supported Version.Check values
@@ -34,6 +41,14 @@ const (
 
 	// CheckIgnore value for Version.Check to not perform update check
 	CheckIgnore = "ignore"
+)
+
+// supported Version.AutoUpdate values
+const (
+	UpdateNever = "never"
+	UpdatePatch = "patch"
+	UpdateMinor = "minor"
+	UpdateMajor = "major"
 )
 
 // defaultCheckPeriod governs h
