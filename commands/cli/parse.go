@@ -2,7 +2,6 @@ package cli
 
 import (
   "strings"
-  "fmt"
 
   "github.com/jbenet/go-ipfs/commands"
 )
@@ -13,12 +12,7 @@ func Parse(input []string, root *commands.Command) (*commands.Request, error) {
     return nil, err
   }
 
-  options, err := root.GetOptions(path)
-  if err != nil {
-    return nil, err
-  }
-
-  opts, args, err := parseOptions(input, options)
+  opts, args, err := parseOptions(input)
   if err != nil {
     return nil, err
   }
@@ -49,7 +43,7 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
 
 // parseOptions parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
-func parseOptions(input []string, options map[string]commands.Option) (map[string]interface{}, []string, error) {
+func parseOptions(input []string) (map[string]interface{}, []string, error) {
   opts := make(map[string]interface{})
   args := make([]string, 0)
 
@@ -58,9 +52,14 @@ func parseOptions(input []string, options map[string]commands.Option) (map[strin
   for i := 0; i < len(input); i++ {
     blob := input[i]
 
-    if strings.HasPrefix(blob, "--") {
-      name := blob[2:]
+    if strings.HasPrefix(blob, "-") {
+      name := blob[1:]
       value := ""
+
+      // support single and double dash
+      if strings.HasPrefix(name, "-") {
+        name = name[1:]
+      }
 
       if strings.Contains(name, "=") {
         split := strings.SplitN(name, "=", 2)
@@ -69,29 +68,6 @@ func parseOptions(input []string, options map[string]commands.Option) (map[strin
       }
 
       opts[name] = value
-
-    } else if strings.HasPrefix(blob, "-") {
-      blob = blob[1:]
-
-      if strings.ContainsAny(blob, "-=\"") {
-        return nil, nil, fmt.Errorf("Invalid option blob: '%s'", input[i])
-      }
-
-      nameS := ""
-      for _, name := range blob {
-        nameS = string(name)
-        opts[nameS] = ""
-      }
-
-      if nameS != "" {
-        opt, ok := options[nameS]
-        if ok && opt.Type != commands.Bool {
-          i++
-          if i <= len(input) {
-            opts[nameS] = input[i]
-          }
-        }
-      }
 
     } else {
       args = append(args, blob)
