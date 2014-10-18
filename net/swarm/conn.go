@@ -126,7 +126,7 @@ func (s *Swarm) connVersionExchange(r conn.Conn) error {
 		return err
 	}
 
-	r.MsgOut() <- msg.New(rpeer, myVerBytes)
+	r.Out() <- myVerBytes
 	log.Debug("Sent my version(%s) [to = %s]", localH, rpeer)
 
 	select {
@@ -136,13 +136,13 @@ func (s *Swarm) connVersionExchange(r conn.Conn) error {
 	// case <-remote.Done():
 	// 	return errors.New("remote closed connection during version exchange")
 
-	case data, ok := <-r.MsgIn():
+	case data, ok := <-r.In():
 		if !ok {
 			return fmt.Errorf("Error retrieving from conn: %v", rpeer)
 		}
 
 		remoteH = new(handshake.Handshake1)
-		err = proto.Unmarshal(data.Data(), remoteH)
+		err = proto.Unmarshal(data, remoteH)
 		if err != nil {
 			s.Close()
 			return fmt.Errorf("connSetup: could not decode remote version: %q", err)
@@ -174,7 +174,7 @@ func (s *Swarm) fanOut() {
 			}
 
 			s.connsLock.RLock()
-			conn, found := s.conns[msg.Peer().Key()]
+			c, found := s.conns[msg.Peer().Key()]
 			s.connsLock.RUnlock()
 
 			if !found {
@@ -187,7 +187,7 @@ func (s *Swarm) fanOut() {
 			// log.Debug("[peer: %s] Sent message [to = %s]", s.local, msg.Peer())
 
 			// queue it in the connection's buffer
-			conn.MsgOut() <- msg
+			c.Out() <- msg.Data()
 		}
 	}
 }
@@ -202,7 +202,7 @@ func (s *Swarm) fanIn(c conn.Conn) {
 			c.Close()
 			goto out
 
-		case data, ok := <-c.MsgIn():
+		case data, ok := <-c.In():
 			if !ok {
 				e := fmt.Errorf("Error retrieving from conn: %v", c.RemotePeer())
 				s.errChan <- e
@@ -210,7 +210,7 @@ func (s *Swarm) fanIn(c conn.Conn) {
 			}
 
 			// log.Debug("[peer: %s] Received message [from = %s]", s.local, c.Peer)
-			s.Incoming <- data
+			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}
 
