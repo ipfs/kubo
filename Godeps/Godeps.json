@@ -10,6 +10,11 @@
 			"Rev": "a04507d54fc3610d38ee951402d8c4acab56c7b1"
 		},
 		{
+			"ImportPath": "bitbucket.org/kardianos/osext",
+			"Comment": "null-15",
+			"Rev": "44140c5fc69ecf1102c5ef451d73cd98ef59b178"
+		},
+		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
 			"Comment": "null-12",
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
@@ -63,6 +68,10 @@
 			"Rev": "4b8fbc56f3b2400a7c7ea3dba9b3539787c486b6"
 		},
 		{
+			"ImportPath": "github.com/inconshreveable/go-update",
+			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
+		},
+		{
 			"ImportPath": "github.com/jbenet/commander",
 			"Rev": "e0cf317891f0ab6f1ac64dfcb754b4fb5e69f7df"
 		},
@@ -91,6 +100,10 @@
 			"ImportPath": "github.com/jbenet/go-multihash",
 			"Comment": "0.1.0-5-g1976046",
 			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
+		},
+		{
+			"ImportPath": "github.com/kr/binarydist",
+			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
