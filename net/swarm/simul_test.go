@@ -61,8 +61,11 @@ func TestSimultOpenMany(t *testing.T) {
 }
 
 func TestSimultOpenFewStress(t *testing.T) {
+	// t.Skip("skipping for another test")
 
-	for i := 0; i < 100; i++ {
+	num := 10
+	// num := 100
+	for i := 0; i < num; i++ {
 		addrs := []string{
 			fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 1900+i),
 			fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 2900+i),

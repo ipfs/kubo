@@ -141,6 +141,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 
 		got := map[u.Key]int{}
 		for k := 0; k < (MsgNum * len(*peers)); k++ {
+			log.Debug("%s waiting for pong (%d)", s1.local, k)
 			msg := <-s1.Incoming
 			if string(msg.Data()) != "pong" {
 				t.Error("unexpected conn output", msg.Data)
@@ -180,6 +181,7 @@ func TestSwarm(t *testing.T) {
 		"/ip4/127.0.0.1/tcp/1238",
 	}
 
+	// msgs := 1000
 	msgs := 100
 	SubtestSwarm(t, addrs, msgs)
 }

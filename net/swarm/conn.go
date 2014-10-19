@@ -102,8 +102,8 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	// add to conns
 	s.connsLock.Lock()
 
-	mc, ok := s.conns[c.RemotePeer().Key()]
-	if !ok {
+	mc, found := s.conns[c.RemotePeer().Key()]
+	if !found {
 		// multiconn doesn't exist, make a new one.
 		conns := []conn.Conn{c}
 		mc, err := conn.NewMultiConn(s.Context(), s.local, c.RemotePeer(), conns)
@@ -116,6 +116,8 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		s.conns[c.RemotePeer().Key()] = mc
 		s.connsLock.Unlock()
 
+		// kick off reader goroutine
+		go s.fanInSingle(mc)
 		log.Debug("added new multiconn: %s", mc)
 	} else {
 		s.connsLock.Unlock() // unlock before adding new conn
@@ -125,9 +127,6 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	}
 
 	log.Debug("multiconn added new conn %s", c)
-
-	// kick off reader goroutine
-	go s.fanInSingle(c)
 	return c, nil
 }
 
