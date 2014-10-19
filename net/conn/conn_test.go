@@ -60,7 +60,9 @@ func TestCancel(t *testing.T) {
 	default:
 	}
 
-	cancel()
+	c1.Close()
+	c2.Close()
+	cancel() // listener
 
 	// wait to ensure other goroutines run and close things.
 	<-time.After(time.Microsecond * 10)
@@ -113,6 +115,8 @@ func TestCloseLeak(t *testing.T) {
 			<-time.After(time.Microsecond * 5)
 		}
 
+		c1.Close()
+		c2.Close()
 		cancel() // close the listener
 		wg.Done()
 	}
