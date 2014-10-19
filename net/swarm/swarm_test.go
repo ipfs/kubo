@@ -164,6 +164,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 }
 
 func TestSwarm(t *testing.T) {
+	// t.Skip("skipping for another test")
 
 	addrs := []string{
 		"/ip4/127.0.0.1/tcp/1234",
@@ -173,5 +174,6 @@ func TestSwarm(t *testing.T) {
 		"/ip4/127.0.0.1/tcp/1238",
 	}
 
-	SubtestSwarm(t, addrs, 1000)
+	msgs := 100
+	SubtestSwarm(t, addrs, msgs)
 }

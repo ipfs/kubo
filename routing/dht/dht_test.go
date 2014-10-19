@@ -112,13 +112,13 @@ func TestPing(t *testing.T) {
 	}
 
 	//Test that we can ping the node
-	ctxT, _ := context.WithTimeout(ctx, 5*time.Millisecond)
+	ctxT, _ := context.WithTimeout(ctx, 100*time.Millisecond)
 	err = dhtA.Ping(ctxT, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctxT, _ = context.WithTimeout(ctx, 5*time.Millisecond)
+	ctxT, _ = context.WithTimeout(ctx, 100*time.Millisecond)
 	err = dhtB.Ping(ctxT, peerA)
 	if err != nil {
 		t.Fatal(err)
@@ -396,53 +396,61 @@ func TestFindPeer(t *testing.T) {
 func TestConnectCollision(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
-	ctx := context.Background()
-	u.Debug = false
-	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
-	if err != nil {
-		t.Fatal(err)
-	}
-	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
-	if err != nil {
-		t.Fatal(err)
-	}
+	runTimes := 100
 
-	peerA := makePeer(addrA)
-	peerB := makePeer(addrB)
+	for rtime := 0; rtime < runTimes; rtime++ {
+		log.Notice("Running Time: ", rtime)
 
-	dhtA := setupDHT(ctx, t, peerA)
-	dhtB := setupDHT(ctx, t, peerB)
-
-	defer dhtA.Halt()
-	defer dhtB.Halt()
-	defer dhtA.network.Close()
-	defer dhtB.network.Close()
-
-	done := make(chan struct{})
-	go func() {
-		_, err = dhtA.Connect(ctx, peerB)
+		ctx := context.Background()
+		u.Debug = false
+		addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
 		if err != nil {
 			t.Fatal(err)
 		}
-		done <- struct{}{}
-	}()
-	go func() {
-		_, err = dhtB.Connect(ctx, peerA)
+		addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
 		if err != nil {
 			t.Fatal(err)
 		}
-		done <- struct{}{}
-	}()
 
-	timeout := time.After(time.Second * 5)
-	select {
-	case <-done:
-	case <-timeout:
-		t.Fatal("Timeout received!")
-	}
-	select {
-	case <-done:
-	case <-timeout:
-		t.Fatal("Timeout received!")
+		peerA := makePeer(addrA)
+		peerB := makePeer(addrB)
+
+		dhtA := setupDHT(ctx, t, peerA)
+		dhtB := setupDHT(ctx, t, peerB)
+
+		defer dhtA.Halt()
+		defer dhtB.Halt()
+		defer dhtA.network.Close()
+		defer dhtB.network.Close()
+
+		done := make(chan struct{})
+		go func() {
+			_, err = dhtA.Connect(ctx, peerB)
+			if err != nil {
+				t.Fatal(err)
+			}
+			done <- struct{}{}
+		}()
+		go func() {
+			_, err = dhtB.Connect(ctx, peerA)
+			if err != nil {
+				t.Fatal(err)
+			}
+			done <- struct{}{}
+		}()
+
+		timeout := time.After(time.Second)
+		select {
+		case <-done:
+		case <-timeout:
+			t.Fatal("Timeout received!")
+		}
+		select {
+		case <-done:
+		case <-timeout:
+			t.Fatal("Timeout received!")
+		}
+
+		<-time.After(100 * time.Millisecond)
 	}
 }
