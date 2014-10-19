@@ -69,7 +69,7 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 func (s *Swarm) handleIncomingConn(nconn conn.Conn) {
 
 	// Setup the new connection
-	err := s.connSetup(nconn)
+	_, err := s.connSetup(nconn)
 	if err != nil && err != ErrAlreadyOpen {
 		s.errChan <- err
 		nconn.Close()
@@ -78,9 +78,9 @@ func (s *Swarm) handleIncomingConn(nconn conn.Conn) {
 
 // connSetup adds the passed in connection to its peerMap and starts
 // the fanIn routine for that connection
-func (s *Swarm) connSetup(c conn.Conn) error {
+func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	if c == nil {
-		return errors.New("Tried to start nil connection.")
+		return nil, errors.New("Tried to start nil connection.")
 	}
 
 	log.Debug("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
@@ -93,10 +93,13 @@ func (s *Swarm) connSetup(c conn.Conn) error {
 
 	// add to conns
 	s.connsLock.Lock()
-	if _, ok := s.conns[c.RemotePeer().Key()]; ok {
+	if c2, ok := s.conns[c.RemotePeer().Key()]; ok {
 		log.Debug("Conn already open!")
 		s.connsLock.Unlock()
-		return ErrAlreadyOpen
+
+		c.Close()
+		return c2, nil // not error anymore, use existing conn.
+		// return ErrAlreadyOpen
 	}
 	s.conns[c.RemotePeer().Key()] = c
 	log.Debug("Added conn to map!")
@@ -104,7 +107,7 @@ func (s *Swarm) connSetup(c conn.Conn) error {
 
 	// kick off reader goroutine
 	go s.fanIn(c)
-	return nil
+	return c, nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.

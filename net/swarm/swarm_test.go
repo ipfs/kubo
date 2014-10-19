@@ -2,7 +2,7 @@ package swarm
 
 import (
 	"bytes"
-	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +23,7 @@ func pong(ctx context.Context, swarm *Swarm) {
 		case m1 := <-swarm.Incoming:
 			if bytes.Equal(m1.Data(), []byte("ping")) {
 				m2 := msg.New(m1.Peer(), []byte("pong"))
+				log.Debug("%s pong %s", swarm.local, m1.Peer())
 				swarm.Outgoing <- m2
 			}
 		}
@@ -52,10 +53,10 @@ func setupPeer(t *testing.T, addr string) *peer.Peer {
 	return p
 }
 
-func makeSwarms(ctx context.Context, t *testing.T, peers map[string]string) []*Swarm {
+func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []*peer.Peer) {
 	swarms := []*Swarm{}
 
-	for _, addr := range peers {
+	for _, addr := range addrs {
 		local := setupPeer(t, addr)
 		peerstore := peer.NewPeerstore()
 		swarm, err := NewSwarm(ctx, local, peerstore)
@@ -65,35 +66,46 @@ func makeSwarms(ctx context.Context, t *testing.T, peers map[string]string) []*S
 		swarms = append(swarms, swarm)
 	}
 
-	return swarms
-}
-
-func TestSwarm(t *testing.T) {
-	peers := map[string]string{
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a30": "/ip4/127.0.0.1/tcp/1234",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31": "/ip4/127.0.0.1/tcp/2345",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32": "/ip4/127.0.0.1/tcp/3456",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33": "/ip4/127.0.0.1/tcp/4567",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34": "/ip4/127.0.0.1/tcp/5678",
+	peers := make([]*peer.Peer, len(swarms))
+	for i, s := range swarms {
+		peers[i] = s.local
 	}
 
+	return swarms, peers
+}
+
+func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
+	// t.Skip("skipping for another test")
+
 	ctx := context.Background()
-	swarms := makeSwarms(ctx, t, peers)
+	swarms, peers := makeSwarms(ctx, t, addrs)
 
 	// connect everyone
-	for _, s := range swarms {
-		peers, err := s.peers.All()
-		if err != nil {
-			t.Fatal(err)
-		}
+	{
+		var wg sync.WaitGroup
+		connect := func(s *Swarm, dst *peer.Peer) {
+			// copy for other peer
+			cp := &peer.Peer{ID: dst.ID}
+			cp.AddAddress(dst.Addresses[0])
 
-		for _, p := range *peers {
-			fmt.Println("dialing")
-			if _, err := s.Dial(p); err != nil {
+			log.Info("SWARM TEST: %s dialing %s", s.local, dst)
+			if _, err := s.Dial(cp); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}
-			fmt.Println("dialed")
+			log.Info("SWARM TEST: %s connected to %s", s.local, dst)
+			wg.Done()
 		}
+
+		log.Info("Connecting swarms simultaneously.")
+		for _, s := range swarms {
+			for _, p := range peers {
+				if p != s.local { // don't connect to self.
+					wg.Add(1)
+					connect(s, p)
+				}
+			}
+		}
+		wg.Wait()
 	}
 
 	// ping/pong
@@ -114,9 +126,9 @@ func TestSwarm(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		MsgNum := 1000
 		for k := 0; k < MsgNum; k++ {
 			for _, p := range *peers {
+				log.Debug("%s ping %s", s1.local, p)
 				s1.Outgoing <- msg.New(p, []byte("ping"))
 			}
 		}
@@ -143,10 +155,23 @@ func TestSwarm(t *testing.T) {
 		}
 
 		cancel()
-		<-time.After(50 * time.Millisecond)
+		<-time.After(50 * time.Microsecond)
 	}
 
 	for _, s := range swarms {
 		s.Close()
 	}
+}
+
+func TestSwarm(t *testing.T) {
+
+	addrs := []string{
+		"/ip4/127.0.0.1/tcp/1234",
+		"/ip4/127.0.0.1/tcp/1235",
+		"/ip4/127.0.0.1/tcp/1236",
+		"/ip4/127.0.0.1/tcp/1237",
+		"/ip4/127.0.0.1/tcp/1238",
+	}
+
+	SubtestSwarm(t, addrs, 1000)
 }

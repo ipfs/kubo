@@ -137,7 +137,8 @@ func (s *Swarm) Dial(peer *peer.Peer) (conn.Conn, error) {
 		return nil, err
 	}
 
-	if err := s.connSetup(c); err != nil {
+	c, err = s.connSetup(c)
+	if err != nil {
 		c.Close()
 		return nil, err
 	}

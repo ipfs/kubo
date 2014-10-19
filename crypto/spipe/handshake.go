@@ -205,7 +205,7 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	if bytes.Compare(resp2, finished) != 0 {
-		return errors.New("Negotiation failed.")
+		return fmt.Errorf("Negotiation failed, got: %s", resp2)
 	}
 
 	log.Debug("%s handshake: Got node id: %s", s.local, s.remote)
