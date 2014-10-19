@@ -47,26 +47,43 @@ func getDaemonAddr(confdir string) (string, error) {
 // over network RPC API. The address of the daemon is retrieved from the config
 // directory, where live daemons write their addresses to special files.
 func SendCommand(command *Command, confdir string) error {
-	//check if daemon is running
-	log.Info("Checking if daemon is running...")
+	server := os.Getenv("IPFS_ADDRESS_RPC")
+
+	if server == "" {
+		//check if daemon is running
+		log.Info("Checking if daemon is running...")
+		if !serverIsRunning(confdir) {
+			return ErrDaemonNotRunning
+		}
+
+		log.Info("Daemon is running!")
+
+		var err error
+		server, err = getDaemonAddr(confdir)
+		if err != nil {
+			return err
+		}
+	}
+
+	return serverComm(server, command)
+}
+
+func serverIsRunning(confdir string) bool {
 	var err error
 	confdir, err = u.TildeExpansion(confdir)
 	if err != nil {
-		return err
+		log.Error("Tilde Expansion Failed: %s", err)
+		return false
 	}
 	lk, err := daemonLock(confdir)
 	if err == nil {
 		lk.Close()
-		return ErrDaemonNotRunning
+		return false
 	}
+	return true
+}
 
-	log.Info("Daemon is running! [reason = %s]", err)
-
-	server, err := getDaemonAddr(confdir)
-	if err != nil {
-		return err
-	}
-
+func serverComm(server string, command *Command) error {
 	log.Info("Daemon address: %s", server)
 	maddr, err := ma.NewMultiaddr(server)
 	if err != nil {
