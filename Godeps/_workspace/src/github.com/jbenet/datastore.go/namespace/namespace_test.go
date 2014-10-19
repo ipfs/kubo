@@ -1,12 +1,12 @@
-package fs_test
+package namespace_test
 
 import (
 	"bytes"
 	"sort"
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/fs"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ns "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/namespace"
 	. "launchpad.net/gocheck"
 )
 
@@ -17,21 +17,10 @@ type DSSuite struct{}
 
 var _ = Suite(&DSSuite{})
 
-func (ks *DSSuite) SetUpTest(c *C) {
-	ks.dir = c.MkDir()
-	ks.ds, _ = fs.NewDatastore(ks.dir)
-}
-
-func (ks *DSSuite) TestOpen(c *C) {
-	_, err := fs.NewDatastore("/tmp/foo/bar/baz")
-	c.Assert(err, Not(Equals), nil)
-
-	// setup ds
-	_, err = fs.NewDatastore(ks.dir)
-	c.Assert(err, Equals, nil)
-}
-
 func (ks *DSSuite) TestBasic(c *C) {
+
+	mpds := ds.NewMapDatastore()
+	nsds := ns.Wrap(mpds, ds.NewKey("abc"))
 
 	keys := strsToKeys([]string{
 		"foo",
@@ -43,18 +32,22 @@ func (ks *DSSuite) TestBasic(c *C) {
 	})
 
 	for _, k := range keys {
-		err := ks.ds.Put(k, []byte(k.String()))
+		err := nsds.Put(k, []byte(k.String()))
 		c.Check(err, Equals, nil)
 	}
 
 	for _, k := range keys {
-		v, err := ks.ds.Get(k)
+		v1, err := nsds.Get(k)
 		c.Check(err, Equals, nil)
-		c.Check(bytes.Equal(v.([]byte), []byte(k.String())), Equals, true)
+		c.Check(bytes.Equal(v1.([]byte), []byte(k.String())), Equals, true)
+
+		v2, err := mpds.Get(ds.NewKey("abc").Child(k))
+		c.Check(err, Equals, nil)
+		c.Check(bytes.Equal(v2.([]byte), []byte(k.String())), Equals, true)
 	}
 
 	listA, errA := mpds.KeyList()
-	listB, errB := ktds.KeyList()
+	listB, errB := nsds.KeyList()
 	c.Check(errA, Equals, nil)
 	c.Check(errB, Equals, nil)
 	c.Check(len(listA), Equals, len(listB))
@@ -65,8 +58,8 @@ func (ks *DSSuite) TestBasic(c *C) {
 
 	for i, kA := range listA {
 		kB := listB[i]
-		c.Check(pair.Invert(kA), Equals, kB)
-		c.Check(kA, Equals, pair.Convert(kB))
+		c.Check(nsds.InvertKey(kA), Equals, kB)
+		c.Check(kA, Equals, nsds.ConvertKey(kB))
 	}
 }
 

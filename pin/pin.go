@@ -1,21 +1,29 @@
 package pin
 
 import (
+
+	//ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	nsds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/namespace"
 	"github.com/jbenet/go-ipfs/blocks/set"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/util"
 )
 
+var recursePinDatastoreKey = ds.NewKey("/local/pins/recursive/keys")
+var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
+var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")
+
 type Pinner interface {
 	Pin(*mdag.Node, bool) error
 	Unpin(util.Key, bool) error
+	Flush() error
 }
 
 type pinner struct {
 	recursePin set.BlockSet
 	directPin  set.BlockSet
-	indirPin   indirectPin
+	indirPin   *indirectPin
 	dserv      *mdag.DAGService
 	dstore     ds.Datastore
 }
@@ -23,14 +31,17 @@ type pinner struct {
 func NewPinner(dstore ds.Datastore, serv *mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
-	rcset := set.NewDBWrapperSet(dstore, "/pinned/recurse/", set.NewSimpleBlockSet())
-	dirset := set.NewDBWrapperSet(dstore, "/pinned/direct/", set.NewSimpleBlockSet())
+	rcds := nsds.Wrap(dstore, recursePinDatastoreKey)
+	rcset := set.NewDBWrapperSet(rcds, set.NewSimpleBlockSet())
 
-	nsdstore := dstore // WRAP IN NAMESPACE
+	dirds := nsds.Wrap(dstore, directPinDatastoreKey)
+	dirset := set.NewDBWrapperSet(dirds, set.NewSimpleBlockSet())
+
+	nsdstore := nsds.Wrap(dstore, indirectPinDatastoreKey)
 	return &pinner{
 		recursePin: rcset,
 		directPin:  dirset,
-		indirPin:   newIndirectPin(nsdstore),
+		indirPin:   NewIndirectPin(nsdstore),
 		dserv:      serv,
 		dstore:     dstore,
 	}
@@ -125,4 +136,45 @@ func (p *pinner) IsPinned(key util.Key) bool {
 	return p.recursePin.HasKey(key) ||
 		p.directPin.HasKey(key) ||
 		p.indirPin.HasKey(key)
+}
+
+func LoadPinner(d ds.Datastore) (Pinner, error) {
+	p := new(pinner)
+
+	var err error
+	p.recursePin, err = set.SetFromDatastore(d, recursePinDatastoreKey)
+	if err != nil {
+		return nil, err
+	}
+	p.directPin, err = set.SetFromDatastore(d, directPinDatastoreKey)
+	if err != nil {
+		return nil, err
+	}
+
+	p.indirPin, err = loadIndirPin(d, indirectPinDatastoreKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func (p *pinner) Flush() error {
+	recurse := p.recursePin.GetKeys()
+	err := p.dstore.Put(recursePinDatastoreKey, recurse)
+	if err != nil {
+		return err
+	}
+
+	direct := p.directPin.GetKeys()
+	err = p.dstore.Put(directPinDatastoreKey, direct)
+	if err != nil {
+		return err
+	}
+
+	err = p.dstore.Put(indirectPinDatastoreKey, p.indirPin.refCounts)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -1,25 +1,41 @@
 package pin
 
 import (
+	"errors"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	bc "github.com/jbenet/go-ipfs/blocks/set"
+	"github.com/jbenet/go-ipfs/blocks/set"
 	"github.com/jbenet/go-ipfs/util"
 )
 
 type indirectPin struct {
-	blockset  bc.BlockSet
+	blockset  set.BlockSet
 	refCounts map[util.Key]int
 }
 
-func loadBlockSet(d ds.Datastore) (bc.BlockSet, map[util.Key]int) {
-	panic("Not yet implemented!")
-	return nil, nil
+func NewIndirectPin(dstore ds.Datastore) *indirectPin {
+	return &indirectPin{
+		blockset:  set.NewDBWrapperSet(dstore, set.NewSimpleBlockSet()),
+		refCounts: make(map[util.Key]int),
+	}
 }
 
-func newIndirectPin(d ds.Datastore) indirectPin {
-	// suppose the blockset actually takes blocks, not just keys
-	bs, rc := loadBlockSet(d)
-	return indirectPin{bs, rc}
+func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
+	irefcnt, err := d.Get(k)
+	if err != nil {
+		return nil, err
+	}
+	refcnt, ok := irefcnt.(map[util.Key]int)
+	if !ok {
+		return nil, errors.New("invalid type from datastore")
+	}
+
+	var keys []util.Key
+	for k, _ := range refcnt {
+		keys = append(keys, k)
+	}
+
+	return &indirectPin{blockset: set.SimpleSetFromKeys(keys), refCounts: refcnt}, nil
 }
 
 func (i *indirectPin) Increment(k util.Key) {

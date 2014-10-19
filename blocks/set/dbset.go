@@ -9,19 +9,17 @@ import (
 type datastoreBlockSet struct {
 	dstore ds.Datastore
 	bset   BlockSet
-	prefix string
 }
 
-func NewDBWrapperSet(d ds.Datastore, prefix string, bset BlockSet) BlockSet {
+func NewDBWrapperSet(d ds.Datastore, bset BlockSet) BlockSet {
 	return &datastoreBlockSet{
 		dstore: d,
 		bset:   bset,
-		prefix: prefix,
 	}
 }
 
 func (d *datastoreBlockSet) AddBlock(k util.Key) {
-	err := d.dstore.Put(d.prefixKey(k), []byte{})
+	err := d.dstore.Put(k.DsKey(), []byte{})
 	if err != nil {
 		log.Error("blockset put error: %s", err)
 	}
@@ -32,7 +30,7 @@ func (d *datastoreBlockSet) AddBlock(k util.Key) {
 func (d *datastoreBlockSet) RemoveBlock(k util.Key) {
 	d.bset.RemoveBlock(k)
 	if !d.bset.HasKey(k) {
-		d.dstore.Delete(d.prefixKey(k))
+		d.dstore.Delete(k.DsKey())
 	}
 }
 
@@ -44,6 +42,6 @@ func (d *datastoreBlockSet) GetBloomFilter() bloom.Filter {
 	return d.bset.GetBloomFilter()
 }
 
-func (d *datastoreBlockSet) prefixKey(k util.Key) ds.Key {
-	return (util.Key(d.prefix) + k).DsKey()
+func (d *datastoreBlockSet) GetKeys() []util.Key {
+	return d.bset.GetKeys()
 }

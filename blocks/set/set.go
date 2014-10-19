@@ -1,6 +1,10 @@
 package set
 
 import (
+	"errors"
+
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+
 	"github.com/jbenet/go-ipfs/blocks/bloom"
 	"github.com/jbenet/go-ipfs/util"
 )
@@ -12,6 +16,29 @@ type BlockSet interface {
 	RemoveBlock(util.Key)
 	HasKey(util.Key) bool
 	GetBloomFilter() bloom.Filter
+
+	GetKeys() []util.Key
+}
+
+func SimpleSetFromKeys(keys []util.Key) BlockSet {
+	sbs := &simpleBlockSet{blocks: make(map[util.Key]struct{})}
+	for _, k := range keys {
+		sbs.blocks[k] = struct{}{}
+	}
+	return sbs
+}
+
+func SetFromDatastore(d ds.Datastore, k ds.Key) (BlockSet, error) {
+	ikeys, err := d.Get(k)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, ok := ikeys.([]util.Key)
+	if !ok {
+		return nil, errors.New("Incorrect type for keys from datastore")
+	}
+	return SimpleSetFromKeys(keys), nil
 }
 
 func NewSimpleBlockSet() BlockSet {
@@ -41,4 +68,12 @@ func (b *simpleBlockSet) GetBloomFilter() bloom.Filter {
 		f.Add([]byte(k))
 	}
 	return f
+}
+
+func (b *simpleBlockSet) GetKeys() []util.Key {
+	var out []util.Key
+	for k, _ := range b.blocks {
+		out = append(out, k)
+	}
+	return out
 }
