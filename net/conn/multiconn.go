@@ -132,6 +132,7 @@ func (c *MultiConn) fanOut() {
 	c.Children().Add(1)
 	defer c.Children().Done()
 
+	i := 0
 	for {
 		select {
 		case <-c.Closing():
@@ -140,6 +141,7 @@ func (c *MultiConn) fanOut() {
 		// send data out through our "best connection"
 		case m, more := <-c.duplex.Out:
 			if !more {
+				log.Info("%s out channel closed", c)
 				return
 			}
 			sc := c.BestConn()
@@ -147,6 +149,9 @@ func (c *MultiConn) fanOut() {
 				// maybe this should be a logged error, not a panic.
 				panic("sending out multiconn without any live connection")
 			}
+
+			i++
+			log.Info("%s sending (%d)", sc, i)
 			sc.Out() <- m
 		}
 	}
@@ -160,6 +165,8 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 	// cleanup all data associated with this child Connection.
 	defer func() {
+		log.Info("closing: %s", child)
+
 		// in case it still is in the map, remove it.
 		c.Lock()
 		delete(c.conns, child.ID())
@@ -174,6 +181,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 		}
 	}()
 
+	i := 0
 	for {
 		select {
 		case <-c.Closing(): // multiconn closing
@@ -184,8 +192,11 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 		case m, more := <-child.In(): // receiving data
 			if !more {
+				log.Info("%s in channel closed", child)
 				return // closed
 			}
+			i++
+			log.Info("%s received (%d)", child, i)
 			c.duplex.In <- m
 		}
 	}

@@ -136,6 +136,7 @@ func (s *Swarm) fanOut() {
 	s.Children().Add(1)
 	defer s.Children().Done()
 
+	i := 0
 	for {
 		select {
 		case <-s.Closing():
@@ -143,6 +144,7 @@ func (s *Swarm) fanOut() {
 
 		case msg, ok := <-s.Outgoing:
 			if !ok {
+				log.Info("%s outgoing channel closed", s)
 				return
 			}
 
@@ -157,8 +159,8 @@ func (s *Swarm) fanOut() {
 				continue
 			}
 
-			// log.Debug("[peer: %s] Sent message [to = %s]", s.local, msg.Peer())
-
+			i++
+			log.Debug("%s sent message to %s (%d)", s.local, msg.Peer(), i)
 			// queue it in the connection's buffer
 			c.Out() <- msg.Data()
 		}
@@ -182,6 +184,7 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 		c.Children().Done() // child of Conn as well.
 	}()
 
+	i := 0
 	for {
 		select {
 		case <-s.Closing(): // Swarm closing
@@ -192,9 +195,11 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 
 		case data, ok := <-c.In():
 			if !ok {
+				log.Info("%s in channel closed", c)
 				return // channel closed.
 			}
-			// log.Debug("[peer: %s] Received message [from = %s]", s.local, c.Peer)
+			i++
+			log.Debug("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
 			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}

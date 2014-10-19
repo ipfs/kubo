@@ -16,6 +16,7 @@ import (
 )
 
 func pong(ctx context.Context, swarm *Swarm) {
+	i := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -23,7 +24,8 @@ func pong(ctx context.Context, swarm *Swarm) {
 		case m1 := <-swarm.Incoming:
 			if bytes.Equal(m1.Data(), []byte("ping")) {
 				m2 := msg.New(m1.Peer(), []byte("pong"))
-				log.Debug("%s pong %s", swarm.local, m1.Peer())
+				i++
+				log.Debug("%s pong %s (%d)", swarm.local, m1.Peer(), i)
 				swarm.Outgoing <- m2
 			}
 		}
@@ -132,7 +134,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 
 		for k := 0; k < MsgNum; k++ {
 			for _, p := range *peers {
-				log.Debug("%s ping %s", s1.local, p)
+				log.Debug("%s ping %s (%d)", s1.local, p, k)
 				s1.Outgoing <- msg.New(p, []byte("ping"))
 			}
 		}
