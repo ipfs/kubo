@@ -133,7 +133,7 @@ func TestCloseLeak(t *testing.T) {
 	wg.Wait()
 	// done!
 
-	<-time.After(time.Microsecond * 100)
+	<-time.After(time.Millisecond * 150)
 	if runtime.NumGoroutine() > 20 {
 		// panic("uncomment me to debug")
 		t.Fatal("leaking goroutines:", runtime.NumGoroutine())
