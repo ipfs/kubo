@@ -32,7 +32,6 @@ func TestSimultOpen(t *testing.T) {
 			if _, err := s.Dial(cp); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}
-			log.Info("done?!?")
 			wg.Done()
 		}
 

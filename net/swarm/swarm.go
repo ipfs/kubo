@@ -56,48 +56,42 @@ type Swarm struct {
 	errChan chan error
 
 	// conns are the open connections the swarm is handling.
-	conns     conn.Map
+	// these are MultiConns, which multiplex multiple separate underlying Conns.
+	conns     conn.MultiConnMap
 	connsLock sync.RWMutex
 
 	// listeners for each network address
 	listeners []conn.Listener
 
-	// cancel is an internal function used to stop the Swarm's processing.
-	cancel context.CancelFunc
-	ctx    context.Context
+	// ContextCloser
+	conn.ContextCloser
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm(ctx context.Context, local *peer.Peer, ps peer.Peerstore) (*Swarm, error) {
 	s := &Swarm{
 		Pipe:    msg.NewPipe(10),
-		conns:   conn.Map{},
+		conns:   conn.MultiConnMap{},
 		local:   local,
 		peers:   ps,
 		errChan: make(chan error, 100),
 	}
 
-	s.ctx, s.cancel = context.WithCancel(ctx)
+	// ContextCloser for proper child management.
+	s.ContextCloser = conn.NewContextCloser(ctx, s.close)
+
 	go s.fanOut()
 	return s, s.listen()
 }
 
-// Close stops a swarm.
-func (s *Swarm) Close() error {
-	if s.cancel == nil {
-		return errors.New("Swarm already closed.")
-	}
-
-	// issue cancel for the context
-	s.cancel()
-
-	// set cancel to nil to prevent calling Close again, and signal to Listeners
-	s.cancel = nil
-
+// close stops a swarm. It's the underlying function called by ContextCloser
+func (s *Swarm) close() error {
 	// close listeners
 	for _, list := range s.listeners {
 		list.Close()
 	}
+	// close connections
+	conn.CloseConns(s.Connections()...)
 	return nil
 }
 
@@ -132,7 +126,7 @@ func (s *Swarm) Dial(peer *peer.Peer) (conn.Conn, error) {
 		Peerstore: s.peers,
 	}
 
-	c, err = d.Dial(s.ctx, "tcp", peer)
+	c, err = d.Dial(s.Context(), "tcp", peer)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +150,19 @@ func (s *Swarm) GetConnection(pid peer.ID) conn.Conn {
 		return nil
 	}
 	return c
+}
+
+// Connections returns a slice of all connections.
+func (s *Swarm) Connections() []conn.Conn {
+	s.connsLock.RLock()
+
+	conns := make([]conn.Conn, 0, len(s.conns))
+	for _, c := range s.conns {
+		conns = append(conns, c)
+	}
+
+	s.connsLock.RUnlock()
+	return conns
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection

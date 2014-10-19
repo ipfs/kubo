@@ -150,7 +150,7 @@ func setupMultiConns(t *testing.T, ctx context.Context) (a, b *MultiConn) {
 	p2l.Close()
 
 	log.Info("did you make multiconns?")
-	return c1.(*MultiConn), c2.(*MultiConn)
+	return c1, c2
 }
 
 func TestMulticonnSend(t *testing.T) {

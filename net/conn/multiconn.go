@@ -38,7 +38,7 @@ type MultiConn struct {
 }
 
 // NewMultiConn constructs a new connection
-func NewMultiConn(ctx context.Context, local, remote *peer.Peer, conns []Conn) (Conn, error) {
+func NewMultiConn(ctx context.Context, local, remote *peer.Peer, conns []Conn) (*MultiConn, error) {
 
 	c := &MultiConn{
 		local:  local,
@@ -53,13 +53,10 @@ func NewMultiConn(ctx context.Context, local, remote *peer.Peer, conns []Conn) (
 	// must happen before Adds / fanOut
 	c.ContextCloser = NewContextCloser(ctx, c.close)
 
-	log.Info("adding %d...", len(conns))
 	if conns != nil && len(conns) > 0 {
 		c.Add(conns...)
 	}
 	go c.fanOut()
-
-	log.Info("newMultiConn: %v to %v", local, remote)
 	return c, nil
 }
 
@@ -72,6 +69,9 @@ func (c *MultiConn) Add(conns ...Conn) {
 		log.Info("MultiConn: adding %s", c2)
 		if c.LocalPeer() != c2.LocalPeer() || c.RemotePeer() != c2.RemotePeer() {
 			log.Error("%s", c2)
+			c.Unlock() // ok to unlock (to log). panicing.
+			log.Error("%s", c)
+			c.Lock() // gotta relock to avoid lock panic from deferring.
 			panic("connection addresses mismatch")
 		}
 
@@ -102,12 +102,12 @@ func (c *MultiConn) Remove(conns ...Conn) {
 	}
 
 	// close all in parallel, but wait for all to be done closing.
-	CloseConns(conns)
+	CloseConns(conns...)
 }
 
 // CloseConns closes multiple connections in parallel, and waits for all
 // to finish closing.
-func CloseConns(conns []Conn) {
+func CloseConns(conns ...Conn) {
 	var wg sync.WaitGroup
 	for _, child := range conns {
 
@@ -204,7 +204,7 @@ func (c *MultiConn) close() error {
 	c.RUnlock()
 
 	// close underlying connections
-	CloseConns(conns)
+	CloseConns(conns...)
 	return nil
 }
 

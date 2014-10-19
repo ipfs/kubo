@@ -85,7 +85,11 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		var wg sync.WaitGroup
 		connect := func(s *Swarm, dst *peer.Peer) {
 			// copy for other peer
-			cp := &peer.Peer{ID: dst.ID}
+
+			cp, err := s.peers.Get(dst.ID)
+			if err != nil {
+				cp = &peer.Peer{ID: dst.ID}
+			}
 			cp.AddAddress(dst.Addresses[0])
 
 			log.Info("SWARM TEST: %s dialing %s", s.local, dst)

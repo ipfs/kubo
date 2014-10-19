@@ -36,7 +36,7 @@ func (s *Swarm) listen() error {
 // Listen for new connections on the given multiaddr
 func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 
-	list, err := conn.Listen(s.ctx, maddr, s.local, s.peers)
+	list, err := conn.Listen(s.Context(), maddr, s.local, s.peers)
 	if err != nil {
 		return err
 	}
@@ -50,13 +50,19 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 	s.listeners = append(s.listeners, list)
 
 	// Accept and handle new connections on this listener until it errors
+	// this listener is a child.
+	s.Children().Add(1)
 	go func() {
+		defer s.Children().Done()
+
 		for {
 			select {
-			case <-s.ctx.Done():
+			case <-s.Closing():
 				return
 
 			case conn := <-list.Accept():
+				// handler also a child.
+				s.Children().Add(1)
 				go s.handleIncomingConn(conn)
 			}
 		}
@@ -67,6 +73,8 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 
 // Handle getting ID from this peer, handshake, and adding it into the map
 func (s *Swarm) handleIncomingConn(nconn conn.Conn) {
+	// this handler is a child. added by caller.
+	defer s.Children().Done()
 
 	// Setup the new connection
 	_, err := s.connSetup(nconn)
@@ -77,7 +85,7 @@ func (s *Swarm) handleIncomingConn(nconn conn.Conn) {
 }
 
 // connSetup adds the passed in connection to its peerMap and starts
-// the fanIn routine for that connection
+// the fanInSingle routine for that connection
 func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	if c == nil {
 		return nil, errors.New("Tried to start nil connection.")
@@ -93,28 +101,44 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 
 	// add to conns
 	s.connsLock.Lock()
-	if c2, ok := s.conns[c.RemotePeer().Key()]; ok {
-		log.Debug("Conn already open!")
+
+	mc, ok := s.conns[c.RemotePeer().Key()]
+	if !ok {
+		// multiconn doesn't exist, make a new one.
+		conns := []conn.Conn{c}
+		mc, err := conn.NewMultiConn(s.Context(), s.local, c.RemotePeer(), conns)
+		if err != nil {
+			log.Error("error creating multiconn: %s", err)
+			c.Close()
+			return nil, err
+		}
+
+		s.conns[c.RemotePeer().Key()] = mc
 		s.connsLock.Unlock()
 
-		c.Close()
-		return c2, nil // not error anymore, use existing conn.
-		// return ErrAlreadyOpen
+		log.Debug("added new multiconn: %s", mc)
+	} else {
+		s.connsLock.Unlock() // unlock before adding new conn
+
+		mc.Add(c)
+		log.Debug("multiconn found: %s", mc)
 	}
-	s.conns[c.RemotePeer().Key()] = c
-	log.Debug("Added conn to map!")
-	s.connsLock.Unlock()
+
+	log.Debug("multiconn added new conn %s", c)
 
 	// kick off reader goroutine
-	go s.fanIn(c)
+	go s.fanInSingle(c)
 	return c, nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
 func (s *Swarm) fanOut() {
+	s.Children().Add(1)
+	defer s.Children().Done()
+
 	for {
 		select {
-		case <-s.ctx.Done():
+		case <-s.Closing():
 			return // told to close.
 
 		case msg, ok := <-s.Outgoing:
@@ -127,9 +151,9 @@ func (s *Swarm) fanOut() {
 			s.connsLock.RUnlock()
 
 			if !found {
-				e := fmt.Errorf("Sent msg to peer without open conn: %v",
-					msg.Peer)
+				e := fmt.Errorf("Sent msg to peer without open conn: %v", msg.Peer())
 				s.errChan <- e
+				log.Error("%s", e)
 				continue
 			}
 
@@ -143,30 +167,37 @@ func (s *Swarm) fanOut() {
 
 // Handles the receiving + wrapping of messages, per conn.
 // Consider using reflect.Select with one goroutine instead of n.
-func (s *Swarm) fanIn(c conn.Conn) {
+func (s *Swarm) fanInSingle(c conn.Conn) {
+	s.Children().Add(1)
+	c.Children().Add(1) // child of Conn as well.
+
+	// cleanup all data associated with this child Connection.
+	defer func() {
+		// remove it from the map.
+		s.connsLock.Lock()
+		delete(s.conns, c.RemotePeer().Key())
+		s.connsLock.Unlock()
+
+		s.Children().Done()
+		c.Children().Done() // child of Conn as well.
+	}()
+
 	for {
 		select {
-		case <-s.ctx.Done():
-			// close Conn.
-			c.Close()
-			goto out
+		case <-s.Closing(): // Swarm closing
+			return
+
+		case <-c.Closing(): // Conn closing
+			return
 
 		case data, ok := <-c.In():
 			if !ok {
-				e := fmt.Errorf("Error retrieving from conn: %v", c.RemotePeer())
-				s.errChan <- e
-				goto out
+				return // channel closed.
 			}
-
 			// log.Debug("[peer: %s] Received message [from = %s]", s.local, c.Peer)
 			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}
-
-out:
-	s.connsLock.Lock()
-	delete(s.conns, c.RemotePeer().Key())
-	s.connsLock.Unlock()
 }
 
 // Commenting out because it's platform specific

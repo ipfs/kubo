@@ -99,7 +99,7 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 	}
 
 	pubKey := elliptic.Marshal(curve, x, y)
-	log.Debug("GenerateEKeyPair %d", len(pubKey))
+	// log.Debug("GenerateEKeyPair %d", len(pubKey))
 
 	done := func(theirPub []byte) ([]byte, error) {
 		// Verify and unpack node's public key.
