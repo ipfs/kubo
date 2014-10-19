@@ -10,6 +10,9 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// MultiConnMap is for shorthand
+type MultiConnMap map[u.Key]*MultiConn
+
 // Duplex is a simple duplex channel
 type Duplex struct {
 	In  chan []byte
@@ -160,10 +163,15 @@ func (c *MultiConn) fanInSingle(child Conn) {
 		// in case it still is in the map, remove it.
 		c.Lock()
 		delete(c.conns, child.ID())
+		connLen := len(c.conns)
 		c.Unlock()
 
 		c.Children().Done()
 		child.Children().Done()
+
+		if connLen == 0 {
+			c.Close() // close self if all underlying children are gone?
+		}
 	}()
 
 	for {

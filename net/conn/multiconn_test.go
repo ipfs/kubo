@@ -293,3 +293,32 @@ func TestMulticonnSendUnderlying(t *testing.T) {
 	msgsFrom1.CheckDone(t)
 	msgsFrom2.CheckDone(t)
 }
+
+func TestMulticonnClose(t *testing.T) {
+	// t.Skip("fooo")
+
+	log.Info("TestMulticonnSendUnderlying")
+	ctx := context.Background()
+	c1, c2 := setupMultiConns(t, ctx)
+
+	for _, c := range c1.conns {
+		c.Close()
+	}
+
+	for _, c := range c2.conns {
+		c.Close()
+	}
+
+	timeout := time.After(100 * time.Millisecond)
+	select {
+	case <-c1.Closed():
+	case <-timeout:
+		t.Fatal("timeout")
+	}
+
+	select {
+	case <-c2.Closed():
+	case <-timeout:
+		t.Fatal("timeout")
+	}
+}

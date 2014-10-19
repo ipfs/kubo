@@ -50,7 +50,7 @@ func TestSecureClose(t *testing.T) {
 	select {
 	case <-c1.Closed():
 	default:
-		t.Fatal("not done after cancel")
+		t.Fatal("not done after close")
 	}
 
 	c2.Close()
@@ -58,7 +58,7 @@ func TestSecureClose(t *testing.T) {
 	select {
 	case <-c2.Closed():
 	default:
-		t.Fatal("not done after cancel")
+		t.Fatal("not done after close")
 	}
 
 	cancel() // close the listener :P
