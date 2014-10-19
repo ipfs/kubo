@@ -146,11 +146,16 @@ func setupMultiConns(t *testing.T, ctx context.Context) (a, b *MultiConn) {
 		t.Fatal(err)
 	}
 
+	p1l.Close()
+	p2l.Close()
+
 	log.Info("did you make multiconns?")
 	return c1.(*MultiConn), c2.(*MultiConn)
 }
 
 func TestMulticonnSend(t *testing.T) {
+	// t.Skip("fooo")
+
 	log.Info("TestMulticonnSend")
 	ctx := context.Background()
 	ctxC, cancel := context.WithCancel(ctx)
@@ -210,4 +215,81 @@ func TestMulticonnSend(t *testing.T) {
 	msgsFrom1.CheckDone(t)
 	msgsFrom2.CheckDone(t)
 	<-time.After(100 * time.Millisecond)
+}
+
+func TestMulticonnSendUnderlying(t *testing.T) {
+	// t.Skip("fooo")
+
+	log.Info("TestMulticonnSendUnderlying")
+	ctx := context.Background()
+	ctxC, cancel := context.WithCancel(ctx)
+
+	c1, c2 := setupMultiConns(t, ctx)
+
+	log.Info("gen msgs")
+	num := 100
+	msgsFrom1 := genMessages(num, "from p1 to p2")
+	msgsFrom2 := genMessages(num, "from p2 to p1")
+
+	var wg sync.WaitGroup
+
+	send := func(c *MultiConn, msgs *msgMap) {
+		defer wg.Done()
+
+		conns := make([]Conn, 0, len(c.conns))
+		for _, c1 := range c.conns {
+			conns = append(conns, c1)
+		}
+
+		i := 0
+		for _, m := range msgs.msgs {
+			log.Info("send: %s", m.payload)
+			switch i % 3 {
+			case 0:
+				conns[0].Out() <- []byte(m.payload)
+			case 1:
+				conns[1].Out() <- []byte(m.payload)
+			case 2:
+				c.Out() <- []byte(m.payload)
+			}
+			msgs.Sent(t, m.payload)
+			<-time.After(time.Microsecond * 10)
+			i++
+		}
+	}
+
+	recv := func(ctx context.Context, c *MultiConn, msgs *msgMap) {
+		defer wg.Done()
+
+		for {
+			select {
+			case payload := <-c.In():
+				msgs.Received(t, string(payload))
+				log.Info("recv: %s", payload)
+				if msgs.recv == len(msgs.msgs) {
+					return
+				}
+
+			case <-ctx.Done():
+				return
+
+			}
+		}
+
+	}
+
+	log.Info("msg send + recv")
+
+	wg.Add(4)
+	go send(c1, msgsFrom1)
+	go send(c2, msgsFrom2)
+	go recv(ctxC, c1, msgsFrom2)
+	go recv(ctxC, c2, msgsFrom1)
+	wg.Wait()
+	cancel()
+	c1.Close()
+	c2.Close()
+
+	msgsFrom1.CheckDone(t)
+	msgsFrom2.CheckDone(t)
 }
