@@ -27,6 +27,9 @@ type listener struct {
 	// Peerstore is the set of peers we know about locally
 	peers peer.Peerstore
 
+	// Context for children Conn
+	ctx context.Context
+
 	// embedded ContextCloser
 	ContextCloser
 }
@@ -54,13 +57,13 @@ func (l *listener) listen() {
 	handle := func(maconn manet.Conn) {
 		defer func() { <-sem }() // release
 
-		c, err := newSingleConn(l.Context(), l.local, nil, maconn)
+		c, err := newSingleConn(l.ctx, l.local, nil, maconn)
 		if err != nil {
 			log.Error("Error accepting connection: %v", err)
 			return
 		}
 
-		sc, err := newSecureConn(l.Context(), c, l.peers)
+		sc, err := newSecureConn(l.ctx, c, l.peers)
 		if err != nil {
 			log.Error("Error securing connection: %v", err)
 			return
@@ -130,9 +133,14 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local *peer.Peer, peers peer
 		local:    local,
 		conns:    make(chan Conn, chansize),
 		chansize: chansize,
+		ctx:      ctx,
 	}
 
-	l.ContextCloser = NewContextCloser(ctx, l.close)
+	// need a separate context to use for the context closer.
+	// This is because the parent context will be given to all connections too,
+	// and if we close the listener, the connections shouldn't share the fate.
+	ctx2, _ := context.WithCancel(ctx)
+	l.ContextCloser = NewContextCloser(ctx2, l.close)
 
 	go l.listen()
 
