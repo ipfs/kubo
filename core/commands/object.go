@@ -93,6 +93,11 @@ func ObjectGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out
 	return err
 }
 
+// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
+var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbytes")
+
+const inputLimit = 512 * 1024
+
 // ObjectPut takes a format option, serilizes bytes from stdin and updates the dag with that data
 func ObjectPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
 	var (
@@ -101,9 +106,13 @@ func ObjectPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out
 		err     error
 	)
 
-	data, err = ioutil.ReadAll(io.LimitReader(os.Stdin, 512*1024))
+	data, err = ioutil.ReadAll(io.LimitReader(os.Stdin, inputLimit+10))
 	if err != nil {
 		return fmt.Errorf("ObjectPut error: %v", err)
+	}
+
+	if len(data) >= inputLimit {
+		return ErrObjectTooLarge
 	}
 
 	switch getObjectEnc(opts["encoding"]) {
