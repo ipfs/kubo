@@ -29,6 +29,7 @@ func setupSecureConn(t *testing.T, c Conn) Conn {
 }
 
 func TestSecureClose(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/1234", "/ip4/127.0.0.1/tcp/2345")
@@ -64,6 +65,7 @@ func TestSecureClose(t *testing.T) {
 }
 
 func TestSecureCancel(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/1234", "/ip4/127.0.0.1/tcp/2345")
@@ -100,6 +102,7 @@ func TestSecureCancel(t *testing.T) {
 }
 
 func TestSecureCloseLeak(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
 
 	var wg sync.WaitGroup
 

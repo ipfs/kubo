@@ -65,8 +65,16 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 	log.Info("newSingleConn: %v to %v", local, remote)
 
 	// setup the various io goroutines
-	go conn.msgio.outgoing.WriteTo(maconn)
-	go conn.msgio.incoming.ReadFrom(maconn, MaxMessageSize)
+	go func() {
+		conn.Children().Add(1)
+		conn.msgio.outgoing.WriteTo(maconn)
+		conn.Children().Done()
+	}()
+	go func() {
+		conn.Children().Add(1)
+		conn.msgio.incoming.ReadFrom(maconn, MaxMessageSize)
+		conn.Children().Done()
+	}()
 
 	// version handshake
 	ctxT, _ := context.WithTimeout(ctx, HandshakeTimeout)
@@ -216,16 +224,9 @@ func (l *listener) close() error {
 	return l.Listener.Close()
 }
 
-func (l *listener) isClosed() bool {
-	select {
-	case <-l.Closed():
-		return true
-	default:
-		return false
-	}
-}
-
 func (l *listener) listen() {
+	l.Children().Add(1)
+	defer l.Children().Done()
 
 	// handle at most chansize concurrent handshakes
 	sem := make(chan struct{}, l.chansize)
@@ -254,9 +255,11 @@ func (l *listener) listen() {
 		maconn, err := l.Listener.Accept()
 		if err != nil {
 
-			// if cancel is nil we're closed.
-			if l.isClosed() {
+			// if closing, we should exit.
+			select {
+			case <-l.Closing():
 				return // done.
+			default:
 			}
 
 			log.Error("Failed to accept connection: %v", err)
