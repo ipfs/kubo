@@ -101,7 +101,7 @@ func ObjectPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out
 		err     error
 	)
 
-	data, err = ioutil.ReadAll(os.Stdin)
+	data, err = ioutil.ReadAll(io.LimitReader(os.Stdin, 512*1024))
 	if err != nil {
 		return fmt.Errorf("ObjectPut error: %v", err)
 	}
