@@ -4,34 +4,9 @@ import (
 	"bytes"
 	"math/big"
 	"testing"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
-
-func TestXOR(t *testing.T) {
-	cases := [][3][]byte{
-		[3][]byte{
-			[]byte{0xFF, 0xFF, 0xFF},
-			[]byte{0xFF, 0xFF, 0xFF},
-			[]byte{0x00, 0x00, 0x00},
-		},
-		[3][]byte{
-			[]byte{0x00, 0xFF, 0x00},
-			[]byte{0xFF, 0xFF, 0xFF},
-			[]byte{0xFF, 0x00, 0xFF},
-		},
-		[3][]byte{
-			[]byte{0x55, 0x55, 0x55},
-			[]byte{0x55, 0xFF, 0xAA},
-			[]byte{0x00, 0xAA, 0xFF},
-		},
-	}
-
-	for _, c := range cases {
-		r := XOR(c[0], c[1])
-		if !bytes.Equal(r, c[2]) {
-			t.Error("XOR failed")
-		}
-	}
-}
 
 func TestPrefixLen(t *testing.T) {
 	cases := [][]byte{
@@ -126,7 +101,7 @@ func TestDistancesAndCenterSorting(t *testing.T) {
 	}
 
 	d1 := keys[2].Distance(keys[5])
-	d2 := XOR(keys[2].Bytes, keys[5].Bytes)
+	d2 := u.XOR(keys[2].Bytes, keys[5].Bytes)
 	d2 = d2[len(keys[2].Bytes)-len(d1.Bytes()):] // skip empty space for big
 	if !bytes.Equal(d1.Bytes(), d2) {
 		t.Errorf("bytes should be the same. %v == %v", d1.Bytes(), d2)

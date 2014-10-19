@@ -1,8 +1,7 @@
 package dht
 
 import (
-	"bytes"
-	"encoding/json"
+	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -61,6 +60,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	routeLevel := 0
 	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertKey(key), PoolSize)
 	if closest == nil || len(closest) == 0 {
+		log.Warning("Got no peers back from routing table!")
 		return nil, nil
 	}
 
@@ -117,26 +117,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	return nil
 }
 
-// NB: not actually async. Used to keep the interface consistent while the
-// actual async method, FindProvidersAsync2 is under construction
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan *peer.Peer {
-	ch := make(chan *peer.Peer)
-	providers, err := dht.FindProviders(ctx, key)
-	if err != nil {
-		close(ch)
-		return ch
-	}
-	go func() {
-		defer close(ch)
-		for _, p := range providers {
-			ch <- p
-		}
-	}()
-	return ch
-}
-
-// FIXME: there's a bug here!
-func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count int) <-chan *peer.Peer {
 	peerOut := make(chan *peer.Peer, count)
 	go func() {
 		ps := newPeerSet()
@@ -151,9 +132,12 @@ func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count in
 			}
 		}
 
+		wg := new(sync.WaitGroup)
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
+			wg.Add(1)
 			go func(p *peer.Peer) {
+				defer wg.Done()
 				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
 				if err != nil {
 					log.Error("%s", err)
@@ -162,7 +146,8 @@ func (dht *IpfsDHT) FindProvidersAsync2(ctx context.Context, key u.Key, count in
 				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
 			}(pp)
 		}
-
+		wg.Wait()
+		close(peerOut)
 	}()
 	return peerOut
 }
@@ -186,61 +171,16 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 	}
 }
 
-// FindProviders searches for peers who can provide the value for given key.
-func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
-	// get closest peer
-	log.Debug("Find providers for: '%s'", key)
-	p := dht.routingTables[0].NearestPeer(kb.ConvertKey(key))
-	if p == nil {
-		log.Warning("Got no nearest peer for find providers: '%s'", key)
-		return nil, nil
-	}
-
-	for level := 0; level < len(dht.routingTables); {
-
-		// attempt retrieving providers
-		pmes, err := dht.findProvidersSingle(ctx, p, key, level)
-		if err != nil {
-			return nil, err
-		}
-
-		// handle providers
-		provs := pmes.GetProviderPeers()
-		if provs != nil {
-			log.Debug("Got providers back from findProviders call!")
-			return dht.addProviders(key, provs), nil
-		}
-
-		log.Debug("Didnt get providers, just closer peers.")
-		closer := pmes.GetCloserPeers()
-		if len(closer) == 0 {
-			level++
-			continue
-		}
-
-		np, err := dht.peerFromInfo(closer[0])
-		if err != nil {
-			log.Debug("no peerFromInfo")
-			level++
-			continue
-		}
-		p = np
-	}
-	return nil, u.ErrNotFound
-}
-
 // Find specific Peer
-
 // FindPeer searches for a peer with given ID.
 func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error) {
 
 	// Check if were already connected to them
-	p, _ := dht.Find(id)
+	p, _ := dht.FindLocal(id)
 	if p != nil {
 		return p, nil
 	}
 
-	// @whyrusleeping why is this here? doesn't the dht.Find above cover it?
 	routeLevel := 0
 	p = dht.routingTables[routeLevel].NearestPeer(kb.ConvertPeerID(id))
 	if p == nil {
@@ -277,7 +217,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error
 func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Peer, error) {
 
 	// Check if were already connected to them
-	p, _ := dht.Find(id)
+	p, _ := dht.FindLocal(id)
 	if p != nil {
 		return p, nil
 	}
@@ -340,34 +280,4 @@ func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
 	_, err := dht.sendRequest(ctx, p, pmes)
 	log.Info("ping %s end (err = %s)", p, err)
 	return err
-}
-
-func (dht *IpfsDHT) getDiagnostic(ctx context.Context) ([]*diagInfo, error) {
-
-	log.Info("Begin Diagnostic")
-	peers := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
-	var out []*diagInfo
-
-	query := newQuery(dht.self.Key(), func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
-		pmes := newMessage(Message_DIAGNOSTIC, "", 0)
-		rpmes, err := dht.sendRequest(ctx, p, pmes)
-		if err != nil {
-			return nil, err
-		}
-
-		dec := json.NewDecoder(bytes.NewBuffer(rpmes.GetValue()))
-		for {
-			di := new(diagInfo)
-			err := dec.Decode(di)
-			if err != nil {
-				break
-			}
-
-			out = append(out, di)
-		}
-		return &dhtQueryResult{success: true}, nil
-	})
-
-	_, err := query.Run(ctx, peers)
-	return out, err
 }

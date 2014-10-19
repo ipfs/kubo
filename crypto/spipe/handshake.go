@@ -18,6 +18,7 @@ import (
 	"hash"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -204,7 +205,7 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	if bytes.Compare(resp2, finished) != 0 {
-		return errors.New("Negotiation failed.")
+		return fmt.Errorf("Negotiation failed, got: %s", resp2)
 	}
 
 	log.Debug("%s handshake: Got node id: %s", s.local, s.remote)
@@ -229,7 +230,15 @@ func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
 	theirMac, macSize := makeMac(hashType, tMKey)
 
 	for {
-		data, ok := <-s.insecure.In
+		var data []byte
+		ok := true
+
+		select {
+		case <-s.ctx.Done():
+			ok = false // return out
+		case data, ok = <-s.insecure.In:
+		}
+
 		if !ok {
 			close(s.Duplex.In)
 			return
@@ -266,8 +275,17 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 	myMac, macSize := makeMac(hashType, mMKey)
 
 	for {
-		data, ok := <-s.Out
+		var data []byte
+		ok := true
+
+		select {
+		case <-s.ctx.Done():
+			ok = false // return out
+		case data, ok = <-s.Out:
+		}
+
 		if !ok {
+			close(s.insecure.Out)
 			return
 		}
 
@@ -286,16 +304,6 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 		// log.Debug("[peer %s] secure out [to = %s] %d", s.local, s.remote, len(buff))
 		s.insecure.Out <- buff
 	}
-}
-
-// IDFromPubKey retrieves a Public Key from the peer given by pk
-func IDFromPubKey(pk ci.PubKey) (peer.ID, error) {
-	b, err := pk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	hash := u.Hash(b)
-	return peer.ID(hash), nil
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
@@ -334,7 +342,7 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 // else, construct it.
 func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error) {
 
-	rid, err := IDFromPubKey(rpk)
+	rid, err := peer.IDFromPubKey(rpk)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +381,8 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error)
 	// this shouldn't ever happen, given we hashed, etc, but it could mean
 	// expected code (or protocol) invariants violated.
 	if !npeer.PubKey.Equals(rpk) {
-		return nil, fmt.Errorf("WARNING: PubKey mismatch: %v", npeer)
+		log.Error("WARNING: PubKey mismatch: %v", npeer)
+		panic("secure channel pubkey mismatch")
 	}
 	return npeer, nil
 }

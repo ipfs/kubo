@@ -41,8 +41,7 @@ Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
     serve         Serve an interface to ipfs.
-
-	net-diag	  Print network diagnostic
+    net-diag      Print network diagnostic
 
 Use "ipfs help <command>" for more information about a command.
 `,

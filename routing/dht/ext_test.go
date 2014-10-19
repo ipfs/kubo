@@ -92,6 +92,10 @@ func (f *fauxNet) GetPeerList() []*peer.Peer {
 	return nil
 }
 
+func (f *fauxNet) GetBandwidthTotals() (uint64, uint64) {
+	return 0, 0
+}
+
 // Close terminates all network operation
 func (f *fauxNet) Close() error { return nil }
 
@@ -106,7 +110,7 @@ func TestGetFailures(t *testing.T) {
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
+	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 	other := &peer.Peer{ID: peer.ID("other_peer")}
 	d.Update(other)
 
@@ -196,6 +200,7 @@ func _randPeer() *peer.Peer {
 func TestNotFound(t *testing.T) {
 	// t.Skip("skipping test because it makes a lot of output")
 
+	ctx := context.Background()
 	fn := &fauxNet{}
 	fs := &fauxSender{}
 
@@ -203,7 +208,7 @@ func TestNotFound(t *testing.T) {
 	local.ID = peer.ID("test_peer")
 	peerstore := peer.NewPeerstore()
 
-	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
+	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
 	var ps []*peer.Peer
 	for i := 0; i < 5; i++ {
@@ -239,7 +244,7 @@ func TestNotFound(t *testing.T) {
 
 	})
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, _ = context.WithTimeout(ctx, time.Second*5)
 	v, err := d.GetValue(ctx, u.Key("hello"))
 	log.Debug("get value got %v", v)
 	if err != nil {
@@ -261,6 +266,7 @@ func TestNotFound(t *testing.T) {
 func TestLessThanKResponses(t *testing.T) {
 	// t.Skip("skipping test because it makes a lot of output")
 
+	ctx := context.Background()
 	u.Debug = false
 	fn := &fauxNet{}
 	fs := &fauxSender{}
@@ -268,7 +274,7 @@ func TestLessThanKResponses(t *testing.T) {
 	local := new(peer.Peer)
 	local.ID = peer.ID("test_peer")
 
-	d := NewDHT(local, peerstore, fn, fs, ds.NewMapDatastore())
+	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
 	var ps []*peer.Peer
 	for i := 0; i < 5; i++ {
@@ -303,7 +309,7 @@ func TestLessThanKResponses(t *testing.T) {
 
 	})
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, _ = context.WithTimeout(ctx, time.Second*30)
 	_, err := d.GetValue(ctx, u.Key("hello"))
 	if err != nil {
 		switch err {

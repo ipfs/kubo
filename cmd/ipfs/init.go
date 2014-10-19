@@ -10,7 +10,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
+	peer "github.com/jbenet/go-ipfs/peer"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -121,7 +121,7 @@ func initCmd(c *commander.Command, inp []string) error {
 	}
 	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := spipe.IDFromPubKey(pk)
+	id, err := peer.IDFromPubKey(pk)
 	if err != nil {
 		return err
 	}

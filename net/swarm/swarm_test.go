@@ -1,147 +1,187 @@
 package swarm
 
 import (
-	"fmt"
+	"bytes"
+	"sync"
 	"testing"
+	"time"
 
+	ci "github.com/jbenet/go-ipfs/crypto"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
-func pingListen(t *testing.T, listener manet.Listener, peer *peer.Peer) {
+func pong(ctx context.Context, swarm *Swarm) {
+	i := 0
 	for {
-		c, err := listener.Accept()
-		if err == nil {
-			go pong(t, c, peer)
+		select {
+		case <-ctx.Done():
+			return
+		case m1 := <-swarm.Incoming:
+			if bytes.Equal(m1.Data(), []byte("ping")) {
+				m2 := msg.New(m1.Peer(), []byte("pong"))
+				i++
+				log.Debug("%s pong %s (%d)", swarm.local, m1.Peer(), i)
+				swarm.Outgoing <- m2
+			}
 		}
 	}
 }
 
-func pong(t *testing.T, c manet.Conn, peer *peer.Peer) {
-	mrw := msgio.NewReadWriter(c)
-	for {
-		data := make([]byte, 1024)
-		n, err := mrw.ReadMsg(data)
-		if err != nil {
-			fmt.Printf("error %v\n", err)
-			return
-		}
-		d := string(data[:n])
-		if d != "ping" {
-			t.Errorf("error: didn't receive ping: '%v'\n", d)
-			return
-		}
-		err = mrw.WriteMsg([]byte("pong"))
-		if err != nil {
-			fmt.Printf("error %v\n", err)
-			return
-		}
-	}
-}
-
-func setupPeer(id string, addr string) (*peer.Peer, error) {
+func setupPeer(t *testing.T, addr string) *peer.Peer {
 	tcp, err := ma.NewMultiaddr(addr)
 	if err != nil {
-		return nil, err
+		t.Fatal(err)
 	}
 
-	mh, err := mh.FromHexString(id)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
-		return nil, err
+		t.Fatal(err)
 	}
 
-	p := &peer.Peer{ID: peer.ID(mh)}
+	id, err := peer.IDFromPubKey(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := &peer.Peer{ID: id}
+	p.PrivKey = sk
+	p.PubKey = pk
 	p.AddAddress(tcp)
-	return p, nil
+	return p
+}
+
+func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []*peer.Peer) {
+	swarms := []*Swarm{}
+
+	for _, addr := range addrs {
+		local := setupPeer(t, addr)
+		peerstore := peer.NewPeerstore()
+		swarm, err := NewSwarm(ctx, local, peerstore)
+		if err != nil {
+			t.Fatal(err)
+		}
+		swarms = append(swarms, swarm)
+	}
+
+	peers := make([]*peer.Peer, len(swarms))
+	for i, s := range swarms {
+		peers[i] = s.local
+	}
+
+	return swarms, peers
+}
+
+func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
+	// t.Skip("skipping for another test")
+
+	ctx := context.Background()
+	swarms, peers := makeSwarms(ctx, t, addrs)
+
+	// connect everyone
+	{
+		var wg sync.WaitGroup
+		connect := func(s *Swarm, dst *peer.Peer) {
+			// copy for other peer
+
+			cp, err := s.peers.Get(dst.ID)
+			if err != nil {
+				cp = &peer.Peer{ID: dst.ID}
+			}
+			cp.AddAddress(dst.Addresses[0])
+
+			log.Info("SWARM TEST: %s dialing %s", s.local, dst)
+			if _, err := s.Dial(cp); err != nil {
+				t.Fatal("error swarm dialing to peer", err)
+			}
+			log.Info("SWARM TEST: %s connected to %s", s.local, dst)
+			wg.Done()
+		}
+
+		log.Info("Connecting swarms simultaneously.")
+		for _, s := range swarms {
+			for _, p := range peers {
+				if p != s.local { // don't connect to self.
+					wg.Add(1)
+					connect(s, p)
+				}
+			}
+		}
+		wg.Wait()
+	}
+
+	// ping/pong
+	for _, s1 := range swarms {
+		ctx, cancel := context.WithCancel(ctx)
+
+		// setup all others to pong
+		for _, s2 := range swarms {
+			if s1 == s2 {
+				continue
+			}
+
+			go pong(ctx, s2)
+		}
+
+		peers, err := s1.peers.All()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for k := 0; k < MsgNum; k++ {
+			for _, p := range *peers {
+				log.Debug("%s ping %s (%d)", s1.local, p, k)
+				s1.Outgoing <- msg.New(p, []byte("ping"))
+			}
+		}
+
+		got := map[u.Key]int{}
+		for k := 0; k < (MsgNum * len(*peers)); k++ {
+			log.Debug("%s waiting for pong (%d)", s1.local, k)
+			msg := <-s1.Incoming
+			if string(msg.Data()) != "pong" {
+				t.Error("unexpected conn output", msg.Data)
+			}
+
+			n, _ := got[msg.Peer().Key()]
+			got[msg.Peer().Key()] = n + 1
+		}
+
+		if len(*peers) != len(got) {
+			t.Error("got less messages than sent")
+		}
+
+		for p, n := range got {
+			if n != MsgNum {
+				t.Error("peer did not get all msgs", p, n, "/", MsgNum)
+			}
+		}
+
+		cancel()
+		<-time.After(50 * time.Microsecond)
+	}
+
+	for _, s := range swarms {
+		s.Close()
+	}
 }
 
 func TestSwarm(t *testing.T) {
-	t.Skip("TODO FIXME nil pointer")
+	// t.Skip("skipping for another test")
 
-	local, err := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a30",
-		"/ip4/127.0.0.1/tcp/1234")
-	if err != nil {
-		t.Fatal("error setting up peer", err)
+	addrs := []string{
+		"/ip4/127.0.0.1/tcp/10234",
+		"/ip4/127.0.0.1/tcp/10235",
+		"/ip4/127.0.0.1/tcp/10236",
+		"/ip4/127.0.0.1/tcp/10237",
+		"/ip4/127.0.0.1/tcp/10238",
 	}
 
-	peerstore := peer.NewPeerstore()
-
-	swarm, err := NewSwarm(context.Background(), local, peerstore)
-	if err != nil {
-		t.Error(err)
-	}
-	var peers []*peer.Peer
-	var listeners []manet.Listener
-	peerNames := map[string]string{
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31": "/ip4/127.0.0.1/tcp/2345",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32": "/ip4/127.0.0.1/tcp/3456",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33": "/ip4/127.0.0.1/tcp/4567",
-		"11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34": "/ip4/127.0.0.1/tcp/5678",
-	}
-
-	for k, n := range peerNames {
-		peer, err := setupPeer(k, n)
-		if err != nil {
-			t.Fatal("error setting up peer", err)
-		}
-		a := peer.NetAddress("tcp")
-		if a == nil {
-			t.Fatal("error setting up peer (addr is nil)", peer)
-		}
-		listener, err := manet.Listen(a)
-		if err != nil {
-			t.Fatal("error setting up listener", err)
-		}
-		go pingListen(t, listener, peer)
-
-		_, err = swarm.Dial(peer)
-		if err != nil {
-			t.Fatal("error swarm dialing to peer", err)
-		}
-
-		// ok done, add it.
-		peers = append(peers, peer)
-		listeners = append(listeners, listener)
-	}
-
-	MsgNum := 1000
-	for k := 0; k < MsgNum; k++ {
-		for _, p := range peers {
-			swarm.Outgoing <- msg.New(p, []byte("ping"))
-		}
-	}
-
-	got := map[u.Key]int{}
-
-	for k := 0; k < (MsgNum * len(peers)); k++ {
-		msg := <-swarm.Incoming
-		if string(msg.Data()) != "pong" {
-			t.Error("unexpected conn output", msg.Data)
-		}
-
-		n, _ := got[msg.Peer().Key()]
-		got[msg.Peer().Key()] = n + 1
-	}
-
-	if len(peers) != len(got) {
-		t.Error("got less messages than sent")
-	}
-
-	for p, n := range got {
-		if n != MsgNum {
-			t.Error("peer did not get all msgs", p, n, "/", MsgNum)
-		}
-	}
-
-	swarm.Close()
-	for _, listener := range listeners {
-		listener.Close()
-	}
+	// msgs := 1000
+	msgs := 100
+	SubtestSwarm(t, addrs, msgs)
 }

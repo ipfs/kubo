@@ -108,6 +108,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		route           *dht.IpfsDHT
 		exchangeSession exchange.Interface
 		diagnostics     *diag.Diagnostics
+		network         inet.Network
 	)
 
 	if online {
@@ -135,11 +136,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		if err != nil {
 			return nil, err
 		}
+		network = net
 
 		diagnostics = diag.NewDiagnostics(local, net, diagService)
 		diagService.SetHandler(diagnostics)
 
-		route = dht.NewDHT(local, peerstore, net, dhtService, d)
+		route = dht.NewDHT(ctx, local, peerstore, net, dhtService, d)
 		// TODO(brian): perform this inside NewDHT factory method
 		dhtService.SetHandler(route) // wire the handler to the service.
 
@@ -173,6 +175,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Routing:     route,
 		Namesys:     ns,
 		Diagnostics: diagnostics,
+		Network:     network,
 	}, nil
 }
 

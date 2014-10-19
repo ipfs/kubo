@@ -10,16 +10,15 @@ message Message {
 		GET_PROVIDERS = 3;
 		FIND_NODE = 4;
 		PING = 5;
-		DIAGNOSTIC = 6;
 	}
 
 	message Peer {
-		required string id = 1;
-		required string addr = 2;
+		optional string id = 1;
+		optional string addr = 2;
 	}
 
 	// defines what type of message it is.
-	required MessageType type = 1;
+	optional MessageType type = 1;
 
 	// defines what coral cluster level this query/response belongs to.
 	optional int32 clusterLevelRaw = 10;

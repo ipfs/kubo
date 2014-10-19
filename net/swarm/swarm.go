@@ -9,10 +9,9 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 var log = u.Logger("swarm")
@@ -58,48 +57,42 @@ type Swarm struct {
 	errChan chan error
 
 	// conns are the open connections the swarm is handling.
-	conns     conn.Map
+	// these are MultiConns, which multiplex multiple separate underlying Conns.
+	conns     conn.MultiConnMap
 	connsLock sync.RWMutex
 
 	// listeners for each network address
-	listeners []manet.Listener
+	listeners []conn.Listener
 
-	// cancel is an internal function used to stop the Swarm's processing.
-	cancel context.CancelFunc
-	ctx    context.Context
+	// ContextCloser
+	ctxc.ContextCloser
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm(ctx context.Context, local *peer.Peer, ps peer.Peerstore) (*Swarm, error) {
 	s := &Swarm{
 		Pipe:    msg.NewPipe(10),
-		conns:   conn.Map{},
+		conns:   conn.MultiConnMap{},
 		local:   local,
 		peers:   ps,
 		errChan: make(chan error, 100),
 	}
 
-	s.ctx, s.cancel = context.WithCancel(ctx)
+	// ContextCloser for proper child management.
+	s.ContextCloser = ctxc.NewContextCloser(ctx, s.close)
+
 	go s.fanOut()
 	return s, s.listen()
 }
 
-// Close stops a swarm.
-func (s *Swarm) Close() error {
-	if s.cancel == nil {
-		return errors.New("Swarm already closed.")
-	}
-
-	// issue cancel for the context
-	s.cancel()
-
-	// set cancel to nil to prevent calling Close again, and signal to Listeners
-	s.cancel = nil
-
+// close stops a swarm. It's the underlying function called by ContextCloser
+func (s *Swarm) close() error {
 	// close listeners
 	for _, list := range s.listeners {
 		list.Close()
 	}
+	// close connections
+	conn.CloseConns(s.Connections()...)
 	return nil
 }
 
@@ -111,7 +104,7 @@ func (s *Swarm) Close() error {
 // etc. to achive connection.
 //
 // For now, Dial uses only TCP. This will be extended.
-func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
+func (s *Swarm) Dial(peer *peer.Peer) (conn.Conn, error) {
 	if peer.ID.Equal(s.local.ID) {
 		return nil, errors.New("Attempted connection to self!")
 	}
@@ -129,12 +122,18 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 	}
 
 	// open connection to peer
-	c, err = conn.Dial("tcp", peer)
+	d := &conn.Dialer{
+		LocalPeer: s.local,
+		Peerstore: s.peers,
+	}
+
+	c, err = d.Dial(s.Context(), "tcp", peer)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.connSetup(c); err != nil {
+	c, err = s.connSetup(c)
+	if err != nil {
 		c.Close()
 		return nil, err
 	}
@@ -142,32 +141,8 @@ func (s *Swarm) Dial(peer *peer.Peer) (*conn.Conn, error) {
 	return c, nil
 }
 
-// DialAddr is for connecting to a peer when you know their addr but not their ID.
-// Should only be used when sure that not connected to peer in question
-// TODO(jbenet) merge with Dial? need way to patch back.
-func (s *Swarm) DialAddr(addr ma.Multiaddr) (*conn.Conn, error) {
-	if addr == nil {
-		return nil, errors.New("addr must be a non-nil Multiaddr")
-	}
-
-	npeer := new(peer.Peer)
-	npeer.AddAddress(addr)
-
-	c, err := conn.Dial("tcp", npeer)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.connSetup(c); err != nil {
-		c.Close()
-		return nil, err
-	}
-
-	return c, err
-}
-
 // GetConnection returns the connection in the swarm to given peer.ID
-func (s *Swarm) GetConnection(pid peer.ID) *conn.Conn {
+func (s *Swarm) GetConnection(pid peer.ID) conn.Conn {
 	s.connsLock.RLock()
 	c, found := s.conns[u.Key(pid)]
 	s.connsLock.RUnlock()
@@ -176,6 +151,19 @@ func (s *Swarm) GetConnection(pid peer.ID) *conn.Conn {
 		return nil
 	}
 	return c
+}
+
+// Connections returns a slice of all connections.
+func (s *Swarm) Connections() []conn.Conn {
+	s.connsLock.RLock()
+
+	conns := make([]conn.Conn, 0, len(s.conns))
+	for _, c := range s.conns {
+		conns = append(conns, c)
+	}
+
+	s.connsLock.RUnlock()
+	return conns
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection
@@ -201,11 +189,12 @@ func (s *Swarm) GetErrChan() chan error {
 	return s.errChan
 }
 
+// GetPeerList returns a copy of the set of peers swarm is connected to.
 func (s *Swarm) GetPeerList() []*peer.Peer {
 	var out []*peer.Peer
 	s.connsLock.RLock()
 	for _, p := range s.conns {
-		out = append(out, p.Peer)
+		out = append(out, p.RemotePeer())
 	}
 	s.connsLock.RUnlock()
 	return out

@@ -58,3 +58,30 @@ func TestByteChanReader(t *testing.T) {
 		t.Fatal("Reader failed to stream correct bytes")
 	}
 }
+
+func TestXOR(t *testing.T) {
+	cases := [][3][]byte{
+		[3][]byte{
+			[]byte{0xFF, 0xFF, 0xFF},
+			[]byte{0xFF, 0xFF, 0xFF},
+			[]byte{0x00, 0x00, 0x00},
+		},
+		[3][]byte{
+			[]byte{0x00, 0xFF, 0x00},
+			[]byte{0xFF, 0xFF, 0xFF},
+			[]byte{0xFF, 0x00, 0xFF},
+		},
+		[3][]byte{
+			[]byte{0x55, 0x55, 0x55},
+			[]byte{0x55, 0xFF, 0xAA},
+			[]byte{0x00, 0xAA, 0xFF},
+		},
+	}
+
+	for _, c := range cases {
+		r := XOR(c[0], c[1])
+		if !bytes.Equal(r, c[2]) {
+			t.Error("XOR failed")
+		}
+	}
+}

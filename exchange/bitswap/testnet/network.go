@@ -3,6 +3,7 @@ package bitswap
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
@@ -13,6 +14,8 @@ import (
 
 type Network interface {
 	Adapter(*peer.Peer) bsnet.Adapter
+
+	HasPeer(*peer.Peer) bool
 
 	SendMessage(
 		ctx context.Context,
@@ -47,6 +50,11 @@ func (n *network) Adapter(p *peer.Peer) bsnet.Adapter {
 	}
 	n.clients[p.Key()] = client
 	return client
+}
+
+func (n *network) HasPeer(p *peer.Peer) bool {
+	_, found := n.clients[p.Key()]
+	return found
 }
 
 // TODO should this be completely asynchronous?
@@ -153,6 +161,14 @@ func (nc *networkClient) SendRequest(
 	to *peer.Peer,
 	message bsmsg.BitSwapMessage) (incoming bsmsg.BitSwapMessage, err error) {
 	return nc.network.SendRequest(ctx, nc.local, to, message)
+}
+
+func (nc *networkClient) DialPeer(p *peer.Peer) error {
+	// no need to do anything because dialing isn't a thing in this test net.
+	if !nc.network.HasPeer(p) {
+		return fmt.Errorf("Peer not in network: %s", p)
+	}
+	return nil
 }
 
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {

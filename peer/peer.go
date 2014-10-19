@@ -36,6 +36,16 @@ func DecodePrettyID(s string) ID {
 	return b58.Decode(s)
 }
 
+// IDFromPubKey retrieves a Public Key from the peer given by pk
+func IDFromPubKey(pk ic.PubKey) (ID, error) {
+	b, err := pk.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	hash := u.Hash(b)
+	return ID(hash), nil
+}
+
 // Map maps Key (string) : *Peer (slices are not comparable).
 type Map map[u.Key]*Peer
 
@@ -55,7 +65,7 @@ type Peer struct {
 
 // String prints out the peer.
 func (p *Peer) String() string {
-	return "[Peer " + p.ID.String() + "]"
+	return "[Peer " + p.ID.String()[:12] + "]"
 }
 
 // Key returns the ID as a Key (string) for maps.

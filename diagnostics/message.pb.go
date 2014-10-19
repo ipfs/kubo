@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package diagnostic is a generated protocol buffer package.
+Package diagnostics is a generated protocol buffer package.
 
 It is generated from these files:
 	message.proto
@@ -11,7 +11,7 @@ It is generated from these files:
 It has these top-level messages:
 	Message
 */
-package diagnostic
+package diagnostics
 
 import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 import math "math"

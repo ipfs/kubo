@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 )
+
+var CloserPeerCount = 4
 
 // dhthandler specifies the signature of functions that handle DHT messages.
 type dhtHandler func(*peer.Peer, *Message) (*Message, error)
@@ -30,8 +30,6 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 		return dht.handleGetProviders
 	case Message_PING:
 		return dht.handlePing
-	case Message_DIAGNOSTIC:
-		return dht.handleDiagnostic
 	default:
 		return nil
 	}
@@ -83,10 +81,12 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 	}
 
 	// Find closest peer on given cluster to desired key and reply with that info
-	closer := dht.betterPeerToQuery(pmes)
+	closer := dht.betterPeersToQuery(pmes, CloserPeerCount)
 	if closer != nil {
-		log.Debug("handleGetValue returning a closer peer: '%s'\n", closer)
-		resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
+		for _, p := range closer {
+			log.Debug("handleGetValue returning closer peer: '%s'", p)
+		}
+		resp.CloserPeers = peersToPBPeers(closer)
 	}
 
 	return resp, nil
@@ -109,27 +109,31 @@ func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {
 
 func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error) {
 	resp := newMessage(pmes.GetType(), "", pmes.GetClusterLevel())
-	var closest *peer.Peer
+	var closest []*peer.Peer
 
 	// if looking for self... special case where we send it on CloserPeers.
 	if peer.ID(pmes.GetKey()).Equal(dht.self.ID) {
-		closest = dht.self
+		closest = []*peer.Peer{dht.self}
 	} else {
-		closest = dht.betterPeerToQuery(pmes)
+		closest = dht.betterPeersToQuery(pmes, CloserPeerCount)
 	}
 
 	if closest == nil {
-		log.Error("handleFindPeer: could not find anything.\n")
+		log.Error("handleFindPeer: could not find anything.")
 		return resp, nil
 	}
 
-	if len(closest.Addresses) == 0 {
-		log.Error("handleFindPeer: no addresses for connected peer...\n")
-		return resp, nil
+	var withAddresses []*peer.Peer
+	for _, p := range closest {
+		if len(p.Addresses) > 0 {
+			withAddresses = append(withAddresses, p)
+		}
 	}
 
-	log.Debug("handleFindPeer: sending back '%s'\n", closest)
-	resp.CloserPeers = peersToPBPeers([]*peer.Peer{closest})
+	for _, p := range withAddresses {
+		log.Debug("handleFindPeer: sending back '%s'", p)
+	}
+	resp.CloserPeers = peersToPBPeers(withAddresses)
 	return resp, nil
 }
 
@@ -157,9 +161,9 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, e
 	}
 
 	// Also send closer peers.
-	closer := dht.betterPeerToQuery(pmes)
+	closer := dht.betterPeersToQuery(pmes, CloserPeerCount)
 	if closer != nil {
-		resp.CloserPeers = peersToPBPeers([]*peer.Peer{closer})
+		resp.CloserPeers = peersToPBPeers(closer)
 	}
 
 	return resp, nil
@@ -175,7 +179,26 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 
 	log.Debug("%s adding %s as a provider for '%s'\n", dht.self, p, peer.ID(key))
 
-	dht.providers.AddProvider(key, p)
+	// add provider should use the address given in the message
+	for _, pb := range pmes.GetProviderPeers() {
+		pid := peer.ID(pb.GetId())
+		if pid.Equal(p.ID) {
+
+			addr, err := pb.Address()
+			if err != nil {
+				log.Error("provider %s error with address %s", p, *pb.Addr)
+				continue
+			}
+
+			log.Info("received provider %s %s for %s", p, addr, key)
+			p.AddAddress(addr)
+			dht.providers.AddProvider(key, p)
+
+		} else {
+			log.Error("handleAddProvider received provider %s from %s", pid, p)
+		}
+	}
+
 	return pmes, nil // send back same msg as confirmation.
 }
 
@@ -183,54 +206,4 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 // TODO -- remove this in favor of context
 func (dht *IpfsDHT) Halt() {
 	dht.providers.Halt()
-}
-
-// NOTE: not yet finished, low priority
-func (dht *IpfsDHT) handleDiagnostic(p *peer.Peer, pmes *Message) (*Message, error) {
-	seq := dht.routingTables[0].NearestPeers(kb.ConvertPeerID(dht.self.ID), 10)
-
-	for _, ps := range seq {
-		_, err := msg.FromObject(ps, pmes)
-		if err != nil {
-			log.Error("handleDiagnostics error creating message: %v\n", err)
-			continue
-		}
-		// dht.sender.SendRequest(context.TODO(), mes)
-	}
-	return nil, errors.New("not yet ported back")
-
-	// 	buf := new(bytes.Buffer)
-	// 	di := dht.getDiagInfo()
-	// 	buf.Write(di.Marshal())
-	//
-	// 	// NOTE: this shouldnt be a hardcoded value
-	// 	after := time.After(time.Second * 20)
-	// 	count := len(seq)
-	// 	for count > 0 {
-	// 		select {
-	// 		case <-after:
-	// 			//Timeout, return what we have
-	// 			goto out
-	// 		case reqResp := <-listenChan:
-	// 			pmesOut := new(Message)
-	// 			err := proto.Unmarshal(reqResp.Data, pmesOut)
-	// 			if err != nil {
-	// 				// It broke? eh, whatever, keep going
-	// 				continue
-	// 			}
-	// 			buf.Write(reqResp.Data)
-	// 			count--
-	// 		}
-	// 	}
-	//
-	// out:
-	// 	resp := Message{
-	// 		Type:     Message_DIAGNOSTIC,
-	// 		ID:       pmes.GetId(),
-	// 		Value:    buf.Bytes(),
-	// 		Response: true,
-	// 	}
-	//
-	// 	mes := swarm.NewMessage(p, resp.ToProtobuf())
-	// 	dht.netChan.Outgoing <- mes
 }

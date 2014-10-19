@@ -34,34 +34,29 @@ type params struct {
 
 // NewSecurePipe constructs a pipe with channels of a given buffer size.
 func NewSecurePipe(ctx context.Context, bufsize int, local *peer.Peer,
-	peers peer.Peerstore) (*SecurePipe, error) {
+	peers peer.Peerstore, insecure Duplex) (*SecurePipe, error) {
+
+	ctx, cancel := context.WithCancel(ctx)
 
 	sp := &SecurePipe{
 		Duplex: Duplex{
 			In:  make(chan []byte, bufsize),
 			Out: make(chan []byte, bufsize),
 		},
-		local: local,
-		peers: peers,
+		local:    local,
+		peers:    peers,
+		insecure: insecure,
+
+		ctx:    ctx,
+		cancel: cancel,
 	}
+
+	if err := sp.handshake(); err != nil {
+		sp.Close()
+		return nil, err
+	}
+
 	return sp, nil
-}
-
-// Wrap creates a secure connection on top of an insecure duplex channel.
-func (s *SecurePipe) Wrap(ctx context.Context, insecure Duplex) error {
-	if s.ctx != nil {
-		return errors.New("Pipe in use")
-	}
-
-	s.insecure = insecure
-	s.ctx, s.cancel = context.WithCancel(ctx)
-
-	if err := s.handshake(); err != nil {
-		s.cancel()
-		return err
-	}
-
-	return nil
 }
 
 // LocalPeer retrieves the local peer.
@@ -76,11 +71,12 @@ func (s *SecurePipe) RemotePeer() *peer.Peer {
 
 // Close closes the secure pipe
 func (s *SecurePipe) Close() error {
-	if s.cancel == nil {
-		return errors.New("pipe already closed")
+	select {
+	case <-s.ctx.Done():
+		return errors.New("already closed")
+	default:
 	}
 
 	s.cancel()
-	s.cancel = nil
 	return nil
 }

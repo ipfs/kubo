@@ -4,14 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	conn "github.com/jbenet/go-ipfs/net/conn"
-	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	msg "github.com/jbenet/go-ipfs/net/message"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 )
 
 // Open listeners for each network the swarm should listen on
@@ -39,28 +35,35 @@ func (s *Swarm) listen() error {
 
 // Listen for new connections on the given multiaddr
 func (s *Swarm) connListen(maddr ma.Multiaddr) error {
-	list, err := manet.Listen(maddr)
+
+	list, err := conn.Listen(s.Context(), maddr, s.local, s.peers)
 	if err != nil {
 		return err
 	}
+
+	// make sure port can be reused. TOOD this doesn't work...
+	// if err := setSocketReuse(list); err != nil {
+	// 	return err
+	// }
 
 	// NOTE: this may require a lock around it later. currently, only run on setup
 	s.listeners = append(s.listeners, list)
 
 	// Accept and handle new connections on this listener until it errors
+	// this listener is a child.
+	s.Children().Add(1)
 	go func() {
-		for {
-			nconn, err := list.Accept()
-			if err != nil {
-				e := fmt.Errorf("Failed to accept connection: %s - %s", maddr, err)
-				s.errChan <- e
+		defer s.Children().Done()
 
-				// if cancel is nil, we're closed.
-				if s.cancel == nil {
-					return
-				}
-			} else {
-				go s.handleIncomingConn(nconn)
+		for {
+			select {
+			case <-s.Closing():
+				return
+
+			case conn := <-list.Accept():
+				// handler also a child.
+				s.Children().Add(1)
+				go s.handleIncomingConn(conn)
 			}
 		}
 	}()
@@ -69,202 +72,158 @@ func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 }
 
 // Handle getting ID from this peer, handshake, and adding it into the map
-func (s *Swarm) handleIncomingConn(nconn manet.Conn) {
-
-	addr := nconn.RemoteMultiaddr()
-
-	// Construct conn with nil peer for now, because we don't know its ID yet.
-	// connSetup will figure this out, and pull out / construct the peer.
-	c, err := conn.NewConn(nil, addr, nconn)
-	if err != nil {
-		s.errChan <- err
-		return
-	}
+func (s *Swarm) handleIncomingConn(nconn conn.Conn) {
+	// this handler is a child. added by caller.
+	defer s.Children().Done()
 
 	// Setup the new connection
-	err = s.connSetup(c)
+	_, err := s.connSetup(nconn)
 	if err != nil && err != ErrAlreadyOpen {
 		s.errChan <- err
-		c.Close()
+		nconn.Close()
 	}
 }
 
 // connSetup adds the passed in connection to its peerMap and starts
-// the fanIn routine for that connection
-func (s *Swarm) connSetup(c *conn.Conn) error {
+// the fanInSingle routine for that connection
+func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	if c == nil {
-		return errors.New("Tried to start nil connection.")
+		return nil, errors.New("Tried to start nil connection.")
 	}
 
-	if c.Peer != nil {
-		log.Debug("Starting connection: %s", c.Peer)
-	} else {
-		log.Debug("Starting connection: [unknown peer]")
-	}
-
-	if err := s.connSecure(c); err != nil {
-		return fmt.Errorf("Conn securing error: %v", err)
-	}
-
-	log.Debug("Secured connection: %s", c.Peer)
+	log.Debug("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
-	c.Peer.AddAddress(c.Addr)
-
-	if err := s.connVersionExchange(c); err != nil {
-		return fmt.Errorf("Conn version exchange error: %v", err)
-	}
+	// NOT adding this address here, because the incoming address in TCP
+	// is an EPHEMERAL address, and not the address we want to keep around.
+	// addresses should be figured out through the DHT.
+	// c.Remote.AddAddress(c.Conn.RemoteMultiaddr())
 
 	// add to conns
 	s.connsLock.Lock()
-	if _, ok := s.conns[c.Peer.Key()]; ok {
-		log.Debug("Conn already open!")
-		s.connsLock.Unlock()
-		return ErrAlreadyOpen
-	}
-	s.conns[c.Peer.Key()] = c
-	log.Debug("Added conn to map!")
-	s.connsLock.Unlock()
 
-	// kick off reader goroutine
-	go s.fanIn(c)
-	return nil
-}
-
-// connSecure setups a secure remote connection.
-func (s *Swarm) connSecure(c *conn.Conn) error {
-
-	sp, err := spipe.NewSecurePipe(s.ctx, 10, s.local, s.peers)
-	if err != nil {
-		return err
-	}
-
-	err = sp.Wrap(s.ctx, spipe.Duplex{
-		In:  c.Incoming.MsgChan,
-		Out: c.Outgoing.MsgChan,
-	})
-	if err != nil {
-		return err
-	}
-
-	if c.Peer == nil {
-		c.Peer = sp.RemotePeer()
-
-	} else if c.Peer != sp.RemotePeer() {
-		panic("peers not being constructed correctly.")
-	}
-
-	c.Secure = sp
-	return nil
-}
-
-// connVersionExchange exchanges local and remote versions and compares them
-// closes remote and returns an error in case of major difference
-func (s *Swarm) connVersionExchange(remote *conn.Conn) error {
-	var remoteHandshake, localHandshake *handshake.Handshake1
-	localHandshake = handshake.CurrentHandshake()
-
-	myVerBytes, err := proto.Marshal(localHandshake)
-	if err != nil {
-		return err
-	}
-
-	remote.Secure.Out <- myVerBytes
-
-	log.Debug("Send my version(%s) [to = %s]", localHandshake, remote.Peer)
-
-	select {
-	case <-s.ctx.Done():
-		return s.ctx.Err()
-
-	case <-remote.Closed:
-		return errors.New("remote closed connection during version exchange")
-
-	case data, ok := <-remote.Secure.In:
-		if !ok {
-			return fmt.Errorf("Error retrieving from conn: %v", remote.Peer)
-		}
-
-		remoteHandshake = new(handshake.Handshake1)
-		err = proto.Unmarshal(data, remoteHandshake)
+	mc, found := s.conns[c.RemotePeer().Key()]
+	if !found {
+		// multiconn doesn't exist, make a new one.
+		conns := []conn.Conn{c}
+		mc, err := conn.NewMultiConn(s.Context(), s.local, c.RemotePeer(), conns)
 		if err != nil {
-			s.Close()
-			return fmt.Errorf("connSetup: could not decode remote version: %q", err)
+			log.Error("error creating multiconn: %s", err)
+			c.Close()
+			return nil, err
 		}
 
-		log.Debug("Received remote version(%s) [from = %s]", remoteHandshake, remote.Peer)
+		s.conns[c.RemotePeer().Key()] = mc
+		s.connsLock.Unlock()
+
+		// kick off reader goroutine
+		go s.fanInSingle(mc)
+		log.Debug("added new multiconn: %s", mc)
+	} else {
+		s.connsLock.Unlock() // unlock before adding new conn
+
+		mc.Add(c)
+		log.Debug("multiconn found: %s", mc)
 	}
 
-	if err := handshake.Compatible(localHandshake, remoteHandshake); err != nil {
-		log.Info("%s (%s) incompatible version with %s (%s)", s.local, localHandshake, remote.Peer, remoteHandshake)
-		remote.Close()
-		return err
-	}
-
-	log.Debug("[peer: %s] Version compatible", remote.Peer)
-	return nil
+	log.Debug("multiconn added new conn %s", c)
+	return c, nil
 }
 
 // Handles the unwrapping + sending of messages to the right connection.
 func (s *Swarm) fanOut() {
+	s.Children().Add(1)
+	defer s.Children().Done()
+
+	i := 0
 	for {
 		select {
-		case <-s.ctx.Done():
+		case <-s.Closing():
 			return // told to close.
 
 		case msg, ok := <-s.Outgoing:
 			if !ok {
+				log.Info("%s outgoing channel closed", s)
 				return
 			}
 
 			s.connsLock.RLock()
-			conn, found := s.conns[msg.Peer().Key()]
+			c, found := s.conns[msg.Peer().Key()]
 			s.connsLock.RUnlock()
 
 			if !found {
-				e := fmt.Errorf("Sent msg to peer without open conn: %v",
-					msg.Peer)
+				e := fmt.Errorf("Sent msg to peer without open conn: %v", msg.Peer())
 				s.errChan <- e
+				log.Error("%s", e)
 				continue
 			}
 
-			// log.Debug("[peer: %s] Sent message [to = %s]", s.local, msg.Peer())
-
+			i++
+			log.Debug("%s sent message to %s (%d)", s.local, msg.Peer(), i)
 			// queue it in the connection's buffer
-			conn.Secure.Out <- msg.Data()
+			c.Out() <- msg.Data()
 		}
 	}
 }
 
 // Handles the receiving + wrapping of messages, per conn.
 // Consider using reflect.Select with one goroutine instead of n.
-func (s *Swarm) fanIn(c *conn.Conn) {
+func (s *Swarm) fanInSingle(c conn.Conn) {
+	s.Children().Add(1)
+	c.Children().Add(1) // child of Conn as well.
+
+	// cleanup all data associated with this child Connection.
+	defer func() {
+		// remove it from the map.
+		s.connsLock.Lock()
+		delete(s.conns, c.RemotePeer().Key())
+		s.connsLock.Unlock()
+
+		s.Children().Done()
+		c.Children().Done() // child of Conn as well.
+	}()
+
+	i := 0
 	for {
 		select {
-		case <-s.ctx.Done():
-			// close Conn.
-			c.Close()
-			goto out
+		case <-s.Closing(): // Swarm closing
+			return
 
-		case <-c.Closed:
-			goto out
+		case <-c.Closing(): // Conn closing
+			return
 
-		case data, ok := <-c.Secure.In:
+		case data, ok := <-c.In():
 			if !ok {
-				e := fmt.Errorf("Error retrieving from conn: %v", c.Peer)
-				s.errChan <- e
-				goto out
+				log.Info("%s in channel closed", c)
+				return // channel closed.
 			}
-
-			// log.Debug("[peer: %s] Received message [from = %s]", s.local, c.Peer)
-
-			msg := msg.New(c.Peer, data)
-			s.Incoming <- msg
+			i++
+			log.Debug("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
+			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}
-
-out:
-	s.connsLock.Lock()
-	delete(s.conns, c.Peer.Key())
-	s.connsLock.Unlock()
 }
+
+// Commenting out because it's platform specific
+// func setSocketReuse(l manet.Listener) error {
+// 	nl := l.NetListener()
+//
+// 	// for now only TCP. TODO change this when more networks.
+// 	file, err := nl.(*net.TCPListener).File()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	fd := file.Fd()
+// 	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+// }
