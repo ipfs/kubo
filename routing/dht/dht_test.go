@@ -130,11 +130,11 @@ func TestValueGetSet(t *testing.T) {
 
 	ctx := context.Background()
 	u.Debug = false
-	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
+	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/11235")
 	if err != nil {
 		t.Fatal(err)
 	}
-	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
+	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/15679")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,18 +396,18 @@ func TestFindPeer(t *testing.T) {
 func TestConnectCollision(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
-	runTimes := 100
+	runTimes := 10
 
 	for rtime := 0; rtime < runTimes; rtime++ {
 		log.Notice("Running Time: ", rtime)
 
 		ctx := context.Background()
 		u.Debug = false
-		addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1235")
+		addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/11235")
 		if err != nil {
 			t.Fatal(err)
 		}
-		addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5679")
+		addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/15679")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -417,11 +417,6 @@ func TestConnectCollision(t *testing.T) {
 
 		dhtA := setupDHT(ctx, t, peerA)
 		dhtB := setupDHT(ctx, t, peerB)
-
-		defer dhtA.Halt()
-		defer dhtB.Halt()
-		defer dhtA.network.Close()
-		defer dhtB.network.Close()
 
 		done := make(chan struct{})
 		go func() {
@@ -451,6 +446,11 @@ func TestConnectCollision(t *testing.T) {
 			t.Fatal("Timeout received!")
 		}
 
-		<-time.After(100 * time.Millisecond)
+		dhtA.Halt()
+		dhtB.Halt()
+		dhtA.network.Close()
+		dhtB.network.Close()
+
+		<-time.After(200 * time.Millisecond)
 	}
 }

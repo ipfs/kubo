@@ -95,12 +95,12 @@ func setupConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
 func TestDialer(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
-	p1, err := setupPeer("/ip4/127.0.0.1/tcp/1234")
+	p1, err := setupPeer("/ip4/127.0.0.1/tcp/4234")
 	if err != nil {
 		t.Fatal("error setting up peer", err)
 	}
 
-	p2, err := setupPeer("/ip4/127.0.0.1/tcp/3456")
+	p2, err := setupPeer("/ip4/127.0.0.1/tcp/4235")
 	if err != nil {
 		t.Fatal("error setting up peer", err)
 	}
