@@ -40,6 +40,20 @@ type Conn interface {
 	// Close() error  -- already in ContextCloser
 }
 
+// Dialer is an object that can open connections. We could have a "convenience"
+// Dial function as before, but it would have many arguments, as dialing is
+// no longer simple (need a peerstore, a local peer, a context, a network, etc)
+type Dialer struct {
+
+	// LocalPeer is the identity of the local Peer.
+	LocalPeer *peer.Peer
+
+	// Peerstore is the set of peers we know about locally. The Dialer needs it
+	// because when an incoming connection is identified, we should reuse the
+	// same peer objects (otherwise things get inconsistent).
+	Peerstore peer.Peerstore
+}
+
 // Listener is an object that can accept connections. It matches net.Listener
 type Listener interface {
 

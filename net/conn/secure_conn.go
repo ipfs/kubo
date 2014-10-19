@@ -98,6 +98,10 @@ func (c *secureConn) ID() string {
 	return ID(c)
 }
 
+func (c *secureConn) String() string {
+	return String(c, "secureConn")
+}
+
 // LocalMultiaddr is the Multiaddr on this side
 func (c *secureConn) LocalMultiaddr() ma.Multiaddr {
 	return c.insecure.LocalMultiaddr()
