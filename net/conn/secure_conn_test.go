@@ -150,7 +150,7 @@ func TestSecureCloseLeak(t *testing.T) {
 	// done!
 
 	<-time.After(time.Microsecond * 100)
-	if runtime.NumGoroutine() > 10 {
+	if runtime.NumGoroutine() > 20 {
 		// panic("uncomment me to debug")
 		t.Fatal("leaking goroutines:", runtime.NumGoroutine())
 	}
