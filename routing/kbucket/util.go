@@ -31,11 +31,11 @@ func (id ID) less(other ID) bool {
 }
 
 func xor(a, b ID) ID {
-	return ID(ks.XOR(a, b))
+	return ID(u.XOR(a, b))
 }
 
 func commonPrefixLen(a, b ID) int {
-	return ks.ZeroPrefixLen(ks.XOR(a, b))
+	return ks.ZeroPrefixLen(u.XOR(a, b))
 }
 
 // ConvertPeerID creates a DHT ID by hashing a Peer ID (Multihash)
