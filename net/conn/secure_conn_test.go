@@ -37,9 +37,9 @@ func TestSecureClose(t *testing.T) {
 	c2 = setupSecureConn(t, c2)
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 		t.Fatal("done before close")
-	case <-c2.Done():
+	case <-c2.Closed():
 		t.Fatal("done before close")
 	default:
 	}
@@ -47,7 +47,7 @@ func TestSecureClose(t *testing.T) {
 	c1.Close()
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}
@@ -55,7 +55,7 @@ func TestSecureClose(t *testing.T) {
 	c2.Close()
 
 	select {
-	case <-c2.Done():
+	case <-c2.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}
@@ -72,9 +72,9 @@ func TestSecureCancel(t *testing.T) {
 	c2 = setupSecureConn(t, c2)
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 		t.Fatal("done before close")
-	case <-c2.Done():
+	case <-c2.Closed():
 		t.Fatal("done before close")
 	default:
 	}
@@ -86,13 +86,13 @@ func TestSecureCancel(t *testing.T) {
 	// test that cancel called Close.
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}
 
 	select {
-	case <-c2.Done():
+	case <-c2.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}

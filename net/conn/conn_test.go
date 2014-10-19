@@ -18,9 +18,9 @@ func TestClose(t *testing.T) {
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/1234", "/ip4/127.0.0.1/tcp/2345")
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 		t.Fatal("done before close")
-	case <-c2.Done():
+	case <-c2.Closed():
 		t.Fatal("done before close")
 	default:
 	}
@@ -28,7 +28,7 @@ func TestClose(t *testing.T) {
 	c1.Close()
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}
@@ -36,7 +36,7 @@ func TestClose(t *testing.T) {
 	c2.Close()
 
 	select {
-	case <-c2.Done():
+	case <-c2.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}
@@ -50,9 +50,9 @@ func TestCancel(t *testing.T) {
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/1234", "/ip4/127.0.0.1/tcp/2345")
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 		t.Fatal("done before close")
-	case <-c2.Done():
+	case <-c2.Closed():
 		t.Fatal("done before close")
 	default:
 	}
@@ -64,13 +64,13 @@ func TestCancel(t *testing.T) {
 	// test that cancel called Close.
 
 	select {
-	case <-c1.Done():
+	case <-c1.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}
 
 	select {
-	case <-c2.Done():
+	case <-c2.Closed():
 	default:
 		t.Fatal("not done after cancel")
 	}

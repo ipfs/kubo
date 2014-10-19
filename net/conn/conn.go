@@ -218,7 +218,7 @@ func (l *listener) close() error {
 
 func (l *listener) isClosed() bool {
 	select {
-	case <-l.Done():
+	case <-l.Closed():
 		return true
 	default:
 		return false

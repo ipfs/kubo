@@ -31,7 +31,7 @@ func VersionHandshake(ctx context.Context, c Conn) error {
 	case <-ctx.Done():
 		return ctx.Err()
 
-	case <-c.Done():
+	case <-c.Closed():
 		return errors.New("remote closed connection during version exchange")
 
 	case data, ok := <-c.In():
