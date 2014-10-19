@@ -33,11 +33,6 @@ func ObjectLinks(n *core.IpfsNode, args []string, opts map[string]interface{}, o
 	}
 	log.Debug("ObjectLinks: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
 
-	if len(dagnode.Links) == 0 {
-		// TODO(cryptix): named error?
-		return errors.New("objectLinks: no links in this node")
-	}
-
 	for _, link := range dagnode.Links {
 		_, err = fmt.Fprintf(out, "%s %d %q\n", link.Hash.B58String(), link.Size, link.Name)
 		if err != nil {
