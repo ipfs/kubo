@@ -8,6 +8,7 @@ import (
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.
@@ -19,7 +20,7 @@ type secureConn struct {
 	// secure pipe, wrapping insecure
 	secure *spipe.SecurePipe
 
-	ContextCloser
+	ctxc.ContextCloser
 }
 
 // newConn constructs a new connection
@@ -28,7 +29,7 @@ func newSecureConn(ctx context.Context, insecure Conn, peers peer.Peerstore) (Co
 	conn := &secureConn{
 		insecure: insecure,
 	}
-	conn.ContextCloser = NewContextCloser(ctx, conn.close)
+	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
 
 	log.Debug("newSecureConn: %v to %v", insecure.LocalPeer(), insecure.RemotePeer())
 	// perform secure handshake before returning this connection.

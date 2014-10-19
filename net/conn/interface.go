@@ -3,6 +3,7 @@ package conn
 import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
@@ -13,7 +14,7 @@ type Map map[u.Key]Conn
 // Conn is a generic message-based Peer-to-Peer connection.
 type Conn interface {
 	// implement ContextCloser too!
-	ContextCloser
+	ctxc.ContextCloser
 
 	// ID is an identifier unique to this connection.
 	ID() string

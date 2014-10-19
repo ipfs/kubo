@@ -8,6 +8,7 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 // MultiConnMap is for shorthand
@@ -34,7 +35,7 @@ type MultiConn struct {
 
 	// for adding/removing connections concurrently
 	sync.RWMutex
-	ContextCloser
+	ctxc.ContextCloser
 }
 
 // NewMultiConn constructs a new connection
@@ -51,7 +52,7 @@ func NewMultiConn(ctx context.Context, local, remote *peer.Peer, conns []Conn) (
 	}
 
 	// must happen before Adds / fanOut
-	c.ContextCloser = NewContextCloser(ctx, c.close)
+	c.ContextCloser = ctxc.NewContextCloser(ctx, c.close)
 
 	if conns != nil && len(conns) > 0 {
 		c.Add(conns...)

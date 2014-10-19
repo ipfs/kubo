@@ -11,6 +11,7 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 var log = u.Logger("conn")
@@ -46,7 +47,7 @@ type singleConn struct {
 	maconn manet.Conn
 	msgio  *msgioPipe
 
-	ContextCloser
+	ctxc.ContextCloser
 }
 
 // newConn constructs a new connection
@@ -60,7 +61,7 @@ func newSingleConn(ctx context.Context, local, remote *peer.Peer,
 		msgio:  newMsgioPipe(10),
 	}
 
-	conn.ContextCloser = NewContextCloser(ctx, conn.close)
+	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
 
 	log.Info("newSingleConn: %v to %v", local, remote)
 

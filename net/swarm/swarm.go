@@ -9,6 +9,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -64,7 +65,7 @@ type Swarm struct {
 	listeners []conn.Listener
 
 	// ContextCloser
-	conn.ContextCloser
+	ctxc.ContextCloser
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
@@ -78,7 +79,7 @@ func NewSwarm(ctx context.Context, local *peer.Peer, ps peer.Peerstore) (*Swarm,
 	}
 
 	// ContextCloser for proper child management.
-	s.ContextCloser = conn.NewContextCloser(ctx, s.close)
+	s.ContextCloser = ctxc.NewContextCloser(ctx, s.close)
 
 	go s.fanOut()
 	return s, s.listen()

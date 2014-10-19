@@ -6,6 +6,7 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 // listener is an object that can accept connections. It implements Listener
@@ -31,7 +32,7 @@ type listener struct {
 	ctx context.Context
 
 	// embedded ContextCloser
-	ContextCloser
+	ctxc.ContextCloser
 }
 
 // disambiguate
@@ -140,7 +141,7 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local *peer.Peer, peers peer
 	// This is because the parent context will be given to all connections too,
 	// and if we close the listener, the connections shouldn't share the fate.
 	ctx2, _ := context.WithCancel(ctx)
-	l.ContextCloser = NewContextCloser(ctx2, l.close)
+	l.ContextCloser = ctxc.NewContextCloser(ctx2, l.close)
 
 	go l.listen()
 
