@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Command is an object that defines a command.
 type Command struct {
 	Help        string
 	Options     []Option
@@ -13,7 +14,8 @@ type Command struct {
 	subcommands map[string]*Command
 }
 
-var NotCallableError = errors.New("This command can't be called directly. Try one of its subcommands.")
+// ErrNotCallable signals a command that cannot be called.
+var ErrNotCallable = errors.New("This command can't be called directly. Try one of its subcommands.")
 
 // Register adds a subcommand
 func (c *Command) Register(id string, sub *Command) error {
@@ -44,25 +46,25 @@ func (c *Command) Call(req *Request) *Response {
 
 	cmds, err := c.Resolve(req.path)
 	if err != nil {
-		res.SetError(err, Client)
+		res.SetError(err, ErrClient)
 		return res
 	}
 	cmd := cmds[len(cmds)-1]
 
 	if cmd.f == nil {
-		res.SetError(NotCallableError, Client)
+		res.SetError(ErrNotCallable, ErrClient)
 		return res
 	}
 
 	options, err := c.GetOptions(req.path)
 	if err != nil {
-		res.SetError(err, Client)
+		res.SetError(err, ErrClient)
 		return res
 	}
 
 	err = req.convertOptions(options)
 	if err != nil {
-		res.SetError(err, Client)
+		res.SetError(err, ErrClient)
 		return res
 	}
 
@@ -91,6 +93,7 @@ func (c *Command) Resolve(path []string) ([]*Command, error) {
 	return cmds, nil
 }
 
+// Get resolves and returns the Command addressed by path
 func (c *Command) Get(path []string) (*Command, error) {
 	cmds, err := c.Resolve(path)
 	if err != nil {

@@ -2,6 +2,7 @@ package commands
 
 import "reflect"
 
+// Types of Command options
 const (
 	Invalid = reflect.Invalid
 	Bool    = reflect.Bool
@@ -22,11 +23,11 @@ type Option struct {
 }
 
 // options that are used by this package
-var globalOptions []Option = []Option{
+var globalOptions = []Option{
 	Option{[]string{"enc", "encoding"}, String},
 }
 
 // the above array of Options, wrapped in a Command
-var globalCommand *Command = &Command{
+var globalCommand = &Command{
 	Options: globalOptions,
 }
