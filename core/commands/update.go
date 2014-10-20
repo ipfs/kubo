@@ -24,17 +24,9 @@ func UpdateApply(n *core.IpfsNode, args []string, opts map[string]interface{}, o
 	}
 	fmt.Fprintln(out, "New Version:", u.Version)
 
-	if err = updates.AbleToApply(); err != nil {
-		return fmt.Errorf("Can't apply update: %v", err)
-	}
-
-	if err, errRecover := u.Update(); err != nil {
-		err = fmt.Errorf("Update failed: %v\n", err)
-		if errRecover != nil {
-			err = fmt.Errorf("%s\nRecovery failed! Cause: %v\nYou may need to recover manually", err, errRecover)
-		}
+	if err = updates.Apply(u); err != nil {
 		fmt.Fprint(out, err.Error())
-		return err
+		return fmt.Errorf("Couldn't apply update: %v", err)
 	}
 
 	fmt.Fprintln(out, "Updated applied! Shutting down.")

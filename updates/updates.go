@@ -57,9 +57,22 @@ func CheckForUpdate() (*check.Result, error) {
 	return param.CheckForUpdate(updateEndpointURL, up)
 }
 
-// AbleToApply cheks if the running process is able to update itself
-func AbleToApply() error {
-	return update.New().CanUpdate()
+// Apply cheks if the running process is able to update itself
+// and than updates to the passed release
+func Apply(rel *check.Result) error {
+	if err := update.New().CanUpdate(); err != nil {
+		return err
+	}
+
+	if err, errRecover := rel.Update(); err != nil {
+		err = fmt.Errorf("Update failed: %v\n", err)
+		if errRecover != nil {
+			err = fmt.Errorf("%s\nRecovery failed! Cause: %v\nYou may need to recover manually", err, errRecover)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // ShouldAutoUpdate decides wether a new version should be applied
