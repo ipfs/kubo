@@ -30,7 +30,7 @@ func TestMarshalling(t *testing.T) {
 		t.Error("Should have failed (no encoding type specified in request)")
 	}
 
-	req.SetOption("enc", JSON)
+	req.SetOption(EncShort, JSON)
 	req.convertOptions(options)
 
 	bytes, err := res.Marshal()

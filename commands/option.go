@@ -22,9 +22,15 @@ type Option struct {
 	//Required bool       // whether or not the option must be provided
 }
 
+// Flag names
+const (
+	EncShort = "enc"
+	EncLong  = "encoding"
+)
+
 // options that are used by this package
 var globalOptions = []Option{
-	Option{[]string{"enc", "encoding"}, String},
+	Option{[]string{EncShort, EncLong}, String},
 }
 
 // the above array of Options, wrapped in a Command

@@ -57,7 +57,7 @@ func TestOptionValidation(t *testing.T) {
 	}
 
 	req = NewEmptyRequest()
-	req.options["enc"] = "json"
+	req.options[EncShort] = "json"
 	res = cmd.Call(req)
 	if res.Error != nil {
 		t.Error("Should have passed")
@@ -110,7 +110,7 @@ func TestRegistration(t *testing.T) {
 
 		&Command{
 			Options: []Option{
-				Option{[]string{"enc"}, String},
+				Option{[]string{EncShort}, String},
 			},
 			run: func(req *Request, res *Response) {},
 		},

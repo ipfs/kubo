@@ -66,7 +66,7 @@ func (r *Response) Marshal() ([]byte, error) {
 		return nil, fmt.Errorf("No error or value set, there is nothing to marshal")
 	}
 
-	enc, ok := r.req.Option("enc")
+	enc, ok := r.req.Option(EncShort)
 	if !ok || enc.(string) == "" {
 		return nil, fmt.Errorf("No encoding type was specified")
 	}
