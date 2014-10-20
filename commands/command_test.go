@@ -8,7 +8,7 @@ func TestOptionValidation(t *testing.T) {
 			Option{[]string{"b", "beep"}, Int},
 			Option{[]string{"B", "boop"}, String},
 		},
-		f: func(req *Request, res *Response) {},
+		run: func(req *Request, res *Response) {},
 	}
 
 	req := NewEmptyRequest()
@@ -84,35 +84,35 @@ func TestRegistration(t *testing.T) {
 			Options: []Option{
 				Option{[]string{"beep"}, Int},
 			},
-			f: func(req *Request, res *Response) {},
+			run: func(req *Request, res *Response) {},
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"boop"}, Int},
 			},
-			f: func(req *Request, res *Response) {},
+			run: func(req *Request, res *Response) {},
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"boop"}, String},
 			},
-			f: func(req *Request, res *Response) {},
+			run: func(req *Request, res *Response) {},
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"bop"}, String},
 			},
-			f: func(req *Request, res *Response) {},
+			run: func(req *Request, res *Response) {},
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"enc"}, String},
 			},
-			f: func(req *Request, res *Response) {},
+			run: func(req *Request, res *Response) {},
 		},
 	}
 

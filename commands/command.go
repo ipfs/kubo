@@ -6,11 +6,17 @@ import (
 	"strings"
 )
 
-// Command is an object that defines a command.
+// Function is the type of function that Commands use.
+// It reads from the Request, and writes results to the Response.
+type Function func(*Request, *Response)
+
+// Command is a runnable command, with input arguments and options (flags).
+// It can also have subcommands, to group units of work into sets.
 type Command struct {
-	Help        string
-	Options     []Option
-	f           func(*Request, *Response)
+	Help    string
+	Options []Option
+
+	run         Function
 	subcommands map[string]*Command
 }
 
@@ -51,7 +57,7 @@ func (c *Command) Call(req *Request) *Response {
 	}
 	cmd := cmds[len(cmds)-1]
 
-	if cmd.f == nil {
+	if cmd.run == nil {
 		res.SetError(ErrNotCallable, ErrClient)
 		return res
 	}
@@ -68,7 +74,7 @@ func (c *Command) Call(req *Request) *Response {
 		return res
 	}
 
-	cmd.f(req, res)
+	cmd.run(req, res)
 
 	return res
 }
