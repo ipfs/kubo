@@ -133,26 +133,30 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 		u, err := updates.CheckForUpdate()
 		if err != nil {
 			if err != check.NoUpdateAvailable {
-				log.Error("Error while checking for update: %v\n", err)
-				return nil, err
-			}
-			log.Notice("No update available, checked on %s", time.Now())
-		}
-
-		config.RecordUpdateCheck(cfg, filename)
-
-		if u != nil && cfg.Version.AutoUpdate != config.UpdateNever {
-			if updates.ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
-				log.Notice("Applying update %s", u.Version)
-
-				if err = updates.Apply(u); err != nil {
-					log.Error(err.Error())
+				if cfg.Version.Check == config.CheckError {
+					log.Error("Error while checking for update: %v\n", err)
 					return nil, err
 				}
+				// when "warn" version.check mode we just show a warning message
+				log.Warning(err.Error())
+			} else { // err == check.NoUpdateAvailable
+				log.Notice("No update available, checked on %s", time.Now())
+				config.RecordUpdateCheck(cfg, filename)
+			}
+		} else { // update avail
+			if cfg.Version.AutoUpdate != config.UpdateNever {
+				if updates.ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
+					log.Notice("Applying update %s", u.Version)
 
-				// BUG(cryptix): no good way to restart yet. - tracking https://github.com/inconshreveable/go-update/issues/5
-				fmt.Println("update %v applied. please restart.", u.Version)
-				os.Exit(0)
+					if err = updates.Apply(u); err != nil {
+						log.Error(err.Error())
+						return nil, err
+					}
+
+					// BUG(cryptix): no good way to restart yet. - tracking https://github.com/inconshreveable/go-update/issues/5
+					fmt.Println("update %v applied. please restart.", u.Version)
+					os.Exit(0)
+				}
 			}
 		}
 	}
