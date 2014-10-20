@@ -8,12 +8,12 @@ import (
 
 // NetMessage is the interface for the message
 type NetMessage interface {
-	Peer() *peer.Peer
+	Peer() peer.Peer
 	Data() []byte
 }
 
 // New is the interface for constructing a new message.
-func New(p *peer.Peer, data []byte) NetMessage {
+func New(p peer.Peer, data []byte) NetMessage {
 	return &message{peer: p, data: data}
 }
 
@@ -21,13 +21,13 @@ func New(p *peer.Peer, data []byte) NetMessage {
 // particular Peer.
 type message struct {
 	// To or from, depending on direction.
-	peer *peer.Peer
+	peer peer.Peer
 
 	// Opaque data
 	data []byte
 }
 
-func (m *message) Peer() *peer.Peer {
+func (m *message) Peer() peer.Peer {
 	return m.peer
 }
 
@@ -36,7 +36,7 @@ func (m *message) Data() []byte {
 }
 
 // FromObject creates a message from a protobuf-marshallable message.
-func FromObject(p *peer.Peer, data proto.Message) (NetMessage, error) {
+func FromObject(p peer.Peer, data proto.Message) (NetMessage, error) {
 	bytes, err := proto.Marshal(data)
 	if err != nil {
 		return nil, err

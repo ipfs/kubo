@@ -88,7 +88,7 @@ func TestCopyProtoByValue(t *testing.T) {
 
 func TestToNetMethodSetsPeer(t *testing.T) {
 	m := New()
-	p := &peer.Peer{ID: []byte("X")}
+	p := peer.WithIDString("X")
 	netmsg, err := m.ToNet(p)
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +106,8 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original.AppendWanted(u.Key("T"))
 	original.AppendWanted(u.Key("F"))
 
-	netmsg, err := original.ToNet(&peer.Peer{ID: []byte("X")})
+	p := peer.WithIDString("X")
+	netmsg, err := original.ToNet(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +137,7 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AppendBlock(*blocks.NewBlock([]byte("F")))
 	original.AppendBlock(*blocks.NewBlock([]byte("M")))
 
-	p := &peer.Peer{ID: []byte("X")}
+	p := peer.WithIDString("X")
 	netmsg, err := original.ToNet(p)
 	if err != nil {
 		t.Fatal(err)

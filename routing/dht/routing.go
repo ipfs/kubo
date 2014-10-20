@@ -23,13 +23,13 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	var peers []*peer.Peer
+	var peers []peer.Peer
 	for _, route := range dht.routingTables {
 		npeers := route.NearestPeers(kb.ConvertKey(key), KValue)
 		peers = append(peers, npeers...)
 	}
 
-	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
+	query := newQuery(key, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 		log.Debug("%s PutValue qry part %v", dht.self, p)
 		err := dht.putValueToNetwork(ctx, p, string(key), value)
 		if err != nil {
@@ -65,7 +65,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	}
 
 	// setup the Query
-	query := newQuery(key, func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
+	query := newQuery(key, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 
 		val, peers, err := dht.getValueOrPeers(ctx, p, key, routeLevel)
 		if err != nil {
@@ -117,8 +117,8 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	return nil
 }
 
-func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan *peer.Peer {
-	peerOut := make(chan *peer.Peer, count)
+func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan peer.Peer {
+	peerOut := make(chan peer.Peer, count)
 	go func() {
 		ps := newPeerSet()
 		provs := dht.providers.GetProviders(key)
@@ -136,7 +136,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
 			wg.Add(1)
-			go func(p *peer.Peer) {
+			go func(p peer.Peer) {
 				defer wg.Done()
 				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
 				if err != nil {
@@ -153,7 +153,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 }
 
 //TODO: this function could also be done asynchronously
-func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet, count int, out chan *peer.Peer) {
+func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
 	for _, pbp := range peers {
 
 		// construct new peer
@@ -173,7 +173,7 @@ func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet
 
 // Find specific Peer
 // FindPeer searches for a peer with given ID.
-func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error) {
+func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error) {
 
 	// Check if were already connected to them
 	p, _ := dht.FindLocal(id)
@@ -186,7 +186,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error
 	if p == nil {
 		return nil, nil
 	}
-	if p.ID.Equal(id) {
+	if p.ID().Equal(id) {
 		return p, nil
 	}
 
@@ -205,7 +205,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error
 			continue
 		}
 
-		if nxtPeer.ID.Equal(id) {
+		if nxtPeer.ID().Equal(id) {
 			return nxtPeer, nil
 		}
 
@@ -214,7 +214,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (*peer.Peer, error
 	return nil, u.ErrNotFound
 }
 
-func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Peer, error) {
+func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (peer.Peer, error) {
 
 	// Check if were already connected to them
 	p, _ := dht.FindLocal(id)
@@ -230,7 +230,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 	}
 
 	// setup query function
-	query := newQuery(u.Key(id), func(ctx context.Context, p *peer.Peer) (*dhtQueryResult, error) {
+	query := newQuery(u.Key(id), func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
 		if err != nil {
 			log.Error("%s getPeer error: %v", dht.self, err)
@@ -242,7 +242,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 			routeLevel++
 		}
 
-		nxtprs := make([]*peer.Peer, len(plist))
+		nxtprs := make([]peer.Peer, len(plist))
 		for i, fp := range plist {
 			nxtp, err := dht.peerFromInfo(fp)
 			if err != nil {
@@ -250,7 +250,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 				continue
 			}
 
-			if nxtp.ID.Equal(id) {
+			if nxtp.ID().Equal(id) {
 				return &dhtQueryResult{peer: nxtp, success: true}, nil
 			}
 
@@ -272,7 +272,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (*peer.Pee
 }
 
 // Ping a peer, log the time it took
-func (dht *IpfsDHT) Ping(ctx context.Context, p *peer.Peer) error {
+func (dht *IpfsDHT) Ping(ctx context.Context, p peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	log.Info("ping %s start", p)
 

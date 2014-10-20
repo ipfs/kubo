@@ -14,7 +14,7 @@ import (
 var CloserPeerCount = 4
 
 // dhthandler specifies the signature of functions that handle DHT messages.
-type dhtHandler func(*peer.Peer, *Message) (*Message, error)
+type dhtHandler func(peer.Peer, *Message) (*Message, error)
 
 func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 	switch t {
@@ -35,7 +35,7 @@ func (dht *IpfsDHT) handlerForMsgType(t Message_MessageType) dhtHandler {
 	}
 }
 
-func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) handleGetValue(p peer.Peer, pmes *Message) (*Message, error) {
 	log.Debug("%s handleGetValue for key: %s\n", dht.self, pmes.GetKey())
 
 	// setup response
@@ -93,7 +93,7 @@ func (dht *IpfsDHT) handleGetValue(p *peer.Peer, pmes *Message) (*Message, error
 }
 
 // Store a value in this peer local storage
-func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) handlePutValue(p peer.Peer, pmes *Message) (*Message, error) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
 	dskey := u.Key(pmes.GetKey()).DsKey()
@@ -102,18 +102,18 @@ func (dht *IpfsDHT) handlePutValue(p *peer.Peer, pmes *Message) (*Message, error
 	return pmes, err
 }
 
-func (dht *IpfsDHT) handlePing(p *peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) handlePing(p peer.Peer, pmes *Message) (*Message, error) {
 	log.Debug("%s Responding to ping from %s!\n", dht.self, p)
 	return pmes, nil
 }
 
-func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) handleFindPeer(p peer.Peer, pmes *Message) (*Message, error) {
 	resp := newMessage(pmes.GetType(), "", pmes.GetClusterLevel())
-	var closest []*peer.Peer
+	var closest []peer.Peer
 
 	// if looking for self... special case where we send it on CloserPeers.
-	if peer.ID(pmes.GetKey()).Equal(dht.self.ID) {
-		closest = []*peer.Peer{dht.self}
+	if peer.ID(pmes.GetKey()).Equal(dht.self.ID()) {
+		closest = []peer.Peer{dht.self}
 	} else {
 		closest = dht.betterPeersToQuery(pmes, CloserPeerCount)
 	}
@@ -123,9 +123,9 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error
 		return resp, nil
 	}
 
-	var withAddresses []*peer.Peer
+	var withAddresses []peer.Peer
 	for _, p := range closest {
-		if len(p.Addresses) > 0 {
+		if len(p.Addresses()) > 0 {
 			withAddresses = append(withAddresses, p)
 		}
 	}
@@ -137,7 +137,7 @@ func (dht *IpfsDHT) handleFindPeer(p *peer.Peer, pmes *Message) (*Message, error
 	return resp, nil
 }
 
-func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) handleGetProviders(p peer.Peer, pmes *Message) (*Message, error) {
 	resp := newMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// check if we have this value, to add ourselves as provider.
@@ -171,10 +171,10 @@ func (dht *IpfsDHT) handleGetProviders(p *peer.Peer, pmes *Message) (*Message, e
 
 type providerInfo struct {
 	Creation time.Time
-	Value    *peer.Peer
+	Value    peer.Peer
 }
 
-func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) handleAddProvider(p peer.Peer, pmes *Message) (*Message, error) {
 	key := u.Key(pmes.GetKey())
 
 	log.Debug("%s adding %s as a provider for '%s'\n", dht.self, p, peer.ID(key))
@@ -182,7 +182,7 @@ func (dht *IpfsDHT) handleAddProvider(p *peer.Peer, pmes *Message) (*Message, er
 	// add provider should use the address given in the message
 	for _, pb := range pmes.GetProviderPeers() {
 		pid := peer.ID(pb.GetId())
-		if pid.Equal(p.ID) {
+		if pid.Equal(p.ID()) {
 
 			addr, err := pb.Address()
 			if err != nil {

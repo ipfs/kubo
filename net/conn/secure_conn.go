@@ -79,6 +79,8 @@ func (c *secureConn) secureHandshake(peers peer.Peerstore) error {
 		// perhaps return an error. TBD.
 
 		log.Error("secureConn peer mismatch. %v != %v", insecureSC.remote, c.secure.RemotePeer())
+		log.Error("insecureSC.remote: %s %#v", insecureSC.remote, insecureSC.remote)
+		log.Error("c.secure.LocalPeer: %s %#v", c.secure.RemotePeer(), c.secure.RemotePeer())
 		panic("secureConn peer mismatch. consructed incorrectly?")
 	}
 
@@ -114,12 +116,12 @@ func (c *secureConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on this side
-func (c *secureConn) LocalPeer() *peer.Peer {
+func (c *secureConn) LocalPeer() peer.Peer {
 	return c.insecure.LocalPeer()
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *secureConn) RemotePeer() *peer.Peer {
+func (c *secureConn) RemotePeer() peer.Peer {
 	return c.insecure.RemotePeer()
 }
 

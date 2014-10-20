@@ -7,13 +7,13 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-func setupPeer(id string, addr string) (*Peer, error) {
+func setupPeer(id string, addr string) (Peer, error) {
 	tcp, err := ma.NewMultiaddr(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	p := &Peer{ID: ID(id)}
+	p := WithIDString(id)
 	p.AddAddress(tcp)
 	return p, nil
 }

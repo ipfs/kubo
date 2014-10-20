@@ -45,7 +45,7 @@ func (e *ListenErr) Error() string {
 type Swarm struct {
 
 	// local is the peer this swarm represents
-	local *peer.Peer
+	local peer.Peer
 
 	// peers is a collection of peers for swarm to use
 	peers peer.Peerstore
@@ -69,7 +69,7 @@ type Swarm struct {
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
-func NewSwarm(ctx context.Context, local *peer.Peer, ps peer.Peerstore) (*Swarm, error) {
+func NewSwarm(ctx context.Context, local peer.Peer, ps peer.Peerstore) (*Swarm, error) {
 	s := &Swarm{
 		Pipe:    msg.NewPipe(10),
 		conns:   conn.MultiConnMap{},
@@ -104,13 +104,13 @@ func (s *Swarm) close() error {
 // etc. to achive connection.
 //
 // For now, Dial uses only TCP. This will be extended.
-func (s *Swarm) Dial(peer *peer.Peer) (conn.Conn, error) {
-	if peer.ID.Equal(s.local.ID) {
+func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
+	if peer.ID().Equal(s.local.ID()) {
 		return nil, errors.New("Attempted connection to self!")
 	}
 
 	// check if we already have an open connection first
-	c := s.GetConnection(peer.ID)
+	c := s.GetConnection(peer.ID())
 	if c != nil {
 		return c, nil
 	}
@@ -167,14 +167,14 @@ func (s *Swarm) Connections() []conn.Conn {
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection
-func (s *Swarm) CloseConnection(p *peer.Peer) error {
-	c := s.GetConnection(p.ID)
+func (s *Swarm) CloseConnection(p peer.Peer) error {
+	c := s.GetConnection(p.ID())
 	if c == nil {
 		return u.ErrNotFound
 	}
 
 	s.connsLock.Lock()
-	delete(s.conns, u.Key(p.ID))
+	delete(s.conns, u.Key(p.ID()))
 	s.connsLock.Unlock()
 
 	return c.Close()
@@ -190,8 +190,8 @@ func (s *Swarm) GetErrChan() chan error {
 }
 
 // GetPeerList returns a copy of the set of peers swarm is connected to.
-func (s *Swarm) GetPeerList() []*peer.Peer {
-	var out []*peer.Peer
+func (s *Swarm) GetPeerList() []peer.Peer {
+	var out []peer.Peer
 	s.connsLock.RLock()
 	for _, p := range s.conns {
 		out = append(out, p.RemotePeer())

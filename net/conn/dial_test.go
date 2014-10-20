@@ -10,7 +10,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-func setupPeer(addr string) (*peer.Peer, error) {
+func setupPeer(addr string) (peer.Peer, error) {
 	tcp, err := ma.NewMultiaddr(addr)
 	if err != nil {
 		return nil, err
@@ -21,14 +21,10 @@ func setupPeer(addr string) (*peer.Peer, error) {
 		return nil, err
 	}
 
-	id, err := peer.IDFromPubKey(pk)
+	p, err := peer.WithKeyPair(sk, pk)
 	if err != nil {
 		return nil, err
 	}
-
-	p := &peer.Peer{ID: id}
-	p.PrivKey = sk
-	p.PubKey = pk
 	p.AddAddress(tcp)
 	return p, nil
 }

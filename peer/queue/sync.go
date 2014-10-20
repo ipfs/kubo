@@ -9,8 +9,8 @@ import (
 // ChanQueue makes any PeerQueue synchronizable through channels.
 type ChanQueue struct {
 	Queue   PeerQueue
-	EnqChan chan<- *peer.Peer
-	DeqChan <-chan *peer.Peer
+	EnqChan chan<- peer.Peer
+	DeqChan <-chan peer.Peer
 }
 
 // NewChanQueue creates a ChanQueue by wrapping pq.
@@ -23,8 +23,8 @@ func NewChanQueue(ctx context.Context, pq PeerQueue) *ChanQueue {
 func (cq *ChanQueue) process(ctx context.Context) {
 
 	// construct the channels here to be able to use them bidirectionally
-	enqChan := make(chan *peer.Peer, 10)
-	deqChan := make(chan *peer.Peer, 10)
+	enqChan := make(chan peer.Peer, 10)
+	deqChan := make(chan peer.Peer, 10)
 
 	cq.EnqChan = enqChan
 	cq.DeqChan = deqChan
@@ -32,8 +32,8 @@ func (cq *ChanQueue) process(ctx context.Context) {
 	go func() {
 		defer close(deqChan)
 
-		var next *peer.Peer
-		var item *peer.Peer
+		var next peer.Peer
+		var item peer.Peer
 		var more bool
 
 		for {

@@ -24,10 +24,10 @@ func TestSimultOpen(t *testing.T) {
 	// connect everyone
 	{
 		var wg sync.WaitGroup
-		connect := func(s *Swarm, dst *peer.Peer) {
+		connect := func(s *Swarm, dst peer.Peer) {
 			// copy for other peer
-			cp := &peer.Peer{ID: dst.ID}
-			cp.AddAddress(dst.Addresses[0])
+			cp := peer.WithID(dst.ID())
+			cp.AddAddress(dst.Addresses()[0])
 
 			if _, err := s.Dial(cp); err != nil {
 				t.Fatal("error swarm dialing to peer", err)

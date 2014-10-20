@@ -42,10 +42,10 @@ func NewRoutingTable(bucketsize int, localID ID, latency time.Duration) *Routing
 
 // Update adds or moves the given peer to the front of its respective bucket
 // If a peer gets removed from a bucket, it is returned
-func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
+func (rt *RoutingTable) Update(p peer.Peer) peer.Peer {
 	rt.tabLock.Lock()
 	defer rt.tabLock.Unlock()
-	peerID := ConvertPeerID(p.ID)
+	peerID := ConvertPeerID(p.ID())
 	cpl := commonPrefixLen(peerID, rt.local)
 
 	bucketID := cpl
@@ -54,7 +54,7 @@ func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 	}
 
 	bucket := rt.Buckets[bucketID]
-	e := bucket.find(p.ID)
+	e := bucket.find(p.ID())
 	if e == nil {
 		// New peer, add to bucket
 		if p.GetLatency() > rt.maxLatency {
@@ -93,7 +93,7 @@ func (rt *RoutingTable) Update(p *peer.Peer) *peer.Peer {
 
 // A helper struct to sort peers by their distance to the local node
 type peerDistance struct {
-	p        *peer.Peer
+	p        peer.Peer
 	distance ID
 }
 
@@ -110,8 +110,8 @@ func (p peerSorterArr) Less(a, b int) bool {
 
 func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
 	for e := peerList.Front(); e != nil; e = e.Next() {
-		p := e.Value.(*peer.Peer)
-		pID := ConvertPeerID(p.ID)
+		p := e.Value.(peer.Peer)
+		pID := ConvertPeerID(p.ID())
 		pd := peerDistance{
 			p:        p,
 			distance: xor(target, pID),
@@ -126,16 +126,16 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 }
 
 // Find a specific peer by ID or return nil
-func (rt *RoutingTable) Find(id peer.ID) *peer.Peer {
+func (rt *RoutingTable) Find(id peer.ID) peer.Peer {
 	srch := rt.NearestPeers(ConvertPeerID(id), 1)
-	if len(srch) == 0 || !srch[0].ID.Equal(id) {
+	if len(srch) == 0 || !srch[0].ID().Equal(id) {
 		return nil
 	}
 	return srch[0]
 }
 
 // NearestPeer returns a single peer that is nearest to the given ID
-func (rt *RoutingTable) NearestPeer(id ID) *peer.Peer {
+func (rt *RoutingTable) NearestPeer(id ID) peer.Peer {
 	peers := rt.NearestPeers(id, 1)
 	if len(peers) > 0 {
 		return peers[0]
@@ -146,7 +146,7 @@ func (rt *RoutingTable) NearestPeer(id ID) *peer.Peer {
 }
 
 // NearestPeers returns a list of the 'count' closest peers to the given ID
-func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
+func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.Peer {
 	rt.tabLock.RLock()
 	defer rt.tabLock.RUnlock()
 	cpl := commonPrefixLen(id, rt.local)
@@ -178,7 +178,7 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []*peer.Peer {
 	// Sort by distance to local peer
 	sort.Sort(peerArr)
 
-	var out []*peer.Peer
+	var out []peer.Peer
 	for i := 0; i < count && i < peerArr.Len(); i++ {
 		out = append(out, peerArr[i].p)
 	}
@@ -197,11 +197,11 @@ func (rt *RoutingTable) Size() int {
 
 // ListPeers takes a RoutingTable and returns a list of all peers from all buckets in the table.
 // NOTE: This is potentially unsafe... use at your own risk
-func (rt *RoutingTable) ListPeers() []*peer.Peer {
-	var peers []*peer.Peer
+func (rt *RoutingTable) ListPeers() []peer.Peer {
+	var peers []peer.Peer
 	for _, buck := range rt.Buckets {
 		for e := buck.getIter(); e != nil; e = e.Next() {
-			peers = append(peers, e.Value.(*peer.Peer))
+			peers = append(peers, e.Value.(peer.Peer))
 		}
 	}
 	return peers
@@ -213,6 +213,6 @@ func (rt *RoutingTable) Print() {
 	rt.tabLock.RLock()
 	peers := rt.ListPeers()
 	for i, p := range peers {
-		fmt.Printf("%d) %s %s\n", i, p.ID.Pretty(), p.GetLatency().String())
+		fmt.Printf("%d) %s %s\n", i, p.ID().Pretty(), p.GetLatency().String())
 	}
 }

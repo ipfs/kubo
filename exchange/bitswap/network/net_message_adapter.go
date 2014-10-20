@@ -60,13 +60,13 @@ func (adapter *impl) HandleMessage(
 	return outgoing
 }
 
-func (adapter *impl) DialPeer(p *peer.Peer) error {
+func (adapter *impl) DialPeer(p peer.Peer) error {
 	return adapter.net.DialPeer(p)
 }
 
 func (adapter *impl) SendMessage(
 	ctx context.Context,
-	p *peer.Peer,
+	p peer.Peer,
 	outgoing bsmsg.BitSwapMessage) error {
 
 	nmsg, err := outgoing.ToNet(p)
@@ -78,7 +78,7 @@ func (adapter *impl) SendMessage(
 
 func (adapter *impl) SendRequest(
 	ctx context.Context,
-	p *peer.Peer,
+	p peer.Peer,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
 	outgoingMsg, err := outgoing.ToNet(p)

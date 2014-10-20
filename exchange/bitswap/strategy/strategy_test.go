@@ -10,13 +10,13 @@ import (
 )
 
 type peerAndStrategist struct {
-	*peer.Peer
+	peer.Peer
 	Strategy
 }
 
 func newPeerAndStrategist(idStr string) peerAndStrategist {
 	return peerAndStrategist{
-		Peer:     &peer.Peer{ID: peer.ID(idStr)},
+		Peer:     peer.WithIDString(idStr),
 		Strategy: New(true),
 	}
 }
@@ -93,7 +93,7 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 	}
 }
 
-func peerIsPartner(p *peer.Peer, s Strategy) bool {
+func peerIsPartner(p peer.Peer, s Strategy) bool {
 	for _, partner := range s.Peers() {
 		if partner.Key() == p.Key() {
 			return true

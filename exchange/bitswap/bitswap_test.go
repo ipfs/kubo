@@ -44,7 +44,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	g := NewSessionGenerator(net, rs)
 
 	block := blocks.NewBlock([]byte("block"))
-	rs.Announce(&peer.Peer{}, block.Key()) // but not on network
+	rs.Announce(peer.WithIDString("testing"), block.Key()) // but not on network
 
 	solo := g.Next()
 
@@ -263,7 +263,7 @@ func (g *SessionGenerator) Instances(n int) []instance {
 }
 
 type instance struct {
-	peer       *peer.Peer
+	peer       peer.Peer
 	exchange   exchange.Interface
 	blockstore bstore.Blockstore
 }
@@ -274,7 +274,7 @@ type instance struct {
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
 func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
-	p := &peer.Peer{ID: id}
+	p := peer.WithID(id)
 
 	adapter := net.Adapter(p)
 	htc := rs.Client(p)

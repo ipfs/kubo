@@ -53,7 +53,7 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	log.Debug("handshake: %s <--> %s", s.local, s.remote)
-	myPubKey, err := s.local.PubKey.Bytes()
+	myPubKey, err := s.local.PubKey().Bytes()
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (s *SecurePipe) handshake() error {
 	exPacket := new(Exchange)
 
 	exPacket.Epubkey = epubkey
-	exPacket.Signature, err = s.local.PrivKey.Sign(handshake.Bytes())
+	exPacket.Signature, err = s.local.PrivKey().Sign(handshake.Bytes())
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (s *SecurePipe) handshake() error {
 	theirHandshake.Write(exchangeResp.GetEpubkey())
 
 	// u.POut("Remote Peer Identified as %s\n", s.remote)
-	ok, err := s.remote.PubKey.Verify(theirHandshake.Bytes(), exchangeResp.GetSignature())
+	ok, err := s.remote.PubKey().Verify(theirHandshake.Bytes(), exchangeResp.GetSignature())
 	if err != nil {
 		return err
 	}
@@ -340,7 +340,7 @@ func selectBest(myPrefs, theirPrefs string) (string, error) {
 // getOrConstructPeer attempts to fetch a peer from a peerstore.
 // if succeeds, verify ID and PubKey match.
 // else, construct it.
-func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error) {
+func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (peer.Peer, error) {
 
 	rid, err := peer.IDFromPubKey(rpk)
 	if err != nil {

@@ -133,7 +133,7 @@ func (s *service) SendMessage(ctx context.Context, m msg.NetMessage) error {
 func (s *service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
 
 	// create a request
-	r, err := NewRequest(m.Peer().ID)
+	r, err := NewRequest(m.Peer().ID())
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 		log.Error("RequestID should identify a response here.")
 	}
 
-	key := RequestKey(m.Peer().ID, RequestID(rid))
+	key := RequestKey(m.Peer().ID(), RequestID(rid))
 	s.RequestsLock.RLock()
 	r, found := s.Requests[key]
 	s.RequestsLock.RUnlock()

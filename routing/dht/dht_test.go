@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func setupDHT(ctx context.Context, t *testing.T, p *peer.Peer) *IpfsDHT {
+func setupDHT(ctx context.Context, t *testing.T, p peer.Peer) *IpfsDHT {
 	peerstore := peer.NewPeerstore()
 
 	dhts := netservice.NewService(nil) // nil handler for now, need to patch it
@@ -40,7 +40,7 @@ func setupDHT(ctx context.Context, t *testing.T, p *peer.Peer) *IpfsDHT {
 	return d
 }
 
-func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []*peer.Peer, []*IpfsDHT) {
+func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer.Peer, []*IpfsDHT) {
 	var addrs []ma.Multiaddr
 	for i := 0; i < n; i++ {
 		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
@@ -50,7 +50,7 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []*pee
 		addrs = append(addrs, a)
 	}
 
-	var peers []*peer.Peer
+	var peers []peer.Peer
 	for i := 0; i < n; i++ {
 		p := makePeer(addrs[i])
 		peers = append(peers, p)
@@ -64,21 +64,16 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []*pee
 	return addrs, peers, dhts
 }
 
-func makePeer(addr ma.Multiaddr) *peer.Peer {
-	p := new(peer.Peer)
-	p.AddAddress(addr)
+func makePeer(addr ma.Multiaddr) peer.Peer {
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		panic(err)
 	}
-	p.PrivKey = sk
-	p.PubKey = pk
-	id, err := peer.IDFromPubKey(pk)
+	p, err := peer.WithKeyPair(sk, pk)
 	if err != nil {
 		panic(err)
 	}
-
-	p.ID = id
+	p.AddAddress(addr)
 	return p
 }
 
@@ -289,7 +284,7 @@ func TestProvidesAsync(t *testing.T) {
 	provs := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 5)
 	select {
 	case p := <-provs:
-		if !p.ID.Equal(dhts[3].self.ID) {
+		if !p.ID().Equal(dhts[3].self.ID()) {
 			t.Fatalf("got a provider, but not the right one. %s", p)
 		}
 	case <-ctxT.Done():
@@ -379,7 +374,7 @@ func TestFindPeer(t *testing.T) {
 	}
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	p, err := dhts[0].FindPeer(ctxT, peers[2].ID)
+	p, err := dhts[0].FindPeer(ctxT, peers[2].ID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +383,7 @@ func TestFindPeer(t *testing.T) {
 		t.Fatal("Failed to find peer.")
 	}
 
-	if !p.ID.Equal(peers[2].ID) {
+	if !p.ID().Equal(peers[2].ID()) {
 		t.Fatal("Didnt find expected peer.")
 	}
 }

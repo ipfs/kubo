@@ -9,7 +9,6 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -66,17 +65,17 @@ type fauxNet struct {
 }
 
 // DialPeer attempts to establish a connection to a given peer
-func (f *fauxNet) DialPeer(*peer.Peer) error {
+func (f *fauxNet) DialPeer(peer.Peer) error {
 	return nil
 }
 
 // ClosePeer connection to peer
-func (f *fauxNet) ClosePeer(*peer.Peer) error {
+func (f *fauxNet) ClosePeer(peer.Peer) error {
 	return nil
 }
 
 // IsConnected returns whether a connection to given peer exists.
-func (f *fauxNet) IsConnected(*peer.Peer) (bool, error) {
+func (f *fauxNet) IsConnected(peer.Peer) (bool, error) {
 	return true, nil
 }
 
@@ -88,7 +87,7 @@ func (f *fauxNet) SendMessage(msg.NetMessage) error {
 	return nil
 }
 
-func (f *fauxNet) GetPeerList() []*peer.Peer {
+func (f *fauxNet) GetPeerList() []peer.Peer {
 	return nil
 }
 
@@ -107,11 +106,10 @@ func TestGetFailures(t *testing.T) {
 	fs := &fauxSender{}
 
 	peerstore := peer.NewPeerstore()
-	local := new(peer.Peer)
-	local.ID = peer.ID("test_peer")
+	local := peer.WithIDString("test_peer")
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
-	other := &peer.Peer{ID: peer.ID("other_peer")}
+	other := peer.WithIDString("other_peer")
 	d.Update(other)
 
 	// This one should time out
@@ -189,11 +187,10 @@ func TestGetFailures(t *testing.T) {
 }
 
 // TODO: Maybe put these in some sort of "ipfs_testutil" package
-func _randPeer() *peer.Peer {
-	p := new(peer.Peer)
-	p.ID = make(peer.ID, 16)
-	p.Addresses = []ma.Multiaddr{nil}
-	crand.Read(p.ID)
+func _randPeer() peer.Peer {
+	id := make(peer.ID, 16)
+	crand.Read(id)
+	p := peer.WithID(id)
 	return p
 }
 
@@ -204,13 +201,13 @@ func TestNotFound(t *testing.T) {
 	fn := &fauxNet{}
 	fs := &fauxSender{}
 
-	local := new(peer.Peer)
-	local.ID = peer.ID("test_peer")
+	local := peer.WithIDString("test_peer")
 	peerstore := peer.NewPeerstore()
+	peerstore.Put(local)
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
-	var ps []*peer.Peer
+	var ps []peer.Peer
 	for i := 0; i < 5; i++ {
 		ps = append(ps, _randPeer())
 		d.Update(ps[i])
@@ -228,7 +225,7 @@ func TestNotFound(t *testing.T) {
 		case Message_GET_VALUE:
 			resp := &Message{Type: pmes.Type}
 
-			peers := []*peer.Peer{}
+			peers := []peer.Peer{}
 			for i := 0; i < 7; i++ {
 				peers = append(peers, _randPeer())
 			}
@@ -270,13 +267,13 @@ func TestLessThanKResponses(t *testing.T) {
 	u.Debug = false
 	fn := &fauxNet{}
 	fs := &fauxSender{}
+	local := peer.WithIDString("test_peer")
 	peerstore := peer.NewPeerstore()
-	local := new(peer.Peer)
-	local.ID = peer.ID("test_peer")
+	peerstore.Put(local)
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
-	var ps []*peer.Peer
+	var ps []peer.Peer
 	for i := 0; i < 5; i++ {
 		ps = append(ps, _randPeer())
 		d.Update(ps[i])
@@ -295,7 +292,7 @@ func TestLessThanKResponses(t *testing.T) {
 		case Message_GET_VALUE:
 			resp := &Message{
 				Type:        pmes.Type,
-				CloserPeers: peersToPBPeers([]*peer.Peer{other}),
+				CloserPeers: peersToPBPeers([]peer.Peer{other}),
 			}
 
 			mes, err := msg.FromObject(mes.Peer(), resp)

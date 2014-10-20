@@ -15,7 +15,7 @@ import (
 type IpfsNetwork struct {
 
 	// local peer
-	local *peer.Peer
+	local peer.Peer
 
 	// protocol multiplexing
 	muxer *mux.Muxer
@@ -29,7 +29,7 @@ type IpfsNetwork struct {
 }
 
 // NewIpfsNetwork is the structure that implements the network interface
-func NewIpfsNetwork(ctx context.Context, local *peer.Peer,
+func NewIpfsNetwork(ctx context.Context, local peer.Peer,
 	peers peer.Peerstore, pmap *mux.ProtocolMap) (*IpfsNetwork, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -63,19 +63,19 @@ func NewIpfsNetwork(ctx context.Context, local *peer.Peer,
 // func (n *IpfsNetwork) Listen(*ma.Muliaddr) error {}
 
 // DialPeer attempts to establish a connection to a given peer
-func (n *IpfsNetwork) DialPeer(p *peer.Peer) error {
+func (n *IpfsNetwork) DialPeer(p peer.Peer) error {
 	_, err := n.swarm.Dial(p)
 	return err
 }
 
 // ClosePeer connection to peer
-func (n *IpfsNetwork) ClosePeer(p *peer.Peer) error {
+func (n *IpfsNetwork) ClosePeer(p peer.Peer) error {
 	return n.swarm.CloseConnection(p)
 }
 
 // IsConnected returns whether a connection to given peer exists.
-func (n *IpfsNetwork) IsConnected(p *peer.Peer) (bool, error) {
-	return n.swarm.GetConnection(p.ID) != nil, nil
+func (n *IpfsNetwork) IsConnected(p peer.Peer) (bool, error) {
+	return n.swarm.GetConnection(p.ID()) != nil, nil
 }
 
 // GetProtocols returns the protocols registered in the network.
@@ -108,10 +108,12 @@ func (n *IpfsNetwork) Close() error {
 	return nil
 }
 
-func (n *IpfsNetwork) GetPeerList() []*peer.Peer {
+// GetPeerList returns the networks list of connected peers
+func (n *IpfsNetwork) GetPeerList() []peer.Peer {
 	return n.swarm.GetPeerList()
 }
 
+// GetBandwidthTotals returns the total amount of bandwidth transferred
 func (n *IpfsNetwork) GetBandwidthTotals() (in uint64, out uint64) {
 	return n.muxer.GetBandwidthTotals()
 }

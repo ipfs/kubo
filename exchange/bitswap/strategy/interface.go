@@ -8,25 +8,25 @@ import (
 
 type Strategy interface {
 	// Returns a slice of Peers with whom the local node has active sessions
-	Peers() []*peer.Peer
+	Peers() []peer.Peer
 
 	// BlockIsWantedByPeer returns true if peer wants the block given by this
 	// key
-	BlockIsWantedByPeer(u.Key, *peer.Peer) bool
+	BlockIsWantedByPeer(u.Key, peer.Peer) bool
 
 	// ShouldSendTo(Peer) decides whether to send data to this Peer
-	ShouldSendBlockToPeer(u.Key, *peer.Peer) bool
+	ShouldSendBlockToPeer(u.Key, peer.Peer) bool
 
 	// Seed initializes the decider to a deterministic state
 	Seed(int64)
 
 	// MessageReceived records receipt of message for accounting purposes
-	MessageReceived(*peer.Peer, bsmsg.BitSwapMessage) error
+	MessageReceived(peer.Peer, bsmsg.BitSwapMessage) error
 
 	// MessageSent records sending of message for accounting purposes
-	MessageSent(*peer.Peer, bsmsg.BitSwapMessage) error
+	MessageSent(peer.Peer, bsmsg.BitSwapMessage) error
 
-	NumBytesSentTo(*peer.Peer) uint64
+	NumBytesSentTo(peer.Peer) uint64
 
-	NumBytesReceivedFrom(*peer.Peer) uint64
+	NumBytesReceivedFrom(peer.Peer) uint64
 }

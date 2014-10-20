@@ -19,7 +19,7 @@ type BitSwapMessage interface {
 
 type Exportable interface {
 	ToProto() *PBMessage
-	ToNet(p *peer.Peer) (nm.NetMessage, error)
+	ToNet(p peer.Peer) (nm.NetMessage, error)
 }
 
 // message wraps a proto message for convenience
@@ -82,6 +82,6 @@ func (m *message) ToProto() *PBMessage {
 	return pb
 }
 
-func (m *message) ToNet(p *peer.Peer) (nm.NetMessage, error) {
+func (m *message) ToNet(p peer.Peer) (nm.NetMessage, error) {
 	return nm.FromObject(p, m.ToProto())
 }

@@ -21,14 +21,14 @@ func (t *TestProtocol) GetPipe() *msg.Pipe {
 	return t.Pipe
 }
 
-func newPeer(t *testing.T, id string) *peer.Peer {
+func newPeer(t *testing.T, id string) peer.Peer {
 	mh, err := mh.FromHexString(id)
 	if err != nil {
 		t.Error(err)
 		return nil
 	}
 
-	return &peer.Peer{ID: peer.ID(mh)}
+	return peer.WithID(peer.ID(mh))
 }
 
 func testMsg(t *testing.T, m msg.NetMessage, data []byte) {

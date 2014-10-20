@@ -52,15 +52,15 @@ func newPeerSet() *peerSet {
 	return ps
 }
 
-func (ps *peerSet) Add(p *peer.Peer) {
+func (ps *peerSet) Add(p peer.Peer) {
 	ps.lk.Lock()
-	ps.ps[string(p.ID)] = true
+	ps.ps[string(p.ID())] = true
 	ps.lk.Unlock()
 }
 
-func (ps *peerSet) Contains(p *peer.Peer) bool {
+func (ps *peerSet) Contains(p peer.Peer) bool {
 	ps.lk.RLock()
-	_, ok := ps.ps[string(p.ID)]
+	_, ok := ps.ps[string(p.ID())]
 	ps.lk.RUnlock()
 	return ok
 }
@@ -71,12 +71,12 @@ func (ps *peerSet) Size() int {
 	return len(ps.ps)
 }
 
-func (ps *peerSet) AddIfSmallerThan(p *peer.Peer, maxsize int) bool {
+func (ps *peerSet) AddIfSmallerThan(p peer.Peer, maxsize int) bool {
 	var success bool
 	ps.lk.Lock()
-	if _, ok := ps.ps[string(p.ID)]; !ok && len(ps.ps) < maxsize {
+	if _, ok := ps.ps[string(p.ID())]; !ok && len(ps.ps) < maxsize {
 		success = true
-		ps.ps[string(p.ID)] = true
+		ps.ps[string(p.ID())] = true
 	}
 	ps.lk.Unlock()
 	return success

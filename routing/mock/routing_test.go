@@ -20,9 +20,7 @@ func TestKeyNotFound(t *testing.T) {
 
 func TestSetAndGet(t *testing.T) {
 	pid := peer.ID([]byte("the peer id"))
-	p := &peer.Peer{
-		ID: pid,
-	}
+	p := peer.WithID(pid)
 	k := u.Key("42")
 	rs := VirtualRoutingServer()
 	err := rs.Announce(p, k)
@@ -34,7 +32,7 @@ func TestSetAndGet(t *testing.T) {
 		t.Fatal("should be one")
 	}
 	for _, elem := range providers {
-		if bytes.Equal(elem.ID, pid) {
+		if bytes.Equal(elem.ID(), pid) {
 			return
 		}
 	}
@@ -42,7 +40,7 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	peer := &peer.Peer{ID: []byte("42")}
+	peer := peer.WithIDString("42")
 	rs := VirtualRoutingServer()
 	client := rs.Client(peer)
 
@@ -57,7 +55,7 @@ func TestClientFindProviders(t *testing.T) {
 
 	isInHT := false
 	for _, p := range providersFromHashTable {
-		if bytes.Equal(p.ID, peer.ID) {
+		if bytes.Equal(p.ID(), peer.ID()) {
 			isInHT = true
 		}
 	}
@@ -67,7 +65,7 @@ func TestClientFindProviders(t *testing.T) {
 	providersFromClient := client.FindProvidersAsync(context.Background(), u.Key("hello"), max)
 	isInClient := false
 	for p := range providersFromClient {
-		if bytes.Equal(p.ID, peer.ID) {
+		if bytes.Equal(p.ID(), peer.ID()) {
 			isInClient = true
 		}
 	}
@@ -81,9 +79,7 @@ func TestClientOverMax(t *testing.T) {
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
-		peer := &peer.Peer{
-			ID: []byte(string(i)),
-		}
+		peer := peer.WithIDString(string(i))
 		err := rs.Announce(peer, k)
 		if err != nil {
 			t.Fatal(err)
@@ -96,7 +92,7 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	peer := &peer.Peer{ID: []byte("TODO")}
+	peer := peer.WithIDString("TODO")
 	client := rs.Client(peer)
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
@@ -118,9 +114,7 @@ func TestCanceledContext(t *testing.T) {
 	i := 0
 	go func() { // infinite stream
 		for {
-			peer := &peer.Peer{
-				ID: []byte(string(i)),
-			}
+			peer := peer.WithIDString(string(i))
 			err := rs.Announce(peer, k)
 			if err != nil {
 				t.Fatal(err)
@@ -129,7 +123,7 @@ func TestCanceledContext(t *testing.T) {
 		}
 	}()
 
-	local := &peer.Peer{ID: []byte("peer id doesn't matter")}
+	local := peer.WithIDString("peer id doesn't matter")
 	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")

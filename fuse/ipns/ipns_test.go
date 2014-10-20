@@ -209,7 +209,7 @@ func TestFastRepublish(t *testing.T) {
 
 	node, mnt := setupIpnsTest(t, nil)
 
-	h, err := node.Identity.PrivKey.GetPublic().Hash()
+	h, err := node.Identity.PrivKey().GetPublic().Hash()
 	if err != nil {
 		t.Fatal(err)
 	}

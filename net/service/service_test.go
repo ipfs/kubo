@@ -25,14 +25,14 @@ func (t *ReverseHandler) HandleMessage(ctx context.Context, m msg.NetMessage) ms
 	return msg.New(m.Peer(), d)
 }
 
-func newPeer(t *testing.T, id string) *peer.Peer {
+func newPeer(t *testing.T, id string) peer.Peer {
 	mh, err := mh.FromHexString(id)
 	if err != nil {
 		t.Error(err)
 		return nil
 	}
 
-	return &peer.Peer{ID: peer.ID(mh)}
+	return peer.WithID(peer.ID(mh))
 }
 
 func TestServiceHandler(t *testing.T) {

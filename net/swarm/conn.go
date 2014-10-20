@@ -14,11 +14,11 @@ import (
 func (s *Swarm) listen() error {
 	hasErr := false
 	retErr := &ListenErr{
-		Errors: make([]error, len(s.local.Addresses)),
+		Errors: make([]error, len(s.local.Addresses())),
 	}
 
 	// listen on every address
-	for i, addr := range s.local.Addresses {
+	for i, addr := range s.local.Addresses() {
 		err := s.connListen(addr)
 		if err != nil {
 			hasErr = true

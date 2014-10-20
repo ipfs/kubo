@@ -97,7 +97,7 @@ func setupMultiConns(t *testing.T, ctx context.Context) (a, b *MultiConn) {
 	p2ps := peer.NewPeerstore()
 
 	// listeners
-	listen := func(addr ma.Multiaddr, p *peer.Peer, ps peer.Peerstore) Listener {
+	listen := func(addr ma.Multiaddr, p peer.Peer, ps peer.Peerstore) Listener {
 		l, err := Listen(ctx, addr, p, ps)
 		if err != nil {
 			t.Fatal(err)
@@ -106,14 +106,14 @@ func setupMultiConns(t *testing.T, ctx context.Context) (a, b *MultiConn) {
 	}
 
 	log.Info("Setting up listeners")
-	p1l := listen(p1.Addresses[0], p1, p1ps)
-	p2l := listen(p2.Addresses[0], p2, p2ps)
+	p1l := listen(p1.Addresses()[0], p1, p1ps)
+	p2l := listen(p2.Addresses()[0], p2, p2ps)
 
 	// dialers
 	p1d := &Dialer{Peerstore: p1ps, LocalPeer: p1}
 	p2d := &Dialer{Peerstore: p2ps, LocalPeer: p2}
 
-	dial := func(d *Dialer, dst *peer.Peer) <-chan Conn {
+	dial := func(d *Dialer, dst peer.Peer) <-chan Conn {
 		cc := make(chan Conn)
 		go func() {
 			c, err := d.Dial(ctx, "tcp", dst)

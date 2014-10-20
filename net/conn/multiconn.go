@@ -27,8 +27,8 @@ type MultiConn struct {
 	// this string is:  /addr1/peer1/addr2/peer2 (peers ordered lexicographically)
 	conns map[string]Conn
 
-	local  *peer.Peer
-	remote *peer.Peer
+	local  peer.Peer
+	remote peer.Peer
 
 	// fan-in/fan-out
 	duplex Duplex
@@ -39,7 +39,7 @@ type MultiConn struct {
 }
 
 // NewMultiConn constructs a new connection
-func NewMultiConn(ctx context.Context, local, remote *peer.Peer, conns []Conn) (*MultiConn, error) {
+func NewMultiConn(ctx context.Context, local, remote peer.Peer, conns []Conn) (*MultiConn, error) {
 
 	c := &MultiConn{
 		local:  local,
@@ -72,6 +72,10 @@ func (c *MultiConn) Add(conns ...Conn) {
 			log.Error("%s", c2)
 			c.Unlock() // ok to unlock (to log). panicing.
 			log.Error("%s", c)
+			log.Error("c.LocalPeer: %s %#v", c.LocalPeer(), c.LocalPeer())
+			log.Error("c2.LocalPeer: %s %#v", c2.LocalPeer(), c2.LocalPeer())
+			log.Error("c.RemotePeer: %s %#v", c.RemotePeer(), c.RemotePeer())
+			log.Error("c2.RemotePeer: %s %#v", c2.RemotePeer(), c2.RemotePeer())
 			c.Lock() // gotta relock to avoid lock panic from deferring.
 			panic("connection addresses mismatch")
 		}
@@ -269,12 +273,12 @@ func (c *MultiConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on this side
-func (c *MultiConn) LocalPeer() *peer.Peer {
+func (c *MultiConn) LocalPeer() peer.Peer {
 	return c.local
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *MultiConn) RemotePeer() *peer.Peer {
+func (c *MultiConn) RemotePeer() peer.Peer {
 	return c.remote
 }
 

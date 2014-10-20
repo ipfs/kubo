@@ -18,15 +18,15 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 
 	t.Log("Get two network adapters")
 
-	initiator := net.Adapter(&peer.Peer{ID: []byte("initiator")})
-	recipient := net.Adapter(&peer.Peer{ID: idOfRecipient})
+	initiator := net.Adapter(peer.WithIDString("initiator"))
+	recipient := net.Adapter(peer.WithID(idOfRecipient))
 
 	expectedStr := "response from recipient"
 	recipient.SetDelegate(lambda(func(
 		ctx context.Context,
-		from *peer.Peer,
+		from peer.Peer,
 		incoming bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage) {
+		peer.Peer, bsmsg.BitSwapMessage) {
 
 		t.Log("Recipient received a message from the network")
 
@@ -43,7 +43,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 	message := bsmsg.New()
 	message.AppendBlock(*blocks.NewBlock([]byte("data")))
 	response, err := initiator.SendRequest(
-		context.Background(), &peer.Peer{ID: idOfRecipient}, message)
+		context.Background(), peer.WithID(idOfRecipient), message)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,8 +61,8 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	net := VirtualNetwork()
 	idOfResponder := []byte("responder")
-	waiter := net.Adapter(&peer.Peer{ID: []byte("waiter")})
-	responder := net.Adapter(&peer.Peer{ID: idOfResponder})
+	waiter := net.Adapter(peer.WithIDString("waiter"))
+	responder := net.Adapter(peer.WithID(idOfResponder))
 
 	var wg sync.WaitGroup
 
@@ -72,9 +72,9 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 
 	responder.SetDelegate(lambda(func(
 		ctx context.Context,
-		fromWaiter *peer.Peer,
+		fromWaiter peer.Peer,
 		msgFromWaiter bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage) {
+		peer.Peer, bsmsg.BitSwapMessage) {
 
 		msgToWaiter := bsmsg.New()
 		msgToWaiter.AppendBlock(*blocks.NewBlock([]byte(expectedStr)))
@@ -84,9 +84,9 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 
 	waiter.SetDelegate(lambda(func(
 		ctx context.Context,
-		fromResponder *peer.Peer,
+		fromResponder peer.Peer,
 		msgFromResponder bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage) {
+		peer.Peer, bsmsg.BitSwapMessage) {
 
 		// TODO assert that this came from the correct peer and that the message contents are as expected
 		ok := false
@@ -107,7 +107,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	messageSentAsync := bsmsg.New()
 	messageSentAsync.AppendBlock(*blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
-		context.Background(), &peer.Peer{ID: idOfResponder}, messageSentAsync)
+		context.Background(), peer.WithID(idOfResponder), messageSentAsync)
 	if errSending != nil {
 		t.Fatal(errSending)
 	}
@@ -115,8 +115,8 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	wg.Wait() // until waiter delegate function is executed
 }
 
-type receiverFunc func(ctx context.Context, p *peer.Peer,
-	incoming bsmsg.BitSwapMessage) (*peer.Peer, bsmsg.BitSwapMessage)
+type receiverFunc func(ctx context.Context, p peer.Peer,
+	incoming bsmsg.BitSwapMessage) (peer.Peer, bsmsg.BitSwapMessage)
 
 // lambda returns a Receiver instance given a receiver function
 func lambda(f receiverFunc) bsnet.Receiver {
@@ -126,13 +126,13 @@ func lambda(f receiverFunc) bsnet.Receiver {
 }
 
 type lambdaImpl struct {
-	f func(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
-		*peer.Peer, bsmsg.BitSwapMessage)
+	f func(ctx context.Context, p peer.Peer, incoming bsmsg.BitSwapMessage) (
+		peer.Peer, bsmsg.BitSwapMessage)
 }
 
 func (lam *lambdaImpl) ReceiveMessage(ctx context.Context,
-	p *peer.Peer, incoming bsmsg.BitSwapMessage) (
-	*peer.Peer, bsmsg.BitSwapMessage) {
+	p peer.Peer, incoming bsmsg.BitSwapMessage) (
+	peer.Peer, bsmsg.BitSwapMessage) {
 	return lam.f(ctx, p, incoming)
 }
 

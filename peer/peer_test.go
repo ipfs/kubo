@@ -27,12 +27,12 @@ func TestNetAddress(t *testing.T) {
 		return
 	}
 
-	p := Peer{ID: ID(mh)}
+	p := WithID(ID(mh))
 	p.AddAddress(tcp)
 	p.AddAddress(udp)
 	p.AddAddress(tcp)
 
-	if len(p.Addresses) == 3 {
+	if len(p.Addresses()) == 3 {
 		t.Error("added same address twice")
 	}
 

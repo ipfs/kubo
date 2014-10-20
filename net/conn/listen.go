@@ -23,7 +23,7 @@ type listener struct {
 	maddr ma.Multiaddr
 
 	// LocalPeer is the identity of the local Peer.
-	local *peer.Peer
+	local peer.Peer
 
 	// Peerstore is the set of peers we know about locally
 	peers peer.Peerstore
@@ -105,7 +105,7 @@ func (l *listener) Multiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the identity of the local Peer.
-func (l *listener) LocalPeer() *peer.Peer {
+func (l *listener) LocalPeer() peer.Peer {
 	return l.local
 }
 
@@ -117,7 +117,7 @@ func (l *listener) Peerstore() peer.Peerstore {
 }
 
 // Listen listens on the particular multiaddr, with given peer and peerstore.
-func Listen(ctx context.Context, addr ma.Multiaddr, local *peer.Peer, peers peer.Peerstore) (Listener, error) {
+func Listen(ctx context.Context, addr ma.Multiaddr, local peer.Peer, peers peer.Peerstore) (Listener, error) {
 
 	ml, err := manet.Listen(addr)
 	if err != nil {

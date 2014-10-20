@@ -20,12 +20,12 @@ type ProviderManager struct {
 
 type addProv struct {
 	k   u.Key
-	val *peer.Peer
+	val peer.Peer
 }
 
 type getProv struct {
 	k    u.Key
-	resp chan []*peer.Peer
+	resp chan []peer.Peer
 }
 
 func NewProviderManager(local peer.ID) *ProviderManager {
@@ -45,7 +45,7 @@ func (pm *ProviderManager) run() {
 	for {
 		select {
 		case np := <-pm.newprovs:
-			if np.val.ID.Equal(pm.lpeer) {
+			if np.val.ID().Equal(pm.lpeer) {
 				pm.local[np.k] = struct{}{}
 			}
 			pi := new(providerInfo)
@@ -54,7 +54,7 @@ func (pm *ProviderManager) run() {
 			arr := pm.providers[np.k]
 			pm.providers[np.k] = append(arr, pi)
 		case gp := <-pm.getprovs:
-			var parr []*peer.Peer
+			var parr []peer.Peer
 			provs := pm.providers[gp.k]
 			for _, p := range provs {
 				parr = append(parr, p.Value)
@@ -82,17 +82,17 @@ func (pm *ProviderManager) run() {
 	}
 }
 
-func (pm *ProviderManager) AddProvider(k u.Key, val *peer.Peer) {
+func (pm *ProviderManager) AddProvider(k u.Key, val peer.Peer) {
 	pm.newprovs <- &addProv{
 		k:   k,
 		val: val,
 	}
 }
 
-func (pm *ProviderManager) GetProviders(k u.Key) []*peer.Peer {
+func (pm *ProviderManager) GetProviders(k u.Key) []peer.Peer {
 	gp := new(getProv)
 	gp.k = k
-	gp.resp = make(chan []*peer.Peer)
+	gp.resp = make(chan []peer.Peer)
 	pm.getprovs <- gp
 	return <-gp.resp
 }

@@ -12,7 +12,7 @@ import (
 // access/lookups.
 type keySet map[u.Key]struct{}
 
-func newLedger(p *peer.Peer, strategy strategyFunc) *ledger {
+func newLedger(p peer.Peer, strategy strategyFunc) *ledger {
 	return &ledger{
 		wantList: keySet{},
 		Strategy: strategy,
@@ -25,7 +25,7 @@ type ledger struct {
 	lock sync.RWMutex
 
 	// Partner is the remote Peer.
-	Partner *peer.Peer
+	Partner peer.Peer
 
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio

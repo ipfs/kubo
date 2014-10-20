@@ -12,7 +12,7 @@ import (
 
 // Dial connects to a particular peer, over a given network
 // Example: d.Dial(ctx, "udp", peer)
-func (d *Dialer) Dial(ctx context.Context, network string, remote *peer.Peer) (Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Conn, error) {
 	laddr := d.LocalPeer.NetAddress(network)
 	if laddr == nil {
 		return nil, fmt.Errorf("No local address for network %s", network)

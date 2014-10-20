@@ -35,7 +35,7 @@ type FileSystem struct {
 
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
 func NewIpns(ipfs *core.IpfsNode, ipfspath string) (*FileSystem, error) {
-	root, err := CreateRoot(ipfs, []ci.PrivKey{ipfs.Identity.PrivKey}, ipfspath)
+	root, err := CreateRoot(ipfs, []ci.PrivKey{ipfs.Identity.PrivKey()}, ipfspath)
 	if err != nil {
 		return nil, err
 	}

@@ -36,7 +36,7 @@ type IpfsNode struct {
 	Config *config.Config
 
 	// the local node's identity
-	Identity *peer.Peer
+	Identity peer.Peer
 
 	// storage for other Peer instances
 	Peerstore peer.Peerstore
@@ -177,7 +177,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}, nil
 }
 
-func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (*peer.Peer, error) {
+func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.Peer, error) {
 	if cfg.Identity.PeerID == "" {
 		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
 	}

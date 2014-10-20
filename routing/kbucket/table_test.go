@@ -10,11 +10,10 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-func _randPeer() *peer.Peer {
-	p := new(peer.Peer)
-	p.ID = make(peer.ID, 16)
-	crand.Read(p.ID)
-	return p
+func _randPeer() peer.Peer {
+	id := make(peer.ID, 16)
+	crand.Read(id)
+	return peer.WithID(id)
 }
 
 func _randID() ID {
@@ -29,25 +28,25 @@ func _randID() ID {
 func TestBucket(t *testing.T) {
 	b := newBucket()
 
-	peers := make([]*peer.Peer, 100)
+	peers := make([]peer.Peer, 100)
 	for i := 0; i < 100; i++ {
 		peers[i] = _randPeer()
 		b.pushFront(peers[i])
 	}
 
 	local := _randPeer()
-	localID := ConvertPeerID(local.ID)
+	localID := ConvertPeerID(local.ID())
 
 	i := rand.Intn(len(peers))
-	e := b.find(peers[i].ID)
+	e := b.find(peers[i].ID())
 	if e == nil {
 		t.Errorf("Failed to find peer: %v", peers[i])
 	}
 
-	spl := b.Split(0, ConvertPeerID(local.ID))
+	spl := b.Split(0, ConvertPeerID(local.ID()))
 	llist := b.list
 	for e := llist.Front(); e != nil; e = e.Next() {
-		p := ConvertPeerID(e.Value.(*peer.Peer).ID)
+		p := ConvertPeerID(e.Value.(peer.Peer).ID())
 		cpl := commonPrefixLen(p, localID)
 		if cpl > 0 {
 			t.Fatalf("Split failed. found id with cpl > 0 in 0 bucket")
@@ -56,7 +55,7 @@ func TestBucket(t *testing.T) {
 
 	rlist := spl.list
 	for e := rlist.Front(); e != nil; e = e.Next() {
-		p := ConvertPeerID(e.Value.(*peer.Peer).ID)
+		p := ConvertPeerID(e.Value.(peer.Peer).ID())
 		cpl := commonPrefixLen(p, localID)
 		if cpl == 0 {
 			t.Fatalf("Split failed. found id with cpl == 0 in non 0 bucket")
@@ -67,9 +66,9 @@ func TestBucket(t *testing.T) {
 // Right now, this just makes sure that it doesnt hang or crash
 func TestTableUpdate(t *testing.T) {
 	local := _randPeer()
-	rt := NewRoutingTable(10, ConvertPeerID(local.ID), time.Hour)
+	rt := NewRoutingTable(10, ConvertPeerID(local.ID()), time.Hour)
 
-	peers := make([]*peer.Peer, 100)
+	peers := make([]peer.Peer, 100)
 	for i := 0; i < 100; i++ {
 		peers[i] = _randPeer()
 	}
@@ -93,33 +92,33 @@ func TestTableUpdate(t *testing.T) {
 
 func TestTableFind(t *testing.T) {
 	local := _randPeer()
-	rt := NewRoutingTable(10, ConvertPeerID(local.ID), time.Hour)
+	rt := NewRoutingTable(10, ConvertPeerID(local.ID()), time.Hour)
 
-	peers := make([]*peer.Peer, 100)
+	peers := make([]peer.Peer, 100)
 	for i := 0; i < 5; i++ {
 		peers[i] = _randPeer()
 		rt.Update(peers[i])
 	}
 
 	t.Logf("Searching for peer: '%s'", peers[2])
-	found := rt.NearestPeer(ConvertPeerID(peers[2].ID))
-	if !found.ID.Equal(peers[2].ID) {
+	found := rt.NearestPeer(ConvertPeerID(peers[2].ID()))
+	if !found.ID().Equal(peers[2].ID()) {
 		t.Fatalf("Failed to lookup known node...")
 	}
 }
 
 func TestTableFindMultiple(t *testing.T) {
 	local := _randPeer()
-	rt := NewRoutingTable(20, ConvertPeerID(local.ID), time.Hour)
+	rt := NewRoutingTable(20, ConvertPeerID(local.ID()), time.Hour)
 
-	peers := make([]*peer.Peer, 100)
+	peers := make([]peer.Peer, 100)
 	for i := 0; i < 18; i++ {
 		peers[i] = _randPeer()
 		rt.Update(peers[i])
 	}
 
 	t.Logf("Searching for peer: '%s'", peers[2])
-	found := rt.NearestPeers(ConvertPeerID(peers[2].ID), 15)
+	found := rt.NearestPeers(ConvertPeerID(peers[2].ID()), 15)
 	if len(found) != 15 {
 		t.Fatalf("Got back different number of peers than we expected.")
 	}
@@ -131,7 +130,7 @@ func TestTableFindMultiple(t *testing.T) {
 func TestTableMultithreaded(t *testing.T) {
 	local := peer.ID("localPeer")
 	tab := NewRoutingTable(20, ConvertPeerID(local), time.Hour)
-	var peers []*peer.Peer
+	var peers []peer.Peer
 	for i := 0; i < 500; i++ {
 		peers = append(peers, _randPeer())
 	}
@@ -156,7 +155,7 @@ func TestTableMultithreaded(t *testing.T) {
 	go func() {
 		for i := 0; i < 1000; i++ {
 			n := rand.Intn(len(peers))
-			tab.Find(peers[n].ID)
+			tab.Find(peers[n].ID())
 		}
 		done <- struct{}{}
 	}()
@@ -170,7 +169,7 @@ func BenchmarkUpdates(b *testing.B) {
 	local := ConvertKey("localKey")
 	tab := NewRoutingTable(20, local, time.Hour)
 
-	var peers []*peer.Peer
+	var peers []peer.Peer
 	for i := 0; i < b.N; i++ {
 		peers = append(peers, _randPeer())
 	}
@@ -186,7 +185,7 @@ func BenchmarkFinds(b *testing.B) {
 	local := ConvertKey("localKey")
 	tab := NewRoutingTable(20, local, time.Hour)
 
-	var peers []*peer.Peer
+	var peers []peer.Peer
 	for i := 0; i < b.N; i++ {
 		peers = append(peers, _randPeer())
 		tab.Update(peers[i])
@@ -194,6 +193,6 @@ func BenchmarkFinds(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		tab.Find(peers[i].ID)
+		tab.Find(peers[i].ID())
 	}
 }

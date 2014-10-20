@@ -42,8 +42,8 @@ func newMsgioPipe(size int) *msgioPipe {
 
 // singleConn represents a single connection to another Peer (IPFS Node).
 type singleConn struct {
-	local  *peer.Peer
-	remote *peer.Peer
+	local  peer.Peer
+	remote peer.Peer
 	maconn manet.Conn
 	msgio  *msgioPipe
 
@@ -51,7 +51,7 @@ type singleConn struct {
 }
 
 // newConn constructs a new connection
-func newSingleConn(ctx context.Context, local, remote *peer.Peer,
+func newSingleConn(ctx context.Context, local, remote peer.Peer,
 	maconn manet.Conn) (Conn, error) {
 
 	conn := &singleConn{
@@ -117,12 +117,12 @@ func (c *singleConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on this side
-func (c *singleConn) LocalPeer() *peer.Peer {
+func (c *singleConn) LocalPeer() peer.Peer {
 	return c.local
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *singleConn) RemotePeer() *peer.Peer {
+func (c *singleConn) RemotePeer() peer.Peer {
 	return c.remote
 }
 

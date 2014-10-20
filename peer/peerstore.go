@@ -11,8 +11,8 @@ import (
 
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
-	Get(ID) (*Peer, error)
-	Put(*Peer) error
+	Get(ID) (Peer, error)
+	Put(Peer) error
 	Delete(ID) error
 	All() (*Map, error)
 }
@@ -29,9 +29,13 @@ func NewPeerstore() Peerstore {
 	}
 }
 
-func (p *peerstore) Get(i ID) (*Peer, error) {
-	p.RLock()
-	defer p.RUnlock()
+func (p *peerstore) Get(i ID) (Peer, error) {
+	p.Lock()
+	defer p.Unlock()
+
+	if i == nil {
+		panic("wat")
+	}
 
 	k := u.Key(i).DsKey()
 	val, err := p.peers.Get(k)
@@ -43,7 +47,7 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 
 	// not found, construct it ourselves, add it to datastore, and return.
 	case ds.ErrNotFound:
-		peer := &Peer{ID: i}
+		peer := &peer{id: i}
 		if err := p.peers.Put(k, peer); err != nil {
 			return nil, err
 		}
@@ -51,7 +55,7 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 
 	// no error, got it back fine
 	case nil:
-		peer, ok := val.(*Peer)
+		peer, ok := val.(*peer)
 		if !ok {
 			return nil, errors.New("stored value was not a Peer")
 		}
@@ -59,11 +63,11 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 	}
 }
 
-func (p *peerstore) Put(peer *Peer) error {
+func (p *peerstore) Put(peer Peer) error {
 	p.Lock()
 	defer p.Unlock()
 
-	k := u.Key(peer.ID).DsKey()
+	k := peer.Key().DsKey()
 	return p.peers.Put(k, peer)
 }
 
@@ -91,9 +95,9 @@ func (p *peerstore) All() (*Map, error) {
 			continue
 		}
 
-		pval, ok := val.(*Peer)
+		pval, ok := val.(*peer)
 		if ok {
-			(*ps)[u.Key(pval.ID)] = pval
+			(*ps)[pval.Key()] = pval
 		}
 	}
 	return ps, nil

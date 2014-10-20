@@ -17,20 +17,21 @@ func newMessage(typ Message_MessageType, key string, level int) *Message {
 	return m
 }
 
-func peerToPBPeer(p *peer.Peer) *Message_Peer {
+func peerToPBPeer(p peer.Peer) *Message_Peer {
 	pbp := new(Message_Peer)
-	if len(p.Addresses) == 0 || p.Addresses[0] == nil {
+	addrs := p.Addresses()
+	if len(addrs) == 0 || addrs[0] == nil {
 		pbp.Addr = proto.String("")
 	} else {
-		addr := p.Addresses[0].String()
+		addr := addrs[0].String()
 		pbp.Addr = &addr
 	}
-	pid := string(p.ID)
+	pid := string(p.ID())
 	pbp.Id = &pid
 	return pbp
 }
 
-func peersToPBPeers(peers []*peer.Peer) []*Message_Peer {
+func peersToPBPeers(peers []peer.Peer) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
 		pbpeers[i] = peerToPBPeer(p)

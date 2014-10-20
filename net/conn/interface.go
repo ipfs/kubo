@@ -23,13 +23,13 @@ type Conn interface {
 	LocalMultiaddr() ma.Multiaddr
 
 	// LocalPeer is the Peer on this side
-	LocalPeer() *peer.Peer
+	LocalPeer() peer.Peer
 
 	// RemoteMultiaddr is the Multiaddr on the remote side
 	RemoteMultiaddr() ma.Multiaddr
 
 	// RemotePeer is the Peer on the remote side
-	RemotePeer() *peer.Peer
+	RemotePeer() peer.Peer
 
 	// In returns a readable message channel
 	In() <-chan []byte
@@ -47,7 +47,7 @@ type Conn interface {
 type Dialer struct {
 
 	// LocalPeer is the identity of the local Peer.
-	LocalPeer *peer.Peer
+	LocalPeer peer.Peer
 
 	// Peerstore is the set of peers we know about locally. The Dialer needs it
 	// because when an incoming connection is identified, we should reuse the
@@ -65,7 +65,7 @@ type Listener interface {
 	Multiaddr() ma.Multiaddr
 
 	// LocalPeer is the identity of the local Peer.
-	LocalPeer() *peer.Peer
+	LocalPeer() peer.Peer
 
 	// Peerstore is the set of peers we know about locally. The Listener needs it
 	// because when an incoming connection is identified, we should reuse the

@@ -13,20 +13,20 @@ import (
 )
 
 type Network interface {
-	Adapter(*peer.Peer) bsnet.Adapter
+	Adapter(peer.Peer) bsnet.Adapter
 
-	HasPeer(*peer.Peer) bool
+	HasPeer(peer.Peer) bool
 
 	SendMessage(
 		ctx context.Context,
-		from *peer.Peer,
-		to *peer.Peer,
+		from peer.Peer,
+		to peer.Peer,
 		message bsmsg.BitSwapMessage) error
 
 	SendRequest(
 		ctx context.Context,
-		from *peer.Peer,
-		to *peer.Peer,
+		from peer.Peer,
+		to peer.Peer,
 		message bsmsg.BitSwapMessage) (
 		incoming bsmsg.BitSwapMessage, err error)
 }
@@ -43,7 +43,7 @@ type network struct {
 	clients map[util.Key]bsnet.Receiver
 }
 
-func (n *network) Adapter(p *peer.Peer) bsnet.Adapter {
+func (n *network) Adapter(p peer.Peer) bsnet.Adapter {
 	client := &networkClient{
 		local:   p,
 		network: n,
@@ -52,7 +52,7 @@ func (n *network) Adapter(p *peer.Peer) bsnet.Adapter {
 	return client
 }
 
-func (n *network) HasPeer(p *peer.Peer) bool {
+func (n *network) HasPeer(p peer.Peer) bool {
 	_, found := n.clients[p.Key()]
 	return found
 }
@@ -61,8 +61,8 @@ func (n *network) HasPeer(p *peer.Peer) bool {
 // TODO what does the network layer do with errors received from services?
 func (n *network) SendMessage(
 	ctx context.Context,
-	from *peer.Peer,
-	to *peer.Peer,
+	from peer.Peer,
+	to peer.Peer,
 	message bsmsg.BitSwapMessage) error {
 
 	receiver, ok := n.clients[to.Key()]
@@ -79,7 +79,7 @@ func (n *network) SendMessage(
 }
 
 func (n *network) deliver(
-	r bsnet.Receiver, from *peer.Peer, message bsmsg.BitSwapMessage) error {
+	r bsnet.Receiver, from peer.Peer, message bsmsg.BitSwapMessage) error {
 	if message == nil || from == nil {
 		return errors.New("Invalid input")
 	}
@@ -107,8 +107,8 @@ var NoResponse = errors.New("No response received from the receiver")
 // TODO
 func (n *network) SendRequest(
 	ctx context.Context,
-	from *peer.Peer,
-	to *peer.Peer,
+	from peer.Peer,
+	to peer.Peer,
 	message bsmsg.BitSwapMessage) (
 	incoming bsmsg.BitSwapMessage, err error) {
 
@@ -130,7 +130,7 @@ func (n *network) SendRequest(
 	}
 
 	// TODO test when receiver doesn't immediately respond to the initiator of the request
-	if !bytes.Equal(nextPeer.ID, from.ID) {
+	if !bytes.Equal(nextPeer.ID(), from.ID()) {
 		go func() {
 			nextReceiver, ok := n.clients[nextPeer.Key()]
 			if !ok {
@@ -144,26 +144,26 @@ func (n *network) SendRequest(
 }
 
 type networkClient struct {
-	local *peer.Peer
+	local peer.Peer
 	bsnet.Receiver
 	network Network
 }
 
 func (nc *networkClient) SendMessage(
 	ctx context.Context,
-	to *peer.Peer,
+	to peer.Peer,
 	message bsmsg.BitSwapMessage) error {
 	return nc.network.SendMessage(ctx, nc.local, to, message)
 }
 
 func (nc *networkClient) SendRequest(
 	ctx context.Context,
-	to *peer.Peer,
+	to peer.Peer,
 	message bsmsg.BitSwapMessage) (incoming bsmsg.BitSwapMessage, err error) {
 	return nc.network.SendRequest(ctx, nc.local, to, message)
 }
 
-func (nc *networkClient) DialPeer(p *peer.Peer) error {
+func (nc *networkClient) DialPeer(p peer.Peer) error {
 	// no need to do anything because dialing isn't a thing in this test net.
 	if !nc.network.HasPeer(p) {
 		return fmt.Errorf("Peer not in network: %s", p)

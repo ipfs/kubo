@@ -20,7 +20,7 @@ var log = u.Logger("bitswap")
 
 // NetMessageSession initializes a BitSwap session that communicates over the
 // provided NetMessage service
-func NetMessageSession(parent context.Context, p *peer.Peer,
+func NetMessageSession(parent context.Context, p peer.Peer,
 	net inet.Network, srv inet.Service, directory bsnet.Routing,
 	d ds.Datastore, nice bool) exchange.Interface {
 
@@ -83,7 +83,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		message.AppendWanted(k)
 		for peerToQuery := range peersToQuery {
 			log.Debug("bitswap got peersToQuery: %s", peerToQuery)
-			go func(p *peer.Peer) {
+			go func(p peer.Peer) {
 
 				log.Debug("bitswap dialing peer: %s", p)
 				err := bs.sender.DialPeer(p)
@@ -131,8 +131,8 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 }
 
 // TODO(brian): handle errors
-func (bs *bitswap) ReceiveMessage(ctx context.Context, p *peer.Peer, incoming bsmsg.BitSwapMessage) (
-	*peer.Peer, bsmsg.BitSwapMessage) {
+func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsmsg.BitSwapMessage) (
+	peer.Peer, bsmsg.BitSwapMessage) {
 	log.Debug("ReceiveMessage from %v", p.Key())
 
 	if p == nil {
@@ -181,7 +181,7 @@ func (bs *bitswap) ReceiveError(err error) {
 
 // send strives to ensure that accounting is always performed when a message is
 // sent
-func (bs *bitswap) send(ctx context.Context, p *peer.Peer, m bsmsg.BitSwapMessage) {
+func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage) {
 	bs.sender.SendMessage(ctx, p, m)
 	go bs.strategy.MessageSent(p, m)
 }

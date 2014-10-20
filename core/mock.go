@@ -8,7 +8,7 @@ import (
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
-	"github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/peer"
 	mdht "github.com/jbenet/go-ipfs/routing/mock"
 )
 
@@ -16,20 +16,18 @@ import (
 func NewMockNode() (*IpfsNode, error) {
 	nd := new(IpfsNode)
 
-	//Generate Identity
-	nd.Peerstore = peer.NewPeerstore()
-	var err error
-	nd.Identity, err = nd.Peerstore.Get(peer.ID("TESTING"))
+	// Generate Identity
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 1024)
 	if err != nil {
 		return nil, err
 	}
 
-	pk, sk, err := ci.GenerateKeyPair(ci.RSA, 1024)
+	nd.Identity, err = peer.WithKeyPair(sk, pk)
 	if err != nil {
 		return nil, err
 	}
-	nd.Identity.PrivKey = pk
-	nd.Identity.PubKey = sk
+	nd.Peerstore = peer.NewPeerstore()
+	nd.Peerstore.Put(nd.Identity)
 
 	// Temp Datastore
 	dstore := ds.NewMapDatastore()

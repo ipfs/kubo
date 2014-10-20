@@ -35,7 +35,7 @@ func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 	}
 
 	// later, n.Keychain.Get(name).PrivKey
-	k := n.Identity.PrivKey
+	k := n.Identity.PrivKey()
 
 	pub := nsys.NewRoutingPublisher(n.Routing)
 	err := pub.Publish(k, ref)

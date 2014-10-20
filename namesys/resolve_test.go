@@ -11,9 +11,7 @@ import (
 )
 
 func TestRoutingResolve(t *testing.T) {
-	local := &peer.Peer{
-		ID: []byte("testID"),
-	}
+	local := peer.WithIDString("testID")
 	lds := ds.NewMapDatastore()
 	d := mock.NewMockRouter(local, lds)
 

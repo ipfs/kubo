@@ -12,8 +12,8 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-func newPeer(id string) *peer.Peer {
-	return &peer.Peer{ID: peer.ID(id)}
+func newPeer(id string) peer.Peer {
+	return peer.WithIDString(id)
 }
 
 func TestQueue(t *testing.T) {
@@ -66,10 +66,10 @@ func TestQueue(t *testing.T) {
 
 }
 
-func newPeerTime(t time.Time) *peer.Peer {
+func newPeerTime(t time.Time) peer.Peer {
 	s := fmt.Sprintf("hmmm time: %v", t)
 	h := u.Hash([]byte(s))
-	return &peer.Peer{ID: peer.ID(h)}
+	return peer.WithID(peer.ID(h))
 }
 
 func TestSyncQueue(t *testing.T) {

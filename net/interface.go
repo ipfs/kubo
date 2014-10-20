@@ -15,19 +15,19 @@ type Network interface {
 	// TODO: for now, only listen on addrs in local peer when initializing.
 
 	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(*peer.Peer) error
+	DialPeer(peer.Peer) error
 
 	// ClosePeer connection to peer
-	ClosePeer(*peer.Peer) error
+	ClosePeer(peer.Peer) error
 
 	// IsConnected returns whether a connection to given peer exists.
-	IsConnected(*peer.Peer) (bool, error)
+	IsConnected(peer.Peer) (bool, error)
 
 	// GetProtocols returns the protocols registered in the network.
 	GetProtocols() *mux.ProtocolMap
 
 	// GetPeerList returns the list of peers currently connected in this network.
-	GetPeerList() []*peer.Peer
+	GetPeerList() []peer.Peer
 
 	// GetBandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated

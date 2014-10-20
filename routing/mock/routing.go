@@ -17,10 +17,10 @@ var _ routing.IpfsRouting = &MockRouter{}
 type MockRouter struct {
 	datastore ds.Datastore
 	hashTable RoutingServer
-	peer      *peer.Peer
+	peer      peer.Peer
 }
 
-func NewMockRouter(local *peer.Peer, dstore ds.Datastore) routing.IpfsRouting {
+func NewMockRouter(local peer.Peer, dstore ds.Datastore) routing.IpfsRouting {
 	return &MockRouter{
 		datastore: dstore,
 		peer:      local,
@@ -50,16 +50,16 @@ func (mr *MockRouter) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	return data, nil
 }
 
-func (mr *MockRouter) FindProviders(ctx context.Context, key u.Key) ([]*peer.Peer, error) {
+func (mr *MockRouter) FindProviders(ctx context.Context, key u.Key) ([]peer.Peer, error) {
 	return nil, nil
 }
 
-func (mr *MockRouter) FindPeer(ctx context.Context, pid peer.ID) (*peer.Peer, error) {
+func (mr *MockRouter) FindPeer(ctx context.Context, pid peer.ID) (peer.Peer, error) {
 	return nil, nil
 }
 
-func (mr *MockRouter) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan *peer.Peer {
-	out := make(chan *peer.Peer)
+func (mr *MockRouter) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.Peer {
+	out := make(chan peer.Peer)
 	go func() {
 		defer close(out)
 		for i, p := range mr.hashTable.Providers(k) {
@@ -81,11 +81,11 @@ func (mr *MockRouter) Provide(_ context.Context, key u.Key) error {
 }
 
 type RoutingServer interface {
-	Announce(*peer.Peer, u.Key) error
+	Announce(peer.Peer, u.Key) error
 
-	Providers(u.Key) []*peer.Peer
+	Providers(u.Key) []peer.Peer
 
-	Client(p *peer.Peer) routing.IpfsRouting
+	Client(p peer.Peer) routing.IpfsRouting
 }
 
 func VirtualRoutingServer() RoutingServer {
@@ -99,7 +99,7 @@ type hashTable struct {
 	providers map[u.Key]peer.Map
 }
 
-func (rs *hashTable) Announce(p *peer.Peer, k u.Key) error {
+func (rs *hashTable) Announce(p peer.Peer, k u.Key) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
@@ -111,10 +111,10 @@ func (rs *hashTable) Announce(p *peer.Peer, k u.Key) error {
 	return nil
 }
 
-func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
+func (rs *hashTable) Providers(k u.Key) []peer.Peer {
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
-	ret := make([]*peer.Peer, 0)
+	ret := make([]peer.Peer, 0)
 	peerset, ok := rs.providers[k]
 	if !ok {
 		return ret
@@ -131,7 +131,7 @@ func (rs *hashTable) Providers(k u.Key) []*peer.Peer {
 	return ret
 }
 
-func (rs *hashTable) Client(p *peer.Peer) routing.IpfsRouting {
+func (rs *hashTable) Client(p peer.Peer) routing.IpfsRouting {
 	return &MockRouter{
 		peer:      p,
 		hashTable: rs,

@@ -18,8 +18,8 @@ type SecurePipe struct {
 	Duplex
 	insecure Duplex
 
-	local  *peer.Peer
-	remote *peer.Peer
+	local  peer.Peer
+	remote peer.Peer
 	peers  peer.Peerstore
 
 	params params
@@ -33,7 +33,7 @@ type params struct {
 }
 
 // NewSecurePipe constructs a pipe with channels of a given buffer size.
-func NewSecurePipe(ctx context.Context, bufsize int, local *peer.Peer,
+func NewSecurePipe(ctx context.Context, bufsize int, local peer.Peer,
 	peers peer.Peerstore, insecure Duplex) (*SecurePipe, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -60,12 +60,12 @@ func NewSecurePipe(ctx context.Context, bufsize int, local *peer.Peer,
 }
 
 // LocalPeer retrieves the local peer.
-func (s *SecurePipe) LocalPeer() *peer.Peer {
+func (s *SecurePipe) LocalPeer() peer.Peer {
 	return s.local
 }
 
 // RemotePeer retrieves the local peer.
-func (s *SecurePipe) RemotePeer() *peer.Peer {
+func (s *SecurePipe) RemotePeer() peer.Peer {
 	return s.remote
 }
 

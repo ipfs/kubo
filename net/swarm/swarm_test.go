@@ -32,7 +32,7 @@ func pong(ctx context.Context, swarm *Swarm) {
 	}
 }
 
-func setupPeer(t *testing.T, addr string) *peer.Peer {
+func setupPeer(t *testing.T, addr string) peer.Peer {
 	tcp, err := ma.NewMultiaddr(addr)
 	if err != nil {
 		t.Fatal(err)
@@ -43,19 +43,15 @@ func setupPeer(t *testing.T, addr string) *peer.Peer {
 		t.Fatal(err)
 	}
 
-	id, err := peer.IDFromPubKey(pk)
+	p, err := peer.WithKeyPair(sk, pk)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	p := &peer.Peer{ID: id}
-	p.PrivKey = sk
-	p.PubKey = pk
 	p.AddAddress(tcp)
 	return p
 }
 
-func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []*peer.Peer) {
+func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []peer.Peer) {
 	swarms := []*Swarm{}
 
 	for _, addr := range addrs {
@@ -68,7 +64,7 @@ func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []
 		swarms = append(swarms, swarm)
 	}
 
-	peers := make([]*peer.Peer, len(swarms))
+	peers := make([]peer.Peer, len(swarms))
 	for i, s := range swarms {
 		peers[i] = s.local
 	}
@@ -85,14 +81,14 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 	// connect everyone
 	{
 		var wg sync.WaitGroup
-		connect := func(s *Swarm, dst *peer.Peer) {
+		connect := func(s *Swarm, dst peer.Peer) {
 			// copy for other peer
 
-			cp, err := s.peers.Get(dst.ID)
+			cp, err := s.peers.Get(dst.ID())
 			if err != nil {
-				cp = &peer.Peer{ID: dst.ID}
+				t.Fatal(err)
 			}
-			cp.AddAddress(dst.Addresses[0])
+			cp.AddAddress(dst.Addresses()[0])
 
 			log.Info("SWARM TEST: %s dialing %s", s.local, dst)
 			if _, err := s.Dial(cp); err != nil {

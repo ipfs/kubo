@@ -26,10 +26,10 @@ type dhtQuery struct {
 }
 
 type dhtQueryResult struct {
-	value         []byte       // GetValue
-	peer          *peer.Peer   // FindPeer
-	providerPeers []*peer.Peer // GetProviders
-	closerPeers   []*peer.Peer // *
+	value         []byte      // GetValue
+	peer          peer.Peer   // FindPeer
+	providerPeers []peer.Peer // GetProviders
+	closerPeers   []peer.Peer // *
 	success       bool
 }
 
@@ -47,10 +47,10 @@ func newQuery(k u.Key, f queryFunc) *dhtQuery {
 // - the value
 // - a list of peers potentially better able to serve the query
 // - an error
-type queryFunc func(context.Context, *peer.Peer) (*dhtQueryResult, error)
+type queryFunc func(context.Context, peer.Peer) (*dhtQueryResult, error)
 
 // Run runs the query at hand. pass in a list of peers to use first.
-func (q *dhtQuery) Run(ctx context.Context, peers []*peer.Peer) (*dhtQueryResult, error) {
+func (q *dhtQuery) Run(ctx context.Context, peers []peer.Peer) (*dhtQueryResult, error) {
 	runner := newQueryRunner(ctx, q)
 	return runner.Run(peers)
 }
@@ -100,7 +100,7 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 	}
 }
 
-func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
+func (r *dhtQueryRunner) Run(peers []peer.Peer) (*dhtQueryResult, error) {
 	log.Debug("Run query with %d peers.", len(peers))
 	if len(peers) == 0 {
 		log.Warning("Running query with no peers!")
@@ -148,7 +148,7 @@ func (r *dhtQueryRunner) Run(peers []*peer.Peer) (*dhtQueryResult, error) {
 	return nil, err
 }
 
-func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
+func (r *dhtQueryRunner) addPeerToQuery(next peer.Peer, benchmark peer.Peer) {
 	if next == nil {
 		// wtf why are peers nil?!?
 		log.Error("Query getting nil peers!!!\n")
@@ -156,7 +156,7 @@ func (r *dhtQueryRunner) addPeerToQuery(next *peer.Peer, benchmark *peer.Peer) {
 	}
 
 	// if new peer further away than whom we got it from, bother (loops)
-	if benchmark != nil && kb.Closer(benchmark.ID, next.ID, r.query.key) {
+	if benchmark != nil && kb.Closer(benchmark.ID(), next.ID(), r.query.key) {
 		return
 	}
 
@@ -200,7 +200,7 @@ func (r *dhtQueryRunner) spawnWorkers() {
 	}
 }
 
-func (r *dhtQueryRunner) queryPeer(p *peer.Peer) {
+func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 	log.Debug("spawned worker for: %v\n", p)
 
 	// make sure we rate limit concurrency.

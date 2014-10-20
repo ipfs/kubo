@@ -19,7 +19,7 @@ func Resolve(n *core.IpfsNode, args []string, opts map[string]interface{}, out i
 		if n.Identity == nil {
 			return errors.New("Identity not loaded!")
 		}
-		name = n.Identity.ID.String()
+		name = n.Identity.ID().String()
 
 	default:
 		return fmt.Errorf("Publish expects 1 or 2 args; got %d.", len(args))
