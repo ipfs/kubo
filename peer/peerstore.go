@@ -9,10 +9,6 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 )
 
-// ErrNotFound signals a peer wasn't found. this is here to avoid having to
-// leak the ds abstraction to clients of Peerstore, just for the error.
-var ErrNotFound = ds.ErrNotFound
-
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
 	Get(ID) (*Peer, error)
@@ -39,15 +35,28 @@ func (p *peerstore) Get(i ID) (*Peer, error) {
 
 	k := u.Key(i).DsKey()
 	val, err := p.peers.Get(k)
-	if err != nil {
-		return nil, err
-	}
+	switch err {
 
-	peer, ok := val.(*Peer)
-	if !ok {
-		return nil, errors.New("stored value was not a Peer")
+	// some other datastore error
+	default:
+		return nil, err
+
+	// not found, construct it ourselves, add it to datastore, and return.
+	case ds.ErrNotFound:
+		peer := &Peer{ID: i}
+		if err := p.peers.Put(k, peer); err != nil {
+			return nil, err
+		}
+		return peer, nil
+
+	// no error, got it back fine
+	case nil:
+		peer, ok := val.(*Peer)
+		if !ok {
+			return nil, errors.New("stored value was not a Peer")
+		}
+		return peer, nil
 	}
-	return peer, nil
 }
 
 func (p *peerstore) Put(peer *Peer) error {

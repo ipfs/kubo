@@ -12,7 +12,6 @@ import (
 
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
-	ci "github.com/jbenet/go-ipfs/crypto"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
@@ -92,8 +91,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}
 
 	peerstore := peer.NewPeerstore()
-
-	local, err := initIdentity(cfg, online)
+	local, err := initIdentity(cfg, peerstore, online)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +177,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}, nil
 }
 
-func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
+func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (*peer.Peer, error) {
 	if cfg.Identity.PeerID == "" {
 		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -188,21 +186,22 @@ func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
 	}
 
+	// get peer from peerstore (so it is constructed there)
+	id := peer.ID(b58.Decode(cfg.Identity.PeerID))
+	peer, err := peers.Get(id)
+	if err != nil {
+		return nil, err
+	}
+
 	// address is optional
-	var addresses []ma.Multiaddr
 	if len(cfg.Addresses.Swarm) > 0 {
 		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
 		if err != nil {
 			return nil, err
 		}
 
-		addresses = []ma.Multiaddr{maddr}
+		peer.AddAddress(maddr)
 	}
-
-	var (
-		sk ci.PrivKey
-		pk ci.PubKey
-	)
 
 	// when not online, don't need to parse private keys (yet)
 	if online {
@@ -211,20 +210,12 @@ func initIdentity(cfg *config.Config, online bool) (*peer.Peer, error) {
 			return nil, err
 		}
 
-		sk, err = ci.UnmarshalPrivateKey(skb)
-		if err != nil {
+		if err := peer.LoadAndVerifyKeyPair(skb); err != nil {
 			return nil, err
 		}
-
-		pk = sk.GetPublic()
 	}
 
-	return &peer.Peer{
-		ID:        peer.ID(b58.Decode(cfg.Identity.PeerID)),
-		Addresses: addresses,
-		PrivKey:   sk,
-		PubKey:    pk,
-	}, nil
+	return peer, nil
 }
 
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
@@ -240,7 +231,11 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		}
 
 		// setup peer
-		npeer := &peer.Peer{ID: peer.DecodePrettyID(p.PeerID)}
+		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
+		if err != nil {
+			log.Error("%s", err)
+			continue
+		}
 		npeer.AddAddress(maddr)
 
 		if err = pstore.Put(npeer); err != nil {

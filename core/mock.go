@@ -12,11 +12,18 @@ import (
 	mdht "github.com/jbenet/go-ipfs/routing/mock"
 )
 
+// NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*IpfsNode, error) {
 	nd := new(IpfsNode)
 
 	//Generate Identity
-	nd.Identity = &peer.Peer{ID: []byte("TESTING")}
+	nd.Peerstore = peer.NewPeerstore()
+	var err error
+	nd.Identity, err = nd.Peerstore.Get(peer.ID("TESTING"))
+	if err != nil {
+		return nil, err
+	}
+
 	pk, sk, err := ci.GenerateKeyPair(ci.RSA, 1024)
 	if err != nil {
 		return nil, err
@@ -40,13 +47,13 @@ func NewMockNode() (*IpfsNode, error) {
 		return nil, err
 	}
 
-	nd.DAG = &mdag.DAGService{bserv}
+	nd.DAG = &mdag.DAGService{Blocks: bserv}
 
 	// Namespace resolver
 	nd.Namesys = nsys.NewNameSystem(dht)
 
 	// Path resolver
-	nd.Resolver = &path.Resolver{nd.DAG}
+	nd.Resolver = &path.Resolver{DAG: nd.DAG}
 
 	return nd, nil
 }

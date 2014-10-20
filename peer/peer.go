@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 
 	"bytes"
 )
+
+var log = u.Logger("peer")
 
 // ID is a byte slice representing the identity of a peer.
 type ID mh.Multihash
@@ -121,4 +124,65 @@ func (p *Peer) SetLatency(laten time.Duration) {
 		p.latency = ((p.latency * 9) + laten) / 10
 	}
 	p.Unlock()
+}
+
+// LoadAndVerifyKeyPair unmarshalls, loads a private/public key pair.
+// Error if (a) unmarshalling fails, or (b) pubkey does not match id.
+func (p *Peer) LoadAndVerifyKeyPair(marshalled []byte) error {
+
+	sk, err := ic.UnmarshalPrivateKey(marshalled)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal private key: %v", err)
+	}
+
+	// construct and assign pubkey. ensure it matches this peer
+	if err := p.VerifyAndSetPubKey(sk.GetPublic()); err != nil {
+		return err
+	}
+
+	// if we didn't have the priavte key, assign it
+	if p.PrivKey == nil {
+		p.PrivKey = sk
+		return nil
+	}
+
+	// if we already had the keys, check they're equal.
+	if p.PrivKey.Equals(sk) {
+		return nil // as expected. keep the old objects.
+	}
+
+	// keys not equal. invariant violated. this warrants a panic.
+	// these keys should be _the same_ because peer.ID = H(pk)
+	// this mismatch should never happen.
+	log.Error("%s had PrivKey: %v -- got %v", p, p.PrivKey, sk)
+	panic("invariant violated: unexpected key mismatch")
+}
+
+// VerifyAndSetPubKey sets public key, given it matches the peer.ID
+func (p *Peer) VerifyAndSetPubKey(pk ic.PubKey) error {
+	pkid, err := IDFromPubKey(pk)
+	if err != nil {
+		return fmt.Errorf("Failed to hash public key: %v", err)
+	}
+
+	if !p.ID.Equal(pkid) {
+		return fmt.Errorf("Public key does not match peer.ID.")
+	}
+
+	// if we didn't have the keys, assign them.
+	if p.PubKey == nil {
+		p.PubKey = pk
+		return nil
+	}
+
+	// if we already had the pubkey, check they're equal.
+	if p.PubKey.Equals(pk) {
+		return nil // as expected. keep the old objects.
+	}
+
+	// keys not equal. invariant violated. this warrants a panic.
+	// these keys should be _the same_ because peer.ID = H(pk)
+	// this mismatch should never happen.
+	log.Error("%s had PubKey: %v -- got %v", p, p.PubKey, pk)
+	panic("invariant violated: unexpected key mismatch")
 }

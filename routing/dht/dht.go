@@ -300,10 +300,9 @@ func (dht *IpfsDHT) addPeer(pb *Message_Peer) (*peer.Peer, error) {
 	}
 
 	// check if we already have this peer.
-	pr, _ := dht.peerstore.Get(peer.ID(pb.GetId()))
-	if pr == nil {
-		pr = &peer.Peer{ID: peer.ID(pb.GetId())}
-		dht.peerstore.Put(pr)
+	pr, err := dht.getPeer(peer.ID(pb.GetId()))
+	if err != nil {
+		return nil, err
 	}
 	pr.AddAddress(addr) // idempotent
 
@@ -481,6 +480,16 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *Message, count int) []*peer.Peer {
 	return filtered
 }
 
+func (dht *IpfsDHT) getPeer(id peer.ID) (*peer.Peer, error) {
+	p, err := dht.peerstore.Get(id)
+	if err != nil {
+		err = fmt.Errorf("Failed to get peer from peerstore: %s", err)
+		log.Error("%s", err)
+		return nil, err
+	}
+	return p, nil
+}
+
 func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 
 	id := peer.ID(pbp.GetId())
@@ -490,26 +499,16 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (*peer.Peer, error) {
 		return nil, errors.New("found self")
 	}
 
-	p, _ := dht.peerstore.Get(id)
-	if p == nil {
-		p, _ = dht.FindLocal(id)
-		if p != nil {
-			panic("somehow peer not getting into peerstore")
-		}
+	p, err := dht.getPeer(id)
+	if err != nil {
+		return nil, err
 	}
 
-	if p == nil {
-		maddr, err := pbp.Address()
-		if err != nil {
-			return nil, err
-		}
-
-		// create new Peer
-		p = &peer.Peer{ID: id}
-		p.AddAddress(maddr)
-		dht.peerstore.Put(p)
-		log.Info("dht found new peer: %s %s", p, maddr)
+	maddr, err := pbp.Address()
+	if err != nil {
+		return nil, err
 	}
+	p.AddAddress(maddr)
 	return p, nil
 }
 
@@ -541,6 +540,7 @@ func (dht *IpfsDHT) loadProvidableKeys() error {
 	return nil
 }
 
+// PingRoutine periodically pings nearest neighbors.
 func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 	tick := time.Tick(t)
 	for {

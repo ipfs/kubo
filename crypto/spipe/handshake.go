@@ -348,41 +348,13 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (*peer.Peer, error)
 	}
 
 	npeer, err := peers.Get(rid)
-	if err != nil || npeer == nil {
-		if err != peer.ErrNotFound {
-			return nil, err // unexpected error happened.
-		}
-
-		// dont have peer, so construct it + add it to peerstore.
-		npeer = &peer.Peer{ID: rid, PubKey: rpk}
-		if err := peers.Put(npeer); err != nil {
-			return nil, err
-		}
-
-		// done, return the newly constructed peer.
-		return npeer, nil
+	if err != nil {
+		return nil, err // unexpected error happened.
 	}
 
-	// did have it locally.
-
-	// let's verify ID
-	if !npeer.ID.Equal(rid) {
-		e := "Expected peer.ID does not match sent pubkey's hash: %v - %v"
-		return nil, fmt.Errorf(e, npeer, rid)
-	}
-
-	if npeer.PubKey == nil {
-		// didn't have a pubkey, just set it.
-		npeer.PubKey = rpk
-		return npeer, nil
-	}
-
-	// did have pubkey, let's verify it's really the same.
-	// this shouldn't ever happen, given we hashed, etc, but it could mean
-	// expected code (or protocol) invariants violated.
-	if !npeer.PubKey.Equals(rpk) {
-		log.Error("WARNING: PubKey mismatch: %v", npeer)
-		panic("secure channel pubkey mismatch")
+	// public key verification happens in Peer.VerifyAndSetPubKey
+	if err := npeer.VerifyAndSetPubKey(rpk); err != nil {
+		return nil, err // pubkey mismatch or other problem
 	}
 	return npeer, nil
 }
