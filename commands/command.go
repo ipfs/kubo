@@ -30,15 +30,11 @@ func (c *Command) Register(id string, sub *Command) error {
 	}
 
 	// check for duplicate option names (only checks downwards)
-	names := make(map[string]bool)
-	globalCommand.checkOptions(names)
-	c.checkOptions(names)
-	err := sub.checkOptions(names)
-	if err != nil {
+	if err := checkOptionClashes(globalCommand, c, sub); err != nil {
 		return err
 	}
 
-	if _, ok := c.subcommands[id]; ok {
+	if _, found := c.subcommands[id]; found {
 		return fmt.Errorf("There is already a subcommand registered with id '%s'", id)
 	}
 
@@ -137,19 +133,42 @@ func (c *Command) Sub(id string) *Command {
 	return c.subcommands[id]
 }
 
-func (c *Command) checkOptions(names map[string]bool) error {
+// AddOptionNames returns a map of all command options names, and the command
+// they belong to. Will error if names clash in the command hierarchy.
+func AddOptionNames(c *Command, names map[string]*Command) error {
+
 	for _, opt := range c.Options {
 		for _, name := range opt.Names {
-			if _, ok := names[name]; ok {
-				return fmt.Errorf("Multiple options are using the same name ('%s')", name)
+			if c2, found := names[name]; found {
+
+				// option can be reused in same command, but more often than not
+				// the clash will be across commands so error out with that, as
+				// commands tell us where the problem is
+				errstr := "Option name ('%s') used multiple times (%v, %v)"
+				return fmt.Errorf(errstr, c2, c)
 			}
-			names[name] = true
+
+			// mark the name as in use
+			names[name] = c
 		}
 	}
 
-	for _, cmd := range c.subcommands {
-		err := cmd.checkOptions(names)
-		if err != nil {
+	// for every subcommand, recurse
+	for _, c2 := range c.subcommands {
+		if err := AddOptionNames(c2, names); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// checkOptionClashes checks all command option names for clashes
+func checkOptionClashes(cmds ...*Command) error {
+	names := map[string]*Command{}
+
+	for _, c := range cmds {
+		if err := AddOptionNames(c, names); err != nil {
 			return err
 		}
 	}
