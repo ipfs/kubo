@@ -64,7 +64,7 @@ func AbleToApply() error {
 
 // ShouldAutoUpdate decides wether a new version should be applied
 // checks against config setting and new version string. returns false in case of error
-func ShouldAutoUpdate(setting, newVer string) bool {
+func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 	if setting == config.UpdateNever {
 		return false
 	}
