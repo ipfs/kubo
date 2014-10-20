@@ -82,7 +82,7 @@ func (c *Command) Resolve(path []string) ([]*Command, error) {
 
 	cmd := c
 	for i, name := range path {
-		cmd = cmd.Sub(name)
+		cmd = cmd.Subcommand(name)
 
 		if cmd == nil {
 			pathS := strings.Join(path[0:i], "/")
@@ -128,8 +128,8 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 	return optionsMap, nil
 }
 
-// Sub returns the subcommand with the given id
-func (c *Command) Sub(id string) *Command {
+// Subcommand returns the subcommand with the given id
+func (c *Command) Subcommand(id string) *Command {
 	return c.subcommands[id]
 }
 

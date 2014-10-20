@@ -33,7 +33,7 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
 			break
 		}
 
-		cmd := cmd.Sub(blob)
+		cmd := cmd.Subcommand(blob)
 		if cmd == nil {
 			break
 		}
