@@ -1,18 +1,26 @@
 package updates
 
 import (
+	"fmt"
 	"os"
+
+	u "github.com/jbenet/go-ipfs/util"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 const (
-	Version           = "0.1.0" // actual current application's version literal
-	UpdateEndpointURL = "https://api.equinox.io/1/Updates"
-	UpdateAppID       = "ap_ywkPmAR40q4EfdikN9Jh2hgIHi"
+	// Version is the current application's version literal
+	Version = "0.1.1"
+
+	updateEndpointURL = "https://api.equinox.io/1/Updates"
+	updateAppID       = "CHANGEME"
+
+	updatePubKey = `-----BEGIN RSA PUBLIC KEY-----
+CHANGEME
+-----END RSA PUBLIC KEY-----`
 )
 
 var log = u.Logger("updates")
@@ -32,12 +40,23 @@ func parseVersion() (*semver.Version, error) {
 	return semver.NewVersion(Version)
 }
 
+// CheckForUpdate checks the equinox.io api if there is an update available
 func CheckForUpdate() (*check.Result, error) {
 	param := check.Params{
 		AppVersion: Version,
-		AppId:      UpdateAppID,
+		AppId:      updateAppID,
 		Channel:    "stable",
 	}
 
-	return param.CheckForUpdate(UpdateEndpointURL, update.New())
+	up, err := update.New().VerifySignatureWithPEM([]byte(updatePubKey))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse public key: %v", err)
+	}
+
+	return param.CheckForUpdate(updateEndpointURL, up)
+}
+
+// AbleToApply cheks if the running process is able to update itself
+func AbleToApply() error {
+	return update.New().CanUpdate()
 }
