@@ -7,9 +7,9 @@ import (
 	"github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
+	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+	update "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
+	check "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
 )
 
 const (
@@ -32,7 +32,7 @@ func init() {
 	var err error
 	currentVersion, err = parseVersion()
 	if err != nil {
-		log.Error("illegal version number in code: %q\n", Version)
+		log.Error("invalid version number in code (must be semver): %q\n", Version)
 		os.Exit(1)
 	}
 }

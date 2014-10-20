@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"time"
 
 	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
+	check "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
 	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
@@ -134,9 +135,8 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 			if err != check.NoUpdateAvailable {
 				log.Error("Error while checking for update: %v\n", err)
 				return nil, err
-
 			}
-			log.Notice("No update available")
+			log.Notice("No update available, checked on %s", time.Now())
 		}
 
 		config.RecordUpdateCheck(cfg, filename)
