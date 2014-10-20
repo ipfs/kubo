@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
@@ -59,4 +60,52 @@ func CheckForUpdate() (*check.Result, error) {
 // AbleToApply cheks if the running process is able to update itself
 func AbleToApply() error {
 	return update.New().CanUpdate()
+}
+
+// ShouldAutoUpdate decides wether a new version should be applied
+// checks against config setting and new version string. returns false in case of error
+func ShouldAutoUpdate(setting, newVer string) bool {
+	if setting == config.UpdateNever {
+		return false
+	}
+
+	nv, err := semver.NewVersion(newVer)
+	if err != nil {
+		log.Error("could not parse version string: %s", err)
+		return false
+	}
+
+	n := nv.Slice()
+	c := currentVersion.Slice()
+
+	switch setting {
+
+	case config.UpdatePatch:
+		if n[0] < c[0] {
+			return false
+		}
+
+		if n[1] < c[1] {
+			return false
+		}
+
+		return n[2] > c[2]
+
+	case config.UpdateMinor:
+		if n[0] != c[0] {
+			return false
+		}
+
+		return n[1] > c[1] || (n[1] == c[1] && n[2] > c[2])
+
+	case config.UpdateMajor:
+		for i := 0; i < 3; i++ {
+			if n[i] < c[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
 }

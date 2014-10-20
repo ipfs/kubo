@@ -44,6 +44,7 @@ const (
 )
 
 // supported Version.AutoUpdate values
+// BUG(cryptix): make this a custom type that implements json.Unmarshaller() to verify values
 const (
 	UpdateNever = "never"
 	UpdatePatch = "patch"
