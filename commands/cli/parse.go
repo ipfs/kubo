@@ -9,7 +9,7 @@ import (
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-func Parse(input []string, root *commands.Command) (*commands.Request, error) {
+func Parse(input []string, root *commands.Command) (commands.Request, error) {
 	path, input := parsePath(input, root)
 	opts, args, err := parseOptions(input)
 	if err != nil {

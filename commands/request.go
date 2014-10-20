@@ -6,37 +6,48 @@ import (
 	"strconv"
 )
 
+type optMap map[string]interface{}
+
 // Request represents a call to a command from a consumer
-type Request struct {
+type Request interface {
+	Path() []string
+	Option(name string) (interface{}, bool)
+	SetOption(name string, val interface{})
+	Arguments() []string
+
+	ConvertOptions(options map[string]Option) error
+}
+
+type request struct {
 	path      []string
-	options   map[string]interface{}
+	options   optMap
 	arguments []string
 }
 
-func (r *Request) Path() []string {
+// Path returns the command path of this request
+func (r *request) Path() []string {
 	return r.path
 }
 
-func (r *Request) SetPath(path []string) {
-	r.path = path
+// Option returns the value of the option for given name.
+func (r *request) Option(name string) (interface{}, bool) {
+	val, err := r.options[name]
+	return val, err
 }
 
-func (r *Request) Option(name string) (interface{}, bool) {
-	val, ok := r.options[name]
-	return val, ok
+// SetOption sets the value of the option for given name.
+func (r *request) SetOption(name string, val interface{}) {
+	r.options[name] = val
 }
 
-func (r *Request) SetOption(name string, value interface{}) {
-	r.options[name] = value
-}
-
-func (r *Request) Arguments() []string {
+// Arguments returns the arguments slice
+func (r *request) Arguments() []string {
 	return r.arguments
 }
 
 type converter func(string) (interface{}, error)
 
-var converters map[reflect.Kind]converter = map[reflect.Kind]converter{
+var converters = map[reflect.Kind]converter{
 	Bool: func(v string) (interface{}, error) {
 		if v == "" {
 			return true, nil
@@ -54,7 +65,7 @@ var converters map[reflect.Kind]converter = map[reflect.Kind]converter{
 	},
 }
 
-func (r *Request) convertOptions(options map[string]Option) error {
+func (r *request) ConvertOptions(options map[string]Option) error {
 	converted := make(map[string]interface{})
 
 	for k, v := range r.options {
@@ -98,11 +109,13 @@ func (r *Request) convertOptions(options map[string]Option) error {
 	return nil
 }
 
-func NewEmptyRequest() *Request {
+// NewEmptyRequest initializes an empty request
+func NewEmptyRequest() Request {
 	return NewRequest(nil, nil, nil)
 }
 
-func NewRequest(path []string, opts map[string]interface{}, args []string) *Request {
+// NewRequest returns a request initialized with given arguments
+func NewRequest(path []string, opts optMap, args []string) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -112,5 +125,5 @@ func NewRequest(path []string, opts map[string]interface{}, args []string) *Requ
 	if args == nil {
 		args = make([]string, 0)
 	}
-	return &Request{path, opts, args}
+	return &request{path, opts, args}
 }

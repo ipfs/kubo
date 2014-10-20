@@ -48,21 +48,53 @@ var marshallers = map[EncodingType]Marshaller{
 
 // Response is the result of a command request. Handlers write to the response,
 // setting Error or Value. Response is returned to the client.
-type Response struct {
-	req   *Request
-	Error *Error
-	Value interface{}
+type Response interface {
+	Request() Request
+
+	// Set/Return the response Error
+	SetError(err error, code ErrorType)
+	Error() error
+
+	// Sets/Returns the response value
+	SetValue(interface{})
+	Value() interface{}
+
+	// Marshal marshals out the response into a buffer. It uses the EncodingType
+	// on the Request to chose a Marshaller (Codec).
+	Marshal() ([]byte, error)
 }
 
-// SetError updates the response Error.
-func (r *Response) SetError(err error, code ErrorType) {
-	r.Error = &Error{Message: err.Error(), Code: code}
+type response struct {
+	req   Request
+	err   *Error
+	value interface{}
 }
 
-// Marshal marshals out the response into a buffer. It uses the EncodingType
-// on the Request to chose a Marshaller (Codec).
-func (r *Response) Marshal() ([]byte, error) {
-	if r.Error == nil && r.Value == nil {
+func (r *response) Request() Request {
+	return r.req
+}
+
+func (r *response) Value() interface{} {
+	return r.value
+}
+
+func (r *response) SetValue(v interface{}) {
+	r.value = v
+}
+
+func (r *response) Error() error {
+	if r.err == nil {
+		return nil
+	}
+	return r.err
+}
+
+func (r *response) SetError(err error, code ErrorType) {
+	r.err = &Error{Message: err.Error(), Code: code}
+}
+
+func (r *response) Marshal() ([]byte, error) {
+	if r.err == nil && r.value == nil {
 		return nil, fmt.Errorf("No error or value set, there is nothing to marshal")
 	}
 
@@ -77,8 +109,13 @@ func (r *Response) Marshal() ([]byte, error) {
 		return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
 	}
 
-	if r.Error != nil {
-		return marshaller(r.Error)
+	if r.err != nil {
+		return marshaller(r.err)
 	}
-	return marshaller(r.Value)
+	return marshaller(r.value)
+}
+
+// NewResponse returns a response to match given Request
+func NewResponse(req Request) Response {
+	return &response{req: req}
 }

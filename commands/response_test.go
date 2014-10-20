@@ -13,10 +13,8 @@ type TestOutput struct {
 func TestMarshalling(t *testing.T) {
 	req := NewEmptyRequest()
 
-	res := Response{
-		req:   req,
-		Value: TestOutput{"beep", "boop", 1337},
-	}
+	res := NewResponse(req)
+	res.SetValue(TestOutput{"beep", "boop", 1337})
 
 	// get command global options so we can set the encoding option
 	cmd := Command{}
@@ -31,7 +29,7 @@ func TestMarshalling(t *testing.T) {
 	}
 
 	req.SetOption(EncShort, JSON)
-	req.convertOptions(options)
+	req.ConvertOptions(options)
 
 	bytes, err := res.Marshal()
 	if err != nil {

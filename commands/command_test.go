@@ -8,70 +8,70 @@ func TestOptionValidation(t *testing.T) {
 			Option{[]string{"b", "beep"}, Int},
 			Option{[]string{"B", "boop"}, String},
 		},
-		run: func(req *Request, res *Response) {},
+		run: func(req Request, res Response) {},
 	}
 
 	req := NewEmptyRequest()
-	req.options["foo"] = 5
+	req.SetOption("foo", 5)
 	res := cmd.Call(req)
-	if res.Error == nil {
+	if res.Error() == nil {
 		t.Error("Should have failed (unrecognized option)")
 	}
 
 	req = NewEmptyRequest()
-	req.options["beep"] = 5
-	req.options["b"] = 10
+	req.SetOption("beep", 5)
+	req.SetOption("b", 10)
 	res = cmd.Call(req)
-	if res.Error == nil {
+	if res.Error() == nil {
 		t.Error("Should have failed (duplicate options)")
 	}
 
 	req = NewEmptyRequest()
-	req.options["beep"] = "foo"
+	req.SetOption("beep", "foo")
 	res = cmd.Call(req)
-	if res.Error == nil {
+	if res.Error() == nil {
 		t.Error("Should have failed (incorrect type)")
 	}
 
 	req = NewEmptyRequest()
-	req.options["beep"] = 5
+	req.SetOption("beep", 5)
 	res = cmd.Call(req)
-	if res.Error != nil {
-		t.Error(res.Error, "Should have passed")
+	if res.Error() != nil {
+		t.Error(res.Error(), "Should have passed")
 	}
 
 	req = NewEmptyRequest()
-	req.options["beep"] = 5
-	req.options["boop"] = "test"
+	req.SetOption("beep", 5)
+	req.SetOption("boop", "test")
 	res = cmd.Call(req)
-	if res.Error != nil {
+	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
-	req.options["b"] = 5
-	req.options["B"] = "test"
+	req.SetOption("b", 5)
+	req.SetOption("B", "test")
 	res = cmd.Call(req)
-	if res.Error != nil {
+	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
-	req.options[EncShort] = "json"
+	req.SetOption(EncShort, "json")
 	res = cmd.Call(req)
-	if res.Error != nil {
+	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
-	req.options["b"] = "100"
+	req.SetOption("b", "100")
 	res = cmd.Call(req)
-	if res.Error != nil {
+	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
-	req.options["b"] = ":)"
+	req.SetOption("b", ":)")
 	res = cmd.Call(req)
 	if res.Error == nil {
 		t.Error(res.Error, "Should have failed (string value not convertible to int)")
@@ -79,40 +79,41 @@ func TestOptionValidation(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
+	noop := func(req Request, res Response) {}
 	cmds := []*Command{
 		&Command{
 			Options: []Option{
 				Option{[]string{"beep"}, Int},
 			},
-			run: func(req *Request, res *Response) {},
+			run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"boop"}, Int},
 			},
-			run: func(req *Request, res *Response) {},
+			run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"boop"}, String},
 			},
-			run: func(req *Request, res *Response) {},
+			run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"bop"}, String},
 			},
-			run: func(req *Request, res *Response) {},
+			run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{EncShort}, String},
 			},
-			run: func(req *Request, res *Response) {},
+			run: noop,
 		},
 	}
 

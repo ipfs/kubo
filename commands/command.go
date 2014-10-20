@@ -4,11 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
-type Function func(*Request, *Response)
+type Function func(Request, Response)
 
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have subcommands, to group units of work into sets.
@@ -43,10 +47,10 @@ func (c *Command) Register(id string, sub *Command) error {
 }
 
 // Call invokes the command at the given subcommand path
-func (c *Command) Call(req *Request) *Response {
-	res := &Response{req: req}
+func (c *Command) Call(req Request) Response {
+	res := NewResponse(req)
 
-	cmds, err := c.Resolve(req.path)
+	cmds, err := c.Resolve(req.Path())
 	if err != nil {
 		res.SetError(err, ErrClient)
 		return res
@@ -58,13 +62,13 @@ func (c *Command) Call(req *Request) *Response {
 		return res
 	}
 
-	options, err := c.GetOptions(req.path)
+	options, err := c.GetOptions(req.Path())
 	if err != nil {
 		res.SetError(err, ErrClient)
 		return res
 	}
 
-	err = req.convertOptions(options)
+	err = req.ConvertOptions(options)
 	if err != nil {
 		res.SetError(err, ErrClient)
 		return res
