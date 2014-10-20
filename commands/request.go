@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"io"
 )
 
 type optMap map[string]interface{}
@@ -14,6 +15,7 @@ type Request interface {
 	Option(name string) (interface{}, bool)
 	SetOption(name string, val interface{})
 	Arguments() []string
+	Stream() io.Reader
 
 	ConvertOptions(options map[string]Option) error
 }
@@ -22,6 +24,7 @@ type request struct {
 	path      []string
 	options   optMap
 	arguments []string
+	in  			io.Reader
 }
 
 // Path returns the command path of this request
@@ -43,6 +46,11 @@ func (r *request) SetOption(name string, val interface{}) {
 // Arguments returns the arguments slice
 func (r *request) Arguments() []string {
 	return r.arguments
+}
+
+// Stream returns the input stream Reader
+func (r *request) Stream() io.Reader {
+	return r.in
 }
 
 type converter func(string) (interface{}, error)
@@ -111,11 +119,11 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() Request {
-	return NewRequest(nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []string) Request {
+func NewRequest(path []string, opts optMap, args []string, in io.Reader) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -125,5 +133,5 @@ func NewRequest(path []string, opts optMap, args []string) Request {
 	if args == nil {
 		args = make([]string, 0)
 	}
-	return &request{path, opts, args}
+	return &request{path, opts, args, in}
 }
