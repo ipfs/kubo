@@ -13,7 +13,7 @@ type TestOutput struct {
 func TestMarshalling(t *testing.T) {
 	req := NewEmptyRequest()
 
-	res := NewResponse(req)
+	res := NewResponse(req, nil)
 	res.SetValue(TestOutput{"beep", "boop", 1337})
 
 	// get command global options so we can set the encoding option
