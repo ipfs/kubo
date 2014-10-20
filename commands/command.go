@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+  "io"
 
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -46,9 +47,10 @@ func (c *Command) Register(id string, sub *Command) error {
 	return nil
 }
 
-// Call invokes the command at the given subcommand path
-func (c *Command) Call(req Request) Response {
-	res := NewResponse(req)
+// Call invokes the command for the given Request
+// Streaming output is written to `out`
+func (c *Command) Call(req Request, out io.Writer) Response {
+	res := NewResponse(req, out)
 
 	cmds, err := c.Resolve(req.Path())
 	if err != nil {

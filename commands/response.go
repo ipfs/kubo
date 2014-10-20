@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"strings"
+  "io"
 )
 
 // ErrorType signfies a category of errors
@@ -59,6 +60,9 @@ type Response interface {
 	SetValue(interface{})
 	Value() interface{}
 
+  // Returns the output stream Writer
+  Stream() io.Writer
+
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaller (Codec).
 	Marshal() ([]byte, error)
@@ -68,6 +72,7 @@ type response struct {
 	req   Request
 	err   *Error
 	value interface{}
+  out   io.Writer
 }
 
 func (r *response) Request() Request {
@@ -80,6 +85,10 @@ func (r *response) Value() interface{} {
 
 func (r *response) SetValue(v interface{}) {
 	r.value = v
+}
+
+func (r *response) Stream() io.Writer {
+  return r.out
 }
 
 func (r *response) Error() error {
@@ -116,6 +125,6 @@ func (r *response) Marshal() ([]byte, error) {
 }
 
 // NewResponse returns a response to match given Request
-func NewResponse(req Request) Response {
-	return &response{req: req}
+func NewResponse(req Request, out io.Writer) Response {
+	return &response{req: req, out: out}
 }
