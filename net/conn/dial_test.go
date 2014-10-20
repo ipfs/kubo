@@ -68,13 +68,18 @@ func setupConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
 		t.Fatal("Listen address is nil.")
 	}
 
-	l1, err := Listen(ctx, laddr, p1, peer.NewPeerstore())
+	ps1 := peer.NewPeerstore()
+	ps2 := peer.NewPeerstore()
+	ps1.Add(p1)
+	ps2.Add(p2)
+
+	l1, err := Listen(ctx, laddr, p1, ps1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	d2 := &Dialer{
-		Peerstore: peer.NewPeerstore(),
+		Peerstore: ps2,
 		LocalPeer: p2,
 	}
 
@@ -108,7 +113,12 @@ func TestDialer(t *testing.T) {
 		t.Fatal("Listen address is nil.")
 	}
 
-	l, err := Listen(ctx, laddr, p1, peer.NewPeerstore())
+	ps1 := peer.NewPeerstore()
+	ps2 := peer.NewPeerstore()
+	ps1.Add(p1)
+	ps2.Add(p2)
+
+	l, err := Listen(ctx, laddr, p1, ps1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +126,7 @@ func TestDialer(t *testing.T) {
 	go echoListen(ctx, l)
 
 	d := &Dialer{
-		Peerstore: peer.NewPeerstore(),
+		Peerstore: ps2,
 		LocalPeer: p2,
 	}
 

@@ -116,7 +116,7 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 	}
 
 	// check if we don't have the peer in Peerstore
-	err := s.peers.Put(peer)
+	peer, err := s.peers.Add(peer)
 	if err != nil {
 		return nil, err
 	}

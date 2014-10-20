@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -83,6 +84,9 @@ type Peer interface {
 	// Get/SetLatency manipulate the current latency measurement.
 	GetLatency() (out time.Duration)
 	SetLatency(laten time.Duration)
+
+	// Update with the data of another peer instance
+	Update(Peer) error
 }
 
 type peer struct {
@@ -125,7 +129,9 @@ func (p *peer) PubKey() ic.PubKey {
 // Addresses returns the peer's multiaddrs
 func (p *peer) Addresses() []ma.Multiaddr {
 	cp := make([]ma.Multiaddr, len(p.addresses))
+	p.RLock()
 	copy(cp, p.addresses)
+	defer p.RUnlock()
 	return cp
 }
 
@@ -182,7 +188,6 @@ func (p *peer) SetLatency(laten time.Duration) {
 // LoadAndVerifyKeyPair unmarshalls, loads a private/public key pair.
 // Error if (a) unmarshalling fails, or (b) pubkey does not match id.
 func (p *peer) LoadAndVerifyKeyPair(marshalled []byte) error {
-
 	sk, err := ic.UnmarshalPrivateKey(marshalled)
 	if err != nil {
 		return fmt.Errorf("Failed to unmarshal private key: %v", err)
@@ -198,6 +203,9 @@ func (p *peer) VerifyAndSetPrivKey(sk ic.PrivKey) error {
 	if err := p.VerifyAndSetPubKey(sk.GetPublic()); err != nil {
 		return err
 	}
+
+	p.Lock()
+	defer p.Unlock()
 
 	// if we didn't have the priavte key, assign it
 	if p.privKey == nil {
@@ -224,6 +232,9 @@ func (p *peer) VerifyAndSetPubKey(pk ic.PubKey) error {
 		return fmt.Errorf("Failed to hash public key: %v", err)
 	}
 
+	p.Lock()
+	defer p.Unlock()
+
 	if !p.id.Equal(pkid) {
 		return fmt.Errorf("Public key does not match peer.ID.")
 	}
@@ -244,6 +255,29 @@ func (p *peer) VerifyAndSetPubKey(pk ic.PubKey) error {
 	// this mismatch should never happen.
 	log.Error("%s had PubKey: %v -- got %v", p, p.pubKey, pk)
 	panic("invariant violated: unexpected key mismatch")
+}
+
+func (p *peer) Update(other Peer) error {
+	if !p.ID().Equal(other.ID()) {
+		return errors.New("peer ids do not match")
+	}
+
+	for _, a := range other.Addresses() {
+		p.AddAddress(a)
+	}
+
+	sk := other.PrivKey()
+	pk := other.PubKey()
+	p.Lock()
+	if p.privKey == nil {
+		p.privKey = sk
+	}
+
+	if p.pubKey == nil {
+		p.pubKey = pk
+	}
+	defer p.Unlock()
+	return nil
 }
 
 // WithKeyPair returns a Peer object with given keys.

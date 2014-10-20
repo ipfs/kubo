@@ -27,9 +27,13 @@ func TestPeerstore(t *testing.T) {
 	// p31, _ := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33", "/ip4/127.0.0.1/tcp/3456")
 	// p41, _ := setupPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34", "/ip4/127.0.0.1/tcp/4567")
 
-	err := ps.Put(p11)
+	p13, err := ps.Add(p11)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if p13 != p11 {
+		t.Error("these should be the same")
 	}
 
 	p12, err := ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
@@ -41,9 +45,12 @@ func TestPeerstore(t *testing.T) {
 		t.Error(errors.New("peers should be the same"))
 	}
 
-	err = ps.Put(p21)
+	p23, err := ps.Add(p21)
 	if err != nil {
 		t.Error(err)
+	}
+	if p23 != p21 {
+		t.Error("These should be the same")
 	}
 
 	p22, err := ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32"))

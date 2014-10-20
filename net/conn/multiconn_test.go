@@ -95,6 +95,8 @@ func setupMultiConns(t *testing.T, ctx context.Context) (a, b *MultiConn) {
 	// peerstores
 	p1ps := peer.NewPeerstore()
 	p2ps := peer.NewPeerstore()
+	p1ps.Add(p1)
+	p2ps.Add(p2)
 
 	// listeners
 	listen := func(addr ma.Multiaddr, p peer.Peer, ps peer.Peerstore) Listener {

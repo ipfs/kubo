@@ -203,7 +203,7 @@ func TestNotFound(t *testing.T) {
 
 	local := peer.WithIDString("test_peer")
 	peerstore := peer.NewPeerstore()
-	peerstore.Put(local)
+	peerstore.Add(local)
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
@@ -269,7 +269,7 @@ func TestLessThanKResponses(t *testing.T) {
 	fs := &fauxSender{}
 	local := peer.WithIDString("test_peer")
 	peerstore := peer.NewPeerstore()
-	peerstore.Put(local)
+	peerstore.Add(local)
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 

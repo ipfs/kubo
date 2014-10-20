@@ -12,7 +12,7 @@ import (
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
 	Get(ID) (Peer, error)
-	Put(Peer) error
+	Add(Peer) (Peer, error)
 	Delete(ID) error
 	All() (*Map, error)
 }
@@ -63,12 +63,37 @@ func (p *peerstore) Get(i ID) (Peer, error) {
 	}
 }
 
-func (p *peerstore) Put(peer Peer) error {
+func (p *peerstore) Add(peer Peer) (Peer, error) {
 	p.Lock()
 	defer p.Unlock()
 
 	k := peer.Key().DsKey()
-	return p.peers.Put(k, peer)
+	val, err := p.peers.Get(k)
+	switch err {
+	// some other datastore error
+	default:
+		return nil, err
+
+	// not found? just add and return.
+	case ds.ErrNotFound:
+		err := p.peers.Put(k, peer)
+		return peer, err
+
+	// no error, already here.
+	case nil:
+		peer2, ok := val.(Peer)
+		if !ok {
+			return nil, errors.New("stored value was not a Peer")
+		}
+
+		if peer == peer2 {
+			return peer, nil
+		}
+
+		// must do some merging.
+		peer2.Update(peer)
+		return peer2, nil
+	}
 }
 
 func (p *peerstore) Delete(i ID) error {

@@ -22,12 +22,16 @@ func NewMockNode() (*IpfsNode, error) {
 		return nil, err
 	}
 
-	nd.Identity, err = peer.WithKeyPair(sk, pk)
+	p, err := peer.WithKeyPair(sk, pk)
 	if err != nil {
 		return nil, err
 	}
+
 	nd.Peerstore = peer.NewPeerstore()
-	nd.Peerstore.Put(nd.Identity)
+	nd.Identity, err = nd.Peerstore.Add(p)
+	if err != nil {
+		return nil, err
+	}
 
 	// Temp Datastore
 	dstore := ds.NewMapDatastore()

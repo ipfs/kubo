@@ -72,10 +72,10 @@ func (c *MultiConn) Add(conns ...Conn) {
 			log.Error("%s", c2)
 			c.Unlock() // ok to unlock (to log). panicing.
 			log.Error("%s", c)
-			log.Error("c.LocalPeer: %s %#v", c.LocalPeer(), c.LocalPeer())
-			log.Error("c2.LocalPeer: %s %#v", c2.LocalPeer(), c2.LocalPeer())
-			log.Error("c.RemotePeer: %s %#v", c.RemotePeer(), c.RemotePeer())
-			log.Error("c2.RemotePeer: %s %#v", c2.RemotePeer(), c2.RemotePeer())
+			log.Error("c.LocalPeer: %s %p", c.LocalPeer(), c.LocalPeer())
+			log.Error("c2.LocalPeer: %s %p", c2.LocalPeer(), c2.LocalPeer())
+			log.Error("c.RemotePeer: %s %p", c.RemotePeer(), c.RemotePeer())
+			log.Error("c2.RemotePeer: %s %p", c2.RemotePeer(), c2.RemotePeer())
 			c.Lock() // gotta relock to avoid lock panic from deferring.
 			panic("connection addresses mismatch")
 		}

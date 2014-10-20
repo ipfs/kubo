@@ -233,15 +233,10 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		// setup peer
 		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
 		if err != nil {
-			log.Error("%s", err)
-			continue
-		}
-		npeer.AddAddress(maddr)
-
-		if err = pstore.Put(npeer); err != nil {
 			log.Error("Bootstrapping error: %v", err)
 			continue
 		}
+		npeer.AddAddress(maddr)
 
 		if _, err = route.Connect(ctx, npeer); err != nil {
 			log.Error("Bootstrapping error: %v", err)
