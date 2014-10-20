@@ -10,11 +10,7 @@ import (
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 func Parse(input []string, root *commands.Command) (*commands.Request, error) {
-	path, input, err := parsePath(input, root)
-	if err != nil {
-		return nil, err
-	}
-
+	path, input := parsePath(input, root)
 	opts, args, err := parseOptions(input)
 	if err != nil {
 		return nil, err
@@ -24,7 +20,7 @@ func Parse(input []string, root *commands.Command) (*commands.Request, error) {
 }
 
 // parsePath gets the command path from the command line input
-func parsePath(input []string, root *commands.Command) ([]string, []string, error) {
+func parsePath(input []string, root *commands.Command) ([]string, []string) {
 	cmd := root
 	i := 0
 
@@ -41,7 +37,7 @@ func parsePath(input []string, root *commands.Command) ([]string, []string, erro
 		i++
 	}
 
-	return input[:i], input[i:], nil
+	return input[:i], input[i:]
 }
 
 // parseOptions parses the raw string values of the given options
