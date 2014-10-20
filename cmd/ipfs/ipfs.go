@@ -128,7 +128,8 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 	}
 
 	if cfg.Version.ShouldCheckForUpdate() {
-		_, err := updates.CheckForUpdate()
+		log.Info("checking for update")
+		u, err := updates.CheckForUpdate()
 		if err != nil {
 			if err != check.NoUpdateAvailable {
 				log.Error("Error while checking for update: %v\n", err)
@@ -139,6 +140,29 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 		}
 
 		config.RecordUpdateCheck(cfg, filename)
+
+		if u != nil && cfg.Version.AutoUpdate != config.UpdateNever {
+			if updates.ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
+				log.Notice("Applying update %s", u.Version)
+
+				if err = updates.AbleToApply(); err != nil {
+					log.Error("Can't apply update: %v", err)
+					return nil, err
+				}
+
+				if err, errRecover := u.Update(); err != nil {
+					err = fmt.Errorf("Update failed: %v\n", err)
+					if errRecover != nil {
+						err = fmt.Errorf("%s\nRecovery failed! Cause: %v\nYou may need to recover manually", err, errRecover)
+					}
+					log.Error(err.Error())
+					return nil, err
+				}
+				// BUG(cryptix): no good way to restart yet. - tracking https://github.com/inconshreveable/go-update/issues/5
+				fmt.Println("update %v applied. please restart.", u.Version)
+				os.Exit(0)
+			}
+		}
 	}
 
 	return core.NewIpfsNode(cfg, online)
