@@ -3,6 +3,7 @@ package updates
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
@@ -122,3 +123,77 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 
 	return false
 }
+
+func CliCheckForUpdates(cfg *config.Config, confFile string) error {
+
+	// if config says not to, don't check for updates
+	if !cfg.Version.ShouldCheckForUpdate() {
+		log.Info("update checking disabled.")
+		return nil
+	}
+
+	log.Info("checking for update")
+	u, err := CheckForUpdate()
+	// if there is no update available, record it, and exit.
+	if err == check.NoUpdateAvailable {
+		log.Notice("No update available, checked on %s", time.Now())
+		config.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
+		return nil
+	}
+
+	// if another, unexpected error occurred, note it.
+	if err != nil {
+		if cfg.Version.Check == config.CheckError {
+			log.Error("Error while checking for update: %v\n", err)
+			return nil
+		}
+		// when "warn" version.check mode we just show a warning message
+		log.Warning(err.Error())
+		return nil
+	}
+
+	// there is an update available
+
+	// if we autoupdate
+	if cfg.Version.AutoUpdate != config.UpdateNever {
+		// and we should auto update
+		if ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
+			log.Notice("Applying update %s", u.Version)
+
+			if err = Apply(u); err != nil {
+				log.Error(err.Error())
+				return nil
+			}
+
+			// BUG(cryptix): no good way to restart yet. - tracking https://github.com/inconshreveable/go-update/issues/5
+			fmt.Println("update %v applied. please restart.", u.Version)
+			os.Exit(0)
+		}
+	}
+
+	// autoupdate did not exit, so regular notices.
+	switch cfg.Version.Check {
+	case config.CheckError:
+		return fmt.Errorf(errShouldUpdate, Version, u.Version)
+	case config.CheckWarn:
+		// print the warning
+		fmt.Printf("New version available: %s", u.Version)
+	default: // ignore
+	}
+	return nil
+}
+
+var errShouldUpdate = `
+Your go-ipfs version is: %s
+There is a new version available: %s
+Since this is alpha software, it is strongly recommended you update.
+
+To update, run:
+
+    ipfs update apply
+
+To disable this notice, run:
+
+    ipfs config Version.Check warn
+
+`
