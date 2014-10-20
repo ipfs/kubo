@@ -29,7 +29,27 @@ func Pin(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 			return fmt.Errorf("pin error: %v", err)
 		}
 
-		err = n.PinDagNodeRecursively(dagnode, depth)
+		err = n.Pinning.Pin(dagnode, recursive)
+		if err != nil {
+			return fmt.Errorf("pin: %v", err)
+		}
+	}
+	return nil
+}
+
+func Unpin(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
+
+	// set recursive flag
+	recursive, _ := opts["r"].(bool) // false if cast fails.
+
+	for _, fn := range args {
+		dagnode, err := n.Resolver.ResolvePath(fn)
+		if err != nil {
+			return fmt.Errorf("pin error: %v", err)
+		}
+
+		k, _ := dagnode.Key()
+		err = n.Pinning.Unpin(k, recursive)
 		if err != nil {
 			return fmt.Errorf("pin: %v", err)
 		}

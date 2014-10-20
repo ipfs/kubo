@@ -22,6 +22,7 @@ import (
 	netservice "github.com/jbenet/go-ipfs/net/service"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
+	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
@@ -67,6 +68,9 @@ type IpfsNode struct {
 
 	// the diagnostics service
 	Diagnostics *diag.Diagnostics
+
+	// the pinning manager
+	Pinning pin.Pinner
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -159,6 +163,10 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	dag := &merkledag.DAGService{Blocks: bs}
 	ns := namesys.NewNameSystem(route)
+	p, err := pin.LoadPinner(d, dag)
+	if err != nil {
+		p = pin.NewPinner(d, dag)
+	}
 
 	success = true
 	return &IpfsNode{
@@ -174,6 +182,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		Namesys:     ns,
 		Diagnostics: diagnostics,
 		Network:     network,
+		Pinning:     p,
 	}, nil
 }
 
@@ -242,15 +251,4 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 			log.Error("Bootstrapping error: %v", err)
 		}
 	}
-}
-
-// PinDagNode ensures a given node is stored persistently locally
-func (n *IpfsNode) PinDagNode(nd *merkledag.Node) error {
-	return n.PinDagNodeRecursively(nd, 1)
-}
-
-// PinDagNodeRecursively ensures a given node is stored persistently locally
-func (n *IpfsNode) PinDagNodeRecursively(nd *merkledag.Node, depth int) error {
-	log.Debug("Pinning node recursively. Currently No-Op")
-	return nil
 }

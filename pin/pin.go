@@ -15,6 +15,7 @@ var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
 var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")
 
 type Pinner interface {
+	IsPinned(util.Key) bool
 	Pin(*mdag.Node, bool) error
 	Unpin(util.Key, bool) error
 	Flush() error
@@ -138,7 +139,7 @@ func (p *pinner) IsPinned(key util.Key) bool {
 		p.indirPin.HasKey(key)
 }
 
-func LoadPinner(d ds.Datastore) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv *mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	var err error
@@ -155,6 +156,9 @@ func LoadPinner(d ds.Datastore) (Pinner, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	p.dserv = dserv
+	p.dstore = d
 
 	return p, nil
 }

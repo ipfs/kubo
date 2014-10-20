@@ -117,6 +117,6 @@ func addNode(n *core.IpfsNode, nd *dag.Node, fpath string, out io.Writer) error 
 	// output that we've added this node
 	fmt.Fprintf(out, "added %s %s\n", k, fpath)
 
-	// ensure we keep it. atm no-op
-	return n.PinDagNodeRecursively(nd, -1)
+	// ensure we keep it
+	return n.Pinning.Pin(nd, true)
 }
