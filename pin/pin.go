@@ -3,6 +3,8 @@ package pin
 import (
 
 	//ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	"sync"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
 	nsds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/namespace"
 	"github.com/jbenet/go-ipfs/blocks/set"
@@ -22,6 +24,7 @@ type Pinner interface {
 }
 
 type pinner struct {
+	lock       sync.RWMutex
 	recursePin set.BlockSet
 	directPin  set.BlockSet
 	indirPin   *indirectPin
@@ -49,6 +52,8 @@ func NewPinner(dstore ds.Datastore, serv *mdag.DAGService) Pinner {
 }
 
 func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	k, err := node.Key()
 	if err != nil {
 		return err
@@ -72,6 +77,8 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 }
 
 func (p *pinner) Unpin(k util.Key, recurse bool) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	if recurse {
 		p.recursePin.RemoveBlock(k)
 		node, err := p.dserv.Get(k)
@@ -134,6 +141,8 @@ func (p *pinner) pinLinks(node *mdag.Node) error {
 }
 
 func (p *pinner) IsPinned(key util.Key) bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
 	return p.recursePin.HasKey(key) ||
 		p.directPin.HasKey(key) ||
 		p.indirPin.HasKey(key)
@@ -164,6 +173,8 @@ func LoadPinner(d ds.Datastore, dserv *mdag.DAGService) (Pinner, error) {
 }
 
 func (p *pinner) Flush() error {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
 	recurse := p.recursePin.GetKeys()
 	err := p.dstore.Put(recursePinDatastoreKey, recurse)
 	if err != nil {

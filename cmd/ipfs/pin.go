@@ -8,36 +8,47 @@ import (
 
 var cmdIpfsPin = &commander.Command{
 	UsageLine: "pin",
+	Short:     "",
+	Long: `ipfs pin [add|rm] - object pinning commands
+`,
+	Subcommands: []*commander.Command{
+		cmdIpfsSubPin,
+		cmdIpfsSubUnpin,
+	},
+}
+
+var cmdIpfsSubPin = &commander.Command{
+	UsageLine: "add",
 	Short:     "pin an ipfs object to local storage.",
-	Long: `ipfs pin <ipfs-path> - pin ipfs object to local storage.
+	Long: `ipfs pin add <ipfs-path> - pin ipfs object to local storage.
 
     Retrieves the object named by <ipfs-path> and stores it locally
     on disk.
 `,
-	Run:  pinCmd,
+	Run:  pinSubCmd,
 	Flag: *flag.NewFlagSet("ipfs-pin", flag.ExitOnError),
 }
 
-var pinCmd = makeCommand(command{
+var pinSubCmd = makeCommand(command{
 	name:  "pin",
 	args:  1,
 	flags: []string{"r", "d"},
 	cmdFn: commands.Pin,
 })
 
-var cmdIpfsUnpin = &commander.Command{
-	UsageLine: "unpin",
+var cmdIpfsSubUnpin = &commander.Command{
+	UsageLine: "rm",
 	Short:     "unpin an ipfs object from local storage.",
-	Long: `ipfs unpin <ipfs-path> - unpin ipfs object from local storage.
+	Long: `ipfs pin rm <ipfs-path> - unpin ipfs object from local storage.
 
 	Removes the pin from the given object allowing it to be garbage
 	collected if needed.
 `,
-	Run:  unpinCmd,
+	Run:  unpinSubCmd,
 	Flag: *flag.NewFlagSet("ipfs-unpin", flag.ExitOnError),
 }
 
-var unpinCmd = makeCommand(command{
+var unpinSubCmd = makeCommand(command{
 	name:  "unpin",
 	args:  1,
 	flags: []string{"r", "d"},
@@ -45,7 +56,7 @@ var unpinCmd = makeCommand(command{
 })
 
 func init() {
-	cmdIpfsPin.Flag.Bool("r", false, "pin objects recursively")
-	cmdIpfsPin.Flag.Int("d", 1, "recursive depth")
-	cmdIpfsUnpin.Flag.Bool("r", false, "unpin objects recursively")
+	cmdIpfsSubPin.Flag.Bool("r", false, "pin objects recursively")
+	cmdIpfsSubPin.Flag.Int("d", 1, "recursive depth")
+	cmdIpfsSubUnpin.Flag.Bool("r", false, "unpin objects recursively")
 }
