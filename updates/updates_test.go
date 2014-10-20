@@ -17,8 +17,9 @@ func TestParseVersion(t *testing.T) {
 
 func TestShouldAutoUpdate(t *testing.T) {
 	tests := []struct {
-		setting, currV, newV string
-		should               bool
+		setting     config.AutoUpdateSetting
+		currV, newV string
+		should      bool
 	}{
 		{config.UpdateNever, "0.0.1", "1.0.0", false},
 		{config.UpdateNever, "0.0.1", "0.1.0", false},
