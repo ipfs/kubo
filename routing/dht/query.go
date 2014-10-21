@@ -232,6 +232,7 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 	}()
 
 	// make sure we're connected to the peer.
+	// (Incidentally, this will add it to the peerstore too)
 	err := r.query.dialer.DialPeer(p)
 	if err != nil {
 		log.Debug("ERROR worker for: %v -- err connecting: %v", p, err)

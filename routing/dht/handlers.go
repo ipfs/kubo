@@ -86,7 +86,7 @@ func (dht *IpfsDHT) handleGetValue(p peer.Peer, pmes *Message) (*Message, error)
 		for _, p := range closer {
 			log.Debug("handleGetValue returning closer peer: '%s'", p)
 			if len(p.Addresses()) < 1 {
-				log.Error("no addresses on peer being sent!")
+				log.Critical("no addresses on peer being sent!")
 			}
 		}
 		resp.CloserPeers = peersToPBPeers(closer)
