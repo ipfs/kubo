@@ -272,7 +272,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 	// Perhaps we were given closer peers
 	var peers []peer.Peer
 	for _, pb := range pmes.GetCloserPeers() {
-		pr, err := dht.addPeer(pb)
+		pr, err := dht.ensureConnectedToPeer(pb)
 		if err != nil {
 			log.Error("%s", err)
 			continue

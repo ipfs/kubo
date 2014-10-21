@@ -48,10 +48,10 @@ func (dht *IpfsDHT) handleGetValue(p peer.Peer, pmes *Message) (*Message, error)
 	}
 
 	// let's first check if we have the value locally.
-	log.Debug("%s handleGetValue looking into ds\n", dht.self)
+	log.Debug("%s handleGetValue looking into ds", dht.self)
 	dskey := u.Key(pmes.GetKey()).DsKey()
 	iVal, err := dht.datastore.Get(dskey)
-	log.Debug("%s handleGetValue looking into ds GOT %v\n", dht.self, iVal)
+	log.Debug("%s handleGetValue looking into ds GOT %v", dht.self, iVal)
 
 	// if we got an unexpected error, bail.
 	if err != nil && err != ds.ErrNotFound {
@@ -63,7 +63,7 @@ func (dht *IpfsDHT) handleGetValue(p peer.Peer, pmes *Message) (*Message, error)
 
 	// if we have the value, send it back
 	if err == nil {
-		log.Debug("%s handleGetValue success!\n", dht.self)
+		log.Debug("%s handleGetValue success!", dht.self)
 
 		byts, ok := iVal.([]byte)
 		if !ok {
@@ -85,6 +85,9 @@ func (dht *IpfsDHT) handleGetValue(p peer.Peer, pmes *Message) (*Message, error)
 	if closer != nil {
 		for _, p := range closer {
 			log.Debug("handleGetValue returning closer peer: '%s'", p)
+			if len(p.Addresses()) < 1 {
+				log.Error("no addresses on peer being sent!")
+			}
 		}
 		resp.CloserPeers = peersToPBPeers(closer)
 	}
