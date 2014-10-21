@@ -68,7 +68,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/datastore.go",
-			"Rev": "60ebc56447b5a8264cfed3ae3ff48deb984d7cf1"
+			"Rev": "da593f5071b3ce60bf45b548193863bc3c885c3c"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",

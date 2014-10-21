@@ -54,14 +54,24 @@ func (ks *KeySuite) SubtestKey(s string, c *C) {
 	c.Check(NewKey(s).Path().String(), Equals, kpath)
 	c.Check(NewKey(s).Instance("inst").String(), Equals, kinstance)
 
-	c.Check(NewKey(s).Child("cchildd").String(), Equals, kchild)
-	c.Check(NewKey(s).Child("cchildd").Parent().String(), Equals, fixed)
+	c.Check(NewKey(s).Child(NewKey("cchildd")).String(), Equals, kchild)
+	c.Check(NewKey(s).Child(NewKey("cchildd")).Parent().String(), Equals, fixed)
+	c.Check(NewKey(s).ChildString("cchildd").String(), Equals, kchild)
+	c.Check(NewKey(s).ChildString("cchildd").Parent().String(), Equals, fixed)
 	c.Check(NewKey(s).Parent().String(), Equals, kparent)
 	c.Check(len(NewKey(s).List()), Equals, len(namespaces))
 	c.Check(len(NewKey(s).Namespaces()), Equals, len(namespaces))
 	for i, e := range NewKey(s).List() {
 		c.Check(namespaces[i], Equals, e)
 	}
+
+	c.Check(NewKey(s), Equals, NewKey(s))
+	c.Check(NewKey(s).Equal(NewKey(s)), Equals, true)
+	c.Check(NewKey(s).Equal(NewKey("/fdsafdsa/"+s)), Equals, false)
+
+	// less
+	c.Check(NewKey(s).Less(NewKey(s).Parent()), Equals, false)
+	c.Check(NewKey(s).Less(NewKey(s).ChildString("foo")), Equals, true)
 }
 
 func (ks *KeySuite) TestKeyBasic(c *C) {
@@ -100,7 +110,8 @@ func (ks *KeySuite) TestKeyAncestry(c *C) {
 	CheckTrue(c, !k1.IsAncestorOf(NewKey("/A")))
 	CheckTrue(c, !k2.IsAncestorOf(k2))
 	CheckTrue(c, !k1.IsAncestorOf(k1))
-	c.Check(k1.Child("D").String(), Equals, k2.String())
+	c.Check(k1.Child(NewKey("D")).String(), Equals, k2.String())
+	c.Check(k1.ChildString("D").String(), Equals, k2.String())
 	c.Check(k1.String(), Equals, k2.Parent().String())
 	c.Check(k1.Path().String(), Equals, k2.Parent().Path().String())
 }
@@ -125,4 +136,22 @@ func (ks *KeySuite) TestRandom(c *C) {
 		keys[r] = true
 	}
 	CheckTrue(c, len(keys) == 1000)
+}
+
+func (ks *KeySuite) TestLess(c *C) {
+
+	checkLess := func(a, b string) {
+		ak := NewKey(a)
+		bk := NewKey(b)
+		c.Check(ak.Less(bk), Equals, true)
+		c.Check(bk.Less(ak), Equals, false)
+	}
+
+	checkLess("/a/b/c", "/a/b/c/d")
+	checkLess("/a/b", "/a/b/c/d")
+	checkLess("/a", "/a/b/c/d")
+	checkLess("/a/a/c", "/a/b/c")
+	checkLess("/a/a/d", "/a/b/c")
+	checkLess("/a/b/c/d/e/f/g/h", "/b")
+	checkLess("/", "/a")
 }
