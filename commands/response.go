@@ -60,9 +60,6 @@ type Response interface {
 	SetValue(interface{})
 	Value() interface{}
 
-  // Returns the output stream Writer
-  Stream() io.Writer
-
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaller (Codec).
 	Marshal() ([]byte, error)
@@ -125,6 +122,6 @@ func (r *response) Marshal() ([]byte, error) {
 }
 
 // NewResponse returns a response to match given Request
-func NewResponse(req Request, out io.Writer) Response {
-	return &response{req: req, out: out}
+func NewResponse(req Request) Response {
+	return &response{req: req}
 }
