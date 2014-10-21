@@ -2,9 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
-	"io"
 )
 
 type optMap map[string]interface{}
@@ -24,7 +24,7 @@ type request struct {
 	path      []string
 	options   optMap
 	arguments []string
-	in  			io.Reader
+	in        io.Reader
 }
 
 // Path returns the command path of this request

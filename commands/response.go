@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"strings"
-  "io"
 )
 
 // ErrorType signfies a category of errors
@@ -69,7 +69,7 @@ type response struct {
 	req   Request
 	err   *Error
 	value interface{}
-  out   io.Writer
+	out   io.Writer
 }
 
 func (r *response) Request() Request {
@@ -85,7 +85,7 @@ func (r *response) SetValue(v interface{}) {
 }
 
 func (r *response) Stream() io.Writer {
-  return r.out
+	return r.out
 }
 
 func (r *response) Error() error {
