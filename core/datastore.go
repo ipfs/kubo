@@ -31,7 +31,7 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
 		if err != nil {
 			return nil, err
 		}
-		ktd := ktds.WrapDatastore(d, u.DsKeyB58Encode)
+		ktd := ktds.Wrap(d, u.B58KeyConverter)
 		return syncds.MutexWrap(ktd), nil
 	}
 

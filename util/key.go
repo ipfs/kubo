@@ -29,24 +29,30 @@ func KeyFromDsKey(dsk ds.Key) Key {
 	return Key(dsk.BaseNamespace())
 }
 
-// DsKeyB58Encode returns a B58 encoded Datastore key
+// B58KeyConverter -- for KeyTransform datastores
+// (static as only one obj needed)
+var B58KeyConverter = b58KeyConverter{}
+
+type b58KeyConverter struct{}
+
+// ConvertKey returns a B58 encoded Datastore key
 // TODO: this is hacky because it encodes every path component. some
 // path components may be proper strings already...
-func DsKeyB58Encode(dsk ds.Key) ds.Key {
+func (b58KeyConverter) ConvertKey(dsk ds.Key) ds.Key {
 	k := ds.NewKey("/")
 	for _, n := range dsk.Namespaces() {
-		k = k.Child(b58.Encode([]byte(n)))
+		k = k.ChildString(b58.Encode([]byte(n)))
 	}
 	return k
 }
 
-// DsKeyB58Decode returns a b58 decoded Datastore key
+// InvertKey returns a b58 decoded Datastore key
 // TODO: this is hacky because it encodes every path component. some
 // path components may be proper strings already...
-func DsKeyB58Decode(dsk ds.Key) ds.Key {
+func (b58KeyConverter) InvertKey(dsk ds.Key) ds.Key {
 	k := ds.NewKey("/")
 	for _, n := range dsk.Namespaces() {
-		k = k.Child(string(b58.Decode(n)))
+		k = k.ChildString(string(b58.Decode(n)))
 	}
 	return k
 }
