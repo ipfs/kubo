@@ -13,7 +13,7 @@ func TestOptionValidation(t *testing.T) {
 
 	req := NewEmptyRequest()
 	req.SetOption("foo", 5)
-	res := cmd.Call(req, nil)
+	res := cmd.Call(req)
 	if res.Error() == nil {
 		t.Error("Should have failed (unrecognized option)")
 	}
@@ -21,21 +21,21 @@ func TestOptionValidation(t *testing.T) {
 	req = NewEmptyRequest()
 	req.SetOption("beep", 5)
 	req.SetOption("b", 10)
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() == nil {
 		t.Error("Should have failed (duplicate options)")
 	}
 
 	req = NewEmptyRequest()
 	req.SetOption("beep", "foo")
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() == nil {
 		t.Error("Should have failed (incorrect type)")
 	}
 
 	req = NewEmptyRequest()
 	req.SetOption("beep", 5)
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error(res.Error(), "Should have passed")
 	}
@@ -43,7 +43,7 @@ func TestOptionValidation(t *testing.T) {
 	req = NewEmptyRequest()
 	req.SetOption("beep", 5)
 	req.SetOption("boop", "test")
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
@@ -51,28 +51,28 @@ func TestOptionValidation(t *testing.T) {
 	req = NewEmptyRequest()
 	req.SetOption("b", 5)
 	req.SetOption("B", "test")
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
 	req.SetOption(EncShort, "json")
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
 	req.SetOption("b", "100")
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
 	req = NewEmptyRequest()
 	req.SetOption("b", ":)")
-	res = cmd.Call(req, nil)
+	res = cmd.Call(req)
 	if res.Error == nil {
 		t.Error(res.Error, "Should have failed (string value not convertible to int)")
 	}
