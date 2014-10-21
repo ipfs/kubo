@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 // Datastore uses a standard Go map for internal storage.

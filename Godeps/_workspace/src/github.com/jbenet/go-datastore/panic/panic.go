@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 type datastore struct {

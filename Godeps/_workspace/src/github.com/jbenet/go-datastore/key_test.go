@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	. "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	. "gopkg.in/check.v1"
 )
 

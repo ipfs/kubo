@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 // CastAsReader does type assertions to find the type of a value and attempts

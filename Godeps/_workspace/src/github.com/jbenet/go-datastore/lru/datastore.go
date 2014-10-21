@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	lru "github.com/hashicorp/golang-lru"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 // Datastore uses golang-lru for internal storage.

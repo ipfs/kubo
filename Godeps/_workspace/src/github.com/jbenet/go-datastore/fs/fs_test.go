@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/fs"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/fs"
 	. "launchpad.net/gocheck"
 )
 

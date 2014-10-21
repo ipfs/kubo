@@ -1,12 +1,12 @@
-package keytransform_test
+package namespace_test
 
 import (
 	"bytes"
 	"sort"
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	kt "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/keytransform"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ns "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	. "launchpad.net/gocheck"
 )
 
@@ -19,22 +19,8 @@ var _ = Suite(&DSSuite{})
 
 func (ks *DSSuite) TestBasic(c *C) {
 
-	pair := &kt.Pair{
-		Convert: func(k ds.Key) ds.Key {
-			return ds.NewKey("/abc").Child(k)
-		},
-		Invert: func(k ds.Key) ds.Key {
-			// remove abc prefix
-			l := k.List()
-			if l[0] != "abc" {
-				panic("key does not have prefix. convert failed?")
-			}
-			return ds.KeyWithNamespaces(l[1:])
-		},
-	}
-
 	mpds := ds.NewMapDatastore()
-	ktds := kt.Wrap(mpds, pair)
+	nsds := ns.Wrap(mpds, ds.NewKey("abc"))
 
 	keys := strsToKeys([]string{
 		"foo",
@@ -46,12 +32,12 @@ func (ks *DSSuite) TestBasic(c *C) {
 	})
 
 	for _, k := range keys {
-		err := ktds.Put(k, []byte(k.String()))
+		err := nsds.Put(k, []byte(k.String()))
 		c.Check(err, Equals, nil)
 	}
 
 	for _, k := range keys {
-		v1, err := ktds.Get(k)
+		v1, err := nsds.Get(k)
 		c.Check(err, Equals, nil)
 		c.Check(bytes.Equal(v1.([]byte), []byte(k.String())), Equals, true)
 
@@ -61,7 +47,7 @@ func (ks *DSSuite) TestBasic(c *C) {
 	}
 
 	listA, errA := mpds.KeyList()
-	listB, errB := ktds.KeyList()
+	listB, errB := nsds.KeyList()
 	c.Check(errA, Equals, nil)
 	c.Check(errB, Equals, nil)
 	c.Check(len(listA), Equals, len(listB))
@@ -72,8 +58,8 @@ func (ks *DSSuite) TestBasic(c *C) {
 
 	for i, kA := range listA {
 		kB := listB[i]
-		c.Check(pair.Invert(kA), Equals, kB)
-		c.Check(kA, Equals, pair.Convert(kB))
+		c.Check(nsds.InvertKey(kA), Equals, kB)
+		c.Check(kA, Equals, nsds.ConvertKey(kB))
 	}
 }
 

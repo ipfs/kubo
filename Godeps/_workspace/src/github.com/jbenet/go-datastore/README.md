@@ -8,7 +8,7 @@ Based on [datastore.py](https://github.com/datastore/datastore).
 
 ### Documentation
 
-https://godoc.org/github.com/datastore/datastore.go
+https://godoc.org/github.com/datastore/go-datastore
 
 ### License
 

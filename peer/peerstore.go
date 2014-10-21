@@ -6,7 +6,7 @@ import (
 
 	u "github.com/jbenet/go-ipfs/util"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 // Peerstore provides a threadsafe collection for peers.

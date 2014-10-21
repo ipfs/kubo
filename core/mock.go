@@ -1,8 +1,8 @@
 package core
 
 import (
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go/sync"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	bs "github.com/jbenet/go-ipfs/blockservice"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"

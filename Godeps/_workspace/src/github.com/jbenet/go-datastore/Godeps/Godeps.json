@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/jbenet/datastore.go",
+	"ImportPath": "github.com/jbenet/go-datastore",
 	"GoVersion": "go1.3.1",
 	"Packages": [
 		"./..."

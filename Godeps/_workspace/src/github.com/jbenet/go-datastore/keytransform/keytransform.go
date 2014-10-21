@@ -1,6 +1,6 @@
 package keytransform
 
-import ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+import ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
 type Pair struct {
 	Convert KeyMapping
