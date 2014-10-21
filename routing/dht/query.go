@@ -3,6 +3,7 @@ package dht
 import (
 	"sync"
 
+	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	queue "github.com/jbenet/go-ipfs/peer/queue"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
@@ -14,17 +15,12 @@ import (
 
 var maxQueryConcurrency = AlphaValue
 
-type dhtDialer interface {
-	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(peer.Peer) error
-}
-
 type dhtQuery struct {
 	// the key we're querying for
 	key u.Key
 
 	// dialer used to ensure we're connected to peers
-	dialer dhtDialer
+	dialer inet.Dialer
 
 	// the function to execute per peer
 	qfunc queryFunc
@@ -42,7 +38,7 @@ type dhtQueryResult struct {
 }
 
 // constructs query
-func newQuery(k u.Key, d dhtDialer, f queryFunc) *dhtQuery {
+func newQuery(k u.Key, d inet.Dialer, f queryFunc) *dhtQuery {
 	return &dhtQuery{
 		key:         k,
 		dialer:      d,

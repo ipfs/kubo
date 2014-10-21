@@ -33,9 +33,9 @@ type IpfsDHT struct {
 	// NOTE: (currently, only a single table is used)
 	routingTables []*kb.RoutingTable
 
-	// the network interface. service
-	network inet.Network
-	sender  inet.Sender
+	// the network services we need
+	dialer inet.Dialer
+	sender inet.Sender
 
 	// Local peer (yourself)
 	self peer.Peer
@@ -59,9 +59,9 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
+func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dialer, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
-	dht.network = net
+	dht.dialer = dialer
 	dht.sender = sender
 	dht.datastore = dstore
 	dht.self = p
@@ -95,7 +95,7 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, er
 	//
 	//   /ip4/10.20.30.40/tcp/1234/ipfs/Qxhxxchxzcncxnzcnxzcxzm
 	//
-	err := dht.network.DialPeer(npeer)
+	err := dht.dialer.DialPeer(npeer)
 	if err != nil {
 		return nil, err
 	}
@@ -499,7 +499,7 @@ func (dht *IpfsDHT) ensureConnectedToPeer(pbp *Message_Peer) (peer.Peer, error) 
 	}
 
 	// dial connection
-	err = dht.network.DialPeer(p)
+	err = dht.dialer.DialPeer(p)
 	return p, err
 }
 
