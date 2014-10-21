@@ -16,7 +16,6 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
@@ -272,7 +271,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 	// Perhaps we were given closer peers
 	var peers []peer.Peer
 	for _, pb := range pmes.GetCloserPeers() {
-		pr, err := dht.ensureConnectedToPeer(pb)
+		pr, err := dht.peerFromInfo(pb)
 		if err != nil {
 			log.Error("%s", err)
 			continue
@@ -287,26 +286,6 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 
 	log.Warning("getValueOrPeers: u.ErrNotFound")
 	return nil, nil, u.ErrNotFound
-}
-
-func (dht *IpfsDHT) addPeer(pb *Message_Peer) (peer.Peer, error) {
-	if peer.ID(pb.GetId()).Equal(dht.self.ID()) {
-		return nil, errors.New("cannot add self as peer")
-	}
-
-	addr, err := ma.NewMultiaddr(pb.GetAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	// check if we already have this peer.
-	pr, err := dht.getPeer(peer.ID(pb.GetId()))
-	if err != nil {
-		return nil, err
-	}
-	pr.AddAddress(addr) // idempotent
-
-	return pr, nil
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
@@ -494,7 +473,8 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (peer.Peer, error) {
 
 	id := peer.ID(pbp.GetId())
 
-	// continue if it's ourselves
+	// bail out if it's ourselves
+	//TODO(jbenet) not sure this should be an error _here_
 	if id.Equal(dht.self.ID()) {
 		return nil, errors.New("found self")
 	}
