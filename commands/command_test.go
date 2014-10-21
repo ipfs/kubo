@@ -8,7 +8,7 @@ func TestOptionValidation(t *testing.T) {
 			Option{[]string{"b", "beep"}, Int},
 			Option{[]string{"B", "boop"}, String},
 		},
-		run: func(req Request, res Response) {},
+		Run: func(req Request, res Response) {},
 	}
 
 	req := NewEmptyRequest()
@@ -85,35 +85,35 @@ func TestRegistration(t *testing.T) {
 			Options: []Option{
 				Option{[]string{"beep"}, Int},
 			},
-			run: noop,
+			Run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"boop"}, Int},
 			},
-			run: noop,
+			Run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"boop"}, String},
 			},
-			run: noop,
+			Run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{"bop"}, String},
 			},
-			run: noop,
+			Run: noop,
 		},
 
 		&Command{
 			Options: []Option{
 				Option{[]string{EncShort}, String},
 			},
-			run: noop,
+			Run: noop,
 		},
 	}
 
