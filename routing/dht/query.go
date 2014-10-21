@@ -14,9 +14,17 @@ import (
 
 var maxQueryConcurrency = AlphaValue
 
+type dhtDialer interface {
+	// DialPeer attempts to establish a connection to a given peer
+	DialPeer(peer.Peer) error
+}
+
 type dhtQuery struct {
 	// the key we're querying for
 	key u.Key
+
+	// dialer used to ensure we're connected to peers
+	dialer dhtDialer
 
 	// the function to execute per peer
 	qfunc queryFunc
@@ -34,9 +42,10 @@ type dhtQueryResult struct {
 }
 
 // constructs query
-func newQuery(k u.Key, f queryFunc) *dhtQuery {
+func newQuery(k u.Key, d dhtDialer, f queryFunc) *dhtQuery {
 	return &dhtQuery{
 		key:         k,
+		dialer:      d,
 		qfunc:       f,
 		concurrency: maxQueryConcurrency,
 	}
@@ -211,19 +220,38 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 		return
 	}
 
-	log.Debug("running worker for: %v\n", p)
+	// ok let's do this!
+	log.Debug("running worker for: %v", p)
+
+	// make sure we do this when we exit
+	defer func() {
+		// signal we're done proccessing peer p
+		log.Debug("completing worker for: %v", p)
+		r.peersRemaining.Decrement(1)
+		r.rateLimit <- struct{}{}
+	}()
+
+	// make sure we're connected to the peer.
+	err := r.query.dialer.DialPeer(p)
+	if err != nil {
+		log.Debug("ERROR worker for: %v -- err connecting: %v", p, err)
+		r.Lock()
+		r.errs = append(r.errs, err)
+		r.Unlock()
+		return
+	}
 
 	// finally, run the query against this peer
 	res, err := r.query.qfunc(r.ctx, p)
 
 	if err != nil {
-		log.Debug("ERROR worker for: %v %v\n", p, err)
+		log.Debug("ERROR worker for: %v %v", p, err)
 		r.Lock()
 		r.errs = append(r.errs, err)
 		r.Unlock()
 
 	} else if res.success {
-		log.Debug("SUCCESS worker for: %v\n", p, res)
+		log.Debug("SUCCESS worker for: %v", p, res)
 		r.Lock()
 		r.result = res
 		r.Unlock()
@@ -235,9 +263,4 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 			r.addPeerToQuery(next, p)
 		}
 	}
-
-	// signal we're done proccessing peer p
-	log.Debug("completing worker for: %v\n", p)
-	r.peersRemaining.Decrement(1)
-	r.rateLimit <- struct{}{}
 }

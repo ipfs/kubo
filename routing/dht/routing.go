@@ -29,7 +29,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		peers = append(peers, npeers...)
 	}
 
-	query := newQuery(key, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
+	query := newQuery(key, dht.network, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 		log.Debug("%s PutValue qry part %v", dht.self, p)
 		err := dht.putValueToNetwork(ctx, p, string(key), value)
 		if err != nil {
@@ -65,7 +65,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	}
 
 	// setup the Query
-	query := newQuery(key, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
+	query := newQuery(key, dht.network, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 
 		val, peers, err := dht.getValueOrPeers(ctx, p, key, routeLevel)
 		if err != nil {
@@ -230,7 +230,7 @@ func (dht *IpfsDHT) findPeerMultiple(ctx context.Context, id peer.ID) (peer.Peer
 	}
 
 	// setup query function
-	query := newQuery(u.Key(id), func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
+	query := newQuery(u.Key(id), dht.network, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
 		if err != nil {
 			log.Error("%s getPeer error: %v", dht.self, err)
