@@ -20,8 +20,8 @@ type Function func(Request, Response)
 type Command struct {
 	Help    string
 	Options []Option
+	Run     Function
 
-	run         Function
 	subcommands map[string]*Command
 }
 
@@ -59,7 +59,7 @@ func (c *Command) Call(req Request, out io.Writer) Response {
 	}
 	cmd := cmds[len(cmds)-1]
 
-	if cmd.run == nil {
+	if cmd.Run == nil {
 		res.SetError(ErrNotCallable, ErrClient)
 		return res
 	}
@@ -76,7 +76,7 @@ func (c *Command) Call(req Request, out io.Writer) Response {
 		return res
 	}
 
-	cmd.run(req, res)
+	cmd.Run(req, res)
 
 	return res
 }
