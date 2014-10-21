@@ -24,13 +24,32 @@ func UpdateApply(n *core.IpfsNode, args []string, opts map[string]interface{}, o
 	}
 	fmt.Fprintln(out, "New Version:", u.Version)
 
+	_, onDaemon := opts["onDaemon"]
+	_, force := opts["force"]
+	if onDaemon && !force {
+		return fmt.Errorf(`Error: update must stop running ipfs service.
+You may want to abort the update, or shut the service down manually.
+To shut it down automatically, run:
+
+  ipfs update apply -f
+`)
+	}
+
 	if err = updates.Apply(u); err != nil {
 		fmt.Fprint(out, err.Error())
 		return fmt.Errorf("Couldn't apply update: %v", err)
 	}
 
-	fmt.Fprintln(out, "Updated applied! Shutting down.")
-	os.Exit(0)
+	fmt.Fprintln(out, "Updated applied!")
+	if onDaemon {
+		if force {
+			fmt.Fprintln(out, "Shutting down ipfs service.")
+			os.Exit(1) // is there a cleaner shutdown routine?
+		} else {
+			fmt.Fprintln(out, "You can now restart the ipfs service.")
+		}
+	}
+
 	return nil
 }
 
