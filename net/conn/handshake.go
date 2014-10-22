@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
+	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -16,8 +17,8 @@ func VersionHandshake(ctx context.Context, c Conn) error {
 	rpeer := c.RemotePeer()
 	lpeer := c.LocalPeer()
 
-	var remoteH, localH *handshake.Handshake1
-	localH = handshake.CurrentHandshake()
+	var remoteH, localH *hspb.Handshake1
+	localH = handshake.Handshake1Msg()
 
 	myVerBytes, err := proto.Marshal(localH)
 	if err != nil {
@@ -39,7 +40,7 @@ func VersionHandshake(ctx context.Context, c Conn) error {
 			return fmt.Errorf("error retrieving from conn: %v", rpeer)
 		}
 
-		remoteH = new(handshake.Handshake1)
+		remoteH = new(hspb.Handshake1)
 		err = proto.Unmarshal(data, remoteH)
 		if err != nil {
 			return fmt.Errorf("could not decode remote version: %q", err)
@@ -48,7 +49,7 @@ func VersionHandshake(ctx context.Context, c Conn) error {
 		log.Debug("Received remote version (%s) from %s", remoteH, rpeer)
 	}
 
-	if err := handshake.Compatible(localH, remoteH); err != nil {
+	if err := handshake.Handshake1Compatible(localH, remoteH); err != nil {
 		log.Info("%s (%s) incompatible version with %s (%s)", lpeer, localH, rpeer, remoteH)
 		return err
 	}
