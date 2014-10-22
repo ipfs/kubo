@@ -3,6 +3,8 @@ package pin
 import (
 
 	//ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	"bytes"
+	"encoding/json"
 	"sync"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
@@ -175,19 +177,41 @@ func LoadPinner(d ds.Datastore, dserv *mdag.DAGService) (Pinner, error) {
 func (p *pinner) Flush() error {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+
 	recurse := p.recursePin.GetKeys()
-	err := p.dstore.Put(recursePinDatastoreKey, recurse)
+	err := enc.Encode(recurse)
 	if err != nil {
 		return err
 	}
 
+	err = p.dstore.Put(recursePinDatastoreKey, buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	buf = new(bytes.Buffer)
+	enc = json.NewEncoder(buf)
 	direct := p.directPin.GetKeys()
-	err = p.dstore.Put(directPinDatastoreKey, direct)
+	err = enc.Encode(direct)
 	if err != nil {
 		return err
 	}
 
-	err = p.dstore.Put(indirectPinDatastoreKey, p.indirPin.refCounts)
+	err = p.dstore.Put(directPinDatastoreKey, buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	buf = new(bytes.Buffer)
+	enc = json.NewEncoder(buf)
+	err = enc.Encode(p.indirPin.refCounts)
+	if err != nil {
+		return err
+	}
+
+	err = p.dstore.Put(indirectPinDatastoreKey, buf.Bytes())
 	if err != nil {
 		return err
 	}

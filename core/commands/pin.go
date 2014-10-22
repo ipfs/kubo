@@ -34,7 +34,7 @@ func Pin(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Wr
 			return fmt.Errorf("pin: %v", err)
 		}
 	}
-	return nil
+	return n.Pinning.Flush()
 }
 
 func Unpin(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
@@ -54,5 +54,5 @@ func Unpin(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.
 			return fmt.Errorf("pin: %v", err)
 		}
 	}
-	return nil
+	return n.Pinning.Flush()
 }
