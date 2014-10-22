@@ -54,7 +54,7 @@ type Response interface {
 
 	// Set/Return the response Error
 	SetError(err error, code ErrorType)
-	Error() error
+	Error() *Error
 
 	// Sets/Returns the response value
 	SetValue(interface{})
@@ -88,10 +88,7 @@ func (r *response) Stream() io.Writer {
 	return r.out
 }
 
-func (r *response) Error() error {
-	if r.err == nil {
-		return nil
-	}
+func (r *response) Error() *Error {
 	return r.err
 }
 
