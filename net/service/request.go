@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 
 	msg "github.com/jbenet/go-ipfs/net/message"
+	pb "github.com/jbenet/go-ipfs/net/service/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -104,7 +105,7 @@ func RequestKey(pid peer.ID, rid RequestID) string {
 
 func wrapData(data []byte, rid RequestID) ([]byte, error) {
 	// Marshal
-	pbm := new(PBRequest)
+	pbm := new(pb.PBRequest)
 	pbm.Data = data
 	pbm.Tag = rid
 	b, err := proto.Marshal(pbm)
@@ -117,7 +118,7 @@ func wrapData(data []byte, rid RequestID) ([]byte, error) {
 
 func unwrapData(data []byte) ([]byte, RequestID, error) {
 	// Unmarshal
-	pbm := new(PBRequest)
+	pbm := new(pb.PBRequest)
 	err := proto.Unmarshal(data, pbm)
 	if err != nil {
 		return nil, nil, err
