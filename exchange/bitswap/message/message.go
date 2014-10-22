@@ -10,6 +10,9 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// TODO move message.go into the bitswap package
+// TODO move bs/msg/internal/pb to bs/internal/pb and rename pb package to bitswap_pb
+
 type BitSwapMessage interface {
 	Wantlist() []u.Key
 	Blocks() []blocks.Block
