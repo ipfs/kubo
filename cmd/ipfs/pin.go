@@ -51,7 +51,7 @@ var cmdIpfsSubUnpin = &commander.Command{
 var unpinSubCmd = makeCommand(command{
 	name:  "unpin",
 	args:  1,
-	flags: []string{"r", "d"},
+	flags: []string{"r"},
 	cmdFn: commands.Unpin,
 })
 
