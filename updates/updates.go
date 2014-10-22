@@ -1,32 +1,28 @@
 package updates
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
+	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+	"github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
+
+	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+	update "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
+	check "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
 )
 
 const (
-	Version                   = "0.1.0" // actual current application's version literal
-	EndpointURLLatestReleases = "https://api.github.com/repos/jbenet/go-ipfs/tags"
-	VersionErrorShort         = `Warning: You are running version %s of go-ipfs. The latest version is %s.`
-	VersionErrorLong          = `
-  Warning: You are running version %s of go-ipfs. The latest version is %s.
-  Since this is alpha software, it is strongly recommended you update.
+	// Version is the current application's version literal
+	Version = "0.1.1"
 
-  You can update go-ipfs by running
+	updateEndpointURL = "https://api.equinox.io/1/Updates"
+	updateAppID       = "CHANGEME"
 
-      ipfs version update
-
-  You can silence this message by running
-
-      ipfs config update.check ignore
-
-  `
+	updatePubKey = `-----BEGIN RSA PUBLIC KEY-----
+CHANGEME
+-----END RSA PUBLIC KEY-----`
 )
 
 var log = u.Logger("updates")
@@ -35,49 +31,170 @@ var currentVersion *semver.Version
 
 func init() {
 	var err error
-	currentVersion, err = semver.NewVersion(Version)
+	currentVersion, err = parseVersion()
 	if err != nil {
-		log.Error("The const Version literal in version.go needs to be in semver format: %s \n", Version)
+		log.Error("invalid version number in code (must be semver): %q\n", Version)
 		os.Exit(1)
 	}
+	log.Info("go-ipfs Version: %s", currentVersion)
 }
 
-func CheckForUpdates() error {
-	resp, err := http.Get(EndpointURLLatestReleases)
+func parseVersion() (*semver.Version, error) {
+	return semver.NewVersion(Version)
+}
+
+// CheckForUpdate checks the equinox.io api if there is an update available
+func CheckForUpdate() (*check.Result, error) {
+	param := check.Params{
+		AppVersion: Version,
+		AppId:      updateAppID,
+		Channel:    "stable",
+	}
+
+	up, err := update.New().VerifySignatureWithPEM([]byte(updatePubKey))
 	if err != nil {
-		// can't reach the endpoint, coud be firewall, or no internet connection or something else
-		log.Error("update check: error connecting to API endpoint for newer versions: %v", err)
+		return nil, fmt.Errorf("Failed to parse public key: %v", err)
+	}
+
+	return param.CheckForUpdate(updateEndpointURL, up)
+}
+
+// Apply cheks if the running process is able to update itself
+// and than updates to the passed release
+func Apply(rel *check.Result) error {
+	if err := update.New().CanUpdate(); err != nil {
+		return err
+	}
+
+	if err, errRecover := rel.Update(); err != nil {
+		err = fmt.Errorf("Update failed: %v\n", err)
+		if errRecover != nil {
+			err = fmt.Errorf("%s\nRecovery failed! Cause: %v\nYou may need to recover manually", err, errRecover)
+		}
+		return err
+	}
+
+	return nil
+}
+
+// ShouldAutoUpdate decides wether a new version should be applied
+// checks against config setting and new version string. returns false in case of error
+func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
+	if setting == config.UpdateNever {
+		return false
+	}
+
+	nv, err := semver.NewVersion(newVer)
+	if err != nil {
+		log.Error("could not parse version string: %s", err)
+		return false
+	}
+
+	n := nv.Slice()
+	c := currentVersion.Slice()
+
+	switch setting {
+
+	case config.UpdatePatch:
+		if n[0] < c[0] {
+			return false
+		}
+
+		if n[1] < c[1] {
+			return false
+		}
+
+		return n[2] > c[2]
+
+	case config.UpdateMinor:
+		if n[0] != c[0] {
+			return false
+		}
+
+		return n[1] > c[1] || (n[1] == c[1] && n[2] > c[2])
+
+	case config.UpdateMajor:
+		for i := 0; i < 3; i++ {
+			if n[i] < c[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
+}
+
+func CliCheckForUpdates(cfg *config.Config, confFile string) error {
+
+	// if config says not to, don't check for updates
+	if !cfg.Version.ShouldCheckForUpdate() {
+		log.Info("update checking disabled.")
 		return nil
 	}
-	var body interface{}
-	_ = json.NewDecoder(resp.Body).Decode(&body)
-	releases, ok := body.([]interface{})
-	if !ok {
-		// the response body does not seem to meet specified Github API format
-		// https://developer.github.com/v3/repos/#list-tags
-		log.Error("update check: API endpoint for newer versions does not seem to be in Github API specified format")
+
+	log.Info("checking for update")
+	u, err := CheckForUpdate()
+	// if there is no update available, record it, and exit.
+	if err == check.NoUpdateAvailable {
+		log.Notice("No update available, checked on %s", time.Now())
+		config.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
 		return nil
 	}
-	for _, r := range releases {
-		release, ok := r.(map[string]interface{})
-		if !ok {
-			continue
+
+	// if another, unexpected error occurred, note it.
+	if err != nil {
+		if cfg.Version.Check == config.CheckError {
+			log.Error("Error while checking for update: %v\n", err)
+			return nil
 		}
-		tagName, ok := release["name"].(string)
-		if !ok {
-			continue
+		// when "warn" version.check mode we just show a warning message
+		log.Warning(err.Error())
+		return nil
+	}
+
+	// there is an update available
+
+	// if we autoupdate
+	if cfg.Version.AutoUpdate != config.UpdateNever {
+		// and we should auto update
+		if ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
+			log.Notice("Applying update %s", u.Version)
+
+			if err = Apply(u); err != nil {
+				log.Error(err.Error())
+				return nil
+			}
+
+			// BUG(cryptix): no good way to restart yet. - tracking https://github.com/inconshreveable/go-update/issues/5
+			fmt.Printf("update %v applied. please restart.\n", u.Version)
+			os.Exit(0)
 		}
-		if len(tagName) > 0 && tagName[0] == 'v' {
-			// both 'v0.1.0' and '0.1.0' semver tagname conventions can be encountered
-			tagName = tagName[1:]
-		}
-		releaseVersion, err := semver.NewVersion(tagName)
-		if err != nil {
-			continue
-		}
-		if currentVersion.LessThan(*releaseVersion) {
-			return fmt.Errorf(VersionErrorLong, Version, tagName)
-		}
+	}
+
+	// autoupdate did not exit, so regular notices.
+	switch cfg.Version.Check {
+	case config.CheckError:
+		return fmt.Errorf(errShouldUpdate, Version, u.Version)
+	case config.CheckWarn:
+		// print the warning
+		fmt.Printf("New version available: %s\n", u.Version)
+	default: // ignore
 	}
 	return nil
 }
+
+var errShouldUpdate = `
+Your go-ipfs version is: %s
+There is a new version available: %s
+Since this is alpha software, it is strongly recommended you update.
+
+To update, run:
+
+    ipfs update apply
+
+To disable this notice, run:
+
+    ipfs config Version.Check warn
+
+`

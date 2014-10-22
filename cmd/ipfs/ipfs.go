@@ -67,6 +67,7 @@ Use "ipfs help <command>" for more information about a command.
 		cmdIpfsDiag,
 		cmdIpfsBlock,
 		cmdIpfsObject,
+		cmdIpfsUpdate,
 		cmdIpfsLog,
 		cmdIpfsPin,
 	},
@@ -125,19 +126,8 @@ func localNode(confdir string, online bool) (*core.IpfsNode, error) {
 		return nil, err
 	}
 
-	if cfg.Version.ShouldCheckForUpdate() {
-		obsolete := updates.CheckForUpdates()
-		if obsolete != nil {
-			if cfg.Version.Check == config.CheckError {
-				return nil, obsolete
-			}
-
-			// when "warn" version.check mode we just show warning message
-			log.Warning(fmt.Sprintf("%v", obsolete))
-		} else {
-			// update most recent check timestamp in config
-			config.RecordUpdateCheck(cfg, filename)
-		}
+	if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
+		return nil, err
 	}
 
 	return core.NewIpfsNode(cfg, online)

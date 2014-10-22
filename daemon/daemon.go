@@ -141,6 +141,9 @@ func (dl *DaemonListener) handleConnection(conn manet.Conn) {
 		err = commands.Log(dl.node, command.Args, command.Opts, conn)
 	case "unpin":
 		err = commands.Unpin(dl.node, command.Args, command.Opts, conn)
+	case "updateApply":
+		command.Opts["onDaemon"] = true
+		err = commands.UpdateApply(dl.node, command.Args, command.Opts, conn)
 	default:
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}
