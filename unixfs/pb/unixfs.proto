@@ -1,4 +1,4 @@
-package unixfs;
+package unixfs.pb;
 
 message PBData {
 	enum DataType {

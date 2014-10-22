@@ -1,5 +1,10 @@
-all: data.pb.go
+PB = $(wildcard *.proto)
+GO = $(PB:.proto=.pb.go)
 
-data.pb.go: data.proto
-	protoc --go_out=. data.proto
+all: $(GO)
 
+%.pb.go: %.proto
+		protoc --gogo_out=. --proto_path=../../../../../../:/usr/local/opt/protobuf/include:. $<
+
+clean:
+		rm *.pb.go
