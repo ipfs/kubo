@@ -1,8 +1,8 @@
 
-all: message.pb.go
+all: spipe.pb.go
 
-message.pb.go: message.proto
+spipe.pb.go: spipe.proto
 	protoc --gogo_out=. --proto_path=../../../../../:/usr/local/opt/protobuf/include:. $<
 
 clean:
-	rm message.pb.go
+	rm spipe.pb.go

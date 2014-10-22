@@ -1,4 +1,4 @@
-package spipe;
+package spipe.pb;
 
 message Propose {
 	optional bytes rand = 1;
