@@ -8,6 +8,7 @@ import (
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	msg "github.com/jbenet/go-ipfs/net/message"
+	pb "github.com/jbenet/go-ipfs/net/mux/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -37,7 +38,7 @@ func testMsg(t *testing.T, m msg.NetMessage, data []byte) {
 	}
 }
 
-func testWrappedMsg(t *testing.T, m msg.NetMessage, pid ProtocolID, data []byte) {
+func testWrappedMsg(t *testing.T, m msg.NetMessage, pid pb.ProtocolID, data []byte) {
 	data2, pid2, err := unwrapData(m.Data())
 	if err != nil {
 		t.Error(err)
@@ -57,8 +58,8 @@ func TestSimpleMuxer(t *testing.T) {
 	// setup
 	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	pid1 := ProtocolID_Test
-	pid2 := ProtocolID_Routing
+	pid1 := pb.ProtocolID_Test
+	pid2 := pb.ProtocolID_Routing
 	mux1 := NewMuxer(ProtocolMap{
 		pid1: p1,
 		pid2: p2,
@@ -108,8 +109,8 @@ func TestSimultMuxer(t *testing.T) {
 	// setup
 	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	pid1 := ProtocolID_Test
-	pid2 := ProtocolID_Identify
+	pid1 := pb.ProtocolID_Test
+	pid2 := pb.ProtocolID_Identify
 	mux1 := NewMuxer(ProtocolMap{
 		pid1: p1,
 		pid2: p2,
@@ -127,7 +128,7 @@ func TestSimultMuxer(t *testing.T) {
 	counts := [2][2][2]int{}
 
 	// run producers at every end sending incrementing messages
-	produceOut := func(pid ProtocolID, size int) {
+	produceOut := func(pid pb.ProtocolID, size int) {
 		limiter := time.Tick(speed)
 		for i := 0; i < size; i++ {
 			<-limiter
@@ -139,7 +140,7 @@ func TestSimultMuxer(t *testing.T) {
 		}
 	}
 
-	produceIn := func(pid ProtocolID, size int) {
+	produceIn := func(pid pb.ProtocolID, size int) {
 		limiter := time.Tick(speed)
 		for i := 0; i < size; i++ {
 			<-limiter
@@ -175,7 +176,7 @@ func TestSimultMuxer(t *testing.T) {
 		}
 	}
 
-	consumeIn := func(pid ProtocolID) {
+	consumeIn := func(pid pb.ProtocolID) {
 		for {
 			select {
 			case m := <-mux1.Protocols[pid].GetPipe().Incoming:
@@ -217,8 +218,8 @@ func TestStopping(t *testing.T) {
 	// setup
 	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	pid1 := ProtocolID_Test
-	pid2 := ProtocolID_Identify
+	pid1 := pb.ProtocolID_Test
+	pid2 := pb.ProtocolID_Identify
 	mux1 := NewMuxer(ProtocolMap{
 		pid1: p1,
 		pid2: p2,

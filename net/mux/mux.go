@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	msg "github.com/jbenet/go-ipfs/net/message"
+	pb "github.com/jbenet/go-ipfs/net/mux/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -12,6 +13,12 @@ import (
 )
 
 var log = u.Logger("muxer")
+
+var (
+	ProtocolID_Routing    = pb.ProtocolID_Routing
+	ProtocolID_Exchange   = pb.ProtocolID_Exchange
+	ProtocolID_Diagnostic = pb.ProtocolID_Diagnostic
+)
 
 // Protocol objects produce + consume raw data. They are added to the Muxer
 // with a ProtocolID, which is added to outgoing payloads. Muxer properly
@@ -22,7 +29,7 @@ type Protocol interface {
 }
 
 // ProtocolMap maps ProtocolIDs to Protocols.
-type ProtocolMap map[ProtocolID]Protocol
+type ProtocolMap map[pb.ProtocolID]Protocol
 
 // Muxer is a simple multiplexor that reads + writes to Incoming and Outgoing
 // channels. It multiplexes various protocols, wrapping and unwrapping data
@@ -107,7 +114,7 @@ func (m *Muxer) Stop() {
 }
 
 // AddProtocol adds a Protocol with given ProtocolID to the Muxer.
-func (m *Muxer) AddProtocol(p Protocol, pid ProtocolID) error {
+func (m *Muxer) AddProtocol(p Protocol, pid pb.ProtocolID) error {
 	if _, found := m.Protocols[pid]; found {
 		return errors.New("Another protocol already using this ProtocolID")
 	}
@@ -170,7 +177,7 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 
 // handleOutgoingMessages consumes the messages on the proto.Outgoing channel,
 // wraps them and sends them out.
-func (m *Muxer) handleOutgoingMessages(pid ProtocolID, proto Protocol) {
+func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 	defer m.wg.Done()
 
 	for {
@@ -188,7 +195,7 @@ func (m *Muxer) handleOutgoingMessages(pid ProtocolID, proto Protocol) {
 }
 
 // handleOutgoingMessage wraps out a message and sends it out the
-func (m *Muxer) handleOutgoingMessage(pid ProtocolID, m1 msg.NetMessage) {
+func (m *Muxer) handleOutgoingMessage(pid pb.ProtocolID, m1 msg.NetMessage) {
 	data, err := wrapData(m1.Data(), pid)
 	if err != nil {
 		log.Error("muxer serializing error: %v", err)
@@ -208,9 +215,9 @@ func (m *Muxer) handleOutgoingMessage(pid ProtocolID, m1 msg.NetMessage) {
 	}
 }
 
-func wrapData(data []byte, pid ProtocolID) ([]byte, error) {
+func wrapData(data []byte, pid pb.ProtocolID) ([]byte, error) {
 	// Marshal
-	pbm := new(PBProtocolMessage)
+	pbm := new(pb.PBProtocolMessage)
 	pbm.ProtocolID = &pid
 	pbm.Data = data
 	b, err := proto.Marshal(pbm)
@@ -221,9 +228,9 @@ func wrapData(data []byte, pid ProtocolID) ([]byte, error) {
 	return b, nil
 }
 
-func unwrapData(data []byte) ([]byte, ProtocolID, error) {
+func unwrapData(data []byte) ([]byte, pb.ProtocolID, error) {
 	// Unmarshal
-	pbm := new(PBProtocolMessage)
+	pbm := new(pb.PBProtocolMessage)
 	err := proto.Unmarshal(data, pbm)
 	if err != nil {
 		return nil, 0, err
