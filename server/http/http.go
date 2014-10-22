@@ -104,9 +104,7 @@ func (i *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := commands.Root.Call(req)
 
 	// if response contains an error, write an HTTP error status code
-	if err = res.Error(); err != nil {
-		e := err.(cmds.Error)
-
+	if e := res.Error(); e != nil {
 		if e.Code == cmds.ErrClient {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
