@@ -3,9 +3,10 @@ package merkledag
 import (
 	"fmt"
 
-	u "github.com/jbenet/go-ipfs/util"
-
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
+	pb "github.com/jbenet/go-ipfs/merkledag/internal/pb"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // for now, we use a PBNode intermediate thing.
@@ -14,7 +15,7 @@ import (
 // Unmarshal decodes raw data into a *Node instance.
 // The conversion uses an intermediate PBNode.
 func (n *Node) Unmarshal(encoded []byte) error {
-	var pbn PBNode
+	var pbn pb.PBNode
 	if err := pbn.Unmarshal(encoded); err != nil {
 		return fmt.Errorf("Unmarshal failed. %v", err)
 	}
@@ -55,11 +56,11 @@ func (n *Node) Marshal() ([]byte, error) {
 	return data, nil
 }
 
-func (n *Node) getPBNode() *PBNode {
-	pbn := &PBNode{}
-	pbn.Links = make([]*PBLink, len(n.Links))
+func (n *Node) getPBNode() *pb.PBNode {
+	pbn := &pb.PBNode{}
+	pbn.Links = make([]*pb.PBLink, len(n.Links))
 	for i, l := range n.Links {
-		pbn.Links[i] = &PBLink{}
+		pbn.Links[i] = &pb.PBLink{}
 		pbn.Links[i].Name = &l.Name
 		pbn.Links[i].Tsize = &l.Size
 		pbn.Links[i].Hash = []byte(l.Hash)
