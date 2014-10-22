@@ -1,4 +1,4 @@
-package crypto;
+package crypto.pb;
 
 enum KeyType {
 	RSA = 0;
