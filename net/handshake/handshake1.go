@@ -30,7 +30,7 @@ func Handshake1Msg() *pb.Handshake1 {
 // ErrVersionMismatch is returned when two clients don't share a protocol version
 var ErrVersionMismatch = errors.New("protocol missmatch")
 
-// Handshake1Compatible checks wether two versions are compatible
+// Handshake1Compatible checks whether two versions are compatible
 // returns nil if they are fine
 func Handshake1Compatible(handshakeA, handshakeB *pb.Handshake1) error {
 	a, err := semver.NewVersion(*handshakeA.ProtocolVersion)
