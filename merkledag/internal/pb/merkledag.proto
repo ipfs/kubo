@@ -1,4 +1,4 @@
-package merkledag;
+package merkledag.pb;
 
 import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
 
