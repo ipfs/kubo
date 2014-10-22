@@ -1,4 +1,4 @@
-package mux;
+package mux.pb;
 
 enum ProtocolID {
 	Test = 0;
