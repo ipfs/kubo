@@ -80,75 +80,61 @@ func TestOptionValidation(t *testing.T) {
 
 func TestRegistration(t *testing.T) {
 	noop := func(req Request, res Response) {}
-	cmds := []*Command{
-		&Command{
-			Options: []Option{
-				Option{[]string{"beep"}, Int},
-			},
-			Run: noop,
-		},
 
-		&Command{
-			Options: []Option{
-				Option{[]string{"boop"}, Int},
-			},
-			Run: noop,
+	cmdA := &Command{
+		Options: []Option{
+			Option{[]string{"beep"}, Int},
 		},
+		Run: noop,
+	}
 
-		&Command{
-			Options: []Option{
-				Option{[]string{"boop"}, String},
-			},
-			Run: noop,
+	cmdB := &Command{
+		Options: []Option{
+			Option{[]string{"beep"}, Int},
 		},
-
-		&Command{
-			Options: []Option{
-				Option{[]string{"bop"}, String},
-			},
-			Run: noop,
-		},
-
-		&Command{
-			Options: []Option{
-				Option{[]string{EncShort}, String},
-			},
-			Run: noop,
+		Run: noop,
+		Subcommands: map[string]*Command{
+			"a": cmdA,
 		},
 	}
 
-	err := cmds[0].Register("foo", cmds[1])
-	if err != nil {
-		t.Error("Should have passed")
+	cmdC := &Command{
+		Options: []Option{
+			Option{[]string{"encoding"}, String},
+		},
+		Run: noop,
 	}
 
-	err = cmds[0].Register("bar", cmds[2])
-	if err == nil {
+	res := cmdB.Call(NewRequest([]string{"a"}, nil, nil, nil))
+	if res.Error() == nil {
 		t.Error("Should have failed (option name collision)")
 	}
 
-	err = cmds[0].Register("foo", cmds[3])
-	if err == nil {
-		t.Error("Should have failed (subcommand name collision)")
-	}
-
-	err = cmds[0].Register("baz", cmds[4])
-	if err == nil {
+	res = cmdC.Call(NewEmptyRequest())
+	if res.Error() == nil {
 		t.Error("Should have failed (option name collision with global options)")
 	}
 }
 
 func TestResolving(t *testing.T) {
-	cmd := &Command{}
-	cmdA := &Command{}
-	cmdB := &Command{}
-	cmdB2 := &Command{}
 	cmdC := &Command{}
-
-	cmd.Register("a", cmdA)
-	cmdA.Register("B", cmdB2)
-	cmdA.Register("b", cmdB)
-	cmdB.Register("c", cmdC)
+	cmdB := &Command{
+		Subcommands: map[string]*Command{
+			"c": cmdC,
+		},
+	}
+	cmdB2 := &Command{}
+	cmdA := &Command{
+		Subcommands: map[string]*Command{
+			"b": cmdB,
+			"B": cmdB2,
+		},
+	}
+	cmd := &Command{
+		Subcommands: map[string]*Command{
+			"a": cmdA,
+		},
+	}
 
 	cmds, err := cmd.Resolve([]string{"a", "b", "c"})
 	if err != nil {
