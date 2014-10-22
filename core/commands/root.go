@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"strings"
 )
@@ -50,6 +51,25 @@ Use "ipfs help <command>" for more information about a command.
 			Run: func(req cmds.Request, res cmds.Response) {
 				v := strings.NewReader("hello, world")
 				res.SetValue(v)
+			},
+		},
+		"warp": &cmds.Command{
+			Options: []cmds.Option{
+				cmds.Option{[]string{"power", "p"}, cmds.Float},
+			},
+			Run: func(req cmds.Request, res cmds.Response) {
+				threshold := 1.21
+
+				if power, found := req.Option("power"); found && power.(float64) >= threshold {
+					res.SetValue(struct {
+						Status string
+						Power  float64
+					}{"Flux capacitor activated!", power.(float64)})
+
+				} else {
+					err := fmt.Errorf("Insufficient power (%v jiggawatts required)", threshold)
+					res.SetError(err, cmds.ErrClient)
+				}
 			},
 		},
 	},
