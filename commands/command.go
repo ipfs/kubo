@@ -15,36 +15,16 @@ var log = u.Logger("command")
 type Function func(Request, Response)
 
 // Command is a runnable command, with input arguments and options (flags).
-// It can also have subcommands, to group units of work into sets.
+// It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	Help    string
-	Options []Option
-	Run     Function
-
-	subcommands map[string]*Command
+	Help        string
+	Options     []Option
+	Run         Function
+	Subcommands map[string]*Command
 }
 
 // ErrNotCallable signals a command that cannot be called.
 var ErrNotCallable = errors.New("This command can't be called directly. Try one of its subcommands.")
-
-// Register adds a subcommand
-func (c *Command) Register(id string, sub *Command) error {
-	if c.subcommands == nil {
-		c.subcommands = make(map[string]*Command)
-	}
-
-	// check for duplicate option names (only checks downwards)
-	if err := checkOptionClashes(globalCommand, c, sub); err != nil {
-		return err
-	}
-
-	if _, found := c.subcommands[id]; found {
-		return fmt.Errorf("There is already a subcommand registered with id '%s'", id)
-	}
-
-	c.subcommands[id] = sub
-	return nil
-}
 
 // Call invokes the command for the given Request
 func (c *Command) Call(req Request) Response {
@@ -138,48 +118,5 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 
 // Subcommand returns the subcommand with the given id
 func (c *Command) Subcommand(id string) *Command {
-	return c.subcommands[id]
-}
-
-// AddOptionNames returns a map of all command options names, and the command
-// they belong to. Will error if names clash in the command hierarchy.
-func AddOptionNames(c *Command, names map[string]*Command) error {
-
-	for _, opt := range c.Options {
-		for _, name := range opt.Names {
-			if c2, found := names[name]; found {
-
-				// option can be reused in same command, but more often than not
-				// the clash will be across commands so error out with that, as
-				// commands tell us where the problem is
-				errstr := "Option name ('%s') used multiple times (%v, %v)"
-				return fmt.Errorf(errstr, c2, c)
-			}
-
-			// mark the name as in use
-			names[name] = c
-		}
-	}
-
-	// for every subcommand, recurse
-	for _, c2 := range c.subcommands {
-		if err := AddOptionNames(c2, names); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// checkOptionClashes checks all command option names for clashes
-func checkOptionClashes(cmds ...*Command) error {
-	names := map[string]*Command{}
-
-	for _, c := range cmds {
-		if err := AddOptionNames(c, names); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return c.Subcommands[id]
 }
