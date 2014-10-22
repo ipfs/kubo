@@ -16,6 +16,7 @@ type Request interface {
 	SetOption(name string, val interface{})
 	Arguments() []string
 	Stream() io.Reader
+	SetStream(io.Reader)
 
 	ConvertOptions(options map[string]Option) error
 }
@@ -51,6 +52,11 @@ func (r *request) Arguments() []string {
 // Stream returns the input stream Reader
 func (r *request) Stream() io.Reader {
 	return r.in
+}
+
+// SetStream sets the value of the input stream Reader
+func (r *request) SetStream(in io.Reader) {
+	r.in = in
 }
 
 type converter func(string) (interface{}, error)
