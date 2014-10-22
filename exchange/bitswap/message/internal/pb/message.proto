@@ -1,4 +1,4 @@
-package pb;
+package bitswap.message.pb;
 
 message PBMessage {
 	repeated string wantlist = 1;
