@@ -1,4 +1,4 @@
-package namesys;
+package namesys.pb;
 
 message IpnsEntry {
 	required bytes value = 1;
