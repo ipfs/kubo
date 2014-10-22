@@ -6,6 +6,10 @@ import (
 	"github.com/jbenet/go-ipfs/core/commands"
 )
 
+func init() {
+	cmdIpfsUpdate.Flag.Bool("force", false, "force shutdown of daemon when updating")
+}
+
 var cmdIpfsUpdate = &commander.Command{
 	UsageLine: "update",
 	Short:     "check for updates and apply them",
@@ -20,7 +24,7 @@ I wont even try, @jbenet. You do this much better :)`,
 	Run: makeCommand(command{
 		name:   "updateApply",
 		args:   0,
-		flags:  nil,
+		flags:  []string{"force"},
 		online: true,
 		cmdFn:  commands.UpdateApply,
 	}),
