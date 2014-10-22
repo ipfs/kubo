@@ -20,8 +20,8 @@ import (
 
 	core "github.com/jbenet/go-ipfs/core"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
-	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -81,11 +81,11 @@ type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	fd     *uio.DagReader
-	cached *ft.PBData
+	cached *ftpb.PBData
 }
 
 func (s *Node) loadData() error {
-	s.cached = new(ft.PBData)
+	s.cached = new(ftpb.PBData)
 	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
@@ -96,9 +96,9 @@ func (s *Node) Attr() fuse.Attr {
 		s.loadData()
 	}
 	switch s.cached.GetType() {
-	case ft.PBData_Directory:
+	case ftpb.PBData_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
-	case ft.PBData_File, ft.PBData_Raw:
+	case ftpb.PBData_File, ftpb.PBData_Raw:
 		size, _ := s.Nd.Size()
 		return fuse.Attr{
 			Mode:   0444,

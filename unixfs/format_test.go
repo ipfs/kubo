@@ -3,7 +3,8 @@ package unixfs
 import (
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	pb "github.com/jbenet/go-ipfs/unixfs/pb"
 )
 
 func TestMultiBlock(t *testing.T) {
@@ -19,7 +20,7 @@ func TestMultiBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pbn := new(PBData)
+	pbn := new(pb.PBData)
 	err = proto.Unmarshal(b, pbn)
 	if err != nil {
 		t.Fatal(err)
