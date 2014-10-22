@@ -1,4 +1,4 @@
-package service;
+package service.pb;
 
 message PBRequest {
   required bytes Data = 1;
