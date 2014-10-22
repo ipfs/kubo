@@ -34,18 +34,21 @@ Basic commands:
 Tool commands:
 
     config        Manage configuration.
+    update        Download and apply go-ipfs updates.
     version       Show ipfs version information.
     commands      List all available commands.
-
-Plumbing commands:
-    block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
 
 Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
     serve         Serve an interface to ipfs.
     net-diag      Print network diagnostic
+
+Plumbing commands:
+
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+
 
 Use "ipfs help <command>" for more information about a command.
 `,
