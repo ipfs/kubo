@@ -1,4 +1,4 @@
-package diagnostics;
+package diagnostics.pb;
 
 message Message {
 	required string DiagID = 1;
