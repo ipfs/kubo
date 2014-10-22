@@ -20,8 +20,15 @@ const (
 	updateEndpointURL = "https://api.equinox.io/1/Updates"
 	updateAppID       = "CHANGEME"
 
+	// this is @jbenet's equinox.io public key.
 	updatePubKey = `-----BEGIN RSA PUBLIC KEY-----
-CHANGEME
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxnwPPE4LNMjTfW/NRz1z
+8uAPpwGYSzac+cwZbHbL5xFOxeX301GCdISaMm+Q8OEJqLyXfjYSuRwx00fDzWDD
+ajBQOsxO08gTy1i/ow5YdEO+nYeVKO08fQFqVqdTz09BCgzt9iQJTEMeiq1kSWNo
+al8usHD4SsNTxwDpSlok5UKWCHcr7D/TWX5A4B5A6ae9HSEcMB4Aum83k63Vzgm1
+WTUvK0ed1zd0/KcHqIU36VZpVg4PeV4SWnOBnldQ98CWg/Mnqp3+lXMWYWTmXeX6
+xj8JqOGpebzlxeISKE6fDBtrLxUbFTt3DNshl7S5CUGuc5H1MF1FTAyi+8u/nEZB
+cQIDAQAB
 -----END RSA PUBLIC KEY-----`
 )
 
