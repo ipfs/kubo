@@ -15,14 +15,66 @@ import (
 
 const (
 	// Version is the current application's version literal
-	Version = "0.1.1"
+	Version = "0.1.5"
 
 	updateEndpointURL = "https://api.equinox.io/1/Updates"
 	updateAppID       = "CHANGEME"
 
+	// this is @jbenet's equinox.io public key.
 	updatePubKey = `-----BEGIN RSA PUBLIC KEY-----
-CHANGEME
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxnwPPE4LNMjTfW/NRz1z
+8uAPpwGYSzac+cwZbHbL5xFOxeX301GCdISaMm+Q8OEJqLyXfjYSuRwx00fDzWDD
+ajBQOsxO08gTy1i/ow5YdEO+nYeVKO08fQFqVqdTz09BCgzt9iQJTEMeiq1kSWNo
+al8usHD4SsNTxwDpSlok5UKWCHcr7D/TWX5A4B5A6ae9HSEcMB4Aum83k63Vzgm1
+WTUvK0ed1zd0/KcHqIU36VZpVg4PeV4SWnOBnldQ98CWg/Mnqp3+lXMWYWTmXeX6
+xj8JqOGpebzlxeISKE6fDBtrLxUbFTt3DNshl7S5CUGuc5H1MF1FTAyi+8u/nEZB
+cQIDAQAB
 -----END RSA PUBLIC KEY-----`
+
+/*
+
+You can verify the key above (updatePubKey) is indeed controlled
+by @jbenet, ipfs author, with the PGP signed message below. You
+can verify it in the commandline, or keybase.io.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+I hereby certify that I control the private key matching the
+following public key. This is a key used for go-ipfs auto-updates
+over equinox.io. - @jbenet
+
+- -----BEGIN RSA PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxnwPPE4LNMjTfW/NRz1z
+8uAPpwGYSzac+cwZbHbL5xFOxeX301GCdISaMm+Q8OEJqLyXfjYSuRwx00fDzWDD
+ajBQOsxO08gTy1i/ow5YdEO+nYeVKO08fQFqVqdTz09BCgzt9iQJTEMeiq1kSWNo
+al8usHD4SsNTxwDpSlok5UKWCHcr7D/TWX5A4B5A6ae9HSEcMB4Aum83k63Vzgm1
+WTUvK0ed1zd0/KcHqIU36VZpVg4PeV4SWnOBnldQ98CWg/Mnqp3+lXMWYWTmXeX6
+xj8JqOGpebzlxeISKE6fDBtrLxUbFTt3DNshl7S5CUGuc5H1MF1FTAyi+8u/nEZB
+cQIDAQAB
+- -----END RSA PUBLIC KEY-----
+-----BEGIN PGP SIGNATURE-----
+Version: Keybase OpenPGP v1.1.3
+Comment: https://keybase.io/crypto
+
+wsFcBAABCgAGBQJUSCX8AAoJEFYC7bhkX9ftBcwQAJuYGSECSKFATJ1wK+zAGUH5
+xEbX+yaCYj0PwzJO4Ntu2ifK68ANacKy/GiXdJYeQk7pq21UT0fcn0Uq39URu+Xb
+lk3t1YZazjY7wB03jBjcMIaO2TUsWbGIBZAEZjyVDDctDUM0krCd1GIOw6Fbndva
+pevlGIA55ewvXYxcWdRyOGWiqd9DKNnmi9UF0XsdpCtDFSkdjnqkqbTRxF6Jw5gI
+EAF2E7mU8emDTNgtpCs0ACmEUXVVEEhF9TuR/YdX1m/715TYkkYCii6uV9vSVQd8
+nOrDDTrWSjlF6Ms+dYGCheWIjKQcykn9IW021AzVN1P7Mt9qtmDNfZ0VQL3zl/fs
+zZ1IHBW7BzriQ4GzWXg5GWpTSz/REvUEfKNVuDV9jX7hv67B5H6qTL5+2zljPEKv
+lCas04cCMmEpJUj4qK95hdKQzKJ8b7MrRf/RFYyViRGdxvR+lgGqJ7Yca8es2kCe
+XV6c+i6a7X89YL6ZVU+1MlvPwngu0VG+VInH/w9KrNYrLFhfVRiruRbkBkHDXjnU
+b4kPqaus+7g0DynCk7A2kTMa3cgtO20CZ9MBJFEPqRRHHksjHVmlxPb42bB348aR
+UVsWkRRYOmRML7avTgkX8WFsmdZ1d7E7aQLYnCIel85+5iP7hWyNtEMsAHk02XCL
+AAb7RaEDNJOa7qvUFecB
+=mzPY
+-----END PGP SIGNATURE-----
+
+
+*/
+
 )
 
 var log = u.Logger("updates")
