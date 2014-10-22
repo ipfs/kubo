@@ -3,7 +3,7 @@ package set
 import (
 	"errors"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
 	"github.com/jbenet/go-ipfs/blocks/bloom"
 	"github.com/jbenet/go-ipfs/util"
