@@ -1,4 +1,4 @@
-package message;
+package pb;
 
 message PBMessage {
 	repeated string wantlist = 1;
