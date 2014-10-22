@@ -1,6 +1,9 @@
 package util
 
 import (
+	"encoding/json"
+	"fmt"
+
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -15,13 +18,52 @@ func (k Key) String() string {
 }
 
 // Pretty returns Key in a b58 encoded string
+// TODO: deprecate Pretty. bad name.
 func (k Key) Pretty() string {
+	return k.B58String()
+}
+
+// B58String returns Key in a b58 encoded string
+func (k Key) B58String() string {
+	return B58KeyEncode(k)
+}
+
+// B58KeyDecode returns Key from a b58 encoded string
+func B58KeyDecode(s string) Key {
+	return Key(string(b58.Decode(s)))
+}
+
+// B58KeyEncode returns Key in a b58 encoded string
+func B58KeyEncode(k Key) string {
 	return b58.Encode([]byte(k))
 }
 
 // DsKey returns a Datastore key
 func (k Key) DsKey() ds.Key {
 	return ds.NewKey(string(k))
+}
+
+// UnmarshalJSON returns a JSON-encoded Key (string)
+func (k *Key) UnmarshalJSON(mk []byte) error {
+	var s string
+	err := json.Unmarshal(mk, &s)
+	if err != nil {
+		return err
+	}
+
+	*k = Key(string(b58.Decode(s)))
+	if len(*k) == 0 && len(s) > 2 { // if b58.Decode fails, k == ""
+		return fmt.Errorf("Key.UnmarshalJSON: invalid b58 string: %v", mk)
+	}
+	log.Info("Unmarshal in: %s \"%s\"", *k, s)
+	return nil
+}
+
+// MarshalJSON returns a JSON-encoded Key (string)
+func (k *Key) MarshalJSON() ([]byte, error) {
+	b, err := json.Marshal(b58.Encode([]byte(*k)))
+	log.Info("Marshal out: %s %s", *k, b)
+	return b, err
 }
 
 // KeyFromDsKey returns a Datastore key
