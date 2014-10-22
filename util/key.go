@@ -55,15 +55,12 @@ func (k *Key) UnmarshalJSON(mk []byte) error {
 	if len(*k) == 0 && len(s) > 2 { // if b58.Decode fails, k == ""
 		return fmt.Errorf("Key.UnmarshalJSON: invalid b58 string: %v", mk)
 	}
-	log.Info("Unmarshal in: %s \"%s\"", *k, s)
 	return nil
 }
 
 // MarshalJSON returns a JSON-encoded Key (string)
 func (k *Key) MarshalJSON() ([]byte, error) {
-	b, err := json.Marshal(b58.Encode([]byte(*k)))
-	log.Info("Marshal out: %s %s", *k, b)
-	return b, err
+	return json.Marshal(b58.Encode([]byte(*k)))
 }
 
 // KeyFromDsKey returns a Datastore key
