@@ -36,6 +36,7 @@ func init() {
 		log.Error("invalid version number in code (must be semver): %q\n", Version)
 		os.Exit(1)
 	}
+	log.Info("go-ipfs Version: %s", currentVersion)
 }
 
 func parseVersion() (*semver.Version, error) {
@@ -166,7 +167,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 			}
 
 			// BUG(cryptix): no good way to restart yet. - tracking https://github.com/inconshreveable/go-update/issues/5
-			fmt.Println("update %v applied. please restart.", u.Version)
+			fmt.Printf("update %v applied. please restart.\n", u.Version)
 			os.Exit(0)
 		}
 	}
@@ -177,7 +178,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 		return fmt.Errorf(errShouldUpdate, Version, u.Version)
 	case config.CheckWarn:
 		// print the warning
-		fmt.Printf("New version available: %s", u.Version)
+		fmt.Printf("New version available: %s\n", u.Version)
 	default: // ignore
 	}
 	return nil
