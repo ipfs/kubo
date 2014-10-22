@@ -18,7 +18,7 @@ const (
 	Version = "0.1.5"
 
 	updateEndpointURL = "https://api.equinox.io/1/Updates"
-	updateAppID       = "CHANGEME"
+	updateAppID       = "ap_YM8nz6rGm1UPg_bf63Lw6Vjz49"
 
 	// this is @jbenet's equinox.io public key.
 	updatePubKey = `-----BEGIN RSA PUBLIC KEY-----
