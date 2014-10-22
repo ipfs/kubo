@@ -3,7 +3,7 @@ package pin
 import (
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	bs "github.com/jbenet/go-ipfs/blockservice"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/util"
@@ -18,7 +18,7 @@ func randNode() (*mdag.Node, util.Key) {
 }
 
 func TestPinnerBasic(t *testing.T) {
-	dstore := datastore.NewMapDatastore()
+	dstore := ds.NewMapDatastore()
 	bserv, err := bs.NewBlockService(dstore, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +103,7 @@ func TestPinnerBasic(t *testing.T) {
 
 	// c should still be pinned under b
 	if !p.IsPinned(ck) {
-		t.Fatal("Recursive unpin fail.")
+		t.Fatal("Recursive / indirect unpin fail.")
 	}
 
 	err = p.Flush()

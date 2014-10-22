@@ -3,8 +3,9 @@ package pin
 import (
 
 	//ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-	"bytes"
+
 	"encoding/json"
+	"errors"
 	"sync"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -14,6 +15,7 @@ import (
 	"github.com/jbenet/go-ipfs/util"
 )
 
+var log = util.Logger("pin")
 var recursePinDatastoreKey = ds.NewKey("/local/pins/recursive/keys")
 var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
 var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")
@@ -89,9 +91,8 @@ func (p *pinner) Unpin(k util.Key, recurse bool) error {
 		}
 
 		return p.unpinLinks(node)
-	} else {
-		p.directPin.RemoveBlock(k)
 	}
+	p.directPin.RemoveBlock(k)
 	return nil
 }
 
@@ -153,21 +154,31 @@ func (p *pinner) IsPinned(key util.Key) bool {
 func LoadPinner(d ds.Datastore, dserv *mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
-	var err error
-	p.recursePin, err = set.SetFromDatastore(d, recursePinDatastoreKey)
-	if err != nil {
-		return nil, err
-	}
-	p.directPin, err = set.SetFromDatastore(d, directPinDatastoreKey)
-	if err != nil {
-		return nil, err
+	{ // load recursive set
+		var recurseKeys []util.Key
+		if err := loadSet(d, recursePinDatastoreKey, &recurseKeys); err != nil {
+			return nil, err
+		}
+		p.recursePin = set.SimpleSetFromKeys(recurseKeys)
 	}
 
-	p.indirPin, err = loadIndirPin(d, indirectPinDatastoreKey)
-	if err != nil {
-		return nil, err
+	{ // load direct set
+		var directKeys []util.Key
+		if err := loadSet(d, directPinDatastoreKey, &directKeys); err != nil {
+			return nil, err
+		}
+		p.directPin = set.SimpleSetFromKeys(directKeys)
 	}
 
+	{ // load indirect set
+		var err error
+		p.indirPin, err = loadIndirPin(d, indirectPinDatastoreKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// assign services
 	p.dserv = dserv
 	p.dstore = d
 
@@ -177,43 +188,43 @@ func LoadPinner(d ds.Datastore, dserv *mdag.DAGService) (Pinner, error) {
 func (p *pinner) Flush() error {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	buf := new(bytes.Buffer)
-	enc := json.NewEncoder(buf)
 
-	recurse := p.recursePin.GetKeys()
-	err := enc.Encode(recurse)
+	err := storeSet(p.dstore, directPinDatastoreKey, p.directPin.GetKeys())
 	if err != nil {
 		return err
 	}
 
-	err = p.dstore.Put(recursePinDatastoreKey, buf.Bytes())
+	err = storeSet(p.dstore, recursePinDatastoreKey, p.recursePin.GetKeys())
 	if err != nil {
 		return err
 	}
 
-	buf = new(bytes.Buffer)
-	enc = json.NewEncoder(buf)
-	direct := p.directPin.GetKeys()
-	err = enc.Encode(direct)
-	if err != nil {
-		return err
-	}
-
-	err = p.dstore.Put(directPinDatastoreKey, buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	buf = new(bytes.Buffer)
-	enc = json.NewEncoder(buf)
-	err = enc.Encode(p.indirPin.refCounts)
-	if err != nil {
-		return err
-	}
-
-	err = p.dstore.Put(indirectPinDatastoreKey, buf.Bytes())
+	err = storeIndirPin(p.dstore, indirectPinDatastoreKey, p.indirPin)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// helpers to marshal / unmarshal a pin set
+func storeSet(d ds.Datastore, k ds.Key, val interface{}) error {
+	buf, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	return d.Put(k, buf)
+}
+
+func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
+	buf, err := d.Get(k)
+	if err != nil {
+		return err
+	}
+
+	bf, ok := buf.([]byte)
+	if !ok {
+		return errors.New("invalid pin set value in datastore")
+	}
+	return json.Unmarshal(bf, val)
 }

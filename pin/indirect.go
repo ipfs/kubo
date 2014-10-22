@@ -1,8 +1,6 @@
 package pin
 
 import (
-	"errors"
-
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/jbenet/go-ipfs/blocks/set"
 	"github.com/jbenet/go-ipfs/util"
@@ -21,21 +19,31 @@ func NewIndirectPin(dstore ds.Datastore) *indirectPin {
 }
 
 func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
-	irefcnt, err := d.Get(k)
+	var rcStore map[string]int
+	err := loadSet(d, k, &rcStore)
 	if err != nil {
 		return nil, err
 	}
-	refcnt, ok := irefcnt.(map[util.Key]int)
-	if !ok {
-		return nil, errors.New("invalid type from datastore")
-	}
 
+	refcnt := make(map[util.Key]int)
 	var keys []util.Key
-	for k, _ := range refcnt {
+	for encK, v := range rcStore {
+		k := util.B58KeyDecode(encK)
 		keys = append(keys, k)
+		refcnt[k] = v
 	}
+	log.Debug("indirPin keys: %#v", keys)
 
 	return &indirectPin{blockset: set.SimpleSetFromKeys(keys), refCounts: refcnt}, nil
+}
+
+func storeIndirPin(d ds.Datastore, k ds.Key, p *indirectPin) error {
+
+	rcStore := map[string]int{}
+	for k, v := range p.refCounts {
+		rcStore[util.B58KeyEncode(k)] = v
+	}
+	return storeSet(d, k, rcStore)
 }
 
 func (i *indirectPin) Increment(k util.Key) {
