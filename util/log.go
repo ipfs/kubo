@@ -14,11 +14,13 @@ func init() {
 var log = Logger("util")
 
 var ansiGray = "\033[0;37m"
+var ansiBlue = "\033[0;34m"
 
 // LogFormats is a map of formats used for our logger, keyed by name.
 var LogFormats = map[string]string{
-	"default": "%{color}%{time:2006-01-02 15:04:05.999999} %{level} %{shortfile}:	%{color:reset}%{message}",
-	"color": ansiGray + "%{time:15:04:05.999} %{color}%{level}:	%{color:reset}%{message} " + ansiGray + "%{shortfile}%{color:reset}",
+	"default": "%{color}%{time:2006-01-02 15:04:05.000000} %{level} %{module} %{shortfile}:	%{color:reset}%{message}",
+	"color": ansiGray + "%{time:15:04:05.000} %{color}%{level:5.5s} " + ansiBlue +
+		"%{module:10.10s}: %{color:reset}%{message} " + ansiGray + "%{shortfile}%{color:reset}",
 }
 
 // Logging environment variables

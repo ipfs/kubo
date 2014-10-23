@@ -65,18 +65,10 @@ func (rt *RoutingTable) Update(p peer.Peer) peer.Peer {
 
 		// Are we past the max bucket size?
 		if bucket.len() > rt.bucketsize {
+			// If this bucket is the rightmost bucket, and its full
+			// we need to split it and create a new bucket
 			if bucketID == len(rt.Buckets)-1 {
-				newBucket := bucket.Split(bucketID, rt.local)
-				rt.Buckets = append(rt.Buckets, newBucket)
-				if newBucket.len() > rt.bucketsize {
-					// TODO: This is a very rare and annoying case
-					panic("Case not handled.")
-				}
-
-				// If all elements were on left side of split...
-				if bucket.len() > rt.bucketsize {
-					return bucket.popBack()
-				}
+				return rt.nextBucket()
 			} else {
 				// If the bucket cant split kick out least active node
 				return bucket.popBack()
@@ -88,6 +80,22 @@ func (rt *RoutingTable) Update(p peer.Peer) peer.Peer {
 	// This signifies that it it "more active" and the less active nodes
 	// Will as a result tend towards the back of the list
 	bucket.moveToFront(e)
+	return nil
+}
+
+func (rt *RoutingTable) nextBucket() peer.Peer {
+	bucket := rt.Buckets[len(rt.Buckets)-1]
+	newBucket := bucket.Split(len(rt.Buckets)-1, rt.local)
+	rt.Buckets = append(rt.Buckets, newBucket)
+	if newBucket.len() > rt.bucketsize {
+		// TODO: This is a very rare and annoying case
+		return rt.nextBucket()
+	}
+
+	// If all elements were on left side of split...
+	if bucket.len() > rt.bucketsize {
+		return bucket.popBack()
+	}
 	return nil
 }
 

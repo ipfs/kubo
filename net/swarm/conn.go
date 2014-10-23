@@ -7,6 +7,7 @@ import (
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -98,6 +99,13 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	// is an EPHEMERAL address, and not the address we want to keep around.
 	// addresses should be figured out through the DHT.
 	// c.Remote.AddAddress(c.Conn.RemoteMultiaddr())
+
+	// handshake3
+	ctxT, _ := context.WithTimeout(c.Context(), conn.HandshakeTimeout)
+	if err := conn.Handshake3(ctxT, c); err != nil {
+		c.Close()
+		return nil, fmt.Errorf("Handshake3 failed: %s", err)
+	}
 
 	// add to conns
 	s.connsLock.Lock()

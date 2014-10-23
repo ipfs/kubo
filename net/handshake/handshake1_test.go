@@ -2,7 +2,7 @@ package handshake
 
 import "testing"
 
-func TestCompatible(t *testing.T) {
+func TestH1Compatible(t *testing.T) {
 	tcases := []struct {
 		a, b     string
 		expected error
@@ -16,7 +16,7 @@ func TestCompatible(t *testing.T) {
 
 	for i, tcase := range tcases {
 
-		if Compatible(NewHandshake1(tcase.a, ""), NewHandshake1(tcase.b, "")) != tcase.expected {
+		if Handshake1Compatible(NewHandshake1(tcase.a, ""), NewHandshake1(tcase.b, "")) != tcase.expected {
 			t.Fatalf("case[%d] failed", i)
 		}
 	}

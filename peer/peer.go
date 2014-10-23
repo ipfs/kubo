@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -9,10 +10,9 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
 	ic "github.com/jbenet/go-ipfs/crypto"
 	u "github.com/jbenet/go-ipfs/util"
-
-	"bytes"
 )
 
 var log = u.Logger("peer")
@@ -71,6 +71,10 @@ type Peer interface {
 	// NetAddress returns the first Multiaddr found for a given network.
 	NetAddress(n string) ma.Multiaddr
 
+	// Services returns the peer's services
+	// Services() []mux.ProtocolID
+	// SetServices([]mux.ProtocolID)
+
 	// Priv/PubKey returns the peer's Private Key
 	PrivKey() ic.PrivKey
 	PubKey() ic.PubKey
@@ -92,6 +96,7 @@ type Peer interface {
 type peer struct {
 	id        ID
 	addresses []ma.Multiaddr
+	// services  []mux.ProtocolID
 
 	privKey ic.PrivKey
 	pubKey  ic.PubKey
@@ -162,6 +167,18 @@ func (p *peer) NetAddress(n string) ma.Multiaddr {
 	}
 	return nil
 }
+
+// func (p *peer) Services() []mux.ProtocolID {
+// 	p.RLock()
+// 	defer p.RUnlock()
+// 	return p.services
+// }
+//
+// func (p *peer) SetServices(s []mux.ProtocolID) {
+// 	p.Lock()
+// 	defer p.Unlock()
+// 	p.services = s
+// }
 
 // GetLatency retrieves the current latency measurement.
 func (p *peer) GetLatency() (out time.Duration) {

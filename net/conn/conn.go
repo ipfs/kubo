@@ -79,9 +79,9 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 
 	// version handshake
 	ctxT, _ := context.WithTimeout(ctx, HandshakeTimeout)
-	if err := VersionHandshake(ctxT, conn); err != nil {
+	if err := Handshake1(ctxT, conn); err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("Version handshake: %s", err)
+		return nil, fmt.Errorf("Handshake1 failed: %s", err)
 	}
 
 	return conn, nil

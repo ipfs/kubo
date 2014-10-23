@@ -98,8 +98,8 @@ func TestPing(t *testing.T) {
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
-	defer dhtA.network.Close()
-	defer dhtB.network.Close()
+	defer dhtA.dialer.(inet.Network).Close()
+	defer dhtB.dialer.(inet.Network).Close()
 
 	_, err = dhtA.Connect(ctx, peerB)
 	if err != nil {
@@ -142,8 +142,8 @@ func TestValueGetSet(t *testing.T) {
 
 	defer dhtA.Halt()
 	defer dhtB.Halt()
-	defer dhtA.network.Close()
-	defer dhtB.network.Close()
+	defer dhtA.dialer.(inet.Network).Close()
+	defer dhtB.dialer.(inet.Network).Close()
 
 	_, err = dhtA.Connect(ctx, peerB)
 	if err != nil {
@@ -184,7 +184,7 @@ func TestProvides(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
-			defer dhts[i].network.Close()
+			defer dhts[i].dialer.(inet.Network).Close()
 		}
 	}()
 
@@ -244,7 +244,7 @@ func TestProvidesAsync(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
-			defer dhts[i].network.Close()
+			defer dhts[i].dialer.(inet.Network).Close()
 		}
 	}()
 
@@ -301,7 +301,7 @@ func TestLayeredGet(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
-			defer dhts[i].network.Close()
+			defer dhts[i].dialer.(inet.Network).Close()
 		}
 	}()
 
@@ -354,7 +354,7 @@ func TestFindPeer(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Halt()
-			dhts[i].network.Close()
+			dhts[i].dialer.(inet.Network).Close()
 		}
 	}()
 
@@ -443,8 +443,8 @@ func TestConnectCollision(t *testing.T) {
 
 		dhtA.Halt()
 		dhtB.Halt()
-		dhtA.network.Close()
-		dhtB.network.Close()
+		dhtA.dialer.(inet.Network).Close()
+		dhtB.dialer.(inet.Network).Close()
 
 		<-time.After(200 * time.Millisecond)
 	}

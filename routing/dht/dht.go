@@ -16,7 +16,6 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
@@ -34,9 +33,9 @@ type IpfsDHT struct {
 	// NOTE: (currently, only a single table is used)
 	routingTables []*kb.RoutingTable
 
-	// the network interface. service
-	network inet.Network
-	sender  inet.Sender
+	// the network services we need
+	dialer inet.Dialer
+	sender inet.Sender
 
 	// Local peer (yourself)
 	self peer.Peer
@@ -60,9 +59,9 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, net inet.Network, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
+func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dialer, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
-	dht.network = net
+	dht.dialer = dialer
 	dht.sender = sender
 	dht.datastore = dstore
 	dht.self = p
@@ -96,7 +95,7 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, er
 	//
 	//   /ip4/10.20.30.40/tcp/1234/ipfs/Qxhxxchxzcncxnzcnxzcxzm
 	//
-	err := dht.network.DialPeer(npeer)
+	err := dht.dialer.DialPeer(npeer)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +271,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 	// Perhaps we were given closer peers
 	var peers []peer.Peer
 	for _, pb := range pmes.GetCloserPeers() {
-		pr, err := dht.addPeer(pb)
+		pr, err := dht.peerFromInfo(pb)
 		if err != nil {
 			log.Error("%s", err)
 			continue
@@ -287,26 +286,6 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 
 	log.Warning("getValueOrPeers: u.ErrNotFound")
 	return nil, nil, u.ErrNotFound
-}
-
-func (dht *IpfsDHT) addPeer(pb *Message_Peer) (peer.Peer, error) {
-	if peer.ID(pb.GetId()).Equal(dht.self.ID()) {
-		return nil, errors.New("cannot add self as peer")
-	}
-
-	addr, err := ma.NewMultiaddr(pb.GetAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	// check if we already have this peer.
-	pr, err := dht.getPeer(peer.ID(pb.GetId()))
-	if err != nil {
-		return nil, err
-	}
-	pr.AddAddress(addr) // idempotent
-
-	return pr, nil
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
@@ -494,7 +473,8 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (peer.Peer, error) {
 
 	id := peer.ID(pbp.GetId())
 
-	// continue if it's ourselves
+	// bail out if it's ourselves
+	//TODO(jbenet) not sure this should be an error _here_
 	if id.Equal(dht.self.ID()) {
 		return nil, errors.New("found self")
 	}
@@ -519,7 +499,7 @@ func (dht *IpfsDHT) ensureConnectedToPeer(pbp *Message_Peer) (peer.Peer, error) 
 	}
 
 	// dial connection
-	err = dht.network.DialPeer(p)
+	err = dht.dialer.DialPeer(p)
 	return p, err
 }
 
