@@ -13,6 +13,7 @@ type optMap map[string]interface{}
 type Request interface {
 	Path() []string
 	Option(name string) (interface{}, bool)
+	Options() map[string]interface{}
 	SetOption(name string, val interface{})
 	Arguments() []string
 	Stream() io.Reader
@@ -37,6 +38,15 @@ func (r *request) Path() []string {
 func (r *request) Option(name string) (interface{}, bool) {
 	val, err := r.options[name]
 	return val, err
+}
+
+// Options returns a copy of the option map
+func (r *request) Options() map[string]interface{} {
+	output := make(optMap)
+	for k, v := range r.options {
+		output[k] = v
+	}
+	return output
 }
 
 // SetOption sets the value of the option for given name.
