@@ -1,0 +1,14 @@
+package mux.pb;
+
+enum ProtocolID {
+	Test = 0;
+	Identify = 1; // setup
+	Routing = 2;  // dht
+	Exchange = 3; // bitswap
+	Diagnostic = 4;
+}
+
+message PBProtocolMessage {
+	required ProtocolID ProtocolID = 1;
+	required bytes Data = 2;
+}

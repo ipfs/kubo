@@ -3,11 +3,15 @@ package message
 import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	nm "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// TODO move message.go into the bitswap package
+// TODO move bs/msg/internal/pb to bs/internal/pb and rename pb package to bitswap_pb
 
 type BitSwapMessage interface {
 	Wantlist() []u.Key
@@ -18,7 +22,7 @@ type BitSwapMessage interface {
 }
 
 type Exportable interface {
-	ToProto() *PBMessage
+	ToProto() *pb.Message
 	ToNet(p peer.Peer) (nm.NetMessage, error)
 }
 
@@ -32,7 +36,7 @@ func New() *message {
 	return new(message)
 }
 
-func newMessageFromProto(pbm PBMessage) BitSwapMessage {
+func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	m := New()
 	for _, s := range pbm.GetWantlist() {
 		m.AppendWanted(u.Key(s))
@@ -63,7 +67,7 @@ func (m *message) AppendBlock(b blocks.Block) {
 }
 
 func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
-	pb := new(PBMessage)
+	pb := new(pb.Message)
 	if err := proto.Unmarshal(nmsg.Data(), pb); err != nil {
 		return nil, err
 	}
@@ -71,8 +75,8 @@ func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
 	return m, nil
 }
 
-func (m *message) ToProto() *PBMessage {
-	pb := new(PBMessage)
+func (m *message) ToProto() *pb.Message {
+	pb := new(pb.Message)
 	for _, k := range m.Wantlist() {
 		pb.Wantlist = append(pb.Wantlist, string(k))
 	}

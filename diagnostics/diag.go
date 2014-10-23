@@ -13,6 +13,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
+	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
 	net "github.com/jbenet/go-ipfs/net"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -156,7 +157,7 @@ func AppendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
 }
 
 // TODO: this method no longer needed.
-func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.Peer, mes *Message) ([]byte, error) {
+func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.Peer, mes *pb.Message) ([]byte, error) {
 	rpmes, err := d.sendRequest(ctx, p, mes)
 	if err != nil {
 		return nil, err
@@ -164,13 +165,13 @@ func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.Peer, me
 	return rpmes.GetData(), nil
 }
 
-func newMessage(diagID string) *Message {
-	pmes := new(Message)
+func newMessage(diagID string) *pb.Message {
+	pmes := new(pb.Message)
 	pmes.DiagID = proto.String(diagID)
 	return pmes
 }
 
-func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *Message) (*Message, error) {
+func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
 
 	mes, err := msg.FromObject(p, pmes)
 	if err != nil {
@@ -190,7 +191,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *Messag
 	rtt := time.Since(start)
 	log.Info("diagnostic request took: %s", rtt.String())
 
-	rpmes := new(Message)
+	rpmes := new(pb.Message)
 	if err := proto.Unmarshal(rmes.Data(), rpmes); err != nil {
 		return nil, err
 	}
@@ -198,7 +199,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *Messag
 	return rpmes, nil
 }
 
-func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *Message) (*Message, error) {
+func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
 	log.Debug("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
 	resp := newMessage(pmes.GetDiagID())
 	d.diagLock.Lock()
@@ -259,7 +260,7 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, mes msg.NetMessage) msg
 	}
 
 	// deserialize msg
-	pmes := new(Message)
+	pmes := new(pb.Message)
 	err := proto.Unmarshal(mData, pmes)
 	if err != nil {
 		log.Error("Failed to decode protobuf message: %v", err)

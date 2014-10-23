@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	"github.com/jbenet/go-ipfs/importer/chunk"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -19,7 +20,7 @@ type DagModifier struct {
 	dagserv *mdag.DAGService
 	curNode *mdag.Node
 
-	pbdata   *ft.PBData
+	pbdata   *ftpb.Data
 	splitter chunk.BlockSplitter
 }
 

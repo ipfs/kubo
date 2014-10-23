@@ -1,0 +1,6 @@
+package bitswap.message.pb;
+
+message Message {
+	repeated string wantlist = 1;
+	repeated bytes blocks = 2;
+}

@@ -1,6 +1,0 @@
-package namesys;
-
-message IpnsEntry {
-	required bytes value = 1;
-	required bytes signature = 2;
-}

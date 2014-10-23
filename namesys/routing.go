@@ -8,6 +8,7 @@ import (
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -54,7 +55,7 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 		return "", err
 	}
 
-	entry := new(IpnsEntry)
+	entry := new(pb.IpnsEntry)
 	err = proto.Unmarshal(val, entry)
 	if err != nil {
 		return "", err

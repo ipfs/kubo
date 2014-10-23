@@ -1,0 +1,6 @@
+package diagnostics.pb;
+
+message Message {
+	required string DiagID = 1;
+	optional bytes Data = 2;
+}

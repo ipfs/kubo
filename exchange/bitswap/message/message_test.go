@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/blocks"
+	blocks "github.com/jbenet/go-ipfs/blocks"
+	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -21,7 +22,7 @@ func TestAppendWanted(t *testing.T) {
 
 func TestNewMessageFromProto(t *testing.T) {
 	const str = "a_key"
-	protoMessage := new(PBMessage)
+	protoMessage := new(pb.Message)
 	protoMessage.Wantlist = []string{string(str)}
 	if !contains(protoMessage.Wantlist, str) {
 		t.Fail()

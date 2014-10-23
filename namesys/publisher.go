@@ -9,6 +9,7 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
+	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -67,7 +68,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 }
 
 func createRoutingEntryData(pk ci.PrivKey, val string) ([]byte, error) {
-	entry := new(IpnsEntry)
+	entry := new(pb.IpnsEntry)
 	sig, err := pk.Sign([]byte(val))
 	if err != nil {
 		return nil, err

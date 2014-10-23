@@ -20,6 +20,7 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
+	pb "github.com/jbenet/go-ipfs/crypto/spipe/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -58,7 +59,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	proposeMsg := new(Propose)
+	proposeMsg := new(pb.Propose)
 	proposeMsg.Rand = nonce
 	proposeMsg.Pubkey = myPubKey
 	proposeMsg.Exchanges = &SupportedExchanges
@@ -87,7 +88,7 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	// u.POut("received encoded handshake\n")
-	proposeResp := new(Propose)
+	proposeResp := new(pb.Propose)
 	err = proto.Unmarshal(resp, proposeResp)
 	if err != nil {
 		return err
@@ -129,7 +130,7 @@ func (s *SecurePipe) handshake() error {
 	handshake.Write(resp)
 	handshake.Write(epubkey)
 
-	exPacket := new(Exchange)
+	exPacket := new(pb.Exchange)
 
 	exPacket.Epubkey = epubkey
 	exPacket.Signature, err = s.local.PrivKey().Sign(handshake.Bytes())
@@ -155,7 +156,7 @@ func (s *SecurePipe) handshake() error {
 	case resp1 = <-s.insecure.In:
 	}
 
-	exchangeResp := new(Exchange)
+	exchangeResp := new(pb.Exchange)
 	err = proto.Unmarshal(resp1, exchangeResp)
 	if err != nil {
 		return err

@@ -14,8 +14,9 @@ import (
 	"crypto/sha512"
 	"hash"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
+	pb "github.com/jbenet/go-ipfs/crypto/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -205,14 +206,14 @@ func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([
 }
 
 func UnmarshalPublicKey(data []byte) (PubKey, error) {
-	pmes := new(PBPublicKey)
+	pmes := new(pb.PublicKey)
 	err := proto.Unmarshal(data, pmes)
 	if err != nil {
 		return nil, err
 	}
 
 	switch pmes.GetType() {
-	case KeyType_RSA:
+	case pb.KeyType_RSA:
 		return UnmarshalRsaPublicKey(pmes.GetData())
 	default:
 		return nil, ErrBadKeyType
@@ -220,14 +221,14 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 }
 
 func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
-	pmes := new(PBPrivateKey)
+	pmes := new(pb.PrivateKey)
 	err := proto.Unmarshal(data, pmes)
 	if err != nil {
 		return nil, err
 	}
 
 	switch pmes.GetType() {
-	case KeyType_RSA:
+	case pb.KeyType_RSA:
 		return UnmarshalRsaPrivateKey(pmes.GetData())
 	default:
 		return nil, ErrBadKeyType

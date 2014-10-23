@@ -8,7 +8,9 @@ import (
 	"crypto/x509"
 	"errors"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
+	pb "github.com/jbenet/go-ipfs/crypto/internal/pb"
 )
 
 type RsaPrivateKey struct {
@@ -34,8 +36,8 @@ func (pk *RsaPublicKey) Bytes() ([]byte, error) {
 		return nil, err
 	}
 
-	pbmes := new(PBPublicKey)
-	typ := KeyType_RSA
+	pbmes := new(pb.PublicKey)
+	typ := pb.KeyType_RSA
 	pbmes.Type = &typ
 	pbmes.Data = b
 	return proto.Marshal(pbmes)
@@ -67,8 +69,8 @@ func (sk *RsaPrivateKey) GetPublic() PubKey {
 
 func (sk *RsaPrivateKey) Bytes() ([]byte, error) {
 	b := x509.MarshalPKCS1PrivateKey(sk.k)
-	pbmes := new(PBPrivateKey)
-	typ := KeyType_RSA
+	pbmes := new(pb.PrivateKey)
+	typ := pb.KeyType_RSA
 	pbmes.Type = &typ
 	pbmes.Data = b
 	return proto.Marshal(pbmes)

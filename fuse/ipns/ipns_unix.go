@@ -7,16 +7,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	"github.com/jbenet/go-ipfs/core"
+	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	"github.com/jbenet/go-ipfs/importer/chunk"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -206,11 +207,11 @@ type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	dagMod *uio.DagModifier
-	cached *ft.PBData
+	cached *ftpb.Data
 }
 
 func (s *Node) loadData() error {
-	s.cached = new(ft.PBData)
+	s.cached = new(ftpb.Data)
 	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
@@ -223,9 +224,9 @@ func (s *Node) Attr() fuse.Attr {
 		}
 	}
 	switch s.cached.GetType() {
-	case ft.PBData_Directory:
+	case ftpb.Data_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
-	case ft.PBData_File, ft.PBData_Raw:
+	case ftpb.Data_File, ftpb.Data_Raw:
 		size, err := ft.DataSize(s.Nd.Data)
 		if err != nil {
 			log.Error("Error getting size of file: %s", err)
