@@ -26,7 +26,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("%d error: %s", e.Code, e.Message)
+	return e.Message
 }
 
 // EncodingType defines a supported encoding
