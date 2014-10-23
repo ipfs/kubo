@@ -36,7 +36,7 @@ func (pk *RsaPublicKey) Bytes() ([]byte, error) {
 		return nil, err
 	}
 
-	pbmes := new(pb.PBPublicKey)
+	pbmes := new(pb.PublicKey)
 	typ := pb.KeyType_RSA
 	pbmes.Type = &typ
 	pbmes.Data = b
@@ -69,7 +69,7 @@ func (sk *RsaPrivateKey) GetPublic() PubKey {
 
 func (sk *RsaPrivateKey) Bytes() ([]byte, error) {
 	b := x509.MarshalPKCS1PrivateKey(sk.k)
-	pbmes := new(pb.PBPrivateKey)
+	pbmes := new(pb.PrivateKey)
 	typ := pb.KeyType_RSA
 	pbmes.Type = &typ
 	pbmes.Data = b

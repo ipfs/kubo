@@ -4,12 +4,12 @@ enum KeyType {
 	RSA = 0;
 }
 
-message PBPublicKey {
+message PublicKey {
 	required KeyType Type = 1;
 	required bytes Data = 2;
 }
 
-message PBPrivateKey {
+message PrivateKey {
 	required KeyType Type = 1;
 	required bytes Data = 2;
 }

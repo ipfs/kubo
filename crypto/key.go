@@ -206,7 +206,7 @@ func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([
 }
 
 func UnmarshalPublicKey(data []byte) (PubKey, error) {
-	pmes := new(pb.PBPublicKey)
+	pmes := new(pb.PublicKey)
 	err := proto.Unmarshal(data, pmes)
 	if err != nil {
 		return nil, err
@@ -221,7 +221,7 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 }
 
 func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
-	pmes := new(pb.PBPrivateKey)
+	pmes := new(pb.PrivateKey)
 	err := proto.Unmarshal(data, pmes)
 	if err != nil {
 		return nil, err

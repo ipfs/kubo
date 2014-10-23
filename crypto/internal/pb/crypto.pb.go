@@ -9,8 +9,8 @@ It is generated from these files:
 	crypto.proto
 
 It has these top-level messages:
-	PBPublicKey
-	PBPrivateKey
+	PublicKey
+	PrivateKey
 */
 package crypto_pb
 
@@ -51,48 +51,48 @@ func (x *KeyType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type PBPublicKey struct {
+type PublicKey struct {
 	Type             *KeyType `protobuf:"varint,1,req,enum=crypto.pb.KeyType" json:"Type,omitempty"`
 	Data             []byte   `protobuf:"bytes,2,req" json:"Data,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *PBPublicKey) Reset()         { *m = PBPublicKey{} }
-func (m *PBPublicKey) String() string { return proto.CompactTextString(m) }
-func (*PBPublicKey) ProtoMessage()    {}
+func (m *PublicKey) Reset()         { *m = PublicKey{} }
+func (m *PublicKey) String() string { return proto.CompactTextString(m) }
+func (*PublicKey) ProtoMessage()    {}
 
-func (m *PBPublicKey) GetType() KeyType {
+func (m *PublicKey) GetType() KeyType {
 	if m != nil && m.Type != nil {
 		return *m.Type
 	}
 	return KeyType_RSA
 }
 
-func (m *PBPublicKey) GetData() []byte {
+func (m *PublicKey) GetData() []byte {
 	if m != nil {
 		return m.Data
 	}
 	return nil
 }
 
-type PBPrivateKey struct {
+type PrivateKey struct {
 	Type             *KeyType `protobuf:"varint,1,req,enum=crypto.pb.KeyType" json:"Type,omitempty"`
 	Data             []byte   `protobuf:"bytes,2,req" json:"Data,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *PBPrivateKey) Reset()         { *m = PBPrivateKey{} }
-func (m *PBPrivateKey) String() string { return proto.CompactTextString(m) }
-func (*PBPrivateKey) ProtoMessage()    {}
+func (m *PrivateKey) Reset()         { *m = PrivateKey{} }
+func (m *PrivateKey) String() string { return proto.CompactTextString(m) }
+func (*PrivateKey) ProtoMessage()    {}
 
-func (m *PBPrivateKey) GetType() KeyType {
+func (m *PrivateKey) GetType() KeyType {
 	if m != nil && m.Type != nil {
 		return *m.Type
 	}
 	return KeyType_RSA
 }
 
-func (m *PBPrivateKey) GetData() []byte {
+func (m *PrivateKey) GetData() []byte {
 	if m != nil {
 		return m.Data
 	}
