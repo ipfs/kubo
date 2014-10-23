@@ -1,8 +1,10 @@
+PB = $(wildcard *.proto)
+GO = $(PB:.proto=.pb.go)
 
-all: spipe.pb.go
+all: $(GO)
 
-spipe.pb.go: spipe.proto
-	protoc --gogo_out=. --proto_path=../../../../../:/usr/local/opt/protobuf/include:. $<
+%.pb.go: %.proto
+		protoc --gogo_out=. --proto_path=../../../../../../:/usr/local/opt/protobuf/include:. $<
 
 clean:
-	rm spipe.pb.go
+		rm *.pb.go
