@@ -148,7 +148,9 @@ func getOptions(r *http.Request) map[string]interface{} {
 
 	// TODO: get more options from request body (formdata, json, etc)
 
-	if _, exists := opts[cmds.EncShort]; !exists {
+	_, short := opts[cmds.EncShort]
+	_, long := opts[cmds.EncLong]
+	if !short && !long {
 		opts[cmds.EncShort] = cmds.JSON
 	}
 
