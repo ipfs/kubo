@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -69,7 +68,6 @@ type response struct {
 	req   Request
 	err   *Error
 	value interface{}
-	out   io.Writer
 }
 
 func (r *response) Request() Request {
@@ -82,10 +80,6 @@ func (r *response) Value() interface{} {
 
 func (r *response) SetValue(v interface{}) {
 	r.value = v
-}
-
-func (r *response) Stream() io.Writer {
-	return r.out
 }
 
 func (r *response) Error() *Error {
