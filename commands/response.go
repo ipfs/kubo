@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -49,6 +51,8 @@ var marshallers = map[EncodingType]Marshaller{
 // Response is the result of a command request. Handlers write to the response,
 // setting Error or Value. Response is returned to the client.
 type Response interface {
+	io.Reader
+
 	Request() Request
 
 	// Set/Return the response Error
@@ -68,6 +72,7 @@ type response struct {
 	req   Request
 	err   *Error
 	value interface{}
+	out   io.Reader
 }
 
 func (r *response) Request() Request {
@@ -110,6 +115,30 @@ func (r *response) Marshal() ([]byte, error) {
 		return marshaller(r.err)
 	}
 	return marshaller(r.value)
+}
+
+func (r *response) Read(p []byte) (int, error) {
+	// if command set value to a io.Reader, set that as our output stream
+	if r.out == nil {
+		if out, ok := r.value.(io.Reader); ok {
+			r.out = out
+		}
+	}
+
+	// if there is an output stream set, read from it
+	if r.out != nil {
+		return r.out.Read(p)
+	}
+
+	// no stream set, so marshal the error or value
+	output, err := r.Marshal()
+	if err != nil {
+		return 0, err
+	}
+
+	// then create a Reader from the marshalled data, and use it as our output stream
+	r.out = bytes.NewReader(output)
+	return r.out.Read(p)
 }
 
 // NewResponse returns a response to match given Request
