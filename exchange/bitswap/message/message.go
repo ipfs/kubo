@@ -22,7 +22,7 @@ type BitSwapMessage interface {
 }
 
 type Exportable interface {
-	ToProto() *pb.PBMessage
+	ToProto() *pb.Message
 	ToNet(p peer.Peer) (nm.NetMessage, error)
 }
 
@@ -36,7 +36,7 @@ func New() *message {
 	return new(message)
 }
 
-func newMessageFromProto(pbm pb.PBMessage) BitSwapMessage {
+func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	m := New()
 	for _, s := range pbm.GetWantlist() {
 		m.AppendWanted(u.Key(s))
@@ -67,7 +67,7 @@ func (m *message) AppendBlock(b blocks.Block) {
 }
 
 func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
-	pb := new(pb.PBMessage)
+	pb := new(pb.Message)
 	if err := proto.Unmarshal(nmsg.Data(), pb); err != nil {
 		return nil, err
 	}
@@ -75,8 +75,8 @@ func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
 	return m, nil
 }
 
-func (m *message) ToProto() *pb.PBMessage {
-	pb := new(pb.PBMessage)
+func (m *message) ToProto() *pb.Message {
+	pb := new(pb.Message)
 	for _, k := range m.Wantlist() {
 		pb.Wantlist = append(pb.Wantlist, string(k))
 	}

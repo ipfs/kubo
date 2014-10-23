@@ -9,7 +9,7 @@ It is generated from these files:
 	message.proto
 
 It has these top-level messages:
-	PBMessage
+	Message
 */
 package bitswap_message_pb
 
@@ -20,24 +20,24 @@ import math "math"
 var _ = proto.Marshal
 var _ = math.Inf
 
-type PBMessage struct {
+type Message struct {
 	Wantlist         []string `protobuf:"bytes,1,rep,name=wantlist" json:"wantlist,omitempty"`
 	Blocks           [][]byte `protobuf:"bytes,2,rep,name=blocks" json:"blocks,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *PBMessage) Reset()         { *m = PBMessage{} }
-func (m *PBMessage) String() string { return proto.CompactTextString(m) }
-func (*PBMessage) ProtoMessage()    {}
+func (m *Message) Reset()         { *m = Message{} }
+func (m *Message) String() string { return proto.CompactTextString(m) }
+func (*Message) ProtoMessage()    {}
 
-func (m *PBMessage) GetWantlist() []string {
+func (m *Message) GetWantlist() []string {
 	if m != nil {
 		return m.Wantlist
 	}
 	return nil
 }
 
-func (m *PBMessage) GetBlocks() [][]byte {
+func (m *Message) GetBlocks() [][]byte {
 	if m != nil {
 		return m.Blocks
 	}

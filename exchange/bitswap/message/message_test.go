@@ -22,7 +22,7 @@ func TestAppendWanted(t *testing.T) {
 
 func TestNewMessageFromProto(t *testing.T) {
 	const str = "a_key"
-	protoMessage := new(pb.PBMessage)
+	protoMessage := new(pb.Message)
 	protoMessage.Wantlist = []string{string(str)}
 	if !contains(protoMessage.Wantlist, str) {
 		t.Fail()
