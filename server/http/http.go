@@ -111,27 +111,10 @@ func (i *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	val := res.Value()
-
-	// if the output value is a io.Reader, stream its output in the request body
-	if stream, ok := val.(io.Reader); ok {
-		io.Copy(w, stream)
-		return
-	}
-
-	// otherwise, marshall and output the response value or error
-	if val != nil || res.Error() != nil {
-		output, err := res.Marshal()
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Println(err)
-			return
-		}
-
-		if output != nil {
-			w.Write(output)
-		}
+	_, err = io.Copy(w, res)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
 	}
 }
 
