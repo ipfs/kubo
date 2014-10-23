@@ -9,7 +9,7 @@ It is generated from these files:
 	unixfs.proto
 
 It has these top-level messages:
-	PBData
+	Data
 */
 package unixfs_pb
 
@@ -20,76 +20,76 @@ import math "math"
 var _ = proto.Marshal
 var _ = math.Inf
 
-type PBData_DataType int32
+type Data_DataType int32
 
 const (
-	PBData_Raw       PBData_DataType = 0
-	PBData_Directory PBData_DataType = 1
-	PBData_File      PBData_DataType = 2
+	Data_Raw       Data_DataType = 0
+	Data_Directory Data_DataType = 1
+	Data_File      Data_DataType = 2
 )
 
-var PBData_DataType_name = map[int32]string{
+var Data_DataType_name = map[int32]string{
 	0: "Raw",
 	1: "Directory",
 	2: "File",
 }
-var PBData_DataType_value = map[string]int32{
+var Data_DataType_value = map[string]int32{
 	"Raw":       0,
 	"Directory": 1,
 	"File":      2,
 }
 
-func (x PBData_DataType) Enum() *PBData_DataType {
-	p := new(PBData_DataType)
+func (x Data_DataType) Enum() *Data_DataType {
+	p := new(Data_DataType)
 	*p = x
 	return p
 }
-func (x PBData_DataType) String() string {
-	return proto.EnumName(PBData_DataType_name, int32(x))
+func (x Data_DataType) String() string {
+	return proto.EnumName(Data_DataType_name, int32(x))
 }
-func (x *PBData_DataType) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(PBData_DataType_value, data, "PBData_DataType")
+func (x *Data_DataType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Data_DataType_value, data, "Data_DataType")
 	if err != nil {
 		return err
 	}
-	*x = PBData_DataType(value)
+	*x = Data_DataType(value)
 	return nil
 }
 
-type PBData struct {
-	Type             *PBData_DataType `protobuf:"varint,1,req,enum=unixfs.pb.PBData_DataType" json:"Type,omitempty"`
-	Data             []byte           `protobuf:"bytes,2,opt" json:"Data,omitempty"`
-	Filesize         *uint64          `protobuf:"varint,3,opt,name=filesize" json:"filesize,omitempty"`
-	Blocksizes       []uint64         `protobuf:"varint,4,rep,name=blocksizes" json:"blocksizes,omitempty"`
-	XXX_unrecognized []byte           `json:"-"`
+type Data struct {
+	Type             *Data_DataType `protobuf:"varint,1,req,enum=unixfs.pb.Data_DataType" json:"Type,omitempty"`
+	Data             []byte         `protobuf:"bytes,2,opt" json:"Data,omitempty"`
+	Filesize         *uint64        `protobuf:"varint,3,opt,name=filesize" json:"filesize,omitempty"`
+	Blocksizes       []uint64       `protobuf:"varint,4,rep,name=blocksizes" json:"blocksizes,omitempty"`
+	XXX_unrecognized []byte         `json:"-"`
 }
 
-func (m *PBData) Reset()         { *m = PBData{} }
-func (m *PBData) String() string { return proto.CompactTextString(m) }
-func (*PBData) ProtoMessage()    {}
+func (m *Data) Reset()         { *m = Data{} }
+func (m *Data) String() string { return proto.CompactTextString(m) }
+func (*Data) ProtoMessage()    {}
 
-func (m *PBData) GetType() PBData_DataType {
+func (m *Data) GetType() Data_DataType {
 	if m != nil && m.Type != nil {
 		return *m.Type
 	}
-	return PBData_Raw
+	return Data_Raw
 }
 
-func (m *PBData) GetData() []byte {
+func (m *Data) GetData() []byte {
 	if m != nil {
 		return m.Data
 	}
 	return nil
 }
 
-func (m *PBData) GetFilesize() uint64 {
+func (m *Data) GetFilesize() uint64 {
 	if m != nil && m.Filesize != nil {
 		return *m.Filesize
 	}
 	return 0
 }
 
-func (m *PBData) GetBlocksizes() []uint64 {
+func (m *Data) GetBlocksizes() []uint64 {
 	if m != nil {
 		return m.Blocksizes
 	}
@@ -97,5 +97,5 @@ func (m *PBData) GetBlocksizes() []uint64 {
 }
 
 func init() {
-	proto.RegisterEnum("unixfs.pb.PBData_DataType", PBData_DataType_name, PBData_DataType_value)
+	proto.RegisterEnum("unixfs.pb.Data_DataType", Data_DataType_name, Data_DataType_value)
 }

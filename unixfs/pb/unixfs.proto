@@ -1,6 +1,6 @@
 package unixfs.pb;
 
-message PBData {
+message Data {
 	enum DataType {
 		Raw = 0;
 		Directory = 1;

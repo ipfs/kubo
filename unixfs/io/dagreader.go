@@ -25,23 +25,23 @@ type DagReader struct {
 // NewDagReader creates a new reader object that reads the data represented by the given
 // node, using the passed in DAGService for data retreival
 func NewDagReader(n *mdag.Node, serv *mdag.DAGService) (io.Reader, error) {
-	pb := new(ftpb.PBData)
+	pb := new(ftpb.Data)
 	err := proto.Unmarshal(n.Data, pb)
 	if err != nil {
 		return nil, err
 	}
 
 	switch pb.GetType() {
-	case ftpb.PBData_Directory:
+	case ftpb.Data_Directory:
 		// Dont allow reading directories
 		return nil, ErrIsDir
-	case ftpb.PBData_File:
+	case ftpb.Data_File:
 		return &DagReader{
 			node: n,
 			serv: serv,
 			buf:  bytes.NewBuffer(pb.GetData()),
 		}, nil
-	case ftpb.PBData_Raw:
+	case ftpb.Data_Raw:
 		// Raw block will just be a single level, return a byte buffer
 		return bytes.NewBuffer(pb.GetData()), nil
 	default:
@@ -64,7 +64,7 @@ func (dr *DagReader) precalcNextBuf() error {
 		}
 		nxt = nxtNode
 	}
-	pb := new(ftpb.PBData)
+	pb := new(ftpb.Data)
 	err := proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
 		return err
@@ -72,13 +72,13 @@ func (dr *DagReader) precalcNextBuf() error {
 	dr.position++
 
 	switch pb.GetType() {
-	case ftpb.PBData_Directory:
+	case ftpb.Data_Directory:
 		return ft.ErrInvalidDirLocation
-	case ftpb.PBData_File:
+	case ftpb.Data_File:
 		//TODO: this *should* work, needs testing first
 		//return NewDagReader(nxt, dr.serv)
 		panic("Not yet handling different layers of indirection!")
-	case ftpb.PBData_Raw:
+	case ftpb.Data_Raw:
 		dr.buf = bytes.NewBuffer(pb.GetData())
 		return nil
 	default:

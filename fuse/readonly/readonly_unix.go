@@ -81,11 +81,11 @@ type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	fd     *uio.DagReader
-	cached *ftpb.PBData
+	cached *ftpb.Data
 }
 
 func (s *Node) loadData() error {
-	s.cached = new(ftpb.PBData)
+	s.cached = new(ftpb.Data)
 	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
@@ -96,9 +96,9 @@ func (s *Node) Attr() fuse.Attr {
 		s.loadData()
 	}
 	switch s.cached.GetType() {
-	case ftpb.PBData_Directory:
+	case ftpb.Data_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
-	case ftpb.PBData_File, ftpb.PBData_Raw:
+	case ftpb.Data_File, ftpb.Data_Raw:
 		size, _ := s.Nd.Size()
 		return fuse.Attr{
 			Mode:   0444,

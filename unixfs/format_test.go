@@ -20,7 +20,7 @@ func TestMultiBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pbn := new(pb.PBData)
+	pbn := new(pb.Data)
 	err = proto.Unmarshal(b, pbn)
 	if err != nil {
 		t.Fatal(err)

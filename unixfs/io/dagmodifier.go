@@ -20,7 +20,7 @@ type DagModifier struct {
 	dagserv *mdag.DAGService
 	curNode *mdag.Node
 
-	pbdata   *ftpb.PBData
+	pbdata   *ftpb.Data
 	splitter chunk.BlockSplitter
 }
 

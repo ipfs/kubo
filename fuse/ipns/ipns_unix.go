@@ -207,11 +207,11 @@ type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
 	dagMod *uio.DagModifier
-	cached *ftpb.PBData
+	cached *ftpb.Data
 }
 
 func (s *Node) loadData() error {
-	s.cached = new(ftpb.PBData)
+	s.cached = new(ftpb.Data)
 	return proto.Unmarshal(s.Nd.Data, s.cached)
 }
 
@@ -224,9 +224,9 @@ func (s *Node) Attr() fuse.Attr {
 		}
 	}
 	switch s.cached.GetType() {
-	case ftpb.PBData_Directory:
+	case ftpb.Data_Directory:
 		return fuse.Attr{Mode: os.ModeDir | 0555}
-	case ftpb.PBData_File, ftpb.PBData_Raw:
+	case ftpb.Data_File, ftpb.Data_Raw:
 		size, err := ft.DataSize(s.Nd.Data)
 		if err != nil {
 			log.Error("Error getting size of file: %s", err)

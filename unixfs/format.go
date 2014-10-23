@@ -13,8 +13,8 @@ var ErrMalformedFileFormat = errors.New("malformed data in file format")
 var ErrInvalidDirLocation = errors.New("found directory node in unexpected place")
 var ErrUnrecognizedType = errors.New("unrecognized node type")
 
-func FromBytes(data []byte) (*pb.PBData, error) {
-	pbdata := new(pb.PBData)
+func FromBytes(data []byte) (*pb.Data, error) {
+	pbdata := new(pb.Data)
 	err := proto.Unmarshal(data, pbdata)
 	if err != nil {
 		return nil, err
@@ -23,8 +23,8 @@ func FromBytes(data []byte) (*pb.PBData, error) {
 }
 
 func FilePBData(data []byte, totalsize uint64) []byte {
-	pbfile := new(pb.PBData)
-	typ := pb.PBData_File
+	pbfile := new(pb.Data)
+	typ := pb.Data_File
 	pbfile.Type = &typ
 	pbfile.Data = data
 	pbfile.Filesize = proto.Uint64(totalsize)
@@ -43,8 +43,8 @@ func FilePBData(data []byte, totalsize uint64) []byte {
 
 // Returns Bytes that represent a Directory
 func FolderPBData() []byte {
-	pbfile := new(pb.PBData)
-	typ := pb.PBData_Directory
+	pbfile := new(pb.Data)
+	typ := pb.Data_Directory
 	pbfile.Type = &typ
 
 	data, err := proto.Marshal(pbfile)
@@ -56,8 +56,8 @@ func FolderPBData() []byte {
 }
 
 func WrapData(b []byte) []byte {
-	pbdata := new(pb.PBData)
-	typ := pb.PBData_Raw
+	pbdata := new(pb.Data)
+	typ := pb.Data_Raw
 	pbdata.Data = b
 	pbdata.Type = &typ
 
@@ -71,7 +71,7 @@ func WrapData(b []byte) []byte {
 }
 
 func UnwrapData(data []byte) ([]byte, error) {
-	pbdata := new(pb.PBData)
+	pbdata := new(pb.Data)
 	err := proto.Unmarshal(data, pbdata)
 	if err != nil {
 		return nil, err
@@ -80,18 +80,18 @@ func UnwrapData(data []byte) ([]byte, error) {
 }
 
 func DataSize(data []byte) (uint64, error) {
-	pbdata := new(pb.PBData)
+	pbdata := new(pb.Data)
 	err := proto.Unmarshal(data, pbdata)
 	if err != nil {
 		return 0, err
 	}
 
 	switch pbdata.GetType() {
-	case pb.PBData_Directory:
+	case pb.Data_Directory:
 		return 0, errors.New("Cant get data size of directory!")
-	case pb.PBData_File:
+	case pb.Data_File:
 		return pbdata.GetFilesize(), nil
-	case pb.PBData_Raw:
+	case pb.Data_Raw:
 		return uint64(len(pbdata.GetData())), nil
 	default:
 		return 0, errors.New("Unrecognized node data type!")
@@ -110,8 +110,8 @@ func (mb *MultiBlock) AddBlockSize(s uint64) {
 }
 
 func (mb *MultiBlock) GetBytes() ([]byte, error) {
-	pbn := new(pb.PBData)
-	t := pb.PBData_File
+	pbn := new(pb.Data)
+	t := pb.Data_File
 	pbn.Type = &t
 	pbn.Filesize = proto.Uint64(uint64(len(mb.Data)) + mb.subtotal)
 	pbn.Blocksizes = mb.blocksizes
