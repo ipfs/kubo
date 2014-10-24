@@ -1,16 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"runtime/pprof"
-	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/commands/cli"
+	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
+	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -18,19 +16,17 @@ import (
 // log is the command logger
 var log = u.Logger("cmd/ipfs")
 
-const API_PATH = "/api/v0"
-
 func main() {
 	args := os.Args[1:]
 
-	req, err := cli.Parse(args, Root)
+	req, err := cmdsCli.Parse(args, Root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	if len(req.Path()) == 0 {
-		req, err = cli.Parse(args, commands.Root)
+		req, err = cmdsCli.Parse(args, commands.Root)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -82,7 +78,7 @@ func main() {
 		// TODO: spin up node
 		res = root.Call(req)
 	} else {
-		res, err = sendRequest(req)
+		res, err = cmdsHttp.Send(req)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -104,62 +100,4 @@ func main() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-}
-
-func sendRequest(req cmds.Request) (cmds.Response, error) {
-	// TODO: load RPC host from config
-	url := "http://localhost:8080" + API_PATH
-	url += "/" + strings.Join(req.Path(), "/")
-
-	// TODO: support other encodings once we have multicodec to decode response
-	//       (we shouldn't have to set this here)
-	encoding := cmds.JSON
-	req.SetOption(cmds.EncShort, encoding)
-
-	query := "?"
-	options := req.Options()
-	for k, v := range options {
-		query += "&" + k + "=" + v.(string)
-	}
-
-	httpRes, err := http.Post(url+query, "application/octet-stream", req.Stream())
-	if err != nil {
-		return nil, err
-	}
-
-	res := cmds.NewResponse(req)
-
-	contentType := httpRes.Header["Content-Type"][0]
-	contentType = strings.Split(contentType, ";")[0]
-
-	if contentType == "application/octet-stream" {
-		res.SetValue(httpRes.Body)
-		return res, nil
-	}
-
-	// TODO: decode based on `encoding`, using multicodec
-	dec := json.NewDecoder(httpRes.Body)
-
-	if httpRes.StatusCode >= http.StatusBadRequest {
-		e := cmds.Error{}
-		err = dec.Decode(&e)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-
-		res.SetError(e, e.Code)
-
-	} else {
-		var v interface{}
-		err = dec.Decode(&v)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-
-		res.SetValue(v)
-	}
-
-	return res, nil
 }
