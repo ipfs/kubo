@@ -9,6 +9,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bstore "github.com/jbenet/go-ipfs/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
@@ -279,7 +280,7 @@ func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
 	adapter := net.Adapter(p)
 	htc := rs.Client(p)
 
-	blockstore := bstore.NewBlockstore(ds.NewMapDatastore())
+	blockstore := bstore.NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	const alwaysSendToPeer = true
 	bs := &bitswap{
 		blockstore:    blockstore,

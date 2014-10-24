@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"errors"
+	"sync"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	"github.com/jbenet/go-ipfs/peer"
@@ -26,6 +27,7 @@ func New(nice bool) Strategy {
 }
 
 type strategist struct {
+	lock sync.RWMutex
 	ledgerMap
 	strategyFunc
 }
@@ -38,6 +40,9 @@ type peerKey u.Key
 
 // Peers returns a list of peers
 func (s *strategist) Peers() []peer.Peer {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	response := make([]peer.Peer, 0)
 	for _, ledger := range s.ledgerMap {
 		response = append(response, ledger.Partner)
@@ -46,20 +51,32 @@ func (s *strategist) Peers() []peer.Peer {
 }
 
 func (s *strategist) BlockIsWantedByPeer(k u.Key, p peer.Peer) bool {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	ledger := s.ledger(p)
 	return ledger.WantListContains(k)
 }
 
 func (s *strategist) ShouldSendBlockToPeer(k u.Key, p peer.Peer) bool {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	ledger := s.ledger(p)
 	return ledger.ShouldSend()
 }
 
 func (s *strategist) Seed(int64) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	// TODO
 }
 
 func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	// TODO find a more elegant way to handle this check
 	if p == nil {
 		return errors.New("Strategy received nil peer")
@@ -85,6 +102,9 @@ func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error 
 // send happen atomically
 
 func (s *strategist) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	l := s.ledger(p)
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
@@ -96,10 +116,16 @@ func (s *strategist) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error {
 }
 
 func (s *strategist) NumBytesSentTo(p peer.Peer) uint64 {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	return s.ledger(p).Accounting.BytesSent
 }
 
 func (s *strategist) NumBytesReceivedFrom(p peer.Peer) uint64 {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	return s.ledger(p).Accounting.BytesRecv
 }
 
