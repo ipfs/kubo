@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -12,7 +13,7 @@ import (
 // TODO(brian): TestGetReturnsNil
 
 func TestGetWhenKeyNotPresent(t *testing.T) {
-	bs := NewBlockstore(ds.NewMapDatastore())
+	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	_, err := bs.Get(u.Key("not present"))
 
 	if err != nil {
@@ -23,7 +24,7 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 }
 
 func TestPutThenGetBlock(t *testing.T) {
-	bs := NewBlockstore(ds.NewMapDatastore())
+	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
 
 	err := bs.Put(block)
@@ -46,7 +47,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	datastore := ds.NewMapDatastore()
 	datastore.Put(block.Key().DsKey(), "data that isn't a block!")
 
-	blockstore := NewBlockstore(datastore)
+	blockstore := NewBlockstore(ds_sync.MutexWrap(datastore))
 
 	_, err := blockstore.Get(block.Key())
 	if err != ValueTypeMismatch {

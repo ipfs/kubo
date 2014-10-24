@@ -22,7 +22,7 @@ var log = u.Logger("bitswap")
 // provided NetMessage service
 func NetMessageSession(parent context.Context, p peer.Peer,
 	net inet.Network, srv inet.Service, directory bsnet.Routing,
-	d ds.Datastore, nice bool) exchange.Interface {
+	d ds.ThreadSafeDatastore, nice bool) exchange.Interface {
 
 	networkAdapter := bsnet.NetMessageAdapter(srv, net, nil)
 	bs := &bitswap{

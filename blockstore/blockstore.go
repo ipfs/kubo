@@ -16,14 +16,14 @@ type Blockstore interface {
 	Put(*blocks.Block) error
 }
 
-func NewBlockstore(d ds.Datastore) Blockstore {
+func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
 	return &blockstore{
 		datastore: d,
 	}
 }
 
 type blockstore struct {
-	datastore ds.Datastore
+	datastore ds.ThreadSafeDatastore
 }
 
 func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
