@@ -21,25 +21,45 @@ var log = u.Logger("cmd/ipfs")
 const API_PATH = "/api/v0"
 
 func main() {
-	req, err := cli.Parse(os.Args[1:], commands.Root)
+	args := os.Args[1:]
+
+	req, err := cli.Parse(args, Root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// TODO: call command locally if option tells us to, or if command is CLI-only (e.g. ipfs init)
-
-	cmd, err := commands.Root.Get(req.Path())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if len(req.Path()) == 0 {
+		req, err = cli.Parse(args, commands.Root)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
-	res, err := sendRequest(req)
-	if err != nil {
+	var local bool // TODO: option to force local
+	var root *cmds.Command
+	cmd, err := Root.Get(req.Path())
+	if err == nil {
+		local = true
+		root = Root
+
+	} else if local {
 		fmt.Println(err)
 		os.Exit(1)
+
+	} else {
+		cmd, err = commands.Root.Get(req.Path())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		local = false
+		root = commands.Root
 	}
+
+	// TODO: get converted options so we can use them here (e.g. --debug, --config)
 
 	if debug, ok := req.Option("debug"); ok && debug.(bool) {
 		u.Debug = true
@@ -57,7 +77,17 @@ func main() {
 		}
 	}
 
-	//res := commands.Root.Call(req)
+	var res cmds.Response
+	if local {
+		// TODO: spin up node
+		res = root.Call(req)
+	} else {
+		res, err = sendRequest(req)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
 
 	if res.Error() != nil {
 		fmt.Println(res.Error().Error())
