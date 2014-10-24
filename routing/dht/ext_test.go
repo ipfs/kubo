@@ -12,6 +12,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
+	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 
 	"time"
@@ -127,13 +128,13 @@ func TestGetFailures(t *testing.T) {
 	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
 	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
-		pmes := new(Message)
+		pmes := new(pb.Message)
 		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		resp := &Message{
+		resp := &pb.Message{
 			Type: pmes.Type,
 		}
 		m, err := msg.FromObject(mes.Peer(), resp)
@@ -153,9 +154,9 @@ func TestGetFailures(t *testing.T) {
 
 	fs.handlers = nil
 	// Now we test this DHT's handleGetValue failure
-	typ := Message_GET_VALUE
+	typ := pb.Message_GET_VALUE
 	str := "hello"
-	req := Message{
+	req := pb.Message{
 		Type:  &typ,
 		Key:   &str,
 		Value: []byte{0},
@@ -169,7 +170,7 @@ func TestGetFailures(t *testing.T) {
 
 	mes = d.HandleMessage(ctx, mes)
 
-	pmes := new(Message)
+	pmes := new(pb.Message)
 	err = proto.Unmarshal(mes.Data(), pmes)
 	if err != nil {
 		t.Fatal(err)
@@ -215,21 +216,21 @@ func TestNotFound(t *testing.T) {
 
 	// Reply with random peers to every message
 	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
-		pmes := new(Message)
+		pmes := new(pb.Message)
 		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		switch pmes.GetType() {
-		case Message_GET_VALUE:
-			resp := &Message{Type: pmes.Type}
+		case pb.Message_GET_VALUE:
+			resp := &pb.Message{Type: pmes.Type}
 
 			peers := []peer.Peer{}
 			for i := 0; i < 7; i++ {
 				peers = append(peers, _randPeer())
 			}
-			resp.CloserPeers = peersToPBPeers(peers)
+			resp.CloserPeers = pb.PeersToPBPeers(peers)
 			mes, err := msg.FromObject(mes.Peer(), resp)
 			if err != nil {
 				t.Error(err)
@@ -282,17 +283,17 @@ func TestLessThanKResponses(t *testing.T) {
 
 	// Reply with random peers to every message
 	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
-		pmes := new(Message)
+		pmes := new(pb.Message)
 		err := proto.Unmarshal(mes.Data(), pmes)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		switch pmes.GetType() {
-		case Message_GET_VALUE:
-			resp := &Message{
+		case pb.Message_GET_VALUE:
+			resp := &pb.Message{
 				Type:        pmes.Type,
-				CloserPeers: peersToPBPeers([]peer.Peer{other}),
+				CloserPeers: pb.PeersToPBPeers([]peer.Peer{other}),
 			}
 
 			mes, err := msg.FromObject(mes.Peer(), resp)

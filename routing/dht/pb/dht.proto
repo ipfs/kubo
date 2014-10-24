@@ -1,4 +1,4 @@
-package dht;
+package dht.pb;
 
 //run `protoc --go_out=. *.proto` to generate
 
