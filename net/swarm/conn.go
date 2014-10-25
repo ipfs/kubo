@@ -92,7 +92,7 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		return nil, errors.New("Tried to start nil connection.")
 	}
 
-	log.Debug("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
+	log.Debugf("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	// NOT adding this address here, because the incoming address in TCP
@@ -167,7 +167,7 @@ func (s *Swarm) fanOut() {
 			}
 
 			i++
-			log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
+			//log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
 			// queue it in the connection's buffer
 			c.Out() <- msg.Data()
 		}
@@ -206,7 +206,7 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 				return // channel closed.
 			}
 			i++
-			log.Debugf("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
+			//log.Debugf("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
 			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}

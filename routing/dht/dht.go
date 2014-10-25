@@ -23,7 +23,7 @@ import (
 
 var log = u.Logger("dht")
 
-const doPinging = true
+const doPinging = false
 
 // TODO. SEE https://github.com/jbenet/node-ipfs/blob/master/submodules/ipfs-dht/index.js
 
