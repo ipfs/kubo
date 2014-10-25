@@ -9,7 +9,6 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// TODO declare thread-safe datastore
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
 // "trusted" and/or controlled by a single human user. The user may want for
 // these peers to exchange data freely
