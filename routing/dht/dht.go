@@ -11,6 +11,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -128,7 +129,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	}
 
 	// deserialize msg
-	pmes := new(Message)
+	pmes := new(pb.Message)
 	err := proto.Unmarshal(mData, pmes)
 	if err != nil {
 		log.Error("Error unmarshaling data")
@@ -140,7 +141,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 
 	// Print out diagnostic
 	log.Debugf("%s got message type: '%s' from %s",
-		dht.self, Message_MessageType_name[int32(pmes.GetType())], mPeer)
+		dht.self, pb.Message_MessageType_name[int32(pmes.GetType())], mPeer)
 
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
@@ -174,7 +175,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 
 // sendRequest sends out a request using dht.sender, but also makes sure to
 // measure the RTT for latency measurements.
-func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *Message) (*Message, error) {
+func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
 
 	mes, err := msg.FromObject(p, pmes)
 	if err != nil {
@@ -185,7 +186,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *Message)
 
 	// Print out diagnostic
 	log.Debugf("Sent message type: '%s' to %s",
-		Message_MessageType_name[int32(pmes.GetType())], p)
+		pb.Message_MessageType_name[int32(pmes.GetType())], p)
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
 	if err != nil {
@@ -198,7 +199,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *Message)
 	rtt := time.Since(start)
 	rmes.Peer().SetLatency(rtt)
 
-	rpmes := new(Message)
+	rpmes := new(pb.Message)
 	if err := proto.Unmarshal(rmes.Data(), rpmes); err != nil {
 		return nil, err
 	}
@@ -210,7 +211,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *Message)
 func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
 	key string, value []byte) error {
 
-	pmes := newMessage(Message_PUT_VALUE, string(key), 0)
+	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
 	pmes.Value = value
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
@@ -225,10 +226,10 @@ func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
 
 func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) error {
 
-	pmes := newMessage(Message_ADD_PROVIDER, string(key), 0)
+	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
 
 	// add self as the provider
-	pmes.ProviderPeers = peersToPBPeers([]peer.Peer{dht.self})
+	pmes.ProviderPeers = pb.PeersToPBPeers([]peer.Peer{dht.self})
 
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
@@ -290,9 +291,9 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 
 // getValueSingle simply performs the get value RPC with the given parameters
 func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.Peer,
-	key u.Key, level int) (*Message, error) {
+	key u.Key, level int) (*pb.Message, error) {
 
-	pmes := newMessage(Message_GET_VALUE, string(key), level)
+	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), level)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
@@ -301,7 +302,7 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.Peer,
 // one to get the value from? Or just connect to one at a time until we get a
 // successful connection and request the value from it?
 func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
-	peerlist []*Message_Peer, level int) ([]byte, error) {
+	peerlist []*pb.Message_Peer, level int) ([]byte, error) {
 
 	for _, pinfo := range peerlist {
 		p, err := dht.ensureConnectedToPeer(pinfo)
@@ -379,17 +380,17 @@ func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.Peer, *kb.RoutingTable) {
 	return nil, nil
 }
 
-func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID, level int) (*Message, error) {
-	pmes := newMessage(Message_FIND_NODE, string(id), level)
+func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID, level int) (*pb.Message, error) {
+	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), level)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.Key, level int) (*Message, error) {
-	pmes := newMessage(Message_GET_PROVIDERS, string(key), level)
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.Key, level int) (*pb.Message, error) {
+	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), level)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []peer.Peer {
+func (dht *IpfsDHT) addProviders(key u.Key, peers []*pb.Message_Peer) []peer.Peer {
 	var provArr []peer.Peer
 	for _, prov := range peers {
 		p, err := dht.peerFromInfo(prov)
@@ -413,7 +414,7 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []peer.Peer {
 }
 
 // nearestPeersToQuery returns the routing tables closest peers.
-func (dht *IpfsDHT) nearestPeersToQuery(pmes *Message, count int) []peer.Peer {
+func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.Peer {
 	level := pmes.GetClusterLevel()
 	cluster := dht.routingTables[level]
 
@@ -423,7 +424,7 @@ func (dht *IpfsDHT) nearestPeersToQuery(pmes *Message, count int) []peer.Peer {
 }
 
 // betterPeerToQuery returns nearestPeersToQuery, but iff closer than self.
-func (dht *IpfsDHT) betterPeersToQuery(pmes *Message, count int) []peer.Peer {
+func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.Peer {
 	closer := dht.nearestPeersToQuery(pmes, count)
 
 	// no node? nil
@@ -462,7 +463,7 @@ func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
 	return p, nil
 }
 
-func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (peer.Peer, error) {
+func (dht *IpfsDHT) peerFromInfo(pbp *pb.Message_Peer) (peer.Peer, error) {
 
 	id := peer.ID(pbp.GetId())
 
@@ -485,7 +486,7 @@ func (dht *IpfsDHT) peerFromInfo(pbp *Message_Peer) (peer.Peer, error) {
 	return p, nil
 }
 
-func (dht *IpfsDHT) ensureConnectedToPeer(pbp *Message_Peer) (peer.Peer, error) {
+func (dht *IpfsDHT) ensureConnectedToPeer(pbp *pb.Message_Peer) (peer.Peer, error) {
 	p, err := dht.peerFromInfo(pbp)
 	if err != nil {
 		return nil, err
