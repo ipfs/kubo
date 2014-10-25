@@ -156,21 +156,21 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 
 	data, pid, err := unwrapData(m1.Data())
 	if err != nil {
-		log.Error("muxer de-serializing error: %v", err)
+		log.Errorf("muxer de-serializing error: %v", err)
 		return
 	}
 
 	m2 := msg.New(m1.Peer(), data)
 	proto, found := m.Protocols[pid]
 	if !found {
-		log.Error("muxer unknown protocol %v", pid)
+		log.Errorf("muxer unknown protocol %v", pid)
 		return
 	}
 
 	select {
 	case proto.GetPipe().Incoming <- m2:
 	case <-m.ctx.Done():
-		log.Error("%s", m.ctx.Err())
+		log.Error(m.ctx.Err())
 		return
 	}
 }
@@ -198,7 +198,7 @@ func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 func (m *Muxer) handleOutgoingMessage(pid pb.ProtocolID, m1 msg.NetMessage) {
 	data, err := wrapData(m1.Data(), pid)
 	if err != nil {
-		log.Error("muxer serializing error: %v", err)
+		log.Errorf("muxer serializing error: %v", err)
 		return
 	}
 

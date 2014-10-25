@@ -119,8 +119,6 @@ func (r *randGen) Read(p []byte) (n int, err error) {
 			val >>= 8
 		}
 	}
-
-	panic("unreachable")
 }
 
 // GetenvBool is the way to check an env var as a boolean

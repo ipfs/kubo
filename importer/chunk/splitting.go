@@ -8,7 +8,7 @@ import (
 
 var log = util.Logger("chunk")
 
-var DefaultSplitter = &SizeSplitter{1024 * 512}
+var DefaultSplitter = &SizeSplitter{Size: 1024 * 512}
 
 type BlockSplitter interface {
 	Split(r io.Reader) chan []byte
@@ -32,7 +32,7 @@ func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
 					}
 					return
 				}
-				log.Error("Block split error: %s", err)
+				log.Errorf("Block split error: %s", err)
 				return
 			}
 			if nread < ss.Size {

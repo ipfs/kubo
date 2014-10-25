@@ -62,7 +62,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 		pub := k.GetPublic()
 		hash, err := pub.Hash()
 		if err != nil {
-			log.Error("Read Root Error: %s", err)
+			log.Errorf("Read Root Error: %s", err)
 			return nil, err
 		}
 		root.LocalLink = &Link{u.Key(hash).Pretty()}
@@ -91,7 +91,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 		}
 
 		if !u.IsValidHash(pointsTo) {
-			log.Critical("Got back bad data from namesys resolve! [%s]", pointsTo)
+			log.Criticalf("Got back bad data from namesys resolve! [%s]", pointsTo)
 			return nil, nil
 		}
 
@@ -132,7 +132,7 @@ func (*Root) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("ipns: Root Lookup: '%s'", name)
+	log.Debugf("ipns: Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -151,10 +151,10 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 		return nd, nil
 	}
 
-	log.Debug("ipns: Falling back to resolution for [%s].", name)
+	log.Debugf("ipns: Falling back to resolution for [%s].", name)
 	resolved, err := s.Ipfs.Namesys.Resolve(name)
 	if err != nil {
-		log.Warning("ipns: namesys resolve error: %s", err)
+		log.Warningf("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
 	}
 
@@ -174,7 +174,7 @@ func (r *Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 		pub := k.GetPublic()
 		hash, err := pub.Hash()
 		if err != nil {
-			log.Error("Read Root Error: %s", err)
+			log.Errorf("Read Root Error: %s", err)
 			continue
 		}
 		ent := fuse.Dirent{
@@ -220,7 +220,7 @@ func (s *Node) Attr() fuse.Attr {
 	if s.cached == nil {
 		err := s.loadData()
 		if err != nil {
-			log.Error("Error loading PBData for file: '%s'", s.name)
+			log.Errorf("Error loading PBData for file: '%s'", s.name)
 		}
 	}
 	switch s.cached.GetType() {
@@ -229,7 +229,7 @@ func (s *Node) Attr() fuse.Attr {
 	case ftpb.Data_File, ftpb.Data_Raw:
 		size, err := ft.DataSize(s.Nd.Data)
 		if err != nil {
-			log.Error("Error getting size of file: %s", err)
+			log.Errorf("Error getting size of file: %s", err)
 			size = 0
 		}
 		return fuse.Attr{
@@ -245,7 +245,7 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("ipns: node[%s] Lookup '%s'", s.name, name)
+	log.Debugf("ipns: node[%s] Lookup '%s'", s.name, name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -294,7 +294,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-	log.Debug("ipns: ReadAll [%s]", s.name)
+	log.Debugf("ipns: ReadAll [%s]", s.name)
 	r, err := uio.NewDagReader(s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
@@ -303,20 +303,20 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	// what if i have a 6TB file? GG RAM.
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		log.Error("[%s] Readall error: %s", s.name, err)
+		log.Errorf("[%s] Readall error: %s", s.name, err)
 		return nil, err
 	}
 	return b, nil
 }
 
 func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
-	log.Debug("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
+	log.Debugf("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
 
 	if n.dagMod == nil {
 		// Create a DagModifier to allow us to change the existing dag node
 		dmod, err := uio.NewDagModifier(n.Nd, n.Ipfs.DAG, chunk.DefaultSplitter)
 		if err != nil {
-			log.Error("Error creating dag modifier: %s", err)
+			log.Errorf("Error creating dag modifier: %s", err)
 			return err
 		}
 		n.dagMod = dmod
@@ -330,13 +330,13 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 }
 
 func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
-	log.Debug("Got flush request [%s]!", n.name)
+	log.Debugf("Got flush request [%s]!", n.name)
 
 	// If a write has happened
 	if n.dagMod != nil {
 		newNode, err := n.dagMod.GetNode()
 		if err != nil {
-			log.Error("Error getting dag node from dagMod: %s", err)
+			log.Errorf("Error getting dag node from dagMod: %s", err)
 			return err
 		}
 
@@ -344,7 +344,7 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 			log.Debug("updating self in parent!")
 			err := n.parent.update(n.name, newNode)
 			if err != nil {
-				log.Critical("error in updating ipns dag tree: %s", err)
+				log.Criticalf("error in updating ipns dag tree: %s", err)
 				// return fuse.ETHISISPRETTYBAD
 				return err
 			}
@@ -397,20 +397,20 @@ func (n *Node) republishRoot() error {
 	// Add any nodes that may be new to the DAG service
 	err := n.Ipfs.DAG.AddRecursive(root.Nd)
 	if err != nil {
-		log.Critical("ipns: Dag Add Error: %s", err)
+		log.Criticalf("ipns: Dag Add Error: %s", err)
 		return err
 	}
 
 	ndkey, err := root.Nd.Key()
 	if err != nil {
-		log.Error("getKey error: %s", err)
+		log.Errorf("getKey error: %s", err)
 		return err
 	}
 	log.Debug("Publishing changes!")
 
 	err = n.Ipfs.Namesys.Publish(root.key, ndkey.Pretty())
 	if err != nil {
-		log.Error("ipns: Publish Failed: %s", err)
+		log.Errorf("ipns: Publish Failed: %s", err)
 		return err
 	}
 	return nil
@@ -442,7 +442,7 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 	if n.parent != nil {
 		err := n.parent.update(n.name, nnode)
 		if err != nil {
-			log.Critical("Error updating node: %s", err)
+			log.Criticalf("Error updating node: %s", err)
 			return nil, err
 		}
 	}
@@ -472,7 +472,7 @@ func (n *Node) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error)
 }
 
 func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
-	log.Debug("Got create request: %s", req.Name)
+	log.Debugf("Got create request: %s", req.Name)
 
 	// New 'empty' file
 	nd := &mdag.Node{Data: ft.FilePBData(nil, 0)}
@@ -482,13 +482,13 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 
 	err := nnode.AddNodeLink(req.Name, nd)
 	if err != nil {
-		log.Error("Error adding child to node: %s", err)
+		log.Errorf("Error adding child to node: %s", err)
 		return nil, nil, err
 	}
 	if n.parent != nil {
 		err := n.parent.update(n.name, nnode)
 		if err != nil {
-			log.Critical("Error updating node: %s", err)
+			log.Criticalf("Error updating node: %s", err)
 			// Can we panic, please?
 			return nil, nil, err
 		}
@@ -500,7 +500,7 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 }
 
 func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
-	log.Debug("[%s] Got Remove request: %s", n.name, req.Name)
+	log.Debugf("[%s] Got Remove request: %s", n.name, req.Name)
 	nnode := n.Nd.Copy()
 	err := nnode.RemoveNodeLink(req.Name)
 	if err != nil {
@@ -511,7 +511,7 @@ func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 	if n.parent != nil {
 		err := n.parent.update(n.name, nnode)
 		if err != nil {
-			log.Critical("Error updating node: %s", err)
+			log.Criticalf("Error updating node: %s", err)
 			return err
 		}
 	}
@@ -521,7 +521,7 @@ func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 }
 
 func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
-	log.Debug("Got Rename request '%s' -> '%s'", req.OldName, req.NewName)
+	log.Debugf("Got Rename request '%s' -> '%s'", req.OldName, req.NewName)
 	var mdn *mdag.Node
 	for _, l := range n.Nd.Links {
 		if l.Name == req.OldName {
@@ -538,7 +538,7 @@ func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fus
 	case *Node:
 		err := newDir.Nd.AddNodeLink(req.NewName, mdn)
 		if err != nil {
-			log.Error("Error adding node to new dir on rename: %s", err)
+			log.Errorf("Error adding node to new dir on rename: %s", err)
 			return err
 		}
 	default:
@@ -550,7 +550,7 @@ func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fus
 
 // Updates the child of this node, specified by name to the given newnode
 func (n *Node) update(name string, newnode *mdag.Node) error {
-	log.Debug("update '%s' in '%s'", name, n.name)
+	log.Debugf("update '%s' in '%s'", name, n.name)
 	nnode := n.Nd.Copy()
 	err := nnode.RemoveNodeLink(name)
 	if err != nil {

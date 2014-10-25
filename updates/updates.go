@@ -85,10 +85,10 @@ func init() {
 	var err error
 	currentVersion, err = parseVersion()
 	if err != nil {
-		log.Error("invalid version number in code (must be semver): %q\n", Version)
+		log.Errorf("invalid version number in code (must be semver): %q", Version)
 		os.Exit(1)
 	}
-	log.Info("go-ipfs Version: %s", currentVersion)
+	log.Infof("go-ipfs Version: %s", currentVersion)
 }
 
 func parseVersion() (*semver.Version, error) {
@@ -138,7 +138,7 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 
 	nv, err := semver.NewVersion(newVer)
 	if err != nil {
-		log.Error("could not parse version string: %s", err)
+		log.Errorf("could not parse version string: %s", err)
 		return false
 	}
 
@@ -189,7 +189,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	u, err := CheckForUpdate()
 	// if there is no update available, record it, and exit.
 	if err == check.NoUpdateAvailable {
-		log.Notice("No update available, checked on %s", time.Now())
+		log.Noticef("No update available, checked on %s", time.Now())
 		config.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
 		return nil
 	}
@@ -197,7 +197,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	// if another, unexpected error occurred, note it.
 	if err != nil {
 		if cfg.Version.Check == config.CheckError {
-			log.Error("Error while checking for update: %v\n", err)
+			log.Errorf("Error while checking for update: %v", err)
 			return nil
 		}
 		// when "warn" version.check mode we just show a warning message
@@ -211,7 +211,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	if cfg.Version.AutoUpdate != config.UpdateNever {
 		// and we should auto update
 		if ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
-			log.Notice("Applying update %s", u.Version)
+			log.Noticef("Applying update %s", u.Version)
 
 			if err = Apply(u); err != nil {
 				log.Error(err.Error())

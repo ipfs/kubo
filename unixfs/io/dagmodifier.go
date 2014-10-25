@@ -59,7 +59,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 	origlen := len(b)
 
 	if end <= zeroblocklen {
-		log.Debug("Writing into zero block.")
+		log.Debug("Writing into zero block")
 		// Replacing zeroeth data block (embedded in the root node)
 		//TODO: check chunking here
 		copy(dm.pbdata.Data[offset:], b)
@@ -76,7 +76,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		traversed = uint64(zeroblocklen)
 		for i, size := range dm.pbdata.Blocksizes {
 			if uint64(offset) < traversed+size {
-				log.Debug("Starting mod at block %d. [%d < %d + %d]", i, offset, traversed, size)
+				log.Debugf("Starting mod at block %d. [%d < %d + %d]", i, offset, traversed, size)
 				// Here is where we start
 				startsubblk = i
 				lnk := dm.curNode.Links[i]
@@ -145,7 +145,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		n := &mdag.Node{Data: ft.WrapData(sb)}
 		_, err := dm.dagserv.Add(n)
 		if err != nil {
-			log.Error("Failed adding node to DAG service: %s", err)
+			log.Errorf("Failed adding node to DAG service: %s", err)
 			return 0, err
 		}
 		lnk, err := mdag.MakeLink(n)

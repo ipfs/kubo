@@ -38,9 +38,9 @@ func TestBuildDag(t *testing.T) {
 
 //Test where calls to read are smaller than the chunk size
 func TestSizeBasedSplit(t *testing.T) {
-	bs := &chunk.SizeSplitter{512}
+	bs := &chunk.SizeSplitter{Size: 512}
 	testFileConsistency(t, bs, 32*512)
-	bs = &chunk.SizeSplitter{4096}
+	bs = &chunk.SizeSplitter{Size: 4096}
 	testFileConsistency(t, bs, 32*4096)
 
 	// Uneven offset

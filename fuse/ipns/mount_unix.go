@@ -23,6 +23,7 @@ func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) error {
 		syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
+		defer ipfs.Network.Close()
 		<-sigc
 		for {
 			err := Unmount(fpath)
@@ -31,7 +32,6 @@ func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) error {
 			}
 			time.Sleep(time.Millisecond * 100)
 		}
-		ipfs.Network.Close()
 	}()
 
 	c, err := fuse.Mount(fpath)

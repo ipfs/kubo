@@ -17,7 +17,7 @@ import (
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
 func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
-	log.Debug("PutValue %s", key)
+	log.Debugf("PutValue %s", key)
 	err := dht.putLocal(key, value)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 	}
 
 	query := newQuery(key, dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
-		log.Debug("%s PutValue qry part %v", dht.self, p)
+		log.Debugf("%s PutValue qry part %v", dht.self, p)
 		err := dht.putValueToNetwork(ctx, p, string(key), value)
 		if err != nil {
 			return nil, err
@@ -46,7 +46,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
-	log.Debug("Get Value [%s]", key)
+	log.Debugf("Get Value [%s]", key)
 
 	// If we have it local, dont bother doing an RPC!
 	// NOTE: this might not be what we want to do...
@@ -86,7 +86,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Debug("GetValue %v %v", key, result.value)
+	log.Debugf("GetValue %v %v", key, result.value)
 	if result.value == nil {
 		return nil, u.ErrNotFound
 	}
@@ -140,7 +140,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 				defer wg.Done()
 				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
 				if err != nil {
-					log.Error("%s", err)
+					log.Error(err)
 					return
 				}
 				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
@@ -218,7 +218,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 		for _, pbp := range closer {
 			np, err := dht.getPeer(peer.ID(pbp.GetId()))
 			if err != nil {
-				log.Warning("Received invalid peer from query")
+				log.Warningf("Received invalid peer from query: %v", err)
 				continue
 			}
 			ma, err := pbp.Address()
@@ -256,10 +256,10 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(ctx context.Context, p peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	log.Info("ping %s start", p)
+	log.Infof("ping %s start", p)
 
 	pmes := newMessage(Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
-	log.Info("ping %s end (err = %s)", p, err)
+	log.Infof("ping %s end (err = %s)", p, err)
 	return err
 }

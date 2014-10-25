@@ -24,7 +24,7 @@ func (s *Swarm) listen() error {
 		if err != nil {
 			hasErr = true
 			retErr.Errors[i] = err
-			log.Error("Failed to listen on: %s - %s", addr, err)
+			log.Errorf("Failed to listen on: %s - %s", addr, err)
 		}
 	}
 
@@ -116,7 +116,7 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		conns := []conn.Conn{c}
 		mc, err := conn.NewMultiConn(s.Context(), s.local, c.RemotePeer(), conns)
 		if err != nil {
-			log.Error("error creating multiconn: %s", err)
+			log.Errorf("error creating multiconn: %s", err)
 			c.Close()
 			return nil, err
 		}
@@ -126,15 +126,15 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 
 		// kick off reader goroutine
 		go s.fanInSingle(mc)
-		log.Debug("added new multiconn: %s", mc)
+		log.Debugf("added new multiconn: %s", mc)
 	} else {
 		s.connsLock.Unlock() // unlock before adding new conn
 
 		mc.Add(c)
-		log.Debug("multiconn found: %s", mc)
+		log.Debugf("multiconn found: %s", mc)
 	}
 
-	log.Debug("multiconn added new conn %s", c)
+	log.Debugf("multiconn added new conn %s", c)
 	return c, nil
 }
 
@@ -151,7 +151,7 @@ func (s *Swarm) fanOut() {
 
 		case msg, ok := <-s.Outgoing:
 			if !ok {
-				log.Info("%s outgoing channel closed", s)
+				log.Infof("%s outgoing channel closed", s)
 				return
 			}
 
@@ -162,12 +162,12 @@ func (s *Swarm) fanOut() {
 			if !found {
 				e := fmt.Errorf("Sent msg to peer without open conn: %v", msg.Peer())
 				s.errChan <- e
-				log.Error("%s", e)
+				log.Error(e)
 				continue
 			}
 
 			i++
-			log.Debug("%s sent message to %s (%d)", s.local, msg.Peer(), i)
+			log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
 			// queue it in the connection's buffer
 			c.Out() <- msg.Data()
 		}
@@ -202,11 +202,11 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 
 		case data, ok := <-c.In():
 			if !ok {
-				log.Info("%s in channel closed", c)
+				log.Infof("%s in channel closed", c)
 				return // channel closed.
 			}
 			i++
-			log.Debug("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
+			log.Debugf("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
 			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}

@@ -30,14 +30,14 @@ func (l *logDhtRPC) EndLog() {
 func (l *logDhtRPC) Print() {
 	b, err := json.Marshal(l)
 	if err != nil {
-		log.Debug("Error marshaling logDhtRPC object: %s", err)
+		log.Debugf("Error marshaling logDhtRPC object: %s", err)
 	} else {
 		log.Debug(string(b))
 	}
 }
 
 func (l *logDhtRPC) String() string {
-	return fmt.Sprintf("DHT RPC: %s took %s, success = %s", l.Type, l.Duration, l.Success)
+	return fmt.Sprintf("DHT RPC: %s took %s, success = %v", l.Type, l.Duration, l.Success)
 }
 
 func (l *logDhtRPC) EndAndPrint() {

@@ -72,7 +72,7 @@ func serverIsRunning(confdir string) bool {
 	var err error
 	confdir, err = u.TildeExpansion(confdir)
 	if err != nil {
-		log.Error("Tilde Expansion Failed: %s", err)
+		log.Errorf("Tilde Expansion Failed: %s", err)
 		return false
 	}
 	lk, err := daemonLock(confdir)

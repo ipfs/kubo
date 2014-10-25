@@ -80,4 +80,3 @@ You can use `go get -u` to update the package.
 For docs, see http://godoc.org/github.com/op/go-logging or run:
 
     $ godoc github.com/op/go-logging
-

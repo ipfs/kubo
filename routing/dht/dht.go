@@ -84,7 +84,7 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, error) {
-	log.Debug("Connect to new peer: %s", npeer)
+	log.Debugf("Connect to new peer: %s", npeer)
 
 	// TODO(jbenet,whyrusleeping)
 	//
@@ -139,7 +139,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	dht.Update(mPeer)
 
 	// Print out diagnostic
-	log.Debug("[peer: %s] Got message type: '%s' [from = %s]\n",
+	log.Debugf("%s got message type: '%s' from %s",
 		dht.self, Message_MessageType_name[int32(pmes.GetType())], mPeer)
 
 	// get handler for this msg type.
@@ -152,7 +152,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	// dispatch handler.
 	rpmes, err := handler(mPeer, pmes)
 	if err != nil {
-		log.Error("handle message error: %s", err)
+		log.Errorf("handle message error: %s", err)
 		return nil
 	}
 
@@ -165,7 +165,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	// serialize response msg
 	rmes, err := msg.FromObject(mPeer, rpmes)
 	if err != nil {
-		log.Error("serialze response error: %s", err)
+		log.Errorf("serialze response error: %s", err)
 		return nil
 	}
 
@@ -184,7 +184,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *Message)
 	start := time.Now()
 
 	// Print out diagnostic
-	log.Debug("Sent message type: '%s' [to = %s]",
+	log.Debugf("Sent message type: '%s' to %s",
 		Message_MessageType_name[int32(pmes.GetType())], p)
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
@@ -235,7 +235,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 		return err
 	}
 
-	log.Debug("%s putProvider: %s for %s", dht.self, p, key)
+	log.Debugf("%s putProvider: %s for %s", dht.self, p, key)
 	if rpmes.GetKey() != pmes.GetKey() {
 		return errors.New("provider not added correctly")
 	}
@@ -251,7 +251,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 		return nil, nil, err
 	}
 
-	log.Debug("pmes.GetValue() %v", pmes.GetValue())
+	log.Debugf("pmes.GetValue() %v", pmes.GetValue())
 	if value := pmes.GetValue(); value != nil {
 		// Success! We were given the value
 		log.Debug("getValueOrPeers: got value")
@@ -273,7 +273,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 	for _, pb := range pmes.GetCloserPeers() {
 		pr, err := dht.peerFromInfo(pb)
 		if err != nil {
-			log.Error("%s", err)
+			log.Error(err)
 			continue
 		}
 		peers = append(peers, pr)
@@ -306,13 +306,13 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 	for _, pinfo := range peerlist {
 		p, err := dht.ensureConnectedToPeer(pinfo)
 		if err != nil {
-			log.Error("getFromPeers error: %s", err)
+			log.Errorf("getFromPeers error: %s", err)
 			continue
 		}
 
 		pmes, err := dht.getValueSingle(ctx, p, key, level)
 		if err != nil {
-			log.Error("getFromPeers error: %s\n", err)
+			log.Errorf("getFromPeers error: %s\n", err)
 			continue
 		}
 
@@ -349,7 +349,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 // Update signals to all routingTables to Update their last-seen status
 // on the given peer.
 func (dht *IpfsDHT) Update(p peer.Peer) {
-	log.Debug("updating peer: %s latency = %f\n", p, p.GetLatency().Seconds())
+	log.Debugf("updating peer: %s latency = %f\n", p, p.GetLatency().Seconds())
 	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)
@@ -394,11 +394,11 @@ func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []peer.Peer {
 	for _, prov := range peers {
 		p, err := dht.peerFromInfo(prov)
 		if err != nil {
-			log.Error("error getting peer from info: %v", err)
+			log.Errorf("error getting peer from info: %v", err)
 			continue
 		}
 
-		log.Debug("%s adding provider: %s for %s", dht.self, p, key)
+		log.Debugf("%s adding provider: %s for %s", dht.self, p, key)
 
 		// Dont add outselves to the list
 		if p.ID().Equal(dht.self.ID()) {
@@ -456,7 +456,7 @@ func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
 	p, err := dht.peerstore.Get(id)
 	if err != nil {
 		err = fmt.Errorf("Failed to get peer from peerstore: %s", err)
-		log.Error("%s", err)
+		log.Error(err)
 		return nil, err
 	}
 	return p, nil
@@ -505,7 +505,7 @@ func (dht *IpfsDHT) loadProvidableKeys() error {
 	for _, dsk := range kl {
 		k := u.KeyFromDsKey(dsk)
 		if len(k) == 0 {
-			log.Error("loadProvidableKeys error: %v", dsk)
+			log.Errorf("loadProvidableKeys error: %v", dsk)
 		}
 
 		dht.providers.AddProvider(k, dht.self)
@@ -526,7 +526,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 				ctx, _ := context.WithTimeout(dht.ctx, time.Second*5)
 				err := dht.Ping(ctx, p)
 				if err != nil {
-					log.Error("Ping error: %s", err)
+					log.Errorf("Ping error: %s", err)
 				}
 			}
 		case <-dht.ctx.Done():
@@ -541,6 +541,6 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	rand.Read(id)
 	_, err := dht.FindPeer(ctx, peer.ID(id))
 	if err != nil {
-		log.Error("Bootstrap peer error: %s", err)
+		log.Errorf("Bootstrap peer error: %s", err)
 	}
 }

@@ -198,14 +198,14 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	// unwrap the incoming message
 	data, rid, err := unwrapData(m.Data())
 	if err != nil {
-		log.Error("de-serializing error: %v", err)
+		log.Errorf("de-serializing error: %v", err)
 	}
 	m2 := msg.New(m.Peer(), data)
 
 	// if it's a request (or has no RequestID), handle it
 	if rid == nil || rid.IsRequest() {
 		if s.Handler == nil {
-			log.Error("service dropped msg: %v", m)
+			log.Errorf("service dropped msg: %v", m)
 			return // no handler, drop it.
 		}
 
@@ -216,7 +216,7 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 		if r1 != nil {
 			err := s.sendMessage(ctx, r1, rid.Response())
 			if err != nil {
-				log.Error("error sending response message: %v", err)
+				log.Errorf("error sending response message: %v", err)
 			}
 		}
 		return
@@ -224,7 +224,7 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	// Otherwise, it is a response. handle it.
 	if !rid.IsResponse() {
-		log.Error("RequestID should identify a response here.")
+		log.Errorf("RequestID should identify a response here.")
 	}
 
 	key := RequestKey(m.Peer().ID(), RequestID(rid))
@@ -233,7 +233,7 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 	s.RequestsLock.RUnlock()
 
 	if !found {
-		log.Error("no request key %v (timeout?)", []byte(key))
+		log.Errorf("no request key %v (timeout?)", []byte(key))
 		return
 	}
 

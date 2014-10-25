@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 )
 
 func init() {
@@ -55,7 +55,7 @@ func SetupLogging() {
 		var err error
 		lvl, err = logging.LogLevel(logenv)
 		if err != nil {
-			log.Error("logging.LogLevel() Error: %q", err)
+			log.Errorf("logging.LogLevel() Error: %q", err)
 			lvl = logging.ERROR // reset to ERROR, could be undefined now(?)
 		}
 	}
@@ -74,7 +74,7 @@ func SetAllLoggers(lvl logging.Level) {
 	logging.SetLevel(lvl, "")
 	for n, log := range loggers {
 		logging.SetLevel(lvl, n)
-		log.Notice("setting logger: %q to %v", n, lvl)
+		log.Noticef("setting logger: %q to %v", n, lvl)
 	}
 }
 

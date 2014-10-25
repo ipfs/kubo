@@ -238,7 +238,7 @@ func (p *peer) VerifyAndSetPrivKey(sk ic.PrivKey) error {
 	// keys not equal. invariant violated. this warrants a panic.
 	// these keys should be _the same_ because peer.ID = H(pk)
 	// this mismatch should never happen.
-	log.Error("%s had PrivKey: %v -- got %v", p, p.privKey, sk)
+	log.Errorf("%s had PrivKey: %v -- got %v", p, p.privKey, sk)
 	panic("invariant violated: unexpected key mismatch")
 }
 
@@ -270,7 +270,7 @@ func (p *peer) VerifyAndSetPubKey(pk ic.PubKey) error {
 	// keys not equal. invariant violated. this warrants a panic.
 	// these keys should be _the same_ because peer.ID = H(pk)
 	// this mismatch should never happen.
-	log.Error("%s had PubKey: %v -- got %v", p, p.pubKey, pk)
+	log.Errorf("%s had PubKey: %v -- got %v", p, p.pubKey, pk)
 	panic("invariant violated: unexpected key mismatch")
 }
 

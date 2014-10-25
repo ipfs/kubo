@@ -44,7 +44,7 @@ func Handshake3UpdatePeer(remotePeer peer.Peer, msg *pb.Handshake3) error {
 		addr, err := ma.NewMultiaddrBytes(a)
 		if err != nil {
 			err = fmt.Errorf("remote peer address not a multiaddr: %s", err)
-			log.Error("Handshake3: error %s", err)
+			log.Errorf("Handshake3: error %s", err)
 			return err
 		}
 		remotePeer.AddAddress(addr)
