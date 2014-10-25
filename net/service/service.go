@@ -2,10 +2,12 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	msg "github.com/jbenet/go-ipfs/net/message"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -39,10 +41,7 @@ type Sender interface {
 // incomig (SetHandler) requests.
 type Service interface {
 	Sender
-
-	// Start + Stop Service
-	Start(ctx context.Context) error
-	Stop()
+	ctxc.ContextCloser
 
 	// GetPipe
 	GetPipe() *msg.Pipe
@@ -56,45 +55,30 @@ type Service interface {
 // messages over the same channel, and to issue + handle requests.
 type service struct {
 	// Handler is the object registered to handle incoming requests.
-	Handler Handler
+	Handler     Handler
+	HandlerLock sync.RWMutex
 
 	// Requests are all the pending requests on this service.
 	Requests     RequestMap
 	RequestsLock sync.RWMutex
 
-	// cancel is the function to stop the Service
-	cancel context.CancelFunc
-
 	// Message Pipe (connected to the outside world)
 	*msg.Pipe
+	ctxc.ContextCloser
 }
 
 // NewService creates a service object with given type ID and Handler
-func NewService(h Handler) Service {
-	return &service{
-		Handler:  h,
-		Requests: RequestMap{},
-		Pipe:     msg.NewPipe(10),
-	}
-}
-
-// Start kicks off the Service goroutines.
-func (s *service) Start(ctx context.Context) error {
-	if s.cancel != nil {
-		return errors.New("Service already started.")
+func NewService(ctx context.Context, h Handler) Service {
+	s := &service{
+		Handler:       h,
+		Requests:      RequestMap{},
+		Pipe:          msg.NewPipe(10),
+		ContextCloser: ctxc.NewContextCloser(ctx, nil),
 	}
 
-	// make a cancellable context.
-	ctx, s.cancel = context.WithCancel(ctx)
-
-	go s.handleIncomingMessages(ctx)
-	return nil
-}
-
-// Stop stops Service activity.
-func (s *service) Stop() {
-	s.cancel()
-	s.cancel = context.CancelFunc(nil)
+	s.Children().Add(1)
+	go s.handleIncomingMessages()
+	return s
 }
 
 // GetPipe implements the mux.Protocol interface
@@ -132,6 +116,15 @@ func (s *service) SendMessage(ctx context.Context, m msg.NetMessage) error {
 // SendRequest sends a request message out and awaits a response.
 func (s *service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
 
+	// check if we should bail given our contexts
+	select {
+	default:
+	case <-s.Closing():
+		return nil, fmt.Errorf("service closed: %s", s.Context().Err())
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	// create a request
 	r, err := NewRequest(m.Peer().ID())
 	if err != nil {
@@ -153,6 +146,8 @@ func (s *service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 	// check if we should bail after waiting for mutex
 	select {
 	default:
+	case <-s.Closing():
+		return nil, fmt.Errorf("service closed: %s", s.Context().Err())
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -165,6 +160,8 @@ func (s *service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 	err = nil
 	select {
 	case m = <-r.Response:
+	case <-s.Closed():
+		err = fmt.Errorf("service closed: %s", s.Context().Err())
 	case <-ctx.Done():
 		err = ctx.Err()
 	}
@@ -178,43 +175,50 @@ func (s *service) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMes
 
 // handleIncoming consumes the messages on the s.Incoming channel and
 // routes them appropriately (to requests, or handler).
-func (s *service) handleIncomingMessages(ctx context.Context) {
+func (s *service) handleIncomingMessages() {
+	defer s.Children().Done()
+
 	for {
 		select {
 		case m, more := <-s.Incoming:
 			if !more {
 				return
 			}
-			go s.handleIncomingMessage(ctx, m)
+			s.Children().Add(1)
+			go s.handleIncomingMessage(m)
 
-		case <-ctx.Done():
+		case <-s.Closing():
 			return
 		}
 	}
 }
 
-func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
+func (s *service) handleIncomingMessage(m msg.NetMessage) {
+	defer s.Children().Done()
 
 	// unwrap the incoming message
 	data, rid, err := unwrapData(m.Data())
 	if err != nil {
-		log.Errorf("de-serializing error: %v", err)
+		log.Errorf("service de-serializing error: %v", err)
+		return
 	}
+
 	m2 := msg.New(m.Peer(), data)
 
 	// if it's a request (or has no RequestID), handle it
 	if rid == nil || rid.IsRequest() {
-		if s.Handler == nil {
+		handler := s.GetHandler()
+		if handler == nil {
 			log.Errorf("service dropped msg: %v", m)
 			return // no handler, drop it.
 		}
 
 		// should this be "go HandleMessage ... ?"
-		r1 := s.Handler.HandleMessage(ctx, m2)
+		r1 := handler.HandleMessage(s.Context(), m2)
 
 		// if handler gave us a response, send it back out!
 		if r1 != nil {
-			err := s.sendMessage(ctx, r1, rid.Response())
+			err := s.sendMessage(s.Context(), r1, rid.Response())
 			if err != nil {
 				log.Errorf("error sending response message: %v", err)
 			}
@@ -239,16 +243,20 @@ func (s *service) handleIncomingMessage(ctx context.Context, m msg.NetMessage) {
 
 	select {
 	case r.Response <- m2:
-	case <-ctx.Done():
+	case <-s.Closing():
 	}
 }
 
 // SetHandler assigns the request Handler for this service.
 func (s *service) SetHandler(h Handler) {
+	s.HandlerLock.Lock()
+	defer s.HandlerLock.Unlock()
 	s.Handler = h
 }
 
 // GetHandler returns the request Handler for this service.
 func (s *service) GetHandler() Handler {
+	s.HandlerLock.RLock()
+	defer s.HandlerLock.RUnlock()
 	return s.Handler
 }

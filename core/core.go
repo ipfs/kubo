@@ -115,19 +115,9 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 
 	if online {
 
-		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
-		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
-		diagService := netservice.NewService(nil)
-
-		if err := dhtService.Start(ctx); err != nil {
-			return nil, err
-		}
-		if err := exchangeService.Start(ctx); err != nil {
-			return nil, err
-		}
-		if err := diagService.Start(ctx); err != nil {
-			return nil, err
-		}
+		dhtService := netservice.NewService(ctx, nil)      // nil handler for now, need to patch it
+		exchangeService := netservice.NewService(ctx, nil) // nil handler for now, need to patch it
+		diagService := netservice.NewService(ctx, nil)
 
 		net, err = inet.NewIpfsNetwork(ctx, local, peerstore, &mux.ProtocolMap{
 			mux.ProtocolID_Routing:    dhtService,
