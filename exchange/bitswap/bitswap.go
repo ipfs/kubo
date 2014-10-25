@@ -88,13 +88,13 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 				log.Debug("bitswap dialing peer: %s", p)
 				err := bs.sender.DialPeer(p)
 				if err != nil {
-					log.Error("Error sender.DialPeer(%s)", p)
+					log.Errorf("Error sender.DialPeer(%s)", p)
 					return
 				}
 
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
-					log.Error("Error sender.SendRequest(%s)", p)
+					log.Errorf("Error sender.SendRequest(%s)", p)
 					return
 				}
 				// FIXME ensure accounting is handled correctly when

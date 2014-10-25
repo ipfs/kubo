@@ -26,7 +26,7 @@ func Handshake1(ctx context.Context, c Conn) error {
 	}
 
 	c.Out() <- myVerBytes
-	log.Debug("Sent my version (%s) to %s", localH, rpeer)
+	log.Debugf("Sent my version (%s) to %s", localH, rpeer)
 
 	select {
 	case <-ctx.Done():
@@ -50,11 +50,11 @@ func Handshake1(ctx context.Context, c Conn) error {
 	}
 
 	if err := handshake.Handshake1Compatible(localH, remoteH); err != nil {
-		log.Info("%s (%s) incompatible version with %s (%s)", lpeer, localH, rpeer, remoteH)
+		log.Infof("%s (%s) incompatible version with %s (%s)", lpeer, localH, rpeer, remoteH)
 		return err
 	}
 
-	log.Debug("%s version handshake compatible %s", lpeer, rpeer)
+	log.Debugf("%s version handshake compatible %s", lpeer, rpeer)
 	return nil
 }
 
@@ -71,7 +71,7 @@ func Handshake3(ctx context.Context, c Conn) error {
 	}
 
 	c.Out() <- localB
-	log.Debug("Handshake1: sent to %s", rpeer)
+	log.Debugf("Handshake1: sent to %s", rpeer)
 
 	select {
 	case <-ctx.Done():
@@ -91,11 +91,11 @@ func Handshake3(ctx context.Context, c Conn) error {
 			return fmt.Errorf("Handshake3 could not decode remote msg: %q", err)
 		}
 
-		log.Debug("Handshake3 received from %s", rpeer)
+		log.Debugf("Handshake3 received from %s", rpeer)
 	}
 
 	if err := handshake.Handshake3UpdatePeer(rpeer, remoteH); err != nil {
-		log.Error("Handshake3 failed to update %s", rpeer)
+		log.Errorf("Handshake3 failed to update %s", rpeer)
 		return err
 	}
 

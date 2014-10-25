@@ -60,13 +60,13 @@ func (l *listener) listen() {
 
 		c, err := newSingleConn(l.ctx, l.local, nil, maconn)
 		if err != nil {
-			log.Error("Error accepting connection: %v", err)
+			log.Errorf("Error accepting connection: %v", err)
 			return
 		}
 
 		sc, err := newSecureConn(l.ctx, c, l.peers)
 		if err != nil {
-			log.Error("Error securing connection: %v", err)
+			log.Errorf("Error securing connection: %v", err)
 			return
 		}
 
@@ -84,7 +84,7 @@ func (l *listener) listen() {
 			default:
 			}
 
-			log.Error("Failed to accept connection: %v", err)
+			log.Errorf("Failed to accept connection: %v", err)
 			continue
 		}
 

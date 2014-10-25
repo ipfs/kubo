@@ -25,14 +25,14 @@ func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Co
 
 	remote, err := d.Peerstore.Add(remote)
 	if err != nil {
-		log.Error("Error putting peer into peerstore: %s", remote)
+		log.Errorf("Error putting peer into peerstore: %s", remote)
 	}
 
 	// TODO: try to get reusing addr/ports to work.
 	// madialer := manet.Dialer{LocalAddr: laddr}
 	madialer := manet.Dialer{}
 
-	log.Info("%s dialing %s %s", d.LocalPeer, remote, raddr)
+	log.Infof("%s dialing %s %s", d.LocalPeer, remote, raddr)
 	maconn, err := madialer.Dial(raddr)
 	if err != nil {
 		return nil, err

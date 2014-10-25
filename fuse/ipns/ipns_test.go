@@ -254,7 +254,7 @@ func TestFastRepublish(t *testing.T) {
 	hasPublished := func() bool {
 		res, err := node.Namesys.Resolve(pubkeyHash)
 		if err != nil {
-			t.Fatal("resolve err: %v", err)
+			t.Fatalf("resolve err: %v", err)
 		}
 		return res != resolvedHash
 	}
@@ -264,7 +264,7 @@ func TestFastRepublish(t *testing.T) {
 	// at this point, should not have written dataA and not have written dataB
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil || !bytes.Equal(rbuf, dataA) {
-		t.Fatal("Data inconsistent! %v %v", err, string(rbuf))
+		t.Fatalf("Data inconsistent! %v %v", err, string(rbuf))
 	}
 
 	if hasPublished() {
@@ -276,7 +276,7 @@ func TestFastRepublish(t *testing.T) {
 	// at this point, should have written written dataB, but not published it
 	rbuf, err = ioutil.ReadFile(fname)
 	if err != nil || !bytes.Equal(rbuf, dataB) {
-		t.Fatal("Data inconsistent! %v %v", err, string(rbuf))
+		t.Fatalf("Data inconsistent! %v %v", err, string(rbuf))
 	}
 
 	if hasPublished() {
@@ -288,7 +288,7 @@ func TestFastRepublish(t *testing.T) {
 	// at this point, should have written written dataB, and published it
 	rbuf, err = ioutil.ReadFile(fname)
 	if err != nil || !bytes.Equal(rbuf, dataB) {
-		t.Fatal("Data inconsistent! %v %v", err, string(rbuf))
+		t.Fatalf("Data inconsistent! %v %v", err, string(rbuf))
 	}
 
 	if !hasPublished() {

@@ -31,13 +31,13 @@ func newSecureConn(ctx context.Context, insecure Conn, peers peer.Peerstore) (Co
 	}
 	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
 
-	log.Debug("newSecureConn: %v to %v", insecure.LocalPeer(), insecure.RemotePeer())
+	log.Debugf("newSecureConn: %v to %v", insecure.LocalPeer(), insecure.RemotePeer())
 	// perform secure handshake before returning this connection.
 	if err := conn.secureHandshake(peers); err != nil {
 		conn.Close()
 		return nil, err
 	}
-	log.Debug("newSecureConn: %v to %v handshake success!", insecure.LocalPeer(), insecure.RemotePeer())
+	log.Debugf("newSecureConn: %v to %v handshake success!", insecure.LocalPeer(), insecure.RemotePeer())
 
 	return conn, nil
 }
@@ -78,9 +78,9 @@ func (c *secureConn) secureHandshake(peers peer.Peerstore) error {
 		// update: this actually might happen under normal operation-- should
 		// perhaps return an error. TBD.
 
-		log.Error("secureConn peer mismatch. %v != %v", insecureSC.remote, c.secure.RemotePeer())
-		log.Error("insecureSC.remote: %s %#v", insecureSC.remote, insecureSC.remote)
-		log.Error("c.secure.LocalPeer: %s %#v", c.secure.RemotePeer(), c.secure.RemotePeer())
+		log.Errorf("secureConn peer mismatch. %v != %v", insecureSC.remote, c.secure.RemotePeer())
+		log.Errorf("insecureSC.remote: %s %#v", insecureSC.remote, insecureSC.remote)
+		log.Errorf("c.secure.LocalPeer: %s %#v", c.secure.RemotePeer(), c.secure.RemotePeer())
 		panic("secureConn peer mismatch. consructed incorrectly?")
 	}
 

@@ -53,13 +53,13 @@ func NewDaemonListener(ipfsnode *core.IpfsNode, addr ma.Multiaddr, confdir strin
 
 	ofi, err := os.Create(confdir + "/rpcaddress")
 	if err != nil {
-		log.Warning("Could not create rpcaddress file: %s", err)
+		log.Warningf("Could not create rpcaddress file: %s", err)
 		return nil, err
 	}
 
 	_, err = ofi.Write([]byte(addr.String()))
 	if err != nil {
-		log.Warning("Could not write to rpcaddress file: %s", err)
+		log.Warningf("Could not write to rpcaddress file: %s", err)
 		return nil, err
 	}
 	ofi.Close()
@@ -148,7 +148,7 @@ func (dl *DaemonListener) handleConnection(conn manet.Conn) {
 		err = fmt.Errorf("Invalid Command: '%s'", command.Command)
 	}
 	if err != nil {
-		log.Error("%s: %s", command.Command, err)
+		log.Errorf("%s: %s", command.Command, err)
 		fmt.Fprintln(conn, err)
 	}
 }

@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bserv "github.com/jbenet/go-ipfs/blockservice"
@@ -230,25 +230,25 @@ func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.P
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
 	for _, p := range cfg.Bootstrap {
 		if p.PeerID == "" {
-			log.Error("error: peer does not include PeerID. %v", p)
+			log.Errorf("error: peer does not include PeerID. %v", p)
 		}
 
 		maddr, err := ma.NewMultiaddr(p.Address)
 		if err != nil {
-			log.Error("%s", err)
+			log.Error(err)
 			continue
 		}
 
 		// setup peer
 		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
 		if err != nil {
-			log.Error("Bootstrapping error: %v", err)
+			log.Errorf("Bootstrapping error: %v", err)
 			continue
 		}
 		npeer.AddAddress(maddr)
 
 		if _, err = route.Connect(ctx, npeer); err != nil {
-			log.Error("Bootstrapping error: %v", err)
+			log.Errorf("Bootstrapping error: %v", err)
 		}
 	}
 }

@@ -138,8 +138,8 @@ func (c *singleConn) Out() chan<- []byte {
 
 // ID returns the ID of a given Conn.
 func ID(c Conn) string {
-	l := fmt.Sprintf("%s/%s", c.LocalMultiaddr(), c.LocalPeer().ID)
-	r := fmt.Sprintf("%s/%s", c.RemoteMultiaddr(), c.RemotePeer().ID)
+	l := fmt.Sprintf("%s/%s", c.LocalMultiaddr(), c.LocalPeer().ID())
+	r := fmt.Sprintf("%s/%s", c.RemoteMultiaddr(), c.RemotePeer().ID())
 	lh := u.Hash([]byte(l))
 	rh := u.Hash([]byte(r))
 	ch := u.XOR(lh, rh)

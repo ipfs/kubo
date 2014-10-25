@@ -73,8 +73,8 @@ func TestOptionValidation(t *testing.T) {
 	req = NewEmptyRequest()
 	req.SetOption("b", ":)")
 	res = cmd.Call(req)
-	if res.Error == nil {
-		t.Error(res.Error, "Should have failed (string value not convertible to int)")
+	if res.Error() == nil {
+		t.Error(res.Error(), "Should have failed (string value not convertible to int)")
 	}
 }
 

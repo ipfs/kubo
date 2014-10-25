@@ -22,11 +22,11 @@ func getMockDagServ(t *testing.T) *mdag.DAGService {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &mdag.DAGService{bserv}
+	return &mdag.DAGService{Blocks: bserv}
 }
 
 func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	dw := NewDagWriter(dserv, &chunk.SizeSplitter{500})
+	dw := NewDagWriter(dserv, &chunk.SizeSplitter{Size: 500})
 
 	n, err := io.CopyN(dw, u.NewFastRand(), size)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestDagModifierBasic(t *testing.T) {
 	dserv := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
+	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{Size: 512})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestDagModifierBasic(t *testing.T) {
 
 	expected := uint64(50000 + 3500 + 3000)
 	if size != expected {
-		t.Fatal("Final reported size is incorrect [%d != %d]", size, expected)
+		t.Fatalf("Final reported size is incorrect [%d != %d]", size, expected)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestMultiWrite(t *testing.T) {
 	dserv := getMockDagServ(t)
 	_, n := getNode(t, dserv, 0)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
+	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{Size: 512})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestMultiWriteCoal(t *testing.T) {
 	dserv := getMockDagServ(t)
 	_, n := getNode(t, dserv, 0)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{512})
+	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{Size: 512})
 	if err != nil {
 		t.Fatal(err)
 	}

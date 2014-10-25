@@ -105,7 +105,7 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 	log.Debug("Begin Diagnostic")
 
 	peers := d.getPeers()
-	log.Debug("Sending diagnostic request to %d peers.", len(peers))
+	log.Debugf("Sending diagnostic request to %d peers.", len(peers))
 
 	var out []*DiagInfo
 	di := d.getDiagInfo()
@@ -116,12 +116,12 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 	respdata := make(chan []byte)
 	sends := 0
 	for _, p := range peers {
-		log.Debug("Sending getDiagnostic to: %s", p)
+		log.Debugf("Sending getDiagnostic to: %s", p)
 		sends++
 		go func(p peer.Peer) {
 			data, err := d.getDiagnosticFromPeer(ctx, p, pmes)
 			if err != nil {
-				log.Error("GetDiagnostic error: %v", err)
+				log.Errorf("GetDiagnostic error: %v", err)
 				respdata <- nil
 				return
 			}
@@ -147,7 +147,7 @@ func AppendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
 		err := dec.Decode(di)
 		if err != nil {
 			if err != io.EOF {
-				log.Error("error decoding DiagInfo: %v", err)
+				log.Errorf("error decoding DiagInfo: %v", err)
 			}
 			break
 		}
@@ -189,7 +189,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Mes
 	}
 
 	rtt := time.Since(start)
-	log.Info("diagnostic request took: %s", rtt.String())
+	log.Infof("diagnostic request took: %s", rtt.String())
 
 	rpmes := new(pb.Message)
 	if err := proto.Unmarshal(rmes.Data(), rpmes); err != nil {
@@ -200,7 +200,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Mes
 }
 
 func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
-	log.Debug("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
+	log.Debugf("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
 	resp := newMessage(pmes.GetDiagID())
 	d.diagLock.Lock()
 	_, found := d.diagMap[pmes.GetDiagID()]
@@ -220,12 +220,12 @@ func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Messa
 	respdata := make(chan []byte)
 	sendcount := 0
 	for _, p := range d.getPeers() {
-		log.Debug("Sending diagnostic request to peer: %s", p)
+		log.Debugf("Sending diagnostic request to peer: %s", p)
 		sendcount++
 		go func(p peer.Peer) {
 			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
 			if err != nil {
-				log.Error("getDiagnostic error: %v", err)
+				log.Errorf("getDiagnostic error: %v", err)
 				respdata <- nil
 				return
 			}
@@ -237,7 +237,7 @@ func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Messa
 		out := <-respdata
 		_, err := buf.Write(out)
 		if err != nil {
-			log.Error("getDiagnostic write output error: %v", err)
+			log.Errorf("getDiagnostic write output error: %v", err)
 			continue
 		}
 	}
@@ -263,18 +263,18 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, mes msg.NetMessage) msg
 	pmes := new(pb.Message)
 	err := proto.Unmarshal(mData, pmes)
 	if err != nil {
-		log.Error("Failed to decode protobuf message: %v", err)
+		log.Errorf("Failed to decode protobuf message: %v", err)
 		return nil
 	}
 
 	// Print out diagnostic
-	log.Info("[peer: %s] Got message from [%s]\n",
+	log.Infof("[peer: %s] Got message from [%s]\n",
 		d.self.ID().Pretty(), mPeer.ID().Pretty())
 
 	// dispatch handler.
 	rpmes, err := d.handleDiagnostic(mPeer, pmes)
 	if err != nil {
-		log.Error("handleDiagnostic error: %s", err)
+		log.Errorf("handleDiagnostic error: %s", err)
 		return nil
 	}
 
@@ -286,7 +286,7 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, mes msg.NetMessage) msg
 	// serialize response msg
 	rmes, err := msg.FromObject(mPeer, rpmes)
 	if err != nil {
-		log.Error("Failed to encode protobuf message: %v", err)
+		log.Errorf("Failed to encode protobuf message: %v", err)
 		return nil
 	}
 

@@ -125,7 +125,7 @@ func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) pe
 		}
 		peerArr = append(peerArr, &pd)
 		if e == nil {
-			log.Debug("list element was nil.\n")
+			log.Debug("list element was nil")
 			return peerArr
 		}
 	}
@@ -148,7 +148,7 @@ func (rt *RoutingTable) NearestPeer(id ID) peer.Peer {
 		return peers[0]
 	}
 
-	log.Error("NearestPeer: Returning nil, table size = %d", rt.Size())
+	log.Errorf("NearestPeer: Returning nil, table size = %d", rt.Size())
 	return nil
 }
 

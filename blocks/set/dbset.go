@@ -11,6 +11,7 @@ type datastoreBlockSet struct {
 	bset   BlockSet
 }
 
+// NewDBWrapperSet returns a new blockset wrapping a given datastore
 func NewDBWrapperSet(d ds.Datastore, bset BlockSet) BlockSet {
 	return &datastoreBlockSet{
 		dstore: d,
@@ -21,7 +22,7 @@ func NewDBWrapperSet(d ds.Datastore, bset BlockSet) BlockSet {
 func (d *datastoreBlockSet) AddBlock(k util.Key) {
 	err := d.dstore.Put(k.DsKey(), []byte{})
 	if err != nil {
-		log.Error("blockset put error: %s", err)
+		log.Errorf("blockset put error: %s", err)
 	}
 
 	d.bset.AddBlock(k)

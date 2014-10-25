@@ -54,7 +54,7 @@ func (*Root) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("Root Lookup: '%s'", name)
+	log.Debugf("Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -162,6 +162,7 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 		syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
+		defer ipfs.Network.Close()
 		<-sigc
 		for {
 			err := Unmount(fpath)
@@ -170,7 +171,6 @@ func Mount(ipfs *core.IpfsNode, fpath string) error {
 			}
 			time.Sleep(time.Millisecond * 10)
 		}
-		ipfs.Network.Close()
 	}()
 
 	c, err := fuse.Mount(fpath)
