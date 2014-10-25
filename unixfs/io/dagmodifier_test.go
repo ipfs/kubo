@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
 	bs "github.com/jbenet/go-ipfs/blockservice"
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
@@ -14,6 +13,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 )
 
 func getMockDagServ(t *testing.T) *mdag.DAGService {

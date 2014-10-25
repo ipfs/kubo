@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/op/go-logging"
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 )
 
 func init() {

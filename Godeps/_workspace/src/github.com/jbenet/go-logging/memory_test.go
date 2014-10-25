@@ -51,7 +51,7 @@ func TestMemoryBackend(t *testing.T) {
 
 	// Run 13 times, the resulting vector should be [5..12]
 	for i := 0; i < 13; i++ {
-		log.Info("%d", i)
+		log.Infof("%d", i)
 	}
 
 	if 8 != backend.size {
@@ -89,7 +89,7 @@ func TestChannelMemoryBackend(t *testing.T) {
 
 	// Run 13 times, the resulting vector should be [5..12]
 	for i := 0; i < 13; i++ {
-		log.Info("%d", i)
+		log.Infof("%d", i)
 	}
 	backend.Flush()
 

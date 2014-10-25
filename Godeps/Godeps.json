@@ -88,6 +88,10 @@
 			"Rev": "93b717f2ae17838a265e30277275ee99ee7198d6"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-logging",
+			"Rev": "74bec4b83f6d45d1402c1e9d94c0c29e39f6e0ea"
+		},
+		{
 			"ImportPath": "github.com/jbenet/go-msgio",
 			"Rev": "c9069ab79c95aa0686347b516972c7329c4391f2"
 		},
@@ -108,10 +112,6 @@
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
-		},
-		{
-			"ImportPath": "github.com/op/go-logging",
-			"Rev": "3df864a88c7f005e676db4f026a4fe2f14929be3"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
