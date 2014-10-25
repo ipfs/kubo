@@ -283,7 +283,13 @@ func TestProvidesAsync(t *testing.T) {
 	ctxT, _ := context.WithTimeout(ctx, time.Millisecond*300)
 	provs := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 5)
 	select {
-	case p := <-provs:
+	case p, ok := <-provs:
+		if !ok {
+			t.Fatal("Provider channel was closed...")
+		}
+		if p == nil {
+			t.Fatal("Got back nil provider!")
+		}
 		if !p.ID().Equal(dhts[3].self.ID()) {
 			t.Fatalf("got a provider, but not the right one. %s", p)
 		}
