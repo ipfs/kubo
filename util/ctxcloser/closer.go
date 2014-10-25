@@ -50,9 +50,24 @@ type ContextCloser interface {
 	// Children is a sync.Waitgroup for all children goroutines that should
 	// shut down completely before this service is said to be "closed".
 	// Follows the semantics of WaitGroup:
+	//
 	//  Children().Add(1) // add one more dependent child
 	//  Children().Done() // child signals it is done
+	//
 	Children() *sync.WaitGroup
+
+	// AddCloserChild registers a dependent ContextCloser child. The child will
+	// be closed when this parent is closed, and waited upon to finish. It is
+	// the functional equivalent of the following:
+	//
+	//  go func(parent, child ContextCloser) {
+	//  	parent.Children().Add(1) // add one more dependent child
+	//  	<-parent.Closing()       // wait until parent is closing
+	//  	child.Close()            // signal child to close
+	//  	parent.Children().Done() // child signals it is done
+	//	}(a, b)
+	//
+	AddCloserChild(c ContextCloser)
 
 	// Close is a method to call when you wish to stop this ContextCloser
 	Close() error
@@ -115,6 +130,15 @@ func (c *contextCloser) Context() context.Context {
 
 func (c *contextCloser) Children() *sync.WaitGroup {
 	return &c.children
+}
+
+func (c *contextCloser) AddCloserChild(child ContextCloser) {
+	c.children.Add(1)
+	go func(parent, child ContextCloser) {
+		<-parent.Closing()       // wait until parent is closing
+		child.Close()            // signal child to close
+		parent.Children().Done() // child signals it is done
+	}(c, child)
 }
 
 // Close is the external close function. it's a wrapper around internalClose

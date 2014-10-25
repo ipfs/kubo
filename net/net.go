@@ -1,12 +1,11 @@
 package net
 
 import (
-	"errors"
-
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -23,30 +22,29 @@ type IpfsNetwork struct {
 	// peer connection multiplexing
 	swarm *swarm.Swarm
 
-	// network context
-	ctx    context.Context
-	cancel context.CancelFunc
+	// network context closer
+	ctxc.ContextCloser
 }
 
 // NewIpfsNetwork is the structure that implements the network interface
 func NewIpfsNetwork(ctx context.Context, local peer.Peer,
 	peers peer.Peerstore, pmap *mux.ProtocolMap) (*IpfsNetwork, error) {
 
-	ctx, cancel := context.WithCancel(ctx)
-
 	in := &IpfsNetwork{
-		local:  local,
-		muxer:  mux.NewMuxer(ctx, *pmap),
-		ctx:    ctx,
-		cancel: cancel,
+		local:         local,
+		muxer:         mux.NewMuxer(ctx, *pmap),
+		ContextCloser: ctxc.NewContextCloser(ctx, nil),
 	}
 
 	var err error
 	in.swarm, err = swarm.NewSwarm(ctx, local, peers)
 	if err != nil {
-		cancel()
+		in.Close()
 		return nil, err
 	}
+
+	in.AddCloserChild(in.swarm)
+	in.AddCloserChild(in.muxer)
 
 	// remember to wire components together.
 	in.muxer.Pipe.ConnectTo(in.swarm.Pipe)
@@ -86,20 +84,6 @@ func (n *IpfsNetwork) GetProtocols() *mux.ProtocolMap {
 // SendMessage sends given Message out
 func (n *IpfsNetwork) SendMessage(m msg.NetMessage) error {
 	n.swarm.Outgoing <- m
-	return nil
-}
-
-// Close terminates all network operation
-func (n *IpfsNetwork) Close() error {
-	if n.cancel == nil {
-		return errors.New("Network already closed.")
-	}
-
-	n.swarm.Close()
-	n.muxer.Close()
-
-	n.cancel()
-	n.cancel = nil
 	return nil
 }
 
