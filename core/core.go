@@ -138,6 +138,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// TODO(brian): perform this inside NewDHT factory method
 		dhtService.SetHandler(dhtRouting) // wire the handler to the service.
 		n.Routing = dhtRouting
+		n.AddCloserChild(dhtRouting)
 
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
