@@ -1,4 +1,4 @@
-package dht
+package dht_pb
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-func newMessage(typ Message_MessageType, key string, level int) *Message {
+func NewMessage(typ Message_MessageType, key string, level int) *Message {
 	m := &Message{
 		Type: &typ,
 		Key:  &key,
@@ -31,7 +31,7 @@ func peerToPBPeer(p peer.Peer) *Message_Peer {
 	return pbp
 }
 
-func peersToPBPeers(peers []peer.Peer) []*Message_Peer {
+func PeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
 		pbpeers[i] = peerToPBPeer(p)
@@ -53,8 +53,7 @@ func (m *Message_Peer) Address() (ma.Multiaddr, error) {
 func (m *Message) GetClusterLevel() int {
 	level := m.GetClusterLevelRaw() - 1
 	if level < 0 {
-		log.Debug("GetClusterLevel: no routing level specified, assuming 0")
-		level = 0
+		return 0
 	}
 	return int(level)
 }

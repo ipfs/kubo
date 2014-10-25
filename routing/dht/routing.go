@@ -6,6 +6,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -153,7 +154,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 }
 
 //TODO: this function could also be done asynchronously
-func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
+func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*pb.Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
 	for _, pbp := range peers {
 
 		// construct new peer
@@ -276,7 +277,7 @@ func (dht *IpfsDHT) Ping(ctx context.Context, p peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	log.Info("ping %s start", p)
 
-	pmes := newMessage(Message_PING, "", 0)
+	pmes := pb.NewMessage(pb.Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
 	log.Info("ping %s end (err = %s)", p, err)
 	return err
