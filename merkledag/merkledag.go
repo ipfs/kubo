@@ -2,6 +2,9 @@ package merkledag
 
 import (
 	"fmt"
+	"time"
+
+	"code.google.com/p/go.net/context"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
@@ -204,7 +207,8 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 		return nil, fmt.Errorf("DAGService is nil")
 	}
 
-	b, err := n.Blocks.GetBlock(k)
+	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
 		return nil, err
 	}

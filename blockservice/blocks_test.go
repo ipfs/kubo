@@ -3,6 +3,9 @@ package blockservice
 import (
 	"bytes"
 	"testing"
+	"time"
+
+	"code.google.com/p/go.net/context"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	blocks "github.com/jbenet/go-ipfs/blocks"
@@ -37,7 +40,8 @@ func TestBlocks(t *testing.T) {
 		t.Error("returned key is not equal to block key", err)
 	}
 
-	b2, err := bs.GetBlock(b.Key())
+	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	b2, err := bs.GetBlock(ctx, b.Key())
 	if err != nil {
 		t.Error("failed to retrieve block from BlockService", err)
 		return
