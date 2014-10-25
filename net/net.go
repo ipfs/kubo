@@ -36,17 +36,12 @@ func NewIpfsNetwork(ctx context.Context, local peer.Peer,
 
 	in := &IpfsNetwork{
 		local:  local,
-		muxer:  mux.NewMuxer(*pmap),
+		muxer:  mux.NewMuxer(ctx, *pmap),
 		ctx:    ctx,
 		cancel: cancel,
 	}
 
-	err := in.muxer.Start(ctx)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
+	var err error
 	in.swarm, err = swarm.NewSwarm(ctx, local, peers)
 	if err != nil {
 		cancel()
@@ -101,7 +96,7 @@ func (n *IpfsNetwork) Close() error {
 	}
 
 	n.swarm.Close()
-	n.muxer.Stop()
+	n.muxer.Close()
 
 	n.cancel()
 	n.cancel = nil

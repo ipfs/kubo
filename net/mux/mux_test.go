@@ -54,22 +54,19 @@ func testWrappedMsg(t *testing.T, m msg.NetMessage, pid pb.ProtocolID, data []by
 }
 
 func TestSimpleMuxer(t *testing.T) {
+	ctx := context.Background()
 
 	// setup
 	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	pid1 := pb.ProtocolID_Test
 	pid2 := pb.ProtocolID_Routing
-	mux1 := NewMuxer(ProtocolMap{
+	mux1 := NewMuxer(ctx, ProtocolMap{
 		pid1: p1,
 		pid2: p2,
 	})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
-
-	// run muxer
-	ctx := context.Background()
-	mux1.Start(ctx)
 
 	// test outgoing p1
 	for _, s := range []string{"foo", "bar", "baz"} {
@@ -105,22 +102,20 @@ func TestSimpleMuxer(t *testing.T) {
 }
 
 func TestSimultMuxer(t *testing.T) {
+	// run muxer
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// setup
 	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	pid1 := pb.ProtocolID_Test
 	pid2 := pb.ProtocolID_Identify
-	mux1 := NewMuxer(ProtocolMap{
+	mux1 := NewMuxer(ctx, ProtocolMap{
 		pid1: p1,
 		pid2: p2,
 	})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
-
-	// run muxer
-	ctx, cancel := context.WithCancel(context.Background())
-	mux1.Start(ctx)
 
 	// counts
 	total := 10000
@@ -214,21 +209,19 @@ func TestSimultMuxer(t *testing.T) {
 }
 
 func TestStopping(t *testing.T) {
+	ctx := context.Background()
 
 	// setup
 	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
 	pid1 := pb.ProtocolID_Test
 	pid2 := pb.ProtocolID_Identify
-	mux1 := NewMuxer(ProtocolMap{
+	mux1 := NewMuxer(ctx, ProtocolMap{
 		pid1: p1,
 		pid2: p2,
 	})
 	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
 	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
-
-	// run muxer
-	mux1.Start(context.Background())
 
 	// test outgoing p1
 	for _, s := range []string{"foo1", "bar1", "baz1"} {
@@ -246,10 +239,7 @@ func TestStopping(t *testing.T) {
 		testMsg(t, <-p1.Incoming, []byte(s))
 	}
 
-	mux1.Stop()
-	if mux1.cancel != nil {
-		t.Error("mux.cancel should be nil")
-	}
+	mux1.Close() // waits
 
 	// test outgoing p1
 	for _, s := range []string{"foo3", "bar3", "baz3"} {
@@ -274,5 +264,4 @@ func TestStopping(t *testing.T) {
 		case <-time.After(time.Millisecond):
 		}
 	}
-
 }

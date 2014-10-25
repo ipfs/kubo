@@ -9,6 +9,8 @@ import (
 // CloseFunc is a function used to close a ContextCloser
 type CloseFunc func() error
 
+var nilCloseFunc = func() error { return nil }
+
 // ContextCloser is an interface for services able to be opened and closed.
 // It has a parent Context, and Children. But ContextCloser is not a proper
 // "tree" like the Context tree. It is more like a Context-WaitGroup hybrid.
@@ -92,6 +94,9 @@ type contextCloser struct {
 // NewContextCloser constructs and returns a ContextCloser. It will call
 // cf CloseFunc before its Done() Wait signals fire.
 func NewContextCloser(ctx context.Context, cf CloseFunc) ContextCloser {
+	if cf == nil {
+		cf = nilCloseFunc
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	c := &contextCloser{
 		ctx:       ctx,
