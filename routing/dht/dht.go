@@ -384,18 +384,11 @@ func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID,
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) printTables() {
-	for _, route := range dht.routingTables {
-		route.Print()
-	}
-}
-
 func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.Key, level int) (*Message, error) {
 	pmes := newMessage(Message_GET_PROVIDERS, string(key), level)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-// TODO: Could be done async
 func (dht *IpfsDHT) addProviders(key u.Key, peers []*Message_Peer) []peer.Peer {
 	var provArr []peer.Peer
 	for _, prov := range peers {

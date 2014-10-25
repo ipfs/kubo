@@ -88,7 +88,6 @@ func (rt *RoutingTable) nextBucket() peer.Peer {
 	newBucket := bucket.Split(len(rt.Buckets)-1, rt.local)
 	rt.Buckets = append(rt.Buckets, newBucket)
 	if newBucket.len() > rt.bucketsize {
-		// TODO: This is a very rare and annoying case
 		return rt.nextBucket()
 	}
 
