@@ -26,6 +26,7 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 var log = u.Logger("core")
@@ -71,6 +72,8 @@ type IpfsNode struct {
 
 	// the pinning manager
 	Pinning pin.Pinner
+
+	ctxc.ContextCloser
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -159,21 +162,25 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 	}
 
 	success = true
-	return &IpfsNode{
-		Config:      cfg,
-		Peerstore:   peerstore,
-		Datastore:   d,
-		Blocks:      bs,
-		DAG:         dag,
-		Resolver:    &path.Resolver{DAG: dag},
-		Exchange:    exchangeSession,
-		Identity:    local,
-		Routing:     route,
-		Namesys:     ns,
-		Diagnostics: diagnostics,
-		Network:     network,
-		Pinning:     p,
-	}, nil
+	n := &IpfsNode{
+		Config:        cfg,
+		Peerstore:     peerstore,
+		Datastore:     d,
+		Blocks:        bs,
+		DAG:           dag,
+		Resolver:      &path.Resolver{DAG: dag},
+		Exchange:      exchangeSession,
+		Identity:      local,
+		Routing:       route,
+		Namesys:       ns,
+		Diagnostics:   diagnostics,
+		Network:       network,
+		Pinning:       p,
+		ContextCloser: ctxc.NewContextCloser(ctx, nil),
+	}
+
+	n.AddCloserChild(n.Network)
+	return n, nil
 }
 
 func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.Peer, error) {
