@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	"github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
