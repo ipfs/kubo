@@ -540,7 +540,11 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	id := make([]byte, 16)
 	rand.Read(id)
-	_, err := dht.FindPeer(ctx, peer.ID(id))
+	p, err := dht.FindPeer(ctx, peer.ID(id))
+	if err != nil {
+		log.Error("Bootstrap peer error: %s", err)
+	}
+	err = dht.dialer.DialPeer(p)
 	if err != nil {
 		log.Errorf("Bootstrap peer error: %s", err)
 	}

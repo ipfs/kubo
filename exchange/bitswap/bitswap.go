@@ -94,7 +94,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
-					log.Errorf("Error sender.SendRequest(%s)", p)
+					log.Error("Error sender.SendRequest(%s) = %s", p, err)
 					return
 				}
 				// FIXME ensure accounting is handled correctly when

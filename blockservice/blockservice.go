@@ -76,3 +76,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 		return nil, u.ErrNotFound
 	}
 }
+
+func (s *BlockService) DeleteBlock(k u.Key) error {
+	return s.Datastore.Delete(k.DsKey())
+}

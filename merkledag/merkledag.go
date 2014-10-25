@@ -215,3 +215,16 @@ func (n *DAGService) Get(k u.Key) (*Node, error) {
 
 	return Decoded(b.Data)
 }
+
+func (n *DAGService) Remove(nd *Node) error {
+	for _, l := range nd.Links {
+		if l.Node != nil {
+			n.Remove(l.Node)
+		}
+	}
+	k, err := nd.Key()
+	if err != nil {
+		return err
+	}
+	return n.Blocks.DeleteBlock(k)
+}
