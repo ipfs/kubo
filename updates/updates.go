@@ -81,6 +81,9 @@ var log = u.Logger("updates")
 
 var currentVersion *semver.Version
 
+// ErrNoUpdateAvailable returned when a check fails to find a newer update.
+var ErrNoUpdateAvailable = check.NoUpdateAvailable
+
 func init() {
 	var err error
 	currentVersion, err = parseVersion()
@@ -96,6 +99,9 @@ func parseVersion() (*semver.Version, error) {
 }
 
 // CheckForUpdate checks the equinox.io api if there is an update available
+// NOTE: if equinox says there is a new update, but the version number IS NOT
+// larger, we interpret that as no update (you may have gotten a newer version
+// by building it yourself).
 func CheckForUpdate() (*check.Result, error) {
 	param := check.Params{
 		AppVersion: Version,
@@ -108,7 +114,19 @@ func CheckForUpdate() (*check.Result, error) {
 		return nil, fmt.Errorf("Failed to parse public key: %v", err)
 	}
 
-	return param.CheckForUpdate(updateEndpointURL, up)
+	res, err := param.CheckForUpdate(updateEndpointURL, up)
+	if err != nil {
+		return res, err
+	}
+
+	newer, err := versionIsNewer(res.Version)
+	if err != nil {
+		return nil, err
+	}
+	if !newer {
+		return nil, ErrNoUpdateAvailable
+	}
+	return res, err
 }
 
 // Apply cheks if the running process is able to update itself
@@ -177,6 +195,7 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 	return false
 }
 
+// CliCheckForUpdates is the automatic update check from the commandline.
 func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 
 	// if config says not to, don't check for updates
@@ -188,7 +207,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	log.Info("checking for update")
 	u, err := CheckForUpdate()
 	// if there is no update available, record it, and exit.
-	if err == check.NoUpdateAvailable {
+	if err == ErrNoUpdateAvailable {
 		log.Noticef("No update available, checked on %s", time.Now())
 		config.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
 		return nil
@@ -196,12 +215,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 
 	// if another, unexpected error occurred, note it.
 	if err != nil {
-		if cfg.Version.Check == config.CheckError {
-			log.Errorf("Error while checking for update: %v", err)
-			return nil
-		}
-		// when "warn" version.check mode we just show a warning message
-		log.Warning(err.Error())
+		log.Errorf("Error while checking for update: %v", err)
 		return nil
 	}
 
@@ -234,6 +248,17 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	default: // ignore
 	}
 	return nil
+}
+
+func versionIsNewer(version string) (bool, error) {
+	nv, err := semver.NewVersion(version)
+	if err != nil {
+		return false, fmt.Errorf("could not parse version string: %s", err)
+	}
+
+	cv := currentVersion
+	newer := !nv.LessThan(*cv) && nv.String() != cv.String()
+	return newer, nil
 }
 
 var errShouldUpdate = `
