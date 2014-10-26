@@ -26,6 +26,7 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 var log = u.Logger("core")
@@ -71,17 +72,16 @@ type IpfsNode struct {
 
 	// the pinning manager
 	Pinning pin.Pinner
+
+	ctxc.ContextCloser
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
-func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
-	// derive this from a higher context.
-	// cancel if we need to fail early.
-	ctx, cancel := context.WithCancel(context.TODO())
+func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	success := false // flip to true after all sub-system inits succeed
 	defer func() {
-		if !success {
-			cancel()
+		if !success && n != nil {
+			n.Close()
 		}
 	}()
 
@@ -89,101 +89,81 @@ func NewIpfsNode(cfg *config.Config, online bool) (*IpfsNode, error) {
 		return nil, fmt.Errorf("configuration required")
 	}
 
-	d, err := makeDatastore(cfg.Datastore)
+	// derive this from a higher context.
+	ctx := context.TODO()
+	n = &IpfsNode{
+		Config:        cfg,
+		ContextCloser: ctxc.NewContextCloser(ctx, nil),
+	}
+
+	// setup datastore.
+	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
+		return nil, err
+	}
+
+	// setup peerstore + local peer identity
+	n.Peerstore = peer.NewPeerstore()
+	n.Identity, err = initIdentity(n.Config, n.Peerstore, online)
 	if err != nil {
 		return nil, err
 	}
 
-	peerstore := peer.NewPeerstore()
-	local, err := initIdentity(cfg, peerstore, online)
-	if err != nil {
-		return nil, err
-	}
-
-	// FIXME(brian): This is a bit dangerous. If any of the vars declared in
-	// this block are assigned inside of the "if online" block using the ":="
-	// declaration syntax, the compiler permits re-declaration. This is rather
-	// undesirable
-	var (
-		net inet.Network
-		// TODO: refactor so we can use IpfsRouting interface instead of being DHT-specific
-		route           *dht.IpfsDHT
-		exchangeSession exchange.Interface
-		diagnostics     *diag.Diagnostics
-		network         inet.Network
-	)
-
+	// setup online services
 	if online {
 
-		dhtService := netservice.NewService(nil)      // nil handler for now, need to patch it
-		exchangeService := netservice.NewService(nil) // nil handler for now, need to patch it
-		diagService := netservice.NewService(nil)
+		dhtService := netservice.NewService(ctx, nil)      // nil handler for now, need to patch it
+		exchangeService := netservice.NewService(ctx, nil) // nil handler for now, need to patch it
+		diagService := netservice.NewService(ctx, nil)     // nil handler for now, need to patch it
 
-		if err := dhtService.Start(ctx); err != nil {
-			return nil, err
-		}
-		if err := exchangeService.Start(ctx); err != nil {
-			return nil, err
-		}
-		if err := diagService.Start(ctx); err != nil {
-			return nil, err
-		}
-
-		net, err = inet.NewIpfsNetwork(ctx, local, peerstore, &mux.ProtocolMap{
+		muxMap := &mux.ProtocolMap{
 			mux.ProtocolID_Routing:    dhtService,
 			mux.ProtocolID_Exchange:   exchangeService,
 			mux.ProtocolID_Diagnostic: diagService,
 			// add protocol services here.
-		})
+		}
+
+		// setup the network
+		n.Network, err = inet.NewIpfsNetwork(ctx, n.Identity, n.Peerstore, muxMap)
 		if err != nil {
 			return nil, err
 		}
-		network = net
+		n.AddCloserChild(n.Network)
 
-		diagnostics = diag.NewDiagnostics(local, net, diagService)
-		diagService.SetHandler(diagnostics)
+		// setup diagnostics service
+		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.Network, diagService)
+		diagService.SetHandler(n.Diagnostics)
 
-		route = dht.NewDHT(ctx, local, peerstore, net, dhtService, d)
+		// setup routing service
+		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Peerstore, n.Network, dhtService, n.Datastore)
 		// TODO(brian): perform this inside NewDHT factory method
-		dhtService.SetHandler(route) // wire the handler to the service.
+		dhtService.SetHandler(dhtRouting) // wire the handler to the service.
+		n.Routing = dhtRouting
+		n.AddCloserChild(dhtRouting)
 
+		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
-		exchangeSession = bitswap.NetMessageSession(ctx, local, net, exchangeService, route, d, alwaysSendToPeer)
+		n.Exchange = bitswap.NetMessageSession(ctx, n.Identity, n.Network, exchangeService, n.Routing, n.Datastore, alwaysSendToPeer)
+		// ok, this function call is ridiculous o/ consider making it simpler.
 
-		// TODO(brian): pass a context to initConnections
-		go initConnections(ctx, cfg, peerstore, route)
+		go initConnections(ctx, n.Config, n.Peerstore, dhtRouting)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
 	// session that simply doesn't return blocks
-	bs, err := bserv.NewBlockService(d, exchangeSession)
+	n.Blocks, err = bserv.NewBlockService(n.Datastore, n.Exchange)
 	if err != nil {
 		return nil, err
 	}
 
-	dag := merkledag.NewDAGService(bs)
-	ns := namesys.NewNameSystem(route)
-	p, err := pin.LoadPinner(d, dag)
+	n.DAG = merkledag.NewDAGService(n.Blocks)
+	n.Namesys = namesys.NewNameSystem(n.Routing)
+	n.Pinning, err = pin.LoadPinner(n.Datastore, n.DAG)
 	if err != nil {
-		p = pin.NewPinner(d, dag)
+		n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
 	}
 
 	success = true
-	return &IpfsNode{
-		Config:      cfg,
-		Peerstore:   peerstore,
-		Datastore:   d,
-		Blocks:      bs,
-		DAG:         dag,
-		Resolver:    &path.Resolver{DAG: dag},
-		Exchange:    exchangeSession,
-		Identity:    local,
-		Routing:     route,
-		Namesys:     ns,
-		Diagnostics: diagnostics,
-		Network:     network,
-		Pinning:     p,
-	}, nil
+	return n, nil
 }
 
 func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.Peer, error) {

@@ -205,9 +205,3 @@ func (dht *IpfsDHT) handleAddProvider(p peer.Peer, pmes *pb.Message) (*pb.Messag
 
 	return pmes, nil // send back same msg as confirmation.
 }
-
-// Halt stops all communications from this peer and shut down
-// TODO -- remove this in favor of context
-func (dht *IpfsDHT) Halt() {
-	dht.providers.Halt()
-}

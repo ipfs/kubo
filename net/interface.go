@@ -5,10 +5,12 @@ import (
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	srv "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 // Network is the interface IPFS uses for connecting to the world.
 type Network interface {
+	ctxc.ContextCloser
 
 	// Listen handles incoming connections on given Multiaddr.
 	// Listen(*ma.Muliaddr) error
@@ -35,9 +37,6 @@ type Network interface {
 
 	// SendMessage sends given Message out
 	SendMessage(msg.NetMessage) error
-
-	// Close terminates all network operation
-	Close() error
 }
 
 // Sender interface for network services.

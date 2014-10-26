@@ -7,6 +7,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	pb "github.com/jbenet/go-ipfs/net/mux/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -14,6 +15,8 @@ import (
 
 var log = u.Logger("muxer")
 
+// ProtocolIDs used to identify each protocol.
+// These should probably be defined elsewhere.
 var (
 	ProtocolID_Routing    = pb.ProtocolID_Routing
 	ProtocolID_Exchange   = pb.ProtocolID_Exchange
@@ -38,11 +41,6 @@ type Muxer struct {
 	// Protocols are the multiplexed services.
 	Protocols ProtocolMap
 
-	// cancel is the function to stop the Muxer
-	cancel context.CancelFunc
-	ctx    context.Context
-	wg     sync.WaitGroup
-
 	bwiLock sync.Mutex
 	bwIn    uint64
 
@@ -50,14 +48,25 @@ type Muxer struct {
 	bwOut   uint64
 
 	*msg.Pipe
+	ctxc.ContextCloser
 }
 
 // NewMuxer constructs a muxer given a protocol map.
-func NewMuxer(mp ProtocolMap) *Muxer {
-	return &Muxer{
-		Protocols: mp,
-		Pipe:      msg.NewPipe(10),
+func NewMuxer(ctx context.Context, mp ProtocolMap) *Muxer {
+	m := &Muxer{
+		Protocols:     mp,
+		Pipe:          msg.NewPipe(10),
+		ContextCloser: ctxc.NewContextCloser(ctx, nil),
 	}
+
+	m.Children().Add(1)
+	go m.handleIncomingMessages()
+	for pid, proto := range m.Protocols {
+		m.Children().Add(1)
+		go m.handleOutgoingMessages(pid, proto)
+	}
+
+	return m
 }
 
 // GetPipe implements the Protocol interface
@@ -65,30 +74,7 @@ func (m *Muxer) GetPipe() *msg.Pipe {
 	return m.Pipe
 }
 
-// Start kicks off the Muxer goroutines.
-func (m *Muxer) Start(ctx context.Context) error {
-	if m == nil {
-		panic("nix muxer")
-	}
-
-	if m.cancel != nil {
-		return errors.New("Muxer already started.")
-	}
-
-	// make a cancellable context.
-	m.ctx, m.cancel = context.WithCancel(ctx)
-	m.wg = sync.WaitGroup{}
-
-	m.wg.Add(1)
-	go m.handleIncomingMessages()
-	for pid, proto := range m.Protocols {
-		m.wg.Add(1)
-		go m.handleOutgoingMessages(pid, proto)
-	}
-
-	return nil
-}
-
+// GetBandwidthTotals return the in/out bandwidth measured over this muxer.
 func (m *Muxer) GetBandwidthTotals() (in uint64, out uint64) {
 	m.bwiLock.Lock()
 	in = m.bwIn
@@ -98,19 +84,6 @@ func (m *Muxer) GetBandwidthTotals() (in uint64, out uint64) {
 	out = m.bwOut
 	m.bwoLock.Unlock()
 	return
-}
-
-// Stop stops muxer activity.
-func (m *Muxer) Stop() {
-	if m.cancel == nil {
-		panic("muxer stopped twice.")
-	}
-	// issue cancel, and wipe func.
-	m.cancel()
-	m.cancel = context.CancelFunc(nil)
-
-	// wait for everything to wind down.
-	m.wg.Wait()
 }
 
 // AddProtocol adds a Protocol with given ProtocolID to the Muxer.
@@ -126,28 +99,26 @@ func (m *Muxer) AddProtocol(p Protocol, pid pb.ProtocolID) error {
 // handleIncoming consumes the messages on the m.Incoming channel and
 // routes them appropriately (to the protocols).
 func (m *Muxer) handleIncomingMessages() {
-	defer m.wg.Done()
+	defer m.Children().Done()
 
 	for {
-		if m == nil {
-			panic("nil muxer")
-		}
-
 		select {
+		case <-m.Closing():
+			return
+
 		case msg, more := <-m.Incoming:
 			if !more {
 				return
 			}
+			m.Children().Add(1)
 			go m.handleIncomingMessage(msg)
-
-		case <-m.ctx.Done():
-			return
 		}
 	}
 }
 
 // handleIncomingMessage routes message to the appropriate protocol.
 func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
+	defer m.Children().Done()
 
 	m.bwiLock.Lock()
 	// TODO: compensate for overhead
@@ -169,8 +140,7 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 
 	select {
 	case proto.GetPipe().Incoming <- m2:
-	case <-m.ctx.Done():
-		log.Error(m.ctx.Err())
+	case <-m.Closing():
 		return
 	}
 }
@@ -178,7 +148,7 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 // handleOutgoingMessages consumes the messages on the proto.Outgoing channel,
 // wraps them and sends them out.
 func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
-	defer m.wg.Done()
+	defer m.Children().Done()
 
 	for {
 		select {
@@ -186,9 +156,10 @@ func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 			if !more {
 				return
 			}
+			m.Children().Add(1)
 			go m.handleOutgoingMessage(pid, msg)
 
-		case <-m.ctx.Done():
+		case <-m.Closing():
 			return
 		}
 	}
@@ -196,6 +167,8 @@ func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 
 // handleOutgoingMessage wraps out a message and sends it out the
 func (m *Muxer) handleOutgoingMessage(pid pb.ProtocolID, m1 msg.NetMessage) {
+	defer m.Children().Done()
+
 	data, err := wrapData(m1.Data(), pid)
 	if err != nil {
 		log.Errorf("muxer serializing error: %v", err)
@@ -204,13 +177,14 @@ func (m *Muxer) handleOutgoingMessage(pid pb.ProtocolID, m1 msg.NetMessage) {
 
 	m.bwoLock.Lock()
 	// TODO: compensate for overhead
+	// TODO(jbenet): switch this to a goroutine to prevent sync waiting.
 	m.bwOut += uint64(len(data))
 	m.bwoLock.Unlock()
 
 	m2 := msg.New(m1.Peer(), data)
 	select {
 	case m.GetPipe().Outgoing <- m2:
-	case <-m.ctx.Done():
+	case <-m.Closing():
 		return
 	}
 }

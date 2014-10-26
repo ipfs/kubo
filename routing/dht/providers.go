@@ -5,6 +5,9 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 type ProviderManager struct {
@@ -14,8 +17,8 @@ type ProviderManager struct {
 	getlocal  chan chan []u.Key
 	newprovs  chan *addProv
 	getprovs  chan *getProv
-	halt      chan struct{}
 	period    time.Duration
+	ctxc.ContextCloser
 }
 
 type addProv struct {
@@ -28,19 +31,24 @@ type getProv struct {
 	resp chan []peer.Peer
 }
 
-func NewProviderManager(local peer.ID) *ProviderManager {
+func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm := new(ProviderManager)
 	pm.getprovs = make(chan *getProv)
 	pm.newprovs = make(chan *addProv)
 	pm.providers = make(map[u.Key][]*providerInfo)
 	pm.getlocal = make(chan chan []u.Key)
 	pm.local = make(map[u.Key]struct{})
-	pm.halt = make(chan struct{})
+	pm.ContextCloser = ctxc.NewContextCloser(ctx, nil)
+
+	pm.Children().Add(1)
 	go pm.run()
+
 	return pm
 }
 
 func (pm *ProviderManager) run() {
+	defer pm.Children().Done()
+
 	tick := time.NewTicker(time.Hour)
 	for {
 		select {
@@ -53,6 +61,7 @@ func (pm *ProviderManager) run() {
 			pi.Value = np.val
 			arr := pm.providers[np.k]
 			pm.providers[np.k] = append(arr, pi)
+
 		case gp := <-pm.getprovs:
 			var parr []peer.Peer
 			provs := pm.providers[gp.k]
@@ -60,12 +69,14 @@ func (pm *ProviderManager) run() {
 				parr = append(parr, p.Value)
 			}
 			gp.resp <- parr
+
 		case lc := <-pm.getlocal:
 			var keys []u.Key
 			for k, _ := range pm.local {
 				keys = append(keys, k)
 			}
 			lc <- keys
+
 		case <-tick.C:
 			for k, provs := range pm.providers {
 				var filtered []*providerInfo
@@ -76,7 +87,8 @@ func (pm *ProviderManager) run() {
 				}
 				pm.providers[k] = filtered
 			}
-		case <-pm.halt:
+
+		case <-pm.Closing():
 			return
 		}
 	}
@@ -101,8 +113,4 @@ func (pm *ProviderManager) GetLocal() []u.Key {
 	resp := make(chan []u.Key)
 	pm.getlocal <- resp
 	return <-resp
-}
-
-func (pm *ProviderManager) Halt() {
-	pm.halt <- struct{}{}
 }

@@ -14,6 +14,7 @@ import (
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
+	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -56,7 +57,7 @@ type IpfsDHT struct {
 	//lock to make diagnostics work better
 	diaglock sync.Mutex
 
-	ctx context.Context
+	ctxc.ContextCloser
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
@@ -67,9 +68,10 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 	dht.datastore = dstore
 	dht.self = p
 	dht.peerstore = ps
-	dht.ctx = ctx
+	dht.ContextCloser = ctxc.NewContextCloser(ctx, nil)
 
-	dht.providers = NewProviderManager(p.ID())
+	dht.providers = NewProviderManager(dht.Context(), p.ID())
+	dht.AddCloserChild(dht.providers)
 
 	dht.routingTables = make([]*kb.RoutingTable, 3)
 	dht.routingTables[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Millisecond*1000)
@@ -78,6 +80,7 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 	dht.birth = time.Now()
 
 	if doPinging {
+		dht.Children().Add(1)
 		go dht.PingRoutine(time.Second * 10)
 	}
 	return dht
@@ -516,6 +519,8 @@ func (dht *IpfsDHT) loadProvidableKeys() error {
 
 // PingRoutine periodically pings nearest neighbors.
 func (dht *IpfsDHT) PingRoutine(t time.Duration) {
+	defer dht.Children().Done()
+
 	tick := time.Tick(t)
 	for {
 		select {
@@ -524,13 +529,13 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 			rand.Read(id)
 			peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(u.Key(id)), 5)
 			for _, p := range peers {
-				ctx, _ := context.WithTimeout(dht.ctx, time.Second*5)
+				ctx, _ := context.WithTimeout(dht.Context(), time.Second*5)
 				err := dht.Ping(ctx, p)
 				if err != nil {
 					log.Errorf("Ping error: %s", err)
 				}
 			}
-		case <-dht.ctx.Done():
+		case <-dht.Closing():
 			return
 		}
 	}
