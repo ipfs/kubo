@@ -49,7 +49,7 @@ func NewMockNode() (*IpfsNode, error) {
 		return nil, err
 	}
 
-	nd.DAG = &mdag.DAGService{Blocks: bserv}
+	nd.DAG = mdag.NewDAGService(bserv)
 
 	// Namespace resolver
 	nd.Namesys = nsys.NewNameSystem(dht)

@@ -24,7 +24,7 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dserv := &mdag.DAGService{Blocks: bserv}
+	dserv := mdag.NewDAGService(bserv)
 
 	p := NewPinner(dstore, dserv)
 

@@ -16,7 +16,7 @@ var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv     *mdag.DAGService
+	serv     mdag.DAGService
 	node     *mdag.Node
 	position int
 	buf      *bytes.Buffer
@@ -24,7 +24,7 @@ type DagReader struct {
 
 // NewDagReader creates a new reader object that reads the data represented by the given
 // node, using the passed in DAGService for data retreival
-func NewDagReader(n *mdag.Node, serv *mdag.DAGService) (io.Reader, error) {
+func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 	pb := new(ftpb.Data)
 	err := proto.Unmarshal(n.Data, pb)
 	if err != nil {

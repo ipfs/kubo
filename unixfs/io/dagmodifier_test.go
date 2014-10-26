@@ -16,17 +16,17 @@ import (
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 )
 
-func getMockDagServ(t *testing.T) *mdag.DAGService {
+func getMockDagServ(t *testing.T) mdag.DAGService {
 	dstore := ds.NewMapDatastore()
 	bserv, err := bs.NewBlockService(dstore, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &mdag.DAGService{Blocks: bserv}
+	return mdag.NewDAGService(bserv)
 }
 
-func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	dw := NewDagWriter(dserv, &chunk.SizeSplitter{Size: 500})
+func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
+	dw := NewDagWriter(dserv, &chunk.SizeSplitter{500})
 
 	n, err := io.CopyN(dw, u.NewFastRand(), size)
 	if err != nil {
@@ -36,7 +36,11 @@ func getNode(t *testing.T, dserv *mdag.DAGService, size int64) ([]byte, *mdag.No
 		t.Fatal("Incorrect copy amount!")
 	}
 
-	dw.Close()
+	err = dw.Close()
+	if err != nil {
+		t.Fatal("DagWriter failed to close,", err)
+	}
+
 	node := dw.GetNode()
 
 	dr, err := NewDagReader(node, dserv)
