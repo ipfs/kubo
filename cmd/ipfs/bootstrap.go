@@ -187,21 +187,6 @@ func bootstrapListCmd(c *commander.Command, inp []string) error {
 	return nil
 }
 
-func writeConfig(c *commander.Command, cfg *config.Config) error {
-
-	confdir, err := getConfigDir(c)
-	if err != nil {
-		return err
-	}
-
-	filename, err := config.Filename(confdir)
-	if err != nil {
-		return err
-	}
-
-	return config.WriteConfigFile(filename, cfg)
-}
-
 func bootstrapInputToPeers(input []string) ([]*config.BootstrapPeer, error) {
 	split := func(addr string) (string, string) {
 		idx := strings.LastIndex(addr, "/")
