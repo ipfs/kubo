@@ -104,7 +104,7 @@ func tourListCmd(c *commander.Command, _ []string) error {
 		}
 
 		t := tour.Topics[id]
-		fmt.Printf("- %c %5.5s %s\n", c, id, t.Title)
+		fmt.Printf("- %c %-5.5s %s\n", c, id, t.Title)
 	}
 	return nil
 }
