@@ -18,10 +18,11 @@ var ansiBlue = "\033[0;34m"
 
 // LogFormats is a map of formats used for our logger, keyed by name.
 var LogFormats = map[string]string{
-	"default": "%{color}%{time:2006-01-02 15:04:05.000000} %{level} %{module} %{shortfile}:	%{color:reset}%{message}",
+	"nocolor": "%{time:2006-01-02 15:04:05.000000} %{level} %{module} %{shortfile}: %{message}",
 	"color": ansiGray + "%{time:15:04:05.000} %{color}%{level:5.5s} " + ansiBlue +
 		"%{module:10.10s}: %{color:reset}%{message} " + ansiGray + "%{shortfile}%{color:reset}",
 }
+var defaultLogFormat = "color"
 
 // Logging environment variables
 const (
@@ -42,7 +43,7 @@ func SetupLogging() {
 
 	fmt := LogFormats[os.Getenv(envLoggingFmt)]
 	if fmt == "" {
-		fmt = LogFormats["default"]
+		fmt = LogFormats[defaultLogFormat]
 	}
 
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
