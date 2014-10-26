@@ -36,6 +36,7 @@ func NewDagFromReaderWithSplitter(r io.Reader, spl chunk.BlockSplitter) (*dag.No
 
 	mbf := new(ft.MultiBlock)
 	for blk := range blkChan {
+		log.Debugf("created block, size %d", len(blk))
 		mbf.AddBlockSize(uint64(len(blk)))
 		child := &dag.Node{Data: ft.WrapData(blk)}
 		err := root.AddNodeLink("", child)

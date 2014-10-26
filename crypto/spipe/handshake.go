@@ -275,6 +275,7 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 
 	myMac, macSize := makeMac(hashType, mMKey)
 
+	basebuf := make([]byte, 1<<22)
 	for {
 		var data []byte
 		ok := true
@@ -294,17 +295,21 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 			continue
 		}
 
-		buff := make([]byte, len(data)+macSize)
+		buff := basebuf[:len(data)+macSize]
 
-		myCipher.XORKeyStream(buff, data)
-
-		myMac.Write(buff[0:len(data)])
-		copy(buff[len(data):], myMac.Sum(nil))
-		myMac.Reset()
+		encData(data, buff, myCipher, myMac)
 
 		// log.Debug("[peer %s] secure out [to = %s] %d", s.local, s.remote, len(buff))
 		s.insecure.Out <- buff
 	}
+}
+
+func encData(data, buff []byte, ciph cipher.Stream, mac hash.Hash) {
+	ciph.XORKeyStream(buff, data)
+
+	mac.Write(buff[0:len(data)])
+	copy(buff[len(data):], mac.Sum(nil))
+	mac.Reset()
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)

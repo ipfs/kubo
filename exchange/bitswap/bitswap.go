@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	"time"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
@@ -67,6 +69,10 @@ type bitswap struct {
 // TODO ensure only one active request per key
 func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error) {
 	log.Debugf("Get Block %v", k)
+	now := time.Now()
+	defer func() {
+		log.Errorf("GetBlock took %f secs", time.Now().Sub(now).Seconds())
+	}()
 
 	ctx, cancelFunc := context.WithCancel(parent)
 	bs.wantlist.Add(k)
@@ -160,7 +166,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 		go func(block blocks.Block) {
 			err := bs.HasBlock(ctx, block) // FIXME err ignored
 			if err != nil {
-				log.Errorf("HasBlock errored: %s", err)
+				log.Warningf("HasBlock errored: %s", err)
 			}
 		}(block)
 	}
