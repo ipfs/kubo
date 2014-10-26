@@ -179,6 +179,20 @@ func (c *Command) Dispatch(args []string) error {
 	// Ensure command is initialized.
 	c.init()
 
+	// Parse options
+	if !c.CustomFlags {
+		var err = error(nil)
+		c.Flag.Usage = func() {
+			c.Usage()
+			err = fmt.Errorf("Failed to parse flags.")
+		}
+		c.Flag.Parse(args)
+		if err != nil {
+			return err
+		}
+		args = c.Flag.Args()
+	}
+
 	// First, try a sub-command
 	if len(args) > 0 {
 		for _, cmd := range c.Subcommands {
@@ -206,18 +220,6 @@ func (c *Command) Dispatch(args []string) error {
 
 	// then, try running this command
 	if c.Runnable() {
-		if !c.CustomFlags {
-			var err = error(nil)
-			c.Flag.Usage = func() {
-				c.Usage()
-				err = fmt.Errorf("Failed to parse flags.")
-			}
-			c.Flag.Parse(args)
-			if err != nil {
-				return err
-			}
-			args = c.Flag.Args()
-		}
 		return c.Run(c, args)
 	}
 
