@@ -43,6 +43,10 @@ func (pk *RsaPublicKey) Bytes() ([]byte, error) {
 	return proto.Marshal(pbmes)
 }
 
+func (pk *RsaPublicKey) Encrypt(b []byte) ([]byte, error) {
+	return rsa.EncryptPKCS1v15(rand.Reader, pk.k, b)
+}
+
 // Equals checks whether this key is equal to another
 func (pk *RsaPublicKey) Equals(k Key) bool {
 	return KeyEqual(pk, k)
@@ -65,6 +69,10 @@ func (sk *RsaPrivateKey) Sign(message []byte) ([]byte, error) {
 
 func (sk *RsaPrivateKey) GetPublic() PubKey {
 	return &RsaPublicKey{&sk.k.PublicKey}
+}
+
+func (sk *RsaPrivateKey) Unencrypt(b []byte) ([]byte, error) {
+	return rsa.DecryptPKCS1v15(rand.Reader, sk.k, b)
 }
 
 func (sk *RsaPrivateKey) Bytes() ([]byte, error) {

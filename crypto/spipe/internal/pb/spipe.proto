@@ -12,3 +12,8 @@ message Exchange {
 	optional bytes epubkey = 1;
 	optional bytes signature = 2;
 }
+
+message DataSig {
+	optional bytes data = 1;
+	optional bytes sig = 2;
+}
