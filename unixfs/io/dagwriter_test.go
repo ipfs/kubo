@@ -7,6 +7,7 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	bs "github.com/jbenet/go-ipfs/blockservice"
+	"github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 )
@@ -53,7 +54,7 @@ func TestDagWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dag := &mdag.DAGService{Blocks: bserv}
+	dag := mdag.NewDAGService(bserv)
 	dw := NewDagWriter(dag, &chunk.SizeSplitter{Size: 4096})
 
 	nbytes := int64(1024 * 1024 * 2)
@@ -87,7 +88,7 @@ func TestMassiveWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dag := &mdag.DAGService{Blocks: bserv}
+	dag := mdag.NewDAGService(bserv)
 	dw := NewDagWriter(dag, &chunk.SizeSplitter{Size: 4096})
 
 	nbytes := int64(1024 * 1024 * 1024 * 16)
@@ -107,7 +108,7 @@ func BenchmarkDagWriter(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	dag := &mdag.DAGService{Blocks: bserv}
+	dag := mdag.NewDAGService(bserv)
 
 	b.ResetTimer()
 	nbytes := int64(100000)
@@ -124,4 +125,46 @@ func BenchmarkDagWriter(b *testing.B) {
 		dw.Close()
 	}
 
+}
+
+func TestAgainstImporter(t *testing.T) {
+	dstore := ds.NewMapDatastore()
+	bserv, err := bs.NewBlockService(dstore, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dag := mdag.NewDAGService(bserv)
+
+	nbytes := int64(1024 * 1024 * 2)
+
+	// DagWriter
+	dw := NewDagWriter(dag, &chunk.SizeSplitter{4096})
+	n, err := io.CopyN(dw, &datasource{}, nbytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != nbytes {
+		t.Fatal("Copied incorrect amount of bytes!")
+	}
+
+	dw.Close()
+	dwNode := dw.GetNode()
+	dwKey, err := dwNode.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// DagFromFile
+	rl := &io.LimitedReader{&datasource{}, nbytes}
+
+	dffNode, err := importer.NewDagFromReaderWithSplitter(rl, &chunk.SizeSplitter{4096})
+	dffKey, err := dffNode.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dwKey.String() != dffKey.String() {
+		t.Errorf("\nDagWriter produced     %s\n"+
+			"DagFromReader produced %s",
+			dwKey, dffKey)
+	}
 }
