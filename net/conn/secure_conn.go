@@ -134,3 +134,7 @@ func (c *secureConn) In() <-chan []byte {
 func (c *secureConn) Out() chan<- []byte {
 	return c.secure.Out
 }
+
+func (c *secureConn) GetError() error {
+	return c.insecure.GetError()
+}

@@ -5,6 +5,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
+
+	"code.google.com/p/go.net/context"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/jbenet/go-ipfs/blocks"
@@ -26,7 +29,8 @@ func BlockGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out 
 
 	k := u.Key(h)
 	log.Debug("BlockGet key: '%q'", k)
-	b, err := n.Blocks.GetBlock(k)
+	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
 		return fmt.Errorf("block get: %v", err)
 	}

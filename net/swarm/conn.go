@@ -92,7 +92,7 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		return nil, errors.New("Tried to start nil connection.")
 	}
 
-	log.Debug("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
+	log.Debugf("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	// NOT adding this address here, because the incoming address in TCP
@@ -153,6 +153,9 @@ func (s *Swarm) fanOut() {
 			if !ok {
 				log.Infof("%s outgoing channel closed", s)
 				return
+			}
+			if len(msg.Data()) >= conn.MaxMessageSize {
+				log.Critical("Attempted to send message bigger than max size.")
 			}
 
 			s.connsLock.RLock()

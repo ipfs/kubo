@@ -1,13 +1,18 @@
 package network
 
 import (
+	"errors"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/util"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	inet "github.com/jbenet/go-ipfs/net"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
+
+var log = util.Logger("net_message_adapter")
 
 // NetMessageAdapter wraps a NetMessage network service
 func NetMessageAdapter(s inet.Service, n inet.Network, r Receiver) Adapter {
@@ -48,6 +53,7 @@ func (adapter *impl) HandleMessage(
 
 	// TODO(brian): put this in a helper function
 	if bsmsg == nil || p == nil {
+		adapter.receiver.ReceiveError(errors.New("ReceiveMessage returned nil peer or message"))
 		return nil
 	}
 
@@ -57,6 +63,7 @@ func (adapter *impl) HandleMessage(
 		return nil
 	}
 
+	log.Debugf("Message size: %d", len(outgoing.Data()))
 	return outgoing
 }
 

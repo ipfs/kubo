@@ -1,6 +1,8 @@
 package blocks
 
 import (
+	"fmt"
+
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -19,4 +21,8 @@ func NewBlock(data []byte) *Block {
 // Key returns the block's Multihash as a Key value.
 func (b *Block) Key() u.Key {
 	return u.Key(b.Multihash)
+}
+
+func (b *Block) String() string {
+	return fmt.Sprintf("[Block %s]", b.Key())
 }

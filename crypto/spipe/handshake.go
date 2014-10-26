@@ -53,7 +53,7 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
-	log.Debug("handshake: %s <--> %s", s.local, s.remote)
+	log.Debugf("handshake: %s <--> %s", s.local, s.remote)
 	myPubKey, err := s.local.PubKey().Bytes()
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (s *SecurePipe) handshake() error {
 	if err != nil {
 		return err
 	}
-	log.Debug("%s Remote Peer Identified as %s", s.local, s.remote)
+	log.Debugf("%s Remote Peer Identified as %s", s.local, s.remote)
 
 	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
@@ -209,7 +209,7 @@ func (s *SecurePipe) handshake() error {
 		return fmt.Errorf("Negotiation failed, got: %s", resp2)
 	}
 
-	log.Debug("%s handshake: Got node id: %s", s.local, s.remote)
+	log.Debugf("%s handshake: Got node id: %s", s.local, s.remote)
 	return nil
 }
 

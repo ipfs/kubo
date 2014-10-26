@@ -67,7 +67,7 @@ func (c *MultiConn) Add(conns ...Conn) {
 	defer c.Unlock()
 
 	for _, c2 := range conns {
-		log.Info("MultiConn: adding %s", c2)
+		log.Infof("MultiConn: adding %s", c2)
 		if c.LocalPeer() != c2.LocalPeer() || c.RemotePeer() != c2.RemotePeer() {
 			log.Error(c2)
 			c.Unlock() // ok to unlock (to log). panicing.
@@ -82,7 +82,7 @@ func (c *MultiConn) Add(conns ...Conn) {
 
 		c.conns[c2.ID()] = c2
 		go c.fanInSingle(c2)
-		log.Info("MultiConn: added %s", c2)
+		log.Infof("MultiConn: added %s", c2)
 	}
 }
 
@@ -146,7 +146,7 @@ func (c *MultiConn) fanOut() {
 		// send data out through our "best connection"
 		case m, more := <-c.duplex.Out:
 			if !more {
-				log.Info("%s out channel closed", c)
+				log.Infof("%s out channel closed", c)
 				return
 			}
 			sc := c.BestConn()
@@ -156,7 +156,7 @@ func (c *MultiConn) fanOut() {
 			}
 
 			i++
-			log.Info("%s sending (%d)", sc, i)
+			log.Infof("%s sending (%d)", sc, i)
 			sc.Out() <- m
 		}
 	}
@@ -170,7 +170,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 	// cleanup all data associated with this child Connection.
 	defer func() {
-		log.Info("closing: %s", child)
+		log.Infof("closing: %s", child)
 
 		// in case it still is in the map, remove it.
 		c.Lock()
@@ -197,11 +197,15 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 		case m, more := <-child.In(): // receiving data
 			if !more {
-				log.Info("%s in channel closed", child)
+				log.Infof("%s in channel closed", child)
+				err := c.GetError()
+				if err != nil {
+					log.Errorf("Found error on connection: %s", err)
+				}
 				return // closed
 			}
 			i++
-			log.Info("%s received (%d)", child, i)
+			log.Infof("%s received (%d)", child, i)
 			c.duplex.In <- m
 		}
 	}
@@ -209,7 +213,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 // close is the internal close function, called by ContextCloser.Close
 func (c *MultiConn) close() error {
-	log.Debug("%s closing Conn with %s", c.local, c.remote)
+	log.Debugf("%s closing Conn with %s", c.local, c.remote)
 
 	// get connections
 	c.RLock()
@@ -290,4 +294,14 @@ func (c *MultiConn) In() <-chan []byte {
 // Out returns a writable message channel
 func (c *MultiConn) Out() chan<- []byte {
 	return c.duplex.Out
+}
+
+func (c *MultiConn) GetError() error {
+	for _, sub := range c.conns {
+		err := sub.GetError()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

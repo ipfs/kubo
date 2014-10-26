@@ -2,7 +2,6 @@ package blockservice
 
 import (
 	"fmt"
-	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -52,8 +51,8 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
-func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
-	log.Debug("BlockService GetBlock: '%s'", k)
+func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, error) {
+	log.Debugf("BlockService GetBlock: '%s'", k)
 	datai, err := s.Datastore.Get(k.DsKey())
 	if err == nil {
 		log.Debug("Blockservice: Got data in datastore.")
@@ -67,7 +66,6 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
 		log.Debug("Blockservice: Searching bitswap.")
-		ctx, _ := context.WithTimeout(context.TODO(), 5*time.Second)
 		blk, err := s.Remote.Block(ctx, k)
 		if err != nil {
 			return nil, err
@@ -77,4 +75,8 @@ func (s *BlockService) GetBlock(k u.Key) (*blocks.Block, error) {
 		log.Debug("Blockservice GetBlock: Not found.")
 		return nil, u.ErrNotFound
 	}
+}
+
+func (s *BlockService) DeleteBlock(k u.Key) error {
+	return s.Datastore.Delete(k.DsKey())
 }

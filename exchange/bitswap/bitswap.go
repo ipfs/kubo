@@ -66,7 +66,7 @@ type bitswap struct {
 //
 // TODO ensure only one active request per key
 func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error) {
-	log.Debug("Get Block %v", k)
+	log.Debugf("Get Block %v", k)
 
 	ctx, cancelFunc := context.WithCancel(parent)
 	bs.wantlist.Add(k)
@@ -82,10 +82,10 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		}
 		message.AppendWanted(k)
 		for peerToQuery := range peersToQuery {
-			log.Debug("bitswap got peersToQuery: %s", peerToQuery)
+			log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
 			go func(p peer.Peer) {
 
-				log.Debug("bitswap dialing peer: %s", p)
+				log.Debugf("bitswap dialing peer: %s", p)
 				err := bs.sender.DialPeer(p)
 				if err != nil {
 					log.Errorf("Error sender.DialPeer(%s)", p)
@@ -94,7 +94,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 
 				response, err := bs.sender.SendRequest(ctx, p, message)
 				if err != nil {
-					log.Errorf("Error sender.SendRequest(%s)", p)
+					log.Error("Error sender.SendRequest(%s) = %s", p, err)
 					return
 				}
 				// FIXME ensure accounting is handled correctly when
@@ -124,7 +124,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 // HasBlock announces the existance of a block to bitswap, potentially sending
 // it to peers (Partners) whose WantLists include it.
 func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
-	log.Debug("Has Block %v", blk.Key())
+	log.Debugf("Has Block %v", blk.Key())
 	bs.wantlist.Remove(blk.Key())
 	bs.sendToPeersThatWant(ctx, blk)
 	return bs.routing.Provide(ctx, blk.Key())
@@ -133,17 +133,23 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsmsg.BitSwapMessage) (
 	peer.Peer, bsmsg.BitSwapMessage) {
-	log.Debug("ReceiveMessage from %v", p.Key())
+	log.Debugf("ReceiveMessage from %v", p.Key())
+	log.Debugf("Message wantlist: %v", incoming.Wantlist())
 
 	if p == nil {
+		log.Error("Received message from nil peer!")
 		// TODO propagate the error upward
 		return nil, nil
 	}
 	if incoming == nil {
+		log.Error("Got nil bitswap message!")
 		// TODO propagate the error upward
 		return nil, nil
 	}
 
+	// Record message bytes in ledger
+	// TODO: this is bad, and could be easily abused.
+	// Should only track *useful* messages in ledger
 	bs.strategy.MessageReceived(p, incoming) // FIRST
 
 	for _, block := range incoming.Blocks() {
@@ -153,7 +159,10 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 		}
 		go bs.notifications.Publish(block)
 		go func(block blocks.Block) {
-			_ = bs.HasBlock(ctx, block) // FIXME err ignored
+			err := bs.HasBlock(ctx, block) // FIXME err ignored
+			if err != nil {
+				log.Errorf("HasBlock errored: %s", err)
+			}
 		}(block)
 	}
 
@@ -162,6 +171,8 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 		message.AppendWanted(wanted)
 	}
 	for _, key := range incoming.Wantlist() {
+		// TODO: might be better to check if we have the block before checking
+		//			if we should send it to someone
 		if bs.strategy.ShouldSendBlockToPeer(key, p) {
 			if block, errBlockNotFound := bs.blockstore.Get(key); errBlockNotFound != nil {
 				continue
@@ -171,10 +182,13 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 		}
 	}
 	defer bs.strategy.MessageSent(p, message)
+
+	log.Debug("Returning message.")
 	return p, message
 }
 
 func (bs *bitswap) ReceiveError(err error) {
+	log.Errorf("Bitswap ReceiveError: %s", err)
 	// TODO log the network error
 	// TODO bubble the network error up to the parent context/error logger
 }
@@ -187,10 +201,10 @@ func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage
 }
 
 func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) {
-	log.Debug("Sending %v to peers that want it", block.Key())
+	log.Debugf("Sending %v to peers that want it", block.Key())
 	for _, p := range bs.strategy.Peers() {
 		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
-			log.Debug("%v wants %v", p, block.Key())
+			log.Debugf("%v wants %v", p, block.Key())
 			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
 				message := bsmsg.New()
 				message.AppendBlock(block)
