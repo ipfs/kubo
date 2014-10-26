@@ -52,7 +52,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, error) {
-	log.Debug("BlockService GetBlock: '%s'", k)
+	log.Debugf("BlockService GetBlock: '%s'", k)
 	datai, err := s.Datastore.Get(k.DsKey())
 	if err == nil {
 		log.Debug("Blockservice: Got data in datastore.")

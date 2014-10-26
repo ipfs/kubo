@@ -198,6 +198,10 @@ func (c *MultiConn) fanInSingle(child Conn) {
 		case m, more := <-child.In(): // receiving data
 			if !more {
 				log.Infof("%s in channel closed", child)
+				err := c.GetError()
+				if err != nil {
+					log.Errorf("Found error on connection: %s", err)
+				}
 				return // closed
 			}
 			i++
@@ -209,7 +213,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 // close is the internal close function, called by ContextCloser.Close
 func (c *MultiConn) close() error {
-	log.Debug("%s closing Conn with %s", c.local, c.remote)
+	log.Debugf("%s closing Conn with %s", c.local, c.remote)
 
 	// get connections
 	c.RLock()
@@ -290,4 +294,14 @@ func (c *MultiConn) In() <-chan []byte {
 // Out returns a writable message channel
 func (c *MultiConn) Out() chan<- []byte {
 	return c.duplex.Out
+}
+
+func (c *MultiConn) GetError() error {
+	for _, sub := range c.conns {
+		err := sub.GetError()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

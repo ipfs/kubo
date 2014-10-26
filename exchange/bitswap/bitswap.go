@@ -135,7 +135,6 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	peer.Peer, bsmsg.BitSwapMessage) {
 	log.Debugf("ReceiveMessage from %v", p.Key())
 	log.Debugf("Message wantlist: %v", incoming.Wantlist())
-	log.Debugf("Message blockset: %v", incoming.Blocks())
 
 	if p == nil {
 		log.Error("Received message from nil peer!")

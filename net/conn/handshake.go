@@ -46,7 +46,7 @@ func Handshake1(ctx context.Context, c Conn) error {
 			return fmt.Errorf("could not decode remote version: %q", err)
 		}
 
-		log.Debug("Received remote version (%s) from %s", remoteH, rpeer)
+		log.Debugf("Received remote version (%s) from %s", remoteH, rpeer)
 	}
 
 	if err := handshake.Handshake1Compatible(localH, remoteH); err != nil {

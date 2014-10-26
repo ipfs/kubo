@@ -37,6 +37,8 @@ type Conn interface {
 	// Out returns a writable message channel
 	Out() chan<- []byte
 
+	GetError() error
+
 	// Close ends the connection
 	// Close() error  -- already in ContextCloser
 }

@@ -21,7 +21,7 @@ const (
 	ChanBuffer = 10
 
 	// MaxMessageSize is the size of the largest single message
-	MaxMessageSize = 1 << 20 // 1 MB
+	MaxMessageSize = 1 << 22 // 4 MB
 
 	// HandshakeTimeout for when nodes first connect
 	HandshakeTimeout = time.Second * 5
@@ -95,6 +95,17 @@ func (c *singleConn) close() error {
 	err := c.maconn.Close()
 	c.msgio.outgoing.Close()
 	return err
+}
+
+func (c *singleConn) GetError() error {
+	select {
+	case err := <-c.msgio.incoming.ErrChan:
+		return err
+	case err := <-c.msgio.outgoing.ErrChan:
+		return err
+	default:
+		return nil
+	}
 }
 
 // ID is an identifier unique to this connection.

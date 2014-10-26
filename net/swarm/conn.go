@@ -154,6 +154,9 @@ func (s *Swarm) fanOut() {
 				log.Infof("%s outgoing channel closed", s)
 				return
 			}
+			if len(msg.Data()) >= conn.MaxMessageSize {
+				log.Critical("Attempted to send message bigger than max size.")
+			}
 
 			s.connsLock.RLock()
 			c, found := s.conns[msg.Peer().Key()]
@@ -167,7 +170,7 @@ func (s *Swarm) fanOut() {
 			}
 
 			i++
-			//log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
+			log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
 			// queue it in the connection's buffer
 			c.Out() <- msg.Data()
 		}
@@ -206,7 +209,7 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 				return // channel closed.
 			}
 			i++
-			//log.Debugf("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
+			log.Debugf("%s received message from %s (%d)", s.local, c.RemotePeer(), i)
 			s.Incoming <- msg.New(c.RemotePeer(), data)
 		}
 	}
