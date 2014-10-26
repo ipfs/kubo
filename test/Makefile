@@ -9,12 +9,15 @@ T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 all: clean $(T) aggregate
 
 clean:
+	@echo "*** $@ ***"
 	-rm -r test-results
 
 $(T):
-	@echo "*** $@ ***"; ./$@
+	@echo "*** $@ ***"
+	./$@
 
 aggregate:
+	@echo "*** $@ ***"
 	./test-aggregate-results.sh
 
 .PHONY: all clean $(T) aggregate
