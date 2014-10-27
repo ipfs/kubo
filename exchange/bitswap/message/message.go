@@ -28,12 +28,14 @@ type Exportable interface {
 
 // message wraps a proto message for convenience
 type message struct {
-	wantlist []u.Key
+	wantlist map[u.Key]struct{}
 	blocks   []blocks.Block
 }
 
-func New() *message {
-	return new(message)
+func New() BitSwapMessage {
+	return &message{
+		wantlist: make(map[u.Key]struct{}),
+	}
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
@@ -50,7 +52,11 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 
 // TODO(brian): convert these into keys
 func (m *message) Wantlist() []u.Key {
-	return m.wantlist
+	wl := make([]u.Key, 0)
+	for k, _ := range m.wantlist {
+		wl = append(wl, k)
+	}
+	return wl
 }
 
 // TODO(brian): convert these into blocks
@@ -59,7 +65,7 @@ func (m *message) Blocks() []blocks.Block {
 }
 
 func (m *message) AddWanted(k u.Key) {
-	m.wantlist = append(m.wantlist, k)
+	m.wantlist[k] = struct{}{}
 }
 
 func (m *message) AppendBlock(b blocks.Block) {
