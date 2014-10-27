@@ -95,7 +95,7 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 	for k, v := range r.options {
 		opt, ok := options[k]
 		if !ok {
-			return fmt.Errorf("Unrecognized option: '%s'", k)
+			continue
 		}
 
 		kind := reflect.TypeOf(v).Kind()
