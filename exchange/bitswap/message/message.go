@@ -17,7 +17,7 @@ type BitSwapMessage interface {
 	Wantlist() []u.Key
 	Blocks() []blocks.Block
 	AddWanted(k u.Key)
-	AppendBlock(b blocks.Block)
+	AddBlock(b blocks.Block)
 	Exportable
 }
 
@@ -45,7 +45,7 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
-		m.AppendBlock(*b)
+		m.AddBlock(*b)
 	}
 	return m
 }
@@ -72,7 +72,7 @@ func (m *impl) AddWanted(k u.Key) {
 	m.wantlist[k] = struct{}{}
 }
 
-func (m *impl) AppendBlock(b blocks.Block) {
+func (m *impl) AddBlock(b blocks.Block) {
 	m.blocks[b.Key()] = b
 }
 

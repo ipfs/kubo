@@ -176,7 +176,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 			if block, errBlockNotFound := bs.blockstore.Get(key); errBlockNotFound != nil {
 				continue
 			} else {
-				message.AppendBlock(*block)
+				message.AddBlock(*block)
 			}
 		}
 	}
@@ -206,7 +206,7 @@ func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) 
 			log.Debugf("%v wants %v", p, block.Key())
 			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
 				message := bsmsg.New()
-				message.AppendBlock(block)
+				message.AddBlock(block)
 				for _, wanted := range bs.wantlist.Keys() {
 					message.AddWanted(wanted)
 				}
