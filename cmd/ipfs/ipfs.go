@@ -6,9 +6,12 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
+	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -48,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if debug, ok := options["debug"]; ok && debug.(bool) {
+	if debug, found := options.Option("debug"); found && debug.(bool) {
 		u.Debug = true
 
 		// if debugging, setup profiling.
@@ -66,13 +69,39 @@ func main() {
 
 	var res cmds.Response
 	if root == Root {
-		// TODO: spin up node
 		res = root.Call(req)
+
 	} else {
-		res, err = cmdsHttp.Send(req)
+		local := true
+
+		configPath, err := getConfigPath(options)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
+		}
+
+		lockFilePath, err := config.Path(configPath, DaemonLockFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if lk, err := lock.Lock(lockFilePath); err != nil {
+			local = false
+		} else {
+			lk.Close()
+		}
+
+		if !local {
+			res, err = cmdsHttp.Send(req)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+		} else {
+			// TODO: spin up node
+			res = root.Call(req)
 		}
 	}
 
@@ -93,7 +122,7 @@ func main() {
 	}
 }
 
-func getOptions(req cmds.Request, root *cmds.Command) (map[string]interface{}, error) {
+func getOptions(req cmds.Request, root *cmds.Command) (cmds.Request, error) {
 	tempReq := cmds.NewRequest(req.Path(), req.Options(), nil, nil)
 
 	options, err := root.GetOptions(tempReq.Path())
@@ -106,5 +135,17 @@ func getOptions(req cmds.Request, root *cmds.Command) (map[string]interface{}, e
 		return nil, err
 	}
 
-	return tempReq.Options(), nil
+	return tempReq, nil
+}
+
+func getConfigPath(req cmds.Request) (string, error) {
+	if opt, found := req.Option("config"); found {
+		return opt.(string), nil
+	}
+
+	configPath, err := config.PathRoot()
+	if err != nil {
+		return "", err
+	}
+	return configPath, nil
 }
