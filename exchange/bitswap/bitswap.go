@@ -80,7 +80,6 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		for _, wanted := range bs.wantlist.Keys() {
 			message.AppendWanted(wanted)
 		}
-		message.AppendWanted(k)
 		for peerToQuery := range peersToQuery {
 			log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
 			go func(p peer.Peer) {
