@@ -1,9 +1,10 @@
-package mux
+tpackage mux
 
 import (
 	"errors"
 	"sync"
 
+	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	pb "github.com/jbenet/go-ipfs/net/mux/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -130,6 +131,7 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 		log.Errorf("muxer de-serializing error: %v", err)
 		return
 	}
+	conn.ReleaseBuffer(m1.Data())
 
 	m2 := msg.New(m1.Peer(), data)
 	proto, found := m.Protocols[pid]

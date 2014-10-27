@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -27,16 +28,31 @@ const (
 	HandshakeTimeout = time.Second * 5
 )
 
+var BufferPool *sync.Pool
+
+func init() {
+	BufferPool = new(sync.Pool)
+	BufferPool.New = func() interface{} {
+		log.Warning("Pool returning new object")
+		return make([]byte, MaxMessageSize)
+	}
+}
+
+func ReleaseBuffer(b []byte) {
+	log.Warningf("Releasing buffer! (size = %d)", cap(b))
+	BufferPool.Put(b[:cap(b)])
+}
+
 // msgioPipe is a pipe using msgio channels.
 type msgioPipe struct {
 	outgoing *msgio.Chan
 	incoming *msgio.Chan
 }
 
-func newMsgioPipe(size int) *msgioPipe {
+func newMsgioPipe(size int, pool *sync.Pool) *msgioPipe {
 	return &msgioPipe{
-		outgoing: msgio.NewChan(10),
-		incoming: msgio.NewChan(10),
+		outgoing: msgio.NewChan(size, nil),
+		incoming: msgio.NewChan(size, pool),
 	}
 }
 
@@ -58,7 +74,7 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 		local:  local,
 		remote: remote,
 		maconn: maconn,
-		msgio:  newMsgioPipe(10),
+		msgio:  newMsgioPipe(10, BufferPool),
 	}
 
 	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)

@@ -184,10 +184,41 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	cmp := bytes.Compare(myPubKey, proposeResp.GetPubkey())
-	mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
+	//mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
+	ci.KeyStretcher(cmp, cipherType, hashType, secret)
 
-	go s.handleSecureIn(hashType, cipherType, tIV, tCKey, tMKey)
-	go s.handleSecureOut(hashType, cipherType, mIV, mCKey, mMKey)
+	//go s.handleSecureIn(hashType, cipherType, tIV, tCKey, tMKey)
+	//go s.handleSecureOut(hashType, cipherType, mIV, mCKey, mMKey)
+
+	// Disable Secure Channel
+	go func(sp *SecurePipe) {
+		for {
+			select {
+			case <-sp.ctx.Done():
+				return
+			case m, ok := <-sp.insecure.In:
+				if !ok {
+					sp.cancel()
+					return
+				}
+				sp.In <- m
+			}
+		}
+	}(s)
+	go func(sp *SecurePipe) {
+		for {
+			select {
+			case <-sp.ctx.Done():
+				return
+			case m, ok := <-sp.Out:
+				if !ok {
+					sp.cancel()
+					return
+				}
+				sp.insecure.Out <- m
+			}
+		}
+	}(s)
 
 	finished := []byte("Finished")
 

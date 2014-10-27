@@ -5,6 +5,7 @@ import (
 	randbuf "github.com/jbenet/go-randbuf"
 	"io"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -12,7 +13,8 @@ import (
 func TestReadChan(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	writer := NewWriter(buf)
-	rchan := NewChan(10)
+	p := &sync.Pool{New: func() interface{} { return make([]byte, 1000) }}
+	rchan := NewChan(10, p)
 	msgs := [1000][]byte{}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -58,7 +60,7 @@ Loop:
 func TestWriteChan(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	reader := NewReader(buf)
-	wchan := NewChan(10)
+	wchan := NewChan(10, nil)
 	msgs := [1000][]byte{}
 
 	go wchan.WriteTo(buf)

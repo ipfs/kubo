@@ -9,7 +9,6 @@ import (
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var ErrIsDir = errors.New("this dag node is a directory")
@@ -36,11 +35,12 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 		// Dont allow reading directories
 		return nil, ErrIsDir
 	case ftpb.Data_File:
-		return &DagReader{
+		dr := &DagReader{
 			node: n,
 			serv: serv,
 			buf:  bytes.NewBuffer(pb.GetData()),
-		}, nil
+		}
+		return dr, nil
 	case ftpb.Data_Raw:
 		// Raw block will just be a single level, return a byte buffer
 		return bytes.NewBuffer(pb.GetData()), nil
@@ -55,17 +55,12 @@ func (dr *DagReader) precalcNextBuf() error {
 	if dr.position >= len(dr.node.Links) {
 		return io.EOF
 	}
-	nxtLink := dr.node.Links[dr.position]
-	nxt := nxtLink.Node
-	if nxt == nil {
-		nxtNode, err := dr.serv.Get(u.Key(nxtLink.Hash))
-		if err != nil {
-			return err
-		}
-		nxt = nxtNode
+	nxt, err := dr.node.Links[dr.position].GetNode(dr.serv)
+	if err != nil {
+		return err
 	}
 	pb := new(ftpb.Data)
-	err := proto.Unmarshal(nxt.Data, pb)
+	err = proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
 		return err
 	}

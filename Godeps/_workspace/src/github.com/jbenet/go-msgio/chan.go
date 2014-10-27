@@ -2,6 +2,7 @@ package msgio
 
 import (
 	"io"
+	"sync"
 )
 
 type Chan struct {
@@ -9,13 +10,15 @@ type Chan struct {
 	MsgChan   chan []byte
 	ErrChan   chan error
 	CloseChan chan bool
+	BufPool   *sync.Pool
 }
 
-func NewChan(chanSize int) *Chan {
+func NewChan(chanSize int, pool *sync.Pool) *Chan {
 	return &Chan{
 		MsgChan:   make(chan []byte, chanSize),
 		ErrChan:   make(chan error, 1),
 		CloseChan: make(chan bool, 2),
+		BufPool:   pool,
 	}
 }
 
@@ -25,7 +28,11 @@ func (s *Chan) ReadFrom(r io.Reader, maxMsgLen int) {
 	mr := NewReader(r)
 Loop:
 	for {
-		buf := make([]byte, maxMsgLen)
+		bufi := s.BufPool.Get()
+		buf, ok := bufi.([]byte)
+		if !ok {
+			panic("Got invalid type from sync pool!")
+		}
 		l, err := mr.ReadMsg(buf)
 		if err != nil {
 			if err == io.EOF {
