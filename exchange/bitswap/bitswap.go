@@ -29,10 +29,7 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 	net inet.Network, srv inet.Service, routing bsnet.Routing,
 	d ds.ThreadSafeDatastore, nice bool) exchange.Interface {
 
-	networkAdapter := bsnet.NetMessageAdapter(srv, net, nil)
-
 	notif := notifications.New()
-
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -40,15 +37,17 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 		}
 	}()
 
+	network := bsnet.NetMessageAdapter(srv, net, nil)
+
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notif,
 		strategy:      strategy.New(nice),
 		routing:       routing,
-		sender:        networkAdapter,
+		sender:        network,
 		wantlist:      u.NewKeySet(),
 	}
-	networkAdapter.SetDelegate(bs)
+	network.SetDelegate(bs)
 
 	return bs
 }
