@@ -4,31 +4,32 @@ import (
 	"errors"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/util"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	inet "github.com/jbenet/go-ipfs/net"
 	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	util "github.com/jbenet/go-ipfs/util"
 )
 
-var log = util.Logger("net_message_adapter")
+var log = util.Logger("bitswap_network")
 
-// NetMessageAdapter wraps a NetMessage network service
-func NetMessageAdapter(s inet.Service, n inet.Network, r Receiver) BitSwapNetwork {
-	adapter := impl{
-		nms:      s,
-		net:      n,
-		receiver: r,
+// NewFromIpfsNetwork returns a BitSwapNetwork supported by underlying IPFS
+// Network & Service
+func NewFromIpfsNetwork(s inet.Service, n inet.Network) BitSwapNetwork {
+	bitswapNetwork := impl{
+		service: s,
+		net:     n,
 	}
-	s.SetHandler(&adapter)
-	return &adapter
+	s.SetHandler(&bitswapNetwork)
+	return &bitswapNetwork
 }
 
-// implements an Adapter that integrates with a NetMessage network service
+// impl transforms the ipfs network interface, which sends and receives
+// NetMessage objects, into the bitswap network interface.
 type impl struct {
-	nms inet.Service
-	net inet.Network
+	service inet.Service
+	net     inet.Network
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
@@ -36,30 +37,30 @@ type impl struct {
 
 // HandleMessage marshals and unmarshals net messages, forwarding them to the
 // BitSwapMessage receiver
-func (adapter *impl) HandleMessage(
+func (bsnet *impl) HandleMessage(
 	ctx context.Context, incoming netmsg.NetMessage) netmsg.NetMessage {
 
-	if adapter.receiver == nil {
+	if bsnet.receiver == nil {
 		return nil
 	}
 
 	received, err := bsmsg.FromNet(incoming)
 	if err != nil {
-		go adapter.receiver.ReceiveError(err)
+		go bsnet.receiver.ReceiveError(err)
 		return nil
 	}
 
-	p, bsmsg := adapter.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
+	p, bsmsg := bsnet.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
 
 	// TODO(brian): put this in a helper function
 	if bsmsg == nil || p == nil {
-		adapter.receiver.ReceiveError(errors.New("ReceiveMessage returned nil peer or message"))
+		bsnet.receiver.ReceiveError(errors.New("ReceiveMessage returned nil peer or message"))
 		return nil
 	}
 
 	outgoing, err := bsmsg.ToNet(p)
 	if err != nil {
-		go adapter.receiver.ReceiveError(err)
+		go bsnet.receiver.ReceiveError(err)
 		return nil
 	}
 
@@ -71,7 +72,7 @@ func (adapter *impl) DialPeer(ctx context.Context, p peer.Peer) error {
 	return adapter.net.DialPeer(ctx, p)
 }
 
-func (adapter *impl) SendMessage(
+func (bsnet *impl) SendMessage(
 	ctx context.Context,
 	p peer.Peer,
 	outgoing bsmsg.BitSwapMessage) error {
@@ -80,10 +81,10 @@ func (adapter *impl) SendMessage(
 	if err != nil {
 		return err
 	}
-	return adapter.nms.SendMessage(ctx, nmsg)
+	return bsnet.service.SendMessage(ctx, nmsg)
 }
 
-func (adapter *impl) SendRequest(
+func (bsnet *impl) SendRequest(
 	ctx context.Context,
 	p peer.Peer,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
@@ -92,13 +93,13 @@ func (adapter *impl) SendRequest(
 	if err != nil {
 		return nil, err
 	}
-	incomingMsg, err := adapter.nms.SendRequest(ctx, outgoingMsg)
+	incomingMsg, err := bsnet.service.SendRequest(ctx, outgoingMsg)
 	if err != nil {
 		return nil, err
 	}
 	return bsmsg.FromNet(incomingMsg)
 }
 
-func (adapter *impl) SetDelegate(r Receiver) {
-	adapter.receiver = r
+func (bsnet *impl) SetDelegate(r Receiver) {
+	bsnet.receiver = r
 }

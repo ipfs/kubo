@@ -37,7 +37,7 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 		}
 	}()
 
-	network := bsnet.NetMessageAdapter(srv, net, nil)
+	network := bsnet.NewFromIpfsNetwork(srv, net)
 
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
