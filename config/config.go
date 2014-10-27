@@ -47,6 +47,12 @@ func (bp *BootstrapPeer) String() string {
 	return bp.Address + "/" + bp.PeerID
 }
 
+// Tour stores the ipfs tour read-list and resume point
+type Tour struct {
+	Last string // last tour topic read
+	// Done []string // all topics done so far
+}
+
 // Config is used to load IPFS config files.
 type Config struct {
 	Identity  Identity         // local node's peer identity
@@ -55,6 +61,7 @@ type Config struct {
 	Mounts    Mounts           // local node's mount points
 	Version   Version          // local node's version management
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
+	Tour      Tour             // local node's tour position
 }
 
 // DefaultPathRoot is the path to the default config dir location.

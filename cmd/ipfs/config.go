@@ -3,13 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
-	"io"
-	"os"
-	"os/exec"
 )
 
 var cmdIpfsConfig = &commander.Command{
@@ -124,4 +125,19 @@ func configEditor(filename string) error {
 	cmd := exec.Command("sh", "-c", editor+" "+filename)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
+}
+
+func writeConfig(c *commander.Command, cfg *config.Config) error {
+
+	confdir, err := getConfigDir(c)
+	if err != nil {
+		return err
+	}
+
+	filename, err := config.Filename(confdir)
+	if err != nil {
+		return err
+	}
+
+	return config.WriteConfigFile(filename, cfg)
 }
