@@ -6,7 +6,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	peer "github.com/jbenet/go-ipfs/peer"
 
-	pipes "github.com/jbenet/go-ipfs/pipes"
+	pipes "github.com/jbenet/go-ipfs/util/pipes"
 )
 
 // SecurePipe objects represent a bi-directional message channel.

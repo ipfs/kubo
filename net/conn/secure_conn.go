@@ -8,8 +8,8 @@ import (
 
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/pipes"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"github.com/jbenet/go-ipfs/util/pipes"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.

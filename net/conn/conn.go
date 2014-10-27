@@ -51,8 +51,8 @@ type msgioPipe struct {
 
 func newMsgioPipe(size int, pool *sync.Pool) *msgioPipe {
 	return &msgioPipe{
-		outgoing: msgio.NewChan(size, nil),
-		incoming: msgio.NewChan(size, pool),
+		outgoing: msgio.NewChan(size),
+		incoming: msgio.NewChanWithPool(size, pool),
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	ci "github.com/jbenet/go-ipfs/crypto"
 	pb "github.com/jbenet/go-ipfs/crypto/spipe/internal/pb"
 	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/pipes"
+	"github.com/jbenet/go-ipfs/util/pipes"
 )
 
 type SignedPipe struct {

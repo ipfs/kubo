@@ -13,7 +13,15 @@ type Chan struct {
 	BufPool   *sync.Pool
 }
 
-func NewChan(chanSize int, pool *sync.Pool) *Chan {
+func NewChan(chanSize int) *Chan {
+	return &Chan{
+		MsgChan:   make(chan []byte, chanSize),
+		ErrChan:   make(chan error, 1),
+		CloseChan: make(chan bool, 2),
+	}
+}
+
+func NewChanWithPool(chanSize int, pool *sync.Pool) *Chan {
 	return &Chan{
 		MsgChan:   make(chan []byte, chanSize),
 		ErrChan:   make(chan error, 1),
@@ -26,6 +34,12 @@ func (s *Chan) ReadFrom(r io.Reader, maxMsgLen int) {
 	// new buffer per message
 	// if bottleneck, cycle around a set of buffers
 	mr := NewReader(r)
+	if s.BufPool == nil {
+		s.BufPool = new(sync.Pool)
+		s.BufPool.New = func() interface{} {
+			return make([]byte, maxMsgLen)
+		}
+	}
 Loop:
 	for {
 		bufi := s.BufPool.Get()
