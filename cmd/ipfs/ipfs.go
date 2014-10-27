@@ -18,46 +18,37 @@ var log = u.Logger("cmd/ipfs")
 
 func main() {
 	args := os.Args[1:]
+	root := Root
 
-	req, err := cmdsCli.Parse(args, Root)
+	req, err := cmdsCli.Parse(args, root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	// if the CLI-specific root doesn't contain the command, use the general root
 	if len(req.Path()) == 0 {
-		req, err = cmdsCli.Parse(args, commands.Root)
+		root = commands.Root
+		req, err = cmdsCli.Parse(args, root)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 	}
 
-	var local bool // TODO: option to force local
-	var root *cmds.Command
-	cmd, err := Root.Get(req.Path())
-	if err == nil {
-		local = true
-		root = Root
-
-	} else if local {
+	cmd, err := root.Get(req.Path())
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-
-	} else {
-		cmd, err = commands.Root.Get(req.Path())
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		local = false
-		root = commands.Root
 	}
 
-	// TODO: get converted options so we can use them here (e.g. --debug, --config)
+	options, err := getOptions(req, root)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	if debug, ok := req.Option("debug"); ok && debug.(bool) {
+	if debug, ok := options["debug"]; ok && debug.(bool) {
 		u.Debug = true
 
 		// if debugging, setup profiling.
@@ -74,7 +65,7 @@ func main() {
 	}
 
 	var res cmds.Response
-	if local {
+	if root == Root {
 		// TODO: spin up node
 		res = root.Call(req)
 	} else {
@@ -100,4 +91,20 @@ func main() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+}
+
+func getOptions(req cmds.Request, root *cmds.Command) (map[string]interface{}, error) {
+	tempReq := cmds.NewRequest(req.Path(), req.Options(), nil, nil)
+
+	options, err := root.GetOptions(tempReq.Path())
+	if err != nil {
+		return nil, err
+	}
+
+	err = tempReq.ConvertOptions(options)
+	if err != nil {
+		return nil, err
+	}
+
+	return tempReq.Options(), nil
 }
