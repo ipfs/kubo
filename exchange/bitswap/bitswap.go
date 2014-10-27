@@ -26,7 +26,7 @@ var log = u.Logger("bitswap")
 // provided NetMessage service.
 // Runs until context is cancelled
 func NetMessageSession(ctx context.Context, p peer.Peer,
-	net inet.Network, srv inet.Service, directory bsnet.Routing,
+	net inet.Network, srv inet.Service, routing bsnet.Routing,
 	d ds.ThreadSafeDatastore, nice bool) exchange.Interface {
 
 	networkAdapter := bsnet.NetMessageAdapter(srv, net, nil)
@@ -44,7 +44,7 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notif,
 		strategy:      strategy.New(nice),
-		routing:       directory,
+		routing:       routing,
 		sender:        networkAdapter,
 		wantlist:      u.NewKeySet(),
 	}
