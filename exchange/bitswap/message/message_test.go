@@ -169,3 +169,20 @@ func contains(s []string, x string) bool {
 	}
 	return false
 }
+
+func TestDuplicates(t *testing.T) {
+	b := blocks.NewBlock([]byte("foo"))
+	msg := New()
+
+	msg.AddWanted(b.Key())
+	msg.AddWanted(b.Key())
+	if len(msg.Wantlist()) != 1 {
+		t.Fatal("Duplicate in BitSwapMessage")
+	}
+
+	msg.AddBlock(*b)
+	msg.AddBlock(*b)
+	if len(msg.Blocks()) != 1 {
+		t.Fatal("Duplicate in BitSwapMessage")
+	}
+}
