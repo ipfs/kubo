@@ -15,11 +15,11 @@ import (
 var log = util.Logger("bitswap_network")
 
 // NewFromIpfsNetwork returns a BitSwapNetwork supported by underlying IPFS
-// Network & Service
-func NewFromIpfsNetwork(s inet.Service, n inet.Network) BitSwapNetwork {
+// Dialer & Service
+func NewFromIpfsNetwork(s inet.Service, dialer inet.Dialer) BitSwapNetwork {
 	bitswapNetwork := impl{
 		service: s,
-		net:     n,
+		dialer:  dialer,
 	}
 	s.SetHandler(&bitswapNetwork)
 	return &bitswapNetwork
@@ -29,7 +29,7 @@ func NewFromIpfsNetwork(s inet.Service, n inet.Network) BitSwapNetwork {
 // NetMessage objects, into the bitswap network interface.
 type impl struct {
 	service inet.Service
-	net     inet.Network
+	dialer  inet.Dialer
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
@@ -68,8 +68,8 @@ func (bsnet *impl) HandleMessage(
 	return outgoing
 }
 
-func (adapter *impl) DialPeer(ctx context.Context, p peer.Peer) error {
-	return adapter.net.DialPeer(ctx, p)
+func (bsnet *impl) DialPeer(ctx context.Context, p peer.Peer) error {
+	return bsnet.dialer.DialPeer(ctx, p)
 }
 
 func (bsnet *impl) SendMessage(
