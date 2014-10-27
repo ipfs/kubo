@@ -16,7 +16,7 @@ import (
 type BitSwapMessage interface {
 	Wantlist() []u.Key
 	Blocks() []blocks.Block
-	AppendWanted(k u.Key)
+	AddWanted(k u.Key)
 	AppendBlock(b blocks.Block)
 	Exportable
 }
@@ -39,7 +39,7 @@ func New() *message {
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	m := New()
 	for _, s := range pbm.GetWantlist() {
-		m.AppendWanted(u.Key(s))
+		m.AddWanted(u.Key(s))
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
@@ -58,7 +58,7 @@ func (m *message) Blocks() []blocks.Block {
 	return m.blocks
 }
 
-func (m *message) AppendWanted(k u.Key) {
+func (m *message) AddWanted(k u.Key) {
 	m.wantlist = append(m.wantlist, k)
 }
 

@@ -13,7 +13,7 @@ import (
 func TestAppendWanted(t *testing.T) {
 	const str = "foo"
 	m := New()
-	m.AppendWanted(u.Key(str))
+	m.AddWanted(u.Key(str))
 
 	if !contains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
@@ -58,7 +58,7 @@ func TestWantlist(t *testing.T) {
 	keystrs := []string{"foo", "bar", "baz", "bat"}
 	m := New()
 	for _, s := range keystrs {
-		m.AppendWanted(u.Key(s))
+		m.AddWanted(u.Key(s))
 	}
 	exported := m.Wantlist()
 
@@ -81,7 +81,7 @@ func TestCopyProtoByValue(t *testing.T) {
 	const str = "foo"
 	m := New()
 	protoBeforeAppend := m.ToProto()
-	m.AppendWanted(u.Key(str))
+	m.AddWanted(u.Key(str))
 	if contains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
 	}
@@ -101,11 +101,11 @@ func TestToNetMethodSetsPeer(t *testing.T) {
 
 func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original := New()
-	original.AppendWanted(u.Key("M"))
-	original.AppendWanted(u.Key("B"))
-	original.AppendWanted(u.Key("D"))
-	original.AppendWanted(u.Key("T"))
-	original.AppendWanted(u.Key("F"))
+	original.AddWanted(u.Key("M"))
+	original.AddWanted(u.Key("B"))
+	original.AddWanted(u.Key("D"))
+	original.AddWanted(u.Key("T"))
+	original.AddWanted(u.Key("F"))
 
 	p := peer.WithIDString("X")
 	netmsg, err := original.ToNet(p)

@@ -78,7 +78,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	go func() {
 		message := bsmsg.New()
 		for _, wanted := range bs.wantlist.Keys() {
-			message.AppendWanted(wanted)
+			message.AddWanted(wanted)
 		}
 		for peerToQuery := range peersToQuery {
 			log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
@@ -167,7 +167,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 
 	message := bsmsg.New()
 	for _, wanted := range bs.wantlist.Keys() {
-		message.AppendWanted(wanted)
+		message.AddWanted(wanted)
 	}
 	for _, key := range incoming.Wantlist() {
 		// TODO: might be better to check if we have the block before checking
@@ -208,7 +208,7 @@ func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) 
 				message := bsmsg.New()
 				message.AppendBlock(block)
 				for _, wanted := range bs.wantlist.Keys() {
-					message.AppendWanted(wanted)
+					message.AddWanted(wanted)
 				}
 				go bs.send(ctx, p, message)
 			}

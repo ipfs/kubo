@@ -60,7 +60,7 @@ func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
 	block := blocks.NewBlock([]byte("data wanted by beggar"))
 
 	messageFromBeggarToChooser := message.New()
-	messageFromBeggarToChooser.AppendWanted(block.Key())
+	messageFromBeggarToChooser.AddWanted(block.Key())
 
 	chooser.MessageReceived(beggar.Peer, messageFromBeggarToChooser)
 	// for this test, doesn't matter if you record that beggar sent
