@@ -26,15 +26,15 @@ type Exportable interface {
 	ToNet(p peer.Peer) (nm.NetMessage, error)
 }
 
-// message wraps a proto message for convenience
 type impl struct {
 	wantlist map[u.Key]struct{}
-	blocks   []blocks.Block
+	blocks   map[u.Key]blocks.Block
 }
 
 func New() BitSwapMessage {
 	return &impl{
 		wantlist: make(map[u.Key]struct{}),
+		blocks:   make(map[u.Key]blocks.Block),
 	}
 }
 
@@ -61,7 +61,11 @@ func (m *impl) Wantlist() []u.Key {
 
 // TODO(brian): convert these into blocks
 func (m *impl) Blocks() []blocks.Block {
-	return m.blocks
+	bs := make([]blocks.Block, 0)
+	for _, block := range m.blocks {
+		bs = append(bs, block)
+	}
+	return bs
 }
 
 func (m *impl) AddWanted(k u.Key) {
@@ -69,7 +73,7 @@ func (m *impl) AddWanted(k u.Key) {
 }
 
 func (m *impl) AppendBlock(b blocks.Block) {
-	m.blocks = append(m.blocks, b)
+	m.blocks[b.Key()] = b
 }
 
 func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
