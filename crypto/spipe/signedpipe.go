@@ -5,17 +5,18 @@ import (
 	"crypto/rand"
 	"errors"
 
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	pb "github.com/jbenet/go-ipfs/crypto/spipe/internal/pb"
 	"github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/pipes"
 )
 
 type SignedPipe struct {
-	Duplex
-	insecure Duplex
+	pipes.Duplex
+	insecure pipes.Duplex
 
 	local  peer.Peer
 	remote peer.Peer
@@ -26,12 +27,12 @@ type SignedPipe struct {
 }
 
 func NewSignedPipe(parctx context.Context, bufsize int, local peer.Peer,
-	peers peer.Peerstore, insecure Duplex) (*SignedPipe, error) {
+	peers peer.Peerstore, insecure pipes.Duplex) (*SignedPipe, error) {
 
 	ctx, cancel := context.WithCancel(parctx)
 
 	sp := &SignedPipe{
-		Duplex: Duplex{
+		Duplex: pipes.Duplex{
 			In:  make(chan []byte, bufsize),
 			Out: make(chan []byte, bufsize),
 		},

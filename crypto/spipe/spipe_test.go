@@ -7,6 +7,7 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/pipes"
 	"github.com/jbenet/go-ipfs/util"
 )
 
@@ -24,7 +25,7 @@ func getPeer(tb testing.TB) peer.Peer {
 	return p
 }
 
-func bindDuplexNoCopy(a, b Duplex) {
+func bindDuplexNoCopy(a, b pipes.Duplex) {
 	go func() {
 		for m := range b.Out {
 			a.In <- m
@@ -35,7 +36,7 @@ func bindDuplexNoCopy(a, b Duplex) {
 	}
 }
 
-func bindDuplexWithCopy(a, b Duplex) {
+func bindDuplexWithCopy(a, b pipes.Duplex) {
 	dup := func(byt []byte) []byte {
 		n := make([]byte, len(byt))
 		copy(n, byt)
@@ -82,14 +83,8 @@ func runEncryptBenchmark(b *testing.B) {
 
 	pa := getPeer(b)
 	pb := getPeer(b)
-	duplexa := Duplex{
-		In:  make(chan []byte),
-		Out: make(chan []byte),
-	}
-	duplexb := Duplex{
-		In:  make(chan []byte),
-		Out: make(chan []byte),
-	}
+	duplexa := pipes.NewDuplex(16)
+	duplexb := pipes.NewDuplex(16)
 
 	go bindDuplexNoCopy(duplexa, duplexb)
 
@@ -140,14 +135,8 @@ func BenchmarkSignedChannel(b *testing.B) {
 
 	pa := getPeer(b)
 	pb := getPeer(b)
-	duplexa := Duplex{
-		In:  make(chan []byte),
-		Out: make(chan []byte),
-	}
-	duplexb := Duplex{
-		In:  make(chan []byte),
-		Out: make(chan []byte),
-	}
+	duplexa := pipes.NewDuplex(16)
+	duplexb := pipes.NewDuplex(16)
 
 	go bindDuplexNoCopy(duplexa, duplexb)
 
@@ -192,14 +181,8 @@ func BenchmarkSignedChannel(b *testing.B) {
 }
 
 func BenchmarkDataTransfer(b *testing.B) {
-	duplexa := Duplex{
-		In:  make(chan []byte),
-		Out: make(chan []byte),
-	}
-	duplexb := Duplex{
-		In:  make(chan []byte),
-		Out: make(chan []byte),
-	}
+	duplexa := pipes.NewDuplex(16)
+	duplexb := pipes.NewDuplex(16)
 
 	go bindDuplexWithCopy(duplexa, duplexb)
 

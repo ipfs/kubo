@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	bfish "code.google.com/p/go.crypto/blowfish"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
@@ -16,6 +15,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	bfish "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.crypto/blowfish"
 	"hash"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -108,17 +108,17 @@ func (s *SecurePipe) handshake() error {
 	}
 	log.Debugf("%s Remote Peer Identified as %s", s.local, s.remote)
 
-	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
+	exchange, err := SelectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
 		return err
 	}
 
-	cipherType, err := selectBest(SupportedCiphers, proposeResp.GetCiphers())
+	cipherType, err := SelectBest(SupportedCiphers, proposeResp.GetCiphers())
 	if err != nil {
 		return err
 	}
 
-	hashType, err := selectBest(SupportedHashes, proposeResp.GetHashes())
+	hashType, err := SelectBest(SupportedHashes, proposeResp.GetHashes())
 	if err != nil {
 		return err
 	}
@@ -330,7 +330,7 @@ func (s *SecurePipe) handleSecureOut(hashType, cipherType string, mIV, mCKey, mM
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
-func selectBest(myPrefs, theirPrefs string) (string, error) {
+func SelectBest(myPrefs, theirPrefs string) (string, error) {
 	// Person with greatest hash gets first choice.
 	myHash := u.Hash([]byte(myPrefs))
 	theirHash := u.Hash([]byte(theirPrefs))

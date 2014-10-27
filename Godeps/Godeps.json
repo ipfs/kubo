@@ -20,6 +20,11 @@
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
 		},
 		{
+			"ImportPath": "code.google.com/p/go.crypto/blowfish",
+			"Comment": "null-219",
+			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+		},
+		{
 			"ImportPath": "code.google.com/p/go.crypto/sha3",
 			"Comment": "null-219",
 			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
