@@ -13,7 +13,7 @@ import (
 )
 
 type Network interface {
-	Adapter(peer.Peer) bsnet.Adapter
+	Adapter(peer.Peer) bsnet.BitSwapNetwork
 
 	HasPeer(peer.Peer) bool
 
@@ -43,7 +43,7 @@ type network struct {
 	clients map[util.Key]bsnet.Receiver
 }
 
-func (n *network) Adapter(p peer.Peer) bsnet.Adapter {
+func (n *network) Adapter(p peer.Peer) bsnet.BitSwapNetwork {
 	client := &networkClient{
 		local:   p,
 		network: n,

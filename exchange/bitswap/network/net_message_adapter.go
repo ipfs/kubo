@@ -15,7 +15,7 @@ import (
 var log = util.Logger("net_message_adapter")
 
 // NetMessageAdapter wraps a NetMessage network service
-func NetMessageAdapter(s inet.Service, n inet.Network, r Receiver) Adapter {
+func NetMessageAdapter(s inet.Service, n inet.Network, r Receiver) BitSwapNetwork {
 	adapter := impl{
 		nms:      s,
 		net:      n,

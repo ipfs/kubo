@@ -57,7 +57,7 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 type bitswap struct {
 
 	// sender delivers messages on behalf of the session
-	sender bsnet.Adapter
+	sender bsnet.BitSwapNetwork
 
 	// blockstore is the local database
 	// NB: ensure threadsafety
