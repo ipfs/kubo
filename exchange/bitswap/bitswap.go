@@ -15,18 +15,18 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
-	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 var log = u.Logger("bitswap")
 
-// NetMessageSession initializes a BitSwap session that communicates over the
-// provided NetMessage service.
+// New initializes a BitSwap instance that communicates over the
+// provided BitSwapNetwork. This function registers the returned instance as
+// the network delegate.
 // Runs until context is cancelled
-func NetMessageSession(ctx context.Context, p peer.Peer,
-	net inet.Network, srv inet.Service, routing bsnet.Routing,
+func New(ctx context.Context, p peer.Peer,
+	network bsnet.BitSwapNetwork, routing bsnet.Routing,
 	d ds.ThreadSafeDatastore, nice bool) exchange.Interface {
 
 	notif := notifications.New()
@@ -36,8 +36,6 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 			notif.Shutdown()
 		}
 	}()
-
-	network := bsnet.NewFromIpfsNetwork(srv, net)
 
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
