@@ -43,13 +43,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 	defer lk.Close()
 
-	configFile, err := config.Filename(configPath)
-	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
-	}
-
-	config, err := config.Load(configFile)
+	config, err := getConfig(configPath)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
