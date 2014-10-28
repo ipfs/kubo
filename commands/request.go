@@ -5,9 +5,18 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+
+	"github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/core"
 )
 
 type optMap map[string]interface{}
+
+type Context struct {
+	ConfigRoot string
+	Config     *config.Config
+	Node       *core.IpfsNode
+}
 
 // Request represents a call to a command from a consumer
 type Request interface {
@@ -18,6 +27,7 @@ type Request interface {
 	Arguments() []string
 	Stream() io.Reader
 	SetStream(io.Reader)
+	Context() *Context
 
 	ConvertOptions(options map[string]Option) error
 }
@@ -27,6 +37,7 @@ type request struct {
 	options   optMap
 	arguments []string
 	in        io.Reader
+	ctx       Context
 }
 
 // Path returns the command path of this request
@@ -67,6 +78,10 @@ func (r *request) Stream() io.Reader {
 // SetStream sets the value of the input stream Reader
 func (r *request) SetStream(in io.Reader) {
 	r.in = in
+}
+
+func (r *request) Context() *Context {
+	return &r.ctx
 }
 
 type converter func(string) (interface{}, error)
@@ -149,5 +164,5 @@ func NewRequest(path []string, opts optMap, args []string, in io.Reader) Request
 	if args == nil {
 		args = make([]string, 0)
 	}
-	return &request{path, opts, args, in}
+	return &request{path, opts, args, in, Context{}}
 }
