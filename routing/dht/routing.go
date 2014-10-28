@@ -6,6 +6,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
@@ -89,7 +90,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 
 	log.Debugf("GetValue %v %v", key, result.value)
 	if result.value == nil {
-		return nil, u.ErrNotFound
+		return nil, routing.ErrNotFound
 	}
 
 	return result.value, nil
@@ -248,7 +249,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 
 	log.Debug("FindPeer %v %v", id, result.success)
 	if result.peer == nil {
-		return nil, u.ErrNotFound
+		return nil, routing.ErrNotFound
 	}
 
 	return result.peer, nil

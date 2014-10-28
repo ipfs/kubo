@@ -12,6 +12,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -145,7 +146,7 @@ func TestGetFailures(t *testing.T) {
 	ctx2, _ := context.WithTimeout(context.Background(), time.Second)
 	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
-		if err != u.ErrNotFound {
+		if err != routing.ErrNotFound {
 			t.Fatalf("Expected ErrNotFound, got: %s", err)
 		}
 	} else {
@@ -247,7 +248,7 @@ func TestNotFound(t *testing.T) {
 	log.Debug("get value got %v", v)
 	if err != nil {
 		switch err {
-		case u.ErrNotFound:
+		case routing.ErrNotFound:
 			//Success!
 			return
 		case u.ErrTimeout:
@@ -311,7 +312,7 @@ func TestLessThanKResponses(t *testing.T) {
 	_, err := d.GetValue(ctx, u.Key("hello"))
 	if err != nil {
 		switch err {
-		case u.ErrNotFound:
+		case routing.ErrNotFound:
 			//Success!
 			return
 		case u.ErrTimeout:

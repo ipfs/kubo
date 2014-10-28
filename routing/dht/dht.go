@@ -11,6 +11,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
@@ -288,8 +289,8 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 		return nil, peers, nil
 	}
 
-	log.Warning("getValueOrPeers: u.ErrNotFound")
-	return nil, nil, u.ErrNotFound
+	log.Warning("getValueOrPeers: routing.ErrNotFound")
+	return nil, nil, routing.ErrNotFound
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
@@ -326,7 +327,7 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 			return value, nil
 		}
 	}
-	return nil, u.ErrNotFound
+	return nil, routing.ErrNotFound
 }
 
 // getLocal attempts to retrieve the value from the datastore
