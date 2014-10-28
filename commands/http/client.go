@@ -6,14 +6,26 @@ import (
 	"net/http"
 	"strings"
 
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 const ApiPath = "/api/v0"
 
 func Send(req cmds.Request) (cmds.Response, error) {
-	// TODO: load RPC host from config
-	url := "http://localhost:8080" + ApiPath
+	addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
+	if err != nil {
+		return nil, err
+	}
+
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	url := "http://" + host + ApiPath
 	url += "/" + strings.Join(req.Path(), "/")
 
 	// TODO: support other encodings once we have multicodec to decode response
