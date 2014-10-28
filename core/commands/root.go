@@ -16,6 +16,7 @@ var Root = &cmds.Command{
 		cmds.Option{[]string{"config", "c"}, cmds.String},
 		cmds.Option{[]string{"debug", "D"}, cmds.Bool},
 		cmds.Option{[]string{"help", "h"}, cmds.Bool},
+		cmds.Option{[]string{"local", "L"}, cmds.Bool},
 	},
 	Help: `ipfs - global versioned p2p merkledag file system
 
