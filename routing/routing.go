@@ -1,11 +1,16 @@
 package routing
 
 import (
+	"errors"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// ErrNotFound is returned when a search fails to find anything
+var ErrNotFound = errors.New("routing: key not found")
 
 // IpfsRouting is the routing module interface
 // It is implemented by things like DHTs, etc.
