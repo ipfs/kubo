@@ -14,10 +14,25 @@ import (
 // TODO move bs/msg/internal/pb to bs/internal/pb and rename pb package to bitswap_pb
 
 type BitSwapMessage interface {
+	// Wantlist returns a slice of unique keys that represent data wanted by
+	// the sender.
 	Wantlist() []u.Key
+
+	// Blocks returns a slice of unique blocks
 	Blocks() []blocks.Block
-	AddWanted(k u.Key)
-	AddBlock(b blocks.Block)
+
+	// AddWanted adds the key to the Wantlist.
+	//
+	// Insertion order determines priority. That is, earlier insertions are
+	// deemed higher priority than keys inserted later.
+	//
+	// t = 0, msg.AddWanted(A)
+	// t = 1, msg.AddWanted(B)
+	//
+	// implies Priority(A) > Priority(B)
+	AddWanted(u.Key)
+
+	AddBlock(blocks.Block)
 	Exportable
 }
 
