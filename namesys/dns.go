@@ -9,6 +9,8 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
+var ErrNotFound = fmt.Errorf("namesys: name not found")
+
 // DNSResolver implements a Resolver on DNS domains
 type DNSResolver struct {
 	// TODO: maybe some sort of caching?
@@ -43,5 +45,5 @@ func (r *DNSResolver) Resolve(name string) (string, error) {
 		return t, nil
 	}
 
-	return "", fmt.Errorf("namesys: %v not found", name)
+	return "", ErrNotFound
 }

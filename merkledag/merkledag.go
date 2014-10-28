@@ -13,6 +13,7 @@ import (
 )
 
 var log = u.Logger("merkledag")
+var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // NodeMap maps u.Keys to Nodes.
 // We cannot use []byte/Multihash for keys :(
