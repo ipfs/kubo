@@ -30,7 +30,7 @@ func TestConsistentAccounting(t *testing.T) {
 
 		m := message.New()
 		content := []string{"this", "is", "message", "i"}
-		m.AppendBlock(*blocks.NewBlock([]byte(strings.Join(content, " "))))
+		m.AddBlock(*blocks.NewBlock([]byte(strings.Join(content, " "))))
 
 		sender.MessageSent(receiver.Peer, m)
 		receiver.MessageReceived(sender.Peer, m)
@@ -60,7 +60,7 @@ func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
 	block := blocks.NewBlock([]byte("data wanted by beggar"))
 
 	messageFromBeggarToChooser := message.New()
-	messageFromBeggarToChooser.AppendWanted(block.Key())
+	messageFromBeggarToChooser.AddWanted(block.Key())
 
 	chooser.MessageReceived(beggar.Peer, messageFromBeggarToChooser)
 	// for this test, doesn't matter if you record that beggar sent

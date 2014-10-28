@@ -14,10 +14,25 @@ import (
 // TODO move bs/msg/internal/pb to bs/internal/pb and rename pb package to bitswap_pb
 
 type BitSwapMessage interface {
+	// Wantlist returns a slice of unique keys that represent data wanted by
+	// the sender.
 	Wantlist() []u.Key
+
+	// Blocks returns a slice of unique blocks
 	Blocks() []blocks.Block
-	AppendWanted(k u.Key)
-	AppendBlock(b blocks.Block)
+
+	// AddWanted adds the key to the Wantlist.
+	//
+	// Insertion order determines priority. That is, earlier insertions are
+	// deemed higher priority than keys inserted later.
+	//
+	// t = 0, msg.AddWanted(A)
+	// t = 1, msg.AddWanted(B)
+	//
+	// implies Priority(A) > Priority(B)
+	AddWanted(u.Key)
+
+	AddBlock(blocks.Block)
 	Exportable
 }
 
@@ -26,44 +41,55 @@ type Exportable interface {
 	ToNet(p peer.Peer) (nm.NetMessage, error)
 }
 
-// message wraps a proto message for convenience
-type message struct {
-	wantlist []u.Key
-	blocks   []blocks.Block
+type impl struct {
+	existsInWantlist map[u.Key]struct{}     // map to detect duplicates
+	wantlist         []u.Key                // slice to preserve ordering
+	blocks           map[u.Key]blocks.Block // map to detect duplicates
 }
 
-func New() *message {
-	return new(message)
+func New() BitSwapMessage {
+	return &impl{
+		blocks:           make(map[u.Key]blocks.Block),
+		existsInWantlist: make(map[u.Key]struct{}),
+		wantlist:         make([]u.Key, 0),
+	}
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	m := New()
 	for _, s := range pbm.GetWantlist() {
-		m.AppendWanted(u.Key(s))
+		m.AddWanted(u.Key(s))
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
-		m.AppendBlock(*b)
+		m.AddBlock(*b)
 	}
 	return m
 }
 
-// TODO(brian): convert these into keys
-func (m *message) Wantlist() []u.Key {
+func (m *impl) Wantlist() []u.Key {
 	return m.wantlist
 }
 
-// TODO(brian): convert these into blocks
-func (m *message) Blocks() []blocks.Block {
-	return m.blocks
+func (m *impl) Blocks() []blocks.Block {
+	bs := make([]blocks.Block, 0)
+	for _, block := range m.blocks {
+		bs = append(bs, block)
+	}
+	return bs
 }
 
-func (m *message) AppendWanted(k u.Key) {
+func (m *impl) AddWanted(k u.Key) {
+	_, exists := m.existsInWantlist[k]
+	if exists {
+		return
+	}
+	m.existsInWantlist[k] = struct{}{}
 	m.wantlist = append(m.wantlist, k)
 }
 
-func (m *message) AppendBlock(b blocks.Block) {
-	m.blocks = append(m.blocks, b)
+func (m *impl) AddBlock(b blocks.Block) {
+	m.blocks[b.Key()] = b
 }
 
 func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
@@ -75,7 +101,7 @@ func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
 	return m, nil
 }
 
-func (m *message) ToProto() *pb.Message {
+func (m *impl) ToProto() *pb.Message {
 	pb := new(pb.Message)
 	for _, k := range m.Wantlist() {
 		pb.Wantlist = append(pb.Wantlist, string(k))
@@ -86,6 +112,6 @@ func (m *message) ToProto() *pb.Message {
 	return pb
 }
 
-func (m *message) ToNet(p peer.Peer) (nm.NetMessage, error) {
+func (m *impl) ToNet(p peer.Peer) (nm.NetMessage, error) {
 	return nm.FromObject(p, m.ToProto())
 }

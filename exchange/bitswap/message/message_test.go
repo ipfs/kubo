@@ -13,7 +13,7 @@ import (
 func TestAppendWanted(t *testing.T) {
 	const str = "foo"
 	m := New()
-	m.AppendWanted(u.Key(str))
+	m.AddWanted(u.Key(str))
 
 	if !contains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
@@ -42,7 +42,7 @@ func TestAppendBlock(t *testing.T) {
 	m := New()
 	for _, str := range strs {
 		block := blocks.NewBlock([]byte(str))
-		m.AppendBlock(*block)
+		m.AddBlock(*block)
 	}
 
 	// assert strings are in proto message
@@ -58,7 +58,7 @@ func TestWantlist(t *testing.T) {
 	keystrs := []string{"foo", "bar", "baz", "bat"}
 	m := New()
 	for _, s := range keystrs {
-		m.AppendWanted(u.Key(s))
+		m.AddWanted(u.Key(s))
 	}
 	exported := m.Wantlist()
 
@@ -81,7 +81,7 @@ func TestCopyProtoByValue(t *testing.T) {
 	const str = "foo"
 	m := New()
 	protoBeforeAppend := m.ToProto()
-	m.AppendWanted(u.Key(str))
+	m.AddWanted(u.Key(str))
 	if contains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
 	}
@@ -101,11 +101,11 @@ func TestToNetMethodSetsPeer(t *testing.T) {
 
 func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original := New()
-	original.AppendWanted(u.Key("M"))
-	original.AppendWanted(u.Key("B"))
-	original.AppendWanted(u.Key("D"))
-	original.AppendWanted(u.Key("T"))
-	original.AppendWanted(u.Key("F"))
+	original.AddWanted(u.Key("M"))
+	original.AddWanted(u.Key("B"))
+	original.AddWanted(u.Key("D"))
+	original.AddWanted(u.Key("T"))
+	original.AddWanted(u.Key("F"))
 
 	p := peer.WithIDString("X")
 	netmsg, err := original.ToNet(p)
@@ -133,10 +133,10 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 func TestToAndFromNetMessage(t *testing.T) {
 
 	original := New()
-	original.AppendBlock(*blocks.NewBlock([]byte("W")))
-	original.AppendBlock(*blocks.NewBlock([]byte("E")))
-	original.AppendBlock(*blocks.NewBlock([]byte("F")))
-	original.AppendBlock(*blocks.NewBlock([]byte("M")))
+	original.AddBlock(*blocks.NewBlock([]byte("W")))
+	original.AddBlock(*blocks.NewBlock([]byte("E")))
+	original.AddBlock(*blocks.NewBlock([]byte("F")))
+	original.AddBlock(*blocks.NewBlock([]byte("M")))
 
 	p := peer.WithIDString("X")
 	netmsg, err := original.ToNet(p)
@@ -168,4 +168,21 @@ func contains(s []string, x string) bool {
 		}
 	}
 	return false
+}
+
+func TestDuplicates(t *testing.T) {
+	b := blocks.NewBlock([]byte("foo"))
+	msg := New()
+
+	msg.AddWanted(b.Key())
+	msg.AddWanted(b.Key())
+	if len(msg.Wantlist()) != 1 {
+		t.Fatal("Duplicate in BitSwapMessage")
+	}
+
+	msg.AddBlock(*b)
+	msg.AddBlock(*b)
+	if len(msg.Blocks()) != 1 {
+		t.Fatal("Duplicate in BitSwapMessage")
+	}
 }
