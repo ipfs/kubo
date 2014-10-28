@@ -1,15 +1,12 @@
 package namesys
 
 import (
-	"fmt"
 	"net"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	isd "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-is-domain"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
-
-var ErrNotFound = fmt.Errorf("namesys: name not found")
 
 // DNSResolver implements a Resolver on DNS domains
 type DNSResolver struct {
@@ -45,5 +42,5 @@ func (r *DNSResolver) Resolve(name string) (string, error) {
 		return t, nil
 	}
 
-	return "", ErrNotFound
+	return "", ErrResolveFailed
 }
