@@ -41,10 +41,10 @@ type Muxer struct {
 	// Protocols are the multiplexed services.
 	Protocols ProtocolMap
 
-	bwiLock sync.RWMutex
+	bwiLock sync.Mutex
 	bwIn    uint64
 
-	bwoLock sync.RWMutex
+	bwoLock sync.Mutex
 	bwOut   uint64
 
 	*msg.Pipe
@@ -76,13 +76,13 @@ func (m *Muxer) GetPipe() *msg.Pipe {
 
 // GetBandwidthTotals return the in/out bandwidth measured over this muxer.
 func (m *Muxer) GetBandwidthTotals() (in uint64, out uint64) {
-	m.bwiLock.RLock()
+	m.bwiLock.Lock()
 	in = m.bwIn
-	m.bwiLock.RUnlock()
+	m.bwiLock.Unlock()
 
-	m.bwoLock.RLock()
+	m.bwoLock.Lock()
 	out = m.bwOut
-	m.bwoLock.RUnlock()
+	m.bwoLock.Unlock()
 	return
 }
 
