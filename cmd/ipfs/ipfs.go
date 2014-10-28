@@ -92,7 +92,9 @@ func main() {
 		res = root.Call(req)
 
 	} else {
-		if daemon.Locked(configPath) {
+		local, found := options.Option("local")
+
+		if (!found || !local.(bool)) && daemon.Locked(configPath) {
 			res, err = cmdsHttp.Send(req)
 			if err != nil {
 				fmt.Println(err)
