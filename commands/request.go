@@ -28,6 +28,7 @@ type Request interface {
 	Stream() io.Reader
 	SetStream(io.Reader)
 	Context() *Context
+	SetContext(Context)
 
 	ConvertOptions(options map[string]Option) error
 }
@@ -82,6 +83,10 @@ func (r *request) SetStream(in io.Reader) {
 
 func (r *request) Context() *Context {
 	return &r.ctx
+}
+
+func (r *request) SetContext(ctx Context) {
+	r.ctx = ctx
 }
 
 type converter func(string) (interface{}, error)
