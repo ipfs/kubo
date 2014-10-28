@@ -50,6 +50,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if help, found := options.Option("help"); found && help.(bool) {
+		fmt.Println(cmd.Help)
+		os.Exit(0)
+	}
+
 	if debug, found := options.Option("debug"); found && debug.(bool) {
 		u.Debug = true
 
