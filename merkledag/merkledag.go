@@ -103,7 +103,7 @@ func (n *Node) RemoveNodeLink(name string) error {
 			return nil
 		}
 	}
-	return u.ErrNotFound
+	return fmt.Errorf("merkledag: %s not found", name)
 }
 
 // Copy returns a copy of the node.
