@@ -27,14 +27,16 @@ type Exportable interface {
 }
 
 type impl struct {
-	wantlist map[u.Key]struct{}
-	blocks   map[u.Key]blocks.Block
+	existsInWantlist map[u.Key]struct{}     // map to detect duplicates
+	wantlist         []u.Key                // slice to preserve ordering
+	blocks           map[u.Key]blocks.Block // map to detect duplicates
 }
 
 func New() BitSwapMessage {
 	return &impl{
-		wantlist: make(map[u.Key]struct{}),
-		blocks:   make(map[u.Key]blocks.Block),
+		blocks:           make(map[u.Key]blocks.Block),
+		existsInWantlist: make(map[u.Key]struct{}),
+		wantlist:         make([]u.Key, 0),
 	}
 }
 
@@ -50,16 +52,10 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	return m
 }
 
-// TODO(brian): convert these into keys
 func (m *impl) Wantlist() []u.Key {
-	wl := make([]u.Key, 0)
-	for k, _ := range m.wantlist {
-		wl = append(wl, k)
-	}
-	return wl
+	return m.wantlist
 }
 
-// TODO(brian): convert these into blocks
 func (m *impl) Blocks() []blocks.Block {
 	bs := make([]blocks.Block, 0)
 	for _, block := range m.blocks {
@@ -69,7 +65,12 @@ func (m *impl) Blocks() []blocks.Block {
 }
 
 func (m *impl) AddWanted(k u.Key) {
-	m.wantlist[k] = struct{}{}
+	_, exists := m.existsInWantlist[k]
+	if exists {
+		return
+	}
+	m.existsInWantlist[k] = struct{}{}
+	m.wantlist = append(m.wantlist, k)
 }
 
 func (m *impl) AddBlock(b blocks.Block) {
