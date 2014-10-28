@@ -6,13 +6,12 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
-
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core/commands"
+	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -88,21 +87,7 @@ func main() {
 		res = root.Call(req)
 
 	} else {
-		local := true
-
-		lockFilePath, err := config.Path(configPath, DaemonLockFile)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		if lk, err := lock.Lock(lockFilePath); err != nil {
-			local = false
-		} else {
-			lk.Close()
-		}
-
-		if !local {
+		if daemon.Locked(configPath) {
 			res, err = cmdsHttp.Send(req)
 			if err != nil {
 				fmt.Println(err)
