@@ -116,7 +116,12 @@ type peer struct {
 
 // String prints out the peer.
 func (p *peer) String() string {
-	return "[Peer " + p.id.String()[:12] + "]"
+	pid := p.id.String()
+	maxRunes := 12
+	if len(pid) < maxRunes {
+		maxRunes = len(pid)
+	}
+	return "[Peer " + pid[:maxRunes] + "]"
 }
 
 // Key returns the ID as a Key (string) for maps.
