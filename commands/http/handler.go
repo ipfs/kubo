@@ -9,9 +9,9 @@ import (
 	"github.com/jbenet/go-ipfs/core/commands"
 )
 
-type Handler struct{}
-
-// TODO: store ipfsnode context
+type Handler struct {
+	Ctx cmds.Context
+}
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.Split(r.URL.Path, "/")[3:]
@@ -27,8 +27,11 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// build the Request and call the command
+	// build the Request
 	req := cmds.NewRequest(path, opts, nil, nil)
+	req.SetContext(i.Ctx)
+
+	// call the command
 	res := commands.Root.Call(req)
 
 	// set the Content-Type based on res output
