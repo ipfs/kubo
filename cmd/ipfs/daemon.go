@@ -24,7 +24,7 @@ var Daemon = &cmds.Command{
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
-	configPath, err := getConfigPath(req)
+	configPath, err := getConfigRoot(req)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return

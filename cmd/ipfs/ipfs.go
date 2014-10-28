@@ -67,18 +67,28 @@ func main() {
 		}
 	}
 
+	configPath, err := getConfigRoot(options)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	conf, err := getConfig(configPath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	ctx := req.Context()
+	ctx.ConfigRoot = configPath
+	ctx.Config = conf
+
 	var res cmds.Response
 	if root == Root {
 		res = root.Call(req)
 
 	} else {
 		local := true
-
-		configPath, err := getConfigPath(options)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
 
 		lockFilePath, err := config.Path(configPath, DaemonLockFile)
 		if err != nil {
@@ -138,7 +148,7 @@ func getOptions(req cmds.Request, root *cmds.Command) (cmds.Request, error) {
 	return tempReq, nil
 }
 
-func getConfigPath(req cmds.Request) (string, error) {
+func getConfigRoot(req cmds.Request) (string, error) {
 	if opt, found := req.Option("config"); found {
 		return opt.(string), nil
 	}
