@@ -22,7 +22,7 @@ const (
 	ChanBuffer = 10
 
 	// MaxMessageSize is the size of the largest single message
-	MaxMessageSize = 1 << 21 // 4 MB
+	MaxMessageSize = 1 << 20
 
 	// HandshakeTimeout for when nodes first connect
 	HandshakeTimeout = time.Second * 5

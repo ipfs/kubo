@@ -36,9 +36,11 @@ func bindDuplexNoCopy(a, b pipes.Duplex) {
 	}
 }
 
+var globuf = make([]byte, 4*1024*1024)
+
 func bindDuplexWithCopy(a, b pipes.Duplex) {
 	dup := func(byt []byte) []byte {
-		n := make([]byte, len(byt))
+		n := globuf[:len(byt)]
 		copy(n, byt)
 		return n
 	}
