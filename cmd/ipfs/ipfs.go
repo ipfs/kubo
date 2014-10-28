@@ -149,3 +149,12 @@ func getConfigPath(req cmds.Request) (string, error) {
 	}
 	return configPath, nil
 }
+
+func getConfig(path string) (*config.Config, error) {
+	configFile, err := config.Filename(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return config.Load(configFile)
+}
