@@ -1,6 +1,7 @@
 package blockservice
 
 import (
+	"errors"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -13,6 +14,7 @@ import (
 )
 
 var log = u.Logger("blockservice")
+var ErrNotFound = errors.New("blockservice: key not found")
 
 // BlockService is a block datastore.
 // It uses an internal `datastore.Datastore` instance to store values.
@@ -73,7 +75,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 		return blk, nil
 	} else {
 		log.Debug("Blockservice GetBlock: Not found.")
-		return nil, u.ErrNotFound
+		return nil, ErrNotFound
 	}
 }
 

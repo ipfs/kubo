@@ -6,8 +6,6 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	isd "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-is-domain"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 // DNSResolver implements a Resolver on DNS domains
@@ -44,5 +42,5 @@ func (r *DNSResolver) Resolve(name string) (string, error) {
 		return t, nil
 	}
 
-	return "", u.ErrNotFound
+	return "", ErrResolveFailed
 }
