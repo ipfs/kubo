@@ -6,6 +6,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	queue "github.com/jbenet/go-ipfs/peer/queue"
+	"github.com/jbenet/go-ipfs/routing"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 	todoctr "github.com/jbenet/go-ipfs/util/todocounter"
@@ -128,7 +129,7 @@ func (r *dhtQueryRunner) Run(peers []peer.Peer) (*dhtQueryResult, error) {
 	// so workers are working.
 
 	// wait until they're done.
-	err := u.ErrNotFound
+	err := routing.ErrNotFound
 
 	select {
 	case <-r.peersRemaining.Done():
