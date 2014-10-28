@@ -46,3 +46,12 @@ func TestNetAddress(t *testing.T) {
 		t.Error("NetAddress lookup failed", udp, udp2)
 	}
 }
+
+func TestStringMethodWithSmallId(t *testing.T) {
+	p := WithID([]byte(string(0)))
+	p1, ok := p.(*peer)
+	if !ok {
+		t.Fatal("WithID doesn't return a peer")
+	}
+	p1.String()
+}
