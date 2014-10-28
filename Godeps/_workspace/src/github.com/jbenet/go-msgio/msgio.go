@@ -3,6 +3,7 @@ package msgio
 import (
 	"encoding/binary"
 	"io"
+	"sync"
 )
 
 var NBO = binary.BigEndian
@@ -17,7 +18,7 @@ type WriteCloser interface {
 }
 
 type Reader interface {
-	ReadMsg([]byte) (int, error)
+	ReadMsg() ([]byte, error)
 }
 
 type ReadCloser interface {
@@ -63,22 +64,30 @@ func (s *Writer_) Close() error {
 type Reader_ struct {
 	R    io.Reader
 	lbuf []byte
+	bp   *sync.Pool
 }
 
-func NewReader(r io.Reader) ReadCloser {
-	return &Reader_{r, make([]byte, 4)}
+func NewReader(r io.Reader, bufpool *sync.Pool) ReadCloser {
+	return &Reader_{R: r, lbuf: make([]byte, 4), bp: bufpool}
 }
 
-func (s *Reader_) ReadMsg(msg []byte) (int, error) {
+func (s *Reader_) ReadMsg() ([]byte, error) {
 	if _, err := io.ReadFull(s.R, s.lbuf); err != nil {
-		return 0, err
+		return nil, err
 	}
+
+	bufi := s.bp.Get()
+	buf, ok := bufi.([]byte)
+	if !ok {
+		panic("invalid type in pool!")
+	}
+
 	length := int(NBO.Uint32(s.lbuf))
-	if length < 0 || length > len(msg) {
-		return 0, io.ErrShortBuffer
+	if length < 0 || length > len(buf) {
+		return nil, io.ErrShortBuffer
 	}
-	_, err := io.ReadFull(s.R, msg[:length])
-	return length, err
+	_, err := io.ReadFull(s.R, buf[:length])
+	return buf[:length], err
 }
 
 func (s *Reader_) Close() error {
@@ -95,7 +104,7 @@ type ReadWriter_ struct {
 
 func NewReadWriter(rw io.ReadWriter) ReadWriter {
 	return &ReadWriter_{
-		Reader: NewReader(rw),
+		Reader: NewReader(rw, nil),
 		Writer: NewWriter(rw),
 	}
 }

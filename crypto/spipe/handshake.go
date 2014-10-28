@@ -303,21 +303,20 @@ func (s *SecurePipe) handleSecureIn(hashType, cipherType string, tIV, tCKey, tMK
 		}
 
 		mark := len(data) - macSize
-		buff := make([]byte, mark)
-
-		theirCipher.XORKeyStream(buff, data[0:mark])
 
 		theirMac.Write(data[0:mark])
 		expected := theirMac.Sum(nil)
 		theirMac.Reset()
 
 		hmacOk := hmac.Equal(data[mark:], expected)
-
-		if hmacOk {
-			s.Duplex.In <- buff
-		} else {
+		if !hmacOk {
 			s.Duplex.In <- nil
+			continue
 		}
+
+		theirCipher.XORKeyStream(data, data[0:mark])
+
+		s.Duplex.In <- data[:mark]
 	}
 }
 

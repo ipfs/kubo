@@ -33,7 +33,7 @@ func NewChanWithPool(chanSize int, pool *sync.Pool) *Chan {
 func (s *Chan) ReadFrom(r io.Reader, maxMsgLen int) {
 	// new buffer per message
 	// if bottleneck, cycle around a set of buffers
-	mr := NewReader(r)
+	mr := NewReader(r, s.BufPool)
 	if s.BufPool == nil {
 		s.BufPool = new(sync.Pool)
 		s.BufPool.New = func() interface{} {
@@ -42,12 +42,7 @@ func (s *Chan) ReadFrom(r io.Reader, maxMsgLen int) {
 	}
 Loop:
 	for {
-		bufi := s.BufPool.Get()
-		buf, ok := bufi.([]byte)
-		if !ok {
-			panic("Got invalid type from sync pool!")
-		}
-		l, err := mr.ReadMsg(buf)
+		buf, err := mr.ReadMsg()
 		if err != nil {
 			if err == io.EOF {
 				break Loop // done
@@ -61,7 +56,7 @@ Loop:
 		select {
 		case <-s.CloseChan:
 			break Loop // told we're done
-		case s.MsgChan <- buf[:l]:
+		case s.MsgChan <- buf:
 			// ok seems fine. send it away
 		}
 	}

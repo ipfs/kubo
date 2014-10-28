@@ -41,7 +41,7 @@ func init() {
 func ReleaseBuffer(b []byte) {
 	log.Warningf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
 	if cap(b) != MaxMessageSize {
-		log.Warning("Release buffer failed.")
+		log.Warning("Release buffer failed (cap, size = %d, %d)", cap(b), len(b))
 		return
 	}
 	BufferPool.Put(b[:cap(b)])
