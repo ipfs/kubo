@@ -184,13 +184,15 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	cmp := bytes.Compare(myPubKey, proposeResp.GetPubkey())
-	mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
-	//ci.KeyStretcher(cmp, cipherType, hashType, secret)
 
-	go s.handleSecureIn(hashType, cipherType, tIV, tCKey, tMKey)
-	go s.handleSecureOut(hashType, cipherType, mIV, mCKey, mMKey)
+	if true {
+		mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
 
-	/*
+		go s.handleSecureIn(hashType, cipherType, tIV, tCKey, tMKey)
+		go s.handleSecureOut(hashType, cipherType, mIV, mCKey, mMKey)
+
+	} else {
+		log.Critical("Secure Channel Disabled! PLEASE ENSURE YOU KNOW WHAT YOU ARE DOING")
 		// Disable Secure Channel
 		go func(sp *SecurePipe) {
 			for {
@@ -220,7 +222,7 @@ func (s *SecurePipe) handshake() error {
 				}
 			}
 		}(s)
-	*/
+	}
 
 	finished := []byte("Finished")
 

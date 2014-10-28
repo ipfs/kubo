@@ -22,7 +22,7 @@ const (
 	ChanBuffer = 10
 
 	// MaxMessageSize is the size of the largest single message
-	MaxMessageSize = 1 << 22 // 4 MB
+	MaxMessageSize = 1 << 21 // 4 MB
 
 	// HandshakeTimeout for when nodes first connect
 	HandshakeTimeout = time.Second * 5
@@ -39,7 +39,11 @@ func init() {
 }
 
 func ReleaseBuffer(b []byte) {
-	log.Warningf("Releasing buffer! (size = %d)", cap(b))
+	log.Warningf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
+	if cap(b) != MaxMessageSize {
+		log.Warning("Release buffer failed.")
+		return
+	}
 	BufferPool.Put(b[:cap(b)])
 }
 

@@ -7,8 +7,8 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/pipes"
 	"github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/pipes"
 )
 
 func getPeer(tb testing.TB) peer.Peer {
