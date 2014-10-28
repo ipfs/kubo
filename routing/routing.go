@@ -10,7 +10,7 @@ import (
 )
 
 // ErrNotFound is returned when a search fails to find anything
-var ErrNotFound = errors.New("routing: key not found")
+var ErrNotFound = errors.New("routing: not found")
 
 // IpfsRouting is the routing module interface
 // It is implemented by things like DHTs, etc.
