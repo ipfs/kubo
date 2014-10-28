@@ -20,6 +20,8 @@ var Daemon = &cmds.Command{
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
+	// TODO: spin up a core.IpfsNode
+
 	ctx := req.Context()
 
 	lk, err := daemon.Lock(ctx.ConfigRoot)
@@ -41,7 +43,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	handler := cmdsHttp.Handler{}
+	handler := cmdsHttp.Handler{*ctx}
 	http.Handle(cmdsHttp.ApiPath+"/", handler)
 	err = http.ListenAndServe(host, nil)
 	if err != nil {
