@@ -45,11 +45,12 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	handler := cmdsHttp.Handler{*ctx}
 	http.Handle(cmdsHttp.ApiPath+"/", handler)
+
+	fmt.Printf("API server listening on '%s'\n", host)
+
 	err = http.ListenAndServe(host, nil)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	// TODO: log to indicate that we are now listening
-
 }
