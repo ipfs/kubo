@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
@@ -41,10 +43,33 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 	defer lk.Close()
 
+	configFile, err := config.Filename(configPath)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+
+	config, err := config.Load(configFile)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+
+	addr, err := ma.NewMultiaddr(config.Addresses.API)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+
 	handler := cmdsHttp.Handler{}
 	http.Handle(cmdsHttp.ApiPath+"/", handler)
-	// TODO: load listen address/port from config/options
-	err = http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(host, nil)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
