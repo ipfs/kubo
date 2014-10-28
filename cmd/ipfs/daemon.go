@@ -24,13 +24,9 @@ var Daemon = &cmds.Command{
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
-	configPath, err := getConfigRoot(req)
-	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
-	}
+	ctx := req.Context()
 
-	lockPath, err := config.Path(configPath, DaemonLockFile)
+	lockPath, err := config.Path(ctx.ConfigRoot, DaemonLockFile)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
@@ -43,13 +39,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 	defer lk.Close()
 
-	config, err := getConfig(configPath)
-	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
-	}
-
-	addr, err := ma.NewMultiaddr(config.Addresses.API)
+	addr, err := ma.NewMultiaddr(ctx.Config.Addresses.API)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
