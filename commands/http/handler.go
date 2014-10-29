@@ -1,9 +1,9 @@
 package http
 
 import (
+	"errors"
 	"io"
 	"net/http"
-	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core/commands"
@@ -13,22 +13,19 @@ type Handler struct {
 	Ctx cmds.Context
 }
 
+var ErrNotFound = errors.New("404 page not found")
+
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.Split(r.URL.Path, "/")[3:]
-	opts := getOptions(r)
-
-	// TODO: get args
-
-	// ensure the requested command exists, otherwise 404
-	_, err := commands.Root.Get(path)
+	req, err := Parse(r)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 page not found"))
+		if err == ErrNotFound {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		w.Write([]byte(err.Error()))
 		return
 	}
-
-	// build the Request
-	req := cmds.NewRequest(path, opts, nil, nil)
 	req.SetContext(i.Ctx)
 
 	// call the command
@@ -59,25 +56,4 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(err.Error()))
 	}
-}
-
-// getOptions returns the command options in the given HTTP request
-// (from the querystring and request body)
-func getOptions(r *http.Request) map[string]interface{} {
-	opts := make(map[string]interface{})
-
-	query := r.URL.Query()
-	for k, v := range query {
-		opts[k] = v[0]
-	}
-
-	// TODO: get more options from request body (formdata, json, etc)
-
-	_, short := opts[cmds.EncShort]
-	_, long := opts[cmds.EncLong]
-	if !short && !long {
-		opts[cmds.EncShort] = cmds.JSON
-	}
-
-	return opts
 }
