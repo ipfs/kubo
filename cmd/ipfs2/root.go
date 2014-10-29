@@ -2,7 +2,7 @@ package main
 
 import (
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core/commands"
+	commands "github.com/jbenet/go-ipfs/core/commands2"
 )
 
 var Root = &cmds.Command{
