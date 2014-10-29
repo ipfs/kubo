@@ -27,9 +27,13 @@ func Parse(r *http.Request) (cmds.Request, error) {
 	opts, args2 := parseOptions(r)
 	args = append(args, args2...)
 
-	// TODO: input stream (from request body)
+	// TODO: make a way to send opts/args in request body
+	//   (e.g. if form-data or form-urlencoded, then treat the same as querystring)
+	// for now, to be simple, we just use the whole request body as the input stream
+	// (r.Body will be nil if there is no request body, like in GET requests)
+	in := r.Body
 
-	return cmds.NewRequest(path, opts, args, nil), nil
+	return cmds.NewRequest(path, opts, args, in), nil
 }
 
 func parseOptions(r *http.Request) (map[string]interface{}, []string) {
