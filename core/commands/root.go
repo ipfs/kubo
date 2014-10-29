@@ -48,6 +48,12 @@ Use "ipfs help <command>" for more information about a command.
 				v := TestOutput{"hello, world", 1337}
 				res.SetValue(v)
 			},
+			Format: func(res cmds.Response) (string, error) {
+				v := res.Value().(TestOutput)
+				s := fmt.Sprintf("Foo: %s\n", v.Foo)
+				s += fmt.Sprintf("Bar: %v\n", v.Bar)
+				return s, nil
+			},
 		},
 		"boop": &cmds.Command{
 			Run: func(req cmds.Request, res cmds.Response) {
