@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core/commands"
+	commands "github.com/jbenet/go-ipfs/core/commands2"
 )
 
 // Parse parses the data in a http.Request and returns a command Request object

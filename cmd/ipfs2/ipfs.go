@@ -11,7 +11,7 @@ import (
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/core/commands"
+	commands "github.com/jbenet/go-ipfs/core/commands2"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
 )
