@@ -9,7 +9,7 @@ import (
 
 var cat = &cmds.Command{
 	Help: "TODO",
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
 		readers := make([]io.Reader, 0, len(req.Arguments()))
 
