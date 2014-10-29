@@ -36,16 +36,39 @@ type EncodingType string
 const (
 	JSON = "json"
 	XML  = "xml"
+	Text = "text"
 	// TODO: support more encoding types
 )
 
 // Marshaller is a function used by coding types.
 // TODO this should just be a `coding.Codec`
-type Marshaller func(v interface{}) ([]byte, error)
+type Marshaller func(res Response) ([]byte, error)
 
 var marshallers = map[EncodingType]Marshaller{
-	JSON: json.Marshal,
-	XML:  xml.Marshal,
+	JSON: func(res Response) ([]byte, error) {
+		if res.Error() != nil {
+			return json.Marshal(res.Error())
+		}
+		return json.Marshal(res.Value())
+	},
+	XML: func(res Response) ([]byte, error) {
+		if res.Error() != nil {
+			return xml.Marshal(res.Error())
+		}
+		return xml.Marshal(res.Value())
+	},
+	Text: func(res Response) ([]byte, error) {
+		format := res.Request().Command().Format
+		if format == nil {
+			return nil, ErrNoFormatter
+		}
+
+		s, err := format(res)
+		if err != nil {
+			return nil, err
+		}
+		return []byte(s), nil
+	},
 }
 
 // Response is the result of a command request. Handlers write to the response,
@@ -111,10 +134,7 @@ func (r *response) Marshal() ([]byte, error) {
 		return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
 	}
 
-	if r.err != nil {
-		return marshaller(r.err)
-	}
-	return marshaller(r.value)
+	return marshaller(r)
 }
 
 func (r *response) Read(p []byte) (int, error) {
