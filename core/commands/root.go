@@ -74,5 +74,10 @@ Use "ipfs help <command>" for more information about a command.
 				}
 			},
 		},
+		"args": &cmds.Command{
+			Run: func(req cmds.Request, res cmds.Response) {
+				res.SetValue(req.Arguments())
+			},
+		},
 	},
 }
