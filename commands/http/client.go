@@ -1,8 +1,8 @@
 package http
 
 import (
-	//"encoding/json"
-	//"fmt"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,6 +28,16 @@ func Send(req cmds.Request) (cmds.Response, error) {
 	url := "http://" + host + ApiPath
 	url += "/" + strings.Join(req.Path(), "/")
 
+	var userEncoding string
+	if enc, found := req.Option(cmds.EncShort); found {
+		userEncoding = enc.(string)
+		req.SetOption(cmds.EncShort, cmds.JSON)
+	} else {
+		enc, _ := req.Option(cmds.EncLong)
+		userEncoding = enc.(string)
+		req.SetOption(cmds.EncLong, cmds.JSON)
+	}
+
 	query := "?"
 	for k, v := range req.Options() {
 		query += "&" + k + "=" + v.(string)
@@ -41,11 +51,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		return nil, err
 	}
 
-	// commented out: code to parse HTTP response and turn it into a cmds.Response
-	// for now, we are simply reading the data as a stream
 	res := cmds.NewResponse(req)
-	res.SetValue(httpRes.Body)
-	/*res := cmds.NewResponse(req)
 
 	contentType := httpRes.Header["Content-Type"][0]
 	contentType = strings.Split(contentType, ";")[0]
@@ -55,7 +61,6 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		return res, nil
 	}
 
-	// TODO: decode based on `encoding`, using multicodec
 	dec := json.NewDecoder(httpRes.Body)
 
 	if httpRes.StatusCode >= http.StatusBadRequest {
@@ -69,7 +74,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		res.SetError(e, e.Code)
 
 	} else {
-		var v interface{}
+		v := req.Command().Type
 		err = dec.Decode(&v)
 		if err != nil {
 			fmt.Println(err)
@@ -77,7 +82,12 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		}
 
 		res.SetValue(v)
-	}*/
+	}
+
+	if len(userEncoding) > 0 {
+		req.SetOption(cmds.EncShort, userEncoding)
+		req.SetOption(cmds.EncLong, userEncoding)
+	}
 
 	return res, nil
 }
