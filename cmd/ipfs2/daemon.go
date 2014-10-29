@@ -20,7 +20,7 @@ var Daemon = &cmds.Command{
 	Run:         daemonFunc,
 }
 
-func daemonFunc(req cmds.Request, res cmds.Response) {
+func daemonFunc(res cmds.Response, req cmds.Request) {
 	ctx := req.Context()
 
 	node, err := core.NewIpfsNode(ctx.Config, true)

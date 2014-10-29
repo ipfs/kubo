@@ -8,7 +8,7 @@ func TestOptionValidation(t *testing.T) {
 			Option{[]string{"b", "beep"}, Int},
 			Option{[]string{"B", "boop"}, String},
 		},
-		Run: func(req Request, res Response) {},
+		Run: func(res Response, req Request) {},
 	}
 
 	req := NewEmptyRequest()
@@ -79,7 +79,7 @@ func TestOptionValidation(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	noop := func(req Request, res Response) {}
+	noop := func(res Response, req Request) {}
 
 	cmdA := &Command{
 		Options: []Option{
