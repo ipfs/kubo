@@ -1,4 +1,4 @@
-tpackage mux
+package mux
 
 import (
 	"errors"

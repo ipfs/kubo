@@ -35,7 +35,7 @@ var SupportedExchanges = "P-256,P-224,P-384,P-521"
 var SupportedCiphers = "AES-256,AES-128,Blowfish"
 
 // List of supported Hashes
-var SupportedHashes = "SHA256,SHA512,SHA1"
+var SupportedHashes = "SHA256,SHA512"
 
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
