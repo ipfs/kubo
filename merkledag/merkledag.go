@@ -242,7 +242,7 @@ func (n *dagService) Remove(nd *Node) error {
 	return n.Blocks.DeleteBlock(k)
 }
 
-func FetchGraph(ctx context.Context, root *Node, serv *DAGService) {
+func FetchGraph(ctx context.Context, root *Node, serv DAGService) {
 	for _, l := range root.Links {
 		go func(lnk *Link) {
 			select {
