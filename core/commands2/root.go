@@ -2,8 +2,9 @@ package commands
 
 import (
 	"fmt"
-	cmds "github.com/jbenet/go-ipfs/commands"
 	"strings"
+
+	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 type TestOutput struct {
@@ -31,6 +32,7 @@ Basic commands:
 Tool commands:
 
     config        Manage configuration.
+    update        Download and apply go-ipfs updates.
     version       Show ipfs version information.
     commands      List all available commands.
 
@@ -38,7 +40,13 @@ Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
     serve         Serve an interface to ipfs.
-    net-diag      Print network diagnostic.
+    net-diag      Print network diagnostic
+
+Plumbing commands:
+
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+
 
 Use "ipfs help <command>" for more information about a command.
 `,
