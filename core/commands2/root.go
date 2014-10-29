@@ -56,7 +56,7 @@ Use "ipfs help <command>" for more information about a command.
 		// test subcommands
 		// TODO: remove these when we don't need them anymore
 		"beep": &cmds.Command{
-			Run: func(req cmds.Request, res cmds.Response) {
+			Run: func(res cmds.Response, req cmds.Request) {
 				v := &TestOutput{"hello, world", 1337}
 				res.SetValue(v)
 			},
@@ -69,7 +69,7 @@ Use "ipfs help <command>" for more information about a command.
 			Type: &TestOutput{},
 		},
 		"boop": &cmds.Command{
-			Run: func(req cmds.Request, res cmds.Response) {
+			Run: func(res cmds.Response, req cmds.Request) {
 				v := strings.NewReader("hello, world")
 				res.SetValue(v)
 			},
@@ -78,7 +78,7 @@ Use "ipfs help <command>" for more information about a command.
 			Options: []cmds.Option{
 				cmds.Option{[]string{"power", "p"}, cmds.Float},
 			},
-			Run: func(req cmds.Request, res cmds.Response) {
+			Run: func(res cmds.Response, req cmds.Request) {
 				threshold := 1.21
 
 				if power, found := req.Option("power"); found && power.(float64) >= threshold {
@@ -94,12 +94,12 @@ Use "ipfs help <command>" for more information about a command.
 			},
 		},
 		"args": &cmds.Command{
-			Run: func(req cmds.Request, res cmds.Response) {
+			Run: func(res cmds.Response, req cmds.Request) {
 				res.SetValue(req.Arguments())
 			},
 		},
 		"echo": &cmds.Command{
-			Run: func(req cmds.Request, res cmds.Response) {
+			Run: func(res cmds.Response, req cmds.Request) {
 				res.SetValue(req.Stream())
 			},
 		},
