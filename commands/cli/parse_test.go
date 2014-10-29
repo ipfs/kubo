@@ -8,12 +8,13 @@ import (
 )
 
 func TestOptionParsing(t *testing.T) {
+	subCmd := &commands.Command{}
 	cmd := &commands.Command{
 		Options: []commands.Option{
 			commands.Option{Names: []string{"b"}, Type: commands.String},
 		},
 		Subcommands: map[string]*commands.Command{
-			"test": &commands.Command{},
+			"test": subCmd,
 		},
 	}
 
@@ -37,11 +38,14 @@ func TestOptionParsing(t *testing.T) {
 		t.Error("Should have failed (duplicate option name)")
 	}
 
-	path, args := parsePath([]string{"test", "beep", "boop"}, cmd)
+	path, args, sub := parsePath([]string{"test", "beep", "boop"}, cmd)
 	if len(path) != 1 || path[0] != "test" {
 		t.Errorf("Returned path was defferent than expected: %v", path)
 	}
 	if len(args) != 2 || args[0] != "beep" || args[1] != "boop" {
 		t.Errorf("Returned args were different than expected: %v", args)
+	}
+	if sub != subCmd {
+		t.Errorf("Returned command was different than expected")
 	}
 }
