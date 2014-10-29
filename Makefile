@@ -10,9 +10,10 @@ godep:
 vendor: godep
 	godep save -r ./...
 
-
+# TODO remove ipfs2 once new command refactoring is complete
 install:
 	cd cmd/ipfs && go install
+	cd cmd/ipfs2 && go install
 
 test: test_go test_sharness
 
