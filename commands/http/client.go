@@ -1,8 +1,8 @@
 package http
 
 import (
-	"encoding/json"
-	"fmt"
+	//"encoding/json"
+	//"fmt"
 	"net/http"
 	"strings"
 
@@ -28,11 +28,6 @@ func Send(req cmds.Request) (cmds.Response, error) {
 	url := "http://" + host + ApiPath
 	url += "/" + strings.Join(req.Path(), "/")
 
-	// TODO: support other encodings once we have multicodec to decode response
-	//       (we shouldn't have to set this here)
-	encoding := cmds.JSON
-	req.SetOption(cmds.EncShort, encoding)
-
 	query := "?"
 	for k, v := range req.Options() {
 		query += "&" + k + "=" + v.(string)
@@ -46,7 +41,11 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		return nil, err
 	}
 
+	// commented out: code to parse HTTP response and turn it into a cmds.Response
+	// for now, we are simply reading the data as a stream
 	res := cmds.NewResponse(req)
+	res.SetValue(httpRes.Body)
+	/*res := cmds.NewResponse(req)
 
 	contentType := httpRes.Header["Content-Type"][0]
 	contentType = strings.Split(contentType, ";")[0]
@@ -78,7 +77,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		}
 
 		res.SetValue(v)
-	}
+	}*/
 
 	return res, nil
 }
