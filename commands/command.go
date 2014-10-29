@@ -14,17 +14,25 @@ var log = u.Logger("command")
 // It reads from the Request, and writes results to the Response.
 type Function func(Request, Response)
 
+// Formatter is a function that takes in a Response, and returns a human-readable string
+// (or an error on failure)
+// MAYBE_TODO: maybe this should be a io.Reader instead of a string?
+type Formatter func(Response) (string, error)
+
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
 	Help        string
 	Options     []Option
 	Run         Function
+	Format      Formatter
 	Subcommands map[string]*Command
 }
 
 // ErrNotCallable signals a command that cannot be called.
 var ErrNotCallable = errors.New("This command can't be called directly. Try one of its subcommands.")
+
+var ErrNoFormatter = errors.New("This command cannot be formatted to plain text")
 
 // Call invokes the command for the given Request
 func (c *Command) Call(req Request) Response {
