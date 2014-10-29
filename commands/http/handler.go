@@ -15,6 +15,12 @@ type Handler struct {
 
 var ErrNotFound = errors.New("404 page not found")
 
+var mimeTypes = map[string]string{
+	cmds.JSON: "application/json",
+	cmds.XML:  "application/xml",
+	cmds.Text: "text/plain",
+}
+
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req, err := Parse(r)
 	if err != nil {
@@ -36,9 +42,9 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// TODO: set based on actual Content-Type of file
 		w.Header().Set("Content-Type", "application/octet-stream")
 	} else {
-		// TODO: get proper MIME type for encoding from multicodec lib
 		enc, _ := req.Option(cmds.EncShort)
-		w.Header().Set("Content-Type", "application/"+enc.(string))
+		mime := mimeTypes[enc.(string)]
+		w.Header().Set("Content-Type", mime)
 	}
 
 	// if response contains an error, write an HTTP error status code
