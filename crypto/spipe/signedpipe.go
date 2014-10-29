@@ -24,7 +24,15 @@ type SignedPipe struct {
 
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	mesid      uint64
+	theirmesid uint64
 }
+
+// secureChallengeSize is a constant that determines the initial challenge, and every subsequent
+// sequence number. It should be large enough to be unguessable by adversaries (128+ bits).
+// (SECURITY WARNING)
+const secureChallengeSize = (256 / 32)
 
 func NewSignedPipe(parctx context.Context, bufsize int, local peer.Peer,
 	peers peer.Peerstore, insecure pipes.Duplex) (*SignedPipe, error) {
@@ -32,10 +40,7 @@ func NewSignedPipe(parctx context.Context, bufsize int, local peer.Peer,
 	ctx, cancel := context.WithCancel(parctx)
 
 	sp := &SignedPipe{
-		Duplex: pipes.Duplex{
-			In:  make(chan []byte, bufsize),
-			Out: make(chan []byte, bufsize),
-		},
+		Duplex:   pipes.NewDuplex(bufsize),
 		local:    local,
 		peers:    peers,
 		insecure: insecure,
@@ -51,6 +56,36 @@ func NewSignedPipe(parctx context.Context, bufsize int, local peer.Peer,
 	return sp, nil
 }
 
+func (sp *SignedPipe) trySend(b []byte) bool {
+	select {
+	case <-sp.ctx.Done():
+		return false
+	case sp.insecure.Out <- b:
+		return true
+	}
+}
+
+func (sp *SignedPipe) tryRecv() ([]byte, bool) {
+	select {
+	case <-sp.ctx.Done():
+		return nil, false
+	case data, ok := <-sp.insecure.In:
+		if !ok {
+			return nil, false
+		}
+		return data, true
+	}
+}
+
+func reduceChallenge(cha []byte) uint64 {
+	var out uint64
+	for _, b := range cha {
+		out ^= uint64(b)
+		out = out << 1
+	}
+	return out
+}
+
 func (sp *SignedPipe) handshake() error {
 	// Send them our public key
 	pubk := sp.local.PubKey()
@@ -59,7 +94,10 @@ func (sp *SignedPipe) handshake() error {
 		return err
 	}
 
-	sp.insecure.Out <- pkb
+	// Exchange public keys with remote peer
+	if !sp.trySend(pkb) {
+		return context.Canceled
+	}
 	theirPkb := <-sp.insecure.In
 
 	theirPubKey, err := ci.UnmarshalPublicKey(theirPkb)
@@ -67,7 +105,7 @@ func (sp *SignedPipe) handshake() error {
 		return err
 	}
 
-	challenge := make([]byte, 32)
+	challenge := make([]byte, secureChallengeSize)
 	rand.Read(challenge)
 
 	enc, err := theirPubKey.Encrypt(challenge)
@@ -75,24 +113,62 @@ func (sp *SignedPipe) handshake() error {
 		return err
 	}
 
-	sp.insecure.Out <- enc
-	theirEnc := <-sp.insecure.In
-
-	unenc, err := sp.local.PrivKey().Unencrypt(theirEnc)
+	chsig, err := sp.local.PrivKey().Sign(challenge)
 	if err != nil {
 		return err
 	}
 
+	if !sp.trySend(enc) {
+		return context.Canceled
+	}
+	if !sp.trySend(chsig) {
+		return context.Canceled
+	}
+
+	theirEnc, ok := sp.tryRecv()
+	if !ok {
+		return context.Canceled
+	}
+	theirChSig, ok := sp.tryRecv()
+	if !ok {
+		return context.Canceled
+	}
+
+	// Unencrypt and verify their challenge
+	unenc, err := sp.local.PrivKey().Unencrypt(theirEnc)
+	if err != nil {
+		return err
+	}
+	ok, err = theirPubKey.Verify(unenc, theirChSig)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("Invalid signature!")
+	}
+
+	// Sign the unencrypted challenge, and send it back
 	sig, err := sp.local.PrivKey().Sign(unenc)
 	if err != nil {
 		return err
 	}
 
-	sp.insecure.Out <- unenc
-	theirUnenc := <-sp.insecure.In
-	sp.insecure.Out <- sig
-	theirSig := <-sp.insecure.In
+	if !sp.trySend(unenc) {
+		return context.Canceled
+	}
+	if !sp.trySend(sig) {
+		return context.Canceled
+	}
+	theirUnenc, ok := sp.tryRecv()
+	if !ok {
+		return context.Canceled
+	}
+	theirSig, ok := sp.tryRecv()
+	if !ok {
+		return context.Canceled
+	}
 
+	// Verify that they correctly unecrypted the challenge
 	if !bytes.Equal(theirUnenc, challenge) {
 		return errors.New("received bad challenge response")
 	}
@@ -106,12 +182,29 @@ func (sp *SignedPipe) handshake() error {
 		return errors.New("Incorrect signature on challenge")
 	}
 
+	sp.theirmesid = reduceChallenge(challenge)
+	sp.mesid = reduceChallenge(unenc)
+
 	go sp.handleIn(theirPubKey)
-	go sp.handleOut()
+	go sp.handleOut(sp.local.PrivKey())
 
 	finished := []byte("finished")
-	sp.Out <- finished
-	resp := <-sp.In
+
+	select {
+	case <-sp.ctx.Done():
+		return context.Canceled
+	case sp.Out <- finished:
+	}
+
+	var resp []byte
+	select {
+	case <-sp.ctx.Done():
+		return context.Canceled
+	case resp, ok = <-sp.In:
+		if !ok {
+			return errors.New("Channel closed before handshake finished.")
+		}
+	}
 	if !bytes.Equal(resp, finished) {
 		return errors.New("Handshake failed!")
 	}
@@ -119,7 +212,7 @@ func (sp *SignedPipe) handshake() error {
 	return nil
 }
 
-func (sp *SignedPipe) handleOut() {
+func (sp *SignedPipe) handleOut(pk ci.PrivKey) {
 	for {
 		var data []byte
 		var ok bool
@@ -135,19 +228,21 @@ func (sp *SignedPipe) handleOut() {
 
 		sdata := new(pb.DataSig)
 
-		sig, err := sp.local.PrivKey().Sign(data)
+		sig, err := pk.Sign(data)
 		if err != nil {
 			log.Error("Error signing outgoing data: %s", err)
-			continue
+			return
 		}
 
 		sdata.Data = data
 		sdata.Sig = sig
+		sdata.Id = proto.Uint64(sp.mesid)
 		b, err := proto.Marshal(sdata)
 		if err != nil {
 			log.Error("Error marshaling signed data object: %s", err)
-			continue
+			return
 		}
+		sp.mesid++
 
 		select {
 		case sp.insecure.Out <- b:
@@ -187,6 +282,12 @@ func (sp *SignedPipe) handleIn(theirPubkey ci.PubKey) {
 			log.Error("Received data with invalid signature!")
 			continue
 		}
+
+		if sdata.GetId() != sp.theirmesid {
+			log.Critical("Out of order message id!")
+			return
+		}
+		sp.theirmesid++
 
 		select {
 		case <-sp.ctx.Done():
