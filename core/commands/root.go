@@ -79,5 +79,10 @@ Use "ipfs help <command>" for more information about a command.
 				res.SetValue(req.Arguments())
 			},
 		},
+		"echo": &cmds.Command{
+			Run: func(req cmds.Request, res cmds.Response) {
+				res.SetValue(req.Stream())
+			},
+		},
 	},
 }
