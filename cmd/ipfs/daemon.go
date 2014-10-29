@@ -9,6 +9,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
+	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/daemon"
 )
 
@@ -20,9 +21,14 @@ var Daemon = &cmds.Command{
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
-	// TODO: spin up a core.IpfsNode
-
 	ctx := req.Context()
+
+	node, err := core.NewIpfsNode(ctx.Config, true)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	ctx.Node = node
 
 	lk, err := daemon.Lock(ctx.ConfigRoot)
 	if err != nil {

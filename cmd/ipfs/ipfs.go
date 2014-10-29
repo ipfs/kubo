@@ -10,6 +10,7 @@ import (
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	"github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/commands"
 	"github.com/jbenet/go-ipfs/daemon"
 	u "github.com/jbenet/go-ipfs/util"
@@ -110,7 +111,13 @@ func main() {
 			}
 
 		} else {
-			// TODO: spin up node
+			node, err := core.NewIpfsNode(conf, false)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			ctx.Node = node
+
 			res = root.Call(req)
 		}
 	}
