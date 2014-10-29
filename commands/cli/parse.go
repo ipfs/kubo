@@ -4,23 +4,26 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-func Parse(input []string, root *commands.Command) (commands.Request, error) {
-	path, input := parsePath(input, root)
+func Parse(input []string, root *cmds.Command) (cmds.Request, error) {
+	path, input, cmd := parsePath(input, root)
 	opts, args, err := parseOptions(input)
 	if err != nil {
 		return nil, err
 	}
 
-	return commands.NewRequest(path, opts, args, nil), nil
+	// TODO: figure out how to know when to read given file(s) as an input stream
+	// (instead of filename arg string)
+
+	return cmds.NewRequest(path, opts, args, nil, cmd), nil
 }
 
 // parsePath gets the command path from the command line input
-func parsePath(input []string, root *commands.Command) ([]string, []string) {
+func parsePath(input []string, root *cmds.Command) ([]string, []string, *cmds.Command) {
 	cmd := root
 	i := 0
 
@@ -29,15 +32,16 @@ func parsePath(input []string, root *commands.Command) ([]string, []string) {
 			break
 		}
 
-		cmd := cmd.Subcommand(blob)
-		if cmd == nil {
+		sub := cmd.Subcommand(blob)
+		if sub == nil {
 			break
 		}
+		cmd = sub
 
 		i++
 	}
 
-	return input[:i], input[i:]
+	return input[:i], input[i:], cmd
 }
 
 // parseOptions parses the raw string values of the given options

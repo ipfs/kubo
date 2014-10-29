@@ -29,6 +29,7 @@ type Request interface {
 	SetStream(io.Reader)
 	Context() *Context
 	SetContext(Context)
+	Command() *Command
 
 	ConvertOptions(options map[string]Option) error
 }
@@ -38,6 +39,7 @@ type request struct {
 	options   optMap
 	arguments []string
 	in        io.Reader
+	cmd       *Command
 	ctx       Context
 }
 
@@ -87,6 +89,10 @@ func (r *request) Context() *Context {
 
 func (r *request) SetContext(ctx Context) {
 	r.ctx = ctx
+}
+
+func (r *request) Command() *Command {
+	return r.cmd
 }
 
 type converter func(string) (interface{}, error)
@@ -155,11 +161,11 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() Request {
-	return NewRequest(nil, nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []string, in io.Reader) Request {
+func NewRequest(path []string, opts optMap, args []string, in io.Reader, cmd *Command) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -169,5 +175,5 @@ func NewRequest(path []string, opts optMap, args []string, in io.Reader) Request
 	if args == nil {
 		args = make([]string, 0)
 	}
-	return &request{path, opts, args, in, Context{}}
+	return &request{path, opts, args, in, cmd, Context{}}
 }
