@@ -26,6 +26,7 @@ type Command struct {
 	Options     []Option
 	Run         Function
 	Format      Formatter
+	Type        interface{}
 	Subcommands map[string]*Command
 }
 
