@@ -120,7 +120,7 @@ func (r *response) SetError(err error, code ErrorType) {
 
 func (r *response) Marshal() ([]byte, error) {
 	if r.err == nil && r.value == nil {
-		return nil, fmt.Errorf("No error or value set, there is nothing to marshal")
+		return []byte{}, nil
 	}
 
 	enc, ok := r.req.Option(EncShort)
