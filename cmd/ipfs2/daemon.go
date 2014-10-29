@@ -10,7 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/daemon"
+	daemon "github.com/jbenet/go-ipfs/daemon2"
 )
 
 var Daemon = &cmds.Command{
