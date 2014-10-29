@@ -11,13 +11,21 @@ import (
 // Parse parses the data in a http.Request and returns a command Request object
 func Parse(r *http.Request) (cmds.Request, error) {
 	path := strings.Split(r.URL.Path, "/")[3:]
+	args := make([]string, 0)
 
-	// 404 if there is no command at that path
-	if _, err := commands.Root.Get(path); err != nil {
+	if cmd, err := commands.Root.Get(path[:len(path)-1]); err != nil {
+		// 404 if there is no command at that path
 		return nil, ErrNotFound
+
+	} else if cmd.Subcommand(path[len(path)-1]) == nil {
+		// if the last string in the path isn't a subcommand, use it as an argument
+		// e.g. /objects/Qabc12345 (we are passing "Qabc12345" to the "objects" command)
+		args = append(args, path[len(path)-1])
+		path = path[:len(path)-1]
 	}
 
-	opts, args := parseOptions(r)
+	opts, args2 := parseOptions(r)
+	args = append(args, args2...)
 
 	// TODO: input stream (from request body)
 
@@ -26,13 +34,16 @@ func Parse(r *http.Request) (cmds.Request, error) {
 
 func parseOptions(r *http.Request) (map[string]interface{}, []string) {
 	opts := make(map[string]interface{})
+	var args []string
 
 	query := r.URL.Query()
 	for k, v := range query {
-		opts[k] = v[0]
+		if k == "arg" {
+			args = v
+		} else {
+			opts[k] = v[0]
+		}
 	}
-
-	// TODO: get more options from request body (formdata, json, etc)
 
 	// default to setting encoding to JSON
 	_, short := opts[cmds.EncShort]
@@ -41,5 +52,5 @@ func parseOptions(r *http.Request) (map[string]interface{}, []string) {
 		opts[cmds.EncShort] = cmds.JSON
 	}
 
-	return opts, nil
+	return opts, args
 }
