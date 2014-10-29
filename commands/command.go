@@ -12,7 +12,7 @@ var log = u.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
-type Function func(Request, Response)
+type Function func(Response, Request)
 
 // Formatter is a function that takes in a Response, and returns a human-readable string
 // (or an error on failure)
@@ -63,7 +63,7 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	cmd.Run(req, res)
+	cmd.Run(res, req)
 
 	return res
 }
