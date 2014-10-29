@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -12,7 +11,6 @@ var cat = &cmds.Command{
 	Help: "TODO",
 	Run: func(req cmds.Request, res cmds.Response) {
 		node := req.Context().Node
-		fmt.Println(node.Resolver)
 		readers := make([]io.Reader, 0, len(req.Arguments()))
 
 		for _, path := range req.Arguments() {
