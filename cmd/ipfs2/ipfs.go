@@ -10,5 +10,6 @@ var Root = &cmds.Command{
 	Help:    commands.Root.Help,
 	Subcommands: map[string]*cmds.Command{
 		"daemon": Daemon,
+		"init":   initCmd,
 	},
 }
