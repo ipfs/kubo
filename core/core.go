@@ -161,7 +161,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	if err != nil {
 		n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
 	}
-
+        n.Resolver = &path.Resolver{DAG: n.DAG}
+        
 	success = true
 	return n, nil
 }
