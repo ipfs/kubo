@@ -34,9 +34,11 @@ func Send(req cmds.Request) (cmds.Response, error) {
 	req.SetOption(cmds.EncShort, encoding)
 
 	query := "?"
-	options := req.Options()
-	for k, v := range options {
+	for k, v := range req.Options() {
 		query += "&" + k + "=" + v.(string)
+	}
+	for _, v := range req.Arguments() {
+		query += "&arg=" + v
 	}
 
 	httpRes, err := http.Post(url+query, "application/octet-stream", req.Stream())
