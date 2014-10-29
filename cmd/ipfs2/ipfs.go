@@ -12,7 +12,7 @@ import (
 	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands2"
-	"github.com/jbenet/go-ipfs/daemon"
+	daemon "github.com/jbenet/go-ipfs/daemon2"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
