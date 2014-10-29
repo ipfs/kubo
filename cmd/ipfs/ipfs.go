@@ -87,6 +87,14 @@ func main() {
 	ctx.ConfigRoot = configPath
 	ctx.Config = conf
 
+	if _, found := options.Option("encoding"); !found {
+		if req.Command().Format != nil {
+			req.SetOption("encoding", cmds.Text)
+		} else {
+			req.SetOption("encoding", cmds.JSON)
+		}
+	}
+
 	var res cmds.Response
 	if root == Root {
 		res = root.Call(req)
