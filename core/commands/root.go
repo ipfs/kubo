@@ -43,6 +43,10 @@ Advanced Commands:
 Use "ipfs help <command>" for more information about a command.
 `,
 	Subcommands: map[string]*cmds.Command{
+		"cat": cat,
+
+		// test subcommands
+		// TODO: remove these when we don't need them anymore
 		"beep": &cmds.Command{
 			Run: func(req cmds.Request, res cmds.Response) {
 				v := &TestOutput{"hello, world", 1337}
