@@ -100,7 +100,7 @@ type randGen struct {
 	src rand.Source
 }
 
-func NewFastRand() io.Reader {
+func NewFastRand(seed int64) io.Reader {
 	return &randGen{rand.NewSource(time.Now().UnixNano())}
 }
 

@@ -30,8 +30,18 @@ func TestKey(t *testing.T) {
 }
 
 func TestByteChanReader(t *testing.T) {
+	var numSeedsToTest = 1000
+	if testing.Short() {
+		numSeedsToTest = 100
+	}
+	for i := 0; i < numSeedsToTest; i++ {
+		testByteChanReaderWithSeed(int64(i), t)
+	}
+}
+
+func testByteChanReaderWithSeed(seed int64, t *testing.T) {
 	data := make([]byte, 1024*1024)
-	r := NewFastRand()
+	r := NewFastRand(seed)
 	r.Read(data)
 	dch := make(chan []byte, 8)
 
@@ -55,7 +65,7 @@ func TestByteChanReader(t *testing.T) {
 	}
 
 	if !bytes.Equal(out, data) {
-		t.Fatal("Reader failed to stream correct bytes")
+		t.Errorf("Reader failed to stream correct bytes with seed %d", seed)
 	}
 }
 
