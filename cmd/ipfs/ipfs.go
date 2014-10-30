@@ -17,6 +17,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const heapProfile = "ipfs.mprof"
+
 // The IPFS command tree. It is an instance of `commander.Command`.
 var CmdIpfs = &commander.Command{
 	UsageLine: "ipfs [<flags>] <command> [<args>]",
@@ -116,6 +118,13 @@ func main() {
 			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
 		}
 		os.Exit(1)
+	}
+
+	if u.Debug {
+		err := writeHeapProfileToFile()
+		if err != nil {
+			log.Critical(err)
+		}
 	}
 	return
 }
@@ -219,4 +228,13 @@ func setupDaemon(confdir string, node *core.IpfsNode) (*daemon.DaemonListener, e
 	}
 	go dl.Listen()
 	return dl, nil
+}
+
+func writeHeapProfileToFile() error {
+	mprof, err := os.Create(heapProfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer mprof.Close()
+	return pprof.WriteHeapProfile(mprof)
 }
