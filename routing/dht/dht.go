@@ -240,7 +240,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 		return err
 	}
 
-	log.Debugf("%s putProvider: %s for %s", dht.self, p, key)
+	log.Debugf("%s putProvider: %s for %s", dht.self, p, u.Key(key))
 	if rpmes.GetKey() != pmes.GetKey() {
 		return errors.New("provider not added correctly")
 	}
