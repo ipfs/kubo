@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"io/ioutil"
 	"math/rand"
 	"testing"
 
@@ -30,31 +29,38 @@ func TestKey(t *testing.T) {
 }
 
 func TestByteChanReader(t *testing.T) {
-	data := make([]byte, 1024*1024)
-	r := NewFastRand()
-	r.Read(data)
+
+	var data bytes.Buffer
+	var data2 bytes.Buffer
 	dch := make(chan []byte, 8)
+	randr := NewTimeSeededRand()
 
 	go func() {
-		beg := 0
-		for i := 0; i < len(data); {
-			i += rand.Intn(100) + 1
-			if i > len(data) {
-				i = len(data)
-			}
-			dch <- data[beg:i]
-			beg = i
+		defer close(dch)
+		for i := 0; i < rand.Intn(100)+100; i++ {
+			chunk := make([]byte, rand.Intn(100000)+10)
+			randr.Read(chunk)
+			data.Write(chunk)
+			// fmt.Printf("chunk: %6.d %v\n", len(chunk), chunk[:10])
+			dch <- chunk
 		}
-		close(dch)
 	}()
 
 	read := NewByteChanReader(dch)
-	out, err := ioutil.ReadAll(read)
-	if err != nil {
-		t.Fatal(err)
+
+	// read in random, weird sizes to exercise saving buffer.
+	for {
+		buf := make([]byte, rand.Intn(10)*10)
+		n, err := read.Read(buf)
+		data2.Write(buf[:n])
+		// fmt.Printf("read: %6.d\n", n)
+		if err != nil {
+			break
+		}
 	}
 
-	if !bytes.Equal(out, data) {
+	// fmt.Printf("lens: %d == %d\n", len(out), len(data.Bytes()))
+	if !bytes.Equal(data2.Bytes(), data.Bytes()) {
 		t.Fatal("Reader failed to stream correct bytes")
 	}
 }

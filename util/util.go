@@ -60,65 +60,46 @@ func NewByteChanReader(in chan []byte) io.Reader {
 	return &byteChanReader{in: in}
 }
 
-func (bcr *byteChanReader) Read(b []byte) (int, error) {
-	if len(bcr.buf) == 0 {
-		data, ok := <-bcr.in
-		if !ok {
-			return 0, io.EOF
+func (bcr *byteChanReader) Read(output []byte) (int, error) {
+	remain := output
+	remainLen := len(output)
+	outputLen := 0
+	more := false
+	next := bcr.buf
+
+	for {
+		n := copy(remain, next)
+		remainLen -= n
+		outputLen += n
+		if remainLen == 0 {
+			bcr.buf = next[n:]
+			return outputLen, nil
 		}
-		bcr.buf = data
-	}
 
-	if len(bcr.buf) >= len(b) {
-		copy(b, bcr.buf)
-		bcr.buf = bcr.buf[len(b):]
-		return len(b), nil
-	}
-
-	copy(b, bcr.buf)
-	b = b[len(bcr.buf):]
-	totread := len(bcr.buf)
-
-	for data := range bcr.in {
-		if len(data) > len(b) {
-			totread += len(b)
-			copy(b, data[:len(b)])
-			bcr.buf = data[len(b):]
-			return totread, nil
-		}
-		copy(b, data)
-		totread += len(data)
-		b = b[len(data):]
-		if len(b) == 0 {
-			return totread, nil
+		remain = remain[n:]
+		next, more = <-bcr.in
+		if !more {
+			return outputLen, io.EOF
 		}
 	}
-	return totread, io.EOF
 }
 
 type randGen struct {
-	src rand.Source
+	rand.Rand
 }
 
-func NewFastRand() io.Reader {
-	return &randGen{rand.NewSource(time.Now().UnixNano())}
+func NewTimeSeededRand() io.Reader {
+	src := rand.NewSource(time.Now().UnixNano())
+	return &randGen{
+		Rand: *rand.New(src),
+	}
 }
 
 func (r *randGen) Read(p []byte) (n int, err error) {
-	todo := len(p)
-	offset := 0
-	for {
-		val := int64(r.src.Int63())
-		for i := 0; i < 8; i++ {
-			p[offset] = byte(val & 0xff)
-			todo--
-			if todo == 0 {
-				return len(p), nil
-			}
-			offset++
-			val >>= 8
-		}
+	for i := 0; i < len(p); i++ {
+		p[i] = byte(r.Rand.Intn(255))
 	}
+	return len(p), nil
 }
 
 // GetenvBool is the way to check an env var as a boolean
