@@ -9,7 +9,7 @@ var Root = &cmds.Command{
 	Options: commands.Root.Options,
 	Help:    commands.Root.Help,
 	Subcommands: map[string]*cmds.Command{
-		"daemon": Daemon,
+		"daemon": daemonCmd,
 		"init":   initCmd,
 	},
 }

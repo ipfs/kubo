@@ -13,7 +13,7 @@ import (
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 )
 
-var Daemon = &cmds.Command{
+var daemonCmd = &cmds.Command{
 	Options:     []cmds.Option{},
 	Help:        "TODO",
 	Subcommands: map[string]*cmds.Command{},
