@@ -41,7 +41,6 @@ func TestByteChanReader(t *testing.T) {
 			chunk := make([]byte, rand.Intn(100000)+10)
 			randr.Read(chunk)
 			data.Write(chunk)
-			// fmt.Printf("chunk: %6.d %v\n", len(chunk), chunk[:10])
 			dch <- chunk
 		}
 	}()
@@ -53,13 +52,11 @@ func TestByteChanReader(t *testing.T) {
 		buf := make([]byte, rand.Intn(10)*10)
 		n, err := read.Read(buf)
 		data2.Write(buf[:n])
-		// fmt.Printf("read: %6.d\n", n)
 		if err != nil {
 			break
 		}
 	}
 
-	// fmt.Printf("lens: %d == %d\n", len(out), len(data.Bytes()))
 	if !bytes.Equal(data2.Bytes(), data.Bytes()) {
 		t.Fatal("Reader failed to stream correct bytes")
 	}
