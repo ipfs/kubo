@@ -37,7 +37,6 @@ func NewBlockService(d ds.Datastore, rem exchange.Interface) (*BlockService, err
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	k := b.Key()
-	log.Debug("blockservice: storing [%s] in datastore", k)
 	// TODO(brian): define a block datastore with a Put method which accepts a
 	// block parameter
 
@@ -48,7 +47,10 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	if err != nil {
 		return k, err
 	}
-	if !has {
+	if has {
+		log.Debugf("blockservice: storing [%s] in datastore (already stored)", k)
+	} else {
+		log.Debugf("blockservice: storing [%s] in datastore", k)
 		err := s.Datastore.Put(k.DsKey(), b.Data)
 		if err != nil {
 			return k, err
