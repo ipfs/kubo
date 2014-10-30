@@ -3,6 +3,7 @@ package io
 import (
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	"github.com/jbenet/go-ipfs/util"
 )
@@ -17,6 +18,7 @@ type DagWriter struct {
 	done      chan struct{}
 	splitter  chunk.BlockSplitter
 	seterr    error
+	Pinner    pin.ManualPinner
 }
 
 func NewDagWriter(ds dag.DAGService, splitter chunk.BlockSplitter) *DagWriter {
@@ -48,7 +50,10 @@ func (dw *DagWriter) startSplitter() {
 		// Store the block size in the root node
 		mbf.AddBlockSize(uint64(len(blkData)))
 		node := &dag.Node{Data: ft.WrapData(blkData)}
-		_, err := dw.dagserv.Add(node)
+		nk, err := dw.dagserv.Add(node)
+		if dw.Pinner != nil {
+			dw.Pinner.PinWithMode(nk, pin.Indirect)
+		}
 		if err != nil {
 			dw.seterr = err
 			log.Critical("Got error adding created node to dagservice: %s", err)
@@ -75,11 +80,14 @@ func (dw *DagWriter) startSplitter() {
 	root.Data = data
 
 	// Add root node to the dagservice
-	_, err = dw.dagserv.Add(root)
+	rootk, err := dw.dagserv.Add(root)
 	if err != nil {
 		dw.seterr = err
 		log.Critical("Got error adding created node to dagservice: %s", err)
 		return
+	}
+	if dw.Pinner != nil {
+		dw.Pinner.PinWithMode(rootk, pin.Recursive)
 	}
 	dw.node = root
 	dw.done <- struct{}{}

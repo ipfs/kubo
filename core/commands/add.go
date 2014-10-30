@@ -87,7 +87,7 @@ func addDir(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node
 }
 
 func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
-	root, err := importer.NewDagFromFile(fpath)
+	root, err := importer.NewDagFromFileWServer(fpath, n.DAG, n.Pinning)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Nod
 		log.Info("adding subblock: %s %s", l.Name, l.Hash.B58String())
 	}
 
-	return root, addNode(n, root, fpath, out)
+	return root, nil
 }
 
 // addNode adds the node to the graph + local storage

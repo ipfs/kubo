@@ -1,13 +1,16 @@
 package importer
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	"github.com/jbenet/go-ipfs/util"
 )
 
@@ -71,4 +74,42 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	defer f.Close()
 
 	return NewDagFromReader(f)
+}
+
+func NewDagFromFileWServer(fpath string, dserv dag.DAGService, p pin.Pinner) (*dag.Node, error) {
+	stat, err := os.Stat(fpath)
+	if err != nil {
+		return nil, err
+	}
+
+	if stat.IsDir() {
+		return nil, fmt.Errorf("`%s` is a directory", fpath)
+	}
+
+	f, err := os.Open(fpath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return NewDagFromReaderWServer(f, dserv, p)
+}
+
+func NewDagFromReaderWServer(r io.Reader, dserv dag.DAGService, p pin.Pinner) (*dag.Node, error) {
+	dw := uio.NewDagWriter(dserv, chunk.DefaultSplitter)
+
+	mp, ok := p.(pin.ManualPinner)
+	if !ok {
+		return nil, errors.New("Needed to be passed a manual pinner!")
+	}
+	dw.Pinner = mp
+	_, err := io.Copy(dw, r)
+	if err != nil {
+		return nil, err
+	}
+	err = dw.Close()
+	if err != nil {
+		return nil, err
+	}
+	return dw.GetNode(), nil
 }

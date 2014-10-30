@@ -20,11 +20,26 @@ var recursePinDatastoreKey = ds.NewKey("/local/pins/recursive/keys")
 var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
 var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")
 
+type PinMode int
+
+const (
+	Recursive PinMode = iota
+	Direct
+	Indirect
+)
+
 type Pinner interface {
 	IsPinned(util.Key) bool
 	Pin(*mdag.Node, bool) error
 	Unpin(util.Key, bool) error
 	Flush() error
+}
+
+// ManualPinner is for manually editing the pin structure
+// Use with care
+type ManualPinner interface {
+	PinWithMode(util.Key, PinMode)
+	Pinner
 }
 
 type pinner struct {
@@ -227,4 +242,15 @@ func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
 		return errors.New("invalid pin set value in datastore")
 	}
 	return json.Unmarshal(bf, val)
+}
+
+func (p *pinner) PinWithMode(k util.Key, mode PinMode) {
+	switch mode {
+	case Recursive:
+		p.recursePin.AddBlock(k)
+	case Direct:
+		p.directPin.AddBlock(k)
+	case Indirect:
+		p.indirPin.Increment(k)
+	}
 }
