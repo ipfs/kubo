@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"testing"
@@ -30,22 +31,20 @@ func TestKey(t *testing.T) {
 }
 
 func TestByteChanReader(t *testing.T) {
-	data := make([]byte, 1024*1024)
- r := NewTimeSeededRand()
-	r.Read(data)
+
+	var data bytes.Buffer
 	dch := make(chan []byte, 8)
+	randr := NewTimeSeededRand()
 
 	go func() {
-		beg := 0
-		for i := 0; i < len(data); {
-			i += rand.Intn(100) + 1
-			if i > len(data) {
-				i = len(data)
-			}
-			dch <- data[beg:i]
-			beg = i
+		defer close(dch)
+		for i := 0; i < rand.Intn(100)+100; i++ {
+			chunk := make([]byte, rand.Intn(100000)+10)
+			randr.Read(chunk)
+			data.Write(chunk)
+			fmt.Printf("chunk: %6.d %v\n", len(chunk), chunk[:10])
+			dch <- chunk
 		}
-		close(dch)
 	}()
 
 	read := NewByteChanReader(dch)
@@ -54,7 +53,8 @@ func TestByteChanReader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(out, data) {
+	// fmt.Printf("lens: %d == %d\n", len(out), len(data.Bytes()))
+	if !bytes.Equal(out, data.Bytes()) {
 		t.Fatal("Reader failed to stream correct bytes")
 	}
 }
