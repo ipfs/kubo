@@ -35,7 +35,7 @@ func (r *routingResolver) CanResolve(name string) bool {
 // Resolve implements Resolver. Uses the IPFS routing system to resolve SFS-like
 // names.
 func (r *routingResolver) Resolve(name string) (string, error) {
-	log.Debug("RoutingResolve: '%s'", name)
+	log.Debugf("RoutingResolve: '%s'", name)
 	ctx := context.TODO()
 	hash, err := mh.FromB58String(name)
 	if err != nil {

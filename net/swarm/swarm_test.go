@@ -25,7 +25,7 @@ func pong(ctx context.Context, swarm *Swarm) {
 			if bytes.Equal(m1.Data(), []byte("ping")) {
 				m2 := msg.New(m1.Peer(), []byte("pong"))
 				i++
-				log.Debug("%s pong %s (%d)", swarm.local, m1.Peer(), i)
+				log.Debugf("%s pong %s (%d)", swarm.local, m1.Peer(), i)
 				swarm.Outgoing <- m2
 			}
 		}
@@ -130,14 +130,14 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 
 		for k := 0; k < MsgNum; k++ {
 			for _, p := range *peers {
-				log.Debug("%s ping %s (%d)", s1.local, p, k)
+				log.Debugf("%s ping %s (%d)", s1.local, p, k)
 				s1.Outgoing <- msg.New(p, []byte("ping"))
 			}
 		}
 
 		got := map[u.Key]int{}
 		for k := 0; k < (MsgNum * len(*peers)); k++ {
-			log.Debug("%s waiting for pong (%d)", s1.local, k)
+			log.Debugf("%s waiting for pong (%d)", s1.local, k)
 			msg := <-s1.Incoming
 			if string(msg.Data()) != "pong" {
 				t.Error("unexpected conn output", msg.Data)

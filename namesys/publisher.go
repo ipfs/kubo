@@ -27,7 +27,7 @@ func NewRoutingPublisher(route routing.IpfsRouting) Publisher {
 
 // Publish implements Publisher. Accepts a keypair and a value,
 func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
-	log.Debug("namesys: Publish %s", value)
+	log.Debugf("namesys: Publish %s", value)
 
 	// validate `value` is a ref (multihash)
 	_, err := mh.FromB58String(value)

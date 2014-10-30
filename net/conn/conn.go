@@ -89,7 +89,7 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 
 // close is the internal close function, called by ContextCloser.Close
 func (c *singleConn) close() error {
-	log.Debug("%s closing Conn with %s", c.local, c.remote)
+	log.Debugf("%s closing Conn with %s", c.local, c.remote)
 
 	// close underlying connection
 	err := c.maconn.Close()

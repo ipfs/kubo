@@ -245,7 +245,7 @@ func TestNotFound(t *testing.T) {
 
 	ctx, _ = context.WithTimeout(ctx, time.Second*5)
 	v, err := d.GetValue(ctx, u.Key("hello"))
-	log.Debug("get value got %v", v)
+	log.Debugf("get value got %v", v)
 	if err != nil {
 		switch err {
 		case routing.ErrNotFound:

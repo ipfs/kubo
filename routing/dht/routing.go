@@ -247,7 +247,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 		return nil, err
 	}
 
-	log.Debug("FindPeer %v %v", id, result.success)
+	log.Debugf("FindPeer %v %v", id, result.success)
 	if result.peer == nil {
 		return nil, routing.ErrNotFound
 	}

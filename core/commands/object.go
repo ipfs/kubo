@@ -19,7 +19,7 @@ func ObjectData(n *core.IpfsNode, args []string, opts map[string]interface{}, ou
 	if err != nil {
 		return fmt.Errorf("objectData error: %v", err)
 	}
-	log.Debug("objectData: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
+	log.Debugf("objectData: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
 
 	_, err = io.Copy(out, bytes.NewReader(dagnode.Data))
 	return err
@@ -31,7 +31,7 @@ func ObjectLinks(n *core.IpfsNode, args []string, opts map[string]interface{}, o
 	if err != nil {
 		return fmt.Errorf("objectLinks error: %v", err)
 	}
-	log.Debug("ObjectLinks: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
+	log.Debugf("ObjectLinks: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
 
 	for _, link := range dagnode.Links {
 		_, err = fmt.Fprintf(out, "%s %d %q\n", link.Hash.B58String(), link.Size, link.Name)
@@ -70,7 +70,7 @@ func ObjectGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out
 	if err != nil {
 		return fmt.Errorf("ObjectGet error: %v", err)
 	}
-	log.Debug("objectGet: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
+	log.Debugf("objectGet: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
 
 	// sadly all encodings dont implement a common interface
 	var data []byte

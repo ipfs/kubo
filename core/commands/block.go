@@ -28,7 +28,7 @@ func BlockGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out 
 	}
 
 	k := u.Key(h)
-	log.Debug("BlockGet key: '%q'", k)
+	log.Debugf("BlockGet key: '%q'", k)
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
 	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
@@ -48,7 +48,7 @@ func BlockPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out 
 	}
 
 	b := blocks.NewBlock(data)
-	log.Debug("BlockPut key: '%q'", b.Key())
+	log.Debugf("BlockPut key: '%q'", b.Key())
 
 	k, err := n.Blocks.AddBlock(b)
 	if err != nil {
