@@ -40,10 +40,21 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	log.Debug("blockservice: storing [%s] in datastore", k)
 	// TODO(brian): define a block datastore with a Put method which accepts a
 	// block parameter
-	err := s.Datastore.Put(k.DsKey(), b.Data)
+
+	// check if we have it before adding. this is an extra read, but large writes
+	// are more expensive.
+	// TODO(jbenet) cheaper has. https://github.com/jbenet/go-datastore/issues/6
+	has, err := s.Datastore.Has(k.DsKey())
 	if err != nil {
 		return k, err
 	}
+	if !has {
+		err := s.Datastore.Put(k.DsKey(), b.Data)
+		if err != nil {
+			return k, err
+		}
+	}
+
 	if s.Remote != nil {
 		ctx := context.TODO()
 		err = s.Remote.HasBlock(ctx, *b)
