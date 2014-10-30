@@ -8,6 +8,7 @@ import (
 	ktds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/keytransform"
 	lds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	ldbopts "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
@@ -43,5 +44,8 @@ func makeLevelDBDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) 
 		return nil, fmt.Errorf("config datastore.path required for leveldb")
 	}
 
-	return lds.NewDatastore(cfg.Path, nil)
+	return lds.NewDatastore(cfg.Path, &lds.Options{
+		// TODO don't import ldbopts. Get from go-datastore.leveldb
+		Compression: ldbopts.NoCompression,
+	})
 }
