@@ -35,12 +35,11 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 		// Dont allow reading directories
 		return nil, ErrIsDir
 	case ftpb.Data_File:
-		dr := &DagReader{
+		return &DagReader{
 			node: n,
 			serv: serv,
 			buf:  bytes.NewBuffer(pb.GetData()),
-		}
-		return dr, nil
+		}, nil
 	case ftpb.Data_Raw:
 		// Raw block will just be a single level, return a byte buffer
 		return bytes.NewBuffer(pb.GetData()), nil

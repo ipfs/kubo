@@ -9,6 +9,7 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	bsrv "github.com/jbenet/go-ipfs/blockservice"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 func GetDAGServ(t testing.TB) dag.DAGService {
@@ -21,7 +22,8 @@ func GetDAGServ(t testing.TB) dag.DAGService {
 }
 
 func RandPeer() peer.Peer {
-	id := make(peer.ID, 16)
+	id := make([]byte, 16)
 	crand.Read(id)
-	return peer.WithID(id)
+	mhid := u.Hash(id)
+	return peer.WithID(peer.ID(mhid))
 }
