@@ -108,6 +108,14 @@ func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Nod
 		log.Info("adding subblock: %s %s", l.Name, l.Hash.B58String())
 	}
 
+	k, err := root.Key()
+	if err != nil {
+		return nil, err
+	}
+
+	// output that we've added this node
+	fmt.Fprintf(out, "added %s %s\n", k, fpath)
+
 	return root, nil
 }
 
