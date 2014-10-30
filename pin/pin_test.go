@@ -12,7 +12,7 @@ import (
 func randNode() (*mdag.Node, util.Key) {
 	nd := new(mdag.Node)
 	nd.Data = make([]byte, 32)
-	util.NewFastRand().Read(nd.Data)
+	util.NewTimeSeededRand().Read(nd.Data)
 	k, _ := nd.Key()
 	return nd, k
 }

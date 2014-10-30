@@ -31,7 +31,7 @@ func TestKey(t *testing.T) {
 
 func TestByteChanReader(t *testing.T) {
 	data := make([]byte, 1024*1024)
-	r := NewFastRand()
+ r := NewTimeSeededRand()
 	r.Read(data)
 	dch := make(chan []byte, 8)
 

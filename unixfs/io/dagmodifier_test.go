@@ -28,7 +28,7 @@ func getMockDagServ(t *testing.T) mdag.DAGService {
 func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
 	dw := NewDagWriter(dserv, &chunk.SizeSplitter{500})
 
-	n, err := io.CopyN(dw, u.NewFastRand(), size)
+	n, err := io.CopyN(dw, u.NewTimeSeededRand(), size)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Nod
 
 func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) []byte {
 	newdata := make([]byte, size)
-	r := u.NewFastRand()
+	r := u.NewTimeSeededRand()
 	r.Read(newdata)
 
 	if size+beg > uint64(len(orig)) {
@@ -160,7 +160,7 @@ func TestMultiWrite(t *testing.T) {
 	}
 
 	data := make([]byte, 4000)
-	u.NewFastRand().Read(data)
+	u.NewTimeSeededRand().Read(data)
 
 	for i := 0; i < len(data); i++ {
 		n, err := dagmod.WriteAt(data[i:i+1], uint64(i))
@@ -201,7 +201,7 @@ func TestMultiWriteCoal(t *testing.T) {
 	}
 
 	data := make([]byte, 4000)
-	u.NewFastRand().Read(data)
+	u.NewTimeSeededRand().Read(data)
 
 	for i := 0; i < len(data); i++ {
 		n, err := dagmod.WriteAt(data[:i+1], 0)

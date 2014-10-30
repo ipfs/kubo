@@ -97,28 +97,21 @@ func (bcr *byteChanReader) Read(b []byte) (int, error) {
 }
 
 type randGen struct {
-	src rand.Source
+	rand.Rand
 }
 
-func NewFastRand() io.Reader {
-	return &randGen{rand.NewSource(time.Now().UnixNano())}
+func NewTimeSeededRand() io.Reader {
+	src := rand.NewSource(time.Now().UnixNano())
+	return &randGen{
+		Rand: *rand.New(src),
+	}
 }
 
 func (r *randGen) Read(p []byte) (n int, err error) {
-	todo := len(p)
-	offset := 0
-	for {
-		val := int64(r.src.Int63())
-		for i := 0; i < 8; i++ {
-			p[offset] = byte(val & 0xff)
-			todo--
-			if todo == 0 {
-				return len(p), nil
-			}
-			offset++
-			val >>= 8
-		}
+	for i := 0; i < len(p); i++ {
+		p[i] = byte(r.Rand.Intn(255))
 	}
+	return len(p), nil
 }
 
 // GetenvBool is the way to check an env var as a boolean
