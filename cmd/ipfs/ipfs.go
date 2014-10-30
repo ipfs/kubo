@@ -99,12 +99,14 @@ func main() {
 	// if debugging, setup profiling.
 	if u.Debug {
 		ofi, err := os.Create("cpu.prof")
+		defer ofi.Close()
+
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
 		pprof.StartCPUProfile(ofi)
-		defer ofi.Close()
 		defer pprof.StopCPUProfile()
 	}
 
