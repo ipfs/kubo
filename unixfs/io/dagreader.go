@@ -18,7 +18,7 @@ type DagReader struct {
 	serv     mdag.DAGService
 	node     *mdag.Node
 	position int
-	buf      *bytes.Buffer
+	buf      io.Reader
 }
 
 // NewDagReader creates a new reader object that reads the data represented by the given
@@ -71,8 +71,13 @@ func (dr *DagReader) precalcNextBuf() error {
 		return ft.ErrInvalidDirLocation
 	case ftpb.Data_File:
 		//TODO: this *should* work, needs testing first
-		//return NewDagReader(nxt, dr.serv)
-		panic("Not yet handling different layers of indirection!")
+		log.Warning("Running untested code for multilayered indirect FS reads.")
+		subr, err := NewDagReader(nxt, dr.serv)
+		if err != nil {
+			return err
+		}
+		dr.buf = subr
+		return nil
 	case ftpb.Data_Raw:
 		dr.buf = bytes.NewBuffer(pb.GetData())
 		return nil
