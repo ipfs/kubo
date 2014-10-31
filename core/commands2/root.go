@@ -50,65 +50,67 @@ Plumbing commands:
 
 Use "ipfs help <command>" for more information about a command.
 `,
-	Subcommands: map[string]*cmds.Command{
-		"cat":  catCmd,
-		"ls":   lsCmd,
-		"init": initCmd,
+}
 
-		// test subcommands
-		// TODO: remove these when we don't need them anymore
-		"beep": &cmds.Command{
-			Run: func(res cmds.Response, req cmds.Request) {
-				v := &TestOutput{"hello, world", 1337}
-				res.SetValue(v)
-			},
-			Format: func(res cmds.Response) (string, error) {
-				v := res.Value().(*TestOutput)
-				s := fmt.Sprintf("Foo: %s\n", v.Foo)
-				s += fmt.Sprintf("Bar: %v\n", v.Bar)
-				return s, nil
-			},
-			Type: &TestOutput{},
-		},
-		"boop": &cmds.Command{
-			Run: func(res cmds.Response, req cmds.Request) {
-				v := strings.NewReader("hello, world")
-				res.SetValue(v)
-			},
-		},
-		"warp": &cmds.Command{
-			Options: []cmds.Option{
-				cmds.Option{[]string{"power", "p"}, cmds.Float},
-			},
-			Run: func(res cmds.Response, req cmds.Request) {
-				threshold := 1.21
+var rootSubcommands = map[string]*cmds.Command{
+	"cat":      catCmd,
+	"ls":       lsCmd,
+	"commands": commandsCmd,
+	"init":     initCmd,
+	"daemon":   daemonCmd,
 
-				if power, found := req.Option("power"); found && power.(float64) >= threshold {
-					res.SetValue(struct {
-						Status string
-						Power  float64
-					}{"Flux capacitor activated!", power.(float64)})
+	// test subcommands
+	// TODO: remove these when we don't need them anymore
+	"beep": &cmds.Command{
+		Run: func(res cmds.Response, req cmds.Request) {
+			v := &TestOutput{"hello, world", 1337}
+			res.SetValue(v)
+		},
+		Format: func(res cmds.Response) (string, error) {
+			v := res.Value().(*TestOutput)
+			s := fmt.Sprintf("Foo: %s\n", v.Foo)
+			s += fmt.Sprintf("Bar: %v\n", v.Bar)
+			return s, nil
+		},
+		Type: &TestOutput{},
+	},
+	"boop": &cmds.Command{
+		Run: func(res cmds.Response, req cmds.Request) {
+			v := strings.NewReader("hello, world")
+			res.SetValue(v)
+		},
+	},
+	"warp": &cmds.Command{
+		Options: []cmds.Option{
+			cmds.Option{[]string{"power", "p"}, cmds.Float},
+		},
+		Run: func(res cmds.Response, req cmds.Request) {
+			threshold := 1.21
 
-				} else {
-					err := fmt.Errorf("Insufficient power (%v jiggawatts required)", threshold)
-					res.SetError(err, cmds.ErrClient)
-				}
-			},
+			if power, found := req.Option("power"); found && power.(float64) >= threshold {
+				res.SetValue(struct {
+					Status string
+					Power  float64
+				}{"Flux capacitor activated!", power.(float64)})
+
+			} else {
+				err := fmt.Errorf("Insufficient power (%v jiggawatts required)", threshold)
+				res.SetError(err, cmds.ErrClient)
+			}
 		},
-		"args": &cmds.Command{
-			Run: func(res cmds.Response, req cmds.Request) {
-				res.SetValue(req.Arguments())
-			},
+	},
+	"args": &cmds.Command{
+		Run: func(res cmds.Response, req cmds.Request) {
+			res.SetValue(req.Arguments())
 		},
-		"echo": &cmds.Command{
-			Run: func(res cmds.Response, req cmds.Request) {
-				res.SetValue(req.Stream())
-			},
+	},
+	"echo": &cmds.Command{
+		Run: func(res cmds.Response, req cmds.Request) {
+			res.SetValue(req.Stream())
 		},
 	},
 }
 
 func init() {
-	Root.Subcommands["daemon"] = daemonCmd
-	Root.Subcommands["commands"] = commandsCmd
+	Root.Subcommands = rootSubcommands
 }
