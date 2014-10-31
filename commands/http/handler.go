@@ -6,11 +6,11 @@ import (
 	"net/http"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	commands "github.com/jbenet/go-ipfs/core/commands2"
 )
 
 type Handler struct {
-	Ctx cmds.Context
+	Ctx  cmds.Context
+	Root *cmds.Command
 }
 
 var ErrNotFound = errors.New("404 page not found")
@@ -22,7 +22,7 @@ var mimeTypes = map[string]string{
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	req, err := Parse(r)
+	req, err := Parse(r, i.Root)
 	if err != nil {
 		if err == ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -35,7 +35,7 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req.SetContext(i.Ctx)
 
 	// call the command
-	res := commands.Root.Call(req)
+	res := i.Root.Call(req)
 
 	// set the Content-Type based on res output
 	if _, ok := res.Value().(io.Reader); ok {
