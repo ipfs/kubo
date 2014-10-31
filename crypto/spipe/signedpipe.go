@@ -25,8 +25,8 @@ type SignedPipe struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	mesid      uint64
-	theirmesid uint64
+	localMsgID  uint64
+	removeMsgID uint64
 }
 
 // secureChallengeSize is a constant that determines the initial challenge, and every subsequent
@@ -77,6 +77,8 @@ func (sp *SignedPipe) tryRecv() ([]byte, bool) {
 	}
 }
 
+// reduceChallenge reduces a series of bytes into a
+// single uint64 we can use as a seed for message IDs
 func reduceChallenge(cha []byte) uint64 {
 	var out uint64
 	for _, b := range cha {
@@ -134,8 +136,8 @@ func (sp *SignedPipe) handshake() error {
 		return context.Canceled
 	}
 
-	// Unencrypt and verify their challenge
-	unenc, err := sp.local.PrivKey().Unencrypt(theirEnc)
+	// Decrypt and verify their challenge
+	unenc, err := sp.local.PrivKey().Decrypt(theirEnc)
 	if err != nil {
 		return err
 	}
@@ -182,8 +184,8 @@ func (sp *SignedPipe) handshake() error {
 		return errors.New("Incorrect signature on challenge")
 	}
 
-	sp.theirmesid = reduceChallenge(challenge)
-	sp.mesid = reduceChallenge(unenc)
+	sp.removeMsgID = reduceChallenge(challenge)
+	sp.localMsgID = reduceChallenge(unenc)
 
 	go sp.handleIn(theirPubKey)
 	go sp.handleOut(sp.local.PrivKey())
@@ -235,14 +237,14 @@ func (sp *SignedPipe) handleOut(pk ci.PrivKey) {
 		}
 
 		sdata.Data = data
-		sdata.Sig = sig
-		sdata.Id = proto.Uint64(sp.mesid)
+		sdata.Signature = sig
+		sdata.Id = proto.Uint64(sp.localMsgID)
 		b, err := proto.Marshal(sdata)
 		if err != nil {
 			log.Error("Error marshaling signed data object: %s", err)
 			return
 		}
-		sp.mesid++
+		sp.localMsgID++
 
 		select {
 		case sp.insecure.Out <- b:
@@ -273,7 +275,7 @@ func (sp *SignedPipe) handleIn(theirPubkey ci.PubKey) {
 			log.Error("Failed to unmarshal sigdata object")
 			continue
 		}
-		correct, err := theirPubkey.Verify(sdata.GetData(), sdata.GetSig())
+		correct, err := theirPubkey.Verify(sdata.GetData(), sdata.GetSignature())
 		if err != nil {
 			log.Error(err)
 			continue
@@ -283,11 +285,11 @@ func (sp *SignedPipe) handleIn(theirPubkey ci.PubKey) {
 			continue
 		}
 
-		if sdata.GetId() != sp.theirmesid {
+		if sdata.GetId() != sp.removeMsgID {
 			log.Critical("Out of order message id!")
 			return
 		}
-		sp.theirmesid++
+		sp.removeMsgID++
 
 		select {
 		case <-sp.ctx.Done():

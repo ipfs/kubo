@@ -71,7 +71,7 @@ func (sk *RsaPrivateKey) GetPublic() PubKey {
 	return &RsaPublicKey{&sk.k.PublicKey}
 }
 
-func (sk *RsaPrivateKey) Unencrypt(b []byte) ([]byte, error) {
+func (sk *RsaPrivateKey) Decrypt(b []byte) ([]byte, error) {
 	return rsa.DecryptPKCS1v15(rand.Reader, sk.k, b)
 }
 

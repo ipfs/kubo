@@ -36,12 +36,8 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 	if !ok {
 		return nil, ValueTypeMismatch
 	}
-	//TODO: we *could* verify data coming in from the datastore here
-	//		but its probably very unecessary
-	return &blocks.Block{
-		Data:      bdata,
-		Multihash: mh.Multihash(k),
-	}, nil
+
+	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 
 func (bs *blockstore) Put(block *blocks.Block) error {

@@ -118,7 +118,7 @@ func runEncryptBenchmark(b *testing.B) {
 	}()
 
 	data := make([]byte, 1024*512)
-	util.NewFastRand().Read(data)
+	util.NewTimeSeededRand().Read(data)
 	// Begin actual benchmarking
 	b.ResetTimer()
 
@@ -170,7 +170,7 @@ func BenchmarkSignedChannel(b *testing.B) {
 	}()
 
 	data := make([]byte, 1024*512)
-	util.NewFastRand().Read(data)
+	util.NewTimeSeededRand().Read(data)
 	// Begin actual benchmarking
 	b.ResetTimer()
 
@@ -199,7 +199,7 @@ func BenchmarkDataTransfer(b *testing.B) {
 	}()
 
 	data := make([]byte, 1024*512)
-	util.NewFastRand().Read(data)
+	util.NewTimeSeededRand().Read(data)
 	// Begin actual benchmarking
 	b.ResetTimer()
 

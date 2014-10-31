@@ -276,7 +276,6 @@ func (s *SecurePipe) handleSecureIn(hashType, cipherType string, tIV, tCKey, tMK
 
 		hmacOk := hmac.Equal(data[mark:], expected)
 		if !hmacOk {
-			s.Duplex.In <- nil
 			continue
 		}
 

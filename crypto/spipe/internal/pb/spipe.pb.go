@@ -15,7 +15,7 @@ It has these top-level messages:
 */
 package spipe_pb
 
-import proto "code.google.com/p/gogoprotobuf/proto"
+import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -96,7 +96,7 @@ func (m *Exchange) GetSignature() []byte {
 
 type DataSig struct {
 	Data             []byte  `protobuf:"bytes,1,opt,name=data" json:"data,omitempty"`
-	Sig              []byte  `protobuf:"bytes,2,opt,name=sig" json:"sig,omitempty"`
+	Signature        []byte  `protobuf:"bytes,2,opt,name=signature" json:"signature,omitempty"`
 	Id               *uint64 `protobuf:"varint,3,opt,name=id" json:"id,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
@@ -112,9 +112,9 @@ func (m *DataSig) GetData() []byte {
 	return nil
 }
 
-func (m *DataSig) GetSig() []byte {
+func (m *DataSig) GetSignature() []byte {
 	if m != nil {
-		return m.Sig
+		return m.Signature
 	}
 	return nil
 }

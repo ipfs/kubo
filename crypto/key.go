@@ -51,7 +51,7 @@ type PrivKey interface {
 	// Generate a secret string of bytes
 	GenSecret() []byte
 
-	Unencrypt(b []byte) ([]byte, error)
+	Decrypt(b []byte) ([]byte, error)
 }
 
 type PubKey interface {

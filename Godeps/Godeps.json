@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "devel +9340f9f6dfc9 Fri Oct 31 00:48:57 2014 -0300",
 	"Packages": [
 		"./..."
 	],
@@ -98,7 +98,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-msgio",
-			"Rev": "c9069ab79c95aa0686347b516972c7329c4391f2"
+			"Rev": "ab0e7a0e111d7c7d814ad238bcbf3934efb76ac3"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",
