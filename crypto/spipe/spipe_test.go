@@ -130,58 +130,6 @@ func runEncryptBenchmark(b *testing.B) {
 
 }
 
-func BenchmarkSignedChannel(b *testing.B) {
-	pstore := peer.NewPeerstore()
-	ctx := context.TODO()
-	bufsize := 1024 * 1024
-
-	pa := getPeer(b)
-	pb := getPeer(b)
-	duplexa := pipes.NewDuplex(16)
-	duplexb := pipes.NewDuplex(16)
-
-	go bindDuplexNoCopy(duplexa, duplexb)
-
-	var spb *SignedPipe
-	done := make(chan struct{})
-	go func() {
-		var err error
-		spb, err = NewSignedPipe(ctx, bufsize, pb, pstore, duplexb)
-		if err != nil {
-			b.Fatal(err)
-		}
-		done <- struct{}{}
-	}()
-
-	spa, err := NewSignedPipe(ctx, bufsize, pa, pstore, duplexa)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	<-done
-
-	go func() {
-		for _ = range spa.In {
-			// Throw it all away,
-			// all of your hopes and dreams
-			// piped out to /dev/null...
-			done <- struct{}{}
-		}
-	}()
-
-	data := make([]byte, 1024*512)
-	util.NewTimeSeededRand().Read(data)
-	// Begin actual benchmarking
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		b.SetBytes(int64(len(data)))
-		spb.Out <- data
-		<-done
-	}
-
-}
-
 func BenchmarkDataTransfer(b *testing.B) {
 	duplexa := pipes.NewDuplex(16)
 	duplexb := pipes.NewDuplex(16)
