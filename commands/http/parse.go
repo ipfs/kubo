@@ -31,10 +31,6 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		cmd = sub
 	}
 
-	if cmd.Private {
-		return nil, ErrNotFound
-	}
-
 	opts, args2 := parseOptions(r)
 	args = append(args, args2...)
 
