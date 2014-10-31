@@ -20,7 +20,7 @@ type LsOutput struct {
 	Objects []Object
 }
 
-var ls = &cmds.Command{
+var lsCmd = &cmds.Command{
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
