@@ -52,6 +52,7 @@ Use "ipfs help <command>" for more information about a command.
 `,
 	Subcommands: map[string]*cmds.Command{
 		"cat": cat,
+		"ls":  ls,
 
 		// test subcommands
 		// TODO: remove these when we don't need them anymore
