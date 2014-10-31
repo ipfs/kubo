@@ -11,22 +11,34 @@ type Link struct {
 	Size       uint64
 }
 
+type Object struct {
+	Hash  string
+	Links []Link
+}
+
+type LsOutput struct {
+	Objects []Object
+}
+
 var ls = &cmds.Command{
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
-		output := make(map[string][]Link, len(req.Arguments()))
+		output := make([]Object, len(req.Arguments()))
 
-		for _, path := range req.Arguments() {
+		for i, path := range req.Arguments() {
 			dagnode, err := node.Resolver.ResolvePath(path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			output[path] = make([]Link, len(dagnode.Links))
-			for i, link := range dagnode.Links {
-				output[path][i] = Link{
+			output[i] = Object{
+				Hash:  path,
+				Links: make([]Link, len(dagnode.Links)),
+			}
+			for j, link := range dagnode.Links {
+				output[i].Links[j] = Link{
 					Name: link.Name,
 					Hash: link.Hash.B58String(),
 					Size: link.Size,
@@ -34,27 +46,27 @@ var ls = &cmds.Command{
 			}
 		}
 
-		res.SetValue(output)
+		res.SetValue(&LsOutput{output})
 	},
 	Format: func(res cmds.Response) (string, error) {
 		s := ""
-		output := res.Value().(*map[string][]Link)
+		output := res.Value().(*LsOutput).Objects
 
-		for path, links := range *output {
-			if len(*output) > 1 {
-				s += fmt.Sprintf("%s:\n", path)
+		for _, object := range output {
+			if len(output) > 1 {
+				s += fmt.Sprintf("%s:\n", object.Hash)
 			}
 
-			for _, link := range links {
+			for _, link := range object.Links {
 				s += fmt.Sprintf("-> %s %s (%v bytes)\n", link.Name, link.Hash, link.Size)
 			}
 
-			if len(*output) > 1 {
+			if len(output) > 1 {
 				s += "\n"
 			}
 		}
 
 		return s, nil
 	},
-	Type: &map[string][]Link{},
+	Type: &LsOutput{},
 }
