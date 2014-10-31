@@ -25,6 +25,7 @@ func main() {
 	req, root, err := cmdsCli.Parse(args, Root, commands.Root)
 	if err != nil {
 		fmt.Println(err)
+		fmt.Println(Root.Help)
 		os.Exit(1)
 	}
 
