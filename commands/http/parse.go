@@ -18,6 +18,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, ErrNotFound
 
 	} else if sub := cmd.Subcommand(path[len(path)-1]); sub == nil {
+		if len(path) <= 1 {
+			return nil, ErrNotFound
+		}
+
 		// if the last string in the path isn't a subcommand, use it as an argument
 		// e.g. /objects/Qabc12345 (we are passing "Qabc12345" to the "objects" command)
 		args = append(args, path[len(path)-1])
