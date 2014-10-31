@@ -95,6 +95,8 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 
 func BuildDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*dag.Node, error) {
 	blkChan := spl.Split(r)
+
+	// grab first block, it will go in the index MultiBlock (faster io)
 	first := <-blkChan
 	root := &dag.Node{}
 
@@ -104,11 +106,12 @@ func BuildDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl
 		mbf.AddBlockSize(uint64(len(blk)))
 		node := &dag.Node{Data: ft.WrapData(blk)}
 		nk, err := ds.Add(node)
-		if mp != nil {
-			mp.PinWithMode(nk, pin.Indirect)
-		}
 		if err != nil {
 			return nil, err
+		}
+
+		if mp != nil {
+			mp.PinWithMode(nk, pin.Indirect)
 		}
 
 		// Add a link to this node without storing a reference to the memory
