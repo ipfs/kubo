@@ -28,7 +28,6 @@ type Command struct {
 	Format      Formatter
 	Type        interface{}
 	Subcommands map[string]*Command
-	Private     bool
 }
 
 // ErrNotCallable signals a command that cannot be called.
