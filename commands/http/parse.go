@@ -5,17 +5,14 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	commands "github.com/jbenet/go-ipfs/core/commands2"
 )
 
 // Parse parses the data in a http.Request and returns a command Request object
-func Parse(r *http.Request) (cmds.Request, error) {
-	// TODO: take root cmd as a param, like the commands/cli Parse
-
+func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	path := strings.Split(r.URL.Path, "/")[3:]
 	args := make([]string, 0)
 
-	cmd, err := commands.Root.Get(path[:len(path)-1])
+	cmd, err := root.Get(path[:len(path)-1])
 	if err != nil {
 		// 404 if there is no command at that path
 		return nil, ErrNotFound
