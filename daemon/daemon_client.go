@@ -25,7 +25,7 @@ func getDaemonAddr(confdir string) (string, error) {
 	}
 	fi, err := os.Open(confdir + "/rpcaddress")
 	if err != nil {
-		log.Debug("getDaemonAddr failed: %s", err)
+		log.Debugf("getDaemonAddr failed: %s", err)
 		if err == os.ErrNotExist {
 			return "", ErrDaemonNotRunning
 		}

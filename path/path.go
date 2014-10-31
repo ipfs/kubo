@@ -22,7 +22,7 @@ type Resolver struct {
 // path component as a hash (key) of the first node, then resolves
 // all other components walking the links, with ResolveLinks.
 func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
-	log.Debug("Resolve: '%s'", fpath)
+	log.Debugf("Resolve: '%s'", fpath)
 	fpath = path.Clean(fpath)
 
 	parts := strings.Split(fpath, "/")

@@ -107,7 +107,7 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 }
 
 func (r *dhtQueryRunner) Run(peers []peer.Peer) (*dhtQueryResult, error) {
-	log.Debug("Run query with %d peers.", len(peers))
+	log.Debugf("Run query with %d peers.", len(peers))
 	if len(peers) == 0 {
 		log.Warning("Running query with no peers!")
 		return nil, nil
@@ -176,7 +176,7 @@ func (r *dhtQueryRunner) addPeerToQuery(next peer.Peer, benchmark peer.Peer) {
 	r.peersSeen[next.Key()] = next
 	r.Unlock()
 
-	log.Debug("adding peer to query: %v\n", next)
+	log.Debugf("adding peer to query: %v\n", next)
 
 	// do this after unlocking to prevent possible deadlocks.
 	r.peersRemaining.Increment(1)
@@ -200,14 +200,14 @@ func (r *dhtQueryRunner) spawnWorkers() {
 			if !more {
 				return // channel closed.
 			}
-			log.Debug("spawning worker for: %v\n", p)
+			log.Debugf("spawning worker for: %v\n", p)
 			go r.queryPeer(p)
 		}
 	}
 }
 
 func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
-	log.Debug("spawned worker for: %v\n", p)
+	log.Debugf("spawned worker for: %v\n", p)
 
 	// make sure we rate limit concurrency.
 	select {
@@ -218,12 +218,12 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 	}
 
 	// ok let's do this!
-	log.Debug("running worker for: %v", p)
+	log.Debugf("running worker for: %v", p)
 
 	// make sure we do this when we exit
 	defer func() {
 		// signal we're done proccessing peer p
-		log.Debug("completing worker for: %v", p)
+		log.Debugf("completing worker for: %v", p)
 		r.peersRemaining.Decrement(1)
 		r.rateLimit <- struct{}{}
 	}()
@@ -232,7 +232,7 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 	// (Incidentally, this will add it to the peerstore too)
 	err := r.query.dialer.DialPeer(p)
 	if err != nil {
-		log.Debug("ERROR worker for: %v -- err connecting: %v", p, err)
+		log.Debugf("ERROR worker for: %v -- err connecting: %v", p, err)
 		r.Lock()
 		r.errs = append(r.errs, err)
 		r.Unlock()
@@ -243,20 +243,20 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 	res, err := r.query.qfunc(r.ctx, p)
 
 	if err != nil {
-		log.Debug("ERROR worker for: %v %v", p, err)
+		log.Debugf("ERROR worker for: %v %v", p, err)
 		r.Lock()
 		r.errs = append(r.errs, err)
 		r.Unlock()
 
 	} else if res.success {
-		log.Debug("SUCCESS worker for: %v", p, res)
+		log.Debugf("SUCCESS worker for: %v", p, res)
 		r.Lock()
 		r.result = res
 		r.Unlock()
 		r.cancel() // signal to everyone that we're done.
 
 	} else if res.closerPeers != nil {
-		log.Debug("PEERS CLOSER -- worker for: %v\n", p)
+		log.Debugf("PEERS CLOSER -- worker for: %v\n", p)
 		for _, next := range res.closerPeers {
 			r.addPeerToQuery(next, p)
 		}

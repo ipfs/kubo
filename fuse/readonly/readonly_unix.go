@@ -113,7 +113,7 @@ func (s *Node) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
-	log.Debug("Lookup '%s'", name)
+	log.Debugf("Lookup '%s'", name)
 	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.

@@ -19,6 +19,6 @@ func (l *Link) Attr() fuse.Attr {
 }
 
 func (l *Link) Readlink(req *fuse.ReadlinkRequest, intr fs.Intr) (string, fuse.Error) {
-	log.Debug("ReadLink: %s", l.Target)
+	log.Debugf("ReadLink: %s", l.Target)
 	return l.Target, nil
 }

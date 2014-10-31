@@ -117,7 +117,7 @@ func (dl *DaemonListener) handleConnection(conn manet.Conn) {
 		return
 	}
 
-	log.Debug("Got command: %v", command)
+	log.Debugf("Got command: %v", command)
 	switch command.Command {
 	case "add":
 		err = commands.Add(dl.node, command.Args, command.Opts, conn)

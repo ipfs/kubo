@@ -32,7 +32,7 @@ func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
 		keys = append(keys, k)
 		refcnt[k] = v
 	}
-	log.Debug("indirPin keys: %#v", keys)
+	log.Debugf("indirPin keys: %#v", keys)
 
 	return &indirectPin{blockset: set.SimpleSetFromKeys(keys), refCounts: refcnt}, nil
 }
