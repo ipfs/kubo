@@ -10,8 +10,11 @@ import (
 
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
 // Error indicating the max depth has been exceded.
@@ -87,7 +90,14 @@ func addDir(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node
 }
 
 func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
-	root, err := importer.NewDagFromFile(fpath)
+	dw := uio.NewDagWriter(n.DAG, chunk.DefaultSplitter)
+	mp, ok := n.Pinning.(pin.ManualPinner)
+	if !ok {
+		return nil, errors.New("invalid pinner type! expected manual pinner")
+	}
+	dw.Pinner = mp
+
+	root, err := importer.ImportFileDag(fpath, dw)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +108,15 @@ func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Nod
 		log.Info("adding subblock: %s %s", l.Name, l.Hash.B58String())
 	}
 
-	return root, addNode(n, root, fpath, out)
+	k, err := root.Key()
+	if err != nil {
+		return nil, err
+	}
+
+	// output that we've added this node
+	fmt.Fprintf(out, "added %s %s\n", k, fpath)
+
+	return root, nil
 }
 
 // addNode adds the node to the graph + local storage
