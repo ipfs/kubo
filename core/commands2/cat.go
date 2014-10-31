@@ -7,7 +7,7 @@ import (
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
-var cat = &cmds.Command{
+var catCmd = &cmds.Command{
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node

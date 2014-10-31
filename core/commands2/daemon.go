@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -14,6 +14,7 @@ import (
 )
 
 var daemonCmd = &cmds.Command{
+	Private:     true,
 	Options:     []cmds.Option{},
 	Help:        "TODO",
 	Subcommands: map[string]*cmds.Command{},
