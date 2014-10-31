@@ -4,6 +4,9 @@ package main
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
+	"syscall"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
@@ -33,6 +36,9 @@ func init() {
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
+	if err := osxFuseCheck(); err != nil {
+		return err
+	}
 
 	cc, err := setupCmdContext(c, true)
 	if err != nil {
@@ -91,4 +97,24 @@ func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
 	}()
 
 	return done
+}
+
+func osxFuseCheck() error {
+	// on OSX, check FUSE version.
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+
+	ov, err := syscall.Sysctl("osxfuse.version.number")
+	if err != nil {
+		return err
+	}
+
+	if strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
+		return nil
+	}
+
+	return fmt.Errorf("osxfuse version %s not supported.\n%s\n%s", ov,
+		"Older versions of osxfuse have kernel panic bugs; please upgrade!",
+		"https://github.com/jbenet/go-ipfs/issues/177")
 }
