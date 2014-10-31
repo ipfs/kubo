@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -28,6 +29,10 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 			req = cmds.NewRequest(path, opts, args, nil, cmd)
 			root = r
 		}
+	}
+
+	if maxLength == 0 {
+		return nil, nil, errors.New("Not a valid subcommand")
 	}
 
 	// TODO: figure out how to know when to read given file(s) as an input stream
