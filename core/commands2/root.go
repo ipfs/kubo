@@ -51,8 +51,9 @@ Plumbing commands:
 Use "ipfs help <command>" for more information about a command.
 `,
 	Subcommands: map[string]*cmds.Command{
-		"cat": cat,
-		"ls":  ls,
+		"cat":  catCmd,
+		"ls":   lsCmd,
+		"init": initCmd,
 
 		// test subcommands
 		// TODO: remove these when we don't need them anymore
@@ -105,4 +106,8 @@ Use "ipfs help <command>" for more information about a command.
 			},
 		},
 	},
+}
+
+func init() {
+	Root.Subcommands["daemon"] = daemonCmd
 }
