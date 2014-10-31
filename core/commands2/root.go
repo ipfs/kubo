@@ -110,4 +110,5 @@ Use "ipfs help <command>" for more information about a command.
 
 func init() {
 	Root.Subcommands["daemon"] = daemonCmd
+	Root.Subcommands["commands"] = commandsCmd
 }
