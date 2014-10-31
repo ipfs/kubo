@@ -7,8 +7,8 @@ import (
 
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	"github.com/jbenet/go-ipfs/util"
 )
 
@@ -74,7 +74,7 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	return NewDagFromReader(f)
 }
 
-func ImportFileDag(fpath string, dw *uio.DagWriter) (*dag.Node, error) {
+func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*dag.Node, error) {
 	stat, err := os.Stat(fpath)
 	if err != nil {
 		return nil, err
@@ -90,17 +90,50 @@ func ImportFileDag(fpath string, dw *uio.DagWriter) (*dag.Node, error) {
 	}
 	defer f.Close()
 
-	return ImportReaderDag(f, dw)
+	return BuildDagFromReader(f, ds, mp, chunk.DefaultSplitter)
 }
 
-func ImportReaderDag(r io.Reader, dw *uio.DagWriter) (*dag.Node, error) {
-	_, err := io.Copy(dw, r)
+func BuildDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*dag.Node, error) {
+	blkChan := spl.Split(r)
+	first := <-blkChan
+	root := &dag.Node{}
+
+	mbf := new(ft.MultiBlock)
+	for blk := range blkChan {
+		// Store the block size in the root node
+		mbf.AddBlockSize(uint64(len(blk)))
+		node := &dag.Node{Data: ft.WrapData(blk)}
+		nk, err := ds.Add(node)
+		if mp != nil {
+			mp.PinWithMode(nk, pin.Indirect)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// Add a link to this node without storing a reference to the memory
+		err = root.AddNodeLinkClean("", node)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Generate the root node data
+	mbf.Data = first
+	data, err := mbf.GetBytes()
 	if err != nil {
 		return nil, err
 	}
-	err = dw.Close()
+	root.Data = data
+
+	// Add root node to the dagservice
+	rootk, err := ds.Add(root)
 	if err != nil {
 		return nil, err
 	}
-	return dw.GetNode(), nil
+	if mp != nil {
+		mp.PinWithMode(rootk, pin.Recursive)
+	}
+
+	return root, nil
 }

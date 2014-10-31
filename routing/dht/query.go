@@ -207,7 +207,7 @@ func (r *dhtQueryRunner) spawnWorkers() {
 }
 
 func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
-	log.Debugf("spawned worker for: %v\n", p)
+	log.Debugf("spawned worker for: %v", p)
 
 	// make sure we rate limit concurrency.
 	select {
@@ -256,7 +256,7 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 		r.cancel() // signal to everyone that we're done.
 
 	} else if res.closerPeers != nil {
-		log.Debugf("PEERS CLOSER -- worker for: %v\n", p)
+		log.Debugf("PEERS CLOSER -- worker for: %v", p)
 		for _, next := range res.closerPeers {
 			r.addPeerToQuery(next, p)
 		}

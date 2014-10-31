@@ -9,7 +9,10 @@ import (
 	"os"
 	"testing"
 
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	bsrv "github.com/jbenet/go-ipfs/blockservice"
 	"github.com/jbenet/go-ipfs/importer/chunk"
+	dag "github.com/jbenet/go-ipfs/merkledag"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
@@ -62,6 +65,37 @@ func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
 		t.Fatal(err)
 	}
 	r, err := uio.NewDagReader(nd, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBuilderConsistency(t *testing.T) {
+	nbytes := 100000
+	dstore := ds.NewMapDatastore()
+	bserv, err := bsrv.NewBlockService(dstore, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dagserv := dag.NewDAGService(bserv)
+	buf := new(bytes.Buffer)
+	io.CopyN(buf, rand.Reader, int64(nbytes))
+	should := dup(buf.Bytes())
+	nd, err := BuildDagFromReader(buf, dagserv, nil, chunk.DefaultSplitter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := uio.NewDagReader(nd, dagserv)
 	if err != nil {
 		t.Fatal(err)
 	}

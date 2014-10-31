@@ -13,6 +13,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("dagio")
+
 // DagModifier is the only struct licensed and able to correctly
 // perform surgery on a DAG 'file'
 // Dear god, please rename this to something more pleasant

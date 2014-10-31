@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	bs "github.com/jbenet/go-ipfs/blockservice"
+	imp "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
@@ -26,22 +27,11 @@ func getMockDagServ(t *testing.T) mdag.DAGService {
 }
 
 func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
-	dw := NewDagWriter(dserv, &chunk.SizeSplitter{500})
-
-	n, err := io.CopyN(dw, u.NewTimeSeededRand(), size)
+	in := io.LimitReader(u.NewTimeSeededRand(), size)
+	node, err := imp.BuildDagFromReader(in, dserv, nil, &chunk.SizeSplitter{500})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n != size {
-		t.Fatal("Incorrect copy amount!")
-	}
-
-	err = dw.Close()
-	if err != nil {
-		t.Fatal("DagWriter failed to close,", err)
-	}
-
-	node := dw.GetNode()
 
 	dr, err := NewDagReader(node, dserv)
 	if err != nil {
