@@ -58,7 +58,7 @@ func TestDagWriter(t *testing.T) {
 	dag := mdag.NewDAGService(bserv)
 	dw := dagio.NewDagWriter(dag, &chunk.SizeSplitter{Size: 4096})
 
-	nbytes := int64(1024 * 1024 * 2)
+	nbytes := int64(1024 * 1024 * 1000)
 	n, err := io.CopyN(dw, &datasource{}, nbytes)
 	if err != nil {
 		t.Fatal(err)

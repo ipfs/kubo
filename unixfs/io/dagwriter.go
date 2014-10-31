@@ -97,8 +97,10 @@ func (dw *DagWriter) Write(b []byte) (int, error) {
 	if dw.seterr != nil {
 		return 0, dw.seterr
 	}
-	dw.splChan <- b
-	return len(b), nil
+	cpy := make([]byte, len(b))
+	copy(cpy, b)
+	dw.splChan <- cpy
+	return len(cpy), nil
 }
 
 // Close the splitters input channel and wait for it to finish
