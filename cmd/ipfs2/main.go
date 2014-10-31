@@ -21,38 +21,21 @@ var log = u.Logger("cmd/ipfs")
 
 func main() {
 	args := os.Args[1:]
-	root := Root
 
-	req, err := cmdsCli.Parse(args, root)
+	req, err := cmdsCli.Parse(args, commands.Root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// if the CLI-specific root doesn't contain the command, use the general root
-	if len(req.Path()) == 0 {
-		root = commands.Root
-		req, err = cmdsCli.Parse(args, root)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	}
-
-	cmd, err := root.Get(req.Path())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	options, err := getOptions(req, root)
+	options, err := getOptions(req, commands.Root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	if help, found := options.Option("help"); found && help.(bool) {
-		fmt.Println(cmd.Help)
+		fmt.Println(req.Command().Help)
 		os.Exit(0)
 	}
 
@@ -97,8 +80,8 @@ func main() {
 	}
 
 	var res cmds.Response
-	if root == Root {
-		res = root.Call(req)
+	if req.Command().Private {
+		res = commands.Root.Call(req)
 
 	} else {
 		local, found := options.Option("local")
@@ -118,16 +101,16 @@ func main() {
 			}
 			ctx.Node = node
 
-			res = root.Call(req)
+			res = commands.Root.Call(req)
 		}
 	}
 
 	if res.Error() != nil {
 		fmt.Println(res.Error().Error())
 
-		if cmd.Help != "" && res.Error().Code == cmds.ErrClient {
+		if req.Command().Help != "" && res.Error().Code == cmds.ErrClient {
 			// TODO: convert from markdown to ANSI terminal format?
-			fmt.Println(cmd.Help)
+			fmt.Println(req.Command().Help)
 		}
 
 		os.Exit(1)
