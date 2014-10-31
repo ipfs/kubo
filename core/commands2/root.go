@@ -56,8 +56,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"cat":      catCmd,
 	"ls":       lsCmd,
 	"commands": commandsCmd,
-	"init":     initCmd,
-	"daemon":   daemonCmd,
 
 	// test subcommands
 	// TODO: remove these when we don't need them anymore

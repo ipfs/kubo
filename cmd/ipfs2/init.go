@@ -1,4 +1,4 @@
-package commands
+package main
 
 import (
 	"encoding/base64"
@@ -15,7 +15,6 @@ import (
 )
 
 var initCmd = &cmds.Command{
-	Private: true,
 	Options: []cmds.Option{
 		cmds.Option{[]string{"bits", "b"}, cmds.Int},
 		cmds.Option{[]string{"passphrase", "p"}, cmds.String},
