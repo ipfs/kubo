@@ -1,4 +1,4 @@
-package commands
+package main
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	"github.com/jbenet/go-ipfs/core"
+	commands "github.com/jbenet/go-ipfs/core/commands2"
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 )
 
 var daemonCmd = &cmds.Command{
-	Private:     true,
 	Options:     []cmds.Option{},
 	Help:        "TODO",
 	Subcommands: map[string]*cmds.Command{},
@@ -50,7 +50,7 @@ func daemonFunc(res cmds.Response, req cmds.Request) {
 		return
 	}
 
-	handler := cmdsHttp.Handler{*ctx, Root}
+	handler := cmdsHttp.Handler{*ctx, commands.Root}
 	http.Handle(cmdsHttp.ApiPath+"/", handler)
 
 	fmt.Printf("API server listening on '%s'\n", host)

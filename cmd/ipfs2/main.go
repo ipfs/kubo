@@ -22,13 +22,13 @@ var log = u.Logger("cmd/ipfs")
 func main() {
 	args := os.Args[1:]
 
-	req, err := cmdsCli.Parse(args, commands.Root)
+	req, root, err := cmdsCli.Parse(args, Root, commands.Root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	options, err := getOptions(req, commands.Root)
+	options, err := getOptions(req, root)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -80,8 +80,8 @@ func main() {
 	}
 
 	var res cmds.Response
-	if req.Command().Private {
-		res = commands.Root.Call(req)
+	if root == Root {
+		res = root.Call(req)
 
 	} else {
 		local, found := options.Option("local")
@@ -101,7 +101,7 @@ func main() {
 			}
 			ctx.Node = node
 
-			res = commands.Root.Call(req)
+			res = root.Call(req)
 		}
 	}
 
