@@ -9,17 +9,31 @@ import (
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-func Parse(input []string, root *cmds.Command) (cmds.Request, error) {
-	path, input, cmd := parsePath(input, root)
-	opts, args, err := parseOptions(input)
-	if err != nil {
-		return nil, err
+func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, error) {
+	var req cmds.Request
+	var root *cmds.Command
+
+	// use the root that matches the longest path (most accurately matches request)
+	maxLength := 0
+	for _, r := range roots {
+		path, input, cmd := parsePath(input, r)
+		opts, args, err := parseOptions(input)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		length := len(path)
+		if length > maxLength {
+			maxLength = length
+			req = cmds.NewRequest(path, opts, args, nil, cmd)
+			root = r
+		}
 	}
 
 	// TODO: figure out how to know when to read given file(s) as an input stream
 	// (instead of filename arg string)
 
-	return cmds.NewRequest(path, opts, args, nil, cmd), nil
+	return req, root, nil
 }
 
 // parsePath gets the command path from the command line input
