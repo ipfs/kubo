@@ -1,8 +1,10 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -65,10 +67,26 @@ func Send(req cmds.Request) (cmds.Response, error) {
 
 	if httpRes.StatusCode >= http.StatusBadRequest {
 		e := cmds.Error{}
-		err = dec.Decode(&e)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
+
+		if httpRes.StatusCode == http.StatusNotFound {
+			// handle 404s
+			e.Message = "Command not found."
+			e.Code = cmds.ErrClient
+
+		} else if contentType == "text/plain" {
+			// handle non-marshalled errors
+			buf := bytes.NewBuffer(nil)
+			io.Copy(buf, httpRes.Body)
+			e.Message = string(buf.Bytes())
+			e.Code = cmds.ErrNormal
+
+		} else {
+			// handle marshalled errors
+			err = dec.Decode(&e)
+			if err != nil {
+				fmt.Println(err)
+				return nil, err
+			}
 		}
 
 		res.SetError(e, e.Code)
