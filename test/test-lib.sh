@@ -16,6 +16,15 @@
 
 # Please put go-ipfs specific shell functions below
 
+test_cmp_repeat_10_sec() {
+	for i in 1 2 3 4 5 6 7 8 9 10
+	do
+		test_cmp "$1" "$2" && return
+		sleep 1
+	done
+	test_cmp "$1" "$2"
+}
+
 test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
@@ -35,10 +44,9 @@ test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs mount output looks good" '
 		IPFS_PID=$! &&
-		sleep 5 &&
 		echo "mounting ipfs at $(pwd)/ipfs" >expected &&
 		echo "mounting ipns at $(pwd)/ipns" >>expected &&
-		test_cmp expected actual
+		test_cmp_repeat_10_sec expected actual
 	'
 }
 
