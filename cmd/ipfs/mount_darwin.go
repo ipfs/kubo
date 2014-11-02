@@ -1,12 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 	"syscall"
 )
 
-func osxFuseCheck() error {
+func init() {
+	// this is a hack, but until we need to do it another way, this works.
+	platformFuseChecks = darwinFuseCheckVersion
+}
+
+func darwinFuseCheckVersion() error {
 	// on OSX, check FUSE version.
 	if runtime.GOOS != "darwin" {
 		return nil
@@ -17,7 +23,7 @@ func osxFuseCheck() error {
 		return err
 	}
 
-	if strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
+	if !strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
 		return nil
 	}
 

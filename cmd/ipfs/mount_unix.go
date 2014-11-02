@@ -33,7 +33,7 @@ func init() {
 }
 
 func mountCmd(c *commander.Command, inp []string) error {
-	if err := osxFuseCheck(); err != nil {
+	if err := platformFuseChecks(); err != nil {
 		return err
 	}
 
@@ -94,4 +94,8 @@ func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
 	}()
 
 	return done
+}
+
+var platformFuseChecks = func() error {
+	return nil
 }
