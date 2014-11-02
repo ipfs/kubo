@@ -11,4 +11,4 @@ EXPOSE 4001
 CMD ["ipfs", "run"]
 
 # build:    docker build -t go-ipfs .
-# run:      docker run --privileged=true -i -t go-ipfs:latest
+# run:      docker run -p 4001:4001 -e "IPFS_LOGGING=debug" -i -t go-ipfs:latest
