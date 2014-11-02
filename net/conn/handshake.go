@@ -3,6 +3,7 @@ package conn
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
@@ -105,6 +106,14 @@ func Handshake3(ctx context.Context, c Conn) error {
 		return err
 	}
 
+	nat, err := CheckNAT(remoteH.GetObservedAddr())
+	if err != nil {
+		log.Errorf("Error in NAT detection: %s", err)
+	}
+	if nat {
+		log.Warning("We are probably behind a NAT!")
+	}
+
 	return nil
 }
 
@@ -117,8 +126,13 @@ func CheckNAT(obsaddr string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	_ = oma
-	_ = addrs
 
-	panic("not yet implemented!")
+	omastr := oma.String()
+	for _, addr := range addrs {
+		if strings.HasPrefix(addr.String(), omastr) {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
