@@ -50,6 +50,8 @@ type PrivKey interface {
 
 	// Generate a secret string of bytes
 	GenSecret() []byte
+
+	Decrypt(b []byte) ([]byte, error)
 }
 
 type PubKey interface {
@@ -57,6 +59,8 @@ type PubKey interface {
 
 	// Verify that 'sig' is the signed hash of 'data'
 	Verify(data []byte, sig []byte) (bool, error)
+
+	Encrypt(data []byte) ([]byte, error)
 }
 
 // Given a public key, generates the shared key.
@@ -126,14 +130,20 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 // (myIV, theirIV, myCipherKey, theirCipherKey, myMACKey, theirMACKey)
 func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([]byte, []byte, []byte, []byte, []byte, []byte) {
 	var cipherKeySize int
+	var ivSize int
 	switch cipherType {
 	case "AES-128":
+		ivSize = 16
 		cipherKeySize = 16
 	case "AES-256":
+		ivSize = 16
+		cipherKeySize = 32
+	case "Blowfish":
+		ivSize = 8
+		// Note: 24 arbitrarily selected, needs more thought
 		cipherKeySize = 32
 	}
 
-	ivSize := 16
 	hmacKeySize := 20
 
 	seed := []byte("key expansion")
@@ -149,6 +159,8 @@ func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([
 		h = sha256.New
 	case "SHA512":
 		h = sha512.New
+	default:
+		panic("Unrecognized hash function, programmer error?")
 	}
 
 	m := hmac.New(h, secret)

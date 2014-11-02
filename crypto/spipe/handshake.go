@@ -15,6 +15,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	bfish "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.crypto/blowfish"
 	"hash"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -31,10 +32,10 @@ var log = u.Logger("handshake")
 var SupportedExchanges = "P-256,P-224,P-384,P-521"
 
 // List of supported Ciphers
-var SupportedCiphers = "AES-256,AES-128"
+var SupportedCiphers = "AES-256,AES-128,Blowfish"
 
 // List of supported Hashes
-var SupportedHashes = "SHA256,SHA512,SHA1"
+var SupportedHashes = "SHA256,SHA512"
 
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
@@ -107,17 +108,17 @@ func (s *SecurePipe) handshake() error {
 	}
 	log.Debugf("%s Remote Peer Identified as %s", s.local, s.remote)
 
-	exchange, err := selectBest(SupportedExchanges, proposeResp.GetExchanges())
+	exchange, err := SelectBest(SupportedExchanges, proposeResp.GetExchanges())
 	if err != nil {
 		return err
 	}
 
-	cipherType, err := selectBest(SupportedCiphers, proposeResp.GetCiphers())
+	cipherType, err := SelectBest(SupportedCiphers, proposeResp.GetCiphers())
 	if err != nil {
 		return err
 	}
 
-	hashType, err := selectBest(SupportedHashes, proposeResp.GetHashes())
+	hashType, err := SelectBest(SupportedHashes, proposeResp.GetHashes())
 	if err != nil {
 		return err
 	}
@@ -183,10 +184,11 @@ func (s *SecurePipe) handshake() error {
 	}
 
 	cmp := bytes.Compare(myPubKey, proposeResp.GetPubkey())
+
 	mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
 
-	go s.handleSecureIn(hashType, tIV, tCKey, tMKey)
-	go s.handleSecureOut(hashType, mIV, mCKey, mMKey)
+	go s.handleSecureIn(hashType, cipherType, tIV, tCKey, tMKey)
+	go s.handleSecureOut(hashType, cipherType, mIV, mCKey, mMKey)
 
 	finished := []byte("Finished")
 
@@ -224,8 +226,24 @@ func makeMac(hashType string, key []byte) (hash.Hash, int) {
 	}
 }
 
-func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
-	theirBlock, _ := aes.NewCipher(tCKey)
+func makeCipher(cipherType string, CKey []byte) (cipher.Block, error) {
+	switch cipherType {
+	case "AES-128", "AES-256":
+		return aes.NewCipher(CKey)
+	case "Blowfish":
+		return bfish.NewCipher(CKey)
+	default:
+		return nil, fmt.Errorf("Unrecognized cipher string: %s", cipherType)
+	}
+}
+
+func (s *SecurePipe) handleSecureIn(hashType, cipherType string, tIV, tCKey, tMKey []byte) {
+	theirBlock, err := makeCipher(cipherType, tCKey)
+	if err != nil {
+		log.Criticalf("Invalid Cipher: %s", err)
+		s.cancel()
+		return
+	}
 	theirCipher := cipher.NewCTR(theirBlock, tIV)
 
 	theirMac, macSize := makeMac(hashType, tMKey)
@@ -251,26 +269,29 @@ func (s *SecurePipe) handleSecureIn(hashType string, tIV, tCKey, tMKey []byte) {
 		}
 
 		mark := len(data) - macSize
-		buff := make([]byte, mark)
-
-		theirCipher.XORKeyStream(buff, data[0:mark])
 
 		theirMac.Write(data[0:mark])
 		expected := theirMac.Sum(nil)
 		theirMac.Reset()
 
 		hmacOk := hmac.Equal(data[mark:], expected)
-
-		if hmacOk {
-			s.Duplex.In <- buff
-		} else {
-			s.Duplex.In <- nil
+		if !hmacOk {
+			continue
 		}
+
+		theirCipher.XORKeyStream(data, data[0:mark])
+
+		s.Duplex.In <- data[:mark]
 	}
 }
 
-func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) {
-	myBlock, _ := aes.NewCipher(mCKey)
+func (s *SecurePipe) handleSecureOut(hashType, cipherType string, mIV, mCKey, mMKey []byte) {
+	myBlock, err := makeCipher(cipherType, mCKey)
+	if err != nil {
+		log.Criticalf("Invalid Cipher: %s", err)
+		s.cancel()
+		return
+	}
 	myCipher := cipher.NewCTR(myBlock, mIV)
 
 	myMac, macSize := makeMac(hashType, mMKey)
@@ -308,7 +329,7 @@ func (s *SecurePipe) handleSecureOut(hashType string, mIV, mCKey, mMKey []byte) 
 }
 
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
-func selectBest(myPrefs, theirPrefs string) (string, error) {
+func SelectBest(myPrefs, theirPrefs string) (string, error) {
 	// Person with greatest hash gets first choice.
 	myHash := u.Hash([]byte(myPrefs))
 	theirHash := u.Hash([]byte(theirPrefs))

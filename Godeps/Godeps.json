@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
@@ -18,6 +18,11 @@
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
 			"Comment": "null-12",
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.crypto/blowfish",
+			"Comment": "null-219",
+			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
 		},
 		{
 			"ImportPath": "code.google.com/p/go.crypto/sha3",
@@ -93,7 +98,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-msgio",
-			"Rev": "c9069ab79c95aa0686347b516972c7329c4391f2"
+			"Rev": "ab0e7a0e111d7c7d814ad238bcbf3934efb76ac3"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",

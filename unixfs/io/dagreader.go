@@ -9,7 +9,6 @@ import (
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var ErrIsDir = errors.New("this dag node is a directory")
@@ -19,7 +18,7 @@ type DagReader struct {
 	serv     mdag.DAGService
 	node     *mdag.Node
 	position int
-	buf      *bytes.Buffer
+	buf      io.Reader
 }
 
 // NewDagReader creates a new reader object that reads the data represented by the given
@@ -55,17 +54,12 @@ func (dr *DagReader) precalcNextBuf() error {
 	if dr.position >= len(dr.node.Links) {
 		return io.EOF
 	}
-	nxtLink := dr.node.Links[dr.position]
-	nxt := nxtLink.Node
-	if nxt == nil {
-		nxtNode, err := dr.serv.Get(u.Key(nxtLink.Hash))
-		if err != nil {
-			return err
-		}
-		nxt = nxtNode
+	nxt, err := dr.node.Links[dr.position].GetNode(dr.serv)
+	if err != nil {
+		return err
 	}
 	pb := new(ftpb.Data)
-	err := proto.Unmarshal(nxt.Data, pb)
+	err = proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
 		return err
 	}
@@ -76,8 +70,13 @@ func (dr *DagReader) precalcNextBuf() error {
 		return ft.ErrInvalidDirLocation
 	case ftpb.Data_File:
 		//TODO: this *should* work, needs testing first
-		//return NewDagReader(nxt, dr.serv)
-		panic("Not yet handling different layers of indirection!")
+		log.Warning("Running untested code for multilayered indirect FS reads.")
+		subr, err := NewDagReader(nxt, dr.serv)
+		if err != nil {
+			return err
+		}
+		dr.buf = subr
+		return nil
 	case ftpb.Data_Raw:
 		dr.buf = bytes.NewBuffer(pb.GetData())
 		return nil

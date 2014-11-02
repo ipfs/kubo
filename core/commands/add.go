@@ -82,7 +82,7 @@ func addDir(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node
 		}
 	}
 
-	log.Info("adding dir: %s", fpath)
+	log.Infof("adding dir: %s", fpath)
 
 	return tree, addNode(n, tree, fpath, out)
 }
@@ -98,10 +98,10 @@ func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Nod
 		return nil, err
 	}
 
-	log.Info("adding file: %s", fpath)
+	log.Infof("adding file: %s", fpath)
 
 	for _, l := range root.Links {
-		log.Info("adding subblock: %s %s", l.Name, l.Hash.B58String())
+		log.Infof("adding subblock: '%s' %s", l.Name, l.Hash.B58String())
 	}
 
 	k, err := root.Key()

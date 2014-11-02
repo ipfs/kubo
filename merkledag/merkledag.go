@@ -2,6 +2,7 @@ package merkledag
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -240,4 +241,38 @@ func (n *dagService) Remove(nd *Node) error {
 		return err
 	}
 	return n.Blocks.DeleteBlock(k)
+}
+
+func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} {
+	var wg sync.WaitGroup
+	done := make(chan struct{})
+
+	for _, l := range root.Links {
+		wg.Add(1)
+		go func(lnk *Link) {
+
+			// Signal child is done on way out
+			defer wg.Done()
+			select {
+			case <-ctx.Done():
+				return
+			}
+
+			nd, err := lnk.GetNode(serv)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			// Wait for children to finish
+			<-FetchGraph(ctx, nd, serv)
+		}(l)
+	}
+
+	go func() {
+		wg.Wait()
+		done <- struct{}{}
+	}()
+
+	return done
 }

@@ -11,6 +11,7 @@ It is generated from these files:
 It has these top-level messages:
 	Propose
 	Exchange
+	DataSig
 */
 package spipe_pb
 
@@ -91,6 +92,38 @@ func (m *Exchange) GetSignature() []byte {
 		return m.Signature
 	}
 	return nil
+}
+
+type DataSig struct {
+	Data             []byte  `protobuf:"bytes,1,opt,name=data" json:"data,omitempty"`
+	Signature        []byte  `protobuf:"bytes,2,opt,name=signature" json:"signature,omitempty"`
+	Id               *uint64 `protobuf:"varint,3,opt,name=id" json:"id,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *DataSig) Reset()         { *m = DataSig{} }
+func (m *DataSig) String() string { return proto.CompactTextString(m) }
+func (*DataSig) ProtoMessage()    {}
+
+func (m *DataSig) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+func (m *DataSig) GetSignature() []byte {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
+}
+
+func (m *DataSig) GetId() uint64 {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return 0
 }
 
 func init() {

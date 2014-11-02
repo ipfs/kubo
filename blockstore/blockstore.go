@@ -5,6 +5,7 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -35,7 +36,8 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 	if !ok {
 		return nil, ValueTypeMismatch
 	}
-	return blocks.NewBlock(bdata), nil
+
+	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
 }
 
 func (bs *blockstore) Put(block *blocks.Block) error {

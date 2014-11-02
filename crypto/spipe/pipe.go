@@ -5,18 +5,14 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	peer "github.com/jbenet/go-ipfs/peer"
-)
 
-// Duplex is a simple duplex channel
-type Duplex struct {
-	In  chan []byte
-	Out chan []byte
-}
+	pipes "github.com/jbenet/go-ipfs/util/pipes"
+)
 
 // SecurePipe objects represent a bi-directional message channel.
 type SecurePipe struct {
-	Duplex
-	insecure Duplex
+	pipes.Duplex
+	insecure pipes.Duplex
 
 	local  peer.Peer
 	remote peer.Peer
@@ -34,12 +30,12 @@ type params struct {
 
 // NewSecurePipe constructs a pipe with channels of a given buffer size.
 func NewSecurePipe(ctx context.Context, bufsize int, local peer.Peer,
-	peers peer.Peerstore, insecure Duplex) (*SecurePipe, error) {
+	peers peer.Peerstore, insecure pipes.Duplex) (*SecurePipe, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 
 	sp := &SecurePipe{
-		Duplex: Duplex{
+		Duplex: pipes.Duplex{
 			In:  make(chan []byte, bufsize),
 			Out: make(chan []byte, bufsize),
 		},

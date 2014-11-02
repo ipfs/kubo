@@ -7,16 +7,12 @@ import (
 	"testing"
 	"time"
 
+	tu "github.com/jbenet/go-ipfs/util/testutil"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
-func _randPeer() peer.Peer {
-	id := make(peer.ID, 16)
-	crand.Read(id)
-	return peer.WithID(id)
-}
-
-func _randID() ID {
+func RandID() ID {
 	buf := make([]byte, 16)
 	crand.Read(buf)
 
@@ -30,11 +26,11 @@ func TestBucket(t *testing.T) {
 
 	peers := make([]peer.Peer, 100)
 	for i := 0; i < 100; i++ {
-		peers[i] = _randPeer()
+		peers[i] = tu.RandPeer()
 		b.pushFront(peers[i])
 	}
 
-	local := _randPeer()
+	local := tu.RandPeer()
 	localID := ConvertPeerID(local.ID())
 
 	i := rand.Intn(len(peers))
@@ -65,12 +61,12 @@ func TestBucket(t *testing.T) {
 
 // Right now, this just makes sure that it doesnt hang or crash
 func TestTableUpdate(t *testing.T) {
-	local := _randPeer()
+	local := tu.RandPeer()
 	rt := NewRoutingTable(10, ConvertPeerID(local.ID()), time.Hour)
 
 	peers := make([]peer.Peer, 100)
 	for i := 0; i < 100; i++ {
-		peers[i] = _randPeer()
+		peers[i] = tu.RandPeer()
 	}
 
 	// Testing Update
@@ -82,7 +78,7 @@ func TestTableUpdate(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		id := _randID()
+		id := RandID()
 		ret := rt.NearestPeers(id, 5)
 		if len(ret) == 0 {
 			t.Fatal("Failed to find node near ID.")
@@ -91,12 +87,12 @@ func TestTableUpdate(t *testing.T) {
 }
 
 func TestTableFind(t *testing.T) {
-	local := _randPeer()
+	local := tu.RandPeer()
 	rt := NewRoutingTable(10, ConvertPeerID(local.ID()), time.Hour)
 
 	peers := make([]peer.Peer, 100)
 	for i := 0; i < 5; i++ {
-		peers[i] = _randPeer()
+		peers[i] = tu.RandPeer()
 		rt.Update(peers[i])
 	}
 
@@ -108,12 +104,12 @@ func TestTableFind(t *testing.T) {
 }
 
 func TestTableFindMultiple(t *testing.T) {
-	local := _randPeer()
+	local := tu.RandPeer()
 	rt := NewRoutingTable(20, ConvertPeerID(local.ID()), time.Hour)
 
 	peers := make([]peer.Peer, 100)
 	for i := 0; i < 18; i++ {
-		peers[i] = _randPeer()
+		peers[i] = tu.RandPeer()
 		rt.Update(peers[i])
 	}
 
@@ -132,7 +128,7 @@ func TestTableMultithreaded(t *testing.T) {
 	tab := NewRoutingTable(20, ConvertPeerID(local), time.Hour)
 	var peers []peer.Peer
 	for i := 0; i < 500; i++ {
-		peers = append(peers, _randPeer())
+		peers = append(peers, tu.RandPeer())
 	}
 
 	done := make(chan struct{})
@@ -171,7 +167,7 @@ func BenchmarkUpdates(b *testing.B) {
 
 	var peers []peer.Peer
 	for i := 0; i < b.N; i++ {
-		peers = append(peers, _randPeer())
+		peers = append(peers, tu.RandPeer())
 	}
 
 	b.StartTimer()
@@ -187,7 +183,7 @@ func BenchmarkFinds(b *testing.B) {
 
 	var peers []peer.Peer
 	for i := 0; i < b.N; i++ {
-		peers = append(peers, _randPeer())
+		peers = append(peers, tu.RandPeer())
 		tab.Update(peers[i])
 	}
 

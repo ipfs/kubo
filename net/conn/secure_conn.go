@@ -9,6 +9,7 @@ import (
 	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
 	peer "github.com/jbenet/go-ipfs/peer"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"github.com/jbenet/go-ipfs/util/pipes"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.
@@ -54,7 +55,7 @@ func (c *secureConn) secureHandshake(peers peer.Peerstore) error {
 	insecureSC := c.insecure.(*singleConn)
 
 	// setup a Duplex pipe for spipe
-	insecureD := spipe.Duplex{
+	insecureD := pipes.Duplex{
 		In:  insecureSC.msgio.incoming.MsgChan,
 		Out: insecureSC.msgio.outgoing.MsgChan,
 	}

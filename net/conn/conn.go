@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -21,11 +22,30 @@ const (
 	ChanBuffer = 10
 
 	// MaxMessageSize is the size of the largest single message
-	MaxMessageSize = 1 << 22 // 4 MB
+	MaxMessageSize = 1 << 20
 
 	// HandshakeTimeout for when nodes first connect
 	HandshakeTimeout = time.Second * 5
 )
+
+var BufferPool *sync.Pool
+
+func init() {
+	BufferPool = new(sync.Pool)
+	BufferPool.New = func() interface{} {
+		log.Warning("Pool returning new object")
+		return make([]byte, MaxMessageSize)
+	}
+}
+
+func ReleaseBuffer(b []byte) {
+	log.Warningf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
+	if cap(b) != MaxMessageSize {
+		log.Warning("Release buffer failed (cap, size = %d, %d)", cap(b), len(b))
+		return
+	}
+	BufferPool.Put(b[:cap(b)])
+}
 
 // msgioPipe is a pipe using msgio channels.
 type msgioPipe struct {
@@ -33,10 +53,10 @@ type msgioPipe struct {
 	incoming *msgio.Chan
 }
 
-func newMsgioPipe(size int) *msgioPipe {
+func newMsgioPipe(size int, pool *sync.Pool) *msgioPipe {
 	return &msgioPipe{
-		outgoing: msgio.NewChan(10),
-		incoming: msgio.NewChan(10),
+		outgoing: msgio.NewChan(size),
+		incoming: msgio.NewChanWithPool(size, pool),
 	}
 }
 
@@ -58,7 +78,7 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 		local:  local,
 		remote: remote,
 		maconn: maconn,
-		msgio:  newMsgioPipe(10),
+		msgio:  newMsgioPipe(10, BufferPool),
 	}
 
 	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
