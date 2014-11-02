@@ -23,7 +23,7 @@ func darwinFuseCheckVersion() error {
 		return err
 	}
 
-	if !strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
+	if strings.HasPrefix(ov, "2.7.") || strings.HasPrefix(ov, "2.8.") {
 		return nil
 	}
 
