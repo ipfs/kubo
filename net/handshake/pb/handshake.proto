@@ -1,6 +1,6 @@
 package handshake.pb;
 
-import "github.com/jbenet/go-ipfs/net/mux/mux.proto";
+//import "github.com/jbenet/go-ipfs/net/mux/mux.proto";
 
 // Handshake1 is delivered _before_ the secure channel is initialized
 message Handshake1 {
@@ -30,4 +30,5 @@ message Handshake3 {
   // repeated mux.ProtocolID services = 3;
 
   // we'll have more fields here later.
+  optional string observedAddr = 4;
 }

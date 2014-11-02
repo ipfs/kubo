@@ -4,12 +4,16 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
 
@@ -106,4 +110,41 @@ func (r *randGen) Read(p []byte) (n int, err error) {
 func GetenvBool(name string) bool {
 	v := strings.ToLower(os.Getenv(name))
 	return v == "true" || v == "t" || v == "1"
+}
+
+func IsLoopbackAddr(addr string) bool {
+	return addr == "/ip4/127.0.0.1" || addr == "/ip6/::1"
+}
+
+func GetLocalAddresses() ([]ma.Multiaddr, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	var maddrs []ma.Multiaddr
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			log.Warningf("Skipping addr: %s", err)
+			continue
+		}
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				maddr, err := manet.FromIP(v.IP)
+				if err != nil {
+					log.Errorf("maddr parsing error: %s", err)
+					continue
+				}
+				if IsLoopbackAddr(maddr.String()) {
+					continue
+				}
+				maddrs = append(maddrs, maddr)
+			default:
+				log.Errorf("Got '%s' type = '%s'", v, reflect.TypeOf(v))
+			}
+		}
+	}
+	return maddrs, nil
 }

@@ -6,9 +6,11 @@ import (
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
+	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ma "github.com/jbenet/go-multiaddr"
 )
 
 // Handshake1 exchanges local and remote versions and compares them
@@ -65,6 +67,10 @@ func Handshake3(ctx context.Context, c Conn) error {
 
 	var remoteH, localH *hspb.Handshake3
 	localH = handshake.Handshake3Msg(lpeer)
+
+	rma := c.RemoteMultiaddr()
+	localH.ObservedAddr = proto.String(rma.String())
+
 	localB, err := proto.Marshal(localH)
 	if err != nil {
 		return err
@@ -100,4 +106,19 @@ func Handshake3(ctx context.Context, c Conn) error {
 	}
 
 	return nil
+}
+
+func CheckNAT(obsaddr string) (bool, error) {
+	oma, err := ma.NewMultiaddr(obsaddr)
+	if err != nil {
+		return false, err
+	}
+	addrs, err := u.GetLocalAddresses()
+	if err != nil {
+		return false, err
+	}
+	_ = oma
+	_ = addrs
+
+	panic("not yet implemented!")
 }
