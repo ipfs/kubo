@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "devel +9340f9f6dfc9 Fri Oct 31 00:48:57 2014 -0300",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
