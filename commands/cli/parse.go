@@ -12,29 +12,27 @@ import (
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, error) {
-	var req cmds.Request
-	var root *cmds.Command
+	var root, cmd *cmds.Command
+	var path, stringArgs []string
+	var opts map[string]interface{}
 
 	// use the root that matches the longest path (most accurately matches request)
 	maxLength := 0
 	for _, r := range roots {
-		path, input, cmd := parsePath(input, r)
-		opts, stringArgs, err := parseOptions(input)
+		p, i, c := parsePath(input, r)
+		o, s, err := parseOptions(i)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		length := len(path)
+		length := len(p)
 		if length > maxLength {
 			maxLength = length
-
-			args, err := parseArgs(stringArgs, cmd)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			req = cmds.NewRequest(path, opts, args, cmd)
 			root = r
+			path = p
+			cmd = c
+			opts = o
+			stringArgs = s
 		}
 	}
 
@@ -42,7 +40,12 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		return nil, nil, errors.New("Not a valid subcommand")
 	}
 
-	return req, root, nil
+	args, err := parseArgs(stringArgs, cmd)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cmds.NewRequest(path, opts, args, cmd), root, nil
 }
 
 // parsePath gets the command path from the command line input
