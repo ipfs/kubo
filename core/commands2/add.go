@@ -13,6 +13,10 @@ import (
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
+type AddOutput struct {
+	Added []Object
+}
+
 var addCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
@@ -29,16 +33,41 @@ var addCmd = &cmds.Command{
 		//if r, _ := opt.(bool); found && r {
 		//}
 
+		added := make([]Object, len(req.Arguments()))
+
 		// add every path in args
-		for _, arg := range req.Arguments() {
+		for i, arg := range req.Arguments() {
 			// Add the file
 			node, err := add(n, arg.(io.Reader))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
+				return
 			}
-			fmt.Println(node.Key())
+
+			k, err := node.Key()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			added[i] = Object{k.String(), nil}
 		}
+
+		res.SetValue(&AddOutput{added})
 	},
+	Format: func(res cmds.Response) (string, error) {
+		v := res.Value().(*AddOutput).Added
+		if len(v) == 1 {
+			return fmt.Sprintf("Added object: %s\n", v[0].Hash), nil
+		}
+
+		s := fmt.Sprintf("Added %v objects:\n", len(v))
+		for _, obj := range v {
+			s += fmt.Sprintf("- %s\n", obj.Hash)
+		}
+		return s, nil
+	},
+	Type: &AddOutput{},
 }
 
 func add(n *core.IpfsNode, in io.Reader) (*dag.Node, error) {
