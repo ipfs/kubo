@@ -28,6 +28,7 @@ const (
 	HandshakeTimeout = time.Second * 5
 )
 
+// global static buffer pool for byte arrays of size MaxMessageSize
 var BufferPool *sync.Pool
 
 func init() {
@@ -38,6 +39,8 @@ func init() {
 	}
 }
 
+// ReleaseBuffer puts the given byte array back into the buffer pool,
+// first verifying that it is the correct size
 func ReleaseBuffer(b []byte) {
 	log.Warningf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
 	if cap(b) != MaxMessageSize {

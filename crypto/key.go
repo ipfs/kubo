@@ -28,6 +28,7 @@ const (
 	RSA = iota
 )
 
+// Key represents a crypto key that can be compared to another key
 type Key interface {
 	// Bytes returns a serialized, storeable representation of this key
 	Bytes() ([]byte, error)
@@ -39,6 +40,8 @@ type Key interface {
 	Equals(Key) bool
 }
 
+// PrivKey represents a private key that can be used to generate a public key,
+// sign data, and decrypt data that was encrypted with a public key
 type PrivKey interface {
 	Key
 
@@ -60,12 +63,14 @@ type PubKey interface {
 	// Verify that 'sig' is the signed hash of 'data'
 	Verify(data []byte, sig []byte) (bool, error)
 
+	// Encrypt data in a way that can be decrypted by a paired private key
 	Encrypt(data []byte) ([]byte, error)
 }
 
 // Given a public key, generates the shared key.
 type GenSharedKey func([]byte) ([]byte, error)
 
+// Generates a keypair of the given type and bitsize
 func GenerateKeyPair(typ, bits int) (PrivKey, PubKey, error) {
 	switch typ {
 	case RSA:
@@ -217,6 +222,8 @@ func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([
 	return myIV, theirIV, myCKey, theirCKey, myMKey, theirMKey
 }
 
+// UnmarshalPublicKey converts a protobuf serialized public key into its
+// representative object
 func UnmarshalPublicKey(data []byte) (PubKey, error) {
 	pmes := new(pb.PublicKey)
 	err := proto.Unmarshal(data, pmes)
@@ -232,6 +239,8 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 	}
 }
 
+// UnmarshalPrivateKey converts a protobuf serialized private key into its
+// representative object
 func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 	pmes := new(pb.PrivateKey)
 	err := proto.Unmarshal(data, pmes)

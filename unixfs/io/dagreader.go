@@ -48,7 +48,7 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 	}
 }
 
-// Follows the next link in line and loads it from the DAGService,
+// precalcNextBuf follows the next link in line and loads it from the DAGService,
 // setting the next buffer to read from
 func (dr *DagReader) precalcNextBuf() error {
 	if dr.position >= len(dr.node.Links) {
@@ -67,6 +67,7 @@ func (dr *DagReader) precalcNextBuf() error {
 
 	switch pb.GetType() {
 	case ftpb.Data_Directory:
+		// A directory should not exist within a file
 		return ft.ErrInvalidDirLocation
 	case ftpb.Data_File:
 		//TODO: this *should* work, needs testing first
@@ -85,6 +86,7 @@ func (dr *DagReader) precalcNextBuf() error {
 	}
 }
 
+// Read reads data from the DAG structured file
 func (dr *DagReader) Read(b []byte) (int, error) {
 	// If no cached buffer, load one
 	if dr.buf == nil {

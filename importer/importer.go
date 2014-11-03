@@ -29,6 +29,7 @@ func NewDagFromReader(r io.Reader) (*dag.Node, error) {
 	return NewDagFromReaderWithSplitter(r, chunk.DefaultSplitter)
 }
 
+// Creates an in memory DAG from data in the given reader
 func NewDagFromReaderWithSplitter(r io.Reader, spl chunk.BlockSplitter) (*dag.Node, error) {
 	blkChan := spl.Split(r)
 	first := <-blkChan
@@ -75,6 +76,8 @@ func NewDagFromFile(fpath string) (*dag.Node, error) {
 	return NewDagFromReader(f)
 }
 
+// Builds a DAG from the given file, writing created blocks to disk as they are
+// created
 func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*dag.Node, error) {
 	stat, err := os.Stat(fpath)
 	if err != nil {
@@ -94,6 +97,8 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 	return BuildDagFromReader(f, ds, mp, chunk.DefaultSplitter)
 }
 
+// Builds a DAG from the data in the given reader, writing created blocks to disk
+// as they are created
 func BuildDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*dag.Node, error) {
 	blkChan := spl.Split(r)
 
