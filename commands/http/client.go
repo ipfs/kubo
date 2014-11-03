@@ -80,7 +80,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 	contentType = strings.Split(contentType, ";")[0]
 
 	if contentType == "application/octet-stream" {
-		res.SetValue(httpRes.Body)
+		res.SetOutput(httpRes.Body)
 		return res, nil
 	}
 
@@ -120,7 +120,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 			return nil, err
 		}
 
-		res.SetValue(v)
+		res.SetOutput(v)
 	}
 
 	if len(userEncoding) > 0 {
