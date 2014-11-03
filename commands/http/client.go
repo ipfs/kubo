@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -59,11 +58,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 			if in != nil {
 				return nil, fmt.Errorf("Currently, only one file stream is possible per request")
 			}
-			in, err = os.Open(arg.(string))
-			if err != nil {
-				return nil, err
-			}
-			args[i] = in
+			in = arg.(io.Reader)
 		}
 	}
 
