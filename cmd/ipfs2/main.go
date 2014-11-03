@@ -124,7 +124,7 @@ func main() {
 }
 
 func getOptions(req cmds.Request, root *cmds.Command) (cmds.Request, error) {
-	tempReq := cmds.NewRequest(req.Path(), req.Options(), nil, nil, nil)
+	tempReq := cmds.NewRequest(req.Path(), req.Options(), nil, nil)
 
 	options, err := root.GetOptions(tempReq.Path())
 	if err != nil {

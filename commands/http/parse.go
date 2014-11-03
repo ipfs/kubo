@@ -34,7 +34,7 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	opts, args2 := parseOptions(r)
 	args = append(args, args2...)
 
-	return cmds.NewRequest(path, opts, args, nil, cmd), nil
+	return cmds.NewRequest(path, opts, args, cmd), nil
 }
 
 func parseOptions(r *http.Request) (map[string]interface{}, []interface{}) {
