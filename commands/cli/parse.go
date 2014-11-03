@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -18,7 +19,7 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 	maxLength := 0
 	for _, r := range roots {
 		path, input, cmd := parsePath(input, r)
-		opts, args, err := parseOptions(input)
+		opts, stringArgs, err := parseOptions(input)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -26,6 +27,12 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		length := len(path)
 		if length > maxLength {
 			maxLength = length
+
+			args, err := parseArgs(stringArgs, cmd)
+			if err != nil {
+				return nil, nil, err
+			}
+
 			req = cmds.NewRequest(path, opts, args, cmd)
 			root = r
 		}
@@ -34,9 +41,6 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 	if maxLength == 0 {
 		return nil, nil, errors.New("Not a valid subcommand")
 	}
-
-	// TODO: figure out how to know when to read given file(s) as an input stream
-	// (instead of filename arg string)
 
 	return req, root, nil
 }
@@ -65,9 +69,9 @@ func parsePath(input []string, root *cmds.Command) ([]string, []string, *cmds.Co
 
 // parseOptions parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
-func parseOptions(input []string) (map[string]interface{}, []interface{}, error) {
+func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	opts := make(map[string]interface{})
-	args := []interface{}{}
+	args := []string{}
 
 	for i := 0; i < len(input); i++ {
 		blob := input[i]
@@ -99,4 +103,30 @@ func parseOptions(input []string) (map[string]interface{}, []interface{}, error)
 	}
 
 	return opts, args, nil
+}
+
+// Note that the argument handling here is dumb, it does not do any error-checking.
+// (Arguments are further processed when the request is passed to the command to run)
+func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
+	args := make([]interface{}, len(cmd.Arguments))
+
+	for i, arg := range cmd.Arguments {
+		// TODO: handle variadic args
+		if i >= len(stringArgs) {
+			break
+		}
+
+		if arg.Type == cmds.ArgString {
+			args[i] = stringArgs[i]
+
+		} else {
+			in, err := os.Open(stringArgs[i])
+			if err != nil {
+				return nil, err
+			}
+			args[i] = in
+		}
+	}
+
+	return args, nil
 }
