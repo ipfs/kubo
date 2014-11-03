@@ -8,6 +8,7 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/util"
 )
 
 // Dial connects to a particular peer, over a given network
@@ -21,6 +22,10 @@ func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Co
 	raddr := remote.NetAddress(network)
 	if raddr == nil {
 		return nil, fmt.Errorf("No remote address for network %s", network)
+	}
+
+	if util.IsLoopbackAddr(raddr.String()) {
+		return nil, fmt.Errorf("Attempted to connect to loopback address: %s", raddr)
 	}
 
 	remote, err := d.Peerstore.Add(remote)

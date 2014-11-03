@@ -113,7 +113,13 @@ func GetenvBool(name string) bool {
 }
 
 func IsLoopbackAddr(addr string) bool {
-	return addr == "/ip4/127.0.0.1" || addr == "/ip6/::1"
+	loops := []string{"/ip4/127.0.0.1", "/ip6/::1", "/ip4/0.0.0.0"}
+	for _, loop := range loops {
+		if strings.HasPrefix(addr, loop) {
+			return true
+		}
+	}
+	return false
 }
 
 func GetLocalAddresses() ([]ma.Multiaddr, error) {
