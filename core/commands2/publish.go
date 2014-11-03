@@ -30,12 +30,12 @@ var publishCmd = &cmds.Command{
 		switch len(args) {
 		case 2:
 			// name = args[0]
-			ref = args[1]
+			ref = args[1].(string)
 			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
 			return
 		case 1:
 			// name = n.Identity.ID.String()
-			ref = args[0]
+			ref = args[0].(string)
 
 		default:
 			res.SetError(fmt.Errorf("Publish expects 1 or 2 args; got %d.", len(args)), cmds.ErrClient)

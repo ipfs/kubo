@@ -13,7 +13,8 @@ var catCmd = &cmds.Command{
 		node := req.Context().Node
 		readers := make([]io.Reader, 0, len(req.Arguments()))
 
-		for _, path := range req.Arguments() {
+		for _, arg := range req.Arguments() {
+			path := arg.(string)
 			dagnode, err := node.Resolver.ResolvePath(path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
