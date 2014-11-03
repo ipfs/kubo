@@ -114,3 +114,11 @@ func init() {
 	Root.Subcommands = rootSubcommands
 	u.SetLogLevel("core/commands", "info")
 }
+
+type MessageOutput struct {
+	Message string
+}
+
+func MessageFormatter(res cmds.Response) (string, error) {
+	return res.Value().(*MessageOutput).Message, nil
+}
