@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -58,7 +59,7 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	err = req.CheckArguments(cmd.Arguments)
+	err = cmd.CheckArguments(req)
 	if err != nil {
 		res.SetError(err, ErrClient)
 		return res
@@ -136,6 +137,48 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 	}
 
 	return optionsMap, nil
+}
+
+func (c *Command) CheckArguments(req Request) error {
+	var argDef Argument
+	args := req.Arguments()
+
+	var length int
+	if len(args) > len(c.Arguments) {
+		length = len(args)
+	} else {
+		length = len(c.Arguments)
+	}
+
+	for i := 0; i < length; i++ {
+		var arg interface{}
+		if len(args) > i {
+			arg = args[i]
+		}
+
+		if i < len(c.Arguments) {
+			argDef = c.Arguments[i]
+		} else if !argDef.Variadic {
+			return fmt.Errorf("Expected %v arguments, got %v", len(c.Arguments), len(args))
+		}
+
+		if argDef.Required && arg == nil {
+			return fmt.Errorf("Argument '%s' is required", argDef.Name)
+		}
+		if argDef.Type == ArgFile {
+			_, ok := arg.(io.Reader)
+			if !ok {
+				return fmt.Errorf("Argument '%s' isn't valid", argDef.Name)
+			}
+		} else if argDef.Type == ArgString {
+			_, ok := arg.(string)
+			if !ok {
+				return fmt.Errorf("Argument '%s' must be a string", argDef.Name)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Subcommand returns the subcommand with the given id

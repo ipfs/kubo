@@ -45,7 +45,14 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		return nil, nil, err
 	}
 
-	return cmds.NewRequest(path, opts, args, cmd), root, nil
+	req := cmds.NewRequest(path, opts, args, cmd)
+
+	err = cmd.CheckArguments(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return req, root, nil
 }
 
 // parsePath gets the command path from the command line input
@@ -108,8 +115,6 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-// Note that the argument handling here is dumb, it does not do any error-checking.
-// (Arguments are further processed when the request is passed to the command to run)
 func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 	var argDef cmds.Argument
 	args := make([]interface{}, len(stringArgs))

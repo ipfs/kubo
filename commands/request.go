@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 
@@ -29,7 +28,6 @@ type Request interface {
 	SetContext(Context)
 	Command() *Command
 
-	CheckArguments(args []Argument) error
 	ConvertOptions(options map[string]Option) error
 }
 
@@ -101,48 +99,6 @@ var converters = map[reflect.Kind]converter{
 	Float: func(v string) (interface{}, error) {
 		return strconv.ParseFloat(v, 64)
 	},
-}
-
-// MAYBE_TODO: maybe this should be a Command method? (taking a Request as a param)
-func (r *request) CheckArguments(args []Argument) error {
-	var argDef Argument
-
-	var length int
-	if len(r.arguments) > len(args) {
-		length = len(r.arguments)
-	} else {
-		length = len(args)
-	}
-
-	for i := 0; i < length; i++ {
-		var arg interface{}
-		if len(r.arguments) > i {
-			arg = r.arguments[i]
-		}
-
-		if i < len(args) {
-			argDef = args[i]
-		} else if !argDef.Variadic {
-			return fmt.Errorf("Expected %v arguments, got %v", len(args), len(r.arguments))
-		}
-
-		if argDef.Required && arg == nil {
-			return fmt.Errorf("Argument '%s' is required", argDef.Name)
-		}
-		if argDef.Type == ArgFile {
-			_, ok := arg.(io.Reader)
-			if !ok {
-				return fmt.Errorf("Argument '%s' isn't valid", argDef.Name)
-			}
-		} else if argDef.Type == ArgString {
-			_, ok := arg.(string)
-			if !ok {
-				return fmt.Errorf("Argument '%s' must be a string", argDef.Name)
-			}
-		}
-	}
-
-	return nil
 }
 
 func (r *request) ConvertOptions(options map[string]Option) error {
