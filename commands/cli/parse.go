@@ -65,9 +65,9 @@ func parsePath(input []string, root *cmds.Command) ([]string, []string, *cmds.Co
 
 // parseOptions parses the raw string values of the given options
 // returns the parsed options as strings, along with the CLI args
-func parseOptions(input []string) (map[string]interface{}, []string, error) {
+func parseOptions(input []string) (map[string]interface{}, []interface{}, error) {
 	opts := make(map[string]interface{})
-	args := []string{}
+	args := []interface{}{}
 
 	for i := 0; i < len(input); i++ {
 		blob := input[i]

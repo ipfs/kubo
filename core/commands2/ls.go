@@ -26,7 +26,8 @@ var lsCmd = &cmds.Command{
 		node := req.Context().Node
 		output := make([]Object, len(req.Arguments()))
 
-		for i, path := range req.Arguments() {
+		for i, arg := range req.Arguments() {
+			path := arg.(string)
 			dagnode, err := node.Resolver.ResolvePath(path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
