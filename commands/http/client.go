@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -14,7 +15,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
-const ApiPath = "/api/v0"
+const ApiPath = "/api/v0" // TODO: make configurable
 
 func Send(req cmds.Request) (cmds.Response, error) {
 	addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
@@ -40,18 +41,33 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		req.SetOption(cmds.EncLong, cmds.JSON)
 	}
 
+	// TODO: handle multiple files with multipart
+	var in io.Reader
+
 	query := "?"
 	for k, v := range req.Options() {
 		query += "&" + k + "=" + v.(string)
 	}
-	for _, arg := range req.Arguments() {
-		s, ok := arg.(string)
-		if ok {
-			query += "&arg=" + s
+
+	args := req.Arguments()
+	for i, arg := range args {
+		if req.Command().Arguments[i].Type == cmds.ArgString {
+			query += "&arg=" + arg.(string)
+
+		} else {
+			// TODO: multipart
+			if in != nil {
+				return nil, fmt.Errorf("Currently, only one file stream is possible per request")
+			}
+			in, err = os.Open(arg.(string))
+			if err != nil {
+				return nil, err
+			}
+			args[i] = in
 		}
 	}
 
-	httpRes, err := http.Post(url+query, "application/octet-stream", nil)
+	httpRes, err := http.Post(url+query, "application/octet-stream", in)
 	if err != nil {
 		return nil, err
 	}
