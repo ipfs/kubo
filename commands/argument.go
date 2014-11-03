@@ -4,7 +4,7 @@ type ArgumentType int
 
 const (
 	ArgString ArgumentType = iota
-	ArgPath
+	ArgFile
 )
 
 type Argument struct {
