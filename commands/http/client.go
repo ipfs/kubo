@@ -49,8 +49,15 @@ func Send(req cmds.Request) (cmds.Response, error) {
 	}
 
 	args := req.Arguments()
+	argDefs := req.Command().Arguments
+	var argDef cmds.Argument
+
 	for i, arg := range args {
-		if req.Command().Arguments[i].Type == cmds.ArgString {
+		if i < len(argDefs) {
+			argDef = argDefs[i]
+		}
+
+		if argDef.Type == cmds.ArgString {
 			query += "&arg=" + arg.(string)
 
 		} else {
