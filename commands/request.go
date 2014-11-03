@@ -107,7 +107,19 @@ var converters = map[reflect.Kind]converter{
 func (r *request) CheckArguments(args []Argument) error {
 	var argDef Argument
 
-	for i, arg := range r.arguments {
+	var length int
+	if len(r.arguments) > len(args) {
+		length = len(r.arguments)
+	} else {
+		length = len(args)
+	}
+
+	for i := 0; i < length; i++ {
+		var arg interface{}
+		if len(r.arguments) > i {
+			arg = r.arguments[i]
+		}
+
 		if i < len(args) {
 			argDef = args[i]
 		} else if !argDef.Variadic {
