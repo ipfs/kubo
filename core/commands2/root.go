@@ -69,10 +69,10 @@ var rootSubcommands = map[string]*cmds.Command{
 		Run: func(res cmds.Response, req cmds.Request) {
 			v := &TestOutput{"hello, world", 1337}
 			log.Info("beep")
-			res.SetValue(v)
+			res.SetOutput(v)
 		},
 		Format: func(res cmds.Response) (string, error) {
-			v := res.Value().(*TestOutput)
+			v := res.Output().(*TestOutput)
 			s := fmt.Sprintf("Foo: %s\n", v.Foo)
 			s += fmt.Sprintf("Bar: %v\n", v.Bar)
 			return s, nil
@@ -82,7 +82,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"boop": &cmds.Command{
 		Run: func(res cmds.Response, req cmds.Request) {
 			v := strings.NewReader("hello, world")
-			res.SetValue(v)
+			res.SetOutput(v)
 		},
 	},
 	"warp": &cmds.Command{
@@ -93,7 +93,7 @@ var rootSubcommands = map[string]*cmds.Command{
 			threshold := 1.21
 
 			if power, found := req.Option("power"); found && power.(float64) >= threshold {
-				res.SetValue(struct {
+				res.SetOutput(struct {
 					Status string
 					Power  float64
 				}{"Flux capacitor activated!", power.(float64)})
@@ -106,7 +106,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	},
 	"args": &cmds.Command{
 		Run: func(res cmds.Response, req cmds.Request) {
-			res.SetValue(req.Arguments())
+			res.SetOutput(req.Arguments())
 		},
 	},
 }
@@ -121,5 +121,5 @@ type MessageOutput struct {
 }
 
 func MessageFormatter(res cmds.Response) (string, error) {
-	return res.Value().(*MessageOutput).Message, nil
+	return res.Output().(*MessageOutput).Message, nil
 }

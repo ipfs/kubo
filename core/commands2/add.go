@@ -53,10 +53,10 @@ var addCmd = &cmds.Command{
 			added[i] = Object{k.String(), nil}
 		}
 
-		res.SetValue(&AddOutput{added})
+		res.SetOutput(&AddOutput{added})
 	},
 	Format: func(res cmds.Response) (string, error) {
-		v := res.Value().(*AddOutput).Added
+		v := res.Output().(*AddOutput).Added
 		if len(v) == 1 {
 			return fmt.Sprintf("Added object: %s\n", v[0].Hash), nil
 		}

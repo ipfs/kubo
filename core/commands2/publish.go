@@ -56,13 +56,13 @@ var publishCmd = &cmds.Command{
 			return
 		}
 
-		res.SetValue(&PublishOutput{
+		res.SetOutput(&PublishOutput{
 			Name:  u.Key(hash).String(),
 			Value: ref,
 		})
 	},
 	Format: func(res cmds.Response) (string, error) {
-		v := res.Value().(*PublishOutput)
+		v := res.Output().(*PublishOutput)
 		return fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value), nil
 	},
 	Type: &PublishOutput{},
