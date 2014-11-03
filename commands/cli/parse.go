@@ -26,7 +26,7 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		length := len(path)
 		if length > maxLength {
 			maxLength = length
-			req = cmds.NewRequest(path, opts, args, nil, cmd)
+			req = cmds.NewRequest(path, opts, args, cmd)
 			root = r
 		}
 	}

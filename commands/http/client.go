@@ -51,7 +51,7 @@ func Send(req cmds.Request) (cmds.Response, error) {
 		}
 	}
 
-	httpRes, err := http.Post(url+query, "application/octet-stream", req.Stream())
+	httpRes, err := http.Post(url+query, "application/octet-stream", nil)
 	if err != nil {
 		return nil, err
 	}

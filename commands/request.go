@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 
@@ -25,8 +24,6 @@ type Request interface {
 	Options() map[string]interface{}
 	SetOption(name string, val interface{})
 	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
-	Stream() io.Reader
-	SetStream(io.Reader)
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
@@ -38,7 +35,6 @@ type request struct {
 	path      []string
 	options   optMap
 	arguments []interface{}
-	in        io.Reader
 	cmd       *Command
 	ctx       Context
 }
@@ -71,16 +67,6 @@ func (r *request) SetOption(name string, val interface{}) {
 // Arguments returns the arguments slice
 func (r *request) Arguments() []interface{} {
 	return r.arguments
-}
-
-// Stream returns the input stream Reader
-func (r *request) Stream() io.Reader {
-	return r.in
-}
-
-// SetStream sets the value of the input stream Reader
-func (r *request) SetStream(in io.Reader) {
-	r.in = in
 }
 
 func (r *request) Context() *Context {
@@ -161,11 +147,11 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() Request {
-	return NewRequest(nil, nil, nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []interface{}, in io.Reader, cmd *Command) Request {
+func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -175,5 +161,5 @@ func NewRequest(path []string, opts optMap, args []interface{}, in io.Reader, cm
 	if args == nil {
 		args = make([]interface{}, 0)
 	}
-	return &request{path, opts, args, in, cmd, Context{}}
+	return &request{path, opts, args, cmd, Context{}}
 }
