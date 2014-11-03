@@ -21,6 +21,9 @@ type LsOutput struct {
 }
 
 var lsCmd = &cmds.Command{
+	Arguments: []cmds.Argument{
+		cmds.Argument{"object", cmds.ArgString, false, true},
+	},
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
