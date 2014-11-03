@@ -26,6 +26,7 @@ func NewRoutingPublisher(route routing.IpfsRouting) Publisher {
 }
 
 // Publish implements Publisher. Accepts a keypair and a value,
+// and publishes it out to the routing system
 func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 	log.Debugf("namesys: Publish %s", value)
 

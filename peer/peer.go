@@ -274,6 +274,7 @@ func (p *peer) VerifyAndSetPubKey(pk ic.PubKey) error {
 	panic("invariant violated: unexpected key mismatch")
 }
 
+// Updates this peer with information from another peer instance
 func (p *peer) Update(other Peer) error {
 	if !p.ID().Equal(other.ID()) {
 		return errors.New("peer ids do not match")
