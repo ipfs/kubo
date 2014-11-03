@@ -57,6 +57,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"ls":       lsCmd,
 	"commands": commandsCmd,
 	"publish":  publishCmd,
+	"add":      addCmd,
 
 	// test subcommands
 	// TODO: remove these when we don't need them anymore
