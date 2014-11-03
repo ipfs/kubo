@@ -115,7 +115,7 @@ func GetenvBool(name string) bool {
 // IsLoopbackAddr returns whether or not the ip portion of the passed in multiaddr
 // string is a loopback address
 func IsLoopbackAddr(addr string) bool {
-	loops := []string{"/ip4/127.0.0.1", "/ip6/::1", "/ip4/0.0.0.0"}
+	loops := []string{"/ip4/127.0.0.1", "/ip6/::1"}
 	for _, loop := range loops {
 		if strings.HasPrefix(addr, loop) {
 			return true

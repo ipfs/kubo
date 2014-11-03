@@ -128,7 +128,7 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 		Peerstore: s.peers,
 	}
 
-	// If we are attempting to connect to a loopback addr, fail out early
+	// If we are attempting to connect to the zero addr, fail out early
 	raddr := peer.NetAddress("tcp")
 	if raddr == nil {
 		return nil, fmt.Errorf("No remote address for network tcp")
