@@ -106,18 +106,28 @@ func Handshake3(ctx context.Context, c Conn) error {
 		return err
 	}
 
-	nat, err := CheckNAT(remoteH.GetObservedAddr())
+	// If we are behind a NAT, inform the user that certain things might not work yet
+	nat, err := checkNAT(remoteH.GetObservedAddr())
 	if err != nil {
 		log.Errorf("Error in NAT detection: %s", err)
 	}
 	if nat {
-		log.Warning("We are probably behind a NAT!")
+		msg := `Remote peer observed our address to be: %s
+		The local addresses are: %s
+		Thus, connection is going through NAT, and other connections may fail.
+
+		IPFS NAT traversal is still under development. Please bug us on github or irc to fix this.
+		Baby steps: http://jbenet.static.s3.amazonaws.com/271dfcf/baby-steps.gif
+		`
+		addrs, _ := u.GetLocalAddresses()
+		log.Warning(fmt.Sprintf(msg, remoteH.GetObservedAddr(), addrs))
 	}
 
 	return nil
 }
 
-func CheckNAT(obsaddr string) (bool, error) {
+// checkNAT returns whether or not we might be behind a NAT
+func checkNAT(obsaddr string) (bool, error) {
 	oma, err := ma.NewMultiaddr(obsaddr)
 	if err != nil {
 		return false, err

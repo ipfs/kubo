@@ -112,6 +112,8 @@ func GetenvBool(name string) bool {
 	return v == "true" || v == "t" || v == "1"
 }
 
+// IsLoopbackAddr returns whether or not the ip portion of the passed in multiaddr
+// string is a loopback address
 func IsLoopbackAddr(addr string) bool {
 	loops := []string{"/ip4/127.0.0.1", "/ip6/::1", "/ip4/0.0.0.0"}
 	for _, loop := range loops {
@@ -122,7 +124,10 @@ func IsLoopbackAddr(addr string) bool {
 	return false
 }
 
+// GetLocalAddresses returns a list of ip addresses associated with
+// the local machine
 func GetLocalAddresses() ([]ma.Multiaddr, error) {
+	// Enumerate interfaces on this machine
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -135,19 +140,25 @@ func GetLocalAddresses() ([]ma.Multiaddr, error) {
 			log.Warningf("Skipping addr: %s", err)
 			continue
 		}
+		// Check each address and convert to a multiaddr
 		for _, addr := range addrs {
 			switch v := addr.(type) {
 			case *net.IPNet:
+
+				// Build multiaddr
 				maddr, err := manet.FromIP(v.IP)
 				if err != nil {
 					log.Errorf("maddr parsing error: %s", err)
 					continue
 				}
+
+				// Dont list loopback addresses
 				if IsLoopbackAddr(maddr.String()) {
 					continue
 				}
 				maddrs = append(maddrs, maddr)
 			default:
+				// Not sure if any other types will show up here
 				log.Errorf("Got '%s' type = '%s'", v, reflect.TypeOf(v))
 			}
 		}
