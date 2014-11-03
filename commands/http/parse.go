@@ -51,7 +51,14 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		}
 	}
 
-	return cmds.NewRequest(path, opts, args, cmd), nil
+	req := cmds.NewRequest(path, opts, args, cmd)
+
+	err = cmd.CheckArguments(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 func parseOptions(r *http.Request) (map[string]interface{}, []string) {
