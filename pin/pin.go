@@ -1,9 +1,6 @@
 package pin
 
 import (
-
-	//ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/datastore.go"
-
 	"encoding/json"
 	"errors"
 	"sync"
@@ -36,12 +33,14 @@ type Pinner interface {
 }
 
 // ManualPinner is for manually editing the pin structure
-// Use with care
+// Use with care! If used improperly, garbage collection
+// may not be successful
 type ManualPinner interface {
 	PinWithMode(util.Key, PinMode)
 	Pinner
 }
 
+// pinner implements the Pinner interface
 type pinner struct {
 	lock       sync.RWMutex
 	recursePin set.BlockSet
@@ -51,6 +50,7 @@ type pinner struct {
 	dstore     ds.Datastore
 }
 
+// NewPinner creates a new pinner using the given datastore as a backend
 func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
@@ -70,6 +70,7 @@ func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
 	}
 }
 
+// Pin the given node, optionally recursive
 func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -95,6 +96,7 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 	return nil
 }
 
+// Unpin a given key with optional recursive unpinning
 func (p *pinner) Unpin(k util.Key, recurse bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -158,6 +160,7 @@ func (p *pinner) pinLinks(node *mdag.Node) error {
 	return nil
 }
 
+// IsPinned returns whether or not the given key is pinned
 func (p *pinner) IsPinned(key util.Key) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -166,6 +169,7 @@ func (p *pinner) IsPinned(key util.Key) bool {
 		p.indirPin.HasKey(key)
 }
 
+// LoadPinner loads a pinner and its keysets from the given datastore
 func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
@@ -200,6 +204,7 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
 	return p, nil
 }
 
+// Flush encodes and writes pinner keysets to the datastore
 func (p *pinner) Flush() error {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -244,6 +249,8 @@ func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
 	return json.Unmarshal(bf, val)
 }
 
+// PinWithMode is a method on ManualPinners, allowing the user to have fine
+// grained control over pin counts
 func (p *pinner) PinWithMode(k util.Key, mode PinMode) {
 	switch mode {
 	case Recursive:

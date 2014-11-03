@@ -228,6 +228,8 @@ func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
 	return nil
 }
 
+// putProvider sends a message to peer 'p' saying that the local node
+// can provide the value of 'key'
 func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) error {
 
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
@@ -384,6 +386,7 @@ func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.Peer, *kb.RoutingTable) {
 	return nil, nil
 }
 
+// findPeerSingle asks peer 'p' if they know where the peer with id 'id' is
 func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID, level int) (*pb.Message, error) {
 	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), level)
 	return dht.sendRequest(ctx, p, pmes)
@@ -457,6 +460,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.Peer 
 	return filtered
 }
 
+// getPeer searches the peerstore for a peer with the given peer ID
 func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
 	p, err := dht.peerstore.Get(id)
 	if err != nil {
@@ -467,6 +471,8 @@ func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
 	return p, nil
 }
 
+// peerFromInfo returns a peer using info in the protobuf peer struct
+// to lookup or create a peer
 func (dht *IpfsDHT) peerFromInfo(pbp *pb.Message_Peer) (peer.Peer, error) {
 
 	id := peer.ID(pbp.GetId())

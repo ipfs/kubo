@@ -19,6 +19,9 @@ func NewBlock(data []byte) *Block {
 	return &Block{Data: data, Multihash: u.Hash(data)}
 }
 
+// NewBlockWithHash creates a new block when the hash of the data
+// is already known, this is used to save time in situations where
+// we are able to be confident that the data is correct
 func NewBlockWithHash(data []byte, h mh.Multihash) (*Block, error) {
 	if u.Debug {
 		chk := u.Hash(data)

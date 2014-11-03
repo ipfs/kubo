@@ -24,6 +24,8 @@ var log = util.Logger("diagnostics")
 
 const ResponseTimeout = time.Second * 10
 
+// Diagnostics is a net service that manages requesting and responding to diagnostic
+// requests
 type Diagnostics struct {
 	network net.Network
 	sender  net.Sender
@@ -34,6 +36,7 @@ type Diagnostics struct {
 	birth    time.Time
 }
 
+// NewDiagnostics instantiates a new diagnostics service running on the given network
 func NewDiagnostics(self peer.Peer, inet net.Network, sender net.Sender) *Diagnostics {
 	return &Diagnostics{
 		network: inet,
@@ -50,15 +53,30 @@ type connDiagInfo struct {
 }
 
 type DiagInfo struct {
-	ID          string
+	// This nodes ID
+	ID string
+
+	// A list of peers this node currently has open connections to
 	Connections []connDiagInfo
-	Keys        []string
-	LifeSpan    time.Duration
-	BwIn        uint64
-	BwOut       uint64
+
+	// A list of keys provided by this node
+	//    (currently not filled)
+	Keys []string
+
+	// How long this node has been running for
+	LifeSpan time.Duration
+
+	// Incoming Bandwidth Usage
+	BwIn uint64
+
+	// Outgoing Bandwidth Usage
+	BwOut uint64
+
+	// Information about the version of code this node is running
 	CodeVersion string
 }
 
+// Marshal to json
 func (di *DiagInfo) Marshal() []byte {
 	b, err := json.Marshal(di)
 	if err != nil {
@@ -93,6 +111,7 @@ func newID() string {
 	return string(id)
 }
 
+// GetDiagnostic runs a diagnostics request across the entire network
 func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) {
 	log.Debug("Getting diagnostic.")
 	ctx, _ := context.WithTimeout(context.TODO(), timeout)
@@ -134,12 +153,12 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 		if data == nil {
 			continue
 		}
-		out = AppendDiagnostics(data, out)
+		out = appendDiagnostics(data, out)
 	}
 	return out, nil
 }
 
-func AppendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
+func appendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
 	buf := bytes.NewBuffer(data)
 	dec := json.NewDecoder(buf)
 	for {
@@ -202,6 +221,8 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Mes
 func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
 	log.Debugf("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
 	resp := newMessage(pmes.GetDiagID())
+
+	// Make sure we havent already handled this request to prevent loops
 	d.diagLock.Lock()
 	_, found := d.diagMap[pmes.GetDiagID()]
 	if found {

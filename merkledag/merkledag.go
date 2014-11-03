@@ -48,6 +48,7 @@ type Link struct {
 	Node *Node
 }
 
+// MakeLink creates a link to the given node
 func MakeLink(n *Node) (*Link, error) {
 	s, err := n.Size()
 	if err != nil {
@@ -64,6 +65,7 @@ func MakeLink(n *Node) (*Link, error) {
 	}, nil
 }
 
+// GetNode returns the MDAG Node that this link points to
 func (l *Link) GetNode(serv DAGService) (*Node, error) {
 	if l.Node != nil {
 		return l.Node, nil
@@ -98,6 +100,7 @@ func (n *Node) AddNodeLinkClean(name string, that *Node) error {
 	return nil
 }
 
+// Remove a link on this node by the given name
 func (n *Node) RemoveNodeLink(name string) error {
 	for i, l := range n.Links {
 		if l.Name == name {
@@ -196,6 +199,7 @@ func (n *dagService) Add(nd *Node) (u.Key, error) {
 	return n.Blocks.AddBlock(b)
 }
 
+// AddRecursive adds the given node and all child nodes to the BlockService
 func (n *dagService) AddRecursive(nd *Node) error {
 	_, err := n.Add(nd)
 	if err != nil {
@@ -230,6 +234,7 @@ func (n *dagService) Get(k u.Key) (*Node, error) {
 	return Decoded(b.Data)
 }
 
+// Remove deletes the given node and all of its children from the BlockService
 func (n *dagService) Remove(nd *Node) error {
 	for _, l := range nd.Links {
 		if l.Node != nil {
@@ -243,6 +248,8 @@ func (n *dagService) Remove(nd *Node) error {
 	return n.Blocks.DeleteBlock(k)
 }
 
+// FetchGraph asynchronously fetches all nodes that are children of the given
+// node, and returns a channel that may be waited upon for the fetch to complete
 func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} {
 	var wg sync.WaitGroup
 	done := make(chan struct{})

@@ -29,7 +29,7 @@ func NetMessageSession(parent context.Context, p peer.Peer,
 	networkAdapter := bsnet.NetMessageAdapter(srv, net, nil)
 	bs := &bitswap{
 		blockstore:    blockstore.NewBlockstore(d),
-		notifications: notifications.New(),
+		notifications: notifications.New(), // TODO Shutdown()
 		strategy:      strategy.New(nice),
 		routing:       directory,
 		sender:        networkAdapter,
