@@ -36,17 +36,18 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	// Note that the argument handling here is dumb, it does not do any error-checking.
 	// (Arguments are further processed when the request is passed to the command to run)
-	args := make([]interface{}, len(cmd.Arguments))
-	for i, arg := range cmd.Arguments {
+	args := make([]interface{}, 0)
+
+	for _, arg := range cmd.Arguments {
 		if arg.Type == cmds.ArgString {
-			if len(stringArgs) > 0 {
-				args[i] = stringArgs[0]
+			for j := 0; len(stringArgs) > 0 && arg.Variadic || j == 0; j++ {
+				args = append(args, stringArgs[0])
 				stringArgs = stringArgs[1:]
 			}
 
 		} else {
 			// TODO: create multipart streams for file args
-			args[i] = r.Body
+			args = append(args, r.Body)
 		}
 	}
 
