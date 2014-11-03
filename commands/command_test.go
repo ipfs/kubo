@@ -105,7 +105,7 @@ func TestRegistration(t *testing.T) {
 		Run: noop,
 	}
 
-	res := cmdB.Call(NewRequest([]string{"a"}, nil, nil, nil, nil))
+	res := cmdB.Call(NewRequest([]string{"a"}, nil, nil, nil))
 	if res.Error() == nil {
 		t.Error("Should have failed (option name collision)")
 	}
