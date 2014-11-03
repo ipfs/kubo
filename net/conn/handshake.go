@@ -127,8 +127,8 @@ func Handshake3(ctx context.Context, c Conn) error {
 }
 
 // checkNAT returns whether or not we might be behind a NAT
-func checkNAT(obsaddr string) (bool, error) {
-	oma, err := ma.NewMultiaddr(obsaddr)
+func checkNAT(observedaddr string) (bool, error) {
+	observedma, err := ma.NewMultiaddr(observedaddr)
 	if err != nil {
 		return false, err
 	}
@@ -137,9 +137,9 @@ func checkNAT(obsaddr string) (bool, error) {
 		return false, err
 	}
 
-	omastr := oma.String()
+	omastr := observedma.String()
 	for _, addr := range addrs {
-		if strings.HasPrefix(addr.String(), omastr) {
+		if strings.HasPrefix(omastr, addr.String()) {
 			return false, nil
 		}
 	}
