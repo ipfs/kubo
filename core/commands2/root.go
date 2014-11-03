@@ -5,7 +5,10 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("core/commands")
 
 type TestOutput struct {
 	Foo string
@@ -64,6 +67,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"beep": &cmds.Command{
 		Run: func(res cmds.Response, req cmds.Request) {
 			v := &TestOutput{"hello, world", 1337}
+			log.Info("beep")
 			res.SetValue(v)
 		},
 		Format: func(res cmds.Response) (string, error) {
@@ -108,4 +112,5 @@ var rootSubcommands = map[string]*cmds.Command{
 
 func init() {
 	Root.Subcommands = rootSubcommands
+	u.SetLogLevel("core/commands", "info")
 }
