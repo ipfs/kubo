@@ -103,11 +103,6 @@ var rootSubcommands = map[string]*cmds.Command{
 			res.SetValue(req.Arguments())
 		},
 	},
-	"echo": &cmds.Command{
-		Run: func(res cmds.Response, req cmds.Request) {
-			res.SetValue(req.Stream())
-		},
-	},
 }
 
 func init() {
