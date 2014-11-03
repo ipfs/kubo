@@ -49,13 +49,13 @@ var marshallers = map[EncodingType]Marshaller{
 		if res.Error() != nil {
 			return json.Marshal(res.Error())
 		}
-		return json.Marshal(res.Value())
+		return json.Marshal(res.Output())
 	},
 	XML: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
 			return xml.Marshal(res.Error())
 		}
-		return xml.Marshal(res.Value())
+		return xml.Marshal(res.Output())
 	},
 	Text: func(res Response) ([]byte, error) {
 		format := res.Request().Command().Format
@@ -83,8 +83,8 @@ type Response interface {
 	Error() *Error
 
 	// Sets/Returns the response value
-	SetValue(interface{})
-	Value() interface{}
+	SetOutput(interface{})
+	Output() interface{}
 
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaller (Codec).
@@ -102,11 +102,11 @@ func (r *response) Request() Request {
 	return r.req
 }
 
-func (r *response) Value() interface{} {
+func (r *response) Output() interface{} {
 	return r.value
 }
 
-func (r *response) SetValue(v interface{}) {
+func (r *response) SetOutput(v interface{}) {
 	r.value = v
 }
 

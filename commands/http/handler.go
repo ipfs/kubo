@@ -38,7 +38,7 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := i.Root.Call(req)
 
 	// set the Content-Type based on res output
-	if _, ok := res.Value().(io.Reader); ok {
+	if _, ok := res.Output().(io.Reader); ok {
 		// TODO: set based on actual Content-Type of file
 		w.Header().Set("Content-Type", "application/octet-stream")
 	} else {

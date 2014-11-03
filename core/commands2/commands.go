@@ -16,10 +16,10 @@ var commandsCmd = &cmds.Command{
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		root := outputCommand("ipfs", Root)
-		res.SetValue(&root)
+		res.SetOutput(&root)
 	},
 	Format: func(res cmds.Response) (string, error) {
-		v := res.Value().(*Command)
+		v := res.Output().(*Command)
 		return formatCommand(v, 0), nil
 	},
 	Type: &Command{},

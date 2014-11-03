@@ -34,6 +34,6 @@ var catCmd = &cmds.Command{
 		}
 
 		reader := io.MultiReader(readers...)
-		res.SetValue(reader)
+		res.SetOutput(reader)
 	},
 }
