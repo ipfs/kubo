@@ -24,6 +24,7 @@ type Formatter func(Response) (string, error)
 type Command struct {
 	Help        string
 	Options     []Option
+	Arguments   []Argument
 	Run         Function
 	Format      Formatter
 	Type        interface{}

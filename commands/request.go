@@ -24,7 +24,7 @@ type Request interface {
 	Option(name string) (interface{}, bool)
 	Options() map[string]interface{}
 	SetOption(name string, val interface{})
-	Arguments() []string
+	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
 	Stream() io.Reader
 	SetStream(io.Reader)
 	Context() *Context
@@ -37,7 +37,7 @@ type Request interface {
 type request struct {
 	path      []string
 	options   optMap
-	arguments []string
+	arguments []interface{}
 	in        io.Reader
 	cmd       *Command
 	ctx       Context
@@ -69,7 +69,7 @@ func (r *request) SetOption(name string, val interface{}) {
 }
 
 // Arguments returns the arguments slice
-func (r *request) Arguments() []string {
+func (r *request) Arguments() []interface{} {
 	return r.arguments
 }
 
@@ -165,7 +165,7 @@ func NewEmptyRequest() Request {
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []string, in io.Reader, cmd *Command) Request {
+func NewRequest(path []string, opts optMap, args []interface{}, in io.Reader, cmd *Command) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -173,7 +173,7 @@ func NewRequest(path []string, opts optMap, args []string, in io.Reader, cmd *Co
 		opts = make(map[string]interface{})
 	}
 	if args == nil {
-		args = make([]string, 0)
+		args = make([]interface{}, 0)
 	}
 	return &request{path, opts, args, in, cmd, Context{}}
 }

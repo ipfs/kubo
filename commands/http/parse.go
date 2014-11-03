@@ -10,7 +10,7 @@ import (
 // Parse parses the data in a http.Request and returns a command Request object
 func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	path := strings.Split(r.URL.Path, "/")[3:]
-	args := make([]string, 0)
+	args := make([]interface{}, 0)
 
 	cmd, err := root.Get(path[:len(path)-1])
 	if err != nil {
@@ -34,27 +34,25 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	opts, args2 := parseOptions(r)
 	args = append(args, args2...)
 
-	// TODO: make a way to send opts/args in request body
-	//   (e.g. if form-data or form-urlencoded, then treat the same as querystring)
-	// for now, to be simple, we just use the whole request body as the input stream
-	// (r.Body will be nil if there is no request body, like in GET requests)
-	in := r.Body
-
-	return cmds.NewRequest(path, opts, args, in, cmd), nil
+	return cmds.NewRequest(path, opts, args, nil, cmd), nil
 }
 
-func parseOptions(r *http.Request) (map[string]interface{}, []string) {
+func parseOptions(r *http.Request) (map[string]interface{}, []interface{}) {
 	opts := make(map[string]interface{})
-	var args []string
+	args := make([]interface{}, 0)
 
 	query := r.URL.Query()
 	for k, v := range query {
 		if k == "arg" {
-			args = v
+			for _, s := range v {
+				args = append(args, interface{}(s))
+			}
 		} else {
 			opts[k] = v[0]
 		}
 	}
+
+	// TODO: create multipart streams for file args
 
 	// default to setting encoding to JSON
 	_, short := opts[cmds.EncShort]
