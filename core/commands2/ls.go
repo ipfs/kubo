@@ -50,11 +50,11 @@ var lsCmd = &cmds.Command{
 			}
 		}
 
-		res.SetValue(&LsOutput{output})
+		res.SetOutput(&LsOutput{output})
 	},
 	Format: func(res cmds.Response) (string, error) {
 		s := ""
-		output := res.Value().(*LsOutput).Objects
+		output := res.Output().(*LsOutput).Objects
 
 		for _, object := range output {
 			if len(output) > 1 {
