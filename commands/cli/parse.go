@@ -108,19 +108,19 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 // Note that the argument handling here is dumb, it does not do any error-checking.
 // (Arguments are further processed when the request is passed to the command to run)
 func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
-	args := make([]interface{}, len(cmd.Arguments))
+	var argDef cmds.Argument
+	args := make([]interface{}, len(stringArgs))
 
-	for i, arg := range cmd.Arguments {
-		// TODO: handle variadic args
-		if i >= len(stringArgs) {
-			break
+	for i, arg := range stringArgs {
+		if i < len(cmd.Arguments) {
+			argDef = cmd.Arguments[i]
 		}
 
-		if arg.Type == cmds.ArgString {
-			args[i] = stringArgs[i]
+		if argDef.Type == cmds.ArgString {
+			args[i] = arg
 
 		} else {
-			in, err := os.Open(stringArgs[i])
+			in, err := os.Open(arg)
 			if err != nil {
 				return nil, err
 			}
