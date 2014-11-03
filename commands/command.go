@@ -19,6 +19,12 @@ type Function func(Response, Request)
 // MAYBE_TODO: maybe this should be a io.Reader instead of a string?
 type Formatter func(Response) (string, error)
 
+// TODO: check Argument definitions when creating a Command
+//   (might need to use a Command constructor)
+//   * make sure any variadic args are at the end
+//   * make sure there aren't duplicate names
+//   * make sure optional arguments aren't followed by required arguments
+
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
@@ -49,6 +55,12 @@ func (c *Command) Call(req Request) Response {
 
 	if cmd.Run == nil {
 		res.SetError(ErrNotCallable, ErrClient)
+		return res
+	}
+
+	err = req.CheckArguments(cmd.Arguments)
+	if err != nil {
+		res.SetError(err, ErrClient)
 		return res
 	}
 
