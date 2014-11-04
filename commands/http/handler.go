@@ -43,7 +43,12 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 	} else {
 		enc, _ := req.Option(cmds.EncShort)
-		mime := mimeTypes[enc.(string)]
+		encStr, ok := enc.(string)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		mime := mimeTypes[encStr]
 		w.Header().Set("Content-Type", mime)
 	}
 
