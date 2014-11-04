@@ -77,15 +77,16 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 	}
 	cfg := new(config.Config)
 
-	cfg.Datastore = config.Datastore{}
 	if len(dspath) == 0 {
 		dspath, err = config.DataStorePath("")
 		if err != nil {
 			return err
 		}
 	}
-	cfg.Datastore.Path = dspath
-	cfg.Datastore.Type = "leveldb"
+	cfg.Datastore = config.Datastore{
+		Path: dspath,
+		Type: "leveldb",
+	}
 
 	// Construct the data store if missing
 	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
