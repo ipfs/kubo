@@ -55,7 +55,8 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 	return req, root, nil
 }
 
-// parsePath gets the command path from the command line input
+// parsePath separates the command path and the opts and args from a command string
+// returns command path slice, rest slice, and the corresponding *cmd.Command
 func parsePath(input []string, root *cmds.Command) ([]string, []string, *cmds.Command) {
 	cmd := root
 	i := 0
