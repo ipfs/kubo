@@ -6,6 +6,9 @@ import (
 	"os"
 	"runtime/pprof"
 
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
@@ -133,7 +136,21 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 		}
 
 		if (!found || !localBool) && daemon.Locked(req.Context().ConfigRoot) {
-			res, err = cmdsHttp.Send(req)
+			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			_, host, err := manet.DialArgs(addr)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			client := cmdsHttp.NewClient(host)
+
+			res, err = client.Send(req)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
