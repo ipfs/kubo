@@ -40,10 +40,6 @@ const (
 	// TODO: support more encoding types
 )
 
-// Marshaller is a function used by coding types.
-// TODO this should just be a `coding.Codec`
-type Marshaller func(res Response) ([]byte, error)
-
 var marshallers = map[EncodingType]Marshaller{
 	JSON: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
@@ -63,11 +59,11 @@ var marshallers = map[EncodingType]Marshaller{
 			return nil, ErrNoFormatter
 		}
 
-		s, err := format(res)
+		bytes, err := format(res)
 		if err != nil {
 			return nil, err
 		}
-		return []byte(s), nil
+		return bytes, nil
 	},
 }
 
