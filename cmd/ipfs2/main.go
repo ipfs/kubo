@@ -117,10 +117,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = io.Copy(os.Stdout, res)
+	out, err := res.Reader()
 	if err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+
+	io.Copy(os.Stdout, out)
 }
 
 func getOptions(req cmds.Request, root *cmds.Command) (cmds.Request, error) {
