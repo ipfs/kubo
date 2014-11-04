@@ -120,11 +120,12 @@ func (r *response) Marshal() ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	enc, ok := r.req.Option(EncShort)
-	if !ok || enc.(string) == "" {
+	enc, found := r.req.Option(EncShort)
+	encStr, ok := enc.(string)
+	if !found || !ok || encStr == "" {
 		return nil, fmt.Errorf("No encoding type was specified")
 	}
-	encType := EncodingType(strings.ToLower(enc.(string)))
+	encType := EncodingType(strings.ToLower(encStr))
 
 	marshaller, ok := marshallers[encType]
 	if !ok {
