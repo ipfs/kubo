@@ -51,7 +51,7 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = 4096
 		}
 
-		err := foo(req.Context().ConfigRoot, dspath, force, nBitsForKeypair)
+		err := doInit(req.Context().ConfigRoot, dspath, force, nBitsForKeypair)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -59,7 +59,7 @@ var initCmd = &cmds.Command{
 	},
 }
 
-func foo(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
+func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
 	filename, err := config.Filename(configRoot)
