@@ -50,12 +50,12 @@ func foo(res cmds.Response, req cmds.Request) error {
 		return errors.New("failed to parse datastore flag")
 	}
 
-	fi, err := os.Lstat(filename)
 	arg, found = req.Option("f")
 	force, ok := arg.(bool)
 	if found && !ok {
 		return errors.New("failed to parse force flag")
 	}
+	fi, err := os.Lstat(filename)
 	if fi != nil || (err != nil && !os.IsNotExist(err)) {
 		if !force {
 			// TODO multi-line string
