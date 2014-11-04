@@ -22,12 +22,21 @@ import (
 // log is the command logger
 var log = u.Logger("cmd/ipfs")
 
+const heapProfile = "ipfs.mprof"
+
 func main() {
 	args := os.Args[1:]
 	req, root := createRequest(args)
 	handleOptions(req, root)
 	res := callCommand(req, root)
 	outputResponse(res)
+
+	if u.Debug {
+		err := writeHeapProfileToFile()
+		if err != nil {
+			log.Critical(err)
+		}
+	}
 }
 
 func createRequest(args []string) (cmds.Request, *cmds.Command) {
@@ -231,4 +240,13 @@ func getConfig(path string) (*config.Config, error) {
 	}
 
 	return config.Load(configFile)
+}
+
+func writeHeapProfileToFile() error {
+	mprof, err := os.Create(heapProfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer mprof.Close()
+	return pprof.WriteHeapProfile(mprof)
 }
