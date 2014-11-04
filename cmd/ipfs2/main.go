@@ -58,7 +58,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 	ctx.Config = conf
 
 	if _, found := options.Option("encoding"); !found {
-		if req.Command().Format != nil {
+		if req.Command().Marshallers != nil && req.Command().Marshallers[cmds.Text] != nil {
 			req.SetOption("encoding", cmds.Text)
 		} else {
 			req.SetOption("encoding", cmds.JSON)

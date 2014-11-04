@@ -18,10 +18,12 @@ var commandsCmd = &cmds.Command{
 		root := outputCommand("ipfs", Root)
 		res.SetOutput(&root)
 	},
-	Format: func(res cmds.Response) ([]byte, error) {
-		v := res.Output().(*Command)
-		s := formatCommand(v, 0)
-		return []byte(s), nil
+	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			v := res.Output().(*Command)
+			s := formatCommand(v, 0)
+			return []byte(s), nil
+		},
 	},
 	Type: &Command{},
 }

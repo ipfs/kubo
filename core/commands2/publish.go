@@ -61,10 +61,12 @@ var publishCmd = &cmds.Command{
 			Value: ref,
 		})
 	},
-	Format: func(res cmds.Response) ([]byte, error) {
-		v := res.Output().(*PublishOutput)
-		s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
-		return []byte(s), nil
+	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			v := res.Output().(*PublishOutput)
+			s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
+			return []byte(s), nil
+		},
 	},
 	Type: &PublishOutput{},
 }
