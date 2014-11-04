@@ -74,8 +74,6 @@ var marshallers = map[EncodingType]Marshaller{
 // Response is the result of a command request. Handlers write to the response,
 // setting Error or Value. Response is returned to the client.
 type Response interface {
-	io.Reader
-
 	Request() Request
 
 	// Set/Return the response Error
@@ -89,6 +87,9 @@ type Response interface {
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaller (Codec).
 	Marshal() ([]byte, error)
+
+	// Gets a io.Reader that reads the marshalled output
+	Reader() (io.Reader, error)
 }
 
 type response struct {
@@ -137,28 +138,28 @@ func (r *response) Marshal() ([]byte, error) {
 	return marshaller(r)
 }
 
-func (r *response) Read(p []byte) (int, error) {
-	// if command set value to a io.Reader, set that as our output stream
+// Reader returns an `io.Reader` representing marshalled output of this Response
+// Note that multiple calls to this will return a reference to the same io.Reader
+func (r *response) Reader() (io.Reader, error) {
+	// if command set value to a io.Reader, use that as our reader
 	if r.out == nil {
 		if out, ok := r.value.(io.Reader); ok {
 			r.out = out
 		}
 	}
 
-	// if there is an output stream set, read from it
-	if r.out != nil {
-		return r.out.Read(p)
+	if r.out == nil {
+		// no reader set, so marshal the error or value
+		marshalled, err := r.Marshal()
+		if err != nil {
+			return nil, err
+		}
+
+		// create a Reader from the marshalled data
+		r.out = bytes.NewReader(marshalled)
 	}
 
-	// no stream set, so marshal the error or value
-	output, err := r.Marshal()
-	if err != nil {
-		return 0, err
-	}
-
-	// then create a Reader from the marshalled data, and use it as our output stream
-	r.out = bytes.NewReader(output)
-	return r.out.Read(p)
+	return r.out, nil
 }
 
 // NewResponse returns a response to match given Request
