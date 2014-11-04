@@ -24,12 +24,12 @@ var daemonCmd = &cmds.Command{
 func daemonFunc(res cmds.Response, req cmds.Request) {
 	ctx := req.Context()
 
-	lk, err := daemon.Lock(ctx.ConfigRoot)
+	lock, err := daemon.Lock(ctx.ConfigRoot)
 	if err != nil {
 		res.SetError(fmt.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
 		return
 	}
-	defer lk.Close()
+	defer lock.Close()
 
 	node, err := core.NewIpfsNode(ctx.Config, true)
 	if err != nil {
