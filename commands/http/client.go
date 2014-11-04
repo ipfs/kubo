@@ -11,7 +11,10 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
-const ApiPath = "/api/v0" // TODO: make configurable
+const (
+	ApiUrlFormat = "http://%s%s/%s"
+	ApiPath      = "/api/v0" // TODO: make configurable
+)
 
 // Client is the commands HTTP client interface.
 type Client interface {
@@ -27,8 +30,8 @@ func NewClient(address string) Client {
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
-	url := "http://" + c.serverAddress + ApiPath
-	url += "/" + strings.Join(req.Path(), "/")
+	path := strings.Join(req.Path(), "/")
+	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path)
 
 	var userEncoding string
 	if enc, found := req.Option(cmds.EncShort); found {
