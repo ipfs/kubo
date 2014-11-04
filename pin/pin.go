@@ -32,6 +32,7 @@ type Pinner interface {
 	Pin(*mdag.Node, bool) error
 	Unpin(util.Key, bool) error
 	Flush() error
+	GetManual() ManualPinner
 }
 
 // ManualPinner is for manually editing the pin structure
@@ -262,4 +263,8 @@ func (p *pinner) PinWithMode(k util.Key, mode PinMode) {
 	case Indirect:
 		p.indirPin.Increment(k)
 	}
+}
+
+func (p *pinner) GetManual() ManualPinner {
+	return p
 }
