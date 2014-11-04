@@ -125,6 +125,7 @@ func initCmd(c *commander.Command, inp []string) error {
 		return err
 	}
 	cfg.Identity.PeerID = id.Pretty()
+	u.POut("peer identity: %s\n", id.Pretty())
 
 	// Use these hardcoded bootstrap peers for now.
 	cfg.Bootstrap = []*config.BootstrapPeer{
