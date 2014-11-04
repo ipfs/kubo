@@ -8,7 +8,8 @@ const (
 )
 
 type Argument struct {
-	Name               string
-	Type               ArgumentType
-	Required, Variadic bool
+	Name     string
+	Type     ArgumentType
+	Required bool
+	Variadic bool
 }
