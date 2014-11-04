@@ -41,6 +41,33 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		req.SetOption(cmds.EncLong, cmds.JSON)
 	}
 
+	query, in, err := getQuery(req)
+	if err != nil {
+		return nil, err
+	}
+
+	path := strings.Join(req.Path(), "/")
+	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
+
+	httpRes, err := http.Post(url, "application/octet-stream", in)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := getResponse(httpRes, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(userEncoding) > 0 {
+		req.SetOption(cmds.EncShort, userEncoding)
+		req.SetOption(cmds.EncLong, userEncoding)
+	}
+
+	return res, nil
+}
+
+func getQuery(req cmds.Request) (string, io.Reader, error) {
 	// TODO: handle multiple files with multipart
 	var in io.Reader
 
@@ -64,20 +91,18 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		} else {
 			// TODO: multipart
 			if in != nil {
-				return nil, fmt.Errorf("Currently, only one file stream is possible per request")
+				return "", nil, fmt.Errorf("Currently, only one file stream is possible per request")
 			}
 			in = arg.(io.Reader)
 		}
 	}
 
-	path := strings.Join(req.Path(), "/")
-	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query.Encode())
+	return query.Encode(), in, nil
+}
 
-	httpRes, err := http.Post(url, "application/octet-stream", in)
-	if err != nil {
-		return nil, err
-	}
-
+// getResponse decodes a http.Response to create a cmds.Response
+func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error) {
+	var err error
 	res := cmds.NewResponse(req)
 
 	contentType := httpRes.Header["Content-Type"][0]
@@ -109,7 +134,6 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 			// handle marshalled errors
 			err = dec.Decode(&e)
 			if err != nil {
-				fmt.Println(err)
 				return nil, err
 			}
 		}
@@ -120,16 +144,10 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		v := req.Command().Type
 		err = dec.Decode(&v)
 		if err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
 
 		res.SetOutput(v)
-	}
-
-	if len(userEncoding) > 0 {
-		req.SetOption(cmds.EncShort, userEncoding)
-		req.SetOption(cmds.EncLong, userEncoding)
 	}
 
 	return res, nil
