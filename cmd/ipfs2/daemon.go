@@ -50,7 +50,7 @@ func daemonFunc(res cmds.Response, req cmds.Request) {
 		return
 	}
 
-	handler := cmdsHttp.Handler{*ctx, commands.Root}
+	handler := cmdsHttp.NewHandler(*ctx, commands.Root)
 	http.Handle(cmdsHttp.ApiPath+"/", handler)
 
 	fmt.Printf("API server listening on '%s'\n", host)
