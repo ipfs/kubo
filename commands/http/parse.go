@@ -45,9 +45,17 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	for _, arg := range cmd.Arguments {
 		if arg.Type == cmds.ArgString {
-			for j := 0; len(stringArgs) > 0 && arg.Variadic || j == 0; j++ {
+			if arg.Variadic {
+				for _, s := range stringArgs {
+					args = append(args, s)
+				}
+
+			} else if len(stringArgs) > 0 {
 				args = append(args, stringArgs[0])
 				stringArgs = stringArgs[1:]
+
+			} else {
+				break
 			}
 
 		} else {
