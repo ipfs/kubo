@@ -5,12 +5,15 @@ import (
 	"fmt"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
+	crypto "github.com/jbenet/go-ipfs/crypto"
 	nsys "github.com/jbenet/go-ipfs/namesys"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 type PublishOutput struct {
-	Name, Value string
+	Name  string
+	Value string
 }
 
 var publishCmd = &cmds.Command{
@@ -40,26 +43,16 @@ var publishCmd = &cmds.Command{
 		default:
 			res.SetError(fmt.Errorf("Publish expects 1 or 2 args; got %d.", len(args)), cmds.ErrClient)
 		}
-		// later, n.Keychain.Get(name).PrivKey
+
+		// TODO n.Keychain.Get(name).PrivKey
 		k := n.Identity.PrivKey()
+		publishOutput, err := publish(n, k, ref)
 
-		pub := nsys.NewRoutingPublisher(n.Routing)
-		err := pub.Publish(k, ref)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		hash, err := k.GetPublic().Hash()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&PublishOutput{
-			Name:  u.Key(hash).String(),
-			Value: ref,
-		})
+		res.SetOutput(publishOutput)
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
@@ -69,4 +62,22 @@ var publishCmd = &cmds.Command{
 		},
 	},
 	Type: &PublishOutput{},
+}
+
+func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*PublishOutput, error) {
+	pub := nsys.NewRoutingPublisher(n.Routing)
+	err := pub.Publish(k, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := k.GetPublic().Hash()
+	if err != nil {
+		return nil, err
+	}
+
+	return &PublishOutput{
+		Name:  u.Key(hash).String(),
+		Value: ref,
+	}, nil
 }
