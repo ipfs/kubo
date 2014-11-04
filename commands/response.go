@@ -115,7 +115,10 @@ func (r *response) Marshal() ([]byte, error) {
 	}
 	encType := EncodingType(strings.ToLower(encStr))
 
-	marshaller := r.req.Command().Marshallers[encType]
+	var marshaller Marshaller
+	if r.req.Command() != nil && r.req.Command().Marshallers != nil {
+		marshaller = r.req.Command().Marshallers[encType]
+	}
 	if marshaller == nil {
 		marshaller, ok = marshallers[encType]
 		if !ok {
