@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 const (
-	ApiUrlFormat = "http://%s%s/%s"
+	ApiUrlFormat = "http://%s%s/%s?%s"
 	ApiPath      = "/api/v0" // TODO: make configurable
 )
 
@@ -30,9 +31,6 @@ func NewClient(address string) Client {
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
-	path := strings.Join(req.Path(), "/")
-	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path)
-
 	var userEncoding string
 	if enc, found := req.Option(cmds.EncShort); found {
 		userEncoding = enc.(string)
@@ -46,9 +44,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	// TODO: handle multiple files with multipart
 	var in io.Reader
 
-	query := "?"
+	query := url.Values{}
 	for k, v := range req.Options() {
-		query += "&" + k + "=" + v.(string)
+		query.Set(k, v.(string))
 	}
 
 	args := req.Arguments()
@@ -61,7 +59,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		}
 
 		if argDef.Type == cmds.ArgString {
-			query += "&arg=" + arg.(string)
+			query.Add("arg", arg.(string))
 
 		} else {
 			// TODO: multipart
@@ -72,7 +70,10 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		}
 	}
 
-	httpRes, err := http.Post(url+query, "application/octet-stream", in)
+	path := strings.Join(req.Path(), "/")
+	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query.Encode())
+
+	httpRes, err := http.Post(url, "application/octet-stream", in)
 	if err != nil {
 		return nil, err
 	}
