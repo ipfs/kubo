@@ -3,12 +3,15 @@ package conn
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
+	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ma "github.com/jbenet/go-multiaddr"
 )
 
 // Handshake1 exchanges local and remote versions and compares them
@@ -65,6 +68,10 @@ func Handshake3(ctx context.Context, c Conn) error {
 
 	var remoteH, localH *hspb.Handshake3
 	localH = handshake.Handshake3Msg(lpeer)
+
+	rma := c.RemoteMultiaddr()
+	localH.ObservedAddr = proto.String(rma.String())
+
 	localB, err := proto.Marshal(localH)
 	if err != nil {
 		return err
@@ -99,5 +106,43 @@ func Handshake3(ctx context.Context, c Conn) error {
 		return err
 	}
 
+	// If we are behind a NAT, inform the user that certain things might not work yet
+	nat, err := checkNAT(remoteH.GetObservedAddr())
+	if err != nil {
+		log.Errorf("Error in NAT detection: %s", err)
+	}
+	if nat {
+		msg := `Remote peer observed our address to be: %s
+		The local addresses are: %s
+		Thus, connection is going through NAT, and other connections may fail.
+
+		IPFS NAT traversal is still under development. Please bug us on github or irc to fix this.
+		Baby steps: http://jbenet.static.s3.amazonaws.com/271dfcf/baby-steps.gif
+		`
+		addrs, _ := u.GetLocalAddresses()
+		log.Warning(fmt.Sprintf(msg, remoteH.GetObservedAddr(), addrs))
+	}
+
 	return nil
+}
+
+// checkNAT returns whether or not we might be behind a NAT
+func checkNAT(observedaddr string) (bool, error) {
+	observedma, err := ma.NewMultiaddr(observedaddr)
+	if err != nil {
+		return false, err
+	}
+	addrs, err := u.GetLocalAddresses()
+	if err != nil {
+		return false, err
+	}
+
+	omastr := observedma.String()
+	for _, addr := range addrs {
+		if strings.HasPrefix(omastr, addr.String()) {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

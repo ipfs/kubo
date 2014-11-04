@@ -1,6 +1,6 @@
 package handshake.pb;
 
-import "github.com/jbenet/go-ipfs/net/mux/mux.proto";
+//import "github.com/jbenet/go-ipfs/net/mux/mux.proto";
 
 // Handshake1 is delivered _before_ the secure channel is initialized
 message Handshake1 {
@@ -30,4 +30,9 @@ message Handshake3 {
   // repeated mux.ProtocolID services = 3;
 
   // we'll have more fields here later.
+
+  // oservedAddr is the multiaddr of the remote endpoint that the local node perceives
+  // this is useful information to convey to the other side, as it helps the remote endpoint
+  // determine whether its connection to the local peer goes through NAT.
+  optional string observedAddr = 4;
 }
