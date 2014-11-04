@@ -21,7 +21,13 @@ var log = u.Logger("cmd/ipfs")
 
 func main() {
 	args := os.Args[1:]
+	req, root := createRequest(args)
+	handleOptions(req, root)
+	res := callCommand(req, root)
+	outputResponse(res)
+}
 
+func createRequest(args []string) (cmds.Request, *cmds.Command) {
 	req, root, err := cmdsCli.Parse(args, Root, commands.Root)
 	if err != nil {
 		fmt.Println(err)
@@ -29,6 +35,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	options, err := getOptions(req, root)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	configPath, err := getConfigRoot(options)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	conf, err := getConfig(configPath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	ctx := req.Context()
+	ctx.ConfigRoot = configPath
+	ctx.Config = conf
+
+	if _, found := options.Option("encoding"); !found {
+		if req.Command().Format != nil {
+			req.SetOption("encoding", cmds.Text)
+		} else {
+			req.SetOption("encoding", cmds.JSON)
+		}
+	}
+
+	return req, root
+}
+
+func handleOptions(req cmds.Request, root *cmds.Command) {
 	options, err := getOptions(req, root)
 	if err != nil {
 		fmt.Println(err)
@@ -65,39 +105,25 @@ func main() {
 			os.Exit(1)
 		}
 	}
+}
 
-	configPath, err := getConfigRoot(options)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	conf, err := getConfig(configPath)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	ctx := req.Context()
-	ctx.ConfigRoot = configPath
-	ctx.Config = conf
-
-	if _, found := options.Option("encoding"); !found {
-		if req.Command().Format != nil {
-			req.SetOption("encoding", cmds.Text)
-		} else {
-			req.SetOption("encoding", cmds.JSON)
-		}
-	}
-
+func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 	var res cmds.Response
+
 	if root == Root {
 		res = root.Call(req)
 
 	} else {
+		options, err := getOptions(req, root)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
 		var found bool
+		var local interface{}
 		localBool := false
-		if local, found := options.Option("local"); found {
+		if local, found = options.Option("local"); found {
 			var ok bool
 			localBool, ok = local.(bool)
 			if !ok {
@@ -106,7 +132,7 @@ func main() {
 			}
 		}
 
-		if (!found || !localBool) && daemon.Locked(configPath) {
+		if (!found || !localBool) && daemon.Locked(req.Context().ConfigRoot) {
 			res, err = cmdsHttp.Send(req)
 			if err != nil {
 				fmt.Println(err)
@@ -114,23 +140,27 @@ func main() {
 			}
 
 		} else {
-			node, err := core.NewIpfsNode(conf, false)
+			node, err := core.NewIpfsNode(req.Context().Config, false)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			ctx.Node = node
+			req.Context().Node = node
 
 			res = root.Call(req)
 		}
 	}
 
+	return res
+}
+
+func outputResponse(res cmds.Response) {
 	if res.Error() != nil {
 		fmt.Println(res.Error().Error())
 
-		if req.Command().Help != "" && res.Error().Code == cmds.ErrClient {
+		if res.Request().Command().Help != "" && res.Error().Code == cmds.ErrClient {
 			// TODO: convert from markdown to ANSI terminal format?
-			fmt.Println(req.Command().Help)
+			fmt.Println(res.Request().Command().Help)
 		}
 
 		os.Exit(1)
