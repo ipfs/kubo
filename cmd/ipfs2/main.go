@@ -35,24 +35,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	if help, found := options.Option("help"); found && help.(bool) {
-		fmt.Println(req.Command().Help)
-		os.Exit(0)
+	if help, found := options.Option("help"); found {
+		if helpBool, ok := help.(bool); helpBool && ok {
+			fmt.Println(req.Command().Help)
+			os.Exit(0)
+		} else if !ok {
+			fmt.Println("error: expected 'help' option to be a bool")
+			os.Exit(1)
+		}
 	}
 
-	if debug, found := options.Option("debug"); found && debug.(bool) {
-		u.Debug = true
+	if debug, found := options.Option("debug"); found {
+		if debugBool, ok := debug.(bool); debugBool && ok {
+			u.Debug = true
 
-		// if debugging, setup profiling.
-		if u.Debug {
-			ofi, err := os.Create("cpu.prof")
-			if err != nil {
-				fmt.Println(err)
-				return
+			// if debugging, setup profiling.
+			if u.Debug {
+				ofi, err := os.Create("cpu.prof")
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				pprof.StartCPUProfile(ofi)
+				defer ofi.Close()
+				defer pprof.StopCPUProfile()
 			}
-			pprof.StartCPUProfile(ofi)
-			defer ofi.Close()
-			defer pprof.StopCPUProfile()
+		} else if !ok {
+			fmt.Println("error: expected 'debug' option to be a bool")
+			os.Exit(1)
 		}
 	}
 
@@ -85,9 +95,18 @@ func main() {
 		res = root.Call(req)
 
 	} else {
-		local, found := options.Option("local")
+		var found bool
+		localBool := false
+		if local, found := options.Option("local"); found {
+			var ok bool
+			localBool, ok = local.(bool)
+			if !ok {
+				fmt.Println("error: expected 'local' option to be a bool")
+				os.Exit(1)
+			}
+		}
 
-		if (!found || !local.(bool)) && daemon.Locked(configPath) {
+		if (!found || !localBool) && daemon.Locked(configPath) {
 			res, err = cmdsHttp.Send(req)
 			if err != nil {
 				fmt.Println(err)
@@ -144,7 +163,11 @@ func getOptions(req cmds.Request, root *cmds.Command) (cmds.Request, error) {
 
 func getConfigRoot(req cmds.Request) (string, error) {
 	if opt, found := req.Option("config"); found {
-		return opt.(string), nil
+		if optStr, ok := opt.(string); ok {
+			return optStr, nil
+		} else {
+			return "", fmt.Errorf("Expected 'config' option to be a string")
+		}
 	}
 
 	configPath, err := config.PathRoot()
