@@ -52,7 +52,7 @@ var lsCmd = &cmds.Command{
 
 		res.SetOutput(&LsOutput{output})
 	},
-	Format: func(res cmds.Response) (string, error) {
+	Format: func(res cmds.Response) ([]byte, error) {
 		s := ""
 		output := res.Output().(*LsOutput).Objects
 
@@ -70,7 +70,7 @@ var lsCmd = &cmds.Command{
 			}
 		}
 
-		return s, nil
+		return []byte(s), nil
 	},
 	Type: &LsOutput{},
 }
