@@ -9,8 +9,8 @@ import (
 )
 
 type Handler struct {
-	Ctx  cmds.Context
-	Root *cmds.Command
+	ctx  cmds.Context
+	root *cmds.Command
 }
 
 var ErrNotFound = errors.New("404 page not found")
@@ -21,8 +21,12 @@ var mimeTypes = map[string]string{
 	cmds.Text: "text/plain",
 }
 
+func NewHandler(ctx cmds.Context, root *cmds.Command) *Handler {
+	return &Handler{ctx, root}
+}
+
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	req, err := Parse(r, i.Root)
+	req, err := Parse(r, i.root)
 	if err != nil {
 		if err == ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -32,10 +36,10 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	req.SetContext(i.Ctx)
+	req.SetContext(i.ctx)
 
 	// call the command
-	res := i.Root.Call(req)
+	res := i.root.Call(req)
 
 	// set the Content-Type based on res output
 	if _, ok := res.Output().(io.Reader); ok {
