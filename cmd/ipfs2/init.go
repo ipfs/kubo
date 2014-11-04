@@ -27,38 +27,39 @@ var initCmd = &cmds.Command{
 	new keypair.
 	`,
 	Run: func(res cmds.Response, req cmds.Request) {
-		foo(res, req)
+		err := foo(res, req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	},
 }
 
-func foo(res cmds.Response, req cmds.Request) {
+func foo(res cmds.Response, req cmds.Request) error {
 	ctx := req.Context()
 
 	u.POut("initializing ipfs node at %s\n", ctx.ConfigRoot)
 	filename, err := config.Filename(ctx.ConfigRoot)
 	if err != nil {
-		res.SetError(errors.New("Couldn't get home directory path"), cmds.ErrNormal)
-		return
+		return errors.New("Couldn't get home directory path")
 	}
 
 	arg, found := req.Option("d")
 	dspath, ok := arg.(string)
 	if found && !ok {
-		res.SetError(errors.New("failed to parse datastore flag"), cmds.ErrNormal)
-		return
+		return errors.New("failed to parse datastore flag")
 	}
 
 	fi, err := os.Lstat(filename)
 	arg, found = req.Option("f")
 	force, ok := arg.(bool)
 	if found && !ok {
-		res.SetError(errors.New("failed to parse force flag"), cmds.ErrNormal)
-		return
+		return errors.New("failed to parse force flag")
 	}
 	if fi != nil || (err != nil && !os.IsNotExist(err)) {
 		if !force {
-			res.SetError(errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)"), cmds.ErrNormal)
-			return
+			// TODO multi-line string
+			return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
 		}
 	}
 	cfg := new(config.Config)
@@ -67,8 +68,7 @@ func foo(res cmds.Response, req cmds.Request) {
 	if len(dspath) == 0 {
 		dspath, err = config.DataStorePath("")
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return err
 		}
 	}
 	cfg.Datastore.Path = dspath
@@ -76,16 +76,14 @@ func foo(res cmds.Response, req cmds.Request) {
 
 	// Construct the data store if missing
 	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return err
 	}
 
 	// Check the directory is writeable
 	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
 		os.Remove(f.Name())
 	} else {
-		res.SetError(errors.New("Datastore '"+dspath+"' is not writeable"), cmds.ErrNormal)
-		return
+		return errors.New("Datastore '" + dspath + "' is not writeable")
 	}
 
 	cfg.Identity = config.Identity{}
@@ -105,36 +103,31 @@ func foo(res cmds.Response, req cmds.Request) {
 	arg, found = req.Option("b")
 	nbits, ok := arg.(int)
 	if found && !ok {
-		res.SetError(errors.New("failed to get bits flag"), cmds.ErrNormal)
-		return
+		return errors.New("failed to get bits flag")
 	} else if !found {
 		nbits = 4096
 	}
 	if nbits < 1024 {
-		res.SetError(errors.New("Bitsize less than 1024 is considered unsafe."), cmds.ErrNormal)
-		return
+		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
 	u.POut("generating key pair\n")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return err
 	}
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
 	skbytes, err := sk.Bytes()
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return err
 	}
 	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
 	id, err := peer.IDFromPubKey(pk)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return err
 	}
 	cfg.Identity.PeerID = id.Pretty()
 
@@ -155,7 +148,7 @@ func foo(res cmds.Response, req cmds.Request) {
 
 	err = config.WriteConfigFile(filename, cfg)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return err
 	}
+	return nil
 }
