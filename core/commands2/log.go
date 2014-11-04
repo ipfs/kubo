@@ -23,6 +23,8 @@ var logCmd = &cmds.Command{
 		s := fmt.Sprintf("Changed log level of '%s' to '%s'", args[0], args[1])
 		res.SetOutput(&MessageOutput{s})
 	},
-	Format: MessageMarshaller,
-	Type:   &MessageOutput{},
+	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		cmds.Text: MessageTextMarshaller,
+	},
+	Type: &MessageOutput{},
 }

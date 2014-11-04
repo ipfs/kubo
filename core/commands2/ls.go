@@ -52,25 +52,27 @@ var lsCmd = &cmds.Command{
 
 		res.SetOutput(&LsOutput{output})
 	},
-	Format: func(res cmds.Response) ([]byte, error) {
-		s := ""
-		output := res.Output().(*LsOutput).Objects
+	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			s := ""
+			output := res.Output().(*LsOutput).Objects
 
-		for _, object := range output {
-			if len(output) > 1 {
-				s += fmt.Sprintf("%s:\n", object.Hash)
+			for _, object := range output {
+				if len(output) > 1 {
+					s += fmt.Sprintf("%s:\n", object.Hash)
+				}
+
+				for _, link := range object.Links {
+					s += fmt.Sprintf("-> %s %s (%v bytes)\n", link.Name, link.Hash, link.Size)
+				}
+
+				if len(output) > 1 {
+					s += "\n"
+				}
 			}
 
-			for _, link := range object.Links {
-				s += fmt.Sprintf("-> %s %s (%v bytes)\n", link.Name, link.Hash, link.Size)
-			}
-
-			if len(output) > 1 {
-				s += "\n"
-			}
-		}
-
-		return []byte(s), nil
+			return []byte(s), nil
+		},
 	},
 	Type: &LsOutput{},
 }
