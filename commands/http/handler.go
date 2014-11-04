@@ -56,10 +56,13 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = io.Copy(w, res)
+	out, err := res.Reader()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(err.Error()))
+		return
 	}
+
+	io.Copy(w, out)
 }
