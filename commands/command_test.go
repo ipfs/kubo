@@ -8,20 +8,13 @@ func TestOptionValidation(t *testing.T) {
 			Option{[]string{"b", "beep"}, Int},
 			Option{[]string{"B", "boop"}, String},
 		},
-		Run: func(req Request, res Response) {},
+		Run: func(res Response, req Request) {},
 	}
 
 	req := NewEmptyRequest()
-	req.SetOption("foo", 5)
-	res := cmd.Call(req)
-	if res.Error() == nil {
-		t.Error("Should have failed (unrecognized option)")
-	}
-
-	req = NewEmptyRequest()
 	req.SetOption("beep", 5)
 	req.SetOption("b", 10)
-	res = cmd.Call(req)
+	res := cmd.Call(req)
 	if res.Error() == nil {
 		t.Error("Should have failed (duplicate options)")
 	}
@@ -57,6 +50,13 @@ func TestOptionValidation(t *testing.T) {
 	}
 
 	req = NewEmptyRequest()
+	req.SetOption("foo", 5)
+	res = cmd.Call(req)
+	if res.Error() != nil {
+		t.Error("Should have passed")
+	}
+
+	req = NewEmptyRequest()
 	req.SetOption(EncShort, "json")
 	res = cmd.Call(req)
 	if res.Error() != nil {
@@ -79,7 +79,7 @@ func TestOptionValidation(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	noop := func(req Request, res Response) {}
+	noop := func(res Response, req Request) {}
 
 	cmdA := &Command{
 		Options: []Option{

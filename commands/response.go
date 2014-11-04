@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -25,7 +26,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("%d error: %s", e.Code, e.Message)
+	return e.Message
 }
 
 // EncodingType defines a supported encoding
@@ -35,16 +36,23 @@ type EncodingType string
 const (
 	JSON = "json"
 	XML  = "xml"
+	Text = "text"
 	// TODO: support more encoding types
 )
 
-// Marshaller is a function used by coding types.
-// TODO this should just be a `coding.Codec`
-type Marshaller func(v interface{}) ([]byte, error)
-
 var marshallers = map[EncodingType]Marshaller{
-	JSON: json.Marshal,
-	XML:  xml.Marshal,
+	JSON: func(res Response) ([]byte, error) {
+		if res.Error() != nil {
+			return json.Marshal(res.Error())
+		}
+		return json.Marshal(res.Output())
+	},
+	XML: func(res Response) ([]byte, error) {
+		if res.Error() != nil {
+			return xml.Marshal(res.Error())
+		}
+		return xml.Marshal(res.Output())
+	},
 }
 
 // Response is the result of a command request. Handlers write to the response,
@@ -54,44 +62,40 @@ type Response interface {
 
 	// Set/Return the response Error
 	SetError(err error, code ErrorType)
-	Error() error
+	Error() *Error
 
 	// Sets/Returns the response value
-	SetValue(interface{})
-	Value() interface{}
+	SetOutput(interface{})
+	Output() interface{}
 
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaller (Codec).
 	Marshal() ([]byte, error)
+
+	// Gets a io.Reader that reads the marshalled output
+	Reader() (io.Reader, error)
 }
 
 type response struct {
 	req   Request
 	err   *Error
 	value interface{}
-	out   io.Writer
+	out   io.Reader
 }
 
 func (r *response) Request() Request {
 	return r.req
 }
 
-func (r *response) Value() interface{} {
+func (r *response) Output() interface{} {
 	return r.value
 }
 
-func (r *response) SetValue(v interface{}) {
+func (r *response) SetOutput(v interface{}) {
 	r.value = v
 }
 
-func (r *response) Stream() io.Writer {
-	return r.out
-}
-
-func (r *response) Error() error {
-	if r.err == nil {
-		return nil
-	}
+func (r *response) Error() *Error {
 	return r.err
 }
 
@@ -101,24 +105,52 @@ func (r *response) SetError(err error, code ErrorType) {
 
 func (r *response) Marshal() ([]byte, error) {
 	if r.err == nil && r.value == nil {
-		return nil, fmt.Errorf("No error or value set, there is nothing to marshal")
+		return []byte{}, nil
 	}
 
-	enc, ok := r.req.Option(EncShort)
-	if !ok || enc.(string) == "" {
+	enc, found := r.req.Option(EncShort)
+	encStr, ok := enc.(string)
+	if !found || !ok || encStr == "" {
 		return nil, fmt.Errorf("No encoding type was specified")
 	}
-	encType := EncodingType(strings.ToLower(enc.(string)))
+	encType := EncodingType(strings.ToLower(encStr))
 
-	marshaller, ok := marshallers[encType]
-	if !ok {
-		return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
+	var marshaller Marshaller
+	if r.req.Command() != nil && r.req.Command().Marshallers != nil {
+		marshaller = r.req.Command().Marshallers[encType]
+	}
+	if marshaller == nil {
+		marshaller, ok = marshallers[encType]
+		if !ok {
+			return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
+		}
 	}
 
-	if r.err != nil {
-		return marshaller(r.err)
+	return marshaller(r)
+}
+
+// Reader returns an `io.Reader` representing marshalled output of this Response
+// Note that multiple calls to this will return a reference to the same io.Reader
+func (r *response) Reader() (io.Reader, error) {
+	// if command set value to a io.Reader, use that as our reader
+	if r.out == nil {
+		if out, ok := r.value.(io.Reader); ok {
+			r.out = out
+		}
 	}
-	return marshaller(r.value)
+
+	if r.out == nil {
+		// no reader set, so marshal the error or value
+		marshalled, err := r.Marshal()
+		if err != nil {
+			return nil, err
+		}
+
+		// create a Reader from the marshalled data
+		r.out = bytes.NewReader(marshalled)
+	}
+
+	return r.out, nil
 }
 
 // NewResponse returns a response to match given Request
