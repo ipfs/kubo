@@ -8,26 +8,26 @@ import (
 	"net/http"
 	"strings"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
-
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 const ApiPath = "/api/v0" // TODO: make configurable
 
-func Send(req cmds.Request) (cmds.Response, error) {
-	addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
-	if err != nil {
-		return nil, err
-	}
+// Client is the commands HTTP client interface.
+type Client interface {
+	Send(req cmds.Request) (cmds.Response, error)
+}
 
-	_, host, err := manet.DialArgs(addr)
-	if err != nil {
-		return nil, err
-	}
+type client struct {
+	serverAddress string
+}
 
-	url := "http://" + host + ApiPath
+func NewClient(address string) Client {
+	return &client{address}
+}
+
+func (c *client) Send(req cmds.Request) (cmds.Response, error) {
+	url := "http://" + c.serverAddress + ApiPath
 	url += "/" + strings.Join(req.Path(), "/")
 
 	var userEncoding string
