@@ -27,7 +27,15 @@ var initCmd = &cmds.Command{
 	new keypair.
 	`,
 	Run: func(res cmds.Response, req cmds.Request) {
-		err := foo(res, req)
+
+		arg, found := req.Option("d")
+		dspath, ok := arg.(string) // TODO param
+		if found && !ok {
+			res.SetError(errors.New("failed to parse datastore flag"), cmds.ErrNormal)
+			return
+		}
+
+		err := foo(res, req, dspath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -35,7 +43,7 @@ var initCmd = &cmds.Command{
 	},
 }
 
-func foo(res cmds.Response, req cmds.Request) error {
+func foo(res cmds.Response, req cmds.Request, dspath string) error {
 	ctx := req.Context()
 
 	u.POut("initializing ipfs node at %s\n", ctx.ConfigRoot)
@@ -44,17 +52,12 @@ func foo(res cmds.Response, req cmds.Request) error {
 		return errors.New("Couldn't get home directory path")
 	}
 
-	arg, found := req.Option("d")
-	dspath, ok := arg.(string)
-	if found && !ok {
-		return errors.New("failed to parse datastore flag")
-	}
-
-	arg, found = req.Option("f")
-	force, ok := arg.(bool)
+	arg, found := req.Option("f")
+	force, ok := arg.(bool) // TODO param
 	if found && !ok {
 		return errors.New("failed to parse force flag")
 	}
+
 	fi, err := os.Lstat(filename)
 	if fi != nil || (err != nil && !os.IsNotExist(err)) {
 		if !force {
@@ -101,7 +104,7 @@ func foo(res cmds.Response, req cmds.Request) error {
 	}
 
 	arg, found = req.Option("b")
-	nbits, ok := arg.(int)
+	nbits, ok := arg.(int) // TODO param
 	if found && !ok {
 		return errors.New("failed to get bits flag")
 	} else if !found {
