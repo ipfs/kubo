@@ -71,11 +71,11 @@ var rootSubcommands = map[string]*cmds.Command{
 			log.Info("beep")
 			res.SetOutput(v)
 		},
-		Format: func(res cmds.Response) (string, error) {
+		Format: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*TestOutput)
 			s := fmt.Sprintf("Foo: %s\n", v.Foo)
 			s += fmt.Sprintf("Bar: %v\n", v.Bar)
-			return s, nil
+			return []byte(s), nil
 		},
 		Type: &TestOutput{},
 	},
@@ -120,6 +120,6 @@ type MessageOutput struct {
 	Message string
 }
 
-func MessageFormatter(res cmds.Response) (string, error) {
-	return res.Output().(*MessageOutput).Message, nil
+func MessageMarshaller(res cmds.Response) ([]byte, error) {
+	return []byte(res.Output().(*MessageOutput).Message), nil
 }
