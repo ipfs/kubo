@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -9,7 +10,11 @@ import (
 
 // Parse parses the data in a http.Request and returns a command Request object
 func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
-	path := strings.Split(r.URL.Path, "/")[3:]
+	if !strings.HasPrefix(r.URL.Path, ApiPath) {
+		return nil, errors.New("Unexpected path prefix")
+	}
+	path := strings.Split(strings.TrimPrefix(r.URL.Path, ApiPath+"/"), "/")
+
 	stringArgs := make([]string, 0)
 
 	cmd, err := root.Get(path[:len(path)-1])
