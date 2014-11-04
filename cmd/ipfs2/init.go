@@ -42,7 +42,16 @@ var initCmd = &cmds.Command{
 			return
 		}
 
-		err := foo(res, req, dspath, force)
+		arg, found = req.Option("b")
+		nBitsForKeypair, ok := arg.(int) // TODO param
+		if found && !ok {
+			res.SetError(errors.New("failed to get bits flag"), cmds.ErrNormal)
+			return
+		} else if !found {
+			nBitsForKeypair = 4096
+		}
+
+		err := foo(res, req, dspath, force, nBitsForKeypair)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -50,7 +59,7 @@ var initCmd = &cmds.Command{
 	},
 }
 
-func foo(res cmds.Response, req cmds.Request, dspath string, force bool) error {
+func foo(res cmds.Response, req cmds.Request, dspath string, force bool, nBitsForKeypair int) error {
 	ctx := req.Context()
 
 	u.POut("initializing ipfs node at %s\n", ctx.ConfigRoot)
@@ -104,19 +113,13 @@ func foo(res cmds.Response, req cmds.Request, dspath string, force bool) error {
 		IPNS: "/ipns",
 	}
 
-	arg, found = req.Option("b")
-	nbits, ok := arg.(int) // TODO param
-	if found && !ok {
-		return errors.New("failed to get bits flag")
-	} else if !found {
-		nbits = 4096
-	}
-	if nbits < 1024 {
+	// TODO guard
+	if nBitsForKeypair < 1024 {
 		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
 	u.POut("generating key pair\n")
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nBitsForKeypair)
 	if err != nil {
 		return err
 	}
