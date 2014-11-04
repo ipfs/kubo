@@ -62,12 +62,13 @@ var initCmd = &cmds.Command{
 func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
-	filename, err := config.Filename(configRoot)
+
+	configFilename, err := config.Filename(configRoot)
 	if err != nil {
 		return errors.New("Couldn't get home directory path")
 	}
 
-	fi, err := os.Lstat(filename)
+	fi, err := os.Lstat(configFilename)
 	if fi != nil || (err != nil && !os.IsNotExist(err)) {
 		if !force {
 			// TODO multi-line string
@@ -112,7 +113,7 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 		IPNS: "/ipns",
 	}
 
-	// TODO guard
+	// TODO guard higher up
 	if nBitsForKeypair < 1024 {
 		return errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
@@ -152,7 +153,7 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 		Current: updates.Version,
 	}
 
-	err = config.WriteConfigFile(filename, cfg)
+	err = config.WriteConfigFile(configFilename, cfg)
 	if err != nil {
 		return err
 	}
