@@ -18,9 +18,10 @@ var commandsCmd = &cmds.Command{
 		root := outputCommand("ipfs", Root)
 		res.SetOutput(&root)
 	},
-	Format: func(res cmds.Response) (string, error) {
+	Format: func(res cmds.Response) ([]byte, error) {
 		v := res.Output().(*Command)
-		return formatCommand(v, 0), nil
+		s := formatCommand(v, 0)
+		return []byte(s), nil
 	},
 	Type: &Command{},
 }

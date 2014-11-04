@@ -15,10 +15,9 @@ var log = u.Logger("command")
 // It reads from the Request, and writes results to the Response.
 type Function func(Response, Request)
 
-// Formatter is a function that takes in a Response, and returns a human-readable string
+// Marshaller is a function that takes in a Response, and returns a marshalled []byte
 // (or an error on failure)
-// MAYBE_TODO: maybe this should be a io.Reader instead of a string?
-type Formatter func(Response) (string, error)
+type Marshaller func(Response) ([]byte, error)
 
 // TODO: check Argument definitions when creating a Command
 //   (might need to use a Command constructor)
@@ -33,7 +32,7 @@ type Command struct {
 	Options     []Option
 	Arguments   []Argument
 	Run         Function
-	Format      Formatter
+	Format      Marshaller
 	Type        interface{}
 	Subcommands map[string]*Command
 }

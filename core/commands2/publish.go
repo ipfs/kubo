@@ -61,9 +61,10 @@ var publishCmd = &cmds.Command{
 			Value: ref,
 		})
 	},
-	Format: func(res cmds.Response) (string, error) {
+	Format: func(res cmds.Response) ([]byte, error) {
 		v := res.Output().(*PublishOutput)
-		return fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value), nil
+		s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
+		return []byte(s), nil
 	},
 	Type: &PublishOutput{},
 }

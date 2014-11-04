@@ -55,17 +55,18 @@ var addCmd = &cmds.Command{
 
 		res.SetOutput(&AddOutput{added})
 	},
-	Format: func(res cmds.Response) (string, error) {
+	Format: func(res cmds.Response) ([]byte, error) {
 		v := res.Output().(*AddOutput).Added
 		if len(v) == 1 {
-			return fmt.Sprintf("Added object: %s\n", v[0].Hash), nil
+			s := fmt.Sprintf("Added object: %s\n", v[0].Hash)
+			return []byte(s), nil
 		}
 
 		s := fmt.Sprintf("Added %v objects:\n", len(v))
 		for _, obj := range v {
 			s += fmt.Sprintf("- %s\n", obj.Hash)
 		}
-		return s, nil
+		return []byte(s), nil
 	},
 	Type: &AddOutput{},
 }
