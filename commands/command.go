@@ -32,7 +32,7 @@ type Command struct {
 	Options     []Option
 	Arguments   []Argument
 	Run         Function
-	Format      Marshaller
+	Marshallers map[EncodingType]Marshaller
 	Type        interface{}
 	Subcommands map[string]*Command
 }

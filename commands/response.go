@@ -53,18 +53,6 @@ var marshallers = map[EncodingType]Marshaller{
 		}
 		return xml.Marshal(res.Output())
 	},
-	Text: func(res Response) ([]byte, error) {
-		format := res.Request().Command().Format
-		if format == nil {
-			return nil, ErrNoFormatter
-		}
-
-		bytes, err := format(res)
-		if err != nil {
-			return nil, err
-		}
-		return bytes, nil
-	},
 }
 
 // Response is the result of a command request. Handlers write to the response,
@@ -127,9 +115,12 @@ func (r *response) Marshal() ([]byte, error) {
 	}
 	encType := EncodingType(strings.ToLower(encStr))
 
-	marshaller, ok := marshallers[encType]
-	if !ok {
-		return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
+	marshaller := r.req.Command().Marshallers[encType]
+	if marshaller == nil {
+		marshaller, ok = marshallers[encType]
+		if !ok {
+			return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)
+		}
 	}
 
 	return marshaller(r)
