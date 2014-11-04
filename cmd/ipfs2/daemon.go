@@ -16,7 +16,7 @@ import (
 
 var daemonCmd = &cmds.Command{
 	Options:     []cmds.Option{},
-	Help:        "TODO",
+	Help:        "run a network-connected ipfs node", // TODO adjust copy
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
 }
