@@ -41,7 +41,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 		req.SetOption(cmds.EncLong, cmds.JSON)
 	}
 
-	query, in, err := getQuery(req)
+	query, inputStream, err := getQuery(req)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	path := strings.Join(req.Path(), "/")
 	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
 
-	httpRes, err := http.Post(url, "application/octet-stream", in)
+	httpRes, err := http.Post(url, "application/octet-stream", inputStream)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 func getQuery(req cmds.Request) (string, io.Reader, error) {
 	// TODO: handle multiple files with multipart
-	var in io.Reader
+	var inputStream io.Reader
 
 	query := url.Values{}
 	for k, v := range req.Options() {
@@ -90,14 +90,14 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 
 		} else {
 			// TODO: multipart
-			if in != nil {
+			if inputStream != nil {
 				return "", nil, fmt.Errorf("Currently, only one file stream is possible per request")
 			}
-			in = arg.(io.Reader)
+			inputStream = arg.(io.Reader)
 		}
 	}
 
-	return query.Encode(), in, nil
+	return query.Encode(), inputStream, nil
 }
 
 // getResponse decodes a http.Response to create a cmds.Response
