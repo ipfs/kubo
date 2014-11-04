@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -12,19 +13,34 @@ var log = u.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
-type Function func(Request, Response)
+type Function func(Response, Request)
+
+// Marshaller is a function that takes in a Response, and returns a marshalled []byte
+// (or an error on failure)
+type Marshaller func(Response) ([]byte, error)
+
+// TODO: check Argument definitions when creating a Command
+//   (might need to use a Command constructor)
+//   * make sure any variadic args are at the end
+//   * make sure there aren't duplicate names
+//   * make sure optional arguments aren't followed by required arguments
 
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
 	Help        string
 	Options     []Option
+	Arguments   []Argument
 	Run         Function
+	Marshallers map[EncodingType]Marshaller
+	Type        interface{}
 	Subcommands map[string]*Command
 }
 
 // ErrNotCallable signals a command that cannot be called.
 var ErrNotCallable = errors.New("This command can't be called directly. Try one of its subcommands.")
+
+var ErrNoFormatter = errors.New("This command cannot be formatted to plain text")
 
 // Call invokes the command for the given Request
 func (c *Command) Call(req Request) Response {
@@ -42,6 +58,12 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
+	err = cmd.CheckArguments(req)
+	if err != nil {
+		res.SetError(err, ErrClient)
+		return res
+	}
+
 	options, err := c.GetOptions(req.Path())
 	if err != nil {
 		res.SetError(err, ErrClient)
@@ -54,7 +76,7 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	cmd.Run(req, res)
+	cmd.Run(res, req)
 
 	return res
 }
@@ -116,7 +138,72 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 	return optionsMap, nil
 }
 
+func (c *Command) CheckArguments(req Request) error {
+	args := req.Arguments()
+	argDefs := c.Arguments
+
+	// if we have more arg values provided than argument definitions,
+	// and the last arg definition is not variadic (or there are no definitions), return an error
+	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
+	if notVariadic && len(args) > len(argDefs) {
+		return fmt.Errorf("Expected %v arguments, got %v", len(argDefs), len(args))
+	}
+
+	// iterate over the arg definitions
+	for i, argDef := range c.Arguments {
+
+		// the value for this argument definition. can be nil if it wasn't provided by the caller
+		var v interface{}
+		if i < len(args) {
+			v = args[i]
+		}
+
+		err := checkArgValue(v, argDef)
+		if err != nil {
+			return err
+		}
+
+		// any additional values are for the variadic arg definition
+		if argDef.Variadic && i < len(args)-1 {
+			for _, val := range args[i+1:] {
+				err := checkArgValue(val, argDef)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // Subcommand returns the subcommand with the given id
 func (c *Command) Subcommand(id string) *Command {
 	return c.Subcommands[id]
+}
+
+// checkArgValue returns an error if a given arg value is not valid for the given Argument
+func checkArgValue(v interface{}, def Argument) error {
+	if v == nil {
+		if def.Required {
+			return fmt.Errorf("Argument '%s' is required", def.Name)
+		}
+
+		return nil
+	}
+
+	if def.Type == ArgFile {
+		_, ok := v.(io.Reader)
+		if !ok {
+			return fmt.Errorf("Argument '%s' isn't valid", def.Name)
+		}
+
+	} else if def.Type == ArgString {
+		_, ok := v.(string)
+		if !ok {
+			return fmt.Errorf("Argument '%s' must be a string", def.Name)
+		}
+	}
+
+	return nil
 }

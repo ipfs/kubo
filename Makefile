@@ -9,3 +9,8 @@ godep:
 # ./... performs operation on all packages in tree
 vendor: godep
 	godep save -r ./...
+
+# TODO remove ipfs2 once new command refactoring is complete
+install:
+	cd cmd/ipfs && go install
+	cd cmd/ipfs2 && go install

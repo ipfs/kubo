@@ -2,21 +2,31 @@ package commands
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
+
+	"github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/core"
 )
 
 type optMap map[string]interface{}
+
+type Context struct {
+	ConfigRoot string
+	Config     *config.Config
+	Node       *core.IpfsNode
+}
 
 // Request represents a call to a command from a consumer
 type Request interface {
 	Path() []string
 	Option(name string) (interface{}, bool)
+	Options() map[string]interface{}
 	SetOption(name string, val interface{})
-	Arguments() []string
-	Stream() io.Reader
-	SetStream(io.Reader)
+	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
+	Context() *Context
+	SetContext(Context)
+	Command() *Command
 
 	ConvertOptions(options map[string]Option) error
 }
@@ -24,8 +34,9 @@ type Request interface {
 type request struct {
 	path      []string
 	options   optMap
-	arguments []string
-	in        io.Reader
+	arguments []interface{}
+	cmd       *Command
+	ctx       Context
 }
 
 // Path returns the command path of this request
@@ -39,24 +50,35 @@ func (r *request) Option(name string) (interface{}, bool) {
 	return val, err
 }
 
+// Options returns a copy of the option map
+func (r *request) Options() map[string]interface{} {
+	output := make(optMap)
+	for k, v := range r.options {
+		output[k] = v
+	}
+	return output
+}
+
 // SetOption sets the value of the option for given name.
 func (r *request) SetOption(name string, val interface{}) {
 	r.options[name] = val
 }
 
 // Arguments returns the arguments slice
-func (r *request) Arguments() []string {
+func (r *request) Arguments() []interface{} {
 	return r.arguments
 }
 
-// Stream returns the input stream Reader
-func (r *request) Stream() io.Reader {
-	return r.in
+func (r *request) Context() *Context {
+	return &r.ctx
 }
 
-// SetStream sets the value of the input stream Reader
-func (r *request) SetStream(in io.Reader) {
-	r.in = in
+func (r *request) SetContext(ctx Context) {
+	r.ctx = ctx
+}
+
+func (r *request) Command() *Command {
+	return r.cmd
 }
 
 type converter func(string) (interface{}, error)
@@ -85,7 +107,7 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 	for k, v := range r.options {
 		opt, ok := options[k]
 		if !ok {
-			return fmt.Errorf("Unrecognized option: '%s'", k)
+			continue
 		}
 
 		kind := reflect.TypeOf(v).Kind()
@@ -129,7 +151,7 @@ func NewEmptyRequest() Request {
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []string, in io.Reader) Request {
+func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -137,7 +159,7 @@ func NewRequest(path []string, opts optMap, args []string, in io.Reader) Request
 		opts = make(map[string]interface{})
 	}
 	if args == nil {
-		args = make([]string, 0)
+		args = make([]interface{}, 0)
 	}
-	return &request{path, opts, args, in}
+	return &request{path, opts, args, cmd, Context{}}
 }
