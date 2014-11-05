@@ -81,6 +81,19 @@ var allTopics = []Topic{
 	Topic{Routing(2), Routing_Resolving},
 	Topic{Routing(3), Routing_DHT},
 	Topic{Routing(4), Routing_Other},
+
+	Topic{Exchange(0), Exchange_Intro},
+	Topic{Exchange(1), Exchange_Getting_Blocks},
+	Topic{Exchange(2), Exchange_Strategies},
+	Topic{Exchange(3), Exchange_Bitswap},
+
+	Topic{Ipns(0), Ipns_Name_System},
+	Topic{Ipns(1), Ipns_Mutability},
+	Topic{Ipns(2), Ipns_PKI_Review},
+	Topic{Ipns(3), Ipns_Publishing},
+	Topic{Ipns(4), Ipns_Resolving},
+	Topic{Ipns(5), Ipns_Consistency},
+	Topic{Ipns(6), Ipns_Records_Etc},
 }
 
 // Introduction
@@ -185,3 +198,16 @@ var Rouing_Interface = Content{}
 var Routing_Resolving = Content{}
 var Routing_DHT = Content{}
 var Routing_Other = Content{}
+
+var Exchange_Intro = Content{}
+var Exchange_Bitswap = Content{}
+var Exchange_Strategies = Content{}
+var Exchange_Getting_Blocks = Content{}
+
+var Ipns_Consistency = Content{}
+var Ipns_Mutability = Content{}
+var Ipns_Name_System = Content{}
+var Ipns_PKI_Review = Content{}
+var Ipns_Publishing = Content{}
+var Ipns_Records_Etc = Content{}
+var Ipns_Resolving = Content{}
