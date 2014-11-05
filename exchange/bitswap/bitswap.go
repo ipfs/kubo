@@ -91,7 +91,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 			go func(p peer.Peer) {
 
 				log.Debugf("bitswap dialing peer: %s", p)
-				err := bs.sender.DialPeer(p)
+				err := bs.sender.DialPeer(ctx, p)
 				if err != nil {
 					log.Errorf("Error sender.DialPeer(%s)", p)
 					return
