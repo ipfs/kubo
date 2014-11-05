@@ -127,8 +127,18 @@ func RecordUpdateCheck(cfg *Config, filename string) {
 
 	if cfg.Version.CheckPeriod == "" {
 		// CheckPeriod was not initialized for some reason (e.g. config file broken)
-		cfg.Version.CheckPeriod = strconv.Itoa(int(defaultCheckPeriod))
+		log.Error("config.Version.CheckPeriod not set. config broken?")
 	}
 
 	WriteConfigFile(filename, cfg)
+}
+
+// VersionDefaultValue returns the default version config value (for init).
+func VersionDefaultValue() Version {
+	return Version{
+		Current:     CurrentVersionNumber,
+		Check:       "error",
+		CheckPeriod: strconv.Itoa(int(defaultCheckPeriod)),
+		AutoUpdate:  AutoUpdateMinor,
+	}
 }
