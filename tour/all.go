@@ -54,6 +54,13 @@ var allTopics = []Topic{
 	Topic{MerkleDag(7), MerkleDagUseCaseUnixFS},
 	Topic{MerkleDag(8), MerkleDagUseCaseGitObjects},
 	Topic{MerkleDag(9), MerkleDagUseCaseOperationalTransforms},
+
+	Topic{Network(0), Network_Intro},
+	Topic{Network(1), Network_Ipfs_Peers},
+	Topic{Network(2), Network_Daemon},
+	Topic{Network(3), Network_Routing},
+	Topic{Network(4), Network_Exchange},
+	Topic{Network(5), Network_Intro},
 }
 
 // Introduction
@@ -141,3 +148,10 @@ var MerkleDagImmutability = Content{}
 var MerkleDagUseCaseUnixFS = Content{}
 var MerkleDagUseCaseGitObjects = Content{}
 var MerkleDagUseCaseOperationalTransforms = Content{}
+
+var Network_Intro = Content{}
+var Network_Ipfs_Peers = Content{}
+var Network_Daemon = Content{}
+var Network_Routing = Content{}
+var Network_Exchange = Content{}
+var Network_Naming = Content{}
