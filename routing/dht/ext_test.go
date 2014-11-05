@@ -16,6 +16,7 @@ import (
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 
+	"sync"
 	"time"
 )
 
@@ -28,15 +29,24 @@ type mesHandleFunc func(msg.NetMessage) msg.NetMessage
 // fauxNet is a standin for a swarm.Network in order to more easily recreate
 // different testing scenarios
 type fauxSender struct {
+	sync.Mutex
 	handlers []mesHandleFunc
 }
 
 func (f *fauxSender) AddHandler(fn func(msg.NetMessage) msg.NetMessage) {
+	f.Lock()
+	defer f.Unlock()
+
 	f.handlers = append(f.handlers, fn)
 }
 
 func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
-	for _, h := range f.handlers {
+	f.Lock()
+	handlers := make([]mesHandleFunc, len(f.handlers))
+	copy(handlers, f.handlers)
+	f.Unlock()
+
+	for _, h := range handlers {
 		reply := h(m)
 		if reply != nil {
 			return reply, nil
@@ -52,7 +62,12 @@ func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.Net
 }
 
 func (f *fauxSender) SendMessage(ctx context.Context, m msg.NetMessage) error {
-	for _, h := range f.handlers {
+	f.Lock()
+	handlers := make([]mesHandleFunc, len(f.handlers))
+	copy(handlers, f.handlers)
+	f.Unlock()
+
+	for _, h := range handlers {
 		reply := h(m)
 		if reply != nil {
 			return nil
