@@ -59,6 +59,15 @@ var initCmd = &cmds.Command{
 	},
 }
 
+// Use these hardcoded bootstrap peers for now.
+var defaultPeers = []*config.BootstrapPeer{
+	&config.BootstrapPeer{
+		// mars.i.ipfs.io
+		PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+		Address: "/ip4/104.131.131.82/tcp/4001",
+	},
+}
+
 func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
@@ -139,14 +148,7 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 	}
 	cfg.Identity.PeerID = id.Pretty()
 
-	// Use these hardcoded bootstrap peers for now.
-	cfg.Bootstrap = []*config.BootstrapPeer{
-		&config.BootstrapPeer{
-			// mars.i.ipfs.io
-			PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-			Address: "/ip4/104.131.131.82/tcp/4001",
-		},
-	}
+	cfg.Bootstrap = defaultPeers
 
 	// tracking ipfs version used to generate the init folder and adding update checker default setting.
 	cfg.Version = config.Version{
