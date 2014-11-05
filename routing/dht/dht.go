@@ -100,7 +100,7 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, er
 	//
 	//   /ip4/10.20.30.40/tcp/1234/ipfs/Qxhxxchxzcncxnzcnxzcxzm
 	//
-	err := dht.dialer.DialPeer(npeer)
+	err := dht.dialer.DialPeer(ctx, npeer)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 	peerlist []*pb.Message_Peer, level int) ([]byte, error) {
 
 	for _, pinfo := range peerlist {
-		p, err := dht.ensureConnectedToPeer(pinfo)
+		p, err := dht.ensureConnectedToPeer(ctx, pinfo)
 		if err != nil {
 			log.Errorf("getFromPeers error: %s", err)
 			continue
@@ -496,14 +496,14 @@ func (dht *IpfsDHT) peerFromInfo(pbp *pb.Message_Peer) (peer.Peer, error) {
 	return p, nil
 }
 
-func (dht *IpfsDHT) ensureConnectedToPeer(pbp *pb.Message_Peer) (peer.Peer, error) {
+func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, pbp *pb.Message_Peer) (peer.Peer, error) {
 	p, err := dht.peerFromInfo(pbp)
 	if err != nil {
 		return nil, err
 	}
 
 	// dial connection
-	err = dht.dialer.DialPeer(p)
+	err = dht.dialer.DialPeer(ctx, p)
 	return p, err
 }
 
@@ -556,7 +556,7 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	if err != nil {
 		log.Error("Bootstrap peer error: %s", err)
 	}
-	err = dht.dialer.DialPeer(p)
+	err = dht.dialer.DialPeer(ctx, p)
 	if err != nil {
 		log.Errorf("Bootstrap peer error: %s", err)
 	}

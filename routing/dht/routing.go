@@ -145,7 +145,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 					log.Error(err)
 					return
 				}
-				dht.addPeerListAsync(key, pmes.GetProviderPeers(), ps, count, peerOut)
+				dht.addPeerListAsync(ctx, key, pmes.GetProviderPeers(), ps, count, peerOut)
 			}(pp)
 		}
 		wg.Wait()
@@ -154,13 +154,13 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 	return peerOut
 }
 
-func (dht *IpfsDHT) addPeerListAsync(k u.Key, peers []*pb.Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
+func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
 	done := make(chan struct{})
 	for _, pbp := range peers {
 		go func(mp *pb.Message_Peer) {
 			defer func() { done <- struct{}{} }()
 			// construct new peer
-			p, err := dht.ensureConnectedToPeer(mp)
+			p, err := dht.ensureConnectedToPeer(ctx, mp)
 			if err != nil {
 				log.Error("%s", err)
 				return
