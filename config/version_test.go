@@ -14,12 +14,12 @@ func TestAutoUpdateValues(t *testing.T) {
 		val   AutoUpdateSetting
 		err   error
 	}{
-		{`{"hello":123}`, UpdateMinor, nil}, // default
-		{`{"AutoUpdate": "never"}`, UpdateNever, nil},
-		{`{"AutoUpdate": "patch"}`, UpdatePatch, nil},
-		{`{"AutoUpdate": "minor"}`, UpdateMinor, nil},
-		{`{"AutoUpdate": "major"}`, UpdateMajor, nil},
-		{`{"AutoUpdate": "blarg"}`, UpdateMinor, ErrUnknownAutoUpdateSetting},
+		{`{"hello":123}`, AutoUpdateNever, nil}, // zero value
+		{`{"AutoUpdate": "never"}`, AutoUpdateNever, nil},
+		{`{"AutoUpdate": "patch"}`, AutoUpdatePatch, nil},
+		{`{"AutoUpdate": "minor"}`, AutoUpdateMinor, nil},
+		{`{"AutoUpdate": "major"}`, AutoUpdateMajor, nil},
+		{`{"AutoUpdate": "blarg"}`, AutoUpdateMinor, ErrUnknownAutoUpdateSetting},
 	}
 
 	for i, tc := range tests {

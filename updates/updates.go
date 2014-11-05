@@ -150,7 +150,7 @@ func Apply(rel *check.Result) error {
 // ShouldAutoUpdate decides wether a new version should be applied
 // checks against config setting and new version string. returns false in case of error
 func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
-	if setting == config.UpdateNever {
+	if setting == config.AutoUpdateNever {
 		return false
 	}
 
@@ -165,7 +165,7 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 
 	switch setting {
 
-	case config.UpdatePatch:
+	case config.AutoUpdatePatch:
 		if n[0] < c[0] {
 			return false
 		}
@@ -176,14 +176,14 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 
 		return n[2] > c[2]
 
-	case config.UpdateMinor:
+	case config.AutoUpdateMinor:
 		if n[0] != c[0] {
 			return false
 		}
 
 		return n[1] > c[1] || (n[1] == c[1] && n[2] > c[2])
 
-	case config.UpdateMajor:
+	case config.AutoUpdateMajor:
 		for i := 0; i < 3; i++ {
 			if n[i] < c[i] {
 				return false
@@ -222,7 +222,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	// there is an update available
 
 	// if we autoupdate
-	if cfg.Version.AutoUpdate != config.UpdateNever {
+	if cfg.Version.AutoUpdate != config.AutoUpdateNever {
 		// and we should auto update
 		if ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
 			log.Noticef("Applying update %s", u.Version)
