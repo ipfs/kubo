@@ -94,6 +94,25 @@ var allTopics = []Topic{
 	Topic{Ipns(4), Ipns_Resolving},
 	Topic{Ipns(5), Ipns_Consistency},
 	Topic{Ipns(6), Ipns_Records_Etc},
+
+	Topic{Mounting(0), Mounting_General},
+	Topic{Mounting(1), Mounting_Ipfs},
+	Topic{Mounting(2), Mounting_Ipns},
+
+	Topic{Plumbing(0), Plumbing_Intro},
+	Topic{Plumbing(1), Plumbing_Ipfs_Block},
+	Topic{Plumbing(2), Plumbing_Ipfs_Object},
+	Topic{Plumbing(3), Plumbing_Ipfs_Refs},
+	Topic{Plumbing(4), Plumbing_Ipfs_Ping},
+	Topic{Plumbing(5), Plumbing_Ipfs_Id},
+
+	Topic{Formats(0), Formats_MerkleDag},
+	Topic{Formats(1), Formats_Multihash},
+	Topic{Formats(2), Formats_Multiaddr},
+	Topic{Formats(3), Formats_Multicodec},
+	Topic{Formats(4), Formats_Multicodec},
+	Topic{Formats(5), Formats_Multikey},
+	Topic{Formats(6), Formats_Protocol_Specific},
 }
 
 // Introduction
@@ -211,3 +230,21 @@ var Ipns_PKI_Review = Content{}
 var Ipns_Publishing = Content{}
 var Ipns_Records_Etc = Content{}
 var Ipns_Resolving = Content{}
+
+var Mounting_General = Content{} // TODO note fuse
+var Mounting_Ipfs = Content{}    // TODO cd, ls, cat
+var Mounting_Ipns = Content{}    // TODO editing
+
+var Plumbing_Intro = Content{}
+var Plumbing_Ipfs_Block = Content{}
+var Plumbing_Ipfs_Object = Content{}
+var Plumbing_Ipfs_Refs = Content{}
+var Plumbing_Ipfs_Ping = Content{}
+var Plumbing_Ipfs_Id = Content{}
+
+var Formats_MerkleDag = Content{}
+var Formats_Multihash = Content{}
+var Formats_Multiaddr = Content{}
+var Formats_Multicodec = Content{}
+var Formats_Multikey = Content{}
+var Formats_Protocol_Specific = Content{}
