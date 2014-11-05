@@ -88,6 +88,8 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	}()
 
 	ctx, cancelFunc := context.WithCancel(parent)
+	defer cancelFunc()
+
 	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
 
@@ -130,7 +132,6 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 
 	select {
 	case block := <-promise:
-		cancelFunc()
 		bs.wantlist.Remove(k)
 		return &block, nil
 	case <-parent.Done():
