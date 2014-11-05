@@ -57,6 +57,8 @@ func NewMultiConn(ctx context.Context, local, remote peer.Peer, conns []Conn) (*
 	if conns != nil && len(conns) > 0 {
 		c.Add(conns...)
 	}
+
+	c.Children().Add(1)
 	go c.fanOut()
 	return c, nil
 }
@@ -81,6 +83,8 @@ func (c *MultiConn) Add(conns ...Conn) {
 		}
 
 		c.conns[c2.ID()] = c2
+		c.Children().Add(1)
+		c2.Children().Add(1) // yep, on the child too.
 		go c.fanInSingle(c2)
 		log.Infof("MultiConn: added %s", c2)
 	}
@@ -134,7 +138,6 @@ func CloseConns(conns ...Conn) {
 // fanOut is the multiplexor out -- it sends outgoing messages over the
 // underlying single connections.
 func (c *MultiConn) fanOut() {
-	c.Children().Add(1)
 	defer c.Children().Done()
 
 	i := 0
@@ -165,9 +168,6 @@ func (c *MultiConn) fanOut() {
 // fanInSingle is a multiplexor in -- it receives incoming messages over the
 // underlying single connections.
 func (c *MultiConn) fanInSingle(child Conn) {
-	c.Children().Add(1)
-	child.Children().Add(1) // yep, on the child too.
-
 	// cleanup all data associated with this child Connection.
 	defer func() {
 		log.Infof("closing: %s", child)
@@ -297,6 +297,8 @@ func (c *MultiConn) Out() chan<- []byte {
 }
 
 func (c *MultiConn) GetError() error {
+	c.RLock()
+	defer c.RUnlock()
 	for _, sub := range c.conns {
 		err := sub.GetError()
 		if err != nil {

@@ -417,14 +417,14 @@ func TestConnectCollision(t *testing.T) {
 
 		done := make(chan struct{})
 		go func() {
-			_, err = dhtA.Connect(ctx, peerB)
+			_, err := dhtA.Connect(ctx, peerB)
 			if err != nil {
 				t.Fatal(err)
 			}
 			done <- struct{}{}
 		}()
 		go func() {
-			_, err = dhtB.Connect(ctx, peerA)
+			_, err := dhtB.Connect(ctx, peerA)
 			if err != nil {
 				t.Fatal(err)
 			}

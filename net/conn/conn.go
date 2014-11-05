@@ -89,13 +89,13 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 	log.Info("newSingleConn: %v to %v", local, remote)
 
 	// setup the various io goroutines
+	conn.Children().Add(1)
 	go func() {
-		conn.Children().Add(1)
 		conn.msgio.outgoing.WriteTo(maconn)
 		conn.Children().Done()
 	}()
+	conn.Children().Add(1)
 	go func() {
-		conn.Children().Add(1)
 		conn.msgio.incoming.ReadFrom(maconn, MaxMessageSize)
 		conn.Children().Done()
 	}()

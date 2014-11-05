@@ -149,8 +149,6 @@ func getOrFail(bitswap instance, b *blocks.Block, t *testing.T, wg *sync.WaitGro
 
 // TODO simplify this test. get to the _essence_!
 func TestSendToWantingPeer(t *testing.T) {
-	util.Debug = true
-
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
