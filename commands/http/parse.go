@@ -61,17 +61,18 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		if valCount <= lenRequired && !argDef.Required {
 			continue
 		}
-		valCount--
 
 		if argDef.Type == cmds.ArgString {
 			if argDef.Variadic {
 				for _, s := range stringArgs {
 					args = append(args, s)
 				}
+				valCount -= len(stringArgs)
 
 			} else if len(stringArgs) > 0 {
 				args = append(args, stringArgs[0])
 				stringArgs = stringArgs[1:]
+				valCount--
 
 			} else {
 				break
