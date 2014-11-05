@@ -16,6 +16,18 @@ type IpnsEntry struct {
 	Value string
 }
 
+type ResolveOutput struct {
+	Entries []IpnsEntry
+}
+
+var nameCmd = &cmds.Command{
+	Help: "TODO",
+	Subcommands: map[string]*cmds.Command{
+		"publish": publishCmd,
+		"resolve": resolveCmd,
+	},
+}
+
 var publishCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.Argument{"name", cmds.ArgString, false, false},
@@ -65,6 +77,56 @@ var publishCmd = &cmds.Command{
 	Type: &IpnsEntry{},
 }
 
+var resolveCmd = &cmds.Command{
+	Arguments: []cmds.Argument{
+		cmds.Argument{"name", cmds.ArgString, false, true},
+	},
+	Run: func(res cmds.Response, req cmds.Request) {
+		name := ""
+		args := req.Arguments()
+		n := req.Context().Node
+		var output []IpnsEntry
+
+		if len(args) == 0 {
+			if n.Identity == nil {
+				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
+				return
+			}
+
+			name = n.Identity.ID().String()
+			entry, err := resolve(name, n)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			output = []IpnsEntry{entry}
+
+		} else {
+			output = make([]IpnsEntry, len(args))
+
+			for i, arg := range args {
+				var ok bool
+				name, ok = arg.(string)
+				if !ok {
+					res.SetError(errors.New("cast error"), cmds.ErrNormal)
+					return
+				}
+
+				entry, err := resolve(name, n)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+				output[i] = entry
+			}
+		}
+
+		res.SetOutput(&ResolveOutput{output})
+	},
+	Type: &ResolveOutput{},
+}
+
 func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error) {
 	pub := nsys.NewRoutingPublisher(n.Routing)
 	err := pub.Publish(k, ref)
@@ -80,5 +142,17 @@ func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error)
 	return &IpnsEntry{
 		Name:  u.Key(hash).String(),
 		Value: ref,
+	}, nil
+}
+
+func resolve(name string, n *core.IpfsNode) (IpnsEntry, error) {
+	resolved, err := n.Namesys.Resolve(name)
+	if err != nil {
+		return IpnsEntry{}, err
+	}
+
+	return IpnsEntry{
+		Name:  name,
+		Value: resolved,
 	}, nil
 }
