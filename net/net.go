@@ -5,6 +5,7 @@ import (
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
+	util "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -56,9 +57,13 @@ func NewIpfsNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 // Listen handles incoming connections on given Multiaddr.
 // func (n *IpfsNetwork) Listen(*ma.Muliaddr) error {}
 
-// DialPeer attempts to establish a connection to a given peer
+// DialPeer attempts to establish a connection to a given peer.
+// Respects the context.
 func (n *IpfsNetwork) DialPeer(ctx context.Context, p peer.Peer) error {
-	_, err := n.swarm.Dial(p)
+	err := util.Do(ctx, func() error {
+		_, err := n.swarm.Dial(p)
+		return err
+	})
 	return err
 }
 
