@@ -117,25 +117,58 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 }
 
 func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
-	var argDef cmds.Argument
-	args := make([]interface{}, len(stringArgs))
+	args := make([]interface{}, 0)
 
-	for i, arg := range stringArgs {
-		if i < len(cmd.Arguments) {
-			argDef = cmd.Arguments[i]
-		}
-
-		if argDef.Type == cmds.ArgString {
-			args[i] = arg
-
-		} else {
-			in, err := os.Open(arg)
-			if err != nil {
-				return nil, err
-			}
-			args[i] = in
+	// count required argument definitions
+	lenRequired := 0
+	for _, argDef := range cmd.Arguments {
+		if argDef.Required {
+			lenRequired++
 		}
 	}
 
+	j := 0
+	for _, argDef := range cmd.Arguments {
+		// skip optional argument definitions if there aren't sufficient remaining values
+		if len(stringArgs)-j <= lenRequired && !argDef.Required {
+			continue
+		}
+
+		if j >= len(stringArgs) {
+			break
+		}
+
+		if argDef.Variadic {
+			for _, arg := range stringArgs[j:] {
+				var err error
+				args, err = appendArg(args, argDef, arg)
+				if err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			var err error
+			args, err = appendArg(args, argDef, stringArgs[j])
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		j++
+	}
+
 	return args, nil
+}
+
+func appendArg(args []interface{}, argDef cmds.Argument, value string) ([]interface{}, error) {
+	if argDef.Type == cmds.ArgString {
+		return append(args, value), nil
+
+	} else {
+		in, err := os.Open(value)
+		if err != nil {
+			return nil, err
+		}
+		return append(args, in), nil
+	}
 }

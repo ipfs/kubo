@@ -149,13 +149,27 @@ func (c *Command) CheckArguments(req Request) error {
 		return fmt.Errorf("Expected %v arguments, got %v", len(argDefs), len(args))
 	}
 
+	// count required argument definitions
+	lenRequired := 0
+	for _, argDef := range c.Arguments {
+		if argDef.Required {
+			lenRequired++
+		}
+	}
+
 	// iterate over the arg definitions
-	for i, argDef := range c.Arguments {
+	j := 0
+	for _, argDef := range c.Arguments {
+		// skip optional argument definitions if there aren't sufficient remaining values
+		if len(args)-j <= lenRequired && !argDef.Required {
+			continue
+		}
 
 		// the value for this argument definition. can be nil if it wasn't provided by the caller
 		var v interface{}
-		if i < len(args) {
-			v = args[i]
+		if j < len(args) {
+			v = args[j]
+			j++
 		}
 
 		err := checkArgValue(v, argDef)
@@ -164,8 +178,8 @@ func (c *Command) CheckArguments(req Request) error {
 		}
 
 		// any additional values are for the variadic arg definition
-		if argDef.Variadic && i < len(args)-1 {
-			for _, val := range args[i+1:] {
+		if argDef.Variadic && j < len(args)-1 {
+			for _, val := range args[j+1:] {
 				err := checkArgValue(val, argDef)
 				if err != nil {
 					return err
