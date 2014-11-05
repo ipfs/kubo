@@ -120,6 +120,7 @@ func NewContextCloser(ctx context.Context, cf CloseFunc) ContextCloser {
 		closed:    make(chan struct{}),
 	}
 
+	c.Children().Add(1) // we're a child goroutine, to be waited upon.
 	go c.closeOnContextDone()
 	return c
 }
@@ -176,7 +177,6 @@ func (c *contextCloser) closeLogic() {
 // we need to go through the Close motions anyway. Hence all the sync
 // stuff all over the place...
 func (c *contextCloser) closeOnContextDone() {
-	c.Children().Add(1)  // we're a child goroutine, to be waited upon.
 	<-c.Context().Done() // wait until parent (context) is done.
 	c.internalClose()
 	c.Children().Done()

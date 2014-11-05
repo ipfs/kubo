@@ -83,6 +83,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr, local peer.Peer, 
 	// ContextCloser for proper child management.
 	s.ContextCloser = ctxc.NewContextCloser(ctx, s.close)
 
+	s.Children().Add(1)
 	go s.fanOut()
 	return s, s.listen(listenAddrs)
 }

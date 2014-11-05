@@ -139,6 +139,8 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		s.connsLock.Unlock()
 
 		// kick off reader goroutine
+		s.Children().Add(1)
+		mc.Children().Add(1) // child of Conn as well.
 		go s.fanInSingle(mc)
 		log.Debugf("added new multiconn: %s", mc)
 	} else {
@@ -154,7 +156,6 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 
 // Handles the unwrapping + sending of messages to the right connection.
 func (s *Swarm) fanOut() {
-	s.Children().Add(1)
 	defer s.Children().Done()
 
 	i := 0
@@ -194,9 +195,6 @@ func (s *Swarm) fanOut() {
 // Handles the receiving + wrapping of messages, per conn.
 // Consider using reflect.Select with one goroutine instead of n.
 func (s *Swarm) fanInSingle(c conn.Conn) {
-	s.Children().Add(1)
-	c.Children().Add(1) // child of Conn as well.
-
 	// cleanup all data associated with this child Connection.
 	defer func() {
 		// remove it from the map.

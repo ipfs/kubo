@@ -47,7 +47,6 @@ func (l *listener) close() error {
 }
 
 func (l *listener) listen() {
-	l.Children().Add(1)
 	defer l.Children().Done()
 
 	// handle at most chansize concurrent handshakes
@@ -143,6 +142,7 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.Peer, peers peer.
 	ctx2, _ := context.WithCancel(ctx)
 	l.ContextCloser = ctxc.NewContextCloser(ctx2, l.close)
 
+	l.Children().Add(1)
 	go l.listen()
 
 	return l, nil
