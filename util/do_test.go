@@ -1,0 +1,42 @@
+package util
+
+import (
+	"errors"
+	"testing"
+
+	"code.google.com/p/go.net/context"
+)
+
+func TestDoReturnsContextErr(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := make(chan struct{})
+	err := Do(ctx, func() error {
+		cancel()
+		ch <- struct{}{} // won't return
+		return nil
+	})
+	if err != ctx.Err() {
+		t.Fail()
+	}
+}
+
+func TestDoReturnsFuncError(t *testing.T) {
+	ctx := context.Background()
+	expected := errors.New("expected to be returned by Do")
+	err := Do(ctx, func() error {
+		return expected
+	})
+	if err != expected {
+		t.Fail()
+	}
+}
+
+func TestDoReturnsNil(t *testing.T) {
+	ctx := context.Background()
+	err := Do(ctx, func() error {
+		return nil
+	})
+	if err != nil {
+		t.Fail()
+	}
+}
