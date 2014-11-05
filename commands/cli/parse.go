@@ -145,6 +145,7 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 				if err != nil {
 					return nil, err
 				}
+				j++
 			}
 		} else {
 			var err error
@@ -152,9 +153,8 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
+			j++
 		}
-
-		j++
 	}
 
 	if len(stringArgs)-j > 0 {
