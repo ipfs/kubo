@@ -179,7 +179,7 @@ func (c *Command) CheckArguments(req Request) error {
 
 		// any additional values are for the variadic arg definition
 		if argDef.Variadic && j < len(args)-1 {
-			for _, val := range args[j+1:] {
+			for _, val := range args[j:] {
 				err := checkArgValue(val, argDef)
 				if err != nil {
 					return err
