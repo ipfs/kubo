@@ -94,6 +94,12 @@ var FileBasicsMounting = Content{
 	`,
 }
 
+// Chapter is used to define a chapter once and derive IDs for any number of
+// sections within.
+//
+// eg.
+// 		Intro := Chapter(1)
+// 		ID("1.1") == Intro(1)
 func Chapter(number int) func(topic int) ID {
 	return func(topic int) ID {
 		return ID(fmt.Sprintf("%d.%d", number, topic))
