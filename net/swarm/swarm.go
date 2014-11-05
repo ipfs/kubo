@@ -13,6 +13,7 @@ import (
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 var log = u.Logger("swarm")
@@ -70,7 +71,7 @@ type Swarm struct {
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
-func NewSwarm(ctx context.Context, local peer.Peer, ps peer.Peerstore) (*Swarm, error) {
+func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr, local peer.Peer, ps peer.Peerstore) (*Swarm, error) {
 	s := &Swarm{
 		Pipe:    msg.NewPipe(10),
 		conns:   conn.MultiConnMap{},
@@ -83,7 +84,7 @@ func NewSwarm(ctx context.Context, local peer.Peer, ps peer.Peerstore) (*Swarm, 
 	s.ContextCloser = ctxc.NewContextCloser(ctx, s.close)
 
 	go s.fanOut()
-	return s, s.listen()
+	return s, s.listen(listenAddrs)
 }
 
 // close stops a swarm. It's the underlying function called by ContextCloser
@@ -210,6 +211,3 @@ func (s *Swarm) GetPeerList() []peer.Peer {
 	s.connsLock.RUnlock()
 	return out
 }
-
-// Temporary to ensure that the Swarm always matches the Network interface as we are changing it
-// var _ Network = &Swarm{}

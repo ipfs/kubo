@@ -12,14 +12,14 @@ import (
 )
 
 // Open listeners for each network the swarm should listen on
-func (s *Swarm) listen() error {
+func (s *Swarm) listen(addrs []ma.Multiaddr) error {
 	hasErr := false
 	retErr := &ListenErr{
-		Errors: make([]error, len(s.local.Addresses())),
+		Errors: make([]error, len(addrs)),
 	}
 
 	// listen on every address
-	for i, addr := range s.local.Addresses() {
+	for i, addr := range addrs {
 		err := s.connListen(addr)
 		if err != nil {
 			hasErr = true
@@ -37,9 +37,19 @@ func (s *Swarm) listen() error {
 // Listen for new connections on the given multiaddr
 func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 
+	resolved, err := resolveUnspecifiedAddresses([]ma.Multiaddr{maddr})
+	if err != nil {
+		return err
+	}
+
 	list, err := conn.Listen(s.Context(), maddr, s.local, s.peers)
 	if err != nil {
 		return err
+	}
+
+	// add resolved local addresses to peer
+	for _, addr := range resolved {
+		s.local.AddAddress(addr)
 	}
 
 	// make sure port can be reused. TOOD this doesn't work...

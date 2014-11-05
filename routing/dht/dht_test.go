@@ -24,7 +24,7 @@ func setupDHT(ctx context.Context, t *testing.T, p peer.Peer) *IpfsDHT {
 	peerstore := peer.NewPeerstore()
 
 	dhts := netservice.NewService(ctx, nil) // nil handler for now, need to patch it
-	net, err := inet.NewIpfsNetwork(ctx, p, peerstore, &mux.ProtocolMap{
+	net, err := inet.NewIpfsNetwork(ctx, p.Addresses(), p, peerstore, &mux.ProtocolMap{
 		mux.ProtocolID_Routing: dhts,
 	})
 	if err != nil {
