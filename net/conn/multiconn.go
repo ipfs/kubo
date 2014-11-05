@@ -297,6 +297,8 @@ func (c *MultiConn) Out() chan<- []byte {
 }
 
 func (c *MultiConn) GetError() error {
+	c.RLock()
+	defer c.RUnlock()
 	for _, sub := range c.conns {
 		err := sub.GetError()
 		if err != nil {
