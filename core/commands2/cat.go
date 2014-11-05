@@ -11,11 +11,11 @@ import (
 
 var catCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
-		cmds.Argument{"object", cmds.ArgString, false, true},
+		cmds.Argument{"object", cmds.ArgString, true, true},
 	},
-	Help: `ipfs cat <ipfs-path> - Show ipfs object data.
+	Help: `ipfs cat <object> - Show ipfs object data.
 
-	Retrieves the object named by <ipfs-path> and displays the Data
+	Retrieves the object named by <object> and outputs the data
 	it contains.
 	`,
 	Run: func(res cmds.Response, req cmds.Request) {
