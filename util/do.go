@@ -2,7 +2,7 @@ package util
 
 import "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-func Do(ctx context.Context, f func() error) error {
+func ContextDo(ctx context.Context, f func() error) error {
 
 	ch := make(chan error)
 

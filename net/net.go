@@ -60,7 +60,7 @@ func NewIpfsNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
 func (n *IpfsNetwork) DialPeer(ctx context.Context, p peer.Peer) error {
-	err := util.Do(ctx, func() error {
+	err := util.ContextDo(ctx, func() error {
 		_, err := n.swarm.Dial(p)
 		return err
 	})
