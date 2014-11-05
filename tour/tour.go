@@ -26,7 +26,11 @@ func (a IDSlice) Less(i, j int) bool { return a[i].LessThan(a[j]) }
 
 // Topic is a type of objects that structures a tour topic.
 type Topic struct {
-	ID    ID
+	ID ID
+	Content
+}
+
+type Content struct {
 	Title string
 	Text  string
 }
