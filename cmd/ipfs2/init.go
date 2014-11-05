@@ -85,41 +85,46 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 			return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
 		}
 	}
-	cfg := new(config.Config)
 
 	ds, err := datastoreConfig(dspath)
 	if err != nil {
 		return err
 	}
-	cfg.Datastore = ds
 
 	identity, err := identityConfig(nBitsForKeypair)
 	if err != nil {
 		return err
 	}
-	cfg.Identity = identity
 
-	// setup the node addresses.
-	cfg.Addresses = config.Addresses{
-		Swarm: "/ip4/0.0.0.0/tcp/4001",
-		API:   "/ip4/127.0.0.1/tcp/5001",
+	conf := config.Config{
+
+		// setup the node addresses.
+		Addresses: config.Addresses{
+			Swarm: "/ip4/0.0.0.0/tcp/4001",
+			API:   "/ip4/127.0.0.1/tcp/5001",
+		},
+
+		Bootstrap: defaultPeers,
+
+		Datastore: ds,
+
+		Identity: identity,
+
+		// setup the node mount points.
+		Mounts: config.Mounts{
+			IPFS: "/ipfs",
+			IPNS: "/ipns",
+		},
+
+		// tracking ipfs version used to generate the init folder and adding
+		// update checker default setting.
+		Version: config.Version{
+			Check:   "error",
+			Current: updates.Version,
+		},
 	}
 
-	// setup the node mount points.
-	cfg.Mounts = config.Mounts{
-		IPFS: "/ipfs",
-		IPNS: "/ipns",
-	}
-
-	cfg.Bootstrap = defaultPeers
-
-	// tracking ipfs version used to generate the init folder and adding update checker default setting.
-	cfg.Version = config.Version{
-		Check:   "error",
-		Current: updates.Version,
-	}
-
-	err = config.WriteConfigFile(configFilename, cfg)
+	err = config.WriteConfigFile(configFilename, conf)
 	if err != nil {
 		return err
 	}
