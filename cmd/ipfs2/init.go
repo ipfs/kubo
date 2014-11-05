@@ -86,28 +86,11 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 	}
 	cfg := new(config.Config)
 
-	if len(dspath) == 0 {
-		dspath, err = config.DataStorePath("")
-		if err != nil {
-			return err
-		}
-	}
-	cfg.Datastore = config.Datastore{
-		Path: dspath,
-		Type: "leveldb",
-	}
-
-	// Construct the data store if missing
-	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
+	ds, err := datastoreConfig(dspath)
+	if err != nil {
 		return err
 	}
-
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return errors.New("Datastore '" + dspath + "' is not writeable")
-	}
+	cfg.Datastore = ds
 
 	cfg.Identity = config.Identity{}
 
@@ -161,4 +144,31 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 		return err
 	}
 	return nil
+}
+
+func datastoreConfig(dspath string) (config.Datastore, error) {
+	ds := config.Datastore{}
+	if len(dspath) == 0 {
+		var err error
+		dspath, err = config.DataStorePath("")
+		if err != nil {
+			return ds, err
+		}
+	}
+	ds.Path = dspath
+	ds.Type = "leveldb"
+
+	// Construct the data store if missing
+	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
+		return ds, err
+	}
+
+	// Check the directory is writeable
+	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
+		os.Remove(f.Name())
+	} else {
+		return ds, errors.New("Datastore '" + dspath + "' is not writeable")
+	}
+
+	return ds, nil
 }
