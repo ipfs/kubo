@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	crand "crypto/rand"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -82,7 +81,7 @@ type fauxNet struct {
 }
 
 // DialPeer attempts to establish a connection to a given peer
-func (f *fauxNet) DialPeer(peer.Peer) error {
+func (f *fauxNet) DialPeer(context.Context, peer.Peer) error {
 	return nil
 }
 

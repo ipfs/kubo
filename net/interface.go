@@ -1,6 +1,7 @@
 package net
 
 import (
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	srv "github.com/jbenet/go-ipfs/net/service"
@@ -19,7 +20,7 @@ type Network interface {
 	// TODO: for now, only listen on addrs in local peer when initializing.
 
 	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(peer.Peer) error
+	DialPeer(context.Context, peer.Peer) error
 
 	// ClosePeer connection to peer
 	ClosePeer(peer.Peer) error
@@ -64,5 +65,5 @@ type Service srv.Service
 type Dialer interface {
 
 	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(peer.Peer) error
+	DialPeer(context.Context, peer.Peer) error
 }

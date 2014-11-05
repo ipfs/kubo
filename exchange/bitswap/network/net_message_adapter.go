@@ -68,7 +68,7 @@ func (adapter *impl) HandleMessage(
 }
 
 func (adapter *impl) DialPeer(ctx context.Context, p peer.Peer) error {
-	return adapter.net.DialPeer(p)
+	return adapter.net.DialPeer(ctx, p)
 }
 
 func (adapter *impl) SendMessage(
