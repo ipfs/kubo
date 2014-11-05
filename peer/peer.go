@@ -287,6 +287,8 @@ func (p *peer) Update(other Peer) error {
 		p.AddAddress(a)
 	}
 
+	p.SetLatency(other.GetLatency())
+
 	sk := other.PrivKey()
 	pk := other.PubKey()
 	p.Lock()
