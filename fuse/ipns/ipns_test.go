@@ -239,17 +239,17 @@ func TestFastRepublish(t *testing.T) {
 	}
 
 	// constantly keep writing to the file
-	go func() {
+	go func(timeout time.Duration) {
 		for {
 			select {
 			case <-closed:
 				return
 
-			case <-time.After(shortRepublishTimeout * 8 / 10):
+			case <-time.After(timeout * 8 / 10):
 				writeFileData(t, dataB, fname)
 			}
 		}
-	}()
+	}(shortRepublishTimeout)
 
 	hasPublished := func() bool {
 		res, err := node.Namesys.Resolve(pubkeyHash)
