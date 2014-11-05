@@ -91,6 +91,49 @@ func TestBytesToString(t *testing.T) {
 	testString("/ip4/127.0.0.1/udp/1234", "047f0000011104d2")
 }
 
+func TestBytesSplitAndJoin(t *testing.T) {
+
+	testString := func(s string, res []string) {
+		m, err := NewMultiaddr(s)
+		if err != nil {
+			t.Error("failed to convert", s)
+		}
+
+		split := Split(m)
+		if len(split) != len(res) {
+			t.Error("not enough split components", split)
+			return
+		}
+
+		for i, a := range split {
+			if a.String() != res[i] {
+				t.Errorf("split component failed: %s != %s", a, res[i])
+			}
+		}
+
+		joined := Join(split...)
+		if !m.Equal(joined) {
+			t.Errorf("joined components failed: %s != %s", m, joined)
+		}
+
+		// modifying underlying bytes is fine.
+		m2 := m.(*multiaddr)
+		for i := range m2.bytes {
+			m2.bytes[i] = 0
+		}
+
+		for i, a := range split {
+			if a.String() != res[i] {
+				t.Errorf("split component failed: %s != %s", a, res[i])
+			}
+		}
+	}
+
+	testString("/ip4/1.2.3.4/udp/1234", []string{"/ip4/1.2.3.4", "/udp/1234"})
+	testString("/ip4/1.2.3.4/tcp/1/ip4/2.3.4.5/udp/2",
+		[]string{"/ip4/1.2.3.4", "/tcp/1", "/ip4/2.3.4.5", "/udp/2"})
+}
+
 func TestProtocols(t *testing.T) {
 	m, err := NewMultiaddr("/ip4/127.0.0.1/udp/1234")
 	if err != nil {

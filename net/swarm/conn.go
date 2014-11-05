@@ -12,14 +12,14 @@ import (
 )
 
 // Open listeners for each network the swarm should listen on
-func (s *Swarm) listen() error {
+func (s *Swarm) listen(addrs []ma.Multiaddr) error {
 	hasErr := false
 	retErr := &ListenErr{
-		Errors: make([]error, len(s.local.Addresses())),
+		Errors: make([]error, len(addrs)),
 	}
 
 	// listen on every address
-	for i, addr := range s.local.Addresses() {
+	for i, addr := range addrs {
 		err := s.connListen(addr)
 		if err != nil {
 			hasErr = true
@@ -37,9 +37,19 @@ func (s *Swarm) listen() error {
 // Listen for new connections on the given multiaddr
 func (s *Swarm) connListen(maddr ma.Multiaddr) error {
 
+	resolved, err := resolveUnspecifiedAddresses([]ma.Multiaddr{maddr})
+	if err != nil {
+		return err
+	}
+
 	list, err := conn.Listen(s.Context(), maddr, s.local, s.peers)
 	if err != nil {
 		return err
+	}
+
+	// add resolved local addresses to peer
+	for _, addr := range resolved {
+		s.local.AddAddress(addr)
 	}
 
 	// make sure port can be reused. TOOD this doesn't work...
@@ -102,10 +112,14 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 
 	// handshake3
 	ctxT, _ := context.WithTimeout(c.Context(), conn.HandshakeTimeout)
-	if err := conn.Handshake3(ctxT, c); err != nil {
+	h3result, err := conn.Handshake3(ctxT, c)
+	if err != nil {
 		c.Close()
 		return nil, fmt.Errorf("Handshake3 failed: %s", err)
 	}
+
+	// check for nats. you know, just in case.
+	s.checkNATWarning(h3result.LocalObservedAddress)
 
 	// add to conns
 	s.connsLock.Lock()

@@ -123,7 +123,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		}
 
 		// setup the network
-		n.Network, err = inet.NewIpfsNetwork(ctx, n.Identity, n.Peerstore, muxMap)
+		listenAddrs, err := listenAddresses(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		n.Network, err = inet.NewIpfsNetwork(ctx, listenAddrs, n.Identity, n.Peerstore, muxMap)
 		if err != nil {
 			return nil, err
 		}
@@ -183,16 +188,6 @@ func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.P
 		return nil, err
 	}
 
-	// address is optional
-	if len(cfg.Addresses.Swarm) > 0 {
-		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
-		if err != nil {
-			return nil, err
-		}
-
-		peer.AddAddress(maddr)
-	}
-
 	// when not online, don't need to parse private keys (yet)
 	if online {
 		skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
@@ -232,4 +227,19 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 			log.Errorf("Bootstrapping error: %v", err)
 		}
 	}
+}
+
+func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
+	var listen []ma.Multiaddr
+
+	if len(cfg.Addresses.Swarm) > 0 {
+		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
+		if err != nil {
+			return nil, fmt.Errorf("Failure to parse config.Addresses.Swarm: %s", cfg.Addresses.Swarm)
+		}
+
+		listen = append(listen, maddr)
+	}
+
+	return listen, nil
 }

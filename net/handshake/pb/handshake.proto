@@ -22,7 +22,7 @@ message Handshake3 {
   // - then again, if we change / disable secure channel, may still want it.
   // optional bytes publicKey = 1;
 
-  // listenAddrs are the multiaddrs this node listens for open connections on
+  // listenAddrs are the multiaddrs the sender node listens for open connections on
   repeated bytes listenAddrs = 2;
 
   // TODO
@@ -31,8 +31,8 @@ message Handshake3 {
 
   // we'll have more fields here later.
 
-  // oservedAddr is the multiaddr of the remote endpoint that the local node perceives
+  // oservedAddr is the multiaddr of the remote endpoint that the sender node perceives
   // this is useful information to convey to the other side, as it helps the remote endpoint
   // determine whether its connection to the local peer goes through NAT.
-  optional string observedAddr = 4;
+  optional bytes observedAddr = 4;
 }

@@ -15,10 +15,12 @@ It has these top-level messages:
 package handshake_pb
 
 import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import json "encoding/json"
 import math "math"
 
-// Reference imports to suppress errors if they are not otherwise used.
+// Reference proto, json, and math imports to suppress error if they are not otherwise used.
 var _ = proto.Marshal
+var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 // Handshake1 is delivered _before_ the secure channel is initialized
@@ -51,11 +53,13 @@ func (m *Handshake1) GetAgentVersion() string {
 
 // Handshake3 is delivered _after_ the secure channel is initialized
 type Handshake3 struct {
-	// listenAddrs are the multiaddrs this node listens for open connections on
+	// listenAddrs are the multiaddrs the sender node listens for open connections on
 	ListenAddrs [][]byte `protobuf:"bytes,2,rep,name=listenAddrs" json:"listenAddrs,omitempty"`
-	// we'll have more fields here later.
-	ObservedAddr     *string `protobuf:"bytes,4,opt,name=observedAddr" json:"observedAddr,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	// oservedAddr is the multiaddr of the remote endpoint that the sender node perceives
+	// this is useful information to convey to the other side, as it helps the remote endpoint
+	// determine whether its connection to the local peer goes through NAT.
+	ObservedAddr     []byte `protobuf:"bytes,4,opt,name=observedAddr" json:"observedAddr,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *Handshake3) Reset()         { *m = Handshake3{} }
@@ -69,11 +73,11 @@ func (m *Handshake3) GetListenAddrs() [][]byte {
 	return nil
 }
 
-func (m *Handshake3) GetObservedAddr() string {
-	if m != nil && m.ObservedAddr != nil {
-		return *m.ObservedAddr
+func (m *Handshake3) GetObservedAddr() []byte {
+	if m != nil {
+		return m.ObservedAddr
 	}
-	return ""
+	return nil
 }
 
 func init() {

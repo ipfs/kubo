@@ -8,6 +8,7 @@ import (
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // IpfsNetwork implements the Network interface,
@@ -27,7 +28,7 @@ type IpfsNetwork struct {
 }
 
 // NewIpfsNetwork is the structure that implements the network interface
-func NewIpfsNetwork(ctx context.Context, local peer.Peer,
+func NewIpfsNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 	peers peer.Peerstore, pmap *mux.ProtocolMap) (*IpfsNetwork, error) {
 
 	in := &IpfsNetwork{
@@ -37,7 +38,7 @@ func NewIpfsNetwork(ctx context.Context, local peer.Peer,
 	}
 
 	var err error
-	in.swarm, err = swarm.NewSwarm(ctx, local, peers)
+	in.swarm, err = swarm.NewSwarm(ctx, listen, local, peers)
 	if err != nil {
 		in.Close()
 		return nil, err
@@ -95,4 +96,16 @@ func (n *IpfsNetwork) GetPeerList() []peer.Peer {
 // GetBandwidthTotals returns the total amount of bandwidth transferred
 func (n *IpfsNetwork) GetBandwidthTotals() (in uint64, out uint64) {
 	return n.muxer.GetBandwidthTotals()
+}
+
+// ListenAddresses returns a list of addresses at which this network listens.
+func (n *IpfsNetwork) ListenAddresses() []ma.Multiaddr {
+	return n.swarm.ListenAddresses()
+}
+
+// InterfaceListenAddresses returns a list of addresses at which this network
+// listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
+// use the known local interfaces.
+func (n *IpfsNetwork) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
+	return n.swarm.InterfaceListenAddresses()
 }

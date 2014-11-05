@@ -57,7 +57,7 @@ func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []
 	for _, addr := range addrs {
 		local := setupPeer(t, addr)
 		peerstore := peer.NewPeerstore()
-		swarm, err := NewSwarm(ctx, local, peerstore)
+		swarm, err := NewSwarm(ctx, local.Addresses(), local, peerstore)
 		if err != nil {
 			t.Fatal(err)
 		}

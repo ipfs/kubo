@@ -84,10 +84,10 @@ func (m *multiaddr) Encapsulate(o Multiaddr) Multiaddr {
 	mb := m.bytes
 	ob := o.Bytes()
 
-	var b bytes.Buffer
-	b.Write(mb)
-	b.Write(ob)
-	return &multiaddr{bytes: b.Bytes()}
+	b := make([]byte, len(mb)+len(ob))
+	copy(b, mb)
+	copy(b[len(mb):], ob)
+	return &multiaddr{bytes: b}
 }
 
 // Decapsulate unwraps Multiaddr up until the given Multiaddr is found.

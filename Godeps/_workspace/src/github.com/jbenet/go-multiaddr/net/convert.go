@@ -1,4 +1,4 @@
-package net
+package manet
 
 import (
 	"fmt"
@@ -57,6 +57,13 @@ func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 
 	case "ip", "ip4", "ip6":
 		ac, ok := a.(*net.IPAddr)
+		if !ok {
+			return nil, errIncorrectNetAddr
+		}
+		return FromIP(ac.IP)
+
+	case "ip+net":
+		ac, ok := a.(*net.IPNet)
 		if !ok {
 			return nil, errIncorrectNetAddr
 		}
@@ -122,31 +129,4 @@ func DialArgs(m ma.Multiaddr) (string, string, error) {
 		host = fmt.Sprintf("[%s]:%s", parts[1], parts[3])
 	}
 	return network, host, nil
-}
-
-// IsThinWaist returns whether a Multiaddr starts with "Thin Waist" Protocols.
-// This means: /{IP4, IP6}[/{TCP, UDP}]
-func IsThinWaist(m ma.Multiaddr) bool {
-	p := m.Protocols()
-
-	// nothing? not even a waist.
-	if len(p) == 0 {
-		return false
-	}
-
-	if p[0].Code != ma.P_IP4 && p[0].Code != ma.P_IP6 {
-		return false
-	}
-
-	// only IP? still counts.
-	if len(p) == 1 {
-		return true
-	}
-
-	switch p[1].Code {
-	case ma.P_TCP, ma.P_UDP, ma.P_IP4, ma.P_IP6:
-		return true
-	default:
-		return false
-	}
 }

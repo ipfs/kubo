@@ -6,6 +6,8 @@ import (
 	srv "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -37,6 +39,14 @@ type Network interface {
 
 	// SendMessage sends given Message out
 	SendMessage(msg.NetMessage) error
+
+	// ListenAddresses returns a list of addresses at which this network listens.
+	ListenAddresses() []ma.Multiaddr
+
+	// InterfaceListenAddresses returns a list of addresses at which this network
+	// listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
+	// use the known local interfaces.
+	InterfaceListenAddresses() ([]ma.Multiaddr, error)
 }
 
 // Sender interface for network services.

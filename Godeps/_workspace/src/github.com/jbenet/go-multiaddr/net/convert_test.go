@@ -1,4 +1,4 @@
-package net
+package manet
 
 import (
 	"net"
