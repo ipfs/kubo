@@ -11,6 +11,16 @@ func init() {
 	sort.Sort(IDSlice(IDs))
 }
 
+// TODO move content into individual files if desired
+
+// TODO(brian): If sub-topics are needed, write recursively (as tree comprised
+// of Section nodes:
+//
+// type Section interface {
+// 	Sections() []Section
+// 	Topic() Topic
+// }
+
 var (
 	Introduction = Chapter(0)
 	FileBasics   = Chapter(1)
@@ -61,6 +71,16 @@ var allTopics = []Topic{
 	Topic{Network(3), Network_Routing},
 	Topic{Network(4), Network_Exchange},
 	Topic{Network(5), Network_Intro},
+
+	Topic{Daemon(0), Daemon_Intro},
+	Topic{Daemon(1), Daemon_Running_Commands},
+	Topic{Daemon(2), Daemon_Web_UI},
+
+	Topic{Routing(0), Routing_Intro},
+	Topic{Routing(1), Rouing_Interface},
+	Topic{Routing(2), Routing_Resolving},
+	Topic{Routing(3), Routing_DHT},
+	Topic{Routing(4), Routing_Other},
 }
 
 // Introduction
@@ -155,3 +175,13 @@ var Network_Daemon = Content{}
 var Network_Routing = Content{}
 var Network_Exchange = Content{}
 var Network_Naming = Content{}
+
+var Daemon_Intro = Content{}
+var Daemon_Running_Commands = Content{}
+var Daemon_Web_UI = Content{}
+
+var Routing_Intro = Content{}
+var Rouing_Interface = Content{}
+var Routing_Resolving = Content{}
+var Routing_DHT = Content{}
+var Routing_Other = Content{}
