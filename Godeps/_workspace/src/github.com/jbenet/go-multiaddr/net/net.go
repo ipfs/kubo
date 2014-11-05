@@ -1,4 +1,4 @@
-package net
+package manet
 
 import (
 	"fmt"
@@ -215,4 +215,21 @@ func Listen(laddr ma.Multiaddr) (Listener, error) {
 		Listener: nl,
 		laddr:    laddr,
 	}, nil
+}
+
+// InterfaceMultiaddrs will return the addresses matching net.InterfaceAddrs
+func InterfaceMultiaddrs() ([]ma.Multiaddr, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	maddrs := make([]ma.Multiaddr, len(addrs))
+	for i, a := range addrs {
+		maddrs[i], err = FromNetAddr(a)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return maddrs, nil
 }

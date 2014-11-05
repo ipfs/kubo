@@ -67,6 +67,30 @@ func bytesToString(b []byte) (ret string, err error) {
 	return s, nil
 }
 
+func bytesSplit(b []byte) (ret [][]byte, err error) {
+	// panic handler, in case we try accessing bytes incorrectly.
+	defer func() {
+		if e := recover(); e != nil {
+			ret = [][]byte{}
+			err = e.(error)
+		}
+	}()
+
+	ret = [][]byte{}
+	for len(b) > 0 {
+		p := ProtocolWithCode(int(b[0]))
+		if p == nil {
+			return [][]byte{}, fmt.Errorf("no protocol with code %d", b[0])
+		}
+
+		length := 1 + (p.Size / 8)
+		ret = append(ret, b[:length])
+		b = b[length:]
+	}
+
+	return ret, nil
+}
+
 func addressStringToBytes(p *Protocol, s string) []byte {
 	switch p.Code {
 

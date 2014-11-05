@@ -34,16 +34,6 @@ addr.Protocols()
 // }
 ```
 
-### Other formats
-
-```go
-// handles the stupid url version too
-m = ma.NewUrl("udp4://127.0.0.1:1234")
-// <Multiaddr /ip4/127.0.0.1/udp/1234>
-m.Url(buf)
-// udp4://127.0.0.1:1234
-```
-
 ### En/decapsulate
 
 ```go

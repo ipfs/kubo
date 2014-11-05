@@ -1,4 +1,4 @@
-package net
+package manet
 
 import (
 	"bytes"
@@ -197,4 +197,48 @@ func TestListenAndDial(t *testing.T) {
 
 	cA.Close()
 	wg.Wait()
+}
+
+func TestIPLoopback(t *testing.T) {
+	if IP4Loopback.String() != "/ip4/127.0.0.1" {
+		t.Error("IP4Loopback incorrect:", IP4Loopback)
+	}
+
+	if IP6Loopback.String() != "/ip6/::1" {
+		t.Error("IP6Loopback incorrect:", IP6Loopback)
+	}
+
+	if IP6LinkLocalLoopback.String() != "/ip6/fe80::1" {
+		t.Error("IP6LinkLocalLoopback incorrect:", IP6Loopback)
+	}
+
+	if !IsIPLoopback(IP4Loopback) {
+		t.Error("IsIPLoopback failed (IP4Loopback)")
+	}
+
+	if !IsIPLoopback(IP6Loopback) {
+		t.Error("IsIPLoopback failed (IP6Loopback)")
+	}
+
+	if !IsIPLoopback(IP6LinkLocalLoopback) {
+		t.Error("IsIPLoopback failed (IP6LinkLocalLoopback)")
+	}
+}
+
+func TestIPUnspecified(t *testing.T) {
+	if IP4Unspecified.String() != "/ip4/0.0.0.0" {
+		t.Error("IP4Unspecified incorrect:", IP4Unspecified)
+	}
+
+	if IP6Unspecified.String() != "/ip6/::" {
+		t.Error("IP6Unspecified incorrect:", IP6Unspecified)
+	}
+
+	if !IsIPUnspecified(IP4Unspecified) {
+		t.Error("IsIPUnspecified failed (IP4Unspecified)")
+	}
+
+	if !IsIPUnspecified(IP6Unspecified) {
+		t.Error("IsIPUnspecified failed (IP6Unspecified)")
+	}
 }
