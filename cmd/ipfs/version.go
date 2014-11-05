@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	updates "github.com/jbenet/go-ipfs/updates"
+	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
+
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 )
 
 var cmdIpfsVersion = &commander.Command{
@@ -25,6 +26,6 @@ func versionCmd(c *commander.Command, _ []string) error {
 	if !number {
 		u.POut("ipfs version ")
 	}
-	u.POut("%s\n", updates.Version)
+	u.POut("%s\n", config.CurrentVersionNumber)
 	return nil
 }

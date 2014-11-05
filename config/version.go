@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// CurrentVersionNumber is the current application's version literal
+const CurrentVersionNumber = "0.1.5"
+
 // Version regulates checking if the most recent version is run
 type Version struct {
 	// Current is the ipfs version for which config was generated
@@ -42,27 +45,36 @@ const (
 )
 
 // AutoUpdateSetting implements json.Unmarshaler to check values in config
-// supported values:
-// 	"never" - do not auto-update
-// 	"patch" - auto-update on new patch versions
-// 	"minor" - auto-update on new minor (or patch) versions (Default)
-// 	"major" - auto-update on any new version
 type AutoUpdateSetting int
+
+// AutoUpdateSetting values
+const (
+	AutoUpdateNever AutoUpdateSetting = iota // do not auto-update
+	AutoUpdatePatch                          // only on new patch versions
+	AutoUpdateMinor                          // on new minor or patch versions (Default)
+	AutoUpdateMajor                          // on all, even Major, version changes
+)
+
+// ErrUnknownAutoUpdateSetting is returned when an unknown value is read from the config
+var ErrUnknownAutoUpdateSetting = errors.New("unknown value for AutoUpdate")
+
+// defaultCheckPeriod governs h
+var defaultCheckPeriod = time.Hour * 48
 
 // UnmarshalJSON checks the input against known strings
 func (s *AutoUpdateSetting) UnmarshalJSON(in []byte) error {
 
 	switch strings.ToLower(string(in)) {
 	case `"never"`:
-		*s = UpdateNever
+		*s = AutoUpdateNever
 	case `"major"`:
-		*s = UpdateMajor
+		*s = AutoUpdateMajor
 	case `"minor"`:
-		*s = UpdateMinor
+		*s = AutoUpdateMinor
 	case `"patch"`:
-		*s = UpdatePatch
+		*s = AutoUpdatePatch
 	default:
-		*s = UpdateMinor
+		*s = AutoUpdateMinor
 		return ErrUnknownAutoUpdateSetting
 	}
 	return nil
@@ -76,31 +88,18 @@ func (s AutoUpdateSetting) MarshalJSON() ([]byte, error) {
 // String converts valye to human readable string
 func (s AutoUpdateSetting) String() string {
 	switch s {
-	case UpdateNever:
+	case AutoUpdateNever:
 		return "never"
-	case UpdateMajor:
+	case AutoUpdateMajor:
 		return "major"
-	case UpdateMinor:
+	case AutoUpdateMinor:
 		return "minor"
-	case UpdatePatch:
+	case AutoUpdatePatch:
 		return "patch"
 	default:
 		return ErrUnknownAutoUpdateSetting.Error()
 	}
 }
-
-// ErrUnknownAutoUpdateSetting is returned when an unknown value is read from the config
-var ErrUnknownAutoUpdateSetting = errors.New("unknown value for AutoUpdate")
-
-const (
-	UpdateMinor AutoUpdateSetting = iota // first value so that it is the zero value and thus the default
-	UpdatePatch
-	UpdateMajor
-	UpdateNever
-)
-
-// defaultCheckPeriod governs h
-var defaultCheckPeriod = time.Hour * 48
 
 func (v *Version) checkPeriodDuration() time.Duration {
 	d, err := strconv.Atoi(v.CheckPeriod)
@@ -128,8 +127,18 @@ func RecordUpdateCheck(cfg *Config, filename string) {
 
 	if cfg.Version.CheckPeriod == "" {
 		// CheckPeriod was not initialized for some reason (e.g. config file broken)
-		cfg.Version.CheckPeriod = strconv.Itoa(int(defaultCheckPeriod))
+		log.Error("config.Version.CheckPeriod not set. config broken?")
 	}
 
 	WriteConfigFile(filename, cfg)
+}
+
+// VersionDefaultValue returns the default version config value (for init).
+func VersionDefaultValue() Version {
+	return Version{
+		Current:     CurrentVersionNumber,
+		Check:       "error",
+		CheckPeriod: strconv.Itoa(int(defaultCheckPeriod)),
+		AutoUpdate:  AutoUpdateMinor,
+	}
 }

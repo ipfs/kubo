@@ -21,29 +21,29 @@ func TestShouldAutoUpdate(t *testing.T) {
 		currV, newV string
 		should      bool
 	}{
-		{config.UpdateNever, "0.0.1", "1.0.0", false},
-		{config.UpdateNever, "0.0.1", "0.1.0", false},
-		{config.UpdateNever, "0.0.1", "0.0.1", false},
-		{config.UpdateNever, "0.0.1", "0.0.2", false},
+		{config.AutoUpdateNever, "0.0.1", "1.0.0", false},
+		{config.AutoUpdateNever, "0.0.1", "0.1.0", false},
+		{config.AutoUpdateNever, "0.0.1", "0.0.1", false},
+		{config.AutoUpdateNever, "0.0.1", "0.0.2", false},
 
-		{config.UpdatePatch, "0.0.1", "1.0.0", false},
-		{config.UpdatePatch, "0.0.1", "0.1.0", false},
-		{config.UpdatePatch, "0.0.1", "0.0.1", false},
-		{config.UpdatePatch, "0.0.2", "0.0.1", false},
-		{config.UpdatePatch, "0.0.1", "0.0.2", true},
+		{config.AutoUpdatePatch, "0.0.1", "1.0.0", false},
+		{config.AutoUpdatePatch, "0.0.1", "0.1.0", false},
+		{config.AutoUpdatePatch, "0.0.1", "0.0.1", false},
+		{config.AutoUpdatePatch, "0.0.2", "0.0.1", false},
+		{config.AutoUpdatePatch, "0.0.1", "0.0.2", true},
 
-		{config.UpdateMinor, "0.1.1", "1.0.0", false},
-		{config.UpdateMinor, "0.1.1", "0.2.0", true},
-		{config.UpdateMinor, "0.1.1", "0.1.2", true},
-		{config.UpdateMinor, "0.2.1", "0.1.9", false},
-		{config.UpdateMinor, "0.1.2", "0.1.1", false},
+		{config.AutoUpdateMinor, "0.1.1", "1.0.0", false},
+		{config.AutoUpdateMinor, "0.1.1", "0.2.0", true},
+		{config.AutoUpdateMinor, "0.1.1", "0.1.2", true},
+		{config.AutoUpdateMinor, "0.2.1", "0.1.9", false},
+		{config.AutoUpdateMinor, "0.1.2", "0.1.1", false},
 
-		{config.UpdateMajor, "1.0.0", "2.0.0", true},
-		{config.UpdateMajor, "1.0.0", "1.1.0", true},
-		{config.UpdateMajor, "1.0.0", "1.0.1", true},
-		{config.UpdateMajor, "2.0.0", "1.0.0", false}, // don't downgrade
-		{config.UpdateMajor, "2.5.0", "2.4.0", false},
-		{config.UpdateMajor, "2.0.2", "2.0.1", false},
+		{config.AutoUpdateMajor, "1.0.0", "2.0.0", true},
+		{config.AutoUpdateMajor, "1.0.0", "1.1.0", true},
+		{config.AutoUpdateMajor, "1.0.0", "1.0.1", true},
+		{config.AutoUpdateMajor, "2.0.0", "1.0.0", false}, // don't downgrade
+		{config.AutoUpdateMajor, "2.5.0", "2.4.0", false},
+		{config.AutoUpdateMajor, "2.0.2", "2.0.1", false},
 	}
 
 	for i, tc := range tests {
