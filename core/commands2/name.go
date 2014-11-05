@@ -82,47 +82,34 @@ var resolveCmd = &cmds.Command{
 		cmds.Argument{"name", cmds.ArgString, false, true},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
-		name := ""
-		args := req.Arguments()
-		n := req.Context().Node
-		var output []IpnsEntry
 
-		if len(args) == 0 {
+		n := req.Context().Node
+		var names []string
+
+		if len(req.Arguments()) == 0 {
 			if n.Identity == nil {
 				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
 				return
 			}
-
-			name = n.Identity.ID().String()
-			entry, err := resolve(name, n)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			output = []IpnsEntry{entry}
-
+			names = append(names, n.Identity.ID().String())
 		} else {
-			output = make([]IpnsEntry, len(args))
-
-			for i, arg := range args {
-				var ok bool
-				name, ok = arg.(string)
+			for _, arg := range req.Arguments() {
+				name, ok := arg.(string)
 				if !ok {
 					res.SetError(errors.New("cast error"), cmds.ErrNormal)
 					return
 				}
-
-				entry, err := resolve(name, n)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-				output[i] = entry
+				names = append(names, name)
 			}
 		}
 
-		res.SetOutput(&ResolveOutput{output})
+		entries, err := resolve(n, names)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&ResolveOutput{entries})
 	},
 	Type: &ResolveOutput{},
 }
@@ -145,14 +132,17 @@ func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error)
 	}, nil
 }
 
-func resolve(name string, n *core.IpfsNode) (IpnsEntry, error) {
-	resolved, err := n.Namesys.Resolve(name)
-	if err != nil {
-		return IpnsEntry{}, err
+func resolve(n *core.IpfsNode, names []string) ([]IpnsEntry, error) {
+	var entries []IpnsEntry
+	for _, name := range names {
+		resolved, err := n.Namesys.Resolve(name)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, IpnsEntry{
+			Name:  name,
+			Value: resolved,
+		})
 	}
-
-	return IpnsEntry{
-		Name:  name,
-		Value: resolved,
-	}, nil
+	return entries, nil
 }
