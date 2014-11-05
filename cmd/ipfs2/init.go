@@ -69,6 +69,7 @@ var defaultPeers = []*config.BootstrapPeer{
 	},
 }
 
+// TODO add default welcome hash: eaa68bedae247ed1e5bd0eb4385a3c0959b976e4
 func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
