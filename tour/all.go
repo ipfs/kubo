@@ -38,6 +38,11 @@ var allTopics = []Topic{
 	Topic{ID: FileBasics(4), Content: FileBasicsDirectories},
 	Topic{ID: FileBasics(5), Content: FileBasicsDistributed},
 	Topic{ID: FileBasics(6), Content: FileBasicsMounting},
+
+	Topic{NodeBasics(0), NodeBasicsInit},
+	Topic{NodeBasics(1), NodeBasicsHelp},
+	Topic{NodeBasics(2), NodeBasicsUpdate},
+	Topic{NodeBasics(3), NodeBasicsConfig},
 }
 
 // Introduction
@@ -88,5 +93,28 @@ var FileBasicsDistributed = Content{
 var FileBasicsMounting = Content{
 	Title: "Getting Files",
 	Text: `ipfs mount (simple)
+	`,
+}
+
+// Node Basics
+
+var NodeBasicsInit = Content{
+	Title: "Basics - init",
+	Text: `
+	`,
+}
+var NodeBasicsHelp = Content{
+	Title: "Basics - help",
+	Text: `
+	`,
+}
+var NodeBasicsUpdate = Content{
+	Title: "Basics - update",
+	Text: `
+	`,
+}
+var NodeBasicsConfig = Content{
+	Title: "Basics - config",
+	Text: `
 	`,
 }
