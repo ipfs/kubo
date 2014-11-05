@@ -22,6 +22,11 @@ func init() {
 // }
 
 var (
+	// TODO bootstrapping
+
+	// TODO pinning: ensuring a block is kept in local storage (i.e. not
+	// evicted from cache).
+
 	Introduction = Chapter(0)
 	FileBasics   = Chapter(1)
 	NodeBasics   = Chapter(2)
@@ -72,6 +77,8 @@ var allTopics = []Topic{
 	Topic{Network(4), Network_Exchange},
 	Topic{Network(5), Network_Intro},
 
+	// TODO daemon - {API, API Clients, Example} how old-school http + ftp
+	// clients show it
 	Topic{Daemon(0), Daemon_Intro},
 	Topic{Daemon(1), Daemon_Running_Commands},
 	Topic{Daemon(2), Daemon_Web_UI},
@@ -82,6 +89,8 @@ var allTopics = []Topic{
 	Topic{Routing(3), Routing_DHT},
 	Topic{Routing(4), Routing_Other},
 
+	// TODO Exchange_Providing
+	// TODO Exchange_Providers
 	Topic{Exchange(0), Exchange_Intro},
 	Topic{Exchange(1), Exchange_Getting_Blocks},
 	Topic{Exchange(2), Exchange_Strategies},
@@ -170,6 +179,14 @@ var FileBasicsMounting = Content{
 
 var NodeBasicsInit = Content{
 	Title: "Basics - init",
+
+	// TODO touch on PKI
+	//
+	// This is somewhat relevant at ipfs init since the generated key pair is the
+	// basis for the node's identity in the network. A cursory nod may be
+	// sufficient at that stage, and goes a long way in explaining init's raison
+	// d'être.
+	// NB: user is introduced to ipfs init before ipfs add.
 	Text: `
 	`,
 }
@@ -196,7 +213,14 @@ var MerkleDagContentAddressingLinks = Content{}
 var MerkleDagRedux = Content{}
 var MerkleDagIpfsObjects = Content{}
 var MerkleDagIpfsPaths = Content{}
-var MerkleDagImmutability = Content{}
+var MerkleDagImmutability = Content{
+	Title: "Immutability",
+	Text: `
+	TODO plan9
+	TODO git
+	`,
+}
+
 var MerkleDagUseCaseUnixFS = Content{}
 var MerkleDagUseCaseGitObjects = Content{}
 var MerkleDagUseCaseOperationalTransforms = Content{}
@@ -226,7 +250,12 @@ var Exchange_Getting_Blocks = Content{}
 var Ipns_Consistency = Content{}
 var Ipns_Mutability = Content{}
 var Ipns_Name_System = Content{}
-var Ipns_PKI_Review = Content{}
+var Ipns_PKI_Review = Content{
+	Title: "PKI Review",
+	Text: `
+	TODO sign verify
+	`,
+}
 var Ipns_Publishing = Content{}
 var Ipns_Records_Etc = Content{}
 var Ipns_Resolving = Content{}
