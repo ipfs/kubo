@@ -97,6 +97,8 @@ var FileBasicsMounting = Content{
 // Chapter is used to define a chapter once and derive IDs for any number of
 // sections within.
 //
+// It's designed to make it easy to re-order chapters with minimal fuss.
+//
 // eg.
 // 		Intro := Chapter(1)
 // 		ID("1.1") == Intro(1)
