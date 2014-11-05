@@ -65,6 +65,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"diag":     diagCmd,
 	"pin":      pinCmd,
 	"unpin":    unpinCmd,
+	"version":  versionCmd,
 
 	// test subcommands
 	// TODO: remove these when we don't need them anymore
