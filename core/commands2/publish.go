@@ -11,12 +11,16 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type PublishOutput struct {
+type IpnsEntry struct {
 	Name  string
 	Value string
 }
 
 var publishCmd = &cmds.Command{
+	Arguments: []cmds.Argument{
+		cmds.Argument{"name", cmds.ArgString, false, false},
+		cmds.Argument{"object", cmds.ArgString, true, false},
+	},
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
@@ -39,9 +43,6 @@ var publishCmd = &cmds.Command{
 		case 1:
 			// name = n.Identity.ID.String()
 			ref = args[0].(string)
-
-		default:
-			res.SetError(fmt.Errorf("Publish expects 1 or 2 args; got %d.", len(args)), cmds.ErrClient)
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey
@@ -56,15 +57,15 @@ var publishCmd = &cmds.Command{
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			v := res.Output().(*PublishOutput)
+			v := res.Output().(*IpnsEntry)
 			s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
 			return []byte(s), nil
 		},
 	},
-	Type: &PublishOutput{},
+	Type: &IpnsEntry{},
 }
 
-func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*PublishOutput, error) {
+func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error) {
 	pub := nsys.NewRoutingPublisher(n.Routing)
 	err := pub.Publish(k, ref)
 	if err != nil {
@@ -76,7 +77,7 @@ func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*PublishOutput, er
 		return nil, err
 	}
 
-	return &PublishOutput{
+	return &IpnsEntry{
 		Name:  u.Key(hash).String(),
 		Value: ref,
 	}, nil
