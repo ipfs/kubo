@@ -83,6 +83,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		}
 	}
 
+	if valCount-1 > 0 {
+		args = append(args, make([]interface{}, valCount-1))
+	}
+
 	req := cmds.NewRequest(path, opts, args, cmd)
 
 	err = cmd.CheckArguments(req)
