@@ -1,6 +1,10 @@
 package tour
 
-import "sort"
+import (
+	"sort"
+
+	c "github.com/jbenet/go-ipfs/tour/content"
+)
 
 func init() {
 	for _, t := range allTopics {
@@ -14,13 +18,15 @@ func init() {
 // Topics contains a mapping of Tour Topic ID to Topic
 var allTopics = []Topic{
 	Topic{
-		ID:    ID("0"),
-		Title: "Hello Mars",
-		Text:  "Hello Mars",
+		ID:      ID("0.0"),
+		Content: c.IntroHelloMars,
 	},
 	Topic{
-		ID:    ID("0.1"),
-		Title: "Hello Mars 2",
-		Text:  "Hello Mars 2",
+		ID:      ID("0.1"),
+		Content: c.IntroTour,
+	},
+	Topic{
+		ID:      ID("0.2"),
+		Content: c.IntroAboutIpfs,
 	},
 }
