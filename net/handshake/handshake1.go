@@ -4,15 +4,15 @@ import (
 	"errors"
 	"fmt"
 
+	config "github.com/jbenet/go-ipfs/config"
 	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
-	updates "github.com/jbenet/go-ipfs/updates"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 )
 
 // ipfsVersion holds the current protocol version for a client running this code
 var ipfsVersion *semver.Version
-var clientVersion = "go-ipfs/" + updates.Version
+var clientVersion = "go-ipfs/" + config.CurrentVersionNumber
 
 func init() {
 	var err error

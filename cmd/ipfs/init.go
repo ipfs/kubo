@@ -11,7 +11,6 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
-	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

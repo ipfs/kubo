@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
@@ -15,7 +15,7 @@ import (
 
 const (
 	// Version is the current application's version literal
-	Version = "0.1.5"
+	Version = config.CurrentVersionNumber
 
 	updateEndpointURL = "https://api.equinox.io/1/Updates"
 	updateAppID       = "ap_YM8nz6rGm1UPg_bf63Lw6Vjz49"
