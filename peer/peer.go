@@ -66,7 +66,8 @@ type Peer interface {
 	Addresses() []ma.Multiaddr
 
 	// AddAddress adds the given Multiaddr address to Peer's addresses.
-	AddAddress(a ma.Multiaddr)
+	// returns whether this was a newly added address.
+	AddAddress(a ma.Multiaddr) bool
 
 	// NetAddress returns the first Multiaddr found for a given network.
 	NetAddress(n string) ma.Multiaddr
@@ -141,16 +142,18 @@ func (p *peer) Addresses() []ma.Multiaddr {
 }
 
 // AddAddress adds the given Multiaddr address to Peer's addresses.
-func (p *peer) AddAddress(a ma.Multiaddr) {
+// Returns whether this address was a newly added address
+func (p *peer) AddAddress(a ma.Multiaddr) bool {
 	p.Lock()
 	defer p.Unlock()
 
 	for _, addr := range p.addresses {
 		if addr.Equal(a) {
-			return
+			return false
 		}
 	}
 	p.addresses = append(p.addresses, a)
+	return true
 }
 
 // NetAddress returns the first Multiaddr found for a given network.
