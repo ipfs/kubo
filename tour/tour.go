@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	content "github.com/jbenet/go-ipfs/tour/content"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -28,7 +27,12 @@ func (a IDSlice) Less(i, j int) bool { return a[i].LessThan(a[j]) }
 // Topic is a type of objects that structures a tour topic.
 type Topic struct {
 	ID ID
-	content.Content
+	Content
+}
+
+type Content struct {
+	Title string
+	Text  string
 }
 
 // Topics is a sorted list of topic IDs
