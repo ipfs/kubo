@@ -157,6 +157,10 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 		j++
 	}
 
+	if len(stringArgs)-j > 0 {
+		args = append(args, make([]interface{}, len(stringArgs)-j))
+	}
+
 	return args, nil
 }
 
