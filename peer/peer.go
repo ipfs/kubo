@@ -56,6 +56,10 @@ type Map map[u.Key]Peer
 // Peer represents the identity information of an IPFS Node, including
 // ID, and relevant Addresses.
 type Peer interface {
+
+	// TODO reduce the peer interface to be read-only. Force mutations to occur
+	// on the peer store eg. peerstore.SetLatency(peerId, value).
+
 	// ID returns the peer's ID
 	ID() ID
 
@@ -102,6 +106,8 @@ type peer struct {
 	privKey ic.PrivKey
 	pubKey  ic.PubKey
 
+	// TODO move latency away from peer into the package that uses it. Instead,
+	// within that package, map from ID to latency value.
 	latency time.Duration
 
 	sync.RWMutex
