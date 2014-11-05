@@ -20,6 +20,8 @@ type ResolveOutput struct {
 	Entries []IpnsEntry
 }
 
+var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
+
 var nameCmd = &cmds.Command{
 	Help: "TODO",
 	Subcommands: map[string]*cmds.Command{
@@ -37,6 +39,11 @@ var publishCmd = &cmds.Command{
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
 		args := req.Arguments()
+
+		if n.Network == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
 
 		if n.Identity == nil {
 			res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
@@ -85,6 +92,11 @@ var resolveCmd = &cmds.Command{
 
 		n := req.Context().Node
 		var names []string
+
+		if n.Network == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
 
 		if len(req.Arguments()) == 0 {
 			if n.Identity == nil {
