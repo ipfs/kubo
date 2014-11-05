@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -92,7 +93,11 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 	}
 	cfg.Datastore = ds
 
-	cfg.Identity = config.Identity{}
+	identity, err := identityConfig(nBitsForKeypair)
+	if err != nil {
+		return err
+	}
+	cfg.Identity = identity
 
 	// setup the node addresses.
 	cfg.Addresses = config.Addresses{
@@ -105,31 +110,6 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 		IPFS: "/ipfs",
 		IPNS: "/ipns",
 	}
-
-	// TODO guard higher up
-	if nBitsForKeypair < 1024 {
-		return errors.New("Bitsize less than 1024 is considered unsafe.")
-	}
-
-	u.POut("generating key pair\n")
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nBitsForKeypair)
-	if err != nil {
-		return err
-	}
-
-	// currently storing key unencrypted. in the future we need to encrypt it.
-	// TODO(security)
-	skbytes, err := sk.Bytes()
-	if err != nil {
-		return err
-	}
-	cfg.Identity.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
-
-	id, err := peer.IDFromPubKey(pk)
-	if err != nil {
-		return err
-	}
-	cfg.Identity.PeerID = id.Pretty()
 
 	cfg.Bootstrap = defaultPeers
 
@@ -171,4 +151,34 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 	}
 
 	return ds, nil
+}
+
+func identityConfig(nbits int) (config.Identity, error) {
+	// TODO guard higher up
+	ident := config.Identity{}
+	if nbits < 1024 {
+		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
+	}
+
+	fmt.Println("generating key pair...")
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	if err != nil {
+		return ident, err
+	}
+
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
+	skbytes, err := sk.Bytes()
+	if err != nil {
+		return ident, err
+	}
+	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
+
+	id, err := peer.IDFromPubKey(pk)
+	if err != nil {
+		return ident, err
+	}
+	ident.PeerID = id.Pretty()
+
+	return ident, nil
 }
