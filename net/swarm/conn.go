@@ -112,10 +112,14 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 
 	// handshake3
 	ctxT, _ := context.WithTimeout(c.Context(), conn.HandshakeTimeout)
-	if err := conn.Handshake3(ctxT, c); err != nil {
+	h3result, err := conn.Handshake3(ctxT, c)
+	if err != nil {
 		c.Close()
 		return nil, fmt.Errorf("Handshake3 failed: %s", err)
 	}
+
+	// check for nats. you know, just in case.
+	s.checkNATWarning(h3result.LocalObservedAddress)
 
 	// add to conns
 	s.connsLock.Lock()

@@ -72,3 +72,36 @@ func interfaceAddresses() ([]ma.Multiaddr, error) {
 
 	return nonLoopback, nil
 }
+
+// addrInList returns whether or not an address is part of a list.
+// this is useful to check if NAT is happening (or other bugs?)
+func addrInList(addr ma.Multiaddr, list []ma.Multiaddr) bool {
+	for _, addr2 := range list {
+		if addr.Equal(addr2) {
+			return true
+		}
+	}
+	return false
+}
+
+// checkNATWarning checks if our observed addresses differ. if so,
+// informs the user that certain things might not work yet
+func (s *Swarm) checkNATWarning(observed ma.Multiaddr) {
+	listen, err := s.InterfaceListenAddresses()
+	if err != nil {
+		log.Errorf("Error retrieving swarm.InterfaceListenAddresses: %s", err)
+		return
+	}
+
+	if !addrInList(observed, listen) { // probably a nat
+		log.Warningf(natWarning, observed, listen)
+	}
+}
+
+const natWarning = `Remote peer observed our address to be: %s
+The local addresses are: %s
+Thus, connection is going through NAT, and other connections may fail.
+
+IPFS NAT traversal is still under development. Please bug us on github or irc to fix this.
+Baby steps: http://jbenet.static.s3.amazonaws.com/271dfcf/baby-steps.gif
+`

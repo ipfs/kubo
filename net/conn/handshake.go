@@ -3,15 +3,12 @@ package conn
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
-	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // Handshake1 exchanges local and remote versions and compares them
@@ -62,87 +59,48 @@ func Handshake1(ctx context.Context, c Conn) error {
 }
 
 // Handshake3 exchanges local and remote service information
-func Handshake3(ctx context.Context, c Conn) error {
+func Handshake3(ctx context.Context, c Conn) (*handshake.Handshake3Result, error) {
 	rpeer := c.RemotePeer()
 	lpeer := c.LocalPeer()
 
+	// setup + send the message to remote
 	var remoteH, localH *hspb.Handshake3
-	localH = handshake.Handshake3Msg(lpeer)
-
-	rma := c.RemoteMultiaddr()
-	localH.ObservedAddr = proto.String(rma.String())
-
+	localH = handshake.Handshake3Msg(lpeer, c.RemoteMultiaddr())
 	localB, err := proto.Marshal(localH)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	c.Out() <- localB
 	log.Debugf("Handshake1: sent to %s", rpeer)
 
+	// wait + listen for response
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return nil, ctx.Err()
 
 	case <-c.Closing():
-		return errors.New("Handshake3: error remote connection closed")
+		return nil, errors.New("Handshake3: error remote connection closed")
 
 	case remoteB, ok := <-c.In():
 		if !ok {
-			return fmt.Errorf("Handshake3 error receiving from conn: %v", rpeer)
+			return nil, fmt.Errorf("Handshake3 error receiving from conn: %v", rpeer)
 		}
 
 		remoteH = new(hspb.Handshake3)
 		err = proto.Unmarshal(remoteB, remoteH)
 		if err != nil {
-			return fmt.Errorf("Handshake3 could not decode remote msg: %q", err)
+			return nil, fmt.Errorf("Handshake3 could not decode remote msg: %q", err)
 		}
 
 		log.Debugf("Handshake3 received from %s", rpeer)
 	}
 
-	if err := handshake.Handshake3UpdatePeer(rpeer, remoteH); err != nil {
+	// actually update our state based on the new knowledge
+	res, err := handshake.Handshake3Update(lpeer, rpeer, remoteH)
+	if err != nil {
 		log.Errorf("Handshake3 failed to update %s", rpeer)
-		return err
 	}
-
-	// If we are behind a NAT, inform the user that certain things might not work yet
-	nat, err := checkNAT(remoteH.GetObservedAddr())
-	if err != nil {
-		log.Errorf("Error in NAT detection: %s", err)
-	}
-	if nat {
-		msg := `Remote peer observed our address to be: %s
-		The local addresses are: %s
-		Thus, connection is going through NAT, and other connections may fail.
-
-		IPFS NAT traversal is still under development. Please bug us on github or irc to fix this.
-		Baby steps: http://jbenet.static.s3.amazonaws.com/271dfcf/baby-steps.gif
-		`
-		addrs, _ := u.GetLocalAddresses()
-		log.Warning(fmt.Sprintf(msg, remoteH.GetObservedAddr(), addrs))
-	}
-
-	return nil
-}
-
-// checkNAT returns whether or not we might be behind a NAT
-func checkNAT(observedaddr string) (bool, error) {
-	observedma, err := ma.NewMultiaddr(observedaddr)
-	if err != nil {
-		return false, err
-	}
-	addrs, err := u.GetLocalAddresses()
-	if err != nil {
-		return false, err
-	}
-
-	omastr := observedma.String()
-	for _, addr := range addrs {
-		if strings.HasPrefix(omastr, addr.String()) {
-			return false, nil
-		}
-	}
-
-	return true, nil
+	res.RemoteObservedAddress = c.RemoteMultiaddr()
+	return res, nil
 }
