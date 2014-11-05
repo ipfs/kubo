@@ -40,10 +40,16 @@ func main() {
 }
 
 func createRequest(args []string) (cmds.Request, *cmds.Command) {
-	req, root, err := cmdsCli.Parse(args, Root, commands.Root)
+	req, root, cmd, err := cmdsCli.Parse(args, Root, commands.Root)
 	if err != nil {
 		fmt.Println(err)
-		fmt.Println(Root.Help)
+		if cmd != nil {
+			if cmd.Help != "" {
+				fmt.Println(cmd.Help)
+			}
+		} else {
+			fmt.Println(Root.Help)
+		}
 		os.Exit(1)
 	}
 
