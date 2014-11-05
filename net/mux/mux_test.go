@@ -3,6 +3,7 @@ package mux
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -121,6 +122,7 @@ func TestSimultMuxer(t *testing.T) {
 	total := 10000
 	speed := time.Microsecond * 1
 	counts := [2][2][2]int{}
+	var countsLock sync.Mutex
 
 	// run producers at every end sending incrementing messages
 	produceOut := func(pid pb.ProtocolID, size int) {
@@ -130,7 +132,9 @@ func TestSimultMuxer(t *testing.T) {
 			s := fmt.Sprintf("proto %v out %v", pid, i)
 			m := msg.New(peer1, []byte(s))
 			mux1.Protocols[pid].GetPipe().Outgoing <- m
+			countsLock.Lock()
 			counts[pid][0][0]++
+			countsLock.Unlock()
 			// log.Debug("sent %v", s)
 		}
 	}
@@ -147,7 +151,9 @@ func TestSimultMuxer(t *testing.T) {
 
 			m := msg.New(peer1, d)
 			mux1.Incoming <- m
+			countsLock.Lock()
 			counts[pid][1][0]++
+			countsLock.Unlock()
 			// log.Debug("sent %v", s)
 		}
 	}
@@ -163,7 +169,9 @@ func TestSimultMuxer(t *testing.T) {
 
 				// log.Debug("got %v", string(data))
 				_ = data
+				countsLock.Lock()
 				counts[pid][1][1]++
+				countsLock.Unlock()
 
 			case <-ctx.Done():
 				return
@@ -175,7 +183,9 @@ func TestSimultMuxer(t *testing.T) {
 		for {
 			select {
 			case m := <-mux1.Protocols[pid].GetPipe().Incoming:
+				countsLock.Lock()
 				counts[pid][0][1]++
+				countsLock.Unlock()
 				// log.Debug("got %v", string(m.Data()))
 				_ = m
 			case <-ctx.Done():
@@ -195,10 +205,12 @@ func TestSimultMuxer(t *testing.T) {
 	limiter := time.Tick(speed)
 	for {
 		<-limiter
+		countsLock.Lock()
 		got := counts[0][0][0] + counts[0][0][1] +
 			counts[0][1][0] + counts[0][1][1] +
 			counts[1][0][0] + counts[1][0][1] +
 			counts[1][1][0] + counts[1][1][1]
+		countsLock.Unlock()
 
 		if got == total*8 {
 			cancel()
