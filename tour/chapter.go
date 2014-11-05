@@ -1,3 +1,5 @@
+package tour
+
 import "fmt"
 
 // sections within.

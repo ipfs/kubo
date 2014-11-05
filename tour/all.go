@@ -43,6 +43,17 @@ var allTopics = []Topic{
 	Topic{NodeBasics(1), NodeBasicsHelp},
 	Topic{NodeBasics(2), NodeBasicsUpdate},
 	Topic{NodeBasics(3), NodeBasicsConfig},
+
+	Topic{MerkleDag(0), MerkleDagIntro},
+	Topic{MerkleDag(1), MerkleDagContentAddressing},
+	Topic{MerkleDag(2), MerkleDagContentAddressingLinks},
+	Topic{MerkleDag(3), MerkleDagRedux},
+	Topic{MerkleDag(4), MerkleDagIpfsObjects},
+	Topic{MerkleDag(5), MerkleDagIpfsPaths},
+	Topic{MerkleDag(6), MerkleDagImmutability},
+	Topic{MerkleDag(7), MerkleDagUseCaseUnixFS},
+	Topic{MerkleDag(8), MerkleDagUseCaseGitObjects},
+	Topic{MerkleDag(9), MerkleDagUseCaseOperationalTransforms},
 }
 
 // Introduction
@@ -118,3 +129,15 @@ var NodeBasicsConfig = Content{
 	Text: `
 	`,
 }
+
+// Merkle DAG
+var MerkleDagIntro = Content{}
+var MerkleDagContentAddressing = Content{}
+var MerkleDagContentAddressingLinks = Content{}
+var MerkleDagRedux = Content{}
+var MerkleDagIpfsObjects = Content{}
+var MerkleDagIpfsPaths = Content{}
+var MerkleDagImmutability = Content{}
+var MerkleDagUseCaseUnixFS = Content{}
+var MerkleDagUseCaseGitObjects = Content{}
+var MerkleDagUseCaseOperationalTransforms = Content{}
