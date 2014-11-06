@@ -29,9 +29,9 @@ var addCmd = &cmds.Command{
 		n := req.Context().Node
 
 		// if recursive, set depth to reflect so
-		//opt, found := req.Option("r")
-		//if r, _ := opt.(bool); found && r {
-		//}
+		// opt, found := req.Option("r")
+		// if r, _ := opt.(bool); found && r {
+		// }
 
 		added := make([]Object, len(req.Arguments()))
 
