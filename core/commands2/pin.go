@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
+	"github.com/jbenet/go-ipfs/core/commands2/internal"
 	"github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -37,7 +37,7 @@ var pinCmd = &cmds.Command{
 			}
 		}*/
 
-		paths, err := toStrings(req.Arguments())
+		paths, err := internal.ToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -66,28 +66,13 @@ var unpinCmd = &cmds.Command{
 		opt, _ := req.Option("recursive")
 		recursive, _ := opt.(bool) // false if cast fails.
 
-		for _, arg := range req.Arguments() {
-			path, ok := arg.(string)
-			if !ok {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
-			}
-
-			dagnode, err := n.Resolver.ResolvePath(path)
-			if err != nil {
-				res.SetError(fmt.Errorf("pin error: %v", err), cmds.ErrNormal)
-				return
-			}
-
-			k, _ := dagnode.Key()
-			err = n.Pinning.Unpin(k, recursive)
-			if err != nil {
-				res.SetError(fmt.Errorf("pin: %v", err), cmds.ErrNormal)
-				return
-			}
+		paths, err := internal.ToStrings(req.Arguments())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		err := n.Pinning.Flush()
+		_, err = unpin(n, paths, recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 		}
@@ -100,7 +85,6 @@ func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, e
 
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, path := range paths {
-
 		dagnode, err := n.Resolver.ResolvePath(path)
 		if err != nil {
 			return nil, fmt.Errorf("pin error: %v", err)
@@ -120,5 +104,31 @@ func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, e
 		return nil, err
 	}
 
+	return dagnodes, nil
+}
+
+func unpin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
+
+	dagnodes := make([]*merkledag.Node, 0)
+	for _, path := range paths {
+		dagnode, err := n.Resolver.ResolvePath(path)
+		if err != nil {
+			return nil, err
+		}
+		dagnodes = append(dagnodes, dagnode)
+	}
+
+	for _, dagnode := range dagnodes {
+		k, _ := dagnode.Key()
+		err := n.Pinning.Unpin(k, recursive)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := n.Pinning.Flush()
+	if err != nil {
+		return nil, err
+	}
 	return dagnodes, nil
 }
