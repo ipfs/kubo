@@ -56,17 +56,18 @@ Use "ipfs help <command>" for more information about a command.
 }
 
 var rootSubcommands = map[string]*cmds.Command{
-	"cat":      catCmd,
-	"ls":       lsCmd,
-	"commands": commandsCmd,
-	"name":     nameCmd,
-	"add":      addCmd,
-	"log":      logCmd,
-	"diag":     diagCmd,
-	"pin":      pinCmd,
-	"unpin":    unpinCmd,
-	"version":  versionCmd,
-	"config":   configCmd,
+	"cat":       catCmd,
+	"ls":        lsCmd,
+	"commands":  commandsCmd,
+	"name":      nameCmd,
+	"add":       addCmd,
+	"log":       logCmd,
+	"diag":      diagCmd,
+	"pin":       pinCmd,
+	"unpin":     unpinCmd,
+	"version":   versionCmd,
+	"config":    configCmd,
+	"bootstrap": bootstrapCmd,
 
 	// test subcommands
 	// TODO: remove these when we don't need them anymore
