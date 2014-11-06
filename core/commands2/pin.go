@@ -37,17 +37,13 @@ var pinCmd = &cmds.Command{
 			}
 		}*/
 
-		paths := make([]string, 0)
-		for _, arg := range req.Arguments() {
-			path, ok := arg.(string)
-			if !ok {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
-			}
-			paths = append(paths, path)
+		paths, err := toStrings(req.Arguments())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		_, err := pin(n, paths, recursive)
+		_, err = pin(n, paths, recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 		}
@@ -125,4 +121,16 @@ func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, e
 	}
 
 	return dagnodes, nil
+}
+
+func toStrings(slice []interface{}) ([]string, error) {
+	strs := make([]string, 0)
+	for _, maybe := range slice {
+		str, ok := maybe.(string)
+		if !ok {
+			return nil, errors.New("cast error")
+		}
+		strs = append(strs, str)
+	}
+	return strs, nil
 }
