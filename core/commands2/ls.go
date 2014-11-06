@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	"github.com/jbenet/go-ipfs/core/commands2/internal"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -30,14 +30,10 @@ var lsCmd = &cmds.Command{
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
 
-		paths := make([]string, 0)
-		for _, arg := range req.Arguments() {
-			path, ok := arg.(string)
-			if !ok {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
-			}
-			paths = append(paths, path)
+		paths, err := internal.ToStrings(req.Arguments())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		dagnodes := make([]*merkledag.Node, 0)
