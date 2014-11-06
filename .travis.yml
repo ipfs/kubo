@@ -7,5 +7,8 @@ go:
 
 script:
   - go test -v ./...
+  - cd test/
+  - make
+  - cd ..
 
 env: TEST_NO_FUSE=1
