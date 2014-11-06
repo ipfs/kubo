@@ -1,12 +1,13 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/importer"
+	core "github.com/jbenet/go-ipfs/core"
+	importer "github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -33,24 +34,31 @@ var addCmd = &cmds.Command{
 		// if r, _ := opt.(bool); found && r {
 		// }
 
+		readers := make([]io.Reader, 0)
+		for _, arg := range req.Arguments() {
+			reader, ok := arg.(io.Reader)
+			if !ok {
+				res.SetError(errors.New("cast error"), cmds.ErrNormal)
+				return
+			}
+			readers = append(readers, reader)
+		}
+
+		dagnodes, err := add(n, readers)
+		if err != nil {
+			res.SetError(errors.New("cast error"), cmds.ErrNormal)
+			return
+		}
+
 		added := make([]Object, len(req.Arguments()))
+		for _, dagnode := range dagnodes {
 
-		// add every path in args
-		for i, arg := range req.Arguments() {
-			// Add the file
-			node, err := add(n, arg.(io.Reader))
+			k, err := dagnode.Key()
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-
-			k, err := node.Key()
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			added[i] = Object{k.String(), nil}
+			added = append(added, Object{Hash: k.String(), Links: nil})
 		}
 
 		res.SetOutput(&AddOutput{added})
@@ -73,18 +81,27 @@ var addCmd = &cmds.Command{
 	Type: &AddOutput{},
 }
 
-func add(n *core.IpfsNode, in io.Reader) (*dag.Node, error) {
-	node, err := importer.NewDagFromReader(in)
-	if err != nil {
-		return nil, err
-	}
+func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 
-	// add the file to the graph + local storage
-	err = n.DAG.AddRecursive(node)
-	if err != nil {
-		return nil, err
-	}
+	dagnodes := make([]*dag.Node, 0)
 
-	// ensure we keep it
-	return node, n.Pinning.Pin(node, true)
+	for _, reader := range readers {
+		node, err := importer.NewDagFromReader(reader)
+		if err != nil {
+			return nil, err
+		}
+
+		err = n.DAG.AddRecursive(node) // add the file to the graph + local storage
+		if err != nil {
+			return nil, err
+		}
+
+		err = n.Pinning.Pin(node, true) // ensure we keep it
+		if err != nil {
+			return nil, err
+		}
+
+		dagnodes = append(dagnodes, node)
+	}
+	return dagnodes, nil
 }
