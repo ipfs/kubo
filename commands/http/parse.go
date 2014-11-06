@@ -60,6 +60,8 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		// skip optional argument definitions if there aren't sufficient remaining values
 		if valCount <= lenRequired && !argDef.Required {
 			continue
+		} else if argDef.Required {
+			lenRequired--
 		}
 
 		if argDef.Type == cmds.ArgString {
