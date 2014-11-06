@@ -31,7 +31,7 @@ var diagCmd = &cmds.Command{
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
 
-		if !n.Online() {
+		if !n.OnlineMode() {
 			res.SetError(errors.New("Cannot run diagnostic in offline mode!"), cmds.ErrNormal)
 			return
 		}
