@@ -132,6 +132,8 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 		// skip optional argument definitions if there aren't sufficient remaining values
 		if len(stringArgs)-j <= lenRequired && !argDef.Required {
 			continue
+		} else if argDef.Required {
+			lenRequired--
 		}
 
 		if j >= len(stringArgs) {
