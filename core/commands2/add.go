@@ -7,6 +7,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	importer "github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 )
@@ -34,14 +35,10 @@ var addCmd = &cmds.Command{
 		// if r, _ := opt.(bool); found && r {
 		// }
 
-		readers := make([]io.Reader, 0)
-		for _, arg := range req.Arguments() {
-			reader, ok := arg.(io.Reader)
-			if !ok {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
-			}
-			readers = append(readers, reader)
+		readers, err := internal.ToReaders(req.Arguments())
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		dagnodes, err := add(n, readers)

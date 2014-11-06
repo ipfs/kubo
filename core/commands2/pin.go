@@ -122,15 +122,3 @@ func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, e
 
 	return dagnodes, nil
 }
-
-func toStrings(slice []interface{}) ([]string, error) {
-	strs := make([]string, 0)
-	for _, maybe := range slice {
-		str, ok := maybe.(string)
-		if !ok {
-			return nil, errors.New("cast error")
-		}
-		strs = append(strs, str)
-	}
-	return strs, nil
-}
