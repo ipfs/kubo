@@ -6,7 +6,7 @@
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 
-all: clean $(T) aggregate
+all: clean deps $(T) aggregate
 
 clean:
 	@echo "*** $@ ***"
@@ -19,5 +19,11 @@ $(T):
 aggregate:
 	@echo "*** $@ ***"
 	./test-aggregate-results.sh
+
+deps: sharness.sh
+
+sharness.sh:
+	@echo "*** installing $@ ***"
+	./install-sharness.sh
 
 .PHONY: all clean $(T) aggregate
