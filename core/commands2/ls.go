@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
 
 type Link struct {
@@ -27,18 +29,31 @@ var lsCmd = &cmds.Command{
 	Help: "TODO",
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
-		output := make([]Object, len(req.Arguments()))
 
-		for i, arg := range req.Arguments() {
-			path := arg.(string)
+		paths := make([]string, 0)
+		for _, arg := range req.Arguments() {
+			path, ok := arg.(string)
+			if !ok {
+				res.SetError(errors.New("cast error"), cmds.ErrNormal)
+				return
+			}
+			paths = append(paths, path)
+		}
+
+		dagnodes := make([]*merkledag.Node, 0)
+		for _, path := range paths {
 			dagnode, err := node.Resolver.ResolvePath(path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
+			dagnodes = append(dagnodes, dagnode)
+		}
 
+		output := make([]Object, len(req.Arguments()))
+		for i, dagnode := range dagnodes {
 			output[i] = Object{
-				Hash:  path,
+				Hash:  paths[i],
 				Links: make([]Link, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
