@@ -173,6 +173,13 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 	return origlen, nil
 }
 
+func (dm *DagModifier) Size() uint64 {
+	if dm == nil {
+		return 0
+	}
+	return dm.pbdata.GetFilesize()
+}
+
 // splitBytes uses a splitterFunc to turn a large array of bytes
 // into many smaller arrays of bytes
 func splitBytes(b []byte, spl chunk.BlockSplitter) [][]byte {
