@@ -39,20 +39,42 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	opts, stringArgs2 := parseOptions(r)
 	stringArgs = append(stringArgs, stringArgs2...)
 
-	// Note that the argument handling here is dumb, it does not do any error-checking.
-	// (Arguments are further processed when the request is passed to the command to run)
 	args := make([]interface{}, 0)
 
-	for _, arg := range cmd.Arguments {
-		if arg.Type == cmds.ArgString {
-			if arg.Variadic {
+	// count required argument definitions
+	lenRequired := 0
+	for _, argDef := range cmd.Arguments {
+		if argDef.Required {
+			lenRequired++
+		}
+	}
+
+	// count the number of provided argument values
+	valCount := len(stringArgs)
+	// TODO: add total number of parts in request body (instead of just 1 if body is present)
+	if r.Body != nil {
+		valCount += 1
+	}
+
+	for _, argDef := range cmd.Arguments {
+		// skip optional argument definitions if there aren't sufficient remaining values
+		if valCount <= lenRequired && !argDef.Required {
+			continue
+		} else if argDef.Required {
+			lenRequired--
+		}
+
+		if argDef.Type == cmds.ArgString {
+			if argDef.Variadic {
 				for _, s := range stringArgs {
 					args = append(args, s)
 				}
+				valCount -= len(stringArgs)
 
 			} else if len(stringArgs) > 0 {
 				args = append(args, stringArgs[0])
 				stringArgs = stringArgs[1:]
+				valCount--
 
 			} else {
 				break
@@ -62,6 +84,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 			// TODO: create multipart streams for file args
 			args = append(args, r.Body)
 		}
+	}
+
+	if valCount-1 > 0 {
+		args = append(args, make([]interface{}, valCount-1))
 	}
 
 	req := cmds.NewRequest(path, opts, args, cmd)

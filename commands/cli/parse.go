@@ -11,7 +11,7 @@ import (
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, error) {
+func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, error) {
 	var root, cmd *cmds.Command
 	var path, stringArgs []string
 	var opts map[string]interface{}
@@ -22,7 +22,7 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		p, i, c := parsePath(input, r)
 		o, s, err := parseOptions(i)
 		if err != nil {
-			return nil, nil, err
+			return nil, root, c, err
 		}
 
 		length := len(p)
@@ -37,22 +37,22 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 	}
 
 	if maxLength == 0 {
-		return nil, nil, errors.New("Not a valid subcommand")
+		return nil, root, nil, errors.New("Not a valid subcommand")
 	}
 
 	args, err := parseArgs(stringArgs, cmd)
 	if err != nil {
-		return nil, nil, err
+		return nil, root, cmd, err
 	}
 
 	req := cmds.NewRequest(path, opts, args, cmd)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
-		return nil, nil, err
+		return nil, root, cmd, err
 	}
 
-	return req, root, nil
+	return req, root, cmd, nil
 }
 
 // parsePath separates the command path and the opts and args from a command string
@@ -117,25 +117,64 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 }
 
 func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
-	var argDef cmds.Argument
-	args := make([]interface{}, len(stringArgs))
+	args := make([]interface{}, 0)
 
-	for i, arg := range stringArgs {
-		if i < len(cmd.Arguments) {
-			argDef = cmd.Arguments[i]
-		}
-
-		if argDef.Type == cmds.ArgString {
-			args[i] = arg
-
-		} else {
-			in, err := os.Open(arg)
-			if err != nil {
-				return nil, err
-			}
-			args[i] = in
+	// count required argument definitions
+	lenRequired := 0
+	for _, argDef := range cmd.Arguments {
+		if argDef.Required {
+			lenRequired++
 		}
 	}
 
+	j := 0
+	for _, argDef := range cmd.Arguments {
+		// skip optional argument definitions if there aren't sufficient remaining values
+		if len(stringArgs)-j <= lenRequired && !argDef.Required {
+			continue
+		} else if argDef.Required {
+			lenRequired--
+		}
+
+		if j >= len(stringArgs) {
+			break
+		}
+
+		if argDef.Variadic {
+			for _, arg := range stringArgs[j:] {
+				var err error
+				args, err = appendArg(args, argDef, arg)
+				if err != nil {
+					return nil, err
+				}
+				j++
+			}
+		} else {
+			var err error
+			args, err = appendArg(args, argDef, stringArgs[j])
+			if err != nil {
+				return nil, err
+			}
+			j++
+		}
+	}
+
+	if len(stringArgs)-j > 0 {
+		args = append(args, make([]interface{}, len(stringArgs)-j))
+	}
+
 	return args, nil
+}
+
+func appendArg(args []interface{}, argDef cmds.Argument, value string) ([]interface{}, error) {
+	if argDef.Type == cmds.ArgString {
+		return append(args, value), nil
+
+	} else {
+		in, err := os.Open(value)
+		if err != nil {
+			return nil, err
+		}
+		return append(args, in), nil
+	}
 }
