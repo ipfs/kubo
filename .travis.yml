@@ -7,8 +7,9 @@ go:
 
 script:
   - go test -v ./...
-  - cd test/
-  - make
+  - cd cmd/ipfs && go install # test it can be compiled
+  - cd ../../test/
+  - make                      # sharness tests
   - cd ..
 
 env: TEST_NO_FUSE=1
