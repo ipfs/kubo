@@ -7,9 +7,9 @@ import (
 	"os"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/config"
-	"github.com/jbenet/go-ipfs/core/commands2/internal"
-	"github.com/jbenet/go-ipfs/tour"
+	config "github.com/jbenet/go-ipfs/config"
+	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
+	tour "github.com/jbenet/go-ipfs/tour"
 )
 
 var cmdTour = &cmds.Command{
