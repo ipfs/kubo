@@ -32,11 +32,9 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 	notif := notifications.New()
 
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				notif.Shutdown()
-			}
+		select {
+		case <-ctx.Done():
+			notif.Shutdown()
 		}
 	}()
 

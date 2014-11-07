@@ -6,7 +6,9 @@ RUN cd /go/src/github.com/jbenet/go-ipfs/cmd/ipfs && go install
 
 EXPOSE 4001
 
-CMD ["ipfs", "run"]
+ENTRYPOINT ["ipfs"]
+
+CMD ["run"]
 
 # build:    docker build -t go-ipfs .
-# run:      docker run -p 4001:4001 -e "IPFS_LOGGING=debug" go-ipfs:latest
+# run:      docker run -p 4001:4001 -e "IPFS_LOGGING=debug" go-ipfs:latest run

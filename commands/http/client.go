@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
+
+var castError = errors.New("cast error")
 
 const (
 	ApiUrlFormat = "http://%s%s/%s?%s"
@@ -33,11 +36,19 @@ func NewClient(address string) Client {
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	var userEncoding string
 	if enc, found := req.Option(cmds.EncShort); found {
-		userEncoding = enc.(string)
+		var ok bool
+		userEncoding, ok = enc.(string)
+		if !ok {
+			return nil, castError
+		}
 		req.SetOption(cmds.EncShort, cmds.JSON)
 	} else {
+		var ok bool
 		enc, _ := req.Option(cmds.EncLong)
-		userEncoding = enc.(string)
+		userEncoding, ok = enc.(string)
+		if !ok {
+			return nil, castError
+		}
 		req.SetOption(cmds.EncLong, cmds.JSON)
 	}
 
@@ -73,7 +84,11 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 
 	query := url.Values{}
 	for k, v := range req.Options() {
-		query.Set(k, v.(string))
+		str, ok := v.(string)
+		if !ok {
+			return "", nil, castError
+		}
+		query.Set(k, str)
 	}
 
 	args := req.Arguments()
@@ -86,14 +101,22 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 		}
 
 		if argDef.Type == cmds.ArgString {
-			query.Add("arg", arg.(string))
+			str, ok := arg.(string)
+			if !ok {
+				return "", nil, castError
+			}
+			query.Add("arg", str)
 
 		} else {
 			// TODO: multipart
 			if inputStream != nil {
 				return "", nil, fmt.Errorf("Currently, only one file stream is possible per request")
 			}
-			inputStream = arg.(io.Reader)
+			var ok bool
+			inputStream, ok = arg.(io.Reader)
+			if !ok {
+				return "", nil, castError
+			}
 		}
 	}
 

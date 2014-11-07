@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -116,7 +117,11 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 		if kind != opt.Type {
 			if kind == String {
 				convert := converters[opt.Type]
-				val, err := convert(v.(string))
+				str, ok := v.(string)
+				if !ok {
+					return errors.New("cast error")
+				}
+				val, err := convert(str)
 				if err != nil {
 					return fmt.Errorf("Could not convert string value '%s' to type '%s'",
 						v, opt.Type.String())
