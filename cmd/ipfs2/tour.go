@@ -15,7 +15,7 @@ import (
 var cmdTour = &cmds.Command{
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"number", cmds.ArgString, false, true},
+		cmds.Argument{"number", cmds.ArgString, false, false},
 	},
 
 	// TODO UsageLine: "tour [<number>]",
