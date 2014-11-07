@@ -84,7 +84,7 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	log.Debugf("Get Block %v", k)
 	now := time.Now()
 	defer func() {
-		log.Errorf("GetBlock took %f secs", time.Now().Sub(now).Seconds())
+		log.Debugf("GetBlock took %f secs", time.Now().Sub(now).Seconds())
 	}()
 
 	ctx, cancelFunc := context.WithCancel(parent)
