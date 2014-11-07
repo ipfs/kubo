@@ -6,7 +6,7 @@
 # We are using sharness (https://github.com/mlafeldt/sharness)
 # which was extracted from the Git test framework.
 
-. ./test-sharness-config.sh
+SHARNESS_LIB="./sharness.sh"
 
 . "$SHARNESS_LIB" || {
 	echo >&2 "Cannot source: $SHARNESS_LIB"

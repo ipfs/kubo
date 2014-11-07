@@ -46,4 +46,6 @@ fi
 # ok, move things into place
 mv $sfile.test $sfile
 mv $afile.test $afile
+chmod +x $sfile
+chmod +x $afile
 exit 0
