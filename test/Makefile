@@ -5,7 +5,7 @@
 #
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
-RANDOM=$(GOPATH)/bin/random
+RANDOM=${GOPATH}/bin/random
 
 all: clean deps $(T) aggregate
 
@@ -21,7 +21,7 @@ aggregate:
 	@echo "*** $@ ***"
 	./test-aggregate-results.sh
 
-deps: ipfs sharness.sh $(RANDOM)
+deps: ipfs sharness.sh ${RANDOM}
 
 # phony to ensure we re-build it every time we run tests
 ipfs:
@@ -34,6 +34,7 @@ sharness.sh:
 
 .PHONY: all clean $(T) aggregate ipfs
 
-$(RANDOM):
+${RANDOM}:
+	@echo "*** installing $@ ***"
 	go get github.com/jbenet/go-random/random
 	go install github.com/jbenet/go-random/random
