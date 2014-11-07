@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime/pprof"
 
+	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
@@ -106,6 +107,8 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 	if debug, found := options.Option("debug"); found {
 		if debugBool, ok := debug.(bool); debugBool && ok {
 			u.Debug = true
+
+			u.SetAllLoggers(logging.DEBUG)
 
 			// if debugging, setup profiling.
 			if u.Debug {
