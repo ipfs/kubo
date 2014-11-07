@@ -8,6 +8,10 @@
 
 SHARNESS_LIB="./sharness.sh"
 
+# the ipfs tool to test against
+# ../ipfs because it will be one level above during test exec
+ipfs="../ipfs"
+
 . "$SHARNESS_LIB" || {
 	echo >&2 "Cannot source: $SHARNESS_LIB"
 	echo >&2 "Please check Sharness installation."
@@ -31,17 +35,17 @@ test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_DIR="$(pwd)/.go-ipfs" &&
-		ipfs init -b=2048
+		$ipfs init -b=2048
 	'
 
 	test_expect_success "prepare config" '
 		mkdir mountdir ipfs ipns &&
-		ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
-		ipfs config Mounts.IPNS "$(pwd)/ipns"
+		$ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
+		$ipfs config Mounts.IPNS "$(pwd)/ipns"
 	'
 
 	test_expect_success FUSE "ipfs mount succeeds" '
-		ipfs mount mountdir >actual &
+		$ipfs mount mountdir >actual &
 	'
 
 	test_expect_success FUSE "ipfs mount output looks good" '

@@ -12,7 +12,7 @@ test_launch_ipfs_mount
 
 test_expect_success "ipfs add succeeds" '
 	echo "Hello Worlds!" >mountdir/hello.txt &&
-	ipfs add mountdir/hello.txt >actual
+	$ipfs add mountdir/hello.txt >actual
 '
 
 test_expect_success "ipfs add output looks good" '
@@ -22,7 +22,7 @@ test_expect_success "ipfs add output looks good" '
 '
 
 test_expect_success "ipfs cat succeeds" '
-	ipfs cat $HASH >actual
+	$ipfs cat $HASH >actual
 '
 
 test_expect_success "ipfs cat output looks good" '
@@ -53,7 +53,7 @@ test_expect_success "sha1 of the file looks ok" '
 '
 
 test_expect_success "ipfs add bigfile succeeds" '
-	ipfs add mountdir/bigfile >actual
+	$ipfs add mountdir/bigfile >actual
 '
 
 test_expect_success "ipfs add bigfile output looks good" '
@@ -63,7 +63,7 @@ test_expect_success "ipfs add bigfile output looks good" '
 '
 
 test_expect_success "ipfs cat succeeds" '
-	ipfs cat $HASH | shasum >sha1_actual
+	$ipfs cat $HASH | shasum >sha1_actual
 '
 
 test_expect_success "ipfs cat output looks good" '

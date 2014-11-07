@@ -19,5 +19,5 @@ test: test_go test_sharness
 test_go:
 	go test ./...
 
-test_sharness: install
+test_sharness:
 	cd test/ && make

@@ -21,13 +21,18 @@ aggregate:
 	@echo "*** $@ ***"
 	./test-aggregate-results.sh
 
-deps: sharness.sh $(RANDOM)
+deps: ipfs sharness.sh $(RANDOM)
+
+# phony to ensure we re-build it every time we run tests
+ipfs:
+	cd ../cmd/ipfs && go build
+	cp ../cmd/ipfs/ipfs ipfs
 
 sharness.sh:
 	@echo "*** installing $@ ***"
 	./install-sharness.sh
 
-.PHONY: all clean $(T) aggregate
+.PHONY: all clean $(T) aggregate ipfs
 
 $(RANDOM):
 	go get github.com/jbenet/go-random/random
