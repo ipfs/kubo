@@ -5,6 +5,7 @@
 #
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
+RANDOM=$(GOPATH)/bin/random
 
 all: clean deps $(T) aggregate
 
@@ -20,10 +21,14 @@ aggregate:
 	@echo "*** $@ ***"
 	./test-aggregate-results.sh
 
-deps: sharness.sh
+deps: sharness.sh $(RANDOM)
 
 sharness.sh:
 	@echo "*** installing $@ ***"
 	./install-sharness.sh
 
 .PHONY: all clean $(T) aggregate
+
+$(RANDOM):
+	go get github.com/jbenet/go-random/random
+	go install github.com/jbenet/go-random/random
