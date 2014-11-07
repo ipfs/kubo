@@ -9,7 +9,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
-	"github.com/jbenet/go-ipfs/core"
+	core "github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands2"
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 )
