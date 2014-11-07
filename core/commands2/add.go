@@ -62,14 +62,18 @@ var addCmd = &cmds.Command{
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			v := res.Output().(*AddOutput).Added
-			if len(v) == 1 {
-				s := fmt.Sprintf("Added object: %s\n", v[0].Hash)
+			val, ok := res.Output().(*AddOutput)
+			if !ok {
+				return nil, errors.New("cast err")
+			}
+			added := val.Added
+			if len(added) == 1 {
+				s := fmt.Sprintf("Added object: %s\n", added[0].Hash)
 				return []byte(s), nil
 			}
 
-			s := fmt.Sprintf("Added %v objects:\n", len(v))
-			for _, obj := range v {
+			s := fmt.Sprintf("Added %v objects:\n", len(added))
+			for _, obj := range added {
 				s += fmt.Sprintf("- %s\n", obj.Hash)
 			}
 			return []byte(s), nil
