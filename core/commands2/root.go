@@ -70,6 +70,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"bootstrap": bootstrapCmd,
 	"mount":     mountCmd,
 	"block":     blockCmd,
+	"update":    updateCmd,
 
 	// test subcommands
 	// TODO: remove these when we don't need them anymore
