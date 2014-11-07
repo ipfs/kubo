@@ -6,7 +6,10 @@ import (
 	"net/http"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("commands/http")
 
 type Handler struct {
 	ctx  cmds.Context
@@ -26,6 +29,8 @@ func NewHandler(ctx cmds.Context, root *cmds.Command) *Handler {
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Debug("Incoming API request: ", r.URL)
+
 	req, err := Parse(r, i.root)
 	if err != nil {
 		if err == ErrNotFound {
