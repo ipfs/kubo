@@ -232,6 +232,9 @@ func (s *Node) Attr() fuse.Attr {
 			log.Errorf("Error getting size of file: %s", err)
 			size = 0
 		}
+		if size == 0 {
+			size = s.dagMod.Size()
+		}
 		return fuse.Attr{
 			Mode:   0666,
 			Size:   size,
