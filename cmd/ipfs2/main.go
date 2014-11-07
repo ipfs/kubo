@@ -177,6 +177,7 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 				fmt.Println(err)
 				os.Exit(1)
 			}
+			defer node.Close()
 			req.Context().Node = node
 
 			res = root.Call(req)
