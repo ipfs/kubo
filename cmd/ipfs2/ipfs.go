@@ -9,7 +9,8 @@ var Root = &cmds.Command{
 	Options: commands.Root.Options,
 	Help:    commands.Root.Help,
 	Subcommands: map[string]*cmds.Command{
-		"daemon": daemonCmd,
-		"init":   initCmd,
+		"daemon": daemonCmd, // TODO name
+		"init":   initCmd,   // TODO name
+		"tour":   cmdTour,
 	},
 }
