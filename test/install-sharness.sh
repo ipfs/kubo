@@ -16,6 +16,11 @@ shash=eeaf96630fc25ec58fb678b64ef9772d5eb92f64
 afile=aggregate-results.sh
 ahash=948d6bc03222c5c00a1ed048068508d5ea1cce59
 
+die() {
+  echo >&2 $@
+  exit 1
+}
+
 verified_download() {
   file=$1
   hash1=$2
@@ -34,6 +39,8 @@ verified_download() {
   return 0
 }
 
+mkdir -p sharness || die "Could not create 'sharness' directory"
+cd sharness || die "Could not cd into 'sharness' directory"
 
 verified_download "$sfile" "$shash"; sok=$?
 verified_download "$afile" "$ahash"; aok=$?

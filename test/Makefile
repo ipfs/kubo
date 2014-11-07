@@ -5,6 +5,7 @@
 #
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
+SHARNESS = sharness/sharness.sh
 
 all: clean deps $(T) aggregate
 
@@ -20,21 +21,22 @@ aggregate:
 	@echo "*** $@ ***"
 	./test-aggregate-results.sh
 
-deps: ipfs sharness.sh random
+deps: $(SHARNESS) ipfs random
 
-# phony to ensure we re-build it every time we run tests
-ipfs:
-	cd ../cmd/ipfs && go build
-	cp ../cmd/ipfs/ipfs ipfs
-
-sharness.sh:
+$(SHARNESS):
 	@echo "*** installing $@ ***"
 	./install-sharness.sh
 
-.PHONY: all clean $(T) aggregate ipfs
+# phony to ensure we re-build it every time we run tests
+ipfs:
+	@echo "*** installing $@ ***"
+	cd ../cmd/ipfs && go build
+	cp ../cmd/ipfs/ipfs ipfs
 
 random:
 	@echo "*** installing $@ ***"
 	go get github.com/jbenet/go-random/random
 	go install github.com/jbenet/go-random/random
 	cp `which random` random
+
+.PHONY: all clean $(T) aggregate ipfs random
