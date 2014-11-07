@@ -9,10 +9,10 @@ test_description="Test mount command"
 . ./test-lib.sh
 
 # if in travis CI, dont test mount (no fuse)
-if test "$TEST_NO_FUSE" = 1; then
-  skip_all='skipping mount tests, fuse not available'
+if ! test_have_prereq FUSE; then
+	skip_all='skipping mount tests, fuse not available'
 
-  test_done
+	test_done
 fi
 
 test_launch_ipfs_mount

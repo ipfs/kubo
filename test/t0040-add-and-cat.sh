@@ -30,11 +30,11 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
-test_expect_success "cat ipfs/stuff succeeds" '
+test_expect_success FUSE "cat ipfs/stuff succeeds" '
 	cat ipfs/$HASH >actual
 '
 
-test_expect_success "cat ipfs/stuff looks good" '
+test_expect_success FUSE "cat ipfs/stuff looks good" '
 	test_cmp expected actual
 '
 
@@ -71,11 +71,11 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp sha1_expected sha1_actual
 '
 
-test_expect_success "cat ipfs/bigfile succeeds" '
+test_expect_success FUSE "cat ipfs/bigfile succeeds" '
 	cat ipfs/$HASH | sha1sum >sha1_actual
 '
 
-test_expect_success "cat ipfs/bigfile looks good" '
+test_expect_success FUSE "cat ipfs/bigfile looks good" '
 	test_cmp sha1_expected sha1_actual
 '
 
