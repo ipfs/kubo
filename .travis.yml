@@ -6,10 +6,6 @@ go:
   - tip
 
 script:
-  - go test -v ./...
-  - cd cmd/ipfs && go install # test it can be compiled
-  - cd ../../test/
-  - make                      # sharness tests
-  - cd ..
+  - make test
 
 env: TEST_NO_FUSE=1
