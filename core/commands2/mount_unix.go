@@ -17,6 +17,9 @@ import (
 const mountTimeout = time.Second
 
 var mountCmd = &cmds.Command{
+	Arguments: []cmds.Argument{
+		cmds.Argument{Name: "os-path", Type: cmds.ArgString, Required: false, Variadic: false},
+	},
 	Options: []cmds.Option{
 		cmds.Option{[]string{"f"}, cmds.String},
 		cmds.Option{[]string{"n"}, cmds.String},
