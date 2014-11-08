@@ -26,7 +26,16 @@ var lsCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.Argument{"object", cmds.ArgString, false, true},
 	},
-	Help: "TODO",
+	// TODO UsageLine: "ls",
+	// TODO Short:     "List links from an object.",
+	Help: `ipfs ls <ipfs-path> - List links from an object.
+
+    Retrieves the object named by <ipfs-path> and displays the links
+    it contains, with the following format:
+
+    <link base58 hash> <link size in bytes> <link name>
+
+`,
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
 
