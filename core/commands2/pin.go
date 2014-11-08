@@ -10,10 +10,8 @@ import (
 )
 
 var pinCmd = &cmds.Command{
-	// TODO UsageLine: "pin",
-	// TODO Short:     "",
-	Help: `ipfs pin [add|rm] - object pinning commands
-	`,
+	Description: "Keeps objects stored locally",
+
 	Subcommands: map[string]*cmds.Command{
 		"add": addPinCmd,
 		"rm":  rmPinCmd,
@@ -21,19 +19,18 @@ var pinCmd = &cmds.Command{
 }
 
 var addPinCmd = &cmds.Command{
-	// TODO UsageLine: "add",
-	// TODO Short:     "pin an ipfs object to local storage.",
-	Help: `ipfs pin add <ipfs-path> - pin ipfs object to local storage.
-
-    Retrieves the object named by <ipfs-path> and stores it locally
-    on disk.
+	Description: "Pins objects to local storage",
+	Help: `Keeps the object(s) named by <ipfs-path> in local storage. If the object
+isn't already being stored, IPFS retrieves it.
 `,
-	Options: []cmds.Option{
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
-		cmds.Option{[]string{"depth", "d"}, cmds.Uint},
-	},
+
 	Arguments: []cmds.Argument{
-		cmds.Argument{"object", cmds.ArgString, true, true},
+		cmds.Argument{"ipfs-path", cmds.ArgString, true, true,
+			"Path to object(s) to be pinned"},
+	},
+	Options: []cmds.Option{
+		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
+			"Recursively pin the object linked to by the specified object(s)"},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
@@ -58,18 +55,18 @@ var addPinCmd = &cmds.Command{
 }
 
 var rmPinCmd = &cmds.Command{
-	// TODO UsageLine: "rm",
-	// TODO Short:     "unpin an ipfs object from local storage.",
-	Help: `ipfs pin rm <ipfs-path> - unpin ipfs object from local storage.
-
-	Removes the pin from the given object allowing it to be garbage
+	Description: "Unpin an object from local storage",
+	Help: `Removes the pin from the given object allowing it to be garbage
 	collected if needed.
 `,
-	Options: []cmds.Option{
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
-	},
+
 	Arguments: []cmds.Argument{
-		cmds.Argument{"object", cmds.ArgString, true, true},
+		cmds.Argument{"ipfs-path", cmds.ArgString, true, true,
+			"Path to object(s) to be unpinned"},
+	},
+	Options: []cmds.Option{
+		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
+			"Recursively unpin the object linked to by the specified object(s)"},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node

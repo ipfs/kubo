@@ -12,13 +12,9 @@ type ResolveOutput struct {
 }
 
 var resolveCmd = &cmds.Command{
-	// TODO UsageLine: "resolve",
-	// TODO Short:     "resolve an ipns name to a <ref>",
-	Help: `ipfs name resolve [<name>] - Resolve an ipns name to a <ref>.
-
-IPNS is a PKI namespace, where names are the hashes of public keys, and
-the private key enables publishing new (signed) values. In resolve, the
-default value of <name> is your own identity public key.
+	Description: "Gets the value currently published at an IPNS name",
+	Help: `IPNS is a PKI namespace, where names are the hashes of public keys, and
+the private key enables publishing new (signed) values.
 
 
 Examples:
@@ -36,7 +32,8 @@ Resolve te value of another name:
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"name", cmds.ArgString, false, true},
+		cmds.Argument{"name", cmds.ArgString, false, true,
+			"The IPNS name to resolve. Defaults to your node's peerID."},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
 

@@ -12,13 +12,14 @@ type VersionOutput struct {
 }
 
 var versionCmd = &cmds.Command{
-	Options: []cmds.Option{
-		cmds.Option{[]string{"number", "n"}, cmds.Bool},
-	},
-	Help: `ipfs version - Show ipfs version information.
+	Description: "Outputs the current version of IPFS",
+	Help: `Returns the version number of IPFS.
+`,
 
-    Returns the current version of ipfs and exits.
-  `,
+	Options: []cmds.Option{
+		cmds.Option{[]string{"number", "n"}, cmds.Bool,
+			"Only output the version number"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		res.SetOutput(&VersionOutput{
 			Version: config.CurrentVersionNumber,

@@ -17,25 +17,24 @@ import (
 const mountTimeout = time.Second
 
 var mountCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{Name: "os-path", Type: cmds.ArgString, Required: false, Variadic: false},
-	},
+	Description: "Mounts IPFS to the filesystem (read-only)",
+	Help: `Mount ipfs at a read-only mountpoint on the OS. All ipfs objects
+will be accessible under that directory. Note that the root will
+not be listable, as it is virtual. Accessing known paths directly.
+`,
+
 	Options: []cmds.Option{
 
 		// TODO text: specify a mountpoint for ipfs
 		// TODO longform
-		cmds.Option{[]string{"f"}, cmds.String},
+		cmds.Option{[]string{"f"}, cmds.String,
+			"The path where IPFS should be mounted (default is '/ipfs')"},
 
 		// TODO text: specify a mountpoint for ipns
 		// TODO longform
-		cmds.Option{[]string{"n"}, cmds.String},
+		cmds.Option{[]string{"n"}, cmds.String,
+			"The path where IPNS should be mounted (default is '/ipns')"},
 	},
-	Help: `ipfs mount <os-path> - Mount an ipfs read-only mountpoint.
-
-    Mount ipfs at a read-only mountpoint on the OS. All ipfs objects
-    will be accessible under that directory. Note that the root will
-    not be listable, as it is virtual. Accessing known paths directly.
-`,
 	Run: func(res cmds.Response, req cmds.Request) {
 		ctx := req.Context()
 

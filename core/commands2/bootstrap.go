@@ -10,26 +10,19 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
-	//peer "github.com/jbenet/go-ipfs/peer"
-	//u "github.com/jbenet/go-ipfs/util"
 )
 
 type BootstrapOutput struct {
 	Peers []*config.BootstrapPeer
 }
 
+var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multiaddr>/<peerID>')"
+
 var bootstrapCmd = &cmds.Command{
-	Help: `ipfs bootstrap - show, or manipulate bootstrap node addresses
-
-Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
-
-Commands:
-
-  list               Show the boostrap list.
-  add <address>      Add a node's address to the bootstrap list.
-  remove <address>   Remove an address from the bootstrap list.
-
+	Description: "Show or edit the list of bootstrap peers",
+	Help: `Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 ` + bootstrapSecurityWarning,
+
 	Run:         bootstrapListCmd.Run,
 	Marshallers: bootstrapListCmd.Marshallers,
 	Subcommands: map[string]*cmds.Command{
@@ -40,11 +33,14 @@ Commands:
 }
 
 var bootstrapAddCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"peer", cmds.ArgString, true, true},
-	},
-	Help: `ipfs bootstrap add - add addresses to the bootstrap list
+	Description: "Add peers to the bootstrap list",
+	Help: `Outputs a list of peers that were added (that weren't already
+in the bootstrap list).
 ` + bootstrapSecurityWarning,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"peer", cmds.ArgString, true, true, peerOptionDesc},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		input, err := bootstrapInputToPeers(req.Arguments())
 		if err != nil {
@@ -81,11 +77,13 @@ var bootstrapAddCmd = &cmds.Command{
 }
 
 var bootstrapRemoveCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"peer", cmds.ArgString, true, true},
-	},
-	Help: `ipfs bootstrap remove - remove addresses from the bootstrap list
+	Description: "Removes peers from the bootstrap list",
+	Help: `Outputs the list of peers that were removed.
 ` + bootstrapSecurityWarning,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"peer", cmds.ArgString, true, true, peerOptionDesc},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		input, err := bootstrapInputToPeers(req.Arguments())
 		if err != nil {
@@ -122,7 +120,10 @@ var bootstrapRemoveCmd = &cmds.Command{
 }
 
 var bootstrapListCmd = &cmds.Command{
-	Help: "ipfs bootstrap list - Show addresses in the bootstrap list",
+	Description: "Lists peers in the bootstrap list",
+	Help: `Peers are output in the format '<multiaddr>/<peerID>'.
+`,
+
 	Run: func(res cmds.Response, req cmds.Request) {
 		peers := req.Context().Config.Bootstrap
 		res.SetOutput(&BootstrapOutput{peers})

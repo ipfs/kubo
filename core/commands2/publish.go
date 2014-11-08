@@ -14,13 +14,9 @@ import (
 var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
 
 var publishCmd = &cmds.Command{
-	// TODO UsageLine: "publish",
-	// TODO Short:     "publish a <ref> to ipns.",
-	Help: `ipfs name publish [<name>] <ref> - publish a <ref> to ipns.
-
-IPNS is a PKI namespace, where names are the hashes of public keys, and
-the private key enables publishing new (signed) values. In publish, the
-default value of <name> is your own identity public key.
+	Description: "Publish an object to IPNS",
+	Help: `IPNS is a PKI namespace, where names are the hashes of public keys, and
+the private key enables publishing new (signed) values.
 
 Examples:
 
@@ -35,9 +31,12 @@ Publish a <ref> to another public key:
   published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 `,
+
 	Arguments: []cmds.Argument{
-		cmds.Argument{"name", cmds.ArgString, false, false},
-		cmds.Argument{"object", cmds.ArgString, true, false},
+		cmds.Argument{"name", cmds.ArgString, false, false,
+			"The IPNS name to publish to. Defaults to your node's peerID"},
+		cmds.Argument{"ipfs-path", cmds.ArgString, true, false,
+			"IPFS path of the obejct to be published at <name>"},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node

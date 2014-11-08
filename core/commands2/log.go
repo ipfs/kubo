@@ -8,19 +8,17 @@ import (
 )
 
 var logCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"subsystem", cmds.ArgString, true, false},
-		cmds.Argument{"level", cmds.ArgString, true, false},
-	},
-	// TODO UsageLine: "log <name> <level> ",
-	// TODO Short:     "switch logging levels of a running daemon",
-	Help: `ipfs log <subsystem> <level> - switch logging levels of a running daemon
-
-   <subsystem> is a the subsystem logging identifier. Use * for all subsystems.
-   <level> is one of: debug, info, notice, warning, error, critical
-
-ipfs log is a utility command used to change the logging output of a running daemon.
+	Description: "Change the logging level",
+	Help: `'ipfs log' is a utility command used to change the logging
+output of a running daemon.
 `,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"subsystem", cmds.ArgString, true, false,
+			"the subsystem logging identifier. Use * for all subsystems."},
+		cmds.Argument{"level", cmds.ArgString, true, false,
+			"one of: debug, info, notice, warning, error, critical"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		args := req.Arguments()
 		if err := u.SetLogLevel(args[0].(string), args[1].(string)); err != nil {
