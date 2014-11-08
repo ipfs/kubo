@@ -6,6 +6,6 @@ go:
   - tip
 
 script:
-  - go test -v ./...
+  - make test
 
 env: TEST_NO_FUSE=1

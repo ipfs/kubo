@@ -9,3 +9,15 @@ godep:
 # ./... performs operation on all packages in tree
 vendor: godep
 	godep save -r ./...
+
+
+install:
+	cd cmd/ipfs && go install
+
+test: test_go test_sharness
+
+test_go:
+	go test ./...
+
+test_sharness:
+	cd test/ && make
