@@ -16,24 +16,23 @@ var Root = &cmds.Command{
 	Description: "Global P2P Merkle-DAG filesystem",
 	Help: `Basic commands:
 
-    init          Initialize ipfs local configuration.
-    add <path>    Add an object to ipfs.
-    cat <ref>     Show ipfs object data.
-    ls <ref>      List links from an object.
-    refs <ref>    List link hashes from an object.
+    init          Initialize ipfs local configurationx
+    add <path>    Add an object to ipfs
+    cat <ref>     Show ipfs object data
+    ls <ref>      List links from an object
 
 Tool commands:
 
-    config        Manage configuration.
-    update        Download and apply go-ipfs updates.
-    version       Show ipfs version information.
-    commands      List all available commands.
+    config        Manage configuration
+    update        Download and apply go-ipfs updates
+    version       Show ipfs version information
+    commands      List all available commands
 
 Advanced Commands:
 
-    mount         Mount an ipfs read-only mountpoint.
-    serve         Serve an interface to ipfs.
-    net-diag      Print network diagnostic
+    mount         Mount an ipfs read-only mountpoint
+    serve         Serve an interface to ipfs
+    diag          Print diagnostics
 
 Plumbing commands:
 
@@ -41,7 +40,7 @@ Plumbing commands:
     object        Interact with raw dag nodes
 
 
-Use "ipfs help <command>" for more information about a command.
+Use "ipfs <command> --help" for more information about a command.
 `,
 
 	Options: []cmds.Option{
