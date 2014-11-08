@@ -10,6 +10,10 @@ import (
 )
 
 var pinCmd = &cmds.Command{
+	// TODO UsageLine: "pin",
+	// TODO Short:     "",
+	Help: `ipfs pin [add|rm] - object pinning commands
+	`,
 	Subcommands: map[string]*cmds.Command{
 		"add": addPinCmd,
 		"rm":  rmPinCmd,
@@ -17,6 +21,13 @@ var pinCmd = &cmds.Command{
 }
 
 var addPinCmd = &cmds.Command{
+	// TODO UsageLine: "add",
+	// TODO Short:     "pin an ipfs object to local storage.",
+	Help: `ipfs pin add <ipfs-path> - pin ipfs object to local storage.
+
+    Retrieves the object named by <ipfs-path> and stores it locally
+    on disk.
+`,
 	Options: []cmds.Option{
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
 		cmds.Option{[]string{"depth", "d"}, cmds.Uint},
@@ -47,6 +58,13 @@ var addPinCmd = &cmds.Command{
 }
 
 var rmPinCmd = &cmds.Command{
+	// TODO UsageLine: "rm",
+	// TODO Short:     "unpin an ipfs object from local storage.",
+	Help: `ipfs pin rm <ipfs-path> - unpin ipfs object from local storage.
+
+	Removes the pin from the given object allowing it to be garbage
+	collected if needed.
+`,
 	Options: []cmds.Option{
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
 	},
