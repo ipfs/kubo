@@ -10,6 +10,13 @@ import (
 )
 
 var pinCmd = &cmds.Command{
+	Subcommands: map[string]*cmds.Command{
+		"add": addPinCmd,
+		"rm":  rmPinCmd,
+	},
+}
+
+var addPinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
 		cmds.Option{[]string{"depth", "d"}, cmds.Uint},
@@ -39,7 +46,7 @@ var pinCmd = &cmds.Command{
 	},
 }
 
-var unpinCmd = &cmds.Command{
+var rmPinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
 	},

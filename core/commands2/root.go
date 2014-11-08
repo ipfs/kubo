@@ -64,7 +64,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"log":       logCmd,
 	"net-diag":  diagCmd,
 	"pin":       pinCmd,
-	"unpin":     unpinCmd,
 	"version":   versionCmd,
 	"config":    configCmd,
 	"bootstrap": bootstrapCmd,
@@ -90,12 +89,14 @@ var rootSubcommands = map[string]*cmds.Command{
 		},
 		Type: &TestOutput{},
 	},
+	// TODO rm
 	"boop": &cmds.Command{
 		Run: func(res cmds.Response, req cmds.Request) {
 			v := strings.NewReader("hello, world")
 			res.SetOutput(v)
 		},
 	},
+	// TODO rm
 	"warp": &cmds.Command{
 		Options: []cmds.Option{
 			cmds.Option{[]string{"power", "p"}, cmds.Float},
@@ -115,6 +116,7 @@ var rootSubcommands = map[string]*cmds.Command{
 			}
 		},
 	},
+	// TODO rm
 	"args": &cmds.Command{
 		Run: func(res cmds.Response, req cmds.Request) {
 			res.SetOutput(req.Arguments())
