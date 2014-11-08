@@ -23,20 +23,15 @@ type LsOutput struct {
 }
 
 var lsCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"object", cmds.ArgString, false, true},
-	},
-	// TODO UsageLine: "ls",
-	// TODO Short:     "List links from an object.",
-	// TODO docs read ipfs-path. argument says option. which?
-	Help: `ipfs ls <ipfs-path> - List links from an object.
-
-    Retrieves the object named by <ipfs-path> and displays the links
-    it contains, with the following format:
-
-    <link base58 hash> <link size in bytes> <link name>
-
+	Description: "List links from an object.",
+	Help: `Retrieves the object named by <ipfs-path> and displays the links
+it contains.
 `,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"ipfs-path", cmds.ArgString, false, true,
+			"The path to the IPFS object(s) to list links from"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
 

@@ -10,14 +10,15 @@ import (
 )
 
 var catCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"object", cmds.ArgString, true, true},
-	},
-	Help: `ipfs cat <object> - Show ipfs object data.
-
-	Retrieves the object named by <object> and outputs the data
+	Description: "Show IPFS object data",
+	Help: `Retrieves the object named by <ipfs-path> and outputs the data
 	it contains.
 	`,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"ipfs-path", cmds.ArgString, true, true,
+			"The path to the IPFS object(s) to be outputted"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
 		readers := make([]io.Reader, 0, len(req.Arguments()))

@@ -18,18 +18,8 @@ type ConfigField struct {
 }
 
 var configCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false},
-		cmds.Argument{"value", cmds.ArgString, false, false},
-	},
-	Help: `ipfs config <key> [value] - Get/Set ipfs config values.
-
-    ipfs config <key>          - Get value of <key>
-    ipfs config <key> <value>  - Set value of <key> to <value>
-    ipfs config show           - Show config file
-    ipfs config edit           - Edit config file in $EDITOR
-
-Examples:
+	Description: "Get/set IPFS config values",
+	Help: `Examples:
 
   Get the value of the 'datastore.path' key:
 
@@ -38,8 +28,14 @@ Examples:
   Set the value of the 'datastore.path' key:
 
       ipfs config datastore.path ~/.go-ipfs/datastore
-
 `,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"key", cmds.ArgString, true, false,
+			"The key of the config entry (e.g. \"Addresses.API\")"},
+		cmds.Argument{"value", cmds.ArgString, false, false,
+			"The value to set the config entry to"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		args := req.Arguments()
 
@@ -110,6 +106,11 @@ Examples:
 }
 
 var configShowCmd = &cmds.Command{
+	Description: "Outputs the content of the config file",
+	Help: `WARNING: Your private key is stored in the config file, and it will be
+included in the output of this command.
+`,
+
 	Run: func(res cmds.Response, req cmds.Request) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
@@ -128,6 +129,11 @@ var configShowCmd = &cmds.Command{
 }
 
 var configEditCmd = &cmds.Command{
+	Description: "Opens the config file for editing in $EDITOR",
+	Help: `To use 'ipfs config edit', you must have the $EDITOR environment
+variable set to your preferred text editor.
+`,
+
 	Run: func(res cmds.Response, req cmds.Request) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {

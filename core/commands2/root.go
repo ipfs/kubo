@@ -1,9 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"strings"
-
 	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -16,15 +13,8 @@ type TestOutput struct {
 }
 
 var Root = &cmds.Command{
-	Options: []cmds.Option{
-		cmds.Option{[]string{"config", "c"}, cmds.String},
-		cmds.Option{[]string{"debug", "D"}, cmds.Bool},
-		cmds.Option{[]string{"help", "h"}, cmds.Bool},
-		cmds.Option{[]string{"local", "L"}, cmds.Bool},
-	},
-	Help: `ipfs - global versioned p2p merkledag file system
-
-Basic commands:
+	Description: "Global P2P Merkle-DAG filesystem",
+	Help: `Basic commands:
 
     init          Initialize ipfs local configuration.
     add <path>    Add an object to ipfs.
@@ -53,6 +43,17 @@ Plumbing commands:
 
 Use "ipfs help <command>" for more information about a command.
 `,
+
+	Options: []cmds.Option{
+		cmds.Option{[]string{"config", "c"}, cmds.String,
+			"Path to the configuration file to use"},
+		cmds.Option{[]string{"debug", "D"}, cmds.Bool,
+			"Operate in debug mode"},
+		cmds.Option{[]string{"help", "h"}, cmds.Bool,
+			"Show the command help text"},
+		cmds.Option{[]string{"local", "L"}, cmds.Bool,
+			"Run the command locally, instead of using the daemon"},
+	},
 }
 
 var rootSubcommands = map[string]*cmds.Command{
