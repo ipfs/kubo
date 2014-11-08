@@ -1,3 +1,4 @@
+// package config implements the ipfs config file datastructures and utilities.
 package config
 
 import (

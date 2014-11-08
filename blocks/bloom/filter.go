@@ -1,3 +1,4 @@
+// package bloom implements a simple bloom filter.
 package bloom
 
 import (

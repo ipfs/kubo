@@ -1,7 +1,7 @@
-// A Go mirror of libfuse's hello.c
-
 // +build linux darwin freebsd
 
+// package fuse/readonly implements a fuse filesystem to access files
+// stored inside of ipfs.
 package readonly
 
 import (

@@ -1,4 +1,5 @@
-package dht
+// package kbucket implements a kademlia 'k-bucket' routing table.
+package kbucket
 
 import (
 	"container/list"
