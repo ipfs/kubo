@@ -28,6 +28,7 @@ var lsCmd = &cmds.Command{
 	},
 	// TODO UsageLine: "ls",
 	// TODO Short:     "List links from an object.",
+	// TODO docs read ipfs-path. argument says option. which?
 	Help: `ipfs ls <ipfs-path> - List links from an object.
 
     Retrieves the object named by <ipfs-path> and displays the links
