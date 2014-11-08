@@ -21,7 +21,13 @@ var mountCmd = &cmds.Command{
 		cmds.Argument{Name: "os-path", Type: cmds.ArgString, Required: false, Variadic: false},
 	},
 	Options: []cmds.Option{
+
+		// TODO text: specify a mountpoint for ipfs
+		// TODO longform
 		cmds.Option{[]string{"f"}, cmds.String},
+
+		// TODO text: specify a mountpoint for ipns
+		// TODO longform
 		cmds.Option{[]string{"n"}, cmds.String},
 	},
 	Help: `ipfs mount <os-path> - Mount an ipfs read-only mountpoint.
