@@ -120,12 +120,15 @@ func optionText(cmd ...*cmds.Command) []string {
 
 func subcommandText(cmd *cmds.Command, rootName string, path []string) []string {
 	prefix := fmt.Sprintf("%v %v", rootName, strings.Join(path, " "))
+	if len(path) > 0 {
+		prefix += " "
+	}
 	lines := make([]string, len(cmd.Subcommands))
 
 	i := 0
 	for name, sub := range cmd.Subcommands {
 		usage := usageText(sub)
-		lines[i] = fmt.Sprintf("%v %v %v", prefix, name, usage)
+		lines[i] = fmt.Sprintf("%v%v %v", prefix, name, usage)
 		lines[i] += fmt.Sprintf("\n%v", sub.Description)
 		lines[i] = indentString(lines[i], "    ") + "\n"
 		i++
