@@ -62,7 +62,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"name":      nameCmd,
 	"add":       addCmd,
 	"log":       logCmd,
-	"net-diag":  diagCmd,
+	"diag":      diagCmd,
 	"pin":       pinCmd,
 	"version":   versionCmd,
 	"config":    configCmd,
