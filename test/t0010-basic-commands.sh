@@ -13,7 +13,7 @@ test_expect_success "current dir is writable" '
 '
 
 test_expect_success "ipfs version succeeds" '
-	$ipfs version >version.txt
+	ipfs version >version.txt
 '
 
 test_expect_success "ipfs version output looks good" '
@@ -21,7 +21,7 @@ test_expect_success "ipfs version output looks good" '
 '
 
 test_expect_success "ipfs help succeeds" '
-	$ipfs help >help.txt
+	ipfs help >help.txt
 '
 
 test_expect_success "ipfs help output looks good" '

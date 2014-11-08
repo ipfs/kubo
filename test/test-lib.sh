@@ -6,11 +6,19 @@
 # We are using sharness (https://github.com/mlafeldt/sharness)
 # which was extracted from the Git test framework.
 
-SHARNESS_LIB="./sharness.sh"
+# use the ipfs tool to test against
 
-# the ipfs tool to test against
-# ../ipfs because it will be one level above during test exec
-ipfs="../ipfs"
+# add current directory to path, for ipfs tool.
+PATH=$(pwd):${PATH}
+
+# assert the `ipfs` we're using is the right one.
+if test `which ipfs` != $(pwd)/ipfs; then
+	echo >&2 "Cannot find the tests' local ipfs tool."
+	echo >&2 "Please check test and ipfs tool installation."
+	exit 1
+fi
+
+SHARNESS_LIB="./sharness.sh"
 
 . "$SHARNESS_LIB" || {
 	echo >&2 "Cannot source: $SHARNESS_LIB"
@@ -35,17 +43,17 @@ test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_DIR="$(pwd)/.go-ipfs" &&
-		$ipfs init -b=2048
+		ipfs init -b=2048
 	'
 
 	test_expect_success "prepare config" '
 		mkdir mountdir ipfs ipns &&
-		$ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
-		$ipfs config Mounts.IPNS "$(pwd)/ipns"
+		ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
+		ipfs config Mounts.IPNS "$(pwd)/ipns"
 	'
 
 	test_expect_success FUSE "ipfs mount succeeds" '
-		$ipfs mount mountdir >actual &
+		ipfs mount mountdir >actual &
 	'
 
 	test_expect_success FUSE "ipfs mount output looks good" '

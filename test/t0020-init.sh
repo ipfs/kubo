@@ -10,7 +10,7 @@ test_description="Test init command"
 
 test_expect_success "ipfs init succeeds" '
 	export IPFS_DIR="$(pwd)/.go-ipfs" &&
-	$ipfs init
+	ipfs init
 '
 
 test_expect_success ".go-ipfs/ has been created" '
@@ -21,7 +21,7 @@ test_expect_success ".go-ipfs/ has been created" '
 
 test_expect_success "ipfs config succeeds" '
 	echo leveldb >expected &&
-	$ipfs config Datastore.Type >actual &&
+	ipfs config Datastore.Type >actual &&
 	test_cmp expected actual
 '
 
