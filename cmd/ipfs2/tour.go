@@ -13,27 +13,18 @@ import (
 )
 
 var cmdTour = &cmds.Command{
-
-	Arguments: []cmds.Argument{
-		cmds.Argument{"number", cmds.ArgString, false, false},
-	},
-
-	// TODO UsageLine: "tour [<number>]",
-	// TODO Short:     "Take the IPFS Tour.",
-
-	Help: `ipfs tour - Take the IPFS Tour.
-
-    ipfs tour [<number>]   - Show tour topic. Default to current.
-    ipfs tour next         - Show the next tour topic.
-    ipfs tour list         - Show a list of topics.
-    ipfs tour restart      - Restart the tour.
-
-This is a tour that takes you through various IPFS concepts,
+	Description: "An introduction to IPFS",
+	Help: `This is a tour that takes you through various IPFS concepts,
 features, and tools to make sure you get up to speed with
 IPFS very quickly. To start, run:
 
     ipfs tour
 `,
+
+	Arguments: []cmds.Argument{
+		cmds.Argument{"number", cmds.ArgString, false, false,
+			"The number of the topic you would like to tour"},
+	},
 	Subcommands: map[string]*cmds.Command{
 		"list":    cmdIpfsTourList,
 		"next":    cmdIpfsTourNext,
@@ -65,7 +56,8 @@ IPFS very quickly. To start, run:
 }
 
 var cmdIpfsTourNext = &cmds.Command{
-	Help: "Show the next IPFS Tour topic.",
+	Description: "Show the next IPFS Tour topic",
+
 	Run: func(res cmds.Response, req cmds.Request) {
 		var w bytes.Buffer
 		cfg := req.Context().Config
@@ -92,7 +84,8 @@ var cmdIpfsTourNext = &cmds.Command{
 }
 
 var cmdIpfsTourRestart = &cmds.Command{
-	Help: "Restart the IPFS Tour.",
+	Description: "Restart the IPFS Tour",
+
 	Run: func(res cmds.Response, req cmds.Request) {
 		path := req.Context().ConfigRoot
 		cfg := req.Context().Config
@@ -106,7 +99,8 @@ var cmdIpfsTourRestart = &cmds.Command{
 }
 
 var cmdIpfsTourList = &cmds.Command{
-	Help: "Show a list of IPFS Tour topics.",
+	Description: "Show a list of IPFS Tour topics",
+
 	Run: func(res cmds.Response, req cmds.Request) {
 		var w bytes.Buffer
 		tourListCmd(&w, req.Context().Config)
