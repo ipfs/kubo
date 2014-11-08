@@ -21,16 +21,13 @@ type AddOutput struct {
 
 var addCmd = &cmds.Command{
 	Options: []cmds.Option{
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool},
+		cmds.Option{[]string{"recursive", "r"}, cmds.Bool, "Must be specified when adding directories"},
 	},
 	Arguments: []cmds.Argument{
-		cmds.Argument{"file", cmds.ArgFile, false, true},
+		cmds.Argument{"file", cmds.ArgFile, false, true, "The path to a file to be added to IPFS"},
 	},
-	// TODO UsageLine: "add",
-	// TODO Short:     "Add an object to ipfs.",
-	Help: `ipfs add <path>... - Add objects to ipfs.
-
-    Adds contents of <path> to ipfs. Use -r to add directories.
+	Description: "Add an object to ipfs.",
+	Help: `Adds contents of <path> to ipfs. Use -r to add directories.
     Note that directories are added recursively, to form the ipfs
     MerkleDAG. A smarter partial add with a staging area (like git)
     remains to be implemented.
