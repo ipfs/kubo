@@ -18,7 +18,7 @@ if test `which ipfs` != $(pwd)/ipfs; then
 	exit 1
 fi
 
-SHARNESS_LIB="./sharness.sh"
+SHARNESS_LIB="sharness/sharness.sh"
 
 . "$SHARNESS_LIB" || {
 	echo >&2 "Cannot source: $SHARNESS_LIB"

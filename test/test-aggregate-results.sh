@@ -6,7 +6,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-SHARNESS_AGGREGATE="./aggregate-results.sh"
+SHARNESS_AGGREGATE="sharness/aggregate-results.sh"
 
 test -f "$SHARNESS_AGGREGATE" || {
 	echo >&2 "Cannot find: $SHARNESS_AGGREGATE"
