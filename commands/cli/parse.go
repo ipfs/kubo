@@ -11,7 +11,7 @@ import (
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, error) {
+func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, []string, error) {
 	var root, cmd *cmds.Command
 	var path, stringArgs []string
 	var opts map[string]interface{}
@@ -22,7 +22,7 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		p, i, c := parsePath(input, r)
 		o, s, err := parseOptions(i)
 		if err != nil {
-			return nil, root, c, err
+			return nil, root, c, p, err
 		}
 
 		length := len(p)
@@ -37,22 +37,22 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 	}
 
 	if maxLength == 0 {
-		return nil, root, nil, errors.New("Not a valid subcommand")
+		return nil, root, nil, path, errors.New("Not a valid subcommand")
 	}
 
 	args, err := parseArgs(stringArgs, cmd)
 	if err != nil {
-		return nil, root, cmd, err
+		return nil, root, cmd, path, err
 	}
 
 	req := cmds.NewRequest(path, opts, args, cmd)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
-		return nil, root, cmd, err
+		return req, root, cmd, path, err
 	}
 
-	return req, root, cmd, nil
+	return req, root, cmd, path, nil
 }
 
 // parsePath separates the command path and the opts and args from a command string
