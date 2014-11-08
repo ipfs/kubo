@@ -26,7 +26,15 @@ var addCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.Argument{"file", cmds.ArgFile, false, true},
 	},
-	Help: "TODO",
+	// TODO UsageLine: "add",
+	// TODO Short:     "Add an object to ipfs.",
+	Help: `ipfs add <path>... - Add objects to ipfs.
+
+    Adds contents of <path> to ipfs. Use -r to add directories.
+    Note that directories are added recursively, to form the ipfs
+    MerkleDAG. A smarter partial add with a staging area (like git)
+    remains to be implemented.
+`,
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
 
