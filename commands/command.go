@@ -28,7 +28,9 @@ type Marshaller func(Response) ([]byte, error)
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
+	Description string
 	Help        string
+
 	Options     []Option
 	Arguments   []Argument
 	Run         Function
