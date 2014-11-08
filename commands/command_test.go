@@ -5,8 +5,8 @@ import "testing"
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
 		Options: []Option{
-			Option{[]string{"b", "beep"}, Int},
-			Option{[]string{"B", "boop"}, String},
+			Option{[]string{"b", "beep"}, Int, "enables beeper"},
+			Option{[]string{"B", "boop"}, String, "password for booper"},
 		},
 		Run: func(res Response, req Request) {},
 	}
@@ -83,14 +83,14 @@ func TestRegistration(t *testing.T) {
 
 	cmdA := &Command{
 		Options: []Option{
-			Option{[]string{"beep"}, Int},
+			Option{[]string{"beep"}, Int, "number of beeps"},
 		},
 		Run: noop,
 	}
 
 	cmdB := &Command{
 		Options: []Option{
-			Option{[]string{"beep"}, Int},
+			Option{[]string{"beep"}, Int, "number of beeps"},
 		},
 		Run: noop,
 		Subcommands: map[string]*Command{
@@ -100,7 +100,7 @@ func TestRegistration(t *testing.T) {
 
 	cmdC := &Command{
 		Options: []Option{
-			Option{[]string{"encoding"}, String},
+			Option{[]string{"encoding"}, String, "data encoding type"},
 		},
 		Run: noop,
 	}
