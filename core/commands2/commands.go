@@ -13,7 +13,12 @@ type Command struct {
 }
 
 var commandsCmd = &cmds.Command{
-	Help: "TODO",
+	// TODO UsageLine: "commands",
+	// TODO Short:     "List all available commands.",
+	Help: `ipfs commands - List all available commands.
+
+    Lists all available commands (and sub-commands) and exits.
+  `,
 	Run: func(res cmds.Response, req cmds.Request) {
 		root := outputCommand("ipfs", Root)
 		res.SetOutput(&root)
