@@ -16,17 +16,20 @@ import (
 )
 
 var initCmd = &cmds.Command{
-	Options: []cmds.Option{
-		cmds.Option{[]string{"bits", "b"}, cmds.Int},
-		cmds.Option{[]string{"passphrase", "p"}, cmds.String},
-		cmds.Option{[]string{"force", "f"}, cmds.Bool},
-		cmds.Option{[]string{"datastore", "d"}, cmds.String},
-	},
-	Help: `ipfs init
+	Description: "Initializes IPFS config file",
+	Help: `Initializes IPFS configuration files and generates a new keypair.
+`,
 
-	Initializes ipfs configuration files and generates a
-	new keypair.
-	`,
+	Options: []cmds.Option{
+		cmds.Option{[]string{"bits", "b"}, cmds.Int,
+			"Number of bits to use in the generated RSA private key (defaults to 4096)"},
+		cmds.Option{[]string{"passphrase", "p"}, cmds.String,
+			"Passphrase for encrypting the private key"},
+		cmds.Option{[]string{"force", "f"}, cmds.Bool,
+			"Overwrite existing config (if it exists)"},
+		cmds.Option{[]string{"datastore", "d"}, cmds.String,
+			"Location for the IPFS data store"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 
 		arg, found := req.Option("d")
