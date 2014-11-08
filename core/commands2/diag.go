@@ -28,6 +28,14 @@ type DiagnosticOutput struct {
 }
 
 var diagCmd = &cmds.Command{
+	// TODO UsageLine: "net-diag",
+	// TODO Short:     "Generate a diagnostics report",
+	Help: `ipfs net-diag - Generate a diagnostics report.
+
+	Sends out a message to each node in the network recursively
+	requesting a listing of data about them including number of
+	connected peers and latencies between them.
+`,
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
 
