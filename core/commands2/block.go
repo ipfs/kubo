@@ -22,14 +22,9 @@ type Block struct {
 }
 
 var blockCmd = &cmds.Command{
-	Help: `ipfs block - manipulate raw ipfs blocks
-
-    ipfs block get <key>  - get and output block named by <key>
-    ipfs block put        - store stdin as a block, outputs <key>
-
-ipfs block is a plumbing command used to manipulate raw ipfs blocks.
-Reads from stdin or writes to stdout, and <key> is a base58 encoded
-multihash.`,
+	Description: "Manipulate raw IPFS blocks",
+	Help: `'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
+Reads from stdin or writes to stdout.`,
 	Subcommands: map[string]*cmds.Command{
 		"get": blockGetCmd,
 		"put": blockPutCmd,
@@ -37,13 +32,12 @@ multihash.`,
 }
 
 var blockGetCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false},
-	},
-	Help: `ipfs get <key> - gets and outputs block named by <key>
+	Description: "Get a raw IPFS block",
+	Help:        `'ipfs block get' is a plumbing command for retreiving raw ipfs blocks.`,
 
-'ipfs block get' is a plumbing command for retreiving raw ipfs blocks.
-<key> is a base58 encoded multihash`,
+	Arguments: []cmds.Argument{
+		cmds.Argument{"key", cmds.ArgString, true, false, "The base58 multihash of an existing block to get"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
 
@@ -77,12 +71,13 @@ var blockGetCmd = &cmds.Command{
 }
 
 var blockPutCmd = &cmds.Command{
-	Arguments: []cmds.Argument{
-		cmds.Argument{"data", cmds.ArgFile, true, false},
-	},
-	Help: `ipfs put - stores input as a block, outputs its key
+	Description: "Stores input as an IPFS block",
+	Help: `'ipfs block put' is a plumbing command for storing raw ipfs blocks.
+It outputs the key of the stored block.`,
 
-ipfs block put is a plumbing command for storing raw ipfs blocks.`,
+	Arguments: []cmds.Argument{
+		cmds.Argument{"data", cmds.ArgFile, true, false, "The data to be stored as an IPFS block"},
+	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
 
