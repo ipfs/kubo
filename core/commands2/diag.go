@@ -28,9 +28,15 @@ type DiagnosticOutput struct {
 }
 
 var diagCmd = &cmds.Command{
+	Subcommands: map[string]*cmds.Command{
+		"net": diagNetCmd,
+	},
+}
+
+var diagNetCmd = &cmds.Command{
 	// TODO UsageLine: "net-diag",
 	// TODO Short:     "Generate a diagnostics report",
-	Help: `ipfs net-diag - Generate a diagnostics report.
+	Help: `ipfs diag net - Generate a diagnostics report.
 
 	Sends out a message to each node in the network recursively
 	requesting a listing of data about them including number of
