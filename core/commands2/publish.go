@@ -16,7 +16,7 @@ var errNotOnline = errors.New("This command must be run in online mode. Try runn
 var publishCmd = &cmds.Command{
 	// TODO UsageLine: "publish",
 	// TODO Short:     "publish a <ref> to ipns.",
-	Help: `ipfs publish [<name>] <ref> - publish a <ref> to ipns.
+	Help: `ipfs name publish [<name>] <ref> - publish a <ref> to ipns.
 
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In publish, the
