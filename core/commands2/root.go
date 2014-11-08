@@ -70,58 +70,6 @@ var rootSubcommands = map[string]*cmds.Command{
 	"mount":     mountCmd,
 	"block":     blockCmd,
 	"update":    updateCmd,
-
-	// test subcommands
-	// TODO: remove these when we don't need them anymore
-	"beep": &cmds.Command{
-		Run: func(res cmds.Response, req cmds.Request) {
-			v := &TestOutput{"hello, world", 1337}
-			log.Info("beep")
-			res.SetOutput(v)
-		},
-		Marshallers: map[cmds.EncodingType]cmds.Marshaller{
-			cmds.Text: func(res cmds.Response) ([]byte, error) {
-				v := res.Output().(*TestOutput)
-				s := fmt.Sprintf("Foo: %s\n", v.Foo)
-				s += fmt.Sprintf("Bar: %v\n", v.Bar)
-				return []byte(s), nil
-			},
-		},
-		Type: &TestOutput{},
-	},
-	// TODO rm
-	"boop": &cmds.Command{
-		Run: func(res cmds.Response, req cmds.Request) {
-			v := strings.NewReader("hello, world")
-			res.SetOutput(v)
-		},
-	},
-	// TODO rm
-	"warp": &cmds.Command{
-		Options: []cmds.Option{
-			cmds.Option{[]string{"power", "p"}, cmds.Float},
-		},
-		Run: func(res cmds.Response, req cmds.Request) {
-			threshold := 1.21
-
-			if power, found := req.Option("power"); found && power.(float64) >= threshold {
-				res.SetOutput(struct {
-					Status string
-					Power  float64
-				}{"Flux capacitor activated!", power.(float64)})
-
-			} else {
-				err := fmt.Errorf("Insufficient power (%v jiggawatts required)", threshold)
-				res.SetError(err, cmds.ErrClient)
-			}
-		},
-	},
-	// TODO rm
-	"args": &cmds.Command{
-		Run: func(res cmds.Response, req cmds.Request) {
-			res.SetOutput(req.Arguments())
-		},
-	},
 }
 
 func init() {
