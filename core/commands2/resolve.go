@@ -14,7 +14,7 @@ type ResolveOutput struct {
 var resolveCmd = &cmds.Command{
 	// TODO UsageLine: "resolve",
 	// TODO Short:     "resolve an ipns name to a <ref>",
-	Help: `ipfs resolve [<name>] - Resolve an ipns name to a <ref>.
+	Help: `ipfs name resolve [<name>] - Resolve an ipns name to a <ref>.
 
 IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In resolve, the
