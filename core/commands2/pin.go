@@ -24,19 +24,6 @@ var pinCmd = &cmds.Command{
 		opt, _ := req.Option("recursive")
 		recursive, _ := opt.(bool) // false if cast fails.
 
-		/*depth := 1 // default (non recursive)
-
-		// if recursive, set depth flag
-		if recursive {
-			opt, found := req.Option("depth")
-			if d, ok := opt.(int); found && ok {
-				depth = d
-			} else {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
-			}
-		}*/
-
 		paths, err := internal.ToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
