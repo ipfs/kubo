@@ -4,11 +4,13 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/routing"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -45,7 +47,14 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	nd, err := i.ResolvePath(path)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		if err == routing.ErrNotFound {
+			w.WriteHeader(http.StatusNotFound)
+		} else if err == context.DeadlineExceeded {
+			w.WriteHeader(http.StatusRequestTimeout)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
 		log.Error(err)
 		w.Write([]byte(err.Error()))
 		return
