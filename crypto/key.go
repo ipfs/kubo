@@ -1,3 +1,6 @@
+// package crypto implements various cryptographic utilities used by ipfs.
+// This includes a Public and Private key interface and an RSA key implementation
+// that satisfies it.
 package crypto
 
 import (

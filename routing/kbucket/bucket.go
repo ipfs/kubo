@@ -1,4 +1,4 @@
-package dht
+package kbucket
 
 import (
 	"container/list"

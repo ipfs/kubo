@@ -1,3 +1,6 @@
+// package diagnostics implements a network diagnostics service that
+// allows a request to traverse the network and gather information
+// on every node connected to it.
 package diagnostics
 
 import (

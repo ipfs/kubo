@@ -1,6 +1,12 @@
-# ipfs implementation in go. [![GoDoc](https://godoc.org/github.com/jbenet/go-ipfs?status.svg)](https://godoc.org/github.com/jbenet/go-ipfs) [![Build Status](https://travis-ci.org/jbenet/go-ipfs.svg?branch=master)](https://travis-ci.org/jbenet/go-ipfs)
+# ipfs implementation in go.
+[![GoDoc](https://godoc.org/github.com/jbenet/go-ipfs?status.svg)](https://godoc.org/github.com/jbenet/go-ipfs) [![Build Status](https://travis-ci.org/jbenet/go-ipfs.svg?branch=master)](https://travis-ci.org/jbenet/go-ipfs)
 
-See: https://github.com/jbenet/ipfs
+Ipfs is a global, versioned, peer-to-peer filesystem. It combines good ideas from
+Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
+exchanging git objects. IPFS provides an interface as simple as the HTTP web, but
+with permanence built in. You can also mount the world at /ipfs.
+
+For more info see: https://github.com/jbenet/ipfs
 
 Please put all issues regarding IPFS _design_ in the
 [ipfs repo issues](https://github.com/jbenet/ipfs/issues).
@@ -18,13 +24,13 @@ go install
 
 NOTES:
 
-* `git` and mercurial (`hg`) are required in order for `go get` to fetch
+* `git` is required in order for `go get` to fetch
 all dependencies.
 * Package managers often contain out-of-date `golang` packages.
   Compilation from source is recommended.
 * If you are interested in development, please install the development
 dependencies as well.
-* **WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!**
+* *WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/jbenet/go-ipfs/issues/177)
 
@@ -36,6 +42,7 @@ ipfs - global versioned p2p merkledag file system
 
 Basic commands:
 
+    init          Initialize ipfs local configuration.
     add <path>    Add an object to ipfs.
     cat <ref>     Show ipfs object data.
     ls <ref>      List links from an object.
@@ -44,6 +51,7 @@ Basic commands:
 Tool commands:
 
     config        Manage configuration.
+    update        Download and apply go-ipfs updates.
     version       Show ipfs version information.
     commands      List all available commands.
 
@@ -51,6 +59,13 @@ Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
     serve         Serve an interface to ipfs.
+    net-diag      Print network diagnostic
+
+Plumbing commands:
+
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+
 
 Use "ipfs help <command>" for more information about a command.
 ```
@@ -58,13 +73,30 @@ Use "ipfs help <command>" for more information about a command.
 ## Getting Started
 To start using ipfs, you must first initialize ipfs's config files on your
 system, this is done with `ipfs init`. See `ipfs help init` for information on
-arguments it takes. After initialization is complete, you can use `ipfs mount`,
-`ipfs add` and any of the other commands to explore!
+the optional arguments it takes. After initialization is complete, you can use
+`ipfs mount`, `ipfs add` and any of the other commands to explore!
+
+### Some things to try
+
+Basic proof of 'ipfs working' locally:
+
+	echo "hello world" > hello
+	ipfs add hello
+	# This should output a hash string that looks something like:
+	# QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
+	ipfs cat <that hash>
 
 
-NOTE: if you have previously installed ipfs before and you are running into
-problems getting it to work, try deleting (or backing up somewhere else) your
-config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
+### Troubleshooting
+If you have previously installed ipfs before and you are running into
+problems getting a newer version to work, try deleting (or backing up somewhere
+else) your config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
+This will reinitialize the config file to its defaults and clear out the local
+datastore of any bad entries.
+
+For any other problems, check the [issues list](http://github.com/jbenet/go-ipfs/issues)
+and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
+file an issue of your own!
 
 
 ## Contributing

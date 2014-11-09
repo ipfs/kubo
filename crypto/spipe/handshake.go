@@ -1,5 +1,4 @@
-// Package spipe handles establishing secure communication between two peers.
-
+// package spipe handles establishing secure communication between two peers.
 package spipe
 
 import (

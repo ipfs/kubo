@@ -1,3 +1,6 @@
+// package blockservice implements a BlockService interface that provides
+// a single GetBlock/AddBlock interface that seamlessly retrieves data either
+// locally or from a remote peer through the exchange.
 package blockservice
 
 import (

@@ -1,3 +1,4 @@
+// package routing defines the interface for a routing system used by ipfs.
 package routing
 
 import (

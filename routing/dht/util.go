@@ -9,10 +9,10 @@ import (
 // Pool size is the number of nodes used for group find/set RPC calls
 var PoolSize = 6
 
-// We put the 'K' in kademlia!
+// K is the maximum number of requests to perform before returning failure.
 var KValue = 10
 
-// Its in the paper, i swear
+// Alpha is the concurrency factor for asynchronous requests.
 var AlphaValue = 3
 
 // A counter for incrementing a variable across multiple threads

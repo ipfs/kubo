@@ -1,3 +1,4 @@
+// package chunk implements streaming block splitters
 package chunk
 
 import (

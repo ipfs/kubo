@@ -1,3 +1,4 @@
+// package path implements utilities for resolving paths within ipfs.
 package path
 
 import (

@@ -1,3 +1,5 @@
+// package blocks contains the lowest level of ipfs data structures,
+// the raw block with a checksum.
 package blocks
 
 import (

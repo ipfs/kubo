@@ -1,3 +1,4 @@
+// package set contains various different types of 'BlockSet's
 package set
 
 import (
@@ -7,6 +8,7 @@ import (
 
 var log = util.Logger("blockset")
 
+// BlockSet represents a mutable set of keyed blocks
 type BlockSet interface {
 	AddBlock(util.Key)
 	RemoveBlock(util.Key)

@@ -1,4 +1,6 @@
-package bitswap
+// package offline implements an object that implements the exchange
+// interface but returns nil values to every request.
+package offline
 
 import (
 	"errors"

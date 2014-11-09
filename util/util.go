@@ -1,3 +1,5 @@
+// package util implements various utility functions used within ipfs
+// that do not currently have a better place to live.
 package util
 
 import (

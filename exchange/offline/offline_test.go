@@ -1,4 +1,4 @@
-package bitswap
+package offline
 
 import (
 	"testing"

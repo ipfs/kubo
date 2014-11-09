@@ -1,3 +1,4 @@
+// package peer implements an object used to represent peers in the ipfs network.
 package peer
 
 import (
