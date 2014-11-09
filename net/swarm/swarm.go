@@ -1,3 +1,5 @@
+// package swarm implements a connection muxer with a pair of channels
+// to synchronize all network communication.
 package swarm
 
 import (

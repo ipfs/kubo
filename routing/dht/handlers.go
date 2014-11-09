@@ -12,6 +12,7 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
+// The number of closer peers to send on requests.
 var CloserPeerCount = 4
 
 // dhthandler specifies the signature of functions that handle DHT messages.
