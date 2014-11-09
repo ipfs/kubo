@@ -1,3 +1,5 @@
+// package bitswap implements the IPFS Exchange interface with the BitSwap
+// bilateral exchange protocol.
 package bitswap
 
 import (

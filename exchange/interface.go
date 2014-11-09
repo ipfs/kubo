@@ -1,3 +1,4 @@
+// package exchange defines the IPFS Exchange interface
 package exchange
 
 import (
