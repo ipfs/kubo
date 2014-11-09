@@ -16,10 +16,10 @@ $ ./t0010-basic-commands.sh
 ## Sharness
 
 When running "make" in this directory for the first time, sharness
-will be downloaded from its github repo and installed in a "sharness"
+will be downloaded from its github repo and installed in a "lib/sharness"
 directory.
 
-Please do not change anything in the "sharness" directory.
+Please do not change anything in the "lib/sharness" directory.
 
 If you really need some changes in sharness, please fork it from
 [its cannonical repo](https://github.com/mlafeldt/sharness/) and
