@@ -50,8 +50,11 @@ func daemonFunc(res cmds.Response, req cmds.Request) {
 		return
 	}
 
-	handler := cmdsHttp.NewHandler(*ctx, commands.Root)
-	http.Handle(cmdsHttp.ApiPath+"/", handler)
+	cmdHandler := cmdsHttp.NewHandler(*ctx, commands.Root)
+	http.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
+
+	ifpsHandler := &ipfsHandler{node}
+	http.Handle("/ipfs/", ifpsHandler)
 
 	fmt.Printf("API server listening on '%s'\n", host)
 
