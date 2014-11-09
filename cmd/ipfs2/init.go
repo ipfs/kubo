@@ -11,7 +11,6 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
-	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -119,13 +118,7 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
-
-		// FIXME(brian): before merging into master, change this to...
-		// Version: config.VersionDefaultValue()
-		Version: config.Version{
-			Check:   "error",
-			Current: updates.Version,
-		},
+		Version: config.VersionDefaultValue(),
 	}
 
 	err = config.WriteConfigFile(configFilename, conf)
