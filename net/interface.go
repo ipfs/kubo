@@ -59,9 +59,9 @@ type Handler srv.Handler
 // Service interface for network resources.
 type Service srv.Service
 
-// Dialer service that can dial to peers
+// Dialer represents a service that can dial out to peers
 // (this is usually just a Network, but other services may not need the whole
-// thing, and thus it becomes easier to mock)
+// stack, and thus it becomes easier to mock)
 type Dialer interface {
 
 	// DialPeer attempts to establish a connection to a given peer

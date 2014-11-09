@@ -22,7 +22,7 @@ type Conn interface {
 	// LocalMultiaddr is the Multiaddr on this side
 	LocalMultiaddr() ma.Multiaddr
 
-	// LocalPeer is the Peer on this side
+	// LocalPeer is the Peer on our side of the connection
 	LocalPeer() peer.Peer
 
 	// RemoteMultiaddr is the Multiaddr on the remote side
@@ -37,10 +37,9 @@ type Conn interface {
 	// Out returns a writable message channel
 	Out() chan<- []byte
 
+	// Get an error from this conn if one is available
+	// TODO: implement a better error handling system
 	GetError() error
-
-	// Close ends the connection
-	// Close() error  -- already in ContextCloser
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
