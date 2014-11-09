@@ -119,7 +119,11 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	}
 
 	// check for nats. you know, just in case.
-	s.checkNATWarning(h3result.LocalObservedAddress)
+	if h3result.LocalObservedAddress != nil {
+		s.checkNATWarning(h3result.LocalObservedAddress)
+	} else {
+		log.Warningf("Received nil observed address from %s", c.RemotePeer())
+	}
 
 	// add to conns
 	s.connsLock.Lock()
