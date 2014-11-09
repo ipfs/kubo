@@ -47,7 +47,7 @@ test_expect_success "generate 100MB file using go-random" '
 '
 
 test_expect_success "sha1 of the file looks ok" '
-	echo "54dc0dbbc353b2ffb745285793f89af0c9d98449  mountdir/bigfile" >sha1_expected &&
+	echo "ae986dd159e4f014aee7409cdc2001ea74f618d1  mountdir/bigfile" >sha1_expected &&
 	shasum mountdir/bigfile >sha1_actual &&
 	test_cmp sha1_expected sha1_actual
 '
@@ -57,7 +57,7 @@ test_expect_success "ipfs add bigfile succeeds" '
 '
 
 test_expect_success "ipfs add bigfile output looks good" '
-	HASH="QmeZVkWkDu4W1vxWdDgUbqKYba9K3u45hJEdPA4Wr2sHZz" &&
+	HASH="QmVm3Da371opC3hpsCLuYSozdyM6wRvu9UoUqoyW8u4LRq" &&
 	echo "added $HASH $(pwd)/mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '
@@ -67,7 +67,7 @@ test_expect_success "ipfs cat succeeds" '
 '
 
 test_expect_success "ipfs cat output looks good" '
-	echo "54dc0dbbc353b2ffb745285793f89af0c9d98449  -" >sha1_expected &&
+	echo "ae986dd159e4f014aee7409cdc2001ea74f618d1  -" >sha1_expected &&
 	test_cmp sha1_expected sha1_actual
 '
 
