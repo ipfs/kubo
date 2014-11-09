@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -36,17 +37,25 @@ func TestMarshalling(t *testing.T) {
 		t.Error(err, "Should have passed")
 	}
 	output := string(bytes)
-	if output != "{\"Foo\":\"beep\",\"Bar\":\"boop\",\"Baz\":1337}" {
+	if removeWhitespace(output) != "{\"Foo\":\"beep\",\"Bar\":\"boop\",\"Baz\":1337}" {
 		t.Error("Incorrect JSON output")
 	}
 
-	res.SetError(fmt.Errorf("You broke something!"), ErrClient)
+	res.SetError(fmt.Errorf("Oops!"), ErrClient)
 	bytes, err = res.Marshal()
 	if err != nil {
 		t.Error("Should have passed")
 	}
 	output = string(bytes)
-	if output != "{\"Message\":\"You broke something!\",\"Code\":1}" {
+	fmt.Println(removeWhitespace(output))
+	if removeWhitespace(output) != "{\"Message\":\"Oops!\",\"Code\":1}" {
 		t.Error("Incorrect JSON output")
 	}
+}
+
+func removeWhitespace(input string) string {
+	input = strings.Replace(input, " ", "", -1)
+	input = strings.Replace(input, "\t", "", -1)
+	input = strings.Replace(input, "\n", "", -1)
+	return strings.Replace(input, "\r", "", -1)
 }
