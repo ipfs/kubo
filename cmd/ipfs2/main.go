@@ -28,19 +28,29 @@ const (
 	errorFormat = "ERROR: %v\n\n"
 )
 
+var ofi io.WriteCloser
+
 func main() {
 	args := os.Args[1:]
 	req, root := createRequest(args)
 	handleOptions(req, root)
+
+	// if debugging, setup profiling.
+	if u.Debug {
+		var err error
+		ofi, err = os.Create("cpu.prof")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		pprof.StartCPUProfile(ofi)
+	}
+
 	res := callCommand(req, root)
 	outputResponse(res, root)
 
-	if u.Debug {
-		err := writeHeapProfileToFile()
-		if err != nil {
-			log.Critical(err)
-		}
-	}
+	exit(0)
 }
 
 func createRequest(args []string) (cmds.Request, *cmds.Command) {
@@ -52,7 +62,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 		options, err2 = getOptions(req, root)
 		if err2 != nil {
 			fmt.Println(err2)
-			os.Exit(1)
+			exit(1)
 		}
 	}
 
@@ -88,19 +98,19 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 		} else {
 			fmt.Println(helpText)
 		}
-		os.Exit(1)
+		exit(1)
 	}
 
 	configPath, err := getConfigRoot(options)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		exit(1)
 	}
 
 	conf, err := getConfig(configPath)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		exit(1)
 	}
 
 	ctx := req.Context()
@@ -122,7 +132,7 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 	options, err := getOptions(req, root)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		exit(1)
 	}
 
 	if help, found := options.Option("help"); found {
@@ -133,10 +143,10 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 			} else {
 				fmt.Println(helpText)
 			}
-			os.Exit(0)
+			exit(0)
 		} else if !ok {
 			fmt.Println("error: expected 'help' option to be a bool")
-			os.Exit(1)
+			exit(1)
 		}
 	}
 
@@ -145,21 +155,9 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 			u.Debug = true
 
 			u.SetAllLoggers(logging.DEBUG)
-
-			// if debugging, setup profiling.
-			if u.Debug {
-				ofi, err := os.Create("cpu.prof")
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-				pprof.StartCPUProfile(ofi)
-				defer ofi.Close()
-				defer pprof.StopCPUProfile()
-			}
 		} else if !ok {
 			fmt.Println("error: expected 'debug' option to be a bool")
-			os.Exit(1)
+			exit(1)
 		}
 	}
 }
@@ -174,7 +172,7 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 		options, err := getOptions(req, root)
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(1)
+			exit(1)
 		}
 
 		var found bool
@@ -185,7 +183,7 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 			localBool, ok = local.(bool)
 			if !ok {
 				fmt.Println("error: expected 'local' option to be a bool")
-				os.Exit(1)
+				exit(1)
 			}
 		}
 
@@ -193,13 +191,13 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
 			if err != nil {
 				fmt.Println(err)
-				os.Exit(1)
+				exit(1)
 			}
 
 			_, host, err := manet.DialArgs(addr)
 			if err != nil {
 				fmt.Println(err)
-				os.Exit(1)
+				exit(1)
 			}
 
 			client := cmdsHttp.NewClient(host)
@@ -207,14 +205,14 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 			res, err = client.Send(req)
 			if err != nil {
 				fmt.Println(err)
-				os.Exit(1)
+				exit(1)
 			}
 
 		} else {
 			node, err := core.NewIpfsNode(req.Context().Config, false)
 			if err != nil {
 				fmt.Println(err)
-				os.Exit(1)
+				exit(1)
 			}
 			defer node.Close()
 			req.Context().Node = node
@@ -239,7 +237,7 @@ func outputResponse(res cmds.Response, root *cmds.Command) {
 			}
 		}
 
-		os.Exit(1)
+		exit(1)
 	}
 
 	out, err := res.Reader()
@@ -299,4 +297,18 @@ func writeHeapProfileToFile() error {
 	}
 	defer mprof.Close()
 	return pprof.WriteHeapProfile(mprof)
+}
+
+func exit(code int) {
+	if u.Debug {
+		pprof.StopCPUProfile()
+		ofi.Close()
+
+		err := writeHeapProfileToFile()
+		if err != nil {
+			log.Critical(err)
+		}
+	}
+
+	os.Exit(code)
 }
