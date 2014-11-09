@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"runtime/pprof"
 
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
@@ -31,6 +32,8 @@ const (
 var ofi io.WriteCloser
 
 func main() {
+	handleInterrupt()
+
 	args := os.Args[1:]
 	req, root := createRequest(args)
 	handleOptions(req, root)
@@ -297,6 +300,19 @@ func writeHeapProfileToFile() error {
 	}
 	defer mprof.Close()
 	return pprof.WriteHeapProfile(mprof)
+}
+
+// listen for and handle SIGTERM
+func handleInterrupt() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		for _ = range c {
+			log.Info("Received interrupt signal, terminating...")
+			exit(0)
+		}
+	}()
 }
 
 func exit(code int) {
