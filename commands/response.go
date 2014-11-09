@@ -43,9 +43,9 @@ const (
 var marshallers = map[EncodingType]Marshaller{
 	JSON: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
-			return json.Marshal(res.Error())
+			return json.MarshalIndent(res.Error(), "", "  ")
 		}
-		return json.Marshal(res.Output())
+		return json.MarshalIndent(res.Output(), "", "  ")
 	},
 	XML: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
