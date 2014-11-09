@@ -96,12 +96,15 @@ var objectGetCmd = &cmds.Command{
 It serializes the DAG node to the format specified by the "--encoding" flag.
 It outputs to stdout, and <key> is a base58 encoded multihash.
 
-This command outputs data in the following encodings: "protobuf", "json", "xml"
-(Specified by the "--encoding" flag)`,
+This command outputs data in the following encodings:
+  * "protobuf"
+  * "json"
+  * "xml"
+(Specified by the "--encoding" or "-enc" flags)`,
 
 	Arguments: []cmds.Argument{
 		cmds.Argument{"key", cmds.ArgString, true, false,
-			"Key of the object to retrieve, in base58-encoded multihash format"},
+			"Key of the object to retrieve\n(in base58-encoded multihash format)"},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
@@ -142,7 +145,7 @@ Data should be in the format specified by <encoding>.
 
 	Arguments: []cmds.Argument{
 		cmds.Argument{"data", cmds.ArgFile, true, false,
-			"Data to be stored as a DAG object, encoded as specified in <encoding>"},
+			"Data to be stored as a DAG object\nMust be encoded as specified in <encoding>"},
 		cmds.Argument{"encoding", cmds.ArgString, true, false,
 			"Encoding type of <data>, either \"protobuf\" or \"json\""},
 	},
