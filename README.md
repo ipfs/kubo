@@ -36,6 +36,7 @@ ipfs - global versioned p2p merkledag file system
 
 Basic commands:
 
+    init          Initialize ipfs local configuration.
     add <path>    Add an object to ipfs.
     cat <ref>     Show ipfs object data.
     ls <ref>      List links from an object.
@@ -44,6 +45,7 @@ Basic commands:
 Tool commands:
 
     config        Manage configuration.
+    update        Download and apply go-ipfs updates.
     version       Show ipfs version information.
     commands      List all available commands.
 
@@ -51,6 +53,13 @@ Advanced Commands:
 
     mount         Mount an ipfs read-only mountpoint.
     serve         Serve an interface to ipfs.
+    net-diag      Print network diagnostic
+
+Plumbing commands:
+
+    block         Interact with raw blocks in the datastore
+    object        Interact with raw dag nodes
+
 
 Use "ipfs help <command>" for more information about a command.
 ```
@@ -58,13 +67,15 @@ Use "ipfs help <command>" for more information about a command.
 ## Getting Started
 To start using ipfs, you must first initialize ipfs's config files on your
 system, this is done with `ipfs init`. See `ipfs help init` for information on
-arguments it takes. After initialization is complete, you can use `ipfs mount`,
-`ipfs add` and any of the other commands to explore!
+the optional arguments it takes. After initialization is complete, you can use
+`ipfs mount`, `ipfs add` and any of the other commands to explore!
 
 
 NOTE: if you have previously installed ipfs before and you are running into
-problems getting it to work, try deleting (or backing up somewhere else) your
-config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
+problems getting a newer version to work, try deleting (or backing up somewhere
+else) your config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
+This will reinitialize the config file to its defaults and clear out the local
+datastore of any bad entries.
 
 
 ## Contributing
