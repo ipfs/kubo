@@ -17,6 +17,11 @@ var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbyt
 
 const inputLimit = 512 * 1024
 
+type Node struct {
+	Links []Link
+	Data  []byte
+}
+
 var objectCmd = &cmds.Command{
 	Description: "Interact with ipfs objects",
 	Help:        `'ipfs object' is a plumbing command used to manipulate DAG objects directly.`,
@@ -121,9 +126,22 @@ This command outputs data in the following encodings:
 			return
 		}
 
-		res.SetOutput(object)
+		node := &Node{
+			Links: make([]Link, len(object.Links)),
+			Data:  object.Data,
+		}
+
+		for i, link := range object.Links {
+			node.Links[i] = Link{
+				Hash: link.Hash.B58String(),
+				Name: link.Name,
+				Size: link.Size,
+			}
+		}
+
+		res.SetOutput(node)
 	},
-	Type: &dag.Node{},
+	Type: &Node{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.EncodingType("protobuf"): func(res cmds.Response) ([]byte, error) {
 			object := res.Output().(*dag.Node)
