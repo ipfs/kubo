@@ -18,6 +18,8 @@ type Handler struct {
 
 var ErrNotFound = errors.New("404 page not found")
 
+const streamHeader = "X-Stream-Output"
+
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
 	cmds.XML:  "application/xml",
@@ -48,8 +50,12 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// set the Content-Type based on res output
 	if _, ok := res.Output().(io.Reader); ok {
-		// TODO: set based on actual Content-Type of file
-		w.Header().Set("Content-Type", "application/octet-stream")
+		// we don't set the Content-Type for streams, so that browsers can MIME-sniff the type themselves
+		// we set this header so clients have a way to know this is an output stream
+		// (not marshalled command output)
+		// TODO: set a specific Content-Type if the command response needs it to be a certain type
+		w.Header().Set(streamHeader, "1")
+
 	} else {
 		enc, _ := req.Option(cmds.EncShort)
 		encStr, ok := enc.(string)

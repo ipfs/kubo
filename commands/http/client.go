@@ -131,7 +131,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	contentType := httpRes.Header["Content-Type"][0]
 	contentType = strings.Split(contentType, ";")[0]
 
-	if contentType == "application/octet-stream" {
+	if len(httpRes.Header.Get(streamHeader)) > 0 {
 		res.SetOutput(httpRes.Body)
 		return res, nil
 	}
