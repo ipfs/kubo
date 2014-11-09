@@ -70,6 +70,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"mount":     mountCmd,
 	"block":     blockCmd,
 	"update":    updateCmd,
+	"object":    objectCmd,
 }
 
 func init() {
