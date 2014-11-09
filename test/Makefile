@@ -6,6 +6,7 @@
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 SHARNESS = sharness/sharness.sh
+RANDOMSRC = Godeps/_workspace/src/github.com/jbenet/go-random/random
 
 all: clean deps $(T) aggregate
 
@@ -35,8 +36,7 @@ ipfs:
 
 random:
 	@echo "*** installing $@ ***"
-	go get github.com/jbenet/go-random/random
-	go install github.com/jbenet/go-random/random
-	cp `which random` random
+	go build ../$(RANDOMSRC)
+	cp ../$(RANDOMSRC)/random random
 
 .PHONY: all clean $(T) aggregate ipfs random
