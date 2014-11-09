@@ -1,4 +1,4 @@
-package main
+package random
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ func TestPseudoRandom(t *testing.T) {
 
 	for _, size := range testCases {
 		var buf bytes.Buffer
-		err := writePseudoRandomBytes(int64(size), &buf, int64(time.Now().UnixNano()))
+		err := WritePseudoRandomBytes(int64(size), &buf, int64(time.Now().UnixNano()))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -39,11 +39,11 @@ func TestPseudoRandomSeed(t *testing.T) {
 		var bufs bytes.Buffer
 		var bufr bytes.Buffer
 
-		if err := writePseudoRandomBytes(size, &bufs, seed); err != nil {
+		if err := WritePseudoRandomBytes(size, &bufs, seed); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := writePseudoRandomBytes(size, &bufr, time.Now().UnixNano()); err != nil {
+		if err := WritePseudoRandomBytes(size, &bufr, time.Now().UnixNano()); err != nil {
 			t.Fatal(err)
 		}
 
@@ -76,7 +76,7 @@ func TestCryptoRandom(t *testing.T) {
 
 	for _, size := range testCases {
 		var buf bytes.Buffer
-		err := writeRandomBytes(int64(size), &buf)
+		err := WriteRandomBytes(int64(size), &buf)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -88,9 +88,9 @@ func TestCryptoRandom(t *testing.T) {
 }
 
 func BenchmarkCryptoRandom(b *testing.B) {
-	writeRandomBytes(int64(b.N), ioutil.Discard)
+	WriteRandomBytes(int64(b.N), ioutil.Discard)
 }
 
 func BenchmarkPseudoRandom(b *testing.B) {
-	writePseudoRandomBytes(int64(b.N), ioutil.Discard, time.Now().UnixNano())
+	WritePseudoRandomBytes(int64(b.N), ioutil.Discard, time.Now().UnixNano())
 }

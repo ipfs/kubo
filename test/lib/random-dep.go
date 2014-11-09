@@ -4,7 +4,5 @@
 package randomdep
 
 import (
-	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random/random"
+	_ "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 )
-
-var _ = random
