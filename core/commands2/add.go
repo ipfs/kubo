@@ -97,12 +97,7 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 			return nil, err
 		}
 
-		err = n.DAG.AddRecursive(node) // add the file to the graph + local storage
-		if err != nil {
-			return nil, err
-		}
-
-		err = n.Pinning.Pin(node, true) // ensure we keep it
+		err = addNode(n, node)
 		if err != nil {
 			return nil, err
 		}
@@ -110,4 +105,18 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 		dagnodes = append(dagnodes, node)
 	}
 	return dagnodes, nil
+}
+
+func addNode(n *core.IpfsNode, node *dag.Node) error {
+	err := n.DAG.AddRecursive(node) // add the file to the graph + local storage
+	if err != nil {
+		return err
+	}
+
+	err = n.Pinning.Pin(node, true) // ensure we keep it
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
