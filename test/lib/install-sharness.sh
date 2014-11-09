@@ -8,6 +8,7 @@
 # settings
 version=50229a79ba22b2f13ccd82451d86570fecbd194c
 urlprefix=https://raw.githubusercontent.com/mlafeldt/sharness/$version
+installpath=lib/sharness
 
 # files to download
 sfile=sharness.sh
@@ -39,8 +40,8 @@ verified_download() {
   return 0
 }
 
-mkdir -p sharness || die "Could not create 'sharness' directory"
-cd sharness || die "Could not cd into 'sharness' directory"
+mkdir -p $installpath || die "Could not create 'sharness' directory"
+cd $installpath || die "Could not cd into 'sharness' directory"
 
 verified_download "$sfile" "$shash"; sok=$?
 verified_download "$afile" "$ahash"; aok=$?

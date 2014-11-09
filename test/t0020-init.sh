@@ -6,7 +6,7 @@
 
 test_description="Test init command"
 
-. ./test-lib.sh
+. lib/test-lib.sh
 
 test_expect_success "ipfs init succeeds" '
 	export IPFS_DIR="$(pwd)/.go-ipfs" &&

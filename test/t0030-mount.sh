@@ -6,7 +6,7 @@
 
 test_description="Test mount command"
 
-. ./test-lib.sh
+. lib/test-lib.sh
 
 # if in travis CI, dont test mount (no fuse)
 if ! test_have_prereq FUSE; then

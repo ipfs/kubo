@@ -111,6 +111,10 @@
 			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-random",
+			"Rev": "e4585173eb8c47eea36c3dbff22f26f3f94d3586"
+		},
+		{
 			"ImportPath": "github.com/kr/binarydist",
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
