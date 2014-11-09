@@ -6,7 +6,7 @@
 
 test_description="Test add and cat commands"
 
-. ./test-lib.sh
+. lib/test-lib.sh
 
 test_launch_ipfs_mount
 

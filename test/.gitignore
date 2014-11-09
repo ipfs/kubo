@@ -1,3 +1,5 @@
-sharness/
+lib/sharness/
+bin/ipfs
+bin/random
 test-results/
 trash directory.*.sh/

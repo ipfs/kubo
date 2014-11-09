@@ -9,16 +9,16 @@
 # use the ipfs tool to test against
 
 # add current directory to path, for ipfs tool.
-PATH=$(pwd):${PATH}
+PATH=$(pwd)/bin:${PATH}
 
 # assert the `ipfs` we're using is the right one.
-if test `which ipfs` != $(pwd)/ipfs; then
+if test `which ipfs` != $(pwd)/bin/ipfs; then
 	echo >&2 "Cannot find the tests' local ipfs tool."
 	echo >&2 "Please check test and ipfs tool installation."
 	exit 1
 fi
 
-SHARNESS_LIB="sharness/sharness.sh"
+SHARNESS_LIB="lib/sharness/sharness.sh"
 
 . "$SHARNESS_LIB" || {
 	echo >&2 "Cannot source: $SHARNESS_LIB"

@@ -6,7 +6,7 @@
 
 test_description="Test installation and some basic commands"
 
-. ./test-lib.sh
+. lib/test-lib.sh
 
 test_expect_success "current dir is writable" '
 	echo "It works!" >test.txt

@@ -5,7 +5,7 @@
 #
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
-SHARNESS = sharness/sharness.sh
+SHARNESS = lib/sharness/sharness.sh
 RANDOMSRC = Godeps/_workspace/src/github.com/jbenet/go-random/random
 
 all: clean deps $(T) aggregate
@@ -20,23 +20,24 @@ $(T):
 
 aggregate:
 	@echo "*** $@ ***"
-	./test-aggregate-results.sh
+	lib/test-aggregate-results.sh
 
 deps: $(SHARNESS) ipfs random
 
 $(SHARNESS):
 	@echo "*** installing $@ ***"
-	./install-sharness.sh
+	lib/install-sharness.sh
 
 # phony to ensure we re-build it every time we run tests
 ipfs:
 	@echo "*** installing $@ ***"
+	mkdir -p bin
 	cd ../cmd/ipfs && go build
-	cp ../cmd/ipfs/ipfs ipfs
+	cp ../cmd/ipfs/ipfs bin/ipfs
 
 random:
 	@echo "*** installing $@ ***"
-	go build ../$(RANDOMSRC)
-	cp ../$(RANDOMSRC)/random random
+	mkdir -p bin
+	go build -o bin/random ../$(RANDOMSRC)
 
 .PHONY: all clean $(T) aggregate ipfs random
