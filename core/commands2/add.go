@@ -16,7 +16,7 @@ import (
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 type AddOutput struct {
-	Added []Object
+	Added []*Object
 }
 
 var addCmd = &cmds.Command{
@@ -24,7 +24,7 @@ var addCmd = &cmds.Command{
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool, "Must be specified when adding directories"},
 	},
 	Arguments: []cmds.Argument{
-		cmds.Argument{"file", cmds.ArgFile, false, true, "The path to a file to be added to IPFS"},
+		cmds.Argument{"file", cmds.ArgFile, true, true, "The path to a file to be added to IPFS"},
 	},
 	Description: "Add an object to ipfs.",
 	Help: `Adds contents of <path> to ipfs. Use -r to add directories.
@@ -52,15 +52,15 @@ var addCmd = &cmds.Command{
 			return
 		}
 
-		added := make([]Object, len(req.Arguments()))
+		added := make([]*Object, 0, len(req.Arguments()))
 		for _, dagnode := range dagnodes {
-
-			k, err := dagnode.Key()
+			object, err := getOutput(dagnode)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			added = append(added, Object{Hash: k.String(), Links: nil})
+
+			added = append(added, object)
 		}
 
 		res.SetOutput(&AddOutput{added})
@@ -88,7 +88,6 @@ var addCmd = &cmds.Command{
 }
 
 func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
-
 	dagnodes := make([]*dag.Node, 0)
 
 	for _, reader := range readers {
@@ -104,6 +103,7 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 
 		dagnodes = append(dagnodes, node)
 	}
+
 	return dagnodes, nil
 }
 
