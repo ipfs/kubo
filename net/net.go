@@ -1,3 +1,4 @@
+// package net provides an interface for ipfs to interact with the network through
 package net
 
 import (

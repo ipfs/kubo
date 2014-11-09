@@ -1,3 +1,4 @@
+// package http implements an http server that serves static content from ipfs
 package http
 
 import (

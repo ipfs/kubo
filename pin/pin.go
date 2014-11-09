@@ -1,3 +1,5 @@
+// package pin implemnts structures and methods to keep track of
+// which objects a user wants to keep stored locally.
 package pin
 
 import (

@@ -1,3 +1,4 @@
+// package mux implements a protocol muxer.
 package mux
 
 import (
