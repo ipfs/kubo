@@ -63,15 +63,6 @@ var initCmd = &cmds.Command{
 	},
 }
 
-// Use these hardcoded bootstrap peers for now.
-var defaultPeers = []*config.BootstrapPeer{
-	&config.BootstrapPeer{
-		// mars.i.ipfs.io
-		PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-		Address: "/ip4/104.131.131.82/tcp/4001",
-	},
-}
-
 // TODO add default welcome hash: eaa68bedae247ed1e5bd0eb4385a3c0959b976e4
 func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
 
@@ -108,7 +99,13 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 			API:   "/ip4/127.0.0.1/tcp/5001",
 		},
 
-		Bootstrap: defaultPeers,
+		Bootstrap: []*config.BootstrapPeer{
+			&config.BootstrapPeer{ // Use these hardcoded bootstrap peers for now.
+				// mars.i.ipfs.io
+				PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+				Address: "/ip4/104.131.131.82/tcp/4001",
+			},
+		},
 
 		Datastore: ds,
 
