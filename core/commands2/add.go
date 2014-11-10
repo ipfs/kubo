@@ -49,6 +49,7 @@ var addCmd = &cmds.Command{
 			return
 		}
 
+		// TODO: include fs paths in output (will need a way to specify paths in underlying filearg system)
 		added := make([]*Object, 0, len(req.Arguments()))
 		for _, dagnode := range dagnodes {
 			object, err := getOutput(dagnode)
@@ -91,6 +92,8 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 	}
 
 	dagnodes := make([]*dag.Node, 0)
+
+	// TODO: allow adding directories (will need support for multiple files in filearg system)
 
 	for _, reader := range readers {
 		node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)

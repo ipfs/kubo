@@ -39,6 +39,8 @@ Publish a <ref> to another public key:
 			"IPFS path of the obejct to be published at <name>"},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
+		log.Debug("Begin Publish")
+
 		n := req.Context().Node
 		args := req.Arguments()
 

@@ -27,6 +27,7 @@ output of a running daemon.
 		}
 
 		s := fmt.Sprintf("Changed log level of '%s' to '%s'", args[0], args[1])
+		log.Info(s)
 		res.SetOutput(&MessageOutput{s})
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{

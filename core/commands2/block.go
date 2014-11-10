@@ -94,6 +94,7 @@ It outputs the key of the stored block.`,
 		}
 
 		b := blocks.NewBlock(data)
+		log.Debugf("BlockPut key: '%q'", b.Key())
 
 		k, err := n.Blocks.AddBlock(b)
 		if err != nil {
