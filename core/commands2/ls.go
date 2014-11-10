@@ -72,7 +72,6 @@ it contains, with the following format:
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			// TODO: revert format to match old command
 			s := ""
 			output := res.Output().(*LsOutput).Objects
 
@@ -82,7 +81,7 @@ it contains, with the following format:
 				}
 
 				for _, link := range object.Links {
-					s += fmt.Sprintf("-> %s %s (%v bytes)\n", link.Name, link.Hash, link.Size)
+					s += fmt.Sprintf("%s %v %s\n", link.Hash, link.Size, link.Name)
 				}
 
 				if len(output) > 1 {
