@@ -20,7 +20,7 @@ var ErrInvalidRecordType = errors.New("invalid record keytype")
 func (dht *IpfsDHT) makePutRecord(key u.Key, value []byte) (*pb.Record, error) {
 	record := new(pb.Record)
 
-	record.Key = proto.String(key.String())
+	record.Key = proto.String(string(key))
 	record.Value = value
 	record.Author = proto.String(string(dht.self.ID()))
 	blob := bytes.Join([][]byte{[]byte(key), value, []byte(dht.self.ID())}, []byte{})
@@ -38,13 +38,15 @@ func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
 	if err != nil {
 		return err
 	}
+	k := u.Key(r.GetKey())
 
-	blob := bytes.Join([][]byte{[]byte(r.GetKey()),
+	blob := bytes.Join([][]byte{[]byte(k),
 		r.GetValue(),
-		[]byte(r.GetKey())}, []byte{})
+		[]byte(r.GetAuthor())}, []byte{})
 
 	ok, err := p.PubKey().Verify(blob, r.GetSignature())
 	if err != nil {
+		log.Error("Signature verify failed.")
 		return err
 	}
 
@@ -54,14 +56,14 @@ func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
 
 	// Now, check validity func
 	parts := strings.Split(r.GetKey(), "/")
-	if len(parts) < 2 {
-		log.Error("Record had bad key: %s", r.GetKey())
+	if len(parts) < 3 {
+		log.Errorf("Record had bad key: %s", u.Key(r.GetKey()))
 		return ErrBadRecord
 	}
 
-	fnc, ok := dht.Validators[parts[0]]
+	fnc, ok := dht.Validators[parts[1]]
 	if !ok {
-		log.Errorf("Unrecognized key prefix: %s", parts[0])
+		log.Errorf("Unrecognized key prefix: %s", parts[1])
 		return ErrInvalidRecordType
 	}
 

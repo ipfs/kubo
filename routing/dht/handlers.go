@@ -114,6 +114,7 @@ func (dht *IpfsDHT) handlePutValue(p peer.Peer, pmes *pb.Message) (*pb.Message, 
 
 	err := dht.verifyRecord(pmes.GetRecord())
 	if err != nil {
+		fmt.Println(u.Key(pmes.GetRecord().GetAuthor()))
 		log.Error("Bad dht record in put request")
 		return nil, err
 	}

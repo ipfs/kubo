@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	crand "crypto/rand"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -198,9 +199,6 @@ func TestGetFailures(t *testing.T) {
 	}
 	if pmes.GetRecord() != nil {
 		t.Fatal("shouldnt have value")
-	}
-	if len(pmes.GetCloserPeers()) > 0 {
-		t.Fatal("shouldnt have closer peers")
 	}
 	if pmes.GetProviderPeers() != nil {
 		t.Fatal("shouldnt have provider peers")
