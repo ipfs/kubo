@@ -20,8 +20,8 @@ var pinCmd = &cmds.Command{
 
 var addPinCmd = &cmds.Command{
 	Description: "Pins objects to local storage",
-	Help: `Keeps the object(s) named by <ipfs-path> in local storage. If the object
-isn't already being stored, IPFS retrieves it.
+	Help: `Retrieves the object named by <ipfs-path> and stores it locally
+on disk.
 `,
 
 	Arguments: []cmds.Argument{
@@ -57,7 +57,7 @@ isn't already being stored, IPFS retrieves it.
 var rmPinCmd = &cmds.Command{
 	Description: "Unpin an object from local storage",
 	Help: `Removes the pin from the given object allowing it to be garbage
-	collected if needed.
+collected if needed.
 `,
 
 	Arguments: []cmds.Argument{
