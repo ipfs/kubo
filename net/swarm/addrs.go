@@ -40,7 +40,7 @@ func resolveUnspecifiedAddresses(unspecifiedAddrs []ma.Multiaddr) ([]ma.Multiadd
 
 		// if first component (ip) is not unspecified, use it as is.
 		if !manet.IsIPUnspecified(split[0]) {
-			outputAddrs = append(outputAddrs)
+			outputAddrs = append(outputAddrs, a)
 			continue
 		}
 
