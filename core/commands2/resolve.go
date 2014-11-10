@@ -4,12 +4,7 @@ import (
 	"errors"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	core "github.com/jbenet/go-ipfs/core"
 )
-
-type ResolveOutput struct {
-	Entries []IpnsEntry
-}
 
 var resolveCmd = &cmds.Command{
 	Description: "Gets the value currently published at an IPNS name",
@@ -33,13 +28,13 @@ Resolve te value of another name:
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"name", cmds.ArgString, false, true,
+		cmds.Argument{"name", cmds.ArgString, false, false,
 			"The IPNS name to resolve. Defaults to your node's peerID."},
 	},
 	Run: func(res cmds.Response, req cmds.Request) {
 
 		n := req.Context().Node
-		var names []string
+		var name string
 
 		if n.Network == nil {
 			res.SetError(errNotOnline, cmds.ErrNormal)
@@ -51,40 +46,29 @@ Resolve te value of another name:
 				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
 				return
 			}
-			names = append(names, n.Identity.ID().String())
+			name = n.Identity.ID().String()
+
 		} else {
-			for _, arg := range req.Arguments() {
-				name, ok := arg.(string)
-				if !ok {
-					res.SetError(errors.New("cast error"), cmds.ErrNormal)
-					return
-				}
-				names = append(names, name)
+			var ok bool
+			name, ok = req.Arguments()[0].(string)
+			if !ok {
+				res.SetError(errors.New("cast error"), cmds.ErrNormal)
+				return
 			}
 		}
 
-		entries, err := resolve(n, names)
+		output, err := n.Namesys.Resolve(name)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		res.SetOutput(&ResolveOutput{entries})
+		res.SetOutput(output)
 	},
-	Type: &ResolveOutput{},
-}
-
-func resolve(n *core.IpfsNode, names []string) ([]IpnsEntry, error) {
-	var entries []IpnsEntry
-	for _, name := range names {
-		resolved, err := n.Namesys.Resolve(name)
-		if err != nil {
-			return nil, err
-		}
-		entries = append(entries, IpnsEntry{
-			Name:  name,
-			Value: resolved,
-		})
-	}
-	return entries, nil
+	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			output := res.Output().(string)
+			return []byte(output), nil
+		},
+	},
 }
