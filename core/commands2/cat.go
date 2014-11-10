@@ -12,7 +12,7 @@ import (
 var catCmd = &cmds.Command{
 	Description: "Show IPFS object data",
 	Help: `Retrieves the object named by <ipfs-path> and outputs the data
-	it contains.
+it contains.
 	`,
 
 	Arguments: []cmds.Argument{

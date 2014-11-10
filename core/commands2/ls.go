@@ -25,7 +25,9 @@ type LsOutput struct {
 var lsCmd = &cmds.Command{
 	Description: "List links from an object.",
 	Help: `Retrieves the object named by <ipfs-path> and displays the links
-it contains.
+it contains, with the following format:
+
+  <link base58 hash> <link size in bytes> <link name>
 `,
 
 	Arguments: []cmds.Argument{
@@ -70,6 +72,7 @@ it contains.
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			// TODO: revert format to match old command
 			s := ""
 			output := res.Output().(*LsOutput).Objects
 

@@ -120,7 +120,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 }
 
 var bootstrapListCmd = &cmds.Command{
-	Description: "Lists peers in the bootstrap list",
+	Description: "Show peers in the bootstrap list",
 	Help: `Peers are output in the format '<multiaddr>/<peerID>'.
 `,
 

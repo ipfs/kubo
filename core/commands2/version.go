@@ -13,7 +13,7 @@ type VersionOutput struct {
 
 var versionCmd = &cmds.Command{
 	Description: "Outputs the current version of IPFS",
-	Help: `Returns the version number of IPFS.
+	Help: `Returns the version number of IPFS and exits.
 `,
 
 	Options: []cmds.Option{

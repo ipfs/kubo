@@ -14,7 +14,8 @@ type ResolveOutput struct {
 var resolveCmd = &cmds.Command{
 	Description: "Gets the value currently published at an IPNS name",
 	Help: `IPNS is a PKI namespace, where names are the hashes of public keys, and
-the private key enables publishing new (signed) values.
+the private key enables publishing new (signed) values. In resolve, the
+default value of <name> is your own identity public key.
 
 
 Examples:
