@@ -7,7 +7,7 @@ import (
 
 var CastErr = errors.New("cast error")
 
-func ToReaders(slice []interface{}) ([]io.Reader, error) {
+func CastToReaders(slice []interface{}) ([]io.Reader, error) {
 	readers := make([]io.Reader, 0)
 	for _, arg := range slice {
 		reader, ok := arg.(io.Reader)
@@ -19,7 +19,7 @@ func ToReaders(slice []interface{}) ([]io.Reader, error) {
 	return readers, nil
 }
 
-func ToStrings(slice []interface{}) ([]string, error) {
+func CastToStrings(slice []interface{}) ([]string, error) {
 	strs := make([]string, 0)
 	for _, maybe := range slice {
 		str, ok := maybe.(string)

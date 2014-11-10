@@ -39,7 +39,7 @@ isn't already being stored, IPFS retrieves it.
 		opt, _ := req.Option("recursive")
 		recursive, _ := opt.(bool) // false if cast fails.
 
-		paths, err := internal.ToStrings(req.Arguments())
+		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -75,7 +75,7 @@ var rmPinCmd = &cmds.Command{
 		opt, _ := req.Option("recursive")
 		recursive, _ := opt.(bool) // false if cast fails.
 
-		paths, err := internal.ToStrings(req.Arguments())
+		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

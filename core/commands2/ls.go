@@ -35,7 +35,7 @@ it contains.
 	Run: func(res cmds.Response, req cmds.Request) {
 		node := req.Context().Node
 
-		paths, err := internal.ToStrings(req.Arguments())
+		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
