@@ -84,7 +84,10 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Millisecond*1000)
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Hour)
 	dht.birth = time.Now()
+
 	dht.Validators = make(map[string]ValidatorFunc)
+	dht.Validators["ipns"] = ValidateIpnsRecord
+	dht.Validators["pk"] = ValidatePublicKeyRecord
 
 	if doPinging {
 		dht.Children().Add(1)

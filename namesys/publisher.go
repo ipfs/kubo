@@ -53,7 +53,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 
 	// Store associated public key
 	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*4))
-	err = p.routing.PutValue(timectx, u.Key(nameb), pkbytes)
+	err = p.routing.PutValue(timectx, u.Key("/pk/"+string(nameb)), pkbytes)
 	if err != nil {
 		return err
 	}

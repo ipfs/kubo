@@ -63,7 +63,7 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 
 	// name should be a public key retrievable from ipfs
 	// /ipfs/<name>
-	key := u.Key(hash)
+	key := u.Key("/pk/" + string(hash))
 	pkval, err := r.routing.GetValue(ctx, key)
 	if err != nil {
 		log.Warning("RoutingResolve PubKey Get failed.")
