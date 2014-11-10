@@ -46,7 +46,7 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 
 	// use the routing system to get the name.
 	// /ipns/<name>
-	h := u.Hash([]byte("/ipns/" + name))
+	h := []byte("/ipns/" + name)
 
 	ipnsKey := u.Key(h)
 	val, err := r.routing.GetValue(ctx, ipnsKey)

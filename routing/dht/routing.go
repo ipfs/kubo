@@ -25,6 +25,12 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
+	rec, err := dht.makePutRecord(key, value)
+	if err != nil {
+		log.Error("Creation of record failed!")
+		return err
+	}
+
 	var peers []peer.Peer
 	for _, route := range dht.routingTables {
 		npeers := route.NearestPeers(kb.ConvertKey(key), KValue)
@@ -33,7 +39,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 
 	query := newQuery(key, dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 		log.Debugf("%s PutValue qry part %v", dht.self, p)
-		err := dht.putValueToNetwork(ctx, p, string(key), value)
+		err := dht.putValueToNetwork(ctx, p, string(key), rec)
 		if err != nil {
 			return nil, err
 		}

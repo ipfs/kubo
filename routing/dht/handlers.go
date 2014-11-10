@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"code.google.com/p/goprotobuf/proto"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -72,7 +74,14 @@ func (dht *IpfsDHT) handleGetValue(p peer.Peer, pmes *pb.Message) (*pb.Message, 
 			return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
 		}
 
-		resp.Value = byts
+		rec := new(pb.Record)
+		err := proto.Unmarshal(byts, rec)
+		if err != nil {
+			log.Error("Failed to unmarshal dht record from datastore")
+			return nil, err
+		}
+
+		resp.Record = rec
 	}
 
 	// if we know any providers for the requested value, return those.
@@ -102,8 +111,20 @@ func (dht *IpfsDHT) handlePutValue(p peer.Peer, pmes *pb.Message) (*pb.Message, 
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
 	dskey := u.Key(pmes.GetKey()).DsKey()
-	err := dht.datastore.Put(dskey, pmes.GetValue())
-	log.Debugf("%s handlePutValue %v %v\n", dht.self, dskey, pmes.GetValue())
+
+	err := dht.verifyRecord(pmes.GetRecord())
+	if err != nil {
+		log.Error("Bad dht record in put request")
+		return nil, err
+	}
+
+	data, err := proto.Marshal(pmes.GetRecord())
+	if err != nil {
+		return nil, err
+	}
+
+	err = dht.datastore.Put(dskey, data)
+	log.Debugf("%s handlePutValue %v\n", dht.self, dskey)
 	return pmes, err
 }
 

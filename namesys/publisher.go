@@ -49,7 +49,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 
 	nameb := u.Hash(pkbytes)
 	namekey := u.Key(nameb).Pretty()
-	ipnskey := u.Hash([]byte("/ipns/" + namekey))
+	ipnskey := []byte("/ipns/" + namekey)
 
 	// Store associated public key
 	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*4))
@@ -58,7 +58,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 		return err
 	}
 
-	// Store ipns entry at h("/ipns/"+b58(h(pubkey)))
+	// Store ipns entry at "/ipns/"+b58(h(pubkey))
 	timectx, _ = context.WithDeadline(ctx, time.Now().Add(time.Second*4))
 	err = p.routing.PutValue(timectx, u.Key(ipnskey), data)
 	if err != nil {
