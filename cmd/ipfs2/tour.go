@@ -34,7 +34,7 @@ IPFS very quickly. To start, run:
 
 		out := new(bytes.Buffer)
 		cfg := req.Context().Config
-		strs, err := internal.ToStrings(req.Arguments())
+		strs, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

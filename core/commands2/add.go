@@ -40,7 +40,7 @@ var addCmd = &cmds.Command{
 		// if r, _ := opt.(bool); found && r {
 		// }
 
-		readers, err := internal.ToReaders(req.Arguments())
+		readers, err := internal.CastToReaders(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

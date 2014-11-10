@@ -23,7 +23,7 @@ var catCmd = &cmds.Command{
 		node := req.Context().Node
 		readers := make([]io.Reader, 0, len(req.Arguments()))
 
-		paths, err := internal.ToStrings(req.Arguments())
+		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
