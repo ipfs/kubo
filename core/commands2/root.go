@@ -71,6 +71,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"block":     blockCmd,
 	"update":    updateCmd,
 	"object":    objectCmd,
+	"refs":      refsCmd,
 }
 
 func init() {
