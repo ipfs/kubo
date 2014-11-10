@@ -9,7 +9,9 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	importer "github.com/jbenet/go-ipfs/importer"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	pinning "github.com/jbenet/go-ipfs/pin"
 )
 
 // Error indicating the max depth has been exceded.
@@ -34,11 +36,6 @@ var addCmd = &cmds.Command{
 `,
 	Run: func(res cmds.Response, req cmds.Request) {
 		n := req.Context().Node
-
-		// if recursive, set depth to reflect so
-		// opt, found := req.Option("r")
-		// if r, _ := opt.(bool); found && r {
-		// }
 
 		readers, err := internal.CastToReaders(req.Arguments())
 		if err != nil {
@@ -88,10 +85,15 @@ var addCmd = &cmds.Command{
 }
 
 func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
+	mp, ok := n.Pinning.(pinning.ManualPinner)
+	if !ok {
+		return nil, errors.New("invalid pinner type! expected manual pinner")
+	}
+
 	dagnodes := make([]*dag.Node, 0)
 
 	for _, reader := range readers {
-		node, err := importer.NewDagFromReader(reader)
+		node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)
 		if err != nil {
 			return nil, err
 		}
