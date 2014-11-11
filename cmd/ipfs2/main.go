@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -80,7 +81,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	outputResponse(res, root)
+
+	err = outputResponse(res, root)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -205,10 +210,15 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	return res, nil
 }
 
-func outputResponse(res cmds.Response, root *cmds.Command) {
+func outputResponse(res cmds.Response, root *cmds.Command) error {
 	if res.Error() != nil {
 		fmt.Printf(errorFormat, res.Error().Error())
 
+		if res.Error().Code != cmds.ErrClient {
+			return res.Error()
+		}
+
+		// if this is a client error, we try to display help text
 		if res.Error().Code == cmds.ErrClient {
 			helpText, err := cmdsCli.HelpText("ipfs", root, res.Request().Path())
 			if err != nil {
@@ -218,16 +228,17 @@ func outputResponse(res cmds.Response, root *cmds.Command) {
 			}
 		}
 
-		exit(1)
+		emptyErr := errors.New("") // already displayed error text, but want to exit(1)
+		return emptyErr
 	}
 
 	out, err := res.Reader()
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		return err
 	}
 
 	io.Copy(os.Stdout, out)
+	return nil
 }
 
 func getConfigRoot(req cmds.Request) (string, error) {
