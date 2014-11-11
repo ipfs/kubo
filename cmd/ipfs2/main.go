@@ -134,12 +134,14 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 		exit(0)
 	}
 
-	if debug, err := req.Option("debug").Bool(); debug && err == nil {
-		u.Debug = true
-		u.SetAllLoggers(logging.DEBUG)
-	} else if err != nil {
+	debug, err := req.Option("debug").Bool()
+	if err != nil {
 		fmt.Println(err)
 		exit(1)
+	}
+	if debug {
+		u.Debug = true
+		u.SetAllLoggers(logging.DEBUG)
 	}
 }
 
