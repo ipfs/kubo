@@ -26,11 +26,10 @@ import (
 var log = u.Logger("cmd/ipfs")
 
 const (
-	heapProfile = "ipfs.mprof"
+	cpuProfile  = "ipfs.cpuprof"
+	heapProfile = "ipfs.memprof"
 	errorFormat = "ERROR: %v\n\n"
 )
-
-var ofi io.WriteCloser
 
 func main() {
 	err := run()
@@ -58,15 +57,12 @@ func run() error {
 		u.SetAllLoggers(logging.DEBUG)
 	}
 
-	// if debugging, setup profiling.
 	if u.Debug {
-		var err error
-		ofi, err = os.Create("cpu.prof")
+		stopProfilingFunc, err := startProfiling()
 		if err != nil {
 			return err
 		}
-
-		pprof.StartCPUProfile(ofi)
+		defer stopProfilingFunc() // to be executed as late as possible
 	}
 
 	helpTextDisplayed, err := handleHelpOption(req, root)
@@ -228,7 +224,7 @@ func outputResponse(res cmds.Response, root *cmds.Command) error {
 			}
 		}
 
-		emptyErr := errors.New("") // already displayed error text, but want to exit(1)
+		emptyErr := errors.New("") // already displayed error text
 		return emptyErr
 	}
 
@@ -266,12 +262,34 @@ func getConfig(path string) (*config.Config, error) {
 	return config.Load(configFile)
 }
 
+// startProfiling begins CPU profiling and returns a `stop` function to be
+// executed as late as possible. The stop function captures the memprofile.
+func startProfiling() (func(), error) {
+
+	// start CPU profiling as early as possible
+	ofi, err := os.Create(cpuProfile)
+	if err != nil {
+		return nil, err
+	}
+	pprof.StartCPUProfile(ofi)
+
+	stopProfiling := func() {
+		pprof.StopCPUProfile()
+		defer ofi.Close() // captured by the closure
+		err := writeHeapProfileToFile()
+		if err != nil {
+			log.Critical(err)
+		}
+	}
+	return stopProfiling, nil
+}
+
 func writeHeapProfileToFile() error {
 	mprof, err := os.Create(heapProfile)
 	if err != nil {
 		return err
 	}
-	defer mprof.Close()
+	defer mprof.Close() // _after_ writing the heap profile
 	return pprof.WriteHeapProfile(mprof)
 }
 
