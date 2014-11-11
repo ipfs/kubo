@@ -35,7 +35,11 @@ func main() {
 	handleInterrupt()
 
 	args := os.Args[1:]
-	req, root := createRequest(args)
+	req, root, err := createRequest(args)
+	if err != nil {
+		fmt.Println(err)
+		exit(1)
+	}
 	handleOptions(req, root)
 
 	// if debugging, setup profiling.
@@ -56,7 +60,7 @@ func main() {
 	exit(0)
 }
 
-func createRequest(args []string) (cmds.Request, *cmds.Command) {
+func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	req, root, cmd, path, err := cmdsCli.Parse(args, Root, commands.Root)
 
 	// handle parse error (which means the commandline input was wrong,
@@ -80,27 +84,24 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 		}
 
 		// generate the help text for the command the user was trying to call (or root)
-		helpText, err := cmdsCli.HelpText("ipfs", root, path)
-		if err != nil {
-			fmt.Println(err)
+		helpText, htErr := cmdsCli.HelpText("ipfs", root, path)
+		if htErr != nil {
+			fmt.Println(htErr)
 		} else {
 			fmt.Println(helpText)
 		}
-		exit(1)
+		return nil, nil, err
 	}
 
 	configPath, err := getConfigRoot(req)
 	if err != nil {
-		fmt.Println(err)
-		exit(1)
+		return nil, nil, err
 	}
 
 	conf, err := getConfig(configPath)
 	if err != nil {
-		fmt.Println(err)
-		exit(1)
+		return nil, nil, err
 	}
-
 	ctx := req.Context()
 	ctx.ConfigRoot = configPath
 	ctx.Config = conf
@@ -113,7 +114,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 		}
 	}
 
-	return req, root
+	return req, root, nil
 }
 
 func handleOptions(req cmds.Request, root *cmds.Command) {
