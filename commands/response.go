@@ -108,18 +108,22 @@ func (r *response) Marshal() ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	enc, found := r.req.Option(EncShort)
-	encStr, ok := enc.(string)
-	if !found || !ok || encStr == "" {
+	fmt.Println(r.req, r.req.Option(EncShort))
+	if !r.req.Option(EncShort).Found() {
 		return nil, fmt.Errorf("No encoding type was specified")
 	}
-	encType := EncodingType(strings.ToLower(encStr))
+	enc, err := r.req.Option(EncShort).String()
+	if err != nil {
+		return nil, err
+	}
+	encType := EncodingType(strings.ToLower(enc))
 
 	var marshaller Marshaller
 	if r.req.Command() != nil && r.req.Command().Marshallers != nil {
 		marshaller = r.req.Command().Marshallers[encType]
 	}
 	if marshaller == nil {
+		var ok bool
 		marshaller, ok = marshallers[encType]
 		if !ok {
 			return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)

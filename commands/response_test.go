@@ -12,25 +12,20 @@ type TestOutput struct {
 }
 
 func TestMarshalling(t *testing.T) {
-	req := NewEmptyRequest()
+	cmd := &Command{}
+	opts, _ := cmd.GetOptions(nil)
+
+	req := NewRequest(nil, nil, nil, nil, opts)
 
 	res := NewResponse(req)
 	res.SetOutput(TestOutput{"beep", "boop", 1337})
 
-	// get command global options so we can set the encoding option
-	cmd := Command{}
-	options, err := cmd.GetOptions(nil)
-	if err != nil {
-		t.Error(err)
-	}
-
-	_, err = res.Marshal()
+	_, err := res.Marshal()
 	if err == nil {
 		t.Error("Should have failed (no encoding type specified in request)")
 	}
 
 	req.SetOption(EncShort, JSON)
-	req.ConvertOptions(options)
 
 	bytes, err := res.Marshal()
 	if err != nil {

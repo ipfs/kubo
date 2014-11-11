@@ -44,17 +44,15 @@ not be listable, as it is virtual. Accessing known paths directly.
 
 		// update fsdir with flag.
 		fsdir := ctx.Config.Mounts.IPFS
-		opt, _ := req.Option("f")
-		if val, ok := opt.(string); ok && val != "" {
-			fsdir = val
+		if req.Option("f").Found() {
+			fsdir, _ = req.Option("f").String()
 		}
 		fsdone := mountIpfs(ctx.Node, fsdir)
 
 		// get default mount points
 		nsdir := ctx.Config.Mounts.IPNS
-		opt, _ = req.Option("f")
-		if val, ok := opt.(string); ok && val != "" {
-			nsdir = val
+		if req.Option("n").Found() {
+			nsdir, _ = req.Option("n").String()
 		}
 		nsdone := mountIpns(ctx.Node, nsdir, fsdir)
 

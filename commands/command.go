@@ -66,13 +66,7 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	options, err := c.GetOptions(req.Path())
-	if err != nil {
-		res.SetError(err, ErrClient)
-		return res
-	}
-
-	err = req.ConvertOptions(options)
+	err = req.ConvertOptions()
 	if err != nil {
 		res.SetError(err, ErrClient)
 		return res

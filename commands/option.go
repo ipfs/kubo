@@ -1,6 +1,9 @@
 package commands
 
-import "reflect"
+import (
+	"errors"
+	"reflect"
+)
 
 // Types of Command options
 const (
@@ -30,7 +33,7 @@ func NewOption(kind reflect.Kind, names ...string) Option {
 	}
 
 	desc := names[len(names)-1]
-	names = names[:len(names)-2]
+	names = names[:len(names)-1]
 
 	return Option{
 		Names:       names,
@@ -53,6 +56,73 @@ func FloatOption(names ...string) Option {
 }
 func StringOption(names ...string) Option {
 	return NewOption(String, names...)
+}
+
+type OptionValue struct {
+	value interface{}
+	found bool
+}
+
+// Found returns true if the option value was provided by the user (not a default value)
+func (ov OptionValue) Found() bool {
+	return ov.found
+}
+
+// value accessor methods, gets the value as a certain type
+func (ov OptionValue) Bool() (bool, error) {
+	val, ok := ov.value.(bool)
+	if !ok {
+		var err error
+		if ov.value != nil {
+			err = errors.New("error casting to bool")
+		}
+		return false, err
+	}
+	return val, nil
+}
+func (ov OptionValue) Int() (int, error) {
+	val, ok := ov.value.(int)
+	if !ok {
+		var err error
+		if ov.value != nil {
+			err = errors.New("error casting to int")
+		}
+		return 0, err
+	}
+	return val, nil
+}
+func (ov OptionValue) Uint() (uint, error) {
+	val, ok := ov.value.(uint)
+	if !ok {
+		var err error
+		if ov.value != nil {
+			err = errors.New("error casting to uint")
+		}
+		return 0, err
+	}
+	return val, nil
+}
+func (ov OptionValue) Float() (float64, error) {
+	val, ok := ov.value.(float64)
+	if !ok {
+		var err error
+		if ov.value != nil {
+			err = errors.New("error casting to float64")
+		}
+		return 0.0, err
+	}
+	return val, nil
+}
+func (ov OptionValue) String() (string, error) {
+	val, ok := ov.value.(string)
+	if !ok {
+		var err error
+		if ov.value != nil {
+			err = errors.New("error casting to string")
+		}
+		return "", err
+	}
+	return val, nil
 }
 
 // Flag names

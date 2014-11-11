@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"errors"
-
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 )
@@ -29,11 +27,7 @@ var versionCmd = &cmds.Command{
 			v := res.Output().(*VersionOutput)
 			s := ""
 
-			opt, found := res.Request().Option("number")
-			number, ok := opt.(bool)
-			if found && !ok {
-				return nil, errors.New("cast error")
-			}
+			number, _ := res.Request().Option("number").Bool()
 
 			if !number {
 				s += "ipfs version "
