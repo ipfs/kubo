@@ -76,7 +76,10 @@ func run() error {
 		return nil
 	}
 
-	res := callCommand(req, root)
+	res, err := callCommand(req, root)
+	if err != nil {
+		return err
+	}
 	outputResponse(res, root)
 
 	return nil
@@ -157,45 +160,40 @@ func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed b
 	return false, nil
 }
 
-func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
+func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	var res cmds.Response
 
-	if root == Root {
+	if root == Root { // TODO explain what it means when root == Root
 		res = root.Call(req)
 
 	} else {
 		local, err := req.Option("local").Bool()
 		if err != nil {
-			fmt.Println(err)
-			exit(1)
+			return nil, err
 		}
 
 		if (!req.Option("local").Found() || !local) && daemon.Locked(req.Context().ConfigRoot) {
 			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
 			if err != nil {
-				fmt.Println(err)
-				exit(1)
+				return nil, err
 			}
 
 			_, host, err := manet.DialArgs(addr)
 			if err != nil {
-				fmt.Println(err)
-				exit(1)
+				return nil, err
 			}
 
 			client := cmdsHttp.NewClient(host)
 
 			res, err = client.Send(req)
 			if err != nil {
-				fmt.Println(err)
-				exit(1)
+				return nil, err
 			}
 
 		} else {
 			node, err := core.NewIpfsNode(req.Context().Config, false)
 			if err != nil {
-				fmt.Println(err)
-				exit(1)
+				return nil, err
 			}
 			defer node.Close()
 			req.Context().Node = node
@@ -204,7 +202,7 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 func outputResponse(res cmds.Response, root *cmds.Command) {
