@@ -148,17 +148,16 @@ func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed b
 	if err != nil {
 		return false, err
 	}
-
-	if help {
-		helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
-		if err != nil {
-			return false, err
-		}
-		fmt.Println(helpText)
-		return true, nil
+	if !help {
+		return false, nil
 	}
+	helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
+	if err != nil {
+		return false, err
+	}
+	fmt.Println(helpText)
 
-	return false, nil
+	return true, nil
 }
 
 func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
