@@ -121,7 +121,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 	// setup peerstore + local peer identity
 	n.Peerstore = peer.NewPeerstore()
-	n.Identity, err = initIdentity(n.Config, n.Peerstore, online)
+	n.Identity, err = initIdentity(&n.Config.Identity, n.Peerstore, online)
 	if err != nil {
 		return nil, err
 	}
@@ -196,17 +196,17 @@ func (n *IpfsNode) OnlineMode() bool {
 	return n.onlineMode
 }
 
-func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.Peer, error) {
-	if cfg.Identity.PeerID == "" {
+func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer.Peer, error) {
+	if cfg.PeerID == "" {
 		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
 	}
 
-	if len(cfg.Identity.PeerID) == 0 {
+	if len(cfg.PeerID) == 0 {
 		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
 	}
 
 	// get peer from peerstore (so it is constructed there)
-	id := peer.ID(b58.Decode(cfg.Identity.PeerID))
+	id := peer.ID(b58.Decode(cfg.PeerID))
 	self, err := peers.Get(id)
 	if err != nil {
 		return nil, err
@@ -214,7 +214,7 @@ func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.P
 
 	// when not online, don't need to parse private keys (yet)
 	if online {
-		skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
+		skb, err := base64.StdEncoding.DecodeString(cfg.PrivKey)
 		if err != nil {
 			return nil, err
 		}
