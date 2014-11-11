@@ -207,7 +207,7 @@ func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.P
 
 	// get peer from peerstore (so it is constructed there)
 	id := peer.ID(b58.Decode(cfg.Identity.PeerID))
-	peer, err := peers.Get(id)
+	self, err := peers.Get(id)
 	if err != nil {
 		return nil, err
 	}
@@ -219,12 +219,12 @@ func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.P
 			return nil, err
 		}
 
-		if err := peer.LoadAndVerifyKeyPair(skb); err != nil {
+		if err := self.LoadAndVerifyKeyPair(skb); err != nil {
 			return nil, err
 		}
 	}
 
-	return peer, nil
+	return self, nil
 }
 
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
