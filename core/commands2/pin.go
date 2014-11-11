@@ -29,8 +29,7 @@ on disk.
 			"Path to object(s) to be pinned"},
 	},
 	Options: []cmds.Option{
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
-			"Recursively pin the object linked to by the specified object(s)"},
+		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
@@ -65,8 +64,7 @@ collected if needed.
 			"Path to object(s) to be unpinned"},
 	},
 	Options: []cmds.Option{
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
-			"Recursively unpin the object linked to by the specified object(s)"},
+		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node

@@ -29,10 +29,8 @@ Note: list all refs recursively with -r.`,
 			"Path to the object(s) to list refs from"},
 	},
 	Options: []cmds.Option{
-		cmds.Option{[]string{"unique", "u"}, cmds.Bool,
-			"Omit duplicate refs from output"},
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
-			"Recursively list links of child nodes"},
+		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node

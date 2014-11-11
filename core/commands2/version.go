@@ -17,8 +17,7 @@ var versionCmd = &cmds.Command{
 `,
 
 	Options: []cmds.Option{
-		cmds.Option{[]string{"number", "n"}, cmds.Bool,
-			"Only output the version number"},
+		cmds.BoolOption("number", "n", "Only output the version number"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		return &VersionOutput{

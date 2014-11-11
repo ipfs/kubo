@@ -24,16 +24,11 @@ not be listable, as it is virtual. Accessing known paths directly.
 `,
 
 	Options: []cmds.Option{
-
-		// TODO text: specify a mountpoint for ipfs
 		// TODO longform
-		cmds.Option{[]string{"f"}, cmds.String,
-			"The path where IPFS should be mounted\n(default is '/ipfs')"},
+		cmds.StringOption("f", "The path where IPFS should be mounted\n(default is '/ipfs')"),
 
-		// TODO text: specify a mountpoint for ipns
 		// TODO longform
-		cmds.Option{[]string{"n"}, cmds.String,
-			"The path where IPNS should be mounted\n(default is '/ipns')"},
+		cmds.StringOption("n", "The path where IPNS should be mounted\n(default is '/ipns')"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		ctx := req.Context()

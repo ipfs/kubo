@@ -44,14 +44,10 @@ Use "ipfs <command> --help" for more information about a command.
 `,
 
 	Options: []cmds.Option{
-		cmds.Option{[]string{"config", "c"}, cmds.String,
-			"Path to the configuration file to use"},
-		cmds.Option{[]string{"debug", "D"}, cmds.Bool,
-			"Operate in debug mode"},
-		cmds.Option{[]string{"help", "h"}, cmds.Bool,
-			"Show the command help text"},
-		cmds.Option{[]string{"local", "L"}, cmds.Bool,
-			"Run the command locally, instead of using the daemon"},
+		cmds.StringOption("config", "c", "Path to the configuration file to use"),
+		cmds.BoolOption("debug", "D", "Operate in debug mode"),
+		cmds.BoolOption("help", "h", "Show the command help text"),
+		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
 	},
 }
 
