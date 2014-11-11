@@ -2,13 +2,17 @@ package commands
 
 import "testing"
 
+func noop(req Request) (interface{}, error) {
+	return nil, nil
+}
+
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
 		Options: []Option{
 			Option{[]string{"b", "beep"}, Int, "enables beeper"},
 			Option{[]string{"B", "boop"}, String, "password for booper"},
 		},
-		Run: func(res Response, req Request) {},
+		Run: noop,
 	}
 
 	req := NewEmptyRequest()
@@ -79,8 +83,6 @@ func TestOptionValidation(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	noop := func(res Response, req Request) {}
-
 	cmdA := &Command{
 		Options: []Option{
 			Option{[]string{"beep"}, Int, "number of beeps"},
