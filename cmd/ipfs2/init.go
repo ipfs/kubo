@@ -20,7 +20,7 @@ var initCmd = &cmds.Command{
 `,
 
 	Options: []cmds.Option{
-		cmds.UintOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
+		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
 		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
