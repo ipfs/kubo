@@ -20,14 +20,10 @@ var initCmd = &cmds.Command{
 `,
 
 	Options: []cmds.Option{
-		cmds.Option{[]string{"bits", "b"}, cmds.Int,
-			"Number of bits to use in the generated RSA private key (defaults to 4096)"},
-		cmds.Option{[]string{"passphrase", "p"}, cmds.String,
-			"Passphrase for encrypting the private key"},
-		cmds.Option{[]string{"force", "f"}, cmds.Bool,
-			"Overwrite existing config (if it exists)"},
-		cmds.Option{[]string{"datastore", "d"}, cmds.String,
-			"Location for the IPFS data store"},
+		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
+		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
+		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
+		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 

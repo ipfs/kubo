@@ -23,7 +23,7 @@ type AddOutput struct {
 
 var addCmd = &cmds.Command{
 	Options: []cmds.Option{
-		cmds.Option{[]string{"recursive", "r"}, cmds.Bool, "Must be specified when adding directories"},
+		cmds.BoolOption("recursive", "r", "Must be specified when adding directories"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.Argument{"file", cmds.ArgFile, true, true, "The path to a file to be added to IPFS"},
