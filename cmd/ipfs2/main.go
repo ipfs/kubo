@@ -119,7 +119,12 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 
 func handleOptions(req cmds.Request, root *cmds.Command) {
 	help, err := req.Option("help").Bool()
-	if help && err == nil {
+	if err != nil {
+		fmt.Println(err)
+		exit(1)
+	}
+
+	if help {
 		helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
 		if err != nil {
 			fmt.Println(err.Error())
@@ -127,9 +132,6 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 			fmt.Println(helpText)
 		}
 		exit(0)
-	} else if err != nil {
-		fmt.Println(err)
-		exit(1)
 	}
 
 	if debug, err := req.Option("debug").Bool(); debug && err == nil {
