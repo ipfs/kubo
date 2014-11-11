@@ -283,7 +283,7 @@ func handleInterrupt() {
 	go func() {
 		for _ = range c {
 			log.Info("Received interrupt signal, terminating...")
-			exit(0)
+			os.Exit(0)
 		}
 	}()
 }
