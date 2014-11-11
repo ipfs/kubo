@@ -59,28 +59,16 @@ func main() {
 func createRequest(args []string) (cmds.Request, *cmds.Command) {
 	req, root, cmd, path, err := cmdsCli.Parse(args, Root, commands.Root)
 
-	var options cmds.Request
-	if req != nil && root != nil {
-		var err2 error
-		options, err2 = getOptions(req, root)
-		if err2 != nil {
-			fmt.Println(err2)
-			exit(1)
-		}
-	}
-
 	// handle parse error (which means the commandline input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if err != nil {
 		// if the -help flag wasn't specified, show the error message
 		// or if a path was returned (user specified a valid subcommand), show the error message
 		// (this means there was an option or argument error)
-		if options != nil || path != nil && len(path) > 0 {
+		if path != nil && len(path) > 0 {
 			help := false
-			if options != nil {
-				opt, _ := options.Option("help")
-				help, _ = opt.(bool)
-			}
+			opt, _ := req.Option("help")
+			help, _ = opt.(bool)
 
 			if !help {
 				fmt.Printf(errorFormat, err)
@@ -104,7 +92,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 		exit(1)
 	}
 
-	configPath, err := getConfigRoot(options)
+	configPath, err := getConfigRoot(req)
 	if err != nil {
 		fmt.Println(err)
 		exit(1)
@@ -120,7 +108,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 	ctx.ConfigRoot = configPath
 	ctx.Config = conf
 
-	if _, found := options.Option("encoding"); !found {
+	if _, found := req.Option("encoding"); !found {
 		if req.Command().Marshallers != nil && req.Command().Marshallers[cmds.Text] != nil {
 			req.SetOption("encoding", cmds.Text)
 		} else {
@@ -132,13 +120,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 }
 
 func handleOptions(req cmds.Request, root *cmds.Command) {
-	options, err := getOptions(req, root)
-	if err != nil {
-		fmt.Println(err)
-		exit(1)
-	}
-
-	if help, found := options.Option("help"); found {
+	if help, found := req.Option("help"); found {
 		if helpBool, ok := help.(bool); helpBool && ok {
 			helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
 			if err != nil {
@@ -153,7 +135,7 @@ func handleOptions(req cmds.Request, root *cmds.Command) {
 		}
 	}
 
-	if debug, found := options.Option("debug"); found {
+	if debug, found := req.Option("debug"); found {
 		if debugBool, ok := debug.(bool); debugBool && ok {
 			u.Debug = true
 
@@ -172,16 +154,10 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 		res = root.Call(req)
 
 	} else {
-		options, err := getOptions(req, root)
-		if err != nil {
-			fmt.Println(err)
-			exit(1)
-		}
-
 		var found bool
 		var local interface{}
 		localBool := false
-		if local, found = options.Option("local"); found {
+		if local, found = req.Option("local"); found {
 			var ok bool
 			localBool, ok = local.(bool)
 			if !ok {
@@ -250,22 +226,6 @@ func outputResponse(res cmds.Response, root *cmds.Command) {
 	}
 
 	io.Copy(os.Stdout, out)
-}
-
-func getOptions(req cmds.Request, root *cmds.Command) (cmds.Request, error) {
-	tempReq := cmds.NewRequest(req.Path(), req.Options(), nil, nil)
-
-	options, err := root.GetOptions(tempReq.Path())
-	if err != nil {
-		return nil, err
-	}
-
-	err = tempReq.ConvertOptions(options)
-	if err != nil {
-		return nil, err
-	}
-
-	return tempReq, nil
 }
 
 func getConfigRoot(req cmds.Request) (string, error) {
