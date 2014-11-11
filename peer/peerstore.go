@@ -47,6 +47,17 @@ func (p *peerstore) Get(i ID) (Peer, error) {
 
 	// not found, construct it ourselves, add it to datastore, and return.
 	case ds.ErrNotFound:
+
+		// TODO(brian) kinda dangerous, no? If ID is invalid and doesn't
+		// correspond to an actual valid peer ID, this peerstore will return an
+		// instantiated peer value, allowing the error to propagate. It might
+		// be better to nip this at the bud by returning nil and making the
+		// client manually add a Peer. To keep the peerstore in control, this
+		// can even be a peerstore method that performs cursory validation.
+		//
+		// Potential bad case: Suppose values arrive from untrusted providers
+		// in the DHT.
+
 		peer := &peer{id: i}
 		if err := p.peers.Put(k, peer); err != nil {
 			return nil, err
