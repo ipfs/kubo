@@ -34,19 +34,17 @@ var addCmd = &cmds.Command{
     MerkleDAG. A smarter partial add with a staging area (like git)
     remains to be implemented.
 `,
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		readers, err := internal.CastToReaders(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		dagnodes, err := add(n, readers)
 		if err != nil {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		// TODO: include fs paths in output (will need a way to specify paths in underlying filearg system)
@@ -54,14 +52,13 @@ var addCmd = &cmds.Command{
 		for _, dagnode := range dagnodes {
 			object, err := getOutput(dagnode)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
+				return nil, err
 			}
 
 			added = append(added, object)
 		}
 
-		res.SetOutput(&AddOutput{added})
+		return &AddOutput{added}, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {

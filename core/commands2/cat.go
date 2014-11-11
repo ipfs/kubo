@@ -19,24 +19,22 @@ it contains.
 		cmds.Argument{"ipfs-path", cmds.ArgString, true, true,
 			"The path to the IPFS object(s) to be outputted"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		node := req.Context().Node
 		readers := make([]io.Reader, 0, len(req.Arguments()))
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		readers, err = cat(node, paths)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		reader := io.MultiReader(readers...)
-		res.SetOutput(reader)
+		return reader, nil
 	},
 }
 

@@ -40,35 +40,31 @@ It outputs to stdout, and <key> is a base58 encoded multihash.`,
 	Arguments: []cmds.Argument{
 		cmds.Argument{"key", cmds.ArgString, true, false, "The base58 multihash of an existing block to get"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		if !u.IsValidHash(key) {
-			res.SetError(errors.New("Not a valid hash"), cmds.ErrClient)
-			return
+			return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
 		}
 
 		h, err := mh.FromB58String(key)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		k := u.Key(h)
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
 		b, err := n.Blocks.GetBlock(ctx, k)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		res.SetOutput(bytes.NewReader(b.Data))
+		return bytes.NewReader(b.Data), nil
 	},
 }
 
@@ -80,19 +76,17 @@ It reads from stdin, and <key> is a base58 encoded multihash.`,
 	Arguments: []cmds.Argument{
 		cmds.Argument{"data", cmds.ArgFile, true, false, "The data to be stored as an IPFS block"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		in, ok := req.Arguments()[0].(io.Reader)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		data, err := ioutil.ReadAll(in)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		b := blocks.NewBlock(data)
@@ -100,14 +94,13 @@ It reads from stdin, and <key> is a base58 encoded multihash.`,
 
 		k, err := n.Blocks.AddBlock(b)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		res.SetOutput(&Block{
+		return &Block{
 			Key:    k.String(),
 			Length: len(data),
-		})
+		}, nil
 	},
 	Type: &Block{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{

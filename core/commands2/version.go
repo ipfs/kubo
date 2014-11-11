@@ -20,10 +20,10 @@ var versionCmd = &cmds.Command{
 		cmds.Option{[]string{"number", "n"}, cmds.Bool,
 			"Only output the version number"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
-		res.SetOutput(&VersionOutput{
+	Run: func(req cmds.Request) (interface{}, error) {
+		return &VersionOutput{
 			Version: config.CurrentVersionNumber,
-		})
+		}, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {

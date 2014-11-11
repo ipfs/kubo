@@ -32,7 +32,7 @@ on disk.
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
 			"Recursively pin the object linked to by the specified object(s)"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		// set recursive flag
@@ -41,16 +41,16 @@ on disk.
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		_, err = pin(n, paths, recursive)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			return nil, err
 		}
 
 		// TODO: create some output to show what got pinned
+		return nil, nil
 	},
 }
 
@@ -68,7 +68,7 @@ collected if needed.
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
 			"Recursively unpin the object linked to by the specified object(s)"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		// set recursive flag
@@ -77,16 +77,16 @@ collected if needed.
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		_, err = unpin(n, paths, recursive)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			return nil, err
 		}
 
 		// TODO: create some output to show what got unpinned
+		return nil, nil
 	},
 }
 

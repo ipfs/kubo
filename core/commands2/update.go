@@ -19,16 +19,9 @@ var updateCmd = &cmds.Command{
 	Help: `ipfs update is a utility command used to check for updates and apply them.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
-
-		output, err := updateApply(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(output)
+		return updateApply(n)
 	},
 	Type: &UpdateOutput{},
 	Subcommands: map[string]*cmds.Command{
@@ -57,16 +50,9 @@ var updateCheckCmd = &cmds.Command{
 Nothing will be downloaded or installed.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
-
-		output, err := updateCheck(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(output)
+		return updateCheck(n)
 	},
 	Type: &UpdateOutput{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
@@ -89,16 +75,9 @@ var updateLogCmd = &cmds.Command{
 	Help: `This command is not yet implemented.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
-
-		output, err := updateLog(n)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(output)
+		return updateLog(n)
 	},
 }
 

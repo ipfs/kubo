@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -42,18 +41,16 @@ requesting a listing of data about them including number of
 connected peers and latencies between them.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		if !n.OnlineMode() {
-			res.SetError(errors.New("Cannot run diagnostic in offline mode!"), cmds.ErrNormal)
-			return
+			return nil, errNotOnline
 		}
 
 		info, err := n.Diagnostics.GetDiagnostic(time.Second * 20)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		output := make([]DiagnosticPeer, len(info))
@@ -75,7 +72,7 @@ connected peers and latencies between them.
 			}
 		}
 
-		res.SetOutput(&DiagnosticOutput{output})
+		return &DiagnosticOutput{output}, nil
 	},
 	Type: &DiagnosticOutput{},
 }

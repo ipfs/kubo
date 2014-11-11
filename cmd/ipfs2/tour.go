@@ -30,14 +30,13 @@ IPFS very quickly. To start, run:
 		"next":    cmdIpfsTourNext,
 		"restart": cmdIpfsTourRestart,
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 
 		out := new(bytes.Buffer)
 		cfg := req.Context().Config
 		strs, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		topic := tour.TopicID(cfg.Tour.Last)
@@ -47,26 +46,24 @@ IPFS very quickly. To start, run:
 
 		err = tourShow(out, topic)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		res.SetOutput(out)
+		return out, nil
 	},
 }
 
 var cmdIpfsTourNext = &cmds.Command{
 	Description: "Show the next IPFS Tour topic",
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		var w bytes.Buffer
 		cfg := req.Context().Config
 		path := req.Context().ConfigRoot
 
 		topic := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
 		if err := tourShow(&w, topic); err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		// topic changed, not last. write it out.
@@ -74,37 +71,39 @@ var cmdIpfsTourNext = &cmds.Command{
 			cfg.Tour.Last = string(topic)
 			err := writeConfig(path, cfg)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
+				return nil, err
 			}
 		}
 
 		w.WriteTo(os.Stdout) // TODO write to res.SetValue
+		return nil, nil
 	},
 }
 
 var cmdIpfsTourRestart = &cmds.Command{
 	Description: "Restart the IPFS Tour",
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		path := req.Context().ConfigRoot
 		cfg := req.Context().Config
 
 		cfg.Tour.Last = ""
 		err := writeConfig(path, cfg)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			return nil, err
 		}
+		return nil, nil
 	},
 }
 
 var cmdIpfsTourList = &cmds.Command{
 	Description: "Show a list of IPFS Tour topics",
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		var w bytes.Buffer
 		tourListCmd(&w, req.Context().Config)
 		w.WriteTo(os.Stdout) // TODO use res.SetOutput(output)
+		return nil, nil
 	},
 }
 

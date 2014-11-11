@@ -31,20 +31,18 @@ Resolve te value of another name:
 		cmds.Argument{"name", cmds.ArgString, false, false,
 			"The IPNS name to resolve. Defaults to your node's peerID."},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 
 		n := req.Context().Node
 		var name string
 
 		if n.Network == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
+			return nil, errNotOnline
 		}
 
 		if len(req.Arguments()) == 0 {
 			if n.Identity == nil {
-				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
-				return
+				return nil, errors.New("Identity not loaded!")
 			}
 			name = n.Identity.ID().String()
 
@@ -52,18 +50,16 @@ Resolve te value of another name:
 			var ok bool
 			name, ok = req.Arguments()[0].(string)
 			if !ok {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
+				return nil, errors.New("cast error")
 			}
 		}
 
 		output, err := n.Namesys.Resolve(name)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		res.SetOutput(output)
+		return output, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {

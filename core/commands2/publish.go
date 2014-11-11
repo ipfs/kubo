@@ -39,20 +39,18 @@ Publish a <ref> to another public key:
 		cmds.Argument{"ipfs-path", cmds.ArgString, true, false,
 			"IPFS path of the obejct to be published at <name>"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		log.Debug("Begin Publish")
 
 		n := req.Context().Node
 		args := req.Arguments()
 
 		if n.Network == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
+			return nil, errNotOnline
 		}
 
 		if n.Identity == nil {
-			res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
-			return
+			return nil, errors.New("Identity not loaded!")
 		}
 
 		// name := ""
@@ -62,8 +60,7 @@ Publish a <ref> to another public key:
 		case 2:
 			// name = args[0]
 			ref = args[1].(string)
-			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
-			return
+			return nil, errors.New("keychains not yet implemented")
 		case 1:
 			// name = n.Identity.ID.String()
 			ref = args[0].(string)
@@ -71,13 +68,7 @@ Publish a <ref> to another public key:
 
 		// TODO n.Keychain.Get(name).PrivKey
 		k := n.Identity.PrivKey()
-		publishOutput, err := publish(n, k, ref)
-
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(publishOutput)
+		return publish(n, k, ref)
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
