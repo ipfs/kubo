@@ -41,26 +41,23 @@ in the bootstrap list).
 	Arguments: []cmds.Argument{
 		cmds.Argument{"peer", cmds.ArgString, true, true, peerOptionDesc},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		input, err := bootstrapInputToPeers(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		added, err := bootstrapAdd(filename, req.Context().Config, input)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		res.SetOutput(&BootstrapOutput{added})
+		return &BootstrapOutput{added}, nil
 	},
 	Type: &BootstrapOutput{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
@@ -84,26 +81,23 @@ var bootstrapRemoveCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.Argument{"peer", cmds.ArgString, true, true, peerOptionDesc},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		input, err := bootstrapInputToPeers(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		removed, err := bootstrapRemove(filename, req.Context().Config, input)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		res.SetOutput(&BootstrapOutput{removed})
+		return &BootstrapOutput{removed}, nil
 	},
 	Type: &BootstrapOutput{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
@@ -124,9 +118,9 @@ var bootstrapListCmd = &cmds.Command{
 	Help: `Peers are output in the format '<multiaddr>/<peerID>'.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		peers := req.Context().Config.Bootstrap
-		res.SetOutput(&BootstrapOutput{peers})
+		return &BootstrapOutput{peers}, nil
 	},
 	Type: &BootstrapOutput{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{

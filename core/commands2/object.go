@@ -47,22 +47,15 @@ output is the raw data of the object.
 		cmds.Argument{"key", cmds.ArgString, true, false,
 			"Key of the object to retrieve, in base58-encoded multihash format"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
-		reader, err := objectData(n, key)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(reader)
+		return objectData(n, key)
 	},
 }
 
@@ -75,22 +68,15 @@ It outputs to stdout, and <key> is a base58 encoded multihash.`,
 		cmds.Argument{"key", cmds.ArgString, true, false,
 			"Key of the object to retrieve, in base58-encoded multihash format"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
-		output, err := objectLinks(n, key)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(output)
+		return objectLinks(n, key)
 	},
 	Type: &Object{},
 }
@@ -111,19 +97,17 @@ This command outputs data in the following encodings:
 		cmds.Argument{"key", cmds.ArgString, true, false,
 			"Key of the object to retrieve\n(in base58-encoded multihash format)"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		object, err := objectGet(n, key)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		node := &Node{
@@ -139,7 +123,7 @@ This command outputs data in the following encodings:
 			}
 		}
 
-		res.SetOutput(node)
+		return node, nil
 	},
 	Type: &Node{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
@@ -167,19 +151,17 @@ Data should be in the format specified by <encoding>.
 		cmds.Argument{"encoding", cmds.ArgString, true, false,
 			"Encoding type of <data>, either \"protobuf\" or \"json\""},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		input, ok := req.Arguments()[0].(io.Reader)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		encoding, ok := req.Arguments()[1].(string)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		output, err := objectPut(n, input, encoding)
@@ -188,11 +170,10 @@ Data should be in the format specified by <encoding>.
 			if err == ErrUnknownObjectEnc {
 				errType = cmds.ErrClient
 			}
-			res.SetError(err, errType)
-			return
+			return nil, cmds.Error{err.Error(), errType}
 		}
 
-		res.SetOutput(output)
+		return output, nil
 	},
 	Type: &Object{},
 }

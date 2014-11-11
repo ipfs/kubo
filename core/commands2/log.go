@@ -19,16 +19,15 @@ output of a running daemon.
 		cmds.Argument{"level", cmds.ArgString, true, false,
 			"one of: debug, info, notice, warning, error, critical"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()
 		if err := u.SetLogLevel(args[0].(string), args[1].(string)); err != nil {
-			res.SetError(err, cmds.ErrClient)
-			return
+			return nil, err
 		}
 
 		s := fmt.Sprintf("Changed log level of '%s' to '%s'", args[0], args[1])
 		log.Info(s)
-		res.SetOutput(&MessageOutput{s})
+		return &MessageOutput{s}, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: MessageTextMarshaller,

@@ -34,21 +34,19 @@ it contains, with the following format:
 		cmds.Argument{"ipfs-path", cmds.ArgString, false, true,
 			"The path to the IPFS object(s) to list links from"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		node := req.Context().Node
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		dagnodes := make([]*merkledag.Node, 0)
 		for _, path := range paths {
 			dagnode, err := node.Resolver.ResolvePath(path)
 			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
+				return nil, err
 			}
 			dagnodes = append(dagnodes, dagnode)
 		}
@@ -68,7 +66,7 @@ it contains, with the following format:
 			}
 		}
 
-		res.SetOutput(&LsOutput{output})
+		return &LsOutput{output}, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {

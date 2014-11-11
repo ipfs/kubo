@@ -29,36 +29,29 @@ var initCmd = &cmds.Command{
 		cmds.Option{[]string{"datastore", "d"}, cmds.String,
 			"Location for the IPFS data store"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 
 		arg, found := req.Option("d")
 		dspath, ok := arg.(string)
 		if found && !ok {
-			res.SetError(errors.New("failed to parse datastore flag"), cmds.ErrNormal)
-			return
+			return nil, errors.New("failed to parse datastore flag")
 		}
 
 		arg, found = req.Option("f")
 		force, ok := arg.(bool) // TODO param
 		if found && !ok {
-			res.SetError(errors.New("failed to parse force flag"), cmds.ErrNormal)
-			return
+			return nil, errors.New("failed to parse force flag")
 		}
 
 		arg, found = req.Option("b")
 		nBitsForKeypair, ok := arg.(int) // TODO param
 		if found && !ok {
-			res.SetError(errors.New("failed to get bits flag"), cmds.ErrNormal)
-			return
+			return nil, errors.New("failed to get bits flag")
 		} else if !found {
 			nBitsForKeypair = 4096
 		}
 
-		err := doInit(req.Context().ConfigRoot, dspath, force, nBitsForKeypair)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		return nil, doInit(req.Context().ConfigRoot, dspath, force, nBitsForKeypair)
 	},
 }
 

@@ -21,33 +21,29 @@ var daemonCmd = &cmds.Command{
 	Run:         daemonFunc,
 }
 
-func daemonFunc(res cmds.Response, req cmds.Request) {
+func daemonFunc(req cmds.Request) (interface{}, error) {
 	ctx := req.Context()
 
 	lock, err := daemon.Lock(ctx.ConfigRoot)
 	if err != nil {
-		res.SetError(fmt.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
-		return
+		return nil, fmt.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
 	defer lock.Close()
 
 	node, err := core.NewIpfsNode(ctx.Config, true)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return nil, err
 	}
 	ctx.Node = node
 
 	addr, err := ma.NewMultiaddr(ctx.Config.Addresses.API)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return nil, err
 	}
 
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return nil, err
 	}
 
 	cmdHandler := cmdsHttp.NewHandler(*ctx, commands.Root)
@@ -60,7 +56,8 @@ func daemonFunc(res cmds.Response, req cmds.Request) {
 
 	err = http.ListenAndServe(host, nil)
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+		return nil, err
 	}
+
+	return nil, nil
 }

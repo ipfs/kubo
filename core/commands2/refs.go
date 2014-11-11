@@ -34,7 +34,7 @@ Note: list all refs recursively with -r.`,
 		cmds.Option{[]string{"recursive", "r"}, cmds.Bool,
 			"Recursively list links of child nodes"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
 		opt, found := req.Option("unique")
@@ -51,17 +51,10 @@ Note: list all refs recursively with -r.`,
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		output, err := getRefs(n, paths, unique, recursive)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(output)
+		return getRefs(n, paths, unique, recursive)
 	},
 	Type: &RefsOutput{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{

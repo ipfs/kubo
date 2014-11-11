@@ -35,18 +35,16 @@ not be listable, as it is virtual. Accessing known paths directly.
 		cmds.Option{[]string{"n"}, cmds.String,
 			"The path where IPNS should be mounted\n(default is '/ipns')"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		ctx := req.Context()
 
 		// error if we aren't running node in online mode
 		if ctx.Node.Network == nil {
-			res.SetError(errNotOnline, cmds.ErrNormal)
-			return
+			return nil, errNotOnline
 		}
 
 		if err := platformFuseChecks(); err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		// update fsdir with flag.
@@ -74,11 +72,10 @@ not be listable, as it is virtual. Accessing known paths directly.
 		// mounted successfully, we timed out with no errors
 		case <-time.After(mountTimeout):
 			output := ctx.Config.Mounts
-			res.SetOutput(&output)
-			return
+			return &output, nil
 		}
 
-		res.SetError(err, cmds.ErrNormal)
+		return nil, err
 	},
 	Type: &config.Mounts{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{

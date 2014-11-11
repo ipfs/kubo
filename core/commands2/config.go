@@ -36,19 +36,17 @@ var configCmd = &cmds.Command{
 		cmds.Argument{"value", cmds.ArgString, false, false,
 			"The value to set the config entry to"},
 	},
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()
 
 		key, ok := args[0].(string)
 		if !ok {
-			res.SetError(errors.New("cast error"), cmds.ErrNormal)
-			return
+			return nil, errors.New("cast error")
 		}
 
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
 		var value string
@@ -56,28 +54,13 @@ var configCmd = &cmds.Command{
 			var ok bool
 			value, ok = args[1].(string)
 			if !ok {
-				res.SetError(errors.New("cast error"), cmds.ErrNormal)
-				return
+				return nil, errors.New("cast error")
 			}
 
-			field, err := setConfig(filename, key, value)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			res.SetOutput(field)
-			return
+			return setConfig(filename, key, value)
 
 		} else {
-			field, err := getConfig(filename, key)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
-			res.SetOutput(field)
-			return
+			return getConfig(filename, key)
 		}
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
@@ -111,20 +94,13 @@ var configShowCmd = &cmds.Command{
 included in the output of this command.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		reader, err := showConfig(filename)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		res.SetOutput(reader)
+		return showConfig(filename)
 	},
 }
 
@@ -134,18 +110,13 @@ var configEditCmd = &cmds.Command{
 variable set to your preferred text editor.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			return nil, err
 		}
 
-		err = editConfig(filename)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
+		return nil, editConfig(filename)
 	},
 }
 

@@ -17,9 +17,9 @@ var commandsCmd = &cmds.Command{
 	Help: `Lists all available commands (and subcommands) and exits.
 `,
 
-	Run: func(res cmds.Response, req cmds.Request) {
+	Run: func(req cmds.Request) (interface{}, error) {
 		root := outputCommand("ipfs", Root)
-		res.SetOutput(&root)
+		return &root, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
