@@ -269,7 +269,7 @@ func getConfig(path string) (*config.Config, error) {
 func writeHeapProfileToFile() error {
 	mprof, err := os.Create(heapProfile)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer mprof.Close()
 	return pprof.WriteHeapProfile(mprof)
