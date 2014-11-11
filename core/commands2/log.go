@@ -14,10 +14,8 @@ output of a running daemon.
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"subsystem", cmds.ArgString, true, false,
-			"the subsystem logging identifier. Use * for all subsystems."},
-		cmds.Argument{"level", cmds.ArgString, true, false,
-			"one of: debug, info, notice, warning, error, critical"},
+		cmds.StringArg("subsystem", true, false, "the subsystem logging identifier. Use * for all subsystems."),
+		cmds.StringArg("level", true, false, "one of: debug, info, notice, warning, error, critical"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()

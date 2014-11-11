@@ -31,10 +31,8 @@ var configCmd = &cmds.Command{
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false,
-			"The key of the config entry (e.g. \"Addresses.API\")"},
-		cmds.Argument{"value", cmds.ArgString, false, false,
-			"The value to set the config entry to"},
+		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
+		cmds.StringArg("value", false, false, "The value to set the config entry to"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()

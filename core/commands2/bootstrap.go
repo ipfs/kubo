@@ -39,7 +39,7 @@ in the bootstrap list).
 ` + bootstrapSecurityWarning,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"peer", cmds.ArgString, true, true, peerOptionDesc},
+		cmds.StringArg("peer", true, true, peerOptionDesc),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		input, err := bootstrapInputToPeers(req.Arguments())
@@ -79,7 +79,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 ` + bootstrapSecurityWarning,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"peer", cmds.ArgString, true, true, peerOptionDesc},
+		cmds.StringArg("peer", true, true, peerOptionDesc),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		input, err := bootstrapInputToPeers(req.Arguments())

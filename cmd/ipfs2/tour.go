@@ -22,8 +22,7 @@ IPFS very quickly. To start, run:
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"number", cmds.ArgString, false, false,
-			"The number of the topic you would like to tour"},
+		cmds.StringArg("number", false, false, "The number of the topic you would like to tour"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"list":    cmdIpfsTourList,

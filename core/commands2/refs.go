@@ -25,8 +25,7 @@ hashes it contains, with the following format:
 Note: list all refs recursively with -r.`,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"ipfs-path", cmds.ArgString, true, true,
-			"Path to the object(s) to list refs from"},
+		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from"),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),

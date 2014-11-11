@@ -26,7 +26,7 @@ var addCmd = &cmds.Command{
 		cmds.BoolOption("recursive", "r", "Must be specified when adding directories"),
 	},
 	Arguments: []cmds.Argument{
-		cmds.Argument{"file", cmds.ArgFile, true, true, "The path to a file to be added to IPFS"},
+		cmds.FileArg("file", true, true, "The path to a file to be added to IPFS"),
 	},
 	Description: "Add an object to ipfs.",
 	Help: `Adds contents of <path> to ipfs. Use -r to add directories.

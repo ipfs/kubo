@@ -44,8 +44,7 @@ output is the raw data of the object.
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false,
-			"Key of the object to retrieve, in base58-encoded multihash format"},
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
@@ -65,8 +64,7 @@ var objectLinksCmd = &cmds.Command{
 It outputs to stdout, and <key> is a base58 encoded multihash.`,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false,
-			"Key of the object to retrieve, in base58-encoded multihash format"},
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
@@ -94,8 +92,7 @@ This command outputs data in the following encodings:
 (Specified by the "--encoding" or "-enc" flags)`,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false,
-			"Key of the object to retrieve\n(in base58-encoded multihash format)"},
+		cmds.StringArg("key", true, false, "Key of the object to retrieve\n(in base58-encoded multihash format)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
@@ -146,10 +143,8 @@ Data should be in the format specified by <encoding>.
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"data", cmds.ArgFile, true, false,
-			"Data to be stored as a DAG object\nMust be encoded as specified in <encoding>"},
-		cmds.Argument{"encoding", cmds.ArgString, true, false,
-			"Encoding type of <data>, either \"protobuf\" or \"json\""},
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object\nMust be encoded as specified in <encoding>"),
+		cmds.StringArg("encoding", true, false, "Encoding type of <data>, either \"protobuf\" or \"json\""),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
