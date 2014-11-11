@@ -304,17 +304,3 @@ func handleInterrupt() {
 		}
 	}()
 }
-
-func exit(code int) {
-	if u.Debug {
-		pprof.StopCPUProfile()
-		ofi.Close()
-
-		err := writeHeapProfileToFile()
-		if err != nil {
-			log.Critical(err)
-		}
-	}
-
-	os.Exit(code)
-}
