@@ -129,10 +129,18 @@ var converters = map[reflect.Kind]converter{
 		return strconv.ParseBool(v)
 	},
 	Int: func(v string) (interface{}, error) {
-		return strconv.ParseInt(v, 0, 32)
+		val, err := strconv.ParseInt(v, 0, 32)
+		if err != nil {
+			return nil, err
+		}
+		return int(val), err
 	},
 	Uint: func(v string) (interface{}, error) {
-		return strconv.ParseInt(v, 0, 32)
+		val, err := strconv.ParseUint(v, 0, 32)
+		if err != nil {
+			return nil, err
+		}
+		return int(val), err
 	},
 	Float: func(v string) (interface{}, error) {
 		return strconv.ParseFloat(v, 64)
@@ -140,8 +148,6 @@ var converters = map[reflect.Kind]converter{
 }
 
 func (r *request) ConvertOptions() error {
-	converted := make(map[string]interface{})
-
 	for k, v := range r.options {
 		opt, ok := r.optionDefs[k]
 		if !ok {
@@ -149,8 +155,6 @@ func (r *request) ConvertOptions() error {
 		}
 
 		kind := reflect.TypeOf(v).Kind()
-		var value interface{}
-
 		if kind != opt.Type {
 			if kind == String {
 				convert := converters[opt.Type]
@@ -163,14 +167,14 @@ func (r *request) ConvertOptions() error {
 					return fmt.Errorf("Could not convert string value '%s' to type '%s'",
 						v, opt.Type.String())
 				}
-				value = val
+				r.options[k] = val
 
 			} else {
 				return fmt.Errorf("Option '%s' should be type '%s', but got type '%s'",
 					k, opt.Type.String(), kind.String())
 			}
 		} else {
-			value = v
+			r.options[k] = v
 		}
 
 		for _, name := range opt.Names {
@@ -178,12 +182,9 @@ func (r *request) ConvertOptions() error {
 				return fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
 					k, name)
 			}
-
-			converted[name] = value
 		}
 	}
 
-	r.options = converted
 	return nil
 }
 
