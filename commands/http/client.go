@@ -34,23 +34,8 @@ func NewClient(address string) Client {
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
-	var userEncoding string
-	if enc, found := req.Option(cmds.EncShort); found {
-		var ok bool
-		userEncoding, ok = enc.(string)
-		if !ok {
-			return nil, castError
-		}
-		req.SetOption(cmds.EncShort, cmds.JSON)
-	} else {
-		var ok bool
-		enc, _ := req.Option(cmds.EncLong)
-		userEncoding, ok = enc.(string)
-		if !ok {
-			return nil, castError
-		}
-		req.SetOption(cmds.EncLong, cmds.JSON)
-	}
+	userEncoding, _ := req.Option(cmds.EncShort).String()
+	req.SetOption(cmds.EncShort, cmds.JSON)
 
 	query, inputStream, err := getQuery(req)
 	if err != nil {
@@ -72,7 +57,6 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	if len(userEncoding) > 0 {
 		req.SetOption(cmds.EncShort, userEncoding)
-		req.SetOption(cmds.EncLong, userEncoding)
 	}
 
 	return res, nil

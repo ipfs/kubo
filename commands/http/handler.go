@@ -57,13 +57,12 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(streamHeader, "1")
 
 	} else {
-		enc, _ := req.Option(cmds.EncShort)
-		encStr, ok := enc.(string)
-		if !ok {
+		enc, err := req.Option(cmds.EncShort).String()
+		if err != nil || len(enc) == 0 {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		mime := mimeTypes[encStr]
+		mime := mimeTypes[enc]
 		w.Header().Set("Content-Type", mime)
 	}
 

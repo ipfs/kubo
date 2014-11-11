@@ -21,15 +21,15 @@ type Context struct {
 // Request represents a call to a command from a consumer
 type Request interface {
 	Path() []string
-	Option(name string) (interface{}, bool)
-	Options() map[string]interface{}
+	Option(name string) *OptionValue
+	Options() optMap
 	SetOption(name string, val interface{})
 	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
 
-	ConvertOptions(options map[string]Option) error
+	ConvertOptions() error
 }
 
 type request struct {
@@ -47,31 +47,34 @@ func (r *request) Path() []string {
 }
 
 // Option returns the value of the option for given name.
-func (r *request) Option(name string) (interface{}, bool) {
+func (r *request) Option(name string) *OptionValue {
 	val, found := r.options[name]
 	if found {
-		return val, found
+		return &OptionValue{val, found}
 	}
 
 	// if a value isn't defined for that name, we will try to look it up by its aliases
 
 	// find the option with the specified name
 	option, found := r.optionDefs[name]
-	if found {
-		// try all the possible names, break if we find a value
-		for _, n := range option.Names {
-			val, found := r.options[n]
-			if found {
-				return val, found
-			}
+	if !found {
+		return nil
+	}
+
+	// try all the possible names, break if we find a value
+	for _, n := range option.Names {
+		val, found = r.options[n]
+		if found {
+			return &OptionValue{val, found}
 		}
 	}
 
-	return nil, false
+	// MAYBE_TODO: use default value instead of nil
+	return &OptionValue{nil, false}
 }
 
 // Options returns a copy of the option map
-func (r *request) Options() map[string]interface{} {
+func (r *request) Options() optMap {
 	output := make(optMap)
 	for k, v := range r.options {
 		output[k] = v
@@ -136,11 +139,11 @@ var converters = map[reflect.Kind]converter{
 	},
 }
 
-func (r *request) ConvertOptions(options map[string]Option) error {
+func (r *request) ConvertOptions() error {
 	converted := make(map[string]interface{})
 
 	for k, v := range r.options {
-		opt, ok := options[k]
+		opt, ok := r.optionDefs[k]
 		if !ok {
 			continue
 		}
@@ -203,5 +206,9 @@ func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, op
 	if optDefs == nil {
 		optDefs = make(map[string]Option)
 	}
-	return &request{path, opts, args, cmd, Context{}, optDefs}
+
+	req := &request{path, opts, args, cmd, Context{}, optDefs}
+	req.ConvertOptions()
+
+	return req
 }

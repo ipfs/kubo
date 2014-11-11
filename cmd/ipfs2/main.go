@@ -66,10 +66,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 		// or if a path was returned (user specified a valid subcommand), show the error message
 		// (this means there was an option or argument error)
 		if path != nil && len(path) > 0 {
-			help := false
-			opt, _ := req.Option("help")
-			help, _ = opt.(bool)
-
+			help, _ := req.Option("help").Bool()
 			if !help {
 				fmt.Printf(errorFormat, err)
 			}
@@ -108,7 +105,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 	ctx.ConfigRoot = configPath
 	ctx.Config = conf
 
-	if _, found := req.Option("encoding"); !found {
+	if !req.Option("encoding").Found() {
 		if req.Command().Marshallers != nil && req.Command().Marshallers[cmds.Text] != nil {
 			req.SetOption("encoding", cmds.Text)
 		} else {
@@ -120,30 +117,25 @@ func createRequest(args []string) (cmds.Request, *cmds.Command) {
 }
 
 func handleOptions(req cmds.Request, root *cmds.Command) {
-	if help, found := req.Option("help"); found {
-		if helpBool, ok := help.(bool); helpBool && ok {
-			helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
-			if err != nil {
-				fmt.Println(err.Error())
-			} else {
-				fmt.Println(helpText)
-			}
-			exit(0)
-		} else if !ok {
-			fmt.Println("error: expected 'help' option to be a bool")
-			exit(1)
+	if help, err := req.Option("help").Bool(); help && err == nil {
+		helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Println(helpText)
 		}
+		exit(0)
+	} else if err != nil {
+		fmt.Println(err)
+		exit(1)
 	}
 
-	if debug, found := req.Option("debug"); found {
-		if debugBool, ok := debug.(bool); debugBool && ok {
-			u.Debug = true
-
-			u.SetAllLoggers(logging.DEBUG)
-		} else if !ok {
-			fmt.Println("error: expected 'debug' option to be a bool")
-			exit(1)
-		}
+	if debug, err := req.Option("debug").Bool(); debug && err == nil {
+		u.Debug = true
+		u.SetAllLoggers(logging.DEBUG)
+	} else if err != nil {
+		fmt.Println(err)
+		exit(1)
 	}
 }
 
@@ -154,19 +146,13 @@ func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
 		res = root.Call(req)
 
 	} else {
-		var found bool
-		var local interface{}
-		localBool := false
-		if local, found = req.Option("local"); found {
-			var ok bool
-			localBool, ok = local.(bool)
-			if !ok {
-				fmt.Println("error: expected 'local' option to be a bool")
-				exit(1)
-			}
+		local, err := req.Option("local").Bool()
+		if err != nil {
+			fmt.Println(err)
+			exit(1)
 		}
 
-		if (!found || !localBool) && daemon.Locked(req.Context().ConfigRoot) {
+		if (!req.Option("local").Found() || !local) && daemon.Locked(req.Context().ConfigRoot) {
 			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
 			if err != nil {
 				fmt.Println(err)
@@ -229,12 +215,12 @@ func outputResponse(res cmds.Response, root *cmds.Command) {
 }
 
 func getConfigRoot(req cmds.Request) (string, error) {
-	if opt, found := req.Option("config"); found {
-		if optStr, ok := opt.(string); ok {
-			return optStr, nil
-		} else {
-			return "", fmt.Errorf("Expected 'config' option to be a string")
-		}
+	configOpt, err := req.Option("config").String()
+	if err != nil {
+		return "", err
+	}
+	if configOpt != "" {
+		return configOpt, nil
 	}
 
 	configPath, err := config.PathRoot()

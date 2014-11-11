@@ -20,30 +20,28 @@ var initCmd = &cmds.Command{
 `,
 
 	Options: []cmds.Option{
-		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
+		cmds.UintOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
 		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 
-		arg, found := req.Option("d")
-		dspath, ok := arg.(string)
-		if found && !ok {
-			return nil, errors.New("failed to parse datastore flag")
+		dspath, err := req.Option("d").String()
+		if err != nil {
+			return nil, err
 		}
 
-		arg, found = req.Option("f")
-		force, ok := arg.(bool) // TODO param
-		if found && !ok {
-			return nil, errors.New("failed to parse force flag")
+		force, err := req.Option("f").Bool()
+		if err != nil {
+			return nil, err
 		}
 
-		arg, found = req.Option("b")
-		nBitsForKeypair, ok := arg.(int) // TODO param
-		if found && !ok {
-			return nil, errors.New("failed to get bits flag")
-		} else if !found {
+		nBitsForKeypair, err := req.Option("b").Int()
+		if err != nil {
+			return nil, err
+		}
+		if !req.Option("b").Found() {
 			nBitsForKeypair = 4096
 		}
 
