@@ -13,7 +13,7 @@ var log = u.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
-type Function func(Response, Request)
+type Function func(Request) (interface{}, error)
 
 // Marshaller is a function that takes in a Response, and returns a marshalled []byte
 // (or an error on failure)
@@ -78,8 +78,21 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	cmd.Run(res, req)
+	output, err := cmd.Run(req)
+	if err != nil {
+		// if returned error is a commands.Error, use its error code
+		// otherwise, just default the code to ErrNormal
+		var e Error
+		e, ok := err.(Error)
+		if ok {
+			res.SetError(e, e.Code)
+		} else {
+			res.SetError(err, ErrNormal)
+		}
+		return res
+	}
 
+	res.SetOutput(output)
 	return res
 }
 
