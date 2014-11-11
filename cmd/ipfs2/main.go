@@ -32,32 +32,54 @@ const (
 var ofi io.WriteCloser
 
 func main() {
+	err := run()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	handleInterrupt()
 
 	args := os.Args[1:]
 	req, root, err := createRequest(args)
 	if err != nil {
-		fmt.Println(err)
-		exit(1)
+		return err
 	}
-	handleOptions(req, root)
+
+	debug, err := req.Option("debug").Bool()
+	if err != nil {
+		return err
+	}
+	if debug {
+		u.Debug = true
+		u.SetAllLoggers(logging.DEBUG)
+	}
 
 	// if debugging, setup profiling.
 	if u.Debug {
 		var err error
 		ofi, err = os.Create("cpu.prof")
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		pprof.StartCPUProfile(ofi)
 	}
 
+	helpTextDisplayed, err := handleHelpOption(req, root)
+	if err != nil {
+		return err
+	}
+	if helpTextDisplayed {
+		return nil
+	}
+
 	res := callCommand(req, root)
 	outputResponse(res, root)
 
-	exit(0)
+	return nil
 }
 
 func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
@@ -117,32 +139,22 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	return req, root, nil
 }
 
-func handleOptions(req cmds.Request, root *cmds.Command) {
+func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed bool, err error) {
 	help, err := req.Option("help").Bool()
 	if err != nil {
-		fmt.Println(err)
-		exit(1)
+		return false, err
 	}
 
 	if help {
 		helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
 		if err != nil {
-			fmt.Println(err.Error())
-		} else {
-			fmt.Println(helpText)
+			return false, err
 		}
-		exit(0)
+		fmt.Println(helpText)
+		return true, nil
 	}
 
-	debug, err := req.Option("debug").Bool()
-	if err != nil {
-		fmt.Println(err)
-		exit(1)
-	}
-	if debug {
-		u.Debug = true
-		u.SetAllLoggers(logging.DEBUG)
-	}
+	return false, nil
 }
 
 func callCommand(req cmds.Request, root *cmds.Command) cmds.Response {
