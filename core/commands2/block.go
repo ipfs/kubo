@@ -38,7 +38,7 @@ var blockGetCmd = &cmds.Command{
 It outputs to stdout, and <key> is a base58 encoded multihash.`,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"key", cmds.ArgString, true, false, "The base58 multihash of an existing block to get"},
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
@@ -74,7 +74,7 @@ var blockPutCmd = &cmds.Command{
 It reads from stdin, and <key> is a base58 encoded multihash.`,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"data", cmds.ArgFile, true, false, "The data to be stored as an IPFS block"},
+		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node

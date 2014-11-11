@@ -34,10 +34,8 @@ Publish a <ref> to another public key:
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"name", cmds.ArgString, false, false,
-			"The IPNS name to publish to. Defaults to your node's peerID"},
-		cmds.Argument{"ipfs-path", cmds.ArgString, true, false,
-			"IPFS path of the obejct to be published at <name>"},
+		cmds.StringArg("name", false, false, "The IPNS name to publish to. Defaults to your node's peerID"),
+		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published at <name>"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		log.Debug("Begin Publish")

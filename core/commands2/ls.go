@@ -31,8 +31,7 @@ it contains, with the following format:
 `,
 
 	Arguments: []cmds.Argument{
-		cmds.Argument{"ipfs-path", cmds.ArgString, false, true,
-			"The path to the IPFS object(s) to list links from"},
+		cmds.StringArg("ipfs-path", false, true, "The path to the IPFS object(s) to list links from"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		node := req.Context().Node
