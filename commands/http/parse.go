@@ -90,7 +90,12 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		args = append(args, make([]interface{}, valCount-1))
 	}
 
-	req := cmds.NewRequest(path, opts, args, cmd)
+	optDefs, err := root.GetOptions(path)
+	if err != nil {
+		return nil, err
+	}
+
+	req := cmds.NewRequest(path, opts, args, cmd, optDefs)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {

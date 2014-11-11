@@ -45,7 +45,12 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 		return nil, root, cmd, path, err
 	}
 
-	req := cmds.NewRequest(path, opts, args, cmd)
+	optDefs, err := root.GetOptions(path)
+	if err != nil {
+		return nil, root, cmd, path, err
+	}
+
+	req := cmds.NewRequest(path, opts, args, cmd, optDefs)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {

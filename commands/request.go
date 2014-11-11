@@ -33,11 +33,12 @@ type Request interface {
 }
 
 type request struct {
-	path      []string
-	options   optMap
-	arguments []interface{}
-	cmd       *Command
-	ctx       Context
+	path       []string
+	options    optMap
+	arguments  []interface{}
+	cmd        *Command
+	ctx        Context
+	optionDefs map[string]Option
 }
 
 // Path returns the command path of this request
@@ -47,8 +48,26 @@ func (r *request) Path() []string {
 
 // Option returns the value of the option for given name.
 func (r *request) Option(name string) (interface{}, bool) {
-	val, err := r.options[name]
-	return val, err
+	val, found := r.options[name]
+	if found {
+		return val, found
+	}
+
+	// if a value isn't defined for that name, we will try to look it up by its aliases
+
+	// find the option with the specified name
+	option, found := r.optionDefs[name]
+	if found {
+		// try all the possible names, break if we find a value
+		for _, n := range option.Names {
+			val, found := r.options[n]
+			if found {
+				return val, found
+			}
+		}
+	}
+
+	return nil, false
 }
 
 // Options returns a copy of the option map
@@ -152,11 +171,11 @@ func (r *request) ConvertOptions(options map[string]Option) error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() Request {
-	return NewRequest(nil, nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command) Request {
+func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) Request {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -166,5 +185,8 @@ func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command) Re
 	if args == nil {
 		args = make([]interface{}, 0)
 	}
-	return &request{path, opts, args, cmd, Context{}}
+	if optDefs == nil {
+		optDefs = make(map[string]Option)
+	}
+	return &request{path, opts, args, cmd, Context{}, optDefs}
 }
