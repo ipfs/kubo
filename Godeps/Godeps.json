@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3.3",
 	"Packages": [
 		"./..."
 	],
@@ -112,7 +112,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
-			"Rev": "e4585173eb8c47eea36c3dbff22f26f3f94d3586"
+			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",
