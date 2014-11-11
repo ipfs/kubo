@@ -81,6 +81,21 @@ func (r *request) Options() map[string]interface{} {
 
 // SetOption sets the value of the option for given name.
 func (r *request) SetOption(name string, val interface{}) {
+	// find the option with the specified name
+	option, found := r.optionDefs[name]
+	if !found {
+		return
+	}
+
+	// try all the possible names, if we already have a value then set over it
+	for _, n := range option.Names {
+		val, found := r.options[n]
+		if found {
+			r.options[n] = val
+			return
+		}
+	}
+
 	r.options[name] = val
 }
 
