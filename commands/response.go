@@ -108,7 +108,6 @@ func (r *response) Marshal() ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	fmt.Println(r.req, r.req.Option(EncShort))
 	if !r.req.Option(EncShort).Found() {
 		return nil, fmt.Errorf("No encoding type was specified")
 	}
