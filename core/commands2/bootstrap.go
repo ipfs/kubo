@@ -25,6 +25,8 @@ var bootstrapCmd = &cmds.Command{
 
 	Run:         bootstrapListCmd.Run,
 	Marshallers: bootstrapListCmd.Marshallers,
+	Type:        bootstrapListCmd.Type,
+
 	Subcommands: map[string]*cmds.Command{
 		"list":   bootstrapListCmd,
 		"add":    bootstrapAddCmd,
