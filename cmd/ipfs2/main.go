@@ -92,45 +92,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	// handle parse error (which means the commandline input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if err != nil {
-		var longHelp, shortHelp bool
-
-		if req != nil {
-			// help and h are defined in the root. We expect them to be bool.
-			longHelp, _, err = req.Option("help").Bool()
-			if err != nil {
-				return nil, nil, err
-			}
-			shortHelp, _, err = req.Option("h").Bool()
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-
-		// if the -help flag wasn't specified, show the error message
-		// or if a path was returned (user specified a valid subcommand), show the error message
-		// (this means there was an option or argument error)
-		if path != nil && len(path) > 0 {
-			if !longHelp && !shortHelp {
-				fmt.Printf(errorFormat, err)
-			}
-		}
-
-		if cmd == nil {
-			root = commands.Root
-		}
-
-		// show the long help text if the -help flag was specified or we are at the root command
-		// otherwise, show short help text
-		helpFunc := cmdsCli.ShortHelp
-		if longHelp || len(path) == 0 {
-			helpFunc = cmdsCli.LongHelp
-		}
-
-		htErr := helpFunc("ipfs", root, path, os.Stdout)
-		if htErr != nil {
-			fmt.Println(htErr)
-		}
-		return nil, nil, err
+		return nil, nil, handleParseError(req, root, cmd, path)
 	}
 
 	configPath, err := getConfigRoot(req)
@@ -157,6 +119,48 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	}
 
 	return req, root, nil
+}
+
+func handleParseError(req cmds.Request, root *cmds.Command, cmd *cmds.Command, path []string) (err error) {
+	var longHelp, shortHelp bool
+
+	if req != nil {
+		// help and h are defined in the root. We expect them to be bool.
+		longHelp, _, err = req.Option("help").Bool()
+		if err != nil {
+			return err
+		}
+		shortHelp, _, err = req.Option("h").Bool()
+		if err != nil {
+			return err
+		}
+	}
+
+	// if the -help flag wasn't specified, show the error message
+	// or if a path was returned (user specified a valid subcommand), show the error message
+	// (this means there was an option or argument error)
+	if path != nil && len(path) > 0 {
+		if !longHelp && !shortHelp {
+			fmt.Printf(errorFormat, err)
+		}
+	}
+
+	if cmd == nil {
+		root = commands.Root
+	}
+
+	// show the long help text if the -help flag was specified or we are at the root command
+	// otherwise, show short help text
+	helpFunc := cmdsCli.ShortHelp
+	if longHelp || len(path) == 0 {
+		helpFunc = cmdsCli.LongHelp
+	}
+
+	htErr := helpFunc("ipfs", root, path, os.Stdout)
+	if htErr != nil {
+		fmt.Println(htErr)
+	}
+	return err
 }
 
 func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed bool, err error) {
