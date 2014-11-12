@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+var CastError = errors.New("cast error")
+
 // Types of Command options
 const (
 	Invalid = reflect.Invalid
