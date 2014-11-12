@@ -30,9 +30,9 @@ var addCmd = &cmds.Command{
 	},
 	Description: "Add an object to ipfs.",
 	Help: `Adds contents of <path> to ipfs. Use -r to add directories.
-    Note that directories are added recursively, to form the ipfs
-    MerkleDAG. A smarter partial add with a staging area (like git)
-    remains to be implemented.
+Note that directories are added recursively, to form the ipfs
+MerkleDAG. A smarter partial add with a staging area (like git)
+remains to be implemented.
 `,
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
