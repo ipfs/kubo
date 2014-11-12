@@ -212,6 +212,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 
 		remote := !found || !local
 
+		log.Info("Checking if daemon is running...")
 		if remote && daemon.Locked(req.Context().ConfigRoot) {
 			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
 			if err != nil {
@@ -231,6 +232,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 			}
 
 		} else {
+			log.Info("Executing command locally: daemon not running")
 			node, err := core.NewIpfsNode(req.Context().Config, false)
 			if err != nil {
 				return nil, err
