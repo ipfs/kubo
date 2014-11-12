@@ -132,6 +132,8 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	ctx.ConfigRoot = configPath
 	ctx.Config = conf
 
+	// if no encoding was specified by user, default to plaintext encoding
+	// (if command doesn't support plaintext, use JSON instead)
 	if !req.Option("encoding").Found() {
 		if req.Command().Marshallers != nil && req.Command().Marshallers[cmds.Text] != nil {
 			req.SetOption("encoding", cmds.Text)
