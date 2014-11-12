@@ -66,10 +66,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 
 	query := url.Values{}
 	for k, v := range req.Options() {
-		str, ok := v.(string)
-		if !ok {
-			return "", nil, u.ErrCast()
-		}
+		str := fmt.Sprintf("%v", v)
 		query.Set(k, str)
 	}
 
