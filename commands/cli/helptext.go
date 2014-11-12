@@ -57,9 +57,17 @@ const longHelpFormat = `
 
 {{end}}
 `
+const shortHelpFormat = `USAGE:
+{{.Indent}}{{template "usage" .}}
+{{if .Description}}
+{{.Indent}}{{.Description}}
+{{end}}
+Use '{{.Path}} --help' for more information about this command.
+`
 
-var longHelpTemplate *template.Template
 var usageTemplate *template.Template
+var longHelpTemplate *template.Template
+var shortHelpTemplate *template.Template
 
 func init() {
 	tmpl, err := template.New("usage").Parse(usageFormat)
@@ -73,6 +81,12 @@ func init() {
 		panic(err)
 	}
 	longHelpTemplate = tmpl
+
+	tmpl, err = usageTemplate.New("shortHelp").Parse(shortHelpFormat)
+	if err != nil {
+		panic(err)
+	}
+	shortHelpTemplate = tmpl
 }
 
 // LongHelp returns a formatted CLI helptext string, generated for the given command
@@ -115,6 +129,31 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 	fields.Description = indentString(fields.Description, indentStr)
 
 	return longHelpTemplate.Execute(out, fields)
+}
+
+// ShortHelp returns a formatted CLI helptext string, generated for the given command
+func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+	cmd, err := root.Get(path)
+	if err != nil {
+		return err
+	}
+
+	pathStr := rootName
+	if len(path) > 0 {
+		pathStr += " " + strings.Join(path, " ")
+	}
+
+	fields := helpFields{
+		Indent:      indentStr,
+		Path:        pathStr,
+		ArgUsage:    usageText(cmd),
+		Tagline:     cmd.Description,
+		Description: cmd.Help,
+	}
+
+	fields.Description = indentString(fields.Description, indentStr)
+
+	return shortHelpTemplate.Execute(out, fields)
 }
 
 func argumentText(cmd *cmds.Command) []string {
