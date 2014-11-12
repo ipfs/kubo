@@ -25,6 +25,9 @@ import (
 // log is the command logger
 var log = u.Logger("cmd/ipfs")
 
+// signal to output help
+var errHelpRequested = errors.New("Help Requested")
+
 const (
 	cpuProfile  = "ipfs.cpuprof"
 	heapProfile = "ipfs.memprof"
@@ -45,6 +48,10 @@ func run() error {
 	args := os.Args[1:]
 	req, root, err := createRequest(args)
 	if err != nil {
+		// when the error is errOutputHelp, just exit gracefully.
+		if err == errHelpRequested {
+			return nil
+		}
 		return err
 	}
 
@@ -135,6 +142,9 @@ func handleParseError(req cmds.Request, root *cmds.Command, cmd *cmds.Command, p
 		if err != nil {
 			return err
 		}
+
+		// override the error to avoid signaling other issues.
+		parseError = errHelpRequested
 	}
 
 	// if the -help flag wasn't specified, show the error message
