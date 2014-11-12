@@ -44,7 +44,7 @@ remains to be implemented.
 
 		dagnodes, err := add(n, readers)
 		if err != nil {
-			return nil, errors.New("cast error")
+			return nil, err
 		}
 
 		// TODO: include fs paths in output (will need a way to specify paths in underlying filearg system)
