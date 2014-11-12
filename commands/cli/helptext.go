@@ -312,7 +312,10 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 	i := 0
 	for name, sub := range cmd.Subcommands {
 		usage := usageText(sub)
-		lines[i] = fmt.Sprintf("%v%v %v - %v", prefix, name, usage, sub.Description)
+		if len(usage) > 0 {
+			usage = " " + usage
+		}
+		lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Description)
 		lines[i] = indentString(lines[i], "    ")
 		i++
 	}
