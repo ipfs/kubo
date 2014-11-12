@@ -38,15 +38,13 @@ Plumbing commands:
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
-
-
-Use "ipfs <command> --help" for more information about a command.
 `,
 
 	Options: []cmds.Option{
 		cmds.StringOption("config", "c", "Path to the configuration file to use"),
 		cmds.BoolOption("debug", "D", "Operate in debug mode"),
-		cmds.BoolOption("help", "h", "Show the command help text"),
+		cmds.BoolOption("help", "Show the full command help text"),
+		cmds.BoolOption("h", "Show a short version of the command help text"),
 		cmds.BoolOption("local", "L", "Run the command locally, instead of using the daemon"),
 	},
 }

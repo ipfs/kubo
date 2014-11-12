@@ -92,13 +92,18 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	// handle parse error (which means the commandline input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if err != nil {
-		help, _ := req.Option("help").Bool()
+		var longHelp, shortHelp bool
+
+		if req != nil {
+			longHelp, _ = req.Option("help").Bool()
+			shortHelp, _ = req.Option("h").Bool()
+		}
 
 		// if the -help flag wasn't specified, show the error message
 		// or if a path was returned (user specified a valid subcommand), show the error message
 		// (this means there was an option or argument error)
 		if path != nil && len(path) > 0 {
-			if !help {
+			if !longHelp && !shortHelp {
 				fmt.Printf(errorFormat, err)
 			}
 		}
@@ -107,9 +112,10 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 			root = commands.Root
 		}
 
-		// show the long help text if the help flag was specified, otherwise short help text
+		// show the long help text if the -help flag was specified or we are at the root command
+		// otherwise, show short help text
 		helpFunc := cmdsCli.ShortHelp
-		if help {
+		if longHelp || len(path) == 0 {
 			helpFunc = cmdsCli.LongHelp
 		}
 
@@ -147,14 +153,23 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 }
 
 func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed bool, err error) {
-	help, err := req.Option("help").Bool()
+	longHelp, err := req.Option("help").Bool()
 	if err != nil {
 		return false, err
 	}
-	if !help {
+	shortHelp, err := req.Option("h").Bool()
+	if err != nil {
+		return false, err
+	}
+	if !longHelp && !shortHelp {
 		return false, nil
 	}
-	err = cmdsCli.LongHelp("ipfs", root, req.Path(), os.Stdout)
+	helpFunc := cmdsCli.ShortHelp
+	if longHelp || len(req.Path()) == 0 {
+		helpFunc = cmdsCli.LongHelp
+	}
+
+	err = helpFunc("ipfs", root, req.Path(), os.Stdout)
 	if err != nil {
 		return false, err
 	}
