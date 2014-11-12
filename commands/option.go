@@ -1,11 +1,10 @@
 package commands
 
 import (
-	"errors"
 	"reflect"
-)
 
-var CastError = errors.New("cast error")
+	"github.com/jbenet/go-ipfs/util"
+)
 
 // Types of Command options
 const (
@@ -84,7 +83,7 @@ func (ov OptionValue) Bool() (value bool, found bool, err error) {
 	}
 	val, ok := ov.value.(bool)
 	if !ok {
-		err = CastError
+		err = util.ErrCast()
 	}
 	return val, ov.found, err
 }
@@ -95,7 +94,7 @@ func (ov OptionValue) Int() (value int, found bool, err error) {
 	}
 	val, ok := ov.value.(int)
 	if !ok {
-		err = CastError
+		err = util.ErrCast()
 	}
 	return val, ov.found, err
 }
@@ -106,7 +105,7 @@ func (ov OptionValue) Uint() (value uint, found bool, err error) {
 	}
 	val, ok := ov.value.(uint)
 	if !ok {
-		err = CastError
+		err = util.ErrCast()
 	}
 	return val, ov.found, err
 }
@@ -117,7 +116,7 @@ func (ov OptionValue) Float() (value float64, found bool, err error) {
 	}
 	val, ok := ov.value.(float64)
 	if !ok {
-		err = CastError
+		err = util.ErrCast()
 	}
 	return val, ov.found, err
 }
@@ -128,7 +127,7 @@ func (ov OptionValue) String() (value string, found bool, err error) {
 	}
 	val, ok := ov.value.(string)
 	if !ok {
-		err = CastError
+		err = util.ErrCast()
 	}
 	return val, ov.found, err
 }
