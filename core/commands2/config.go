@@ -140,7 +140,7 @@ func setConfig(filename string, key, value string) (*ConfigField, error) {
 }
 
 func showConfig(filename string) (io.Reader, error) {
-	// MAYBE_TODO: maybe we should omit privkey so we don't accidentally leak it?
+	// TODO maybe we should omit privkey so we don't accidentally leak it?
 
 	file, err := os.Open(filename)
 	if err != nil {
