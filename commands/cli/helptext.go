@@ -29,8 +29,44 @@ type helpFields struct {
 	Tagline     string
 	Arguments   string
 	Options     string
+	Synopsis    string
 	Subcommands string
 	Description string
+}
+
+// TrimNewlines removes extra newlines from fields. This makes aligning
+// commands easier. Below, the leading + tralining newlines are removed:
+//	Synopsis: `
+//	    ipfs config <key>          - Get value of <key>
+//	    ipfs config <key> <value>  - Set value of <key> to <value>
+//	    ipfs config --show         - Show config file
+//	    ipfs config --edit         - Edit config file in $EDITOR
+//	`
+func (f *helpFields) TrimNewlines() {
+	f.Path = strings.Trim(f.Path, "\n")
+	f.ArgUsage = strings.Trim(f.ArgUsage, "\n")
+	f.Tagline = strings.Trim(f.Tagline, "\n")
+	f.Arguments = strings.Trim(f.Arguments, "\n")
+	f.Options = strings.Trim(f.Options, "\n")
+	f.Synopsis = strings.Trim(f.Synopsis, "\n")
+	f.Subcommands = strings.Trim(f.Subcommands, "\n")
+	f.Description = strings.Trim(f.Description, "\n")
+}
+
+// Indent adds whitespace the lines of fields.
+func (f *helpFields) IndentAll() {
+	indent := func(s string) string {
+		if s == "" {
+			return s
+		}
+		return indentString(s, indentStr)
+	}
+
+	f.Arguments = indent(f.Arguments)
+	f.Options = indent(f.Options)
+	f.Synopsis = indent(f.Synopsis)
+	f.Subcommands = indent(f.Subcommands)
+	f.Description = indent(f.Description)
 }
 
 const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}{{end}}"
@@ -40,29 +76,31 @@ const longHelpFormat = `
 
 {{if .Arguments}}ARGUMENTS:
 
-{{.Indent}}{{.Arguments}}
+{{.Arguments}}
 
 {{end}}{{if .Options}}OPTIONS:
 
-{{.Indent}}{{.Options}}
+{{.Options}}
 
 {{end}}{{if .Subcommands}}SUBCOMMANDS:
 
-{{.Indent}}{{.Subcommands}}
+{{.Subcommands}}
 
 {{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
 
 {{end}}{{if .Description}}DESCRIPTION:
 
-{{.Indent}}{{.Description}}
+{{.Description}}
 
 {{end}}
 `
 const shortHelpFormat = `USAGE:
 
 {{.Indent}}{{template "usage" .}}
-{{if .Description}}
-{{.Indent}}{{.Description}}
+{{if .Synopsis}}
+{{.Synopsis}}
+{{end}}{{if .Description}}
+{{.Description}}
 {{end}}
 Use '{{.Path}} --help' for more information about this command.
 `
@@ -111,6 +149,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		Tagline:     cmd.Description,
 		Arguments:   cmd.ArgumentHelp,
 		Options:     cmd.OptionHelp,
+		Synopsis:    cmd.Helptext.Synopsis,
 		Subcommands: cmd.SubcommandHelp,
 		Description: cmd.Help,
 	}
@@ -137,10 +176,11 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
 
-	fields.Arguments = indentString(fields.Arguments, indentStr)
-	fields.Options = indentString(fields.Options, indentStr)
-	fields.Subcommands = indentString(fields.Subcommands, indentStr)
-	fields.Description = indentString(fields.Description, indentStr)
+	// trim the extra newlines (see TrimNewlines doc)
+	fields.TrimNewlines()
+
+	// indent all fields that have been set
+	fields.IndentAll()
 
 	return longHelpTemplate.Execute(out, fields)
 }
@@ -162,6 +202,7 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		Path:        pathStr,
 		ArgUsage:    usageText(cmd),
 		Tagline:     cmd.Description,
+		Synopsis:    cmd.Helptext.Synopsis,
 		Description: cmd.Help,
 	}
 
@@ -178,16 +219,18 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 	if len(cmd.Helptext.Subcommands) > 0 {
 		fields.Subcommands = cmd.Helptext.Subcommands
 	}
-	if len(cmd.Helptext.LongDescription) > 0 {
-		fields.Description = cmd.Helptext.LongDescription
-	} else if len(cmd.Helptext.ShortDescription) > 0 {
+	if len(cmd.Helptext.ShortDescription) > 0 {
 		fields.Description = cmd.Helptext.ShortDescription
 	}
 	if len(cmd.Helptext.Usage) > 0 {
 		fields.Usage = cmd.Helptext.Subcommands
 	}
 
-	fields.Description = indentString(fields.Description, indentStr)
+	// trim the extra newlines (see TrimNewlines doc)
+	fields.TrimNewlines()
+
+	// indent all fields that have been set
+	fields.IndentAll()
 
 	return shortHelpTemplate.Execute(out, fields)
 }
@@ -330,5 +373,5 @@ func indent(lines []string, prefix string) []string {
 }
 
 func indentString(line string, prefix string) string {
-	return strings.Replace(line, "\n", "\n"+prefix, -1)
+	return prefix + strings.Replace(line, "\n", "\n"+prefix, -1)
 }
