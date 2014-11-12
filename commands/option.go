@@ -89,7 +89,7 @@ func (ov OptionValue) Bool() (value bool, found bool, err error) {
 	return val, ov.found, err
 }
 
-func (ov OptionValue) Int() (val int, found bool, err error) {
+func (ov OptionValue) Int() (value int, found bool, err error) {
 	if !ov.found {
 		return 0, false, nil
 	}
@@ -100,7 +100,7 @@ func (ov OptionValue) Int() (val int, found bool, err error) {
 	return val, ov.found, err
 }
 
-func (ov OptionValue) Uint() (val uint, found bool, err error) {
+func (ov OptionValue) Uint() (value uint, found bool, err error) {
 	if !ov.found {
 		return 0, false, nil
 	}
@@ -111,7 +111,7 @@ func (ov OptionValue) Uint() (val uint, found bool, err error) {
 	return val, ov.found, err
 }
 
-func (ov OptionValue) Float() (val float64, found bool, err error) {
+func (ov OptionValue) Float() (value float64, found bool, err error) {
 	if !ov.found {
 		return 0, false, nil
 	}
@@ -122,7 +122,7 @@ func (ov OptionValue) Float() (val float64, found bool, err error) {
 	return val, ov.found, err
 }
 
-func (ov OptionValue) String() (val string, found bool, err error) {
+func (ov OptionValue) String() (value string, found bool, err error) {
 	if !ov.found {
 		return "", false, nil
 	}
