@@ -134,40 +134,40 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 		}
 	}
 
-	j := 0
+	valueIndex := 0 // the index of the current stringArgs value
 	for _, argDef := range cmd.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(stringArgs)-j <= lenRequired && !argDef.Required {
+		if len(stringArgs)-valueIndex <= lenRequired && !argDef.Required {
 			continue
 		} else if argDef.Required {
 			lenRequired--
 		}
 
-		if j >= len(stringArgs) {
+		if valueIndex >= len(stringArgs) {
 			break
 		}
 
 		if argDef.Variadic {
-			for _, arg := range stringArgs[j:] {
+			for _, arg := range stringArgs[valueIndex:] {
 				var err error
 				args, err = appendArg(args, argDef, arg)
 				if err != nil {
 					return nil, err
 				}
-				j++
+				valueIndex++
 			}
 		} else {
 			var err error
-			args, err = appendArg(args, argDef, stringArgs[j])
+			args, err = appendArg(args, argDef, stringArgs[valueIndex])
 			if err != nil {
 				return nil, err
 			}
-			j++
+			valueIndex++
 		}
 	}
 
-	if len(stringArgs)-j > 0 {
-		args = append(args, make([]interface{}, len(stringArgs)-j))
+	if len(stringArgs)-valueIndex > 0 {
+		args = append(args, make([]interface{}, len(stringArgs)-valueIndex))
 	}
 
 	return args, nil
