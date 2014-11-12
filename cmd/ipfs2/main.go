@@ -92,7 +92,7 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	// handle parse error (which means the commandline input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if err != nil {
-		return nil, nil, handleParseError(req, root, cmd, path)
+		return nil, nil, handleParseError(req, root, cmd, path, err)
 	}
 
 	configPath, err := getConfigRoot(req)
@@ -121,11 +121,12 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	return req, root, nil
 }
 
-func handleParseError(req cmds.Request, root *cmds.Command, cmd *cmds.Command, path []string) (err error) {
+func handleParseError(req cmds.Request, root *cmds.Command, cmd *cmds.Command, path []string, parseError error) error {
 	var longHelp, shortHelp bool
 
 	if req != nil {
 		// help and h are defined in the root. We expect them to be bool.
+		var err error
 		longHelp, _, err = req.Option("help").Bool()
 		if err != nil {
 			return err
@@ -141,7 +142,7 @@ func handleParseError(req cmds.Request, root *cmds.Command, cmd *cmds.Command, p
 	// (this means there was an option or argument error)
 	if path != nil && len(path) > 0 {
 		if !longHelp && !shortHelp {
-			fmt.Printf(errorFormat, err)
+			fmt.Printf(errorFormat, parseError)
 		}
 	}
 
@@ -160,7 +161,7 @@ func handleParseError(req cmds.Request, root *cmds.Command, cmd *cmds.Command, p
 	if htErr != nil {
 		fmt.Println(htErr)
 	}
-	return err
+	return parseError
 }
 
 func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed bool, err error) {
