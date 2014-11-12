@@ -25,6 +25,12 @@ type Request interface {
 	Option(name string) *OptionValue
 	Options() optMap
 	SetOption(name string, val interface{})
+
+	// Arguments() returns user provided arguments as declared on the Command.
+	//
+	// NB: `io.Reader`s returned by Arguments() are owned by the library.
+	// Readers are not guaranteed to remain open after the Command's Run
+	// function returns.
 	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
 	Context() *Context
 	SetContext(Context)
