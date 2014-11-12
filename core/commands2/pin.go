@@ -34,7 +34,13 @@ on disk.
 		n := req.Context().Node
 
 		// set recursive flag
-		recursive, _ := req.Option("recursive").Bool() // false if cast fails.
+		recursive, found, err := req.Option("recursive").Bool()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			recursive = false
+		}
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
@@ -67,7 +73,13 @@ collected if needed.
 		n := req.Context().Node
 
 		// set recursive flag
-		recursive, _ := req.Option("recursive").Bool() // false if cast fails.
+		recursive, found, err := req.Option("recursive").Bool()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			recursive = false // default
+		}
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
