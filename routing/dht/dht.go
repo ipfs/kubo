@@ -355,10 +355,12 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
+	log.Debug("getLocal %s", key)
 	v, err := dht.datastore.Get(key.DsKey())
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("found in db")
 
 	byt, ok := v.([]byte)
 	if !ok {
@@ -374,6 +376,7 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	if u.Debug {
 		err = dht.verifyRecord(rec)
 		if err != nil {
+			log.Errorf("local record verify failed: %s", err)
 			return nil, err
 		}
 	}

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"strings"
+	"time"
 
+	"code.google.com/p/go.net/context"
 	"code.google.com/p/goprotobuf/proto"
+	ci "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -30,6 +33,29 @@ func (dht *IpfsDHT) makePutRecord(key u.Key, value []byte) (*pb.Record, error) {
 	}
 	record.Signature = sig
 	return record, nil
+}
+
+func (dht *IpfsDHT) getPublicKey(pid peer.ID) (ci.PubKey, error) {
+	log.Debug("getPublicKey for: %s", pid)
+	p, err := dht.peerstore.Get(pid)
+	if err == nil {
+		return p.PubKey(), nil
+	}
+
+	log.Debug("not in peerstore, searching dht.")
+	ctxT, _ := context.WithTimeout(dht.ContextCloser.Context(), time.Second*5)
+	val, err := dht.GetValue(ctxT, u.Key("/pk/"+string(pid)))
+	if err != nil {
+		log.Warning("Failed to find requested public key.")
+		return nil, err
+	}
+
+	pubkey, err := ci.UnmarshalPublicKey(val)
+	if err != nil {
+		log.Errorf("Failed to unmarshal public key: %s", err)
+		return nil, err
+	}
+	return pubkey, nil
 }
 
 func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
@@ -76,6 +102,14 @@ func ValidateIpnsRecord(k u.Key, val []byte) error {
 }
 
 func ValidatePublicKeyRecord(k u.Key, val []byte) error {
-	// TODO:
+	keyparts := bytes.Split([]byte(k), []byte("/"))
+	if len(keyparts) < 3 {
+		return errors.New("invalid key")
+	}
+
+	pkh := u.Hash(val)
+	if !bytes.Equal(keyparts[2], pkh) {
+		return errors.New("public key does not match storage key")
+	}
 	return nil
 }
