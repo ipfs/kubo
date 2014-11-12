@@ -178,7 +178,7 @@ func appendArg(args []interface{}, argDef cmds.Argument, value string) ([]interf
 		return append(args, value), nil
 
 	} else {
-		in, err := os.Open(value)
+		in, err := os.Open(value) // FIXME(btc) must close file. fix before merge
 		if err != nil {
 			return nil, err
 		}
