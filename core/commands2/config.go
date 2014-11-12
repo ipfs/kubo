@@ -21,17 +21,34 @@ type ConfigField struct {
 }
 
 var configCmd = &cmds.Command{
-	Description: "Get/set IPFS config values",
-	Help: `Examples:
-
-  Get the value of the 'datastore.path' key:
-
-      ipfs config datastore.path
-
-  Set the value of the 'datastore.path' key:
-
-      ipfs config datastore.path ~/.go-ipfs/datastore
+	Helptext: cmds.HelpText{
+		Tagline: "get and set IPFS config values",
+		Synopsis: `
+ipfs config <key>          - Get value of <key>
+ipfs config <key> <value>  - Set value of <key> to <value>
+ipfs config --show         - Show config file
+ipfs config --edit         - Edit config file in $EDITOR
 `,
+		ShortDescription: `
+ipfs config controls configuration variables. It works like 'git config'.
+The configuration values are stored in a config file inside your IPFS
+repository.`,
+		LongDescription: `
+ipfs config controls configuration variables. It works
+much like 'git config'. The configuration values are stored in a config
+file inside your IPFS repository.
+
+EXAMPLES:
+
+Get the value of the 'datastore.path' key:
+
+  ipfs config datastore.path
+
+Set the value of the 'datastore.path' key:
+
+  ipfs config datastore.path ~/.go-ipfs/datastore
+`,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
