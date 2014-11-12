@@ -42,10 +42,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	args := make([]interface{}, 0)
 
 	// count required argument definitions
-	lenRequired := 0
+	numRequired := 0
 	for _, argDef := range cmd.Arguments {
 		if argDef.Required {
-			lenRequired++
+			numRequired++
 		}
 	}
 
@@ -58,10 +58,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	for _, argDef := range cmd.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if valCount <= lenRequired && !argDef.Required {
+		if valCount <= numRequired && !argDef.Required {
 			continue
 		} else if argDef.Required {
-			lenRequired--
+			numRequired--
 		}
 
 		if argDef.Type == cmds.ArgString {
