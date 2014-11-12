@@ -7,9 +7,9 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
-	u "github.com/jbenet/go-ipfs/util"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type BootstrapOutput struct {
@@ -129,7 +129,10 @@ var bootstrapListCmd = &cmds.Command{
 }
 
 func bootstrapMarshaller(res cmds.Response) ([]byte, error) {
-	v := res.Output().(*BootstrapOutput)
+	v, ok := res.Output().(*BootstrapOutput)
+	if !ok {
+		return nil, u.ErrCast()
+	}
 
 	s := ""
 	for _, peer := range v.Peers {
