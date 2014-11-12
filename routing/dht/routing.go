@@ -162,7 +162,7 @@ func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.M
 			// construct new peer
 			p, err := dht.ensureConnectedToPeer(ctx, mp)
 			if err != nil {
-				log.Error("%s", err)
+				log.Errorf("%s", err)
 				return
 			}
 			if p == nil {
