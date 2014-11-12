@@ -28,8 +28,13 @@ type Marshaller func(Response) ([]byte, error)
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	Description string
-	Help        string
+	// MAYBE_TODO: move all the text fields into a struct
+	// MAYBE_TODO: move these out of command and put them somewhere in commands/cli
+	Description    string
+	Help           string
+	SubcommandHelp string
+	OptionHelp     string
+	ArgumentHelp   string
 
 	Options     []Option
 	Arguments   []Argument
