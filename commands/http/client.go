@@ -32,7 +32,14 @@ func NewClient(address string) Client {
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
-	userEncoding, _ := req.Option(cmds.EncShort).String()
+
+	// save user-provided encoding
+	previousUserProvidedEncoding, found, err := req.Option(cmds.EncShort).String()
+	if err != nil {
+		return nil, err
+	}
+
+	// override with json to send to server
 	req.SetOption(cmds.EncShort, cmds.JSON)
 
 	query, inputStream, err := getQuery(req)
@@ -43,18 +50,23 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	path := strings.Join(req.Path(), "/")
 	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
 
+	// TODO extract string const?
 	httpRes, err := http.Post(url, "application/octet-stream", inputStream)
 	if err != nil {
 		return nil, err
 	}
 
+	// using the overridden JSON encoding in request
 	res, err := getResponse(httpRes, req)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(userEncoding) > 0 {
-		req.SetOption(cmds.EncShort, userEncoding)
+	if found && len(previousUserProvidedEncoding) > 0 {
+		// reset to user provided encoding after sending request
+		// NB: if user has provided an encoding but it is the empty string,
+		// still leave it as JSON.
+		req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
 	}
 
 	return res, nil
