@@ -12,6 +12,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type ConfigField struct {
@@ -45,7 +46,7 @@ var configCmd = &cmds.Command{
 
 		key, ok := args[0].(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		filename, err := config.Filename(req.Context().ConfigRoot)
@@ -58,7 +59,7 @@ var configCmd = &cmds.Command{
 			var ok bool
 			value, ok = args[1].(string)
 			if !ok {
-				return nil, errors.New("cast error")
+				return nil, u.ErrCast()
 			}
 
 			return setConfig(filename, key, value)

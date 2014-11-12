@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,9 +10,8 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
-
-var castError = errors.New("cast error")
 
 const (
 	ApiUrlFormat = "http://%s%s/%s?%s"
@@ -70,7 +68,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 	for k, v := range req.Options() {
 		str, ok := v.(string)
 		if !ok {
-			return "", nil, castError
+			return "", nil, u.ErrCast()
 		}
 		query.Set(k, str)
 	}
@@ -87,7 +85,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 		if argDef.Type == cmds.ArgString {
 			str, ok := arg.(string)
 			if !ok {
-				return "", nil, castError
+				return "", nil, u.ErrCast()
 			}
 			query.Add("arg", str)
 
@@ -99,7 +97,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 			var ok bool
 			inputStream, ok = arg.(io.Reader)
 			if !ok {
-				return "", nil, castError
+				return "", nil, u.ErrCast()
 			}
 		}
 	}

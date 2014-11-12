@@ -8,8 +8,9 @@ import (
 	"io/ioutil"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
+	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
@@ -51,7 +52,7 @@ output is the raw data of the object.
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		return objectData(n, key)
@@ -71,7 +72,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.`,
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		return objectLinks(n, key)
@@ -99,7 +100,7 @@ This command outputs data in the following encodings:
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		object, err := objectGet(n, key)
@@ -151,12 +152,12 @@ Data should be in the format specified by <encoding>.
 
 		input, ok := req.Arguments()[0].(io.Reader)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		encoding, ok := req.Arguments()[1].(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		output, err := objectPut(n, input, encoding)

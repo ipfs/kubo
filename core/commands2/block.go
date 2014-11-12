@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -45,7 +44,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.`,
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		if !u.IsValidHash(key) {
@@ -81,7 +80,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.`,
 
 		in, ok := req.Arguments()[0].(io.Reader)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		data, err := ioutil.ReadAll(in)

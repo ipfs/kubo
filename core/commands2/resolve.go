@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var resolveCmd = &cmds.Command{
@@ -49,7 +50,7 @@ Resolve te value of another name:
 			var ok bool
 			name, ok = req.Arguments()[0].(string)
 			if !ok {
-				return nil, errors.New("cast error")
+				return nil, u.ErrCast()
 			}
 		}
 

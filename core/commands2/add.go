@@ -17,6 +17,7 @@ import (
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	pinning "github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // Error indicating the max depth has been exceded.
@@ -41,7 +42,7 @@ MerkleDAG. A smarter partial add with a staging area (like git)
 remains to be implemented.
 `,
 	Run: func(req cmds.Request) (interface{}, error) {
-		var added AddOutput
+		added := &AddOutput{}
 		n := req.Context().Node
 
 		recursive, err := req.Option("r").Bool()
@@ -167,7 +168,7 @@ remains to be implemented.
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			val, ok := res.Output().(*AddOutput)
 			if !ok {
-				return nil, errors.New("cast error")
+				return nil, u.ErrCast()
 			}
 
 			var buf bytes.Buffer
