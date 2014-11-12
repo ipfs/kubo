@@ -45,7 +45,7 @@ remains to be implemented.
 		added := &AddOutput{}
 		n := req.Context().Node
 
-		recursive, err := req.Option("r").Bool()
+		recursive, _, err := req.Option("r").Bool()
 		if err != nil {
 			return nil, err
 		}
