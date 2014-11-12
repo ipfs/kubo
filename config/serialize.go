@@ -53,10 +53,25 @@ func WriteFile(filename string, buf []byte) error {
 	return err
 }
 
+// HumanOutput gets a config value ready for printing
+func HumanOutput(value interface{}) ([]byte, error) {
+	s, ok := value.(string)
+	if ok {
+		return []byte(strings.Trim(s, "\n")), nil
+	}
+	return Marshal(value)
+}
+
+// Marshal configuration with JSON
+func Marshal(value interface{}) ([]byte, error) {
+	// need to prettyprint, hence MarshalIndent, instead of Encoder
+	return json.MarshalIndent(value, "", "  ")
+}
+
 // Encode configuration with JSON
 func Encode(w io.Writer, value interface{}) error {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
-	buf, err := json.MarshalIndent(value, "", "  ")
+	buf, err := Marshal(value)
 	if err != nil {
 		return err
 	}
