@@ -59,6 +59,7 @@ const longHelpFormat = `
 {{end}}
 `
 const shortHelpFormat = `USAGE:
+
 {{.Indent}}{{template "usage" .}}
 {{if .Description}}
 {{.Indent}}{{.Description}}
