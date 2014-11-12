@@ -252,6 +252,8 @@ func outputResponse(res cmds.Response, root *cmds.Command) error {
 		fmt.Printf(errorFormat, res.Error().Error())
 
 		if res.Error().Code != cmds.ErrClient {
+			// TODO does ErrClient mean "error the client should see" or "this
+			// is an error caused by the user ie. user error"?
 			return res.Error()
 		}
 
