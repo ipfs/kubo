@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -33,6 +35,10 @@ var configCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
 		cmds.StringArg("value", false, false, "The value to set the config entry to"),
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("show", "s", "Show config file"),
+		cmds.StringOption("edit", "e", "Edit config file in $EDITOR"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()
@@ -142,13 +148,12 @@ func setConfig(filename string, key, value string) (*ConfigField, error) {
 func showConfig(filename string) (io.Reader, error) {
 	// TODO maybe we should omit privkey so we don't accidentally leak it?
 
-	file, err := os.Open(filename)
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	//defer file.Close()
 
-	return file, nil
+	return bytes.NewReader(data), nil
 }
 
 func editConfig(filename string) error {
