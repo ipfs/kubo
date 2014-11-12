@@ -22,6 +22,8 @@ type ipfs interface {
 	NewDagReader(nd *dag.Node) (io.Reader, error)
 }
 
+// ipfsHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
+// (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type ipfsHandler struct {
 	node *core.IpfsNode
 }
