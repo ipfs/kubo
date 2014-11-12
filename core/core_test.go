@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	config "github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/peer"
 )
 
 func TestInitialization(t *testing.T) {
@@ -54,6 +55,22 @@ func TestInitialization(t *testing.T) {
 		if n != nil || err == nil {
 			t.Error("Should have failed to construct.", i)
 		}
+	}
+}
+
+func TestPeerIsLocal(t *testing.T) {
+	t.Log("Ensure that peer is Local after initializing identity")
+
+	online := false
+	peers := peer.NewPeerstore()
+
+	cfg := testIdentity
+	p, err := initIdentity(&cfg, peers, online)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.GetType() != peer.Local {
+		t.Fail()
 	}
 }
 

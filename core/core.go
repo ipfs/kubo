@@ -211,6 +211,11 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 	if err != nil {
 		return nil, err
 	}
+	self.SetType(peer.Local)
+	self, err = peers.Add(self)
+	if err != nil {
+		return nil, err
+	}
 
 	// when not online, don't need to parse private keys (yet)
 	if online {
