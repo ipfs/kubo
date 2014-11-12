@@ -42,10 +42,12 @@ not be listable, as it is virtual. Accessing known paths directly.
 			return nil, err
 		}
 
-		// update fsdir with flag.
-		fsdir := ctx.Config.Mounts.IPFS
-		if req.Option("f").Found() {
-			fsdir, _ = req.Option("f").String()
+		fsdir, found, err := req.Option("f").String()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			fsdir = ctx.Config.Mounts.IPFS // use default value
 		}
 		fsdone := mountIpfs(ctx.Node, fsdir)
 
