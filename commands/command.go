@@ -159,10 +159,10 @@ func (c *Command) CheckArguments(req Request) error {
 	}
 
 	// count required argument definitions
-	lenRequired := 0
+	numRequired := 0
 	for _, argDef := range c.Arguments {
 		if argDef.Required {
-			lenRequired++
+			numRequired++
 		}
 	}
 
@@ -170,7 +170,7 @@ func (c *Command) CheckArguments(req Request) error {
 	j := 0
 	for _, argDef := range c.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(args)-j <= lenRequired && !argDef.Required {
+		if len(args)-j <= numRequired && !argDef.Required {
 			continue
 		}
 
