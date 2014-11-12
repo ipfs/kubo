@@ -14,6 +14,7 @@ import (
 )
 
 // amount of time to wait for mount errors
+// TODO is this non-deterministic?
 const mountTimeout = time.Second
 
 var mountCmd = &cmds.Command{
