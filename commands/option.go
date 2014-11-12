@@ -78,60 +78,59 @@ func (ov OptionValue) Found() bool {
 }
 
 // value accessor methods, gets the value as a certain type
-func (ov OptionValue) Bool() (bool, error) {
+func (ov OptionValue) Bool() (value bool, found bool, err error) {
+	if !ov.found {
+		return false, false, nil
+	}
 	val, ok := ov.value.(bool)
 	if !ok {
-		var err error
-		if ov.value != nil {
-			err = errors.New("error casting to bool")
-		}
-		return false, err
+		err = CastError
 	}
-	return val, nil
+	return val, ov.found, err
 }
-func (ov OptionValue) Int() (int, error) {
+
+func (ov OptionValue) Int() (val int, found bool, err error) {
+	if !ov.found {
+		return 0, false, nil
+	}
 	val, ok := ov.value.(int)
 	if !ok {
-		var err error
-		if ov.value != nil {
-			err = errors.New("error casting to int")
-		}
-		return 0, err
+		err = CastError
 	}
-	return val, nil
+	return val, ov.found, err
 }
-func (ov OptionValue) Uint() (uint, error) {
+
+func (ov OptionValue) Uint() (val uint, found bool, err error) {
+	if !ov.found {
+		return 0, false, nil
+	}
 	val, ok := ov.value.(uint)
 	if !ok {
-		var err error
-		if ov.value != nil {
-			err = errors.New("error casting to uint")
-		}
-		return 0, err
+		err = CastError
 	}
-	return val, nil
+	return val, ov.found, err
 }
-func (ov OptionValue) Float() (float64, error) {
+
+func (ov OptionValue) Float() (val float64, found bool, err error) {
+	if !ov.found {
+		return 0, false, nil
+	}
 	val, ok := ov.value.(float64)
 	if !ok {
-		var err error
-		if ov.value != nil {
-			err = errors.New("error casting to float64")
-		}
-		return 0.0, err
+		err = CastError
 	}
-	return val, nil
+	return val, ov.found, err
 }
-func (ov OptionValue) String() (string, error) {
+
+func (ov OptionValue) String() (val string, found bool, err error) {
+	if !ov.found {
+		return "", false, nil
+	}
 	val, ok := ov.value.(string)
 	if !ok {
-		var err error
-		if ov.value != nil {
-			err = errors.New("error casting to string")
-		}
-		return "", err
+		err = CastError
 	}
-	return val, nil
+	return val, ov.found, err
 }
 
 // Flag names
