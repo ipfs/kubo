@@ -241,7 +241,11 @@ func argumentText(cmd *cmds.Command) []string {
 	lines := make([]string, len(cmd.Arguments))
 
 	for i, arg := range cmd.Arguments {
-		lines[i] = argUsageText(arg) + " - " + arg.Description
+		lines[i] = argUsageText(arg)
+	}
+	lines = align(lines)
+	for i, arg := range cmd.Arguments {
+		lines[i] += " - " + arg.Description
 	}
 
 	return lines
