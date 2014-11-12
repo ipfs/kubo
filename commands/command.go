@@ -19,6 +19,21 @@ type Function func(Request) (interface{}, error)
 // (or an error on failure)
 type Marshaller func(Response) ([]byte, error)
 
+// HelpText is a set of strings used to generate command help text. The help
+// text follows formats similar to man pages, but not exactly the same.
+type HelpText struct {
+	// required
+	Tagline          string // used in <cmd usage>
+	ShortDescription string // used in DESCRIPTION
+
+	// optional - whole section overrides
+	Usage           string // overrides USAGE section
+	LongDescription string // overrides DESCRIPTION section
+	Options         string // overrides OPTIONS section
+	Arguments       string // overrides ARGUMENTS section
+	Subcommands     string // overrides SUBCOMMANDS section
+}
+
 // TODO: check Argument definitions when creating a Command
 //   (might need to use a Command constructor)
 //   * make sure any variadic args are at the end
@@ -28,8 +43,7 @@ type Marshaller func(Response) ([]byte, error)
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	// MAYBE_TODO: move all the text fields into a struct
-	// MAYBE_TODO: move these out of command and put them somewhere in commands/cli
+	// TODO: remove these fields after porting commands to HelpText struct
 	Description    string
 	Help           string
 	SubcommandHelp string
@@ -40,6 +54,7 @@ type Command struct {
 	Arguments   []Argument
 	Run         Function
 	Marshallers map[EncodingType]Marshaller
+	Helptext    HelpText
 
 	// Type describes the type of the output of the Command's Run Function.
 	// In precise terms, the value of Type is an instance of the return type of
