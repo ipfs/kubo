@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +23,8 @@ import (
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
 type AddOutput struct {
-	Added []*Object
+	Objects []*Object
+	Names   []string
 }
 
 var addCmd = &cmds.Command{
@@ -39,22 +41,26 @@ MerkleDAG. A smarter partial add with a staging area (like git)
 remains to be implemented.
 `,
 	Run: func(req cmds.Request) (interface{}, error) {
+		var added AddOutput
 		n := req.Context().Node
+
+		recursive, err := req.Option("r").Bool()
+		if err != nil {
+			return nil, err
+		}
 
 		// THIS IS A HORRIBLE HACK -- FIXME!!!
 		// see https://github.com/jbenet/go-ipfs/issues/309
-		var added []*Object
 
 		// returns the last one
-		addDagnodes := func(dns []*dag.Node) error {
-			for _, dn := range dns {
-				o, err := getOutput(dn)
-				if err != nil {
-					return err
-				}
-
-				added = append(added, o)
+		addDagnode := func(name string, dn *dag.Node) error {
+			o, err := getOutput(dn)
+			if err != nil {
+				return err
 			}
+
+			added.Objects = append(added.Objects, o)
+			added.Names = append(added.Names, name)
 			return nil
 		}
 
@@ -71,7 +77,7 @@ remains to be implemented.
 			}
 
 			log.Infof("adding file: %s", name)
-			if err := addDagnodes(dns); err != nil {
+			if err := addDagnode(name, dns[len(dns)-1]); err != nil {
 				return nil, err
 			}
 			return dns[len(dns)-1], nil // last dag node is the file.
@@ -100,7 +106,7 @@ remains to be implemented.
 			}
 
 			log.Infof("adding dir: %s", name)
-			if err := addDagnodes([]*dag.Node{tree}); err != nil {
+			if err := addDagnode(name, tree); err != nil {
 				return nil, err
 			}
 			return tree, nil
@@ -113,6 +119,9 @@ remains to be implemented.
 			}
 
 			if fi.IsDir() {
+				if !recursive {
+					return nil, errors.New("use -r to recursively add directories")
+				}
 				return addDir(fpath)
 			}
 			return addFile(fpath)
@@ -120,6 +129,7 @@ remains to be implemented.
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
+			panic(err)
 			return nil, err
 		}
 
@@ -128,6 +138,7 @@ remains to be implemented.
 				return nil, err
 			}
 		}
+		return added, nil
 
 		// readers, err := internal.CastToReaders(req.Arguments())
 		// if err != nil {
@@ -149,26 +160,21 @@ remains to be implemented.
 		//
 		// 	added = append(added, object)
 		// }
-
-		return &AddOutput{added}, nil
+		//
+		// return &AddOutput{added}, nil
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			val, ok := res.Output().(*AddOutput)
 			if !ok {
-				return nil, errors.New("cast err")
-			}
-			added := val.Added
-			if len(added) == 1 {
-				s := fmt.Sprintf("Added object: %s\n", added[0].Hash)
-				return []byte(s), nil
+				return nil, errors.New("cast error")
 			}
 
-			s := fmt.Sprintf("Added %v objects:\n", len(added))
-			for _, obj := range added {
-				s += fmt.Sprintf("- %s\n", obj.Hash)
+			var buf bytes.Buffer
+			for i, obj := range val.Objects {
+				buf.Write([]byte(fmt.Sprintf("added %s %s\n", obj.Hash, val.Names[i])))
 			}
-			return []byte(s), nil
+			return buf.Bytes(), nil
 		},
 	},
 	Type: &AddOutput{},
