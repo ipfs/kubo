@@ -29,6 +29,7 @@ type Option struct {
 // constructor helper functions
 func NewOption(kind reflect.Kind, names ...string) Option {
 	if len(names) < 2 {
+		// FIXME(btc) don't panic (fix_before_merge)
 		panic("Options require at least two string values (name and description)")
 	}
 
@@ -41,6 +42,12 @@ func NewOption(kind reflect.Kind, names ...string) Option {
 		Description: desc,
 	}
 }
+
+// TODO handle description separately. this will take care of the panic case in
+// NewOption
+
+// For all func {Type}Option(...string) functions, the last variadic argument
+// is treated as the description field.
 
 func BoolOption(names ...string) Option {
 	return NewOption(Bool, names...)
