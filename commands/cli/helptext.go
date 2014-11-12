@@ -36,18 +36,36 @@ func HelpText(rootName string, root *cmds.Command, path []string) (string, error
 	}
 
 	if cmd.Arguments != nil {
-		lines := indent(argumentText(cmd), "  ")
-		s += fmt.Sprintf("Arguments:\n%v\n\n", strings.Join(lines, "\n"))
+		if len(cmd.ArgumentHelp) > 0 {
+			s += cmd.ArgumentHelp
+		} else {
+			section := strings.Join(indent(argumentText(cmd), "    "), "\n")
+			s += fmt.Sprintf("Arguments:\n%v", section)
+		}
+
+		s += "\n\n"
 	}
 
 	if cmd.Subcommands != nil {
-		lines := indent(subcommandText(cmd, rootName, path), "  ")
-		s += fmt.Sprintf("Subcommands:\n%v\n\n", strings.Join(lines, "\n"))
+		if len(cmd.SubcommandHelp) > 0 {
+			s += cmd.SubcommandHelp
+		} else {
+			section := strings.Join(indent(subcommandText(cmd, rootName, path), "    "), "\n")
+			s += fmt.Sprintf("Subcommands:\n%v", section)
+		}
+
+		s += "\n\n"
 	}
 
 	if cmd.Options != nil {
-		lines := indent(optionText(cmd), "  ")
-		s += fmt.Sprintf("Options:\n%v\n\n", strings.Join(lines, "\n"))
+		if len(cmd.OptionHelp) > 0 {
+			s += cmd.OptionHelp
+		} else {
+			section := strings.Join(indent(optionText(cmd), "    "), "\n")
+			s += fmt.Sprintf("Options:\n%v", section)
+		}
+
+		s += "\n\n"
 	}
 
 	return s, nil
