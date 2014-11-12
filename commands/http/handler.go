@@ -57,8 +57,8 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(streamHeader, "1")
 
 	} else {
-		enc, err := req.Option(cmds.EncShort).String()
-		if err != nil || len(enc) == 0 {
+		enc, found, err := req.Option(cmds.EncShort).String()
+		if err != nil || !found {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
