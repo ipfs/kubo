@@ -242,7 +242,6 @@ func argumentText(cmd *cmds.Command) []string {
 
 	for i, arg := range cmd.Arguments {
 		lines[i] = argUsageText(arg) + " - " + arg.Description
-		lines[i] = indentString(lines[i], "    ")
 	}
 
 	return lines
@@ -296,7 +295,6 @@ func optionText(cmd ...*cmds.Command) []string {
 	// add option descriptions to output
 	for i, opt := range options {
 		lines[i] += " - " + opt.Description
-		lines[i] = indentString(lines[i], "    ")
 	}
 
 	return lines
@@ -315,8 +313,11 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Description)
-		lines[i] = indentString(lines[i], "    ")
+		if len(sub.Helptext.Tagline) > 0 {
+			lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Helptext.Tagline)
+		} else {
+			lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Description)
+		}
 		i++
 	}
 
