@@ -50,7 +50,8 @@ var initCmd = &cmds.Command{
 }
 
 // TODO add default welcome hash: eaa68bedae247ed1e5bd0eb4385a3c0959b976e4
-func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) error {
+// NB: if dspath is not provided, it will be retrieved from the config
+func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) error {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
 
@@ -67,7 +68,7 @@ func doInit(configRoot string, dspath string, force bool, nBitsForKeypair int) e
 		}
 	}
 
-	ds, err := datastoreConfig(dspath)
+	ds, err := datastoreConfig(dspathOverride)
 	if err != nil {
 		return err
 	}
