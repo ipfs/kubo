@@ -196,9 +196,8 @@ func argumentText(cmd *cmds.Command) []string {
 	lines := make([]string, len(cmd.Arguments))
 
 	for i, arg := range cmd.Arguments {
-		lines[i] = argUsageText(arg)
-		lines[i] += "\n" + arg.Description
-		lines[i] = indentString(lines[i], "    ") + "\n"
+		lines[i] = argUsageText(arg) + " - " + arg.Description
+		lines[i] = indentString(lines[i], "    ")
 	}
 
 	return lines
@@ -241,17 +240,18 @@ func optionText(cmd ...*cmds.Command) []string {
 		lines = align(lines)
 		j++
 	}
+	lines = align(lines)
 
 	// add option types to output
 	for i, opt := range options {
-		lines[i] += " " + fmt.Sprintf(optionType, opt.Type)
+		lines[i] += " " + fmt.Sprintf("%v", opt.Type)
 	}
 	lines = align(lines)
 
 	// add option descriptions to output
 	for i, opt := range options {
-		lines[i] += "\n" + opt.Description
-		lines[i] = indentString(lines[i], "    ") + "\n"
+		lines[i] += " - " + opt.Description
+		lines[i] = indentString(lines[i], "    ")
 	}
 
 	return lines
@@ -267,9 +267,8 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 	i := 0
 	for name, sub := range cmd.Subcommands {
 		usage := usageText(sub)
-		lines[i] = fmt.Sprintf("%v%v %v", prefix, name, usage)
-		lines[i] += fmt.Sprintf("\n%v", sub.Description)
-		lines[i] = indentString(lines[i], "    ") + "\n"
+		lines[i] = fmt.Sprintf("%v%v %v - %v", prefix, name, usage, sub.Description)
+		lines[i] = indentString(lines[i], "    ")
 		i++
 	}
 
