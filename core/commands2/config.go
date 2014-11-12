@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -87,20 +86,17 @@ Set the value of the 'datastore.path' key:
 	},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			v := res.Output().(*ConfigField)
-
-			s := ""
 			if len(res.Request().Arguments()) == 2 {
-				s += fmt.Sprintf("'%s' set to: ", v.Key)
+				return nil, nil // dont output anything
 			}
 
-			marshalled, err := json.Marshal(v.Value)
+			v := res.Output().(*ConfigField)
+			buf, err := config.HumanOutput(v.Value)
 			if err != nil {
 				return nil, err
 			}
-			s += fmt.Sprintf("%s\n", marshalled)
-
-			return []byte(s), nil
+			buf = append(buf, byte('\n'))
+			return buf, nil
 		},
 	},
 	Type: &ConfigField{},
