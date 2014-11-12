@@ -40,6 +40,12 @@ type Command struct {
 	Arguments   []Argument
 	Run         Function
 	Marshallers map[EncodingType]Marshaller
+
+	// Type describes the type of the output of the Command's Run Function.
+	// Precisely, the value of Type is an instance of the return type of the
+	// Run Function.
+	//
+	// ie. If command Run returns &Block{}, then Command.Type == &Block{}
 	Type        interface{}
 	Subcommands map[string]*Command
 }
