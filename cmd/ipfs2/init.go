@@ -27,25 +27,25 @@ var initCmd = &cmds.Command{
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 
-		dspath, err := req.Option("d").String()
+		dspathOverride, _, err := req.Option("d").String() // if !found it's okay. Let == ""
 		if err != nil {
 			return nil, err
 		}
 
-		force, err := req.Option("f").Bool()
+		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
 		if err != nil {
 			return nil, err
 		}
 
-		nBitsForKeypair, err := req.Option("b").Int()
+		nBitsForKeypair, bitsOptFound, err := req.Option("b").Int()
 		if err != nil {
 			return nil, err
 		}
-		if !req.Option("b").Found() {
+		if !bitsOptFound {
 			nBitsForKeypair = 4096
 		}
 
-		return nil, doInit(req.Context().ConfigRoot, dspath, force, nBitsForKeypair)
+		return nil, doInit(req.Context().ConfigRoot, dspathOverride, force, nBitsForKeypair)
 	},
 }
 
