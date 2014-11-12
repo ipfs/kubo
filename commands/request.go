@@ -92,7 +92,7 @@ func (r *request) SetOption(name string, val interface{}) {
 
 	// try all the possible names, if we already have a value then set over it
 	for _, n := range option.Names {
-		val, found := r.options[n]
+		_, found := r.options[n]
 		if found {
 			r.options[n] = val
 			return
