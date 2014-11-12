@@ -23,6 +23,7 @@ const (
 
 type helpFields struct {
 	Indent      string
+	Usage       string
 	Path        string
 	ArgUsage    string
 	Tagline     string
@@ -32,7 +33,7 @@ type helpFields struct {
 	Description string
 }
 
-const usageFormat = "{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}"
+const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}{{end}}"
 
 const longHelpFormat = `
 {{.Indent}}{{template "usage" .}}
@@ -101,6 +102,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		pathStr += " " + strings.Join(path, " ")
 	}
 
+	// TODO: get the fields from the HelpText struct by default (when commands are ported to use it)
 	fields := helpFields{
 		Indent:      indentStr,
 		Path:        pathStr,
@@ -110,6 +112,17 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		Options:     cmd.OptionHelp,
 		Subcommands: cmd.SubcommandHelp,
 		Description: cmd.Help,
+	}
+
+	// TODO: don't do these checks, just use these fields by default (when commands get ported to it)
+	if len(cmd.Helptext.Tagline) > 0 {
+		fields.Tagline = cmd.Helptext.Tagline
+	}
+	if len(cmd.Helptext.ShortDescription) > 0 {
+		fields.Description = cmd.Helptext.ShortDescription
+	}
+	if len(cmd.Helptext.Usage) > 0 {
+		fields.Usage = cmd.Helptext.Subcommands
 	}
 
 	// autogen fields that are empty
@@ -149,6 +162,28 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		ArgUsage:    usageText(cmd),
 		Tagline:     cmd.Description,
 		Description: cmd.Help,
+	}
+
+	// TODO: don't do these checks, just use these fields by default (when commands get ported to it)
+	if len(cmd.Helptext.Tagline) > 0 {
+		fields.Tagline = cmd.Helptext.Tagline
+	}
+	if len(cmd.Helptext.Arguments) > 0 {
+		fields.Arguments = cmd.Helptext.Arguments
+	}
+	if len(cmd.Helptext.Options) > 0 {
+		fields.Options = cmd.Helptext.Options
+	}
+	if len(cmd.Helptext.Subcommands) > 0 {
+		fields.Subcommands = cmd.Helptext.Subcommands
+	}
+	if len(cmd.Helptext.LongDescription) > 0 {
+		fields.Description = cmd.Helptext.LongDescription
+	} else if len(cmd.Helptext.ShortDescription) > 0 {
+		fields.Description = cmd.Helptext.ShortDescription
+	}
+	if len(cmd.Helptext.Usage) > 0 {
+		fields.Usage = cmd.Helptext.Subcommands
 	}
 
 	fields.Description = indentString(fields.Description, indentStr)
