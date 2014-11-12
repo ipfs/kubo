@@ -10,7 +10,10 @@ godep:
 vendor: godep
 	godep save -r ./...
 
-# TODO remove ipfs2 once new command refactoring is complete
-install:
+# TODO revert to `install` once new command refactoring is complete
+install_1:
 	cd cmd/ipfs && go install
+
+# TODO remove once new command refactoring is complete
+install_2:
 	cd cmd/ipfs2 && go install
