@@ -52,10 +52,14 @@ not be listable, as it is virtual. Accessing known paths directly.
 		fsdone := mountIpfs(ctx.Node, fsdir)
 
 		// get default mount points
-		nsdir := ctx.Config.Mounts.IPNS
-		if req.Option("n").Found() {
-			nsdir, _ = req.Option("n").String()
+		nsdir, found, err := req.Option("n").String()
+		if err != nil {
+			return nil, err
 		}
+		if !found {
+			nsdir = ctx.Config.Mounts.IPNS // NB: be sure to not redeclare!
+		}
+
 		nsdone := mountIpns(ctx.Node, nsdir, fsdir)
 
 		// wait until mounts return an error (or timeout if successful)
