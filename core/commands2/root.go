@@ -14,7 +14,7 @@ type TestOutput struct {
 
 var Root = &cmds.Command{
 	Description: "Global P2P Merkle-DAG filesystem",
-	Help: `Basic commands:
+	SubcommandHelp: `Basic commands:
 
     init          Initialize ipfs local configurationx
     add <path>    Add an object to ipfs
