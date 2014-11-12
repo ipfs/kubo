@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 
@@ -28,6 +29,7 @@ type Request interface {
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
+	Cleanup() error
 
 	ConvertOptions() error
 }
@@ -117,6 +119,20 @@ func (r *request) SetContext(ctx Context) {
 
 func (r *request) Command() *Command {
 	return r.cmd
+}
+
+func (r *request) Cleanup() error {
+	for _, arg := range r.arguments {
+		closer, ok := arg.(io.Closer)
+		if ok {
+			err := closer.Close()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 type converter func(string) (interface{}, error)
