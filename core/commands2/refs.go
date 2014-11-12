@@ -34,8 +34,21 @@ Note: list all refs recursively with -r.`,
 	Run: func(req cmds.Request) (interface{}, error) {
 		n := req.Context().Node
 
-		unique, _ := req.Option("unique").Bool()
-		recursive, _ := req.Option("recursive").Bool()
+		unique, found, err := req.Option("unique").Bool()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			unique = false
+		}
+
+		recursive, found, err := req.Option("recursive").Bool()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			recursive = false
+		}
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
