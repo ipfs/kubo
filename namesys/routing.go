@@ -75,9 +75,11 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	hsh, _ := pk.Hash()
+	log.Debugf("pk hash = %s", u.Key(hsh))
 
 	// check sig with pk
-	if ok, err := pk.Verify(entry.GetValue(), entry.GetSignature()); err != nil || !ok {
+	if ok, err := pk.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
 		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pk)
 	}
 

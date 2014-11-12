@@ -1,6 +1,8 @@
 package namesys
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +15,12 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// ErrExpiredRecord should be returned when an ipns record is
+// invalid due to being too old
+var ErrExpiredRecord = errors.New("expired record")
+
+var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 
 // ipnsPublisher is capable of publishing and resolving names to the IPFS
 // routing system.
@@ -76,11 +84,48 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 
 func createRoutingEntryData(pk ci.PrivKey, val string) ([]byte, error) {
 	entry := new(pb.IpnsEntry)
-	sig, err := pk.Sign([]byte(val))
+
+	entry.Value = []byte(val)
+	typ := pb.IpnsEntry_EOL
+	entry.ValidityType = &typ
+	entry.Validity = []byte(time.Now().Add(time.Hour * 24).String())
+
+	sig, err := pk.Sign(ipnsEntryDataForSig(entry))
 	if err != nil {
 		return nil, err
 	}
 	entry.Signature = sig
-	entry.Value = []byte(val)
 	return proto.Marshal(entry)
+}
+
+func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
+	return bytes.Join([][]byte{
+		e.Value,
+		e.Validity,
+		[]byte(fmt.Sprint(e.GetValidityType())),
+	},
+		[]byte{})
+}
+
+func ValidateIpnsRecord(k u.Key, val []byte) error {
+	entry := new(pb.IpnsEntry)
+	err := proto.Unmarshal(val, entry)
+	if err != nil {
+		return err
+	}
+	switch entry.GetValidityType() {
+	case pb.IpnsEntry_EOL:
+		defaultTimeFormat := "2006-01-02 15:04:05.999999999 -0700 MST"
+		t, err := time.Parse(defaultTimeFormat, string(entry.GetValue()))
+		if err != nil {
+			log.Error("Failed parsing time for ipns record EOL")
+			return err
+		}
+		if time.Now().After(t) {
+			return ErrExpiredRecord
+		}
+	default:
+		return ErrUnrecognizedValidity
+	}
+	return nil
 }

@@ -96,11 +96,6 @@ func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
 	return fnc(u.Key(r.GetKey()), r.GetValue())
 }
 
-func ValidateIpnsRecord(k u.Key, val []byte) error {
-	// TODO:
-	return nil
-}
-
 func ValidatePublicKeyRecord(k u.Key, val []byte) error {
 	keyparts := bytes.Split([]byte(k), []byte("/"))
 	if len(keyparts) < 3 {

@@ -156,6 +156,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 		// setup routing service
 		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Peerstore, n.Network, dhtService, n.Datastore)
+		dhtRouting.Validators["ipns"] = namesys.ValidateIpnsRecord
+
 		// TODO(brian): perform this inside NewDHT factory method
 		dhtService.SetHandler(dhtRouting) // wire the handler to the service.
 		n.Routing = dhtRouting

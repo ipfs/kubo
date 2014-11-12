@@ -86,7 +86,6 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 	dht.birth = time.Now()
 
 	dht.Validators = make(map[string]ValidatorFunc)
-	dht.Validators["ipns"] = ValidateIpnsRecord
 	dht.Validators["pk"] = ValidatePublicKeyRecord
 
 	if doPinging {
