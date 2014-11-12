@@ -63,18 +63,17 @@ not be listable, as it is virtual. Accessing known paths directly.
 		nsdone := mountIpns(ctx.Node, nsdir, fsdir)
 
 		// wait until mounts return an error (or timeout if successful)
-		var err error
 		select {
-		case err = <-fsdone:
-		case err = <-nsdone:
+		case err := <-fsdone:
+			return nil, err
+		case err := <-nsdone:
+			return nil, err
 
 		// mounted successfully, we timed out with no errors
 		case <-time.After(mountTimeout):
 			output := ctx.Config.Mounts
 			return &output, nil
 		}
-
-		return nil, err
 	},
 	Type: &config.Mounts{},
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
