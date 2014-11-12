@@ -92,11 +92,12 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 	// handle parse error (which means the commandline input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if err != nil {
+		help, _ := req.Option("help").Bool()
+
 		// if the -help flag wasn't specified, show the error message
 		// or if a path was returned (user specified a valid subcommand), show the error message
 		// (this means there was an option or argument error)
 		if path != nil && len(path) > 0 {
-			help, _ := req.Option("help").Bool()
 			if !help {
 				fmt.Printf(errorFormat, err)
 			}
@@ -106,8 +107,13 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 			root = commands.Root
 		}
 
-		// generate the help text for the command the user was trying to call (or root)
-		htErr := cmdsCli.LongHelp("ipfs", root, path, os.Stdout)
+		// show the long help text if the help flag was specified, otherwise short help text
+		helpFunc := cmdsCli.ShortHelp
+		if help {
+			helpFunc = cmdsCli.LongHelp
+		}
+
+		htErr := helpFunc("ipfs", root, path, os.Stdout)
 		if htErr != nil {
 			fmt.Println(htErr)
 		}
@@ -210,7 +216,7 @@ func outputResponse(res cmds.Response, root *cmds.Command) error {
 
 		// if this is a client error, we try to display help text
 		if res.Error().Code == cmds.ErrClient {
-			err := cmdsCli.LongHelp("ipfs", root, res.Request().Path(), os.Stdout)
+			err := cmdsCli.ShortHelp("ipfs", root, res.Request().Path(), os.Stdout)
 			if err != nil {
 				fmt.Println(err)
 			}
