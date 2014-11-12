@@ -2,7 +2,9 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"strings"
+	"text/template"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
@@ -15,60 +17,104 @@ const (
 	optionType  = "(%v)"
 
 	whitespace = "\r\n\t "
+
+	indentStr = "    "
 )
 
-// HelpText returns a formatted CLI helptext string, generated for the given command
-func HelpText(rootName string, root *cmds.Command, path []string) (string, error) {
+type helpFields struct {
+	Indent      string
+	Path        string
+	ArgUsage    string
+	Tagline     string
+	Arguments   string
+	Options     string
+	Subcommands string
+	Description string
+}
+
+const usageFormat = "{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}"
+
+const longHelpFormat = `
+{{.Indent}}{{template "usage" .}}
+
+{{if .Arguments}}ARGUMENTS:
+
+{{.Indent}}{{.Arguments}}
+
+{{end}}{{if .Options}}OPTIONS:
+
+{{.Indent}}{{.Options}}
+
+{{end}}{{if .Subcommands}}SUBCOMMANDS:
+
+{{.Indent}}{{.Subcommands}}
+
+{{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
+
+{{end}}{{if .Description}}DESCRIPTION:
+
+{{.Indent}}{{.Description}}
+
+{{end}}
+`
+
+var longHelpTemplate *template.Template
+var usageTemplate *template.Template
+
+func init() {
+	tmpl, err := template.New("usage").Parse(usageFormat)
+	if err != nil {
+		panic(err)
+	}
+	usageTemplate = tmpl
+
+	tmpl, err = usageTemplate.New("longHelp").Parse(longHelpFormat)
+	if err != nil {
+		panic(err)
+	}
+	longHelpTemplate = tmpl
+}
+
+// LongHelp returns a formatted CLI helptext string, generated for the given command
+func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
 	cmd, err := root.Get(path)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	s := ""
-	usage := usageText(cmd)
-	if len(usage) > 0 {
-		usage += " "
-	}
-	s += fmt.Sprintf("%v %v %v- %v\n\n", rootName, strings.Join(path, " "), usage, cmd.Description)
-
-	if len(cmd.Help) > 0 {
-		s += fmt.Sprintf("%v\n\n", strings.Trim(cmd.Help, whitespace))
+	pathStr := rootName
+	if len(path) > 0 {
+		pathStr += " " + strings.Join(path, " ")
 	}
 
-	if cmd.Arguments != nil {
-		if len(cmd.ArgumentHelp) > 0 {
-			s += cmd.ArgumentHelp
-		} else {
-			section := strings.Join(indent(argumentText(cmd), "    "), "\n")
-			s += fmt.Sprintf("Arguments:\n%v", section)
-		}
-
-		s += "\n\n"
+	fields := helpFields{
+		Indent:      indentStr,
+		Path:        pathStr,
+		ArgUsage:    usageText(cmd),
+		Tagline:     cmd.Description,
+		Arguments:   cmd.ArgumentHelp,
+		Options:     cmd.OptionHelp,
+		Subcommands: cmd.SubcommandHelp,
+		Description: cmd.Help,
 	}
 
-	if cmd.Subcommands != nil {
-		if len(cmd.SubcommandHelp) > 0 {
-			s += cmd.SubcommandHelp
-		} else {
-			section := strings.Join(indent(subcommandText(cmd, rootName, path), "    "), "\n")
-			s += fmt.Sprintf("Subcommands:\n%v", section)
-		}
-
-		s += "\n\n"
+	// autogen fields that are empty
+	if len(cmd.ArgumentHelp) == 0 {
+		fields.Arguments = strings.Join(argumentText(cmd), "\n")
+	}
+	if len(cmd.OptionHelp) == 0 {
+		fields.Options = strings.Join(optionText(cmd), "\n")
+	}
+	if len(cmd.SubcommandHelp) == 0 {
+		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
 
-	if cmd.Options != nil {
-		if len(cmd.OptionHelp) > 0 {
-			s += cmd.OptionHelp
-		} else {
-			section := strings.Join(indent(optionText(cmd), "    "), "\n")
-			s += fmt.Sprintf("Options:\n%v", section)
-		}
+	fields.Arguments = indentString(fields.Arguments, indentStr)
+	fields.Options = indentString(fields.Options, indentStr)
+	fields.Subcommands = indentString(fields.Subcommands, indentStr)
+	fields.Description = indentString(fields.Description, indentStr)
 
-		s += "\n\n"
-	}
-
-	return s, nil
+	return longHelpTemplate.Execute(out, fields)
 }
 
 func argumentText(cmd *cmds.Command) []string {

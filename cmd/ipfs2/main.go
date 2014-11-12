@@ -107,11 +107,9 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 		}
 
 		// generate the help text for the command the user was trying to call (or root)
-		helpText, htErr := cmdsCli.HelpText("ipfs", root, path)
+		htErr := cmdsCli.LongHelp("ipfs", root, path, os.Stdout)
 		if htErr != nil {
 			fmt.Println(htErr)
-		} else {
-			fmt.Println(helpText)
 		}
 		return nil, nil, err
 	}
@@ -150,12 +148,10 @@ func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed b
 	if !help {
 		return false, nil
 	}
-	helpText, err := cmdsCli.HelpText("ipfs", root, req.Path())
+	err = cmdsCli.LongHelp("ipfs", root, req.Path(), os.Stdout)
 	if err != nil {
 		return false, err
 	}
-	fmt.Println(helpText)
-
 	return true, nil
 }
 
@@ -214,11 +210,9 @@ func outputResponse(res cmds.Response, root *cmds.Command) error {
 
 		// if this is a client error, we try to display help text
 		if res.Error().Code == cmds.ErrClient {
-			helpText, err := cmdsCli.HelpText("ipfs", root, res.Request().Path())
+			err := cmdsCli.LongHelp("ipfs", root, res.Request().Path(), os.Stdout)
 			if err != nil {
-				fmt.Println(err.Error())
-			} else {
-				fmt.Println(helpText)
+				fmt.Println(err)
 			}
 		}
 
