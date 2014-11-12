@@ -25,6 +25,7 @@ type HelpText struct {
 	// required
 	Tagline          string // used in <cmd usage>
 	ShortDescription string // used in DESCRIPTION
+	Synopsis         string // showcasing the cmd
 
 	// optional - whole section overrides
 	Usage           string // overrides USAGE section
