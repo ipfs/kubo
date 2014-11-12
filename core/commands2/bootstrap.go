@@ -1,13 +1,13 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
+	u "github.com/jbenet/go-ipfs/util"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 )
@@ -152,7 +152,7 @@ func bootstrapInputToPeers(input []interface{}) ([]*config.BootstrapPeer, error)
 	for _, v := range input {
 		addr, ok := v.(string)
 		if !ok {
-			return nil, errors.New("cast error")
+			return nil, u.ErrCast()
 		}
 
 		addrS, peeridS := split(addr)

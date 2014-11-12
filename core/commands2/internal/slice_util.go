@@ -1,18 +1,17 @@
 package internal
 
 import (
-	"errors"
 	"io"
-)
 
-var CastErr = errors.New("cast error")
+	u "github.com/jbenet/go-ipfs/util"
+)
 
 func CastToReaders(slice []interface{}) ([]io.Reader, error) {
 	readers := make([]io.Reader, 0)
 	for _, arg := range slice {
 		reader, ok := arg.(io.Reader)
 		if !ok {
-			return nil, CastErr
+			return nil, u.ErrCast()
 		}
 		readers = append(readers, reader)
 	}
@@ -24,7 +23,7 @@ func CastToStrings(slice []interface{}) ([]string, error) {
 	for _, maybe := range slice {
 		str, ok := maybe.(string)
 		if !ok {
-			return nil, CastErr
+			return nil, u.ErrCast()
 		}
 		strs = append(strs, str)
 	}

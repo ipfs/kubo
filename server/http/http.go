@@ -11,6 +11,7 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	core "github.com/jbenet/go-ipfs/core"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type handler struct {

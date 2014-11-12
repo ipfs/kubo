@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type optMap map[string]interface{}
@@ -176,7 +176,7 @@ func (r *request) ConvertOptions() error {
 				convert := converters[opt.Type]
 				str, ok := v.(string)
 				if !ok {
-					return errors.New("cast error")
+					return u.ErrCast()
 				}
 				val, err := convert(str)
 				if err != nil {
