@@ -27,7 +27,13 @@ var versionCmd = &cmds.Command{
 			v := res.Output().(*VersionOutput)
 			s := ""
 
-			number, _ := res.Request().Option("number").Bool()
+			number, found, err := res.Request().Option("number").Bool()
+			if err != nil {
+				return nil, err
+			}
+			if !found {
+				number = false
+			}
 
 			if !number {
 				s += "ipfs version "
