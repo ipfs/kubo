@@ -167,18 +167,18 @@ func (c *Command) CheckArguments(req Request) error {
 	}
 
 	// iterate over the arg definitions
-	j := 0
+	valueIndex := 0 // the index of the current value (in `args`)
 	for _, argDef := range c.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(args)-j <= numRequired && !argDef.Required {
+		if len(args)-valueIndex <= numRequired && !argDef.Required {
 			continue
 		}
 
 		// the value for this argument definition. can be nil if it wasn't provided by the caller
 		var v interface{}
-		if j < len(args) {
-			v = args[j]
-			j++
+		if valueIndex < len(args) {
+			v = args[valueIndex]
+			valueIndex++
 		}
 
 		err := checkArgValue(v, argDef)
@@ -187,8 +187,8 @@ func (c *Command) CheckArguments(req Request) error {
 		}
 
 		// any additional values are for the variadic arg definition
-		if argDef.Variadic && j < len(args)-1 {
-			for _, val := range args[j:] {
+		if argDef.Variadic && valueIndex < len(args)-1 {
+			for _, val := range args[valueIndex:] {
 				err := checkArgValue(val, argDef)
 				if err != nil {
 					return err
