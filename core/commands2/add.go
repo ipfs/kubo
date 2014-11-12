@@ -70,6 +70,7 @@ remains to be implemented.
 				return nil, err
 			}
 
+			log.Infof("adding file: %s", name)
 			if err := addDagnodes(dns); err != nil {
 				return nil, err
 			}
@@ -99,7 +100,6 @@ remains to be implemented.
 			}
 
 			log.Infof("adding dir: %s", name)
-
 			if err := addDagnodes([]*dag.Node{tree}); err != nil {
 				return nil, err
 			}
