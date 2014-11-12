@@ -20,6 +20,8 @@ import (
 // invalid due to being too old
 var ErrExpiredRecord = errors.New("expired record")
 
+// ErrUnrecognizedValidity is returned when an IpnsRecord has an
+// unknown validity type.
 var ErrUnrecognizedValidity = errors.New("unrecognized validity type")
 
 // ipnsPublisher is capable of publishing and resolving names to the IPFS
@@ -107,6 +109,8 @@ func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
 		[]byte{})
 }
 
+// ValidateIpnsRecord implements ValidatorFunc and verifies that the
+// given 'val' is an IpnsEntry and that that entry is valid.
 func ValidateIpnsRecord(k u.Key, val []byte) error {
 	entry := new(pb.IpnsEntry)
 	err := proto.Unmarshal(val, entry)

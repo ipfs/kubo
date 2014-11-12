@@ -14,9 +14,16 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// ValidatorFunc is a function that is called to validate a given
+// type of DHTRecord.
 type ValidatorFunc func(u.Key, []byte) error
 
+// ErrBadRecord is returned any time a dht record is found to be
+// incorrectly formatted or signed.
 var ErrBadRecord = errors.New("bad dht record")
+
+// ErrInvalidRecordType is returned if a DHTRecord keys prefix
+// is not found in the Validator map of the DHT.
 var ErrInvalidRecordType = errors.New("invalid record keytype")
 
 // creates and signs a dht record for the given key/value pair
@@ -96,6 +103,9 @@ func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
 	return fnc(u.Key(r.GetKey()), r.GetValue())
 }
 
+// ValidatePublicKeyRecord implements ValidatorFunc and
+// verifies that the passed in record value is the PublicKey
+// that matches the passed in key.
 func ValidatePublicKeyRecord(k u.Key, val []byte) error {
 	keyparts := bytes.Split([]byte(k), []byte("/"))
 	if len(keyparts) < 3 {
