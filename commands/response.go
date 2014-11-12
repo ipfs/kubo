@@ -108,12 +108,12 @@ func (r *response) Marshal() ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	if !r.req.Option(EncShort).Found() {
-		return nil, fmt.Errorf("No encoding type was specified")
-	}
-	enc, err := r.req.Option(EncShort).String()
+	enc, found, err := r.req.Option(EncShort).String()
 	if err != nil {
 		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("No encoding type was specified")
 	}
 	encType := EncodingType(strings.ToLower(enc))
 
