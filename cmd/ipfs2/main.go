@@ -48,7 +48,7 @@ func run() error {
 		return err
 	}
 
-	debug, err := req.Option("debug").Bool()
+	debug, _, err := req.Option("debug").Bool()
 	if err != nil {
 		return err
 	}
@@ -95,8 +95,15 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 		var longHelp, shortHelp bool
 
 		if req != nil {
-			longHelp, _ = req.Option("help").Bool()
-			shortHelp, _ = req.Option("h").Bool()
+			// help and h are defined in the root. We expect them to be bool.
+			longHelp, _, err = req.Option("help").Bool()
+			if err != nil {
+				return nil, nil, err
+			}
+			shortHelp, _, err = req.Option("h").Bool()
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
 		// if the -help flag wasn't specified, show the error message
@@ -153,11 +160,11 @@ func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
 }
 
 func handleHelpOption(req cmds.Request, root *cmds.Command) (helpTextDisplayed bool, err error) {
-	longHelp, err := req.Option("help").Bool()
+	longHelp, _, err := req.Option("help").Bool()
 	if err != nil {
 		return false, err
 	}
-	shortHelp, err := req.Option("h").Bool()
+	shortHelp, _, err := req.Option("h").Bool()
 	if err != nil {
 		return false, err
 	}
@@ -183,12 +190,14 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		res = root.Call(req)
 
 	} else {
-		local, err := req.Option("local").Bool()
+		local, found, err := req.Option("local").Bool()
 		if err != nil {
 			return nil, err
 		}
 
-		if (!req.Option("local").Found() || !local) && daemon.Locked(req.Context().ConfigRoot) {
+		remote := !found || !local
+
+		if remote && daemon.Locked(req.Context().ConfigRoot) {
 			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
 			if err != nil {
 				return nil, err
@@ -251,11 +260,11 @@ func outputResponse(res cmds.Response, root *cmds.Command) error {
 }
 
 func getConfigRoot(req cmds.Request) (string, error) {
-	configOpt, err := req.Option("config").String()
+	configOpt, found, err := req.Option("config").String()
 	if err != nil {
 		return "", err
 	}
-	if configOpt != "" {
+	if found && configOpt != "" {
 		return configOpt, nil
 	}
 
