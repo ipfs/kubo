@@ -263,12 +263,18 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 }
 
 func isClientError(err error) bool {
+
+	// Somewhat suprisingly, the pointer cast fails to recognize commands.Error
+	// passed as values, so we check both.
+
 	// cast to cmds.Error
-	cmdErr, ok := err.(*cmds.Error)
-	if !ok {
-		return false
+	switch e := err.(type) {
+	case *cmds.Error:
+		return e.Code == cmds.ErrClient
+	case cmds.Error:
+		return e.Code == cmds.ErrClient
 	}
-	return cmdErr.Code == cmds.ErrClient
+	return false
 }
 
 func getConfigRoot(req cmds.Request) (string, error) {
