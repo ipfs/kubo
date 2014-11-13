@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 
@@ -45,12 +46,17 @@ IPFS very quickly. To start, run:
 			return nil, err
 		}
 
-		topic := tour.TopicID(cfg.Tour.Last)
+		id := tour.TopicID(cfg.Tour.Last)
 		if len(strs) > 0 {
-			topic = tour.TopicID(strs[0])
+			id = tour.TopicID(strs[0])
 		}
 
-		err = tourShow(out, topic)
+		t, err := tourGet(id)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tourShow(out, t)
 		if err != nil {
 			return nil, err
 		}
@@ -72,14 +78,18 @@ var cmdIpfsTourNext = &cmds.Command{
 			return nil, err
 		}
 
-		topic := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
+		id := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
+		topic, err := tourGet(id)
+		if err != nil {
+			return nil, err
+		}
 		if err := tourShow(&w, topic); err != nil {
 			return nil, err
 		}
 
 		// topic changed, not last. write it out.
-		if string(topic) != cfg.Tour.Last {
-			cfg.Tour.Last = string(topic)
+		if string(id) != cfg.Tour.Last {
+			cfg.Tour.Last = string(id)
 			err := writeConfig(path, cfg)
 			if err != nil {
 				return nil, err
@@ -147,14 +157,25 @@ func tourListCmd(w io.Writer, cfg *config.Config) {
 	}
 }
 
-func tourShow(w io.Writer, id tour.ID) error {
+func tourShow(w io.Writer, t *tour.Topic) error {
+	tmpl := `
+Tour {{ .ID }} - {{ .Title }}
+
+{{ .Text }}
+	`
+	ttempl, err := template.New("tour").Parse(tmpl)
+	if err != nil {
+		return err
+	}
+	return ttempl.Execute(w, t)
+}
+
+func tourGet(id tour.ID) (*tour.Topic, error) {
 	t, found := tour.Topics[id]
 	if !found {
-		return fmt.Errorf("no topic with id: %s", id)
+		return nil, fmt.Errorf("no topic with id: %s", id)
 	}
-
-	fmt.Fprintf(w, "Tour %s - %s\n\n%s\n", t.ID, t.Title, t.Text)
-	return nil
+	return &t, nil
 }
 
 // TODO share func
