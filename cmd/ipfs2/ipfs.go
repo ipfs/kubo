@@ -8,9 +8,23 @@ import (
 var Root = &cmds.Command{
 	Options: commands.Root.Options,
 	Help:    commands.Root.Help,
-	Subcommands: map[string]*cmds.Command{
-		"daemon": daemonCmd, // TODO name
-		"init":   initCmd,   // TODO name
-		"tour":   cmdTour,
-	},
+}
+
+var rootSubcommands = map[string]*cmds.Command{
+	"daemon": daemonCmd, // TODO name
+	"init":   initCmd,   // TODO name
+	"tour":   cmdTour,
+}
+
+func init() {
+	// setting here instead of in literal to prevent initialization loop
+	// (some commands make references to Root)
+	Root.Subcommands = rootSubcommands
+
+	// copy all subcommands from commands.Root into this root (if they aren't already present)
+	for k, v := range commands.Root.Subcommands {
+		if _, found := Root.Subcommands[k]; !found {
+			Root.Subcommands[k] = v
+		}
+	}
 }
