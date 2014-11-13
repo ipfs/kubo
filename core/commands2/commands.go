@@ -1,7 +1,8 @@
 package commands
 
 import (
-	"fmt"
+	"bytes"
+	"sort"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
@@ -21,21 +22,24 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		},
 
 		Run: func(req cmds.Request) (interface{}, error) {
-			root := outputCommand("ipfs", root)
+			root := cmd2outputCmd("ipfs", root)
 			return &root, nil
 		},
 		Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 			cmds.Text: func(res cmds.Response) ([]byte, error) {
 				v := res.Output().(*Command)
-				s := formatCommand("", v)
-				return []byte(s), nil
+				var buf bytes.Buffer
+				for _, s := range cmdPathStrings(v) {
+					buf.Write([]byte(s + "\n"))
+				}
+				return buf.Bytes(), nil
 			},
 		},
 		Type: &Command{},
 	}
 }
 
-func outputCommand(name string, cmd *cmds.Command) Command {
+func cmd2outputCmd(name string, cmd *cmds.Command) Command {
 	output := Command{
 		Name:        name,
 		Subcommands: make([]Command, len(cmd.Subcommands)),
@@ -43,23 +47,25 @@ func outputCommand(name string, cmd *cmds.Command) Command {
 
 	i := 0
 	for name, sub := range cmd.Subcommands {
-		output.Subcommands[i] = outputCommand(name, sub)
+		output.Subcommands[i] = cmd2outputCmd(name, sub)
 		i++
 	}
 
 	return output
 }
 
-func formatCommand(prefix string, cmd *Command) string {
-	if len(prefix) > 0 {
-		prefix += " "
-	}
-	s := fmt.Sprintf("%s%s\n", prefix, cmd.Name)
+func cmdPathStrings(cmd *Command) []string {
+	var cmds []string
 
-	prefix += cmd.Name
-	for _, sub := range cmd.Subcommands {
-		s += formatCommand(prefix, &sub)
+	var recurse func(prefix string, cmd *Command)
+	recurse = func(prefix string, cmd *Command) {
+		cmds = append(cmds, prefix+cmd.Name)
+		for _, sub := range cmd.Subcommands {
+			recurse(prefix+cmd.Name+" ", &sub)
+		}
 	}
 
-	return s
+	recurse("", cmd)
+	sort.Sort(sort.StringSlice(cmds))
+	return cmds
 }
