@@ -10,10 +10,13 @@ import (
 )
 
 var catCmd = &cmds.Command{
-	Description: "Show IPFS object data",
-	Help: `Retrieves the object named by <ipfs-path> and outputs the data
+	Helptext: cmds.HelpText{
+		Tagline: "Show IPFS object data",
+		ShortDescription: `
+Retrieves the object named by <ipfs-path> and outputs the data
 it contains.
-	`,
+`,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted"),

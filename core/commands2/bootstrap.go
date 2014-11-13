@@ -19,9 +19,11 @@ type BootstrapOutput struct {
 var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multiaddr>/<peerID>')"
 
 var bootstrapCmd = &cmds.Command{
-	Description: "Show or edit the list of bootstrap peers",
-	Help: `Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
+	Helptext: cmds.HelpText{
+		Tagline: "Show or edit the list of bootstrap peers",
+		ShortDescription: `Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 ` + bootstrapSecurityWarning,
+	},
 
 	Run:         bootstrapListCmd.Run,
 	Marshallers: bootstrapListCmd.Marshallers,
@@ -35,10 +37,12 @@ var bootstrapCmd = &cmds.Command{
 }
 
 var bootstrapAddCmd = &cmds.Command{
-	Description: "Add peers to the bootstrap list",
-	Help: `Outputs a list of peers that were added (that weren't already
+	Helptext: cmds.HelpText{
+		Tagline: "Add peers to the bootstrap list",
+		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).
 ` + bootstrapSecurityWarning,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peer", true, true, peerOptionDesc),
@@ -81,9 +85,11 @@ in the bootstrap list).
 }
 
 var bootstrapRemoveCmd = &cmds.Command{
-	Description: "Removes peers from the bootstrap list",
-	Help: `Outputs the list of peers that were removed.
+	Helptext: cmds.HelpText{
+		Tagline: "Removes peers from the bootstrap list",
+		ShortDescription: `Outputs the list of peers that were removed.
 ` + bootstrapSecurityWarning,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peer", true, true, peerOptionDesc),
@@ -126,9 +132,10 @@ var bootstrapRemoveCmd = &cmds.Command{
 }
 
 var bootstrapListCmd = &cmds.Command{
-	Description: "Show peers in the bootstrap list",
-	Help: `Peers are output in the format '<multiaddr>/<peerID>'.
-`,
+	Helptext: cmds.HelpText{
+		Tagline:          "Show peers in the bootstrap list",
+		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		cfg, err := req.Context().GetConfig()

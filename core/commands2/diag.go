@@ -37,11 +37,14 @@ var diagCmd = &cmds.Command{
 }
 
 var diagNetCmd = &cmds.Command{
-	Description: "Generates a network diagnostics report",
-	Help: `Sends out a message to each node in the network recursively
+	Helptext: cmds.HelpText{
+		Tagline: "Generates a network diagnostics report",
+		ShortDescription: `
+Sends out a message to each node in the network recursively
 requesting a listing of data about them including number of
 connected peers and latencies between them.
 `,
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()

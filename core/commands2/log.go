@@ -8,10 +8,13 @@ import (
 )
 
 var logCmd = &cmds.Command{
-	Description: "Change the logging level",
-	Help: `'ipfs log' is a utility command used to change the logging
+	Helptext: cmds.HelpText{
+		Tagline: "Change the logging level",
+		ShortDescription: `
+'ipfs log' is a utility command used to change the logging
 output of a running daemon.
 `,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("subsystem", true, false, "the subsystem logging identifier. Use * for all subsystems."),

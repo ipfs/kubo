@@ -21,10 +21,15 @@ type Block struct {
 }
 
 var blockCmd = &cmds.Command{
-	Description: "Manipulate raw IPFS blocks",
-	Help: `'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
+	Helptext: cmds.HelpText{
+		Tagline: "Manipulate raw IPFS blocks",
+		ShortDescription: `
+'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
 Reads from stdin or writes to stdout, and <key> is a base58 encoded
-multihash.`,
+multihash.
+`,
+	},
+
 	Subcommands: map[string]*cmds.Command{
 		"get": blockGetCmd,
 		"put": blockPutCmd,
@@ -32,9 +37,13 @@ multihash.`,
 }
 
 var blockGetCmd = &cmds.Command{
-	Description: "Get a raw IPFS block",
-	Help: `ipfs block get is a plumbing command for retreiving raw ipfs blocks.
-It outputs to stdout, and <key> is a base58 encoded multihash.`,
+	Helptext: cmds.HelpText{
+		Tagline: "Get a raw IPFS block",
+		ShortDescription: `
+'ipfs block get' is a plumbing command for retreiving raw ipfs blocks.
+It outputs to stdout, and <key> is a base58 encoded multihash.
+`,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get"),

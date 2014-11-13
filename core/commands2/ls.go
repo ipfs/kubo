@@ -23,12 +23,15 @@ type LsOutput struct {
 }
 
 var lsCmd = &cmds.Command{
-	Description: "List links from an object.",
-	Help: `Retrieves the object named by <ipfs-path> and displays the links
+	Helptext: cmds.HelpText{
+		Tagline: "List links from an object.",
+		ShortDescription: `
+Retrieves the object named by <ipfs-path> and displays the links
 it contains, with the following format:
 
   <link base58 hash> <link size in bytes> <link name>
 `,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", false, true, "The path to the IPFS object(s) to list links from"),
