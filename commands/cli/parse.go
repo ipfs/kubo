@@ -109,8 +109,6 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 }
 
 func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
-	args := make([]interface{}, 0)
-
 	// count required argument definitions
 	lenRequired := 0
 	for _, argDef := range cmd.Arguments {
@@ -118,6 +116,8 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 			lenRequired++
 		}
 	}
+
+	args := make([]interface{}, len(stringArgs))
 
 	valueIndex := 0 // the index of the current stringArgs value
 	for _, argDef := range cmd.Arguments {
@@ -134,39 +134,36 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 
 		if argDef.Variadic {
 			for _, arg := range stringArgs[valueIndex:] {
-				var err error
-				args, err = appendArg(args, argDef, arg)
+				value, err := argValue(argDef, arg)
 				if err != nil {
 					return nil, err
 				}
+				args[valueIndex] = value
 				valueIndex++
 			}
 		} else {
 			var err error
-			args, err = appendArg(args, argDef, stringArgs[valueIndex])
+			value, err := argValue(argDef, stringArgs[valueIndex])
 			if err != nil {
 				return nil, err
 			}
+			args[valueIndex] = value
 			valueIndex++
 		}
-	}
-
-	if len(stringArgs)-valueIndex > 0 {
-		args = append(args, make([]interface{}, len(stringArgs)-valueIndex))
 	}
 
 	return args, nil
 }
 
-func appendArg(args []interface{}, argDef cmds.Argument, value string) ([]interface{}, error) {
+func argValue(argDef cmds.Argument, value string) (interface{}, error) {
 	if argDef.Type == cmds.ArgString {
-		return append(args, value), nil
+		return value, nil
 
 	} else {
 		in, err := os.Open(value) // FIXME(btc) must close file. fix before merge
 		if err != nil {
 			return nil, err
 		}
-		return append(args, in), nil
+		return in, nil
 	}
 }
