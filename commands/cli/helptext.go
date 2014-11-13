@@ -113,23 +113,9 @@ var longHelpTemplate *template.Template
 var shortHelpTemplate *template.Template
 
 func init() {
-	tmpl, err := template.New("usage").Parse(usageFormat)
-	if err != nil {
-		panic(err)
-	}
-	usageTemplate = tmpl
-
-	tmpl, err = usageTemplate.New("longHelp").Parse(longHelpFormat)
-	if err != nil {
-		panic(err)
-	}
-	longHelpTemplate = tmpl
-
-	tmpl, err = usageTemplate.New("shortHelp").Parse(shortHelpFormat)
-	if err != nil {
-		panic(err)
-	}
-	shortHelpTemplate = tmpl
+	usageTemplate = template.Must(template.New("usage").Parse(usageFormat))
+	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(longHelpFormat))
+	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(shortHelpFormat))
 }
 
 // LongHelp returns a formatted CLI helptext string, generated for the given command
