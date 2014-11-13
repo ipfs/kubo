@@ -65,9 +65,9 @@ type Command struct {
 }
 
 // ErrNotCallable signals a command that cannot be called.
-var ErrNotCallable = errors.New("This command can't be called directly. Try one of its subcommands.")
+var ErrNotCallable = ClientError("This command can't be called directly. Try one of its subcommands.")
 
-var ErrNoFormatter = errors.New("This command cannot be formatted to plain text")
+var ErrNoFormatter = ClientError("This command cannot be formatted to plain text")
 
 var ErrIncorrectType = errors.New("The command returned a value with a different type than expected")
 
@@ -275,4 +275,8 @@ func checkArgValue(v interface{}, def Argument) error {
 	}
 
 	return nil
+}
+
+func ClientError(msg string) error {
+	return &Error{Code: ErrClient, Message: msg}
 }
