@@ -29,10 +29,10 @@ not be listable, as it is virtual. Accessing known paths directly.
 
 	Options: []cmds.Option{
 		// TODO longform
-		cmds.StringOption("f", "The path where IPFS should be mounted\n(default is '/ipfs')"),
+		cmds.StringOption("f", "The path where IPFS should be mounted"),
 
 		// TODO longform
-		cmds.StringOption("n", "The path where IPNS should be mounted\n(default is '/ipns')"),
+		cmds.StringOption("n", "The path where IPNS should be mounted"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		cfg, err := req.Context().GetConfig()
