@@ -13,13 +13,16 @@ var Root = &cmds.Command{
 	Helptext: commands.Root.Helptext,
 }
 
+// commandsClientCmd is the "ipfs commands" command for local cli
+var commandsClientCmd = commands.CommandsCmd(Root)
+
 // Commands in localCommands should always be run locally (even if daemon is running).
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
 var localCommands = map[string]*cmds.Command{
-	"daemon":   daemonCmd, // TODO name
-	"init":     initCmd,   // TODO name
-	"tour":     cmdTour,
-	"commands": commands.CommandsCmd(Root),
+	"daemon":   daemonCmd,
+	"init":     initCmd,
+	"tour":     tourCmd,
+	"commands": commandsClientCmd,
 }
 var localMap = make(map[*cmds.Command]bool)
 
@@ -44,4 +47,25 @@ func init() {
 func isLocal(cmd *cmds.Command) bool {
 	_, found := localMap[cmd]
 	return found
+}
+
+type cmdDetails struct {
+	cannotRunOnClient bool
+	cannotRunOnDaemon bool
+	doesNotUseRepo    bool
+}
+
+// "What is this madness!?" you ask. Our commands have the unfortunate problem of
+// not being able to run on all the same contexts. This map describes these
+// properties so that other code can make decisions about whether to invoke a
+// command or return an error to the user.
+var cmdDetailsMap = map[*cmds.Command]cmdDetails{
+	initCmd:                    cmdDetails{cannotRunOnDaemon: true, doesNotUseRepo: true},
+	daemonCmd:                  cmdDetails{cannotRunOnDaemon: true},
+	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
+	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
+	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
+	commands.VersionCmd:        cmdDetails{doesNotUseRepo: true},
+	commands.UpdateCmd:         cmdDetails{cannotRunOnDaemon: true},
+	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
 }

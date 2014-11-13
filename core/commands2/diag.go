@@ -28,7 +28,7 @@ type DiagnosticOutput struct {
 	Peers []DiagnosticPeer
 }
 
-var diagCmd = &cmds.Command{
+var DiagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Generates diagnostic reports",
 	},
