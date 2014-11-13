@@ -15,38 +15,36 @@ var ErrInvalidSubcmd = errors.New("subcommand not found")
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 // Parse will search each root to find the one that best matches the requested subcommand.
-// TODO: get rid of extraneous return values (e.g. we ended up not needing the root value anymore)
-// TODO: get rid of multiple-root support, we should only need one now
-func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, []string, error) {
+func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
 	// use the root that matches the longest path (most accurately matches request)
 	path, input, cmd := parsePath(input, root)
 	opts, stringArgs, err := parseOptions(input)
 	if err != nil {
-		return nil, root, cmd, path, err
+		return nil, cmd, path, err
 	}
 
 	if len(path) == 0 {
-		return nil, root, nil, path, ErrInvalidSubcmd
+		return nil, nil, path, ErrInvalidSubcmd
 	}
 
 	args, err := parseArgs(stringArgs, cmd)
 	if err != nil {
-		return nil, root, cmd, path, err
+		return nil, cmd, path, err
 	}
 
 	optDefs, err := root.GetOptions(path)
 	if err != nil {
-		return nil, root, cmd, path, err
+		return nil, cmd, path, err
 	}
 
 	req := cmds.NewRequest(path, opts, args, cmd, optDefs)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
-		return req, root, cmd, path, err
+		return req, cmd, path, err
 	}
 
-	return req, root, cmd, path, nil
+	return req, cmd, path, nil
 }
 
 // parsePath separates the command path and the opts and args from a command string
