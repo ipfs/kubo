@@ -103,11 +103,12 @@ func (c *Command) Call(req Request) Response {
 	if err != nil {
 		// if returned error is a commands.Error, use its error code
 		// otherwise, just default the code to ErrNormal
-		var e Error
-		e, ok := err.(Error)
-		if ok {
+		switch e := err.(type) {
+		case *Error:
 			res.SetError(e, e.Code)
-		} else {
+		case Error:
+			res.SetError(e, e.Code)
+		default:
 			res.SetError(err, ErrNormal)
 		}
 		return res
