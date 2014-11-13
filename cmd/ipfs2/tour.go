@@ -162,7 +162,8 @@ func tourShow(w io.Writer, t *tour.Topic) error {
 Tour {{ .ID }} - {{ .Title }}
 
 {{ .Text }}
-	`
+
+`
 	ttempl, err := template.New("tour").Parse(tmpl)
 	if err != nil {
 		return err
