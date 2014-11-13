@@ -281,7 +281,7 @@ func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error
 		return false, fmt.Errorf("command disabled: %s", path[0])
 	}
 
-	if details.doesNotUseRepo && !details.cannotRunOnClient {
+	if details.doesNotUseRepo && details.canRunOnClient() {
 		return false, nil
 	}
 

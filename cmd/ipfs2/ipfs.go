@@ -55,6 +55,10 @@ type cmdDetails struct {
 	doesNotUseRepo    bool
 }
 
+func (d *cmdDetails) canRunOnClient() bool { return !d.cannotRunOnClient }
+func (d *cmdDetails) canRunOnDaemon() bool { return !d.cannotRunOnDaemon }
+func (d *cmdDetails) usesRepo() bool       { return !d.doesNotUseRepo }
+
 // "What is this madness!?" you ask. Our commands have the unfortunate problem of
 // not being able to run on all the same contexts. This map describes these
 // properties so that other code can make decisions about whether to invoke a
