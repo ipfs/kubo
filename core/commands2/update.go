@@ -15,9 +15,10 @@ type UpdateOutput struct {
 }
 
 var updateCmd = &cmds.Command{
-	Description: "Downloads and installs updates for IPFS",
-	Help: `ipfs update is a utility command used to check for updates and apply them.
-`,
+	Helptext: cmds.HelpText{
+		Tagline:          "Downloads and installs updates for IPFS",
+		ShortDescription: "ipfs update is a utility command used to check for updates and apply them.",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
@@ -47,11 +48,14 @@ var updateCmd = &cmds.Command{
 }
 
 var updateCheckCmd = &cmds.Command{
-	Description: "Checks if updates are available",
-	Help: `'ipfs update check' checks if any updates are available for IPFS.
+	Helptext: cmds.HelpText{
+		Tagline: "Checks if updates are available",
+		ShortDescription: `
+'ipfs update check' checks if any updates are available for IPFS.
 
 Nothing will be downloaded or installed.
 `,
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
@@ -77,9 +81,10 @@ Nothing will be downloaded or installed.
 }
 
 var updateLogCmd = &cmds.Command{
-	Description: "List the changelog for the latest versions of IPFS",
-	Help: `This command is not yet implemented.
-`,
+	Helptext: cmds.HelpText{
+		Tagline:          "List the changelog for the latest versions of IPFS",
+		ShortDescription: "This command is not yet implemented.",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
