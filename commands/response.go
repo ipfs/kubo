@@ -40,7 +40,7 @@ const (
 	// TODO: support more encoding types
 )
 
-var marshallers = map[EncodingType]Marshaller{
+var marshallers = map[EncodingType]Marshaler{
 	JSON: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
 			return json.MarshalIndent(res.Error(), "", "  ")
@@ -69,7 +69,7 @@ type Response interface {
 	Output() interface{}
 
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
-	// on the Request to chose a Marshaller (Codec).
+	// on the Request to chose a Marshaler (Codec).
 	Marshal() ([]byte, error)
 
 	// Gets a io.Reader that reads the marshalled output
@@ -122,9 +122,9 @@ func (r *response) Marshal() ([]byte, error) {
 		return []byte(r.Error().Error()), nil
 	}
 
-	var marshaller Marshaller
-	if r.req.Command() != nil && r.req.Command().Marshallers != nil {
-		marshaller = r.req.Command().Marshallers[encType]
+	var marshaller Marshaler
+	if r.req.Command() != nil && r.req.Command().Marshalers != nil {
+		marshaller = r.req.Command().Marshalers[encType]
 	}
 	if marshaller == nil {
 		var ok bool

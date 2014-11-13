@@ -21,7 +21,7 @@ var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multi
 var bootstrapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show or edit the list of bootstrap peers",
-    Synopsis: `
+		Synopsis: `
 ipfs bootstrap list             - Show peers in the bootstrap list
 ipfs bootstrap add <peer>...    - Add peers to the bootstrap list
 ipfs bootstrap remove <peer>... - Removes peers from the bootstrap list
@@ -31,9 +31,9 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 ` + bootstrapSecurityWarning,
 	},
 
-	Run:         bootstrapListCmd.Run,
-	Marshallers: bootstrapListCmd.Marshallers,
-	Type:        bootstrapListCmd.Type,
+	Run:        bootstrapListCmd.Run,
+	Marshalers: bootstrapListCmd.Marshalers,
+	Type:       bootstrapListCmd.Type,
 
 	Subcommands: map[string]*cmds.Command{
 		"list":   bootstrapListCmd,
@@ -77,11 +77,11 @@ in the bootstrap list).
 		return &BootstrapOutput{added}, nil
 	},
 	Type: &BootstrapOutput{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*BootstrapOutput)
 			s := fmt.Sprintf("Added %v peers to the bootstrap list:\n", len(v.Peers))
-			marshalled, err := bootstrapMarshaller(res)
+			marshalled, err := bootstrapMarshaler(res)
 			if err != nil {
 				return nil, err
 			}
@@ -124,11 +124,11 @@ var bootstrapRemoveCmd = &cmds.Command{
 		return &BootstrapOutput{removed}, nil
 	},
 	Type: &BootstrapOutput{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*BootstrapOutput)
 			s := fmt.Sprintf("Removed %v peers from the bootstrap list:\n", len(v.Peers))
-			marshalled, err := bootstrapMarshaller(res)
+			marshalled, err := bootstrapMarshaler(res)
 			if err != nil {
 				return nil, err
 			}
@@ -153,12 +153,12 @@ var bootstrapListCmd = &cmds.Command{
 		return &BootstrapOutput{peers}, nil
 	},
 	Type: &BootstrapOutput{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
-		cmds.Text: bootstrapMarshaller,
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: bootstrapMarshaler,
 	},
 }
 
-func bootstrapMarshaller(res cmds.Response) ([]byte, error) {
+func bootstrapMarshaler(res cmds.Response) ([]byte, error) {
 	v, ok := res.Output().(*BootstrapOutput)
 	if !ok {
 		return nil, u.ErrCast()

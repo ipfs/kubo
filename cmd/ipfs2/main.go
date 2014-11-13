@@ -177,7 +177,7 @@ func (i *cmdInvocation) Parse(args []string) error {
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
 	if !i.req.Option("encoding").Found() {
-		if i.req.Command().Marshallers != nil && i.req.Command().Marshallers[cmds.Text] != nil {
+		if i.req.Command().Marshalers != nil && i.req.Command().Marshalers[cmds.Text] != nil {
 			i.req.SetOption("encoding", cmds.Text)
 		} else {
 			i.req.SetOption("encoding", cmds.JSON)

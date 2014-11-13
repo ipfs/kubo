@@ -150,7 +150,7 @@ This command outputs data in the following encodings:
 		return node, nil
 	},
 	Type: &Node{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.EncodingType("protobuf"): func(res cmds.Response) ([]byte, error) {
 			object := res.Output().(*dag.Node)
 			return object.Marshal()

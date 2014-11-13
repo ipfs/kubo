@@ -16,9 +16,13 @@ var log = u.Logger("command")
 // It reads from the Request, and writes results to the Response.
 type Function func(Request) (interface{}, error)
 
-// Marshaller is a function that takes in a Response, and returns a marshalled []byte
+// Marshaler is a function that takes in a Response, and returns a marshalled []byte
 // (or an error on failure)
-type Marshaller func(Response) ([]byte, error)
+type Marshaler func(Response) ([]byte, error)
+
+// MarshalerMap is a map of Marshaler functions, keyed by EncodingType
+// (or an error on failure)
+type MarshalerMap map[EncodingType]Marshaler
 
 // HelpText is a set of strings used to generate command help text. The help
 // text follows formats similar to man pages, but not exactly the same.
@@ -45,11 +49,11 @@ type HelpText struct {
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	Options     []Option
-	Arguments   []Argument
-	Run         Function
-	Marshallers map[EncodingType]Marshaller
-	Helptext    HelpText
+	Options    []Option
+	Arguments  []Argument
+	Run        Function
+	Marshalers map[EncodingType]Marshaler
+	Helptext   HelpText
 
 	// Type describes the type of the output of the Command's Run Function.
 	// In precise terms, the value of Type is an instance of the return type of

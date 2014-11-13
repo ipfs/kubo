@@ -80,7 +80,7 @@ Set the value of the 'datastore.path' key:
 			return getConfig(filename, key)
 		}
 	},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			if len(res.Request().Arguments()) == 2 {
 				return nil, nil // dont output anything

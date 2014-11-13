@@ -49,8 +49,8 @@ output of a running daemon.
 		log.Info(s)
 		return &MessageOutput{s}, nil
 	},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
-		cmds.Text: MessageTextMarshaller,
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: MessageTextMarshaler,
 	},
 	Type: &MessageOutput{},
 }

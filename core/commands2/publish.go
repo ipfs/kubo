@@ -78,7 +78,7 @@ Publish a <ref> to another public key:
 		k := n.Identity.PrivKey()
 		return publish(n, k, ref)
 	},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*IpnsEntry)
 			s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)

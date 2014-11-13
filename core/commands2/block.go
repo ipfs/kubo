@@ -121,7 +121,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		}, nil
 	},
 	Type: &Block{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			block := res.Output().(*Block)
 			s := fmt.Sprintf("Block added (%v bytes): %s\n", block.Length, block.Key)
