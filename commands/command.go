@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -64,6 +65,8 @@ var ErrNotCallable = errors.New("This command can't be called directly. Try one 
 
 var ErrNoFormatter = errors.New("This command cannot be formatted to plain text")
 
+var ErrIncorrectType = errors.New("The command returned a value with a different type than expected")
+
 // Call invokes the command for the given Request
 func (c *Command) Call(req Request) Response {
 	res := NewResponse(req)
@@ -104,6 +107,17 @@ func (c *Command) Call(req Request) Response {
 			res.SetError(err, ErrNormal)
 		}
 		return res
+	}
+
+	// If the command specified an output type, ensure the actual value returned is of that type
+	if cmd.Type != nil {
+		definedType := reflect.ValueOf(cmd.Type).Type()
+		actualType := reflect.ValueOf(output).Type()
+
+		if definedType != actualType {
+			res.SetError(ErrIncorrectType, ErrNormal)
+			return res
+		}
 	}
 
 	// clean up the request (close the readers, e.g. fileargs)
