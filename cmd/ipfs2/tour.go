@@ -53,7 +53,7 @@ IPFS very quickly. To start, run:
 
 		t, err := tourGet(id)
 		if err != nil {
-			return nil, err
+			return nil, cmds.ClientError(err.Error())
 		}
 
 		err = tourShow(out, t)
