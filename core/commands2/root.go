@@ -13,8 +13,10 @@ type TestOutput struct {
 }
 
 var Root = &cmds.Command{
-	Description: "Global P2P Merkle-DAG filesystem",
-	SubcommandHelp: `Basic commands:
+	Helptext: cmds.HelpText{
+		Tagline: "Global P2P Merkle-DAG filesystem",
+		ShortDescription: `
+Basic commands:
 
     init          Initialize ipfs local configurationx
     add <path>    Add an object to ipfs
@@ -39,7 +41,7 @@ Plumbing commands:
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
 `,
-
+	},
 	Options: []cmds.Option{
 		cmds.StringOption("config", "c", "Path to the configuration file to use"),
 		cmds.BoolOption("debug", "D", "Operate in debug mode"),

@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// parse the commandline into a command invocation
-	err = invoc.Parse(os.Args[1:])
+	parseErr := invoc.Parse(os.Args[1:])
 
 	// BEFORE handling the parse error, if we have enough information
 	// AND the user requested help, print it out and exit
@@ -84,10 +84,18 @@ func main() {
 		}
 	}
 
-	// ok now handle handle parse error (which means cli input was wrong,
+	// here we handle the cases where
+	// - commands with no Run func are invoked directly.
+	// - the main command is invoked.
+	if invoc.cmd == nil || invoc.cmd.Run == nil {
+		printHelp(false)
+		os.Exit(0)
+	}
+
+	// ok now handle parse error (which means cli input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
-	if err != nil {
-		printErr(err)
+	if parseErr != nil {
+		printErr(parseErr)
 
 		// this was a user error, print help.
 		if invoc.cmd != nil {
@@ -248,13 +256,6 @@ func isClientError(err error) bool {
 	if !ok {
 		return false
 	}
-
-	// here we handle the case where commands with
-	// no Run func are invoked directly. As help requests.
-	if err == cmds.ErrNotCallable {
-		return true
-	}
-
 	return cmdErr.Code == cmds.ErrClient
 }
 

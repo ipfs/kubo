@@ -14,36 +14,18 @@ var ErrInvalidSubcmd = errors.New("subcommand not found")
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-// Multiple root commands are supported:
 // Parse will search each root to find the one that best matches the requested subcommand.
 // TODO: get rid of extraneous return values (e.g. we ended up not needing the root value anymore)
 // TODO: get rid of multiple-root support, we should only need one now
-func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, []string, error) {
-	var root, cmd *cmds.Command
-	var path, stringArgs []string
-	var opts map[string]interface{}
-
+func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, []string, error) {
 	// use the root that matches the longest path (most accurately matches request)
-	maxLength := 0
-	for _, root2 := range roots {
-		path2, input2, cmd2 := parsePath(input, root2)
-		opts2, stringArgs2, err := parseOptions(input2)
-		if err != nil {
-			return nil, root, cmd2, path2, err
-		}
-
-		length := len(path2)
-		if length > maxLength {
-			maxLength = length
-			root = root2
-			path = path2
-			cmd = cmd2
-			opts = opts2
-			stringArgs = stringArgs2
-		}
+	path, input, cmd := parsePath(input, root)
+	opts, stringArgs, err := parseOptions(input)
+	if err != nil {
+		return nil, root, cmd, path, err
 	}
 
-	if maxLength == 0 {
+	if len(path) == 0 {
 		return nil, root, nil, path, ErrInvalidSubcmd
 	}
 

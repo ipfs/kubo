@@ -195,6 +195,11 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		return err
 	}
 
+	// default cmd to root if there is no path
+	if path == nil && cmd == nil {
+		cmd = root
+	}
+
 	pathStr := rootName
 	if len(path) > 0 {
 		pathStr += " " + strings.Join(path, " ")
