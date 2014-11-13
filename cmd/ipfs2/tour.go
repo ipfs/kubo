@@ -13,7 +13,7 @@ import (
 	tour "github.com/jbenet/go-ipfs/tour"
 )
 
-var cmdTour = &cmds.Command{
+var tourCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "An introduction to IPFS",
 		ShortDescription: `

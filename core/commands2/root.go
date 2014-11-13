@@ -51,21 +51,24 @@ Plumbing commands:
 	},
 }
 
+// commandsDaemonCmd is the "ipfs commands" command for daemon
+var CommandsDaemonCmd = CommandsCmd(Root)
+
 var rootSubcommands = map[string]*cmds.Command{
 	"cat":       catCmd,
 	"ls":        lsCmd,
-	"commands":  CommandsCmd(Root),
+	"commands":  CommandsDaemonCmd,
 	"name":      nameCmd,
 	"add":       addCmd,
-	"log":       logCmd,
-	"diag":      diagCmd,
+	"log":       LogCmd,
+	"diag":      DiagCmd,
 	"pin":       pinCmd,
-	"version":   versionCmd,
+	"version":   VersionCmd,
 	"config":    configCmd,
 	"bootstrap": bootstrapCmd,
 	"mount":     mountCmd,
 	"block":     blockCmd,
-	"update":    updateCmd,
+	"update":    UpdateCmd,
 	"object":    objectCmd,
 	"refs":      refsCmd,
 }

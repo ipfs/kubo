@@ -13,7 +13,7 @@ import (
 // we convert it at this step.
 var logAllKeyword = "all"
 
-var logCmd = &cmds.Command{
+var LogCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Change the logging level",
 		ShortDescription: `

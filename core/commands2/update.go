@@ -14,7 +14,7 @@ type UpdateOutput struct {
 	NewVersion string
 }
 
-var updateCmd = &cmds.Command{
+var UpdateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Downloads and installs updates for IPFS",
 		ShortDescription: "ipfs update is a utility command used to check for updates and apply them.",
