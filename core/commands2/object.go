@@ -48,7 +48,10 @@ output is the raw data of the object.
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
@@ -68,7 +71,10 @@ It outputs to stdout, and <key> is a base58 encoded multihash.`,
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
@@ -96,7 +102,10 @@ This command outputs data in the following encodings:
 		cmds.StringArg("key", true, false, "Key of the object to retrieve\n(in base58-encoded multihash format)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
@@ -148,7 +157,10 @@ Data should be in the format specified by <encoding>.
 		cmds.StringArg("encoding", true, false, "Encoding type of <data>, either \"protobuf\" or \"json\""),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		input, ok := req.Arguments()[0].(io.Reader)
 		if !ok {

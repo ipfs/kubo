@@ -32,7 +32,10 @@ Note: list all refs recursively with -r.`,
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		unique, found, err := req.Option("unique").Bool()
 		if err != nil {

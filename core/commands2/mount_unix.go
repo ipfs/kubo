@@ -32,10 +32,18 @@ not be listable, as it is virtual. Accessing known paths directly.
 		cmds.StringOption("n", "The path where IPNS should be mounted\n(default is '/ipns')"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		ctx := req.Context()
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		node, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		// error if we aren't running node in online mode
-		if ctx.Node.Network == nil {
+		if node.Network == nil {
 			return nil, errNotOnline
 		}
 
@@ -48,9 +56,9 @@ not be listable, as it is virtual. Accessing known paths directly.
 			return nil, err
 		}
 		if !found {
-			fsdir = ctx.Config.Mounts.IPFS // use default value
+			fsdir = cfg.Mounts.IPFS // use default value
 		}
-		fsdone := mountIpfs(ctx.Node, fsdir)
+		fsdone := mountIpfs(node, fsdir)
 
 		// get default mount points
 		nsdir, found, err := req.Option("n").String()
@@ -58,10 +66,10 @@ not be listable, as it is virtual. Accessing known paths directly.
 			return nil, err
 		}
 		if !found {
-			nsdir = ctx.Config.Mounts.IPNS // NB: be sure to not redeclare!
+			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
 		}
 
-		nsdone := mountIpns(ctx.Node, nsdir, fsdir)
+		nsdone := mountIpns(node, nsdir, fsdir)
 
 		// wait until mounts return an error (or timeout if successful)
 		select {
@@ -72,7 +80,7 @@ not be listable, as it is virtual. Accessing known paths directly.
 
 		// mounted successfully, we timed out with no errors
 		case <-time.After(mountTimeout):
-			output := ctx.Config.Mounts
+			output := cfg.Mounts
 			return &output, nil
 		}
 	},

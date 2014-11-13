@@ -40,7 +40,10 @@ It outputs to stdout, and <key> is a base58 encoded multihash.`,
 		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		key, ok := req.Arguments()[0].(string)
 		if !ok {
@@ -76,7 +79,10 @@ It reads from stdin, and <key> is a base58 encoded multihash.`,
 		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		in, ok := req.Arguments()[0].(io.Reader)
 		if !ok {

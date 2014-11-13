@@ -54,7 +54,12 @@ in the bootstrap list).
 			return nil, err
 		}
 
-		added, err := bootstrapAdd(filename, req.Context().Config, input)
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		added, err := bootstrapAdd(filename, cfg, input)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +99,12 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return nil, err
 		}
 
-		removed, err := bootstrapRemove(filename, req.Context().Config, input)
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		removed, err := bootstrapRemove(filename, cfg, input)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +131,12 @@ var bootstrapListCmd = &cmds.Command{
 `,
 
 	Run: func(req cmds.Request) (interface{}, error) {
-		peers := req.Context().Config.Bootstrap
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		peers := cfg.Bootstrap
 		return &BootstrapOutput{peers}, nil
 	},
 	Type: &BootstrapOutput{},

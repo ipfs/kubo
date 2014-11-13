@@ -15,8 +15,44 @@ type optMap map[string]interface{}
 
 type Context struct {
 	ConfigRoot string
-	Config     *config.Config
-	Node       *core.IpfsNode
+
+	config     *config.Config
+	LoadConfig func(path string) (*config.Config, error)
+
+	node          *core.IpfsNode
+	ConstructNode func() (*core.IpfsNode, error)
+}
+
+// GetConfig returns the config of the current Command exection
+// context. It may load it with the providied function.
+func (c *Context) GetConfig() (*config.Config, error) {
+	var err error
+	if c.config == nil {
+		if c.LoadConfig == nil {
+			panic("nil LoadConfig function")
+		}
+		c.config, err = c.LoadConfig(c.ConfigRoot)
+	}
+	return c.config, err
+}
+
+// GetNode returns the node of the current Command exection
+// context. It may construct it with the providied function.
+func (c *Context) GetNode() (*core.IpfsNode, error) {
+	var err error
+	if c.node == nil {
+		if c.ConstructNode == nil {
+			panic("nil ConstructNode function")
+		}
+		c.node, err = c.ConstructNode()
+	}
+	return c.node, err
+}
+
+// NodeWithoutConstructing returns the underlying node variable
+// so that clients may close it.
+func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
+	return c.node
 }
 
 // Request represents a call to a command from a consumer

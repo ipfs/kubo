@@ -166,13 +166,10 @@ func (i *cmdInvocation) Parse(args []string) error {
 		return err
 	}
 
-	conf, err := getConfig(configPath)
-	if err != nil {
-		return err
-	}
+	// this sets up the function that will initialize the config lazily.
 	ctx := i.req.Context()
 	ctx.ConfigRoot = configPath
-	ctx.Config = conf
+	ctx.LoadConfig = loadConfig
 
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
@@ -202,51 +199,62 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	var res cmds.Response
 
-	// TODO explain what it means when root == Root
-	// @mappum o/
-	if root == Root {
-		res = root.Call(req)
+	local, found, err := req.Option("local").Bool()
+	if err != nil {
+		return nil, err
+	}
+	remote := !found || !local
 
-	} else {
-		local, found, err := req.Option("local").Bool()
+	log.Info("Checking if daemon is running...")
+	if remote && daemon.Locked(req.Context().ConfigRoot) {
+
+		cfg, err := req.Context().GetConfig()
 		if err != nil {
 			return nil, err
 		}
 
-		remote := !found || !local
+		addr, err := ma.NewMultiaddr(cfg.Addresses.API)
+		if err != nil {
+			return nil, err
+		}
 
-		log.Info("Checking if daemon is running...")
-		if remote && daemon.Locked(req.Context().ConfigRoot) {
-			addr, err := ma.NewMultiaddr(req.Context().Config.Addresses.API)
+		_, host, err := manet.DialArgs(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		client := cmdsHttp.NewClient(host)
+
+		res, err = client.Send(req)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		log.Info("Executing command locally: daemon not running")
+
+		// this sets up the function that will initialize the node
+		// this is so that we can construct the node lazily.
+		ctx := req.Context()
+		ctx.ConstructNode = func() (*core.IpfsNode, error) {
+			cfg, err := ctx.GetConfig()
 			if err != nil {
 				return nil, err
 			}
+			return core.NewIpfsNode(cfg, false)
+		}
 
-			_, host, err := manet.DialArgs(addr)
-			if err != nil {
-				return nil, err
-			}
+		// Okay!!!!! NOW we can call the command.
+		res = root.Call(req)
 
-			client := cmdsHttp.NewClient(host)
-
-			res, err = client.Send(req)
-			if err != nil {
-				return nil, err
-			}
-
-		} else {
-			log.Info("Executing command locally: daemon not running")
-			node, err := core.NewIpfsNode(req.Context().Config, false)
-			if err != nil {
-				return nil, err
-			}
-			defer node.Close()
-			req.Context().Node = node
-
-			res = root.Call(req)
+		// let's not forget teardown. If a node was initialized, we must close it.
+		// Note that this means the underlying req.Context().Node variable is exposed.
+		// this is gross, and should be changed when we extract out the exec Context.
+		node := req.Context().NodeWithoutConstructing()
+		if node != nil {
+			node.Close()
 		}
 	}
-
 	return res, nil
 }
 
@@ -275,7 +283,7 @@ func getConfigRoot(req cmds.Request) (string, error) {
 	return configPath, nil
 }
 
-func getConfig(path string) (*config.Config, error) {
+func loadConfig(path string) (*config.Config, error) {
 	configFile, err := config.Filename(path)
 	if err != nil {
 		return nil, err

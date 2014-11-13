@@ -43,7 +43,10 @@ remains to be implemented.
 `,
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		recursive, _, err := req.Option("r").Bool()
 		if err != nil {

@@ -31,7 +31,10 @@ on disk.
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()
@@ -70,7 +73,10 @@ collected if needed.
 		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()
