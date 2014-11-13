@@ -37,6 +37,14 @@ func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, []s
 		return nil, cmd, path, err
 	}
 
+	// check to make sure there aren't any undefined options
+	for k := range opts {
+		if _, found := optDefs[k]; !found {
+			err = fmt.Errorf("Unrecognized option: -%s", k)
+			return nil, cmd, path, err
+		}
+	}
+
 	req := cmds.NewRequest(path, opts, args, cmd, optDefs)
 
 	err = cmd.CheckArguments(req)
