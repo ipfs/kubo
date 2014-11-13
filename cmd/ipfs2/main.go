@@ -71,7 +71,7 @@ func main() {
 
 	// BEFORE handling the parse error, if we have enough information
 	// AND the user requested help, print it out and exit
-	if invoc.cmd != nil {
+	if invoc.req != nil {
 		longH, shortH, err := invoc.requestedHelp()
 		if err != nil {
 			printErr(err)
