@@ -6,8 +6,8 @@ import (
 )
 
 var Root = &cmds.Command{
-	Options: commands.Root.Options,
-	Help:    commands.Root.Help,
+	Options:  commands.Root.Options,
+	Helptext: commands.Root.Helptext,
 }
 
 var rootSubcommands = map[string]*cmds.Command{
