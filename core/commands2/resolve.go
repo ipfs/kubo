@@ -33,7 +33,11 @@ Resolve te value of another name:
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
 		var name string
 
 		if n.Network == nil {

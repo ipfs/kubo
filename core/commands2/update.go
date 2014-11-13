@@ -20,7 +20,10 @@ var updateCmd = &cmds.Command{
 `,
 
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 		return updateApply(n)
 	},
 	Type: &UpdateOutput{},
@@ -51,7 +54,10 @@ Nothing will be downloaded or installed.
 `,
 
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 		return updateCheck(n)
 	},
 	Type: &UpdateOutput{},
@@ -76,7 +82,10 @@ var updateLogCmd = &cmds.Command{
 `,
 
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 		return updateLog(n)
 	},
 }

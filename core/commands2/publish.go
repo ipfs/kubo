@@ -39,8 +39,11 @@ Publish a <ref> to another public key:
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		log.Debug("Begin Publish")
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
-		n := req.Context().Node
 		args := req.Arguments()
 
 		if n.Network == nil {

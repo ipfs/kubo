@@ -32,7 +32,11 @@ IPFS very quickly. To start, run:
 	Run: func(req cmds.Request) (interface{}, error) {
 
 		out := new(bytes.Buffer)
-		cfg := req.Context().Config
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
 		strs, err := internal.CastToStrings(req.Arguments())
 		if err != nil {
 			return nil, err
@@ -57,8 +61,11 @@ var cmdIpfsTourNext = &cmds.Command{
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		var w bytes.Buffer
-		cfg := req.Context().Config
 		path := req.Context().ConfigRoot
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
 
 		topic := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
 		if err := tourShow(&w, topic); err != nil {
@@ -84,10 +91,13 @@ var cmdIpfsTourRestart = &cmds.Command{
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		path := req.Context().ConfigRoot
-		cfg := req.Context().Config
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
 
 		cfg.Tour.Last = ""
-		err := writeConfig(path, cfg)
+		err = writeConfig(path, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -99,8 +109,13 @@ var cmdIpfsTourList = &cmds.Command{
 	Description: "Show a list of IPFS Tour topics",
 
 	Run: func(req cmds.Request) (interface{}, error) {
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
 		var w bytes.Buffer
-		tourListCmd(&w, req.Context().Config)
+		tourListCmd(&w, cfg)
 		w.WriteTo(os.Stdout) // TODO use res.SetOutput(output)
 		return nil, nil
 	},

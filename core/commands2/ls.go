@@ -34,7 +34,10 @@ it contains, with the following format:
 		cmds.StringArg("ipfs-path", false, true, "The path to the IPFS object(s) to list links from"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		node := req.Context().Node
+		node, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		paths, err := internal.CastToStrings(req.Arguments())
 		if err != nil {

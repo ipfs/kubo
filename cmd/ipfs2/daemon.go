@@ -22,21 +22,28 @@ var daemonCmd = &cmds.Command{
 }
 
 func daemonFunc(req cmds.Request) (interface{}, error) {
-	ctx := req.Context()
-
-	lock, err := daemon.Lock(ctx.ConfigRoot)
+	lock, err := daemon.Lock(req.Context().ConfigRoot)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
 	defer lock.Close()
 
-	node, err := core.NewIpfsNode(ctx.Config, true)
+	cfg, err := req.Context().GetConfig()
 	if err != nil {
 		return nil, err
 	}
-	ctx.Node = node
 
-	addr, err := ma.NewMultiaddr(ctx.Config.Addresses.API)
+	// setup function that constructs the context. we have to do it this way
+	// to play along with how the Context works and thus not expose its internals
+	req.Context().ConstructNode = func() (*core.IpfsNode, error) {
+		return core.NewIpfsNode(cfg, true)
+	}
+	node, err := req.Context().GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +53,7 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	cmdHandler := cmdsHttp.NewHandler(*ctx, commands.Root)
+	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root)
 	http.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
 	ifpsHandler := &ipfsHandler{node}

@@ -19,7 +19,11 @@ it contains.
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		node := req.Context().Node
+		node, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
 		readers := make([]io.Reader, 0, len(req.Arguments()))
 
 		paths, err := internal.CastToStrings(req.Arguments())

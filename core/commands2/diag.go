@@ -44,7 +44,10 @@ connected peers and latencies between them.
 `,
 
 	Run: func(req cmds.Request) (interface{}, error) {
-		n := req.Context().Node
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
 
 		if !n.OnlineMode() {
 			return nil, errNotOnline
