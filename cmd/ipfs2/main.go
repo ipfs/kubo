@@ -160,7 +160,7 @@ func (i *cmdInvocation) Run() (output io.Reader, err error) {
 func (i *cmdInvocation) Parse(args []string) error {
 	var err error
 
-	i.req, i.root, i.cmd, i.path, err = cmdsCli.Parse(args, Root)
+	i.req, i.cmd, i.path, err = cmdsCli.Parse(args, Root)
 	if err != nil {
 		return err
 	}
