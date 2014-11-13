@@ -206,7 +206,8 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	remote := !isLocal(req.Command()) && !found || !local
+
+	remote := !isLocal(req.Command()) && (!found || !local)
 
 	log.Info("Checking if daemon is running...")
 	if remote && daemon.Locked(req.Context().ConfigRoot) {
