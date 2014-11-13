@@ -71,6 +71,8 @@ Resolve te value of another name:
 			return nil, err
 		}
 
+		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
+
 		return output, nil
 	},
 	Marshalers: cmds.MarshalerMap{
