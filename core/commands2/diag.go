@@ -1,25 +1,27 @@
 package commands
 
 import (
-	"fmt"
+	"bytes"
 	"io"
+	"text/template"
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	diagn "github.com/jbenet/go-ipfs/diagnostics"
+	util "github.com/jbenet/go-ipfs/util"
 )
 
 type DiagnosticConnection struct {
-	ID      string
-	Latency int64
+	ID string
+	// TODO use milliseconds or microseconds for human readability
+	NanosecondsLatency uint64
 }
 
 type DiagnosticPeer struct {
-	ID           string
-	LifeSpan     float64
-	BandwidthIn  uint64
-	BandwidthOut uint64
-	Connections  []DiagnosticConnection
+	ID                string
+	UptimeSeconds     uint64
+	BandwidthBytesIn  uint64
+	BandwidthBytesOut uint64
+	Connections       []DiagnosticConnection
 }
 
 type DiagnosticOutput struct {
@@ -58,33 +60,62 @@ connected peers and latencies between them.
 			connections := make([]DiagnosticConnection, len(peer.Connections))
 			for j, conn := range peer.Connections {
 				connections[j] = DiagnosticConnection{
-					ID:      conn.ID,
-					Latency: conn.Latency.Nanoseconds(),
+					ID:                 conn.ID,
+					NanosecondsLatency: uint64(conn.Latency.Nanoseconds()),
 				}
 			}
 
 			output[i] = DiagnosticPeer{
-				ID:           peer.ID,
-				LifeSpan:     peer.LifeSpan.Minutes(),
-				BandwidthIn:  peer.BwIn,
-				BandwidthOut: peer.BwOut,
-				Connections:  connections,
+				ID:                peer.ID,
+				UptimeSeconds:     uint64(peer.LifeSpan.Seconds()),
+				BandwidthBytesIn:  peer.BwIn,
+				BandwidthBytesOut: peer.BwOut,
+				Connections:       connections,
 			}
 		}
 
 		return &DiagnosticOutput{output}, nil
 	},
 	Type: &DiagnosticOutput{},
+	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		cmds.Text: func(r cmds.Response) ([]byte, error) {
+			output, ok := r.Output().(*DiagnosticOutput)
+			if !ok {
+				return nil, util.ErrCast()
+			}
+			var buf bytes.Buffer
+			err := printDiagnostics(&buf, output)
+			if err != nil {
+				return nil, err
+			}
+			return buf.Bytes(), nil
+		},
+	},
 }
 
-func PrintDiagnostics(info []*diagn.DiagInfo, out io.Writer) {
-	for _, i := range info {
-		fmt.Fprintf(out, "Peer: %s\n", i.ID)
-		fmt.Fprintf(out, "\tUp for: %s\n", i.LifeSpan.String())
-		fmt.Fprintf(out, "\tConnected To:\n")
-		for _, c := range i.Connections {
-			fmt.Fprintf(out, "\t%s\n\t\tLatency = %s\n", c.ID, c.Latency.String())
-		}
-		fmt.Fprintln(out)
+func printDiagnostics(out io.Writer, info *DiagnosticOutput) error {
+
+	diagTmpl := `
+{{ range $peer := .Peers }}
+ID {{ $peer.ID }}
+	up {{ $peer.UptimeSeconds }} seconds
+	connected to {{ len .Connections }}...
+		{{ range $connection := .Connections }}
+		ID {{ $connection.ID }}
+		latency: {{ $connection.NanosecondsLatency }} ns
+		{{ end }}
+{{end}}
+`
+
+	templ, err := template.New("DiagnosticOutput").Parse(diagTmpl)
+	if err != nil {
+		return err
 	}
+
+	err = templ.Execute(out, info)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
