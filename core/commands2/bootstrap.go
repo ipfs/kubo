@@ -1,7 +1,8 @@
 package commands
 
 import (
-	"fmt"
+	"bytes"
+	"io"
 	"strings"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -38,7 +39,7 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	Subcommands: map[string]*cmds.Command{
 		"list":   bootstrapListCmd,
 		"add":    bootstrapAddCmd,
-		"remove": bootstrapRemoveCmd,
+		"rm": bootstrapRemoveCmd,
 	},
 }
 
@@ -79,13 +80,14 @@ in the bootstrap list).
 	Type: &BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			v := res.Output().(*BootstrapOutput)
-			s := fmt.Sprintf("Added %v peers to the bootstrap list:\n", len(v.Peers))
-			marshalled, err := bootstrapMarshaler(res)
-			if err != nil {
-				return nil, err
+			v, ok := res.Output().(*BootstrapOutput)
+			if !ok {
+				return nil, u.ErrCast()
 			}
-			return append([]byte(s), marshalled...), nil
+
+			var buf bytes.Buffer
+			err := bootstrapWritePeers(&buf, "added ", v.Peers)
+			return buf.Bytes(), err
 		},
 	},
 }
@@ -126,13 +128,14 @@ var bootstrapRemoveCmd = &cmds.Command{
 	Type: &BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			v := res.Output().(*BootstrapOutput)
-			s := fmt.Sprintf("Removed %v peers from the bootstrap list:\n", len(v.Peers))
-			marshalled, err := bootstrapMarshaler(res)
-			if err != nil {
-				return nil, err
+			v, ok := res.Output().(*BootstrapOutput)
+			if !ok {
+				return nil, u.ErrCast()
 			}
-			return append([]byte(s), marshalled...), nil
+
+			var buf bytes.Buffer
+			err := bootstrapWritePeers(&buf, "removed ", v.Peers)
+			return buf.Bytes(), err
 		},
 	},
 }
@@ -164,15 +167,33 @@ func bootstrapMarshaler(res cmds.Response) ([]byte, error) {
 		return nil, u.ErrCast()
 	}
 
-	s := ""
-	for _, peer := range v.Peers {
-		s += fmt.Sprintf("%s/%s\n", peer.Address, peer.PeerID)
-	}
+	var buf bytes.Buffer
+	err := bootstrapWritePeers(&buf, "", v.Peers)
+	return buf.Bytes(), err
+}
 
-	return []byte(s), nil
+func bootstrapWritePeers(w io.Writer, prefix string, peers []*config.BootstrapPeer) error {
+
+	for _, peer := range peers {
+		s := prefix + peer.Address + "/" + peer.PeerID + "\n"
+		_, err := w.Write([]byte(s))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func bootstrapInputToPeers(input []interface{}) ([]*config.BootstrapPeer, error) {
+	inputAddrs := make([]string, len(input))
+	for i, v := range input {
+		addr, ok := v.(string)
+		if !ok {
+			return nil, u.ErrCast()
+		}
+		inputAddrs[i] = addr
+	}
+
 	split := func(addr string) (string, string) {
 		idx := strings.LastIndex(addr, "/")
 		if idx == -1 {
@@ -182,12 +203,7 @@ func bootstrapInputToPeers(input []interface{}) ([]*config.BootstrapPeer, error)
 	}
 
 	peers := []*config.BootstrapPeer{}
-	for _, v := range input {
-		addr, ok := v.(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
-
+	for _, addr := range inputAddrs {
 		addrS, peeridS := split(addr)
 
 		// make sure addrS parses as a multiaddr.
@@ -221,7 +237,7 @@ func bootstrapAdd(filename string, cfg *config.Config, peers []*config.Bootstrap
 	for _, peer := range peers {
 		duplicate := false
 		for _, peer2 := range cfg.Bootstrap {
-			if peer.Address == peer2.Address {
+			if peer.Address == peer2.Address && peer.PeerID == peer2.PeerID {
 				duplicate = true
 				break
 			}
@@ -241,13 +257,13 @@ func bootstrapAdd(filename string, cfg *config.Config, peers []*config.Bootstrap
 	return added, nil
 }
 
-func bootstrapRemove(filename string, cfg *config.Config, peers []*config.BootstrapPeer) ([]*config.BootstrapPeer, error) {
-	removed := make([]*config.BootstrapPeer, 0, len(peers))
+func bootstrapRemove(filename string, cfg *config.Config, toRemove []*config.BootstrapPeer) ([]*config.BootstrapPeer, error) {
+	removed := make([]*config.BootstrapPeer, 0, len(toRemove))
 	keep := make([]*config.BootstrapPeer, 0, len(cfg.Bootstrap))
 
 	for _, peer := range cfg.Bootstrap {
 		found := false
-		for _, peer2 := range peers {
+		for _, peer2 := range toRemove {
 			if peer.Address == peer2.Address && peer.PeerID == peer2.PeerID {
 				found = true
 				removed = append(removed, peer)
