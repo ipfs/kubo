@@ -11,9 +11,10 @@ var Root = &cmds.Command{
 }
 
 var rootSubcommands = map[string]*cmds.Command{
-	"daemon": daemonCmd, // TODO name
-	"init":   initCmd,   // TODO name
-	"tour":   cmdTour,
+	"daemon":   daemonCmd, // TODO name
+	"init":     initCmd,   // TODO name
+	"tour":     cmdTour,
+	"commands": commands.CommandsCmd(Root),
 }
 
 func init() {
