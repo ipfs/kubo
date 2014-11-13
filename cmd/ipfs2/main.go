@@ -94,7 +94,7 @@ func run() error {
 }
 
 func createRequest(args []string) (cmds.Request, *cmds.Command, error) {
-	req, root, cmd, path, err := cmdsCli.Parse(args, Root, commands.Root)
+	req, root, cmd, path, err := cmdsCli.Parse(args, Root)
 
 	// handle parse error (which means the commandline input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
