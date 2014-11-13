@@ -19,10 +19,13 @@ var pinCmd = &cmds.Command{
 }
 
 var addPinCmd = &cmds.Command{
-	Description: "Pins objects to local storage",
-	Help: `Retrieves the object named by <ipfs-path> and stores it locally
+	Helptext: cmds.HelpText{
+		Tagline: "Pins objects to local storage",
+		ShortDescription: `
+Retrieves the object named by <ipfs-path> and stores it locally
 on disk.
 `,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned"),
@@ -61,10 +64,13 @@ on disk.
 }
 
 var rmPinCmd = &cmds.Command{
-	Description: "Unpin an object from local storage",
-	Help: `Removes the pin from the given object allowing it to be garbage
+	Helptext: cmds.HelpText{
+		Tagline: "Unpin an object from local storage",
+		ShortDescription: `
+Removes the pin from the given object allowing it to be garbage
 collected if needed.
 `,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned"),

@@ -13,13 +13,16 @@ import (
 )
 
 var cmdTour = &cmds.Command{
-	Description: "An introduction to IPFS",
-	Help: `This is a tour that takes you through various IPFS concepts,
+	Helptext: cmds.HelpText{
+		Tagline: "An introduction to IPFS",
+		ShortDescription: `
+This is a tour that takes you through various IPFS concepts,
 features, and tools to make sure you get up to speed with
 IPFS very quickly. To start, run:
 
     ipfs tour
 `,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("number", false, false, "The number of the topic you would like to tour"),

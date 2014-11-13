@@ -16,13 +16,17 @@ type RefsOutput struct {
 }
 
 var refsCmd = &cmds.Command{
-	Description: "Lists link hashes from an object",
-	Help: `Retrieves the object named by <ipfs-path> and displays the link
+	Helptext: cmds.HelpText{
+		Tagline: "Lists link hashes from an object",
+		ShortDescription: `
+Retrieves the object named by <ipfs-path> and displays the link
 hashes it contains, with the following format:
 
   <link base58 hash>
 
-Note: list all refs recursively with -r.`,
+Note: list all refs recursively with -r.
+`,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from"),

@@ -8,8 +8,15 @@ import (
 )
 
 var resolveCmd = &cmds.Command{
-	Description: "Gets the value currently published at an IPNS name",
-	Help: `IPNS is a PKI namespace, where names are the hashes of public keys, and
+	Helptext: cmds.HelpText{
+		Tagline: "Gets the value currently published at an IPNS name",
+		ShortDescription: `
+IPNS is a PKI namespace, where names are the hashes of public keys, and
+the private key enables publishing new (signed) values. In resolve, the
+default value of <name> is your own identity public key.
+`,
+		LongDescription: `
+IPNS is a PKI namespace, where names are the hashes of public keys, and
 the private key enables publishing new (signed) values. In resolve, the
 default value of <name> is your own identity public key.
 
@@ -27,6 +34,7 @@ Resolve te value of another name:
   QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 `,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
