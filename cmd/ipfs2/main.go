@@ -150,6 +150,10 @@ func (i *cmdInvocation) Run() (output io.Reader, err error) {
 		return nil, err
 	}
 
+	if err := res.Error(); err != nil {
+		return nil, err
+	}
+
 	return res.Reader()
 }
 
