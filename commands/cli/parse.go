@@ -13,6 +13,8 @@ import (
 // returns the corresponding command Request object.
 // Multiple root commands are supported:
 // Parse will search each root to find the one that best matches the requested subcommand.
+// TODO: get rid of extraneous return values (e.g. we ended up not needing the root value anymore)
+// TODO: get rid of multiple-root support, we should only need one now
 func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command, *cmds.Command, []string, error) {
 	var root, cmd *cmds.Command
 	var path, stringArgs []string
