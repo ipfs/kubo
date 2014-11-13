@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -29,7 +30,7 @@ func (c *Context) GetConfig() (*config.Config, error) {
 	var err error
 	if c.config == nil {
 		if c.LoadConfig == nil {
-			panic("nil LoadConfig function")
+			return nil, errors.New("nil LoadConfig function")
 		}
 		c.config, err = c.LoadConfig(c.ConfigRoot)
 	}
@@ -42,7 +43,7 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 	var err error
 	if c.node == nil {
 		if c.ConstructNode == nil {
-			panic("nil ConstructNode function")
+			return nil, errors.New("nil ConstructNode function")
 		}
 		c.node, err = c.ConstructNode()
 	}
