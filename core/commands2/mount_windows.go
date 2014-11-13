@@ -7,8 +7,10 @@ import (
 )
 
 var ipfsMount = &cmds.Command{
-	Description: "Not yet implemented on Windows",
-	Help:        `Not yet implemented on Windows. :(`,
+	Helptext: cmds.HelpText{
+		Tagline:          "Not yet implemented on Windows",
+		ShortDescription: "Not yet implemented on Windows. :(",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		return errors.New("Mount isn't compatible with Windows yet"), nil

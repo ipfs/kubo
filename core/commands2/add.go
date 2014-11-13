@@ -29,18 +29,22 @@ type AddOutput struct {
 }
 
 var addCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Add an object to ipfs.",
+		ShortDescription: `
+Adds contents of <path> to ipfs. Use -r to add directories.
+Note that directories are added recursively, to form the ipfs
+MerkleDAG. A smarter partial add with a staging area (like git)
+remains to be implemented.
+`,
+	},
+
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Must be specified when adding directories"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("file", true, true, "The path to a file to be added to IPFS"),
 	},
-	Description: "Add an object to ipfs.",
-	Help: `Adds contents of <path> to ipfs. Use -r to add directories.
-Note that directories are added recursively, to form the ipfs
-MerkleDAG. A smarter partial add with a staging area (like git)
-remains to be implemented.
-`,
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
 		n, err := req.Context().GetNode()

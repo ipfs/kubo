@@ -18,11 +18,14 @@ import (
 const mountTimeout = time.Second
 
 var mountCmd = &cmds.Command{
-	Description: "Mounts IPFS to the filesystem (read-only)",
-	Help: `Mount ipfs at a read-only mountpoint on the OS. All ipfs objects
+	Helptext: cmds.HelpText{
+		Tagline: "Mounts IPFS to the filesystem (read-only)",
+		ShortDescription: `
+Mount ipfs at a read-only mountpoint on the OS. All ipfs objects
 will be accessible under that directory. Note that the root will
 not be listable, as it is virtual. Accessing known paths directly.
 `,
+	},
 
 	Options: []cmds.Option{
 		// TODO longform
