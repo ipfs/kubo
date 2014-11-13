@@ -27,7 +27,7 @@ func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, []s
 		return nil, nil, path, ErrInvalidSubcmd
 	}
 
-	args, err := parseArgs(stringArgs, cmd)
+	args, err := parseArgs(stringArgs, cmd.Arguments)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -108,10 +108,10 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
+func parseArgs(stringArgs []string, arguments []cmds.Argument) ([]interface{}, error) {
 	// count required argument definitions
 	lenRequired := 0
-	for _, argDef := range cmd.Arguments {
+	for _, argDef := range arguments {
 		if argDef.Required {
 			lenRequired++
 		}
@@ -120,7 +120,7 @@ func parseArgs(stringArgs []string, cmd *cmds.Command) ([]interface{}, error) {
 	args := make([]interface{}, len(stringArgs))
 
 	valueIndex := 0 // the index of the current stringArgs value
-	for _, argDef := range cmd.Arguments {
+	for _, argDef := range arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
 		if len(stringArgs)-valueIndex <= lenRequired && !argDef.Required {
 			continue
