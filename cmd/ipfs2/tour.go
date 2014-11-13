@@ -60,7 +60,9 @@ IPFS very quickly. To start, run:
 }
 
 var cmdIpfsTourNext = &cmds.Command{
-	Description: "Show the next IPFS Tour topic",
+	Helptext: cmds.HelpText{
+		Tagline: "Show the next IPFS Tour topic",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		var w bytes.Buffer
@@ -90,7 +92,9 @@ var cmdIpfsTourNext = &cmds.Command{
 }
 
 var cmdIpfsTourRestart = &cmds.Command{
-	Description: "Restart the IPFS Tour",
+	Helptext: cmds.HelpText{
+		Tagline: "Restart the IPFS Tour",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		path := req.Context().ConfigRoot
@@ -109,7 +113,9 @@ var cmdIpfsTourRestart = &cmds.Command{
 }
 
 var cmdIpfsTourList = &cmds.Command{
-	Description: "Show a list of IPFS Tour topics",
+	Helptext: cmds.HelpText{
+		Tagline: "Show a list of IPFS Tour topics",
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		cfg, err := req.Context().GetConfig()

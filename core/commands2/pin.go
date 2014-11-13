@@ -10,7 +10,9 @@ import (
 )
 
 var pinCmd = &cmds.Command{
-	Description: "Keeps objects stored locally",
+	Helptext: cmds.HelpText{
+		Tagline: "Keeps objects stored locally",
+	},
 
 	Subcommands: map[string]*cmds.Command{
 		"add": addPinCmd,
