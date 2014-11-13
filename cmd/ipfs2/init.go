@@ -15,9 +15,10 @@ import (
 )
 
 var initCmd = &cmds.Command{
-	Description: "Initializes IPFS config file",
-	Help: `Initializes IPFS configuration files and generates a new keypair.
-`,
+	Helptext: cmds.HelpText{
+		Tagline:          "Initializes IPFS config file",
+		ShortDescription: "Initializes IPFS configuration files and generates a new keypair.",
+	},
 
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),

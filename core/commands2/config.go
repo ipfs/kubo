@@ -116,10 +116,13 @@ Set the value of the 'datastore.path' key:
 }
 
 var configShowCmd = &cmds.Command{
-	Description: "Outputs the content of the config file",
-	Help: `WARNING: Your private key is stored in the config file, and it will be
+	Helptext: cmds.HelpText{
+		Tagline: "Outputs the content of the config file",
+		ShortDescription: `
+WARNING: Your private key is stored in the config file, and it will be
 included in the output of this command.
 `,
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
@@ -132,10 +135,13 @@ included in the output of this command.
 }
 
 var configEditCmd = &cmds.Command{
-	Description: "Opens the config file for editing in $EDITOR",
-	Help: `To use 'ipfs config edit', you must have the $EDITOR environment
+	Helptext: cmds.HelpText{
+		Tagline: "Opens the config file for editing in $EDITOR",
+		ShortDescription: `
+To use 'ipfs config edit', you must have the $EDITOR environment
 variable set to your preferred text editor.
 `,
+	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
 		filename, err := config.Filename(req.Context().ConfigRoot)

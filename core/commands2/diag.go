@@ -29,7 +29,9 @@ type DiagnosticOutput struct {
 }
 
 var diagCmd = &cmds.Command{
-	Description: "Generates diagnostic reports",
+	Helptext: cmds.HelpText{
+		Tagline: "Generates diagnostic reports",
+	},
 
 	Subcommands: map[string]*cmds.Command{
 		"net": diagNetCmd,

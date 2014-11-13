@@ -80,9 +80,13 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 }
 
 var blockPutCmd = &cmds.Command{
-	Description: "Stores input as an IPFS block",
-	Help: `ipfs block put is a plumbing command for storing raw ipfs blocks.
-It reads from stdin, and <key> is a base58 encoded multihash.`,
+	Helptext: cmds.HelpText{
+		Tagline: "Stores input as an IPFS block",
+		ShortDescription: `
+ipfs block put is a plumbing command for storing raw ipfs blocks.
+It reads from stdin, and <key> is a base58 encoded multihash.
+`,
+	},
 
 	Arguments: []cmds.Argument{
 		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block"),
