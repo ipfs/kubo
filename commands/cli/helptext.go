@@ -277,6 +277,7 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 	if len(path) > 0 {
 		prefix += " "
 	}
+	subcmds := make([]*cmds.Command, len(cmd.Subcommands))
 	lines := make([]string, len(cmd.Subcommands))
 
 	i := 0
@@ -285,8 +286,14 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Helptext.Tagline)
+		lines[i] = prefix + name + usage
+		subcmds[i] = sub
 		i++
+	}
+
+	lines = align(lines)
+	for i, sub := range subcmds {
+		lines[i] += " - " + sub.Helptext.Tagline
 	}
 
 	return lines
