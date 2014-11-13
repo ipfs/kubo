@@ -202,15 +202,12 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	var res cmds.Response
 
-	local, found, err := req.Option("local").Bool()
+	useDaemon, err := commandShouldRunOnDaemon(req, root)
 	if err != nil {
 		return nil, err
 	}
 
-	remote := !isLocal(req.Command()) && (!found || !local)
-
-	log.Info("Checking if daemon is running...")
-	if remote && daemon.Locked(req.Context().ConfigRoot) {
+	if useDaemon {
 
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
@@ -222,6 +219,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 			return nil, err
 		}
 
+		log.Infof("Executing command on daemon running at %s", addr)
 		_, host, err := manet.DialArgs(addr)
 		if err != nil {
 			return nil, err
@@ -235,7 +233,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		}
 
 	} else {
-		log.Info("Executing command locally: daemon not running")
+		log.Info("Executing command locally")
 
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
@@ -260,6 +258,53 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		}
 	}
 	return res, nil
+}
+
+func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error) {
+	path := req.Path()
+	// root command.
+	if len(path) < 1 {
+		return false, nil
+	}
+
+	cmd, found := root.Subcommands[path[0]]
+	if !found {
+		return false, fmt.Errorf("subcommand %s should be in root", path[0])
+	}
+
+	details, found := cmdDetailsMap[cmd]
+	if !found {
+		details = cmdDetails{} // defaults
+	}
+
+	if details.cannotRunOnClient && details.cannotRunOnDaemon {
+		return false, fmt.Errorf("command disabled: %s", path[0])
+	}
+
+	if details.doesNotUseRepo && !details.cannotRunOnClient {
+		return false, nil
+	}
+
+	// at this point need to know whether daemon is running. we defer
+	// to this point so that some commands dont open files unnecessarily.
+	daemonLocked := daemon.Locked(req.Context().ConfigRoot)
+	log.Info("Daemon is running.")
+
+	if daemonLocked {
+
+		if details.cannotRunOnDaemon {
+			e := "ipfs daemon is running. please stop it to run this command"
+			return false, cmds.ClientError(e)
+		}
+
+		return true, nil
+	}
+
+	if details.cannotRunOnClient {
+		return false, cmds.ClientError("must run on the ipfs daemon")
+	}
+
+	return false, nil
 }
 
 func isClientError(err error) bool {
