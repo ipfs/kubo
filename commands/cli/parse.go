@@ -160,7 +160,10 @@ func argValue(argDef cmds.Argument, value string) (interface{}, error) {
 		return value, nil
 
 	} else {
-		in, err := os.Open(value) // FIXME(btc) must close file. fix before merge
+		// NB At the time of this commit, file cleanup is performed when
+		// Requests are cleaned up. TODO try to perform open and close at the
+		// same level of abstraction (or at least in the same package!)
+		in, err := os.Open(value)
 		if err != nil {
 			return nil, err
 		}
