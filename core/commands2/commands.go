@@ -15,9 +15,10 @@ type Command struct {
 // and returns a command that lists the subcommands in that root
 func CommandsCmd(root *cmds.Command) *cmds.Command {
 	return &cmds.Command{
-		Description: "List all available commands.",
-		Help: `Lists all available commands (and subcommands) and exits.
-	`,
+		Helptext: cmds.HelpText{
+			Tagline:          "List all available commands.",
+			ShortDescription: `Lists all available commands (and subcommands) and exits.`,
+		},
 
 		Run: func(req cmds.Request) (interface{}, error) {
 			root := outputCommand("ipfs", root)
