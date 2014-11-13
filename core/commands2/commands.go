@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
@@ -24,7 +23,7 @@ var commandsCmd = &cmds.Command{
 	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*Command)
-			s := formatCommand(v, 0)
+			s := formatCommand("", v)
 			return []byte(s), nil
 		},
 	},
@@ -46,16 +45,15 @@ func outputCommand(name string, cmd *cmds.Command) Command {
 	return output
 }
 
-func formatCommand(cmd *Command, depth int) string {
-	var s string
-
-	if depth > 0 {
-		indent := strings.Repeat("    ", depth-1)
-		s = fmt.Sprintf("%s%s\n", indent, cmd.Name)
+func formatCommand(prefix string, cmd *Command) string {
+	if len(prefix) > 0 {
+		prefix += " "
 	}
+	s := fmt.Sprintf("%s%s\n", prefix, cmd.Name)
 
+	prefix += cmd.Name
 	for _, sub := range cmd.Subcommands {
-		s += formatCommand(&sub, depth+1)
+		s += formatCommand(prefix, &sub)
 	}
 
 	return s
