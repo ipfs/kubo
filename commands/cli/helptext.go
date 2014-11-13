@@ -130,38 +130,31 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		pathStr += " " + strings.Join(path, " ")
 	}
 
-	// TODO: get the fields from the HelpText struct by default (when commands are ported to use it)
 	fields := helpFields{
 		Indent:      indentStr,
 		Path:        pathStr,
 		ArgUsage:    usageText(cmd),
-		Tagline:     cmd.Description,
-		Arguments:   cmd.ArgumentHelp,
-		Options:     cmd.OptionHelp,
+		Tagline:     cmd.Helptext.Tagline,
+		Arguments:   cmd.Helptext.Arguments,
+		Options:     cmd.Helptext.Options,
 		Synopsis:    cmd.Helptext.Synopsis,
-		Subcommands: cmd.SubcommandHelp,
-		Description: cmd.Help,
+		Subcommands: cmd.Helptext.Subcommands,
+		Description: cmd.Helptext.ShortDescription,
+		Usage:       cmd.Helptext.Usage,
 	}
 
-	// TODO: don't do these checks, just use these fields by default (when commands get ported to it)
-	if len(cmd.Helptext.Tagline) > 0 {
-		fields.Tagline = cmd.Helptext.Tagline
-	}
-	if len(cmd.Helptext.ShortDescription) > 0 {
-		fields.Description = cmd.Helptext.ShortDescription
-	}
-	if len(cmd.Helptext.Usage) > 0 {
-		fields.Usage = cmd.Helptext.Subcommands
+	if len(cmd.Helptext.LongDescription) > 0 {
+		fields.Description = cmd.Helptext.LongDescription
 	}
 
 	// autogen fields that are empty
-	if len(cmd.ArgumentHelp) == 0 {
+	if len(fields.Arguments) == 0 {
 		fields.Arguments = strings.Join(argumentText(cmd), "\n")
 	}
-	if len(cmd.OptionHelp) == 0 {
+	if len(fields.Options) == 0 {
 		fields.Options = strings.Join(optionText(cmd), "\n")
 	}
-	if len(cmd.SubcommandHelp) == 0 {
+	if len(fields.Subcommands) == 0 {
 		fields.Subcommands = strings.Join(subcommandText(cmd, rootName, path), "\n")
 	}
 
@@ -195,29 +188,10 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		Indent:      indentStr,
 		Path:        pathStr,
 		ArgUsage:    usageText(cmd),
-		Tagline:     cmd.Description,
+		Tagline:     cmd.Helptext.Tagline,
 		Synopsis:    cmd.Helptext.Synopsis,
-		Description: cmd.Help,
-	}
-
-	// TODO: don't do these checks, just use these fields by default (when commands get ported to it)
-	if len(cmd.Helptext.Tagline) > 0 {
-		fields.Tagline = cmd.Helptext.Tagline
-	}
-	if len(cmd.Helptext.Arguments) > 0 {
-		fields.Arguments = cmd.Helptext.Arguments
-	}
-	if len(cmd.Helptext.Options) > 0 {
-		fields.Options = cmd.Helptext.Options
-	}
-	if len(cmd.Helptext.Subcommands) > 0 {
-		fields.Subcommands = cmd.Helptext.Subcommands
-	}
-	if len(cmd.Helptext.ShortDescription) > 0 {
-		fields.Description = cmd.Helptext.ShortDescription
-	}
-	if len(cmd.Helptext.Usage) > 0 {
-		fields.Usage = cmd.Helptext.Subcommands
+		Description: cmd.Helptext.ShortDescription,
+		Usage:       cmd.Helptext.Usage,
 	}
 
 	// trim the extra newlines (see TrimNewlines doc)
@@ -311,11 +285,7 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		if len(sub.Helptext.Tagline) > 0 {
-			lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Helptext.Tagline)
-		} else {
-			lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Description)
-		}
+		lines[i] = fmt.Sprintf("%v%v%v - %v", prefix, name, usage, sub.Helptext.Tagline)
 		i++
 	}
 

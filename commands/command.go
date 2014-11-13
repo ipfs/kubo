@@ -44,13 +44,6 @@ type HelpText struct {
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	// TODO: remove these fields after porting commands to HelpText struct
-	Description    string
-	Help           string
-	SubcommandHelp string
-	OptionHelp     string
-	ArgumentHelp   string
-
 	Options     []Option
 	Arguments   []Argument
 	Run         Function
