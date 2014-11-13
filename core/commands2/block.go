@@ -74,6 +74,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 		if err != nil {
 			return nil, err
 		}
+		log.Debugf("BlockGet key: '%q'", b.Key())
 
 		return bytes.NewReader(b.Data), nil
 	},
