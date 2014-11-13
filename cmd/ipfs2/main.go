@@ -36,7 +36,6 @@ const (
 type cmdInvocation struct {
 	path []string
 	cmd  *cmds.Command
-	root *cmds.Command
 	req  cmds.Request
 }
 
@@ -64,7 +63,7 @@ func main() {
 			helpFunc = cmdsCli.LongHelp
 		}
 
-		helpFunc("ipfs", invoc.root, invoc.path, os.Stderr)
+		helpFunc("ipfs", Root, invoc.path, os.Stderr)
 	}
 
 	// parse the commandline into a command invocation
@@ -145,7 +144,7 @@ func (i *cmdInvocation) Run() (output io.Reader, err error) {
 		defer stopProfilingFunc() // to be executed as late as possible
 	}
 
-	res, err := callCommand(i.req, i.root)
+	res, err := callCommand(i.req, Root)
 	if err != nil {
 		return nil, err
 	}
