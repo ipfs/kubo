@@ -52,7 +52,7 @@ Plumbing commands:
 var rootSubcommands = map[string]*cmds.Command{
 	"cat":       catCmd,
 	"ls":        lsCmd,
-	"commands":  commandsCmd,
+	"commands":  CommandsCmd(Root),
 	"name":      nameCmd,
 	"add":       addCmd,
 	"log":       logCmd,

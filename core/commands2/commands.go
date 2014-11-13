@@ -11,23 +11,27 @@ type Command struct {
 	Subcommands []Command
 }
 
-var commandsCmd = &cmds.Command{
-	Description: "List all available commands.",
-	Help: `Lists all available commands (and subcommands) and exits.
-`,
+// CommandsCmd takes in a root command,
+// and returns a command that lists the subcommands in that root
+func CommandsCmd(root *cmds.Command) *cmds.Command {
+	return &cmds.Command{
+		Description: "List all available commands.",
+		Help: `Lists all available commands (and subcommands) and exits.
+	`,
 
-	Run: func(req cmds.Request) (interface{}, error) {
-		root := outputCommand("ipfs", Root)
-		return &root, nil
-	},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			v := res.Output().(*Command)
-			s := formatCommand("", v)
-			return []byte(s), nil
+		Run: func(req cmds.Request) (interface{}, error) {
+			root := outputCommand("ipfs", root)
+			return &root, nil
 		},
-	},
-	Type: &Command{},
+		Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+			cmds.Text: func(res cmds.Response) ([]byte, error) {
+				v := res.Output().(*Command)
+				s := formatCommand("", v)
+				return []byte(s), nil
+			},
+		},
+		Type: &Command{},
+	}
 }
 
 func outputCommand(name string, cmd *cmds.Command) Command {
