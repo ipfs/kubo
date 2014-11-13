@@ -21,6 +21,7 @@ var localCommands = map[string]*cmds.Command{
 	"tour":     cmdTour,
 	"commands": commands.CommandsCmd(Root),
 }
+var localMap = make(map[*cmds.Command]bool)
 
 func init() {
 	// setting here instead of in literal to prevent initialization loop
@@ -33,4 +34,14 @@ func init() {
 			Root.Subcommands[k] = v
 		}
 	}
+
+	for _, v := range localCommands {
+		localMap[v] = true
+	}
+}
+
+// isLocal returns true if the command should only be run locally (not sent to daemon), otherwise false
+func isLocal(cmd *cmds.Command) bool {
+	_, found := localMap[cmd]
+	return found
 }
