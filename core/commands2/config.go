@@ -25,8 +25,8 @@ var configCmd = &cmds.Command{
 		Synopsis: `
 ipfs config <key>          - Get value of <key>
 ipfs config <key> <value>  - Set value of <key> to <value>
-ipfs config --show         - Show config file
-ipfs config --edit         - Edit config file in $EDITOR
+ipfs config show           - Show config file
+ipfs config edit           - Edit config file in $EDITOR
 `,
 		ShortDescription: `
 ipfs config controls configuration variables. It works like 'git config'.
@@ -52,10 +52,6 @@ Set the value of the 'datastore.path' key:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
 		cmds.StringArg("value", false, false, "The value to set the config entry to"),
-	},
-	Options: []cmds.Option{
-		cmds.StringOption("show", "s", "Show config file"),
-		cmds.StringOption("edit", "e", "Edit config file in $EDITOR"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()
