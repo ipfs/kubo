@@ -85,7 +85,7 @@ connected peers and latencies between them.
 		return &DiagnosticOutput{output}, nil
 	},
 	Type: &DiagnosticOutput{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(r cmds.Response) ([]byte, error) {
 			output, ok := r.Output().(*DiagnosticOutput)
 			if !ok {

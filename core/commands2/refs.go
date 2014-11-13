@@ -65,7 +65,7 @@ Note: list all refs recursively with -r.
 		return getRefs(n, paths, unique, recursive)
 	},
 	Type: &RefsOutput{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			output := res.Output().(*RefsOutput)
 			s := ""

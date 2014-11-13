@@ -171,7 +171,7 @@ remains to be implemented.
 		//
 		// return &AddOutput{added}, nil
 	},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			val, ok := res.Output().(*AddOutput)
 			if !ok {

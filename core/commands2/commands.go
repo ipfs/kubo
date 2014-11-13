@@ -25,7 +25,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			root := cmd2outputCmd("ipfs", root)
 			return &root, nil
 		},
-		Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+		Marshalers: cmds.MarshalerMap{
 			cmds.Text: func(res cmds.Response) ([]byte, error) {
 				v := res.Output().(*Command)
 				var buf bytes.Buffer

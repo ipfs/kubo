@@ -79,6 +79,6 @@ type MessageOutput struct {
 	Message string
 }
 
-func MessageTextMarshaller(res cmds.Response) ([]byte, error) {
+func MessageTextMarshaler(res cmds.Response) ([]byte, error) {
 	return []byte(res.Output().(*MessageOutput).Message), nil
 }

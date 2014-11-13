@@ -32,7 +32,7 @@ var updateCmd = &cmds.Command{
 		"check": updateCheckCmd,
 		"log":   updateLogCmd,
 	},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*UpdateOutput)
 			s := ""
@@ -65,7 +65,7 @@ Nothing will be downloaded or installed.
 		return updateCheck(n)
 	},
 	Type: &UpdateOutput{},
-	Marshallers: map[cmds.EncodingType]cmds.Marshaller{
+	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*UpdateOutput)
 			s := ""
