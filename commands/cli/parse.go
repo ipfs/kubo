@@ -9,6 +9,9 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
+// ErrInvalidSubcmd signals when the parse error is not found
+var ErrInvalidSubcmd = errors.New("subcommand not found")
+
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 // Multiple root commands are supported:
@@ -41,7 +44,7 @@ func Parse(input []string, roots ...*cmds.Command) (cmds.Request, *cmds.Command,
 	}
 
 	if maxLength == 0 {
-		return nil, root, nil, path, errors.New("Not a valid subcommand")
+		return nil, root, nil, path, ErrInvalidSubcmd
 	}
 
 	args, err := parseArgs(stringArgs, cmd)
