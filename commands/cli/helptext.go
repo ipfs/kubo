@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -270,10 +271,12 @@ func optionText(cmd ...*cmds.Command) []string {
 			if len(lines) < i+1 {
 				lines = append(lines, "")
 			}
-			if len(opt.Names) >= j+1 {
-				lines[i] += fmt.Sprintf(optionFlag, opt.Names[j])
+
+			names := sortByLength(opt.Names)
+			if len(names) >= j+1 {
+				lines[i] += fmt.Sprintf(optionFlag, names[j])
 			}
-			if len(opt.Names) > j+1 {
+			if len(names) > j+1 {
 				lines[i] += ", "
 				done = false
 			}
@@ -384,4 +387,25 @@ func indent(lines []string, prefix string) []string {
 
 func indentString(line string, prefix string) string {
 	return prefix + strings.Replace(line, "\n", "\n"+prefix, -1)
+}
+
+type lengthSlice []string
+
+func (ls lengthSlice) Len() int {
+	return len(ls)
+}
+func (ls lengthSlice) Swap(a, b int) {
+	ls[a], ls[b] = ls[b], ls[a]
+}
+func (ls lengthSlice) Less(a, b int) bool {
+	return len(ls[a]) < len(ls[b])
+}
+
+func sortByLength(slice []string) []string {
+	output := make(lengthSlice, len(slice))
+	for i, val := range slice {
+		output[i] = val
+	}
+	sort.Sort(output)
+	return []string(output)
 }
