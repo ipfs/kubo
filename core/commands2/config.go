@@ -90,8 +90,17 @@ Set the value of the 'datastore.path' key:
 				return nil, nil // dont output anything
 			}
 
-			v := res.Output().(*ConfigField)
-			buf, err := config.HumanOutput(v.Value)
+			v := res.Output()
+			if v == nil {
+				k := res.Request().Arguments()[0]
+				return nil, fmt.Errorf("config does not contain key: %s", k)
+			}
+			vf, ok := v.(*ConfigField)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf, err := config.HumanOutput(vf.Value)
 			if err != nil {
 				return nil, err
 			}
