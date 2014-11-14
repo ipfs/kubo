@@ -82,11 +82,7 @@ it contains, with the following format:
 				if len(output) > 1 {
 					s += fmt.Sprintf("%s:\n", object.Hash)
 				}
-
-				for _, link := range object.Links {
-					s += fmt.Sprintf("%s %v %s\n", link.Hash, link.Size, link.Name)
-				}
-
+				s += marshalLinks(object.Links)
 				if len(output) > 1 {
 					s += "\n"
 				}
@@ -96,4 +92,11 @@ it contains, with the following format:
 		},
 	},
 	Type: &LsOutput{},
+}
+
+func marshalLinks(links []Link) (s string) {
+	for _, link := range links {
+		s += fmt.Sprintf("%s %v %s\n", link.Hash, link.Size, link.Name)
+	}
+	return s
 }
