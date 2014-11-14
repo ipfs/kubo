@@ -114,6 +114,10 @@ remains to be implemented.
 			}
 
 			log.Infof("adding dir: %s", name)
+			if err := addNode(n, tree); err != nil {
+				return nil, err
+			}
+
 			if err := addDagnode(name, tree); err != nil {
 				return nil, err
 			}
@@ -203,12 +207,6 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		err = addNode(n, node)
-		if err != nil {
-			return nil, err
-		}
-
 		dagnodes = append(dagnodes, node)
 	}
 
