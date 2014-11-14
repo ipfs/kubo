@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 )
@@ -11,12 +13,16 @@ type VersionOutput struct {
 
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Outputs the current version of IPFS",
-		ShortDescription: "Returns the version number of IPFS and exits.",
+		Tagline:          "Shows ipfs version information",
+		ShortDescription: "Shows ipfs version information",
+		LongDescription: `ipfs version - Show ipfs version information.
+
+		Returns the current version of ipfs and exits.
+		`,
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption("number", "n", "Only output the version number"),
+		cmds.BoolOption("number", "n", "Only show the version number"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		return &VersionOutput{
@@ -26,21 +32,15 @@ var VersionCmd = &cmds.Command{
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
 			v := res.Output().(*VersionOutput)
-			s := ""
 
 			number, found, err := res.Request().Option("number").Bool()
 			if err != nil {
 				return nil, err
 			}
-			if !found {
-				number = false
+			if found && number {
+				return []byte(fmt.Sprintln(v.Version)), nil
 			}
-
-			if !number {
-				s += "ipfs version "
-			}
-			s += v.Version
-			return []byte(s), nil
+			return []byte(fmt.Sprintf("ipfs version %s\n", v.Version)), nil
 		},
 	},
 	Type: &VersionOutput{},
