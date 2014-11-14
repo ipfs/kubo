@@ -25,8 +25,16 @@ type Node struct {
 
 var objectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Interact with ipfs objects",
-		ShortDescription: "'ipfs object' is a plumbing command used to manipulate DAG objects directly.",
+		Tagline: "Interact with ipfs objects",
+		ShortDescription: `
+'ipfs object' is a plumbing command used to manipulate DAG objects
+directly.`,
+		Synopsis: `
+ipfs object get <key>             - Get the DAG node named by <key>
+ipfs object put <data> <encoding> - Stores input, outputs its key
+ipfs object data <key>            - Outputs raw bytes in an object
+ipfs object links <key>           - Outputs links pointed to by object
+`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
