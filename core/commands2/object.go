@@ -163,23 +163,10 @@ This command outputs data in the following encodings:
 	Marshalers: cmds.MarshalerMap{
 		cmds.EncodingType("protobuf"): func(res cmds.Response) ([]byte, error) {
 			node := res.Output().(*Node)
-
-			// convert the Node object into a real dag.Node
-			object := new(dag.Node)
-			object.Data = node.Data
-			object.Links = make([]*dag.Link, len(node.Links))
-			for i, link := range node.Links {
-				hash, err := mh.FromB58String(link.Hash)
-				if err != nil {
-					return nil, err
-				}
-				object.Links[i] = &dag.Link{
-					Name: link.Name,
-					Size: link.Size,
-					Hash: hash,
-				}
+			object, err := deserializeNode(node)
+			if err != nil {
+				return nil, err
 			}
-
 			return object.Marshal()
 		},
 	},
@@ -292,8 +279,16 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 
 	switch getObjectEnc(encoding) {
 	case objectEncodingJSON:
-		dagnode = new(dag.Node)
-		err = json.Unmarshal(data, dagnode)
+		node := new(Node)
+		err = json.Unmarshal(data, node)
+		if err != nil {
+			return nil, err
+		}
+
+		dagnode, err = deserializeNode(node)
+		if err != nil {
+			return nil, err
+		}
 
 	case objectEncodingProtobuf:
 		dagnode, err = dag.Decoded(data)
@@ -355,4 +350,24 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 	}
 
 	return output, nil
+}
+
+// converts the Node object into a real dag.Node
+func deserializeNode(node *Node) (*dag.Node, error) {
+	dagnode := new(dag.Node)
+	dagnode.Data = node.Data
+	dagnode.Links = make([]*dag.Link, len(node.Links))
+	for i, link := range node.Links {
+		hash, err := mh.FromB58String(link.Hash)
+		if err != nil {
+			return nil, err
+		}
+		dagnode.Links[i] = &dag.Link{
+			Name: link.Name,
+			Size: link.Size,
+			Hash: hash,
+		}
+	}
+
+	return dagnode, nil
 }
