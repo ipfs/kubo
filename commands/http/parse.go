@@ -39,20 +39,44 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	opts, stringArgs2 := parseOptions(r)
 	stringArgs = append(stringArgs, stringArgs2...)
 
-	// Note that the argument handling here is dumb, it does not do any error-checking.
-	// (Arguments are further processed when the request is passed to the command to run)
-	args := make([]interface{}, 0)
+	// count required argument definitions
+	numRequired := 0
+	for _, argDef := range cmd.Arguments {
+		if argDef.Required {
+			numRequired++
+		}
+	}
 
-	for _, arg := range cmd.Arguments {
-		if arg.Type == cmds.ArgString {
-			if arg.Variadic {
+	// count the number of provided argument values
+	valCount := len(stringArgs)
+	// TODO: add total number of parts in request body (instead of just 1 if body is present)
+	if r.Body != nil && r.ContentLength != 0 {
+		valCount += 1
+	}
+
+	args := make([]interface{}, valCount)
+
+	valIndex := 0
+	for _, argDef := range cmd.Arguments {
+		// skip optional argument definitions if there aren't sufficient remaining values
+		if valCount-valIndex <= numRequired && !argDef.Required {
+			continue
+		} else if argDef.Required {
+			numRequired--
+		}
+
+		if argDef.Type == cmds.ArgString {
+			if argDef.Variadic {
 				for _, s := range stringArgs {
-					args = append(args, s)
+					args[valIndex] = s
+					valIndex++
 				}
+				valCount -= len(stringArgs)
 
 			} else if len(stringArgs) > 0 {
-				args = append(args, stringArgs[0])
+				args[valIndex] = stringArgs[0]
 				stringArgs = stringArgs[1:]
+				valIndex++
 
 			} else {
 				break
@@ -60,11 +84,17 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 		} else {
 			// TODO: create multipart streams for file args
-			args = append(args, r.Body)
+			args[valIndex] = r.Body
+			valIndex++
 		}
 	}
 
-	req := cmds.NewRequest(path, opts, args, cmd)
+	optDefs, err := root.GetOptions(path)
+	if err != nil {
+		return nil, err
+	}
+
+	req := cmds.NewRequest(path, opts, args, cmd, optDefs)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {

@@ -40,12 +40,12 @@ const (
 	// TODO: support more encoding types
 )
 
-var marshallers = map[EncodingType]Marshaller{
+var marshallers = map[EncodingType]Marshaler{
 	JSON: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
-			return json.Marshal(res.Error())
+			return json.MarshalIndent(res.Error(), "", "  ")
 		}
-		return json.Marshal(res.Output())
+		return json.MarshalIndent(res.Output(), "", "  ")
 	},
 	XML: func(res Response) ([]byte, error) {
 		if res.Error() != nil {
@@ -69,7 +69,7 @@ type Response interface {
 	Output() interface{}
 
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
-	// on the Request to chose a Marshaller (Codec).
+	// on the Request to chose a Marshaler (Codec).
 	Marshal() ([]byte, error)
 
 	// Gets a io.Reader that reads the marshalled output
@@ -108,18 +108,26 @@ func (r *response) Marshal() ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	enc, found := r.req.Option(EncShort)
-	encStr, ok := enc.(string)
-	if !found || !ok || encStr == "" {
+	enc, found, err := r.req.Option(EncShort).String()
+	if err != nil {
+		return nil, err
+	}
+	if !found {
 		return nil, fmt.Errorf("No encoding type was specified")
 	}
-	encType := EncodingType(strings.ToLower(encStr))
+	encType := EncodingType(strings.ToLower(enc))
 
-	var marshaller Marshaller
-	if r.req.Command() != nil && r.req.Command().Marshallers != nil {
-		marshaller = r.req.Command().Marshallers[encType]
+	// Special case: if text encoding and an error, just print it out.
+	if encType == Text && r.Error() != nil {
+		return []byte(r.Error().Error()), nil
+	}
+
+	var marshaller Marshaler
+	if r.req.Command() != nil && r.req.Command().Marshalers != nil {
+		marshaller = r.req.Command().Marshalers[encType]
 	}
 	if marshaller == nil {
+		var ok bool
 		marshaller, ok = marshallers[encType]
 		if !ok {
 			return nil, fmt.Errorf("No marshaller found for encoding type '%s'", enc)

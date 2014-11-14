@@ -6,7 +6,10 @@ import (
 	"net/http"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("commands/http")
 
 type Handler struct {
 	ctx  cmds.Context
@@ -14,6 +17,8 @@ type Handler struct {
 }
 
 var ErrNotFound = errors.New("404 page not found")
+
+const streamHeader = "X-Stream-Output"
 
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
@@ -26,6 +31,8 @@ func NewHandler(ctx cmds.Context, root *cmds.Command) *Handler {
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Debug("Incoming API request: ", r.URL)
+
 	req, err := Parse(r, i.root)
 	if err != nil {
 		if err == ErrNotFound {
@@ -43,16 +50,19 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// set the Content-Type based on res output
 	if _, ok := res.Output().(io.Reader); ok {
-		// TODO: set based on actual Content-Type of file
-		w.Header().Set("Content-Type", "application/octet-stream")
+		// we don't set the Content-Type for streams, so that browsers can MIME-sniff the type themselves
+		// we set this header so clients have a way to know this is an output stream
+		// (not marshalled command output)
+		// TODO: set a specific Content-Type if the command response needs it to be a certain type
+		w.Header().Set(streamHeader, "1")
+
 	} else {
-		enc, _ := req.Option(cmds.EncShort)
-		encStr, ok := enc.(string)
-		if !ok {
+		enc, found, err := req.Option(cmds.EncShort).String()
+		if err != nil || !found {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		mime := mimeTypes[encStr]
+		mime := mimeTypes[enc]
 		w.Header().Set("Content-Type", mime)
 	}
 

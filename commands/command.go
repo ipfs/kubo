@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -13,11 +14,31 @@ var log = u.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
-type Function func(Response, Request)
+type Function func(Request) (interface{}, error)
 
-// Marshaller is a function that takes in a Response, and returns a marshalled []byte
+// Marshaler is a function that takes in a Response, and returns a marshalled []byte
 // (or an error on failure)
-type Marshaller func(Response) ([]byte, error)
+type Marshaler func(Response) ([]byte, error)
+
+// MarshalerMap is a map of Marshaler functions, keyed by EncodingType
+// (or an error on failure)
+type MarshalerMap map[EncodingType]Marshaler
+
+// HelpText is a set of strings used to generate command help text. The help
+// text follows formats similar to man pages, but not exactly the same.
+type HelpText struct {
+	// required
+	Tagline          string // used in <cmd usage>
+	ShortDescription string // used in DESCRIPTION
+	Synopsis         string // showcasing the cmd
+
+	// optional - whole section overrides
+	Usage           string // overrides USAGE section
+	LongDescription string // overrides DESCRIPTION section
+	Options         string // overrides OPTIONS section
+	Arguments       string // overrides ARGUMENTS section
+	Subcommands     string // overrides SUBCOMMANDS section
+}
 
 // TODO: check Argument definitions when creating a Command
 //   (might need to use a Command constructor)
@@ -28,19 +49,27 @@ type Marshaller func(Response) ([]byte, error)
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
-	Help        string
-	Options     []Option
-	Arguments   []Argument
-	Run         Function
-	Marshallers map[EncodingType]Marshaller
+	Options    []Option
+	Arguments  []Argument
+	Run        Function
+	Marshalers map[EncodingType]Marshaler
+	Helptext   HelpText
+
+	// Type describes the type of the output of the Command's Run Function.
+	// In precise terms, the value of Type is an instance of the return type of
+	// the Run Function.
+	//
+	// ie. If command Run returns &Block{}, then Command.Type == &Block{}
 	Type        interface{}
 	Subcommands map[string]*Command
 }
 
 // ErrNotCallable signals a command that cannot be called.
-var ErrNotCallable = errors.New("This command can't be called directly. Try one of its subcommands.")
+var ErrNotCallable = ClientError("This command can't be called directly. Try one of its subcommands.")
 
-var ErrNoFormatter = errors.New("This command cannot be formatted to plain text")
+var ErrNoFormatter = ClientError("This command cannot be formatted to plain text")
+
+var ErrIncorrectType = errors.New("The command returned a value with a different type than expected")
 
 // Call invokes the command for the given Request
 func (c *Command) Call(req Request) Response {
@@ -64,20 +93,47 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	options, err := c.GetOptions(req.Path())
+	err = req.ConvertOptions()
 	if err != nil {
 		res.SetError(err, ErrClient)
 		return res
 	}
 
-	err = req.ConvertOptions(options)
+	output, err := cmd.Run(req)
 	if err != nil {
-		res.SetError(err, ErrClient)
+		// if returned error is a commands.Error, use its error code
+		// otherwise, just default the code to ErrNormal
+		switch e := err.(type) {
+		case *Error:
+			res.SetError(e, e.Code)
+		case Error:
+			res.SetError(e, e.Code)
+		default:
+			res.SetError(err, ErrNormal)
+		}
 		return res
 	}
 
-	cmd.Run(res, req)
+	// If the command specified an output type, ensure the actual value returned is of that type
+	if cmd.Type != nil {
+		definedType := reflect.ValueOf(cmd.Type).Type()
+		actualType := reflect.ValueOf(output).Type()
 
+		if definedType != actualType {
+			res.SetError(ErrIncorrectType, ErrNormal)
+			return res
+		}
+	}
+
+	// clean up the request (close the readers, e.g. fileargs)
+	// NOTE: this means commands can't expect to keep reading after cmd.Run returns (in a goroutine)
+	err = req.Cleanup()
+	if err != nil {
+		res.SetError(err, ErrNormal)
+		return res
+	}
+
+	res.SetOutput(output)
 	return res
 }
 
@@ -149,13 +205,27 @@ func (c *Command) CheckArguments(req Request) error {
 		return fmt.Errorf("Expected %v arguments, got %v", len(argDefs), len(args))
 	}
 
+	// count required argument definitions
+	numRequired := 0
+	for _, argDef := range c.Arguments {
+		if argDef.Required {
+			numRequired++
+		}
+	}
+
 	// iterate over the arg definitions
-	for i, argDef := range c.Arguments {
+	valueIndex := 0 // the index of the current value (in `args`)
+	for _, argDef := range c.Arguments {
+		// skip optional argument definitions if there aren't sufficient remaining values
+		if len(args)-valueIndex <= numRequired && !argDef.Required {
+			continue
+		}
 
 		// the value for this argument definition. can be nil if it wasn't provided by the caller
 		var v interface{}
-		if i < len(args) {
-			v = args[i]
+		if valueIndex < len(args) {
+			v = args[valueIndex]
+			valueIndex++
 		}
 
 		err := checkArgValue(v, argDef)
@@ -164,8 +234,8 @@ func (c *Command) CheckArguments(req Request) error {
 		}
 
 		// any additional values are for the variadic arg definition
-		if argDef.Variadic && i < len(args)-1 {
-			for _, val := range args[i+1:] {
+		if argDef.Variadic && valueIndex < len(args)-1 {
+			for _, val := range args[valueIndex:] {
 				err := checkArgValue(val, argDef)
 				if err != nil {
 					return err
@@ -206,4 +276,8 @@ func checkArgValue(v interface{}, def Argument) error {
 	}
 
 	return nil
+}
+
+func ClientError(msg string) error {
+	return &Error{Code: ErrClient, Message: msg}
 }

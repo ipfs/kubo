@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -39,6 +40,14 @@ var ErrNoSuchLogger = errors.New("Error: No such logger")
 func TildeExpansion(filename string) (string, error) {
 	return homedir.Expand(filename)
 }
+
+// ErrCast is returned when a cast fails AND the program should not panic.
+func ErrCast() error {
+	debug.PrintStack()
+	return errCast
+}
+
+var errCast = errors.New("cast error")
 
 // ExpandPathnames takes a set of paths and turns them into absolute paths
 func ExpandPathnames(paths []string) ([]string, error) {

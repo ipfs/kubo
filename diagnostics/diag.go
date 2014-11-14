@@ -67,6 +67,7 @@ type DiagInfo struct {
 	Keys []string
 
 	// How long this node has been running for
+	// TODO rename Uptime
 	LifeSpan time.Duration
 
 	// Incoming Bandwidth Usage

@@ -74,6 +74,8 @@ type IpfsNode struct {
 	Pinning pin.Pinner
 
 	ctxc.ContextCloser
+
+	onlineMode bool // alternatively, offline
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
@@ -92,6 +94,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	// derive this from a higher context.
 	ctx := context.TODO()
 	n = &IpfsNode{
+		onlineMode:    online,
 		Config:        cfg,
 		ContextCloser: ctxc.NewContextCloser(ctx, nil),
 	}
@@ -170,6 +173,10 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 	success = true
 	return n, nil
+}
+
+func (n *IpfsNode) OnlineMode() bool {
+	return n.onlineMode
 }
 
 func initIdentity(cfg *config.Config, peers peer.Peerstore, online bool) (peer.Peer, error) {

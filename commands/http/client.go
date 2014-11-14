@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,9 +10,8 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
-
-var castError = errors.New("cast error")
 
 const (
 	ApiUrlFormat = "http://%s%s/%s?%s"
@@ -34,23 +32,15 @@ func NewClient(address string) Client {
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
-	var userEncoding string
-	if enc, found := req.Option(cmds.EncShort); found {
-		var ok bool
-		userEncoding, ok = enc.(string)
-		if !ok {
-			return nil, castError
-		}
-		req.SetOption(cmds.EncShort, cmds.JSON)
-	} else {
-		var ok bool
-		enc, _ := req.Option(cmds.EncLong)
-		userEncoding, ok = enc.(string)
-		if !ok {
-			return nil, castError
-		}
-		req.SetOption(cmds.EncLong, cmds.JSON)
+
+	// save user-provided encoding
+	previousUserProvidedEncoding, found, err := req.Option(cmds.EncShort).String()
+	if err != nil {
+		return nil, err
 	}
+
+	// override with json to send to server
+	req.SetOption(cmds.EncShort, cmds.JSON)
 
 	query, inputStream, err := getQuery(req)
 	if err != nil {
@@ -60,19 +50,23 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	path := strings.Join(req.Path(), "/")
 	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
 
+	// TODO extract string const?
 	httpRes, err := http.Post(url, "application/octet-stream", inputStream)
 	if err != nil {
 		return nil, err
 	}
 
+	// using the overridden JSON encoding in request
 	res, err := getResponse(httpRes, req)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(userEncoding) > 0 {
-		req.SetOption(cmds.EncShort, userEncoding)
-		req.SetOption(cmds.EncLong, userEncoding)
+	if found && len(previousUserProvidedEncoding) > 0 {
+		// reset to user provided encoding after sending request
+		// NB: if user has provided an encoding but it is the empty string,
+		// still leave it as JSON.
+		req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
 	}
 
 	return res, nil
@@ -84,10 +78,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 
 	query := url.Values{}
 	for k, v := range req.Options() {
-		str, ok := v.(string)
-		if !ok {
-			return "", nil, castError
-		}
+		str := fmt.Sprintf("%v", v)
 		query.Set(k, str)
 	}
 
@@ -103,7 +94,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 		if argDef.Type == cmds.ArgString {
 			str, ok := arg.(string)
 			if !ok {
-				return "", nil, castError
+				return "", nil, u.ErrCast()
 			}
 			query.Add("arg", str)
 
@@ -115,7 +106,7 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 			var ok bool
 			inputStream, ok = arg.(io.Reader)
 			if !ok {
-				return "", nil, castError
+				return "", nil, u.ErrCast()
 			}
 		}
 	}
@@ -131,7 +122,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	contentType := httpRes.Header["Content-Type"][0]
 	contentType = strings.Split(contentType, ";")[0]
 
-	if contentType == "application/octet-stream" {
+	if len(httpRes.Header.Get(streamHeader)) > 0 {
 		res.SetOutput(httpRes.Body)
 		return res, nil
 	}
@@ -166,7 +157,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	} else {
 		v := req.Command().Type
 		err = dec.Decode(&v)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 

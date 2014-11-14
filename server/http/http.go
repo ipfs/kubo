@@ -22,8 +22,10 @@ type handler struct {
 func Serve(address ma.Multiaddr, node *core.IpfsNode) error {
 	r := mux.NewRouter()
 	handler := &handler{&ipfsHandler{node}}
+
 	r.HandleFunc("/ipfs/", handler.postHandler).Methods("POST")
 	r.PathPrefix("/ipfs/").Handler(handler).Methods("GET")
+
 	http.Handle("/", r)
 
 	_, host, err := manet.DialArgs(address)

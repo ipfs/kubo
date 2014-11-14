@@ -1,8 +1,8 @@
 package testutil
 
 import (
-	"testing"
 	crand "crypto/rand"
+	"testing"
 
 	"github.com/jbenet/go-ipfs/peer"
 

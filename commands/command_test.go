@@ -2,38 +2,36 @@ package commands
 
 import "testing"
 
+func noop(req Request) (interface{}, error) {
+	return nil, nil
+}
+
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
 		Options: []Option{
-			Option{[]string{"b", "beep"}, Int},
-			Option{[]string{"B", "boop"}, String},
+			Option{[]string{"b", "beep"}, Int, "enables beeper"},
+			Option{[]string{"B", "boop"}, String, "password for booper"},
 		},
-		Run: func(res Response, req Request) {},
+		Run: noop,
 	}
 
-	req := NewEmptyRequest()
-	req.SetOption("beep", 5)
-	req.SetOption("b", 10)
+	opts, _ := cmd.GetOptions(nil)
+
+	req := NewRequest(nil, nil, nil, nil, opts)
+	req.SetOption("beep", true)
 	res := cmd.Call(req)
-	if res.Error() == nil {
-		t.Error("Should have failed (duplicate options)")
-	}
-
-	req = NewEmptyRequest()
-	req.SetOption("beep", "foo")
-	res = cmd.Call(req)
 	if res.Error() == nil {
 		t.Error("Should have failed (incorrect type)")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption("beep", 5)
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error(res.Error(), "Should have passed")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption("beep", 5)
 	req.SetOption("boop", "test")
 	res = cmd.Call(req)
@@ -41,7 +39,7 @@ func TestOptionValidation(t *testing.T) {
 		t.Error("Should have passed")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption("b", 5)
 	req.SetOption("B", "test")
 	res = cmd.Call(req)
@@ -49,48 +47,46 @@ func TestOptionValidation(t *testing.T) {
 		t.Error("Should have passed")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption("foo", 5)
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption(EncShort, "json")
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption("b", "100")
 	res = cmd.Call(req)
 	if res.Error() != nil {
 		t.Error("Should have passed")
 	}
 
-	req = NewEmptyRequest()
+	req = NewRequest(nil, nil, nil, nil, opts)
 	req.SetOption("b", ":)")
 	res = cmd.Call(req)
 	if res.Error() == nil {
-		t.Error(res.Error(), "Should have failed (string value not convertible to int)")
+		t.Error("Should have failed (string value not convertible to int)")
 	}
 }
 
 func TestRegistration(t *testing.T) {
-	noop := func(res Response, req Request) {}
-
 	cmdA := &Command{
 		Options: []Option{
-			Option{[]string{"beep"}, Int},
+			Option{[]string{"beep"}, Int, "number of beeps"},
 		},
 		Run: noop,
 	}
 
 	cmdB := &Command{
 		Options: []Option{
-			Option{[]string{"beep"}, Int},
+			Option{[]string{"beep"}, Int, "number of beeps"},
 		},
 		Run: noop,
 		Subcommands: map[string]*Command{
@@ -100,18 +96,19 @@ func TestRegistration(t *testing.T) {
 
 	cmdC := &Command{
 		Options: []Option{
-			Option{[]string{"encoding"}, String},
+			Option{[]string{"encoding"}, String, "data encoding type"},
 		},
 		Run: noop,
 	}
 
-	res := cmdB.Call(NewRequest([]string{"a"}, nil, nil, nil))
-	if res.Error() == nil {
+	path := []string{"a"}
+	_, err := cmdB.GetOptions(path)
+	if err == nil {
 		t.Error("Should have failed (option name collision)")
 	}
 
-	res = cmdC.Call(NewEmptyRequest())
-	if res.Error() == nil {
+	_, err = cmdC.GetOptions(nil)
+	if err == nil {
 		t.Error("Should have failed (option name collision with global options)")
 	}
 }
