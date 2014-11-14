@@ -29,8 +29,8 @@ var UpdateCmd = &cmds.Command{
 	},
 	Type: &UpdateOutput{},
 	Subcommands: map[string]*cmds.Command{
-		"check": updateCheckCmd,
-		"log":   updateLogCmd,
+		"check": UpdateCheckCmd,
+		"log":   UpdateLogCmd,
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
@@ -47,7 +47,7 @@ var UpdateCmd = &cmds.Command{
 	},
 }
 
-var updateCheckCmd = &cmds.Command{
+var UpdateCheckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Checks if updates are available",
 		ShortDescription: `
@@ -80,7 +80,7 @@ Nothing will be downloaded or installed.
 	},
 }
 
-var updateLogCmd = &cmds.Command{
+var UpdateLogCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "List the changelog for the latest versions of IPFS",
 		ShortDescription: "This command is not yet implemented.",

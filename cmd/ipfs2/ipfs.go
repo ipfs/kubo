@@ -78,5 +78,7 @@ var cmdDetailsMap = map[*cmds.Command]cmdDetails{
 	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
 	commands.VersionCmd:        cmdDetails{doesNotUseRepo: true},
 	commands.UpdateCmd:         cmdDetails{cannotRunOnDaemon: true},
+	commands.UpdateCheckCmd:    cmdDetails{},
+	commands.UpdateLogCmd:      cmdDetails{},
 	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
 }
