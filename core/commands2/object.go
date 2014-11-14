@@ -108,6 +108,13 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 
 		return objectLinks(n, key)
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			object := res.Output().(*Object)
+			marshalled := marshalLinks(object.Links)
+			return []byte(marshalled), nil
+		},
+	},
 	Type: &Object{},
 }
 
