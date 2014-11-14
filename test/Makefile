@@ -32,8 +32,8 @@ $(SHARNESS):
 ipfs:
 	@echo "*** installing $@ ***"
 	mkdir -p bin
-	cd ../cmd/ipfs && go build
-	cp ../cmd/ipfs/ipfs bin/ipfs
+	cd ../cmd/ipfs2 && go build
+	cp ../cmd/ipfs2/ipfs2 bin/ipfs
 
 random:
 	@echo "*** installing $@ ***"
