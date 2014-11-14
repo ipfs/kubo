@@ -171,7 +171,7 @@ func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) (
 				args = append(args, stringArgs[0])
 				stringArgs = stringArgs[1:]
 
-			} else {
+			} else if argDef.SupportsStdin {
 				// if we have a stdin, read it in and use the data as a string value
 				var buf bytes.Buffer
 				_, err := buf.ReadFrom(stdin)
@@ -192,7 +192,7 @@ func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) (
 				args = append(args, file)
 				stringArgs = stringArgs[1:]
 
-			} else {
+			} else if argDef.SupportsStdin {
 				// if we have a stdin, use that as a reader
 				args = append(args, stdin)
 				stdin = nil
