@@ -13,9 +13,6 @@ import (
 	tour "github.com/jbenet/go-ipfs/tour"
 )
 
-// TODO the parent function now uses tourOutput. Migrate the children to also
-// use the tourOutput struct
-
 var tourCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "An introduction to IPFS",
@@ -149,7 +146,7 @@ var cmdIpfsTourList = &cmds.Command{
 
 		var w bytes.Buffer
 		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
-		w.WriteTo(os.Stdout) // TODO use res.SetOutput(output)
+		w.WriteTo(os.Stdout)
 		return nil, nil
 	},
 }
