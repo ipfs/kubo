@@ -11,7 +11,6 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	tour "github.com/jbenet/go-ipfs/tour"
-	"github.com/jbenet/go-ipfs/util"
 )
 
 // TODO the parent function now uses tourOutput. Migrate the children to also
@@ -38,46 +37,6 @@ IPFS very quickly. To start, run:
 		"restart": cmdIpfsTourRestart,
 	},
 	Run: tourRunFunc,
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: tourTextMarshaler,
-	},
-	Type: &tourOutput{},
-}
-
-// tourOutput is a union type. It either contains a Topic or it contains the
-// list of Topics and an Error.
-type tourOutput struct {
-	Last tour.ID
-
-	Topic *tour.Topic
-
-	Topics []tour.Topic
-	Error  error
-}
-
-func tourTextMarshaler(r cmds.Response) ([]byte, error) {
-	output, ok := r.Output().(*tourOutput)
-	if !ok {
-		return nil, util.ErrCast()
-	}
-	// can be listing when error
-	var buf bytes.Buffer
-	err := printTourOutput(&buf, output)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func printTourOutput(w io.Writer, output *tourOutput) error {
-	if output.Error != nil {
-		fmt.Fprintln(w, "ERROR")
-		fmt.Fprintln(w, output.Error.Error())
-		fmt.Fprintln(w, "")
-		fprintTourList(w, output.Last)
-		return nil // TODO err
-	}
-	return fprintTourShow(w, output.Topic)
 }
 
 func tourRunFunc(req cmds.Request) (interface{}, error) {
@@ -97,6 +56,8 @@ func tourRunFunc(req cmds.Request) (interface{}, error) {
 		id = tour.TopicID(strs[0])
 	}
 
+	var w bytes.Buffer
+	defer w.WriteTo(os.Stdout)
 	t, err := tourGet(id)
 	if err != nil {
 
@@ -106,15 +67,16 @@ func tourRunFunc(req cmds.Request) (interface{}, error) {
 		// 1) a simple error message
 		// 2) the full list of topics
 
-		output := &tourOutput{
-			Error: err,
-			Last:  tour.TopicID(cfg.Tour.Last),
-		}
+		fmt.Fprintln(&w, "ERROR")
+		fmt.Fprintln(&w, err)
+		fmt.Fprintln(&w, "")
+		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
 
-		return output, nil
+		return nil, nil
 	}
 
-	return &tourOutput{Topic: t}, nil
+	fprintTourShow(&w, t)
+	return nil, nil
 }
 
 var cmdIpfsTourNext = &cmds.Command{
