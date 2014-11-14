@@ -43,7 +43,7 @@ remains to be implemented.
 		cmds.BoolOption("recursive", "r", "Must be specified when adding directories"),
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("file", true, true, "The path to a file to be added to IPFS"),
+		cmds.StringArg("path", true, true, "The path to a file to be added to IPFS"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
