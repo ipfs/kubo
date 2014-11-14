@@ -198,13 +198,13 @@ It reads from stdin, and the output is a base58 encoded multihash.
 
 Data should be in the format specified by <encoding>.
 <encoding> may be one of the following:
-  * "protobuf"
-  * "json"
+	* "protobuf"
+	* "json"
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "Data to be stored as a DAG object\nMust be encoded as specified in <encoding>"),
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object"),
 		cmds.StringArg("encoding", true, false, "Encoding type of <data>, either \"protobuf\" or \"json\""),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
