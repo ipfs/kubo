@@ -267,14 +267,19 @@ func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error
 		return false, nil
 	}
 
-	cmd, found := root.Subcommands[path[0]]
-	if !found {
-		return false, fmt.Errorf("subcommand %s should be in root", path[0])
-	}
+	var details cmdDetails
+	// find the last command in path that has a cmdDetailsMap entry
+	cmd := root
+	for _, cmp := range path {
+		var found bool
+		cmd, found = cmd.Subcommands[cmp]
+		if !found {
+			return false, fmt.Errorf("subcommand %s should be in root", cmp)
+		}
 
-	details, found := cmdDetailsMap[cmd]
-	if !found {
-		details = cmdDetails{} // defaults
+		if cmdDetails, found := cmdDetailsMap[cmd]; found {
+			details = cmdDetails
+		}
 	}
 	log.Debugf("cmd perms for +%v: %s", path, details.String())
 
