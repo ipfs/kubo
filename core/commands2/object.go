@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -108,23 +110,23 @@ var objectGetCmd = &cmds.Command{
 		Tagline: "Get and serialize the DAG node named by <key>",
 		ShortDescription: `
 'ipfs object get' is a plumbing command for retreiving DAG nodes.
-It serializes the DAG node to the format specified by the "--encoding" flag.
-It outputs to stdout, and <key> is a base58 encoded multihash.
+It serializes the DAG node to the format specified by the "--encoding"
+flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
 'ipfs object get' is a plumbing command for retreiving DAG nodes.
-It serializes the DAG node to the format specified by the "--encoding" flag.
-It outputs to stdout, and <key> is a base58 encoded multihash.
+It serializes the DAG node to the format specified by the "--encoding"
+flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 
 This command outputs data in the following encodings:
   * "protobuf"
   * "json"
   * "xml"
-(Specified by the "--encoding" or "-enc" flags)`,
+(Specified by the "--encoding" or "-enc" flag)`,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve\n(in base58-encoded multihash format)"),
+		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
@@ -160,7 +162,24 @@ This command outputs data in the following encodings:
 	Type: &Node{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.EncodingType("protobuf"): func(res cmds.Response) ([]byte, error) {
-			object := res.Output().(*dag.Node)
+			node := res.Output().(*Node)
+
+			// convert the Node object into a real dag.Node
+			object := new(dag.Node)
+			object.Data = node.Data
+			object.Links = make([]*dag.Link, len(node.Links))
+			for i, link := range node.Links {
+				hash, err := mh.FromB58String(link.Hash)
+				if err != nil {
+					return nil, err
+				}
+				object.Links[i] = &dag.Link{
+					Name: link.Name,
+					Size: link.Size,
+					Hash: hash,
+				}
+			}
+
 			return object.Marshal()
 		},
 	},
