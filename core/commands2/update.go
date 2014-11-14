@@ -37,10 +37,10 @@ var UpdateCmd = &cmds.Command{
 			v := res.Output().(*UpdateOutput)
 			s := ""
 			if v.NewVersion != v.OldVersion {
-				s = fmt.Sprintf("Successfully updated to IPFS version '%s' (from '%s')",
+				s = fmt.Sprintf("Successfully updated to IPFS version '%s' (from '%s')\n",
 					v.NewVersion, v.OldVersion)
 			} else {
-				s = fmt.Sprintf("Already updated to latest version ('%s')", v.NewVersion)
+				s = fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion)
 			}
 			return []byte(s), nil
 		},
@@ -70,10 +70,10 @@ Nothing will be downloaded or installed.
 			v := res.Output().(*UpdateOutput)
 			s := ""
 			if v.NewVersion != v.OldVersion {
-				s = fmt.Sprintf("A new version of IPFS is available ('%s', currently running '%s')",
+				s = fmt.Sprintf("A new version of IPFS is available ('%s', currently running '%s')\n",
 					v.NewVersion, v.OldVersion)
 			} else {
-				s = fmt.Sprintf("Already updated to latest version ('%s')", v.NewVersion)
+				s = fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion)
 			}
 			return []byte(s), nil
 		},
