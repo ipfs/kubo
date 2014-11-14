@@ -8,11 +8,12 @@ const (
 )
 
 type Argument struct {
-	Name        string
-	Type        ArgumentType
-	Required    bool
-	Variadic    bool
-	Description string
+	Name          string
+	Type          ArgumentType
+	Required      bool
+	Variadic      bool
+	SupportsStdin bool
+	Description   string
 }
 
 func StringArg(name string, required, variadic bool, description string) Argument {
@@ -33,4 +34,9 @@ func FileArg(name string, required, variadic bool, description string) Argument 
 		Variadic:    variadic,
 		Description: description,
 	}
+}
+
+func (a Argument) EnableStdin() Argument {
+	a.SupportsStdin = true
+	return a
 }
