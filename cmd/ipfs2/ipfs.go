@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	commands "github.com/jbenet/go-ipfs/core/commands2"
 )
@@ -53,6 +55,11 @@ type cmdDetails struct {
 	cannotRunOnClient bool
 	cannotRunOnDaemon bool
 	doesNotUseRepo    bool
+}
+
+func (d *cmdDetails) String() string {
+	return fmt.Sprintf("on client? %t, on daemon? %t, uses repo? %t",
+		d.canRunOnClient(), d.canRunOnDaemon(), d.usesRepo())
 }
 
 func (d *cmdDetails) canRunOnClient() bool { return !d.cannotRunOnClient }
