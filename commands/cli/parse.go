@@ -154,7 +154,7 @@ func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) (
 		var argDef cmds.Argument
 		if argDefIndex < len(arguments) {
 			argDef = arguments[argDefIndex]
-		} else {
+		} else if len(arguments) > 0 {
 			argDef = arguments[len(arguments)-1]
 		}
 
