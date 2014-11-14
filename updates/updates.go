@@ -200,7 +200,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 
 	// if config says not to, don't check for updates
 	if !cfg.Version.ShouldCheckForUpdate() {
-		log.Info("update checking disabled.")
+		log.Info("update check skipped.")
 		return nil
 	}
 

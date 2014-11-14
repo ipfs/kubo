@@ -15,9 +15,10 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
-	"github.com/jbenet/go-ipfs/config"
-	"github.com/jbenet/go-ipfs/core"
+	config "github.com/jbenet/go-ipfs/config"
+	core "github.com/jbenet/go-ipfs/core"
 	daemon "github.com/jbenet/go-ipfs/daemon2"
+	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -207,12 +208,12 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		return nil, err
 	}
 
-	if useDaemon {
+	cfg, err := req.Context().GetConfig()
+	if err != nil {
+		return nil, err
+	}
 
-		cfg, err := req.Context().GetConfig()
-		if err != nil {
-			return nil, err
-		}
+	if useDaemon {
 
 		addr, err := ma.NewMultiaddr(cfg.Addresses.API)
 		if err != nil {
@@ -234,6 +235,11 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 
 	} else {
 		log.Info("Executing command locally")
+
+		// Check for updates and potentially install one.
+		if err := updates.CliCheckForUpdates(cfg, req.Context().ConfigRoot); err != nil {
+			return nil, err
+		}
 
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
