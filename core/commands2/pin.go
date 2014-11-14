@@ -11,7 +11,7 @@ import (
 
 var pinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Keeps objects stored locally",
+		Tagline: "Pin (and unpin) objects to local storage",
 	},
 
 	Subcommands: map[string]*cmds.Command{
