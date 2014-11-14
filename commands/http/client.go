@@ -157,7 +157,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	} else {
 		v := req.Command().Type
 		err = dec.Decode(&v)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 
