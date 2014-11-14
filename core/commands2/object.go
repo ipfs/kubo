@@ -221,6 +221,12 @@ Data should be in the format specified by <encoding>.
 
 		return output, nil
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			object := res.Output().(*Object)
+			return []byte(object.Hash), nil
+		},
+	},
 	Type: &Object{},
 }
 
