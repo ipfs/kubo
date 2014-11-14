@@ -61,6 +61,10 @@
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
 		},
 		{
+			"ImportPath": "github.com/facebookgo/stackerr",
+			"Rev": "060fbf9364c89acd41bf710e9e92915a90e7a5b5"
+		},
+		{
 			"ImportPath": "github.com/gonuts/flag",
 			"Rev": "741a6cbd37a30dedc93f817e7de6aaf0ca38a493"
 		},

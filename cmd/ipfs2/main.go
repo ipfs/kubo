@@ -169,6 +169,7 @@ func (i *cmdInvocation) Parse(args []string) error {
 	if err != nil {
 		return err
 	}
+	log.Debugf("config path is %s", configPath)
 
 	// this sets up the function that will initialize the config lazily.
 	ctx := i.req.Context()
