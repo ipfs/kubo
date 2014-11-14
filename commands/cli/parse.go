@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -15,7 +16,7 @@ var ErrInvalidSubcmd = errors.New("subcommand not found")
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 // Parse will search each root to find the one that best matches the requested subcommand.
-func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
+func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
 	// use the root that matches the longest path (most accurately matches request)
 	path, input, cmd := parsePath(input, root)
 	opts, stringArgs, err := parseOptions(input)
@@ -27,7 +28,7 @@ func Parse(input []string, root *cmds.Command) (cmds.Request, *cmds.Command, []s
 		return nil, nil, path, ErrInvalidSubcmd
 	}
 
-	args, err := parseArgs(stringArgs, cmd.Arguments)
+	args, err := parseArgs(stringArgs, stdin, cmd.Arguments)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -116,7 +117,21 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(stringArgs []string, arguments []cmds.Argument) ([]interface{}, error) {
+func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) ([]interface{}, error) {
+	// check if stdin is coming from terminal or is being piped in
+	if stdin != nil {
+		stat, err := stdin.Stat()
+		if err != nil {
+			return nil, err
+		}
+
+		// if stdin isn't a CharDevice, set it to nil
+		// (this means it is coming from terminal and we want to ignore it)
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			stdin = nil
+		}
+	}
+
 	// count required argument definitions
 	lenRequired := 0
 	for _, argDef := range arguments {
@@ -125,56 +140,67 @@ func parseArgs(stringArgs []string, arguments []cmds.Argument) ([]interface{}, e
 		}
 	}
 
-	args := make([]interface{}, len(stringArgs))
+	valCount := len(stringArgs)
+	if stdin != nil {
+		valCount += 1
+	}
 
-	valueIndex := 0 // the index of the current stringArgs value
-	for _, argDef := range arguments {
+	args := make([]interface{}, 0, valCount)
+
+	argDefIndex := 0 // the index of the current argument definition
+	for i := 0; i < valCount; i++ {
+		// get the argument definiton (should be arguments[argDefIndex],
+		// but if argDefIndex > len(arguments) we use the last argument definition)
+		var argDef cmds.Argument
+		if argDefIndex < len(arguments) {
+			argDef = arguments[argDefIndex]
+		} else {
+			argDef = arguments[len(arguments)-1]
+		}
+
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(stringArgs)-valueIndex <= lenRequired && !argDef.Required {
+		if valCount-i <= lenRequired && !argDef.Required {
 			continue
 		} else if argDef.Required {
 			lenRequired--
 		}
 
-		if valueIndex >= len(stringArgs) {
-			break
-		}
+		if argDef.Type == cmds.ArgString {
+			if stdin == nil {
+				// add string values
+				args = append(args, stringArgs[0])
+				stringArgs = stringArgs[1:]
 
-		if argDef.Variadic {
-			for _, arg := range stringArgs[valueIndex:] {
-				value, err := argValue(argDef, arg)
+			} else {
+				// if we have a stdin, read it in and use the data as a string value
+				var buf bytes.Buffer
+				_, err := buf.ReadFrom(stdin)
 				if err != nil {
 					return nil, err
 				}
-				args[valueIndex] = value
-				valueIndex++
+				args = append(args, buf.String())
+				stdin = nil
 			}
-		} else {
-			var err error
-			value, err := argValue(argDef, stringArgs[valueIndex])
-			if err != nil {
-				return nil, err
+
+		} else if argDef.Type == cmds.ArgFile {
+			if stdin == nil {
+				// treat stringArg values as file paths
+				file, err := os.Open(stringArgs[0])
+				if err != nil {
+					return nil, err
+				}
+				args = append(args, file)
+				stringArgs = stringArgs[1:]
+
+			} else {
+				// if we have a stdin, use that as a reader
+				args = append(args, stdin)
+				stdin = nil
 			}
-			args[valueIndex] = value
-			valueIndex++
 		}
+
+		argDefIndex++
 	}
 
 	return args, nil
-}
-
-func argValue(argDef cmds.Argument, value string) (interface{}, error) {
-	if argDef.Type == cmds.ArgString {
-		return value, nil
-
-	} else {
-		// NB At the time of this commit, file cleanup is performed when
-		// Requests are cleaned up. TODO try to perform open and close at the
-		// same level of abstraction (or at least in the same package!)
-		in, err := os.Open(value)
-		if err != nil {
-			return nil, err
-		}
-		return in, nil
-	}
 }
