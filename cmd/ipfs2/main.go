@@ -131,7 +131,7 @@ func (i *cmdInvocation) Run() (output io.Reader, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if debug || u.GetenvBool("DEBUG") {
+	if debug || u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
 		u.Debug = true
 		u.SetAllLoggers(logging.DEBUG)
 	}
