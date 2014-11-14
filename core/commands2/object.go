@@ -87,8 +87,9 @@ var objectLinksCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the links pointed to by the specified object",
 		ShortDescription: `
-'ipfs block get' is a plumbing command for retreiving raw IPFS blocks.
-It outputs to stdout, and <key> is a base58 encoded multihash.
+'ipfs object links' is a plumbing command for retreiving the links from
+a DAG node. It outputs to stdout, and <key> is a base58 encoded
+multihash.
 `,
 	},
 
