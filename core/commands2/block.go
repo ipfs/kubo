@@ -90,7 +90,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block"),
+		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block").EnableStdin(),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
