@@ -47,6 +47,8 @@ IPFS very quickly. To start, run:
 // tourOutput is a union type. It either contains a Topic or it contains the
 // list of Topics and an Error.
 type tourOutput struct {
+	Last tour.ID
+
 	Topic *tour.Topic
 
 	Topics []tour.Topic
@@ -68,23 +70,14 @@ func tourTextMarshaler(r cmds.Response) ([]byte, error) {
 }
 
 func printTourOutput(w io.Writer, output *tourOutput) error {
-	tmpl := `{{ if .Error }}
-ERROR
-	{{ .Error }}
-TOPICS
-	{{ range $topic := .Topics }}
-	{{ $topic.ID }} - {{ $topic.Title }} {{ end }}
-{{ else if .Topic }}
-Tour {{ .Topic.ID }} - {{ .Topic.Title }}
-
-{{ .Topic.Text }}
-{{ end }}
-`
-	tourTmpl, err := template.New("tour").Parse(tmpl)
-	if err != nil {
-		return err
+	if output.Error != nil {
+		fmt.Fprintln(w, "ERROR")
+		fmt.Fprintln(w, output.Error.Error())
+		fmt.Fprintln(w, "")
+		fprintTourList(w, output.Last)
+		return nil // TODO err
 	}
-	return tourTmpl.Execute(w, output)
+	return fprintTourShow(w, output.Topic)
 }
 
 func tourRunFunc(req cmds.Request) (interface{}, error) {
@@ -115,23 +108,15 @@ func tourRunFunc(req cmds.Request) (interface{}, error) {
 
 		output := &tourOutput{
 			Error: err,
-		}
-		for _, id := range tour.IDs {
-			t, ok := tour.Topics[id]
-			if !ok {
-				return nil, err
-			}
-			output.Topics = append(output.Topics, t)
+			Last:  tour.TopicID(cfg.Tour.Last),
 		}
 
 		return output, nil
-		// return nil, cmds.ClientError(err.Error())
 	}
 
 	return &tourOutput{Topic: t}, nil
 }
 
-// TODO use tourOutput like parent command
 var cmdIpfsTourNext = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show the next IPFS Tour topic",
@@ -150,7 +135,7 @@ var cmdIpfsTourNext = &cmds.Command{
 		if err != nil {
 			return nil, err
 		}
-		if err := tourShow(&w, topic); err != nil {
+		if err := fprintTourShow(&w, topic); err != nil {
 			return nil, err
 		}
 
@@ -163,8 +148,8 @@ var cmdIpfsTourNext = &cmds.Command{
 			}
 		}
 
-		w.WriteTo(os.Stdout) // TODO write to res.SetValue
-		return w, nil
+		w.WriteTo(os.Stdout)
+		return nil, nil
 	},
 }
 
@@ -189,7 +174,6 @@ var cmdIpfsTourRestart = &cmds.Command{
 	},
 }
 
-// TODO use tourOutput like parent command
 var cmdIpfsTourList = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show a list of IPFS Tour topics",
@@ -202,15 +186,13 @@ var cmdIpfsTourList = &cmds.Command{
 		}
 
 		var w bytes.Buffer
-		tourListCmd(&w, cfg)
+		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
 		w.WriteTo(os.Stdout) // TODO use res.SetOutput(output)
 		return nil, nil
 	},
 }
 
-func tourListCmd(w io.Writer, cfg *config.Config) {
-
-	lastid := tour.TopicID(cfg.Tour.Last)
+func fprintTourList(w io.Writer, lastid tour.ID) {
 	for _, id := range tour.IDs {
 		c := ' '
 		switch {
@@ -225,7 +207,8 @@ func tourListCmd(w io.Writer, cfg *config.Config) {
 	}
 }
 
-func tourShow(w io.Writer, t *tour.Topic) error {
+// fprintTourShow writes a text-formatted topic to the writer
+func fprintTourShow(w io.Writer, t *tour.Topic) error {
 	tmpl := `
 Tour {{ .ID }} - {{ .Title }}
 
@@ -239,7 +222,8 @@ Tour {{ .ID }} - {{ .Title }}
 	return ttempl.Execute(w, t)
 }
 
-// tourGet returns an error if topic does not exist
+// tourGet returns the topic given its ID. Returns an error if topic does not
+// exist.
 func tourGet(id tour.ID) (*tour.Topic, error) {
 	t, found := tour.Topics[id]
 	if !found {
