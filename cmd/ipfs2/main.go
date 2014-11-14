@@ -276,6 +276,7 @@ func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error
 	if !found {
 		details = cmdDetails{} // defaults
 	}
+	log.Debugf("cmd perms for +%v: %s", path, details.String())
 
 	if details.cannotRunOnClient && details.cannotRunOnDaemon {
 		return false, fmt.Errorf("command disabled: %s", path[0])
