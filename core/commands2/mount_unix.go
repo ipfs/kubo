@@ -21,9 +21,52 @@ var mountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only)",
 		ShortDescription: `
-Mount ipfs at a read-only mountpoint on the OS. All ipfs objects
-will be accessible under that directory. Note that the root will
-not be listable, as it is virtual. Accessing known paths directly.
+Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
+All ipfs objects will be accessible under that directory. Note that the
+root will not be listable, as it is virtual. Access known paths directly.
+
+You may kave to create /ipfs and /ipfs before using 'ipfs mount':
+
+> sudo mkdir /ipfs /ipns
+> sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
+> ipfs mount
+`,
+		LongDescription: `
+Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
+All ipfs objects will be accessible under that directory. Note that the
+root will not be listable, as it is virtual. Access known paths directly.
+
+> sudo mkdir /ipfs /ipns
+> sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
+> ipfs mount
+
+EXAMPLE:
+
+# setup
+> mkdir foo
+> echo "baz" > foo/bar
+> ipfs add -r foo
+added QmWLdkp93sNxGRjnFHPaYg8tCQ35NBY3XPn6KiETd3Z4WR foo/bar
+added QmSh5e7S6fdcu75LAbXNZAFY2nGyZUJXyLCJDvn2zRkWyC foo
+> ipfs ls QmSh5e7S6fdcu75LAbXNZAFY2nGyZUJXyLCJDvn2zRkWyC
+QmWLdkp93sNxGRjnFHPaYg8tCQ35NBY3XPn6KiETd3Z4WR 12 bar
+> ipfs cat QmWLdkp93sNxGRjnFHPaYg8tCQ35NBY3XPn6KiETd3Z4WR
+baz
+
+# mount
+> ipfs daemon &
+> ipfs mount
+IPFS mounted at: /ipfs
+IPNS mounted at: /ipns
+> cd /ipfs/QmSh5e7S6fdcu75LAbXNZAFY2nGyZUJXyLCJDvn2zRkWyC
+> ls
+bar
+> cat bar
+baz
+> cat /ipfs/QmSh5e7S6fdcu75LAbXNZAFY2nGyZUJXyLCJDvn2zRkWyC/bar
+baz
+> cat /ipfs/QmWLdkp93sNxGRjnFHPaYg8tCQ35NBY3XPn6KiETd3Z4WR
+baz
 `,
 	},
 
