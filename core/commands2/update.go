@@ -49,12 +49,8 @@ var UpdateCmd = &cmds.Command{
 
 var UpdateCheckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Checks if updates are available",
-		ShortDescription: `
-'ipfs update check' checks if any updates are available for IPFS.
-
-Nothing will be downloaded or installed.
-`,
+		Tagline:          "Checks if updates are available",
+		ShortDescription: "'ipfs update check' checks if any updates are available for IPFS.\nNothing will be downloaded or installed.",
 	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
