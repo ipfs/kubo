@@ -273,6 +273,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 		// make sure record is still valid
 		err = dht.verifyRecord(record)
 		if err != nil {
+			log.Error("Received invalid record!")
 			return nil, nil, err
 		}
 		return record.GetValue(), nil, nil

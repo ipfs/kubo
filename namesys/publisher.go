@@ -90,7 +90,7 @@ func createRoutingEntryData(pk ci.PrivKey, val string) ([]byte, error) {
 	entry.Value = []byte(val)
 	typ := pb.IpnsEntry_EOL
 	entry.ValidityType = &typ
-	entry.Validity = []byte(time.Now().Add(time.Hour * 24).String())
+	entry.Validity = []byte(u.FormatRFC3339(time.Now().Add(time.Hour * 24)))
 
 	sig, err := pk.Sign(ipnsEntryDataForSig(entry))
 	if err != nil {
@@ -119,8 +119,7 @@ func ValidateIpnsRecord(k u.Key, val []byte) error {
 	}
 	switch entry.GetValidityType() {
 	case pb.IpnsEntry_EOL:
-		defaultTimeFormat := "2006-01-02 15:04:05.999999999 -0700 MST"
-		t, err := time.Parse(defaultTimeFormat, string(entry.GetValue()))
+		t, err := u.ParseRFC3339(string(entry.GetValue()))
 		if err != nil {
 			log.Error("Failed parsing time for ipns record EOL")
 			return err
