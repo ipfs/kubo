@@ -4,10 +4,11 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
@@ -17,6 +18,9 @@ import (
 // TODO is this non-deterministic?
 const mountTimeout = time.Second
 
+// fuseNoDirectory used to check the returning fuse error
+const fuseNoDirectory = "fusermount: failed to access mountpoint"
+
 var mountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only)",
@@ -25,7 +29,7 @@ Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
-You may kave to create /ipfs and /ipfs before using 'ipfs mount':
+You may have to create /ipfs and /ipfs before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
@@ -35,6 +39,8 @@ You may kave to create /ipfs and /ipfs before using 'ipfs mount':
 Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
+
+You may have to create /ipfs and /ipfs before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
@@ -117,12 +123,22 @@ baz
 
 		nsdone := mountIpns(node, nsdir, fsdir)
 
+		fmtFuseErr := func(err error) error {
+			s := err.Error()
+			if strings.Contains(s, fuseNoDirectory) {
+				s = strings.Replace(s, `fusermount: "fusermount:`, "", -1)
+				s = strings.Replace(s, `\n", exit status 1`, "", -1)
+				return cmds.ClientError(s)
+			}
+			return err
+		}
+
 		// wait until mounts return an error (or timeout if successful)
 		select {
 		case err := <-fsdone:
-			return nil, err
+			return nil, fmtFuseErr(err)
 		case err := <-nsdone:
-			return nil, err
+			return nil, fmtFuseErr(err)
 
 		// mounted successfully, we timed out with no errors
 		case <-time.After(mountTimeout):
