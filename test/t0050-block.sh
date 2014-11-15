@@ -20,7 +20,7 @@ test_expect_success "'ipfs block put' succeeds" '
 
 test_expect_success "'ipfs block put' output looks good" '
 	HASH="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk" &&
-	echo "added as '\''$HASH'\''" >expected_out &&
+	echo "$HASH" >expected_out &&
 	test_cmp expected_out actual_out
 '
 
