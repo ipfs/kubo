@@ -17,7 +17,7 @@ test_expect_success "ipfs add succeeds" '
 
 test_expect_success "ipfs add output looks good" '
 	HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
-	echo "added $HASH $(pwd)/mountdir/hello.txt" >expected &&
+	echo "added $HASH mountdir/hello.txt" >expected &&
 	test_cmp expected actual
 '
 
@@ -58,7 +58,7 @@ test_expect_success "ipfs add bigfile succeeds" '
 
 test_expect_success "ipfs add bigfile output looks good" '
 	HASH="QmWXysX1oysyjTqd5xGM2T1maBaVXnk5svQv4GKo5PsGPo" &&
-	echo "added $HASH $(pwd)/mountdir/bigfile" >expected &&
+	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '
 
