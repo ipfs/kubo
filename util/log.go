@@ -73,9 +73,8 @@ func SetupLogging() {
 // SetAllLoggers changes the logging.Level of all loggers to lvl
 func SetAllLoggers(lvl logging.Level) {
 	logging.SetLevel(lvl, "")
-	for n, log := range loggers {
+	for n, _ := range loggers {
 		logging.SetLevel(lvl, n)
-		log.Noticef("setting logger: %q to %v", n, lvl)
 	}
 }
 
