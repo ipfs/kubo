@@ -73,6 +73,9 @@ func newPeerTime(t time.Time) peer.Peer {
 }
 
 func TestSyncQueue(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx := context.Background()
 
 	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))

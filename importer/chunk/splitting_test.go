@@ -21,6 +21,9 @@ func copyBuf(buf []byte) []byte {
 }
 
 func TestSizeSplitterIsDeterministic(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	test := func() {
 		bufR := randBuf(t, 10000000) // crank this up to satisfy yourself.

@@ -115,7 +115,9 @@ func (f *fauxNet) GetBandwidthTotals() (uint64, uint64) {
 func (f *fauxNet) Close() error { return nil }
 
 func TestGetFailures(t *testing.T) {
-	// t.Skip("skipping test because it makes a lot of output")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	ctx := context.Background()
 	fn := &fauxNet{}
@@ -211,7 +213,9 @@ func _randPeer() peer.Peer {
 }
 
 func TestNotFound(t *testing.T) {
-	// t.Skip("skipping test because it makes a lot of output")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	ctx := context.Background()
 	fn := &fauxNet{}

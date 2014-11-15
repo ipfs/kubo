@@ -29,6 +29,9 @@ func TestKey(t *testing.T) {
 }
 
 func TestByteChanReader(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	var data bytes.Buffer
 	var data2 bytes.Buffer

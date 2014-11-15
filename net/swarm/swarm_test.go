@@ -167,6 +167,9 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 }
 
 func TestSwarm(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	// t.Skip("skipping for another test")
 
 	addrs := []string{

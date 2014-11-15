@@ -231,7 +231,9 @@ func TestProvides(t *testing.T) {
 }
 
 func TestProvidesAsync(t *testing.T) {
-	// t.Skip("skipping test to debug another")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	ctx := context.Background()
 	u.Debug = false
@@ -295,7 +297,9 @@ func TestProvidesAsync(t *testing.T) {
 }
 
 func TestLayeredGet(t *testing.T) {
-	// t.Skip("skipping test to debug another")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	ctx := context.Background()
 	u.Debug = false
@@ -347,7 +351,9 @@ func TestLayeredGet(t *testing.T) {
 }
 
 func TestFindPeer(t *testing.T) {
-	// t.Skip("skipping test to debug another")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	ctx := context.Background()
 	u.Debug = false
@@ -391,7 +397,9 @@ func TestFindPeer(t *testing.T) {
 }
 
 func TestConnectCollision(t *testing.T) {
-	// t.Skip("skipping test to debug another")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	runTimes := 10
 

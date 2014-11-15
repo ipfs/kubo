@@ -103,6 +103,9 @@ func TestSimpleMuxer(t *testing.T) {
 }
 
 func TestSimultMuxer(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	// run muxer
 	ctx, cancel := context.WithCancel(context.Background())
 

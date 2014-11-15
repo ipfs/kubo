@@ -19,6 +19,9 @@ import (
 // These tests tests a combination of unixfs/io/dagreader and importer/chunk.
 // Maybe split them up somehow?
 func TestBuildDag(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	td := os.TempDir()
 	fi, err := os.Create(td + "/tmpfi")
 	if err != nil {
@@ -40,6 +43,9 @@ func TestBuildDag(t *testing.T) {
 
 //Test where calls to read are smaller than the chunk size
 func TestSizeBasedSplit(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	bs := &chunk.SizeSplitter{Size: 512}
 	testFileConsistency(t, bs, 32*512)
 	bs = &chunk.SizeSplitter{Size: 4096}
@@ -118,10 +124,16 @@ func arrComp(a, b []byte) error {
 }
 
 func TestMaybeRabinConsistency(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	testFileConsistency(t, chunk.NewMaybeRabin(4096), 256*4096)
 }
 
 func TestRabinBlockSize(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	buf := new(bytes.Buffer)
 	nbytes := 1024 * 1024
 	io.CopyN(buf, rand.Reader, int64(nbytes))
