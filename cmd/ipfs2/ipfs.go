@@ -61,6 +61,8 @@ type cmdDetails struct {
 	// command
 	initializesConfig bool
 
+	// preemptsAutoUpdate describes commands that must be executed without the
+	// pre-command update hook
 	preemptsAutoUpdate bool
 }
 
