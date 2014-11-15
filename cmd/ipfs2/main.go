@@ -59,13 +59,13 @@ func main() {
 
 	// this is a local helper to print out help text.
 	// there's some considerations that this makes easier.
-	printHelp := func(long bool) {
+	printHelp := func(long bool, w io.Writer) {
 		helpFunc := cmdsCli.ShortHelp
 		if long {
 			helpFunc = cmdsCli.LongHelp
 		}
 
-		helpFunc("ipfs", Root, invoc.path, os.Stderr)
+		helpFunc("ipfs", Root, invoc.path, w)
 	}
 
 	// parse the commandline into a command invocation
@@ -80,7 +80,7 @@ func main() {
 			os.Exit(1)
 		}
 		if longH || shortH {
-			printHelp(longH)
+			printHelp(longH, os.Stdout)
 			os.Exit(0)
 		}
 	}
@@ -89,7 +89,7 @@ func main() {
 	// - commands with no Run func are invoked directly.
 	// - the main command is invoked.
 	if invoc.cmd == nil || invoc.cmd.Run == nil {
-		printHelp(false)
+		printHelp(false, os.Stdout)
 		os.Exit(0)
 	}
 
@@ -102,7 +102,7 @@ func main() {
 		if invoc.cmd != nil {
 			// we need a newline space.
 			fmt.Fprintf(os.Stderr, "\n")
-			printHelp(false)
+			printHelp(false, os.Stderr)
 		}
 		os.Exit(1)
 	}
@@ -114,7 +114,7 @@ func main() {
 
 		// if this error was a client error, print short help too.
 		if isClientError(err) {
-			printHelp(false)
+			printHelp(false, os.Stderr)
 		}
 		os.Exit(1)
 	}
