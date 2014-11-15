@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/facebookgo/stack"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/stack"
 )
 
 // Error provides the wrapper that adds multiple Stacks to an error. Each Stack
