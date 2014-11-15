@@ -14,7 +14,10 @@ type TestOutput struct {
 
 var Root = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Global P2P Merkle-DAG filesystem",
+		Tagline: "global p2p merkle-dag filesystem",
+		Synopsis: `
+ipfs [<flags>] <command> [<arg>] ...
+`,
 		ShortDescription: `
 Basic commands:
 
@@ -32,6 +35,7 @@ Tool commands:
 
 Advanced Commands:
 
+    daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
     serve         Serve an interface to ipfs
     diag          Print diagnostics
@@ -40,6 +44,8 @@ Plumbing commands:
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
+
+Use 'ipfs <command> --help' to learn more about each command.
 `,
 	},
 	Options: []cmds.Option{
