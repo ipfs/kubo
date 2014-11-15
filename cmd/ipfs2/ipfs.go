@@ -55,6 +55,15 @@ type cmdDetails struct {
 	cannotRunOnClient bool
 	cannotRunOnDaemon bool
 	doesNotUseRepo    bool
+
+	// initializesConfig describes commands that initialize the config.
+	// pre-command hooks that require configs must not be run before this
+	// command
+	initializesConfig bool
+
+	// preemptsAutoUpdate describes commands that must be executed without the
+	// pre-command update hook
+	preemptsAutoUpdate bool
 }
 
 func (d *cmdDetails) String() string {
@@ -71,14 +80,14 @@ func (d *cmdDetails) usesRepo() bool       { return !d.doesNotUseRepo }
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd:                    cmdDetails{cannotRunOnDaemon: true, doesNotUseRepo: true},
+	initCmd:                    cmdDetails{initializesConfig: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
 	daemonCmd:                  cmdDetails{cannotRunOnDaemon: true},
 	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
 	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
 	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
 	commands.VersionCmd:        cmdDetails{doesNotUseRepo: true},
-	commands.UpdateCmd:         cmdDetails{cannotRunOnDaemon: true},
-	commands.UpdateCheckCmd:    cmdDetails{},
-	commands.UpdateLogCmd:      cmdDetails{},
+	commands.UpdateCmd:         cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
+	commands.UpdateCheckCmd:    cmdDetails{preemptsAutoUpdate: true},
+	commands.UpdateLogCmd:      cmdDetails{preemptsAutoUpdate: true},
 	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
 }
