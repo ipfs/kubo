@@ -51,18 +51,23 @@ func isLocal(cmd *cmds.Command) bool {
 	return found
 }
 
+// NB: when necessary, properties are described using negatives in order to
+// provide desirable defaults
 type cmdDetails struct {
 	cannotRunOnClient bool
 	cannotRunOnDaemon bool
 	doesNotUseRepo    bool
 
-	// initializesConfig describes commands that initialize the config.
-	// pre-command hooks that require configs must not be run before this
-	// command
-	initializesConfig bool
+	// doesNotUseConfigAsInput describes commands that do not use the config as
+	// input. These commands either initialize the config or perform operations
+	// that don't require access to the config.
+	//
+	// pre-command hooks that require configs must not be run before these
+	// commands.
+	doesNotUseConfigAsInput bool
 
 	// preemptsAutoUpdate describes commands that must be executed without the
-	// pre-command update hook
+	// auto-update pre-command hook
 	preemptsAutoUpdate bool
 }
 
@@ -71,21 +76,22 @@ func (d *cmdDetails) String() string {
 		d.canRunOnClient(), d.canRunOnDaemon(), d.usesRepo())
 }
 
-func (d *cmdDetails) canRunOnClient() bool { return !d.cannotRunOnClient }
-func (d *cmdDetails) canRunOnDaemon() bool { return !d.cannotRunOnDaemon }
-func (d *cmdDetails) usesRepo() bool       { return !d.doesNotUseRepo }
+func (d *cmdDetails) usesConfigAsInput() bool { return !d.doesNotUseConfigAsInput }
+func (d *cmdDetails) canRunOnClient() bool    { return !d.cannotRunOnClient }
+func (d *cmdDetails) canRunOnDaemon() bool    { return !d.cannotRunOnDaemon }
+func (d *cmdDetails) usesRepo() bool          { return !d.doesNotUseRepo }
 
 // "What is this madness!?" you ask. Our commands have the unfortunate problem of
 // not being able to run on all the same contexts. This map describes these
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd:                    cmdDetails{initializesConfig: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+	initCmd:                    cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
 	daemonCmd:                  cmdDetails{cannotRunOnDaemon: true},
 	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
 	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
 	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
-	commands.VersionCmd:        cmdDetails{doesNotUseRepo: true},
+	commands.VersionCmd:        cmdDetails{doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
 	commands.UpdateCmd:         cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
 	commands.UpdateCheckCmd:    cmdDetails{preemptsAutoUpdate: true},
 	commands.UpdateLogCmd:      cmdDetails{preemptsAutoUpdate: true},
