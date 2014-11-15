@@ -11,7 +11,9 @@ import (
 )
 
 func TestSimultOpen(t *testing.T) {
-	// t.Skip("skipping for another test")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	addrs := []string{
 		"/ip4/127.0.0.1/tcp/1244",
@@ -61,6 +63,9 @@ func TestSimultOpenMany(t *testing.T) {
 }
 
 func TestSimultOpenFewStress(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	// t.Skip("skipping for another test")
 
 	num := 10

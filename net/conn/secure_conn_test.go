@@ -105,7 +105,9 @@ func TestSecureCancel(t *testing.T) {
 }
 
 func TestSecureCloseLeak(t *testing.T) {
-	// t.Skip("Skipping in favor of another test")
+	if testing.Short() {
+		t.SkipNow()
+	}
 	if os.Getenv("TRAVIS") == "true" {
 		t.Skip("this doesn't work well on travis")
 	}

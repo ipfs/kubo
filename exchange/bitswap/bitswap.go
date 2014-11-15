@@ -15,24 +15,21 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
-	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 var log = u.Logger("bitswap")
 
-// NetMessageSession initializes a BitSwap session that communicates over the
-// provided NetMessage service.
+// New initializes a BitSwap instance that communicates over the
+// provided BitSwapNetwork. This function registers the returned instance as
+// the network delegate.
 // Runs until context is cancelled
-func NetMessageSession(ctx context.Context, p peer.Peer,
-	net inet.Network, srv inet.Service, directory bsnet.Routing,
+func New(ctx context.Context, p peer.Peer,
+	network bsnet.BitSwapNetwork, routing bsnet.Routing,
 	d ds.ThreadSafeDatastore, nice bool) exchange.Interface {
 
-	networkAdapter := bsnet.NetMessageAdapter(srv, net, nil)
-
 	notif := notifications.New()
-
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -44,11 +41,11 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 		blockstore:    blockstore.NewBlockstore(d),
 		notifications: notif,
 		strategy:      strategy.New(nice),
-		routing:       directory,
-		sender:        networkAdapter,
+		routing:       routing,
+		sender:        network,
 		wantlist:      u.NewKeySet(),
 	}
-	networkAdapter.SetDelegate(bs)
+	network.SetDelegate(bs)
 
 	return bs
 }
@@ -57,7 +54,7 @@ func NetMessageSession(ctx context.Context, p peer.Peer,
 type bitswap struct {
 
 	// sender delivers messages on behalf of the session
-	sender bsnet.Adapter
+	sender bsnet.BitSwapNetwork
 
 	// blockstore is the local database
 	// NB: ensure threadsafety

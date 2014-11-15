@@ -156,7 +156,9 @@ func setupMultiConns(t *testing.T, ctx context.Context) (a, b *MultiConn) {
 }
 
 func TestMulticonnSend(t *testing.T) {
-	// t.Skip("fooo")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	log.Info("TestMulticonnSend")
 	ctx := context.Background()
@@ -220,7 +222,9 @@ func TestMulticonnSend(t *testing.T) {
 }
 
 func TestMulticonnSendUnderlying(t *testing.T) {
-	// t.Skip("fooo")
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	log.Info("TestMulticonnSendUnderlying")
 	ctx := context.Background()

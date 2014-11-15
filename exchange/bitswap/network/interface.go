@@ -8,8 +8,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// Adapter provides network connectivity for BitSwap sessions
-type Adapter interface {
+// BitSwapNetwork provides network connectivity for BitSwap sessions
+type BitSwapNetwork interface {
 
 	// DialPeer ensures there is a connection to peer.
 	DialPeer(context.Context, peer.Peer) error
@@ -31,6 +31,7 @@ type Adapter interface {
 	SetDelegate(Receiver)
 }
 
+// Implement Receiver to receive messages from the BitSwapNetwork
 type Receiver interface {
 	ReceiveMessage(
 		ctx context.Context, sender peer.Peer, incoming bsmsg.BitSwapMessage) (
@@ -39,7 +40,6 @@ type Receiver interface {
 	ReceiveError(error)
 }
 
-// TODO rename -> Router?
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
 	FindProvidersAsync(context.Context, u.Key, int) <-chan peer.Peer

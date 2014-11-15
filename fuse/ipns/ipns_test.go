@@ -83,6 +83,9 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 // Test writing a file and reading it back
 func TestIpnsBasicIO(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -101,6 +104,9 @@ func TestIpnsBasicIO(t *testing.T) {
 
 // Test to make sure file changes persist over mounts of ipns
 func TestFilePersistence(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	node, mnt := setupIpnsTest(t, nil)
 
 	fname := "/local/atestfile"
@@ -126,6 +132,9 @@ func TestFilePersistence(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly
 func TestFileSizeReporting(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -144,6 +153,9 @@ func TestFileSizeReporting(t *testing.T) {
 
 // Test to make sure you cant create multiple entries with the same name
 func TestDoubleEntryFailure(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -160,6 +172,9 @@ func TestDoubleEntryFailure(t *testing.T) {
 }
 
 func TestAppendFile(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 
@@ -198,6 +213,9 @@ func TestAppendFile(t *testing.T) {
 }
 
 func TestFastRepublish(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	// make timeout noticeable.
 	osrt := shortRepublishTimeout
@@ -299,6 +317,9 @@ func TestFastRepublish(t *testing.T) {
 
 // Test writing a medium sized file one byte at a time
 func TestMultiWrite(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 	_, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()

@@ -15,6 +15,7 @@ import (
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
+	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
@@ -150,8 +151,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
-		n.Exchange = bitswap.NetMessageSession(ctx, n.Identity, n.Network, exchangeService, n.Routing, n.Datastore, alwaysSendToPeer)
-		// ok, this function call is ridiculous o/ consider making it simpler.
+		bitswapNetwork := bsnet.NewFromIpfsNetwork(exchangeService, n.Network)
+		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, n.Datastore, alwaysSendToPeer)
 
 		go initConnections(ctx, n.Config, n.Peerstore, dhtRouting)
 	}

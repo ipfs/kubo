@@ -90,6 +90,9 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 }
 
 func TestSwarm(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
