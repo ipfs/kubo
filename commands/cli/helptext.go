@@ -33,6 +33,7 @@ type helpFields struct {
 	Synopsis    string
 	Subcommands string
 	Description string
+	MoreHelp    bool
 }
 
 // TrimNewlines removes extra newlines from fields. This makes aligning
@@ -105,7 +106,8 @@ SYNOPSIS
 {{end}}{{if .Description}}
 {{.Description}}
 {{end}}
-Use '{{.Path}} --help' for more information about this command.
+{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
+{{end}}
 `
 
 var usageTemplate *template.Template
@@ -141,6 +143,7 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 		Subcommands: cmd.Helptext.Subcommands,
 		Description: cmd.Helptext.ShortDescription,
 		Usage:       cmd.Helptext.Usage,
+		MoreHelp:    (cmd != root),
 	}
 
 	if len(cmd.Helptext.LongDescription) > 0 {
@@ -192,6 +195,7 @@ func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer
 		Synopsis:    cmd.Helptext.Synopsis,
 		Description: cmd.Helptext.ShortDescription,
 		Usage:       cmd.Helptext.Usage,
+		MoreHelp:    (cmd != root),
 	}
 
 	// trim the extra newlines (see TrimNewlines doc)
