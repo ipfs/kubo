@@ -20,6 +20,7 @@ import (
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 // log is the command logger
@@ -201,20 +202,60 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 	return longHelp, shortHelp, nil
 }
 
+func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Command) error {
+
+	log.Debug("Calling pre-command hooks...")
+
+	// some hooks only run when the command is executed locally
+	daemon, err := commandShouldRunOnDaemon(details, req, root)
+	if err != nil {
+		return err
+	}
+
+	// check for updates when 1) commands is going to be run locally, 2) the
+	// command does not initialize the config, and 3) the command does not
+	// pre-empt updates
+	if !daemon && !details.initializesConfig && !details.preemptsUpdates {
+
+		log.Debug("Calling hook: Check for updates")
+
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return err
+		}
+		// Check for updates and potentially install one.
+		if err := updates.CliCheckForUpdates(cfg, req.Context().ConfigRoot); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	var res cmds.Response
 
-	useDaemon, err := commandShouldRunOnDaemon(req, root)
+	details, err := commandDetails(req.Path(), root)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg, err := req.Context().GetConfig()
+	useDaemon, err := commandShouldRunOnDaemon(*details, req, root)
+	if err != nil {
+		return nil, err
+	}
+
+	err = callPreCommandHooks(*details, req, root)
 	if err != nil {
 		return nil, err
 	}
 
 	if useDaemon {
+
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
 
 		addr, err := ma.NewMultiaddr(cfg.Addresses.API)
 		if err != nil {
@@ -236,11 +277,6 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 
 	} else {
 		log.Info("Executing command locally")
-
-		// Check for updates and potentially install one.
-		if err := updates.CliCheckForUpdates(cfg, req.Context().ConfigRoot); err != nil {
-			return nil, err
-		}
 
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
@@ -267,13 +303,11 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	return res, nil
 }
 
-func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error) {
-	path := req.Path()
-	// root command.
-	if len(path) < 1 {
-		return false, nil
-	}
-
+// commandDetails returns a command's details for the command given by |path|
+// within the |root| command tree.
+//
+// Returns an error if the command is not found in the Command tree.
+func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 	var details cmdDetails
 	// find the last command in path that has a cmdDetailsMap entry
 	cmd := root
@@ -281,7 +315,7 @@ func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error
 		var found bool
 		cmd, found = cmd.Subcommands[cmp]
 		if !found {
-			return false, fmt.Errorf("subcommand %s should be in root", cmp)
+			return nil, debugerror.Errorf("subcommand %s should be in root", cmp)
 		}
 
 		if cmdDetails, found := cmdDetailsMap[cmd]; found {
@@ -289,6 +323,21 @@ func commandShouldRunOnDaemon(req cmds.Request, root *cmds.Command) (bool, error
 		}
 	}
 	log.Debugf("cmd perms for +%v: %s", path, details.String())
+	return &details, nil
+}
+
+// commandShouldRunOnDaemon determines, from commmand details, whether a
+// command ought to be executed on an IPFS daemon.
+//
+// It returns true if the command should be executed on a daemon and false if
+// it should be executed on a client. It returns an error if the command must
+// NOT be executed on either.
+func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.Command) (bool, error) {
+	path := req.Path()
+	// root command.
+	if len(path) < 1 {
+		return false, nil
+	}
 
 	if details.cannotRunOnClient && details.cannotRunOnDaemon {
 		return false, fmt.Errorf("command disabled: %s", path[0])
