@@ -61,7 +61,7 @@ type cmdDetails struct {
 	// command
 	initializesConfig bool
 
-	preemptsUpdates bool
+	preemptsAutoUpdate bool
 }
 
 func (d *cmdDetails) String() string {
@@ -84,8 +84,8 @@ var cmdDetailsMap = map[*cmds.Command]cmdDetails{
 	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
 	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
 	commands.VersionCmd:        cmdDetails{doesNotUseRepo: true},
-	commands.UpdateCmd:         cmdDetails{preemptsUpdates: true, cannotRunOnDaemon: true},
-	commands.UpdateCheckCmd:    cmdDetails{preemptsUpdates: true},
-	commands.UpdateLogCmd:      cmdDetails{preemptsUpdates: true},
+	commands.UpdateCmd:         cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
+	commands.UpdateCheckCmd:    cmdDetails{preemptsAutoUpdate: true},
+	commands.UpdateLogCmd:      cmdDetails{preemptsAutoUpdate: true},
 	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
 }
