@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/pprof"
+	"syscall"
 
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -124,7 +125,8 @@ func main() {
 }
 
 func (i *cmdInvocation) Run() (output io.Reader, err error) {
-	handleInterrupt()
+	// setup our global interrupt handler.
+	i.setupInterruptHandler()
 
 	// check if user wants to debug. option OR env var.
 	debug, _, err := i.req.Option("debug").Bool()
@@ -281,6 +283,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
 		ctx := req.Context()
+
 		ctx.ConstructNode = func() (*core.IpfsNode, error) {
 			cfg, err := ctx.GetConfig()
 			if err != nil {
@@ -442,14 +445,37 @@ func writeHeapProfileToFile() error {
 }
 
 // listen for and handle SIGTERM
-func handleInterrupt() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+func (i *cmdInvocation) setupInterruptHandler() {
+
+	ctx := i.req.Context()
+	sig := allInterruptSignals()
 
 	go func() {
-		for _ = range c {
-			log.Info("Received interrupt signal, terminating...")
+
+		for {
+			// first time, try to shut down.
+			<-sig
+			log.Critical("Received interrupt signal, shutting down...")
+
+			n, err := ctx.GetNode()
+			if err == nil {
+				go n.Close()
+				select {
+				case <-n.Closed():
+				case <-sig:
+					log.Critical("Received another interrupt signal, terminating...")
+				}
+			}
+
 			os.Exit(0)
 		}
+
 	}()
+}
+
+func allInterruptSignals() chan os.Signal {
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
+		syscall.SIGTERM, syscall.SIGQUIT)
+	return sigc
 }

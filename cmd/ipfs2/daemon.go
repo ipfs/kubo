@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
@@ -74,40 +71,35 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	ifpsHandler := &ipfsHandler{node}
 	mux.Handle("/ipfs/", ifpsHandler)
 
-	err = listenAndServe(mux, host)
+	err = listenAndServe(node, mux, host)
 	return nil, err
 }
 
-func listenAndServe(mux *http.ServeMux, host string) error {
+func listenAndServe(node *core.IpfsNode, mux *http.ServeMux, host string) error {
 
 	fmt.Printf("API server listening on '%s'\n", host)
 	s := manners.NewServer()
+
 	done := make(chan struct{}, 1)
 	defer func() {
 		done <- struct{}{}
 	}()
 
-	// go wait until we kill it.
+	// go wait until the node dies
 	go func() {
-		sig := sigTerm()
 		select {
+		case <-node.Closed():
 		case <-done:
-			log.Info("daemon terminated at %s.", host)
-		case <-sig:
-			s.Shutdown <- true
-			log.Info("terminating daemon at %s...", host)
+			return
 		}
+
+		log.Info("terminating daemon at %s...", host)
+		s.Shutdown <- true
 	}()
 
 	if err := s.ListenAndServe(host, mux); err != nil {
 		return err
 	}
-	return nil
-}
 
-func sigTerm() chan os.Signal {
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
-		syscall.SIGTERM, syscall.SIGQUIT)
-	return sigc
+	return nil
 }
