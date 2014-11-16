@@ -82,7 +82,11 @@ IPFS and are now interfacing with the ipfs merkledag!
 For a short demo of what you can do, enter 'ipfs tour'
 `
 
-// NB: if dspath is not provided, it will be retrieved from the config
+func initWithDefaults(configRoot string) error {
+	_, err := doInit(configRoot, "", false, nBitsForKeypairDefault)
+	return errors.Wrap(err)
+}
+
 func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
