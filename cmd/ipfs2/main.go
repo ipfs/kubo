@@ -232,6 +232,17 @@ func callPreCommandHooks(command cmdDetails, req cmds.Request, root *cmds.Comman
 		}
 	}
 
+	// When the upcoming command may use the config and repo, we know it's safe
+	// for the log config hook to touch the config/repo
+	if command.usesConfigAsInput() && command.usesRepo() {
+		log.Debug("Calling hook: Configure Event Logger")
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return err
+		}
+		configureEventLogger(cfg)
+	}
+
 	return nil
 }
 
@@ -480,4 +491,25 @@ func allInterruptSignals() chan os.Signal {
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
 		syscall.SIGTERM, syscall.SIGQUIT)
 	return sigc
+}
+
+func configureEventLogger(config *config.Config) error {
+
+	if u.Debug {
+		elog.Configure(elog.LevelDebug)
+	} else {
+		elog.Configure(elog.LevelInfo)
+	}
+
+	elog.Configure(elog.LdJSONFormatter)
+
+	rotateConf := elog.LogRotatorConfig{
+		Filename:   config.Logs.Filename,
+		MaxSizeMB:  config.Logs.MaxSizeMB,
+		MaxBackups: config.Logs.MaxBackups,
+		MaxAgeDays: config.Logs.MaxAgeDays,
+	}
+
+	elog.Configure(elog.OutputRotatingLogFile(rotateConf))
+	return nil
 }
