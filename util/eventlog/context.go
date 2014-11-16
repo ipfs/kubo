@@ -14,7 +14,7 @@ func ContextWithMetadata(ctx context.Context, l Loggable) context.Context {
 	existing, err := MetadataFromContext(ctx)
 	if err != nil {
 		// context does not contain meta. just set the new metadata
-		child := context.WithValue(ctx, metadataKey, l.Loggable())
+		child := context.WithValue(ctx, metadataKey, Metadata(l.Loggable()))
 		return child
 	}
 
