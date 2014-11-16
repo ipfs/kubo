@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"net/http"
 
+	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
-	errors "github.com/jbenet/go-ipfs/util/errors"
-
-	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands2"
 	daemon "github.com/jbenet/go-ipfs/daemon2"
+	util "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/errors"
+)
+
+const (
+	initializedOptionKeyword = "initialized"
 )
 
 var daemonCmd = &cmds.Command{
@@ -28,12 +32,33 @@ the daemon.
 `,
 	},
 
-	Options:     []cmds.Option{},
+	Options: []cmds.Option{
+		cmds.BoolOption(initializedOptionKeyword, "Initialize IPFS with default settings if not already initialized"),
+	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
 }
 
 func daemonFunc(req cmds.Request) (interface{}, error) {
+
+	init, _, err := req.Option(initializedOptionKeyword).Bool()
+	if err != nil {
+		return nil, err
+	}
+	if init {
+
+		// now, FileExists is our best method of detecting whether IPFS is
+		// configured. Consider moving this into a config helper method
+		// `IsInitialized` where the quality of the signal can be improved over
+		// time, and many call-sites can benefit.
+		if !util.FileExists(req.Context().ConfigRoot) {
+			err := initWithDefaults(req.Context().ConfigRoot)
+			if err != nil {
+				return nil, errors.Wrap(err)
+			}
+		}
+	}
+
 	lock, err := daemon.Lock(req.Context().ConfigRoot)
 	if err != nil {
 		return nil, errors.Errorf("Couldn't obtain lock. Is another daemon already running?")

@@ -97,8 +97,11 @@ func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo 
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd:                    cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
-	daemonCmd:                  cmdDetails{cannotRunOnDaemon: true},
+	initCmd: cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+
+	// daemonCmd allows user to initialize the config. Thus, it may be called
+	// without using the config as input
+	daemonCmd:                  cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
 	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
 	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
 	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
