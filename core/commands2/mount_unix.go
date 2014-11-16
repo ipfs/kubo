@@ -26,7 +26,7 @@ var mountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only)",
 		Synopsis: `
-ipfs [-f <ipfs mount path>] [-n <ipns mount path>]
+ipfs mount [-f <ipfs mount path>] [-n <ipns mount path>]
 `,
 		ShortDescription: `
 Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
