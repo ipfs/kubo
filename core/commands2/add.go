@@ -5,18 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
-	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	importer "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	pinning "github.com/jbenet/go-ipfs/pin"
-	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -43,7 +38,7 @@ remains to be implemented.
 		cmds.BoolOption("recursive", "r", "Must be specified when adding directories"),
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "The path to a file to be added to IPFS"),
+		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
@@ -52,13 +47,10 @@ remains to be implemented.
 			return nil, err
 		}
 
-		recursive, _, err := req.Option("r").Bool()
+		_, _, err = req.Option("r").Bool()
 		if err != nil {
 			return nil, err
 		}
-
-		// THIS IS A HORRIBLE HACK -- FIXME!!!
-		// see https://github.com/jbenet/go-ipfs/issues/309
 
 		// returns the last one
 		addDagnode := func(name string, dn *dag.Node) error {
@@ -72,84 +64,34 @@ remains to be implemented.
 			return nil
 		}
 
-		addFile := func(name string) (*dag.Node, error) {
-			f, err := os.Open(name)
-			if err != nil {
-				return nil, err
-			}
-			defer f.Close()
-
-			dns, err := add(n, []io.Reader{f})
+		addFile := func(file cmds.File) (*dag.Node, error) {
+			dns, err := add(n, []io.Reader{file})
 			if err != nil {
 				return nil, err
 			}
 
-			log.Infof("adding file: %s", name)
-			if err := addDagnode(name, dns[len(dns)-1]); err != nil {
+			log.Infof("adding file: %s", file.FileName())
+			if err := addDagnode(file.FileName(), dns[len(dns)-1]); err != nil {
 				return nil, err
 			}
 			return dns[len(dns)-1], nil // last dag node is the file.
 		}
 
-		var addPath func(name string) (*dag.Node, error)
-		addDir := func(name string) (*dag.Node, error) {
-			tree := &dag.Node{Data: ft.FolderPBData()}
+		// TODO: handle directories
 
-			entries, err := ioutil.ReadDir(name)
+		file, err := req.Files().NextFile()
+		for file != nil {
+			_, err := addFile(file)
 			if err != nil {
 				return nil, err
 			}
 
-			// construct nodes for containing files.
-			for _, e := range entries {
-				fp := filepath.Join(name, e.Name())
-				nd, err := addPath(fp)
-				if err != nil {
-					return nil, err
-				}
-
-				if err = tree.AddNodeLink(e.Name(), nd); err != nil {
-					return nil, err
-				}
-			}
-
-			log.Infof("adding dir: %s", name)
-			if err := addNode(n, tree); err != nil {
-				return nil, err
-			}
-
-			if err := addDagnode(name, tree); err != nil {
-				return nil, err
-			}
-			return tree, nil
+			file, err = req.Files().NextFile()
 		}
-
-		addPath = func(fpath string) (*dag.Node, error) {
-			fi, err := os.Stat(fpath)
-			if err != nil {
-				return nil, err
-			}
-
-			if fi.IsDir() {
-				if !recursive {
-					return nil, errors.New("use -r to recursively add directories")
-				}
-				return addDir(fpath)
-			}
-			return addFile(fpath)
-		}
-
-		paths, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			panic(err)
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 
-		for _, f := range paths {
-			if _, err := addPath(f); err != nil {
-				return nil, err
-			}
-		}
 		return added, nil
 
 		// readers, err := internal.CastToReaders(req.Arguments())
