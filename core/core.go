@@ -19,6 +19,7 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
+	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	netservice "github.com/jbenet/go-ipfs/net/service"
 	path "github.com/jbenet/go-ipfs/path"
@@ -216,6 +217,8 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 	if err != nil {
 		return nil, err
 	}
+
+	peer.SetVersions(handshake.ClientVersion, handshake.IpfsVersion.String())
 
 	// when not online, don't need to parse private keys (yet)
 	if online {

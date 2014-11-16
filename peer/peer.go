@@ -99,6 +99,9 @@ type Peer interface {
 	GetType() Type
 	SetType(Type)
 
+	//Get/Set Agent and Protocol Versions
+	GetVersions() (agent, protocol string)
+	SetVersions(agent, protocol string)
 	// Update with the data of another peer instance
 	Update(Peer) error
 
@@ -136,6 +139,9 @@ type peer struct {
 	// TODO move latency away from peer into the package that uses it. Instead,
 	// within that package, map from ID to latency value.
 	latency time.Duration
+
+	protocolVersion string
+	agentVersion    string
 
 	// typ can be Local, Remote, or Unspecified (default)
 	typ Type
@@ -370,6 +376,19 @@ func (p *peer) Update(other Peer) error {
 	}
 	defer p.Unlock()
 	return nil
+}
+
+func (p *peer) GetVersions() (agent, protocol string) {
+	p.RLock()
+	defer p.RUnlock()
+	return p.agentVersion, p.protocolVersion
+}
+
+func (p *peer) SetVersions(agent, protocol string) {
+	p.Lock()
+	defer p.Unlock()
+	p.agentVersion = agent
+	p.protocolVersion = protocol
 }
 
 // WithKeyPair returns a Peer object with given keys.
