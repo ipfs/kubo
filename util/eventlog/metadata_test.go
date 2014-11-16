@@ -38,11 +38,13 @@ func TestOverwrite(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
+	t.Parallel()
 	bs, _ := Metadata{"a": "b"}.JsonString()
 	t.Log(bs)
 }
 
 func TestMetadataIsLoggable(t *testing.T) {
+	t.Parallel()
 	func(l Loggable) {
 	}(Metadata{})
 }
