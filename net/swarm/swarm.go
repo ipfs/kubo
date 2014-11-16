@@ -13,12 +13,13 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"github.com/jbenet/go-ipfs/util/elog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-var log = u.Logger("swarm")
+var log = elog.Logger("swarm")
 
 // ErrAlreadyOpen signals that a connection to a peer is already open.
 var ErrAlreadyOpen = errors.New("Error: Connection to this peer already open.")
