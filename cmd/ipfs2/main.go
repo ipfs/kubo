@@ -22,11 +22,11 @@ import (
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	elog "github.com/jbenet/go-ipfs/util/elog"
+	eventlog "github.com/jbenet/go-ipfs/util/elog"
 )
 
 // log is the command logger
-var log = elog.Logger("cmd/ipfs")
+var log = eventlog.Logger("cmd/ipfs")
 
 // signal to output help
 var errHelpRequested = errors.New("Help Requested")
@@ -496,20 +496,20 @@ func allInterruptSignals() chan os.Signal {
 func configureEventLogger(config *config.Config) error {
 
 	if u.Debug {
-		elog.Configure(elog.LevelDebug)
+		eventlog.Configure(eventlog.LevelDebug)
 	} else {
-		elog.Configure(elog.LevelInfo)
+		eventlog.Configure(eventlog.LevelInfo)
 	}
 
-	elog.Configure(elog.LdJSONFormatter)
+	eventlog.Configure(eventlog.LdJSONFormatter)
 
-	rotateConf := elog.LogRotatorConfig{
+	rotateConf := eventlog.LogRotatorConfig{
 		Filename:   config.Logs.Filename,
 		MaxSizeMB:  config.Logs.MaxSizeMB,
 		MaxBackups: config.Logs.MaxBackups,
 		MaxAgeDays: config.Logs.MaxAgeDays,
 	}
 
-	elog.Configure(elog.OutputRotatingLogFile(rotateConf))
+	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
 	return nil
 }

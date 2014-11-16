@@ -26,7 +26,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
-var log = elog.Logger("dht")
+var log = eventlog.Logger("dht")
 
 const doPinging = false
 

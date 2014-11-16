@@ -54,12 +54,12 @@ func resolveUnspecifiedAddresses(unspecifiedAddrs []ma.Multiaddr) ([]ma.Multiadd
 		}
 	}
 
-	log.Event(context.TODO(), "interfaceListenAddresses", func() elog.Loggable {
+	log.Event(context.TODO(), "interfaceListenAddresses", func() eventlog.Loggable {
 		var addrs []string
 		for _, addr := range outputAddrs {
 			addrs = append(addrs, addr.String())
 		}
-		return elog.Metadata{"addresses": addrs}
+		return eventlog.Metadata{"addresses": addrs}
 	}())
 	log.Info("InterfaceListenAddresses:", outputAddrs)
 	return outputAddrs, nil
