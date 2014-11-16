@@ -1,7 +1,7 @@
 package elog
 
 import (
-	"os"
+	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
@@ -73,14 +73,7 @@ func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Logg
 	}
 	accum["event"] = event
 	accum["system"] = el.system
+	accum["time"] = util.FormatRFC3339(time.Now())
 
 	logrus.WithFields(map[string]interface{}(accum)).Info(event)
-}
-
-func init() {
-	// TODO use both text formatter and json formatter
-	// logrus.SetFormatter(new(logrus.TextFormatter))
-	logrus.SetFormatter(new(logrus.JSONFormatter))
-	logrus.SetOutput(os.Stderr)
-	logrus.SetLevel(logrus.DebugLevel)
 }
