@@ -19,6 +19,8 @@ import (
 	errors "github.com/jbenet/go-ipfs/util/errors"
 )
 
+const nBitsForKeypairDefault = 4096
+
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Initializes IPFS config file",
@@ -53,7 +55,7 @@ var initCmd = &cmds.Command{
 			return nil, err
 		}
 		if !bitsOptFound {
-			nBitsForKeypair = 4096
+			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
 		return doInit(req.Context().ConfigRoot, dspathOverride, force, nBitsForKeypair)
