@@ -10,6 +10,7 @@ It is generated from these files:
 
 It has these top-level messages:
 	Message
+	Record
 */
 package dht_pb
 
@@ -75,7 +76,7 @@ type Message struct {
 	Key *string `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
 	// Used to return a value
 	// PUT_VALUE, GET_VALUE
-	Value []byte `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	Record *Record `protobuf:"bytes,3,opt,name=record" json:"record,omitempty"`
 	// Used to return peers closer to a key in a query
 	// GET_VALUE, GET_PROVIDERS, FIND_NODE
 	CloserPeers []*Message_Peer `protobuf:"bytes,8,rep,name=closerPeers" json:"closerPeers,omitempty"`
@@ -110,9 +111,9 @@ func (m *Message) GetKey() string {
 	return ""
 }
 
-func (m *Message) GetValue() []byte {
+func (m *Message) GetRecord() *Record {
 	if m != nil {
-		return m.Value
+		return m.Record
 	}
 	return nil
 }
@@ -153,6 +154,52 @@ func (m *Message_Peer) GetAddr() string {
 		return *m.Addr
 	}
 	return ""
+}
+
+// Record represents a dht record that contains a value
+// for a key value pair
+type Record struct {
+	// The key that references this record
+	Key *string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	// The actual value this record is storing
+	Value []byte `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	// hash of the authors public key
+	Author *string `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
+	// A PKI signature for the key+value+author
+	Signature        []byte `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Record) Reset()         { *m = Record{} }
+func (m *Record) String() string { return proto.CompactTextString(m) }
+func (*Record) ProtoMessage()    {}
+
+func (m *Record) GetKey() string {
+	if m != nil && m.Key != nil {
+		return *m.Key
+	}
+	return ""
+}
+
+func (m *Record) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+func (m *Record) GetAuthor() string {
+	if m != nil && m.Author != nil {
+		return *m.Author
+	}
+	return ""
+}
+
+func (m *Record) GetSignature() []byte {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
 }
 
 func init() {

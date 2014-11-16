@@ -33,6 +33,9 @@ func setupDHT(ctx context.Context, t *testing.T, p peer.Peer) *IpfsDHT {
 
 	d := NewDHT(ctx, p, peerstore, net, dhts, ds.NewMapDatastore())
 	dhts.SetHandler(d)
+	d.Validators["v"] = func(u.Key, []byte) error {
+		return nil
+	}
 	return d
 }
 
@@ -136,6 +139,12 @@ func TestValueGetSet(t *testing.T) {
 	dhtA := setupDHT(ctx, t, peerA)
 	dhtB := setupDHT(ctx, t, peerB)
 
+	vf := func(u.Key, []byte) error {
+		return nil
+	}
+	dhtA.Validators["v"] = vf
+	dhtB.Validators["v"] = vf
+
 	defer dhtA.Close()
 	defer dhtB.Close()
 	defer dhtA.dialer.(inet.Network).Close()
@@ -147,10 +156,10 @@ func TestValueGetSet(t *testing.T) {
 	}
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	dhtA.PutValue(ctxT, "hello", []byte("world"))
+	dhtA.PutValue(ctxT, "/v/hello", []byte("world"))
 
 	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
-	val, err := dhtA.GetValue(ctxT, "hello")
+	val, err := dhtA.GetValue(ctxT, "/v/hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +169,7 @@ func TestValueGetSet(t *testing.T) {
 	}
 
 	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
-	val, err = dhtB.GetValue(ctxT, "hello")
+	val, err = dhtB.GetValue(ctxT, "/v/hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,12 +335,12 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	err = dhts[3].putLocal(u.Key("/v/hello"), []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(ctx, u.Key("hello"))
+	err = dhts[3].Provide(ctx, u.Key("/v/hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +348,7 @@ func TestLayeredGet(t *testing.T) {
 	time.Sleep(time.Millisecond * 60)
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	val, err := dhts[0].GetValue(ctxT, u.Key("hello"))
+	val, err := dhts[0].GetValue(ctxT, u.Key("/v/hello"))
 	if err != nil {
 		t.Fatal(err)
 	}

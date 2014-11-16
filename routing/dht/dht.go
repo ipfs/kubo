@@ -60,6 +60,9 @@ type IpfsDHT struct {
 	//lock to make diagnostics work better
 	diaglock sync.Mutex
 
+	// record validator funcs
+	Validators map[string]ValidatorFunc
+
 	ctxc.ContextCloser
 }
 
@@ -81,6 +84,9 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Millisecond*1000)
 	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Hour)
 	dht.birth = time.Now()
+
+	dht.Validators = make(map[string]ValidatorFunc)
+	dht.Validators["pk"] = ValidatePublicKeyRecord
 
 	if doPinging {
 		dht.Children().Add(1)
@@ -215,16 +221,16 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Messa
 
 // putValueToNetwork stores the given key/value pair at the peer 'p'
 func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
-	key string, value []byte) error {
+	key string, rec *pb.Record) error {
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
-	pmes.Value = value
+	pmes.Record = rec
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(rpmes.Value, pmes.Value) {
+	if !bytes.Equal(rpmes.GetRecord().Value, pmes.GetRecord().Value) {
 		return errors.New("value not put correctly")
 	}
 	return nil
@@ -260,11 +266,17 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 		return nil, nil, err
 	}
 
-	log.Debugf("pmes.GetValue() %v", pmes.GetValue())
-	if value := pmes.GetValue(); value != nil {
+	if record := pmes.GetRecord(); record != nil {
 		// Success! We were given the value
 		log.Debug("getValueOrPeers: got value")
-		return value, nil, nil
+
+		// make sure record is still valid
+		err = dht.verifyRecord(record)
+		if err != nil {
+			log.Error("Received invalid record!")
+			return nil, nil, err
+		}
+		return record.GetValue(), nil, nil
 	}
 
 	// TODO decide on providers. This probably shouldn't be happening.
@@ -325,10 +337,15 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 			continue
 		}
 
-		if value := pmes.GetValue(); value != nil {
+		if record := pmes.GetRecord(); record != nil {
 			// Success! We were given the value
+
+			err := dht.verifyRecord(record)
+			if err != nil {
+				return nil, err
+			}
 			dht.providers.AddProvider(key, p)
-			return value, nil
+			return record.GetValue(), nil
 		}
 	}
 	return nil, routing.ErrNotFound
@@ -338,21 +355,47 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	dht.dslock.Lock()
 	defer dht.dslock.Unlock()
+	log.Debug("getLocal %s", key)
 	v, err := dht.datastore.Get(key.DsKey())
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("found in db")
 
 	byt, ok := v.([]byte)
 	if !ok {
 		return nil, errors.New("value stored in datastore not []byte")
 	}
-	return byt, nil
+	rec := new(pb.Record)
+	err = proto.Unmarshal(byt, rec)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: 'if paranoid'
+	if u.Debug {
+		err = dht.verifyRecord(rec)
+		if err != nil {
+			log.Errorf("local record verify failed: %s", err)
+			return nil, err
+		}
+	}
+
+	return rec.GetValue(), nil
 }
 
 // putLocal stores the key value pair in the datastore
 func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
-	return dht.datastore.Put(key.DsKey(), value)
+	rec, err := dht.makePutRecord(key, value)
+	if err != nil {
+		return err
+	}
+	data, err := proto.Marshal(rec)
+	if err != nil {
+		return err
+	}
+
+	return dht.datastore.Put(key.DsKey(), data)
 }
 
 // Update signals to all routingTables to Update their last-seen status

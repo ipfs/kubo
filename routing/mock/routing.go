@@ -12,6 +12,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("mockrouter")
+
 var _ routing.IpfsRouting = &MockRouter{}
 
 type MockRouter struct {
@@ -33,10 +35,12 @@ func (mr *MockRouter) SetRoutingServer(rs RoutingServer) {
 }
 
 func (mr *MockRouter) PutValue(ctx context.Context, key u.Key, val []byte) error {
+	log.Debugf("PutValue: %s", key)
 	return mr.datastore.Put(key.DsKey(), val)
 }
 
 func (mr *MockRouter) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
+	log.Debugf("GetValue: %s", key)
 	v, err := mr.datastore.Get(key.DsKey())
 	if err != nil {
 		return nil, err
@@ -55,6 +59,7 @@ func (mr *MockRouter) FindProviders(ctx context.Context, key u.Key) ([]peer.Peer
 }
 
 func (mr *MockRouter) FindPeer(ctx context.Context, pid peer.ID) (peer.Peer, error) {
+	log.Debug("FindPeer: %s", pid)
 	return nil, nil
 }
 

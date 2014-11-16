@@ -46,7 +46,7 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 
 	// use the routing system to get the name.
 	// /ipns/<name>
-	h := u.Hash([]byte("/ipns/" + name))
+	h := []byte("/ipns/" + string(hash))
 
 	ipnsKey := u.Key(h)
 	val, err := r.routing.GetValue(ctx, ipnsKey)
@@ -63,7 +63,7 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 
 	// name should be a public key retrievable from ipfs
 	// /ipfs/<name>
-	key := u.Key(hash)
+	key := u.Key("/pk/" + string(hash))
 	pkval, err := r.routing.GetValue(ctx, key)
 	if err != nil {
 		log.Warning("RoutingResolve PubKey Get failed.")
@@ -75,9 +75,11 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	hsh, _ := pk.Hash()
+	log.Debugf("pk hash = %s", u.Key(hsh))
 
 	// check sig with pk
-	if ok, err := pk.Verify(entry.GetValue(), entry.GetSignature()); err != nil || !ok {
+	if ok, err := pk.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
 		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pk)
 	}
 

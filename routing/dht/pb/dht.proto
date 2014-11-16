@@ -29,7 +29,7 @@ message Message {
 
 	// Used to return a value
 	// PUT_VALUE, GET_VALUE
-	optional bytes value = 3;
+	optional Record record = 3;
 
 	// Used to return peers closer to a key in a query
 	// GET_VALUE, GET_PROVIDERS, FIND_NODE
@@ -38,4 +38,20 @@ message Message {
 	// Used to return Providers
 	// GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
 	repeated Peer providerPeers = 9;
+}
+
+// Record represents a dht record that contains a value
+// for a key value pair
+message Record {
+	// The key that references this record
+	optional string key = 1;
+
+	// The actual value this record is storing
+	optional bytes value = 2;
+
+	// hash of the authors public key
+	optional string author = 3;
+
+	// A PKI signature for the key+value+author
+	optional bytes signature = 4;
 }

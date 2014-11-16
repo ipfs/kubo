@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	crand "crypto/rand"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -124,10 +125,10 @@ func TestGetFailures(t *testing.T) {
 	fs := &fauxSender{}
 
 	peerstore := peer.NewPeerstore()
-	local := peer.WithIDString("test_peer")
+	local := makePeer(nil)
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
-	other := peer.WithIDString("other_peer")
+	other := makePeer(nil)
 	d.Update(other)
 
 	// This one should time out
@@ -173,10 +174,14 @@ func TestGetFailures(t *testing.T) {
 	// Now we test this DHT's handleGetValue failure
 	typ := pb.Message_GET_VALUE
 	str := "hello"
+	rec, err := d.makePutRecord(u.Key(str), []byte("blah"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := pb.Message{
-		Type:  &typ,
-		Key:   &str,
-		Value: []byte{0},
+		Type:   &typ,
+		Key:    &str,
+		Record: rec,
 	}
 
 	// u.POut("handleGetValue Test\n")
@@ -192,11 +197,8 @@ func TestGetFailures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pmes.GetValue() != nil {
+	if pmes.GetRecord() != nil {
 		t.Fatal("shouldnt have value")
-	}
-	if pmes.GetCloserPeers() != nil {
-		t.Fatal("shouldnt have closer peers")
 	}
 	if pmes.GetProviderPeers() != nil {
 		t.Fatal("shouldnt have provider peers")
@@ -221,7 +223,7 @@ func TestNotFound(t *testing.T) {
 	fn := &fauxNet{}
 	fs := &fauxSender{}
 
-	local := peer.WithIDString("test_peer")
+	local := makePeer(nil)
 	peerstore := peer.NewPeerstore()
 	peerstore.Add(local)
 
@@ -287,7 +289,7 @@ func TestLessThanKResponses(t *testing.T) {
 	u.Debug = false
 	fn := &fauxNet{}
 	fs := &fauxSender{}
-	local := peer.WithIDString("test_peer")
+	local := makePeer(nil)
 	peerstore := peer.NewPeerstore()
 	peerstore.Add(local)
 
