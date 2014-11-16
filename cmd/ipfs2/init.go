@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -9,7 +10,10 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
+	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	imp "github.com/jbenet/go-ipfs/importer"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -114,6 +118,29 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 	if err != nil {
 		return err
 	}
+
+	nd, err := core.NewIpfsNode(&conf, false)
+	if err != nil {
+		return err
+	}
+	defer nd.Close()
+
+	// Set up default file
+	msg := `Hello and Welcome to IPFS!
+If you're seeing this, that means that you have successfully
+installed ipfs and are now interfacing with the wonderful
+world of DAGs and hashes!
+`
+	reader := bytes.NewBufferString(msg)
+
+	defnd, err := imp.BuildDagFromReader(reader, nd.DAG, nd.Pinning.GetManual(), chunk.DefaultSplitter)
+	if err != nil {
+		return err
+	}
+
+	k, _ := defnd.Key()
+	fmt.Printf("Default file key: %s\n", k)
+
 	return nil
 }
 
