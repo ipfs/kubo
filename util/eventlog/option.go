@@ -3,8 +3,8 @@ package eventlog
 import (
 	"io"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/logrus"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Option func()
@@ -17,7 +17,7 @@ func Configure(options ...Option) {
 
 // LdJSONFormatter formats the event log as line-delimited JSON
 var LdJSONFormatter = func() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.PoliteJSONFormatter{})
 }
 
 var TextFormatter = func() {
