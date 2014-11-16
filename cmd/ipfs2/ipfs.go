@@ -76,6 +76,16 @@ func (d *cmdDetails) String() string {
 		d.canRunOnClient(), d.canRunOnDaemon(), d.usesRepo())
 }
 
+func (d *cmdDetails) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"canRunOnClient":     d.canRunOnClient(),
+		"canRunOnDaemon":     d.canRunOnDaemon(),
+		"preemptsAutoUpdate": d.preemptsAutoUpdate,
+		"usesConfigAsInput":  d.usesConfigAsInput(),
+		"usesRepo":           d.usesRepo(),
+	}
+}
+
 func (d *cmdDetails) usesConfigAsInput() bool        { return !d.doesNotUseConfigAsInput }
 func (d *cmdDetails) doesNotPreemptAutoUpdate() bool { return !d.preemptsAutoUpdate }
 func (d *cmdDetails) canRunOnClient() bool           { return !d.cannotRunOnClient }
