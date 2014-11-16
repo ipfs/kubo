@@ -3,13 +3,12 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 
 	core "github.com/jbenet/go-ipfs/core"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 )
 
@@ -48,52 +47,53 @@ func mountCmd(c *commander.Command, inp []string) error {
 	if val, ok := c.Flag.Lookup("f").Value.Get().(string); ok && val != "" {
 		fsdir = val
 	}
-	fsdone := mountIpfs(cc.node, fsdir)
 
 	// get default mount points
 	nsdir := cc.node.Config.Mounts.IPNS
 	if val, ok := c.Flag.Lookup("n").Value.Get().(string); ok && val != "" {
 		nsdir = val
 	}
-	nsdone := mountIpns(cc.node, nsdir, fsdir)
 
-	// wait till mounts are done.
-	err1 := <-fsdone
-	err2 := <-nsdone
-
-	if err1 != nil {
-		return err1
-	}
-	return err2
+	return doMount(cc.node, fsdir, nsdir)
 }
 
-func mountIpfs(node *core.IpfsNode, fsdir string) <-chan error {
-	done := make(chan error)
-	fmt.Printf("mounting ipfs at %s\n", fsdir)
+func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
+
+	// this sync stuff is so that both can be mounted simultaneously.
+	var fsmount mount.Mount
+	var nsmount mount.Mount
+	var err1 error
+	var err2 error
+
+	done := make(chan struct{})
 
 	go func() {
-		err := rofs.Mount(node, fsdir)
-		done <- err
-		close(done)
+		fsmount, err1 = rofs.Mount(node, fsdir)
+		done <- struct{}{}
 	}()
 
-	return done
-}
+	go func() {
+		nsmount, err2 = ipns.Mount(node, nsdir, fsdir)
+		done <- struct{}{}
+	}()
 
-func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
-	if nsdir == "" {
-		return nil
+	<-done
+	<-done
+
+	if err1 != nil || err2 != nil {
+		fsmount.Close()
+		nsmount.Close()
+		if err1 != nil {
+			return err1
+		} else {
+			return err2
+		}
 	}
-	done := make(chan error)
-	fmt.Printf("mounting ipns at %s\n", nsdir)
 
-	go func() {
-		err := ipns.Mount(node, nsdir, fsdir)
-		done <- err
-		close(done)
-	}()
-
-	return done
+	// setup node state, so that it can be cancelled
+	node.Mounts.Ipfs = fsmount
+	node.Mounts.Ipns = nsmount
+	return nil
 }
 
 var platformFuseChecks = func() error {
