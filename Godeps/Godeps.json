@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
@@ -47,6 +47,11 @@
 			"ImportPath": "code.google.com/p/snappy-go/snappy",
 			"Comment": "null-15",
 			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
+		},
+		{
+			"ImportPath": "github.com/braintree/manners",
+			"Comment": "0.3.1-2-g5280e25",
+			"Rev": "5280e250f2795914acbeb2bf3b55dd5a2d1fba52"
 		},
 		{
 			"ImportPath": "github.com/bren2010/proquint",
