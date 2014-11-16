@@ -2,7 +2,7 @@ package tour
 
 import "fmt"
 
-// returns a partially applied function. 
+// returns a partially applied function.
 //
 // It's designed to make it easy to re-order chapters with minimal fuss.
 //

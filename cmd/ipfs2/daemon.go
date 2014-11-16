@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
 
+	manners "github.com/braintree/manners"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
@@ -63,18 +67,47 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
+	mux := http.NewServeMux()
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root)
-	http.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
+	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
 	ifpsHandler := &ipfsHandler{node}
-	http.Handle("/ipfs/", ifpsHandler)
+	mux.Handle("/ipfs/", ifpsHandler)
+
+	err = listenAndServe(mux, host)
+	return nil, err
+}
+
+func listenAndServe(mux *http.ServeMux, host string) error {
 
 	fmt.Printf("API server listening on '%s'\n", host)
+	s := manners.NewServer()
+	done := make(chan struct{}, 1)
+	defer func() {
+		done <- struct{}{}
+	}()
 
-	err = http.ListenAndServe(host, nil)
-	if err != nil {
-		return nil, err
+	// go wait until we kill it.
+	go func() {
+		sig := sigTerm()
+		select {
+		case <-done:
+			log.Info("daemon terminated at %s.", host)
+		case <-sig:
+			s.Shutdown <- true
+			log.Info("terminating daemon at %s...", host)
+		}
+	}()
+
+	if err := s.ListenAndServe(host, mux); err != nil {
+		return err
 	}
+	return nil
+}
 
-	return nil, nil
+func sigTerm() chan os.Signal {
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
+		syscall.SIGTERM, syscall.SIGQUIT)
+	return sigc
 }
