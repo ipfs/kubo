@@ -1,7 +1,10 @@
 package elog
 
 import (
+	"os"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	"github.com/jbenet/go-ipfs/util"
 )
@@ -27,6 +30,8 @@ type EventLogger interface {
 	Event(ctx context.Context, event string, m ...Loggable)
 }
 
+// StandardLogger provides API compatibility with standard printf loggers
+// eg. go-logging
 type StandardLogger interface {
 	Critical(args ...interface{})
 	Criticalf(format string, args ...interface{})
@@ -46,14 +51,15 @@ type StandardLogger interface {
 	Warningf(format string, args ...interface{})
 }
 
-// Logger retrieves a particular event logger
+// Logger retrieves an event logger by name
 func Logger(system string) EventLogger {
-	return &eventLogger{util.Logger(system)}
+	return &eventLogger{system: system, Logger: util.Logger(system)}
 }
 
 // eventLogger implements the EventLogger and wraps a go-logging Logger
 type eventLogger struct {
 	*logging.Logger
+	system string
 }
 
 func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Loggable) {
@@ -66,10 +72,15 @@ func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Logg
 		accum = DeepMerge(accum, datum.Loggable())
 	}
 	accum["event"] = event
+	accum["system"] = el.system
 
-	str, err := accum.JsonString()
-	if err != nil {
-		return
-	}
-	el.Logger.Info(str)
+	logrus.WithFields(map[string]interface{}(accum)).Info(event)
+}
+
+func init() {
+	// TODO use both text formatter and json formatter
+	// logrus.SetFormatter(new(logrus.TextFormatter))
+	logrus.SetFormatter(new(logrus.JSONFormatter))
+	logrus.SetOutput(os.Stderr)
+	logrus.SetLevel(logrus.DebugLevel)
 }
