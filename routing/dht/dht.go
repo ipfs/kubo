@@ -18,6 +18,7 @@ import (
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"github.com/jbenet/go-ipfs/util/eventlog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -25,7 +26,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
-var log = u.Logger("dht")
+var log = eventlog.Logger("dht")
 
 const doPinging = false
 
@@ -151,9 +152,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	// update the peer (on valid msgs only)
 	dht.Update(mPeer)
 
-	// Print out diagnostic
-	log.Debugf("%s got message type: '%s' from %s",
-		dht.self, pb.Message_MessageType_name[int32(pmes.GetType())], mPeer)
+	log.Event(ctx, "foo", dht.self, mPeer, pmes)
 
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
@@ -196,9 +195,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Messa
 
 	start := time.Now()
 
-	// Print out diagnostic
-	log.Debugf("Sent message type: '%s' to %s",
-		pb.Message_MessageType_name[int32(pmes.GetType())], p)
+	log.Event(ctx, "sentMessage", dht.self, p, pmes)
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
 	if err != nil {

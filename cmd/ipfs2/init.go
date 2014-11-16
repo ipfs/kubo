@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -16,6 +16,7 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var initCmd = &cmds.Command{
@@ -29,6 +30,11 @@ var initCmd = &cmds.Command{
 		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
+
+		// TODO need to decide whether to expose the override as a file or a
+		// directory. That is: should we allow the user to also specify the
+		// name of the file?
+		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 
@@ -97,9 +103,23 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, err
 	}
 
-	nd, err := core.NewIpfsNode(conf, false)
+	err = addTheWelcomeFile(conf, func(k u.Key) {
+		fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
+	})
 	if err != nil {
 		return nil, err
+	}
+
+	return nil, nil
+}
+
+// addTheWelcomeFile adds a file containing the welcome message to the newly
+// minted node. On success, it calls onSuccess
+func addTheWelcomeFile(conf *config.Config, onSuccess func(u.Key)) error {
+	// TODO extract this file creation operation into a function
+	nd, err := core.NewIpfsNode(conf, false)
+	if err != nil {
+		return err
 	}
 	defer nd.Close()
 
@@ -108,15 +128,15 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 
 	defnd, err := imp.BuildDagFromReader(reader, nd.DAG, nd.Pinning.GetManual(), chunk.DefaultSplitter)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	k, err := defnd.Key()
 	if err != nil {
-		return nil, fmt.Errorf("failed to write test file: %s", err)
+		return fmt.Errorf("failed to write test file: %s", err)
 	}
-	fmt.Printf("done.\nto test, enter: ipfs cat %s\n", k)
-	return nil, nil
+	onSuccess(k)
+	return nil
 }
 
 func datastoreConfig(dspath string) (config.Datastore, error) {
@@ -131,16 +151,9 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 	ds.Path = dspath
 	ds.Type = "leveldb"
 
-	// Construct the data store if missing
-	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
-		return ds, err
-	}
-
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return ds, errors.New("Datastore '" + dspath + "' is not writeable")
+	err := initCheckDir(dspath)
+	if err != nil {
+		return ds, errors.Errorf("datastore: %s", err)
 	}
 
 	return ds, nil
@@ -152,7 +165,17 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		return nil, err
 	}
 
-	identity, err := identityConfig(nBitsForKeypair)
+	identity, err := identityConfig(nBitsForKeypair, func() {
+		fmt.Printf("generating key pair...")
+	}, func(ident config.Identity) {
+		fmt.Printf("done\n")
+		fmt.Printf("peer identity: %s\n", ident.PeerID)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	logConfig, err := initLogs("") // TODO allow user to override dir
 	if err != nil {
 		return nil, err
 	}
@@ -175,6 +198,8 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 
 		Datastore: ds,
 
+		Logs: logConfig,
+
 		Identity: identity,
 
 		// setup the node mount points.
@@ -195,14 +220,17 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 	return conf, nil
 }
 
-func identityConfig(nbits int) (config.Identity, error) {
+// identityConfig initializes a new identity. It calls onBegin when it begins
+// to generate the identity and it calls onSuccess once the operation is
+// completed successfully
+func identityConfig(nbits int, onBegin func(), onSuccess func(config.Identity)) (config.Identity, error) {
 	// TODO guard higher up
 	ident := config.Identity{}
 	if nbits < 1024 {
 		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	fmt.Printf("generating key pair...")
+	onBegin()
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
@@ -221,6 +249,41 @@ func identityConfig(nbits int) (config.Identity, error) {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-
+	onSuccess(ident)
 	return ident, nil
+}
+
+func initLogs(logpath string) (config.Logs, error) {
+	if len(logpath) == 0 {
+		var err error
+		logpath, err = config.LogsPath("")
+		if err != nil {
+			return config.Logs{}, errors.Wrap(err)
+		}
+	}
+
+	err := initCheckDir(logpath)
+	if err != nil {
+		return config.Logs{}, errors.Errorf("logs: %s", err)
+	}
+
+	return config.Logs{
+		Filename: path.Join(logpath, "events.log"),
+	}, nil
+}
+
+// initCheckDir ensures the directory exists and is writable
+func initCheckDir(path string) error {
+	// Construct the path if missing
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Check the directory is writeable
+	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
+		os.Remove(f.Name())
+	} else {
+		return errors.New("'" + path + "' is not writeable")
+	}
+	return nil
 }

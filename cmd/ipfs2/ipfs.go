@@ -76,10 +76,11 @@ func (d *cmdDetails) String() string {
 		d.canRunOnClient(), d.canRunOnDaemon(), d.usesRepo())
 }
 
-func (d *cmdDetails) usesConfigAsInput() bool { return !d.doesNotUseConfigAsInput }
-func (d *cmdDetails) canRunOnClient() bool    { return !d.cannotRunOnClient }
-func (d *cmdDetails) canRunOnDaemon() bool    { return !d.cannotRunOnDaemon }
-func (d *cmdDetails) usesRepo() bool          { return !d.doesNotUseRepo }
+func (d *cmdDetails) usesConfigAsInput() bool        { return !d.doesNotUseConfigAsInput }
+func (d *cmdDetails) doesNotPreemptAutoUpdate() bool { return !d.preemptsAutoUpdate }
+func (d *cmdDetails) canRunOnClient() bool           { return !d.cannotRunOnClient }
+func (d *cmdDetails) canRunOnDaemon() bool           { return !d.cannotRunOnDaemon }
+func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo }
 
 // "What is this madness!?" you ask. Our commands have the unfortunate problem of
 // not being able to run on all the same contexts. This map describes these

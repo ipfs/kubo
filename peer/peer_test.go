@@ -55,3 +55,11 @@ func TestStringMethodWithSmallId(t *testing.T) {
 	}
 	p1.String()
 }
+
+func TestDefaultType(t *testing.T) {
+	t.Log("Ensure that peers are initialized to Unspecified by default")
+	p := peer{}
+	if p.GetType() != Unspecified {
+		t.Fatalf("Peer's default type is was not `Unspecified`")
+	}
+}

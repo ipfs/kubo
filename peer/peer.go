@@ -95,8 +95,34 @@ type Peer interface {
 	GetLatency() (out time.Duration)
 	SetLatency(laten time.Duration)
 
+	// Get/SetType indicate whether this is a local or remote peer
+	GetType() Type
+	SetType(Type)
+
 	// Update with the data of another peer instance
 	Update(Peer) error
+
+	Loggable() map[string]interface{}
+}
+
+type Type uint8
+
+const (
+	// Unspecified indicates peer was created without specifying Type
+	Unspecified Type = iota
+	Local
+	Remote
+)
+
+func (t Type) String() string {
+	switch t {
+	case Local:
+		return "localPeer"
+	case Remote:
+		return "remotePeer"
+	default:
+	}
+	return "unspecifiedPeer"
 }
 
 type peer struct {
@@ -110,6 +136,9 @@ type peer struct {
 	// TODO move latency away from peer into the package that uses it. Instead,
 	// within that package, map from ID to latency value.
 	latency time.Duration
+
+	// typ can be Local, Remote, or Unspecified (default)
+	typ Type
 
 	sync.RWMutex
 }
@@ -127,6 +156,15 @@ func (p *peer) String() string {
 		maxRunes = len(pid)
 	}
 	return "[Peer " + pid[:maxRunes] + "]"
+}
+
+func (p *peer) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		p.GetType().String(): map[string]interface{}{
+			"id":      p.ID(),
+			"latency": p.GetLatency(),
+		},
+	}
 }
 
 // Key returns the ID as a Key (string) for maps.
@@ -222,6 +260,18 @@ func (p *peer) SetLatency(laten time.Duration) {
 	p.Unlock()
 }
 
+func (p *peer) SetType(t Type) {
+	p.Lock()
+	p.typ = t
+	defer p.Unlock()
+}
+
+func (p *peer) GetType() Type {
+	p.Lock()
+	defer p.Unlock()
+	return p.typ
+}
+
 // LoadAndVerifyKeyPair unmarshalls, loads a private/public key pair.
 // Error if (a) unmarshalling fails, or (b) pubkey does not match id.
 func (p *peer) LoadAndVerifyKeyPair(marshalled []byte) error {
@@ -305,6 +355,8 @@ func (p *peer) Update(other Peer) error {
 	}
 
 	p.SetLatency(other.GetLatency())
+
+	p.SetType(other.GetType())
 
 	sk := other.PrivKey()
 	pk := other.PubKey()

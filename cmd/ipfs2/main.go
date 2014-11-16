@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"runtime/pprof"
 	"syscall"
 
+	// TODO rm direct reference to go-logging
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
@@ -21,11 +21,12 @@ import (
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 // log is the command logger
-var log = u.Logger("cmd/ipfs")
+var log = eventlog.Logger("cmd/ipfs")
 
 // signal to output help
 var errHelpRequested = errors.New("Help Requested")
@@ -217,7 +218,7 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 	// check for updates when 1) commands is going to be run locally, 2) the
 	// command does not initialize the config, and 3) the command does not
 	// pre-empt updates
-	if !daemon && details.usesConfigAsInput() && !details.preemptsAutoUpdate {
+	if !daemon && details.usesConfigAsInput() && details.doesNotPreemptAutoUpdate() {
 
 		log.Debug("Calling hook: Check for updates")
 
@@ -229,6 +230,17 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 		if err := updates.CliCheckForUpdates(cfg, req.Context().ConfigRoot); err != nil {
 			return err
 		}
+	}
+
+	// When the upcoming command may use the config and repo, we know it's safe
+	// for the log config hook to touch the config/repo
+	if details.usesConfigAsInput() && details.usesRepo() {
+		log.Debug("Calling hook: Configure Event Logger")
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return err
+		}
+		configureEventLogger(cfg)
 	}
 
 	return nil
@@ -319,14 +331,13 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 		var found bool
 		cmd, found = cmd.Subcommands[cmp]
 		if !found {
-			return nil, debugerror.Errorf("subcommand %s should be in root", cmp)
+			return nil, errors.Errorf("subcommand %s should be in root", cmp)
 		}
 
 		if cmdDetails, found := cmdDetailsMap[cmd]; found {
 			details = cmdDetails
 		}
 	}
-	log.Debugf("cmd perms for +%v: %s", path, details.String())
 	return &details, nil
 }
 
@@ -351,12 +362,14 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return false, nil
 	}
 
+	log.Info("looking for running daemon...")
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
 	daemonLocked := daemon.Locked(req.Context().ConfigRoot)
-	log.Info("Daemon is running.")
 
 	if daemonLocked {
+
+		log.Info("a daemon is running...")
 
 		if details.cannotRunOnDaemon {
 			e := "ipfs daemon is running. please stop it to run this command"
@@ -478,4 +491,25 @@ func allInterruptSignals() chan os.Signal {
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
 		syscall.SIGTERM, syscall.SIGQUIT)
 	return sigc
+}
+
+func configureEventLogger(config *config.Config) error {
+
+	if u.Debug {
+		eventlog.Configure(eventlog.LevelDebug)
+	} else {
+		eventlog.Configure(eventlog.LevelInfo)
+	}
+
+	eventlog.Configure(eventlog.LdJSONFormatter)
+
+	rotateConf := eventlog.LogRotatorConfig{
+		Filename:   config.Logs.Filename,
+		MaxSizeMB:  config.Logs.MaxSizeMB,
+		MaxBackups: config.Logs.MaxBackups,
+		MaxAgeDays: config.Logs.MaxAgeDays,
+	}
+
+	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
+	return nil
 }

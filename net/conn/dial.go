@@ -23,6 +23,7 @@ func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Co
 		return nil, fmt.Errorf("No remote address for network %s", network)
 	}
 
+	remote.SetType(peer.Remote)
 	remote, err := d.Peerstore.Add(remote)
 	if err != nil {
 		log.Errorf("Error putting peer into peerstore: %s", remote)

@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3.3",
 	"Packages": [
 		"./..."
 	],
@@ -132,6 +132,11 @@
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
+			"ImportPath": "github.com/maybebtc/logrus",
+			"Comment": "v0.6.0-7-g51cc99e",
+			"Rev": "51cc99e4b07ec5516233a8370c28b5eedd096b6b"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
 		},
@@ -142,6 +147,11 @@
 		{
 			"ImportPath": "github.com/tuxychandru/pubsub",
 			"Rev": "02de8aa2db3d570c5ab1be5ba67b456fd0fb7c4e"
+		},
+		{
+			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
+			"Comment": "v1.0-12-gd28785c",
+			"Rev": "d28785c2f27cd682d872df46ccd8232843629f54"
 		}
 	]
 }

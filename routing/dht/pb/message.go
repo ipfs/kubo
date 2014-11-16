@@ -65,3 +65,11 @@ func (m *Message) SetClusterLevel(level int) {
 	lvl := int32(level)
 	m.ClusterLevelRaw = &lvl
 }
+
+func (m *Message) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"message": map[string]string{
+			"type": m.Type.String(),
+		},
+	}
+}

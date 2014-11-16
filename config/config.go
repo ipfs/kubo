@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var log = u.Logger("config")
@@ -18,6 +18,14 @@ var log = u.Logger("config")
 type Identity struct {
 	PeerID  string
 	PrivKey string
+}
+
+// Logs tracks the configuration of the event logger
+type Logs struct {
+	Filename   string
+	MaxSizeMB  uint64
+	MaxBackups uint64
+	MaxAgeDays uint64
 }
 
 // Datastore tracks the configuration of the datastore.
@@ -63,6 +71,7 @@ type Config struct {
 	Version   Version          // local node's version management
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 	Tour      Tour             // local node's tour position
+	Logs      Logs             // local node's event log configuration
 }
 
 // DefaultPathRoot is the path to the default config dir location.
@@ -76,6 +85,9 @@ const DefaultDataStoreDirectory = "datastore"
 
 // EnvDir is the environment variable used to change the path root.
 const EnvDir = "IPFS_DIR"
+
+// LogsDefaultDirectory is the directory to store all IPFS event logs.
+var LogsDefaultDirectory = "logs"
 
 // PathRoot returns the default configuration root directory
 func PathRoot() (string, error) {
@@ -107,6 +119,12 @@ func DataStorePath(configroot string) (string, error) {
 	return Path(configroot, DefaultDataStoreDirectory)
 }
 
+// LogsPath returns the default path for event logs given a configuration root
+// (set an empty string to have the default configuration root)
+func LogsPath(configroot string) (string, error) {
+	return Path(configroot, LogsDefaultDirectory)
+}
+
 // Filename returns the configuration file path given a configuration root
 // directory. If the configuration root directory is empty, use the default one
 func Filename(configroot string) (string, error) {
@@ -129,7 +147,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 func Load(filename string) (*Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg Config
