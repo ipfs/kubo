@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var log = u.Logger("config")
@@ -129,7 +129,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 func Load(filename string) (*Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg Config
