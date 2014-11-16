@@ -92,12 +92,8 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, errors.New("Couldn't get home directory path")
 	}
 
-	fi, err := os.Lstat(configFilename)
-	if fi != nil || (err != nil && !os.IsNotExist(err)) {
-		if !force {
-			// TODO multi-line string
-			return nil, errCannotInitConfigExists
-		}
+	if u.FileExists(configFilename) && !force {
+		return nil, errCannotInitConfigExists
 	}
 
 	conf, err := initConfig(configFilename, dspathOverride, nBitsForKeypair)
