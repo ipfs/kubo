@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -49,10 +50,6 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	// count the number of provided argument values
 	valCount := len(stringArgs)
-	// TODO: add total number of parts in request body (instead of just 1 if body is present)
-	if r.Body != nil && r.ContentLength != 0 {
-		valCount += 1
-	}
 
 	args := make([]interface{}, valCount)
 
@@ -81,11 +78,6 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 			} else {
 				break
 			}
-
-		} else {
-			// TODO: create multipart streams for file args
-			args[valIndex] = r.Body
-			valIndex++
 		}
 	}
 
@@ -94,7 +86,22 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, err
 	}
 
-	req, err := cmds.NewRequest(path, opts, args, cmd, optDefs)
+	// create cmds.File from multipart/form-data contents
+	contentType := r.Header.Get(contentTypeHeader)
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return nil, err
+	}
+	var f *cmds.MultipartFile
+	if mediatype == "multipart/form-data" {
+		f = &cmds.MultipartFile{Mediatype: mediatype}
+		f.Reader, err = r.MultipartReader()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := cmds.NewRequest(path, opts, args, f, cmd, optDefs)
 	if err != nil {
 		return nil, err
 	}
