@@ -64,27 +64,61 @@ func Logger(system string) EventLogger {
 type eventLogger struct {
 	*logging.Logger
 	system string
+	// TODO add log-level
 }
 
 func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Loggable) {
+
+	// Collect loggables for later logging
+	var loggables []Loggable
 
 	// get any existing metadata from the context
 	existing, err := MetadataFromContext(ctx)
 	if err != nil {
 		existing = Metadata{}
 	}
+	loggables = append(loggables, existing)
 
-	// accumulate metadata
-	accum := existing
 	for _, datum := range metadata {
-		accum = DeepMerge(accum, datum.Loggable())
+		loggables = append(loggables, datum)
+	}
+
+	e := entry{
+		loggables: loggables,
+		system:    el.system,
+		event:     event,
+	}
+
+	e.Log() // TODO replace this when leveled-logs have been implemented
+}
+
+type entry struct {
+	loggables []Loggable
+	system    string
+	event     string
+}
+
+// Log logs the event unconditionally (regardless of log level)
+// TODO add support for leveled-logs once we decide which levels we want
+// for our structured logs
+func (e *entry) Log() {
+	e.log()
+}
+
+// log is a private method invoked by the public Log, Info, Error methods
+func (e *entry) log() {
+	// accumulate metadata
+	accum := Metadata{}
+	for _, loggable := range e.loggables {
+		accum = DeepMerge(accum, loggable.Loggable())
 	}
 
 	// apply final attributes to reserved keys
-	accum["event"] = event
-	accum["system"] = el.system
+	// TODO accum["level"] = level
+	accum["event"] = e.event
+	accum["system"] = e.system
 	accum["time"] = util.FormatRFC3339(time.Now())
 
 	// TODO roll our own event logger
-	logrus.WithFields(map[string]interface{}(accum)).Info(event)
+	logrus.WithFields(map[string]interface{}(accum)).Info(e.event)
 }
