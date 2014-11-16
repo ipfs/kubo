@@ -21,7 +21,7 @@ import (
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	errors "github.com/jbenet/go-ipfs/util/errors"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 

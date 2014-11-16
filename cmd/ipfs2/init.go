@@ -16,7 +16,7 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	errors "github.com/jbenet/go-ipfs/util/errors"
 )
 
 var initCmd = &cmds.Command{
