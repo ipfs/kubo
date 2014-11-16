@@ -25,7 +25,8 @@ test_expect_success "ipfs help succeeds" '
 '
 
 test_expect_success "ipfs help output looks good" '
-	cat help.txt | egrep "^Usage: +ipfs"
+	cat help.txt | egrep -i "^Usage:" &&
+	cat help.txt | egrep "ipfs .* <command>"
 '
 
 test_done
