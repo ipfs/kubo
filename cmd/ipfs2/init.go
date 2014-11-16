@@ -74,7 +74,6 @@ IPFS and are now interfacing with the ipfs merkledag!
 For a short demo of what you can do, enter 'ipfs tour'
 `
 
-// TODO add default welcome hash: eaa68bedae247ed1e5bd0eb4385a3c0959b976e4
 // NB: if dspath is not provided, it will be retrieved from the config
 func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
 
@@ -112,7 +111,10 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, err
 	}
 
-	k, _ := defnd.Key()
+	k, err := defnd.Key()
+	if err != nil {
+		return nil, fmt.Errorf("failed to write test file: %s", err)
+	}
 	fmt.Printf("done.\nto test, enter: ipfs cat %s\n", k)
 	return nil, nil
 }
