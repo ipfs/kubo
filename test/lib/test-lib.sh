@@ -52,27 +52,44 @@ test_launch_ipfs_mount() {
 		ipfs config Mounts.IPNS "$(pwd)/ipns"
 	'
 
-	test_expect_success FUSE "ipfs mount succeeds" '
-		ipfs mount mountdir >actual &
+	test_expect_success FUSE "'ipfs daemon' succeeds" '
+		ipfs daemon >actual &
 	'
 
-	test_expect_success FUSE "ipfs mount output looks good" '
+	test_expect_success FUSE "'ipfs daemon' output looks good" '
 		IPFS_PID=$! &&
-		echo "mounting ipfs at $(pwd)/ipfs" >expected &&
-		echo "mounting ipns at $(pwd)/ipns" >>expected &&
+		echo "API server listening on '\''127.0.0.1:5001'\''" >expected &&
 		test_cmp_repeat_10_sec expected actual
 	'
+
+	test_expect_success FUSE "'ipfs mount' succeeds" '
+		ipfs mount >actual
+	'
+
+	test_expect_success FUSE "'ipfs mount' output looks good" '
+		echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
+		echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
+		test_cmp expected actual
+	'
+}
+
+test_kill_repeat_10_sec() {
+	for i in 1 2 3 4 5 6 7 8 9 10
+	do
+		kill $1
+		sleep 1
+		! kill -0 $1 2>/dev/null && return
+	done
+	! kill -0 $1 2>/dev/null
 }
 
 test_kill_ipfs_mount() {
 
-	test_expect_success FUSE "ipfs mount is still running" '
+	test_expect_success FUSE "'ipfs daemon' is still running" '
 		kill -0 $IPFS_PID
 	'
 
-	test_expect_success FUSE "ipfs mount can be killed" '
-		kill $IPFS_PID &&
-		sleep 1 &&
-		! kill -0 $IPFS_PID 2>/dev/null
+	test_expect_success FUSE "'ipfs daemon' can be killed" '
+		test_kill_repeat_10_sec $IPFS_PID
 	'
 }
