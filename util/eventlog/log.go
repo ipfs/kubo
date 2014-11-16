@@ -53,6 +53,10 @@ type StandardLogger interface {
 
 // Logger retrieves an event logger by name
 func Logger(system string) EventLogger {
+
+	// TODO if we would like to adjust log levels at run-time. Store this event
+	// logger in a map (just like the util.Logger impl)
+
 	return &eventLogger{system: system, Logger: util.Logger(system)}
 }
 
