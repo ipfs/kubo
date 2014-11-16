@@ -11,6 +11,7 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 )
 
@@ -97,6 +98,16 @@ baz
 			return nil, err
 		}
 
+		// check if we already have live mounts.
+		// if the user said "Mount", then there must be something wrong.
+		// so, close them and try again.
+		if node.Mounts.Ipfs != nil {
+			node.Mounts.Ipfs.Unmount()
+		}
+		if node.Mounts.Ipns != nil {
+			node.Mounts.Ipns.Unmount()
+		}
+
 		// error if we aren't running node in online mode
 		if node.Network == nil {
 			return nil, errNotOnline
@@ -113,7 +124,6 @@ baz
 		if !found {
 			fsdir = cfg.Mounts.IPFS // use default value
 		}
-		fsdone := mountIpfs(node, fsdir)
 
 		// get default mount points
 		nsdir, found, err := req.Option("n").String()
@@ -124,30 +134,14 @@ baz
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
 		}
 
-		nsdone := mountIpns(node, nsdir, fsdir)
-
-		fmtFuseErr := func(err error) error {
-			s := err.Error()
-			if strings.Contains(s, fuseNoDirectory) {
-				s = strings.Replace(s, `fusermount: "fusermount:`, "", -1)
-				s = strings.Replace(s, `\n", exit status 1`, "", -1)
-				return cmds.ClientError(s)
-			}
-			return err
+		if err := doMount(node, fsdir, nsdir); err != nil {
+			return nil, err
 		}
 
-		// wait until mounts return an error (or timeout if successful)
-		select {
-		case err := <-fsdone:
-			return nil, fmtFuseErr(err)
-		case err := <-nsdone:
-			return nil, fmtFuseErr(err)
-
-		// mounted successfully, we timed out with no errors
-		case <-time.After(mountTimeout):
-			output := cfg.Mounts
-			return &output, nil
-		}
+		var output config.Mounts
+		output.IPFS = fsdir
+		output.IPNS = nsdir
+		return &output, nil
 	},
 	Type: &config.Mounts{},
 	Marshalers: cmds.MarshalerMap{
@@ -160,33 +154,52 @@ baz
 	},
 }
 
-func mountIpfs(node *core.IpfsNode, fsdir string) <-chan error {
-	done := make(chan error)
-	log.Info("Mounting IPFS at ", fsdir)
-
-	go func() {
-		err := rofs.Mount(node, fsdir)
-		done <- err
-		close(done)
-	}()
-
-	return done
-}
-
-func mountIpns(node *core.IpfsNode, nsdir, fsdir string) <-chan error {
-	if nsdir == "" {
-		return nil
+func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
+	fmtFuseErr := func(err error) error {
+		s := err.Error()
+		if strings.Contains(s, fuseNoDirectory) {
+			s = strings.Replace(s, `fusermount: "fusermount:`, "", -1)
+			s = strings.Replace(s, `\n", exit status 1`, "", -1)
+			return cmds.ClientError(s)
+		}
+		return err
 	}
-	done := make(chan error)
-	log.Info("Mounting IPNS at ", nsdir)
+
+	// this sync stuff is so that both can be mounted simultaneously.
+	var fsmount mount.Mount
+	var nsmount mount.Mount
+	var err1 error
+	var err2 error
+
+	done := make(chan struct{})
 
 	go func() {
-		err := ipns.Mount(node, nsdir, fsdir)
-		done <- err
-		close(done)
+		fsmount, err1 = rofs.Mount(node, fsdir)
+		done <- struct{}{}
 	}()
 
-	return done
+	go func() {
+		nsmount, err2 = ipns.Mount(node, nsdir, fsdir)
+		done <- struct{}{}
+	}()
+
+	<-done
+	<-done
+
+	if err1 != nil || err2 != nil {
+		fsmount.Close()
+		nsmount.Close()
+		if err1 != nil {
+			return fmtFuseErr(err1)
+		} else {
+			return fmtFuseErr(err2)
+		}
+	}
+
+	// setup node state, so that it can be cancelled
+	node.Mounts.Ipfs = fsmount
+	node.Mounts.Ipns = nsmount
+	return nil
 }
 
 var platformFuseChecks = func() error {
