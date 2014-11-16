@@ -48,7 +48,7 @@ type IpfsNode struct {
 	Peerstore peer.Peerstore
 
 	// the local datastore
-	Datastore ds.ThreadSafeDatastore
+	Datastore ds.ThreadSafeDatastoreCloser
 
 	// the network message stream
 	Network inet.Network
@@ -190,6 +190,11 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 	success = true
 	return n, nil
+}
+
+func (n *IpfsNode) Close() {
+	n.ContextCloser.Close()
+	n.Datastore.Close()
 }
 
 func (n *IpfsNode) OnlineMode() bool {

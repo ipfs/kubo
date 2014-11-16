@@ -14,7 +14,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
+func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastoreCloser, error) {
 	if len(cfg.Type) == 0 {
 		return nil, fmt.Errorf("config datastore.type required")
 	}
@@ -39,7 +39,7 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
 	return nil, fmt.Errorf("Unknown datastore type: %s", cfg.Type)
 }
 
-func makeLevelDBDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
+func makeLevelDBDatastore(cfg config.Datastore) (ds.ThreadSafeDatastoreCloser, error) {
 	if len(cfg.Path) == 0 {
 		return nil, fmt.Errorf("config datastore.path required for leveldb")
 	}
