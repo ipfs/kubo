@@ -62,7 +62,7 @@ func DeepMerge(b, a Metadata) Metadata {
 }
 
 // Loggable implements the Loggable interface
-func (m Metadata) Loggable() Metadata {
+func (m Metadata) Loggable() map[string]interface{} {
 	// NB: method defined on value to avoid de-referencing nil Metadata
 	return m
 }
