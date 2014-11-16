@@ -2,66 +2,69 @@ package ipns
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"os/signal"
 	"runtime"
-	"syscall"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/jbenet/go-ipfs/core"
+	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+
+	core "github.com/jbenet/go-ipfs/core"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 )
 
 // Mount mounts an IpfsNode instance at a particular path. It
 // serves until the process receives exit signals (to Unmount).
-func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) error {
+func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) (mount.Mount, error) {
+	log.Infof("Mounting ipns at %s...", fpath)
 
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
-		syscall.SIGTERM, syscall.SIGQUIT)
+	// setup the Mount abstraction.
+	m := mount.New(ipfs.Context(), fpath, unmount)
 
-	go func() {
-		defer ipfs.Network.Close()
-		<-sigc
-		for {
-			err := Unmount(fpath)
-			if err == nil {
-				return
-			}
-			time.Sleep(time.Millisecond * 100)
+	// go serve the mount
+	mount.ServeMount(m, func(m mount.Mount) error {
+
+		c, err := fuse.Mount(fpath)
+		if err != nil {
+			return err
 		}
-	}()
+		defer c.Close()
 
-	c, err := fuse.Mount(fpath)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
+		fsys, err := NewIpns(ipfs, ipfspath)
+		if err != nil {
+			return err
+		}
 
-	fsys, err := NewIpns(ipfs, ipfspath)
-	if err != nil {
-		return err
+		log.Infof("Mounted ipns at %s.", fpath)
+		if err := fs.Serve(c, fsys); err != nil {
+			return err
+		}
+
+		// check if the mount process has an error to report
+		<-c.Ready
+		if err := c.MountError; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	select {
+	case <-m.Closed():
+		return nil, fmt.Errorf("failed to mount")
+	case <-time.After(time.Second):
+		// assume it worked...
 	}
 
-	err = fs.Serve(c, fsys)
-	if err != nil {
-		return err
-	}
-
-	// check if the mount process has an error to report
-	<-c.Ready
-	if err := c.MountError; err != nil {
-		return err
-	}
-	return nil
+	// bind the mount (ContextCloser) to the node, so that when the node exits
+	// the fsclosers are automatically closed.
+	ipfs.AddCloserChild(m)
+	return m, nil
 }
 
-// Unmount attempts to unmount the provided FUSE mount point, forcibly
+// unmount attempts to unmount the provided FUSE mount point, forcibly
 // if necessary.
-func Unmount(point string) error {
-	fmt.Printf("Unmounting %s...\n", point)
+func unmount(point string) error {
+	log.Infof("Unmounting ipns at %s...", point)
 
 	var cmd *exec.Cmd
 	switch runtime.GOOS {

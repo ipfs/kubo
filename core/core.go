@@ -27,6 +27,7 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
@@ -74,9 +75,20 @@ type IpfsNode struct {
 	// the pinning manager
 	Pinning pin.Pinner
 
+	// current mount state, if any.
+	Mounts Mounts
+
 	ctxc.ContextCloser
 
 	onlineMode bool // alternatively, offline
+}
+
+// Mounts defines what the node's mount state is. This should
+// perhaps be moved to the daemon or mount. It's here because
+// it needs to be accessible across daemon requests.
+type Mounts struct {
+	Ipfs mount.Mount
+	Ipns mount.Mount
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.

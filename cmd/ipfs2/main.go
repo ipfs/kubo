@@ -297,6 +297,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		// this is gross, and should be changed when we extract out the exec Context.
 		node := req.Context().NodeWithoutConstructing()
 		if node != nil {
+			log.Info("Shutting down node...")
 			node.Close()
 		}
 	}
