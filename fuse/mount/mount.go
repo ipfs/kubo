@@ -19,23 +19,26 @@ type Mount interface {
 	// MountPoint is the path at which this mount is mounted
 	MountPoint() string
 
+	// Mount function sets up a mount + registers the unmount func
+	Mount(mount MountFunc, unmount UnmountFunc)
+
 	// Unmount calls Close.
 	Unmount() error
 
 	ctxc.ContextCloser
 }
 
-// UnmountFunc is a function used to unmount a mount
-type UnmountFunc func(mountpoint string) error
+// UnmountFunc is a function used to Unmount a mount
+type UnmountFunc func(Mount) error
+
+// MountFunc is a function used to Mount a mount
+type MountFunc func(Mount) error
 
 // New constructs a new Mount instance. ctx is a context to wait upon,
 // the mountpoint is the directory that the mount was mounted at, and unmount
 // in an UnmountFunc to perform the unmounting logic.
-func New(ctx context.Context, mountpoint string, unmount UnmountFunc) Mount {
-	m := &mount{
-		mpoint:  mountpoint,
-		unmount: unmount,
-	}
+func New(ctx context.Context, mountpoint string) Mount {
+	m := &mount{mpoint: mountpoint}
 	m.ContextCloser = ctxc.NewContextCloser(ctx, m.persistentUnmount)
 	return m
 }
@@ -50,10 +53,14 @@ type mount struct {
 // umount is called after the mount is closed.
 // TODO this is hacky, make it better.
 func (m *mount) persistentUnmount() error {
+	// no unmount func.
+	if m.unmount == nil {
+		return nil
+	}
 
 	// ok try to unmount a whole bunch of times...
 	for i := 0; i < 34; i++ {
-		err := m.unmount(m.mpoint)
+		err := m.unmount(m)
 		if err == nil {
 			return nil
 		}
@@ -72,8 +79,9 @@ func (m *mount) Unmount() error {
 	return m.Close()
 }
 
-func ServeMount(m Mount, mount func(Mount) error) {
+func (m *mount) Mount(mount MountFunc, unmount UnmountFunc) {
 	m.Children().Add(1)
+	m.unmount = unmount
 
 	// go serve the mount
 	go func() {

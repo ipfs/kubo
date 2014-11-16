@@ -19,34 +19,12 @@ func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) (mount.Mount, err
 	log.Infof("Mounting ipns at %s...", fpath)
 
 	// setup the Mount abstraction.
-	m := mount.New(ipfs.Context(), fpath, unmount)
+	m := mount.New(ipfs.Context(), fpath)
 
 	// go serve the mount
-	mount.ServeMount(m, func(m mount.Mount) error {
-
-		c, err := fuse.Mount(fpath)
-		if err != nil {
-			return err
-		}
-		defer c.Close()
-
-		fsys, err := NewIpns(ipfs, ipfspath)
-		if err != nil {
-			return err
-		}
-
-		log.Infof("Mounted ipns at %s.", fpath)
-		if err := fs.Serve(c, fsys); err != nil {
-			return err
-		}
-
-		// check if the mount process has an error to report
-		<-c.Ready
-		if err := c.MountError; err != nil {
-			return err
-		}
-		return nil
-	})
+	m.Mount(func(m mount.Mount) error {
+		return internalMount(ipfs, fpath, ipfspath)
+	}, internalUnmount)
 
 	select {
 	case <-m.Closed():
@@ -61,9 +39,37 @@ func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) (mount.Mount, err
 	return m, nil
 }
 
+// mount attempts to mount at the provided FUSE mount point
+func internalMount(ipfs *core.IpfsNode, fpath string, ipfspath string) error {
+
+	c, err := fuse.Mount(fpath)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	fsys, err := NewIpns(ipfs, ipfspath)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Mounted ipns at %s.", fpath)
+	if err := fs.Serve(c, fsys); err != nil {
+		return err
+	}
+
+	// check if the mount process has an error to report
+	<-c.Ready
+	if err := c.MountError; err != nil {
+		return err
+	}
+	return nil
+}
+
 // unmount attempts to unmount the provided FUSE mount point, forcibly
 // if necessary.
-func unmount(point string) error {
+func internalUnmount(m mount.Mount) error {
+	point := m.MountPoint()
 	log.Infof("Unmounting ipns at %s...", point)
 
 	var cmd *exec.Cmd
