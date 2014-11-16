@@ -353,12 +353,14 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return false, nil
 	}
 
+	log.Info("looking for running daemon...")
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
 	daemonLocked := daemon.Locked(req.Context().ConfigRoot)
-	log.Info("Daemon is running.")
 
 	if daemonLocked {
+
+		log.Info("a daemon is running...")
 
 		if details.cannotRunOnDaemon {
 			e := "ipfs daemon is running. please stop it to run this command"
