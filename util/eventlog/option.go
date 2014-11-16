@@ -2,10 +2,19 @@ package eventlog
 
 import (
 	"io"
+	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/logrus"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
+
+func init() {
+	Configure(TextFormatter)
+	Configure(Output(os.Stderr))
+	// has the effect of disabling logging since we log event entries at Info
+	// level by convention
+	Configure(LevelError)
+}
 
 type Option func()
 
