@@ -98,6 +98,16 @@ baz
 			return nil, err
 		}
 
+		// check if we already have live mounts.
+		// if the user said "Mount", then there must be something wrong.
+		// so, close them and try again.
+		if node.Mounts.Ipfs != nil {
+			node.Mounts.Ipfs.Unmount()
+		}
+		if node.Mounts.Ipns != nil {
+			node.Mounts.Ipns.Unmount()
+		}
+
 		// error if we aren't running node in online mode
 		if node.Network == nil {
 			return nil, errNotOnline
