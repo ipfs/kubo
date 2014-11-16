@@ -63,17 +63,24 @@ type eventLogger struct {
 }
 
 func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Loggable) {
+
+	// get any existing metadata from the context
 	existing, err := MetadataFromContext(ctx)
 	if err != nil {
 		existing = Metadata{}
 	}
+
+	// accumulate metadata
 	accum := existing
 	for _, datum := range metadata {
 		accum = DeepMerge(accum, datum.Loggable())
 	}
+
+	// apply final attributes to reserved keys
 	accum["event"] = event
 	accum["system"] = el.system
 	accum["time"] = util.FormatRFC3339(time.Now())
 
+	// TODO roll our own event logger
 	logrus.WithFields(map[string]interface{}(accum)).Info(event)
 }
