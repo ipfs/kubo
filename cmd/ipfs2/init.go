@@ -209,7 +209,7 @@ func identityConfig(nbits int) (config.Identity, error) {
 		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	fmt.Printf("generating key pair...")
+	fmt.Println("generating key pair...")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
@@ -228,7 +228,7 @@ func identityConfig(nbits int) (config.Identity, error) {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	fmt.Println("generating key pair...")
+	fmt.Println("peer identity: %s", id.Pretty())
 
 	return ident, nil
 }
