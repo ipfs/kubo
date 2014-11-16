@@ -15,11 +15,9 @@ var ErrInvalidSubcmd = errors.New("subcommand not found")
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-// Parse will search each root to find the one that best matches the requested subcommand.
 func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
-	// use the root that matches the longest path (most accurately matches request)
 	path, input, cmd := parsePath(input, root)
-	opts, stringArgs, err := parseOptions(input)
+	opts, stringVals, err := parseOptions(input)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -28,7 +26,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		return nil, nil, path, ErrInvalidSubcmd
 	}
 
-	args, err := parseArgs(stringArgs, stdin, cmd.Arguments)
+	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -46,7 +44,9 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	req, err := cmds.NewRequest(path, opts, args, cmd, optDefs)
+	file := &cmds.SliceFile{"", fileArgs}
+
+	req, err := cmds.NewRequest(path, opts, stringArgs, file, cmd, optDefs)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -120,12 +120,12 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) ([]interface{}, error) {
+func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument) ([]interface{}, []cmds.File, error) {
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		stat, err := stdin.Stat()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// if stdin isn't a CharDevice, set it to nil
@@ -136,22 +136,24 @@ func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) (
 	}
 
 	// count required argument definitions
-	lenRequired := 0
+	numRequired := 0
 	for _, argDef := range arguments {
 		if argDef.Required {
-			lenRequired++
+			numRequired++
 		}
 	}
 
-	valCount := len(stringArgs)
+	// count number of values provided by user
+	numInputs := len(inputs)
 	if stdin != nil {
-		valCount += 1
+		numInputs += 1
 	}
 
-	args := make([]interface{}, 0, valCount)
+	stringArgs := make([]interface{}, 0, numInputs)
+	fileArgs := make([]cmds.File, 0, numInputs)
 
 	argDefIndex := 0 // the index of the current argument definition
-	for i := 0; i < valCount; i++ {
+	for i, input := range inputs {
 		// get the argument definiton (should be arguments[argDefIndex],
 		// but if argDefIndex > len(arguments) we use the last argument definition)
 		var argDef cmds.Argument
@@ -161,43 +163,48 @@ func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) (
 			argDef = arguments[len(arguments)-1]
 		}
 
-		// skip optional argument definitions if there aren't sufficient remaining values
-		if valCount-i <= lenRequired && !argDef.Required {
+		// skip optional argument definitions if there aren't sufficient remaining inputs
+		if numInputs-i <= numRequired && !argDef.Required {
 			continue
 		} else if argDef.Required {
-			lenRequired--
+			numRequired--
 		}
 
 		if argDef.Type == cmds.ArgString {
 			if stdin == nil {
 				// add string values
-				args = append(args, stringArgs[0])
-				stringArgs = stringArgs[1:]
+				stringArgs = append(stringArgs, input)
+				inputs = inputs[1:]
 
 			} else if argDef.SupportsStdin {
 				// if we have a stdin, read it in and use the data as a string value
 				var buf bytes.Buffer
 				_, err := buf.ReadFrom(stdin)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
-				args = append(args, buf.String())
+				stringArgs = append(stringArgs, buf.String())
 				stdin = nil
 			}
 
 		} else if argDef.Type == cmds.ArgFile {
 			if stdin == nil {
 				// treat stringArg values as file paths
-				file, err := os.Open(stringArgs[0])
+				path := input
+				inputs = inputs[1:]
+
+				file, err := os.Open(path)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
-				args = append(args, file)
-				stringArgs = stringArgs[1:]
+
+				fileArg := &cmds.ReaderFile{path, file}
+				fileArgs = append(fileArgs, fileArg)
 
 			} else if argDef.SupportsStdin {
-				// if we have a stdin, use that as a reader
-				args = append(args, stdin)
+				// if we have a stdin, create a file from it
+				fileArg := &cmds.ReaderFile{"", stdin}
+				fileArgs = append(fileArgs, fileArg)
 				stdin = nil
 			}
 		}
@@ -205,5 +212,5 @@ func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) (
 		argDefIndex++
 	}
 
-	return args, nil
+	return stringArgs, fileArgs, nil
 }
