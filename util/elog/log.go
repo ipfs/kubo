@@ -6,12 +6,6 @@ import (
 	"github.com/jbenet/go-ipfs/util"
 )
 
-var eloggers = map[string]*logging.Logger{}
-
-func init() {
-	SetupLogging()
-}
-
 // EventLogger extends the StandardLogger interface to allow for log items
 // containing structured metadata
 type EventLogger interface {
@@ -78,14 +72,4 @@ func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Logg
 		return
 	}
 	el.Logger.Info(str)
-}
-
-// SetupLogging will initialize the logger backend and set the flags.
-func SetupLogging() {
-	// 	fmt := logging.DefaultFormatter
-
-	// 	f, err := os.Create("events.ipfslog")
-	// 	if err != nil {
-	// 		panic("failed to open file for event logger")
-	// 	}
 }
