@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -16,6 +16,7 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var initCmd = &cmds.Command{
@@ -29,6 +30,11 @@ var initCmd = &cmds.Command{
 		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
+
+		// TODO need to decide whether to expose the override as a file or a
+		// directory. That is: should we allow the user to also specify the
+		// name of the file?
+		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 
@@ -97,6 +103,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, err
 	}
 
+	// TODO extract this file creation operation into a function
 	nd, err := core.NewIpfsNode(conf, false)
 	if err != nil {
 		return nil, err
@@ -150,6 +157,11 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		return nil, err
 	}
 
+	logConfig, err := initLogs("") // TODO allow user to override dir
+	if err != nil {
+		return nil, err
+	}
+
 	conf := &config.Config{
 
 		// setup the node addresses.
@@ -167,6 +179,8 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		},
 
 		Datastore: ds,
+
+		Logs: logConfig,
 
 		Identity: identity,
 
@@ -214,8 +228,28 @@ func identityConfig(nbits int) (config.Identity, error) {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
+	fmt.Println("generating key pair...")
 
 	return ident, nil
+}
+
+func initLogs(logpath string) (config.Logs, error) {
+	if len(logpath) == 0 {
+		var err error
+		logpath, err = config.LogsPath("")
+		if err != nil {
+			return config.Logs{}, errors.Wrap(err)
+		}
+	}
+
+	err := initCheckDir(logpath)
+	if err != nil {
+		return config.Logs{}, errors.Errorf("logs: %s", err)
+	}
+
+	return config.Logs{
+		Filename: path.Join(logpath, "events.log"),
+	}, nil
 }
 
 // initCheckDir ensures the directory exists and is writable

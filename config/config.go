@@ -20,6 +20,14 @@ type Identity struct {
 	PrivKey string
 }
 
+// Logs tracks the configuration of the event logger
+type Logs struct {
+	Filename   string
+	MaxSizeMB  uint64
+	MaxBackups uint64
+	MaxAgeDays uint64
+}
+
 // Datastore tracks the configuration of the datastore.
 type Datastore struct {
 	Type string
@@ -63,6 +71,7 @@ type Config struct {
 	Version   Version          // local node's version management
 	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
 	Tour      Tour             // local node's tour position
+	Logs      Logs             // local node's event log configuration
 }
 
 // DefaultPathRoot is the path to the default config dir location.
@@ -76,6 +85,9 @@ const DefaultDataStoreDirectory = "datastore"
 
 // EnvDir is the environment variable used to change the path root.
 const EnvDir = "IPFS_DIR"
+
+// LogsDefaultDirectory is the directory to store all IPFS event logs.
+var LogsDefaultDirectory = "logs"
 
 // PathRoot returns the default configuration root directory
 func PathRoot() (string, error) {
@@ -105,6 +117,12 @@ func Path(configroot, extension string) (string, error) {
 // (set an empty string to have the default configuration root)
 func DataStorePath(configroot string) (string, error) {
 	return Path(configroot, DefaultDataStoreDirectory)
+}
+
+// LogsPath returns the default path for event logs given a configuration root
+// (set an empty string to have the default configuration root)
+func LogsPath(configroot string) (string, error) {
+	return Path(configroot, LogsDefaultDirectory)
 }
 
 // Filename returns the configuration file path given a configuration root
