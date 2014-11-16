@@ -206,12 +206,12 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 	return longHelp, shortHelp, nil
 }
 
-func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Command) error {
+func callPreCommandHooks(command cmdDetails, req cmds.Request, root *cmds.Command) error {
 
 	log.Debug("Calling pre-command hooks...")
 
 	// some hooks only run when the command is executed locally
-	daemon, err := commandShouldRunOnDaemon(details, req, root)
+	daemon, err := commandShouldRunOnDaemon(command, req, root)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 	// check for updates when 1) commands is going to be run locally, 2) the
 	// command does not initialize the config, and 3) the command does not
 	// pre-empt updates
-	if !daemon && details.usesConfigAsInput() && details.doesNotPreemptAutoUpdate() {
+	if !daemon && command.usesConfigAsInput() && command.doesNotPreemptAutoUpdate() {
 
 		log.Debug("Calling hook: Check for updates")
 
