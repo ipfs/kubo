@@ -22,7 +22,7 @@ import (
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	eventlog "github.com/jbenet/go-ipfs/util/elog"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 // log is the command logger

@@ -3,7 +3,7 @@ package swarm
 import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
-	"github.com/jbenet/go-ipfs/util/elog"
+	"github.com/jbenet/go-ipfs/util/eventlog"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
