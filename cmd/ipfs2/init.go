@@ -168,7 +168,7 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 	identity, err := identityConfig(nBitsForKeypair, func() {
 		fmt.Printf("generating key pair...")
 	}, func(ident config.Identity) {
-		fmt.Printf("done.\n")
+		fmt.Printf("done\n")
 		fmt.Printf("peer identity: %s\n", ident.PeerID)
 	})
 	if err != nil {
