@@ -17,7 +17,7 @@ func Configure(options ...Option) {
 
 // LdJSONFormatter formats the event log as line-delimited JSON
 var LdJSONFormatter = func() {
-	logrus.SetFormatter(&logrus.PoliteJSONFormatter{})
+	logrus.SetFormatter(&PoliteJSONFormatter{})
 }
 
 var TextFormatter = func() {
