@@ -131,16 +131,9 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 	ds.Path = dspath
 	ds.Type = "leveldb"
 
-	// Construct the data store if missing
-	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
-		return ds, err
-	}
-
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return ds, errors.New("Datastore '" + dspath + "' is not writeable")
+	err := initCheckDir(dspath)
+	if err != nil {
+		return ds, errors.Errorf("datastore: %s", err)
 	}
 
 	return ds, nil
@@ -223,4 +216,20 @@ func identityConfig(nbits int) (config.Identity, error) {
 	ident.PeerID = id.Pretty()
 
 	return ident, nil
+}
+
+// initCheckDir ensures the directory exists and is writable
+func initCheckDir(path string) error {
+	// Construct the path if missing
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Check the directory is writeable
+	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
+		os.Remove(f.Name())
+	} else {
+		return errors.New("'" + path + "' is not writeable")
+	}
+	return nil
 }
