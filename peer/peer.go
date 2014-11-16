@@ -115,8 +115,18 @@ type peer struct {
 }
 
 // String prints out the peer.
+//
+// TODO(brian): ensure correctness at ID generation and
+// enforce this by only exposing functions that generate
+// IDs safely. Then any peer.ID type found in the
+// codebase is known to be correct.
 func (p *peer) String() string {
-	return "[Peer " + p.id.String()[:12] + "]"
+	pid := p.id.String()
+	maxRunes := 12
+	if len(pid) < maxRunes {
+		maxRunes = len(pid)
+	}
+	return "[Peer " + pid[:maxRunes] + "]"
 }
 
 // Key returns the ID as a Key (string) for maps.
