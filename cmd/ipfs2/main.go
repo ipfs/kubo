@@ -205,12 +205,12 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 	return longHelp, shortHelp, nil
 }
 
-func callPreCommandHooks(command cmdDetails, req cmds.Request, root *cmds.Command) error {
+func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Command) error {
 
 	log.Debug("Calling pre-command hooks...")
 
 	// some hooks only run when the command is executed locally
-	daemon, err := commandShouldRunOnDaemon(command, req, root)
+	daemon, err := commandShouldRunOnDaemon(details, req, root)
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func callPreCommandHooks(command cmdDetails, req cmds.Request, root *cmds.Comman
 	// check for updates when 1) commands is going to be run locally, 2) the
 	// command does not initialize the config, and 3) the command does not
 	// pre-empt updates
-	if !daemon && command.usesConfigAsInput() && command.doesNotPreemptAutoUpdate() {
+	if !daemon && details.usesConfigAsInput() && details.doesNotPreemptAutoUpdate() {
 
 		log.Debug("Calling hook: Check for updates")
 
@@ -234,7 +234,7 @@ func callPreCommandHooks(command cmdDetails, req cmds.Request, root *cmds.Comman
 
 	// When the upcoming command may use the config and repo, we know it's safe
 	// for the log config hook to touch the config/repo
-	if command.usesConfigAsInput() && command.usesRepo() {
+	if details.usesConfigAsInput() && details.usesRepo() {
 		log.Debug("Calling hook: Configure Event Logger")
 		cfg, err := req.Context().GetConfig()
 		if err != nil {

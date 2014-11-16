@@ -152,10 +152,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	// update the peer (on valid msgs only)
 	dht.Update(mPeer)
 
-	// Print out diagnostic
 	log.Event(ctx, "foo", dht.self, mPeer, pmes)
-	log.Debugf("%s got message type: '%s' from %s",
-		dht.self, pb.Message_MessageType_name[int32(pmes.GetType())], mPeer)
 
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
@@ -198,10 +195,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Messa
 
 	start := time.Now()
 
-	// Print out diagnostic
 	log.Event(ctx, "sentMessage", dht.self, p, pmes)
-	log.Debugf("Sent message type: '%s' to %s",
-		pb.Message_MessageType_name[int32(pmes.GetType())], p)
 
 	rmes, err := dht.sender.SendRequest(ctx, mes)
 	if err != nil {
