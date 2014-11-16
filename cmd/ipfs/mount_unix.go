@@ -3,6 +3,11 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 
@@ -90,9 +95,21 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 		}
 	}
 
+	fmt.Printf("mounted ipfs at %s\n", fsdir)
+	fmt.Printf("mounted ipns at %s\n", nsdir)
+
 	// setup node state, so that it can be cancelled
 	node.Mounts.Ipfs = fsmount
 	node.Mounts.Ipns = nsmount
+
+	// wait until we kill
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
+		syscall.SIGTERM, syscall.SIGQUIT)
+	<-sigc
+
+	fmt.Println("unmounting...")
+	node.Close()
 	return nil
 }
 
