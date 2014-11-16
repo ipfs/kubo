@@ -9,6 +9,7 @@ import (
 	"runtime/pprof"
 	"syscall"
 
+	// TODO rm direct reference to go-logging
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
@@ -22,10 +23,11 @@ import (
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
+	elog "github.com/jbenet/go-ipfs/util/elog"
 )
 
 // log is the command logger
-var log = u.Logger("cmd/ipfs")
+var log = elog.Logger("cmd/ipfs")
 
 // signal to output help
 var errHelpRequested = errors.New("Help Requested")
