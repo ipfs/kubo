@@ -14,7 +14,7 @@ func init() {
 
 type EventLogger interface {
 	StandardLogger
-	Event(ctx context.Context, event string, m ...Metadata)
+	Event(ctx context.Context, event string, m ...Loggable)
 }
 
 type StandardLogger interface {
@@ -46,14 +46,14 @@ type eventLogger struct {
 	*logging.Logger
 }
 
-func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Metadata) {
+func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Loggable) {
 	existing, err := MetadataFromContext(ctx)
 	if err != nil {
 		existing = Metadata{}
 	}
 	accum := existing
 	for _, datum := range metadata {
-		accum = DeepMerge(accum, datum)
+		accum = DeepMerge(accum, datum.Loggable())
 	}
 	accum["event"] = event
 

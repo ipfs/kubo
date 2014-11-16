@@ -101,6 +101,8 @@ type Peer interface {
 
 	// Update with the data of another peer instance
 	Update(Peer) error
+
+	Loggable() map[string]interface{}
 }
 
 type Type uint8
@@ -111,6 +113,17 @@ const (
 	Local
 	Remote
 )
+
+func (t Type) String() string {
+	switch t {
+	case Local:
+		return "localPeer"
+	case Remote:
+		return "remotePeer"
+	default:
+	}
+	return "unspecifiedPeer"
+}
 
 type peer struct {
 	id        ID
@@ -143,6 +156,15 @@ func (p *peer) String() string {
 		maxRunes = len(pid)
 	}
 	return "[Peer " + pid[:maxRunes] + "]"
+}
+
+func (p *peer) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		p.GetType().String(): map[string]interface{}{
+			"id":      p.ID(),
+			"latency": p.GetLatency(),
+		},
+	}
 }
 
 // Key returns the ID as a Key (string) for maps.

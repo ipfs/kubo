@@ -13,7 +13,7 @@ type Metadata map[string]interface{}
 
 // Loggable describes objects that can be marshalled into Metadata for logging
 type Loggable interface {
-	Loggable() Metadata
+	Loggable() map[string]interface{}
 }
 
 // UniqueEvent returns a Metadata with the string key and UUID value
