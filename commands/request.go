@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 
@@ -62,13 +61,8 @@ type Request interface {
 	Option(name string) *OptionValue
 	Options() optMap
 	SetOption(name string, val interface{})
-
-	// Arguments() returns user provided arguments as declared on the Command.
-	//
-	// NB: `io.Reader`s returned by Arguments() are owned by the library.
-	// Readers are not guaranteed to remain open after the Command's Run
-	// function returns.
-	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
+	Arguments() []interface{}
+	Files() File
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
@@ -81,6 +75,7 @@ type request struct {
 	path       []string
 	options    optMap
 	arguments  []interface{}
+	files      File
 	cmd        *Command
 	ctx        Context
 	optionDefs map[string]Option
@@ -152,6 +147,10 @@ func (r *request) Arguments() []interface{} {
 	return r.arguments
 }
 
+func (r *request) Files() File {
+	return r.files
+}
+
 func (r *request) Context() *Context {
 	return &r.ctx
 }
@@ -165,16 +164,7 @@ func (r *request) Command() *Command {
 }
 
 func (r *request) Cleanup() error {
-	for _, arg := range r.arguments {
-		closer, ok := arg.(io.Closer)
-		if ok {
-			err := closer.Close()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
+	// TODO
 	return nil
 }
 
@@ -253,12 +243,12 @@ func (r *request) ConvertOptions() error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() (Request, error) {
-	return NewRequest(nil, nil, nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts optMap, args []interface{}, file File, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -272,7 +262,7 @@ func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, op
 		optDefs = make(map[string]Option)
 	}
 
-	req := &request{path, opts, args, cmd, Context{}, optDefs}
+	req := &request{path, opts, args, file, cmd, Context{}, optDefs}
 	err := req.ConvertOptions()
 	if err != nil {
 		return nil, err
