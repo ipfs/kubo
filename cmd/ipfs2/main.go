@@ -219,7 +219,7 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 	// check for updates when 1) commands is going to be run locally, 2) the
 	// command does not initialize the config, and 3) the command does not
 	// pre-empt updates
-	if !daemon && details.usesConfigAsInput() && !details.preemptsAutoUpdate {
+	if !daemon && details.usesConfigAsInput() && details.doesNotPreemptAutoUpdate() {
 
 		log.Debug("Calling hook: Check for updates")
 
@@ -328,7 +328,6 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 			details = cmdDetails
 		}
 	}
-	log.Debugf("cmd perms for +%v: %s", path, details.String())
 	return &details, nil
 }
 

@@ -16,8 +16,8 @@ type Loggable interface {
 	Loggable() map[string]interface{}
 }
 
-// UniqueEvent returns a Metadata with the string key and UUID value
-func UniqueEvent(key string) Metadata {
+// Uuid returns a Metadata with the string key and UUID value
+func Uuid(key string) Metadata {
 	return Metadata{
 		key: uuid.New(),
 	}
