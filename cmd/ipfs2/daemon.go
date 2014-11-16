@@ -6,6 +6,7 @@ import (
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
+	errors "github.com/jbenet/go-ipfs/util/errors"
 
 	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -35,7 +36,7 @@ the daemon.
 func daemonFunc(req cmds.Request) (interface{}, error) {
 	lock, err := daemon.Lock(req.Context().ConfigRoot)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't obtain lock. Is another daemon already running?")
+		return nil, errors.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
 	defer lock.Close()
 

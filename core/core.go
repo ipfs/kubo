@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -15,6 +14,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
@@ -26,8 +26,8 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"github.com/jbenet/go-ipfs/util/errors"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -102,7 +102,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	}()
 
 	if cfg == nil {
-		return nil, fmt.Errorf("configuration required")
+		return nil, errors.Errorf("configuration required")
 	}
 
 	// derive this from a higher context.
@@ -115,14 +115,14 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 
 	// setup peerstore + local peer identity
 	n.Peerstore = peer.NewPeerstore()
 	n.Identity, err = initIdentity(&n.Config.Identity, n.Peerstore, online)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 
 	// setup online services
@@ -142,12 +142,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// setup the network
 		listenAddrs, err := listenAddresses(cfg)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err)
 		}
 
 		n.Network, err = inet.NewIpfsNetwork(ctx, listenAddrs, n.Identity, n.Peerstore, muxMap)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err)
 		}
 		n.AddCloserChild(n.Network)
 
@@ -176,7 +176,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	// session that simply doesn't return blocks
 	n.Blocks, err = bserv.NewBlockService(n.Datastore, n.Exchange)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 
 	n.DAG = merkledag.NewDAGService(n.Blocks)
