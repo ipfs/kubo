@@ -26,11 +26,6 @@ type Logger struct {
 	// to) `logrus.Info`, which allows Info(), Warn(), Error() and Fatal() to be
 	// logged. `logrus.Debug` is useful in
 	Level Level
-
-	// WriteFields permits the logger to add time, msg, level data to
-	// user-provided Fields
-	WriteFields bool
-
 	// Used to sync writing to the log.
 	mu sync.Mutex
 }

@@ -133,8 +133,8 @@
 		},
 		{
 			"ImportPath": "github.com/maybebtc/logrus",
-			"Comment": "v0.6.0-7-g51cc99e",
-			"Rev": "51cc99e4b07ec5516233a8370c28b5eedd096b6b"
+			"Comment": "v0.6.0-6-g005463f",
+			"Rev": "005463f8fb49c4a6f36181e05157e111ec5cf8a3"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
