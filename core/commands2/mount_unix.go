@@ -37,6 +37,7 @@ You may have to create /ipfs and /ipfs before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
+> ipfs daemon &
 > ipfs mount
 `,
 		LongDescription: `
@@ -48,6 +49,7 @@ You may have to create /ipfs and /ipfs before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
+> ipfs daemon &
 > ipfs mount
 
 EXAMPLE:
