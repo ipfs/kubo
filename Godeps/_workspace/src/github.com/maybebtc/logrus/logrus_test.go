@@ -17,6 +17,7 @@ func LogAndAssertJSON(t *testing.T, log func(*Logger), assertions func(fields Fi
 	logger := New()
 	logger.Out = &buffer
 	logger.Formatter = new(JSONFormatter)
+	logger.WriteFields = true
 
 	log(logger)
 

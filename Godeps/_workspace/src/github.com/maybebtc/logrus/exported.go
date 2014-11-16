@@ -56,6 +56,14 @@ func WithFields(fields Fields) *Entry {
 	return std.WithFields(fields)
 }
 
+// WriteFields gives the Logger permission to add time, level, msg info to
+// Entries
+func WriteFields(b bool) {
+	std.mu.Lock()
+	defer std.mu.Unlock()
+	std.WriteFields = b
+}
+
 // Debug logs a message at level Debug on the standard logger.
 func Debug(args ...interface{}) {
 	std.Debug(args...)

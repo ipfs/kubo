@@ -26,6 +26,7 @@ func TestEntryPanicln(t *testing.T) {
 
 	logger := New()
 	logger.Out = &bytes.Buffer{}
+	logger.WriteFields = true
 	entry := NewEntry(logger)
 	entry.WithField("err", errBoom).Panicln("kaboom")
 }
@@ -48,6 +49,7 @@ func TestEntryPanicf(t *testing.T) {
 
 	logger := New()
 	logger.Out = &bytes.Buffer{}
+	logger.WriteFields = true
 	entry := NewEntry(logger)
 	entry.WithField("err", errBoom).Panicf("kaboom %v", true)
 }
