@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	initializedOptionKeyword = "initialized"
+	initOptionKwd = "init"
 )
 
 var daemonCmd = &cmds.Command{
@@ -33,7 +33,7 @@ the daemon.
 	},
 
 	Options: []cmds.Option{
-		cmds.BoolOption(initializedOptionKeyword, "Initialize IPFS with default settings if not already initialized"),
+		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
 	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
@@ -41,11 +41,11 @@ the daemon.
 
 func daemonFunc(req cmds.Request) (interface{}, error) {
 
-	init, _, err := req.Option(initializedOptionKeyword).Bool()
+	initialize, _, err := req.Option(initOptionKwd).Bool()
 	if err != nil {
 		return nil, err
 	}
-	if init {
+	if initialize {
 
 		// now, FileExists is our best method of detecting whether IPFS is
 		// configured. Consider moving this into a config helper method
