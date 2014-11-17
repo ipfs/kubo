@@ -167,7 +167,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	fileArgs := make([]cmds.File, 0, numInputs)
 
 	argDefIndex := 0 // the index of the current argument definition
-	for i, input := range inputs {
+	for i := 0; i < numInputs; i++ {
 		// get the argument definiton (should be argDefs[argDefIndex],
 		// but if argDefIndex > len(argDefs) we use the last argument definition)
 		var argDef cmds.Argument
@@ -187,7 +187,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		if argDef.Type == cmds.ArgString {
 			if stdin == nil {
 				// add string values
-				stringArgs = append(stringArgs, input)
+				stringArgs = append(stringArgs, inputs[0])
 				inputs = inputs[1:]
 
 			} else if argDef.SupportsStdin {
@@ -204,7 +204,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		} else if argDef.Type == cmds.ArgFile {
 			if stdin == nil {
 				// treat stringArg values as file paths
-				path := input
+				path := inputs[0]
 				inputs = inputs[1:]
 
 				file, err := os.Open(path)
@@ -220,17 +220,17 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				if stat.IsDir() {
 					if !argDef.Recursive {
 						err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
-							input, argDef.Name)
+							path, argDef.Name)
 						return nil, nil, err
 					}
 					if !recursive {
 						err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
-							input, cmds.RecShort)
+							path, cmds.RecShort)
 						return nil, nil, err
 					}
 				}
 
-				fileArg, err := getFile(file, input)
+				fileArg, err := getFile(file, path)
 				if err != nil {
 					return nil, nil, err
 				}
