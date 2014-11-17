@@ -11,7 +11,6 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 const (
@@ -109,11 +108,7 @@ func getQuery(req cmds.Request) (string, error) {
 		}
 
 		if argDef.Type == cmds.ArgString {
-			str, ok := arg.(string)
-			if !ok {
-				return "", u.ErrCast()
-			}
-			query.Add("arg", str)
+			query.Add("arg", arg)
 		}
 	}
 

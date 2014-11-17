@@ -127,7 +127,7 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]interface{}, []cmds.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []cmds.File, error) {
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		stat, err := stdin.Stat()
@@ -163,7 +163,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		return nil, nil, fmt.Errorf("Expected %v arguments, got %v", len(argDefs), numInputs)
 	}
 
-	stringArgs := make([]interface{}, 0, numInputs)
+	stringArgs := make([]string, 0, numInputs)
 	fileArgs := make([]cmds.File, 0, numInputs)
 
 	argDefIndex := 0 // the index of the current argument definition

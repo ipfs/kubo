@@ -51,7 +51,7 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	// count the number of provided argument values
 	valCount := len(stringArgs)
 
-	args := make([]interface{}, valCount)
+	args := make([]string, valCount)
 
 	valIndex := 0
 	for _, argDef := range cmd.Arguments {

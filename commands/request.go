@@ -61,8 +61,8 @@ type Request interface {
 	Option(name string) *OptionValue
 	Options() optMap
 	SetOption(name string, val interface{})
-	Arguments() []interface{}
-	SetArguments([]interface{})
+	Arguments() []string
+	SetArguments([]string)
 	Files() File
 	SetFiles(File)
 	Context() *Context
@@ -76,7 +76,7 @@ type Request interface {
 type request struct {
 	path       []string
 	options    optMap
-	arguments  []interface{}
+	arguments  []string
 	files      File
 	cmd        *Command
 	ctx        Context
@@ -145,11 +145,11 @@ func (r *request) SetOption(name string, val interface{}) {
 }
 
 // Arguments returns the arguments slice
-func (r *request) Arguments() []interface{} {
+func (r *request) Arguments() []string {
 	return r.arguments
 }
 
-func (r *request) SetArguments(args []interface{}) {
+func (r *request) SetArguments(args []string) {
 	r.arguments = args
 }
 
@@ -258,7 +258,7 @@ func NewEmptyRequest() (Request, error) {
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts optMap, args []interface{}, file File, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts optMap, args []string, file File, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -266,7 +266,7 @@ func NewRequest(path []string, opts optMap, args []interface{}, file File, cmd *
 		opts = make(map[string]interface{})
 	}
 	if args == nil {
-		args = make([]interface{}, 0)
+		args = make([]string, 0)
 	}
 	if optDefs == nil {
 		optDefs = make(map[string]Option)
