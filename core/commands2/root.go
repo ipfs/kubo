@@ -32,7 +32,7 @@ Tool commands:
     update        Download and apply go-ipfs updates
     version       Show ipfs version information
     commands      List all available commands
-	id            Show info about ipfs peers
+    id            Show info about ipfs peers
 
 Advanced Commands:
 
