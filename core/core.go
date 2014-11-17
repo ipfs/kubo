@@ -16,6 +16,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
@@ -28,7 +29,6 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
@@ -218,7 +218,7 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 		return nil, err
 	}
 
-	peer.SetVersions(handshake.ClientVersion, handshake.IpfsVersion.String())
+	self.SetVersions(handshake.ClientVersion, handshake.IpfsVersion.String())
 
 	// when not online, don't need to parse private keys (yet)
 	if online {
