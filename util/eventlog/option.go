@@ -8,6 +8,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
 
+// init sets up sane defaults
 func init() {
 	Configure(TextFormatter)
 	Configure(Output(os.Stderr))
