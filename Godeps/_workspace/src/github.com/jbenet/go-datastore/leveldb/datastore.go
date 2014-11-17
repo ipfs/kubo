@@ -1,19 +1,25 @@
 package leveldb
 
 import (
+	"io"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-// Datastore uses a standard Go map for internal storage.
-type Datastore struct {
+type Datastore interface {
+	ds.ThreadSafeDatastore
+	io.Closer
+}
+
+type datastore struct {
 	DB *leveldb.DB
 }
 
 type Options opt.Options
 
-func NewDatastore(path string, opts *Options) (ds.ThreadSafeDatastore, error) {
+func NewDatastore(path string, opts *Options) (Datastore, error) {
 	var nopts opt.Options
 	if opts != nil {
 		nopts = opt.Options(*opts)
@@ -23,7 +29,7 @@ func NewDatastore(path string, opts *Options) (ds.ThreadSafeDatastore, error) {
 		return nil, err
 	}
 
-	return &Datastore{
+	return &datastore{
 		DB: db,
 	}, nil
 }
@@ -32,7 +38,7 @@ func NewDatastore(path string, opts *Options) (ds.ThreadSafeDatastore, error) {
 //
 // Note: using sync = false.
 // see http://godoc.org/github.com/syndtr/goleveldb/leveldb/opt#WriteOptions
-func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
+func (d *datastore) Put(key ds.Key, value interface{}) (err error) {
 	val, ok := value.([]byte)
 	if !ok {
 		return ds.ErrInvalidType
@@ -40,7 +46,7 @@ func (d *Datastore) Put(key ds.Key, value interface{}) (err error) {
 	return d.DB.Put(key.Bytes(), val, nil)
 }
 
-func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
+func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
 	val, err := d.DB.Get(key.Bytes(), nil)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
@@ -51,11 +57,11 @@ func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
 	return val, nil
 }
 
-func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
+func (d *datastore) Has(key ds.Key) (exists bool, err error) {
 	return ds.GetBackedHas(d, key)
 }
 
-func (d *Datastore) Delete(key ds.Key) (err error) {
+func (d *datastore) Delete(key ds.Key) (err error) {
 	err = d.DB.Delete(key.Bytes(), nil)
 	if err == leveldb.ErrNotFound {
 		return ds.ErrNotFound
@@ -63,18 +69,18 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 	return err
 }
 
-func (d *Datastore) KeyList() ([]ds.Key, error) {
+func (d *datastore) KeyList() ([]ds.Key, error) {
 	i := d.DB.NewIterator(nil, nil)
 	var keys []ds.Key
-	for ; i.Valid(); i.Next() {
+	for i.Next() {
 		keys = append(keys, ds.NewKey(string(i.Key())))
 	}
 	return keys, nil
 }
 
 // LevelDB needs to be closed.
-func (d *Datastore) Close() (err error) {
+func (d *datastore) Close() (err error) {
 	return d.DB.Close()
 }
 
-func (d *Datastore) IsThreadSafe() {}
+func (d *datastore) IsThreadSafe() {}

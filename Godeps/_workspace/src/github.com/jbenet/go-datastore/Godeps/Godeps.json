@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-datastore",
-	"GoVersion": "go1.3.1",
+	"GoVersion": "go1.3.3",
 	"Packages": [
 		"./..."
 	],
@@ -33,11 +33,16 @@
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "9bca75c48d6c31becfbb127702b425e7226052e3"
+			"Rev": "cd2b8f743192883ab9fbc5f070ebda1dc90f3732"
 		},
 		{
 			"ImportPath": "gopkg.in/check.v1",
 			"Rev": "91ae5f88a67b14891cfd43895b01164f6c120420"
+		},
+		{
+			"ImportPath": "launchpad.net/gocheck",
+			"Comment": "87",
+			"Rev": "gustavo@niemeyer.net-20140225173054-xu9zlkf9kxhvow02"
 		}
 	]
 }

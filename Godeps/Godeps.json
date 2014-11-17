@@ -99,7 +99,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "da593f5071b3ce60bf45b548193863bc3c885c3c"
+			"Rev": "b31aad9b9b22e46d99a270ed5aebb259fab64dcc"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-is-domain",

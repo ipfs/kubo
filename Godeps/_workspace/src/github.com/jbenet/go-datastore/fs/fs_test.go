@@ -2,7 +2,6 @@ package fs_test
 
 import (
 	"bytes"
-	"sort"
 	"testing"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -13,7 +12,10 @@ import (
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { TestingT(t) }
 
-type DSSuite struct{}
+type DSSuite struct {
+	dir string
+	ds  ds.Datastore
+}
 
 var _ = Suite(&DSSuite{})
 
@@ -51,22 +53,6 @@ func (ks *DSSuite) TestBasic(c *C) {
 		v, err := ks.ds.Get(k)
 		c.Check(err, Equals, nil)
 		c.Check(bytes.Equal(v.([]byte), []byte(k.String())), Equals, true)
-	}
-
-	listA, errA := mpds.KeyList()
-	listB, errB := ktds.KeyList()
-	c.Check(errA, Equals, nil)
-	c.Check(errB, Equals, nil)
-	c.Check(len(listA), Equals, len(listB))
-
-	// sort them cause yeah.
-	sort.Sort(ds.KeySlice(listA))
-	sort.Sort(ds.KeySlice(listB))
-
-	for i, kA := range listA {
-		kB := listB[i]
-		c.Check(pair.Invert(kA), Equals, kB)
-		c.Check(kA, Equals, pair.Convert(kB))
 	}
 }
 
