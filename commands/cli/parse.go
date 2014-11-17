@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // ErrInvalidSubcmd signals when the parse error is not found
@@ -17,16 +18,11 @@ var ErrInvalidSubcmd = errors.New("subcommand not found")
 // returns the corresponding command Request object.
 func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
 	path, input, cmd := parsePath(input, root)
-	opts, stringVals, err := parseOptions(input)
-	if err != nil {
-		return nil, cmd, path, err
-	}
-
 	if len(path) == 0 {
 		return nil, nil, path, ErrInvalidSubcmd
 	}
 
-	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments)
+	opts, stringVals, err := parseOptions(input)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -44,12 +40,23 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	file := &cmds.SliceFile{"", fileArgs}
-
-	req, err := cmds.NewRequest(path, opts, stringArgs, file, cmd, optDefs)
+	req, err := cmds.NewRequest(path, opts, nil, nil, cmd, optDefs)
 	if err != nil {
 		return nil, cmd, path, err
 	}
+
+	recursive, _, err := req.Option(cmds.RecShort).Bool()
+	if err != nil {
+		return nil, nil, nil, u.ErrCast()
+	}
+	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive)
+	if err != nil {
+		return nil, cmd, path, err
+	}
+	req.SetArguments(stringArgs)
+
+	file := &cmds.SliceFile{"", fileArgs}
+	req.SetFiles(file)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
@@ -120,7 +127,7 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument) ([]interface{}, []cmds.File, error) {
+func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument, recursive bool) ([]interface{}, []cmds.File, error) {
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		stat, err := stdin.Stat()
@@ -198,7 +205,29 @@ func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument) ([]in
 					return nil, nil, err
 				}
 
-				fileArg := &cmds.ReaderFile{path, file}
+				stat, err := file.Stat()
+				if err != nil {
+					return nil, nil, err
+				}
+
+				if stat.IsDir() {
+					if !argDef.Recursive {
+						err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
+							input, argDef.Name)
+						return nil, nil, err
+					}
+					if !recursive {
+						err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
+							input, cmds.RecShort)
+						return nil, nil, err
+					}
+				}
+
+				fileArg, err := getFile(file, input)
+				if err != nil {
+					return nil, nil, err
+				}
+
 				fileArgs = append(fileArgs, fileArg)
 
 			} else if argDef.SupportsStdin {
@@ -213,4 +242,42 @@ func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument) ([]in
 	}
 
 	return stringArgs, fileArgs, nil
+}
+
+// recursively get file or directory contents as a cmds.File
+func getFile(file *os.File, path string) (cmds.File, error) {
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// for non-directories, return a ReaderFile
+	if !stat.IsDir() {
+		return &cmds.ReaderFile{path, file}, nil
+	}
+
+	// for directories, recursively iterate though children then return as a SliceFile
+	contents, err := file.Readdir(0)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]cmds.File, 0, len(contents))
+
+	for _, child := range contents {
+		childPath := fmt.Sprintf("%s/%s", path, child.Name())
+		childFile, err := os.Open(childPath)
+		if err != nil {
+			return nil, err
+		}
+
+		f, err := getFile(childFile, childPath)
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, f)
+	}
+
+	return &cmds.SliceFile{path, files}, nil
 }
