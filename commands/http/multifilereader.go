@@ -10,6 +10,9 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
+// MultiFileReader reads from a `commands.File` (which can be a directory of files
+// or a regular file) as HTTP multipart encoded data.
+// WARNING: Not thread-safe!
 type MultiFileReader struct {
 	io.Reader
 
@@ -24,6 +27,9 @@ type MultiFileReader struct {
 	form bool
 }
 
+// NewMultiFileReader constructs a MultiFileReader. `file` can be any `commands.File`.
+// If `form` is set to true, the multipart data will have a Content-Type of 'multipart/form-data',
+// if `form` is false, the Content-Type will be 'multipart/mixed'.
 func NewMultiFileReader(file cmds.File, form bool) *MultiFileReader {
 	mfr := &MultiFileReader{
 		files: file,
@@ -103,6 +109,7 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 	return written, err
 }
 
+// Boundary returns the boundary string to be used to separate files in the multipart data
 func (mfr *MultiFileReader) Boundary() string {
 	return mfr.mpWriter.Boundary()
 }
