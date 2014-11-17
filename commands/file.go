@@ -20,13 +20,28 @@ var (
 	ErrNotReader    = errors.New("This file is a directory, can't use Reader functions")
 )
 
+// File is an interface that provides functionality for handling files/directories
+// as values that can be supplied to commands. For directories, child files are
+// accessed serially by calling `NextFile()`.
 type File interface {
+	// Files implement ReadCloser, but can only be read from or closed if they are not directories
 	io.ReadCloser
+
+	// FileName returns a full filename path associated with this file
 	FileName() string
+
+	// IsDirectory returns true if the File is a directory (and therefore supports calling `NextFile`)
+	// and false if the File is a normal file (and therefor supports calling `Read` and `Close`)
 	IsDirectory() bool
+
+	// NextFile returns the next child file available (if the File is a directory).
+	// It will return (nil, io.EOF) if no more files are available.
+	// If the file is a regular file (not a directory), NextFile will return a non-nil error.
 	NextFile() (File, error)
 }
 
+// MultipartFile implements File, and is created from a `multipart.Part`.
+// It can be either a directory or file (checked by calling `IsDirectory()`).
 type MultipartFile struct {
 	File
 
@@ -96,6 +111,9 @@ func (f *MultipartFile) Close() error {
 	return f.Part.Close()
 }
 
+// SliceFile implements File, and provides simple directory handling.
+// It contains children files, and is created from a `[]File`.
+// SliceFiles are always directories, and can't be read from or closed.
 type SliceFile struct {
 	Filename string
 	Files    []File
@@ -126,6 +144,8 @@ func (f *SliceFile) Close() error {
 	return ErrNotReader
 }
 
+// ReaderFile is a implementation of File created from an `io.Reader`.
+// ReaderFiles are never directories, and can be read from and closed.
 type ReaderFile struct {
 	Filename string
 	Reader   io.Reader
