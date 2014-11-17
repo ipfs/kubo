@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"mime"
 	"net/http"
 	"strings"
@@ -54,6 +55,7 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	args := make([]string, valCount)
 
 	valIndex := 0
+	requiredFile := ""
 	for _, argDef := range cmd.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
 		if valCount-valIndex <= numRequired && !argDef.Required {
@@ -78,6 +80,8 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 			} else {
 				break
 			}
+		} else if argDef.Type == cmds.ArgFile && argDef.Required && len(requiredFile) == 0 {
+			requiredFile = argDef.Name
 		}
 	}
 
@@ -99,6 +103,11 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// if there is a required filearg, error if no files were provided
+	if len(requiredFile) > 0 && f == nil {
+		return nil, fmt.Errorf("File argument '%s' is required", requiredFile)
 	}
 
 	req, err := cmds.NewRequest(path, opts, args, f, cmd, optDefs)

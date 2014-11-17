@@ -248,6 +248,13 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		argDefIndex++
 	}
 
+	// check to make sure we didn't miss any required arguments
+	for _, argDef := range argDefs[argDefIndex:] {
+		if argDef.Required {
+			return nil, nil, fmt.Errorf("Argument '%s' is required", argDef.Name)
+		}
+	}
+
 	return stringArgs, fileArgs, nil
 }
 
