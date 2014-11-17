@@ -67,11 +67,11 @@ Publish a <ref> to another public key:
 		switch len(args) {
 		case 2:
 			// name = args[0]
-			ref = args[1].(string)
+			ref = args[1]
 			return nil, errors.New("keychains not yet implemented")
 		case 1:
 			// name = n.Identity.ID.String()
-			ref = args[0].(string)
+			ref = args[0]
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey

@@ -31,11 +31,7 @@ output of a running daemon.
 	Run: func(req cmds.Request) (interface{}, error) {
 
 		args := req.Arguments()
-		subsystem, ok1 := args[0].(string)
-		level, ok2 := args[1].(string)
-		if !ok1 || !ok2 {
-			return nil, u.ErrCast()
-		}
+		subsystem, level := args[0], args[1]
 
 		if subsystem == logAllKeyword {
 			subsystem = "*"

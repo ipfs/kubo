@@ -55,11 +55,7 @@ Set the value of the 'datastore.path' key:
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		args := req.Arguments()
-
-		key, ok := args[0].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
+		key := args[0]
 
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
@@ -68,12 +64,7 @@ Set the value of the 'datastore.path' key:
 
 		var value string
 		if len(args) == 2 {
-			var ok bool
-			value, ok = args[1].(string)
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
+			value = args[1]
 			return setConfig(filename, key, value)
 
 		} else {

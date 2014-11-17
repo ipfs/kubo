@@ -5,7 +5,6 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/core/commands2/internal"
 	"github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -50,12 +49,7 @@ on disk.
 			recursive = false
 		}
 
-		paths, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = pin(n, paths, recursive)
+		_, err = pin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}
@@ -95,12 +89,7 @@ collected if needed.
 			recursive = false // default
 		}
 
-		paths, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = unpin(n, paths, recursive)
+		_, err = unpin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}

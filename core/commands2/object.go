@@ -12,7 +12,6 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
@@ -74,11 +73,7 @@ output is the raw data of the object.
 			return nil, err
 		}
 
-		key, ok := req.Arguments()[0].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
-
+		key := req.Arguments()[0]
 		return objectData(n, key)
 	},
 }
@@ -102,11 +97,7 @@ multihash.
 			return nil, err
 		}
 
-		key, ok := req.Arguments()[0].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
-
+		key := req.Arguments()[0]
 		return objectLinks(n, key)
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -148,10 +139,7 @@ This command outputs data in the following encodings:
 			return nil, err
 		}
 
-		key, ok := req.Arguments()[0].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
+		key := req.Arguments()[0]
 
 		object, err := objectGet(n, key)
 		if err != nil {
@@ -214,15 +202,12 @@ Data should be in the format specified by <encoding>.
 			return nil, err
 		}
 
-		input, ok := req.Arguments()[0].(io.Reader)
-		if !ok {
-			return nil, u.ErrCast()
+		input, err := req.Files().NextFile()
+		if err != nil && err != io.EOF {
+			return nil, err
 		}
 
-		encoding, ok := req.Arguments()[1].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
+		encoding := req.Arguments()[0]
 
 		output, err := objectPut(n, input, encoding)
 		if err != nil {

@@ -52,10 +52,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 			return nil, err
 		}
 
-		key, ok := req.Arguments()[0].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
+		key := req.Arguments()[0]
 
 		if !u.IsValidHash(key) {
 			return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
