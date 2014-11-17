@@ -100,8 +100,6 @@ const shortHelpFormat = `USAGE:
 
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
-SYNOPSIS
-
 {{.Synopsis}}
 {{end}}{{if .Description}}
 {{.Description}}
