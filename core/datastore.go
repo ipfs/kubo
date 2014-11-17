@@ -14,7 +14,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastoreCloser, error) {
+func makeDatastore(cfg config.Datastore) (u.ThreadSafeDatastoreCloser, error) {
 	if len(cfg.Type) == 0 {
 		return nil, fmt.Errorf("config datastore.type required")
 	}
@@ -24,7 +24,7 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastoreCloser, error) {
 		return makeLevelDBDatastore(cfg)
 
 	case "memory":
-		return syncds.MutexWrap(ds.NewMapDatastore()), nil
+		return u.CloserWrap(syncds.MutexWrap(ds.NewMapDatastore())), nil
 
 	case "fs":
 		log.Warning("using fs.Datastore at .datastore for testing.")
@@ -33,13 +33,13 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastoreCloser, error) {
 			return nil, err
 		}
 		ktd := ktds.Wrap(d, u.B58KeyConverter)
-		return syncds.MutexWrap(ktd), nil
+		return u.CloserWrap(syncds.MutexWrap(ktd)), nil
 	}
 
 	return nil, fmt.Errorf("Unknown datastore type: %s", cfg.Type)
 }
 
-func makeLevelDBDatastore(cfg config.Datastore) (ds.ThreadSafeDatastoreCloser, error) {
+func makeLevelDBDatastore(cfg config.Datastore) (u.ThreadSafeDatastoreCloser, error) {
 	if len(cfg.Path) == 0 {
 		return nil, fmt.Errorf("config datastore.path required for leveldb")
 	}

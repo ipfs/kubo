@@ -7,7 +7,6 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bserv "github.com/jbenet/go-ipfs/blockservice"
@@ -48,7 +47,7 @@ type IpfsNode struct {
 	Peerstore peer.Peerstore
 
 	// the local datastore
-	Datastore ds.ThreadSafeDatastoreCloser
+	Datastore u.ThreadSafeDatastoreCloser
 
 	// the network message stream
 	Network inet.Network
