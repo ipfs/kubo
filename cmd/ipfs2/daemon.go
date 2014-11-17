@@ -13,7 +13,7 @@ import (
 	commands "github.com/jbenet/go-ipfs/core/commands2"
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 	util "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/errors"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 const (
@@ -54,14 +54,14 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		if !util.FileExists(req.Context().ConfigRoot) {
 			err := initWithDefaults(req.Context().ConfigRoot)
 			if err != nil {
-				return nil, errors.Wrap(err)
+				return nil, debugerror.Wrap(err)
 			}
 		}
 	}
 
 	lock, err := daemon.Lock(req.Context().ConfigRoot)
 	if err != nil {
-		return nil, errors.Errorf("Couldn't obtain lock. Is another daemon already running?")
+		return nil, debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
 	defer lock.Close()
 

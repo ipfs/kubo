@@ -1,6 +1,6 @@
-// package errors provides ways to augment errors with additional
+// package debugerror provides ways to augment errors with additional
 // information to allow for easier debugging.
-package errors
+package debugerror
 
 import (
 	"errors"

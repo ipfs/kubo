@@ -16,7 +16,7 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/errors"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 const nBitsForKeypairDefault = 4096
@@ -62,7 +62,7 @@ var initCmd = &cmds.Command{
 	},
 }
 
-var errCannotInitConfigExists = errors.New(`ipfs configuration file already exists!
+var errCannotInitConfigExists = debugerror.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
@@ -84,7 +84,7 @@ For a short demo of what you can do, enter 'ipfs tour'
 
 func initWithDefaults(configRoot string) error {
 	_, err := doInit(configRoot, "", false, nBitsForKeypairDefault)
-	return errors.Wrap(err)
+	return debugerror.Wrap(err)
 }
 
 func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
@@ -93,7 +93,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 
 	configFilename, err := config.Filename(configRoot)
 	if err != nil {
-		return nil, errors.New("Couldn't get home directory path")
+		return nil, debugerror.New("Couldn't get home directory path")
 	}
 
 	if u.FileExists(configFilename) && !force {
@@ -155,7 +155,7 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 
 	err := initCheckDir(dspath)
 	if err != nil {
-		return ds, errors.Errorf("datastore: %s", err)
+		return ds, debugerror.Errorf("datastore: %s", err)
 	}
 
 	return ds, nil
@@ -229,7 +229,7 @@ func identityConfig(nbits int, onBegin func(), onSuccess func(config.Identity)) 
 	// TODO guard higher up
 	ident := config.Identity{}
 	if nbits < 1024 {
-		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
+		return ident, debugerror.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
 	onBegin()
@@ -260,13 +260,13 @@ func initLogs(logpath string) (config.Logs, error) {
 		var err error
 		logpath, err = config.LogsPath("")
 		if err != nil {
-			return config.Logs{}, errors.Wrap(err)
+			return config.Logs{}, debugerror.Wrap(err)
 		}
 	}
 
 	err := initCheckDir(logpath)
 	if err != nil {
-		return config.Logs{}, errors.Errorf("logs: %s", err)
+		return config.Logs{}, debugerror.Errorf("logs: %s", err)
 	}
 
 	return config.Logs{
@@ -285,7 +285,7 @@ func initCheckDir(path string) error {
 	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
 		os.Remove(f.Name())
 	} else {
-		return errors.New("'" + path + "' is not writeable")
+		return debugerror.New("'" + path + "' is not writeable")
 	}
 	return nil
 }

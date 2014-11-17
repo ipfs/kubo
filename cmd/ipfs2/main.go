@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,7 +22,7 @@ import (
 	daemon "github.com/jbenet/go-ipfs/daemon2"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/errors"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
@@ -331,7 +332,7 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 		var found bool
 		cmd, found = cmd.Subcommands[cmp]
 		if !found {
-			return nil, errors.Errorf("subcommand %s should be in root", cmp)
+			return nil, debugerror.Errorf("subcommand %s should be in root", cmp)
 		}
 
 		if cmdDetails, found := cmdDetailsMap[cmd]; found {

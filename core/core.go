@@ -27,7 +27,7 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
-	"github.com/jbenet/go-ipfs/util/errors"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -102,7 +102,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	}()
 
 	if cfg == nil {
-		return nil, errors.Errorf("configuration required")
+		return nil, debugerror.Errorf("configuration required")
 	}
 
 	// derive this from a higher context.
@@ -115,14 +115,14 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-		return nil, errors.Wrap(err)
+		return nil, debugerror.Wrap(err)
 	}
 
 	// setup peerstore + local peer identity
 	n.Peerstore = peer.NewPeerstore()
 	n.Identity, err = initIdentity(&n.Config.Identity, n.Peerstore, online)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, debugerror.Wrap(err)
 	}
 
 	// setup online services
@@ -142,12 +142,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// setup the network
 		listenAddrs, err := listenAddresses(cfg)
 		if err != nil {
-			return nil, errors.Wrap(err)
+			return nil, debugerror.Wrap(err)
 		}
 
 		n.Network, err = inet.NewIpfsNetwork(ctx, listenAddrs, n.Identity, n.Peerstore, muxMap)
 		if err != nil {
-			return nil, errors.Wrap(err)
+			return nil, debugerror.Wrap(err)
 		}
 		n.AddCloserChild(n.Network)
 
@@ -176,7 +176,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	// session that simply doesn't return blocks
 	n.Blocks, err = bserv.NewBlockService(n.Datastore, n.Exchange)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, debugerror.Wrap(err)
 	}
 
 	n.DAG = merkledag.NewDAGService(n.Blocks)
@@ -202,11 +202,11 @@ func (n *IpfsNode) OnlineMode() bool {
 
 func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer.Peer, error) {
 	if cfg.PeerID == "" {
-		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
+		return nil, debugerror.New("Identity was not set in config (was ipfs init run?)")
 	}
 
 	if len(cfg.PeerID) == 0 {
-		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
+		return nil, debugerror.New("No peer ID in config! (was ipfs init run?)")
 	}
 
 	// get peer from peerstore (so it is constructed there)
