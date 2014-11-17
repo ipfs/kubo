@@ -90,21 +90,16 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 		}
 	}
 
-	var reader io.Reader
-
+	// if the buffer has something in it, read from it
 	if mfr.buf.Len() > 0 {
-		// if the buffer has something in it, read from it
-		reader = &mfr.buf
-
-	} else if mfr.currentFile != nil {
-		// otherwise, read from file data
-		reader = mfr.currentFile
+		return mfr.buf.Read(buf)
 	}
 
-	written, err = reader.Read(buf)
-	if err == io.EOF && reader == mfr.currentFile {
+	// otherwise, read from file data
+	written, err = mfr.currentFile.Read(buf)
+	if err == io.EOF {
 		mfr.currentFile = nil
-		return mfr.Read(buf)
+		return written, nil
 	}
 	return written, err
 }
