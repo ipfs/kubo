@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
+	"path"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
@@ -149,9 +149,7 @@ func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error
 			return nil, err
 		}
 
-		name := file.FileName()
-		slashIndex := strings.LastIndex(name, "/")
-		name = name[slashIndex+1:]
+		_, name := path.Split(file.FileName())
 
 		err = tree.AddNodeLink(name, node)
 		if err != nil {
