@@ -16,6 +16,9 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const offlineIdErrorMessage = `ID command fails when run without daemon, we are working 
+to fix this In the meantime, please run the daemon if you want to use 'ipfs id'`
+
 type IdOutput struct {
 	ID              string
 	PublicKey       string
@@ -26,9 +29,11 @@ type IdOutput struct {
 
 var idCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show IPFS Node IF info",
-		ShortDescription: `Prints out information about the specified peer,
-		if no peer is specified, prints out local peers info.`,
+		Tagline: "Show IPFS Node ID info",
+		ShortDescription: `
+Prints out information about the specified peer,
+if no peer is specified, prints out local peers info.
+`,
 	},
 	Arguments: nil,
 	Run: func(req cmds.Request) (interface{}, error) {
@@ -50,8 +55,7 @@ var idCmd = &cmds.Command{
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
 		p, err := node.Routing.FindPeer(ctx, id)
 		if err == kb.ErrLookupFailure {
-			return nil, errors.New(`ID command fails when run without daemon, we are working to fix this
-		In the meantime, please run the daemon if you want to use 'ipfs id'`)
+			return nil, errors.New(offlineIdErrorMessage)
 		}
 		if err != nil {
 			return nil, err
@@ -80,7 +84,7 @@ func printPeer(p peer.Peer) (interface{}, error) {
 	info.ID = p.ID().String()
 	if p.PubKey() == nil {
 		return nil, errors.New(`peer publickey not populated on offline runs,
-		please run the daemon to use ipfs id!`)
+please run the daemon to use ipfs id!`)
 	}
 	pkb, err := p.PubKey().Bytes()
 	if err != nil {
