@@ -92,10 +92,8 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	// create cmds.File from multipart/form-data contents
 	contentType := r.Header.Get(contentTypeHeader)
-	mediatype, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		return nil, err
-	}
+	mediatype, _, _ := mime.ParseMediaType(contentType)
+
 	var f *cmds.MultipartFile
 	if mediatype == "multipart/form-data" {
 		f = &cmds.MultipartFile{Mediatype: mediatype}
