@@ -15,7 +15,7 @@ func TestMarshalling(t *testing.T) {
 	cmd := &Command{}
 	opts, _ := cmd.GetOptions(nil)
 
-	req := NewRequest(nil, nil, nil, nil, opts)
+	req, _ := NewRequest(nil, nil, nil, nil, opts)
 
 	res := NewResponse(req)
 	res.SetOutput(TestOutput{"beep", "boop", 1337})

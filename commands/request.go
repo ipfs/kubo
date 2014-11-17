@@ -223,8 +223,12 @@ func (r *request) ConvertOptions() error {
 				}
 				val, err := convert(str)
 				if err != nil {
-					return fmt.Errorf("Could not convert string value '%s' to type '%s'",
-						v, opt.Type.String())
+					value := fmt.Sprintf("value '%v'", v)
+					if len(str) == 0 {
+						value = "empty value"
+					}
+					return fmt.Errorf("Could not convert %s to type '%s' (for option '-%s')",
+						value, opt.Type.String(), k)
 				}
 				r.options[k] = val
 
@@ -248,12 +252,13 @@ func (r *request) ConvertOptions() error {
 }
 
 // NewEmptyRequest initializes an empty request
-func NewEmptyRequest() Request {
+func NewEmptyRequest() (Request, error) {
 	return NewRequest(nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) Request {
+// An non-nil error will be returned if the provided option values are invalid
+func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -268,7 +273,10 @@ func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, op
 	}
 
 	req := &request{path, opts, args, cmd, Context{}, optDefs}
-	req.ConvertOptions()
+	err := req.ConvertOptions()
+	if err != nil {
+		return nil, err
+	}
 
-	return req
+	return req, nil
 }
