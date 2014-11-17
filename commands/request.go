@@ -257,6 +257,7 @@ func NewEmptyRequest() (Request, error) {
 }
 
 // NewRequest returns a request initialized with given arguments
+// An non-nil error will be returned if the provided option values are invalid
 func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
