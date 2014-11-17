@@ -62,7 +62,9 @@ type Request interface {
 	Options() optMap
 	SetOption(name string, val interface{})
 	Arguments() []interface{}
+	SetArguments([]interface{})
 	Files() File
+	SetFiles(File)
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
@@ -147,8 +149,16 @@ func (r *request) Arguments() []interface{} {
 	return r.arguments
 }
 
+func (r *request) SetArguments(args []interface{}) {
+	r.arguments = args
+}
+
 func (r *request) Files() File {
 	return r.files
+}
+
+func (r *request) SetFiles(f File) {
+	r.files = f
 }
 
 func (r *request) Context() *Context {
