@@ -25,5 +25,25 @@ test_expect_success "ipfs config succeeds" '
 	test_cmp expected actual
 '
 
+test_expect_success "ipfs -c='dir' init succeeds" '
+	rm -r "$IPFS_DIR" &&
+	unset IPFS_DIR &&
+	ipfs -c="$(pwd)/.go-ipfs" init
+'
+
+test_expect_success "ipfs config Datastore.Path works" '
+	echo "$(pwd)/.go-ipfs/datastore" >expected &&
+	ipfs config Datastore.Path >actual &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs init fails when config exists" '
+	test_must_fail ipfs -c="$(pwd)/.go-ipfs" init
+'
+
+test_expect_success "ipfs init -f=true succeeds when config exists" '
+	ipfs -c="$(pwd)/.go-ipfs" init -f=true
+'
+
 test_done
 
