@@ -7,6 +7,8 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/logrus"
 )
 
+// PoliteJSONFormatter marshals entries into JSON encoded slices (without
+// overwriting user-provided keys). How polite of it!
 type PoliteJSONFormatter struct{}
 
 func (f *PoliteJSONFormatter) Format(entry *logrus.Entry) ([]byte, error) {
