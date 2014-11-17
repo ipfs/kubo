@@ -50,7 +50,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	var fileReader *MultiFileReader
 	if req.Files() != nil {
-		fileReader = NewMultiFileReader(req.Files())
+		fileReader = NewMultiFileReader(req.Files(), true)
 	}
 
 	path := strings.Join(req.Path(), "/")

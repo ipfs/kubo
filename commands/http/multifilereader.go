@@ -2,8 +2,10 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"mime/multipart"
+	"net/textproto"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
@@ -12,15 +14,20 @@ type MultiFileReader struct {
 	io.Reader
 
 	files       cmds.File
-	currentFile cmds.File
+	currentFile io.Reader
 	buf         bytes.Buffer
 	mpWriter    *multipart.Writer
 	closed      bool
+
+	// if true, the data will be type 'multipart/form-data'
+	// if false, the data will be type 'multipart/mixed'
+	form bool
 }
 
-func NewMultiFileReader(file cmds.File) *MultiFileReader {
+func NewMultiFileReader(file cmds.File, form bool) *MultiFileReader {
 	mfr := &MultiFileReader{
 		files: file,
+		form:  form,
 	}
 	mfr.mpWriter = multipart.NewWriter(&mfr.buf)
 
@@ -35,16 +42,42 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 
 	// if the current file isn't set, advance to the next file
 	if mfr.currentFile == nil {
-		mfr.currentFile, err = mfr.files.NextFile()
-		if err == io.EOF || (err == nil && mfr.currentFile == nil) {
+		file, err := mfr.files.NextFile()
+		if err == io.EOF || (err == nil && file == nil) {
 			mfr.mpWriter.Close()
 			mfr.closed = true
 		} else if err != nil {
 			return 0, err
 		}
 
+		// handle starting a new file part
 		if !mfr.closed {
-			_, err := mfr.mpWriter.CreateFormFile("file", mfr.currentFile.FileName())
+			if file.IsDirectory() {
+				// if file is a directory, create a multifilereader from it
+				// (using 'multipart/mixed')
+				mfr.currentFile = NewMultiFileReader(file, false)
+			} else {
+				// otherwise, use the file as a reader to read its contents
+				mfr.currentFile = file
+			}
+
+			// write the boundary and headers
+			header := make(textproto.MIMEHeader)
+			if mfr.form {
+				contentDisposition := fmt.Sprintf("form-data; name=\"file\"; filename=\"%s\"", file.FileName())
+				header.Set("Content-Disposition", contentDisposition)
+			} else {
+				header.Set("Content-Disposition", fmt.Sprintf("file; filename=\"%s\"", file.FileName()))
+			}
+
+			if file.IsDirectory() {
+				boundary := mfr.currentFile.(*MultiFileReader).Boundary()
+				header.Set("Content-Type", fmt.Sprintf("multipart/mixed; boundary=%s", boundary))
+			} else {
+				header.Set("Content-Type", "application/octet-stream")
+			}
+
+			_, err := mfr.mpWriter.CreatePart(header)
 			if err != nil {
 				return 0, err
 			}
