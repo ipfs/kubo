@@ -223,8 +223,12 @@ func (r *request) ConvertOptions() error {
 				}
 				val, err := convert(str)
 				if err != nil {
-					return fmt.Errorf("Could not convert string value '%s' to type '%s'",
-						v, opt.Type.String())
+					value := fmt.Sprintf("value '%v'", v)
+					if len(str) == 0 {
+						value = "empty value"
+					}
+					return fmt.Errorf("Could not convert %s to type '%s' (for option '-%s')",
+						value, opt.Type.String(), k)
 				}
 				r.options[k] = val
 
