@@ -199,14 +199,6 @@ func (c *Command) CheckArguments(req Request) error {
 	// TODO: check file arguments
 
 	args := req.Arguments()
-	argDefs := c.Arguments
-
-	// if we have more arg values provided than argument definitions,
-	// and the last arg definition is not variadic (or there are no definitions), return an error
-	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
-	if notVariadic && len(args) > len(argDefs) {
-		return fmt.Errorf("Expected %v arguments, got %v", len(argDefs), len(args))
-	}
 
 	// count required argument definitions
 	numRequired := 0

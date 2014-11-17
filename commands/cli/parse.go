@@ -127,7 +127,7 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument, recursive bool) ([]interface{}, []cmds.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]interface{}, []cmds.File, error) {
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		stat, err := stdin.Stat()
@@ -144,7 +144,7 @@ func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument, recur
 
 	// count required argument definitions
 	numRequired := 0
-	for _, argDef := range arguments {
+	for _, argDef := range argDefs {
 		if argDef.Required {
 			numRequired++
 		}
@@ -156,18 +156,25 @@ func parseArgs(inputs []string, stdin *os.File, arguments []cmds.Argument, recur
 		numInputs += 1
 	}
 
+	// if we have more arg values provided than argument definitions,
+	// and the last arg definition is not variadic (or there are no definitions), return an error
+	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
+	if notVariadic && numInputs > len(argDefs) {
+		return nil, nil, fmt.Errorf("Expected %v arguments, got %v", len(argDefs), numInputs)
+	}
+
 	stringArgs := make([]interface{}, 0, numInputs)
 	fileArgs := make([]cmds.File, 0, numInputs)
 
 	argDefIndex := 0 // the index of the current argument definition
 	for i, input := range inputs {
-		// get the argument definiton (should be arguments[argDefIndex],
-		// but if argDefIndex > len(arguments) we use the last argument definition)
+		// get the argument definiton (should be argDefs[argDefIndex],
+		// but if argDefIndex > len(argDefs) we use the last argument definition)
 		var argDef cmds.Argument
-		if argDefIndex < len(arguments) {
-			argDef = arguments[argDefIndex]
-		} else if len(arguments) > 0 {
-			argDef = arguments[len(arguments)-1]
+		if argDefIndex < len(argDefs) {
+			argDef = argDefs[argDefIndex]
+		} else if len(argDefs) > 0 {
+			argDef = argDefs[len(argDefs)-1]
 		}
 
 		// skip optional argument definitions if there aren't sufficient remaining inputs
