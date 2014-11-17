@@ -43,7 +43,7 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 	// if the current file isn't set, advance to the next file
 	if mfr.currentFile == nil {
 		file, err := mfr.files.NextFile()
-		if err == io.EOF || (err == nil && file == nil) {
+		if err == io.EOF {
 			mfr.mpWriter.Close()
 			mfr.closed = true
 		} else if err != nil {
