@@ -157,9 +157,17 @@ func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error
 		}
 	}
 
-	addDagnode(added, dir.FileName(), tree)
+	err := addDagnode(added, dir.FileName(), tree)
+	if err != nil {
+		return nil, err
+	}
 
-	return tree, addNode(n, tree)
+	err = addNode(n, tree)
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
 }
 
 // addDagnode adds dagnode info to an output object
