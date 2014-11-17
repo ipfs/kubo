@@ -41,7 +41,7 @@ func NewMultiFileReader(file cmds.File, form bool) *MultiFileReader {
 }
 
 func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
-	// if we are closed, end reading
+	// if we are closed and the buffer is flushed, end reading
 	if mfr.closed && mfr.buf.Len() == 0 {
 		return 0, io.EOF
 	}
