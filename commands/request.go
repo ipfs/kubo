@@ -248,12 +248,12 @@ func (r *request) ConvertOptions() error {
 }
 
 // NewEmptyRequest initializes an empty request
-func NewEmptyRequest() Request {
+func NewEmptyRequest() (Request, error) {
 	return NewRequest(nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
-func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) Request {
+func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -268,7 +268,10 @@ func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, op
 	}
 
 	req := &request{path, opts, args, cmd, Context{}, optDefs}
-	req.ConvertOptions()
+	err := req.ConvertOptions()
+	if err != nil {
+		return nil, err
+	}
 
-	return req
+	return req, nil
 }

@@ -94,7 +94,10 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, err
 	}
 
-	req := cmds.NewRequest(path, opts, args, cmd, optDefs)
+	req, err := cmds.NewRequest(path, opts, args, cmd, optDefs)
+	if err != nil {
+		return nil, err
+	}
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
