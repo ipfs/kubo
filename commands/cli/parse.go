@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	fp "path/filepath"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -281,7 +282,7 @@ func getFile(file *os.File, path string) (cmds.File, error) {
 	files := make([]cmds.File, 0, len(contents))
 
 	for _, child := range contents {
-		childPath := fmt.Sprintf("%s/%s", path, child.Name())
+		childPath := fp.Join(path, child.Name())
 		childFile, err := os.Open(childPath)
 		if err != nil {
 			return nil, err
