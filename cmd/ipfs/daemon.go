@@ -46,19 +46,9 @@ the daemon.
 }
 
 func daemonFunc(req cmds.Request) (interface{}, error) {
-	ctx := req.Context()
-	cfg, err := ctx.GetConfig()
-	if err != nil {
-		return nil, err
-	}
 
-	// make sure we construct online node.
-	ctx.Online = true
-	node, err := ctx.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
+	// first, whether user has provided the initialization flag. we may be
+	// running in an uninitialized state.
 	initialize, _, err := req.Option(initOptionKwd).Bool()
 	if err != nil {
 		return nil, err
@@ -77,11 +67,31 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		}
 	}
 
+	// To ensure that IPFS has been initialized, fetch the config. Do this
+	// _before_ acquiring the daemon lock so the user gets an appropriate error
+	// message.
+	// NB: It's safe to read the config without the daemon lock, but not safe
+	// to write.
+	ctx := req.Context()
+	cfg, err := ctx.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// acquire the daemon lock _before_ constructing a node. we need to make
+	// sure we are permitted to access the resources (datastore, etc.)
 	lock, err := daemon.Lock(req.Context().ConfigRoot)
 	if err != nil {
 		return nil, debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
 	defer lock.Close()
+
+	// make sure we construct online node.
+	ctx.Online = true
+	node, err := ctx.GetNode()
+	if err != nil {
+		return nil, err
+	}
 
 	addr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
