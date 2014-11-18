@@ -105,9 +105,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, err
 	}
 
-	err = addTheWelcomeFile(conf, func(k u.Key) {
-		fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
-	})
+	err = addTheWelcomeFile(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +115,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 
 // addTheWelcomeFile adds a file containing the welcome message to the newly
 // minted node. On success, it calls onSuccess
-func addTheWelcomeFile(conf *config.Config, onSuccess func(u.Key)) error {
+func addTheWelcomeFile(conf *config.Config) error {
 	// TODO extract this file creation operation into a function
 	nd, err := core.NewIpfsNode(conf, false)
 	if err != nil {
@@ -137,7 +135,7 @@ func addTheWelcomeFile(conf *config.Config, onSuccess func(u.Key)) error {
 	if err != nil {
 		return fmt.Errorf("failed to write test file: %s", err)
 	}
-	onSuccess(k)
+	fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
 	return nil
 }
 
