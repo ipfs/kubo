@@ -39,11 +39,23 @@ test_cmp_repeat_10_sec() {
 	test_cmp "$1" "$2"
 }
 
+test_wait_output_n_lines_60_sec() {
+	echo "$2" >expected_waitn
+	for i in 1 2 3 4 5 6 7 8 9 10
+	do
+		cat "$1" | wc -l | tr -d " " >actual_waitn
+		test_cmp "expected_waitn" "actual_waitn" && return
+		sleep 2
+	done
+	cat "$1" | wc -l | tr -d " " >actual_waitn
+	test_cmp "expected_waitn" "actual_waitn"
+}
+
 test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_DIR="$(pwd)/.go-ipfs" &&
-		ipfs init -b=2048
+		ipfs init -b=1024
 	'
 
 	test_expect_success "prepare config" '
@@ -58,7 +70,7 @@ test_launch_ipfs_mount() {
 
 	test_expect_success FUSE "'ipfs daemon' output looks good" '
 		IPFS_PID=$! &&
-		echo "API server listening on '\''127.0.0.1:5001'\''" >expected &&
+		echo "daemon listening on /ip4/127.0.0.1/tcp/5001" >expected &&
 		test_cmp_repeat_10_sec expected actual
 	'
 

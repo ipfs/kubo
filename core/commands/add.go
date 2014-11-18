@@ -1,136 +1,183 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"path"
 
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/importer"
+	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
+	importer "github.com/jbenet/go-ipfs/importer"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/pin"
+	pinning "github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
-// Add is a command that imports files and directories -- given as arguments -- into ipfs.
-func Add(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	depth := 1
+type AddOutput struct {
+	Objects []*Object
+	Names   []string
+}
 
-	// if recursive, set depth to reflect so
-	if r, ok := opts["r"].(bool); r && ok {
-		depth = -1
-	}
+var addCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Add an object to ipfs.",
+		ShortDescription: `
+Adds contents of <path> to ipfs. Use -r to add directories.
+Note that directories are added recursively, to form the ipfs
+MerkleDAG. A smarter partial add with a staging area (like git)
+remains to be implemented.
+`,
+	},
 
-	// add every path in args
-	for _, path := range args {
-
-		// Add the file
-		_, err := AddPath(n, path, depth, out)
+	Arguments: []cmds.Argument{
+		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS").EnableRecursive(),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		added := &AddOutput{}
+		n, err := req.Context().GetNode()
 		if err != nil {
-			if err == ErrDepthLimitExceeded && depth == 1 {
-				err = errors.New("use -r to recursively add directories")
+			return nil, err
+		}
+
+		for {
+			file, err := req.Files().NextFile()
+			if err != nil && err != io.EOF {
+				return nil, err
 			}
-			return fmt.Errorf("addFile error: %v", err)
+			if file == nil {
+				break
+			}
+
+			_, err = addFile(n, file, added)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-	}
-	return nil
+		return added, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			val, ok := res.Output().(*AddOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			var buf bytes.Buffer
+			for i, obj := range val.Objects {
+				buf.Write([]byte(fmt.Sprintf("added %s %s\n", obj.Hash, val.Names[i])))
+			}
+			return buf.Bytes(), nil
+		},
+	},
+	Type: &AddOutput{},
 }
 
-// AddPath adds a particular path to ipfs.
-func AddPath(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
-	if depth == 0 {
-		return nil, ErrDepthLimitExceeded
-	}
-
-	fi, err := os.Stat(fpath)
-	if err != nil {
-		return nil, err
-	}
-
-	if fi.IsDir() {
-		return addDir(n, fpath, depth, out)
-	}
-
-	return addFile(n, fpath, depth, out)
-}
-
-func addDir(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
-	tree := &dag.Node{Data: ft.FolderPBData()}
-
-	files, err := ioutil.ReadDir(fpath)
-	if err != nil {
-		return nil, err
-	}
-
-	// construct nodes for containing files.
-	for _, f := range files {
-		fp := filepath.Join(fpath, f.Name())
-		nd, err := AddPath(n, fp, depth-1, out)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = tree.AddNodeLink(f.Name(), nd); err != nil {
-			return nil, err
-		}
-	}
-
-	log.Infof("adding dir: %s", fpath)
-
-	return tree, addNode(n, tree, fpath, out)
-}
-
-func addFile(n *core.IpfsNode, fpath string, depth int, out io.Writer) (*dag.Node, error) {
-	mp, ok := n.Pinning.(pin.ManualPinner)
+func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
+	mp, ok := n.Pinning.(pinning.ManualPinner)
 	if !ok {
 		return nil, errors.New("invalid pinner type! expected manual pinner")
 	}
 
-	root, err := importer.BuildDagFromFile(fpath, n.DAG, mp)
-	if err != nil {
-		return nil, err
+	dagnodes := make([]*dag.Node, 0)
+
+	for _, reader := range readers {
+		node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)
+		if err != nil {
+			return nil, err
+		}
+		dagnodes = append(dagnodes, node)
 	}
 
-	log.Infof("adding file: %s", fpath)
-
-	for _, l := range root.Links {
-		log.Infof("adding subblock: '%s' %s", l.Name, l.Hash.B58String())
-	}
-
-	k, err := root.Key()
-	if err != nil {
-		return nil, err
-	}
-
-	// output that we've added this node
-	fmt.Fprintf(out, "added %s %s\n", k, fpath)
-
-	return root, nil
+	return dagnodes, nil
 }
 
-// addNode adds the node to the graph + local storage
-func addNode(n *core.IpfsNode, nd *dag.Node, fpath string, out io.Writer) error {
-	// add the file to the graph + local storage
-	err := n.DAG.AddRecursive(nd)
+func addNode(n *core.IpfsNode, node *dag.Node) error {
+	err := n.DAG.AddRecursive(node) // add the file to the graph + local storage
 	if err != nil {
 		return err
 	}
 
-	k, err := nd.Key()
+	err = n.Pinning.Pin(node, true) // ensure we keep it
 	if err != nil {
 		return err
 	}
 
-	// output that we've added this node
-	fmt.Fprintf(out, "added %s %s\n", k, fpath)
+	return nil
+}
 
-	// ensure we keep it
-	return n.Pinning.Pin(nd, true)
+func addFile(n *core.IpfsNode, file cmds.File, added *AddOutput) (*dag.Node, error) {
+	if file.IsDirectory() {
+		return addDir(n, file, added)
+	}
+
+	dns, err := add(n, []io.Reader{file})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("adding file: %s", file.FileName())
+	if err := addDagnode(added, file.FileName(), dns[len(dns)-1]); err != nil {
+		return nil, err
+	}
+	return dns[len(dns)-1], nil // last dag node is the file.
+}
+
+func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error) {
+	log.Infof("adding directory: %s", dir.FileName())
+
+	tree := &dag.Node{Data: ft.FolderPBData()}
+
+	for {
+		file, err := dir.NextFile()
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if file == nil {
+			break
+		}
+
+		node, err := addFile(n, file, added)
+		if err != nil {
+			return nil, err
+		}
+
+		_, name := path.Split(file.FileName())
+
+		err = tree.AddNodeLink(name, node)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := addDagnode(added, dir.FileName(), tree)
+	if err != nil {
+		return nil, err
+	}
+
+	err = addNode(n, tree)
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
+}
+
+// addDagnode adds dagnode info to an output object
+func addDagnode(output *AddOutput, name string, dn *dag.Node) error {
+	o, err := getOutput(dn)
+	if err != nil {
+		return err
+	}
+
+	output.Objects = append(output.Objects, o)
+	output.Names = append(output.Names, name)
+	return nil
 }

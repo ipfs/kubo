@@ -1,60 +1,131 @@
 package commands
 
 import (
-	"fmt"
-	"io"
+	"bytes"
 	"io/ioutil"
-	"os"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/jbenet/go-ipfs/blocks"
-	"github.com/jbenet/go-ipfs/core"
+	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// BlockGet retrives a raw ipfs block from the node's BlockService
-func BlockGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-
-	if !u.IsValidHash(args[0]) {
-		return fmt.Errorf("block get: not a valid hash")
-	}
-
-	h, err := mh.FromB58String(args[0])
-	if err != nil {
-		return fmt.Errorf("block get: %v", err)
-	}
-
-	k := u.Key(h)
-	log.Debugf("BlockGet key: '%q'", k)
-	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-	b, err := n.Blocks.GetBlock(ctx, k)
-	if err != nil {
-		return fmt.Errorf("block get: %v", err)
-	}
-
-	_, err = out.Write(b.Data)
-	return err
+type Block struct {
+	Key    string
+	Length int
 }
 
-// BlockPut reads everything from conn and saves the data to the nodes BlockService
-func BlockPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	// TODO: this should read from an io.Reader arg
-	data, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		return err
-	}
+var blockCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Manipulate raw IPFS blocks",
+		ShortDescription: `
+'ipfs block' is a plumbing command used to manipulate raw ipfs blocks.
+Reads from stdin or writes to stdout, and <key> is a base58 encoded
+multihash.
+`,
+	},
 
-	b := blocks.NewBlock(data)
-	log.Debugf("BlockPut key: '%q'", b.Key())
+	Subcommands: map[string]*cmds.Command{
+		"get": blockGetCmd,
+		"put": blockPutCmd,
+	},
+}
 
-	k, err := n.Blocks.AddBlock(b)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(out, "added as '%s'\n", k)
+var blockGetCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get a raw IPFS block",
+		ShortDescription: `
+'ipfs block get' is a plumbing command for retreiving raw ipfs blocks.
+It outputs to stdout, and <key> is a base58 encoded multihash.
+`,
+	},
 
-	return nil
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		key := req.Arguments()[0]
+
+		if !u.IsValidHash(key) {
+			return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
+		}
+
+		h, err := mh.FromB58String(key)
+		if err != nil {
+			return nil, err
+		}
+
+		k := u.Key(h)
+		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+		b, err := n.Blocks.GetBlock(ctx, k)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("BlockGet key: '%q'", b.Key())
+
+		return bytes.NewReader(b.Data), nil
+	},
+}
+
+var blockPutCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Stores input as an IPFS block",
+		ShortDescription: `
+ipfs block put is a plumbing command for storing raw ipfs blocks.
+It reads from stdin, and <key> is a base58 encoded multihash.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block").EnableStdin(),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		file, err := req.Files().NextFile()
+		if err != nil {
+			return nil, err
+		}
+
+		data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+
+		err = file.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		b := blocks.NewBlock(data)
+		log.Debugf("BlockPut key: '%q'", b.Key())
+
+		k, err := n.Blocks.AddBlock(b)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Block{
+			Key:    k.String(),
+			Length: len(data),
+		}, nil
+	},
+	Type: &Block{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			block := res.Output().(*Block)
+			return []byte(block.Key + "\n"), nil
+		},
+	},
 }

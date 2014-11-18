@@ -1,240 +1,113 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"runtime/pprof"
 
-	flag "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-
-	config "github.com/jbenet/go-ipfs/config"
-	core "github.com/jbenet/go-ipfs/core"
-	daemon "github.com/jbenet/go-ipfs/daemon"
-	updates "github.com/jbenet/go-ipfs/updates"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/jbenet/go-ipfs/commands"
+	commands "github.com/jbenet/go-ipfs/core/commands"
 )
 
-const heapProfile = "ipfs.mprof"
-
-// The IPFS command tree. It is an instance of `commander.Command`.
-var CmdIpfs = &commander.Command{
-	UsageLine: "ipfs [<flags>] <command> [<args>]",
-	Short:     "global versioned p2p merkledag file system",
-	Long: `ipfs - global versioned p2p merkledag file system
-
-Basic commands:
-
-    init          Initialize ipfs local configuration.
-    add <path>    Add an object to ipfs.
-    cat <ref>     Show ipfs object data.
-    ls <ref>      List links from an object.
-    refs <ref>    List link hashes from an object.
-
-Tool commands:
-
-    config        Manage configuration.
-    update        Download and apply go-ipfs updates.
-    version       Show ipfs version information.
-    commands      List all available commands.
-
-Advanced Commands:
-
-    mount         Mount an ipfs read-only mountpoint.
-    serve         Serve an interface to ipfs.
-    net-diag      Print network diagnostic
-
-Plumbing commands:
-
-    block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
-
-
-Use "ipfs help <command>" for more information about a command.
-`,
-	Run: ipfsCmd,
-	Subcommands: []*commander.Command{
-		cmdIpfsAdd,
-		cmdIpfsCat,
-		cmdIpfsLs,
-		cmdIpfsRefs,
-		cmdIpfsConfig,
-		cmdIpfsVersion,
-		cmdIpfsCommands,
-		cmdIpfsMount,
-		cmdIpfsInit,
-		cmdIpfsServe,
-		cmdIpfsRun,
-		cmdIpfsName,
-		cmdIpfsBootstrap,
-		cmdIpfsDiag,
-		cmdIpfsBlock,
-		cmdIpfsObject,
-		cmdIpfsUpdate,
-		cmdIpfsLog,
-		cmdIpfsPin,
-		cmdIpfsTour,
-	},
-	Flag: *flag.NewFlagSet("ipfs", flag.ExitOnError),
+// This is the CLI root, used for executing commands accessible to CLI clients.
+// Some subcommands (like 'ipfs daemon' or 'ipfs init') are only accessible here,
+// and can't be called through the HTTP API.
+var Root = &cmds.Command{
+	Options:  commands.Root.Options,
+	Helptext: commands.Root.Helptext,
 }
 
-// log is the command logger
-var log = u.Logger("cmd/ipfs")
+// commandsClientCmd is the "ipfs commands" command for local cli
+var commandsClientCmd = commands.CommandsCmd(Root)
+
+// Commands in localCommands should always be run locally (even if daemon is running).
+// They can override subcommands in commands.Root by defining a subcommand with the same name.
+var localCommands = map[string]*cmds.Command{
+	"daemon":   daemonCmd,
+	"init":     initCmd,
+	"tour":     tourCmd,
+	"commands": commandsClientCmd,
+}
+var localMap = make(map[*cmds.Command]bool)
 
 func init() {
-	config, err := config.PathRoot()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failure initializing the default Config Directory: ", err)
-		os.Exit(1)
-	}
-	CmdIpfs.Flag.String("c", config, "specify config directory")
-}
+	// setting here instead of in literal to prevent initialization loop
+	// (some commands make references to Root)
+	Root.Subcommands = localCommands
 
-func ipfsCmd(c *commander.Command, args []string) error {
-	u.POut(c.Long)
-	return nil
-}
-
-func main() {
-	// if debugging, setup profiling.
-	if u.Debug {
-		ofi, err := os.Create("cpu.prof")
-		defer ofi.Close()
-
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		pprof.StartCPUProfile(ofi)
-		defer pprof.StopCPUProfile()
-	}
-
-	err := CmdIpfs.Dispatch(os.Args[1:])
-	if err != nil {
-		if len(err.Error()) > 0 {
-			fmt.Fprintf(os.Stderr, "ipfs %s: %v\n", os.Args[1], err)
-		}
-		os.Exit(1)
-	}
-
-	if u.Debug {
-		err := writeHeapProfileToFile()
-		if err != nil {
-			log.Critical(err)
+	// copy all subcommands from commands.Root into this root (if they aren't already present)
+	for k, v := range commands.Root.Subcommands {
+		if _, found := Root.Subcommands[k]; !found {
+			Root.Subcommands[k] = v
 		}
 	}
-	return
+
+	for _, v := range localCommands {
+		localMap[v] = true
+	}
 }
 
-// localNode constructs a node
-func localNode(confdir string, online bool) (*core.IpfsNode, error) {
-	filename, err := config.Filename(confdir)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := config.Load(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
-		return nil, err
-	}
-
-	return core.NewIpfsNode(cfg, online)
+// isLocal returns true if the command should only be run locally (not sent to daemon), otherwise false
+func isLocal(cmd *cmds.Command) bool {
+	_, found := localMap[cmd]
+	return found
 }
 
-// Gets the config "-c" flag from the command, or returns
-// the default configuration root directory
-func getConfigDir(c *commander.Command) (string, error) {
+// NB: when necessary, properties are described using negatives in order to
+// provide desirable defaults
+type cmdDetails struct {
+	cannotRunOnClient bool
+	cannotRunOnDaemon bool
+	doesNotUseRepo    bool
 
-	// use the root cmd (that's where config is specified)
-	for ; c.Parent != nil; c = c.Parent {
-	}
+	// doesNotUseConfigAsInput describes commands that do not use the config as
+	// input. These commands either initialize the config or perform operations
+	// that don't require access to the config.
+	//
+	// pre-command hooks that require configs must not be run before these
+	// commands.
+	doesNotUseConfigAsInput bool
 
-	// flag should be defined on root.
-	param := c.Flag.Lookup("c").Value.Get().(string)
-	if param != "" {
-		return u.TildeExpansion(param)
-	}
-
-	return config.PathRoot()
+	// preemptsAutoUpdate describes commands that must be executed without the
+	// auto-update pre-command hook
+	preemptsAutoUpdate bool
 }
 
-func getConfig(c *commander.Command) (*config.Config, error) {
-	confdir, err := getConfigDir(c)
-	if err != nil {
-		return nil, err
-	}
-
-	filename, err := config.Filename(confdir)
-	if err != nil {
-		return nil, err
-	}
-
-	return config.Load(filename)
+func (d *cmdDetails) String() string {
+	return fmt.Sprintf("on client? %t, on daemon? %t, uses repo? %t",
+		d.canRunOnClient(), d.canRunOnDaemon(), d.usesRepo())
 }
 
-// cmdContext is a wrapper structure that keeps a node, a daemonlistener, and
-// a config directory together. These three are needed for most commands.
-type cmdContext struct {
-	node      *core.IpfsNode
-	daemon    *daemon.DaemonListener
-	configDir string
+func (d *cmdDetails) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"canRunOnClient":     d.canRunOnClient(),
+		"canRunOnDaemon":     d.canRunOnDaemon(),
+		"preemptsAutoUpdate": d.preemptsAutoUpdate,
+		"usesConfigAsInput":  d.usesConfigAsInput(),
+		"usesRepo":           d.usesRepo(),
+	}
 }
 
-// setupCmdContext initializes a cmdContext structure from a given command.
-func setupCmdContext(c *commander.Command, online bool) (cc cmdContext, err error) {
-	rootCmd := c
-	for ; rootCmd.Parent != nil; rootCmd = rootCmd.Parent {
-	}
+func (d *cmdDetails) usesConfigAsInput() bool        { return !d.doesNotUseConfigAsInput }
+func (d *cmdDetails) doesNotPreemptAutoUpdate() bool { return !d.preemptsAutoUpdate }
+func (d *cmdDetails) canRunOnClient() bool           { return !d.cannotRunOnClient }
+func (d *cmdDetails) canRunOnDaemon() bool           { return !d.cannotRunOnDaemon }
+func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo }
 
-	cc.configDir, err = getConfigDir(rootCmd)
-	if err != nil {
-		return
-	}
+// "What is this madness!?" you ask. Our commands have the unfortunate problem of
+// not being able to run on all the same contexts. This map describes these
+// properties so that other code can make decisions about whether to invoke a
+// command or return an error to the user.
+var cmdDetailsMap = map[*cmds.Command]cmdDetails{
+	initCmd: cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
 
-	cc.node, err = localNode(cc.configDir, online)
-	if err != nil {
-		return
-	}
-
-	cc.daemon, err = setupDaemon(cc.configDir, cc.node)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-// setupDaemon sets up the daemon corresponding to given node.
-func setupDaemon(confdir string, node *core.IpfsNode) (*daemon.DaemonListener, error) {
-	if node.Config.Addresses.API == "" {
-		return nil, errors.New("no config.Addresses.API endpoint supplied")
-	}
-
-	maddr, err := ma.NewMultiaddr(node.Config.Addresses.API)
-	if err != nil {
-		return nil, err
-	}
-
-	dl, err := daemon.NewDaemonListener(node, maddr, confdir)
-	if err != nil {
-		return nil, err
-	}
-	go dl.Listen()
-	return dl, nil
-}
-
-func writeHeapProfileToFile() error {
-	mprof, err := os.Create(heapProfile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer mprof.Close()
-	return pprof.WriteHeapProfile(mprof)
+	// daemonCmd allows user to initialize the config. Thus, it may be called
+	// without using the config as input
+	daemonCmd:                  cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
+	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
+	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
+	commands.VersionCmd:        cmdDetails{doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
+	commands.UpdateCmd:         cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
+	commands.UpdateCheckCmd:    cmdDetails{preemptsAutoUpdate: true},
+	commands.UpdateLogCmd:      cmdDetails{preemptsAutoUpdate: true},
+	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
 }

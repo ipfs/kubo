@@ -3,51 +3,105 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io"
 
-	"github.com/jbenet/go-ipfs/core"
-	u "github.com/jbenet/go-ipfs/util"
-
+	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
+	crypto "github.com/jbenet/go-ipfs/crypto"
 	nsys "github.com/jbenet/go-ipfs/namesys"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
-func Publish(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	log.Debug("Begin Publish")
+var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
 
-	if n.Identity == nil {
-		return errors.New("Identity not loaded!")
-	}
+var publishCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Publish an object to IPNS",
+		ShortDescription: `
+IPNS is a PKI namespace, where names are the hashes of public keys, and
+the private key enables publishing new (signed) values. In publish, the
+default value of <name> is your own identity public key.
+`,
+		LongDescription: `
+IPNS is a PKI namespace, where names are the hashes of public keys, and
+the private key enables publishing new (signed) values. In publish, the
+default value of <name> is your own identity public key.
 
-	// name := ""
-	ref := ""
+Examples:
 
-	switch len(args) {
-	case 2:
-		// name = args[0]
-		ref = args[1]
-		return errors.New("keychains not yet implemented")
-	case 1:
-		// name = n.Identity.ID.String()
-		ref = args[0]
+Publish a <ref> to your identity name:
 
-	default:
-		return fmt.Errorf("Publish expects 1 or 2 args; got %d.", len(args))
-	}
+  > ipfs name publish QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-	// later, n.Keychain.Get(name).PrivKey
-	k := n.Identity.PrivKey()
+Publish a <ref> to another public key:
 
+  > ipfs name publish QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", false, false, "The IPNS name to publish to. Defaults to your node's peerID"),
+		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published at <name>"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		log.Debug("Begin Publish")
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		args := req.Arguments()
+
+		if n.Network == nil {
+			return nil, errNotOnline
+		}
+
+		if n.Identity == nil {
+			return nil, errors.New("Identity not loaded!")
+		}
+
+		// name := ""
+		ref := ""
+
+		switch len(args) {
+		case 2:
+			// name = args[0]
+			ref = args[1]
+			return nil, errors.New("keychains not yet implemented")
+		case 1:
+			// name = n.Identity.ID.String()
+			ref = args[0]
+		}
+
+		// TODO n.Keychain.Get(name).PrivKey
+		k := n.Identity.PrivKey()
+		return publish(n, k, ref)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			v := res.Output().(*IpnsEntry)
+			s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
+			return []byte(s), nil
+		},
+	},
+	Type: &IpnsEntry{},
+}
+
+func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error) {
 	pub := nsys.NewRoutingPublisher(n.Routing)
 	err := pub.Publish(k, ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hash, err := k.GetPublic().Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fmt.Fprintf(out, "published name %s to %s\n", u.Key(hash), ref)
 
-	return nil
+	return &IpnsEntry{
+		Name:  u.Key(hash).String(),
+		Value: ref,
+	}, nil
 }

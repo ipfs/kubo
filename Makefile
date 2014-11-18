@@ -10,13 +10,8 @@ godep:
 vendor: godep
 	godep save -r ./...
 
-# TODO revert to `install` once new command refactoring is complete
-install_1:
+install:
 	cd cmd/ipfs && go install
-
-# TODO remove once new command refactoring is complete
-install_2:
-	cd cmd/ipfs2 && go install
 
 test: test_go test_sharness
 

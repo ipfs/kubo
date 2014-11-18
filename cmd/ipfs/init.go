@@ -3,48 +3,140 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/gonuts/flag"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
+	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	imp "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
-	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-var cmdIpfsInit = &commander.Command{
-	UsageLine: "init",
-	Short:     "Initialize ipfs local configuration",
-	Long: `ipfs init
+const nBitsForKeypairDefault = 4096
 
-	Initializes ipfs configuration files and generates a
-	new keypair.
-`,
-	Run:  initCmd,
-	Flag: *flag.NewFlagSet("ipfs-init", flag.ExitOnError),
-}
-
-func init() {
-	cmdIpfsInit.Flag.Int("b", 4096, "number of bits for keypair")
-	cmdIpfsInit.Flag.String("p", "", "passphrase for encrypting keys")
-	cmdIpfsInit.Flag.Bool("f", false, "force overwrite of existing config")
-	cmdIpfsInit.Flag.String("d", "", "Change default datastore location")
-}
-
-var defaultPeers = []*config.BootstrapPeer{
-	&config.BootstrapPeer{
-		// mars.i.ipfs.io
-		PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-		Address: "/ip4/104.131.131.82/tcp/4001",
+var initCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Initializes IPFS config file",
+		ShortDescription: "Initializes IPFS configuration files and generates a new keypair.",
 	},
+
+	Options: []cmds.Option{
+		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
+		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
+		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
+		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
+
+		// TODO need to decide whether to expose the override as a file or a
+		// directory. That is: should we allow the user to also specify the
+		// name of the file?
+		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+
+		dspathOverride, _, err := req.Option("d").String() // if !found it's okay. Let == ""
+		if err != nil {
+			return nil, err
+		}
+
+		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
+		if err != nil {
+			return nil, err
+		}
+
+		nBitsForKeypair, bitsOptFound, err := req.Option("b").Int()
+		if err != nil {
+			return nil, err
+		}
+		if !bitsOptFound {
+			nBitsForKeypair = nBitsForKeypairDefault
+		}
+
+		return doInit(req.Context().ConfigRoot, dspathOverride, force, nBitsForKeypair)
+	},
+}
+
+var errCannotInitConfigExists = debugerror.New(`ipfs configuration file already exists!
+Reinitializing would overwrite your keys.
+(use -f to force overwrite)
+`)
+
+var welcomeMsg = `Hello and Welcome to IPFS!
+
+██╗██████╗ ███████╗███████╗
+██║██╔══██╗██╔════╝██╔════╝
+██║██████╔╝█████╗  ███████╗
+██║██╔═══╝ ██╔══╝  ╚════██║
+██║██║     ██║     ███████║
+╚═╝╚═╝     ╚═╝     ╚══════╝
+
+If you're seeing this, you have successfully installed
+IPFS and are now interfacing with the ipfs merkledag!
+
+For a short demo of what you can do, enter 'ipfs tour'
+`
+
+func initWithDefaults(configRoot string) error {
+	_, err := doInit(configRoot, "", false, nBitsForKeypairDefault)
+	return debugerror.Wrap(err)
+}
+
+func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
+
+	u.POut("initializing ipfs node at %s\n", configRoot)
+
+	configFilename, err := config.Filename(configRoot)
+	if err != nil {
+		return nil, debugerror.New("Couldn't get home directory path")
+	}
+
+	if u.FileExists(configFilename) && !force {
+		return nil, errCannotInitConfigExists
+	}
+
+	conf, err := initConfig(configFilename, dspathOverride, nBitsForKeypair)
+	if err != nil {
+		return nil, err
+	}
+
+	err = addTheWelcomeFile(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+// addTheWelcomeFile adds a file containing the welcome message to the newly
+// minted node. On success, it calls onSuccess
+func addTheWelcomeFile(conf *config.Config) error {
+	// TODO extract this file creation operation into a function
+	nd, err := core.NewIpfsNode(conf, false)
+	if err != nil {
+		return err
+	}
+	defer nd.Close()
+
+	// Set up default file
+	reader := bytes.NewBufferString(welcomeMsg)
+
+	defnd, err := imp.BuildDagFromReader(reader, nd.DAG, nd.Pinning.GetManual(), chunk.DefaultSplitter)
+	if err != nil {
+		return err
+	}
+
+	k, err := defnd.Key()
+	if err != nil {
+		return fmt.Errorf("failed to write test file: %s", err)
+	}
+	fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
+	return nil
 }
 
 func datastoreConfig(dspath string) (config.Datastore, error) {
@@ -59,28 +151,84 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 	ds.Path = dspath
 	ds.Type = "leveldb"
 
-	// Construct the data store if missing
-	if err := os.MkdirAll(dspath, os.ModePerm); err != nil {
-		return ds, err
-	}
-
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(dspath, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return ds, errors.New("Datastore '" + dspath + "' is not writeable")
+	err := initCheckDir(dspath)
+	if err != nil {
+		return ds, debugerror.Errorf("datastore: %s", err)
 	}
 
 	return ds, nil
 }
 
+func initConfig(configFilename string, dspathOverride string, nBitsForKeypair int) (*config.Config, error) {
+	ds, err := datastoreConfig(dspathOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	identity, err := identityConfig(nBitsForKeypair)
+	if err != nil {
+		return nil, err
+	}
+
+	logConfig, err := initLogs("") // TODO allow user to override dir
+	if err != nil {
+		return nil, err
+	}
+
+	conf := &config.Config{
+
+		// setup the node addresses.
+		Addresses: config.Addresses{
+			Swarm: "/ip4/0.0.0.0/tcp/4001",
+			API:   "/ip4/127.0.0.1/tcp/5001",
+		},
+
+		Bootstrap: []*config.BootstrapPeer{
+			&config.BootstrapPeer{ // Use these hardcoded bootstrap peers for now.
+				// mars.i.ipfs.io
+				PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+				Address: "/ip4/104.131.131.82/tcp/4001",
+			},
+		},
+
+		Datastore: ds,
+
+		Logs: logConfig,
+
+		Identity: identity,
+
+		// setup the node mount points.
+		Mounts: config.Mounts{
+			IPFS: "/ipfs",
+			IPNS: "/ipns",
+		},
+
+		// tracking ipfs version used to generate the init folder and adding
+		// update checker default setting.
+		Version: config.VersionDefaultValue(),
+	}
+
+	if err := config.WriteConfigFile(configFilename, conf); err != nil {
+		return nil, err
+	}
+
+	return conf, nil
+}
+
+// identityConfig initializes a new identity.
 func identityConfig(nbits int) (config.Identity, error) {
+	// TODO guard higher up
 	ident := config.Identity{}
-	fmt.Println("generating key pair...")
+	if nbits < 1024 {
+		return ident, debugerror.New("Bitsize less than 1024 is considered unsafe.")
+	}
+
+	fmt.Printf("generating key pair...")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}
+	fmt.Printf("done\n")
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
@@ -95,106 +243,41 @@ func identityConfig(nbits int) (config.Identity, error) {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-
+	fmt.Printf("peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }
 
-func initCmd(c *commander.Command, inp []string) error {
-	configpath, err := getConfigDir(c.Parent)
-	if err != nil {
-		return err
-	}
-
-	u.POut("initializing ipfs node at %s\n", configpath)
-	filename, err := config.Filename(configpath)
-	if err != nil {
-		return errors.New("Couldn't get home directory path")
-	}
-
-	dspath, ok := c.Flag.Lookup("d").Value.Get().(string)
-	if !ok {
-		return errors.New("failed to parse datastore flag")
-	}
-
-	fi, err := os.Lstat(filename)
-	force, ok := c.Flag.Lookup("f").Value.Get().(bool)
-	if !ok {
-		return errors.New("failed to parse force flag")
-	}
-	if fi != nil || (err != nil && !os.IsNotExist(err)) {
-		if !force {
-			return errors.New("ipfs configuration file already exists!\nReinitializing would overwrite your keys.\n(use -f to force overwrite)")
+func initLogs(logpath string) (config.Logs, error) {
+	if len(logpath) == 0 {
+		var err error
+		logpath, err = config.LogsPath("")
+		if err != nil {
+			return config.Logs{}, debugerror.Wrap(err)
 		}
 	}
-	cfg := new(config.Config)
 
-	// setup the datastore
-	cfg.Datastore, err = datastoreConfig(dspath)
+	err := initCheckDir(logpath)
 	if err != nil {
+		return config.Logs{}, debugerror.Errorf("logs: %s", err)
+	}
+
+	return config.Logs{
+		Filename: path.Join(logpath, "events.log"),
+	}, nil
+}
+
+// initCheckDir ensures the directory exists and is writable
+func initCheckDir(path string) error {
+	// Construct the path if missing
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
 
-	// setup the node addresses.
-	cfg.Addresses = config.Addresses{
-		Swarm: "/ip4/0.0.0.0/tcp/4001",
-		API:   "/ip4/127.0.0.1/tcp/5001",
+	// Check the directory is writeable
+	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
+		os.Remove(f.Name())
+	} else {
+		return debugerror.New("'" + path + "' is not writeable")
 	}
-
-	// setup the node mount points.
-	cfg.Mounts = config.Mounts{
-		IPFS: "/ipfs",
-		IPNS: "/ipns",
-	}
-
-	nbits, ok := c.Flag.Lookup("b").Value.Get().(int)
-	if !ok {
-		return errors.New("failed to get bits flag")
-	}
-	if nbits < 1024 {
-		return errors.New("Bitsize less than 1024 is considered unsafe.")
-	}
-
-	cfg.Identity, err = identityConfig(nbits)
-	if err != nil {
-		return err
-	}
-
-	// Use these hardcoded bootstrap peers for now.
-	cfg.Bootstrap = defaultPeers
-
-	// tracking ipfs version used to generate the init folder
-	// and adding update checker default setting.
-	cfg.Version = config.Version{
-		Check:   "error",
-		Current: updates.Version,
-	}
-
-	err = config.WriteConfigFile(filename, cfg)
-	if err != nil {
-		return err
-	}
-
-	nd, err := core.NewIpfsNode(cfg, false)
-	if err != nil {
-		return err
-	}
-	defer nd.Close()
-
-	// Set up default file
-	msg := `Hello and Welcome to IPFS!
-If you're seeing this, that means that you have successfully
-installed ipfs and are now interfacing with the wonderful
-world of DAGs and hashes!
-`
-	reader := bytes.NewBufferString(msg)
-
-	defnd, err := imp.BuildDagFromReader(reader, nd.DAG, nd.Pinning.GetManual(), chunk.DefaultSplitter)
-	if err != nil {
-		return err
-	}
-
-	k, _ := defnd.Key()
-	fmt.Printf("Default file key: %s\n", k)
-
 	return nil
 }

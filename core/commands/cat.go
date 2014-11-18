@@ -1,29 +1,55 @@
 package commands
 
 import (
-	"fmt"
 	"io"
 
-	"github.com/jbenet/go-ipfs/core"
+	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
-func Cat(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	for _, fn := range args {
-		dagnode, err := n.Resolver.ResolvePath(fn)
+var catCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Show IPFS object data",
+		ShortDescription: `
+Retrieves the object named by <ipfs-path> and outputs the data
+it contains.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		node, err := req.Context().GetNode()
 		if err != nil {
-			return fmt.Errorf("catFile error: %v", err)
+			return nil, err
 		}
 
-		read, err := uio.NewDagReader(dagnode, n.DAG)
+		readers := make([]io.Reader, 0, len(req.Arguments()))
+
+		readers, err = cat(node, req.Arguments())
 		if err != nil {
-			return fmt.Errorf("cat error: %v", err)
+			return nil, err
 		}
 
-		_, err = io.Copy(out, read)
+		reader := io.MultiReader(readers...)
+		return reader, nil
+	},
+}
+
+func cat(node *core.IpfsNode, paths []string) ([]io.Reader, error) {
+	readers := make([]io.Reader, 0, len(paths))
+	for _, path := range paths {
+		dagnode, err := node.Resolver.ResolvePath(path)
 		if err != nil {
-			return fmt.Errorf("cat error: %v", err)
+			return nil, err
 		}
+		read, err := uio.NewDagReader(dagnode, node.DAG)
+		if err != nil {
+			return nil, err
+		}
+		readers = append(readers, read)
 	}
-	return nil
+	return readers, nil
 }

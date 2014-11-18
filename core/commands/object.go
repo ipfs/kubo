@@ -4,43 +4,314 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 
-	"github.com/jbenet/go-ipfs/core"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
+	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 )
 
-// ObjectData takes a key string from args and writes out the raw bytes of that node (if there is one)
-func ObjectData(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	dagnode, err := n.Resolver.ResolvePath(args[0])
-	if err != nil {
-		return fmt.Errorf("objectData error: %v", err)
-	}
-	log.Debugf("objectData: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
+// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
+var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbytes")
 
-	_, err = io.Copy(out, bytes.NewReader(dagnode.Data))
-	return err
+const inputLimit = 512 * 1024
+
+type Node struct {
+	Links []Link
+	Data  []byte
 }
 
-// ObjectLinks takes a key string from args and lists the links it points to
-func ObjectLinks(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	dagnode, err := n.Resolver.ResolvePath(args[0])
-	if err != nil {
-		return fmt.Errorf("objectLinks error: %v", err)
-	}
-	log.Debugf("ObjectLinks: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
+var objectCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Interact with ipfs objects",
+		ShortDescription: `
+'ipfs object' is a plumbing command used to manipulate DAG objects
+directly.`,
+		Synopsis: `
+ipfs object get <key>             - Get the DAG node named by <key>
+ipfs object put <data> <encoding> - Stores input, outputs its key
+ipfs object data <key>            - Outputs raw bytes in an object
+ipfs object links <key>           - Outputs links pointed to by object
+`,
+	},
 
-	for _, link := range dagnode.Links {
-		_, err = fmt.Fprintf(out, "%s %d %q\n", link.Hash.B58String(), link.Size, link.Name)
+	Subcommands: map[string]*cmds.Command{
+		"data":  objectDataCmd,
+		"links": objectLinksCmd,
+		"get":   objectGetCmd,
+		"put":   objectPutCmd,
+	},
+}
+
+var objectDataCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Outputs the raw bytes in an IPFS object",
+		ShortDescription: `
+ipfs data is a plumbing command for retreiving the raw bytes stored in
+a DAG node. It outputs to stdout, and <key> is a base58 encoded
+multihash.
+`,
+		LongDescription: `
+ipfs data is a plumbing command for retreiving the raw bytes stored in
+a DAG node. It outputs to stdout, and <key> is a base58 encoded
+multihash.
+
+Note that the "--encoding" option does not affect the output, since the
+output is the raw data of the object.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
 		if err != nil {
-			break
+			return nil, err
 		}
+
+		key := req.Arguments()[0]
+		return objectData(n, key)
+	},
+}
+
+var objectLinksCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Outputs the links pointed to by the specified object",
+		ShortDescription: `
+'ipfs object links' is a plumbing command for retreiving the links from
+a DAG node. It outputs to stdout, and <key> is a base58 encoded
+multihash.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		key := req.Arguments()[0]
+		return objectLinks(n, key)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			object := res.Output().(*Object)
+			marshalled := marshalLinks(object.Links)
+			return []byte(marshalled), nil
+		},
+	},
+	Type: &Object{},
+}
+
+var objectGetCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get and serialize the DAG node named by <key>",
+		ShortDescription: `
+'ipfs object get' is a plumbing command for retreiving DAG nodes.
+It serializes the DAG node to the format specified by the "--encoding"
+flag. It outputs to stdout, and <key> is a base58 encoded multihash.
+`,
+		LongDescription: `
+'ipfs object get' is a plumbing command for retreiving DAG nodes.
+It serializes the DAG node to the format specified by the "--encoding"
+flag. It outputs to stdout, and <key> is a base58 encoded multihash.
+
+This command outputs data in the following encodings:
+  * "protobuf"
+  * "json"
+  * "xml"
+(Specified by the "--encoding" or "-enc" flag)`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		key := req.Arguments()[0]
+
+		object, err := objectGet(n, key)
+		if err != nil {
+			return nil, err
+		}
+
+		node := &Node{
+			Links: make([]Link, len(object.Links)),
+			Data:  object.Data,
+		}
+
+		for i, link := range object.Links {
+			node.Links[i] = Link{
+				Hash: link.Hash.B58String(),
+				Name: link.Name,
+				Size: link.Size,
+			}
+		}
+
+		return node, nil
+	},
+	Type: &Node{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.EncodingType("protobuf"): func(res cmds.Response) ([]byte, error) {
+			node := res.Output().(*Node)
+			object, err := deserializeNode(node)
+			if err != nil {
+				return nil, err
+			}
+			return object.Marshal()
+		},
+	},
+}
+
+var objectPutCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Stores input as a DAG object, outputs its key",
+		ShortDescription: `
+'ipfs object put' is a plumbing command for storing DAG nodes.
+It reads from stdin, and the output is a base58 encoded multihash.
+`,
+		LongDescription: `
+'ipfs object put' is a plumbing command for storing DAG nodes.
+It reads from stdin, and the output is a base58 encoded multihash.
+
+Data should be in the format specified by <encoding>.
+<encoding> may be one of the following:
+	* "protobuf"
+	* "json"
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object"),
+		cmds.StringArg("encoding", true, false, "Encoding type of <data>, either \"protobuf\" or \"json\""),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		input, err := req.Files().NextFile()
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+
+		encoding := req.Arguments()[0]
+
+		output, err := objectPut(n, input, encoding)
+		if err != nil {
+			errType := cmds.ErrNormal
+			if err == ErrUnknownObjectEnc {
+				errType = cmds.ErrClient
+			}
+			return nil, cmds.Error{err.Error(), errType}
+		}
+
+		return output, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			object := res.Output().(*Object)
+			return []byte("added " + object.Hash), nil
+		},
+	},
+	Type: &Object{},
+}
+
+// objectData takes a key string and writes out the raw bytes of that node (if there is one)
+func objectData(n *core.IpfsNode, key string) (io.Reader, error) {
+	dagnode, err := n.Resolver.ResolvePath(key)
+	if err != nil {
+		return nil, err
 	}
 
-	return err
+	log.Debugf("objectData: found dagnode %q (# of bytes: %d - # links: %d)", key, len(dagnode.Data), len(dagnode.Links))
+
+	return bytes.NewReader(dagnode.Data), nil
+}
+
+// objectLinks takes a key string and lists the links it points to
+func objectLinks(n *core.IpfsNode, key string) (*Object, error) {
+	dagnode, err := n.Resolver.ResolvePath(key)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("objectLinks: found dagnode %q (# of bytes: %d - # links: %d)", key, len(dagnode.Data), len(dagnode.Links))
+
+	return getOutput(dagnode)
+}
+
+// objectGet takes a key string from args and a format option and serializes the dagnode to that format
+func objectGet(n *core.IpfsNode, key string) (*dag.Node, error) {
+	dagnode, err := n.Resolver.ResolvePath(key)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("objectGet: found dagnode %q (# of bytes: %d - # links: %d)", key, len(dagnode.Data), len(dagnode.Links))
+
+	return dagnode, nil
+}
+
+// objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
+func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, error) {
+	var (
+		dagnode *dag.Node
+		data    []byte
+		err     error
+	)
+
+	data, err = ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(data) >= inputLimit {
+		return nil, ErrObjectTooLarge
+	}
+
+	switch getObjectEnc(encoding) {
+	case objectEncodingJSON:
+		node := new(Node)
+		err = json.Unmarshal(data, node)
+		if err != nil {
+			return nil, err
+		}
+
+		dagnode, err = deserializeNode(node)
+		if err != nil {
+			return nil, err
+		}
+
+	case objectEncodingProtobuf:
+		dagnode, err = dag.Decoded(data)
+
+	default:
+		return nil, ErrUnknownObjectEnc
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = addNode(n, dagnode)
+	if err != nil {
+		return nil, err
+	}
+
+	return getOutput(dagnode)
 }
 
 // ErrUnknownObjectEnc is returned if a invalid encoding is supplied
@@ -64,72 +335,44 @@ func getObjectEnc(o interface{}) objectEncoding {
 	return objectEncoding(v)
 }
 
-// ObjectGet takes a key string from args and a format option and serializes the dagnode to that format
-func ObjectGet(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	dagnode, err := n.Resolver.ResolvePath(args[0])
+func getOutput(dagnode *dag.Node) (*Object, error) {
+	key, err := dagnode.Key()
 	if err != nil {
-		return fmt.Errorf("ObjectGet error: %v", err)
-	}
-	log.Debugf("objectGet: found dagnode %q (# of bytes: %d - # links: %d)", args[0], len(dagnode.Data), len(dagnode.Links))
-
-	// sadly all encodings dont implement a common interface
-	var data []byte
-	switch getObjectEnc(opts["encoding"]) {
-	case objectEncodingJSON:
-		data, err = json.MarshalIndent(dagnode, "", "  ")
-
-	case objectEncodingProtobuf:
-		data, err = dagnode.Marshal()
-
-	default:
-		return ErrUnknownObjectEnc
+		return nil, err
 	}
 
-	if err != nil {
-		return fmt.Errorf("ObjectGet error: %v", err)
+	output := &Object{
+		Hash:  key.Pretty(),
+		Links: make([]Link, len(dagnode.Links)),
 	}
 
-	_, err = io.Copy(out, bytes.NewReader(data))
-	return err
+	for i, link := range dagnode.Links {
+		output.Links[i] = Link{
+			Name: link.Name,
+			Hash: link.Hash.B58String(),
+			Size: link.Size,
+		}
+	}
+
+	return output, nil
 }
 
-// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
-var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbytes")
-
-const inputLimit = 512 * 1024
-
-// ObjectPut takes a format option, serilizes bytes from stdin and updates the dag with that data
-func ObjectPut(n *core.IpfsNode, args []string, opts map[string]interface{}, out io.Writer) error {
-	var (
-		dagnode *dag.Node
-		data    []byte
-		err     error
-	)
-
-	data, err = ioutil.ReadAll(io.LimitReader(os.Stdin, inputLimit+10))
-	if err != nil {
-		return fmt.Errorf("ObjectPut error: %v", err)
+// converts the Node object into a real dag.Node
+func deserializeNode(node *Node) (*dag.Node, error) {
+	dagnode := new(dag.Node)
+	dagnode.Data = node.Data
+	dagnode.Links = make([]*dag.Link, len(node.Links))
+	for i, link := range node.Links {
+		hash, err := mh.FromB58String(link.Hash)
+		if err != nil {
+			return nil, err
+		}
+		dagnode.Links[i] = &dag.Link{
+			Name: link.Name,
+			Size: link.Size,
+			Hash: hash,
+		}
 	}
 
-	if len(data) >= inputLimit {
-		return ErrObjectTooLarge
-	}
-
-	switch getObjectEnc(opts["encoding"]) {
-	case objectEncodingJSON:
-		dagnode = new(dag.Node)
-		err = json.Unmarshal(data, dagnode)
-
-	case objectEncodingProtobuf:
-		dagnode, err = dag.Decoded(data)
-
-	default:
-		return ErrUnknownObjectEnc
-	}
-
-	if err != nil {
-		return fmt.Errorf("ObjectPut error: %v", err)
-	}
-
-	return addNode(n, dagnode, "stdin", out)
+	return dagnode, nil
 }

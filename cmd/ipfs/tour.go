@@ -1,99 +1,151 @@
-// +build linux darwin freebsd
-
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
+	"io"
+	"os"
 
+	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 	tour "github.com/jbenet/go-ipfs/tour"
-
-	commander "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/commander"
 )
 
-var cmdIpfsTour = &commander.Command{
-	UsageLine: "tour [<number>]",
-	Short:     "Take the IPFS Tour.",
-	Long: `ipfs tour - Take the IPFS Tour.
-
-    ipfs tour [<number>]   - Show tour topic. Default to current.
-    ipfs tour next         - Show the next tour topic.
-    ipfs tour list         - Show a list of topics.
-    ipfs tour restart      - Restart the tour.
-
+var tourCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "An introduction to IPFS",
+		ShortDescription: `
 This is a tour that takes you through various IPFS concepts,
 features, and tools to make sure you get up to speed with
 IPFS very quickly. To start, run:
 
     ipfs tour
 `,
-	Run: tourCmd,
-	Subcommands: []*commander.Command{
-		cmdIpfsTourNext,
-		cmdIpfsTourList,
-		cmdIpfsTourRestart,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("id", false, false, "The id of the topic you would like to tour"),
+	},
+	Subcommands: map[string]*cmds.Command{
+		"list":    cmdIpfsTourList,
+		"next":    cmdIpfsTourNext,
+		"restart": cmdIpfsTourRestart,
+	},
+	Run: tourRunFunc,
+}
+
+func tourRunFunc(req cmds.Request) (interface{}, error) {
+
+	cfg, err := req.Context().GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	id := tour.TopicID(cfg.Tour.Last)
+	if len(req.Arguments()) > 0 {
+		id = tour.TopicID(req.Arguments()[0])
+	}
+
+	var w bytes.Buffer
+	defer w.WriteTo(os.Stdout)
+	t, err := tourGet(id)
+	if err != nil {
+
+		// If no topic exists for this id, we handle this error right here.
+		// To help the user achieve the task, we construct a response
+		// comprised of...
+		// 1) a simple error message
+		// 2) the full list of topics
+
+		fmt.Fprintln(&w, "ERROR")
+		fmt.Fprintln(&w, err)
+		fmt.Fprintln(&w, "")
+		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
+
+		return nil, nil
+	}
+
+	fprintTourShow(&w, t)
+	return nil, nil
+}
+
+var cmdIpfsTourNext = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Show the next IPFS Tour topic",
+	},
+
+	Run: func(req cmds.Request) (interface{}, error) {
+		var w bytes.Buffer
+		path := req.Context().ConfigRoot
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		id := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
+		topic, err := tourGet(id)
+		if err != nil {
+			return nil, err
+		}
+		if err := fprintTourShow(&w, topic); err != nil {
+			return nil, err
+		}
+
+		// topic changed, not last. write it out.
+		if string(id) != cfg.Tour.Last {
+			cfg.Tour.Last = string(id)
+			err := writeConfig(path, cfg)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		w.WriteTo(os.Stdout)
+		return nil, nil
 	},
 }
 
-var cmdIpfsTourNext = &commander.Command{
-	UsageLine: "next",
-	Short:     "Show the next IPFS Tour topic.",
-	Run:       tourNextCmd,
+var cmdIpfsTourRestart = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Restart the IPFS Tour",
+	},
+
+	Run: func(req cmds.Request) (interface{}, error) {
+		path := req.Context().ConfigRoot
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		cfg.Tour.Last = ""
+		err = writeConfig(path, cfg)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	},
 }
 
-var cmdIpfsTourList = &commander.Command{
-	UsageLine: "list",
-	Short:     "Show a list of IPFS Tour topics.",
-	Run:       tourListCmd,
+var cmdIpfsTourList = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Show a list of IPFS Tour topics",
+	},
+
+	Run: func(req cmds.Request) (interface{}, error) {
+		cfg, err := req.Context().GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		var w bytes.Buffer
+		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
+		w.WriteTo(os.Stdout)
+		return nil, nil
+	},
 }
 
-var cmdIpfsTourRestart = &commander.Command{
-	UsageLine: "restart",
-	Short:     "Restart the IPFS Tour.",
-	Run:       tourRestartCmd,
-}
-
-func tourCmd(c *commander.Command, inp []string) error {
-	cfg, err := getConfig(c)
-	if err != nil {
-		return err
-	}
-
-	topic := tour.TopicID(cfg.Tour.Last)
-	if len(inp) > 0 {
-		topic = tour.TopicID(inp[0])
-	}
-	return tourShow(topic)
-}
-
-func tourNextCmd(c *commander.Command, _ []string) error {
-	cfg, err := getConfig(c)
-	if err != nil {
-		return err
-	}
-
-	topic := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
-	if err := tourShow(topic); err != nil {
-		return err
-	}
-
-	// if topic didn't change (last) done
-	if string(topic) == cfg.Tour.Last {
-		return nil
-	}
-
-	// topic changed, not last. write it out.
-	cfg.Tour.Last = string(topic)
-	return writeConfig(c, cfg)
-}
-
-func tourListCmd(c *commander.Command, _ []string) error {
-	cfg, err := getConfig(c)
-	if err != nil {
-		return err
-	}
-	lastid := tour.TopicID(cfg.Tour.Last)
-
+func fprintTourList(w io.Writer, lastid tour.ID) {
 	for _, id := range tour.IDs {
 		c := ' '
 		switch {
@@ -104,31 +156,40 @@ func tourListCmd(c *commander.Command, _ []string) error {
 		}
 
 		t := tour.Topics[id]
-		fmt.Printf("- %c %-5.5s %s\n", c, id, t.Title)
+		fmt.Fprintf(w, "- %c %-5.5s %s\n", c, id, t.Title)
 	}
-	return nil
 }
 
-func tourRestartCmd(c *commander.Command, _ []string) error {
-	cfg, err := getConfig(c)
+// fprintTourShow writes a text-formatted topic to the writer
+func fprintTourShow(w io.Writer, t *tour.Topic) error {
+	tmpl := `
+Tour {{ .ID }} - {{ .Title }}
+
+{{ .Text }}
+
+`
+	ttempl, err := template.New("tour").Parse(tmpl)
 	if err != nil {
 		return err
 	}
-
-	cfg.Tour.Last = ""
-	return writeConfig(c, cfg)
+	return ttempl.Execute(w, t)
 }
 
-func tourShow(id tour.ID) error {
+// tourGet returns the topic given its ID. Returns an error if topic does not
+// exist.
+func tourGet(id tour.ID) (*tour.Topic, error) {
 	t, found := tour.Topics[id]
 	if !found {
-		return fmt.Errorf("no topic with id: %s", id)
+		return nil, fmt.Errorf("no topic with id: %s", id)
 	}
-
-	fmt.Printf("Tour %s - %s\n\n%s\n", t.ID, t.Title, t.Text)
-	return nil
+	return &t, nil
 }
 
-func lastTour(cfg *config.Config) string {
-	return ""
+// TODO share func
+func writeConfig(path string, cfg *config.Config) error {
+	filename, err := config.Filename(path)
+	if err != nil {
+		return err
+	}
+	return config.WriteConfigFile(filename, cfg)
 }

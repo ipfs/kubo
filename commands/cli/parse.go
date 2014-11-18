@@ -71,23 +71,25 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 // returns command path slice, rest slice, and the corresponding *cmd.Command
 func parsePath(input []string, root *cmds.Command) ([]string, []string, *cmds.Command) {
 	cmd := root
-	i := 0
+	path := make([]string, 0, len(input))
+	input2 := make([]string, 0, len(input))
 
-	for _, blob := range input {
+	for i, blob := range input {
 		if strings.HasPrefix(blob, "-") {
-			break
+			input2 = append(input2, blob)
+			continue
 		}
 
 		sub := cmd.Subcommand(blob)
 		if sub == nil {
+			input2 = append(input2, input[i:]...)
 			break
 		}
 		cmd = sub
-
-		i++
+		path = append(path, blob)
 	}
 
-	return input[:i], input[i:], cmd
+	return path, input2, cmd
 }
 
 // parseOptions parses the raw string values of the given options

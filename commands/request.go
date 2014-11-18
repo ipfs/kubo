@@ -14,6 +14,7 @@ import (
 type optMap map[string]interface{}
 
 type Context struct {
+	Online     bool
 	ConfigRoot string
 
 	config     *config.Config

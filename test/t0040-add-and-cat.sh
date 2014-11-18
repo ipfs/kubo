@@ -63,13 +63,15 @@ test_expect_success "ipfs add bigfile output looks good" '
 '
 
 test_expect_success "ipfs cat succeeds" '
-	ipfs cat $HASH >actual &&
-	cat actual | shasum >sha1_actual
+	ipfs cat $HASH | shasum >sha1_actual
 '
 
-test_expect_success "ipfs cat output looks good" '
-	test_cmp mountdir/bigfile actual
-'
+# this test commented out to run faster.
+# uncomment to produce and examine output
+# test_expect_success "ipfs cat output looks good" '
+#   ipfs cat $HASH >actual &&
+# 	test_cmp mountdir/bigfile actual
+# '
 
 test_expect_success "ipfs cat output shasum looks good" '
 	echo "885b197b01e0f7ff584458dc236cb9477d2e736d  -" >sha1_expected &&
