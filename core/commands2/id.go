@@ -16,8 +16,12 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-const offlineIdErrorMessage = `ID command fails when run without daemon, we are working 
-to fix this In the meantime, please run the daemon if you want to use 'ipfs id'`
+const offlineIdErrorMessage = `ID command fails when run without daemon, we are working to fix this.
+In the meantime, please run the daemon if you want to use 'ipfs id':
+
+    ipfs daemon &
+    ipfs id QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+`
 
 type IdOutput struct {
 	ID              string
@@ -35,7 +39,9 @@ Prints out information about the specified peer,
 if no peer is specified, prints out local peers info.
 `,
 	},
-	Arguments: nil,
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peerid", false, false, "peer.ID of node to look up"),
+	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		node, err := req.Context().GetNode()
 		if err != nil {
@@ -48,11 +54,19 @@ if no peer is specified, prints out local peers info.
 
 		pid, ok := req.Arguments()[0].(string)
 		if !ok {
-			return nil, errors.New("Improperly formatted peer id")
+			return nil, cmds.ClientError("Improperly formatted peer id")
 		}
 
 		id := peer.ID(b58.Decode(pid))
+		if len(id) == 0 {
+			return nil, cmds.ClientError("Invalid peer id")
+		}
+
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+		if node.Routing == nil {
+			return nil, errors.New(offlineIdErrorMessage)
+		}
+
 		p, err := node.Routing.FindPeer(ctx, id)
 		if err == kb.ErrLookupFailure {
 			return nil, errors.New(offlineIdErrorMessage)
