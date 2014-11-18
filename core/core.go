@@ -108,10 +108,10 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	// derive this from a higher context.
 	ctx := context.TODO()
 	n = &IpfsNode{
-		onlineMode:    online,
-		Config:        cfg,
-		ContextCloser: ctxc.NewContextCloser(ctx, nil),
+		onlineMode: online,
+		Config:     cfg,
 	}
+	n.ContextCloser = ctxc.NewContextCloser(context.TODO(), n.teardown)
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
@@ -191,9 +191,11 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	return n, nil
 }
 
-func (n *IpfsNode) Close() {
-	n.ContextCloser.Close()
-	n.Datastore.Close()
+func (n *IpfsNode) teardown() error {
+	if err := n.Datastore.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (n *IpfsNode) OnlineMode() bool {
