@@ -80,12 +80,6 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	}
 	defer lock.Close()
 
-	// setup function that constructs the context. we have to do it this way
-	// to play along with how the Context works and thus not expose its internals
-	req.Context().ConstructNode = func() (*core.IpfsNode, error) {
-		return node, nil
-	}
-
 	addr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
 		return nil, err
