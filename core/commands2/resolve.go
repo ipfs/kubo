@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var resolveCmd = &cmds.Command{
@@ -59,11 +58,7 @@ Resolve te value of another name:
 			name = n.Identity.ID().String()
 
 		} else {
-			var ok bool
-			name, ok = req.Arguments()[0].(string)
-			if !ok {
-				return nil, u.ErrCast()
-			}
+			name = req.Arguments()[0]
 		}
 
 		output, err := n.Namesys.Resolve(name)

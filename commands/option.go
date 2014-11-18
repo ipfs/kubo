@@ -136,12 +136,14 @@ func (ov OptionValue) String() (value string, found bool, err error) {
 const (
 	EncShort = "enc"
 	EncLong  = "encoding"
+	RecShort = "r"
+	RecLong  = "recursive"
 )
 
 // options that are used by this package
 var globalOptions = []Option{
-	Option{[]string{EncShort, EncLong}, String,
-		"The encoding type the output should be encoded with (json, xml, or text)"},
+	StringOption(EncShort, EncLong, "The encoding type the output should be encoded with (json, xml, or text)"),
+	BoolOption(RecShort, RecLong, "Add directory paths recursively"),
 }
 
 // the above array of Options, wrapped in a Command

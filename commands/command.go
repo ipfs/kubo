@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 
@@ -196,14 +195,6 @@ func (c *Command) GetOptions(path []string) (map[string]Option, error) {
 
 func (c *Command) CheckArguments(req Request) error {
 	args := req.Arguments()
-	argDefs := c.Arguments
-
-	// if we have more arg values provided than argument definitions,
-	// and the last arg definition is not variadic (or there are no definitions), return an error
-	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
-	if notVariadic && len(args) > len(argDefs) {
-		return fmt.Errorf("Expected %v arguments, got %v", len(argDefs), len(args))
-	}
 
 	// count required argument definitions
 	numRequired := 0
@@ -217,18 +208,19 @@ func (c *Command) CheckArguments(req Request) error {
 	valueIndex := 0 // the index of the current value (in `args`)
 	for _, argDef := range c.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(args)-valueIndex <= numRequired && !argDef.Required {
+		if len(args)-valueIndex <= numRequired && !argDef.Required || argDef.Type == ArgFile {
 			continue
 		}
 
 		// the value for this argument definition. can be nil if it wasn't provided by the caller
-		var v interface{}
+		v, found := "", false
 		if valueIndex < len(args) {
 			v = args[valueIndex]
+			found = true
 			valueIndex++
 		}
 
-		err := checkArgValue(v, argDef)
+		err := checkArgValue(v, found, argDef)
 		if err != nil {
 			return err
 		}
@@ -236,7 +228,7 @@ func (c *Command) CheckArguments(req Request) error {
 		// any additional values are for the variadic arg definition
 		if argDef.Variadic && valueIndex < len(args)-1 {
 			for _, val := range args[valueIndex:] {
-				err := checkArgValue(val, argDef)
+				err := checkArgValue(val, true, argDef)
 				if err != nil {
 					return err
 				}
@@ -253,26 +245,9 @@ func (c *Command) Subcommand(id string) *Command {
 }
 
 // checkArgValue returns an error if a given arg value is not valid for the given Argument
-func checkArgValue(v interface{}, def Argument) error {
-	if v == nil {
-		if def.Required {
-			return fmt.Errorf("Argument '%s' is required", def.Name)
-		}
-
-		return nil
-	}
-
-	if def.Type == ArgFile {
-		_, ok := v.(io.Reader)
-		if !ok {
-			return fmt.Errorf("Argument '%s' isn't valid", def.Name)
-		}
-
-	} else if def.Type == ArgString {
-		_, ok := v.(string)
-		if !ok {
-			return fmt.Errorf("Argument '%s' must be a string", def.Name)
-		}
+func checkArgValue(v string, found bool, def Argument) error {
+	if !found && def.Required {
+		return fmt.Errorf("Argument '%s' is required", def.Name)
 	}
 
 	return nil

@@ -6,7 +6,6 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/core/commands2/internal"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -57,12 +56,7 @@ Note: list all refs recursively with -r.
 			recursive = false
 		}
 
-		paths, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			return nil, err
-		}
-
-		return getRefs(n, paths, unique, recursive)
+		return getRefs(n, req.Arguments(), unique, recursive)
 	},
 	Type: &RefsOutput{},
 	Marshalers: cmds.MarshalerMap{

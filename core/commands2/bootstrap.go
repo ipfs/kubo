@@ -184,16 +184,7 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []*config.BootstrapPe
 	return nil
 }
 
-func bootstrapInputToPeers(input []interface{}) ([]*config.BootstrapPeer, error) {
-	inputAddrs := make([]string, len(input))
-	for i, v := range input {
-		addr, ok := v.(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
-		inputAddrs[i] = addr
-	}
-
+func bootstrapInputToPeers(input []string) ([]*config.BootstrapPeer, error) {
 	split := func(addr string) (string, string) {
 		idx := strings.LastIndex(addr, "/")
 		if idx == -1 {
@@ -203,7 +194,7 @@ func bootstrapInputToPeers(input []interface{}) ([]*config.BootstrapPeer, error)
 	}
 
 	peers := []*config.BootstrapPeer{}
-	for _, addr := range inputAddrs {
+	for _, addr := range input {
 		addrS, peeridS := split(addr)
 
 		// make sure addrS parses as a multiaddr.

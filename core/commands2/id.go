@@ -52,10 +52,7 @@ if no peer is specified, prints out local peers info.
 			return printPeer(node.Identity)
 		}
 
-		pid, ok := req.Arguments()[0].(string)
-		if !ok {
-			return nil, cmds.ClientError("Improperly formatted peer id")
-		}
+		pid := req.Arguments()[0]
 
 		id := peer.ID(b58.Decode(pid))
 		if len(id) == 0 {

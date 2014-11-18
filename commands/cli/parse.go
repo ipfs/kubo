@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	fp "path/filepath"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // ErrInvalidSubcmd signals when the parse error is not found
@@ -15,20 +17,13 @@ var ErrInvalidSubcmd = errors.New("subcommand not found")
 
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
-// Parse will search each root to find the one that best matches the requested subcommand.
 func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
-	// use the root that matches the longest path (most accurately matches request)
 	path, input, cmd := parsePath(input, root)
-	opts, stringArgs, err := parseOptions(input)
-	if err != nil {
-		return nil, cmd, path, err
-	}
-
 	if len(path) == 0 {
 		return nil, nil, path, ErrInvalidSubcmd
 	}
 
-	args, err := parseArgs(stringArgs, stdin, cmd.Arguments)
+	opts, stringVals, err := parseOptions(input)
 	if err != nil {
 		return nil, cmd, path, err
 	}
@@ -46,10 +41,23 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	req, err := cmds.NewRequest(path, opts, args, cmd, optDefs)
+	req, err := cmds.NewRequest(path, opts, nil, nil, cmd, optDefs)
 	if err != nil {
 		return nil, cmd, path, err
 	}
+
+	recursive, _, err := req.Option(cmds.RecShort).Bool()
+	if err != nil {
+		return nil, nil, nil, u.ErrCast()
+	}
+	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive)
+	if err != nil {
+		return nil, cmd, path, err
+	}
+	req.SetArguments(stringArgs)
+
+	file := &cmds.SliceFile{"", fileArgs}
+	req.SetFiles(file)
 
 	err = cmd.CheckArguments(req)
 	if err != nil {
@@ -120,90 +128,209 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(stringArgs []string, stdin *os.File, arguments []cmds.Argument) ([]interface{}, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []cmds.File, error) {
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
-		stat, err := stdin.Stat()
-		if err != nil {
-			return nil, err
-		}
-
-		// if stdin isn't a CharDevice, set it to nil
-		// (this means it is coming from terminal and we want to ignore it)
-		if (stat.Mode() & os.ModeCharDevice) != 0 {
-			stdin = nil
+		if term, err := isTerminal(stdin); err != nil {
+			return nil, nil, err
+		} else if term {
+			stdin = nil // set to nil so we ignore it
 		}
 	}
 
 	// count required argument definitions
-	lenRequired := 0
-	for _, argDef := range arguments {
+	numRequired := 0
+	for _, argDef := range argDefs {
 		if argDef.Required {
-			lenRequired++
+			numRequired++
 		}
 	}
 
-	valCount := len(stringArgs)
+	// count number of values provided by user
+	numInputs := len(inputs)
 	if stdin != nil {
-		valCount += 1
+		numInputs += 1
 	}
 
-	args := make([]interface{}, 0, valCount)
+	// if we have more arg values provided than argument definitions,
+	// and the last arg definition is not variadic (or there are no definitions), return an error
+	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
+	if notVariadic && numInputs > len(argDefs) {
+		return nil, nil, fmt.Errorf("Expected %v arguments, got %v", len(argDefs), numInputs)
+	}
+
+	stringArgs := make([]string, 0, numInputs)
+	fileArgs := make([]cmds.File, 0, numInputs)
 
 	argDefIndex := 0 // the index of the current argument definition
-	for i := 0; i < valCount; i++ {
-		// get the argument definiton (should be arguments[argDefIndex],
-		// but if argDefIndex > len(arguments) we use the last argument definition)
-		var argDef cmds.Argument
-		if argDefIndex < len(arguments) {
-			argDef = arguments[argDefIndex]
-		} else if len(arguments) > 0 {
-			argDef = arguments[len(arguments)-1]
-		}
+	for i := 0; i < numInputs; i++ {
+		argDef := getArgDef(argDefIndex, argDefs)
 
-		// skip optional argument definitions if there aren't sufficient remaining values
-		if valCount-i <= lenRequired && !argDef.Required {
+		// skip optional argument definitions if there aren't sufficient remaining inputs
+		if numInputs-i <= numRequired && !argDef.Required {
 			continue
 		} else if argDef.Required {
-			lenRequired--
+			numRequired--
 		}
 
+		var err error
 		if argDef.Type == cmds.ArgString {
 			if stdin == nil {
 				// add string values
-				args = append(args, stringArgs[0])
-				stringArgs = stringArgs[1:]
+				stringArgs, inputs = appendString(stringArgs, inputs)
 
 			} else if argDef.SupportsStdin {
 				// if we have a stdin, read it in and use the data as a string value
-				var buf bytes.Buffer
-				_, err := buf.ReadFrom(stdin)
+				stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
-				args = append(args, buf.String())
-				stdin = nil
 			}
 
 		} else if argDef.Type == cmds.ArgFile {
 			if stdin == nil {
 				// treat stringArg values as file paths
-				file, err := os.Open(stringArgs[0])
+				fileArgs, inputs, err = appendFile(fileArgs, inputs, argDef, recursive)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
-				args = append(args, file)
-				stringArgs = stringArgs[1:]
 
 			} else if argDef.SupportsStdin {
-				// if we have a stdin, use that as a reader
-				args = append(args, stdin)
-				stdin = nil
+				// if we have a stdin, create a file from it
+				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
 			}
 		}
 
 		argDefIndex++
 	}
 
-	return args, nil
+	// check to make sure we didn't miss any required arguments
+	if len(argDefs) > argDefIndex {
+		for _, argDef := range argDefs[argDefIndex:] {
+			if argDef.Required {
+				return nil, nil, fmt.Errorf("Argument '%s' is required", argDef.Name)
+			}
+		}
+	}
+
+	return stringArgs, fileArgs, nil
+}
+
+func getArgDef(i int, argDefs []cmds.Argument) *cmds.Argument {
+	if i < len(argDefs) {
+		// get the argument definition (usually just argDefs[i])
+		return &argDefs[i]
+
+	} else if len(argDefs) > 0 {
+		// but if i > len(argDefs) we use the last argument definition)
+		return &argDefs[len(argDefs)-1]
+	}
+
+	// only happens if there aren't any definitions
+	return nil
+}
+
+func appendString(args, inputs []string) ([]string, []string) {
+	return append(args, inputs[0]), inputs[1:]
+}
+
+func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, error) {
+	var buf bytes.Buffer
+
+	_, err := buf.ReadFrom(stdin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(args, buf.String()), nil, nil
+}
+
+func appendFile(args []cmds.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]cmds.File, []string, error) {
+	path := inputs[0]
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if stat.IsDir() {
+		if !argDef.Recursive {
+			err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
+				path, argDef.Name)
+			return nil, nil, err
+		}
+		if !recursive {
+			err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
+				path, cmds.RecShort)
+			return nil, nil, err
+		}
+	}
+
+	arg, err := openPath(file, path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(args, arg), inputs[1:], nil
+}
+
+func appendStdinAsFile(args []cmds.File, stdin *os.File) ([]cmds.File, *os.File) {
+	arg := &cmds.ReaderFile{"", stdin}
+	return append(args, arg), nil
+}
+
+// recursively get file or directory contents as a cmds.File
+func openPath(file *os.File, path string) (cmds.File, error) {
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// for non-directories, return a ReaderFile
+	if !stat.IsDir() {
+		return &cmds.ReaderFile{path, file}, nil
+	}
+
+	// for directories, recursively iterate though children then return as a SliceFile
+	contents, err := file.Readdir(0)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]cmds.File, 0, len(contents))
+
+	for _, child := range contents {
+		childPath := fp.Join(path, child.Name())
+		childFile, err := os.Open(childPath)
+		if err != nil {
+			return nil, err
+		}
+
+		f, err := openPath(childFile, childPath)
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, f)
+	}
+
+	return &cmds.SliceFile{path, files}, nil
+}
+
+// isTerminal returns true if stdin is a Stdin pipe (e.g. `cat file | ipfs`),
+// and false otherwise (e.g. nothing is being piped in, so stdin is
+// coming from the terminal)
+func isTerminal(stdin *os.File) (bool, error) {
+	stat, err := stdin.Stat()
+	if err != nil {
+		return false, err
+	}
+
+	// if stdin is a CharDevice, return true
+	return ((stat.Mode() & os.ModeCharDevice) != 0), nil
 }

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	u "github.com/jbenet/go-ipfs/util"
+	config "github.com/jbenet/go-ipfs/config"
 )
 
 const (
@@ -42,16 +42,35 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	// override with json to send to server
 	req.SetOption(cmds.EncShort, cmds.JSON)
 
-	query, inputStream, err := getQuery(req)
+	query, err := getQuery(req)
 	if err != nil {
 		return nil, err
+	}
+
+	var fileReader *MultiFileReader
+	if req.Files() != nil {
+		fileReader = NewMultiFileReader(req.Files(), true)
 	}
 
 	path := strings.Join(req.Path(), "/")
 	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
 
-	// TODO extract string const?
-	httpRes, err := http.Post(url, "application/octet-stream", inputStream)
+	httpReq, err := http.NewRequest("POST", url, fileReader)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO extract string consts?
+	if fileReader != nil {
+		httpReq.Header.Set("Content-Type", "multipart/form-data; boundary="+fileReader.Boundary())
+		httpReq.Header.Set("Content-Disposition", "form-data: name=\"files\"")
+	} else {
+		httpReq.Header.Set("Content-Type", "application/octet-stream")
+	}
+	version := config.CurrentVersionNumber
+	httpReq.Header.Set("User-Agent", fmt.Sprintf("/go-ipfs/%s/", version))
+
+	httpRes, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +91,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	return res, nil
 }
 
-func getQuery(req cmds.Request) (string, io.Reader, error) {
-	// TODO: handle multiple files with multipart
-	var inputStream io.Reader
-
+func getQuery(req cmds.Request) (string, error) {
 	query := url.Values{}
 	for k, v := range req.Options() {
 		str := fmt.Sprintf("%v", v)
@@ -92,26 +108,11 @@ func getQuery(req cmds.Request) (string, io.Reader, error) {
 		}
 
 		if argDef.Type == cmds.ArgString {
-			str, ok := arg.(string)
-			if !ok {
-				return "", nil, u.ErrCast()
-			}
-			query.Add("arg", str)
-
-		} else {
-			// TODO: multipart
-			if inputStream != nil {
-				return "", nil, fmt.Errorf("Currently, only one file stream is possible per request")
-			}
-			var ok bool
-			inputStream, ok = arg.(io.Reader)
-			if !ok {
-				return "", nil, u.ErrCast()
-			}
+			query.Add("arg", arg)
 		}
 	}
 
-	return query.Encode(), inputStream, nil
+	return query.Encode(), nil
 }
 
 // getResponse decodes a http.Response to create a cmds.Response

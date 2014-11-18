@@ -18,7 +18,10 @@ type Handler struct {
 
 var ErrNotFound = errors.New("404 page not found")
 
-const streamHeader = "X-Stream-Output"
+const (
+	streamHeader      = "X-Stream-Output"
+	contentTypeHeader = "Content-Type"
+)
 
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
@@ -63,7 +66,7 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		mime := mimeTypes[enc]
-		w.Header().Set("Content-Type", mime)
+		w.Header().Set(contentTypeHeader, mime)
 	}
 
 	// if response contains an error, write an HTTP error status code
@@ -78,7 +81,7 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	out, err := res.Reader()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set(contentTypeHeader, "text/plain")
 		w.Write([]byte(err.Error()))
 		return
 	}

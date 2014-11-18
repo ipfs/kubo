@@ -2,6 +2,8 @@ package http
 
 import (
 	"errors"
+	"fmt"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -49,14 +51,11 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 
 	// count the number of provided argument values
 	valCount := len(stringArgs)
-	// TODO: add total number of parts in request body (instead of just 1 if body is present)
-	if r.Body != nil && r.ContentLength != 0 {
-		valCount += 1
-	}
 
-	args := make([]interface{}, valCount)
+	args := make([]string, valCount)
 
 	valIndex := 0
+	requiredFile := ""
 	for _, argDef := range cmd.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
 		if valCount-valIndex <= numRequired && !argDef.Required {
@@ -81,11 +80,8 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 			} else {
 				break
 			}
-
-		} else {
-			// TODO: create multipart streams for file args
-			args[valIndex] = r.Body
-			valIndex++
+		} else if argDef.Type == cmds.ArgFile && argDef.Required && len(requiredFile) == 0 {
+			requiredFile = argDef.Name
 		}
 	}
 
@@ -94,7 +90,25 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 		return nil, err
 	}
 
-	req, err := cmds.NewRequest(path, opts, args, cmd, optDefs)
+	// create cmds.File from multipart/form-data contents
+	contentType := r.Header.Get(contentTypeHeader)
+	mediatype, _, _ := mime.ParseMediaType(contentType)
+
+	var f *cmds.MultipartFile
+	if mediatype == "multipart/form-data" {
+		f = &cmds.MultipartFile{Mediatype: mediatype}
+		f.Reader, err = r.MultipartReader()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// if there is a required filearg, error if no files were provided
+	if len(requiredFile) > 0 && f == nil {
+		return nil, fmt.Errorf("File argument '%s' is required", requiredFile)
+	}
+
+	req, err := cmds.NewRequest(path, opts, args, f, cmd, optDefs)
 	if err != nil {
 		return nil, err
 	}

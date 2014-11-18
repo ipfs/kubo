@@ -5,13 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"path"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
-	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	importer "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -39,11 +36,8 @@ remains to be implemented.
 `,
 	},
 
-	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Must be specified when adding directories"),
-	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "The path to a file to be added to IPFS"),
+		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS").EnableRecursive(),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
@@ -52,128 +46,22 @@ remains to be implemented.
 			return nil, err
 		}
 
-		recursive, _, err := req.Option("r").Bool()
-		if err != nil {
-			return nil, err
-		}
-
-		// THIS IS A HORRIBLE HACK -- FIXME!!!
-		// see https://github.com/jbenet/go-ipfs/issues/309
-
-		// returns the last one
-		addDagnode := func(name string, dn *dag.Node) error {
-			o, err := getOutput(dn)
-			if err != nil {
-				return err
+		for {
+			file, err := req.Files().NextFile()
+			if err != nil && err != io.EOF {
+				return nil, err
+			}
+			if file == nil {
+				break
 			}
 
-			added.Objects = append(added.Objects, o)
-			added.Names = append(added.Names, name)
-			return nil
-		}
-
-		addFile := func(name string) (*dag.Node, error) {
-			f, err := os.Open(name)
+			_, err = addFile(n, file, added)
 			if err != nil {
 				return nil, err
 			}
-			defer f.Close()
-
-			dns, err := add(n, []io.Reader{f})
-			if err != nil {
-				return nil, err
-			}
-
-			log.Infof("adding file: %s", name)
-			if err := addDagnode(name, dns[len(dns)-1]); err != nil {
-				return nil, err
-			}
-			return dns[len(dns)-1], nil // last dag node is the file.
 		}
 
-		var addPath func(name string) (*dag.Node, error)
-		addDir := func(name string) (*dag.Node, error) {
-			tree := &dag.Node{Data: ft.FolderPBData()}
-
-			entries, err := ioutil.ReadDir(name)
-			if err != nil {
-				return nil, err
-			}
-
-			// construct nodes for containing files.
-			for _, e := range entries {
-				fp := filepath.Join(name, e.Name())
-				nd, err := addPath(fp)
-				if err != nil {
-					return nil, err
-				}
-
-				if err = tree.AddNodeLink(e.Name(), nd); err != nil {
-					return nil, err
-				}
-			}
-
-			log.Infof("adding dir: %s", name)
-			if err := addNode(n, tree); err != nil {
-				return nil, err
-			}
-
-			if err := addDagnode(name, tree); err != nil {
-				return nil, err
-			}
-			return tree, nil
-		}
-
-		addPath = func(fpath string) (*dag.Node, error) {
-			fi, err := os.Stat(fpath)
-			if err != nil {
-				return nil, err
-			}
-
-			if fi.IsDir() {
-				if !recursive {
-					return nil, errors.New("use -r to recursively add directories")
-				}
-				return addDir(fpath)
-			}
-			return addFile(fpath)
-		}
-
-		paths, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			panic(err)
-			return nil, err
-		}
-
-		for _, f := range paths {
-			if _, err := addPath(f); err != nil {
-				return nil, err
-			}
-		}
 		return added, nil
-
-		// readers, err := internal.CastToReaders(req.Arguments())
-		// if err != nil {
-		// 	return nil, err
-		// }
-		//
-		// dagnodes, err := add(n, readers)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		//
-		// // TODO: include fs paths in output (will need a way to specify paths in underlying filearg system)
-		// added := make([]*Object, 0, len(req.Arguments()))
-		// for _, dagnode := range dagnodes {
-		// 	object, err := getOutput(dagnode)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		//
-		// 	added = append(added, object)
-		// }
-		//
-		// return &AddOutput{added}, nil
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
@@ -200,8 +88,6 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 
 	dagnodes := make([]*dag.Node, 0)
 
-	// TODO: allow adding directories (will need support for multiple files in filearg system)
-
 	for _, reader := range readers {
 		node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)
 		if err != nil {
@@ -224,5 +110,74 @@ func addNode(n *core.IpfsNode, node *dag.Node) error {
 		return err
 	}
 
+	return nil
+}
+
+func addFile(n *core.IpfsNode, file cmds.File, added *AddOutput) (*dag.Node, error) {
+	if file.IsDirectory() {
+		return addDir(n, file, added)
+	}
+
+	dns, err := add(n, []io.Reader{file})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("adding file: %s", file.FileName())
+	if err := addDagnode(added, file.FileName(), dns[len(dns)-1]); err != nil {
+		return nil, err
+	}
+	return dns[len(dns)-1], nil // last dag node is the file.
+}
+
+func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error) {
+	log.Infof("adding directory: %s", dir.FileName())
+
+	tree := &dag.Node{Data: ft.FolderPBData()}
+
+	for {
+		file, err := dir.NextFile()
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if file == nil {
+			break
+		}
+
+		node, err := addFile(n, file, added)
+		if err != nil {
+			return nil, err
+		}
+
+		_, name := path.Split(file.FileName())
+
+		err = tree.AddNodeLink(name, node)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := addDagnode(added, dir.FileName(), tree)
+	if err != nil {
+		return nil, err
+	}
+
+	err = addNode(n, tree)
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
+}
+
+// addDagnode adds dagnode info to an output object
+func addDagnode(output *AddOutput, name string, dn *dag.Node) error {
+	o, err := getOutput(dn)
+	if err != nil {
+		return err
+	}
+
+	output.Objects = append(output.Objects, o)
+	output.Names = append(output.Names, name)
 	return nil
 }

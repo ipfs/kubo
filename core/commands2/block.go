@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"time"
 
@@ -53,10 +52,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 			return nil, err
 		}
 
-		key, ok := req.Arguments()[0].(string)
-		if !ok {
-			return nil, u.ErrCast()
-		}
+		key := req.Arguments()[0]
 
 		if !u.IsValidHash(key) {
 			return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
@@ -97,12 +93,17 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return nil, err
 		}
 
-		in, ok := req.Arguments()[0].(io.Reader)
-		if !ok {
-			return nil, u.ErrCast()
+		file, err := req.Files().NextFile()
+		if err != nil {
+			return nil, err
 		}
 
-		data, err := ioutil.ReadAll(in)
+		data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+
+		err = file.Close()
 		if err != nil {
 			return nil, err
 		}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core/commands2/internal"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 )
 
@@ -42,10 +41,7 @@ it contains, with the following format:
 			return nil, err
 		}
 
-		paths, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			return nil, err
-		}
+		paths := req.Arguments()
 
 		dagnodes := make([]*merkledag.Node, 0)
 		for _, path := range paths {

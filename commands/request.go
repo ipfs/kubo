@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 
@@ -62,13 +61,11 @@ type Request interface {
 	Option(name string) *OptionValue
 	Options() optMap
 	SetOption(name string, val interface{})
-
-	// Arguments() returns user provided arguments as declared on the Command.
-	//
-	// NB: `io.Reader`s returned by Arguments() are owned by the library.
-	// Readers are not guaranteed to remain open after the Command's Run
-	// function returns.
-	Arguments() []interface{} // TODO: make argument value type instead of using interface{}
+	SetOptions(opts map[string]interface{}) error
+	Arguments() []string
+	SetArguments([]string)
+	Files() File
+	SetFiles(File)
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
@@ -80,7 +77,8 @@ type Request interface {
 type request struct {
 	path       []string
 	options    optMap
-	arguments  []interface{}
+	arguments  []string
+	files      File
 	cmd        *Command
 	ctx        Context
 	optionDefs map[string]Option
@@ -147,9 +145,27 @@ func (r *request) SetOption(name string, val interface{}) {
 	r.options[name] = val
 }
 
+// SetOptions sets the option values, unsetting any values that were previously set
+func (r *request) SetOptions(opts map[string]interface{}) error {
+	r.options = opts
+	return r.ConvertOptions()
+}
+
 // Arguments returns the arguments slice
-func (r *request) Arguments() []interface{} {
+func (r *request) Arguments() []string {
 	return r.arguments
+}
+
+func (r *request) SetArguments(args []string) {
+	r.arguments = args
+}
+
+func (r *request) Files() File {
+	return r.files
+}
+
+func (r *request) SetFiles(f File) {
+	r.files = f
 }
 
 func (r *request) Context() *Context {
@@ -165,16 +181,7 @@ func (r *request) Command() *Command {
 }
 
 func (r *request) Cleanup() error {
-	for _, arg := range r.arguments {
-		closer, ok := arg.(io.Closer)
-		if ok {
-			err := closer.Close()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
+	// TODO
 	return nil
 }
 
@@ -253,12 +260,12 @@ func (r *request) ConvertOptions() error {
 
 // NewEmptyRequest initializes an empty request
 func NewEmptyRequest() (Request, error) {
-	return NewRequest(nil, nil, nil, nil, nil)
+	return NewRequest(nil, nil, nil, nil, nil, nil)
 }
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts optMap, args []string, file File, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
@@ -266,13 +273,13 @@ func NewRequest(path []string, opts optMap, args []interface{}, cmd *Command, op
 		opts = make(map[string]interface{})
 	}
 	if args == nil {
-		args = make([]interface{}, 0)
+		args = make([]string, 0)
 	}
 	if optDefs == nil {
 		optDefs = make(map[string]Option)
 	}
 
-	req := &request{path, opts, args, cmd, Context{}, optDefs}
+	req := &request{path, opts, args, file, cmd, Context{}, optDefs}
 	err := req.ConvertOptions()
 	if err != nil {
 		return nil, err

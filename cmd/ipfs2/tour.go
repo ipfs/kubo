@@ -9,7 +9,6 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
-	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	tour "github.com/jbenet/go-ipfs/tour"
 )
 
@@ -43,14 +42,9 @@ func tourRunFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	strs, err := internal.CastToStrings(req.Arguments())
-	if err != nil {
-		return nil, err
-	}
-
 	id := tour.TopicID(cfg.Tour.Last)
-	if len(strs) > 0 {
-		id = tour.TopicID(strs[0])
+	if len(req.Arguments()) > 0 {
+		id = tour.TopicID(req.Arguments()[0])
 	}
 
 	var w bytes.Buffer
