@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	commands "github.com/jbenet/go-ipfs/core/commands2"
+	commands "github.com/jbenet/go-ipfs/core/commands"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.

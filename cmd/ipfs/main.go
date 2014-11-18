@@ -19,7 +19,7 @@ import (
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
-	daemon "github.com/jbenet/go-ipfs/daemon2"
+	daemon "github.com/jbenet/go-ipfs/core/daemon"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"

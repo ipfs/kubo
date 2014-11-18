@@ -10,8 +10,8 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
-	commands "github.com/jbenet/go-ipfs/core/commands2"
-	daemon "github.com/jbenet/go-ipfs/daemon2"
+	commands "github.com/jbenet/go-ipfs/core/commands"
+	daemon "github.com/jbenet/go-ipfs/core/daemon"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 )
