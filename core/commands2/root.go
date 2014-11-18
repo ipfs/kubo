@@ -32,6 +32,7 @@ Tool commands:
     update        Download and apply go-ipfs updates
     version       Show ipfs version information
     commands      List all available commands
+    id            Show info about ipfs peers
 
 Advanced Commands:
 
@@ -77,6 +78,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"update":    UpdateCmd,
 	"object":    objectCmd,
 	"refs":      refsCmd,
+	"id":        idCmd,
 }
 
 func init() {

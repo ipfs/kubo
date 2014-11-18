@@ -10,13 +10,13 @@ import (
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 )
 
-// ipfsVersion holds the current protocol version for a client running this code
-var ipfsVersion *semver.Version
-var clientVersion = "go-ipfs/" + config.CurrentVersionNumber
+// IpfsVersion holds the current protocol version for a client running this code
+var IpfsVersion *semver.Version
+var ClientVersion = "go-ipfs/" + config.CurrentVersionNumber
 
 func init() {
 	var err error
-	ipfsVersion, err = semver.NewVersion("0.0.1")
+	IpfsVersion, err = semver.NewVersion("0.0.1")
 	if err != nil {
 		panic(fmt.Errorf("invalid protocol version: %v", err))
 	}
@@ -24,7 +24,7 @@ func init() {
 
 // Handshake1Msg returns the current protocol version as a protobuf message
 func Handshake1Msg() *pb.Handshake1 {
-	return NewHandshake1(ipfsVersion.String(), clientVersion)
+	return NewHandshake1(IpfsVersion.String(), ClientVersion)
 }
 
 // ErrVersionMismatch is returned when two clients don't share a protocol version
