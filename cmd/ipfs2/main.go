@@ -42,6 +42,7 @@ type cmdInvocation struct {
 	path []string
 	cmd  *cmds.Command
 	req  cmds.Request
+	node *core.IpfsNode
 }
 
 // main roadmap:
@@ -51,8 +52,9 @@ type cmdInvocation struct {
 // - output the response
 // - if anything fails, print error, maybe with help
 func main() {
-	var invoc cmdInvocation
 	var err error
+	var invoc cmdInvocation
+	defer invoc.close()
 
 	// we'll call this local helper to output errors.
 	// this is so we control how to print errors in one place.
@@ -162,6 +164,37 @@ func (i *cmdInvocation) Run() (output io.Reader, err error) {
 	return res.Reader()
 }
 
+func (i *cmdInvocation) constructNode() (*core.IpfsNode, error) {
+	if i.req == nil {
+		return nil, errors.New("constructing node without a request")
+	}
+
+	ctx := i.req.Context()
+	if ctx == nil {
+		return nil, errors.New("constructing node without a request context")
+	}
+
+	cfg, err := ctx.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("constructing node without a config: %s", err)
+	}
+
+	// ok everything is good. set it on the invocation (for ownership)
+	// and return it.
+	i.node, err = core.NewIpfsNode(cfg, false)
+	return i.node, err
+}
+
+func (i *cmdInvocation) close() {
+	// let's not forget teardown. If a node was initialized, we must close it.
+	// Note that this means the underlying req.Context().Node variable is exposed.
+	// this is gross, and should be changed when we extract out the exec Context.
+	if i.node != nil {
+		log.Info("Shutting down node...")
+		i.node.Close()
+	}
+}
+
 func (i *cmdInvocation) Parse(args []string) error {
 	var err error
 
@@ -180,6 +213,9 @@ func (i *cmdInvocation) Parse(args []string) error {
 	ctx := i.req.Context()
 	ctx.ConfigRoot = configPath
 	ctx.LoadConfig = loadConfig
+	// this sets up the function that will initialize the node
+	// this is so that we can construct the node lazily.
+	ctx.ConstructNode = i.constructNode
 
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
@@ -293,29 +329,9 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	} else {
 		log.Info("Executing command locally")
 
-		// this sets up the function that will initialize the node
-		// this is so that we can construct the node lazily.
-		ctx := req.Context()
-
-		ctx.ConstructNode = func() (*core.IpfsNode, error) {
-			cfg, err := ctx.GetConfig()
-			if err != nil {
-				return nil, err
-			}
-			return core.NewIpfsNode(cfg, false)
-		}
-
 		// Okay!!!!! NOW we can call the command.
 		res = root.Call(req)
 
-		// let's not forget teardown. If a node was initialized, we must close it.
-		// Note that this means the underlying req.Context().Node variable is exposed.
-		// this is gross, and should be changed when we extract out the exec Context.
-		node := req.Context().NodeWithoutConstructing()
-		if node != nil {
-			log.Info("Shutting down node...")
-			node.Close()
-		}
 	}
 	return res, nil
 }
