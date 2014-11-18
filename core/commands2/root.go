@@ -79,6 +79,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"object":    objectCmd,
 	"refs":      refsCmd,
 	"id":        idCmd,
+	"swarm":     swarmCmd,
 }
 
 func init() {
