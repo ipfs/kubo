@@ -39,6 +39,18 @@ test_cmp_repeat_10_sec() {
 	test_cmp "$1" "$2"
 }
 
+test_wait_output_n_lines_20_sec() {
+	echo "$2" >expected_waitn
+	for i in 1 2 3 4 5 6 7 8 9 10
+	do
+		cat "$1" | wc -l | tr -d " " >actual_waitn
+		test_cmp "expected_waitn" "actual_waitn" && return
+		sleep 2
+	done
+	cat "$1" | wc -l | tr -d " " >actual_waitn
+	test_cmp "expected_waitn" "actual_waitn"
+}
+
 test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
