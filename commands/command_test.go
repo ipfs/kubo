@@ -68,10 +68,24 @@ func TestOptionValidation(t *testing.T) {
 		t.Error("Should have passed")
 	}
 
-	req, _ = NewRequest(nil, nil, nil, nil, nil, opts)
+	req, _ = NewRequest(nil, nil, nil, nil, &cmd, opts)
 	req.SetOption("b", ":)")
 	res = cmd.Call(req)
 	if res.Error() == nil {
+		t.Error("Should have failed (string value not convertible to int)")
+	}
+
+	err := req.SetOptions(map[string]interface{}{
+		"b": 100,
+	})
+	if err != nil {
+		t.Error("Should have passed")
+	}
+
+	err = req.SetOptions(map[string]interface{}{
+		"b": ":)",
+	})
+	if err == nil {
 		t.Error("Should have failed (string value not convertible to int)")
 	}
 }
