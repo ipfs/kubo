@@ -61,6 +61,7 @@ type Request interface {
 	Option(name string) *OptionValue
 	Options() optMap
 	SetOption(name string, val interface{})
+	SetOptions(opts map[string]interface{}) error
 	Arguments() []string
 	SetArguments([]string)
 	Files() File
@@ -142,6 +143,12 @@ func (r *request) SetOption(name string, val interface{}) {
 	}
 
 	r.options[name] = val
+}
+
+// SetOptions sets the option values, unsetting any values that were previously set
+func (r *request) SetOptions(opts map[string]interface{}) error {
+	r.options = opts
+	return r.ConvertOptions()
 }
 
 // Arguments returns the arguments slice
