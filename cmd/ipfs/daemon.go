@@ -21,6 +21,8 @@ const (
 	mountKwd      = "mount"
 	ipfsMountKwd  = "mount-ipfs"
 	ipnsMountKwd  = "mount-ipns"
+	// apiAddrKwd    = "address-api"
+	// swarmAddrKwd  = "address-swarm"
 )
 
 var daemonCmd = &cmds.Command{
@@ -40,6 +42,10 @@ the daemon.
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
+
+		// TODO: add way to override addresses. tricky part: updating the config if also --init.
+		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
+		// cmds.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
@@ -86,19 +92,16 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	}
 	defer lock.Close()
 
-	// make sure we construct online node.
+	// OK!!! Now we're ready to construct the node.
+	// make sure we construct an online node.
 	ctx.Online = true
 	node, err := ctx.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	addr, err := ma.NewMultiaddr(cfg.Addresses.API)
-	if err != nil {
-		return nil, err
-	}
-
-	_, host, err := manet.DialArgs(addr)
+	// verify api address is valid multiaddr
+	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
 		return nil, err
 	}
@@ -131,21 +134,23 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		}
 	}
 
+	return nil, listenAndServeAPI(node, req, apiMaddr)
+}
+
+func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr) error {
+
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		return err
+	}
+
+	server := manners.NewServer()
 	mux := http.NewServeMux()
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root)
 	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
 	ifpsHandler := &ipfsHandler{node}
 	mux.Handle("/ipfs/", ifpsHandler)
-
-	err = listenAndServe(node, mux, host)
-	return nil, err
-}
-
-func listenAndServe(node *core.IpfsNode, mux *http.ServeMux, host string) error {
-
-	fmt.Printf("API server listening on '%s'\n", host)
-	s := manners.NewServer()
 
 	done := make(chan struct{}, 1)
 	defer func() {
@@ -160,11 +165,12 @@ func listenAndServe(node *core.IpfsNode, mux *http.ServeMux, host string) error 
 			return
 		}
 
-		log.Info("terminating daemon at %s...", host)
-		s.Shutdown <- true
+		log.Info("terminating daemon at %s...", addr)
+		server.Shutdown <- true
 	}()
 
-	if err := s.ListenAndServe(host, mux); err != nil {
+	fmt.Printf("daemon listening on %s\n", addr)
+	if err := server.ListenAndServe(host, mux); err != nil {
 		return err
 	}
 

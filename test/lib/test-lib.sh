@@ -58,7 +58,7 @@ test_launch_ipfs_mount() {
 
 	test_expect_success FUSE "'ipfs daemon' output looks good" '
 		IPFS_PID=$! &&
-		echo "API server listening on '\''127.0.0.1:5001'\''" >expected &&
+		echo "daemon listening on /ip4/127.0.0.1/tcp/5001" >expected &&
 		test_cmp_repeat_10_sec expected actual
 	'
 
