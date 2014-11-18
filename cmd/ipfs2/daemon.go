@@ -59,16 +59,21 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		}
 	}
 
+	// To ensure that IPFS has been initialized, fetch the config. Do this
+	// _before_ acquiring the daemon lock so the user gets an appropriate error
+	// message.
+	// NB: It's safe to read the config without the daemon lock, but not safe
+	// to write.
+	cfg, err := req.Context().GetConfig()
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+
 	lock, err := daemon.Lock(req.Context().ConfigRoot)
 	if err != nil {
 		return nil, debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
 	defer lock.Close()
-
-	cfg, err := req.Context().GetConfig()
-	if err != nil {
-		return nil, err
-	}
 
 	// setup function that constructs the context. we have to do it this way
 	// to play along with how the Context works and thus not expose its internals
