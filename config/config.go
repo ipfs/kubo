@@ -146,7 +146,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 // Load reads given file and returns the read config, or error.
 func Load(filename string) (*Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
+	if !u.FileExists(filename) {
 		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
