@@ -11,4 +11,4 @@ ENTRYPOINT ["ipfs"]
 CMD ["run"]
 
 # build:    docker build -t go-ipfs .
-# run:      docker run -p 4001:4001 -e "IPFS_LOGGING=debug" go-ipfs:latest run
+# run:      docker run -p 4001:4001 -p 5001:5001 go-ipfs:latest daemon --init

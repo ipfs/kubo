@@ -24,7 +24,7 @@ func Example() {
 	v3, _ := mp.Get(k3)
 	fmt.Printf("mp.Get %s -> %s\n", k3, v3)
 	// Output:
-	// ns.Put /beep -> boop
+	// ns.Put /beep boop
 	// ns.Get /beep -> boop
 	// mp.Get /foo/bar/beep -> boop
 }

@@ -2,10 +2,20 @@ package eventlog
 
 import (
 	"io"
+	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/logrus"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
+
+// init sets up sane defaults
+func init() {
+	Configure(TextFormatter)
+	Configure(Output(os.Stderr))
+	// has the effect of disabling logging since we log event entries at Info
+	// level by convention
+	Configure(LevelError)
+}
 
 type Option func()
 
@@ -17,7 +27,7 @@ func Configure(options ...Option) {
 
 // LdJSONFormatter formats the event log as line-delimited JSON
 var LdJSONFormatter = func() {
-	logrus.SetFormatter(&logrus.PoliteJSONFormatter{})
+	logrus.SetFormatter(&PoliteJSONFormatter{})
 }
 
 var TextFormatter = func() {

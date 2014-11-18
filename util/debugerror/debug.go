@@ -1,4 +1,4 @@
-// package debugerror provides a way to augment errors with additional
+// package debugerror provides ways to augment errors with additional
 // information to allow for easier debugging.
 package debugerror
 

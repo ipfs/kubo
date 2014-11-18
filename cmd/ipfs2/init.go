@@ -16,8 +16,10 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
+
+const nBitsForKeypairDefault = 4096
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -53,14 +55,14 @@ var initCmd = &cmds.Command{
 			return nil, err
 		}
 		if !bitsOptFound {
-			nBitsForKeypair = 4096
+			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
 		return doInit(req.Context().ConfigRoot, dspathOverride, force, nBitsForKeypair)
 	},
 }
 
-var errCannotInitConfigExists = errors.New(`ipfs configuration file already exists!
+var errCannotInitConfigExists = debugerror.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
@@ -80,22 +82,22 @@ IPFS and are now interfacing with the ipfs merkledag!
 For a short demo of what you can do, enter 'ipfs tour'
 `
 
-// NB: if dspath is not provided, it will be retrieved from the config
+func initWithDefaults(configRoot string) error {
+	_, err := doInit(configRoot, "", false, nBitsForKeypairDefault)
+	return debugerror.Wrap(err)
+}
+
 func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
 
 	configFilename, err := config.Filename(configRoot)
 	if err != nil {
-		return nil, errors.New("Couldn't get home directory path")
+		return nil, debugerror.New("Couldn't get home directory path")
 	}
 
-	fi, err := os.Lstat(configFilename)
-	if fi != nil || (err != nil && !os.IsNotExist(err)) {
-		if !force {
-			// TODO multi-line string
-			return nil, errCannotInitConfigExists
-		}
+	if u.FileExists(configFilename) && !force {
+		return nil, errCannotInitConfigExists
 	}
 
 	conf, err := initConfig(configFilename, dspathOverride, nBitsForKeypair)
@@ -103,9 +105,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, err
 	}
 
-	err = addTheWelcomeFile(conf, func(k u.Key) {
-		fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
-	})
+	err = addTheWelcomeFile(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 
 // addTheWelcomeFile adds a file containing the welcome message to the newly
 // minted node. On success, it calls onSuccess
-func addTheWelcomeFile(conf *config.Config, onSuccess func(u.Key)) error {
+func addTheWelcomeFile(conf *config.Config) error {
 	// TODO extract this file creation operation into a function
 	nd, err := core.NewIpfsNode(conf, false)
 	if err != nil {
@@ -135,7 +135,7 @@ func addTheWelcomeFile(conf *config.Config, onSuccess func(u.Key)) error {
 	if err != nil {
 		return fmt.Errorf("failed to write test file: %s", err)
 	}
-	onSuccess(k)
+	fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
 	return nil
 }
 
@@ -153,7 +153,7 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 
 	err := initCheckDir(dspath)
 	if err != nil {
-		return ds, errors.Errorf("datastore: %s", err)
+		return ds, debugerror.Errorf("datastore: %s", err)
 	}
 
 	return ds, nil
@@ -165,12 +165,7 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		return nil, err
 	}
 
-	identity, err := identityConfig(nBitsForKeypair, func() {
-		fmt.Printf("generating key pair...")
-	}, func(ident config.Identity) {
-		fmt.Printf("done\n")
-		fmt.Printf("peer identity: %s\n", ident.PeerID)
-	})
+	identity, err := identityConfig(nBitsForKeypair)
 	if err != nil {
 		return nil, err
 	}
@@ -220,21 +215,20 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 	return conf, nil
 }
 
-// identityConfig initializes a new identity. It calls onBegin when it begins
-// to generate the identity and it calls onSuccess once the operation is
-// completed successfully
-func identityConfig(nbits int, onBegin func(), onSuccess func(config.Identity)) (config.Identity, error) {
+// identityConfig initializes a new identity.
+func identityConfig(nbits int) (config.Identity, error) {
 	// TODO guard higher up
 	ident := config.Identity{}
 	if nbits < 1024 {
-		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
+		return ident, debugerror.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	onBegin()
+	fmt.Printf("generating key pair...")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}
+	fmt.Printf("done\n")
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
@@ -249,7 +243,7 @@ func identityConfig(nbits int, onBegin func(), onSuccess func(config.Identity)) 
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	onSuccess(ident)
+	fmt.Printf("peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }
 
@@ -258,13 +252,13 @@ func initLogs(logpath string) (config.Logs, error) {
 		var err error
 		logpath, err = config.LogsPath("")
 		if err != nil {
-			return config.Logs{}, errors.Wrap(err)
+			return config.Logs{}, debugerror.Wrap(err)
 		}
 	}
 
 	err := initCheckDir(logpath)
 	if err != nil {
-		return config.Logs{}, errors.Errorf("logs: %s", err)
+		return config.Logs{}, debugerror.Errorf("logs: %s", err)
 	}
 
 	return config.Logs{
@@ -283,7 +277,7 @@ func initCheckDir(path string) error {
 	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
 		os.Remove(f.Name())
 	} else {
-		return errors.New("'" + path + "' is not writeable")
+		return debugerror.New("'" + path + "' is not writeable")
 	}
 	return nil
 }

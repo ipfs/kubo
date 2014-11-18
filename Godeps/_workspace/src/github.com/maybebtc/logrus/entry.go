@@ -71,14 +71,9 @@ func (entry *Entry) WithFields(fields Fields) *Entry {
 }
 
 func (entry *Entry) log(level Level, msg string) {
-
-	entry.Logger.mu.Lock()
-	if entry.Logger.WriteFields {
-		entry.Time = time.Now()
-		entry.Level = level
-		entry.Message = msg
-	}
-	entry.Logger.mu.Unlock()
+	entry.Time = time.Now()
+	entry.Level = level
+	entry.Message = msg
 
 	if err := entry.Logger.Hooks.Fire(level, entry); err != nil {
 		entry.Logger.mu.Lock()

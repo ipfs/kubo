@@ -10,7 +10,7 @@ test_description="Test init command"
 
 test_expect_success "ipfs init succeeds" '
 	export IPFS_DIR="$(pwd)/.go-ipfs" &&
-	ipfs init
+	ipfs init >actual_init
 '
 
 test_expect_success ".go-ipfs/ has been created" '
@@ -25,5 +25,20 @@ test_expect_success "ipfs config succeeds" '
 	test_cmp expected actual
 '
 
-test_done
+test_expect_success "ipfs peer id looks good" '
+	PEERID=$(ipfs config Identity.PeerID) &&
+	echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual &&
+	echo "46" >expected &&
+	test_cmp expected actual
+'
 
+test_expect_success "ipfs init output looks good" '
+	STARTHASH="QmYpv2VEsxzTTXRYX3PjDg961cnJE3kY1YDXLycHGQ3zZB" &&
+	echo "initializing ipfs node at $IPFS_DIR" >expected &&
+	echo "generating key pair...done" >>expected &&
+	echo "peer identity: $PEERID" >>expected &&
+	echo "\nto get started, enter: ipfs cat $STARTHASH" >>expected &&
+	test_cmp expected actual_init
+'
+
+test_done

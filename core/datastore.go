@@ -1,8 +1,6 @@
 package core
 
 import (
-	"fmt"
-
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	fsds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/fs"
 	ktds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/keytransform"
@@ -12,11 +10,12 @@ import (
 
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
+func makeDatastore(cfg config.Datastore) (u.ThreadSafeDatastoreCloser, error) {
 	if len(cfg.Type) == 0 {
-		return nil, fmt.Errorf("config datastore.type required")
+		return nil, debugerror.Errorf("config datastore.type required")
 	}
 
 	switch cfg.Type {
@@ -24,7 +23,7 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
 		return makeLevelDBDatastore(cfg)
 
 	case "memory":
-		return syncds.MutexWrap(ds.NewMapDatastore()), nil
+		return u.CloserWrap(syncds.MutexWrap(ds.NewMapDatastore())), nil
 
 	case "fs":
 		log.Warning("using fs.Datastore at .datastore for testing.")
@@ -33,19 +32,20 @@ func makeDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
 			return nil, err
 		}
 		ktd := ktds.Wrap(d, u.B58KeyConverter)
-		return syncds.MutexWrap(ktd), nil
+		return u.CloserWrap(syncds.MutexWrap(ktd)), nil
 	}
 
-	return nil, fmt.Errorf("Unknown datastore type: %s", cfg.Type)
+	return nil, debugerror.Errorf("Unknown datastore type: %s", cfg.Type)
 }
 
-func makeLevelDBDatastore(cfg config.Datastore) (ds.ThreadSafeDatastore, error) {
+func makeLevelDBDatastore(cfg config.Datastore) (u.ThreadSafeDatastoreCloser, error) {
 	if len(cfg.Path) == 0 {
-		return nil, fmt.Errorf("config datastore.path required for leveldb")
+		return nil, debugerror.Errorf("config datastore.path required for leveldb")
 	}
 
-	return lds.NewDatastore(cfg.Path, &lds.Options{
+	ds, err := lds.NewDatastore(cfg.Path, &lds.Options{
 		// TODO don't import ldbopts. Get from go-datastore.leveldb
 		Compression: ldbopts.NoCompression,
 	})
+	return ds, debugerror.Wrap(err)
 }

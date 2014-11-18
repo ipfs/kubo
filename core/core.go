@@ -2,12 +2,10 @@ package core
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bserv "github.com/jbenet/go-ipfs/blockservice"
@@ -16,6 +14,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
@@ -27,8 +26,8 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -48,7 +47,7 @@ type IpfsNode struct {
 	Peerstore peer.Peerstore
 
 	// the local datastore
-	Datastore ds.ThreadSafeDatastore
+	Datastore u.ThreadSafeDatastoreCloser
 
 	// the network message stream
 	Network inet.Network
@@ -103,27 +102,27 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	}()
 
 	if cfg == nil {
-		return nil, fmt.Errorf("configuration required")
+		return nil, debugerror.Errorf("configuration required")
 	}
 
 	// derive this from a higher context.
 	ctx := context.TODO()
 	n = &IpfsNode{
-		onlineMode:    online,
-		Config:        cfg,
-		ContextCloser: ctxc.NewContextCloser(ctx, nil),
+		onlineMode: online,
+		Config:     cfg,
 	}
+	n.ContextCloser = ctxc.NewContextCloser(ctx, n.teardown)
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-		return nil, err
+		return nil, debugerror.Wrap(err)
 	}
 
 	// setup peerstore + local peer identity
 	n.Peerstore = peer.NewPeerstore()
 	n.Identity, err = initIdentity(&n.Config.Identity, n.Peerstore, online)
 	if err != nil {
-		return nil, err
+		return nil, debugerror.Wrap(err)
 	}
 
 	// setup online services
@@ -143,12 +142,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// setup the network
 		listenAddrs, err := listenAddresses(cfg)
 		if err != nil {
-			return nil, err
+			return nil, debugerror.Wrap(err)
 		}
 
 		n.Network, err = inet.NewIpfsNetwork(ctx, listenAddrs, n.Identity, n.Peerstore, muxMap)
 		if err != nil {
-			return nil, err
+			return nil, debugerror.Wrap(err)
 		}
 		n.AddCloserChild(n.Network)
 
@@ -177,7 +176,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	// session that simply doesn't return blocks
 	n.Blocks, err = bserv.NewBlockService(n.Datastore, n.Exchange)
 	if err != nil {
-		return nil, err
+		return nil, debugerror.Wrap(err)
 	}
 
 	n.DAG = merkledag.NewDAGService(n.Blocks)
@@ -192,17 +191,24 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	return n, nil
 }
 
+func (n *IpfsNode) teardown() error {
+	if err := n.Datastore.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (n *IpfsNode) OnlineMode() bool {
 	return n.onlineMode
 }
 
 func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer.Peer, error) {
 	if cfg.PeerID == "" {
-		return nil, errors.New("Identity was not set in config (was ipfs init run?)")
+		return nil, debugerror.New("Identity was not set in config (was ipfs init run?)")
 	}
 
 	if len(cfg.PeerID) == 0 {
-		return nil, errors.New("No peer ID in config! (was ipfs init run?)")
+		return nil, debugerror.New("No peer ID in config! (was ipfs init run?)")
 	}
 
 	// get peer from peerstore (so it is constructed there)

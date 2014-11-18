@@ -76,6 +76,16 @@ func (d *cmdDetails) String() string {
 		d.canRunOnClient(), d.canRunOnDaemon(), d.usesRepo())
 }
 
+func (d *cmdDetails) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"canRunOnClient":     d.canRunOnClient(),
+		"canRunOnDaemon":     d.canRunOnDaemon(),
+		"preemptsAutoUpdate": d.preemptsAutoUpdate,
+		"usesConfigAsInput":  d.usesConfigAsInput(),
+		"usesRepo":           d.usesRepo(),
+	}
+}
+
 func (d *cmdDetails) usesConfigAsInput() bool        { return !d.doesNotUseConfigAsInput }
 func (d *cmdDetails) doesNotPreemptAutoUpdate() bool { return !d.preemptsAutoUpdate }
 func (d *cmdDetails) canRunOnClient() bool           { return !d.cannotRunOnClient }
@@ -87,8 +97,11 @@ func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo 
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd:                    cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
-	daemonCmd:                  cmdDetails{cannotRunOnDaemon: true},
+	initCmd: cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+
+	// daemonCmd allows user to initialize the config. Thus, it may be called
+	// without using the config as input
+	daemonCmd:                  cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
 	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
 	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
 	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
