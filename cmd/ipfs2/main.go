@@ -181,7 +181,7 @@ func (i *cmdInvocation) constructNode() (*core.IpfsNode, error) {
 
 	// ok everything is good. set it on the invocation (for ownership)
 	// and return it.
-	i.node, err = core.NewIpfsNode(cfg, false)
+	i.node, err = core.NewIpfsNode(cfg, ctx.Online)
 	return i.node, err
 }
 

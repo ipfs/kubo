@@ -46,12 +46,15 @@ the daemon.
 }
 
 func daemonFunc(req cmds.Request) (interface{}, error) {
-	cfg, err := req.Context().GetConfig()
+	ctx := req.Context()
+	cfg, err := ctx.GetConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	node, err := core.NewIpfsNode(cfg, true)
+	// make sure we construct online node.
+	ctx.Online = true
+	node, err := ctx.GetNode()
 	if err != nil {
 		return nil, err
 	}
