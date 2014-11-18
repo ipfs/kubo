@@ -8,7 +8,7 @@ EXPOSE 4001
 
 ENTRYPOINT ["ipfs"]
 
-CMD ["run"]
+CMD ["daemon", "--init"]
 
 # build:    docker build -t go-ipfs .
 # run:      docker run -p 4001:4001 -p 5001:5001 go-ipfs:latest daemon --init
