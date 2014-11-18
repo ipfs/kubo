@@ -19,4 +19,21 @@ test_launch_ipfs_mount
 
 test_kill_ipfs_mount
 
+test_expect_success "mount directories can be removed" '
+	rmdir ipfs ipns
+'
+
+test_launch_ipfs_daemon
+
+test_expect_failure "'ipfs mount' fails when no mount dir" '
+	test_must_fail ipfs mount >actual
+'
+
+test_expect_failure "'ipfs mount' looks good when it fails" '
+	! grep "IPFS mounted at" actual &&
+	! grep "IPNS mounted at" actual
+'
+
+test_kill_ipfs_mount
+
 test_done

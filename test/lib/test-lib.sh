@@ -51,6 +51,19 @@ test_wait_output_n_lines_60_sec() {
 	test_cmp "expected_waitn" "actual_waitn"
 }
 
+test_launch_ipfs_daemon() {
+
+	test_expect_success FUSE "'ipfs daemon' succeeds" '
+		ipfs daemon >actual &
+	'
+
+	test_expect_success FUSE "'ipfs daemon' output looks good" '
+		IPFS_PID=$! &&
+		echo "daemon listening on /ip4/127.0.0.1/tcp/5001" >expected &&
+		test_cmp_repeat_10_sec expected actual
+	'
+}
+
 test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
@@ -64,15 +77,7 @@ test_launch_ipfs_mount() {
 		ipfs config Mounts.IPNS "$(pwd)/ipns"
 	'
 
-	test_expect_success FUSE "'ipfs daemon' succeeds" '
-		ipfs daemon >actual &
-	'
-
-	test_expect_success FUSE "'ipfs daemon' output looks good" '
-		IPFS_PID=$! &&
-		echo "daemon listening on /ip4/127.0.0.1/tcp/5001" >expected &&
-		test_cmp_repeat_10_sec expected actual
-	'
+	test_launch_ipfs_daemon
 
 	test_expect_success FUSE "'ipfs mount' succeeds" '
 		ipfs mount >actual
