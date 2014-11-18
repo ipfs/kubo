@@ -43,7 +43,7 @@ test_launch_ipfs_mount() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_DIR="$(pwd)/.go-ipfs" &&
-		ipfs init -b=2048
+		ipfs init -b=1024
 	'
 
 	test_expect_success "prepare config" '
