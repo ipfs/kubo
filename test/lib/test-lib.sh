@@ -39,7 +39,7 @@ test_cmp_repeat_10_sec() {
 	test_cmp "$1" "$2"
 }
 
-test_wait_output_n_lines_20_sec() {
+test_wait_output_n_lines_60_sec() {
 	echo "$2" >expected_waitn
 	for i in 1 2 3 4 5 6 7 8 9 10
 	do

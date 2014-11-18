@@ -17,7 +17,7 @@ test_expect_success "ipfs daemon --init launches" '
 # output. but we can't yet compare it because we dont have the peer ID (config)
 test_expect_success "initialization ended" '
   IPFS_PID=$! &&
-  test_wait_output_n_lines_20_sec actual_init 6
+  test_wait_output_n_lines_60_sec actual_init 6
 '
 
 # this is lifted straight from t0020-init.sh
