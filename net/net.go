@@ -2,6 +2,7 @@
 package net
 
 import (
+	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
@@ -97,6 +98,11 @@ func (n *IpfsNetwork) SendMessage(m msg.NetMessage) error {
 // GetPeerList returns the networks list of connected peers
 func (n *IpfsNetwork) GetPeerList() []peer.Peer {
 	return n.swarm.GetPeerList()
+}
+
+// GetConnections returns the networks list of open connections
+func (n *IpfsNetwork) GetConnections() []conn.Conn {
+	return n.swarm.Connections()
 }
 
 // GetBandwidthTotals returns the total amount of bandwidth transferred

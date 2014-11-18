@@ -2,6 +2,7 @@ package net
 
 import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	srv "github.com/jbenet/go-ipfs/net/service"
@@ -33,6 +34,9 @@ type Network interface {
 
 	// GetPeerList returns the list of peers currently connected in this network.
 	GetPeerList() []peer.Peer
+
+	// GetConnections returns the list of connections currently open in this network.
+	GetConnections() []conn.Conn
 
 	// GetBandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated
