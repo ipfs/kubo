@@ -6,7 +6,6 @@ import (
 	"path"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	internal "github.com/jbenet/go-ipfs/core/commands2/internal"
 	peer "github.com/jbenet/go-ipfs/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 
@@ -94,10 +93,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 			return nil, err
 		}
 
-		addrs, err := internal.CastToStrings(req.Arguments())
-		if err != nil {
-			return nil, cmds.ClientError("Improperly formatted peer addresses: " + err.Error())
-		}
+		addrs := req.Arguments()
 
 		if n.Network == nil {
 			return nil, errNotOnline
