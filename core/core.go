@@ -244,7 +244,7 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
 	for _, p := range cfg.Bootstrap {
 		if p.PeerID == "" {
-			log.Errorf("error: peer does not include PeerID. %v", p)
+			log.Criticalf("error: peer does not include PeerID. %v", p)
 		}
 
 		maddr, err := ma.NewMultiaddr(p.Address)
@@ -256,13 +256,13 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		// setup peer
 		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
 		if err != nil {
-			log.Errorf("Bootstrapping error: %v", err)
+			log.Criticalf("Bootstrapping error: %v", err)
 			continue
 		}
 		npeer.AddAddress(maddr)
 
 		if _, err = route.Connect(ctx, npeer); err != nil {
-			log.Errorf("Bootstrapping error: %v", err)
+			log.Criticalf("Bootstrapping error: %v", err)
 		}
 	}
 }
