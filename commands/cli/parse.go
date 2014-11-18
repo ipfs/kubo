@@ -131,15 +131,10 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []cmds.File, error) {
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
-		stat, err := stdin.Stat()
-		if err != nil {
+		if term, err := isTerminal(stdin); err != nil {
 			return nil, nil, err
-		}
-
-		// if stdin isn't a CharDevice, set it to nil
-		// (this means it is coming from terminal and we want to ignore it)
-		if (stat.Mode() & os.ModeCharDevice) != 0 {
-			stdin = nil
+		} else if term {
+			stdin = nil // set to nil so we ignore it
 		}
 	}
 
@@ -169,14 +164,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 	argDefIndex := 0 // the index of the current argument definition
 	for i := 0; i < numInputs; i++ {
-		// get the argument definiton (should be argDefs[argDefIndex],
-		// but if argDefIndex > len(argDefs) we use the last argument definition)
-		var argDef cmds.Argument
-		if argDefIndex < len(argDefs) {
-			argDef = argDefs[argDefIndex]
-		} else if len(argDefs) > 0 {
-			argDef = argDefs[len(argDefs)-1]
-		}
+		argDef := getArgDef(argDefIndex, argDefs)
 
 		// skip optional argument definitions if there aren't sufficient remaining inputs
 		if numInputs-i <= numRequired && !argDef.Required {
@@ -185,64 +173,31 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 			numRequired--
 		}
 
+		var err error
 		if argDef.Type == cmds.ArgString {
 			if stdin == nil {
 				// add string values
-				stringArgs = append(stringArgs, inputs[0])
-				inputs = inputs[1:]
+				stringArgs, inputs = appendString(stringArgs, inputs)
 
 			} else if argDef.SupportsStdin {
 				// if we have a stdin, read it in and use the data as a string value
-				var buf bytes.Buffer
-				_, err := buf.ReadFrom(stdin)
+				stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
 				if err != nil {
 					return nil, nil, err
 				}
-				stringArgs = append(stringArgs, buf.String())
-				stdin = nil
 			}
 
 		} else if argDef.Type == cmds.ArgFile {
 			if stdin == nil {
 				// treat stringArg values as file paths
-				path := inputs[0]
-				inputs = inputs[1:]
-
-				file, err := os.Open(path)
+				fileArgs, inputs, err = appendFile(fileArgs, inputs, argDef, recursive)
 				if err != nil {
 					return nil, nil, err
 				}
-
-				stat, err := file.Stat()
-				if err != nil {
-					return nil, nil, err
-				}
-
-				if stat.IsDir() {
-					if !argDef.Recursive {
-						err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
-							path, argDef.Name)
-						return nil, nil, err
-					}
-					if !recursive {
-						err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
-							path, cmds.RecShort)
-						return nil, nil, err
-					}
-				}
-
-				fileArg, err := getFile(file, path)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				fileArgs = append(fileArgs, fileArg)
 
 			} else if argDef.SupportsStdin {
 				// if we have a stdin, create a file from it
-				fileArg := &cmds.ReaderFile{"", stdin}
-				fileArgs = append(fileArgs, fileArg)
-				stdin = nil
+				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
 			}
 		}
 
@@ -261,8 +216,76 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	return stringArgs, fileArgs, nil
 }
 
+func getArgDef(i int, argDefs []cmds.Argument) *cmds.Argument {
+	if i < len(argDefs) {
+		// get the argument definition (usually just argDefs[i])
+		return &argDefs[i]
+
+	} else if len(argDefs) > 0 {
+		// but if i > len(argDefs) we use the last argument definition)
+		return &argDefs[len(argDefs)-1]
+	}
+
+	// only happens if there aren't any definitions
+	return nil
+}
+
+func appendString(args, inputs []string) ([]string, []string) {
+	return append(args, inputs[0]), inputs[1:]
+}
+
+func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, error) {
+	var buf bytes.Buffer
+
+	_, err := buf.ReadFrom(stdin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(args, buf.String()), nil, nil
+}
+
+func appendFile(args []cmds.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]cmds.File, []string, error) {
+	path := inputs[0]
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if stat.IsDir() {
+		if !argDef.Recursive {
+			err = fmt.Errorf("Invalid path '%s', argument '%s' does not support directories",
+				path, argDef.Name)
+			return nil, nil, err
+		}
+		if !recursive {
+			err = fmt.Errorf("'%s' is a directory, use the '-%s' flag to specify directories",
+				path, cmds.RecShort)
+			return nil, nil, err
+		}
+	}
+
+	arg, err := openPath(file, path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(args, arg), inputs[1:], nil
+}
+
+func appendStdinAsFile(args []cmds.File, stdin *os.File) ([]cmds.File, *os.File) {
+	arg := &cmds.ReaderFile{"", stdin}
+	return append(args, arg), nil
+}
+
 // recursively get file or directory contents as a cmds.File
-func getFile(file *os.File, path string) (cmds.File, error) {
+func openPath(file *os.File, path string) (cmds.File, error) {
 	stat, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -288,7 +311,7 @@ func getFile(file *os.File, path string) (cmds.File, error) {
 			return nil, err
 		}
 
-		f, err := getFile(childFile, childPath)
+		f, err := openPath(childFile, childPath)
 		if err != nil {
 			return nil, err
 		}
@@ -297,4 +320,17 @@ func getFile(file *os.File, path string) (cmds.File, error) {
 	}
 
 	return &cmds.SliceFile{path, files}, nil
+}
+
+// isTerminal returns true if stdin is a Stdin pipe (e.g. `cat file | ipfs`),
+// and false otherwise (e.g. nothing is being piped in, so stdin is
+// coming from the terminal)
+func isTerminal(stdin *os.File) (bool, error) {
+	stat, err := stdin.Stat()
+	if err != nil {
+		return false, err
+	}
+
+	// if stdin is a CharDevice, return true
+	return ((stat.Mode() & os.ModeCharDevice) != 0), nil
 }
