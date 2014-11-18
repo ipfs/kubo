@@ -18,6 +18,9 @@ import (
 
 const (
 	initOptionKwd = "init"
+	mountKwd      = "mount"
+	ipfsMountKwd  = "mount-ipfs"
+	ipnsMountKwd  = "mount-ipns"
 )
 
 var daemonCmd = &cmds.Command{
@@ -34,12 +37,24 @@ the daemon.
 
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
+		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
+		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
+		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
 }
 
 func daemonFunc(req cmds.Request) (interface{}, error) {
+	cfg, err := req.Context().GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := core.NewIpfsNode(cfg, true)
+	if err != nil {
+		return nil, err
+	}
 
 	initialize, _, err := req.Option(initOptionKwd).Bool()
 	if err != nil {
@@ -65,19 +80,10 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	}
 	defer lock.Close()
 
-	cfg, err := req.Context().GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	// setup function that constructs the context. we have to do it this way
 	// to play along with how the Context works and thus not expose its internals
 	req.Context().ConstructNode = func() (*core.IpfsNode, error) {
-		return core.NewIpfsNode(cfg, true)
-	}
-	node, err := req.Context().GetNode()
-	if err != nil {
-		return nil, err
+		return node, nil
 	}
 
 	addr, err := ma.NewMultiaddr(cfg.Addresses.API)
@@ -88,6 +94,34 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
+	}
+
+	// mount if the user provided the --mount flag
+	mount, _, err := req.Option(mountKwd).Bool()
+	if err != nil {
+		return nil, err
+	}
+	if mount {
+		fsdir, found, err := req.Option(ipfsMountKwd).String()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			fsdir = cfg.Mounts.IPFS
+		}
+
+		nsdir, found, err := req.Option(ipnsMountKwd).String()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			nsdir = cfg.Mounts.IPNS
+		}
+
+		err = commands.Mount(node, fsdir, nsdir)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	mux := http.NewServeMux()

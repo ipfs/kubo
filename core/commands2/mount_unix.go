@@ -100,23 +100,9 @@ baz
 			return nil, err
 		}
 
-		// check if we already have live mounts.
-		// if the user said "Mount", then there must be something wrong.
-		// so, close them and try again.
-		if node.Mounts.Ipfs != nil {
-			node.Mounts.Ipfs.Unmount()
-		}
-		if node.Mounts.Ipns != nil {
-			node.Mounts.Ipns.Unmount()
-		}
-
 		// error if we aren't running node in online mode
-		if node.Network == nil {
+		if !node.OnlineMode() {
 			return nil, errNotOnline
-		}
-
-		if err := platformFuseChecks(); err != nil {
-			return nil, err
 		}
 
 		fsdir, found, err := req.Option("f").String()
@@ -136,7 +122,8 @@ baz
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
 		}
 
-		if err := doMount(node, fsdir, nsdir); err != nil {
+		err = Mount(node, fsdir, nsdir)
+		if err != nil {
 			return nil, err
 		}
 
@@ -205,5 +192,28 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 }
 
 var platformFuseChecks = func() error {
+	return nil
+}
+
+func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
+	// check if we already have live mounts.
+	// if the user said "Mount", then there must be something wrong.
+	// so, close them and try again.
+	if node.Mounts.Ipfs != nil {
+		node.Mounts.Ipfs.Unmount()
+	}
+	if node.Mounts.Ipns != nil {
+		node.Mounts.Ipns.Unmount()
+	}
+
+	if err := platformFuseChecks(); err != nil {
+		return err
+	}
+
+	var err error
+	if err = doMount(node, fsdir, nsdir); err != nil {
+		return err
+	}
+
 	return nil
 }
