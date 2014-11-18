@@ -4,7 +4,8 @@ MAINTAINER Brian Tiger Chow <btc@perfmode.com>
 COPY . /go/src/github.com/jbenet/go-ipfs
 RUN cd /go/src/github.com/jbenet/go-ipfs/cmd/ipfs && go install
 
-EXPOSE 4001
+EXPOSE 5001 # API
+EXPOSE 4001 # SWARM
 
 ENTRYPOINT ["ipfs"]
 
