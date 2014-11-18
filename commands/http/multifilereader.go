@@ -6,13 +6,13 @@ import (
 	"io"
 	"mime/multipart"
 	"net/textproto"
+	"sync"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 // MultiFileReader reads from a `commands.File` (which can be a directory of files
 // or a regular file) as HTTP multipart encoded data.
-// WARNING: Not thread-safe!
 type MultiFileReader struct {
 	io.Reader
 
@@ -21,6 +21,7 @@ type MultiFileReader struct {
 	buf         bytes.Buffer
 	mpWriter    *multipart.Writer
 	closed      bool
+	mutex       *sync.Mutex
 
 	// if true, the data will be type 'multipart/form-data'
 	// if false, the data will be type 'multipart/mixed'
@@ -34,6 +35,7 @@ func NewMultiFileReader(file cmds.File, form bool) *MultiFileReader {
 	mfr := &MultiFileReader{
 		files: file,
 		form:  form,
+		mutex: &sync.Mutex{},
 	}
 	mfr.mpWriter = multipart.NewWriter(&mfr.buf)
 
@@ -41,6 +43,9 @@ func NewMultiFileReader(file cmds.File, form bool) *MultiFileReader {
 }
 
 func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
+	mfr.mutex.Lock()
+	defer mfr.mutex.Unlock()
+
 	// if we are closed and the buffer is flushed, end reading
 	if mfr.closed && mfr.buf.Len() == 0 {
 		return 0, io.EOF
