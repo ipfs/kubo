@@ -167,12 +167,7 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		return nil, err
 	}
 
-	identity, err := identityConfig(nBitsForKeypair, func() {
-		fmt.Printf("generating key pair...")
-	}, func(ident config.Identity) {
-		fmt.Printf("done\n")
-		fmt.Printf("peer identity: %s\n", ident.PeerID)
-	})
+	identity, err := identityConfig(nBitsForKeypair)
 	if err != nil {
 		return nil, err
 	}
@@ -222,21 +217,20 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 	return conf, nil
 }
 
-// identityConfig initializes a new identity. It calls onBegin when it begins
-// to generate the identity and it calls onSuccess once the operation is
-// completed successfully
-func identityConfig(nbits int, onBegin func(), onSuccess func(config.Identity)) (config.Identity, error) {
+// identityConfig initializes a new identity.
+func identityConfig(nbits int) (config.Identity, error) {
 	// TODO guard higher up
 	ident := config.Identity{}
 	if nbits < 1024 {
 		return ident, debugerror.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	onBegin()
+	fmt.Printf("generating key pair...")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}
+	fmt.Printf("done\n")
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
@@ -251,7 +245,7 @@ func identityConfig(nbits int, onBegin func(), onSuccess func(config.Identity)) 
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	onSuccess(ident)
+	fmt.Printf("peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }
 
