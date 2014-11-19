@@ -43,7 +43,7 @@ Note: list all refs recursively with -r.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
-		cmds.BoolOption("rec", "R", "Recursively list links of child nodes"),
+		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()

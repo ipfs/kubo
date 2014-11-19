@@ -33,7 +33,7 @@ on disk.
 		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned"),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("R", "Recursively pin the object linked to by the specified object(s)"),
+		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
