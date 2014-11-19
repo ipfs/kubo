@@ -23,10 +23,10 @@ func NewOfflineExchange() exchange.Interface {
 type offlineExchange struct {
 }
 
-// Block returns nil to signal that a block could not be retrieved for the
+// GetBlock returns nil to signal that a block could not be retrieved for the
 // given key.
 // NB: This function may return before the timeout expires.
-func (_ *offlineExchange) Block(context.Context, u.Key) (*blocks.Block, error) {
+func (_ *offlineExchange) GetBlock(context.Context, u.Key) (*blocks.Block, error) {
 	return nil, OfflineMode
 }
 

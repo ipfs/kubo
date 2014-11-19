@@ -85,7 +85,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 		}, nil
 	} else if err == ds.ErrNotFound && s.Remote != nil {
 		log.Debug("Blockservice: Searching bitswap.")
-		blk, err := s.Remote.Block(ctx, k)
+		blk, err := s.Remote.GetBlock(ctx, k)
 		if err != nil {
 			return nil, err
 		}

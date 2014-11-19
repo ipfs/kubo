@@ -44,8 +44,10 @@ func New(ctx context.Context, p peer.Peer,
 		routing:       routing,
 		sender:        network,
 		wantlist:      u.NewKeySet(),
+		blockReq:      make(chan u.Key, 32),
 	}
 	network.SetDelegate(bs)
+	go bs.run(ctx)
 
 	return bs
 }
@@ -65,6 +67,8 @@ type bitswap struct {
 
 	notifications notifications.PubSub
 
+	blockReq chan u.Key
+
 	// strategy listens to network traffic and makes decisions about how to
 	// interact with partners.
 	// TODO(brian): save the strategy's state to the datastore
@@ -77,7 +81,7 @@ type bitswap struct {
 // deadline enforced by the context
 //
 // TODO ensure only one active request per key
-func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error) {
+func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
 	log.Debugf("Get Block %v", k)
 	now := time.Now()
 	defer func() {
@@ -90,42 +94,11 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
 
-	const maxProviders = 20
-	peersToQuery := bs.routing.FindProvidersAsync(ctx, k, maxProviders)
-
-	go func() {
-		message := bsmsg.New()
-		for _, wanted := range bs.wantlist.Keys() {
-			message.AddWanted(wanted)
-		}
-		for peerToQuery := range peersToQuery {
-			log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
-			go func(p peer.Peer) {
-
-				log.Debugf("bitswap dialing peer: %s", p)
-				err := bs.sender.DialPeer(ctx, p)
-				if err != nil {
-					log.Errorf("Error sender.DialPeer(%s)", p)
-					return
-				}
-
-				response, err := bs.sender.SendRequest(ctx, p, message)
-				if err != nil {
-					log.Errorf("Error sender.SendRequest(%s) = %s", p, err)
-					return
-				}
-				// FIXME ensure accounting is handled correctly when
-				// communication fails. May require slightly different API to
-				// get better guarantees. May need shared sequence numbers.
-				bs.strategy.MessageSent(p, message)
-
-				if response == nil {
-					return
-				}
-				bs.ReceiveMessage(ctx, p, response)
-			}(peerToQuery)
-		}
-	}()
+	select {
+	case bs.blockReq <- k:
+	case <-parent.Done():
+		return nil, parent.Err()
+	}
 
 	select {
 	case block := <-promise:
@@ -133,6 +106,96 @@ func (bs *bitswap) Block(parent context.Context, k u.Key) (*blocks.Block, error)
 		return &block, nil
 	case <-parent.Done():
 		return nil, parent.Err()
+	}
+}
+
+func (bs *bitswap) GetBlocks(parent context.Context, ks []u.Key) (*blocks.Block, error) {
+	// TODO: something smart
+	return nil, nil
+}
+
+func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) error {
+	message := bsmsg.New()
+	for _, wanted := range bs.wantlist.Keys() {
+		message.AddWanted(wanted)
+	}
+	for peerToQuery := range peers {
+		log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
+		go func(p peer.Peer) {
+
+			log.Debugf("bitswap dialing peer: %s", p)
+			err := bs.sender.DialPeer(ctx, p)
+			if err != nil {
+				log.Errorf("Error sender.DialPeer(%s)", p)
+				return
+			}
+
+			response, err := bs.sender.SendRequest(ctx, p, message)
+			if err != nil {
+				log.Errorf("Error sender.SendRequest(%s) = %s", p, err)
+				return
+			}
+			// FIXME ensure accounting is handled correctly when
+			// communication fails. May require slightly different API to
+			// get better guarantees. May need shared sequence numbers.
+			bs.strategy.MessageSent(p, message)
+
+			if response == nil {
+				return
+			}
+			bs.ReceiveMessage(ctx, p, response)
+		}(peerToQuery)
+	}
+	return nil
+}
+
+func (bs *bitswap) run(ctx context.Context) {
+	var sendlist <-chan peer.Peer
+
+	// Every so often, we should resend out our current want list
+	rebroadcastTime := time.Second * 5
+
+	// Time to wait before sending out wantlists to better batch up requests
+	bufferTime := time.Millisecond * 3
+	peersPerSend := 6
+
+	timeout := time.After(rebroadcastTime)
+	threshold := 10
+	unsent := 0
+	for {
+		select {
+		case <-timeout:
+			if sendlist == nil {
+				// rely on semi randomness of maps
+				firstKey := bs.wantlist.Keys()[0]
+				sendlist = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
+			}
+			err := bs.sendWantListTo(ctx, sendlist)
+			if err != nil {
+				log.Error("error sending wantlist: %s", err)
+			}
+			sendlist = nil
+			timeout = time.After(rebroadcastTime)
+		case k := <-bs.blockReq:
+			if unsent == 0 {
+				sendlist = bs.routing.FindProvidersAsync(ctx, k, peersPerSend)
+			}
+			unsent++
+
+			if unsent >= threshold {
+				// send wantlist to sendlist
+				bs.sendWantListTo(ctx, sendlist)
+				unsent = 0
+				timeout = time.After(rebroadcastTime)
+				sendlist = nil
+			} else {
+				// set a timeout to wait for more blocks or send current wantlist
+
+				timeout = time.After(bufferTime)
+			}
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
@@ -194,8 +257,8 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 			}
 		}
 	}
-	defer bs.strategy.MessageSent(p, message)
 
+	bs.strategy.MessageSent(p, message)
 	log.Debug("Returning message.")
 	return p, message
 }
