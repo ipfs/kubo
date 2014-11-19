@@ -155,14 +155,14 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 
 func (bs *bitswap) run(ctx context.Context) {
 
+	const batchDelay = time.Millisecond * 3 // Time to wait before sending out wantlists to better batch up requests
+	const numKeysPerBatch = 10
+	const maxProvidersPerRequest = 6
 	const rebroadcastPeriod = time.Second * 5 // Every so often, we should resend out our current want list
-	const batchDelay = time.Millisecond * 3   // Time to wait before sending out wantlists to better batch up requests
-	const peersPerSend = 6
-	const threshold = 10
 
-	var sendlist <-chan peer.Peer // NB: must be initialized to zero value
+	var providers <-chan peer.Peer // NB: must be initialized to zero value
 	broadcastSignal := time.After(rebroadcastPeriod)
-	unsent := 0
+	unsentKeys := 0
 
 	for {
 		select {
@@ -171,32 +171,33 @@ func (bs *bitswap) run(ctx context.Context) {
 			if len(wantlist) == 0 {
 				continue
 			}
-			if sendlist == nil {
+			if providers == nil {
 				// rely on semi randomness of maps
 				firstKey := wantlist[0]
-				sendlist = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
+				providers = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
 			}
-			err := bs.sendWantListTo(ctx, sendlist)
+			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
 			}
-			sendlist = nil
+			providers = nil
 			broadcastSignal = time.After(rebroadcastPeriod)
-		case k := <-bs.blockRequests:
-			if unsent == 0 {
-				sendlist = bs.routing.FindProvidersAsync(ctx, k, peersPerSend)
-			}
-			unsent++
 
-			if unsent >= threshold {
-				// send wantlist to sendlist
-				err := bs.sendWantListTo(ctx, sendlist)
+		case k := <-bs.blockRequests:
+			if unsentKeys == 0 {
+				providers = bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
+			}
+			unsentKeys++
+
+			if unsentKeys >= numKeysPerBatch {
+				// send wantlist to providers
+				err := bs.sendWantListTo(ctx, providers)
 				if err != nil {
 					log.Errorf("error sending wantlist: %s", err)
 				}
-				unsent = 0
+				unsentKeys = 0
 				broadcastSignal = time.After(rebroadcastPeriod)
-				sendlist = nil
+				providers = nil
 			} else {
 				// set a timeout to wait for more blocks or send current wantlist
 
