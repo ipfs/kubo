@@ -63,6 +63,12 @@ func (k *Key) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b58.Encode([]byte(*k)))
 }
 
+func (k *Key) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"key": k.String(),
+	}
+}
+
 // KeyFromDsKey returns a Datastore key
 func KeyFromDsKey(dsk ds.Key) Key {
 	return Key(dsk.BaseNamespace())

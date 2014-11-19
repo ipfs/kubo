@@ -17,9 +17,10 @@ import (
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
-var log = u.Logger("bitswap")
+var log = eventlog.Logger("bitswap")
 
 // New initializes a BitSwap instance that communicates over the
 // provided BitSwapNetwork. This function registers the returned instance as
@@ -80,14 +81,20 @@ type bitswap struct {
 //
 // TODO ensure only one active request per key
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
-	log.Debugf("Get Block %v", k)
-	now := time.Now()
-	defer func() {
-		log.Debugf("GetBlock took %f secs", time.Now().Sub(now).Seconds())
-	}()
+
+	// make sure to derive a new |ctx| and pass it to children. It's correct to
+	// listen on |parent| here, but incorrect to pass |parent| to new async
+	// functions. This is difficult to enforce. May this comment keep you safe.
 
 	ctx, cancelFunc := context.WithCancel(parent)
 	defer cancelFunc()
+
+	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("BitswapGetBlockRequest"))
+	log.Event(ctx, "BitswapGetBlockRequestBegin", &k)
+
+	defer func() {
+		log.Event(ctx, "BitSwapGetBlockRequestEnd", &k)
+	}()
 
 	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
