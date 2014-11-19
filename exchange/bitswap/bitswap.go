@@ -163,9 +163,13 @@ func (bs *bitswap) run(ctx context.Context) {
 	for {
 		select {
 		case <-timeout:
+			wantlist := bs.wantlist.Keys()
+			if len(wantlist) == 0 {
+				continue
+			}
 			if sendlist == nil {
 				// rely on semi randomness of maps
-				firstKey := bs.wantlist.Keys()[0]
+				firstKey := wantlist[0]
 				sendlist = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
 			}
 			err := bs.sendWantListTo(ctx, sendlist)
