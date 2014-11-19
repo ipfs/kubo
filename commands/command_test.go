@@ -9,8 +9,8 @@ func noop(req Request) (interface{}, error) {
 func TestOptionValidation(t *testing.T) {
 	cmd := Command{
 		Options: []Option{
-			Option{[]string{"b", "beep"}, Int, "enables beeper"},
-			Option{[]string{"B", "boop"}, String, "password for booper"},
+			IntOption("b", "beep", "enables beeper"),
+			StringOption("B", "boop", "password for booper"),
 		},
 		Run: noop,
 	}
@@ -93,14 +93,14 @@ func TestOptionValidation(t *testing.T) {
 func TestRegistration(t *testing.T) {
 	cmdA := &Command{
 		Options: []Option{
-			Option{[]string{"beep"}, Int, "number of beeps"},
+			IntOption("beep", "number of beeps"),
 		},
 		Run: noop,
 	}
 
 	cmdB := &Command{
 		Options: []Option{
-			Option{[]string{"beep"}, Int, "number of beeps"},
+			IntOption("beep", "number of beeps"),
 		},
 		Run: noop,
 		Subcommands: map[string]*Command{
@@ -110,7 +110,7 @@ func TestRegistration(t *testing.T) {
 
 	cmdC := &Command{
 		Options: []Option{
-			Option{[]string{"encoding"}, String, "data encoding type"},
+			StringOption("encoding", "data encoding type"),
 		},
 		Run: noop,
 	}

@@ -239,7 +239,7 @@ func optionText(cmd ...*cmds.Command) []string {
 				lines = append(lines, "")
 			}
 
-			names := sortByLength(opt.Names)
+			names := sortByLength(opt.Names())
 			if len(names) >= j+1 {
 				lines[i] += fmt.Sprintf(optionFlag, names[j])
 			}
@@ -262,13 +262,13 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option types to output
 	for i, opt := range options {
-		lines[i] += " " + fmt.Sprintf("%v", opt.Type)
+		lines[i] += " " + fmt.Sprintf("%v", opt.Type())
 	}
 	lines = align(lines)
 
 	// add option descriptions to output
 	for i, opt := range options {
-		lines[i] += " - " + opt.Description
+		lines[i] += " - " + opt.Description()
 	}
 
 	return lines

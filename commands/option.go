@@ -17,14 +17,28 @@ const (
 )
 
 // Option is used to specify a field that will be provided by a consumer
-type Option struct {
-	Names       []string     // a list of unique names to
-	Type        reflect.Kind // value must be this type
-	Description string       // a short string to describe this option
+type Option interface {
+	Names() []string     // a list of unique names matched with user-provided flags
+	Type() reflect.Kind  // value must be this type
+	Description() string // a short string that describes this option
+}
 
-	// MAYBE_TODO: add more features(?):
-	//Default interface{} // the default value (ignored if `Required` is true)
-	//Required bool       // whether or not the option must be provided
+type option struct {
+	names       []string
+	kind        reflect.Kind
+	description string
+}
+
+func (o *option) Names() []string {
+	return o.names
+}
+
+func (o *option) Type() reflect.Kind {
+	return o.kind
+}
+
+func (o *option) Description() string {
+	return o.description
 }
 
 // constructor helper functions
@@ -37,10 +51,10 @@ func NewOption(kind reflect.Kind, names ...string) Option {
 	desc := names[len(names)-1]
 	names = names[:len(names)-1]
 
-	return Option{
-		Names:       names,
-		Type:        kind,
-		Description: desc,
+	return &option{
+		names:       names,
+		kind:        kind,
+		description: desc,
 	}
 }
 
@@ -69,11 +83,17 @@ func StringOption(names ...string) Option {
 type OptionValue struct {
 	value interface{}
 	found bool
+	def   Option
 }
 
 // Found returns true if the option value was provided by the user (not a default value)
 func (ov OptionValue) Found() bool {
 	return ov.found
+}
+
+// Definition returns the option definition for the provided value
+func (ov OptionValue) Definition() Option {
+	return ov.def
 }
 
 // value accessor methods, gets the value as a certain type
@@ -141,9 +161,12 @@ const (
 )
 
 // options that are used by this package
+var OptionEncodingType = StringOption(EncShort, EncLong, "The encoding type the output should be encoded with (json, xml, or text)")
+var OptionRecursivePath = BoolOption(RecShort, RecLong, "Add directory paths recursively")
+
+// global options, added to every command
 var globalOptions = []Option{
-	StringOption(EncShort, EncLong, "The encoding type the output should be encoded with (json, xml, or text)"),
-	BoolOption(RecShort, RecLong, "Add directory paths recursively"),
+	OptionEncodingType,
 }
 
 // the above array of Options, wrapped in a Command

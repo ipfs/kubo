@@ -10,8 +10,19 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type RefsOutput struct {
-	Refs []string
+// KeyList is a general type for outputting lists of keys
+type KeyList struct {
+	Keys []u.Key
+}
+
+// KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
+func KeyListTextMarshaler(res cmds.Response) ([]byte, error) {
+	output := res.Output().(*KeyList)
+	s := ""
+	for _, key := range output.Keys {
+		s += key.B58String() + "\n"
+	}
+	return []byte(s), nil
 }
 
 var refsCmd = &cmds.Command{
@@ -58,26 +69,19 @@ Note: list all refs recursively with -r.
 
 		return getRefs(n, req.Arguments(), unique, recursive)
 	},
-	Type: &RefsOutput{},
+	Type: &KeyList{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			output := res.Output().(*RefsOutput)
-			s := ""
-			for _, ref := range output.Refs {
-				s += fmt.Sprintln(ref)
-			}
-			return []byte(s), nil
-		},
+		cmds.Text: KeyListTextMarshaler,
 	},
 }
 
-func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*RefsOutput, error) {
+func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*KeyList, error) {
 	var refsSeen map[u.Key]bool
 	if unique {
 		refsSeen = make(map[u.Key]bool)
 	}
 
-	refs := make([]string, 0)
+	refs := make([]u.Key, 0)
 
 	for _, path := range paths {
 		object, err := n.Resolver.ResolvePath(path)
@@ -91,10 +95,10 @@ func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*RefsOut
 		}
 	}
 
-	return &RefsOutput{refs}, nil
+	return &KeyList{refs}, nil
 }
 
-func addRefs(n *core.IpfsNode, object *dag.Node, refs []string, refsSeen map[u.Key]bool, recursive bool) ([]string, error) {
+func addRefs(n *core.IpfsNode, object *dag.Node, refs []u.Key, refsSeen map[u.Key]bool, recursive bool) ([]u.Key, error) {
 	for _, link := range object.Links {
 		var found bool
 		found, refs = addRef(link.Hash, refs, refsSeen)
@@ -115,15 +119,16 @@ func addRefs(n *core.IpfsNode, object *dag.Node, refs []string, refsSeen map[u.K
 	return refs, nil
 }
 
-func addRef(h mh.Multihash, refs []string, refsSeen map[u.Key]bool) (bool, []string) {
+func addRef(h mh.Multihash, refs []u.Key, refsSeen map[u.Key]bool) (bool, []u.Key) {
+	key := u.Key(h)
 	if refsSeen != nil {
-		_, found := refsSeen[u.Key(h)]
+		_, found := refsSeen[key]
 		if found {
 			return true, refs
 		}
-		refsSeen[u.Key(h)] = true
+		refsSeen[key] = true
 	}
 
-	refs = append(refs, h.B58String())
+	refs = append(refs, key)
 	return false, refs
 }

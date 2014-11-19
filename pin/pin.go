@@ -33,6 +33,9 @@ type Pinner interface {
 	Unpin(util.Key, bool) error
 	Flush() error
 	GetManual() ManualPinner
+	DirectKeys() []util.Key
+	IndirectKeys() []util.Key
+	RecursiveKeys() []util.Key
 }
 
 // ManualPinner is for manually editing the pin structure
@@ -205,6 +208,21 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
 	p.dstore = d
 
 	return p, nil
+}
+
+// DirectKeys returns a slice containing the directly pinned keys
+func (p *pinner) DirectKeys() []util.Key {
+	return p.directPin.GetKeys()
+}
+
+// IndirectKeys returns a slice containing the indirectly pinned keys
+func (p *pinner) IndirectKeys() []util.Key {
+	return p.indirPin.Set().GetKeys()
+}
+
+// RecursiveKeys returns a slice containing the recursively pinned keys
+func (p *pinner) RecursiveKeys() []util.Key {
+	return p.recursePin.GetKeys()
 }
 
 // Flush encodes and writes pinner keysets to the datastore

@@ -6,6 +6,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var pinCmd = &cmds.Command{
@@ -16,6 +17,7 @@ var pinCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"add": addPinCmd,
 		"rm":  rmPinCmd,
+		"ls":  listPinCmd,
 	},
 }
 
@@ -96,6 +98,68 @@ collected if needed.
 
 		// TODO: create some output to show what got unpinned
 		return nil, nil
+	},
+}
+
+var listPinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List objects pinned to local storage",
+		ShortDescription: `
+Returns a list of hashes of objects being pinned. Objects that are indirectly
+or recursively pinned are not included in the list.
+`,
+		LongDescription: `
+Returns a list of hashes of objects being pinned. Objects that are indirectly
+or recursively pinned are not included in the list.
+
+Use --type=<type> to specify the type of pinned keys to list. Valid values are:
+    * "direct"
+    * "indirect"
+    * "recursive"
+    * "all"
+(Defaults to "direct")
+`,
+	},
+
+	Options: []cmds.Option{
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		typeStr, found, err := req.Option("type").String()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			typeStr = "direct"
+		}
+
+		switch typeStr {
+		case "all", "direct", "indirect", "recursive":
+		default:
+			return nil, cmds.ClientError("Invalid type '" + typeStr + "', must be one of {direct, indirect, recursive, all}")
+		}
+
+		keys := make([]u.Key, 0)
+		if typeStr == "direct" || typeStr == "all" {
+			keys = append(keys, n.Pinning.DirectKeys()...)
+		}
+		if typeStr == "indirect" || typeStr == "all" {
+			keys = append(keys, n.Pinning.IndirectKeys()...)
+		}
+		if typeStr == "recursive" || typeStr == "all" {
+			keys = append(keys, n.Pinning.RecursiveKeys()...)
+		}
+
+		return &KeyList{Keys: keys}, nil
+	},
+	Type: &KeyList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: KeyListTextMarshaler,
 	},
 }
 
