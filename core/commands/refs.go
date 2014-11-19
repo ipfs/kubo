@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -13,13 +12,16 @@ import (
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
-	Keys []string
+	Keys []u.Key
 }
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
 func KeyListTextMarshaler(res cmds.Response) ([]byte, error) {
 	output := res.Output().(*KeyList)
-	s := strings.Join(output.Keys, "\n")
+	s := ""
+	for _, key := range output.Keys {
+		s += key.B58String() + "\n"
+	}
 	return []byte(s), nil
 }
 
@@ -79,7 +81,7 @@ func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*KeyList
 		refsSeen = make(map[u.Key]bool)
 	}
 
-	refs := make([]string, 0)
+	refs := make([]u.Key, 0)
 
 	for _, path := range paths {
 		object, err := n.Resolver.ResolvePath(path)
@@ -96,7 +98,7 @@ func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*KeyList
 	return &KeyList{refs}, nil
 }
 
-func addRefs(n *core.IpfsNode, object *dag.Node, refs []string, refsSeen map[u.Key]bool, recursive bool) ([]string, error) {
+func addRefs(n *core.IpfsNode, object *dag.Node, refs []u.Key, refsSeen map[u.Key]bool, recursive bool) ([]u.Key, error) {
 	for _, link := range object.Links {
 		var found bool
 		found, refs = addRef(link.Hash, refs, refsSeen)
@@ -117,15 +119,16 @@ func addRefs(n *core.IpfsNode, object *dag.Node, refs []string, refsSeen map[u.K
 	return refs, nil
 }
 
-func addRef(h mh.Multihash, refs []string, refsSeen map[u.Key]bool) (bool, []string) {
+func addRef(h mh.Multihash, refs []u.Key, refsSeen map[u.Key]bool) (bool, []u.Key) {
+	key := u.Key(h)
 	if refsSeen != nil {
-		_, found := refsSeen[u.Key(h)]
+		_, found := refsSeen[key]
 		if found {
 			return true, refs
 		}
-		refsSeen[u.Key(h)] = true
+		refsSeen[key] = true
 	}
 
-	refs = append(refs, h.B58String())
+	refs = append(refs, key)
 	return false, refs
 }
