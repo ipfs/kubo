@@ -59,7 +59,7 @@ func (mr *MockRouter) FindProviders(ctx context.Context, key u.Key) ([]peer.Peer
 }
 
 func (mr *MockRouter) FindPeer(ctx context.Context, pid peer.ID) (peer.Peer, error) {
-	log.Debug("FindPeer: %s", pid)
+	log.Debugf("FindPeer: %s", pid)
 	return nil, nil
 }
 
