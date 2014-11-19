@@ -125,10 +125,10 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 		message.AddWanted(wanted)
 	}
 	for peerToQuery := range peers {
-		log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
+		log.Event(ctx, "PeerToQuery", peerToQuery)
 		go func(p peer.Peer) {
 
-			log.Debugf("bitswap dialing peer: %s", p)
+			log.Event(ctx, "DialPeer", p)
 			err := bs.sender.DialPeer(ctx, p)
 			if err != nil {
 				log.Errorf("Error sender.DialPeer(%s)", p)
