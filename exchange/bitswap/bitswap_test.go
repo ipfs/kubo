@@ -152,6 +152,10 @@ func getOrFail(bitswap instance, b *blocks.Block, t *testing.T, wg *sync.WaitGro
 
 // TODO simplify this test. get to the _essence_!
 func TestSendToWantingPeer(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
@@ -167,7 +171,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	alpha := bg.Next()
 
-	const timeout = 1 * time.Millisecond // FIXME don't depend on time
+	const timeout = 100 * time.Millisecond // FIXME don't depend on time
 
 	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer, alpha.Key())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
