@@ -6,7 +6,6 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/merkledag"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var pinCmd = &cmds.Command{
@@ -116,9 +115,14 @@ or recursively pinned are not included in the list.
 			return nil, err
 		}
 
-		return n.Pinning.Set().GetKeys(), nil
+		return &KeyList{
+			Keys: n.Pinning.Set().GetKeys(),
+		}, nil
 	},
-	Type: []u.Key{},
+	Type: &KeyList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: KeyListTextMarshaler,
+	},
 }
 
 func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
