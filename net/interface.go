@@ -42,6 +42,10 @@ type Network interface {
 	// the network since it was instantiated
 	GetBandwidthTotals() (uint64, uint64)
 
+	// GetMessageCounts returns the total number of messages passed through
+	// the network since it was instantiated
+	GetMessageCounts() (uint64, uint64)
+
 	// SendMessage sends given Message out
 	SendMessage(msg.NetMessage) error
 

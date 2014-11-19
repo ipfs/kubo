@@ -155,15 +155,13 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 
 func (bs *bitswap) run(ctx context.Context) {
 
-	const batchDelay = time.Millisecond * 3 // Time to wait before sending out wantlists to better batch up requests
-	const numKeysPerBatch = 10
 	const maxProvidersPerRequest = 6
-	const rebroadcastPeriod = time.Second * 5 // Every so often, we should resend out our current want list
 
 	var providers <-chan peer.Peer // NB: must be initialized to zero value
-	broadcastSignal := time.After(rebroadcastPeriod)
-	unsentKeys := 0
+	broadcastSignal := time.After(bs.strategy.GetRebroadcastDelay())
 
+	// Number of unsent keys for the current batch
+	unsentKeys := 0
 	for {
 		select {
 		case <-broadcastSignal:
@@ -174,14 +172,14 @@ func (bs *bitswap) run(ctx context.Context) {
 			if providers == nil {
 				// rely on semi randomness of maps
 				firstKey := wantlist[0]
-				providers = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
+				providers = bs.routing.FindProvidersAsync(ctx, firstKey, maxProvidersPerRequest)
 			}
 			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
 			}
 			providers = nil
-			broadcastSignal = time.After(rebroadcastPeriod)
+			broadcastSignal = time.After(bs.strategy.GetRebroadcastDelay())
 
 		case k := <-bs.blockRequests:
 			if unsentKeys == 0 {
@@ -189,19 +187,19 @@ func (bs *bitswap) run(ctx context.Context) {
 			}
 			unsentKeys++
 
-			if unsentKeys >= numKeysPerBatch {
+			if unsentKeys >= bs.strategy.GetBatchSize() {
 				// send wantlist to providers
 				err := bs.sendWantListTo(ctx, providers)
 				if err != nil {
 					log.Errorf("error sending wantlist: %s", err)
 				}
 				unsentKeys = 0
-				broadcastSignal = time.After(rebroadcastPeriod)
+				broadcastSignal = time.After(bs.strategy.GetRebroadcastDelay())
 				providers = nil
 			} else {
 				// set a timeout to wait for more blocks or send current wantlist
 
-				broadcastSignal = time.After(batchDelay)
+				broadcastSignal = time.After(bs.strategy.GetBatchDelay())
 			}
 		case <-ctx.Done():
 			return
@@ -221,7 +219,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsmsg.BitSwapMessage) (
 	peer.Peer, bsmsg.BitSwapMessage) {
-	log.Debugf("ReceiveMessage from %v", p.Key())
+	log.Debugf("ReceiveMessage from %s", p)
 	log.Debugf("Message wantlist: %v", incoming.Wantlist())
 
 	if p == nil {
@@ -243,6 +241,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	for _, block := range incoming.Blocks() {
 		// TODO verify blocks?
 		if err := bs.blockstore.Put(&block); err != nil {
+			log.Criticalf("error putting block: %s", err)
 			continue // FIXME(brian): err ignored
 		}
 		bs.notifications.Publish(block)

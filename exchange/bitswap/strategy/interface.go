@@ -1,6 +1,8 @@
 package strategy
 
 import (
+	"time"
+
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -29,4 +31,9 @@ type Strategy interface {
 	NumBytesSentTo(peer.Peer) uint64
 
 	NumBytesReceivedFrom(peer.Peer) uint64
+
+	// Values determining bitswap behavioural patterns
+	GetBatchSize() int
+	GetBatchDelay() time.Duration
+	GetRebroadcastDelay() time.Duration
 }

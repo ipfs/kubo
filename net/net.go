@@ -110,6 +110,11 @@ func (n *IpfsNetwork) GetBandwidthTotals() (in uint64, out uint64) {
 	return n.muxer.GetBandwidthTotals()
 }
 
+// GetBandwidthTotals returns the total amount of messages transferred
+func (n *IpfsNetwork) GetMessageCounts() (in uint64, out uint64) {
+	return n.muxer.GetMessageCounts()
+}
+
 // ListenAddresses returns a list of addresses at which this network listens.
 func (n *IpfsNetwork) ListenAddresses() []ma.Multiaddr {
 	return n.swarm.ListenAddresses()
