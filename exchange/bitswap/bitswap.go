@@ -128,7 +128,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 			log.Event(ctx, "DialPeer", p)
 			err := bs.sender.DialPeer(ctx, p)
 			if err != nil {
-				log.Errorf("Error sender.DialPeer(%s)", p)
+				log.Errorf("Error sender.DialPeer(%s): %s", p, err)
 				return
 			}
 
@@ -153,10 +153,8 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 
 func (bs *bitswap) run(ctx context.Context) {
 
-	const batchDelay = time.Millisecond * 3 // Time to wait before sending out wantlists to better batch up requests
-	const numKeysPerBatch = 10
-	const maxProvidersPerRequest = 6
-	const rebroadcastPeriod = time.Second * 5 // Every so often, we should resend out our current want list
+	// Every so often, we should resend out our current want list
+	rebroadcastTime := time.Second * 5
 
 	var providers <-chan peer.Peer // NB: must be initialized to zero value
 	broadcastSignal := time.After(rebroadcastPeriod)
