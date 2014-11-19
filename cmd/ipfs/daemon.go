@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -23,6 +24,7 @@ const (
 	ipnsMountKwd  = "mount-ipns"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
+	originEnvKey = "API_ORIGIN"
 )
 
 var daemonCmd = &cmds.Command{
@@ -144,9 +146,11 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 		return err
 	}
 
+	origin := os.Getenv(originEnvKey)
+
 	server := manners.NewServer()
 	mux := http.NewServeMux()
-	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root)
+	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
 	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
 	ifpsHandler := &ipfsHandler{node}
