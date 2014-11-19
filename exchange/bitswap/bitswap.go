@@ -43,7 +43,7 @@ func New(ctx context.Context, p peer.Peer,
 		routing:       routing,
 		sender:        network,
 		wantlist:      u.NewKeySet(),
-		blockReq:      make(chan u.Key, 32),
+		blockRequests: make(chan u.Key, 32),
 	}
 	network.SetDelegate(bs)
 	go bs.run(ctx)
@@ -66,7 +66,7 @@ type bitswap struct {
 
 	notifications notifications.PubSub
 
-	blockReq chan u.Key
+	blockRequests chan u.Key
 
 	// strategy listens to network traffic and makes decisions about how to
 	// interact with partners.
@@ -100,7 +100,7 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	promise := bs.notifications.Subscribe(ctx, k)
 
 	select {
-	case bs.blockReq <- k:
+	case bs.blockRequests <- k:
 	case <-parent.Done():
 		return nil, parent.Err()
 	}
@@ -185,7 +185,7 @@ func (bs *bitswap) run(ctx context.Context) {
 			}
 			sendlist = nil
 			timeout = time.After(rebroadcastTime)
-		case k := <-bs.blockReq:
+		case k := <-bs.blockRequests:
 			if unsent == 0 {
 				sendlist = bs.routing.FindProvidersAsync(ctx, k, peersPerSend)
 			}
