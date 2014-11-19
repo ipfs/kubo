@@ -39,6 +39,9 @@ remains to be implemented.
 	Arguments: []cmds.Argument{
 		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS").EnableRecursive(),
 	},
+	Options: []cmds.Option{
+		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
+	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
 		n, err := req.Context().GetNode()
