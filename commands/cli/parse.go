@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	fp "path/filepath"
+	"runtime"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -138,6 +139,11 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 }
 
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []cmds.File, error) {
+	// ignore stdin on Windows
+	if runtime.GOOS == "windows" {
+		stdin = nil
+	}
+
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		if term, err := isTerminal(stdin); err != nil {
