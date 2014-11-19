@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -10,8 +11,16 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type RefsOutput struct {
-	Refs []string
+// KeyList is a general type for outputting lists of keys
+type KeyList struct {
+	Keys []string
+}
+
+// KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
+func KeyListTextMarshaler(res cmds.Response) ([]byte, error) {
+	output := res.Output().(*KeyList)
+	s := strings.Join(output.Keys, "\n")
+	return []byte(s), nil
 }
 
 var refsCmd = &cmds.Command{
@@ -58,20 +67,13 @@ Note: list all refs recursively with -r.
 
 		return getRefs(n, req.Arguments(), unique, recursive)
 	},
-	Type: &RefsOutput{},
+	Type: &KeyList{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
-			output := res.Output().(*RefsOutput)
-			s := ""
-			for _, ref := range output.Refs {
-				s += fmt.Sprintln(ref)
-			}
-			return []byte(s), nil
-		},
+		cmds.Text: KeyListTextMarshaler,
 	},
 }
 
-func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*RefsOutput, error) {
+func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*KeyList, error) {
 	var refsSeen map[u.Key]bool
 	if unique {
 		refsSeen = make(map[u.Key]bool)
@@ -91,7 +93,7 @@ func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*RefsOut
 		}
 	}
 
-	return &RefsOutput{refs}, nil
+	return &KeyList{refs}, nil
 }
 
 func addRefs(n *core.IpfsNode, object *dag.Node, refs []string, refsSeen map[u.Key]bool, recursive bool) ([]string, error) {
