@@ -262,7 +262,7 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option types to output
 	for i, opt := range options {
-		lines[i] += " " + fmt.Sprintf("%v", opt.Type)
+		lines[i] += " " + fmt.Sprintf("%v", opt.Type())
 	}
 	lines = align(lines)
 
