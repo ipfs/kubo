@@ -96,6 +96,11 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 	}
 }
 
+func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) (<-chan blocks.Block, error) {
+	// TODO:
+	return nil, nil
+}
+
 // DeleteBlock deletes a block in the blockservice from the datastore
 func (s *BlockService) DeleteBlock(k u.Key) error {
 	return s.Datastore.Delete(k.DsKey())

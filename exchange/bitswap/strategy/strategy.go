@@ -3,6 +3,7 @@ package strategy
 import (
 	"errors"
 	"sync"
+	"time"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -138,4 +139,16 @@ func (s *strategist) ledger(p peer.Peer) *ledger {
 		s.ledgerMap[peerKey(p.Key())] = l
 	}
 	return l
+}
+
+func (s *strategist) GetBatchSize() int {
+	return 10
+}
+
+func (s *strategist) GetBatchDelay() time.Duration {
+	return time.Millisecond * 3
+}
+
+func (s *strategist) GetRebroadcastDelay() time.Duration {
+	return time.Second * 2
 }
