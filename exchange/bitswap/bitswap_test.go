@@ -345,7 +345,7 @@ func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
 		routing:       htc,
 		sender:        adapter,
 		wantlist:      util.NewKeySet(),
-		blockReq:      make(chan util.Key, 32),
+		blockRequests: make(chan util.Key, 32),
 	}
 	adapter.SetDelegate(bs)
 	go bs.run(context.TODO())

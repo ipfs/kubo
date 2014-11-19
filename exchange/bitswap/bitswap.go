@@ -45,7 +45,7 @@ func New(ctx context.Context, p peer.Peer,
 		routing:       routing,
 		sender:        network,
 		wantlist:      u.NewKeySet(),
-		blockReq:      make(chan u.Key, 32),
+		blockRequests: make(chan u.Key, 32),
 	}
 	network.SetDelegate(bs)
 	go bs.run(ctx)
@@ -68,7 +68,7 @@ type bitswap struct {
 
 	notifications notifications.PubSub
 
-	blockReq chan u.Key
+	blockRequests chan u.Key
 
 	// strategy listens to network traffic and makes decisions about how to
 	// interact with partners.
@@ -91,18 +91,15 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	ctx, cancelFunc := context.WithCancel(parent)
 	defer cancelFunc()
 
-	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("BitswapGetBlockRequest"))
-	log.Event(ctx, "BitswapGetBlockRequestBegin", &k)
-
-	defer func() {
-		log.Event(ctx, "BitSwapGetBlockRequestEnd", &k)
-	}()
+	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("GetBlockRequest"))
+	log.Event(ctx, "GetBlockRequestBegin", &k)
+	defer log.Event(ctx, "GetBlockRequestEnd", &k)
 
 	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
 
 	select {
-	case bs.blockReq <- k:
+	case bs.blockRequests <- k:
 	case <-parent.Done():
 		return nil, parent.Err()
 	}
@@ -127,10 +124,10 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 		message.AddWanted(wanted)
 	}
 	for peerToQuery := range peers {
-		log.Debugf("bitswap got peersToQuery: %s", peerToQuery)
+		log.Event(ctx, "PeerToQuery", peerToQuery)
 		go func(p peer.Peer) {
 
-			log.Debugf("bitswap dialing peer: %s", p)
+			log.Event(ctx, "DialPeer", p)
 			err := bs.sender.DialPeer(ctx, p)
 			if err != nil {
 				log.Errorf("Error sender.DialPeer(%s): %s", p, err)
@@ -157,52 +154,54 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 func (bs *bitswap) run(ctx context.Context) {
-	var sendlist <-chan peer.Peer
 
-	// Every so often, we should resend out our current want list
-	rebroadcastTime := time.Second * 2
+	const batchDelay = time.Millisecond * 3 // Time to wait before sending out wantlists to better batch up requests
+	const numKeysPerBatch = 10
+	const maxProvidersPerRequest = 6
+	const rebroadcastPeriod = time.Second * 5 // Every so often, we should resend out our current want list
 
-	// Time to wait before sending out wantlists to better batch up requests
-	bufferTime := time.Millisecond * 3
-	peersPerSend := 6
+	var providers <-chan peer.Peer // NB: must be initialized to zero value
+	broadcastSignal := time.After(rebroadcastPeriod)
+	unsentKeys := 0
 
-	timeout := time.After(rebroadcastTime)
-	threshold := 10
-	unsent := 0
 	for {
 		select {
-		case <-timeout:
+		case <-broadcastSignal:
 			wantlist := bs.wantlist.Keys()
 			if len(wantlist) == 0 {
 				continue
 			}
-			if sendlist == nil {
+			if providers == nil {
 				// rely on semi randomness of maps
 				firstKey := wantlist[0]
-				sendlist = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
+				providers = bs.routing.FindProvidersAsync(ctx, firstKey, 6)
 			}
-			err := bs.sendWantListTo(ctx, sendlist)
+			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
-				log.Error("error sending wantlist: %s", err)
+				log.Errorf("error sending wantlist: %s", err)
 			}
-			sendlist = nil
-			timeout = time.After(rebroadcastTime)
-		case k := <-bs.blockReq:
-			if unsent == 0 {
-				sendlist = bs.routing.FindProvidersAsync(ctx, k, peersPerSend)
-			}
-			unsent++
+			providers = nil
+			broadcastSignal = time.After(rebroadcastPeriod)
 
-			if unsent >= threshold {
-				// send wantlist to sendlist
-				bs.sendWantListTo(ctx, sendlist)
-				unsent = 0
-				timeout = time.After(rebroadcastTime)
-				sendlist = nil
+		case k := <-bs.blockRequests:
+			if unsentKeys == 0 {
+				providers = bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
+			}
+			unsentKeys++
+
+			if unsentKeys >= numKeysPerBatch {
+				// send wantlist to providers
+				err := bs.sendWantListTo(ctx, providers)
+				if err != nil {
+					log.Errorf("error sending wantlist: %s", err)
+				}
+				unsentKeys = 0
+				broadcastSignal = time.After(rebroadcastPeriod)
+				providers = nil
 			} else {
 				// set a timeout to wait for more blocks or send current wantlist
 
-				timeout = time.After(bufferTime)
+				broadcastSignal = time.After(batchDelay)
 			}
 		case <-ctx.Done():
 			return
