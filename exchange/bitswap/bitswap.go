@@ -117,6 +117,9 @@ func (bs *bitswap) GetBlocks(parent context.Context, ks []u.Key) (*blocks.Block,
 }
 
 func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) error {
+	if peers == nil {
+		panic("Cant send wantlist to nil peerchan")
+	}
 	message := bsmsg.New()
 	for _, wanted := range bs.wantlist.Keys() {
 		message.AddWanted(wanted)
@@ -164,6 +167,7 @@ func (bs *bitswap) run(ctx context.Context) {
 	for {
 		select {
 		case <-broadcastSignal:
+			unsentKeys = 0
 			wantlist := bs.wantlist.Keys()
 			if len(wantlist) == 0 {
 				continue
