@@ -138,8 +138,10 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 			typeStr = "direct"
 		}
 
-		if typeStr != "all" && typeStr != "direct" && typeStr != "indirect" && typeStr != "recursive" {
-			return nil, cmds.ClientError("Invalid type '" + typeStr + "', must be \"direct\", \"indirect\", \"recursive\", or \"all\"")
+		switch typeStr {
+		case "all", "direct", "indirect", "recursive":
+		default:
+			return nil, cmds.ClientError("Invalid type '" + typeStr + "', must be one of {direct, indirect, recursive, all}")
 		}
 
 		keys := make([]u.Key, 0)
