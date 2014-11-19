@@ -160,14 +160,14 @@ func (bs *bitswap) run(ctx context.Context) {
 	var sendlist <-chan peer.Peer
 
 	// Every so often, we should resend out our current want list
-	rebroadcastTime := time.Second * 5
+	const rebroadcastTime = time.Second * 5
 
 	// Time to wait before sending out wantlists to better batch up requests
-	bufferTime := time.Millisecond * 3
+	const bufferTime = time.Millisecond * 3
 	peersPerSend := 6
 
 	timeout := time.After(rebroadcastTime)
-	threshold := 10
+	const threshold = 10
 	unsent := 0
 	for {
 		select {
