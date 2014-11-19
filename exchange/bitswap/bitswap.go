@@ -195,7 +195,10 @@ func (bs *bitswap) run(ctx context.Context) {
 
 			if unsent >= threshold {
 				// send wantlist to sendlist
-				bs.sendWantListTo(ctx, sendlist)
+				err := bs.sendWantListTo(ctx, sendlist)
+				if err != nil {
+					log.Errorf("error sending wantlist: %s", err)
+				}
 				unsent = 0
 				timeout = time.After(rebroadcastTime)
 				sendlist = nil
