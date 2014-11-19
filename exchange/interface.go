@@ -12,8 +12,8 @@ import (
 // exchange protocol.
 type Interface interface {
 
-	// Block returns the block associated with a given key.
-	Block(context.Context, u.Key) (*blocks.Block, error)
+	// GetBlock returns the block associated with a given key.
+	GetBlock(context.Context, u.Key) (*blocks.Block, error)
 
 	// TODO Should callers be concerned with whether the block was made
 	// available on the network?

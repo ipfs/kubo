@@ -11,7 +11,7 @@ import (
 
 func TestBlockReturnsErr(t *testing.T) {
 	off := NewOfflineExchange()
-	_, err := off.Block(context.Background(), u.Key("foo"))
+	_, err := off.GetBlock(context.Background(), u.Key("foo"))
 	if err != nil {
 		return // as desired
 	}

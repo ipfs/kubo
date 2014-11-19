@@ -31,7 +31,7 @@ func TestGetBlockTimeout(t *testing.T) {
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	block := blocks.NewBlock([]byte("block"))
-	_, err := self.exchange.Block(ctx, block.Key())
+	_, err := self.exchange.GetBlock(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
@@ -50,7 +50,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	solo := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	_, err := solo.exchange.Block(ctx, block.Key())
+	_, err := solo.exchange.GetBlock(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
@@ -78,7 +78,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	wantsBlock := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
-	received, err := wantsBlock.exchange.Block(ctx, block.Key())
+	received, err := wantsBlock.exchange.GetBlock(ctx, block.Key())
 	if err != nil {
 		t.Log(err)
 		t.Fatal("Expected to succeed")
@@ -100,7 +100,7 @@ func TestSwarm(t *testing.T) {
 
 	t.Log("Create a ton of instances, and just a few blocks")
 
-	numInstances := 500
+	numInstances := 5
 	numBlocks := 2
 
 	instances := sg.Instances(numInstances)
@@ -142,7 +142,7 @@ func TestSwarm(t *testing.T) {
 
 func getOrFail(bitswap instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
 	if _, err := bitswap.blockstore.Get(b.Key()); err != nil {
-		_, err := bitswap.exchange.Block(context.Background(), b.Key())
+		_, err := bitswap.exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -171,7 +171,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer, alpha.Key())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
-	_, err := w.exchange.Block(ctx, alpha.Key())
+	_, err := w.exchange.GetBlock(ctx, alpha.Key())
 	if err == nil {
 		t.Fatalf("Expected %v to NOT be available", alpha.Key())
 	}
@@ -186,7 +186,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer, beta.Key(), w.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if _, err := me.exchange.Block(ctx, beta.Key()); err != nil {
+	if _, err := me.exchange.GetBlock(ctx, beta.Key()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -199,7 +199,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	t.Logf("%v requests %v\n", me.peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if _, err := me.exchange.Block(ctx, alpha.Key()); err != nil {
+	if _, err := me.exchange.GetBlock(ctx, alpha.Key()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -290,8 +290,10 @@ func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
 		routing:       htc,
 		sender:        adapter,
 		wantlist:      util.NewKeySet(),
+		blockReq:      make(chan util.Key, 32),
 	}
 	adapter.SetDelegate(bs)
+	go bs.run(context.TODO())
 	return instance{
 		peer:       p,
 		exchange:   bs,
