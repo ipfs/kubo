@@ -65,3 +65,7 @@ func (i *indirectPin) Decrement(k util.Key) {
 func (i *indirectPin) HasKey(k util.Key) bool {
 	return i.blockset.HasKey(k)
 }
+
+func (i *indirectPin) Set() set.BlockSet {
+	return i.blockset
+}
