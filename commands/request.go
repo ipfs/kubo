@@ -92,13 +92,6 @@ func (r *request) Path() []string {
 
 // Option returns the value of the option for given name.
 func (r *request) Option(name string) *OptionValue {
-	val, found := r.options[name]
-	if found {
-		return &OptionValue{val, found}
-	}
-
-	// if a value isn't defined for that name, we will try to look it up by its aliases
-
 	// find the option with the specified name
 	option, found := r.optionDefs[name]
 	if !found {
@@ -106,8 +99,8 @@ func (r *request) Option(name string) *OptionValue {
 	}
 
 	// try all the possible names, break if we find a value
-	for _, n := range option.Names {
-		val, found = r.options[n]
+	for _, n := range option.Names() {
+		val, found := r.options[n]
 		if found {
 			return &OptionValue{val, found}
 		}
@@ -135,7 +128,7 @@ func (r *request) SetOption(name string, val interface{}) {
 	}
 
 	// try all the possible names, if we already have a value then set over it
-	for _, n := range option.Names {
+	for _, n := range option.Names() {
 		_, found := r.options[n]
 		if found {
 			r.options[n] = val
@@ -222,9 +215,9 @@ func (r *request) ConvertOptions() error {
 		}
 
 		kind := reflect.TypeOf(v).Kind()
-		if kind != opt.Type {
+		if kind != opt.Type() {
 			if kind == String {
-				convert := converters[opt.Type]
+				convert := converters[opt.Type()]
 				str, ok := v.(string)
 				if !ok {
 					return u.ErrCast()
@@ -236,19 +229,19 @@ func (r *request) ConvertOptions() error {
 						value = "empty value"
 					}
 					return fmt.Errorf("Could not convert %s to type '%s' (for option '-%s')",
-						value, opt.Type.String(), k)
+						value, opt.Type().String(), k)
 				}
 				r.options[k] = val
 
 			} else {
 				return fmt.Errorf("Option '%s' should be type '%s', but got type '%s'",
-					k, opt.Type.String(), kind.String())
+					k, opt.Type().String(), kind.String())
 			}
 		} else {
 			r.options[k] = v
 		}
 
-		for _, name := range opt.Names {
+		for _, name := range opt.Names() {
 			if _, ok := r.options[name]; name != k && ok {
 				return fmt.Errorf("Duplicate command options were provided ('%s' and '%s')",
 					k, name)
