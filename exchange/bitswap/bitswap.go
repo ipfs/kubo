@@ -181,7 +181,7 @@ func (bs *bitswap) run(ctx context.Context) {
 			}
 			err := bs.sendWantListTo(ctx, sendlist)
 			if err != nil {
-				log.Error("error sending wantlist: %s", err)
+				log.Errorf("error sending wantlist: %s", err)
 			}
 			sendlist = nil
 			timeout = time.After(rebroadcastTime)
