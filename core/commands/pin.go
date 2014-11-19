@@ -6,6 +6,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var pinCmd = &cmds.Command{
@@ -16,6 +17,7 @@ var pinCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"add": addPinCmd,
 		"rm":  rmPinCmd,
+		"ls":  listPinCmd,
 	},
 }
 
@@ -97,6 +99,26 @@ collected if needed.
 		// TODO: create some output to show what got unpinned
 		return nil, nil
 	},
+}
+
+var listPinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List objects pinned to local storage",
+		ShortDescription: `
+Returns a list of hashes of objects being pinned. Objects that are indirectly
+or recursively pinned are not included in the list.
+`,
+	},
+
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		return n.Pinning.Set().GetKeys(), nil
+	},
+	Type: []u.Key{},
 }
 
 func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
