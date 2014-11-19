@@ -72,6 +72,8 @@ func (s *strategist) Seed(int64) {
 	// TODO
 }
 
+// MessageReceived performs book-keeping. Returns error if passed invalid
+// arguments.
 func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -91,7 +93,7 @@ func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error 
 		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
 		l.ReceivedBytes(len(block.Data))
 	}
-	return errors.New("TODO")
+	return nil
 }
 
 // TODO add contents of m.WantList() to my local wantlist? NB: could introduce
