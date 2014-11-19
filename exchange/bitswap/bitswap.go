@@ -89,11 +89,11 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	ctx, cancelFunc := context.WithCancel(parent)
 	defer cancelFunc()
 
-	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("BitswapGetBlockRequest"))
-	log.Event(ctx, "BitswapGetBlockRequestBegin", &k)
+	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("GetBlockRequest"))
+	log.Event(ctx, "GetBlockRequestBegin", &k)
 
 	defer func() {
-		log.Event(ctx, "BitSwapGetBlockRequestEnd", &k)
+		log.Event(ctx, "GetBlockRequestEnd", &k)
 	}()
 
 	bs.wantlist.Add(k)
