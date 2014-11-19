@@ -102,12 +102,12 @@ func (r *request) Option(name string) *OptionValue {
 	for _, n := range option.Names() {
 		val, found := r.options[n]
 		if found {
-			return &OptionValue{val, found}
+			return &OptionValue{val, found, option}
 		}
 	}
 
 	// MAYBE_TODO: use default value instead of nil
-	return &OptionValue{nil, false}
+	return &OptionValue{nil, false, option}
 }
 
 // Options returns a copy of the option map

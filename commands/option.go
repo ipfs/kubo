@@ -83,11 +83,17 @@ func StringOption(names ...string) Option {
 type OptionValue struct {
 	value interface{}
 	found bool
+	def   Option
 }
 
 // Found returns true if the option value was provided by the user (not a default value)
 func (ov OptionValue) Found() bool {
 	return ov.found
+}
+
+// Definition returns the option definition for the provided value
+func (ov OptionValue) Definition() Option {
+	return ov.def
 }
 
 // value accessor methods, gets the value as a certain type
