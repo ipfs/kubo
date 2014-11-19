@@ -6,6 +6,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/merkledag"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var pinCmd = &cmds.Command{
@@ -109,15 +110,39 @@ or recursively pinned are not included in the list.
 `,
 	},
 
+	Options: []cmds.Option{
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\""),
+	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
 		if err != nil {
 			return nil, err
 		}
 
-		return &KeyList{
-			Keys: n.Pinning.Set().GetKeys(),
-		}, nil
+		typeStr, found, err := req.Option("type").String()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			typeStr = "all"
+		}
+
+		if typeStr != "all" && typeStr != "direct" && typeStr != "indirect" && typeStr != "recursive" {
+			return nil, cmds.ClientError("Invalid type '" + typeStr + "', must be \"direct\", \"indirect\", \"recursive\", or \"all\"")
+		}
+
+		keys := make([]u.Key, 0)
+		if typeStr == "direct" || typeStr == "all" {
+			keys = append(keys, n.Pinning.DirectKeys()...)
+		}
+		if typeStr == "indirect" || typeStr == "all" {
+			keys = append(keys, n.Pinning.IndirectKeys()...)
+		}
+		if typeStr == "recursive" || typeStr == "all" {
+			keys = append(keys, n.Pinning.RecursiveKeys()...)
+		}
+
+		return &KeyList{Keys: keys}, nil
 	},
 	Type: &KeyList{},
 	Marshalers: cmds.MarshalerMap{
