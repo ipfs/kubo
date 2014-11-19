@@ -93,10 +93,7 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 
 	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("GetBlockRequest"))
 	log.Event(ctx, "GetBlockRequestBegin", &k)
-
-	defer func() {
-		log.Event(ctx, "GetBlockRequestEnd", &k)
-	}()
+	defer log.Event(ctx, "GetBlockRequestEnd", &k)
 
 	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
