@@ -33,6 +33,7 @@ type Pinner interface {
 	Unpin(util.Key, bool) error
 	Flush() error
 	GetManual() ManualPinner
+	Set() set.BlockSet
 }
 
 // ManualPinner is for manually editing the pin structure
@@ -205,6 +206,11 @@ func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
 	p.dstore = d
 
 	return p, nil
+}
+
+// Set returns a blockset of directly pinned keys
+func (p *pinner) Set() set.BlockSet {
+	return p.directPin
 }
 
 // Flush encodes and writes pinner keysets to the datastore
