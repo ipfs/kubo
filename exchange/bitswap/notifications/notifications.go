@@ -8,6 +8,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const bufferSize = 16
+
 type PubSub interface {
 	Publish(block blocks.Block)
 	Subscribe(ctx context.Context, k u.Key) <-chan blocks.Block
@@ -15,7 +17,6 @@ type PubSub interface {
 }
 
 func New() PubSub {
-	const bufferSize = 16
 	return &impl{*pubsub.New(bufferSize)}
 }
 
