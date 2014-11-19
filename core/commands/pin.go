@@ -108,10 +108,21 @@ var listPinCmd = &cmds.Command{
 Returns a list of hashes of objects being pinned. Objects that are indirectly
 or recursively pinned are not included in the list.
 `,
+		LongDescription: `
+Returns a list of hashes of objects being pinned. Objects that are indirectly
+or recursively pinned are not included in the list.
+
+Use --type=<type> to specify the type of pinned keys to list. Valid values are:
+    * "direct"
+    * "indirect"
+    * "recursive"
+    * "all"
+(Defaults to "direct")
+`,
 	},
 
 	Options: []cmds.Option{
-		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\""),
+		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
@@ -124,7 +135,7 @@ or recursively pinned are not included in the list.
 			return nil, err
 		}
 		if !found {
-			typeStr = "all"
+			typeStr = "direct"
 		}
 
 		if typeStr != "all" && typeStr != "direct" && typeStr != "indirect" && typeStr != "recursive" {
