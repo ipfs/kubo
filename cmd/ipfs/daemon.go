@@ -165,7 +165,9 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
 	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
-	ifpsHandler := &ipfsHandler{node}
+	ifpsHandler := &ipfsHandler{node: node}
+	ifpsHandler.LoadTemplate()
+
 	mux.Handle("/ipfs/", ifpsHandler)
 
 	// if the server exits beforehand
