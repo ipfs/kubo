@@ -29,6 +29,7 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 # Please put go-ipfs specific shell functions below
 
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
+test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 
 test_cmp_repeat_10_sec() {
 	for i in 1 2 3 4 5 6 7 8 9 10
@@ -64,7 +65,7 @@ test_launch_ipfs_daemon() {
 	'
 }
 
-test_launch_ipfs_mount() {
+test_launch_ipfs_daemon_and_mount() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_DIR="$(pwd)/.go-ipfs" &&
@@ -100,7 +101,7 @@ test_kill_repeat_10_sec() {
 	! kill -0 $1 2>/dev/null
 }
 
-test_kill_ipfs_mount() {
+test_kill_ipfs_daemon() {
 
 	test_expect_success FUSE "'ipfs daemon' is still running" '
 		kill -0 $IPFS_PID

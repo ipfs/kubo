@@ -8,7 +8,7 @@ test_description="Test add and cat commands"
 
 . lib/test-lib.sh
 
-test_launch_ipfs_mount
+test_launch_ipfs_daemon_and_mount
 
 test_expect_success "ipfs add succeeds" '
 	echo "Hello Worlds!" >mountdir/hello.txt &&
@@ -42,50 +42,84 @@ test_expect_success "go-random is installed" '
 	type random
 '
 
-test_expect_success "generate 100MB file using go-random" '
-	random 104857600 42 >mountdir/bigfile
+test_expect_success "generate 5MB file using go-random" '
+	random 5242880 41 >mountdir/bigfile
 '
 
 test_expect_success "sha1 of the file looks ok" '
+	echo "5620fb92eb5a49c9986b5c6844efda37e471660e  mountdir/bigfile" >sha1_expected &&
+	shasum mountdir/bigfile >sha1_actual &&
+	test_cmp sha1_expected sha1_actual
+'
+
+test_expect_success "'ipfs add bigfile' succeeds" '
+	ipfs add mountdir/bigfile >actual
+'
+
+test_expect_success "'ipfs add bigfile' output looks good" '
+	HASH="Qmf2EnuvFQtpFnMJb5aoVPnMx9naECPSm8AGyktmEB5rrR" &&
+	echo "added $HASH mountdir/bigfile" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs cat' succeeds" '
+	ipfs cat $HASH >actual
+'
+
+test_expect_success "'ipfs cat' output looks good" '
+	test_cmp mountdir/bigfile actual
+'
+
+test_expect_success FUSE "cat ipfs/bigfile succeeds" '
+	cat ipfs/$HASH >actual
+'
+
+test_expect_success FUSE "cat ipfs/bigfile looks good" '
+	test_cmp mountdir/bigfile actual
+'
+
+test_expect_success EXPENSIVE "generate 100MB file using go-random" '
+	random 104857600 42 >mountdir/bigfile
+'
+
+test_expect_success EXPENSIVE "sha1 of the file looks ok" '
 	echo "885b197b01e0f7ff584458dc236cb9477d2e736d  mountdir/bigfile" >sha1_expected &&
 	shasum mountdir/bigfile >sha1_actual &&
 	test_cmp sha1_expected sha1_actual
 '
 
-test_expect_success "ipfs add bigfile succeeds" '
+test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
 	ipfs add mountdir/bigfile >actual
 '
 
-test_expect_success "ipfs add bigfile output looks good" '
+test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
 	HASH="QmWXysX1oysyjTqd5xGM2T1maBaVXnk5svQv4GKo5PsGPo" &&
 	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '
 
-test_expect_success "ipfs cat succeeds" '
+test_expect_success EXPENSIVE "ipfs cat succeeds" '
 	ipfs cat $HASH | shasum >sha1_actual
 '
 
-# this test commented out to run faster.
-# uncomment to produce and examine output
-# test_expect_success "ipfs cat output looks good" '
-#   ipfs cat $HASH >actual &&
-# 	test_cmp mountdir/bigfile actual
-# '
+test_expect_success EXPENSIVE "ipfs cat output looks good" '
+	ipfs cat $HASH >actual &&
+	test_cmp mountdir/bigfile actual
+'
 
-test_expect_success "ipfs cat output shasum looks good" '
+test_expect_success EXPENSIVE "ipfs cat output shasum looks good" '
 	echo "885b197b01e0f7ff584458dc236cb9477d2e736d  -" >sha1_expected &&
 	test_cmp sha1_expected sha1_actual
 '
 
-test_expect_success FUSE "cat ipfs/bigfile succeeds" '
+test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile succeeds" '
 	cat ipfs/$HASH | shasum >sha1_actual
 '
 
-test_expect_success FUSE "cat ipfs/bigfile looks good" '
+test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile looks good" '
 	test_cmp sha1_expected sha1_actual
 '
 
-test_kill_ipfs_mount
+test_kill_ipfs_daemon
 
 test_done

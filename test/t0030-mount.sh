@@ -15,9 +15,9 @@ if ! test_have_prereq FUSE; then
 	test_done
 fi
 
-test_launch_ipfs_mount
+test_launch_ipfs_daemon_and_mount
 
-test_kill_ipfs_mount
+test_kill_ipfs_daemon
 
 test_expect_success "mount directories can be removed" '
 	rmdir ipfs ipns
@@ -34,6 +34,6 @@ test_expect_failure "'ipfs mount' looks good when it fails (issue #341)" '
 	! grep "IPNS mounted at" actual
 '
 
-test_kill_ipfs_mount
+test_kill_ipfs_daemon
 
 test_done
