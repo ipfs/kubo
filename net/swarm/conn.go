@@ -6,6 +6,7 @@ import (
 
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	msg "github.com/jbenet/go-ipfs/net/message"
+	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -95,6 +96,36 @@ func (s *Swarm) handleIncomingConn(nconn conn.Conn) {
 	}
 }
 
+// peerMultiConn returns the MultiConn responsible for handling this peer.
+// if there is none, it creates one and returns it. Note that timeouts
+// and connection teardowns will remove it.
+func (s *Swarm) peerMultiConn(p peer.Peer) (*conn.MultiConn, error) {
+
+	s.connsLock.Lock()
+	mc, found := s.conns[p.Key()]
+	if found {
+		s.connsLock.Unlock()
+		return mc, nil
+	}
+
+	// multiconn doesn't exist, make a new one.
+	mc, err := conn.NewMultiConn(s.Context(), s.local, p, nil)
+	if err != nil {
+		s.connsLock.Unlock()
+		log.Errorf("error creating multiconn: %s", err)
+		return nil, err
+	}
+	s.conns[p.Key()] = mc
+	s.connsLock.Unlock()
+
+	// kick off reader goroutine
+	s.Children().Add(1)
+	mc.Children().Add(1) // child of Conn as well.
+	go s.fanInSingle(mc)
+	log.Debugf("added new multiconn: %s", mc)
+	return mc, nil
+}
+
 // connSetup adds the passed in connection to its peerMap and starts
 // the fanInSingle routine for that connection
 func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
@@ -126,35 +157,14 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	}
 
 	// add to conns
-	s.connsLock.Lock()
-
-	mc, found := s.conns[c.RemotePeer().Key()]
-	if !found {
-		// multiconn doesn't exist, make a new one.
-		conns := []conn.Conn{c}
-		mc, err := conn.NewMultiConn(s.Context(), s.local, c.RemotePeer(), conns)
-		if err != nil {
-			log.Errorf("error creating multiconn: %s", err)
-			c.Close()
-			return nil, err
-		}
-
-		s.conns[c.RemotePeer().Key()] = mc
-		s.connsLock.Unlock()
-
-		// kick off reader goroutine
-		s.Children().Add(1)
-		mc.Children().Add(1) // child of Conn as well.
-		go s.fanInSingle(mc)
-		log.Debugf("added new multiconn: %s", mc)
-	} else {
-		s.connsLock.Unlock() // unlock before adding new conn
-
-		mc.Add(c)
-		log.Debugf("multiconn found: %s", mc)
+	mc, err := s.peerMultiConn(c.RemotePeer())
+	if err != nil {
+		c.Close()
+		return nil, err
 	}
-
+	mc.Add(c)
 	log.Debugf("multiconn added new conn %s", c)
+
 	return c, nil
 }
 
