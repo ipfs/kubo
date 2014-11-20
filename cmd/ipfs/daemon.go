@@ -149,7 +149,9 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root)
 	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
-	ifpsHandler := &ipfsHandler{node}
+	ifpsHandler := &ipfsHandler{node: node}
+	ifpsHandler.LoadTemplate()
+
 	mux.Handle("/ipfs/", ifpsHandler)
 
 	done := make(chan struct{}, 1)

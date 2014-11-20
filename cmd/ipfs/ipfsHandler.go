@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"io"
 	"net/http"
 
@@ -22,10 +23,29 @@ type ipfs interface {
 	NewDagReader(nd *dag.Node) (io.Reader, error)
 }
 
+// shortcut for templating
+type H map[string]interface{}
+
+// struct for directory listing
+type directoryItem struct {
+	Size uint64
+	Name string
+}
+
 // ipfsHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type ipfsHandler struct {
-	node *core.IpfsNode
+	node    *core.IpfsNode
+	dirList *template.Template
+}
+
+// Load the directroy list template
+func (i *ipfsHandler) LoadTemplate() {
+	t, err := template.New("dir").Parse(listingTemplate)
+	if err != nil {
+		log.Error(err)
+	}
+	i.dirList = t
 }
 
 func (i *ipfsHandler) ResolvePath(path string) (*dag.Node, error) {
@@ -63,14 +83,63 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dr, err := i.NewDagReader(nd)
+
 	if err != nil {
-		// TODO: return json object containing the tree data if it's a directory (err == ErrIsDir)
+		if err == uio.ErrIsDir {
+			log.Debug("is directory %s", path)
+
+			if path[len(path)-1:] != "/" {
+				log.Debug("missing trailing slash redirect")
+				http.Redirect(w, r, "/ipfs/"+path+"/", 307)
+				return
+			}
+
+			// storage for directory listing
+			var dirListing []directoryItem
+			// loop through files
+			for _, link := range nd.Links {
+				if link.Name == "index.html" {
+					log.Debug("found index")
+					// return index page
+					nd, err := i.ResolvePath(path + "/index.html")
+					if err != nil {
+						w.WriteHeader(http.StatusInternalServerError)
+						w.Write([]byte(err.Error()))
+						log.Error("%s", err)
+						return
+					}
+					dr, err := i.NewDagReader(nd)
+					if err != nil {
+						w.WriteHeader(http.StatusInternalServerError)
+						w.Write([]byte(err.Error()))
+						log.Error("%s", err)
+						return
+					}
+					// write to request
+					io.Copy(w, dr)
+					return
+				}
+				dirListing = append(dirListing, directoryItem{link.Size, link.Name})
+			}
+			// template and return directory listing
+			//for i, j := range dirListing {
+			//	log.Debug(i, ":", j.Size, " ", j.Name)
+			//}
+			err := i.dirList.Execute(w, H{"listing": dirListing, "path": path})
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				log.Error("%s", err)
+				return
+			}
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Error(err)
 		w.Write([]byte(err.Error()))
 		return
 	}
-
+	// data file
 	io.Copy(w, dr)
 }
 
@@ -95,3 +164,23 @@ func (i *ipfsHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(mh.Multihash(k).B58String()))
 }
+
+// Directory listing template
+var listingTemplate = `
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>{{ .path }}</title>
+	</head>
+	<body>
+	<h2>Index of {{ .path }}</h2>
+	<ul>
+	<li> <a href="./..">Parent</a></li>	
+    {{ range $item := .listing }}
+	 <li> <a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>	
+	{{ end }}
+	</ul>
+	</body>
+</html>
+`
