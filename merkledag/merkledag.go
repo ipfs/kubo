@@ -252,6 +252,7 @@ func (n *dagService) Remove(nd *Node) error {
 // FetchGraph asynchronously fetches all nodes that are children of the given
 // node, and returns a channel that may be waited upon for the fetch to complete
 func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} {
+	log.Warning("Untested.")
 	var wg sync.WaitGroup
 	done := make(chan struct{})
 
@@ -283,4 +284,23 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 	}()
 
 	return done
+}
+
+// Take advantage of blockservice/bitswap batched requests to fetch all
+// child nodes of a given node
+// TODO: finish this
+func (ds *dagService) BatchFetch(ctx context.Context, root *Node) error {
+	var keys []u.Key
+	for _, lnk := range root.Links {
+		keys = append(keys, u.Key(lnk.Hash))
+	}
+
+	blocks, err := ds.Blocks.GetBlocks(keys)
+	if err != nil {
+		return err
+	}
+
+	_ = blocks
+	//what do i do with blocks?
+	return nil
 }
