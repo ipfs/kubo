@@ -177,7 +177,8 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 
 	conf := &config.Config{
 
-		// setup the node addresses.
+		// setup the node's default addresses.
+		// Note: two swarm listen addrs, one tcp, one utp.
 		Addresses: config.Addresses{
 			Swarm: []string{
 				"/ip4/0.0.0.0/tcp/4001",
