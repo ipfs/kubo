@@ -145,10 +145,6 @@ func (s *strategist) GetBatchSize() int {
 	return 10
 }
 
-func (s *strategist) GetBatchDelay() time.Duration {
-	return time.Millisecond * 3
-}
-
 func (s *strategist) GetRebroadcastDelay() time.Duration {
 	return time.Second * 2
 }

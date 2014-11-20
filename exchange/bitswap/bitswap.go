@@ -3,6 +3,7 @@
 package bitswap
 
 import (
+	"math/rand"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -96,7 +97,6 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	log.Event(ctx, "GetBlockRequestBegin", &k)
 	defer log.Event(ctx, "GetBlockRequestEnd", &k)
 
-	bs.wantlist.Add(k)
 	promise := bs.notifications.Subscribe(ctx, k)
 
 	select {
@@ -171,16 +171,21 @@ func (bs *bitswap) run(ctx context.Context) {
 			if len(wantlist) == 0 {
 				continue
 			}
-			providers := bs.routing.FindProvidersAsync(ctx, wantlist[0], maxProvidersPerRequest)
+			n := rand.Intn(len(wantlist))
+			providers := bs.routing.FindProvidersAsync(ctx, wantlist[n], maxProvidersPerRequest)
 
 			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
 			}
 		case ks := <-bs.batchRequests:
+			// TODO: implement batching on len(ks) > X for some X
 			if len(ks) == 0 {
 				log.Warning("Received batch request for zero blocks")
 				continue
+			}
+			for _, k := range ks {
+				bs.wantlist.Add(k)
 			}
 			providers := bs.routing.FindProvidersAsync(ctx, ks[0], maxProvidersPerRequest)
 
