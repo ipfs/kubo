@@ -5,7 +5,6 @@ package swarm
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	conn "github.com/jbenet/go-ipfs/net/conn"
@@ -131,16 +130,6 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 	d := &conn.Dialer{
 		LocalPeer: s.local,
 		Peerstore: s.peers,
-	}
-
-	// If we are attempting to connect to the zero addr, fail out early
-	raddr := peer.NetAddress("tcp")
-	if raddr == nil {
-		return nil, fmt.Errorf("No remote address for network tcp")
-	}
-
-	if strings.HasPrefix(raddr.String(), "/ip4/0.0.0.0") {
-		return nil, fmt.Errorf("Attempted to connect to loopback address: %s", raddr)
 	}
 
 	c, err = d.Dial(s.Context(), "tcp", peer)

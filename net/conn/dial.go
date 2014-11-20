@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"strings"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -21,6 +22,10 @@ func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Co
 	raddr := remote.NetAddress(network)
 	if raddr == nil {
 		return nil, fmt.Errorf("No remote address for network %s", network)
+	}
+
+	if strings.HasPrefix(raddr.String(), "/ip4/0.0.0.0") {
+		return nil, fmt.Errorf("Attempted to connect to zero address: %s", raddr)
 	}
 
 	remote.SetType(peer.Remote)
