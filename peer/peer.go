@@ -209,6 +209,10 @@ func (p *peer) Addresses() []ma.Multiaddr {
 // AddAddress adds the given Multiaddr address to Peer's addresses.
 // Returns whether this address was a newly added address
 func (p *peer) AddAddress(a ma.Multiaddr) bool {
+	if a == nil {
+		panic("adding a nil Multiaddr")
+	}
+
 	p.Lock()
 	defer p.Unlock()
 

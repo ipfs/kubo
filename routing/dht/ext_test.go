@@ -125,10 +125,10 @@ func TestGetFailures(t *testing.T) {
 	fs := &fauxSender{}
 
 	peerstore := peer.NewPeerstore()
-	local := makePeer(nil)
+	local := makePeerString(t, "")
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
-	other := makePeer(nil)
+	other := makePeerString(t, "")
 	d.Update(ctx, other)
 
 	// This one should time out
@@ -223,7 +223,7 @@ func TestNotFound(t *testing.T) {
 	fn := &fauxNet{}
 	fs := &fauxSender{}
 
-	local := makePeer(nil)
+	local := makePeerString(t, "")
 	peerstore := peer.NewPeerstore()
 	peerstore.Add(local)
 
@@ -289,7 +289,7 @@ func TestLessThanKResponses(t *testing.T) {
 	u.Debug = false
 	fn := &fauxNet{}
 	fs := &fauxSender{}
-	local := makePeer(nil)
+	local := makePeerString(t, "")
 	peerstore := peer.NewPeerstore()
 	peerstore.Add(local)
 

@@ -64,6 +64,14 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	return addrs, peers, dhts
 }
 
+func makePeerString(t *testing.T, addr string) peer.Peer {
+	maddr, err := ma.NewMultiaddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return makePeer(maddr)
+}
+
 func makePeer(addr ma.Multiaddr) peer.Peer {
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
