@@ -295,7 +295,7 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) error {
 		keys = append(keys, u.Key(lnk.Hash))
 	}
 
-	blocks, err := ds.Blocks.GetBlocks(keys)
+	blocks, err := ds.Blocks.GetBlocks(ctx, keys)
 	if err != nil {
 		return err
 	}
