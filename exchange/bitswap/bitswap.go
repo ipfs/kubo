@@ -170,6 +170,7 @@ func (bs *bitswap) run(ctx context.Context) {
 	rebroadcastTime := time.Second * 5
 
 	broadcastSignal := time.NewTicker(bs.strategy.GetRebroadcastDelay())
+	defer broadcastSignal.Stop()
 
 	for {
 		select {
