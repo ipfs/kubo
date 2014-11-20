@@ -11,14 +11,12 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	blockstore "github.com/jbenet/go-ipfs/blockstore"
 	bstore "github.com/jbenet/go-ipfs/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
-	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
-	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
-	util "github.com/jbenet/go-ipfs/util"
 )
 
 func TestGetBlockTimeout(t *testing.T) {
@@ -335,23 +333,16 @@ func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
 
 	adapter := net.Adapter(p)
 	htc := rs.Client(p)
+	bstore := blockstore.NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 
-	blockstore := bstore.NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
 	const alwaysSendToPeer = true
-	bs := &bitswap{
-		blockstore:    blockstore,
-		notifications: notifications.New(),
-		strategy:      strategy.New(alwaysSendToPeer),
-		routing:       htc,
-		sender:        adapter,
-		wantlist:      util.NewKeySet(),
-		batchRequests: make(chan []util.Key, 32),
-	}
-	adapter.SetDelegate(bs)
-	go bs.run(context.TODO())
+	ctx := context.TODO()
+
+	bs := New(ctx, p, adapter, htc, bstore, alwaysSendToPeer)
+
 	return instance{
 		peer:       p,
 		exchange:   bs,
-		blockstore: blockstore,
+		blockstore: bstore,
 	}
 }

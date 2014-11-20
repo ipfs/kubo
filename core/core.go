@@ -9,6 +9,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bserv "github.com/jbenet/go-ipfs/blockservice"
+	blockstore "github.com/jbenet/go-ipfs/blockstore"
 	config "github.com/jbenet/go-ipfs/config"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
@@ -28,8 +29,7 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
-	"github.com/jbenet/go-ipfs/util/debugerror"
-	"github.com/jbenet/go-ipfs/util/eventlog"
+	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -169,7 +169,9 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
 		bitswapNetwork := bsnet.NewFromIpfsNetwork(exchangeService, n.Network)
-		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, n.Datastore, alwaysSendToPeer)
+		bstore := blockstore.NewBlockstore(n.Datastore)
+
+		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, bstore, alwaysSendToPeer)
 
 		go initConnections(ctx, n.Config, n.Peerstore, dhtRouting)
 	}

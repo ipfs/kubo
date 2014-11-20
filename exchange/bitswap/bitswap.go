@@ -7,7 +7,6 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blockstore"
@@ -27,9 +26,8 @@ var log = eventlog.Logger("bitswap")
 // provided BitSwapNetwork. This function registers the returned instance as
 // the network delegate.
 // Runs until context is cancelled
-func New(ctx context.Context, p peer.Peer,
-	network bsnet.BitSwapNetwork, routing bsnet.Routing,
-	d ds.ThreadSafeDatastore, nice bool) exchange.Interface {
+func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
+	bstore blockstore.Blockstore, nice bool) exchange.Interface {
 
 	notif := notifications.New()
 	go func() {
@@ -38,7 +36,7 @@ func New(ctx context.Context, p peer.Peer,
 	}()
 
 	bs := &bitswap{
-		blockstore:    blockstore.NewBlockstore(d),
+		blockstore:    bstore,
 		notifications: notif,
 		strategy:      strategy.New(nice),
 		routing:       routing,
