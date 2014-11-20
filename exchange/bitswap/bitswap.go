@@ -79,9 +79,7 @@ type bitswap struct {
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
-// deadline enforced by the context
-//
-// TODO ensure only one active request per key
+// deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
 
 	// make sure to derive a new |ctx| and pass it to children. It's correct to
@@ -95,26 +93,36 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	log.Event(ctx, "GetBlockRequestBegin", &k)
 	defer log.Event(ctx, "GetBlockRequestEnd", &k)
 
-	promise := bs.notifications.Subscribe(ctx, k)
-
-	select {
-	case bs.batchRequests <- []u.Key{k}:
-	case <-parent.Done():
-		return nil, parent.Err()
+	promise, err := bs.GetBlocks(parent, []u.Key{k})
+	if err != nil {
+		return nil, err
 	}
 
 	select {
 	case block := <-promise:
-		bs.wantlist.Remove(k)
 		return &block, nil
 	case <-parent.Done():
 		return nil, parent.Err()
 	}
 }
 
-func (bs *bitswap) GetBlocks(parent context.Context, ks []u.Key) (*blocks.Block, error) {
-	// TODO: something smart
-	return nil, nil
+// GetBlocks returns a channel where the caller may receive blocks that
+// correspond to the provided |keys|. Returns an error if BitSwap is unable to
+// begin this request within the deadline enforced by the context.
+//
+// NB: Your request remains open until the context expires. To conserve
+// resources, provide a context with a reasonably short deadline (ie. not one
+// that lasts throughout the lifetime of the server)
+func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan blocks.Block, error) {
+	// TODO log the request
+
+	promise := bs.notifications.Subscribe(ctx, keys...)
+	select {
+	case bs.batchRequests <- keys:
+		return promise, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) error {
@@ -155,6 +163,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 	return nil
 }
 
+// TODO ensure only one active request per key
 func (bs *bitswap) run(ctx context.Context) {
 
 	// Every so often, we should resend out our current want list
@@ -238,6 +247,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 			continue // FIXME(brian): err ignored
 		}
 		bs.notifications.Publish(block)
+		bs.wantlist.Remove(block.Key())
 		err := bs.HasBlock(ctx, block)
 		if err != nil {
 			log.Warningf("HasBlock errored: %s", err)
