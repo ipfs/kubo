@@ -42,6 +42,42 @@ test_expect_success "go-random is installed" '
 	type random
 '
 
+test_expect_success "generate 5MB file using go-random" '
+	random 5242880 41 >mountdir/bigfile
+'
+
+test_expect_success "sha1 of the file looks ok" '
+	echo "5620fb92eb5a49c9986b5c6844efda37e471660e  mountdir/bigfile" >sha1_expected &&
+	shasum mountdir/bigfile >sha1_actual &&
+	test_cmp sha1_expected sha1_actual
+'
+
+test_expect_success "'ipfs add bigfile' succeeds" '
+	ipfs add mountdir/bigfile >actual
+'
+
+test_expect_success "'ipfs add bigfile' output looks good" '
+	HASH="Qmf2EnuvFQtpFnMJb5aoVPnMx9naECPSm8AGyktmEB5rrR" &&
+	echo "added $HASH mountdir/bigfile" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs cat' succeeds" '
+	ipfs cat $HASH >actual
+'
+
+test_expect_success "'ipfs cat' output looks good" '
+	test_cmp mountdir/bigfile actual
+'
+
+test_expect_success FUSE "cat ipfs/bigfile succeeds" '
+	cat ipfs/$HASH >actual
+'
+
+test_expect_success FUSE "cat ipfs/bigfile looks good" '
+	test_cmp mountdir/bigfile actual
+'
+
 test_expect_success EXPENSIVE "generate 100MB file using go-random" '
 	random 104857600 42 >mountdir/bigfile
 '
