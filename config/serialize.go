@@ -17,7 +17,10 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 	}
 	defer f.Close()
 
-	return Decode(f, cfg)
+	if err := Decode(f, cfg); err != nil {
+		return fmt.Errorf("Failure to decode config: %s", err)
+	}
+	return nil
 }
 
 // WriteConfigFile writes the config from `cfg` into `filename`.
