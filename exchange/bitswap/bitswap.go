@@ -171,6 +171,7 @@ func (bs *bitswap) run(ctx context.Context) {
 	const maxProvidersPerRequest = 6
 
 	broadcastSignal := time.NewTicker(bs.strategy.GetRebroadcastDelay())
+	defer broadcastSignal.Stop()
 
 	for {
 		select {
