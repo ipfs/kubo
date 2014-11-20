@@ -179,6 +179,9 @@ func (bs *bitswap) run(ctx context.Context) {
 			}
 		case ks := <-bs.batchRequests:
 			// TODO: implement batching on len(ks) > X for some X
+			for _, k := range ks {
+				bs.wantlist.Add(k)
+			}
 			if len(ks) == 0 {
 				log.Warning("Received batch request for zero blocks")
 				continue
