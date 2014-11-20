@@ -100,7 +100,7 @@ test_kill_repeat_10_sec() {
 	! kill -0 $1 2>/dev/null
 }
 
-test_kill_ipfs_mount() {
+test_kill_ipfs_daemon() {
 
 	test_expect_success FUSE "'ipfs daemon' is still running" '
 		kill -0 $IPFS_PID

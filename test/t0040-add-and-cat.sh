@@ -86,6 +86,6 @@ test_expect_success FUSE "cat ipfs/bigfile looks good" '
 	test_cmp sha1_expected sha1_actual
 '
 
-test_kill_ipfs_mount
+test_kill_ipfs_daemon
 
 test_done
