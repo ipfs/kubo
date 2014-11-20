@@ -34,6 +34,5 @@ type Strategy interface {
 
 	// Values determining bitswap behavioural patterns
 	GetBatchSize() int
-	GetBatchDelay() time.Duration
 	GetRebroadcastDelay() time.Duration
 }
