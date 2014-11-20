@@ -17,7 +17,7 @@ func TestInitialization(t *testing.T) {
 				Type: "memory",
 			},
 			Addresses: config.Addresses{
-				Swarm: "/ip4/0.0.0.0/tcp/4001",
+				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
 				API:   "/ip4/127.0.0.1/tcp/8000",
 			},
 		},
@@ -29,7 +29,7 @@ func TestInitialization(t *testing.T) {
 				Path: ".testdb",
 			},
 			Addresses: config.Addresses{
-				Swarm: "/ip4/0.0.0.0/tcp/4001",
+				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
 				API:   "/ip4/127.0.0.1/tcp/8000",
 			},
 		},

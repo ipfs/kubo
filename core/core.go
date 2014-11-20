@@ -268,15 +268,15 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 }
 
 func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
-	var listen []ma.Multiaddr
 
-	if len(cfg.Addresses.Swarm) > 0 {
-		maddr, err := ma.NewMultiaddr(cfg.Addresses.Swarm)
+	var err error
+	listen := make([]ma.Multiaddr, len(cfg.Addresses.Swarm))
+	for i, addr := range cfg.Addresses.Swarm {
+
+		listen[i], err = ma.NewMultiaddr(addr)
 		if err != nil {
-			return nil, fmt.Errorf("Failure to parse config.Addresses.Swarm: %s", cfg.Addresses.Swarm)
+			return nil, fmt.Errorf("Failure to parse config.Addresses.Swarm[%d]: %s", i, cfg.Addresses.Swarm)
 		}
-
-		listen = append(listen, maddr)
 	}
 
 	return listen, nil

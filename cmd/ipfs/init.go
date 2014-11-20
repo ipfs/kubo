@@ -179,8 +179,11 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 
 		// setup the node addresses.
 		Addresses: config.Addresses{
-			Swarm: "/ip4/0.0.0.0/tcp/4001",
-			API:   "/ip4/127.0.0.1/tcp/5001",
+			Swarm: []string{
+				"/ip4/0.0.0.0/tcp/4001",
+				"/ip4/0.0.0.0/udp/4002/utp",
+			},
+			API: "/ip4/127.0.0.1/tcp/5001",
 		},
 
 		Bootstrap: []*config.BootstrapPeer{
