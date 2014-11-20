@@ -29,6 +29,7 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 # Please put go-ipfs specific shell functions below
 
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
+test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 
 test_cmp_repeat_10_sec() {
 	for i in 1 2 3 4 5 6 7 8 9 10
