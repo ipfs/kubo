@@ -6,7 +6,7 @@ import (
 
 	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"

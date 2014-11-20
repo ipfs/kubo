@@ -67,14 +67,15 @@ func (m *multiaddr) Protocols() []*Protocol {
 	ps := []*Protocol{}
 	b := m.bytes[:]
 	for len(b) > 0 {
-		p := ProtocolWithCode(int(b[0]))
+		code, n := ReadVarintCode(b)
+		p := ProtocolWithCode(code)
 		if p == nil {
 			// this is a panic (and not returning err) because this should've been
 			// caught on constructing the Multiaddr
 			panic(fmt.Errorf("no protocol with code %d", b[0]))
 		}
 		ps = append(ps, p)
-		b = b[1+(p.Size/8):]
+		b = b[n+(p.Size/8):]
 	}
 	return ps
 }

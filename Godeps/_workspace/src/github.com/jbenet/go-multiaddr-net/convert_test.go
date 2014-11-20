@@ -4,6 +4,7 @@ import (
 	"net"
 	"testing"
 
+	utp "github.com/h2so5/utp"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -88,17 +89,31 @@ func TestFromUDP(t *testing.T) {
 	})
 }
 
+func TestFromUTP(t *testing.T) {
+	testConvert(t, "/ip4/10.20.30.40/udp/1234/utp", func() (ma.Multiaddr, error) {
+		return FromNetAddr(&utp.UTPAddr{
+			Addr: &net.UDPAddr{
+				IP:   net.ParseIP("10.20.30.40"),
+				Port: 1234,
+			},
+		})
+	})
+}
+
 func TestThinWaist(t *testing.T) {
 	addrs := map[string]bool{
 		"/ip4/127.0.0.1/udp/1234":              true,
 		"/ip4/127.0.0.1/tcp/1234":              true,
+		"/ip4/127.0.0.1/udp/1234/utp":          true,
 		"/ip4/127.0.0.1/udp/1234/tcp/1234":     true,
 		"/ip4/127.0.0.1/tcp/12345/ip4/1.2.3.4": true,
 		"/ip6/::1/tcp/80":                      true,
 		"/ip6/::1/udp/80":                      true,
 		"/ip6/::1":                             true,
+		"/ip6/::1/utp":                         false,
 		"/tcp/1234/ip4/1.2.3.4":                false,
 		"/tcp/1234":                            false,
+		"/tcp/1234/utp":                        false,
 		"/tcp/1234/udp/1234":                   false,
 		"/ip4/1.2.3.4/ip4/2.3.4.5":             true,
 		"/ip6/::1/ip4/2.3.4.5":                 true,
@@ -117,21 +132,27 @@ func TestThinWaist(t *testing.T) {
 }
 
 func TestDialArgs(t *testing.T) {
-	m, err := ma.NewMultiaddr("/ip4/127.0.0.1/udp/1234")
-	if err != nil {
-		t.Fatal("failed to construct", "/ip4/127.0.0.1/udp/1234")
+	test := func(e_maddr, e_nw, e_host string) {
+		m, err := ma.NewMultiaddr(e_maddr)
+		if err != nil {
+			t.Fatal("failed to construct", "/ip4/127.0.0.1/udp/1234", e_maddr)
+		}
+
+		nw, host, err := DialArgs(m)
+		if err != nil {
+			t.Fatal("failed to get dial args", e_maddr, m, err)
+		}
+
+		if nw != e_nw {
+			t.Error("failed to get udp network Dial Arg", e_nw, nw)
+		}
+
+		if host != e_host {
+			t.Error("failed to get host:port Dial Arg", e_host, host)
+		}
 	}
 
-	nw, host, err := DialArgs(m)
-	if err != nil {
-		t.Fatal("failed to get dial args", "/ip4/127.0.0.1/udp/1234", err)
-	}
-
-	if nw != "udp" {
-		t.Error("failed to get udp network Dial Arg")
-	}
-
-	if host != "127.0.0.1:1234" {
-		t.Error("failed to get host:port Dial Arg")
-	}
+	test("/ip4/127.0.0.1/udp/1234", "udp", "127.0.0.1:1234")
+	test("/ip4/127.0.0.1/tcp/4321", "tcp", "127.0.0.1:4321")
+	test("/ip4/127.0.0.1/udp/1234/utp", "utp", "127.0.0.1:1234")
 }

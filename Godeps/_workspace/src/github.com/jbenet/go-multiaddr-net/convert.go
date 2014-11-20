@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	utp "github.com/h2so5/utp"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -55,6 +56,33 @@ func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 		// Encapsulate
 		return ipm.Encapsulate(udpm), nil
 
+	case "utp", "utp4", "utp6":
+		acc, ok := a.(*utp.UTPAddr)
+		if !ok {
+			return nil, errIncorrectNetAddr
+		}
+
+		// Get UDP Addr
+		ac, ok := acc.Addr.(*net.UDPAddr)
+		if !ok {
+			return nil, errIncorrectNetAddr
+		}
+
+		// Get IP Addr
+		ipm, err := FromIP(ac.IP)
+		if err != nil {
+			return nil, errIncorrectNetAddr
+		}
+
+		// Get UDP Addr
+		utpm, err := ma.NewMultiaddr(fmt.Sprintf("/udp/%d/utp", ac.Port))
+		if err != nil {
+			return nil, errIncorrectNetAddr
+		}
+
+		// Encapsulate
+		return ipm.Encapsulate(utpm), nil
+
 	case "ip", "ip4", "ip6":
 		ac, ok := a.(*net.IPAddr)
 		if !ok {
@@ -88,6 +116,8 @@ func ToNetAddr(maddr ma.Multiaddr) (net.Addr, error) {
 		return net.ResolveTCPAddr(network, host)
 	case "udp":
 		return net.ResolveUDPAddr(network, host)
+	case "utp":
+		return utp.ResolveUTPAddr(network, host)
 	case "ip":
 		return net.ResolveIPAddr(network, host)
 	}
@@ -121,6 +151,9 @@ func DialArgs(m ma.Multiaddr) (string, string, error) {
 	}
 
 	network := parts[2]
+	if parts[2] == "udp" && len(parts) > 4 && parts[4] == "utp" {
+		network = parts[4]
+	}
 	var host string
 	switch parts[0] {
 	case "ip4":

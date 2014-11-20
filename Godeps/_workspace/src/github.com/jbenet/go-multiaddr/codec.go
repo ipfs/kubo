@@ -28,12 +28,14 @@ func stringToBytes(s string) ([]byte, error) {
 		if p == nil {
 			return nil, fmt.Errorf("no protocol with name %s", sp[0])
 		}
-		b = append(b, byte(p.Code))
+		b = append(b, CodeToVarint(p.Code)...)
+		sp = sp[1:]
 
-		a := addressStringToBytes(p, sp[1])
-		b = append(b, a...)
-
-		sp = sp[2:]
+		if p.Size > 0 {
+			a := addressStringToBytes(p, sp[0])
+			b = append(b, a...)
+			sp = sp[1:]
+		}
 	}
 	return b, nil
 }
@@ -50,18 +52,22 @@ func bytesToString(b []byte) (ret string, err error) {
 	s := ""
 
 	for len(b) > 0 {
-		p := ProtocolWithCode(int(b[0]))
+
+		code, n := ReadVarintCode(b)
+		b = b[n:]
+		p := ProtocolWithCode(code)
 		if p == nil {
-			return "", fmt.Errorf("no protocol with code %d", b[0])
+			return "", fmt.Errorf("no protocol with code %d", code)
 		}
 		s = strings.Join([]string{s, "/", p.Name}, "")
-		b = b[1:]
 
-		a := addressBytesToString(p, b[:(p.Size/8)])
-		if len(a) > 0 {
-			s = strings.Join([]string{s, "/", a}, "")
+		if p.Size > 0 {
+			a := addressBytesToString(p, b[:(p.Size/8)])
+			if len(a) > 0 {
+				s = strings.Join([]string{s, "/", a}, "")
+			}
+			b = b[(p.Size / 8):]
 		}
-		b = b[(p.Size / 8):]
 	}
 
 	return s, nil
@@ -78,12 +84,13 @@ func bytesSplit(b []byte) (ret [][]byte, err error) {
 
 	ret = [][]byte{}
 	for len(b) > 0 {
-		p := ProtocolWithCode(int(b[0]))
+		code, n := ReadVarintCode(b)
+		p := ProtocolWithCode(code)
 		if p == nil {
 			return [][]byte{}, fmt.Errorf("no protocol with code %d", b[0])
 		}
 
-		length := 1 + (p.Size / 8)
+		length := n + (p.Size / 8)
 		ret = append(ret, b[:length])
 		b = b[length:]
 	}
