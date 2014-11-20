@@ -132,7 +132,15 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 		Peerstore: s.peers,
 	}
 
-	c, err = d.Dial(s.Context(), "tcp", peer)
+	// try to connect to one of the peer's known addresses.
+	// for simplicity, we do this sequentially.
+	// A future commit will do this asynchronously.
+	for _, addr := range peer.Addresses() {
+		c, err = d.DialAddr(s.Context(), addr, peer)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return nil, err
 	}

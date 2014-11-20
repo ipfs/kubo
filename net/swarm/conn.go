@@ -126,8 +126,8 @@ func (s *Swarm) peerMultiConn(p peer.Peer) (*conn.MultiConn, error) {
 	return mc, nil
 }
 
-// connSetup adds the passed in connection to its peerMap and starts
-// the fanInSingle routine for that connection
+// connSetup takes a new connection, performs the IPFS handshake (handshake3)
+// and then adds it to the appropriate MultiConn.
 func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 	if c == nil {
 		return nil, errors.New("Tried to start nil connection.")
