@@ -15,10 +15,12 @@ It has these top-level messages:
 package dht_pb
 
 import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import json "encoding/json"
 import math "math"
 
-// Reference imports to suppress errors if they are not otherwise used.
+// Reference proto, json, and math imports to suppress error if they are not otherwise used.
 var _ = proto.Marshal
+var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type Message_MessageType int32
@@ -63,6 +65,50 @@ func (x *Message_MessageType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*x = Message_MessageType(value)
+	return nil
+}
+
+type Message_ConnectionType int32
+
+const (
+	// sender does not have a connection to peer, and no extra information (default)
+	Message_NOT_CONNECTED Message_ConnectionType = 0
+	// sender has a live connection to peer
+	Message_CONNECTED Message_ConnectionType = 1
+	// sender recently connected to peer
+	Message_CAN_CONNECT Message_ConnectionType = 2
+	// sender recently tried to connect to peer repeatedly but failed to connect
+	// ("try" here is loose, but this should signal "made strong effort, failed")
+	Message_CANNOT_CONNECT Message_ConnectionType = 3
+)
+
+var Message_ConnectionType_name = map[int32]string{
+	0: "NOT_CONNECTED",
+	1: "CONNECTED",
+	2: "CAN_CONNECT",
+	3: "CANNOT_CONNECT",
+}
+var Message_ConnectionType_value = map[string]int32{
+	"NOT_CONNECTED":  0,
+	"CONNECTED":      1,
+	"CAN_CONNECT":    2,
+	"CANNOT_CONNECT": 3,
+}
+
+func (x Message_ConnectionType) Enum() *Message_ConnectionType {
+	p := new(Message_ConnectionType)
+	*p = x
+	return p
+}
+func (x Message_ConnectionType) String() string {
+	return proto.EnumName(Message_ConnectionType_name, int32(x))
+}
+func (x *Message_ConnectionType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Message_ConnectionType_value, data, "Message_ConnectionType")
+	if err != nil {
+		return err
+	}
+	*x = Message_ConnectionType(value)
 	return nil
 }
 
@@ -133,9 +179,13 @@ func (m *Message) GetProviderPeers() []*Message_Peer {
 }
 
 type Message_Peer struct {
-	Id               *string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
-	Addr             *string `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	// ID of a given peer.
+	Id *string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	// multiaddrs for a given peer
+	Addrs []string `protobuf:"bytes,2,rep,name=addrs" json:"addrs,omitempty"`
+	// used to signal the sender's connection capabilities to the peer
+	Connection       *Message_ConnectionType `protobuf:"varint,3,opt,name=connection,enum=dht.pb.Message_ConnectionType" json:"connection,omitempty"`
+	XXX_unrecognized []byte                  `json:"-"`
 }
 
 func (m *Message_Peer) Reset()         { *m = Message_Peer{} }
@@ -149,11 +199,18 @@ func (m *Message_Peer) GetId() string {
 	return ""
 }
 
-func (m *Message_Peer) GetAddr() string {
-	if m != nil && m.Addr != nil {
-		return *m.Addr
+func (m *Message_Peer) GetAddrs() []string {
+	if m != nil {
+		return m.Addrs
 	}
-	return ""
+	return nil
+}
+
+func (m *Message_Peer) GetConnection() Message_ConnectionType {
+	if m != nil && m.Connection != nil {
+		return *m.Connection
+	}
+	return Message_NOT_CONNECTED
 }
 
 // Record represents a dht record that contains a value
@@ -204,4 +261,5 @@ func (m *Record) GetSignature() []byte {
 
 func init() {
 	proto.RegisterEnum("dht.pb.Message_MessageType", Message_MessageType_name, Message_MessageType_value)
+	proto.RegisterEnum("dht.pb.Message_ConnectionType", Message_ConnectionType_name, Message_ConnectionType_value)
 }

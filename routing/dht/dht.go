@@ -517,11 +517,14 @@ func (dht *IpfsDHT) peerFromInfo(pbp *pb.Message_Peer) (peer.Peer, error) {
 		return nil, err
 	}
 
-	maddr, err := pbp.Address()
+	// add addresses we've just discovered
+	maddrs, err := pbp.Addresses()
 	if err != nil {
 		return nil, err
 	}
-	p.AddAddress(maddr)
+	for _, maddr := range maddrs {
+		p.AddAddress(maddr)
+	}
 	return p, nil
 }
 

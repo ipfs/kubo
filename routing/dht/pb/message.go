@@ -3,7 +3,6 @@ package dht_pb
 import (
 	"errors"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
@@ -19,12 +18,11 @@ func NewMessage(typ Message_MessageType, key string, level int) *Message {
 
 func peerToPBPeer(p peer.Peer) *Message_Peer {
 	pbp := new(Message_Peer)
-	addrs := p.Addresses()
-	if len(addrs) == 0 || addrs[0] == nil {
-		pbp.Addr = proto.String("")
-	} else {
-		addr := addrs[0].String()
-		pbp.Addr = &addr
+
+	maddrs := p.Addresses()
+	pbp.Addrs = make([]string, len(maddrs))
+	for i, maddr := range maddrs {
+		pbp.Addrs[i] = maddr.String()
 	}
 	pid := string(p.ID())
 	pbp.Id = &pid
@@ -41,12 +39,21 @@ func PeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 	return pbpeers
 }
 
-// Address returns a multiaddr associated with the Message_Peer entry
-func (m *Message_Peer) Address() (ma.Multiaddr, error) {
+// Addresses returns a multiaddr associated with the Message_Peer entry
+func (m *Message_Peer) Addresses() ([]ma.Multiaddr, error) {
 	if m == nil {
 		return nil, errors.New("MessagePeer is nil")
 	}
-	return ma.NewMultiaddr(*m.Addr)
+
+	var err error
+	maddrs := make([]ma.Multiaddr, len(m.Addrs))
+	for i, addr := range m.Addrs {
+		maddrs[i], err = ma.NewMultiaddr(addr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return maddrs, nil
 }
 
 // GetClusterLevel gets and adjusts the cluster level on the message.

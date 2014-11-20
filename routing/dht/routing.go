@@ -241,12 +241,17 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 				log.Warningf("Received invalid peer from query: %v", err)
 				continue
 			}
-			ma, err := pbp.Address()
+
+			// add addresses
+			maddrs, err := pbp.Addresses()
 			if err != nil {
-				log.Warning("Received peer with bad or missing address.")
+				log.Warning("Received peer with bad or missing addresses: %s", pbp.Addrs)
 				continue
 			}
-			np.AddAddress(ma)
+			for _, maddr := range maddrs {
+				np.AddAddress(maddr)
+			}
+
 			if pbp.GetId() == string(id) {
 				return &dhtQueryResult{
 					peer:    np,

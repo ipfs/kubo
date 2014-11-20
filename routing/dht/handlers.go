@@ -210,14 +210,16 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.Peer, pmes *pb
 		pid := peer.ID(pb.GetId())
 		if pid.Equal(p.ID()) {
 
-			addr, err := pb.Address()
+			maddrs, err := pb.Addresses()
 			if err != nil {
-				log.Errorf("provider %s error with address %s", p, *pb.Addr)
+				log.Errorf("provider %s error with addresses %s", p, pb.Addrs)
 				continue
 			}
 
-			log.Infof("received provider %s %s for %s", p, addr, key)
-			p.AddAddress(addr)
+			log.Infof("received provider %s %s for %s", p, maddrs, key)
+			for _, maddr := range maddrs {
+				p.AddAddress(maddr)
+			}
 			dht.providers.AddProvider(key, p)
 
 		} else {
