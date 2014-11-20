@@ -15,7 +15,7 @@ if ! test_have_prereq FUSE; then
 	test_done
 fi
 
-test_launch_ipfs_mount
+test_launch_ipfs_daemon_and_mount
 
 test_kill_ipfs_daemon
 

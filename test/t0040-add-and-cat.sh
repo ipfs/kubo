@@ -8,7 +8,7 @@ test_description="Test add and cat commands"
 
 . lib/test-lib.sh
 
-test_launch_ipfs_mount
+test_launch_ipfs_daemon_and_mount
 
 test_expect_success "ipfs add succeeds" '
 	echo "Hello Worlds!" >mountdir/hello.txt &&

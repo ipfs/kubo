@@ -64,7 +64,7 @@ test_launch_ipfs_daemon() {
 	'
 }
 
-test_launch_ipfs_mount() {
+test_launch_ipfs_daemon_and_mount() {
 
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_DIR="$(pwd)/.go-ipfs" &&
