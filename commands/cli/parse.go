@@ -182,9 +182,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		argDef := getArgDef(argDefIndex, argDefs)
 
 		// skip optional argument definitions if there aren't sufficient remaining inputs
-		if numInputs-i <= numRequired && !argDef.Required {
-			continue
-		} else if argDef.Required {
+		for numInputs-i <= numRequired && !argDef.Required {
+			argDefIndex++
+			argDef = getArgDef(argDefIndex, argDefs)
+		}
+		if argDef.Required {
 			numRequired--
 		}
 

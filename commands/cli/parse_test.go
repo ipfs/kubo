@@ -49,3 +49,108 @@ func TestOptionParsing(t *testing.T) {
 		t.Errorf("Returned command was different than expected")
 	}
 }
+
+func TestArgumentParsing(t *testing.T) {
+	rootCmd := &commands.Command{
+		Subcommands: map[string]*commands.Command{
+			"noarg": &commands.Command{},
+			"onearg": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, false, "some arg"),
+				},
+			},
+			"twoargs": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, false, "some arg"),
+					commands.StringArg("b", true, false, "another arg"),
+				},
+			},
+			"variadic": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, true, "some arg"),
+				},
+			},
+			"optional": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("b", false, true, "another arg"),
+				},
+			},
+			"reversedoptional": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("a", false, false, "some arg"),
+					commands.StringArg("b", true, false, "another arg"),
+				},
+			},
+		},
+	}
+
+	_, _, _, err := Parse([]string{"noarg"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"noarg", "value!"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (provided an arg, but command didn't define any)")
+	}
+
+	_, _, _, err = Parse([]string{"onearg", "value!"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"onearg"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (didn't provide any args, arg is required)")
+	}
+
+	_, _, _, err = Parse([]string{"twoargs", "value1", "value2"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"twoargs", "value!"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (only provided 1 arg, needs 2)")
+	}
+	_, _, _, err = Parse([]string{"twoargs"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (didn't provide any args, 2 required)")
+	}
+
+	_, _, _, err = Parse([]string{"variadic", "value!"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"variadic", "value1", "value2", "value3"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"variadic"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (didn't provide any args, 1 required)")
+	}
+
+	_, _, _, err = Parse([]string{"optional", "value!"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"optional"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+
+	_, _, _, err = Parse([]string{"reversedoptional", "value1", "value2"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"reversedoptional", "value!"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+	}
+	_, _, _, err = Parse([]string{"reversedoptional"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (didn't provide any args, 1 required)")
+	}
+	_, _, _, err = Parse([]string{"reversedoptional", "value1", "value2", "value3"}, nil, rootCmd)
+	if err == nil {
+		t.Error("Should have failed (provided too many args, only takes 1)")
+	}
+}
