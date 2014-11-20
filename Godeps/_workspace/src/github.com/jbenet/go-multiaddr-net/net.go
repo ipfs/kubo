@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	utp "github.com/h2so5/utp"
+	utp "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/h2so5/utp"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -226,14 +226,11 @@ func Listen(laddr ma.Multiaddr) (Listener, error) {
 	switch lnet {
 	case "utp":
 		nl, err = utp.Listen(lnet, lnaddr)
-		if err != nil {
-			return nil, err
-		}
-	case "tcp":
+	default:
 		nl, err = net.Listen(lnet, lnaddr)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return &maListener{

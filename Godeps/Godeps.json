@@ -82,6 +82,10 @@
 			"Rev": "4b8fbc56f3b2400a7c7ea3dba9b3539787c486b6"
 		},
 		{
+			"ImportPath": "github.com/h2so5/utp",
+			"Rev": "654d875bb65e96729678180215cf080fe2810371"
+		},
+		{
 			"ImportPath": "github.com/inconshreveable/go-update",
 			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
 		},
@@ -112,7 +116,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "625fac6e5073702ac9cd6028b9dc2457fd9cbf9d"
+			"Rev": "b6265d8119558acf3912db44abb34d97c30c3220"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",

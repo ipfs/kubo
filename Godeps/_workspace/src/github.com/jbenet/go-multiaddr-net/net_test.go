@@ -138,6 +138,36 @@ func TestListen(t *testing.T) {
 	wg.Wait()
 }
 
+func TestListenAddrs(t *testing.T) {
+
+	test := func(addr string, succeed bool) {
+
+		maddr := newMultiaddr(t, addr)
+		l, err := Listen(maddr)
+		if !succeed {
+			if err == nil {
+				t.Fatal("succeeded in listening", addr)
+			}
+			return
+		}
+		if succeed && err != nil {
+			t.Fatal("failed to listen", addr, err)
+		}
+		if l == nil {
+			t.Fatal("failed to listen", addr, succeed, err)
+		}
+
+		if err = l.Close(); err != nil {
+			t.Fatal("failed to close listener", addr, err)
+		}
+	}
+
+	test("/ip4/127.0.0.1/tcp/4324", true)
+	test("/ip4/127.0.0.1/udp/4325", false)
+	test("/ip4/127.0.0.1/udp/4326/udt", false)
+	test("/ip4/127.0.0.1/udp/4326/utp", true)
+}
+
 func TestListenAndDial(t *testing.T) {
 
 	maddr := newMultiaddr(t, "/ip4/127.0.0.1/tcp/4323")
