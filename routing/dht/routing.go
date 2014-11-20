@@ -125,6 +125,9 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	return nil
 }
 
+// FindProvidersAsync is the same thing as FindProviders, but returns a channel.
+// Peers will be returned on the channel as soon as they are found, even before
+// the search query completes.
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan peer.Peer {
 	log.Event(ctx, "findProviders", &key)
 	peerOut := make(chan peer.Peer, count)
@@ -199,7 +202,6 @@ func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.M
 	wg.Wait()
 }
 
-// Find specific Peer
 // FindPeer searches for a peer with given ID.
 func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error) {
 

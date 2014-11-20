@@ -31,6 +31,8 @@ func peerToPBPeer(p peer.Peer) *Message_Peer {
 	return pbp
 }
 
+// PeersToPBPeers converts a slice of Peers into a slice of *Message_Peers,
+// ready to go out on the wire.
 func PeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {

@@ -1,4 +1,4 @@
-// package dht implements a distributed hash table that satisfies the ipfs routing
+// Package dht implements a distributed hash table that satisfies the ipfs routing
 // interface. This DHT is modeled after kademlia with Coral and S/Kademlia modifications.
 package dht
 
@@ -583,7 +583,7 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	rand.Read(id)
 	p, err := dht.FindPeer(ctx, peer.ID(id))
 	if err != nil {
-		log.Error("Bootstrap peer error: %s", err)
+		log.Errorf("Bootstrap peer error: %s", err)
 	}
 	err = dht.dialer.DialPeer(ctx, p)
 	if err != nil {
