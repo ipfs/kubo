@@ -87,58 +87,27 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	}
 }
 
-func TestSwarm(t *testing.T) {
+func TestLargeSwarm(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
-	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator()
-
-	t.Log("Create a ton of instances, and just a few blocks")
-
+	t.Parallel()
 	numInstances := 500
 	numBlocks := 2
-
-	instances := sg.Instances(numInstances)
-	blocks := bg.Blocks(numBlocks)
-
-	t.Log("Give the blocks to the first instance")
-
-	first := instances[0]
-	for _, b := range blocks {
-		first.blockstore.Put(b)
-		first.exchange.HasBlock(context.Background(), *b)
-		rs.Announce(first.peer, b.Key())
-	}
-
-	t.Log("Distribute!")
-
-	var wg sync.WaitGroup
-
-	for _, inst := range instances {
-		for _, b := range blocks {
-			wg.Add(1)
-			// NB: executing getOrFail concurrently puts tremendous pressure on
-			// the goroutine scheduler
-			getOrFail(inst, b, t, &wg)
-		}
-	}
-	wg.Wait()
-
-	t.Log("Verify!")
-
-	for _, inst := range instances {
-		for _, b := range blocks {
-			if _, err := inst.blockstore.Get(b.Key()); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
+	PerformDistributionTest(t, numInstances, numBlocks)
 }
 
 func TestLargeFile(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	numInstances := 10
+	numBlocks := 100
+	PerformDistributionTest(t, numInstances, numBlocks)
+}
+
+func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -148,9 +117,6 @@ func TestLargeFile(t *testing.T) {
 	bg := NewBlockGenerator()
 
 	t.Log("Test a few nodes trying to get one file with a lot of blocks")
-
-	numInstances := 10
-	numBlocks := 100
 
 	instances := sg.Instances(numInstances)
 	blocks := bg.Blocks(numBlocks)
