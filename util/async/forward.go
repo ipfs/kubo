@@ -14,7 +14,7 @@ func ForwardN(ctx context.Context, in <-chan *blocks.Block, num int) <-chan *blo
 			select {
 			case block, ok := <-in:
 				if !ok {
-					return
+					return // otherwise nil value is forwarded to output
 				}
 				select {
 				case out <- block:
