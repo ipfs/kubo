@@ -8,8 +8,8 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
-	blockstore "github.com/jbenet/go-ipfs/blockstore"
 	config "github.com/jbenet/go-ipfs/config"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
