@@ -14,7 +14,7 @@ import (
 
 var OfflineMode = errors.New("Block unavailable. Operating in offline mode")
 
-func NewOfflineExchange() exchange.Interface {
+func Exchange() exchange.Interface {
 	return &offlineExchange{}
 }
 
