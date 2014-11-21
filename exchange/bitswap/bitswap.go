@@ -25,8 +25,10 @@ var log = eventlog.Logger("bitswap")
 // provided BitSwapNetwork. This function registers the returned instance as
 // the network delegate.
 // Runs until context is cancelled
-func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
+func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
 	bstore blockstore.Blockstore, nice bool) exchange.Interface {
+
+	ctx, cancelFunc := context.WithCancel(parent)
 
 	notif := notifications.New()
 	go func() {
@@ -36,6 +38,7 @@ func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing
 
 	bs := &bitswap{
 		blockstore:    bstore,
+		cancelFunc:    cancelFunc,
 		notifications: notif,
 		strategy:      strategy.New(nice),
 		routing:       routing,
@@ -75,6 +78,9 @@ type bitswap struct {
 	strategy strategy.Strategy
 
 	wantlist u.KeySet
+
+	// cancelFunc signals cancellation to the bitswap event loop
+	cancelFunc func()
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -294,4 +300,9 @@ func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) 
 			}
 		}
 	}
+}
+
+func (bs *bitswap) Close() error {
+	bs.cancelFunc()
+	return nil // to conform to Closer interface
 }
