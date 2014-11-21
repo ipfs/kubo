@@ -3,7 +3,6 @@
 package bitswap
 
 import (
-	"math/rand"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -176,16 +175,12 @@ func (bs *bitswap) run(ctx context.Context) {
 	for {
 		select {
 		case <-broadcastSignal.C:
-			wantlist := bs.wantlist.Keys()
-			if len(wantlist) == 0 {
-				continue
-			}
-			n := rand.Intn(len(wantlist))
-			providers := bs.routing.FindProvidersAsync(ctx, wantlist[n], maxProvidersPerRequest)
-
-			err := bs.sendWantListTo(ctx, providers)
-			if err != nil {
-				log.Errorf("error sending wantlist: %s", err)
+			for _, k := range bs.wantlist.Keys() {
+				providers := bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
+				err := bs.sendWantListTo(ctx, providers)
+				if err != nil {
+					log.Errorf("error sending wantlist: %s", err)
+				}
 			}
 		case ks := <-bs.batchRequests:
 			// TODO: implement batching on len(ks) > X for some X
