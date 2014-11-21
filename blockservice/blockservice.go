@@ -96,9 +96,29 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 	}
 }
 
-func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) (<-chan blocks.Block, error) {
-	// TODO:
-	return nil, nil
+func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
+	out := make(chan *blocks.Block, 32)
+	go func() {
+		var toFetch []u.Key
+		for _, k := range ks {
+			datai, err := s.Datastore.Get(k.DsKey())
+			if err == nil {
+				log.Debug("Blockservice: Got data in datastore.")
+				bdata, ok := datai.([]byte)
+				if !ok {
+					log.Criticalf("data associated with %s is not a []byte", k)
+					continue
+				}
+				out <- &blocks.Block{
+					Multihash: mh.Multihash(k),
+					Data:      bdata,
+				}
+			} else {
+				toFetch = append(toFetch, k)
+			}
+		}
+	}()
+	return out
 }
 
 // DeleteBlock deletes a block in the blockservice from the datastore

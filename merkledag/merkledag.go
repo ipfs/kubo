@@ -289,18 +289,56 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 // Take advantage of blockservice/bitswap batched requests to fetch all
 // child nodes of a given node
 // TODO: finish this
-func (ds *dagService) BatchFetch(ctx context.Context, root *Node) error {
-	var keys []u.Key
-	for _, lnk := range root.Links {
-		keys = append(keys, u.Key(lnk.Hash))
-	}
+func (ds *dagService) BatchFetch(ctx context.Context, root *Node) chan struct{} {
+	sig := make(chan struct{})
+	go func() {
+		var keys []u.Key
+		for _, lnk := range root.Links {
+			keys = append(keys, u.Key(lnk.Hash))
+		}
 
-	blocks, err := ds.Blocks.GetBlocks(ctx, keys)
-	if err != nil {
-		return err
-	}
+		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
-	_ = blocks
-	//what do i do with blocks?
-	return nil
+		//
+		next := 0
+		seen := make(map[int]struct{})
+		//
+
+		for blk := range blkchan {
+			for i, lnk := range root.Links {
+
+				//
+				seen[i] = struct{}{}
+				//
+
+				if u.Key(lnk.Hash) != blk.Key() {
+					continue
+				}
+				nd, err := Decoded(blk.Data)
+				if err != nil {
+					log.Error("Got back bad block!")
+					break
+				}
+				lnk.Node = nd
+
+				//
+				if next == i {
+					sig <- struct{}{}
+					next++
+					for {
+						if _, ok := seen[next]; ok {
+							sig <- struct{}{}
+							next++
+						} else {
+							break
+						}
+					}
+				}
+				//
+			}
+		}
+	}()
+
+	// TODO: return a channel, and signal when the 'Next' readable block is available
+	return sig
 }
