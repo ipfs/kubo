@@ -26,6 +26,29 @@ func TestPublishSubscribe(t *testing.T) {
 
 }
 
+func TestSubscribeMany(t *testing.T) {
+	e1 := blocks.NewBlock([]byte("Greetings from The Interval"))
+	e2 := blocks.NewBlock([]byte("Greetings from The Interval"))
+
+	n := New()
+	defer n.Shutdown()
+	ch := n.Subscribe(context.Background(), e1.Key(), e2.Key())
+
+	n.Publish(e1)
+	r1, ok := <-ch
+	if !ok {
+		t.Fatal("didn't receive first expected block")
+	}
+	assertBlocksEqual(t, e1, r1)
+
+	n.Publish(e2)
+	r2, ok := <-ch
+	if !ok {
+		t.Fatal("didn't receive second expected block")
+	}
+	assertBlocksEqual(t, e2, r2)
+}
+
 func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 
 	impossibleDeadline := time.Nanosecond
