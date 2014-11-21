@@ -30,11 +30,15 @@ func (_ *offlineExchange) GetBlock(context.Context, u.Key) (*blocks.Block, error
 }
 
 // HasBlock always returns nil.
-func (_ *offlineExchange) HasBlock(context.Context, blocks.Block) error {
+func (_ *offlineExchange) HasBlock(context.Context, *blocks.Block) error {
 	return nil
 }
 
 // Close always returns nil.
 func (_ *offlineExchange) Close() error {
 	return nil
+}
+
+func (_ *offlineExchange) GetBlocks(context.Context, []u.Key) (<-chan *blocks.Block, error) {
+	return nil, OfflineMode
 }

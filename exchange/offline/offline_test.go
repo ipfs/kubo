@@ -21,7 +21,7 @@ func TestBlockReturnsErr(t *testing.T) {
 func TestHasBlockReturnsNil(t *testing.T) {
 	off := Exchange()
 	block := blocks.NewBlock([]byte("data"))
-	err := off.HasBlock(context.Background(), *block)
+	err := off.HasBlock(context.Background(), block)
 	if err != nil {
 		t.Fatal("")
 	}

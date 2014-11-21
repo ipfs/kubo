@@ -19,7 +19,7 @@ type BitSwapMessage interface {
 	Wantlist() []u.Key
 
 	// Blocks returns a slice of unique blocks
-	Blocks() []blocks.Block
+	Blocks() []*blocks.Block
 
 	// AddWanted adds the key to the Wantlist.
 	//
@@ -32,7 +32,7 @@ type BitSwapMessage interface {
 	// implies Priority(A) > Priority(B)
 	AddWanted(u.Key)
 
-	AddBlock(blocks.Block)
+	AddBlock(*blocks.Block)
 	Exportable
 }
 
@@ -42,14 +42,14 @@ type Exportable interface {
 }
 
 type impl struct {
-	existsInWantlist map[u.Key]struct{}     // map to detect duplicates
-	wantlist         []u.Key                // slice to preserve ordering
-	blocks           map[u.Key]blocks.Block // map to detect duplicates
+	existsInWantlist map[u.Key]struct{}      // map to detect duplicates
+	wantlist         []u.Key                 // slice to preserve ordering
+	blocks           map[u.Key]*blocks.Block // map to detect duplicates
 }
 
 func New() BitSwapMessage {
 	return &impl{
-		blocks:           make(map[u.Key]blocks.Block),
+		blocks:           make(map[u.Key]*blocks.Block),
 		existsInWantlist: make(map[u.Key]struct{}),
 		wantlist:         make([]u.Key, 0),
 	}
@@ -62,7 +62,7 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
-		m.AddBlock(*b)
+		m.AddBlock(b)
 	}
 	return m
 }
@@ -71,8 +71,8 @@ func (m *impl) Wantlist() []u.Key {
 	return m.wantlist
 }
 
-func (m *impl) Blocks() []blocks.Block {
-	bs := make([]blocks.Block, 0)
+func (m *impl) Blocks() []*blocks.Block {
+	bs := make([]*blocks.Block, 0)
 	for _, block := range m.blocks {
 		bs = append(bs, block)
 	}
@@ -88,7 +88,7 @@ func (m *impl) AddWanted(k u.Key) {
 	m.wantlist = append(m.wantlist, k)
 }
 
-func (m *impl) AddBlock(b blocks.Block) {
+func (m *impl) AddBlock(b *blocks.Block) {
 	m.blocks[b.Key()] = b
 }
 

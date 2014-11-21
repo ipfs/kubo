@@ -17,10 +17,11 @@ var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv      mdag.DAGService
-	node      *mdag.Node
-	buf       io.Reader
-	fetchChan <-chan *mdag.Node
+	serv         mdag.DAGService
+	node         *mdag.Node
+	buf          io.Reader
+	fetchChan    <-chan *mdag.Node
+	linkPosition int
 }
 
 // NewDagReader creates a new reader object that reads the data represented by the given
@@ -37,11 +38,15 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 		// Dont allow reading directories
 		return nil, ErrIsDir
 	case ftpb.Data_File:
+		var fetchChan <-chan *mdag.Node
+		if serv != nil {
+			fetchChan = serv.BatchFetch(context.TODO(), n)
+		}
 		return &DagReader{
 			node:      n,
 			serv:      serv,
 			buf:       bytes.NewBuffer(pb.GetData()),
-			fetchChan: serv.BatchFetch(context.TODO(), n),
+			fetchChan: fetchChan,
 		}, nil
 	case ftpb.Data_Raw:
 		// Raw block will just be a single level, return a byte buffer
@@ -61,6 +66,17 @@ func (dr *DagReader) precalcNextBuf() error {
 		if !ok {
 			return io.EOF
 		}
+	default:
+		// Only used when fetchChan is nil,
+		// which only happens when passed in a nil dagservice
+		// TODO: this logic is hard to follow, do it better.
+		// NOTE: the only time this code is used, is during the
+		//			importer tests, consider just changing those tests
+		if dr.linkPosition >= len(dr.node.Links) {
+			return io.EOF
+		}
+		nxt = dr.node.Links[dr.linkPosition].Node
+		dr.linkPosition++
 	}
 
 	pb := new(ftpb.Data)

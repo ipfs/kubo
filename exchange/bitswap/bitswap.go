@@ -108,7 +108,7 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 
 	select {
 	case block := <-promise:
-		return &block, nil
+		return block, nil
 	case <-parent.Done():
 		return nil, parent.Err()
 	}
@@ -122,7 +122,7 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 // NB: Your request remains open until the context expires. To conserve
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
-func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan blocks.Block, error) {
+func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.Block, error) {
 	// TODO log the request
 
 	promise := bs.notifications.Subscribe(ctx, keys...)
@@ -213,7 +213,7 @@ func (bs *bitswap) loop(parent context.Context) {
 
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
-func (bs *bitswap) HasBlock(ctx context.Context, blk blocks.Block) error {
+func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	log.Debugf("Has Block %v", blk.Key())
 	bs.wantlist.Remove(blk.Key())
 	bs.sendToPeersThatWant(ctx, blk)
@@ -244,7 +244,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 
 	for _, block := range incoming.Blocks() {
 		// TODO verify blocks?
-		if err := bs.blockstore.Put(&block); err != nil {
+		if err := bs.blockstore.Put(block); err != nil {
 			log.Criticalf("error putting block: %s", err)
 			continue // FIXME(brian): err ignored
 		}
@@ -267,7 +267,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 			if block, errBlockNotFound := bs.blockstore.Get(key); errBlockNotFound != nil {
 				continue
 			} else {
-				message.AddBlock(*block)
+				message.AddBlock(block)
 			}
 		}
 	}
@@ -290,7 +290,7 @@ func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage
 	bs.strategy.MessageSent(p, m)
 }
 
-func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) {
+func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block *blocks.Block) {
 	log.Debugf("Sending %v to peers that want it", block.Key())
 
 	for _, p := range bs.strategy.Peers() {

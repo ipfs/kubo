@@ -11,8 +11,8 @@ import (
 const bufferSize = 16
 
 type PubSub interface {
-	Publish(block blocks.Block)
-	Subscribe(ctx context.Context, keys ...u.Key) <-chan blocks.Block
+	Publish(block *blocks.Block)
+	Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Block
 	Shutdown()
 }
 
@@ -24,7 +24,7 @@ type impl struct {
 	wrapped pubsub.PubSub
 }
 
-func (ps *impl) Publish(block blocks.Block) {
+func (ps *impl) Publish(block *blocks.Block) {
 	topic := string(block.Key())
 	ps.wrapped.Pub(block, topic)
 }
@@ -32,18 +32,18 @@ func (ps *impl) Publish(block blocks.Block) {
 // Subscribe returns a one-time use |blockChannel|. |blockChannel| returns nil
 // if the |ctx| times out or is cancelled. Then channel is closed after the
 // blocks given by |keys| are sent.
-func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan blocks.Block {
+func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Block {
 	topics := make([]string, 0)
 	for _, key := range keys {
 		topics = append(topics, string(key))
 	}
 	subChan := ps.wrapped.SubOnce(topics...)
-	blockChannel := make(chan blocks.Block, 1) // buffered so the sender doesn't wait on receiver
+	blockChannel := make(chan *blocks.Block, 1) // buffered so the sender doesn't wait on receiver
 	go func() {
 		defer close(blockChannel)
 		select {
 		case val := <-subChan:
-			block, ok := val.(blocks.Block)
+			block, ok := val.(*blocks.Block)
 			if ok {
 				blockChannel <- block
 			}
