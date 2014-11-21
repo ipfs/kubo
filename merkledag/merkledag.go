@@ -289,8 +289,8 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 // Take advantage of blockservice/bitswap batched requests to fetch all
 // child nodes of a given node
 // TODO: finish this
-func (ds *dagService) BatchFetch(ctx context.Context, root *Node) chan struct{} {
-	sig := make(chan struct{})
+func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan int {
+	sig := make(chan int)
 	go func() {
 		var keys []u.Key
 		for _, lnk := range root.Links {
@@ -323,11 +323,11 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) chan struct{} 
 
 				//
 				if next == i {
-					sig <- struct{}{}
+					sig <- next
 					next++
 					for {
 						if _, ok := seen[next]; ok {
-							sig <- struct{}{}
+							sig <- next
 							next++
 						} else {
 							break
