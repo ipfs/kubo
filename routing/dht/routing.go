@@ -234,31 +234,21 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 		}
 
 		closer := pmes.GetCloserPeers()
-		var clpeers []peer.Peer
-		for _, pbp := range closer {
-			np, err := dht.getPeer(peer.ID(pbp.GetId()))
+		clpeers, errs := pb.PBPeersToPeers(dht.peerstore, closer)
+		for _, err := range errs {
 			if err != nil {
-				log.Warningf("Received invalid peer from query: %v", err)
-				continue
+				log.Warning(err)
 			}
+		}
 
-			// add addresses
-			maddrs, err := pbp.Addresses()
-			if err != nil {
-				log.Warning("Received peer with bad or missing addresses: %s", pbp.Addrs)
-				continue
-			}
-			for _, maddr := range maddrs {
-				np.AddAddress(maddr)
-			}
-
-			if pbp.GetId() == string(id) {
+		// see it we got the peer here
+		for _, np := range clpeers {
+			if string(np.ID()) == string(id) {
 				return &dhtQueryResult{
 					peer:    np,
 					success: true,
 				}, nil
 			}
-			clpeers = append(clpeers, np)
 		}
 
 		return &dhtQueryResult{closerPeers: clpeers}, nil

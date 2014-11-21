@@ -2,6 +2,7 @@ package dht_pb
 
 import (
 	"errors"
+	"fmt"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
@@ -32,6 +33,24 @@ func peerToPBPeer(p peer.Peer) *Message_Peer {
 	return pbp
 }
 
+// PBPeerToPeer turns a *Message_Peer into its peer.Peer counterpart
+func PBPeerToPeer(ps peer.Peerstore, pbp *Message_Peer) (peer.Peer, error) {
+	p, err := ps.FindOrCreate(peer.ID(pbp.GetId()))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get peer from peerstore: %s", err)
+	}
+
+	// add addresses
+	maddrs, err := pbp.Addresses()
+	if err != nil {
+		return nil, fmt.Errorf("Received peer with bad or missing addresses: %s", pbp.Addrs)
+	}
+	for _, maddr := range maddrs {
+		p.AddAddress(maddr)
+	}
+	return p, nil
+}
+
 // RawPeersToPBPeers converts a slice of Peers into a slice of *Message_Peers,
 // ready to go out on the wire.
 func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
@@ -53,6 +72,24 @@ func PeersToPBPeers(d inet.Dialer, peers []peer.Peer) []*Message_Peer {
 		pbp.Connection = &c
 	}
 	return pbps
+}
+
+// PBPeersToPeers converts given []*Message_Peer into a set of []peer.Peer
+// Returns two slices, one of peers, and one of errors. The slice of peers
+// will ONLY contain successfully converted peers. The slice of errors contains
+// whether each input Message_Peer was successfully converted.
+func PBPeersToPeers(ps peer.Peerstore, pbps []*Message_Peer) ([]peer.Peer, []error) {
+	errs := make([]error, len(pbps))
+	peers := make([]peer.Peer, 0, len(pbps))
+	for i, pbp := range pbps {
+		p, err := PBPeerToPeer(ps, pbp)
+		if err != nil {
+			errs[i] = err
+		} else {
+			peers = append(peers, p)
+		}
+	}
+	return peers, errs
 }
 
 // Addresses returns a multiaddr associated with the Message_Peer entry
