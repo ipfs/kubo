@@ -18,6 +18,21 @@ import (
 	mock "github.com/jbenet/go-ipfs/routing/mock"
 )
 
+func TestClose(t *testing.T) {
+	// TODO
+	t.Skip("TODO Bitswap's Close implementation is a WIP")
+	vnet := tn.VirtualNetwork()
+	rout := mock.VirtualRoutingServer()
+	sesgen := NewSessionGenerator(vnet, rout)
+	bgen := NewBlockGenerator()
+
+	block := bgen.Next()
+	bitswap := sesgen.Next()
+
+	bitswap.exchange.Close()
+	bitswap.exchange.GetBlock(context.Background(), block.Key())
+}
+
 func TestGetBlockTimeout(t *testing.T) {
 
 	net := tn.VirtualNetwork()
