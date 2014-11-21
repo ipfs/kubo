@@ -94,11 +94,14 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	// functions. This is difficult to enforce. May this comment keep you safe.
 
 	ctx, cancelFunc := context.WithCancel(parent)
-	defer cancelFunc()
 
 	ctx = eventlog.ContextWithMetadata(ctx, eventlog.Uuid("GetBlockRequest"))
 	log.Event(ctx, "GetBlockRequestBegin", &k)
-	defer log.Event(ctx, "GetBlockRequestEnd", &k)
+
+	defer func() {
+		cancelFunc()
+		log.Event(ctx, "GetBlockRequestEnd", &k)
+	}()
 
 	promise, err := bs.GetBlocks(parent, []u.Key{k})
 	if err != nil {
@@ -111,6 +114,7 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	case <-parent.Done():
 		return nil, parent.Err()
 	}
+
 }
 
 // GetBlocks returns a channel where the caller may receive blocks that
@@ -174,12 +178,14 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 func (bs *bitswap) loop(parent context.Context) {
 
 	ctx, cancel := context.WithCancel(parent)
-	defer cancel() // signal termination
 
 	const maxProvidersPerRequest = 6
 
 	broadcastSignal := time.NewTicker(bs.strategy.GetRebroadcastDelay())
-	defer broadcastSignal.Stop()
+	defer func() {
+		cancel() // signal to derived async functions
+		broadcastSignal.Stop()
+	}()
 
 	for {
 		select {
