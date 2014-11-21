@@ -16,13 +16,13 @@ func TestPublishSubscribe(t *testing.T) {
 	defer n.Shutdown()
 	ch := n.Subscribe(context.Background(), blockSent.Key())
 
-	n.Publish(*blockSent)
+	n.Publish(blockSent)
 	blockRecvd, ok := <-ch
 	if !ok {
 		t.Fail()
 	}
 
-	assertBlocksEqual(t, blockRecvd, *blockSent)
+	assertBlocksEqual(t, blockRecvd, blockSent)
 
 }
 
@@ -39,14 +39,14 @@ func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 	assertBlockChannelNil(t, blockChannel)
 }
 
-func assertBlockChannelNil(t *testing.T, blockChannel <-chan blocks.Block) {
+func assertBlockChannelNil(t *testing.T, blockChannel <-chan *blocks.Block) {
 	_, ok := <-blockChannel
 	if ok {
 		t.Fail()
 	}
 }
 
-func assertBlocksEqual(t *testing.T, a, b blocks.Block) {
+func assertBlocksEqual(t *testing.T, a, b *blocks.Block) {
 	if !bytes.Equal(a.Data, b.Data) {
 		t.Fail()
 	}

@@ -68,7 +68,7 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	// consider moving this to an sync process.
 	if s.Remote != nil {
 		ctx := context.TODO()
-		err = s.Remote.HasBlock(ctx, *b)
+		err = s.Remote.HasBlock(ctx, b)
 	}
 	return k, err
 }
@@ -98,6 +98,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
 	out := make(chan *blocks.Block, 32)
 	go func() {
+		defer close(out)
 		var toFetch []u.Key
 		for _, k := range ks {
 			block, err := s.Blockstore.Get(k)
@@ -107,6 +108,15 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks
 			}
 			log.Debug("Blockservice: Got data in datastore.")
 			out <- block
+		}
+
+		nblocks, err := s.Remote.GetBlocks(ctx, toFetch)
+		if err != nil {
+			log.Errorf("Error with GetBlocks: %s", err)
+			return
+		}
+		for blk := range nblocks {
+			out <- blk
 		}
 	}()
 	return out

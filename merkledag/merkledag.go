@@ -328,7 +328,7 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 				if next == i {
 					sig <- nd
 					next++
-					for ; nodes[next] != nil; next++ {
+					for ; next < len(nodes) && nodes[next] != nil; next++ {
 						sig <- nodes[next]
 					}
 				}
