@@ -227,7 +227,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
 
 	// add self as the provider
-	pmes.ProviderPeers = pb.PeersToPBPeers([]peer.Peer{dht.self})
+	pmes.ProviderPeers = pb.PeersToPBPeers(dht.dialer, []peer.Peer{dht.self})
 
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {

@@ -88,12 +88,12 @@ const (
 	NotConnected Connectedness = 0
 
 	// Connected means has an open, live connection to peer
-	Connected
+	Connected = 1
 
 	// CanConnect means recently connected to peer, terminated gracefully
-	CanConnect
+	CanConnect = 2
 
 	// CannotConnect means recently attempted connecting but failed to connect.
 	// (should signal "made effort, failed")
-	CannotConnect
+	CannotConnect = 3
 )

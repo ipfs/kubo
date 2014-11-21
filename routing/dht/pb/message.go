@@ -4,9 +4,12 @@ import (
 	"errors"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
+	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
+// NewMessage constructs a new dht message with given type, key, and level
 func NewMessage(typ Message_MessageType, key string, level int) *Message {
 	m := &Message{
 		Type: &typ,
@@ -29,14 +32,27 @@ func peerToPBPeer(p peer.Peer) *Message_Peer {
 	return pbp
 }
 
-// PeersToPBPeers converts a slice of Peers into a slice of *Message_Peers,
+// RawPeersToPBPeers converts a slice of Peers into a slice of *Message_Peers,
 // ready to go out on the wire.
-func PeersToPBPeers(peers []peer.Peer) []*Message_Peer {
+func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
 		pbpeers[i] = peerToPBPeer(p)
 	}
 	return pbpeers
+}
+
+// PeersToPBPeers converts given []peer.Peer into a set of []*Message_Peer,
+// which can be written to a message and sent out. the key thing this function
+// does (in addition to PeersToPBPeers) is set the ConnectionType with
+// information from the given inet.Dialer.
+func PeersToPBPeers(d inet.Dialer, peers []peer.Peer) []*Message_Peer {
+	pbps := RawPeersToPBPeers(peers)
+	for i, pbp := range pbps {
+		c := ConnectionType(d.Connectedness(peers[i]))
+		pbp.Connection = &c
+	}
+	return pbps
 }
 
 // Addresses returns a multiaddr associated with the Message_Peer entry
@@ -75,10 +91,45 @@ func (m *Message) SetClusterLevel(level int) {
 	m.ClusterLevelRaw = &lvl
 }
 
+// Loggable turns a Message into machine-readable log output
 func (m *Message) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"message": map[string]string{
 			"type": m.Type.String(),
 		},
+	}
+}
+
+// ConnectionType returns a Message_ConnectionType associated with the
+// inet.Connectedness.
+func ConnectionType(c inet.Connectedness) Message_ConnectionType {
+	switch c {
+	default:
+		return Message_NOT_CONNECTED
+	case inet.NotConnected:
+		return Message_NOT_CONNECTED
+	case inet.Connected:
+		return Message_CONNECTED
+	case inet.CanConnect:
+		return Message_CAN_CONNECT
+	case inet.CannotConnect:
+		return Message_CANNOT_CONNECT
+	}
+}
+
+// Connectedness returns an inet.Connectedness associated with the
+// Message_ConnectionType.
+func Connectedness(c Message_ConnectionType) inet.Connectedness {
+	switch c {
+	default:
+		return inet.NotConnected
+	case Message_NOT_CONNECTED:
+		return inet.NotConnected
+	case Message_CONNECTED:
+		return inet.Connected
+	case Message_CAN_CONNECT:
+		return inet.CanConnect
+	case Message_CANNOT_CONNECT:
+		return inet.CannotConnect
 	}
 }

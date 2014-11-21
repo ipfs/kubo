@@ -262,7 +262,7 @@ func TestNotFound(t *testing.T) {
 			for i := 0; i < 7; i++ {
 				peers = append(peers, _randPeer())
 			}
-			resp.CloserPeers = pb.PeersToPBPeers(peers)
+			resp.CloserPeers = pb.PeersToPBPeers(d.dialer, peers)
 			mes, err := msg.FromObject(mes.Peer(), resp)
 			if err != nil {
 				t.Error(err)
@@ -326,7 +326,7 @@ func TestLessThanKResponses(t *testing.T) {
 		case pb.Message_GET_VALUE:
 			resp := &pb.Message{
 				Type:        pmes.Type,
-				CloserPeers: pb.PeersToPBPeers([]peer.Peer{other}),
+				CloserPeers: pb.PeersToPBPeers(d.dialer, []peer.Peer{other}),
 			}
 
 			mes, err := msg.FromObject(mes.Peer(), resp)
