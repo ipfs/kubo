@@ -64,7 +64,7 @@ func bootstrap(ctx context.Context,
 
 	var notConnected []peer.Peer
 	for _, p := range bootstrapPeers {
-		if !n.IsConnected(p) {
+		if n.Connectedness(p) != inet.Connected {
 			notConnected = append(notConnected, p)
 		}
 	}
