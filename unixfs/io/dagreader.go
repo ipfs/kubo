@@ -68,6 +68,7 @@ func (dr *DagReader) precalcNextBuf() error {
 		// TODO: this logic is hard to follow, do it better.
 		// NOTE: the only time this code is used, is during the
 		//			importer tests, consider just changing those tests
+		log.Warning("Running DAGReader with nil DAGService!")
 		if dr.linkPosition >= len(dr.node.Links) {
 			return io.EOF
 		}
@@ -78,6 +79,9 @@ func (dr *DagReader) precalcNextBuf() error {
 		dr.linkPosition++
 
 	} else {
+		if dr.fetchChan == nil {
+			panic("this is wrong.")
+		}
 		select {
 		case nxt, ok = <-dr.fetchChan:
 			if !ok {

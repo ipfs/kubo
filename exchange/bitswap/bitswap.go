@@ -197,13 +197,19 @@ func (bs *bitswap) loop(parent context.Context) {
 				}
 			}
 		case ks := <-bs.batchRequests:
+			// TODO: implement batching on len(ks) > X for some X
+			if len(ks) == 0 {
+				log.Warning("Received batch request for zero blocks")
+				continue
+			}
 			for _, k := range ks {
 				bs.wantlist.Add(k)
-				providers := bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
-				err := bs.sendWantListTo(ctx, providers)
-				if err != nil {
-					log.Errorf("error sending wantlist: %s", err)
-				}
+			}
+			providers := bs.routing.FindProvidersAsync(ctx, ks[0], maxProvidersPerRequest)
+
+			err := bs.sendWantListTo(ctx, providers)
+			if err != nil {
+				log.Errorf("error sending wantlist: %s", err)
 			}
 		case <-parent.Done():
 			return
