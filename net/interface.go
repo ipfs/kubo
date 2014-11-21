@@ -20,6 +20,9 @@ type Network interface {
 	// Listen(*ma.Muliaddr) error
 	// TODO: for now, only listen on addrs in local peer when initializing.
 
+	// LocalPeer returns the local peer associated with this network
+	LocalPeer() peer.Peer
+
 	// DialPeer attempts to establish a connection to a given peer
 	DialPeer(context.Context, peer.Peer) error
 
@@ -71,6 +74,8 @@ type Service srv.Service
 // (this is usually just a Network, but other services may not need the whole
 // stack, and thus it becomes easier to mock)
 type Dialer interface {
+	// LocalPeer returns the local peer associated with this network
+	LocalPeer() peer.Peer
 
 	// DialPeer attempts to establish a connection to a given peer
 	DialPeer(context.Context, peer.Peer) error

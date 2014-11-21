@@ -69,6 +69,11 @@ func (n *IpfsNetwork) DialPeer(ctx context.Context, p peer.Peer) error {
 	return err
 }
 
+// LocalPeer the network's LocalPeer
+func (n *IpfsNetwork) LocalPeer() peer.Peer {
+	return n.swarm.LocalPeer()
+}
+
 // ClosePeer connection to peer
 func (n *IpfsNetwork) ClosePeer(p peer.Peer) error {
 	return n.swarm.CloseConnection(p)
