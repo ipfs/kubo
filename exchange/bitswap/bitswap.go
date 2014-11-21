@@ -3,13 +3,12 @@
 package bitswap
 
 import (
-	"math/rand"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blockstore"
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
@@ -26,8 +25,10 @@ var log = eventlog.Logger("bitswap")
 // provided BitSwapNetwork. This function registers the returned instance as
 // the network delegate.
 // Runs until context is cancelled
-func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
+func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
 	bstore blockstore.Blockstore, nice bool) exchange.Interface {
+
+	ctx, cancelFunc := context.WithCancel(parent)
 
 	notif := notifications.New()
 	go func() {
@@ -39,6 +40,7 @@ func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing
 
 	bs := &bitswap{
 		blockstore:    bstore,
+		cancelFunc:    cancelFunc,
 		notifications: notif,
 		strategy:      strategy.New(nice),
 		routing:       routing,
@@ -47,7 +49,7 @@ func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing
 		batchRequests: make(chan []u.Key, 32),
 	}
 	network.SetDelegate(bs)
-	go bs.run(ctx)
+	go bs.loop(ctx)
 
 	return bs
 }
@@ -78,6 +80,9 @@ type bitswap struct {
 	strategy strategy.Strategy
 
 	wantlist u.KeySet
+
+	// cancelFunc signals cancellation to the bitswap event loop
+	cancelFunc func()
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -166,7 +171,10 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 // TODO ensure only one active request per key
-func (bs *bitswap) run(ctx context.Context) {
+func (bs *bitswap) loop(parent context.Context) {
+
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel() // signal termination
 
 	const maxProvidersPerRequest = 6
 
@@ -176,36 +184,23 @@ func (bs *bitswap) run(ctx context.Context) {
 	for {
 		select {
 		case <-broadcastSignal.C:
-			wantlist := bs.wantlist.Keys()
-			if len(wantlist) == 0 {
-				continue
-			}
-			n := rand.Intn(len(wantlist))
-			providers := bs.routing.FindProvidersAsync(ctx, wantlist[n], maxProvidersPerRequest)
-
-			err := bs.sendWantListTo(ctx, providers)
-			if err != nil {
-				log.Errorf("error sending wantlist: %s", err)
+			for _, k := range bs.wantlist.Keys() {
+				providers := bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
+				err := bs.sendWantListTo(ctx, providers)
+				if err != nil {
+					log.Errorf("error sending wantlist: %s", err)
+				}
 			}
 		case ks := <-bs.batchRequests:
-			// TODO: implement batching on len(ks) > X for some X
 			for _, k := range ks {
 				bs.wantlist.Add(k)
+				providers := bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
+				err := bs.sendWantListTo(ctx, providers)
+				if err != nil {
+					log.Errorf("error sending wantlist: %s", err)
+				}
 			}
-			if len(ks) == 0 {
-				log.Warning("Received batch request for zero blocks")
-				continue
-			}
-			for _, k := range ks {
-				bs.wantlist.Add(k)
-			}
-			providers := bs.routing.FindProvidersAsync(ctx, ks[0], maxProvidersPerRequest)
-
-			err := bs.sendWantListTo(ctx, providers)
-			if err != nil {
-				log.Errorf("error sending wantlist: %s", err)
-			}
-		case <-ctx.Done():
+		case <-parent.Done():
 			return
 		}
 	}
@@ -306,4 +301,9 @@ func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block blocks.Block) 
 			}
 		}
 	}
+}
+
+func (bs *bitswap) Close() error {
+	bs.cancelFunc()
+	return nil // to conform to Closer interface
 }

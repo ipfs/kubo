@@ -14,14 +14,13 @@ import (
 
 var OfflineMode = errors.New("Block unavailable. Operating in offline mode")
 
-func NewOfflineExchange() exchange.Interface {
+func Exchange() exchange.Interface {
 	return &offlineExchange{}
 }
 
 // offlineExchange implements the Exchange interface but doesn't return blocks.
 // For use in offline mode.
-type offlineExchange struct {
-}
+type offlineExchange struct{}
 
 // GetBlock returns nil to signal that a block could not be retrieved for the
 // given key.
@@ -32,5 +31,10 @@ func (_ *offlineExchange) GetBlock(context.Context, u.Key) (*blocks.Block, error
 
 // HasBlock always returns nil.
 func (_ *offlineExchange) HasBlock(context.Context, blocks.Block) error {
+	return nil
+}
+
+// Close always returns nil.
+func (_ *offlineExchange) Close() error {
 	return nil
 }

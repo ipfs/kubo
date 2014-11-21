@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 func TestBlocks(t *testing.T) {
 	d := ds.NewMapDatastore()
-	bs, err := NewBlockService(d, nil)
+	tsds := dssync.MutexWrap(d)
+	bs, err := New(blockstore.NewBlockstore(tsds), offline.Exchange())
 	if err != nil {
 		t.Error("failed to construct block service", err)
 		return

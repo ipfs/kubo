@@ -3,8 +3,10 @@ package core
 import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	bs "github.com/jbenet/go-ipfs/blockservice"
+	"github.com/jbenet/go-ipfs/blocks/blockstore"
+	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	ci "github.com/jbenet/go-ipfs/crypto"
+	"github.com/jbenet/go-ipfs/exchange/offline"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
@@ -43,9 +45,7 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.Routing = dht
 
 	// Bitswap
-	//??
-
-	bserv, err := bs.NewBlockService(nd.Datastore, nil)
+	bserv, err := blockservice.New(blockstore.NewBlockstore(nd.Datastore), offline.Exchange())
 	if err != nil {
 		return nil, err
 	}

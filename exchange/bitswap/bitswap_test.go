@@ -11,8 +11,7 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blockstore"
-	bstore "github.com/jbenet/go-ipfs/blockstore"
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -286,7 +285,7 @@ func (g *SessionGenerator) Instances(n int) []instance {
 type instance struct {
 	peer       peer.Peer
 	exchange   exchange.Interface
-	blockstore bstore.Blockstore
+	blockstore blockstore.Blockstore
 }
 
 // session creates a test bitswap session.
