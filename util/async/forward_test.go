@@ -7,23 +7,26 @@ import (
 	"github.com/jbenet/go-ipfs/blocks"
 )
 
-func TestForwardTwo(t *testing.T) {
+func TestForwardNThenClose(t *testing.T) {
 	const n = 2
-	in := make(chan *blocks.Block, n)
+	const buf = 2 * n
+	in := make(chan *blocks.Block, buf)
 	ctx := context.Background()
 	out := ForwardN(ctx, in, n)
 
-	in <- blocks.NewBlock([]byte("one"))
-	in <- blocks.NewBlock([]byte("two"))
+	for i := 0; i < buf; i++ {
+		in <- blocks.NewBlock([]byte(""))
+	}
 
-	_ = <-out // 1
-	_ = <-out // 2
+	for i := 0; i < n; i++ {
+		_ = <-out
+	}
 
 	_, ok := <-out // closed
 	if !ok {
 		return
 	}
-	t.Fail()
+	t.Fatal("channel still open after receiving n blocks")
 }
 
 func TestCloseInput(t *testing.T) {
