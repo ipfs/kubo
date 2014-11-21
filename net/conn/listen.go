@@ -1,9 +1,11 @@
 package conn
 
 import (
+	"fmt"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
@@ -73,6 +75,7 @@ func (l *listener) listen() {
 	}
 
 	for {
+		log.Info("swarm listening on %s -- %v\n", l.Multiaddr(), l.Listener)
 		maconn, err := l.Listener.Accept()
 		if err != nil {
 
@@ -120,7 +123,7 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.Peer, peers peer.
 
 	ml, err := manet.Listen(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to listen on %s: %s", addr, err)
 	}
 
 	// todo make this a variable

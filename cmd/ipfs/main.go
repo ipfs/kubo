@@ -12,7 +12,7 @@ import (
 	// TODO rm direct reference to go-logging
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr/net"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"

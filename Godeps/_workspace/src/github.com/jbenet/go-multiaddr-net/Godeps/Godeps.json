@@ -1,0 +1,18 @@
+{
+	"ImportPath": "github.com/jbenet/go-multiaddr-net",
+	"GoVersion": "go1.3",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/h2so5/utp",
+			"Rev": "654d875bb65e96729678180215cf080fe2810371"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr",
+			"Comment": "0.1.2-30-g99cf3ed",
+			"Rev": "99cf3edc711751cf7b43505fac0e3913f6b9a75c"
+		}
+	]
+}

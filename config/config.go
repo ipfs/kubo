@@ -36,8 +36,8 @@ type Datastore struct {
 
 // Addresses stores the (string) multiaddr addresses for the node.
 type Addresses struct {
-	Swarm string // address for the swarm network
-	API   string // address for the local API (RPC)
+	Swarm []string // addresses for the swarm network
+	API   string   // address for the local API (RPC)
 }
 
 // Mounts stores the (string) mount points

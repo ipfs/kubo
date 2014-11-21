@@ -1,0 +1,7 @@
+language: go
+
+script:
+ - GO_UTP_LOGGING=2 go test -v -bench .
+ - go test -v -race
+ - GO_UTP_LOGGING=2 go run benchmark/main.go -h
+ - GO_UTP_LOGGING=2 cd _ucat_test; make test

@@ -68,6 +68,8 @@ func TestStringToBytes(t *testing.T) {
 	}
 
 	testString("/ip4/127.0.0.1/udp/1234", "047f0000011104d2")
+	testString("/ip4/127.0.0.1/tcp/4321", "047f0000010610e1")
+	testString("/ip4/127.0.0.1/udp/1234/ip4/127.0.0.1/tcp/4321", "047f0000011104d2047f0000010610e1")
 }
 
 func TestBytesToString(t *testing.T) {
@@ -89,6 +91,8 @@ func TestBytesToString(t *testing.T) {
 	}
 
 	testString("/ip4/127.0.0.1/udp/1234", "047f0000011104d2")
+	testString("/ip4/127.0.0.1/tcp/4321", "047f0000010610e1")
+	testString("/ip4/127.0.0.1/udp/1234/ip4/127.0.0.1/tcp/4321", "047f0000011104d2047f0000010610e1")
 }
 
 func TestBytesSplitAndJoin(t *testing.T) {
@@ -96,7 +100,7 @@ func TestBytesSplitAndJoin(t *testing.T) {
 	testString := func(s string, res []string) {
 		m, err := NewMultiaddr(s)
 		if err != nil {
-			t.Error("failed to convert", s)
+			t.Fatal("failed to convert", s, err)
 		}
 
 		split := Split(m)
@@ -132,6 +136,8 @@ func TestBytesSplitAndJoin(t *testing.T) {
 	testString("/ip4/1.2.3.4/udp/1234", []string{"/ip4/1.2.3.4", "/udp/1234"})
 	testString("/ip4/1.2.3.4/tcp/1/ip4/2.3.4.5/udp/2",
 		[]string{"/ip4/1.2.3.4", "/tcp/1", "/ip4/2.3.4.5", "/udp/2"})
+	testString("/ip4/1.2.3.4/utp/ip4/2.3.4.5/udp/2/udt",
+		[]string{"/ip4/1.2.3.4", "/utp", "/ip4/2.3.4.5", "/udp/2", "/udt"})
 }
 
 func TestProtocols(t *testing.T) {

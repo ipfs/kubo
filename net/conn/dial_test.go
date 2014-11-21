@@ -157,3 +157,73 @@ func TestDialer(t *testing.T) {
 	l.Close()
 	cancel()
 }
+
+func TestDialAddr(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
+
+	p1, err := setupPeer("/ip4/127.0.0.1/tcp/4334")
+	if err != nil {
+		t.Fatal("error setting up peer", err)
+	}
+
+	p2, err := setupPeer("/ip4/127.0.0.1/tcp/4335")
+	if err != nil {
+		t.Fatal("error setting up peer", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	laddr := p1.NetAddress("tcp")
+	if laddr == nil {
+		t.Fatal("Listen address is nil.")
+	}
+
+	ps1 := peer.NewPeerstore()
+	ps2 := peer.NewPeerstore()
+	ps1.Add(p1)
+	ps2.Add(p2)
+
+	l, err := Listen(ctx, laddr, p1, ps1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go echoListen(ctx, l)
+
+	d := &Dialer{
+		Peerstore: ps2,
+		LocalPeer: p2,
+	}
+
+	raddr := p1.NetAddress("tcp")
+	if raddr == nil {
+		t.Fatal("Dial address is nil.")
+	}
+
+	c, err := d.DialAddr(ctx, raddr, p1)
+	if err != nil {
+		t.Fatal("error dialing peer", err)
+	}
+
+	// fmt.Println("sending")
+	c.Out() <- []byte("beep")
+	c.Out() <- []byte("boop")
+
+	out := <-c.In()
+	// fmt.Println("recving", string(out))
+	data := string(out)
+	if data != "beep" {
+		t.Error("unexpected conn output", data)
+	}
+
+	out = <-c.In()
+	data = string(out)
+	if string(out) != "boop" {
+		t.Error("unexpected conn output", data)
+	}
+
+	// fmt.Println("closing")
+	c.Close()
+	l.Close()
+	cancel()
+}
