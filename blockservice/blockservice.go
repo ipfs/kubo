@@ -98,7 +98,7 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 // GetBlocks gets a list of blocks asynchronously and returns through
 // the returned channel.
 // NB: No guarantees are made about order.
-func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
+func (s *BlockService) GetBlocks(parent context.Context, ks []u.Key) <-chan *blocks.Block {
 	out := make(chan *blocks.Block, 32)
 	go func() {
 		var toFetch []u.Key
@@ -112,11 +112,13 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks
 			out <- block
 		}
 
+		ctx, cancel := context.WithCancel(parent)
 		nblocks, err := s.Remote.GetBlocks(ctx, toFetch)
 		if err != nil {
 			log.Errorf("Error with GetBlocks: %s", err)
 			return
 		}
+
 		for blk := range nblocks {
 			out <- blk
 		}

@@ -106,7 +106,7 @@ func TestLargeSwarm(t *testing.T) {
 		t.SkipNow()
 	}
 	t.Parallel()
-	numInstances := 500
+	numInstances := 5
 	numBlocks := 2
 	PerformDistributionTest(t, numInstances, numBlocks)
 }

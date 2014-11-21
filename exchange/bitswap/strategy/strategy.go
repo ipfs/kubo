@@ -10,6 +10,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("strategy")
+
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
 // "trusted" and/or controlled by a single human user. The user may want for
 // these peers to exchange data freely
