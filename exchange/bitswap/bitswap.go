@@ -163,7 +163,10 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 // TODO ensure only one active request per key
-func (bs *bitswap) loop(ctx context.Context) {
+func (bs *bitswap) loop(parent context.Context) {
+
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel() // signal termination
 
 	// Every so often, we should resend out our current want list
 	rebroadcastTime := time.Second * 5
@@ -190,7 +193,7 @@ func (bs *bitswap) loop(ctx context.Context) {
 					log.Errorf("error sending wantlist: %s", err)
 				}
 			}
-		case <-ctx.Done():
+		case <-parent.Done():
 			return
 		}
 	}
