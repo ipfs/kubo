@@ -163,6 +163,17 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 	return n.cached, nil
 }
 
+// Searches this nodes links for one to the given key,
+// returns the index of said link
+func (n *Node) FindLink(k u.Key) (int, error) {
+	for i, lnk := range n.Links {
+		if u.Key(lnk.Hash) == k {
+			return i, nil
+		}
+	}
+	return -1, u.ErrNotFound
+}
+
 // Key returns the Multihash as a key, for maps.
 func (n *Node) Key() (u.Key, error) {
 	h, err := n.Multihash()
@@ -296,6 +307,10 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 		var keys []u.Key
 		nodes := make([]*Node, len(root.Links))
 
+		//temp
+		recvd := []int{}
+		//
+
 		//
 		next := 0
 		//
@@ -306,27 +321,35 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 
 		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
+		count := 0
 		for blk := range blkchan {
-			for i, lnk := range root.Links {
-				if u.Key(lnk.Hash) != blk.Key() {
-					continue
-				}
+			count++
+			i, err := root.FindLink(blk.Key())
+			if err != nil {
+				panic("Received block that wasnt in this nodes links!")
+			}
 
-				nd, err := Decoded(blk.Data)
-				if err != nil {
-					log.Error("Got back bad block!")
-					break
-				}
-				nodes[i] = nd
+			recvd = append(recvd, i)
 
-				if next == i {
-					sig <- nd
-					next++
-					for ; next < len(nodes) && nodes[next] != nil; next++ {
-						sig <- nodes[next]
-					}
+			nd, err := Decoded(blk.Data)
+			if err != nil {
+				log.Error("Got back bad block!")
+				break
+			}
+			nodes[i] = nd
+
+			if next == i {
+				sig <- nd
+				next++
+				for ; next < len(nodes) && nodes[next] != nil; next++ {
+					sig <- nodes[next]
 				}
 			}
+		}
+		if next < len(nodes) {
+			log.Errorf("count = %d, links = %d", count, len(nodes))
+			log.Error(recvd)
+			panic("didnt receive all requested blocks!")
 		}
 		close(sig)
 	}()
