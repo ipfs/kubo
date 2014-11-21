@@ -15,6 +15,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	"github.com/jbenet/go-ipfs/exchange/offline"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
@@ -127,6 +128,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		return nil, debugerror.Wrap(err)
 	}
 
+	n.Exchange = offline.Exchange()
+
 	// setup online services
 	if online {
 
@@ -178,7 +181,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
 	// session that simply doesn't return blocks
-	n.Blocks, err = bserv.NewBlockService(n.Datastore, n.Exchange)
+	n.Blocks, err = bserv.New(blockstore.NewBlockstore(n.Datastore), n.Exchange)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}

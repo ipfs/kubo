@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	bs "github.com/jbenet/go-ipfs/blockservice"
+	"github.com/jbenet/go-ipfs/exchange/offline"
 	imp "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
@@ -19,7 +22,9 @@ import (
 
 func getMockDagServ(t *testing.T) mdag.DAGService {
 	dstore := ds.NewMapDatastore()
-	bserv, err := bs.NewBlockService(dstore, nil)
+	tsds := sync.MutexWrap(dstore)
+	bstore := blockstore.NewBlockstore(tsds)
+	bserv, err := bs.New(bstore, offline.Exchange())
 	if err != nil {
 		t.Fatal(err)
 	}
