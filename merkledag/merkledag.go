@@ -288,9 +288,8 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 }
 
 // BatchFetch will fill out all of the links of the given Node.
-// It returns a channel of indicies, which will be returned in order
-// from 0 to len(root.Links) - 1, signalling that the link specified by
-// the index has been filled out.
+// It returns a channel of nodes, which the caller can receive
+// all the child nodes of 'root' on, in proper order.
 func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 	sig := make(chan *Node)
 	go func() {
@@ -299,7 +298,6 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 
 		//
 		next := 0
-		seen := make(map[int]struct{})
 		//
 
 		for _, lnk := range root.Links {
@@ -313,10 +311,6 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 				if u.Key(lnk.Hash) != blk.Key() {
 					continue
 				}
-
-				//
-				seen[i] = struct{}{}
-				//
 
 				nd, err := Decoded(blk.Data)
 				if err != nil {

@@ -61,12 +61,8 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 func (dr *DagReader) precalcNextBuf() error {
 	var nxt *mdag.Node
 	var ok bool
-	select {
-	case nxt, ok = <-dr.fetchChan:
-		if !ok {
-			return io.EOF
-		}
-	default:
+
+	if dr.serv == nil {
 		// Only used when fetchChan is nil,
 		// which only happens when passed in a nil dagservice
 		// TODO: this logic is hard to follow, do it better.
@@ -76,7 +72,18 @@ func (dr *DagReader) precalcNextBuf() error {
 			return io.EOF
 		}
 		nxt = dr.node.Links[dr.linkPosition].Node
+		if nxt == nil {
+			return errors.New("Got nil node back from link! and no DAGService!")
+		}
 		dr.linkPosition++
+
+	} else {
+		select {
+		case nxt, ok = <-dr.fetchChan:
+			if !ok {
+				return io.EOF
+			}
+		}
 	}
 
 	pb := new(ftpb.Data)
