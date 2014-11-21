@@ -3,7 +3,7 @@ package async
 import (
 	"testing"
 
-	"code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/blocks"
 )
 
