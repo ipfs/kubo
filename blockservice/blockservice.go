@@ -101,7 +101,6 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
 	out := make(chan *blocks.Block, 32)
 	go func() {
-		defer close(out)
 		var toFetch []u.Key
 		for _, k := range ks {
 			block, err := s.Blockstore.Get(k)
@@ -121,6 +120,7 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks
 		for blk := range nblocks {
 			out <- blk
 		}
+		close(out)
 	}()
 	return out
 }
