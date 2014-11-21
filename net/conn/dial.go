@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"fmt"
 	"strings"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -10,6 +9,7 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 // Dial connects to a particular peer, over a given network
@@ -17,7 +17,7 @@ import (
 func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Conn, error) {
 	raddr := remote.NetAddress(network)
 	if raddr == nil {
-		return nil, fmt.Errorf("No remote address for network %s", network)
+		return nil, debugerror.Errorf("No remote address for network %s", network)
 	}
 	return d.DialAddr(ctx, raddr, remote)
 }
@@ -34,7 +34,7 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 		}
 	}
 	if !found {
-		return nil, fmt.Errorf("address %s is not in peer %s", raddr, remote)
+		return nil, debugerror.Errorf("address %s is not in peer %s", raddr, remote)
 	}
 
 	network, _, err := manet.DialArgs(raddr)
@@ -44,11 +44,11 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 
 	laddr := d.LocalPeer.NetAddress(network)
 	if laddr == nil {
-		return nil, fmt.Errorf("No local address for network %s", network)
+		return nil, debugerror.Errorf("No local address for network %s", network)
 	}
 
 	if strings.HasPrefix(raddr.String(), "/ip4/0.0.0.0") {
-		return nil, fmt.Errorf("Attempted to connect to zero address: %s", raddr)
+		return nil, debugerror.Errorf("Attempted to connect to zero address: %s", raddr)
 	}
 
 	remote.SetType(peer.Remote)
