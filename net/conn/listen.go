@@ -44,7 +44,7 @@ func (l *listener) Close() error {
 
 // close called by ContextCloser.Close
 func (l *listener) close() error {
-	log.Info("listener closing: %s %s", l.local, l.maddr)
+	log.Infof("listener closing: %s %s", l.local, l.maddr)
 	return l.Listener.Close()
 }
 
@@ -75,7 +75,7 @@ func (l *listener) listen() {
 	}
 
 	for {
-		log.Info("swarm listening on %s -- %v\n", l.Multiaddr(), l.Listener)
+		log.Infof("swarm listening on %s -- %v\n", l.Multiaddr(), l.Listener)
 		maconn, err := l.Listener.Accept()
 		if err != nil {
 

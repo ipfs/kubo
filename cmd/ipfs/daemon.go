@@ -165,7 +165,7 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 			return
 		}
 
-		log.Info("terminating daemon at %s...", addr)
+		log.Infof("terminating daemon at %s...", addr)
 		server.Shutdown <- true
 	}()
 
