@@ -46,7 +46,7 @@ func New(ctx context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing
 		batchRequests: make(chan []u.Key, 32),
 	}
 	network.SetDelegate(bs)
-	go bs.run(ctx)
+	go bs.loop(ctx)
 
 	return bs
 }
@@ -165,7 +165,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 // TODO ensure only one active request per key
-func (bs *bitswap) run(ctx context.Context) {
+func (bs *bitswap) loop(ctx context.Context) {
 
 	const maxProvidersPerRequest = 6
 
