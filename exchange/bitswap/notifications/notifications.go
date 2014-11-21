@@ -29,9 +29,9 @@ func (ps *impl) Publish(block *blocks.Block) {
 	ps.wrapped.Pub(block, topic)
 }
 
-// Subscribe returns a one-time use |blockChannel|. |blockChannel| returns nil
-// if the |ctx| times out or is cancelled. Then channel is closed after the
-// blocks given by |keys| are sent.
+// Subscribe returns a channel of blocks for the given |keys|. |blockChannel|
+// is closed if the |ctx| times out or is cancelled, or after sending len(keys)
+// blocks.
 func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Block {
 	topics := make([]string, 0)
 	for _, key := range keys {
