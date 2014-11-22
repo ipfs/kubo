@@ -1,4 +1,4 @@
-package bitswap
+package bitswap_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	. "github.com/jbenet/go-ipfs/exchange/bitswap"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
