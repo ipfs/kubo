@@ -29,28 +29,6 @@ func (ps *impl) Publish(block *blocks.Block) {
 	ps.wrapped.Pub(block, topic)
 }
 
-func (ps *impl) SubscribeDeprec(ctx context.Context, keys ...u.Key) <-chan *blocks.Block {
-	topics := make([]string, 0)
-	for _, key := range keys {
-		topics = append(topics, string(key))
-	}
-	subChan := ps.wrapped.SubOnce(topics...)
-	blockChannel := make(chan *blocks.Block, 1) // buffered so the sender doesn't wait on receiver
-	go func() {
-		defer close(blockChannel)
-		select {
-		case val := <-subChan:
-			block, ok := val.(*blocks.Block)
-			if ok {
-				blockChannel <- block
-			}
-		case <-ctx.Done():
-			ps.wrapped.Unsub(subChan, topics...)
-		}
-	}()
-	return blockChannel
-}
-
 func (ps *impl) Shutdown() {
 	ps.wrapped.Shutdown()
 }
