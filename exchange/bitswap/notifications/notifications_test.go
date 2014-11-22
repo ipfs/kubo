@@ -9,6 +9,31 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 )
 
+func TestDuplicates(t *testing.T) {
+	b1 := blocks.NewBlock([]byte("1"))
+	b2 := blocks.NewBlock([]byte("2"))
+
+	n := New()
+	defer n.Shutdown()
+	ch := n.Subscribe(context.Background(), b1.Key(), b2.Key())
+
+	n.Publish(b1)
+	blockRecvd, ok := <-ch
+	if !ok {
+		t.Fail()
+	}
+	assertBlocksEqual(t, b1, blockRecvd)
+
+	n.Publish(b1) // ignored duplicate
+
+	n.Publish(b2)
+	blockRecvd, ok = <-ch
+	if !ok {
+		t.Fail()
+	}
+	assertBlocksEqual(t, b2, blockRecvd)
+}
+
 func TestPublishSubscribe(t *testing.T) {
 	blockSent := blocks.NewBlock([]byte("Greetings from The Interval"))
 
@@ -80,9 +105,9 @@ func assertBlockChannelNil(t *testing.T, blockChannel <-chan *blocks.Block) {
 
 func assertBlocksEqual(t *testing.T, a, b *blocks.Block) {
 	if !bytes.Equal(a.Data, b.Data) {
-		t.Fail()
+		t.Fatal("blocks aren't equal")
 	}
 	if a.Key() != b.Key() {
-		t.Fail()
+		t.Fatal("block keys aren't equal")
 	}
 }
