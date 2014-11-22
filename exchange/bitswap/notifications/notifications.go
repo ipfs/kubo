@@ -47,7 +47,12 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Blo
 			ps.wrapped.Unsub(valuesCh, toStrings(keys)...)
 			close(blocksCh)
 		}()
-		for _, _ = range keys {
+		seen := make(map[u.Key]struct{})
+		i := 0 // req'd because it only counts unique block sends
+		for {
+			if i >= len(keys) {
+				return
+			}
 			select {
 			case <-ctx.Done():
 				return
@@ -59,10 +64,22 @@ func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Blo
 				if !ok {
 					return
 				}
+				if _, ok := seen[block.Key()]; ok {
+					continue
+				}
 				select {
 				case <-ctx.Done():
 					return
 				case blocksCh <- block: // continue
+					// Unsub alone is insufficient for keeping out duplicates.
+					// It's a race to unsubscribe before pubsub handles the
+					// next Publish call. Therefore, must also check for
+					// duplicates manually. Unsub is a performance
+					// consideration to avoid lots of unnecessary channel
+					// chatter.
+					ps.wrapped.Unsub(valuesCh, string(block.Key()))
+					i++
+					seen[block.Key()] = struct{}{}
 				}
 			}
 		}
