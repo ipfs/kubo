@@ -49,6 +49,15 @@ func TestSubscribeMany(t *testing.T) {
 	assertBlocksEqual(t, e2, r2)
 }
 
+func TestSubscribeIsANoopWhenCalledWithNoKeys(t *testing.T) {
+	n := New()
+	defer n.Shutdown()
+	ch := n.Subscribe(context.TODO()) // no keys provided
+	if _, ok := <-ch; ok {
+		t.Fatal("should be closed if no keys provided")
+	}
+}
+
 func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 
 	impossibleDeadline := time.Nanosecond
