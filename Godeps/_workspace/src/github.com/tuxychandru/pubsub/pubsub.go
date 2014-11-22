@@ -66,6 +66,14 @@ func (ps *PubSub) AddSub(ch chan interface{}, topics ...string) {
 	ps.cmdChan <- cmd{op: sub, topics: topics, ch: ch}
 }
 
+// AddSubOnce adds one-time subscriptions to an existing channel.
+// For each topic, a message will be sent once.
+func (ps *PubSub) AddSubOnce(ch chan interface{}, topics ...string) {
+	for _, t := range topics {
+		ps.cmdChan <- cmd{op: subOnce, topics: []string{t}, ch: ch}
+	}
+}
+
 // Pub publishes the given message to all subscribers of
 // the specified topics.
 func (ps *PubSub) Pub(msg interface{}, topics ...string) {
