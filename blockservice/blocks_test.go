@@ -10,6 +10,7 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -57,4 +58,7 @@ func TestBlocks(t *testing.T) {
 	if !bytes.Equal(b.Data, b2.Data) {
 		t.Error("Block data is not equal.")
 	}
+}
+
+func TestGetBlocks(t *testing.T) {
 }
