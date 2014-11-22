@@ -16,7 +16,6 @@ import (
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	async "github.com/jbenet/go-ipfs/util/async"
 	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
@@ -131,7 +130,7 @@ func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.
 	promise := bs.notifications.Subscribe(ctx, keys...)
 	select {
 	case bs.batchRequests <- keys:
-		return async.ForwardN(ctx, promise, len(keys)), nil
+		return promise, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
