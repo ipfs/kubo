@@ -37,14 +37,14 @@ func (ps *impl) Shutdown() {
 // is closed if the |ctx| times out or is cancelled, or after sending len(keys)
 // blocks.
 func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Block {
-	topics := toStrings(keys)
+
 	blocksCh := make(chan *blocks.Block, len(keys))
 	valuesCh := make(chan interface{}, len(keys))
-	ps.wrapped.AddSub(valuesCh, topics...)
+	ps.wrapped.AddSub(valuesCh, toStrings(keys)...)
 
 	go func() {
 		defer func() {
-			ps.wrapped.Unsub(valuesCh, topics...)
+			ps.wrapped.Unsub(valuesCh, toStrings(keys)...)
 			close(blocksCh)
 		}()
 		for _, _ = range keys {
