@@ -52,8 +52,8 @@ func TestPublishSubscribe(t *testing.T) {
 }
 
 func TestSubscribeMany(t *testing.T) {
-	e1 := blocks.NewBlock([]byte("Greetings from The Interval"))
-	e2 := blocks.NewBlock([]byte("Greetings from The Interval"))
+	e1 := blocks.NewBlock([]byte("1"))
+	e2 := blocks.NewBlock([]byte("2"))
 
 	n := New()
 	defer n.Shutdown()
