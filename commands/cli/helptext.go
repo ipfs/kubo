@@ -110,6 +110,7 @@ var longHelpTemplate *template.Template
 var shortHelpTemplate *template.Template
 var colorScheme c.Colorize
 var requiredArg string
+var subcommandPrefix string
 var optionalArg string
 var variadicArg string
 var optionFlag string
@@ -139,6 +140,7 @@ func init() {
 	variadicArg = colorScheme.Color("[variadicArg]%v[DEFAULT]...")
 	optionFlag = colorScheme.Color("[optionFlag]-%v[DEFAULT]")
 	optionType = colorScheme.Color("[optionType]%v[DEFAULT]")
+	subcommandPrefix = colorScheme.Color("[USAGE]%v[DEFAULT]")
 
 	usageTemplate = template.Must(template.New("usage").Parse(colorScheme.Color(usageFormat)))
 	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(colorScheme.Color(longHelpFormat)))
@@ -302,7 +304,7 @@ func optionText(cmd ...*cmds.Command) []string {
 }
 
 func subcommandText(cmd *cmds.Command, rootName string, path []string) []string {
-	prefix := fmt.Sprintf("%v %v", rootName, strings.Join(path, " "))
+	prefix := fmt.Sprintf(subcommandPrefix, rootName) + " " + fmt.Sprintf(subcommandPrefix, strings.Join(path, " "))
 	if len(path) > 0 {
 		prefix += " "
 	}
@@ -315,7 +317,7 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = prefix + name + usage
+		lines[i] = prefix + fmt.Sprintf(subcommandPrefix, name) + usage
 		subcmds[i] = sub
 		i++
 	}
