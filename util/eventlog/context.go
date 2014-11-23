@@ -10,6 +10,9 @@ type key int
 
 const metadataKey key = 0
 
+// ContextWithLoggable returns a derived context which contains the provided
+// Loggable. Any Events logged with the derived context will include the
+// provided Loggable.
 func ContextWithLoggable(ctx context.Context, l Loggable) context.Context {
 	existing, err := MetadataFromContext(ctx)
 	if err != nil {

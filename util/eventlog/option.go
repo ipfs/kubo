@@ -19,17 +19,19 @@ func init() {
 
 type Option func()
 
+// Configure applies the provided options sequentially from left to right
 func Configure(options ...Option) {
 	for _, f := range options {
 		f()
 	}
 }
 
-// LdJSONFormatter formats the event log as line-delimited JSON
+// LdJSONFormatter Option formats the event log as line-delimited JSON
 var LdJSONFormatter = func() {
 	logrus.SetFormatter(&PoliteJSONFormatter{})
 }
 
+// TextFormatter Option formats the event log as human-readable plain-text
 var TextFormatter = func() {
 	logrus.SetFormatter(&logrus.TextFormatter{})
 }
@@ -60,14 +62,17 @@ func OutputRotatingLogFile(config LogRotatorConfig) Option {
 	}
 }
 
+// LevelDebug Option sets the log level to debug
 var LevelDebug = func() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
+// LevelDebug Option sets the log level to error
 var LevelError = func() {
 	logrus.SetLevel(logrus.ErrorLevel)
 }
 
+// LevelDebug Option sets the log level to info
 var LevelInfo = func() {
 	logrus.SetLevel(logrus.InfoLevel)
 }
