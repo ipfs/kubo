@@ -10,7 +10,7 @@ func TestContextContainsMetadata(t *testing.T) {
 	t.Parallel()
 
 	m := Metadata{"foo": "bar"}
-	ctx := ContextWithMetadata(context.Background(), m)
+	ctx := ContextWithLoggable(context.Background(), m)
 	got, err := MetadataFromContext(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -25,8 +25,8 @@ func TestContextContainsMetadata(t *testing.T) {
 func TestContextWithPreexistingMetadata(t *testing.T) {
 	t.Parallel()
 
-	ctx := ContextWithMetadata(context.Background(), Metadata{"hello": "world"})
-	ctx = ContextWithMetadata(ctx, Metadata{"goodbye": "earth"})
+	ctx := ContextWithLoggable(context.Background(), Metadata{"hello": "world"})
+	ctx = ContextWithLoggable(ctx, Metadata{"goodbye": "earth"})
 
 	got, err := MetadataFromContext(ctx)
 	if err != nil {

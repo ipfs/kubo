@@ -10,7 +10,7 @@ type key int
 
 const metadataKey key = 0
 
-func ContextWithMetadata(ctx context.Context, l Loggable) context.Context {
+func ContextWithLoggable(ctx context.Context, l Loggable) context.Context {
 	existing, err := MetadataFromContext(ctx)
 	if err != nil {
 		// context does not contain meta. just set the new metadata
