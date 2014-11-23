@@ -129,7 +129,7 @@ func TestGetFailures(t *testing.T) {
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 	other := makePeer(nil)
-	d.Update(other)
+	d.Update(ctx, other)
 
 	// This one should time out
 	// u.POut("Timout Test\n")
@@ -232,7 +232,7 @@ func TestNotFound(t *testing.T) {
 	var ps []peer.Peer
 	for i := 0; i < 5; i++ {
 		ps = append(ps, _randPeer())
-		d.Update(ps[i])
+		d.Update(ctx, ps[i])
 	}
 
 	// Reply with random peers to every message
@@ -298,7 +298,7 @@ func TestLessThanKResponses(t *testing.T) {
 	var ps []peer.Peer
 	for i := 0; i < 5; i++ {
 		ps = append(ps, _randPeer())
-		d.Update(ps[i])
+		d.Update(ctx, ps[i])
 	}
 	other := _randPeer()
 
