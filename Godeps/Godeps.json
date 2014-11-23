@@ -208,6 +208,10 @@
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "fdbe02a1b44e75977b2690062b83cf507d70c013"
+		},
+		{
 			"ImportPath": "github.com/maybebtc/logrus",
 			"Comment": "v0.6.0-5-gf92b795",
 			"Rev": "f92b7950b372b1db80bd3527e4d40e42555fe6c2"
@@ -215,6 +219,10 @@
 		{
 			"ImportPath": "github.com/maybebtc/pubsub",
 			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/colorstring",
+			"Rev": "15fc698eaae194ff160846daf77922a45b9290a7"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",

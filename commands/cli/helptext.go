@@ -9,8 +9,8 @@ import (
 	"text/template"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	isatty "github.com/mattn/go-isatty"
-	c "github.com/mitchellh/colorstring"
+	isatty "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mattn/go-isatty"
+	c "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/colorstring"
 )
 
 const (
