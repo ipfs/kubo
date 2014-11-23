@@ -85,7 +85,7 @@ const longHelpFormat = `
 
 {{.Subcommands}}
 
-{{.Indent}}Use [yellow]'{{.Path}} <subcmd> --help'[white] for more information about each command.
+{{.Indent}}Use [USAGE]{{.Path}} <subcmd> --help[DEFAULT] for more information about each command.
 
 {{end}}[DESCRIPTION]{{if .Description}}[HEADER]DESCRIPTION[DEFAULT]:
 
