@@ -54,13 +54,13 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	if recursiveOpt != nil && recursiveOpt.Definition() == cmds.OptionRecursivePath {
 		recursive, _, err = recursiveOpt.Bool()
 		if err != nil {
-			return nil, nil, nil, u.ErrCast()
+			return req, nil, nil, u.ErrCast()
 		}
 	}
 
 	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive)
 	if err != nil {
-		return nil, cmd, path, err
+		return req, cmd, path, err
 	}
 	req.SetArguments(stringArgs)
 
