@@ -10,6 +10,22 @@ test_description="Test add and cat commands"
 
 test_launch_ipfs_daemon_and_mount
 
+test_expect_success "'ipfs add --help' succeeds" '
+	ipfs add --help >actual
+'
+
+test_expect_success "'ipfs add --help' output looks good" '
+	egrep "ipfs add.*<path>" actual
+'
+
+test_expect_success "'ipfs cat --help' succeeds" '
+	ipfs cat --help >actual
+'
+
+test_expect_success "'ipfs cat --help' output looks good" '
+	egrep "ipfs cat.*<ipfs-path>" actual
+'
+
 test_expect_success "ipfs add succeeds" '
 	echo "Hello Worlds!" >mountdir/hello.txt &&
 	ipfs add mountdir/hello.txt >actual
