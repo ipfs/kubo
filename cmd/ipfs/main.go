@@ -278,7 +278,7 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 		if err != nil {
 			return err
 		}
-		configureEventLogger(cfg)
+		repo.ConfigureEventLogger(cfg.Logs)
 	}
 
 	return nil
@@ -509,25 +509,4 @@ func allInterruptSignals() chan os.Signal {
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
 		syscall.SIGTERM, syscall.SIGQUIT)
 	return sigc
-}
-
-func configureEventLogger(config *config.Config) error {
-
-	if u.Debug {
-		eventlog.Configure(eventlog.LevelDebug)
-	} else {
-		eventlog.Configure(eventlog.LevelInfo)
-	}
-
-	eventlog.Configure(eventlog.LdJSONFormatter)
-
-	rotateConf := eventlog.LogRotatorConfig{
-		Filename:   config.Logs.Filename,
-		MaxSizeMB:  config.Logs.MaxSizeMB,
-		MaxBackups: config.Logs.MaxBackups,
-		MaxAgeDays: config.Logs.MaxAgeDays,
-	}
-
-	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
-	return nil
 }
