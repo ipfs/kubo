@@ -11,11 +11,6 @@ import (
 // Metadata is a convenience type for generic maps
 type Metadata map[string]interface{}
 
-// Loggable describes objects that can be marshalled into Metadata for logging
-type Loggable interface {
-	Loggable() map[string]interface{}
-}
-
 // Uuid returns a Metadata with the string key and UUID value
 func Uuid(key string) Metadata {
 	return Metadata{
