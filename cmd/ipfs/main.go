@@ -24,6 +24,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	repo "github.com/jbenet/go-ipfs/repo"
 )
 
 // log is the command logger
@@ -271,7 +272,7 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 
 	// When the upcoming command may use the config and repo, we know it's safe
 	// for the log config hook to touch the config/repo
-	if details.usesConfigAsInput() && details.usesRepo() {
+	if repo.IsInitialized(req.Context().ConfigRoot) {
 		log.Debug("Calling hook: Configure Event Logger")
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
