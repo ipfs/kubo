@@ -3,20 +3,17 @@ package cli
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"text/template"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	isatty "github.com/mattn/go-isatty"
+	c "github.com/mitchellh/colorstring"
 )
 
 const (
-	requiredArg = "<%v>"
-	optionalArg = "[<%v>]"
-	variadicArg = "%v..."
-	optionFlag  = "-%v"
-	optionType  = "(%v)"
-
 	whitespace = "\r\n\t "
 
 	indentStr = "    "
@@ -71,51 +68,81 @@ func (f *helpFields) IndentAll() {
 	f.Description = indent(f.Description)
 }
 
-const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}{{end}}"
+const usageFormat = "[USAGE]{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}}[ARGUSAGE] {{.ArgUsage}}{{end}} [DEFAULT]- {{.Tagline}}{{end}}"
 
 const longHelpFormat = `
 {{.Indent}}{{template "usage" .}}
 
-{{if .Arguments}}ARGUMENTS:
+{{if .Arguments}}[HEADER]ARGUMENTS[DEFAULT]:
 
 {{.Arguments}}
 
-{{end}}{{if .Options}}OPTIONS:
+{{end}}{{if .Options}}[HEADER]OPTIONS[DEFAULT]:
 
 {{.Options}}
 
-{{end}}{{if .Subcommands}}SUBCOMMANDS:
+{{end}}{{if .Subcommands}}[HEADER]SUBCOMMANDS[DEFAULT]:
 
 {{.Subcommands}}
 
-{{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
+{{.Indent}}Use [yellow]'{{.Path}} <subcmd> --help'[white] for more information about each command.
 
-{{end}}{{if .Description}}DESCRIPTION:
+{{end}}[DESCRIPTION]{{if .Description}}[HEADER]DESCRIPTION[DEFAULT]:
 
 {{.Description}}
 
-{{end}}
+{{end}}[DEFAULT]
 `
 const shortHelpFormat = `USAGE:
 
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
-{{end}}{{if .Description}}
+{{end}}[DESCRIPTION]{{if .Description}}
 {{.Description}}
 {{end}}
-{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
+[DEFAULT]{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
 {{end}}
 `
 
 var usageTemplate *template.Template
 var longHelpTemplate *template.Template
 var shortHelpTemplate *template.Template
+var colorScheme c.Colorize
+var requiredArg string
+var optionalArg string
+var variadicArg string
+var optionFlag string
+var optionType string
 
 func init() {
-	usageTemplate = template.Must(template.New("usage").Parse(usageFormat))
-	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(longHelpFormat))
-	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(shortHelpFormat))
+	colorScheme = c.Colorize{
+		Colors: map[string]string{
+			"HEADER":       c.DefaultColors["light_blue"],
+			"DEFAULT":      c.DefaultColors["default"],
+			"USAGE":        c.DefaultColors["light_yellow"],
+			"ARGUSAGE":     c.DefaultColors["light_cyan"],
+			"ARGUSAGETEXT": c.DefaultColors["light_red"],
+			"DESCRIPTION":  c.DefaultColors["white"],
+			"requiredArg":  c.DefaultColors["light_red"],
+			"optionalArg":  c.DefaultColors["light_green"],
+			"variadicArg":  c.DefaultColors["light_green"],
+			"optionFlag":   c.DefaultColors["light_green"],
+			"optionType":   c.DefaultColors["light_magenta"],
+		},
+		Reset:   true,
+		Disable: !isatty.IsTerminal(os.Stdout.Fd()),
+	}
+
+	requiredArg = colorScheme.Color("[requiredArg]<%v>[DEFAULT]")
+	optionalArg = colorScheme.Color("[optionalArg]<%v>[DEFAULT]")
+	variadicArg = colorScheme.Color("[variadicArg]%v[DEFAULT]...")
+	optionFlag = colorScheme.Color("[optionFlag]-%v[DEFAULT]")
+	optionType = colorScheme.Color("[optionType]%v[DEFAULT]")
+
+	usageTemplate = template.Must(template.New("usage").Parse(colorScheme.Color(usageFormat)))
+	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(colorScheme.Color(longHelpFormat)))
+	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(colorScheme.Color(shortHelpFormat)))
 }
 
 // LongHelp returns a formatted CLI helptext string, generated for the given command
@@ -209,7 +236,7 @@ func argumentText(cmd *cmds.Command) []string {
 	lines := make([]string, len(cmd.Arguments))
 
 	for i, arg := range cmd.Arguments {
-		lines[i] = argUsageText(arg)
+		lines[i] = colorScheme.Color("[ARGUSAGETEXT]" + argUsageText(arg) + "[DEFAULT]")
 	}
 	lines = align(lines)
 	for i, arg := range cmd.Arguments {
@@ -262,7 +289,7 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option types to output
 	for i, opt := range options {
-		lines[i] += " " + fmt.Sprintf("%v", opt.Type())
+		lines[i] += " " + fmt.Sprintf(optionType, opt.Type())
 	}
 	lines = align(lines)
 
