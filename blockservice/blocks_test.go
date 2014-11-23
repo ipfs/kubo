@@ -11,7 +11,9 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
+	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
+	"github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -61,4 +63,42 @@ func TestBlocks(t *testing.T) {
 }
 
 func TestGetBlocks(t *testing.T) {
+	net := tn.VirtualNetwork()
+	rs := mock.VirtualRoutingServer()
+	sg := bitswap.NewSessionGenerator(net, rs)
+	bg := bitswap.NewBlockGenerator()
+
+	instances := sg.Instances(4)
+	blks := bg.Blocks(50)
+	// TODO: verify no duplicates
+
+	var servs []*BlockService
+	for _, i := range instances {
+		bserv, err := New(i.Blockstore, i.Exchange)
+		if err != nil {
+			t.Fatal(err)
+		}
+		servs = append(servs, bserv)
+	}
+
+	var keys []u.Key
+	for _, blk := range blks {
+		keys = append(keys, blk.Key())
+		servs[0].AddBlock(blk)
+	}
+
+	for i := 1; i < 4; i++ {
+		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+		out := servs[i].GetBlocks(ctx, keys)
+		gotten := make(map[u.Key]*blocks.Block)
+		for blk := range out {
+			if _, ok := gotten[blk.Key()]; ok {
+				t.Fatal("Got duplicate block!")
+			}
+			gotten[blk.Key()] = blk
+		}
+		if len(gotten) != len(blks) {
+			t.Fatalf("Didnt get enough blocks back: %d/%d", len(gotten), len(blks))
+		}
+	}
 }
