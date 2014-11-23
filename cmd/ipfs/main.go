@@ -247,6 +247,7 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 
 func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Request, root *cmds.Command) error {
 
+	log.Event(ctx, "callPreCommandHooks", &details)
 	log.Debug("Calling pre-command hooks...")
 
 	// some hooks only run when the command is executed locally
