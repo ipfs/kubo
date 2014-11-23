@@ -1,4 +1,4 @@
-package bitswap_test
+package bitswap
 
 import (
 	"bytes"
@@ -7,13 +7,8 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	. "github.com/jbenet/go-ipfs/exchange/bitswap"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
@@ -170,7 +165,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	}
 }
 
-func getOrFail(bitswap instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
+func getOrFail(bitswap Instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
 	if _, err := bitswap.blockstore.Get(b.Key()); err != nil {
 		_, err := bitswap.exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {
@@ -244,86 +239,5 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 	if block.Key() != alpha.Key() {
 		t.Fatal("Expected to receive alpha from me")
-	}
-}
-
-func NewBlockGenerator() BlockGenerator {
-	return BlockGenerator{}
-}
-
-type BlockGenerator struct {
-	seq int
-}
-
-func (bg *BlockGenerator) Next() *blocks.Block {
-	bg.seq++
-	return blocks.NewBlock([]byte(string(bg.seq)))
-}
-
-func (bg *BlockGenerator) Blocks(n int) []*blocks.Block {
-	blocks := make([]*blocks.Block, 0)
-	for i := 0; i < n; i++ {
-		b := bg.Next()
-		blocks = append(blocks, b)
-	}
-	return blocks
-}
-
-func NewSessionGenerator(
-	net tn.Network, rs mock.RoutingServer) SessionGenerator {
-	return SessionGenerator{
-		net: net,
-		rs:  rs,
-		seq: 0,
-	}
-}
-
-type SessionGenerator struct {
-	seq int
-	net tn.Network
-	rs  mock.RoutingServer
-}
-
-func (g *SessionGenerator) Next() instance {
-	g.seq++
-	return session(g.net, g.rs, []byte(string(g.seq)))
-}
-
-func (g *SessionGenerator) Instances(n int) []instance {
-	instances := make([]instance, 0)
-	for j := 0; j < n; j++ {
-		inst := g.Next()
-		instances = append(instances, inst)
-	}
-	return instances
-}
-
-type instance struct {
-	peer       peer.Peer
-	exchange   exchange.Interface
-	blockstore blockstore.Blockstore
-}
-
-// session creates a test bitswap session.
-//
-// NB: It's easy make mistakes by providing the same peer ID to two different
-// sessions. To safeguard, use the SessionGenerator to generate sessions. It's
-// just a much better idea.
-func session(net tn.Network, rs mock.RoutingServer, id peer.ID) instance {
-	p := peer.WithID(id)
-
-	adapter := net.Adapter(p)
-	htc := rs.Client(p)
-	bstore := blockstore.NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-
-	const alwaysSendToPeer = true
-	ctx := context.TODO()
-
-	bs := New(ctx, p, adapter, htc, bstore, alwaysSendToPeer)
-
-	return instance{
-		peer:       p,
-		exchange:   bs,
-		blockstore: bstore,
 	}
 }

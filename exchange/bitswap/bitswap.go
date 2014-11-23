@@ -262,7 +262,6 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 		}
 	}
 
-	first := true
 	for _, key := range incoming.Wantlist() {
 		// TODO: might be better to check if we have the block before checking
 		//			if we should send it to someone
@@ -273,11 +272,9 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 				// Create a separate message to send this block in
 				blkmsg := bsmsg.New()
 
-				if first {
-					for _, k := range bs.wantlist.Keys() {
-						blkmsg.AddWanted(k)
-					}
-					first = false
+				// TODO: only send this the first time
+				for _, k := range bs.wantlist.Keys() {
+					blkmsg.AddWanted(k)
 				}
 
 				blkmsg.AddBlock(block)
@@ -285,16 +282,6 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 				bs.send(ctx, p, blkmsg)
 			}
 		}
-	}
-
-	// If they send us a block, we should guarantee that we send
-	// them our updated want list one way or another
-	if len(incoming.Blocks()) > 0 && first {
-		message := bsmsg.New()
-		for _, k := range bs.wantlist.Keys() {
-			message.AddWanted(k)
-		}
-		return p, message
 	}
 
 	return nil, nil
