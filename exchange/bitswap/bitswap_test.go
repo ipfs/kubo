@@ -25,8 +25,8 @@ func TestClose(t *testing.T) {
 	block := bgen.Next()
 	bitswap := sesgen.Next()
 
-	bitswap.exchange.Close()
-	bitswap.exchange.GetBlock(context.Background(), block.Key())
+	bitswap.Exchange.Close()
+	bitswap.Exchange.GetBlock(context.Background(), block.Key())
 }
 
 func TestGetBlockTimeout(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGetBlockTimeout(t *testing.T) {
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	block := blocks.NewBlock([]byte("block"))
-	_, err := self.exchange.GetBlock(ctx, block.Key())
+	_, err := self.Exchange.GetBlock(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
@@ -58,7 +58,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	solo := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	_, err := solo.exchange.GetBlock(ctx, block.Key())
+	_, err := solo.Exchange.GetBlock(ctx, block.Key())
 
 	if err != context.DeadlineExceeded {
 		t.Fatal("Expected DeadlineExceeded error")
@@ -76,17 +76,17 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	hasBlock := g.Next()
 
-	if err := hasBlock.blockstore.Put(block); err != nil {
+	if err := hasBlock.Blockstore.Put(block); err != nil {
 		t.Fatal(err)
 	}
-	if err := hasBlock.exchange.HasBlock(context.Background(), block); err != nil {
+	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
 		t.Fatal(err)
 	}
 
 	wantsBlock := g.Next()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
-	received, err := wantsBlock.exchange.GetBlock(ctx, block.Key())
+	received, err := wantsBlock.Exchange.GetBlock(ctx, block.Key())
 	if err != nil {
 		t.Log(err)
 		t.Fatal("Expected to succeed")
@@ -135,9 +135,9 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	first := instances[0]
 	for _, b := range blocks {
-		first.blockstore.Put(b)
-		first.exchange.HasBlock(context.Background(), b)
-		rs.Announce(first.peer, b.Key())
+		first.Blockstore.Put(b)
+		first.Exchange.HasBlock(context.Background(), b)
+		rs.Announce(first.Peer, b.Key())
 	}
 
 	t.Log("Distribute!")
@@ -158,7 +158,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	for _, inst := range instances {
 		for _, b := range blocks {
-			if _, err := inst.blockstore.Get(b.Key()); err != nil {
+			if _, err := inst.Blockstore.Get(b.Key()); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -166,8 +166,8 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 }
 
 func getOrFail(bitswap Instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
-	if _, err := bitswap.blockstore.Get(b.Key()); err != nil {
-		_, err := bitswap.exchange.GetBlock(context.Background(), b.Key())
+	if _, err := bitswap.Blockstore.Get(b.Key()); err != nil {
+		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -190,50 +190,50 @@ func TestSendToWantingPeer(t *testing.T) {
 	w := sg.Next()
 	o := sg.Next()
 
-	t.Logf("Session %v\n", me.peer)
-	t.Logf("Session %v\n", w.peer)
-	t.Logf("Session %v\n", o.peer)
+	t.Logf("Session %v\n", me.Peer)
+	t.Logf("Session %v\n", w.Peer)
+	t.Logf("Session %v\n", o.Peer)
 
 	alpha := bg.Next()
 
 	const timeout = 100 * time.Millisecond // FIXME don't depend on time
 
-	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.peer, alpha.Key())
+	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.Peer, alpha.Key())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
-	_, err := w.exchange.GetBlock(ctx, alpha.Key())
+	_, err := w.Exchange.GetBlock(ctx, alpha.Key())
 	if err == nil {
 		t.Fatalf("Expected %v to NOT be available", alpha.Key())
 	}
 
 	beta := bg.Next()
-	t.Logf("Peer %v announes availability  of %v\n", w.peer, beta.Key())
+	t.Logf("Peer %v announes availability  of %v\n", w.Peer, beta.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := w.blockstore.Put(beta); err != nil {
+	if err := w.Blockstore.Put(beta); err != nil {
 		t.Fatal(err)
 	}
-	w.exchange.HasBlock(ctx, beta)
+	w.Exchange.HasBlock(ctx, beta)
 
-	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.peer, beta.Key(), w.peer, alpha.Key())
+	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.Peer, beta.Key(), w.Peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if _, err := me.exchange.GetBlock(ctx, beta.Key()); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("%v announces availability of %v\n", o.peer, alpha.Key())
-	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := o.blockstore.Put(alpha); err != nil {
-		t.Fatal(err)
-	}
-	o.exchange.HasBlock(ctx, alpha)
-
-	t.Logf("%v requests %v\n", me.peer, alpha.Key())
-	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if _, err := me.exchange.GetBlock(ctx, alpha.Key()); err != nil {
+	if _, err := me.Exchange.GetBlock(ctx, beta.Key()); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%v should now have %v\n", w.peer, alpha.Key())
-	block, err := w.blockstore.Get(alpha.Key())
+	t.Logf("%v announces availability of %v\n", o.Peer, alpha.Key())
+	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	if err := o.Blockstore.Put(alpha); err != nil {
+		t.Fatal(err)
+	}
+	o.Exchange.HasBlock(ctx, alpha)
+
+	t.Logf("%v requests %v\n", me.Peer, alpha.Key())
+	ctx, _ = context.WithTimeout(context.Background(), timeout)
+	if _, err := me.Exchange.GetBlock(ctx, alpha.Key()); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%v should now have %v\n", w.Peer, alpha.Key())
+	block, err := w.Blockstore.Get(alpha.Key())
 	if err != nil {
 		t.Fatal("Should not have received an error")
 	}
