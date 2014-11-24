@@ -159,6 +159,7 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.Peer, pmes *pb.Me
 	for _, p := range withAddresses {
 		log.Debugf("handleFindPeer: sending back '%s'", p)
 	}
+
 	resp.CloserPeers = pb.PeersToPBPeers(dht.dialer, withAddresses)
 	return resp, nil
 }
