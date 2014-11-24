@@ -115,6 +115,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		Config:     cfg,
 	}
 	n.ContextCloser = ctxc.NewContextCloser(ctx, n.teardown)
+	ctx = n.Context()
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {

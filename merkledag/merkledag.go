@@ -163,17 +163,6 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 	return n.cached, nil
 }
 
-// Searches this nodes links for one to the given key,
-// returns the index of said link
-func (n *Node) FindLink(k u.Key) (int, error) {
-	for i, lnk := range n.Links {
-		if u.Key(lnk.Hash) == k {
-			return i, nil
-		}
-	}
-	return -1, u.ErrNotFound
-}
-
 // Key returns the Multihash as a key, for maps.
 func (n *Node) Key() (u.Key, error) {
 	h, err := n.Multihash()
@@ -298,6 +287,17 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 	return done
 }
 
+// Searches this nodes links for one to the given key,
+// returns the index of said link
+func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
+	for i, lnk := range n.Links {
+		if u.Key(lnk.Hash) == k && found[i] == nil {
+			return i, nil
+		}
+	}
+	return -1, u.ErrNotFound
+}
+
 // BatchFetch will fill out all of the links of the given Node.
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
@@ -324,7 +324,7 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 		count := 0
 		for blk := range blkchan {
 			count++
-			i, err := root.FindLink(blk.Key())
+			i, err := FindLink(root, blk.Key(), nodes)
 			if err != nil {
 				panic("Received block that wasnt in this nodes links!")
 			}
@@ -355,4 +355,15 @@ func (ds *dagService) BatchFetch(ctx context.Context, root *Node) <-chan *Node {
 	}()
 
 	return sig
+}
+
+func checkForDupes(ks []u.Key) bool {
+	seen := make(map[u.Key]struct{})
+	for _, k := range ks {
+		if _, ok := seen[k]; ok {
+			return true
+		}
+		seen[k] = struct{}{}
+	}
+	return false
 }
