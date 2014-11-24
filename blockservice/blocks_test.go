@@ -62,7 +62,7 @@ func TestBlocks(t *testing.T) {
 	}
 }
 
-func TestGetBlocks(t *testing.T) {
+func TestGetBlocksSequential(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := bitswap.NewSessionGenerator(net, rs)
@@ -87,14 +87,11 @@ func TestGetBlocks(t *testing.T) {
 		servs[0].AddBlock(blk)
 	}
 
-	var chans []<-chan *blocks.Block
-	for i := 1; i < 4; i++ {
-		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-		ch := servs[i].GetBlocks(ctx, keys)
-		chans = append(chans, ch)
-	}
+	t.Log("one instance at a time, get blocks concurrently")
 
-	for _, out := range chans {
+	for i := 1; i < len(instances); i++ {
+		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+		out := servs[i].GetBlocks(ctx, keys)
 		gotten := make(map[u.Key]*blocks.Block)
 		for blk := range out {
 			if _, ok := gotten[blk.Key()]; ok {
