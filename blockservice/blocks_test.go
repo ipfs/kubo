@@ -87,9 +87,14 @@ func TestGetBlocks(t *testing.T) {
 		servs[0].AddBlock(blk)
 	}
 
+	var chans []<-chan *blocks.Block
 	for i := 1; i < 4; i++ {
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-		out := servs[i].GetBlocks(ctx, keys)
+		ch := servs[i].GetBlocks(ctx, keys)
+		chans = append(chans, ch)
+	}
+
+	for _, out := range chans {
 		gotten := make(map[u.Key]*blocks.Block)
 		for blk := range out {
 			if _, ok := gotten[blk.Key()]; ok {
