@@ -15,6 +15,7 @@ type operation int
 const (
 	sub operation = iota
 	subOnce
+	subOnceEach
 	pub
 	unsub
 	unsubAll
@@ -55,6 +56,12 @@ func (ps *PubSub) SubOnce(topics ...string) chan interface{} {
 	return ps.sub(subOnce, topics...)
 }
 
+// SubOnceEach returns a channel on which callers receive, at most, one message
+// for each topic.
+func (ps *PubSub) SubOnceEach(topics ...string) chan interface{} {
+	return ps.sub(subOnceEach, topics...)
+}
+
 func (ps *PubSub) sub(op operation, topics ...string) chan interface{} {
 	ch := make(chan interface{}, ps.capacity)
 	ps.cmdChan <- cmd{op: op, topics: topics, ch: ch}
@@ -64,6 +71,12 @@ func (ps *PubSub) sub(op operation, topics ...string) chan interface{} {
 // AddSub adds subscriptions to an existing channel.
 func (ps *PubSub) AddSub(ch chan interface{}, topics ...string) {
 	ps.cmdChan <- cmd{op: sub, topics: topics, ch: ch}
+}
+
+// AddSubOnceEach adds subscriptions to an existing channel with SubOnceEach
+// behavior.
+func (ps *PubSub) AddSubOnceEach(ch chan interface{}, topics ...string) {
+	ps.cmdChan <- cmd{op: subOnceEach, topics: topics, ch: ch}
 }
 
 // Pub publishes the given message to all subscribers of
@@ -98,7 +111,7 @@ func (ps *PubSub) Shutdown() {
 
 func (ps *PubSub) start() {
 	reg := registry{
-		topics:    make(map[string]map[chan interface{}]bool),
+		topics:    make(map[string]map[chan interface{}]subtype),
 		revTopics: make(map[chan interface{}]map[string]bool),
 	}
 
@@ -119,10 +132,13 @@ loop:
 		for _, topic := range cmd.topics {
 			switch cmd.op {
 			case sub:
-				reg.add(topic, cmd.ch, false)
+				reg.add(topic, cmd.ch, stNorm)
 
 			case subOnce:
-				reg.add(topic, cmd.ch, true)
+				reg.add(topic, cmd.ch, stOnceAny)
+
+			case subOnceEach:
+				reg.add(topic, cmd.ch, stOnceEach)
 
 			case pub:
 				reg.send(topic, cmd.msg)
@@ -146,15 +162,23 @@ loop:
 // registry maintains the current subscription state. It's not
 // safe to access a registry from multiple goroutines simultaneously.
 type registry struct {
-	topics    map[string]map[chan interface{}]bool
+	topics    map[string]map[chan interface{}]subtype
 	revTopics map[chan interface{}]map[string]bool
 }
 
-func (reg *registry) add(topic string, ch chan interface{}, once bool) {
+type subtype int
+
+const (
+	stOnceAny = iota
+	stOnceEach
+	stNorm
+)
+
+func (reg *registry) add(topic string, ch chan interface{}, st subtype) {
 	if reg.topics[topic] == nil {
-		reg.topics[topic] = make(map[chan interface{}]bool)
+		reg.topics[topic] = make(map[chan interface{}]subtype)
 	}
-	reg.topics[topic][ch] = once
+	reg.topics[topic][ch] = st
 
 	if reg.revTopics[ch] == nil {
 		reg.revTopics[ch] = make(map[string]bool)
@@ -163,12 +187,15 @@ func (reg *registry) add(topic string, ch chan interface{}, once bool) {
 }
 
 func (reg *registry) send(topic string, msg interface{}) {
-	for ch, once := range reg.topics[topic] {
+	for ch, st := range reg.topics[topic] {
 		ch <- msg
-		if once {
+		switch st {
+		case stOnceAny:
 			for topic := range reg.revTopics[ch] {
 				reg.remove(topic, ch)
 			}
+		case stOnceEach:
+			reg.remove(topic, ch)
 		}
 	}
 }
