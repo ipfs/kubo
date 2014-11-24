@@ -99,29 +99,37 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
-	out := make(chan *blocks.Block, 32)
+	out := make(chan *blocks.Block, 0)
 	go func() {
-		var toFetch []u.Key
+		defer close(out)
+		var misses []u.Key
 		for _, k := range ks {
-			block, err := s.Blockstore.Get(k)
+			hit, err := s.Blockstore.Get(k)
 			if err != nil {
-				toFetch = append(toFetch, k)
+				misses = append(misses, k)
 				continue
 			}
 			log.Debug("Blockservice: Got data in datastore.")
-			out <- block
+			select {
+			case out <- hit:
+			case <-ctx.Done():
+				return
+			}
 		}
 
-		nblocks, err := s.Remote.GetBlocks(ctx, toFetch)
+		rblocks, err := s.Remote.GetBlocks(ctx, misses)
 		if err != nil {
 			log.Errorf("Error with GetBlocks: %s", err)
 			return
 		}
 
-		for blk := range nblocks {
-			out <- blk
+		for b := range rblocks {
+			select {
+			case out <- b:
+			case <-ctx.Done():
+				return
+			}
 		}
-		close(out)
 	}()
 	return out
 }
