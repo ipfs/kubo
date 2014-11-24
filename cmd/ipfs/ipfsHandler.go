@@ -24,7 +24,7 @@ type ipfs interface {
 }
 
 // shortcut for templating
-type H map[string]interface{}
+type webHandler map[string]interface{}
 
 // struct for directory listing
 type directoryItem struct {
@@ -89,7 +89,7 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Debug("is directory %s", path)
 
 			if path[len(path)-1:] != "/" {
-				log.Debug("missing trailing slash redirect")
+				log.Debug("missing trailing slash, redirect")
 				http.Redirect(w, r, "/ipfs/"+path+"/", 307)
 				return
 			}
@@ -103,16 +103,12 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// return index page
 					nd, err := i.ResolvePath(path + "/index.html")
 					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte(err.Error()))
-						log.Error("%s", err)
+						internalWebError(w, err)
 						return
 					}
 					dr, err := i.NewDagReader(nd)
 					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte(err.Error()))
-						log.Error("%s", err)
+						internalWebError(w, err)
 						return
 					}
 					// write to request
@@ -122,24 +118,18 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				dirListing = append(dirListing, directoryItem{link.Size, link.Name})
 			}
 			// template and return directory listing
-			//for i, j := range dirListing {
-			//	log.Debug(i, ":", j.Size, " ", j.Name)
-			//}
-			err := i.dirList.Execute(w, H{"listing": dirListing, "path": path})
+			err := i.dirList.Execute(w, webHandler{"listing": dirListing, "path": path})
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
-				log.Error("%s", err)
+				internalWebError(w, err)
 				return
 			}
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Error(err)
-		w.Write([]byte(err.Error()))
+		// not a directory and still an error
+		internalWebError(w, err)
 		return
 	}
-	// data file
+	// return data file
 	io.Copy(w, dr)
 }
 
@@ -163,6 +153,13 @@ func (i *ipfsHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	//TODO: return json representation of list instead
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(mh.Multihash(k).B58String()))
+}
+
+// return a 500 error and log
+func internalWebError(w http.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte(err.Error()))
+	log.Error("%s", err)
 }
 
 // Directory listing template
