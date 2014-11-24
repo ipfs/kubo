@@ -32,10 +32,8 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 
 	notif := notifications.New()
 	go func() {
-		select {
-		case <-ctx.Done():
-			notif.Shutdown()
-		}
+		<-ctx.Done()
+		notif.Shutdown()
 	}()
 
 	bs := &bitswap{
