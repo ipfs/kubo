@@ -137,16 +137,16 @@
 			"Rev": "f92b7950b372b1db80bd3527e4d40e42555fe6c2"
 		},
 		{
+			"ImportPath": "github.com/maybebtc/pubsub",
+			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "99056d50e56252fbe0021d5c893defca5a76baf8"
-		},
-		{
-			"ImportPath": "github.com/tuxychandru/pubsub",
-			"Rev": "02de8aa2db3d570c5ab1be5ba67b456fd0fb7c4e"
 		},
 		{
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
