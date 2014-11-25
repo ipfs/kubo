@@ -16,7 +16,8 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+	repo "github.com/jbenet/go-ipfs/repo"
 )
 
 const nBitsForKeypairDefault = 4096
@@ -251,6 +252,8 @@ func identityConfig(nbits int) (config.Identity, error) {
 	return ident, nil
 }
 
+// initLogs initializes the event logger at the specified path. It uses the
+// default log path if no path is provided.
 func initLogs(logpath string) (config.Logs, error) {
 	if len(logpath) == 0 {
 		var err error
@@ -259,15 +262,18 @@ func initLogs(logpath string) (config.Logs, error) {
 			return config.Logs{}, debugerror.Wrap(err)
 		}
 	}
-
 	err := initCheckDir(logpath)
 	if err != nil {
 		return config.Logs{}, debugerror.Errorf("logs: %s", err)
 	}
-
-	return config.Logs{
+	conf := config.Logs{
 		Filename: path.Join(logpath, "events.log"),
-	}, nil
+	}
+	err = repo.ConfigureEventLogger(conf)
+	if err != nil {
+		return conf, err
+	}
+	return conf, nil
 }
 
 // initCheckDir ensures the directory exists and is writable
