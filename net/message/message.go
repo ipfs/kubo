@@ -10,6 +10,7 @@ import (
 type NetMessage interface {
 	Peer() peer.Peer
 	Data() []byte
+	Loggable() map[string]interface{}
 }
 
 // New is the interface for constructing a new message.
@@ -33,6 +34,16 @@ func (m *message) Peer() peer.Peer {
 
 func (m *message) Data() []byte {
 	return m.data
+}
+
+func (m *message) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"netMessage": map[string]interface{}{
+			"recipient": m.Peer(),
+			// TODO sizeBytes? bytes? lenBytes?
+			"size": len(m.Data()),
+		},
+	}
 }
 
 // FromObject creates a message from a protobuf-marshallable message.
