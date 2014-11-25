@@ -29,11 +29,12 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 	"github.com/jbenet/go-ipfs/util/debugerror"
+	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 const IpnsValidatorTag = "ipns"
 
-var log = u.Logger("core")
+var log = eventlog.Logger("core")
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
@@ -242,9 +243,11 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 }
 
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
+	// TODO consider stricter error handling
+	// TODO consider Criticalf error logging
 	for _, p := range cfg.Bootstrap {
 		if p.PeerID == "" {
-			log.Errorf("error: peer does not include PeerID. %v", p)
+			log.Criticalf("error: peer does not include PeerID. %v", p)
 		}
 
 		maddr, err := ma.NewMultiaddr(p.Address)
@@ -256,14 +259,16 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		// setup peer
 		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
 		if err != nil {
-			log.Errorf("Bootstrapping error: %v", err)
+			log.Criticalf("Bootstrapping error: %v", err)
 			continue
 		}
 		npeer.AddAddress(maddr)
 
 		if _, err = route.Connect(ctx, npeer); err != nil {
-			log.Errorf("Bootstrapping error: %v", err)
+			log.Criticalf("Bootstrapping error: %v", err)
+			continue
 		}
+		log.Event(ctx, "bootstrap", npeer)
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
@@ -53,6 +54,7 @@ type cmdInvocation struct {
 // - output the response
 // - if anything fails, print error, maybe with help
 func main() {
+	ctx := context.Background()
 	var err error
 	var invoc cmdInvocation
 	defer invoc.close()
@@ -114,7 +116,7 @@ func main() {
 	}
 
 	// ok, finally, run the command invocation.
-	output, err := invoc.Run()
+	output, err := invoc.Run(ctx)
 	if err != nil {
 		printErr(err)
 
@@ -129,7 +131,7 @@ func main() {
 	io.Copy(os.Stdout, output)
 }
 
-func (i *cmdInvocation) Run() (output io.Reader, err error) {
+func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	// setup our global interrupt handler.
 	i.setupInterruptHandler()
 
@@ -153,7 +155,7 @@ func (i *cmdInvocation) Run() (output io.Reader, err error) {
 		defer stopProfilingFunc() // to be executed as late as possible
 	}
 
-	res, err := callCommand(i.req, Root)
+	res, err := callCommand(ctx, i.req, Root)
 	if err != nil {
 		return nil, err
 	}
@@ -243,8 +245,9 @@ func (i *cmdInvocation) requestedHelp() (short bool, long bool, err error) {
 	return longHelp, shortHelp, nil
 }
 
-func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Command) error {
+func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Request, root *cmds.Command) error {
 
+	log.Event(ctx, "callPreCommandHooks", &details)
 	log.Debug("Calling pre-command hooks...")
 
 	// some hooks only run when the command is executed locally
@@ -284,7 +287,7 @@ func callPreCommandHooks(details cmdDetails, req cmds.Request, root *cmds.Comman
 	return nil
 }
 
-func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
+func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 	var res cmds.Response
 
 	details, err := commandDetails(req.Path(), root)
@@ -297,7 +300,7 @@ func callCommand(req cmds.Request, root *cmds.Command) (cmds.Response, error) {
 		return nil, err
 	}
 
-	err = callPreCommandHooks(*details, req, root)
+	err = callPreCommandHooks(ctx, *details, req, root)
 	if err != nil {
 		return nil, err
 	}

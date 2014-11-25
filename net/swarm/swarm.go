@@ -151,6 +151,8 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 		return nil, err
 	}
 
+	// TODO replace the TODO ctx with a context passed in from caller
+	log.Event(context.TODO(), "dial", peer)
 	return c, nil
 }
 

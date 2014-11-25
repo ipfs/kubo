@@ -28,28 +28,17 @@ func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
 		for {
 			// log.Infof("making chunk with size: %d", ss.Size)
 			chunk := make([]byte, ss.Size)
-			sofar := 0
-
-			// this-chunk loop (keep reading until this chunk full)
-			for {
-				nread, err := r.Read(chunk[sofar:])
-				sofar += nread
-				if err == io.EOF {
-					if sofar > 0 {
-						// log.Infof("sending out chunk with size: %d", sofar)
-						out <- chunk[:sofar]
-					}
-					return
-				}
-				if err != nil {
-					log.Errorf("Block split error: %s", err)
-					return
-				}
-				if sofar == ss.Size {
-					// log.Infof("sending out chunk with size: %d", sofar)
-					out <- chunk[:sofar]
-					break // break out of this-chunk loop
-				}
+			nread, err := io.ReadFull(r, chunk)
+			if nread > 0 {
+				// log.Infof("sending out chunk with size: %d", sofar)
+				out <- chunk[:nread]
+			}
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return
+			}
+			if err != nil {
+				log.Errorf("Block split error: %s", err)
+				return
 			}
 		}
 	}()

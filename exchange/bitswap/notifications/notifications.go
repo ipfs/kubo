@@ -34,7 +34,7 @@ func (ps *impl) Publish(block blocks.Block) {
 func (ps *impl) Subscribe(ctx context.Context, k u.Key) <-chan blocks.Block {
 	topic := string(k)
 	subChan := ps.wrapped.SubOnce(topic)
-	blockChannel := make(chan blocks.Block)
+	blockChannel := make(chan blocks.Block, 1) // buffered so the sender doesn't wait on receiver
 	go func() {
 		defer close(blockChannel)
 		select {

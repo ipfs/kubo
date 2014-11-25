@@ -12,8 +12,9 @@ import (
 var log = u.Logger("commands/http")
 
 type Handler struct {
-	ctx  cmds.Context
-	root *cmds.Command
+	ctx    cmds.Context
+	root   *cmds.Command
+	origin string
 }
 
 var ErrNotFound = errors.New("404 page not found")
@@ -29,12 +30,22 @@ var mimeTypes = map[string]string{
 	cmds.Text: "text/plain",
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command) *Handler {
-	return &Handler{ctx, root}
+func NewHandler(ctx cmds.Context, root *cmds.Command, origin string) *Handler {
+	// allow whitelisted origins (so we can make API requests from the browser)
+	if len(origin) > 0 {
+		log.Info("Allowing API requests from origin: " + origin)
+	}
+
+	return &Handler{ctx, root, origin}
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
+
+	if len(i.origin) > 0 {
+		w.Header().Set("Access-Control-Allow-Origin", i.origin)
+	}
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	req, err := Parse(r, i.root)
 	if err != nil {

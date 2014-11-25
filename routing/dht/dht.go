@@ -98,8 +98,6 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, error) {
-	log.Debugf("Connect to new peer: %s", npeer)
-
 	// TODO(jbenet,whyrusleeping)
 	//
 	// Connect should take in a Peer (with ID). In a sense, we shouldn't be
@@ -120,8 +118,9 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
+	log.Event(ctx, "connect", dht.self, npeer)
 
-	dht.Update(npeer)
+	dht.Update(ctx, npeer)
 
 	return npeer, nil
 }
@@ -150,7 +149,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	}
 
 	// update the peer (on valid msgs only)
-	dht.Update(mPeer)
+	dht.Update(ctx, mPeer)
 
 	log.Event(ctx, "foo", dht.self, mPeer, pmes)
 
@@ -397,8 +396,8 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 
 // Update signals to all routingTables to Update their last-seen status
 // on the given peer.
-func (dht *IpfsDHT) Update(p peer.Peer) {
-	log.Debugf("updating peer: %s latency = %f\n", p, p.GetLatency().Seconds())
+func (dht *IpfsDHT) Update(ctx context.Context, p peer.Peer) {
+	log.Event(ctx, "updatePeer", p)
 	removedCount := 0
 	for _, route := range dht.routingTables {
 		removed := route.Update(p)

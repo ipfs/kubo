@@ -122,7 +122,6 @@ func (s *Swarm) peerMultiConn(p peer.Peer) (*conn.MultiConn, error) {
 	s.Children().Add(1)
 	mc.Children().Add(1) // child of Conn as well.
 	go s.fanInSingle(mc)
-	log.Debugf("added new multiconn: %s", mc)
 	return mc, nil
 }
 
@@ -133,7 +132,7 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		return nil, errors.New("Tried to start nil connection.")
 	}
 
-	log.Debugf("%s Started connection: %s", c.LocalPeer(), c.RemotePeer())
+	log.Event(context.TODO(), "connSetupBegin", c.LocalPeer(), c.RemotePeer())
 
 	// add address of connection to Peer. Maybe it should happen in connSecure.
 	// NOT adding this address here, because the incoming address in TCP
@@ -163,8 +162,7 @@ func (s *Swarm) connSetup(c conn.Conn) (conn.Conn, error) {
 		return nil, err
 	}
 	mc.Add(c)
-	log.Debugf("multiconn added new conn %s", c)
-
+	log.Event(context.TODO(), "connSetupSuccess", c.LocalPeer(), c.RemotePeer())
 	return c, nil
 }
 
@@ -200,6 +198,7 @@ func (s *Swarm) fanOut() {
 
 			i++
 			log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
+			log.Event(context.TODO(), "sendMessage", s.local, msg)
 			// queue it in the connection's buffer
 			c.Out() <- msg.Data()
 		}
