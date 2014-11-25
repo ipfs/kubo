@@ -98,8 +98,6 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, error) {
-	log.Debugf("Connect to new peer: %s", npeer)
-
 	// TODO(jbenet,whyrusleeping)
 	//
 	// Connect should take in a Peer (with ID). In a sense, we shouldn't be
@@ -120,6 +118,7 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
+	log.Event(ctx, "connect", dht.self, npeer)
 
 	dht.Update(ctx, npeer)
 
