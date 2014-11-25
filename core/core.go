@@ -29,11 +29,12 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 	"github.com/jbenet/go-ipfs/util/debugerror"
+	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 const IpnsValidatorTag = "ipns"
 
-var log = u.Logger("core")
+var log = eventlog.Logger("core")
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
@@ -242,6 +243,8 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 }
 
 func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
+	// TODO consider stricter error handling
+	// TODO consider Criticalf error logging
 	for _, p := range cfg.Bootstrap {
 		if p.PeerID == "" {
 			log.Criticalf("error: peer does not include PeerID. %v", p)
@@ -263,7 +266,9 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 
 		if _, err = route.Connect(ctx, npeer); err != nil {
 			log.Criticalf("Bootstrapping error: %v", err)
+			continue
 		}
+		log.Event(ctx, "bootstrap", npeer)
 	}
 }
 
