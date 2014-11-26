@@ -87,9 +87,13 @@ type bitswap struct {
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
 
-	// make sure to derive a new |ctx| and pass it to children. It's correct to
-	// listen on |parent| here, but incorrect to pass |parent| to new async
-	// functions. This is difficult to enforce. May this comment keep you safe.
+	// Any async work initiated by this function must end when this function
+	// returns. To ensure this, derive a new context. Note that it is okay to
+	// listen on parent in this scope, but NOT okay to pass |parent| to
+	// functions called by this one. Otherwise those functions won't return
+	// when this context Otherwise those functions won't return when this
+	// context's cancel func is executed. This is difficult to enforce. May
+	// this comment keep you safe.
 
 	ctx, cancelFunc := context.WithCancel(parent)
 
@@ -101,7 +105,7 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 		log.Event(ctx, "GetBlockRequestEnd", &k)
 	}()
 
-	promise, err := bs.GetBlocks(parent, []u.Key{k})
+	promise, err := bs.GetBlocks(ctx, []u.Key{k})
 	if err != nil {
 		return nil, err
 	}
