@@ -4,42 +4,12 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	"github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	"github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	"github.com/jbenet/go-ipfs/peer"
 	"github.com/jbenet/go-ipfs/routing/mock"
 )
-
-/*
-TODO: This whole file needs somewhere better to live.
-The issue is that its very difficult to move it somewhere else
-without creating circular dependencies.
-Additional thought required.
-*/
-
-func NewBlockGenerator() BlockGenerator {
-	return BlockGenerator{}
-}
-
-type BlockGenerator struct {
-	seq int
-}
-
-func (bg *BlockGenerator) Next() *blocks.Block {
-	bg.seq++
-	return blocks.NewBlock([]byte(string(bg.seq)))
-}
-
-func (bg *BlockGenerator) Blocks(n int) []*blocks.Block {
-	blocks := make([]*blocks.Block, 0)
-	for i := 0; i < n; i++ {
-		b := bg.Next()
-		blocks = append(blocks, b)
-	}
-	return blocks
-}
 
 func NewSessionGenerator(
 	net tn.Network, rs mock.RoutingServer) SessionGenerator {

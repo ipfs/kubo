@@ -7,8 +7,8 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
@@ -20,7 +20,7 @@ func TestClose(t *testing.T) {
 	vnet := tn.VirtualNetwork()
 	rout := mock.VirtualRoutingServer()
 	sesgen := NewSessionGenerator(vnet, rout)
-	bgen := NewBlockGenerator()
+	bgen := blocksutil.NewBlockGenerator()
 
 	block := bgen.Next()
 	bitswap := sesgen.Next()
@@ -124,7 +124,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator()
+	bg := blocksutil.NewBlockGenerator()
 
 	t.Log("Test a few nodes trying to get one file with a lot of blocks")
 
@@ -184,7 +184,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
-	bg := NewBlockGenerator()
+	bg := blocksutil.NewBlockGenerator()
 
 	me := sg.Next()
 	w := sg.Next()
