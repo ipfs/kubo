@@ -224,8 +224,10 @@ func (bs *bitswap) loop(parent context.Context) {
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
+	// TODO check all errors
 	log.Debugf("Has Block %s", blk.Key())
 	bs.wantlist.Remove(blk.Key())
+	bs.notifications.Publish(blk)
 	bs.sendToPeersThatWant(ctx, blk)
 	return bs.routing.Provide(ctx, blk.Key())
 }
@@ -258,8 +260,6 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 			log.Criticalf("error putting block: %s", err)
 			continue // FIXME(brian): err ignored
 		}
-		bs.notifications.Publish(block)
-		bs.wantlist.Remove(block.Key())
 		err := bs.HasBlock(ctx, block)
 		if err != nil {
 			log.Warningf("HasBlock errored: %s", err)
