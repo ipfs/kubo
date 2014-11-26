@@ -7,6 +7,8 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
+	"github.com/jbenet/go-ipfs/util"
 )
 
 func TestDuplicates(t *testing.T) {
@@ -94,6 +96,34 @@ func TestCarryOnWhenDeadlineExpires(t *testing.T) {
 	blockChannel := n.Subscribe(fastExpiringCtx, block.Key())
 
 	assertBlockChannelNil(t, blockChannel)
+}
+
+func TestDoesNotDeadLockIfContextCancelledBeforePublish(t *testing.T) {
+
+	g := blocksutil.NewBlockGenerator()
+	ctx, cancel := context.WithCancel(context.Background())
+	n := New()
+	defer n.Shutdown()
+
+	t.Log("generate a large number of blocks. exceed default buffer")
+	bs := g.Blocks(1000)
+	ks := func() []util.Key {
+		var keys []util.Key
+		for _, b := range bs {
+			keys = append(keys, b.Key())
+		}
+		return keys
+	}()
+
+	_ = n.Subscribe(ctx, ks...) // ignore received channel
+
+	t.Log("cancel context before any blocks published")
+	cancel()
+	for _, b := range bs {
+		n.Publish(b)
+	}
+
+	t.Log("publishing the large number of blocks to the ignored channel must not deadlock")
 }
 
 func assertBlockChannelNil(t *testing.T, blockChannel <-chan *blocks.Block) {

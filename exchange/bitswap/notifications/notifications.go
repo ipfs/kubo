@@ -39,15 +39,15 @@ func (ps *impl) Shutdown() {
 func (ps *impl) Subscribe(ctx context.Context, keys ...u.Key) <-chan *blocks.Block {
 
 	blocksCh := make(chan *blocks.Block, len(keys))
+	valuesCh := make(chan interface{}, len(keys)) // provide our own channel to control buffer, prevent blocking
 	if len(keys) == 0 {
 		close(blocksCh)
 		return blocksCh
 	}
-	valuesCh := ps.wrapped.SubOnceEach(toStrings(keys)...)
+	ps.wrapped.AddSubOnceEach(valuesCh, toStrings(keys)...)
 	go func() {
-		defer func() {
-			close(blocksCh)
-		}()
+		defer close(blocksCh)
+		defer ps.wrapped.Unsub(valuesCh) // with a len(keys) buffer, this is an optimization
 		for {
 			select {
 			case <-ctx.Done():
