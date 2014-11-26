@@ -40,7 +40,7 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 	case ftpb.Data_File:
 		var fetchChan <-chan *mdag.Node
 		if serv != nil {
-			fetchChan = serv.BatchFetch(context.TODO(), n)
+			fetchChan = serv.GetKeysAsync(context.TODO(), n)
 		}
 		return &DagReader{
 			node:      n,

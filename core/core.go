@@ -31,6 +31,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 const IpnsValidatorTag = "ipns"
