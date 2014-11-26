@@ -10,6 +10,7 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
@@ -66,7 +67,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	net := tn.VirtualNetwork()
 	rs := mock.VirtualRoutingServer()
 	sg := bitswap.NewSessionGenerator(net, rs)
-	bg := bitswap.NewBlockGenerator()
+	bg := blocksutil.NewBlockGenerator()
 
 	instances := sg.Instances(4)
 	blks := bg.Blocks(50)
