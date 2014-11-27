@@ -19,9 +19,8 @@ import (
 )
 
 func TestBlocks(t *testing.T) {
-	d := ds.NewMapDatastore()
-	tsds := dssync.MutexWrap(d)
-	bs, err := New(blockstore.NewBlockstore(tsds), offline.Exchange())
+	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
+	bs, err := New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		t.Error("failed to construct block service", err)
 		return
