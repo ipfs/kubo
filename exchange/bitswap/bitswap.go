@@ -91,6 +91,10 @@ type bitswap struct {
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
 
+	if block, err := bs.blockstore.Get(k); err == nil {
+		return block, nil
+	}
+
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
 	// listen on parent in this scope, but NOT okay to pass |parent| to

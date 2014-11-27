@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -49,23 +48,11 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, error) {
-	log.Debugf("BlockService GetBlock: '%s'", k)
-	block, err := s.Blockstore.Get(k)
-	if err == nil {
-		return block, nil
-		// TODO be careful checking ErrNotFound. If the underlying
-		// implementation changes, this will break.
-	} else if err == ds.ErrNotFound && s.Exchange != nil {
-		log.Debug("Blockservice: Searching bitswap.")
-		blk, err := s.Exchange.GetBlock(ctx, k)
-		if err != nil {
-			return nil, err
-		}
-		return blk, nil
-	} else {
-		log.Debug("Blockservice GetBlock: Not found.")
+	blk, err := s.Exchange.GetBlock(ctx, k)
+	if err != nil {
 		return nil, ErrNotFound
 	}
+	return blk, nil
 }
 
 // GetBlocks gets a list of blocks asynchronously and returns through
