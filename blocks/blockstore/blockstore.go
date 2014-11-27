@@ -45,6 +45,16 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 }
 
 func (bs *blockstore) Put(block *blocks.Block) error {
+	// check if we have it before adding. this is an extra read, but large writes
+	// are more expensive.
+	// TODO(jbenet) cheaper has. https://github.com/jbenet/go-datastore/issues/6
+	has, err := bs.datastore.Has(block.Key().DsKey())
+	if err != nil {
+		return err
+	}
+	if has {
+		return nil
+	}
 	return bs.datastore.Put(block.Key().DsKey(), block.Data)
 }
 
