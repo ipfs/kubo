@@ -249,7 +249,9 @@ func (bs *bitswap) loop(parent context.Context) {
 // service will potentially notify its peers.
 func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	// TODO check all errors
-	log.Debugf("Has Block %s", blk.Key())
+	if err := bs.blockstore.Put(blk); err != nil {
+		return err
+	}
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
 	bs.sendToPeersThatWant(ctx, blk)
