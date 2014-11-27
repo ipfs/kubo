@@ -135,12 +135,40 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
 func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.Block, error) {
-	// TODO log the request
-
-	promise := bs.notifications.Subscribe(ctx, keys...)
+	out := make(chan *blocks.Block, len(keys))
+	var hits []*blocks.Block
+	var misses []u.Key
+	for _, k := range keys {
+		hit, err := bs.blockstore.Get(k)
+		if err != nil {
+			misses = append(misses, k)
+			continue
+		}
+		hits = append(hits, hit)
+	}
+	// If all hits, misses is empty and promise is closed. Function returns
+	// immediately.
+	promise := bs.notifications.Subscribe(ctx, misses...)
+	go func() {
+		defer close(out)
+		for _, b := range hits {
+			select {
+			case out <- b:
+			case <-ctx.Done():
+				return
+			}
+		}
+		for b := range promise {
+			select {
+			case out <- b:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	select {
-	case bs.batchRequests <- keys:
-		return promise, nil
+	case bs.batchRequests <- misses:
+		return out, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

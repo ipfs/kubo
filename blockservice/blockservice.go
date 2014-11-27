@@ -59,38 +59,10 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
-	out := make(chan *blocks.Block, 0)
-	go func() {
-		defer close(out)
-		var misses []u.Key
-		for _, k := range ks {
-			hit, err := s.Blockstore.Get(k)
-			if err != nil {
-				misses = append(misses, k)
-				continue
-			}
-			log.Debug("Blockservice: Got data in datastore.")
-			select {
-			case out <- hit:
-			case <-ctx.Done():
-				return
-			}
-		}
-
-		rblocks, err := s.Exchange.GetBlocks(ctx, misses)
-		if err != nil {
-			log.Errorf("Error with GetBlocks: %s", err)
-			return
-		}
-
-		for b := range rblocks {
-			select {
-			case out <- b:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	out, err := s.Exchange.GetBlocks(ctx, ks)
+	if err != nil {
+		// TODO return channel of errors
+	}
 	return out
 }
 
