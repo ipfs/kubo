@@ -130,7 +130,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		return nil, debugerror.Wrap(err)
 	}
 
-	n.Exchange = offline.Exchange()
+	n.Exchange = offline.Exchange(blockstore.NewBlockstore(n.Datastore))
 
 	// setup online services
 	if online {
