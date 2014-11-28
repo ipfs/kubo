@@ -33,6 +33,7 @@ dependencies as well.
 * *WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/jbenet/go-ipfs/issues/177)
+* For more details on setting up FUSE (so that you can mount the filesystem), see the [wiki](https://github.com/jbenet/go-ipfs/wiki)
 
 
 ## Usage
