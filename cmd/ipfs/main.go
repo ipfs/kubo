@@ -21,11 +21,11 @@ import (
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	daemon "github.com/jbenet/go-ipfs/core/daemon"
+	repo "github.com/jbenet/go-ipfs/repo"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-	repo "github.com/jbenet/go-ipfs/repo"
 )
 
 // log is the command logger
@@ -295,6 +295,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command) (cmd
 		return nil, err
 	}
 
+	log.Info("looking for running daemon...")
 	useDaemon, err := commandShouldRunOnDaemon(*details, req, root)
 	if err != nil {
 		return nil, err
@@ -383,7 +384,6 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 		return false, nil
 	}
 
-	log.Info("looking for running daemon...")
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
 	daemonLocked := daemon.Locked(req.Context().ConfigRoot)
