@@ -167,7 +167,7 @@ func (p *peer) String() string {
 func (p *peer) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		p.GetType().String(): map[string]interface{}{
-			"id":      p.ID(),
+			"id":      p.ID().String(),
 			"latency": p.GetLatency(),
 		},
 	}
