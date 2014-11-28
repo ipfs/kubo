@@ -95,9 +95,8 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	// returns. To ensure this, derive a new context. Note that it is okay to
 	// listen on parent in this scope, but NOT okay to pass |parent| to
 	// functions called by this one. Otherwise those functions won't return
-	// when this context Otherwise those functions won't return when this
-	// context's cancel func is executed. This is difficult to enforce. May
-	// this comment keep you safe.
+	// when this context's cancel func is executed. This is difficult to
+	// enforce. May this comment keep you safe.
 
 	ctx, cancelFunc := context.WithCancel(parent)
 
