@@ -67,6 +67,23 @@ test_expect_success "'ipfs add -q' output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs add -r' succeeds" '
+	mkdir mountdir/planets &&
+	echo "Hello Mars!" >mountdir/planets/mars.txt &&
+	echo "Hello Venus!" >mountdir/planets/venus.txt &&
+	ipfs add -r mountdir/planets >actual
+'
+
+test_expect_success "'ipfs add -r' output looks good" '
+	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
+	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
+	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
+	echo "added $PLANETS mountdir/planets" >expected &&
+	echo "added $MARS mountdir/planets/mars.txt" >>expected &&
+	echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
+	test_cmp expected actual
+'
+
 test_expect_success "go-random is installed" '
 	type random
 '
