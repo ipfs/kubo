@@ -24,7 +24,7 @@ func getMockDagServ(t *testing.T) mdag.DAGService {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
-	bserv, err := bs.New(bstore, offline.Exchange())
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		t.Fatal(err)
 	}

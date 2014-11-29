@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -25,7 +24,7 @@ var ErrNotFound = errors.New("blockservice: key not found")
 type BlockService struct {
 	// TODO don't expose underlying impl details
 	Blockstore blockstore.Blockstore
-	Remote     exchange.Interface
+	Exchange   exchange.Interface
 }
 
 // NewBlockService creates a BlockService with given datastore instance.
@@ -36,101 +35,34 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) (*BlockService, error
 	if rem == nil {
 		log.Warning("blockservice running in local (offline) mode.")
 	}
-	return &BlockService{Blockstore: bs, Remote: rem}, nil
+	return &BlockService{Blockstore: bs, Exchange: rem}, nil
 }
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
-	k := b.Key()
-	log.Debugf("blockservice: storing [%s] in datastore", k)
-	// TODO(brian): define a block datastore with a Put method which accepts a
-	// block parameter
-
-	// check if we have it before adding. this is an extra read, but large writes
-	// are more expensive.
-	// TODO(jbenet) cheaper has. https://github.com/jbenet/go-datastore/issues/6
-	has, err := s.Blockstore.Has(k)
-	if err != nil {
-		return k, err
-	}
-	if has {
-		log.Debugf("blockservice: storing [%s] in datastore (already stored)", k)
-	} else {
-		log.Debugf("blockservice: storing [%s] in datastore", k)
-		err := s.Blockstore.Put(b)
-		if err != nil {
-			return k, err
-		}
-	}
-
-	// TODO this operation rate-limits blockservice operations, we should
-	// consider moving this to an sync process.
-	if s.Remote != nil {
-		ctx := context.TODO()
-		err = s.Remote.HasBlock(ctx, b)
-	}
-	return k, err
+	err := s.Exchange.HasBlock(context.TODO(), b)
+	return b.Key(), err
 }
 
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, error) {
-	log.Debugf("BlockService GetBlock: '%s'", k)
-	block, err := s.Blockstore.Get(k)
-	if err == nil {
-		return block, nil
-		// TODO be careful checking ErrNotFound. If the underlying
-		// implementation changes, this will break.
-	} else if err == ds.ErrNotFound && s.Remote != nil {
-		log.Debug("Blockservice: Searching bitswap.")
-		blk, err := s.Remote.GetBlock(ctx, k)
-		if err != nil {
-			return nil, err
-		}
-		return blk, nil
-	} else {
-		log.Debug("Blockservice GetBlock: Not found.")
+	blk, err := s.Exchange.GetBlock(ctx, k)
+	if err != nil {
 		return nil, ErrNotFound
 	}
+	return blk, nil
 }
 
 // GetBlocks gets a list of blocks asynchronously and returns through
 // the returned channel.
 // NB: No guarantees are made about order.
 func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks.Block {
-	out := make(chan *blocks.Block, 0)
-	go func() {
-		defer close(out)
-		var misses []u.Key
-		for _, k := range ks {
-			hit, err := s.Blockstore.Get(k)
-			if err != nil {
-				misses = append(misses, k)
-				continue
-			}
-			log.Debug("Blockservice: Got data in datastore.")
-			select {
-			case out <- hit:
-			case <-ctx.Done():
-				return
-			}
-		}
-
-		rblocks, err := s.Remote.GetBlocks(ctx, misses)
-		if err != nil {
-			log.Errorf("Error with GetBlocks: %s", err)
-			return
-		}
-
-		for b := range rblocks {
-			select {
-			case out <- b:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	out, err := s.Exchange.GetBlocks(ctx, ks)
+	if err != nil {
+		// TODO return channel of errors
+	}
 	return out
 }
 

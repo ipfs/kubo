@@ -91,6 +91,10 @@ type bitswap struct {
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
 
+	if block, err := bs.blockstore.Get(k); err == nil {
+		return block, nil
+	}
+
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
 	// listen on parent in this scope, but NOT okay to pass |parent| to
@@ -130,12 +134,40 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
 func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.Block, error) {
-	// TODO log the request
-
-	promise := bs.notifications.Subscribe(ctx, keys...)
+	out := make(chan *blocks.Block, len(keys))
+	var hits []*blocks.Block
+	var misses []u.Key
+	for _, k := range keys {
+		hit, err := bs.blockstore.Get(k)
+		if err != nil {
+			misses = append(misses, k)
+			continue
+		}
+		hits = append(hits, hit)
+	}
+	// If all hits, misses is empty and promise is closed. Function returns
+	// immediately.
+	promise := bs.notifications.Subscribe(ctx, misses...)
+	go func() {
+		defer close(out)
+		for _, b := range hits {
+			select {
+			case out <- b:
+			case <-ctx.Done():
+				return
+			}
+		}
+		for b := range promise {
+			select {
+			case out <- b:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	select {
-	case bs.batchRequests <- keys:
-		return promise, nil
+	case bs.batchRequests <- misses:
+		return out, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -247,24 +279,15 @@ func (bs *bitswap) loop(parent context.Context) {
 // HasBlock announces the existance of a block to this bitswap service. The
 // service will potentially notify its peers.
 func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
-	// TODO check all errors
-	log.Debugf("Has Block %s", blk.Key())
+	if err := bs.blockstore.Put(blk); err != nil {
+		return err
+	}
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
-	bs.sendToPeersThatWant(ctx, blk)
+	if err := bs.sendToPeersThatWant(ctx, blk); err != nil {
+		return err
+	}
 	return bs.routing.Provide(ctx, blk.Key())
-}
-
-func (bs *bitswap) receiveBlock(ctx context.Context, block *blocks.Block) {
-	// TODO verify blocks?
-	if err := bs.blockstore.Put(block); err != nil {
-		log.Criticalf("error putting block: %s", err)
-		return
-	}
-	err := bs.HasBlock(ctx, block)
-	if err != nil {
-		log.Warningf("HasBlock errored: %s", err)
-	}
 }
 
 // TODO(brian): handle errors
@@ -292,7 +315,9 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 
 	go func() {
 		for _, block := range incoming.Blocks() {
-			bs.receiveBlock(ctx, block)
+			if err := bs.HasBlock(ctx, block); err != nil {
+				log.Error(err)
+			}
 		}
 	}()
 
@@ -329,27 +354,29 @@ func (bs *bitswap) ReceiveError(err error) {
 
 // send strives to ensure that accounting is always performed when a message is
 // sent
-func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage) {
-	bs.sender.SendMessage(ctx, p, m)
-	bs.strategy.MessageSent(p, m)
+func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage) error {
+	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
+		return err
+	}
+	return bs.strategy.MessageSent(p, m)
 }
 
-func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block *blocks.Block) {
-	log.Debugf("Sending %s to peers that want it", block)
-
+func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block *blocks.Block) error {
 	for _, p := range bs.strategy.Peers() {
 		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
-			log.Debugf("%v wants %v", p, block.Key())
 			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
 				message := bsmsg.New()
 				message.AddBlock(block)
 				for _, wanted := range bs.wantlist.Keys() {
 					message.AddWanted(wanted)
 				}
-				bs.send(ctx, p, message)
+				if err := bs.send(ctx, p, message); err != nil {
+					return err
+				}
 			}
 		}
 	}
+	return nil
 }
 
 func (bs *bitswap) Close() error {
