@@ -54,6 +54,17 @@ test_expect_success FUSE "cat ipfs/stuff looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs add -q' succeeds" '
+	echo "Hello Venus!" >mountdir/venus.txt &&
+	ipfs add -q mountdir/venus.txt >actual
+'
+
+test_expect_success "'ipfs add -q' output looks good" '
+	HASH="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
+	echo "$HASH" >expected &&
+	test_cmp expected actual
+'
+
 test_expect_success "go-random is installed" '
 	type random
 '
