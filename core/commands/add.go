@@ -23,6 +23,7 @@ var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 type AddOutput struct {
 	Objects []*Object
 	Names   []string
+	Quiet   bool
 }
 
 var addCmd = &cmds.Command{
@@ -41,6 +42,7 @@ remains to be implemented.
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
+		cmds.BoolOption("quiet", "q", "Write minimal output"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		added := &AddOutput{}
@@ -64,6 +66,13 @@ remains to be implemented.
 			}
 		}
 
+		quiet, _, err := req.Option("quiet").Bool()
+		if err != nil {
+			return nil, err
+		}
+
+		added.Quiet = quiet
+
 		return added, nil
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -75,7 +84,11 @@ remains to be implemented.
 
 			var buf bytes.Buffer
 			for i, obj := range val.Objects {
-				buf.Write([]byte(fmt.Sprintf("added %s %s\n", obj.Hash, val.Names[i])))
+				if val.Quiet {
+					buf.Write([]byte(fmt.Sprintf("%s\n", obj.Hash)))
+				} else {
+					buf.Write([]byte(fmt.Sprintf("added %s %s\n", obj.Hash, val.Names[i])))
+				}
 			}
 			return buf.Bytes(), nil
 		},
