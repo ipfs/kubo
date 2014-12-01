@@ -510,6 +510,6 @@ func (i *cmdInvocation) setupInterruptHandler() {
 func allInterruptSignals() chan os.Signal {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
-		syscall.SIGTERM, syscall.SIGQUIT)
+		syscall.SIGTERM)
 	return sigc
 }
