@@ -19,7 +19,7 @@ type BootstrapOutput struct {
 
 var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multiaddr>/<peerID>')"
 
-var bootstrapCmd = &cmds.Command{
+var BootstrapCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show or edit the list of bootstrap peers",
 		Synopsis: `

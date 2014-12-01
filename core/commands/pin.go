@@ -9,7 +9,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-var pinCmd = &cmds.Command{
+var PinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Pin (and unpin) objects to local storage",
 	},

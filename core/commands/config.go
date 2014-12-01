@@ -19,7 +19,7 @@ type ConfigField struct {
 	Value interface{}
 }
 
-var configCmd = &cmds.Command{
+var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "get and set IPFS config values",
 		Synopsis: `

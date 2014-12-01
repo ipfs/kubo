@@ -8,7 +8,7 @@ import (
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
-var catCmd = &cmds.Command{
+var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show IPFS object data",
 		ShortDescription: `

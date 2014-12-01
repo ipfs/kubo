@@ -25,7 +25,7 @@ func KeyListTextMarshaler(res cmds.Response) ([]byte, error) {
 	return []byte(s), nil
 }
 
-var refsCmd = &cmds.Command{
+var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Lists link hashes from an object",
 		ShortDescription: `

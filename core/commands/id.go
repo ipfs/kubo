@@ -31,7 +31,7 @@ type IdOutput struct {
 	ProtocolVersion string
 }
 
-var idCmd = &cmds.Command{
+var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show IPFS Node ID info",
 		ShortDescription: `
