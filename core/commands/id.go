@@ -93,15 +93,13 @@ func printPeer(p peer.Peer) (interface{}, error) {
 	info := new(IdOutput)
 
 	info.ID = p.ID().String()
-	if p.PubKey() == nil {
-		return nil, errors.New(`peer publickey not populated on offline runs,
-please run the daemon to use ipfs id!`)
+	if p.PubKey() != nil {
+		pkb, err := p.PubKey().Bytes()
+		if err != nil {
+			return nil, err
+		}
+		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
 	}
-	pkb, err := p.PubKey().Bytes()
-	if err != nil {
-		return nil, err
-	}
-	info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
 	for _, a := range p.Addresses() {
 		info.Addresses = append(info.Addresses, a.String())
 	}
