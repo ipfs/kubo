@@ -151,6 +151,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 		message.AddWanted(wanted)
 	}
 	for peerToQuery := range peers {
+		log.Debug("sending query to: %s", peerToQuery)
 		log.Event(ctx, "PeerToQuery", peerToQuery)
 		go func(p peer.Peer) {
 
@@ -161,20 +162,15 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 				return
 			}
 
-			response, err := bs.sender.SendRequest(ctx, p, message)
+			err = bs.sender.SendMessage(ctx, p, message)
 			if err != nil {
-				log.Errorf("Error sender.SendRequest(%s) = %s", p, err)
+				log.Errorf("Error sender.SendMessage(%s) = %s", p, err)
 				return
 			}
 			// FIXME ensure accounting is handled correctly when
 			// communication fails. May require slightly different API to
 			// get better guarantees. May need shared sequence numbers.
 			bs.strategy.MessageSent(p, message)
-
-			if response == nil {
-				return
-			}
-			bs.ReceiveMessage(ctx, p, response)
 		}(peerToQuery)
 	}
 	return nil

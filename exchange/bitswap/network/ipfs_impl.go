@@ -48,21 +48,8 @@ func (bsnet *impl) HandleMessage(
 		return nil
 	}
 
-	p, bsmsg := bsnet.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
-
-	// TODO(brian): put this in a helper function
-	if bsmsg == nil || p == nil {
-		return nil
-	}
-
-	outgoing, err := bsmsg.ToNet(p)
-	if err != nil {
-		go bsnet.receiver.ReceiveError(err)
-		return nil
-	}
-
-	log.Debugf("Message size: %d", len(outgoing.Data()))
-	return outgoing
+	bsnet.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
+	return nil
 }
 
 func (bsnet *impl) DialPeer(ctx context.Context, p peer.Peer) error {
