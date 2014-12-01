@@ -40,7 +40,7 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 	case ftpb.Data_File:
 		var fetchChan <-chan *mdag.Node
 		if serv != nil {
-			fetchChan = serv.GetKeysAsync(context.TODO(), n)
+			fetchChan = serv.GetDAG(context.TODO(), n)
 		}
 		return &DagReader{
 			node:      n,
@@ -62,6 +62,7 @@ func (dr *DagReader) precalcNextBuf() error {
 	var nxt *mdag.Node
 	var ok bool
 
+	// TODO: require non-nil dagservice, use offline bitswap exchange
 	if dr.serv == nil {
 		// Only used when fetchChan is nil,
 		// which only happens when passed in a nil dagservice

@@ -3,6 +3,7 @@
 package bitswap
 
 import (
+	"sync"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -180,8 +181,9 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 func (bs *bitswap) sendWantlistToProviders(ctx context.Context, ks []u.Key) {
-	done := make(chan struct{})
+	wg := sync.WaitGroup{}
 	for _, k := range ks {
+		wg.Add(1)
 		go func(k u.Key) {
 			providers := bs.routing.FindProvidersAsync(ctx, k, maxProvidersPerRequest)
 
@@ -189,12 +191,10 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, ks []u.Key) {
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
 			}
-			done <- struct{}{}
+			wg.Done()
 		}(k)
 	}
-	for _ = range ks {
-		<-done
-	}
+	wg.Wait()
 }
 
 // TODO ensure only one active request per key
@@ -255,6 +255,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	return bs.routing.Provide(ctx, blk.Key())
 }
 
+// receiveBlock handles storing the block in the blockstore and calling HasBlock
 func (bs *bitswap) receiveBlock(ctx context.Context, block *blocks.Block) {
 	// TODO verify blocks?
 	if err := bs.blockstore.Put(block); err != nil {

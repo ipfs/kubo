@@ -28,7 +28,10 @@ type DAGService interface {
 	AddRecursive(*Node) error
 	Get(u.Key) (*Node, error)
 	Remove(*Node) error
-	GetKeysAsync(context.Context, *Node) <-chan *Node
+
+	// GetDAG returns, in order, all the single leve child
+	// nodes of the passed in node.
+	GetDAG(context.Context, *Node) <-chan *Node
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -298,10 +301,10 @@ func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
 	return -1, u.ErrNotFound
 }
 
-// GetKeysAsync will fill out all of the links of the given Node.
+// GetDAG will fill out all of the links of the given Node.
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
-func (ds *dagService) GetKeysAsync(ctx context.Context, root *Node) <-chan *Node {
+func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 	sig := make(chan *Node)
 	go func() {
 		var keys []u.Key
