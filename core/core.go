@@ -8,7 +8,7 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
@@ -35,6 +35,7 @@ import (
 )
 
 const IpnsValidatorTag = "ipns"
+const kSizeBlockstoreWriteCache = 100
 
 var log = eventlog.Logger("core")
 
@@ -130,7 +131,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		return nil, debugerror.Wrap(err)
 	}
 
-	n.Exchange = offline.Exchange(blockstore.NewBlockstore(n.Datastore))
+	blockstore, err := bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
+	n.Exchange = offline.Exchange(blockstore)
 
 	// setup online services
 	if online {
@@ -174,16 +176,15 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
 		bitswapNetwork := bsnet.NewFromIpfsNetwork(exchangeService, n.Network)
-		bstore := blockstore.NewBlockstore(n.Datastore)
 
-		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, bstore, alwaysSendToPeer)
+		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, blockstore, alwaysSendToPeer)
 
 		go initConnections(ctx, n.Config, n.Peerstore, dhtRouting)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
 	// session that simply doesn't return blocks
-	n.Blocks, err = bserv.New(blockstore.NewBlockstore(n.Datastore), n.Exchange)
+	n.Blocks, err = bserv.New(blockstore, n.Exchange)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
