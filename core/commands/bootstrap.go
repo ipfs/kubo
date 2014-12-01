@@ -37,9 +37,9 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	Type:       bootstrapListCmd.Type,
 
 	Subcommands: map[string]*cmds.Command{
-		"list": bootstrapListCmd,
-		"add":  bootstrapAddCmd,
-		"rm":   bootstrapRemoveCmd,
+		"list":   bootstrapListCmd,
+		"add":    bootstrapAddCmd,
+		"remove": bootstrapRemoveCmd,
 	},
 }
 
