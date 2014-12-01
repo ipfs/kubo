@@ -66,7 +66,6 @@ if no peer is specified, prints out local peers info.
 
 		p, err := node.Routing.FindPeer(ctx, id)
 		if err == kb.ErrLookupFailure {
-			log.Error("what? no.")
 			return nil, errors.New(offlineIdErrorMessage)
 		}
 		if err != nil {
