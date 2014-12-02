@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/pprof"
 	"syscall"
 
@@ -54,6 +55,7 @@ type cmdInvocation struct {
 // - output the response
 // - if anything fails, print error, maybe with help
 func main() {
+	runtime.GOMAXPROCS(3)
 	ctx := context.Background()
 	var err error
 	var invoc cmdInvocation
