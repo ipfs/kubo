@@ -174,8 +174,7 @@ func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 			if !more {
 				return
 			}
-			m.Children().Add(1)
-			go m.handleOutgoingMessage(pid, msg)
+			m.handleOutgoingMessage(pid, msg)
 
 		case <-m.Closing():
 			return
@@ -185,7 +184,6 @@ func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 
 // handleOutgoingMessage wraps out a message and sends it out the
 func (m *Muxer) handleOutgoingMessage(pid pb.ProtocolID, m1 msg.NetMessage) {
-	defer m.Children().Done()
 
 	data, err := wrapData(m1.Data(), pid)
 	if err != nil {
