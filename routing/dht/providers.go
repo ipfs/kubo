@@ -102,9 +102,10 @@ func (pm *ProviderManager) AddProvider(k u.Key, val peer.Peer) {
 }
 
 func (pm *ProviderManager) GetProviders(ctx context.Context, k u.Key) []peer.Peer {
-	gp := new(getProv)
-	gp.k = k
-	gp.resp = make(chan []peer.Peer)
+	gp := &getProv{
+		k:    k,
+		resp: make(chan []peer.Peer, 1), // buffered to prevent sender from blocking
+	}
 	select {
 	case pm.getprovs <- gp:
 		return <-gp.resp
