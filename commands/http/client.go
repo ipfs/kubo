@@ -107,15 +107,21 @@ func getQuery(req cmds.Request) (string, error) {
 
 	args := req.Arguments()
 	argDefs := req.Command().Arguments
-	var argDef cmds.Argument
 
-	for i, arg := range args {
-		if i < len(argDefs) {
-			argDef = argDefs[i]
+	argDefIndex := 0
+
+	for _, arg := range args {
+		argDef := argDefs[argDefIndex]
+		// skip ArgFiles
+		for argDef.Type == cmds.ArgFile {
+			argDefIndex++
+			argDef = argDefs[argDefIndex]
 		}
 
-		if argDef.Type == cmds.ArgString {
-			query.Add("arg", arg)
+		query.Add("arg", arg)
+
+		if len(argDefs) > argDefIndex+1 {
+			argDefIndex++
 		}
 	}
 
