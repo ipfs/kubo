@@ -15,7 +15,7 @@ func TestProviderManager(t *testing.T) {
 	p := NewProviderManager(ctx, mid)
 	a := u.Key("test")
 	p.AddProvider(a, peer.WithIDString("testingprovider"))
-	resp := p.GetProviders(a)
+	resp := p.GetProviders(ctx, a)
 	if len(resp) != 1 {
 		t.Fatal("Could not retrieve provider.")
 	}

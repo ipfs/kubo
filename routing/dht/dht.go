@@ -161,7 +161,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	}
 
 	// dispatch handler.
-	rpmes, err := handler(mPeer, pmes)
+	rpmes, err := handler(ctx, mPeer, pmes)
 	if err != nil {
 		log.Errorf("handle message error: %s", err)
 		return nil

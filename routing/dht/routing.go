@@ -133,7 +133,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 
 		ps := newPeerSet()
 		// TODO may want to make this function async to hide latency
-		provs := dht.providers.GetProviders(key)
+		provs := dht.providers.GetProviders(ctx, key)
 		for _, p := range provs {
 			count--
 			// NOTE: assuming that this list of peers is unique
