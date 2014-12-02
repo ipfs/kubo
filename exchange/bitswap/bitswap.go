@@ -253,20 +253,10 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
 
-	var err error
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
 	child, _ := context.WithTimeout(ctx, hasBlockTimeout)
-	go func() {
-		bs.sendToPeersThatWant(child, blk)
-		wg.Done()
-	}()
-	go func() {
-		err = bs.routing.Provide(child, blk.Key())
-		wg.Done()
-	}()
-	wg.Wait()
-	return err
+	bs.sendToPeersThatWant(child, blk)
+	child, _ = context.WithTimeout(ctx, hasBlockTimeout)
+	return bs.routing.Provide(child, blk.Key())
 }
 
 // receiveBlock handles storing the block in the blockstore and calling HasBlock

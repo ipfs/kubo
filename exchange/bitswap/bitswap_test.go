@@ -235,7 +235,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	t.Logf("%v should now have %v\n", w.Peer, alpha.Key())
 	block, err := w.Blockstore.Get(alpha.Key())
 	if err != nil {
-		t.Fatal("Should not have received an error")
+		t.Fatalf("Should not have received an error: %s", err)
 	}
 	if block.Key() != alpha.Key() {
 		t.Fatal("Expected to receive alpha from me")
