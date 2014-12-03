@@ -145,6 +145,22 @@ func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.
 	}
 }
 
+// HasBlock announces the existance of a block to this bitswap service. The
+// service will potentially notify its peers.
+func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
+	if err := bs.blockstore.Put(blk); err != nil {
+		return err
+	}
+	bs.wantlist.Remove(blk.Key())
+	bs.notifications.Publish(blk)
+	child, _ := context.WithTimeout(ctx, hasBlockTimeout)
+	if err := bs.sendToPeersThatWant(child, blk); err != nil {
+		return err
+	}
+	child, _ = context.WithTimeout(ctx, hasBlockTimeout)
+	return bs.routing.Provide(child, blk.Key())
+}
+
 func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) error {
 	if peers == nil {
 		panic("Cant send wantlist to nil peerchan")
@@ -243,22 +259,6 @@ func (bs *bitswap) loop(parent context.Context) {
 			return
 		}
 	}
-}
-
-// HasBlock announces the existance of a block to this bitswap service. The
-// service will potentially notify its peers.
-func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
-	if err := bs.blockstore.Put(blk); err != nil {
-		return err
-	}
-	bs.wantlist.Remove(blk.Key())
-	bs.notifications.Publish(blk)
-	child, _ := context.WithTimeout(ctx, hasBlockTimeout)
-	if err := bs.sendToPeersThatWant(child, blk); err != nil {
-		return err
-	}
-	child, _ = context.WithTimeout(ctx, hasBlockTimeout)
-	return bs.routing.Provide(child, blk.Key())
 }
 
 // TODO(brian): handle errors
