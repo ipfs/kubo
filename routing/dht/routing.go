@@ -126,7 +126,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 }
 
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan peer.Peer {
-	log.Event(ctx, "findProviders", key)
+	log.Event(ctx, "findProviders", &key)
 	peerOut := make(chan peer.Peer, count)
 	go func() {
 		ps := newPeerSet()
