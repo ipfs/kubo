@@ -284,13 +284,11 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	// and number of bytes transfered.
 	bs.strategy.MessageReceived(p, incoming)
 
-	go func() {
-		for _, block := range incoming.Blocks() {
-			if err := bs.HasBlock(ctx, block); err != nil {
-				log.Error(err)
-			}
+	for _, block := range incoming.Blocks() {
+		if err := bs.HasBlock(ctx, block); err != nil {
+			log.Error(err)
 		}
-	}()
+	}
 
 	for _, key := range incoming.Wantlist() {
 		if bs.strategy.ShouldSendBlockToPeer(key, p) {
