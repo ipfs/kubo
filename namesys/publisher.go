@@ -119,7 +119,7 @@ func ValidateIpnsRecord(k u.Key, val []byte) error {
 	}
 	switch entry.GetValidityType() {
 	case pb.IpnsEntry_EOL:
-		t, err := u.ParseRFC3339(string(entry.GetValue()))
+		t, err := u.ParseRFC3339(string(entry.GetValidity()))
 		if err != nil {
 			log.Error("Failed parsing time for ipns record EOL")
 			return err
