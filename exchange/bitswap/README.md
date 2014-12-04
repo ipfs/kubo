@@ -1,22 +1,24 @@
-#Welcome to Bitswap
+#Welcome to Bitswap (The data trading engine)
 
-Bitswap is the module that is responsible for requesting blocks over the
-network from other ipfs peers.
+Bitswap is the module that is responsible for requesting and providing data
+blocks over the network to and from other ipfs peers. The role of bitswap is
+to be a merchant in the large global marketplace of data.
 
 ##Main Operations
-Bitswap has three main operations:
+Bitswap has three high level operations:
 
 ###GetBlocks
 `GetBlocks` is a bitswap method used to request multiple blocks that are likely
-to all be provided by the same peer (part of a single file, for example).
+to all be provided by the same set of peers (part of a single file, for example).
 
 ###GetBlock
 `GetBlock` is a special case of `GetBlocks` that just requests a single block.
 
 ###HasBlock
 `HasBlock` registers a local block with bitswap. Bitswap will then send that
-block to any connected peers who want it (strategy allowing), and announce to
-the DHT that the block is being provided.
+block to any connected peers who want it (with the strategies approval), record
+that transaction in the ledger and announce to the DHT that the block is being
+provided.
 
 ##Internal Details
 All `GetBlock` requests are relayed into a single for-select loop via channels.
@@ -39,4 +41,6 @@ If another peers wantlist is received, Bitswap will call its strategies
 be sent the block they are requesting (if we even have it).
 
 ##Outstanding TODOs:
-- Ensure only one request active per key
+[] Ensure only one request active per key
+[] More involved strategies
+[] Ensure only wanted blocks are counted in ledgers
