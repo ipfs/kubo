@@ -36,4 +36,7 @@ type IpfsRouting interface {
 	// FindPeer searches for a peer with given ID, returns a peer.PeerInfo
 	// with relevant addresses.
 	FindPeer(context.Context, peer.ID) (peer.PeerInfo, error)
+
+	// Ping a peer, log the time it took
+	Ping(context.Context, peer.ID) error
 }

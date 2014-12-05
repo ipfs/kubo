@@ -79,4 +79,8 @@ func (c *client) Provide(_ context.Context, key u.Key) error {
 	return c.server.Announce(info, key)
 }
 
+func (c *client) Ping(ctx context.Context, p peer.ID) error {
+	return nil
+}
+
 var _ routing.IpfsRouting = &client{}
