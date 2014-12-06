@@ -107,10 +107,15 @@ func (pm *ProviderManager) GetProviders(ctx context.Context, k u.Key) []peer.Pee
 		resp: make(chan []peer.Peer, 1), // buffered to prevent sender from blocking
 	}
 	select {
-	case pm.getprovs <- gp:
-		return <-gp.resp
 	case <-ctx.Done():
 		return nil
+	case pm.getprovs <- gp:
+	}
+	select {
+	case <-ctx.Done():
+		return nil
+	case peers := <-gp.resp:
+		return peers
 	}
 }
 
