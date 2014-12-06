@@ -262,7 +262,7 @@ func (c *MultiConn) ID() string {
 	return string(ids)
 }
 
-func (c *MultiConn) Conns() []Conn {
+func (c *MultiConn) getConns() []Conn {
 	c.RLock()
 	defer c.RUnlock()
 	var conns []Conn
