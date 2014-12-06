@@ -25,7 +25,7 @@ var BootstrapCmd = &cmds.Command{
 		Synopsis: `
 ipfs bootstrap list             - Show peers in the bootstrap list
 ipfs bootstrap add <peer>...    - Add peers to the bootstrap list
-ipfs bootstrap remove <peer>... - Removes peers from the bootstrap list
+ipfs bootstrap rm <peer>... - Removes peers from the bootstrap list
 `,
 		ShortDescription: `
 Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
@@ -37,9 +37,9 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	Type:       bootstrapListCmd.Type,
 
 	Subcommands: map[string]*cmds.Command{
-		"list":   bootstrapListCmd,
-		"add":    bootstrapAddCmd,
-		"remove": bootstrapRemoveCmd,
+		"list": bootstrapListCmd,
+		"add":  bootstrapAddCmd,
+		"rm":   bootstrapRemoveCmd,
 	},
 }
 
