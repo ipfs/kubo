@@ -31,7 +31,7 @@ type IdOutput struct {
 	ProtocolVersion string
 }
 
-var idCmd = &cmds.Command{
+var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show IPFS Node ID info",
 		ShortDescription: `
@@ -60,7 +60,8 @@ if no peer is specified, prints out local peers info.
 		}
 
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-		if node.Routing == nil {
+		// TODO handle offline mode with polymorphism instead of conditionals
+		if !node.OnlineMode() {
 			return nil, errors.New(offlineIdErrorMessage)
 		}
 

@@ -262,6 +262,16 @@ func (c *MultiConn) ID() string {
 	return string(ids)
 }
 
+func (c *MultiConn) getConns() []Conn {
+	c.RLock()
+	defer c.RUnlock()
+	var conns []Conn
+	for _, c := range c.conns {
+		conns = append(conns, c)
+	}
+	return conns
+}
+
 func (c *MultiConn) String() string {
 	return String(c, "MultiConn")
 }

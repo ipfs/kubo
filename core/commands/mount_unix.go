@@ -22,7 +22,7 @@ const mountTimeout = time.Second
 // fuseNoDirectory used to check the returning fuse error
 const fuseNoDirectory = "fusermount: failed to access mountpoint"
 
-var mountCmd = &cmds.Command{
+var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only)",
 		Synopsis: `

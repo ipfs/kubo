@@ -18,7 +18,7 @@ type Block struct {
 	Length int
 }
 
-var blockCmd = &cmds.Command{
+var BlockCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manipulate raw IPFS blocks",
 		ShortDescription: `

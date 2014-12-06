@@ -26,7 +26,7 @@ type AddOutput struct {
 	Quiet   bool
 }
 
-var addCmd = &cmds.Command{
+var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add an object to ipfs.",
 		ShortDescription: `

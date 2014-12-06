@@ -307,11 +307,11 @@ func TestMulticonnClose(t *testing.T) {
 	ctx := context.Background()
 	c1, c2 := setupMultiConns(t, ctx)
 
-	for _, c := range c1.conns {
+	for _, c := range c1.getConns() {
 		c.Close()
 	}
 
-	for _, c := range c2.conns {
+	for _, c := range c2.getConns() {
 		c.Close()
 	}
 

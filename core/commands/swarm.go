@@ -17,7 +17,7 @@ type stringList struct {
 	Strings []string
 }
 
-var swarmCmd = &cmds.Command{
+var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "swarm inspection tool",
 		Synopsis: `

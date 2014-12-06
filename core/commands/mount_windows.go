@@ -7,7 +7,7 @@ import (
 	"github.com/jbenet/go-ipfs/core"
 )
 
-var mountCmd = &cmds.Command{
+var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Not yet implemented on Windows",
 		ShortDescription: "Not yet implemented on Windows. :(",

@@ -129,19 +129,26 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 	log.Event(ctx, "findProviders", &key)
 	peerOut := make(chan peer.Peer, count)
 	go func() {
+		defer close(peerOut)
+
 		ps := newPeerSet()
-		provs := dht.providers.GetProviders(key)
+		// TODO may want to make this function async to hide latency
+		provs := dht.providers.GetProviders(ctx, key)
 		for _, p := range provs {
 			count--
 			// NOTE: assuming that this list of peers is unique
 			ps.Add(p)
-			peerOut <- p
+			select {
+			case peerOut <- p:
+			case <-ctx.Done():
+				return
+			}
 			if count <= 0 {
 				return
 			}
 		}
 
-		wg := new(sync.WaitGroup)
+		var wg sync.WaitGroup
 		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
 		for _, pp := range peers {
 			wg.Add(1)
@@ -156,16 +163,16 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 			}(pp)
 		}
 		wg.Wait()
-		close(peerOut)
 	}()
 	return peerOut
 }
 
 func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
-	done := make(chan struct{})
+	var wg sync.WaitGroup
 	for _, pbp := range peers {
+		wg.Add(1)
 		go func(mp *pb.Message_Peer) {
-			defer func() { done <- struct{}{} }()
+			defer wg.Done()
 			// construct new peer
 			p, err := dht.ensureConnectedToPeer(ctx, mp)
 			if err != nil {
@@ -179,15 +186,17 @@ func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.M
 
 			dht.providers.AddProvider(k, p)
 			if ps.AddIfSmallerThan(p, count) {
-				out <- p
+				select {
+				case out <- p:
+				case <-ctx.Done():
+					return
+				}
 			} else if ps.Size() >= count {
 				return
 			}
 		}(pbp)
 	}
-	for _ = range peers {
-		<-done
-	}
+	wg.Wait()
 }
 
 // Find specific Peer

@@ -21,7 +21,7 @@ type LsOutput struct {
 	Objects []Object
 }
 
-var lsCmd = &cmds.Command{
+var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List links from an object.",
 		ShortDescription: `

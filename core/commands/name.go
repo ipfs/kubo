@@ -7,7 +7,7 @@ type IpnsEntry struct {
 	Value string
 }
 
-var nameCmd = &cmds.Command{
+var NameCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "IPFS namespace (IPNS) tool",
 		Synopsis: `

@@ -161,7 +161,7 @@ func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.N
 	}
 
 	// dispatch handler.
-	rpmes, err := handler(mPeer, pmes)
+	rpmes, err := handler(ctx, mPeer, pmes)
 	if err != nil {
 		log.Errorf("handle message error: %s", err)
 		return nil
@@ -194,24 +194,21 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Messa
 
 	start := time.Now()
 
-	log.Event(ctx, "sentMessage", dht.self, p, pmes)
-
-	rmes, err := dht.sender.SendRequest(ctx, mes)
+	rmes, err := dht.sender.SendRequest(ctx, mes) // respect?
 	if err != nil {
 		return nil, err
 	}
 	if rmes == nil {
 		return nil, errors.New("no response to request")
 	}
+	log.Event(ctx, "sentMessage", dht.self, p, pmes)
 
-	rtt := time.Since(start)
-	rmes.Peer().SetLatency(rtt)
+	rmes.Peer().SetLatency(time.Since(start))
 
 	rpmes := new(pb.Message)
 	if err := proto.Unmarshal(rmes.Data(), rpmes); err != nil {
 		return nil, err
 	}
-
 	return rpmes, nil
 }
 

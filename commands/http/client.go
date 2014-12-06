@@ -48,14 +48,21 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	}
 
 	var fileReader *MultiFileReader
+	var reader io.Reader
+
 	if req.Files() != nil {
 		fileReader = NewMultiFileReader(req.Files(), true)
+		reader = fileReader
+	} else {
+		// if we have no file data, use an empty Reader
+		// (http.NewRequest panics when a nil Reader is used)
+		reader = strings.NewReader("")
 	}
 
 	path := strings.Join(req.Path(), "/")
 	url := fmt.Sprintf(ApiUrlFormat, c.serverAddress, ApiPath, path, query)
 
-	httpReq, err := http.NewRequest("POST", url, fileReader)
+	httpReq, err := http.NewRequest("POST", url, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -100,15 +107,21 @@ func getQuery(req cmds.Request) (string, error) {
 
 	args := req.Arguments()
 	argDefs := req.Command().Arguments
-	var argDef cmds.Argument
 
-	for i, arg := range args {
-		if i < len(argDefs) {
-			argDef = argDefs[i]
+	argDefIndex := 0
+
+	for _, arg := range args {
+		argDef := argDefs[argDefIndex]
+		// skip ArgFiles
+		for argDef.Type == cmds.ArgFile {
+			argDefIndex++
+			argDef = argDefs[argDefIndex]
 		}
 
-		if argDef.Type == cmds.ArgString {
-			query.Add("arg", arg)
+		query.Add("arg", arg)
+
+		if len(argDefs) > argDefIndex+1 {
+			argDefIndex++
 		}
 	}
 

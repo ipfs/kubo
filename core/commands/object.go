@@ -24,7 +24,7 @@ type Node struct {
 	Data  []byte
 }
 
-var objectCmd = &cmds.Command{
+var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with ipfs objects",
 		ShortDescription: `
