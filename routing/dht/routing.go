@@ -149,7 +149,8 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 		}
 
 		var wg sync.WaitGroup
-		for _, pp := range dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue) {
+		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
+		for _, pp := range peers {
 			wg.Add(1)
 			go func(p peer.Peer) {
 				defer wg.Done()
