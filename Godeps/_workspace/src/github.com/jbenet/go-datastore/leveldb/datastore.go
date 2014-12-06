@@ -58,7 +58,7 @@ func (d *datastore) Get(key ds.Key) (value interface{}, err error) {
 }
 
 func (d *datastore) Has(key ds.Key) (exists bool, err error) {
-	return ds.GetBackedHas(d, key)
+	return d.DB.Has(key.Bytes(), nil)
 }
 
 func (d *datastore) Delete(key ds.Key) (err error) {

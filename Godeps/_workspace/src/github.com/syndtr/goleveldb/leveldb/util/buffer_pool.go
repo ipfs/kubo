@@ -8,6 +8,7 @@ package util
 
 import (
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -19,17 +20,16 @@ type buffer struct {
 
 // BufferPool is a 'buffer pool'.
 type BufferPool struct {
-	pool       [6]chan []byte
-	size       [5]uint32
-	sizeMiss   [5]uint32
-	sizeHalf   [5]uint32
-	baseline   [4]int
-	baselinex0 int
-	baselinex1 int
-	baseline0  int
-	baseline1  int
-	baseline2  int
-	close      chan struct{}
+	pool      [6]chan []byte
+	size      [5]uint32
+	sizeMiss  [5]uint32
+	sizeHalf  [5]uint32
+	baseline  [4]int
+	baseline0 int
+
+	mu     sync.RWMutex
+	closed bool
+	closeC chan struct{}
 
 	get     uint32
 	put     uint32
@@ -54,6 +54,17 @@ func (p *BufferPool) poolNum(n int) int {
 
 // Get returns buffer with length of n.
 func (p *BufferPool) Get(n int) []byte {
+	if p == nil {
+		return make([]byte, n)
+	}
+
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.closed {
+		return make([]byte, n)
+	}
+
 	atomic.AddUint32(&p.get, 1)
 
 	poolNum := p.poolNum(n)
@@ -145,6 +156,17 @@ func (p *BufferPool) Get(n int) []byte {
 
 // Put adds given buffer to the pool.
 func (p *BufferPool) Put(b []byte) {
+	if p == nil {
+		return
+	}
+
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.closed {
+		return
+	}
+
 	atomic.AddUint32(&p.put, 1)
 
 	pool := p.pool[p.poolNum(cap(b))]
@@ -156,13 +178,23 @@ func (p *BufferPool) Put(b []byte) {
 }
 
 func (p *BufferPool) Close() {
-	select {
-	case p.close <- struct{}{}:
-	default:
+	if p == nil {
+		return
 	}
+
+	p.mu.Lock()
+	if !p.closed {
+		p.closed = true
+		p.closeC <- struct{}{}
+	}
+	p.mu.Unlock()
 }
 
 func (p *BufferPool) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+
 	return fmt.Sprintf("BufferPool{B·%d Z·%v Zm·%v Zh·%v G·%d P·%d H·%d <·%d =·%d >·%d M·%d}",
 		p.baseline0, p.size, p.sizeMiss, p.sizeHalf, p.get, p.put, p.half, p.less, p.equal, p.greater, p.miss)
 }
@@ -178,7 +210,8 @@ func (p *BufferPool) drain() {
 				default:
 				}
 			}
-		case <-p.close:
+		case <-p.closeC:
+			close(p.closeC)
 			for _, ch := range p.pool {
 				close(ch)
 			}
@@ -195,7 +228,7 @@ func NewBufferPool(baseline int) *BufferPool {
 	p := &BufferPool{
 		baseline0: baseline,
 		baseline:  [...]int{baseline / 4, baseline / 2, baseline * 2, baseline * 4},
-		close:     make(chan struct{}, 1),
+		closeC:    make(chan struct{}, 1),
 	}
 	for i, cap := range []int{2, 2, 4, 4, 2, 1} {
 		p.pool[i] = make(chan []byte, cap)
