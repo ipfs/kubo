@@ -175,7 +175,7 @@ func (m *Muxer) handleOutgoingMessages(pid pb.ProtocolID, proto Protocol) {
 				return
 			}
 			m.Children().Add(1)
-			go m.handleOutgoingMessage(pid, msg)
+			m.handleOutgoingMessage(pid, msg)
 
 		case <-m.Closing():
 			return
