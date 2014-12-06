@@ -84,7 +84,6 @@ var rootSubcommands = map[string]*cmds.Command{
 
 func init() {
 	Root.Subcommands = rootSubcommands
-	u.SetLogLevel("core/commands", "info")
 }
 
 type MessageOutput struct {
