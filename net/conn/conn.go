@@ -2,11 +2,11 @@ package conn
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	mpool "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
@@ -28,26 +28,11 @@ const (
 	HandshakeTimeout = time.Second * 5
 )
 
-// global static buffer pool for byte arrays of size MaxMessageSize
-var BufferPool *sync.Pool
-
-func init() {
-	BufferPool = new(sync.Pool)
-	BufferPool.New = func() interface{} {
-		log.Warning("Pool returning new object")
-		return make([]byte, MaxMessageSize)
-	}
-}
-
 // ReleaseBuffer puts the given byte array back into the buffer pool,
 // first verifying that it is the correct size
 func ReleaseBuffer(b []byte) {
 	log.Warningf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
-	if cap(b) != MaxMessageSize {
-		log.Warning("Release buffer failed (cap, size = %d, %d)", cap(b), len(b))
-		return
-	}
-	BufferPool.Put(b[:cap(b)])
+	mpool.ByteSlicePool.Put(uint32(cap(b)), b)
 }
 
 // msgioPipe is a pipe using msgio channels.
@@ -56,10 +41,10 @@ type msgioPipe struct {
 	incoming *msgio.Chan
 }
 
-func newMsgioPipe(size int, pool *sync.Pool) *msgioPipe {
+func newMsgioPipe(size int) *msgioPipe {
 	return &msgioPipe{
 		outgoing: msgio.NewChan(size),
-		incoming: msgio.NewChanWithPool(size, pool),
+		incoming: msgio.NewChan(size),
 	}
 }
 
@@ -81,7 +66,7 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 		local:  local,
 		remote: remote,
 		maconn: maconn,
-		msgio:  newMsgioPipe(10, BufferPool),
+		msgio:  newMsgioPipe(10),
 	}
 
 	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
@@ -96,7 +81,7 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 	}()
 	conn.Children().Add(1)
 	go func() {
-		conn.msgio.incoming.ReadFrom(maconn, MaxMessageSize)
+		conn.msgio.incoming.ReadFromWithPool(maconn, &mpool.ByteSlicePool)
 		conn.Children().Done()
 	}()
 
