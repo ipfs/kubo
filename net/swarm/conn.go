@@ -182,7 +182,7 @@ func (s *Swarm) fanOut() {
 				return
 			}
 			if len(msg.Data()) >= conn.MaxMessageSize {
-				log.Critical("Attempted to send message bigger than max size.")
+				log.Criticalf("Attempted to send message bigger than max size. (%d)", len(msg.Data()))
 			}
 
 			s.connsLock.RLock()

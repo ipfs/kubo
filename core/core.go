@@ -8,12 +8,14 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	"github.com/jbenet/go-ipfs/exchange/offline"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
@@ -28,7 +30,7 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
@@ -114,6 +116,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		Config:     cfg,
 	}
 	n.ContextCloser = ctxc.NewContextCloser(ctx, n.teardown)
+	ctx = n.Context()
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
@@ -126,6 +129,8 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
+
+	n.Exchange = offline.Exchange()
 
 	// setup online services
 	if online {
@@ -169,14 +174,16 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
 		bitswapNetwork := bsnet.NewFromIpfsNetwork(exchangeService, n.Network)
-		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, n.Datastore, alwaysSendToPeer)
+		bstore := blockstore.NewBlockstore(n.Datastore)
+
+		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, bstore, alwaysSendToPeer)
 
 		go initConnections(ctx, n.Config, n.Peerstore, dhtRouting)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
 	// session that simply doesn't return blocks
-	n.Blocks, err = bserv.NewBlockService(n.Datastore, n.Exchange)
+	n.Blocks, err = bserv.New(blockstore.NewBlockstore(n.Datastore), n.Exchange)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}

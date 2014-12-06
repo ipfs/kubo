@@ -4,7 +4,10 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	bs "github.com/jbenet/go-ipfs/blockservice"
+	"github.com/jbenet/go-ipfs/exchange/offline"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/util"
 )
@@ -19,13 +22,15 @@ func randNode() (*mdag.Node, util.Key) {
 
 func TestPinnerBasic(t *testing.T) {
 	dstore := ds.NewMapDatastore()
-	bserv, err := bs.NewBlockService(dstore, nil)
+	bstore := blockstore.NewBlockstore(dssync.MutexWrap(dstore))
+	bserv, err := bs.New(bstore, offline.Exchange())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	dserv := mdag.NewDAGService(bserv)
 
+	// TODO does pinner need to share datastore with blockservice?
 	p := NewPinner(dstore, dserv)
 
 	a, ak := randNode()

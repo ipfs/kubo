@@ -45,9 +45,11 @@ type Muxer struct {
 
 	bwiLock sync.Mutex
 	bwIn    uint64
+	msgIn   uint64
 
 	bwoLock sync.Mutex
 	bwOut   uint64
+	msgOut  uint64
 
 	*msg.Pipe
 	ctxc.ContextCloser
@@ -74,6 +76,18 @@ func NewMuxer(ctx context.Context, mp ProtocolMap) *Muxer {
 // GetPipe implements the Protocol interface
 func (m *Muxer) GetPipe() *msg.Pipe {
 	return m.Pipe
+}
+
+// GetMessageCounts return the in/out message count measured over this muxer.
+func (m *Muxer) GetMessageCounts() (in uint64, out uint64) {
+	m.bwiLock.Lock()
+	in = m.msgIn
+	m.bwiLock.Unlock()
+
+	m.bwoLock.Lock()
+	out = m.msgOut
+	m.bwoLock.Unlock()
+	return
 }
 
 // GetBandwidthTotals return the in/out bandwidth measured over this muxer.
@@ -125,6 +139,7 @@ func (m *Muxer) handleIncomingMessage(m1 msg.NetMessage) {
 	m.bwiLock.Lock()
 	// TODO: compensate for overhead
 	m.bwIn += uint64(len(m1.Data()))
+	m.msgIn++
 	m.bwiLock.Unlock()
 
 	data, pid, err := unwrapData(m1.Data())
@@ -182,6 +197,7 @@ func (m *Muxer) handleOutgoingMessage(pid pb.ProtocolID, m1 msg.NetMessage) {
 	// TODO: compensate for overhead
 	// TODO(jbenet): switch this to a goroutine to prevent sync waiting.
 	m.bwOut += uint64(len(data))
+	m.msgOut++
 	m.bwoLock.Unlock()
 
 	m2 := msg.New(m1.Peer(), data)

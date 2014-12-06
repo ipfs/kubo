@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
@@ -15,10 +17,11 @@ var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv     mdag.DAGService
-	node     *mdag.Node
-	position int
-	buf      io.Reader
+	serv         mdag.DAGService
+	node         *mdag.Node
+	buf          io.Reader
+	fetchChan    <-chan *mdag.Node
+	linkPosition int
 }
 
 // NewDagReader creates a new reader object that reads the data represented by the given
@@ -35,10 +38,15 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 		// Dont allow reading directories
 		return nil, ErrIsDir
 	case ftpb.Data_File:
+		var fetchChan <-chan *mdag.Node
+		if serv != nil {
+			fetchChan = serv.GetDAG(context.TODO(), n)
+		}
 		return &DagReader{
-			node: n,
-			serv: serv,
-			buf:  bytes.NewBuffer(pb.GetData()),
+			node:      n,
+			serv:      serv,
+			buf:       bytes.NewBuffer(pb.GetData()),
+			fetchChan: fetchChan,
 		}, nil
 	case ftpb.Data_Raw:
 		// Raw block will just be a single level, return a byte buffer
@@ -51,19 +59,43 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 // precalcNextBuf follows the next link in line and loads it from the DAGService,
 // setting the next buffer to read from
 func (dr *DagReader) precalcNextBuf() error {
-	if dr.position >= len(dr.node.Links) {
-		return io.EOF
+	var nxt *mdag.Node
+	var ok bool
+
+	// TODO: require non-nil dagservice, use offline bitswap exchange
+	if dr.serv == nil {
+		// Only used when fetchChan is nil,
+		// which only happens when passed in a nil dagservice
+		// TODO: this logic is hard to follow, do it better.
+		// NOTE: the only time this code is used, is during the
+		//			importer tests, consider just changing those tests
+		log.Warning("Running DAGReader with nil DAGService!")
+		if dr.linkPosition >= len(dr.node.Links) {
+			return io.EOF
+		}
+		nxt = dr.node.Links[dr.linkPosition].Node
+		if nxt == nil {
+			return errors.New("Got nil node back from link! and no DAGService!")
+		}
+		dr.linkPosition++
+
+	} else {
+		if dr.fetchChan == nil {
+			panic("this is wrong.")
+		}
+		select {
+		case nxt, ok = <-dr.fetchChan:
+			if !ok {
+				return io.EOF
+			}
+		}
 	}
-	nxt, err := dr.node.Links[dr.position].GetNode(dr.serv)
-	if err != nil {
-		return err
-	}
+
 	pb := new(ftpb.Data)
-	err = proto.Unmarshal(nxt.Data, pb)
+	err := proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
 		return err
 	}
-	dr.position++
 
 	switch pb.GetType() {
 	case ftpb.Data_Directory:

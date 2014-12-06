@@ -10,8 +10,8 @@ import (
 )
 
 func TestBlockReturnsErr(t *testing.T) {
-	off := NewOfflineExchange()
-	_, err := off.Block(context.Background(), u.Key("foo"))
+	off := Exchange()
+	_, err := off.GetBlock(context.Background(), u.Key("foo"))
 	if err != nil {
 		return // as desired
 	}
@@ -19,9 +19,9 @@ func TestBlockReturnsErr(t *testing.T) {
 }
 
 func TestHasBlockReturnsNil(t *testing.T) {
-	off := NewOfflineExchange()
+	off := Exchange()
 	block := blocks.NewBlock([]byte("data"))
-	err := off.HasBlock(context.Background(), *block)
+	err := off.HasBlock(context.Background(), block)
 	if err != nil {
 		t.Fatal("")
 	}

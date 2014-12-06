@@ -69,6 +69,7 @@ func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	r, err := uio.NewDagReader(nd, nil)
 	if err != nil {
 		t.Fatal(err)

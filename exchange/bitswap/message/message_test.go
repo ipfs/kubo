@@ -42,7 +42,7 @@ func TestAppendBlock(t *testing.T) {
 	m := New()
 	for _, str := range strs {
 		block := blocks.NewBlock([]byte(str))
-		m.AddBlock(*block)
+		m.AddBlock(block)
 	}
 
 	// assert strings are in proto message
@@ -133,10 +133,10 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 func TestToAndFromNetMessage(t *testing.T) {
 
 	original := New()
-	original.AddBlock(*blocks.NewBlock([]byte("W")))
-	original.AddBlock(*blocks.NewBlock([]byte("E")))
-	original.AddBlock(*blocks.NewBlock([]byte("F")))
-	original.AddBlock(*blocks.NewBlock([]byte("M")))
+	original.AddBlock(blocks.NewBlock([]byte("W")))
+	original.AddBlock(blocks.NewBlock([]byte("E")))
+	original.AddBlock(blocks.NewBlock([]byte("F")))
+	original.AddBlock(blocks.NewBlock([]byte("M")))
 
 	p := peer.WithIDString("X")
 	netmsg, err := original.ToNet(p)
@@ -180,8 +180,8 @@ func TestDuplicates(t *testing.T) {
 		t.Fatal("Duplicate in BitSwapMessage")
 	}
 
-	msg.AddBlock(*b)
-	msg.AddBlock(*b)
+	msg.AddBlock(b)
+	msg.AddBlock(b)
 	if len(msg.Blocks()) != 1 {
 		t.Fatal("Duplicate in BitSwapMessage")
 	}

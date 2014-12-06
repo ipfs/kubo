@@ -3,11 +3,14 @@ package strategy
 import (
 	"errors"
 	"sync"
+	"time"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = u.Logger("strategy")
 
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
 // "trusted" and/or controlled by a single human user. The user may want for
@@ -72,6 +75,8 @@ func (s *strategist) Seed(int64) {
 	// TODO
 }
 
+// MessageReceived performs book-keeping. Returns error if passed invalid
+// arguments.
 func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -91,7 +96,7 @@ func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error 
 		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
 		l.ReceivedBytes(len(block.Data))
 	}
-	return errors.New("TODO")
+	return nil
 }
 
 // TODO add contents of m.WantList() to my local wantlist? NB: could introduce
@@ -136,4 +141,12 @@ func (s *strategist) ledger(p peer.Peer) *ledger {
 		s.ledgerMap[peerKey(p.Key())] = l
 	}
 	return l
+}
+
+func (s *strategist) GetBatchSize() int {
+	return 10
+}
+
+func (s *strategist) GetRebroadcastDelay() time.Duration {
+	return time.Second * 5
 }

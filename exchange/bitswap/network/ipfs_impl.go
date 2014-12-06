@@ -1,8 +1,6 @@
 package network
 
 import (
-	"errors"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
@@ -50,22 +48,8 @@ func (bsnet *impl) HandleMessage(
 		return nil
 	}
 
-	p, bsmsg := bsnet.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
-
-	// TODO(brian): put this in a helper function
-	if bsmsg == nil || p == nil {
-		bsnet.receiver.ReceiveError(errors.New("ReceiveMessage returned nil peer or message"))
-		return nil
-	}
-
-	outgoing, err := bsmsg.ToNet(p)
-	if err != nil {
-		go bsnet.receiver.ReceiveError(err)
-		return nil
-	}
-
-	log.Debugf("Message size: %d", len(outgoing.Data()))
-	return outgoing
+	bsnet.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
+	return nil
 }
 
 func (bsnet *impl) DialPeer(ctx context.Context, p peer.Peer) error {

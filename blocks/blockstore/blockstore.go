@@ -15,6 +15,8 @@ import (
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
 type Blockstore interface {
+	DeleteBlock(u.Key) error
+	Has(u.Key) (bool, error)
 	Get(u.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
 }
@@ -44,4 +46,12 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 
 func (bs *blockstore) Put(block *blocks.Block) error {
 	return bs.datastore.Put(block.Key().DsKey(), block.Data)
+}
+
+func (bs *blockstore) Has(k u.Key) (bool, error) {
+	return bs.datastore.Has(k.DsKey())
+}
+
+func (s *blockstore) DeleteBlock(k u.Key) error {
+	return s.datastore.Delete(k.DsKey())
 }

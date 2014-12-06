@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/pprof"
 	"syscall"
 
@@ -54,6 +55,7 @@ type cmdInvocation struct {
 // - output the response
 // - if anything fails, print error, maybe with help
 func main() {
+	runtime.GOMAXPROCS(3)
 	ctx := context.Background()
 	var err error
 	var invoc cmdInvocation
@@ -510,6 +512,6 @@ func (i *cmdInvocation) setupInterruptHandler() {
 func allInterruptSignals() chan os.Signal {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
-		syscall.SIGTERM, syscall.SIGQUIT)
+		syscall.SIGTERM)
 	return sigc
 }

@@ -61,6 +61,7 @@ func (l *ledger) ReceivedBytes(n int) {
 
 // TODO: this needs to be different. We need timeouts.
 func (l *ledger) Wants(k u.Key) {
+	log.Debugf("peer %s wants %s", l.Partner, k)
 	l.wantList[k] = struct{}{}
 }
 

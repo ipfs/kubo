@@ -22,6 +22,22 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 // so have to convert Multihash bytes to string (u.Key)
 type NodeMap map[u.Key]*Node
 
+// DAGService is an IPFS Merkle DAG service.
+type DAGService interface {
+	Add(*Node) (u.Key, error)
+	AddRecursive(*Node) error
+	Get(u.Key) (*Node, error)
+	Remove(*Node) error
+
+	// GetDAG returns, in order, all the single leve child
+	// nodes of the passed in node.
+	GetDAG(context.Context, *Node) <-chan *Node
+}
+
+func NewDAGService(bs *bserv.BlockService) DAGService {
+	return &dagService{bs}
+}
+
 // Node represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
 type Node struct {
@@ -156,18 +172,6 @@ func (n *Node) Key() (u.Key, error) {
 	return u.Key(h), err
 }
 
-// DAGService is an IPFS Merkle DAG service.
-type DAGService interface {
-	Add(*Node) (u.Key, error)
-	AddRecursive(*Node) error
-	Get(u.Key) (*Node, error)
-	Remove(*Node) error
-}
-
-func NewDAGService(bs *bserv.BlockService) DAGService {
-	return &dagService{bs}
-}
-
 // dagService is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
 // - stores nodes' data in a BlockService
@@ -252,6 +256,7 @@ func (n *dagService) Remove(nd *Node) error {
 // FetchGraph asynchronously fetches all nodes that are children of the given
 // node, and returns a channel that may be waited upon for the fetch to complete
 func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} {
+	log.Warning("Untested.")
 	var wg sync.WaitGroup
 	done := make(chan struct{})
 
@@ -283,4 +288,65 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 	}()
 
 	return done
+}
+
+// Searches this nodes links for one to the given key,
+// returns the index of said link
+func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
+	for i, lnk := range n.Links {
+		if u.Key(lnk.Hash) == k && found[i] == nil {
+			return i, nil
+		}
+	}
+	return -1, u.ErrNotFound
+}
+
+// GetDAG will fill out all of the links of the given Node.
+// It returns a channel of nodes, which the caller can receive
+// all the child nodes of 'root' on, in proper order.
+func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
+	sig := make(chan *Node)
+	go func() {
+		var keys []u.Key
+		nodes := make([]*Node, len(root.Links))
+
+		for _, lnk := range root.Links {
+			keys = append(keys, u.Key(lnk.Hash))
+		}
+
+		blkchan := ds.Blocks.GetBlocks(ctx, keys)
+
+		next := 0
+		for blk := range blkchan {
+			i, err := FindLink(root, blk.Key(), nodes)
+			if err != nil {
+				// NB: can only occur as a result of programmer error
+				panic("Received block that wasnt in this nodes links!")
+			}
+
+			nd, err := Decoded(blk.Data)
+			if err != nil {
+				// NB: can occur in normal situations, with improperly formatted
+				//		input data
+				log.Error("Got back bad block!")
+				break
+			}
+			nodes[i] = nd
+
+			if next == i {
+				sig <- nd
+				next++
+				for ; next < len(nodes) && nodes[next] != nil; next++ {
+					sig <- nodes[next]
+				}
+			}
+		}
+		if next < len(nodes) {
+			// TODO: bubble errors back up.
+			log.Errorf("Did not receive correct number of nodes!")
+		}
+		close(sig)
+	}()
+
+	return sig
 }

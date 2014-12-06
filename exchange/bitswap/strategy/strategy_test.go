@@ -30,7 +30,7 @@ func TestConsistentAccounting(t *testing.T) {
 
 		m := message.New()
 		content := []string{"this", "is", "message", "i"}
-		m.AddBlock(*blocks.NewBlock([]byte(strings.Join(content, " "))))
+		m.AddBlock(blocks.NewBlock([]byte(strings.Join(content, " "))))
 
 		sender.MessageSent(receiver.Peer, m)
 		receiver.MessageReceived(sender.Peer, m)

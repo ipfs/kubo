@@ -33,7 +33,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 		// TODO test contents of incoming message
 
 		m := bsmsg.New()
-		m.AddBlock(*blocks.NewBlock([]byte(expectedStr)))
+		m.AddBlock(blocks.NewBlock([]byte(expectedStr)))
 
 		return from, m
 	}))
@@ -41,7 +41,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 	t.Log("Build a message and send a synchronous request to recipient")
 
 	message := bsmsg.New()
-	message.AddBlock(*blocks.NewBlock([]byte("data")))
+	message.AddBlock(blocks.NewBlock([]byte("data")))
 	response, err := initiator.SendRequest(
 		context.Background(), peer.WithID(idOfRecipient), message)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 		peer.Peer, bsmsg.BitSwapMessage) {
 
 		msgToWaiter := bsmsg.New()
-		msgToWaiter.AddBlock(*blocks.NewBlock([]byte(expectedStr)))
+		msgToWaiter.AddBlock(blocks.NewBlock([]byte(expectedStr)))
 
 		return fromWaiter, msgToWaiter
 	}))
@@ -105,7 +105,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	}))
 
 	messageSentAsync := bsmsg.New()
-	messageSentAsync.AddBlock(*blocks.NewBlock([]byte("data")))
+	messageSentAsync.AddBlock(blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
 		context.Background(), peer.WithID(idOfResponder), messageSentAsync)
 	if errSending != nil {
