@@ -16,9 +16,8 @@ import (
 )
 
 func GetDAGServ(t testing.TB) dag.DAGService {
-	dstore := ds.NewMapDatastore()
-	tsds := dssync.MutexWrap(dstore)
-	bserv, err := bsrv.New(blockstore.NewBlockstore(tsds), offline.Exchange())
+	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
+	bserv, err := bsrv.New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		t.Fatal(err)
 	}

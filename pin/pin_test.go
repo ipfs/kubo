@@ -23,7 +23,7 @@ func randNode() (*mdag.Node, util.Key) {
 func TestPinnerBasic(t *testing.T) {
 	dstore := ds.NewMapDatastore()
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(dstore))
-	bserv, err := bs.New(bstore, offline.Exchange())
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		t.Fatal(err)
 	}

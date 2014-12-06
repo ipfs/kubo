@@ -25,7 +25,7 @@ var ErrNotFound = errors.New("blockservice: key not found")
 type BlockService struct {
 	// TODO don't expose underlying impl details
 	Blockstore blockstore.Blockstore
-	Remote     exchange.Interface
+	Exchange   exchange.Interface
 }
 
 // NewBlockService creates a BlockService with given datastore instance.
@@ -36,7 +36,7 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) (*BlockService, error
 	if rem == nil {
 		log.Warning("blockservice running in local (offline) mode.")
 	}
-	return &BlockService{Blockstore: bs, Remote: rem}, nil
+	return &BlockService{Blockstore: bs, Exchange: rem}, nil
 }
 
 // AddBlock adds a particular block to the service, Putting it into the datastore.
@@ -66,9 +66,9 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 
 	// TODO this operation rate-limits blockservice operations, we should
 	// consider moving this to an sync process.
-	if s.Remote != nil {
+	if s.Exchange != nil {
 		ctx := context.TODO()
-		err = s.Remote.HasBlock(ctx, b)
+		err = s.Exchange.HasBlock(ctx, b)
 	}
 	return k, err
 }
@@ -82,9 +82,9 @@ func (s *BlockService) GetBlock(ctx context.Context, k u.Key) (*blocks.Block, er
 		return block, nil
 		// TODO be careful checking ErrNotFound. If the underlying
 		// implementation changes, this will break.
-	} else if err == ds.ErrNotFound && s.Remote != nil {
+	} else if err == ds.ErrNotFound && s.Exchange != nil {
 		log.Debug("Blockservice: Searching bitswap.")
-		blk, err := s.Remote.GetBlock(ctx, k)
+		blk, err := s.Exchange.GetBlock(ctx, k)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks
 			}
 		}
 
-		rblocks, err := s.Remote.GetBlocks(ctx, misses)
+		rblocks, err := s.Exchange.GetBlocks(ctx, misses)
 		if err != nil {
 			log.Errorf("Error with GetBlocks: %s", err)
 			return

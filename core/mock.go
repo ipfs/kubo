@@ -45,7 +45,8 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.Routing = dht
 
 	// Bitswap
-	bserv, err := blockservice.New(blockstore.NewBlockstore(nd.Datastore), offline.Exchange())
+	bstore := blockstore.NewBlockstore(nd.Datastore)
+	bserv, err := blockservice.New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		return nil, err
 	}
