@@ -10,6 +10,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const resendTimeoutPeriod = time.Minute
+
 var log = u.Logger("strategy")
 
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
@@ -66,8 +68,9 @@ func (s *strategist) ShouldSendBlockToPeer(k u.Key, p peer.Peer) bool {
 
 	ledger := s.ledger(p)
 
-	// Dont resend blocks
-	if _, ok := ledger.sentToPeer[k]; ok {
+	// Dont resend blocks within a certain time period
+	t, ok := ledger.sentToPeer[k]
+	if ok && t.Add(resendTimeoutPeriod).After(time.Now()) {
 		return false
 	}
 
@@ -79,7 +82,7 @@ func (s *strategist) BlockSentToPeer(k u.Key, p peer.Peer) {
 	defer s.lock.Unlock()
 
 	ledger := s.ledger(p)
-	ledger.sentToPeer[k] = struct{}{}
+	ledger.sentToPeer[k] = time.Now()
 }
 
 func (s *strategist) Seed(int64) {

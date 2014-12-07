@@ -16,7 +16,7 @@ func newLedger(p peer.Peer, strategy strategyFunc) *ledger {
 		wantList:   keySet{},
 		Strategy:   strategy,
 		Partner:    p,
-		sentToPeer: make(map[u.Key]struct{}),
+		sentToPeer: make(map[u.Key]time.Time),
 	}
 }
 
@@ -43,7 +43,7 @@ type ledger struct {
 
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
-	sentToPeer map[u.Key]struct{}
+	sentToPeer map[u.Key]time.Time
 
 	Strategy strategyFunc
 }
