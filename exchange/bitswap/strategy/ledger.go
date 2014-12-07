@@ -13,9 +13,10 @@ type keySet map[u.Key]struct{}
 
 func newLedger(p peer.Peer, strategy strategyFunc) *ledger {
 	return &ledger{
-		wantList: keySet{},
-		Strategy: strategy,
-		Partner:  p,
+		wantList:   keySet{},
+		Strategy:   strategy,
+		Partner:    p,
+		sentToPeer: make(map[u.Key]struct{}),
 	}
 }
 
@@ -39,6 +40,10 @@ type ledger struct {
 
 	// wantList is a (bounded, small) set of keys that Partner desires.
 	wantList keySet
+
+	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
+	// to a given peer
+	sentToPeer map[u.Key]struct{}
 
 	Strategy strategyFunc
 }

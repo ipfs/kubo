@@ -65,7 +65,21 @@ func (s *strategist) ShouldSendBlockToPeer(k u.Key, p peer.Peer) bool {
 	defer s.lock.RUnlock()
 
 	ledger := s.ledger(p)
+
+	// Dont resend blocks
+	if _, ok := ledger.sentToPeer[k]; ok {
+		return false
+	}
+
 	return ledger.ShouldSend()
+}
+
+func (s *strategist) BlockSentToPeer(k u.Key, p peer.Peer) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	ledger := s.ledger(p)
+	ledger.sentToPeer[k] = struct{}{}
 }
 
 func (s *strategist) Seed(int64) {

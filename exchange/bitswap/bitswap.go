@@ -307,6 +307,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 
 				blkmsg.AddBlock(block)
 				bs.send(ctx, p, blkmsg)
+				bs.strategy.BlockSentToPeer(block.Key(), p)
 			}
 		}
 	}
