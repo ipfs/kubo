@@ -136,6 +136,20 @@ func (c *secureConn) Out() chan<- []byte {
 	return c.secure.Out
 }
 
+// BytesRead returns the total number of unencrypted bytes received from the peer
+func (c *secureConn) BytesRead() int {
+	// TODO: maybe count encrypted?
+	insecureSC := c.insecure.(*singleConn)
+	return insecureSC.BytesRead()
+}
+
+// BytesWritten returns the total number of unencrypted bytes sent to the peer
+func (c *secureConn) BytesWritten() int {
+	// TODO: maybe count encrypted?
+	insecureSC := c.insecure.(*singleConn)
+	return insecureSC.BytesWritten()
+}
+
 func (c *secureConn) GetError() error {
 	return c.insecure.GetError()
 }

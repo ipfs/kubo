@@ -306,6 +306,30 @@ func (c *MultiConn) Out() chan<- []byte {
 	return c.duplex.Out
 }
 
+// BytesRead returns the total number of bytes received from the peer
+func (c *MultiConn) BytesRead() int {
+	c.RLock()
+	defer c.RUnlock()
+
+	sum := 0
+	for _, conn := range c.conns {
+		sum += conn.BytesRead()
+	}
+	return sum
+}
+
+// BytesWritten returns the total number of bytes sent to the peer
+func (c *MultiConn) BytesWritten() int {
+	c.RLock()
+	defer c.RUnlock()
+
+	sum := 0
+	for _, conn := range c.conns {
+		sum += conn.BytesWritten()
+	}
+	return sum
+}
+
 func (c *MultiConn) GetError() error {
 	c.RLock()
 	defer c.RUnlock()
