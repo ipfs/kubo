@@ -5,7 +5,6 @@ import (
 	randbuf "github.com/jbenet/go-randbuf"
 	"io"
 	"math/rand"
-	"sync"
 	"testing"
 	"time"
 )
@@ -13,8 +12,7 @@ import (
 func TestReadChan(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	writer := NewWriter(buf)
-	p := &sync.Pool{New: func() interface{} { return make([]byte, 1000) }}
-	rchan := NewChan(10, p)
+	rchan := NewChan(10)
 	msgs := [1000][]byte{}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -30,7 +28,7 @@ func TestReadChan(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	go rchan.ReadFrom(buf, 1000)
+	go rchan.ReadFrom(buf)
 	defer rchan.Close()
 
 Loop:
@@ -60,7 +58,7 @@ Loop:
 func TestWriteChan(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	reader := NewReader(buf)
-	wchan := NewChan(10, nil)
+	wchan := NewChan(10)
 	msgs := [1000][]byte{}
 
 	go wchan.WriteTo(buf)
@@ -87,8 +85,7 @@ func TestWriteChan(t *testing.T) {
 	defer wchan.Close()
 
 	for i := 0; ; i++ {
-		msg2 := make([]byte, 1000)
-		n, err := reader.ReadMsg(msg2)
+		msg2, err := reader.ReadMsg()
 		if err != nil {
 			if err == io.EOF {
 				if i < len(msg2) {
@@ -100,7 +97,6 @@ func TestWriteChan(t *testing.T) {
 		}
 
 		msg1 := msgs[i]
-		msg2 = msg2[:n]
 		if !bytes.Equal(msg1, msg2) {
 			t.Fatal("message retrieved not equal\n", msg1, "\n\n", msg2)
 		}
