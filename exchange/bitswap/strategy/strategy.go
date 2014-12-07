@@ -71,6 +71,7 @@ func (s *strategist) ShouldSendBlockToPeer(k u.Key, p peer.Peer) bool {
 	// Dont resend blocks within a certain time period
 	t, ok := ledger.sentToPeer[k]
 	if ok && t.Add(resendTimeoutPeriod).After(time.Now()) {
+		log.Error("Prevented block resend!")
 		return false
 	}
 
