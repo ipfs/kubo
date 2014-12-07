@@ -32,6 +32,8 @@ type Strategy interface {
 
 	NumBytesReceivedFrom(peer.Peer) uint64
 
+	BlockSentToPeer(u.Key, peer.Peer)
+
 	// Values determining bitswap behavioural patterns
 	GetBatchSize() int
 	GetRebroadcastDelay() time.Duration
