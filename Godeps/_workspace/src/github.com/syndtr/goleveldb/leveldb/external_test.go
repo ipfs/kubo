@@ -19,11 +19,12 @@ var _ = testutil.Defer(func() {
 		o := &opt.Options{
 			BlockCache:           opt.NoCache,
 			BlockRestartInterval: 5,
-			BlockSize:            50,
+			BlockSize:            80,
 			Compression:          opt.NoCompression,
 			CachedOpenFiles:      -1,
 			Strict:               opt.StrictAll,
 			WriteBuffer:          1000,
+			CompactionTableSize:  2000,
 		}
 
 		Describe("write test", func() {
@@ -40,18 +41,17 @@ var _ = testutil.Defer(func() {
 		})
 
 		Describe("read test", func() {
-			testutil.AllKeyValueTesting(nil, func(kv testutil.KeyValue) testutil.DB {
+			testutil.AllKeyValueTesting(nil, nil, func(kv testutil.KeyValue) testutil.DB {
 				// Building the DB.
 				db := newTestingDB(o, nil, nil)
 				kv.IterateShuffled(nil, func(i int, key, value []byte) {
 					err := db.TestPut(key, value)
 					Expect(err).NotTo(HaveOccurred())
 				})
-				testutil.Defer("teardown", func() {
-					db.TestClose()
-				})
 
 				return db
+			}, func(db testutil.DB) {
+				db.(*testingDB).TestClose()
 			})
 		})
 	})

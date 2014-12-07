@@ -45,7 +45,13 @@ func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 }
 
 func (bs *blockstore) Put(block *blocks.Block) error {
-	return bs.datastore.Put(block.Key().DsKey(), block.Data)
+	// Has is cheaper than
+	k := block.Key().DsKey()
+	exists, err := bs.datastore.Has(k)
+	if err != nil && exists {
+		return nil // already stored.
+	}
+	return bs.datastore.Put(k, block.Data)
 }
 
 func (bs *blockstore) Has(k u.Key) (bool, error) {

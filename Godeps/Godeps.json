@@ -44,11 +44,6 @@
 			"Rev": "36be16571e14f67e114bb0af619e5de2c1591679"
 		},
 		{
-			"ImportPath": "code.google.com/p/snappy-go/snappy",
-			"Comment": "null-15",
-			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
-		},
-		{
 			"ImportPath": "github.com/braintree/manners",
 			"Comment": "0.3.1-2-g5280e25",
 			"Rev": "5280e250f2795914acbeb2bf3b55dd5a2d1fba52"
@@ -99,7 +94,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "b31aad9b9b22e46d99a270ed5aebb259fab64dcc"
+			"Rev": "6a1c83bda2a71a9bdc936749fdb507df958ed949"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-is-domain",
@@ -150,7 +145,11 @@
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "99056d50e56252fbe0021d5c893defca5a76baf8"
+			"Rev": "871eee0a7546bb7d1b2795142e29c4534abc49b3"
+		},
+		{
+			"ImportPath": "github.com/syndtr/gosnappy/snappy",
+			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
 		},
 		{
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",

@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/snappy-go/snappy"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/gosnappy/snappy"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/filter"

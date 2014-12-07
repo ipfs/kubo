@@ -44,24 +44,9 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) (*BlockService, error
 func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	k := b.Key()
 	log.Debugf("blockservice: storing [%s] in datastore", k)
-	// TODO(brian): define a block datastore with a Put method which accepts a
-	// block parameter
-
-	// check if we have it before adding. this is an extra read, but large writes
-	// are more expensive.
-	// TODO(jbenet) cheaper has. https://github.com/jbenet/go-datastore/issues/6
-	has, err := s.Blockstore.Has(k)
+	err := s.Blockstore.Put(b)
 	if err != nil {
 		return k, err
-	}
-	if has {
-		log.Debugf("blockservice: storing [%s] in datastore (already stored)", k)
-	} else {
-		log.Debugf("blockservice: storing [%s] in datastore", k)
-		err := s.Blockstore.Put(b)
-		if err != nil {
-			return k, err
-		}
 	}
 
 	// TODO this operation rate-limits blockservice operations, we should

@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-datastore",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
@@ -9,11 +9,6 @@
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
 			"Comment": "null-12",
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
-		},
-		{
-			"ImportPath": "code.google.com/p/snappy-go/snappy",
-			"Comment": "null-15",
-			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
 		},
 		{
 			"ImportPath": "github.com/codahale/blake2",
@@ -33,7 +28,11 @@
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "cd2b8f743192883ab9fbc5f070ebda1dc90f3732"
+			"Rev": "871eee0a7546bb7d1b2795142e29c4534abc49b3"
+		},
+		{
+			"ImportPath": "github.com/syndtr/gosnappy/snappy",
+			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
 		},
 		{
 			"ImportPath": "gopkg.in/check.v1",
