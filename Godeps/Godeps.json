@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3rc2",
 	"Packages": [
 		"./..."
 	],
@@ -61,6 +61,10 @@
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
 		},
 		{
+			"ImportPath": "github.com/facebookgo/counting",
+			"Rev": "0f3846f780cadb7682ce04da0ee105a65fd49de5"
+		},
+		{
 			"ImportPath": "github.com/facebookgo/stack",
 			"Rev": "4da6d991fc3c389efa512151354d643eb5fae4e2"
 		},
@@ -81,12 +85,12 @@
 			"Rev": "654d875bb65e96729678180215cf080fe2810371"
 		},
 		{
-			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/go-update",
+			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",

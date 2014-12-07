@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	counting "github.com/facebookgo/counting"
+	counting "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/counting"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	mpool "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
