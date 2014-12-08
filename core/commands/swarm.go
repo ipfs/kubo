@@ -149,8 +149,12 @@ func splitAddresses(addrs []string) (maddrs []ma.Multiaddr, pids []peer.ID, err 
 		if err != nil {
 			return nil, nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}
+		id, err := peer.DecodePrettyID(path.Base(addr))
+		if err != nil {
+			return nil, nil, err
+		}
+		pids[i] = id
 		maddrs[i] = a
-		pids[i] = peer.DecodePrettyID(path.Base(addr))
 	}
 	return
 }

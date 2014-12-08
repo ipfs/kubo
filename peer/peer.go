@@ -37,8 +37,12 @@ func (id ID) Pretty() string {
 }
 
 // DecodePrettyID returns a b58-encoded string of the ID
-func DecodePrettyID(s string) ID {
-	return b58.Decode(s)
+func DecodePrettyID(s string) (ID, error) {
+	m, err := mh.FromB58String(s)
+	if err != nil {
+		return nil, err
+	}
+	return ID(m), err
 }
 
 // IDFromPubKey retrieves a Public Key from the peer given by pk

@@ -265,7 +265,11 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		}
 
 		// setup peer
-		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
+		id, err := peer.DecodePrettyID(p.PeerID)
+		if err != nil {
+			// return err
+		}
+		npeer, err := pstore.Get(id)
 		if err != nil {
 			log.Criticalf("Bootstrapping error: %v", err)
 			continue
