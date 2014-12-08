@@ -15,9 +15,9 @@ import (
 	imp "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	peer "github.com/jbenet/go-ipfs/peer"
+	repo "github.com/jbenet/go-ipfs/repo"
 	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
-	repo "github.com/jbenet/go-ipfs/repo"
 )
 
 const nBitsForKeypairDefault = 4096
@@ -193,6 +193,26 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 				// mars.i.ipfs.io
 				PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 				Address: "/ip4/104.131.131.82/tcp/4001",
+			},
+			&config.BootstrapPeer{
+				// neptune
+				PeerID:  "QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z",
+				Address: "/ip4/104.236.176.52/tcp/4001",
+			},
+			&config.BootstrapPeer{
+				// pluto
+				PeerID:  "QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69RrZm",
+				Address: "/ip4/104.236.179.241/tcp/4001",
+			},
+			&config.BootstrapPeer{
+				// uranus
+				PeerID:  "QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm",
+				Address: "/ip4/128.199.219.111/tcp/4001",
+			},
+			&config.BootstrapPeer{
+				// saturn
+				PeerID:  "QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
+				Address: "/ip4/162.243.248.213/tcp/4001",
 			},
 		},
 
