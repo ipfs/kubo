@@ -49,7 +49,7 @@ func Handshake3Update(lpeer, rpeer peer.Peer, msg *pb.Handshake3) (*Handshake3Re
 		return res, err
 	}
 	if lpeer.AddAddress(observedAddr) {
-		log.Infof("(nat) added new local, remote-observed address: %s", observedAddr)
+		log.Debugf("(nat) added new local, remote-observed address: %s", observedAddr)
 	}
 	res.LocalObservedAddress = observedAddr
 

@@ -71,7 +71,7 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 
 	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
 
-	log.Info("newSingleConn: %v to %v", local, remote)
+	log.Debugf("newSingleConn: %v to %v", local, remote)
 
 	// setup the various io goroutines
 	conn.Children().Add(1)
