@@ -7,6 +7,7 @@ import (
 
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -32,7 +33,7 @@ func newPeer(t *testing.T, id string) peer.Peer {
 		return nil
 	}
 
-	return peer.WithID(peer.ID(mh))
+	return mockpeer.WithID(peer.ID(mh))
 }
 
 func TestServiceHandler(t *testing.T) {

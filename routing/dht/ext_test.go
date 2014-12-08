@@ -12,6 +12,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 	"github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -210,7 +211,7 @@ func TestGetFailures(t *testing.T) {
 func _randPeer() peer.Peer {
 	id := make(peer.ID, 16)
 	crand.Read(id)
-	p := peer.WithID(id)
+	p := mockpeer.WithID(id)
 	return p
 }
 

@@ -9,6 +9,7 @@ import (
 	ci "github.com/jbenet/go-ipfs/crypto"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -43,7 +44,7 @@ func setupPeer(t *testing.T, addr string) peer.Peer {
 		t.Fatal(err)
 	}
 
-	p, err := peer.WithKeyPair(sk, pk)
+	p, err := mockpeer.WithKeyPair(sk, pk)
 	if err != nil {
 		t.Fatal(err)
 	}

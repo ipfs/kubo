@@ -6,7 +6,7 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
-	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -89,7 +89,7 @@ func TestCopyProtoByValue(t *testing.T) {
 
 func TestToNetMethodSetsPeer(t *testing.T) {
 	m := New()
-	p := peer.WithIDString("X")
+	p := mockpeer.WithIDString("X")
 	netmsg, err := m.ToNet(p)
 	if err != nil {
 		t.Fatal(err)
@@ -107,7 +107,7 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original.AddWanted(u.Key("T"))
 	original.AddWanted(u.Key("F"))
 
-	p := peer.WithIDString("X")
+	p := mockpeer.WithIDString("X")
 	netmsg, err := original.ToNet(p)
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +138,7 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AddBlock(blocks.NewBlock([]byte("F")))
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
-	p := peer.WithIDString("X")
+	p := mockpeer.WithIDString("X")
 	netmsg, err := original.ToNet(p)
 	if err != nil {
 		t.Fatal(err)

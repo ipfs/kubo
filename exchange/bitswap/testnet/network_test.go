@@ -9,6 +9,7 @@ import (
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {
@@ -18,8 +19,8 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 
 	t.Log("Get two network adapters")
 
-	initiator := net.Adapter(peer.WithIDString("initiator"))
-	recipient := net.Adapter(peer.WithID(idOfRecipient))
+	initiator := net.Adapter(mockpeer.WithIDString("initiator"))
+	recipient := net.Adapter(mockpeer.WithID(idOfRecipient))
 
 	expectedStr := "response from recipient"
 	recipient.SetDelegate(lambda(func(
@@ -43,7 +44,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 	message := bsmsg.New()
 	message.AddBlock(blocks.NewBlock([]byte("data")))
 	response, err := initiator.SendRequest(
-		context.Background(), peer.WithID(idOfRecipient), message)
+		context.Background(), mockpeer.WithID(idOfRecipient), message)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,8 +62,8 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	net := VirtualNetwork()
 	idOfResponder := []byte("responder")
-	waiter := net.Adapter(peer.WithIDString("waiter"))
-	responder := net.Adapter(peer.WithID(idOfResponder))
+	waiter := net.Adapter(mockpeer.WithIDString("waiter"))
+	responder := net.Adapter(mockpeer.WithID(idOfResponder))
 
 	var wg sync.WaitGroup
 
@@ -107,7 +108,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	messageSentAsync := bsmsg.New()
 	messageSentAsync.AddBlock(blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
-		context.Background(), peer.WithID(idOfResponder), messageSentAsync)
+		context.Background(), mockpeer.WithID(idOfResponder), messageSentAsync)
 	if errSending != nil {
 		t.Fatal(errSending)
 	}

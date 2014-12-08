@@ -14,8 +14,9 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	bfish "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.crypto/blowfish"
 	"hash"
+
+	bfish "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.crypto/blowfish"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 

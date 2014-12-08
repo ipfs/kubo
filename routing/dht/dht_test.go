@@ -14,6 +14,7 @@ import (
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 	u "github.com/jbenet/go-ipfs/util"
 
 	"fmt"
@@ -68,7 +69,7 @@ func makePeer(addr ma.Multiaddr) peer.Peer {
 	if err != nil {
 		panic(err)
 	}
-	p, err := peer.WithKeyPair(sk, pk)
+	p, err := mockpeer.WithKeyPair(sk, pk)
 	if err != nil {
 		panic(err)
 	}

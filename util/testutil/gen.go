@@ -28,5 +28,6 @@ func RandPeer() peer.Peer {
 	id := make([]byte, 16)
 	crand.Read(id)
 	mhid := u.Hash(id)
-	return peer.WithID(peer.ID(mhid))
+	ps := peer.NewPeerstore()
+	return ps.WithID(peer.ID(mhid))
 }

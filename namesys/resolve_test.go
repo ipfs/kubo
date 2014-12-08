@@ -5,13 +5,13 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	"github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 func TestRoutingResolve(t *testing.T) {
-	local := peer.WithIDString("testID")
+	local := mockpeer.WithIDString("testID")
 	lds := ds.NewMapDatastore()
 	d := mock.NewMockRouter(local, lds)
 

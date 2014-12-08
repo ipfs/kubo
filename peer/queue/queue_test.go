@@ -7,13 +7,14 @@ import (
 	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/peer/mock"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 func newPeer(id string) peer.Peer {
-	return peer.WithIDString(id)
+	return mockpeer.WithIDString(id)
 }
 
 func TestQueue(t *testing.T) {
@@ -69,7 +70,7 @@ func TestQueue(t *testing.T) {
 func newPeerTime(t time.Time) peer.Peer {
 	s := fmt.Sprintf("hmmm time: %v", t)
 	h := u.Hash([]byte(s))
-	return peer.WithID(peer.ID(h))
+	return mockpeer.WithID(peer.ID(h))
 }
 
 func TestSyncQueue(t *testing.T) {

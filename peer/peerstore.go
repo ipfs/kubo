@@ -3,7 +3,9 @@ package peer
 import (
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 // Peerstore provides a threadsafe collection for peers.
@@ -12,6 +14,10 @@ type Peerstore interface {
 	Add(Peer) (Peer, error)
 	Delete(ID) error
 	All() (*Map, error)
+
+	WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (Peer, error)
+	WithID(id ID) Peer
+	WithIDString(id string) Peer
 }
 
 type peerstore struct {
@@ -88,4 +94,35 @@ func (p *peerstore) All() (*Map, error) {
 		ps[u.Key(k)] = v
 	}
 	return &ps, nil
+}
+
+// WithKeyPair returns a Peer object with given keys.
+func (ps *peerstore) WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (Peer, error) {
+	if sk == nil && pk == nil {
+		return nil, errors.Errorf("PeerWithKeyPair nil keys")
+	}
+
+	pk2 := sk.GetPublic()
+	if pk == nil {
+		pk = pk2
+	} else if !pk.Equals(pk2) {
+		return nil, errors.Errorf("key mismatch. pubkey is not privkey's pubkey")
+	}
+
+	pkid, err := IDFromPubKey(pk)
+	if err != nil {
+		return nil, errors.Errorf("Failed to hash public key: %v", err)
+	}
+
+	return &peer{id: pkid, pubKey: pk, privKey: sk}, nil
+}
+
+// WithID constructs a peer with given ID.
+func (ps *peerstore) WithID(id ID) Peer {
+	return &peer{id: id}
+}
+
+// WithIDString constructs a peer with given ID (string).
+func (ps *peerstore) WithIDString(id string) Peer {
+	return ps.WithID(ID(id))
 }
