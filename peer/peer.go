@@ -161,11 +161,11 @@ type peer struct {
 // codebase is known to be correct.
 func (p *peer) String() string {
 	pid := p.id.String()
-	maxRunes := 12
+	maxRunes := 6
 	if len(pid) < maxRunes {
 		maxRunes = len(pid)
 	}
-	return "[Peer " + pid[:maxRunes] + "]"
+	return fmt.Sprintf("peer %s", pid[:maxRunes])
 }
 
 func (p *peer) Loggable() map[string]interface{} {
