@@ -7,9 +7,9 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/peer/mock"
 	"github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/pipes"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func getPeer(tb testing.TB) peer.Peer {
@@ -18,7 +18,7 @@ func getPeer(tb testing.TB) peer.Peer {
 		tb.Fatal(err)
 	}
 
-	p, err := mockpeer.WithKeyPair(privk, pubk)
+	p, err := testutil.NewPeerWithKeyPair(privk, pubk)
 	if err != nil {
 		tb.Fatal(err)
 	}

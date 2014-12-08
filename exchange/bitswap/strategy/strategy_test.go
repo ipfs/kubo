@@ -7,7 +7,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/peer/mock"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 type peerAndStrategist struct {
@@ -17,7 +17,7 @@ type peerAndStrategist struct {
 
 func newPeerAndStrategist(idStr string) peerAndStrategist {
 	return peerAndStrategist{
-		Peer:     mockpeer.WithIDString(idStr),
+		Peer:     testutil.NewPeerWithIDString(idStr),
 		Strategy: New(true),
 	}
 }

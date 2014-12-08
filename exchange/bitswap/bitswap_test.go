@@ -10,8 +10,8 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	"github.com/jbenet/go-ipfs/peer/mock"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestClose(t *testing.T) {
@@ -53,7 +53,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	g := NewSessionGenerator(net, rs)
 
 	block := blocks.NewBlock([]byte("block"))
-	rs.Announce(mockpeer.WithIDString("testing"), block.Key()) // but not on network
+	rs.Announce(testutil.NewPeerWithIDString("testing"), block.Key()) // but not on network
 
 	solo := g.Next()
 

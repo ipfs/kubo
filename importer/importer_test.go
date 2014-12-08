@@ -12,7 +12,7 @@ import (
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/testutil"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // NOTE:

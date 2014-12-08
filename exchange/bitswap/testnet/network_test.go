@@ -9,7 +9,7 @@ import (
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/peer/mock"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {
@@ -19,8 +19,8 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 
 	t.Log("Get two network adapters")
 
-	initiator := net.Adapter(mockpeer.WithIDString("initiator"))
-	recipient := net.Adapter(mockpeer.WithID(idOfRecipient))
+	initiator := net.Adapter(testutil.NewPeerWithIDString("initiator"))
+	recipient := net.Adapter(testutil.NewPeerWithID(idOfRecipient))
 
 	expectedStr := "response from recipient"
 	recipient.SetDelegate(lambda(func(
@@ -44,7 +44,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 	message := bsmsg.New()
 	message.AddBlock(blocks.NewBlock([]byte("data")))
 	response, err := initiator.SendRequest(
-		context.Background(), mockpeer.WithID(idOfRecipient), message)
+		context.Background(), testutil.NewPeerWithID(idOfRecipient), message)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,8 +62,8 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	net := VirtualNetwork()
 	idOfResponder := []byte("responder")
-	waiter := net.Adapter(mockpeer.WithIDString("waiter"))
-	responder := net.Adapter(mockpeer.WithID(idOfResponder))
+	waiter := net.Adapter(testutil.NewPeerWithIDString("waiter"))
+	responder := net.Adapter(testutil.NewPeerWithID(idOfResponder))
 
 	var wg sync.WaitGroup
 
@@ -108,7 +108,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	messageSentAsync := bsmsg.New()
 	messageSentAsync.AddBlock(blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
-		context.Background(), mockpeer.WithID(idOfResponder), messageSentAsync)
+		context.Background(), testutil.NewPeerWithID(idOfResponder), messageSentAsync)
 	if errSending != nil {
 		t.Fatal(errSending)
 	}

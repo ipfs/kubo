@@ -1,4 +1,4 @@
-package mockpeer
+package testutil
 
 import (
 	"github.com/jbenet/go-ipfs/peer"
@@ -6,14 +6,14 @@ import (
 	ic "github.com/jbenet/go-ipfs/crypto"
 )
 
-func WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (peer.Peer, error) {
+func NewPeerWithKeyPair(sk ic.PrivKey, pk ic.PubKey) (peer.Peer, error) {
 	return peer.NewPeerstore().WithKeyPair(sk, pk)
 }
 
-func WithID(id peer.ID) peer.Peer {
+func NewPeerWithID(id peer.ID) peer.Peer {
 	return peer.NewPeerstore().WithID(id)
 }
 
-func WithIDString(id string) peer.Peer {
+func NewPeerWithIDString(id string) peer.Peer {
 	return peer.NewPeerstore().WithIDString(id)
 }

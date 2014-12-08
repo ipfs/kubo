@@ -6,8 +6,8 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/peer/mock"
 	u "github.com/jbenet/go-ipfs/util"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestKeyNotFound(t *testing.T) {
@@ -21,7 +21,7 @@ func TestKeyNotFound(t *testing.T) {
 
 func TestSetAndGet(t *testing.T) {
 	pid := peer.ID([]byte("the peer id"))
-	p := mockpeer.WithID(pid)
+	p := testutil.NewPeerWithID(pid)
 	k := u.Key("42")
 	rs := VirtualRoutingServer()
 	err := rs.Announce(p, k)
@@ -41,7 +41,7 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	peer := mockpeer.WithIDString("42")
+	peer := testutil.NewPeerWithIDString("42")
 	rs := VirtualRoutingServer()
 	client := rs.Client(peer)
 
@@ -80,7 +80,7 @@ func TestClientOverMax(t *testing.T) {
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
-		peer := mockpeer.WithIDString(string(i))
+		peer := testutil.NewPeerWithIDString(string(i))
 		err := rs.Announce(peer, k)
 		if err != nil {
 			t.Fatal(err)
@@ -93,7 +93,7 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	peer := mockpeer.WithIDString("TODO")
+	peer := testutil.NewPeerWithIDString("TODO")
 	client := rs.Client(peer)
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
@@ -115,7 +115,7 @@ func TestCanceledContext(t *testing.T) {
 	i := 0
 	go func() { // infinite stream
 		for {
-			peer := mockpeer.WithIDString(string(i))
+			peer := testutil.NewPeerWithIDString(string(i))
 			err := rs.Announce(peer, k)
 			if err != nil {
 				t.Fatal(err)
@@ -124,7 +124,7 @@ func TestCanceledContext(t *testing.T) {
 		}
 	}()
 
-	local := mockpeer.WithIDString("peer id doesn't matter")
+	local := testutil.NewPeerWithIDString("peer id doesn't matter")
 	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
