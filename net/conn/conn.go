@@ -31,7 +31,7 @@ const (
 // ReleaseBuffer puts the given byte array back into the buffer pool,
 // first verifying that it is the correct size
 func ReleaseBuffer(b []byte) {
-	log.Warningf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
+	log.Debugf("Releasing buffer! (cap,size = %d, %d)", cap(b), len(b))
 	mpool.ByteSlicePool.Put(uint32(cap(b)), b)
 }
 
