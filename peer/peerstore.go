@@ -114,12 +114,16 @@ func (ps *peerstore) WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (Peer, error) {
 		return nil, errors.Errorf("Failed to hash public key: %v", err)
 	}
 
-	return &peer{id: pkid, pubKey: pk, privKey: sk}, nil
+	p := &peer{id: pkid, pubKey: pk, privKey: sk}
+	ps.Add(p)
+	return p, nil
 }
 
 // WithID constructs a peer with given ID.
 func (ps *peerstore) WithID(id ID) Peer {
-	return &peer{id: id}
+	p := &peer{id: id}
+	ps.Add(p)
+	return p
 }
 
 // WithIDString constructs a peer with given ID (string).
