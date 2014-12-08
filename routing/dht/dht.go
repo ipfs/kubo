@@ -97,32 +97,23 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 }
 
 // Connect to a new peer at the given address, ping and add to the routing table
-func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) (peer.Peer, error) {
-	// TODO(jbenet,whyrusleeping)
-	//
-	// Connect should take in a Peer (with ID). In a sense, we shouldn't be
-	// allowing connections to random multiaddrs without knowing who we're
-	// speaking to (i.e. peer.ID). In terms of moving around simple addresses
-	// -- instead of an (ID, Addr) pair -- we can use:
-	//
-	//   /ip4/10.20.30.40/tcp/1234/ipfs/Qxhxxchxzcncxnzcnxzcxzm
-	//
+func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) error {
 	err := dht.dialer.DialPeer(ctx, npeer)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Ping new peer to register in their routing table
 	// NOTE: this should be done better...
 	err = dht.Ping(ctx, npeer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ping newly connected peer: %s\n", err)
+		return fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
 	log.Event(ctx, "connect", dht.self, npeer)
 
 	dht.Update(ctx, npeer)
 
-	return npeer, nil
+	return nil
 }
 
 // HandleMessage implements the inet.Handler interface.

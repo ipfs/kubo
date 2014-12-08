@@ -283,7 +283,7 @@ func initConnections(ctx context.Context, bootstrap []*config.BootstrapPeer, pst
 		}
 		npeer.AddAddress(maddr)
 
-		if _, err = route.Connect(ctx, npeer); err != nil {
+		if err := route.Connect(ctx, npeer); err != nil {
 			log.Criticalf("Bootstrapping error: %v", err)
 			continue
 		}
