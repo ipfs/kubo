@@ -75,8 +75,8 @@ func (n *IpfsNetwork) ClosePeer(p peer.Peer) error {
 }
 
 // IsConnected returns whether a connection to given peer exists.
-func (n *IpfsNetwork) IsConnected(p peer.Peer) (bool, error) {
-	return n.swarm.GetConnection(p.ID()) != nil, nil
+func (n *IpfsNetwork) IsConnected(p peer.Peer) bool {
+	return n.swarm.GetConnection(p.ID()) != nil
 }
 
 // GetProtocols returns the protocols registered in the network.

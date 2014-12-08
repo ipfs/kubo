@@ -27,7 +27,7 @@ type Network interface {
 	ClosePeer(peer.Peer) error
 
 	// IsConnected returns whether a connection to given peer exists.
-	IsConnected(peer.Peer) (bool, error)
+	IsConnected(peer.Peer) bool
 
 	// GetProtocols returns the protocols registered in the network.
 	GetProtocols() *mux.ProtocolMap
