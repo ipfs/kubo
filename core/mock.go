@@ -25,12 +25,13 @@ func NewMockNode() (*IpfsNode, error) {
 		return nil, err
 	}
 
-	p, err := peer.WithKeyPair(sk, pk)
+	nd.Peerstore = peer.NewPeerstore()
+
+	p, err := nd.Peerstore.WithKeyPair(sk, pk)
 	if err != nil {
 		return nil, err
 	}
 
-	nd.Peerstore = peer.NewPeerstore()
 	nd.Identity, err = nd.Peerstore.Add(p)
 	if err != nil {
 		return nil, err

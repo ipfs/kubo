@@ -1,52 +1,47 @@
 package peer
 
 import (
-	"errors"
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	u "github.com/jbenet/go-ipfs/util"
-
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
-	Get(ID) (Peer, error)
+	FindOrCreate(ID) (Peer, error)
 	Add(Peer) (Peer, error)
 	Delete(ID) error
 	All() (*Map, error)
+
+	WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (Peer, error)
+	WithID(id ID) Peer
+	WithIDString(id string) Peer
 }
 
 type peerstore struct {
 	sync.RWMutex
-	peers ds.Datastore
+	data map[string]Peer // key is string(ID)
 }
 
 // NewPeerstore creates a threadsafe collection of peers.
 func NewPeerstore() Peerstore {
 	return &peerstore{
-		peers: ds.NewMapDatastore(),
+		data: make(map[string]Peer),
 	}
 }
 
-func (p *peerstore) Get(i ID) (Peer, error) {
-	p.Lock()
-	defer p.Unlock()
+func (ps *peerstore) FindOrCreate(i ID) (Peer, error) {
+	ps.Lock()
+	defer ps.Unlock()
 
 	if i == nil {
 		panic("wat")
 	}
 
-	k := u.Key(i).DsKey()
-	val, err := p.peers.Get(k)
-	switch err {
-
-	// some other datastore error
-	default:
-		return nil, err
-
-	// not found, construct it ourselves, add it to datastore, and return.
-	case ds.ErrNotFound:
+	p, ok := ps.data[i.String()]
+	if !ok { // not found, construct it ourselves, add it to datastore, and return.
 
 		// TODO(brian) kinda dangerous, no? If ID is invalid and doesn't
 		// correspond to an actual valid peer ID, this peerstore will return an
@@ -57,84 +52,81 @@ func (p *peerstore) Get(i ID) (Peer, error) {
 		//
 		// Potential bad case: Suppose values arrive from untrusted providers
 		// in the DHT.
-
-		peer := &peer{id: i}
-		if err := p.peers.Put(k, peer); err != nil {
-			return nil, err
-		}
-		return peer, nil
+		p = &peer{id: i}
+		ps.data[i.String()] = p
+	}
 
 	// no error, got it back fine
-	case nil:
-		peer, ok := val.(*peer)
-		if !ok {
-			return nil, errors.New("stored value was not a Peer")
-		}
-		return peer, nil
-	}
+	return p, nil
 }
 
 func (p *peerstore) Add(peer Peer) (Peer, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	k := peer.Key().DsKey()
-	val, err := p.peers.Get(k)
-	switch err {
-	// some other datastore error
-	default:
-		return nil, err
-
-	// not found? just add and return.
-	case ds.ErrNotFound:
-		err := p.peers.Put(k, peer)
-		return peer, err
-
-	// no error, already here.
-	case nil:
-		peer2, ok := val.(Peer)
-		if !ok {
-			return nil, errors.New("stored value was not a Peer")
-		}
-
-		if peer == peer2 {
-			return peer, nil
-		}
-
-		// must do some merging.
-		peer2.Update(peer)
-		return peer2, nil
+	existing, ok := p.data[peer.Key().String()]
+	if !ok { // not found? just add and return.
+		p.data[peer.Key().String()] = peer
+		return peer, nil
 	}
+	// already here.
+	if peer == existing {
+		return peer, nil
+	}
+	existing.Update(peer) // must do some merging.
+	return existing, nil
 }
 
 func (p *peerstore) Delete(i ID) error {
 	p.Lock()
 	defer p.Unlock()
 
-	k := u.Key(i).DsKey()
-	return p.peers.Delete(k)
+	delete(p.data, i.String())
+	return nil
 }
 
 func (p *peerstore) All() (*Map, error) {
-	p.RLock()
-	defer p.RUnlock()
+	p.Lock()
+	defer p.Unlock()
 
-	l, err := p.peers.KeyList()
+	ps := Map{}
+	for k, v := range p.data {
+		ps[u.Key(k)] = v
+	}
+	return &ps, nil
+}
+
+// WithKeyPair returns a Peer object with given keys.
+func (ps *peerstore) WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (Peer, error) {
+	if sk == nil && pk == nil {
+		return nil, errors.Errorf("PeerWithKeyPair nil keys")
+	}
+
+	pk2 := sk.GetPublic()
+	if pk == nil {
+		pk = pk2
+	} else if !pk.Equals(pk2) {
+		return nil, errors.Errorf("key mismatch. pubkey is not privkey's pubkey")
+	}
+
+	pkid, err := IDFromPubKey(pk)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("Failed to hash public key: %v", err)
 	}
 
-	ps := &Map{}
-	for _, k := range l {
-		val, err := p.peers.Get(k)
-		if err != nil {
-			continue
-		}
+	p := &peer{id: pkid, pubKey: pk, privKey: sk}
+	ps.Add(p)
+	return p, nil
+}
 
-		pval, ok := val.(*peer)
-		if ok {
-			(*ps)[pval.Key()] = pval
-		}
-	}
-	return ps, nil
+// WithID constructs a peer with given ID.
+func (ps *peerstore) WithID(id ID) Peer {
+	p := &peer{id: id}
+	ps.Add(p)
+	return p
+}
+
+// WithIDString constructs a peer with given ID (string).
+func (ps *peerstore) WithIDString(id string) Peer {
+	return ps.WithID(ID(id))
 }

@@ -37,8 +37,12 @@ func (id ID) Pretty() string {
 }
 
 // DecodePrettyID returns a b58-encoded string of the ID
-func DecodePrettyID(s string) ID {
-	return b58.Decode(s)
+func DecodePrettyID(s string) (ID, error) {
+	m, err := mh.FromB58String(s)
+	if err != nil {
+		return nil, err
+	}
+	return ID(m), err
 }
 
 // IDFromPubKey retrieves a Public Key from the peer given by pk
@@ -389,35 +393,4 @@ func (p *peer) SetVersions(agent, protocol string) {
 	defer p.Unlock()
 	p.agentVersion = agent
 	p.protocolVersion = protocol
-}
-
-// WithKeyPair returns a Peer object with given keys.
-func WithKeyPair(sk ic.PrivKey, pk ic.PubKey) (Peer, error) {
-	if sk == nil && pk == nil {
-		return nil, fmt.Errorf("PeerWithKeyPair nil keys")
-	}
-
-	pk2 := sk.GetPublic()
-	if pk == nil {
-		pk = pk2
-	} else if !pk.Equals(pk2) {
-		return nil, fmt.Errorf("key mismatch. pubkey is not privkey's pubkey")
-	}
-
-	pkid, err := IDFromPubKey(pk)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to hash public key: %v", err)
-	}
-
-	return &peer{id: pkid, pubKey: pk, privKey: sk}, nil
-}
-
-// WithID constructs a peer with given ID.
-func WithID(id ID) Peer {
-	return &peer{id: id}
-}
-
-// WithIDString constructs a peer with given ID (string).
-func WithIDString(id string) Peer {
-	return WithID(ID(id))
 }

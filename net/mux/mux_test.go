@@ -11,6 +11,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	pb "github.com/jbenet/go-ipfs/net/mux/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -30,7 +31,7 @@ func newPeer(t *testing.T, id string) peer.Peer {
 		return nil
 	}
 
-	return peer.WithID(peer.ID(mh))
+	return testutil.NewPeerWithID(peer.ID(mh))
 }
 
 func testMsg(t *testing.T, m msg.NetMessage, data []byte) {

@@ -16,6 +16,7 @@ func NewSessionGenerator(
 	return SessionGenerator{
 		net: net,
 		rs:  rs,
+		ps:  peer.NewPeerstore(),
 		seq: 0,
 	}
 }
@@ -24,11 +25,12 @@ type SessionGenerator struct {
 	seq int
 	net tn.Network
 	rs  mock.RoutingServer
+	ps  peer.Peerstore
 }
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	return session(g.net, g.rs, []byte(string(g.seq)))
+	return session(g.net, g.rs, g.ps, []byte(string(g.seq)))
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -51,8 +53,8 @@ type Instance struct {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(net tn.Network, rs mock.RoutingServer, id peer.ID) Instance {
-	p := peer.WithID(id)
+func session(net tn.Network, rs mock.RoutingServer, ps peer.Peerstore, id peer.ID) Instance {
+	p := ps.WithID(id)
 
 	adapter := net.Adapter(p)
 	htc := rs.Client(p)

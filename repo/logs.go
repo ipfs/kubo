@@ -1,9 +1,9 @@
 package repo
 
 import (
+	config "github.com/jbenet/go-ipfs/config"
 	util "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-	config "github.com/jbenet/go-ipfs/config"
 )
 
 func ConfigureEventLogger(config config.Logs) error {

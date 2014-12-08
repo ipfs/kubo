@@ -10,6 +10,7 @@ import (
 	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -43,7 +44,7 @@ func setupPeer(t *testing.T, addr string) peer.Peer {
 		t.Fatal(err)
 	}
 
-	p, err := peer.WithKeyPair(sk, pk)
+	p, err := testutil.NewPeerWithKeyPair(sk, pk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +85,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		connect := func(s *Swarm, dst peer.Peer) {
 			// copy for other peer
 
-			cp, err := s.peers.Get(dst.ID())
+			cp, err := s.peers.FindOrCreate(dst.ID())
 			if err != nil {
 				t.Fatal(err)
 			}

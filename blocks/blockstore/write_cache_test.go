@@ -1,10 +1,11 @@
 package blockstore
 
 import (
+	"testing"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/jbenet/go-ipfs/blocks"
-	"testing"
 )
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {

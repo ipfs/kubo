@@ -500,7 +500,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.Peer 
 
 // getPeer searches the peerstore for a peer with the given peer ID
 func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
-	p, err := dht.peerstore.Get(id)
+	p, err := dht.peerstore.FindOrCreate(id)
 	if err != nil {
 		err = fmt.Errorf("Failed to get peer from peerstore: %s", err)
 		log.Error(err)

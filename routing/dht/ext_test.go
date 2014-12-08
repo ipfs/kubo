@@ -7,14 +7,14 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/routing"
+	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	"sync"
 	"time"
@@ -210,7 +210,7 @@ func TestGetFailures(t *testing.T) {
 func _randPeer() peer.Peer {
 	id := make(peer.ID, 16)
 	crand.Read(id)
-	p := peer.WithID(id)
+	p := testutil.NewPeerWithID(id)
 	return p
 }
 

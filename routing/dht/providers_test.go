@@ -5,6 +5,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -14,7 +15,7 @@ func TestProviderManager(t *testing.T) {
 	mid := peer.ID("testing")
 	p := NewProviderManager(ctx, mid)
 	a := u.Key("test")
-	p.AddProvider(a, peer.WithIDString("testingprovider"))
+	p.AddProvider(a, testutil.NewPeerWithIDString("testingprovider"))
 	resp := p.GetProviders(ctx, a)
 	if len(resp) != 1 {
 		t.Fatal("Could not retrieve provider.")

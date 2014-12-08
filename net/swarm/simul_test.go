@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -28,7 +29,7 @@ func TestSimultOpen(t *testing.T) {
 		var wg sync.WaitGroup
 		connect := func(s *Swarm, dst peer.Peer) {
 			// copy for other peer
-			cp := peer.WithID(dst.ID())
+			cp := testutil.NewPeerWithID(dst.ID())
 			cp.AddAddress(dst.Addresses()[0])
 
 			if _, err := s.Dial(cp); err != nil {

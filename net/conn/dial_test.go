@@ -5,6 +5,7 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -21,7 +22,7 @@ func setupPeer(addr string) (peer.Peer, error) {
 		return nil, err
 	}
 
-	p, err := peer.WithKeyPair(sk, pk)
+	p, err := testutil.NewPeerWithKeyPair(sk, pk)
 	if err != nil {
 		return nil, err
 	}

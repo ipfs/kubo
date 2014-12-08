@@ -27,7 +27,7 @@ func TestNetAddress(t *testing.T) {
 		return
 	}
 
-	p := WithID(ID(mh))
+	p := NewPeerstore().WithID(ID(mh))
 	p.AddAddress(tcp)
 	p.AddAddress(udp)
 	p.AddAddress(tcp)
@@ -48,7 +48,7 @@ func TestNetAddress(t *testing.T) {
 }
 
 func TestStringMethodWithSmallId(t *testing.T) {
-	p := WithID([]byte(string(0)))
+	p := NewPeerstore().WithID([]byte(string(0)))
 	p1, ok := p.(*peer)
 	if !ok {
 		t.Fatal("WithID doesn't return a peer")

@@ -223,7 +223,7 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 
 	// get peer from peerstore (so it is constructed there)
 	id := peer.ID(b58.Decode(cfg.PeerID))
-	self, err := peers.Get(id)
+	self, err := peers.FindOrCreate(id)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,12 @@ func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerst
 		}
 
 		// setup peer
-		npeer, err := pstore.Get(peer.DecodePrettyID(p.PeerID))
+		id, err := peer.DecodePrettyID(p.PeerID)
+		if err != nil {
+			log.Criticalf("Bootstrapping error: %v", err)
+			continue
+		}
+		npeer, err := pstore.FindOrCreate(id)
 		if err != nil {
 			log.Criticalf("Bootstrapping error: %v", err)
 			continue
