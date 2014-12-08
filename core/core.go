@@ -179,7 +179,13 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 
 		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, blockstore, alwaysSendToPeer)
 
-		go initConnections(ctx, n.Config, n.Peerstore, dhtRouting)
+		// TODO consider connection supervision into the Network. We've
+		// discussed improvements to this Node constructor. One improvement
+		// would be to make the node configurable, allowing clients to inject
+		// an Exchange, Network, or Routing component and have the constructor
+		// manage the wiring. In that scenario, this dangling function is a bit
+		// awkward.
+		go initConnections(ctx, n.Config.Bootstrap, n.Peerstore, dhtRouting)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap
@@ -250,10 +256,10 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer
 	return self, nil
 }
 
-func initConnections(ctx context.Context, cfg *config.Config, pstore peer.Peerstore, route *dht.IpfsDHT) {
+func initConnections(ctx context.Context, bootstrap []*config.BootstrapPeer, pstore peer.Peerstore, route *dht.IpfsDHT) {
 	// TODO consider stricter error handling
 	// TODO consider Criticalf error logging
-	for _, p := range cfg.Bootstrap {
+	for _, p := range bootstrap {
 		if p.PeerID == "" {
 			log.Criticalf("error: peer does not include PeerID. %v", p)
 		}
