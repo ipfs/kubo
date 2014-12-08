@@ -8,7 +8,7 @@ import (
 
 // Peerstore provides a threadsafe collection for peers.
 type Peerstore interface {
-	Get(ID) (Peer, error)
+	FindOrCreate(ID) (Peer, error)
 	Add(Peer) (Peer, error)
 	Delete(ID) error
 	All() (*Map, error)
@@ -26,7 +26,7 @@ func NewPeerstore() Peerstore {
 	}
 }
 
-func (ps *peerstore) Get(i ID) (Peer, error) {
+func (ps *peerstore) FindOrCreate(i ID) (Peer, error) {
 	ps.Lock()
 	defer ps.Unlock()
 

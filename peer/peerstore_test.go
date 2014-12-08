@@ -36,7 +36,7 @@ func TestPeerstore(t *testing.T) {
 		t.Error("these should be the same")
 	}
 
-	p12, err := ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
+	p12, err := ps.FindOrCreate(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -53,7 +53,7 @@ func TestPeerstore(t *testing.T) {
 		t.Error("These should be the same")
 	}
 
-	p22, err := ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32"))
+	p22, err := ps.FindOrCreate(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +62,7 @@ func TestPeerstore(t *testing.T) {
 		t.Error(errors.New("peers should be the same"))
 	}
 
-	_, err = ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"))
+	_, err = ps.FindOrCreate(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"))
 	if err != nil {
 		t.Error(errors.New("should not have an error here"))
 	}
@@ -73,12 +73,12 @@ func TestPeerstore(t *testing.T) {
 	}
 
 	// reconstruct!
-	_, err = ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
+	_, err = ps.FindOrCreate(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	if err != nil {
 		t.Error(errors.New("should not have an error anyway. reconstruct!"))
 	}
 
-	p22, err = ps.Get(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32"))
+	p22, err = ps.FindOrCreate(ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32"))
 	if err != nil {
 		t.Error(err)
 	}

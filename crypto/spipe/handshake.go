@@ -368,7 +368,7 @@ func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (peer.Peer, error) 
 		return nil, err
 	}
 
-	npeer, err := peers.Get(rid)
+	npeer, err := peers.FindOrCreate(rid)
 	if err != nil {
 		return nil, err // unexpected error happened.
 	}

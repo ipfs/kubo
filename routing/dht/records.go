@@ -44,7 +44,7 @@ func (dht *IpfsDHT) makePutRecord(key u.Key, value []byte) (*pb.Record, error) {
 
 func (dht *IpfsDHT) getPublicKey(pid peer.ID) (ci.PubKey, error) {
 	log.Debug("getPublicKey for: %s", pid)
-	p, err := dht.peerstore.Get(pid)
+	p, err := dht.peerstore.FindOrCreate(pid)
 	if err == nil {
 		return p.PubKey(), nil
 	}
@@ -67,7 +67,7 @@ func (dht *IpfsDHT) getPublicKey(pid peer.ID) (ci.PubKey, error) {
 
 func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
 	// First, validate the signature
-	p, err := dht.peerstore.Get(peer.ID(r.GetAuthor()))
+	p, err := dht.peerstore.FindOrCreate(peer.ID(r.GetAuthor()))
 	if err != nil {
 		return err
 	}

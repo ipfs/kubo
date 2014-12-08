@@ -84,7 +84,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		connect := func(s *Swarm, dst peer.Peer) {
 			// copy for other peer
 
-			cp, err := s.peers.Get(dst.ID())
+			cp, err := s.peers.FindOrCreate(dst.ID())
 			if err != nil {
 				t.Fatal(err)
 			}

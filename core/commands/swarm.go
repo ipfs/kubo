@@ -169,7 +169,7 @@ func peersWithAddresses(ps peer.Peerstore, addrs []string) ([]peer.Peer, error) 
 
 	peers := make([]peer.Peer, len(pids))
 	for i, pid := range pids {
-		p, err := ps.Get(pid)
+		p, err := ps.FindOrCreate(pid)
 		if err != nil {
 			return nil, err
 		}
