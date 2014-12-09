@@ -67,9 +67,6 @@ func bootstrap(ctx context.Context,
 			notConnected = append(notConnected, p)
 		}
 	}
-	for _, p := range notConnected {
-		log.Infof("not connected to %v", p)
-	}
 
 	var randomSubset []peer.Peer
 	for _, val := range rand.Perm(numCxnsToCreate) {
