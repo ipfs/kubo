@@ -90,15 +90,15 @@ type Connectedness int
 
 const (
 	// NotConnected means no connection to peer, and no extra information (default)
-	NotConnected Connectedness = 0
+	NotConnected Connectedness = iota
 
 	// Connected means has an open, live connection to peer
-	Connected = 1
+	Connected
 
 	// CanConnect means recently connected to peer, terminated gracefully
-	CanConnect = 2
+	CanConnect
 
 	// CannotConnect means recently attempted connecting but failed to connect.
 	// (should signal "made effort, failed")
-	CannotConnect = 3
+	CannotConnect
 )
