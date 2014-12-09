@@ -195,24 +195,24 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 				Address: "/ip4/104.131.131.82/tcp/4001",
 			},
 			&config.BootstrapPeer{
-				// neptune
+				// Neptune
 				PeerID:  "QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z",
 				Address: "/ip4/104.236.176.52/tcp/4001",
 			},
 			&config.BootstrapPeer{
-				// pluto
+				// Pluto
 				PeerID:  "QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69RrZm",
 				Address: "/ip4/104.236.179.241/tcp/4001",
 			},
 			&config.BootstrapPeer{
-				// uranus
+				// Uranus
 				PeerID:  "QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm",
-				Address: "/ip4/128.199.219.111/tcp/4001",
+				Address: "/ip4/162.243.248.213/tcp/4001",
 			},
 			&config.BootstrapPeer{
-				// saturn
+				// Saturn
 				PeerID:  "QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-				Address: "/ip4/162.243.248.213/tcp/4001",
+				Address: "/ip4/128.199.219.111/tcp/4001",
 			},
 		},
 
