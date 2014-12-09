@@ -1,19 +1,23 @@
 package core
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	"github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/config"
 	inet "github.com/jbenet/go-ipfs/net"
-	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/routing/dht"
+	peer "github.com/jbenet/go-ipfs/peer"
+	dht "github.com/jbenet/go-ipfs/routing/dht"
 )
 
-const period time.Duration = 30 * time.Second
-const timeout time.Duration = period / 3
+const (
+	period                          = 30 * time.Second // how often to check connection status
+	connectiontimeout time.Duration = period / 3       // duration to wait when attempting to connect
+	recoveryThreshold               = 4                // attempt to bootstrap if connection count falls below this value
+)
 
 func superviseConnections(parent context.Context,
 	n *IpfsNode,
@@ -22,7 +26,7 @@ func superviseConnections(parent context.Context,
 	peers []*config.BootstrapPeer) error {
 
 	for {
-		ctx, _ := context.WithTimeout(parent, timeout)
+		ctx, _ := context.WithTimeout(parent, connectiontimeout)
 		// TODO get config from disk so |peers| always reflects the latest
 		// information
 		if err := bootstrap(ctx, n.Network, route, store, peers); err != nil {
@@ -43,17 +47,22 @@ func bootstrap(ctx context.Context,
 	ps peer.Peerstore,
 	boots []*config.BootstrapPeer) error {
 
-	var peers []peer.Peer
+	if len(n.GetConnections()) >= recoveryThreshold {
+		return nil
+	}
+	numCxnsToCreate := recoveryThreshold - len(n.GetConnections())
+
+	var bootstrapPeers []peer.Peer
 	for _, bootstrap := range boots {
 		p, err := toPeer(ps, bootstrap)
 		if err != nil {
 			return err
 		}
-		peers = append(peers, p)
+		bootstrapPeers = append(bootstrapPeers, p)
 	}
 
 	var notConnected []peer.Peer
-	for _, p := range peers {
+	for _, p := range bootstrapPeers {
 		if !n.IsConnected(p) {
 			notConnected = append(notConnected, p)
 		}
@@ -61,7 +70,12 @@ func bootstrap(ctx context.Context,
 	for _, p := range notConnected {
 		log.Infof("not connected to %v", p)
 	}
-	if err := connect(ctx, r, notConnected); err != nil {
+
+	var randomSubset []peer.Peer
+	for _, val := range rand.Perm(numCxnsToCreate) {
+		randomSubset = append(randomSubset, notConnected[val])
+	}
+	if err := connect(ctx, r, randomSubset); err != nil {
 		return err
 	}
 	return nil
