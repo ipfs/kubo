@@ -11,6 +11,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	math2 "github.com/jbenet/go-ipfs/util/math2"
 )
 
 const (
@@ -68,10 +69,7 @@ func bootstrap(ctx context.Context,
 		}
 	}
 
-	var randomSubset []peer.Peer
-	for _, val := range rand.Perm(numCxnsToCreate) {
-		randomSubset = append(randomSubset, notConnected[val])
-	}
+	var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
 	if err := connect(ctx, r, randomSubset); err != nil {
 		return err
 	}
@@ -118,4 +116,13 @@ func toPeer(ps peer.Peerstore, bootstrap *config.BootstrapPeer) (peer.Peer, erro
 	}
 	p.AddAddress(maddr)
 	return p, nil
+}
+
+func randomSubsetOfPeers(in []peer.Peer, max int) []peer.Peer {
+	n := math2.IntMin(max, len(in))
+	var out []peer.Peer
+	for _, val := range rand.Perm(n) {
+		out = append(out, in[val])
+	}
+	return out
 }
