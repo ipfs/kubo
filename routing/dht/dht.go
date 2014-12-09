@@ -341,7 +341,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 }
 
 // Bootstrap builds up list of peers by requesting random peer IDs
-func (dht *IpfsDHT) Bootstrap(ctx context.Context, queries int) {
+func (dht *IpfsDHT) Bootstrap(ctx context.Context, queries int) error {
 
 	// bootstrap sequentially, as results will compound
 	for i := 0; i < NumBootstrapQueries; i++ {
@@ -357,4 +357,5 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context, queries int) {
 			log.Errorf("dht seemingly found a peer at a random bootstrap id (%s)...", pi)
 		}
 	}
+	return nil
 }

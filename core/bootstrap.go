@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	period                          = 30 * time.Second // how often to check connection status
-	connectiontimeout time.Duration = period / 3       // duration to wait when attempting to connect
-	recoveryThreshold               = 4                // attempt to bootstrap if connection count falls below this value
+	period                               = 30 * time.Second // how often to check connection status
+	connectiontimeout      time.Duration = period / 3       // duration to wait when attempting to connect
+	recoveryThreshold                    = 4                // attempt to bootstrap if connection count falls below this value
+	numDHTBootstrapQueries               = 10               // number of DHT queries to execute
 )
 
 func superviseConnections(parent context.Context,
@@ -133,6 +134,9 @@ func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []pee
 		}(p)
 	}
 	wg.Wait()
+	if err := r.Bootstrap(ctx, numDHTBootstrapQueries); err != nil {
+		return err
+	}
 	return nil
 }
 
