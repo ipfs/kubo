@@ -39,7 +39,7 @@ func (m *message) Data() []byte {
 func (m *message) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"netMessage": map[string]interface{}{
-			"recipient": m.Peer(),
+			"recipient": m.Peer().Loggable(),
 			// TODO sizeBytes? bytes? lenBytes?
 			"size": len(m.Data()),
 		},

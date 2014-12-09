@@ -98,7 +98,7 @@ type Mounts struct {
 }
 
 // NewIpfsNode constructs a new IpfsNode based on the given config.
-func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
+func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	success := false // flip to true after all sub-system inits succeed
 	defer func() {
 		if !success && n != nil {
@@ -110,14 +110,12 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		return nil, debugerror.Errorf("configuration required")
 	}
 
-	// derive this from a higher context.
-	ctx := context.TODO()
 	n = &IpfsNode{
 		onlineMode: online,
 		Config:     cfg,
 	}
 	n.ContextCloser = ctxc.NewContextCloser(ctx, n.teardown)
-	ctx = n.Context()
+	ctx = n.ContextCloser.Context()
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
