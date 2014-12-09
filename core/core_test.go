@@ -5,9 +5,11 @@ import (
 
 	config "github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/peer"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 func TestInitialization(t *testing.T) {
+	ctx := context.TODO()
 	id := testIdentity
 
 	good := []*config.Config{
@@ -44,14 +46,14 @@ func TestInitialization(t *testing.T) {
 	}
 
 	for i, c := range good {
-		n, err := NewIpfsNode(c, false)
+		n, err := NewIpfsNode(ctx, c, false)
 		if n == nil || err != nil {
 			t.Error("Should have constructed.", i, err)
 		}
 	}
 
 	for i, c := range bad {
-		n, err := NewIpfsNode(c, false)
+		n, err := NewIpfsNode(ctx, c, false)
 		if n != nil || err == nil {
 			t.Error("Should have failed to construct.", i)
 		}

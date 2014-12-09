@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
@@ -118,11 +119,13 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 // minted node. On success, it calls onSuccess
 func addTheWelcomeFile(conf *config.Config) error {
 	// TODO extract this file creation operation into a function
-	nd, err := core.NewIpfsNode(conf, false)
+	ctx, cancel := context.WithCancel(context.Background())
+	nd, err := core.NewIpfsNode(ctx, conf, false)
 	if err != nil {
 		return err
 	}
 	defer nd.Close()
+	defer cancel()
 
 	// Set up default file
 	reader := bytes.NewBufferString(welcomeMsg)

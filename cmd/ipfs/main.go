@@ -59,7 +59,7 @@ type cmdInvocation struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
-	ctx := context.Background()
+	ctx := eventlog.ContextWithLoggable(context.Background(), eventlog.Uuid("session"))
 	var err error
 	var invoc cmdInvocation
 	defer invoc.close()
@@ -82,7 +82,7 @@ func main() {
 	}
 
 	// parse the commandline into a command invocation
-	parseErr := invoc.Parse(os.Args[1:])
+	parseErr := invoc.Parse(ctx, os.Args[1:])
 
 	// BEFORE handling the parse error, if we have enough information
 	// AND the user requested help, print it out and exit
@@ -172,25 +172,27 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	return res.Reader()
 }
 
-func (i *cmdInvocation) constructNode() (*core.IpfsNode, error) {
-	if i.req == nil {
-		return nil, errors.New("constructing node without a request")
-	}
+func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.IpfsNode, error) {
+	return func() (*core.IpfsNode, error) {
+		if i.req == nil {
+			return nil, errors.New("constructing node without a request")
+		}
 
-	ctx := i.req.Context()
-	if ctx == nil {
-		return nil, errors.New("constructing node without a request context")
-	}
+		cmdctx := i.req.Context()
+		if cmdctx == nil {
+			return nil, errors.New("constructing node without a request context")
+		}
 
-	cfg, err := ctx.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("constructing node without a config: %s", err)
-	}
+		cfg, err := cmdctx.GetConfig()
+		if err != nil {
+			return nil, fmt.Errorf("constructing node without a config: %s", err)
+		}
 
-	// ok everything is good. set it on the invocation (for ownership)
-	// and return it.
-	i.node, err = core.NewIpfsNode(cfg, ctx.Online)
-	return i.node, err
+		// ok everything is good. set it on the invocation (for ownership)
+		// and return it.
+		i.node, err = core.NewIpfsNode(ctx, cfg, cmdctx.Online)
+		return i.node, err
+	}
 }
 
 func (i *cmdInvocation) close() {
@@ -203,7 +205,7 @@ func (i *cmdInvocation) close() {
 	}
 }
 
-func (i *cmdInvocation) Parse(args []string) error {
+func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	var err error
 
 	i.req, i.cmd, i.path, err = cmdsCli.Parse(args, os.Stdin, Root)
@@ -218,12 +220,12 @@ func (i *cmdInvocation) Parse(args []string) error {
 	log.Debugf("config path is %s", configPath)
 
 	// this sets up the function that will initialize the config lazily.
-	ctx := i.req.Context()
-	ctx.ConfigRoot = configPath
-	ctx.LoadConfig = loadConfig
+	cmdctx := i.req.Context()
+	cmdctx.ConfigRoot = configPath
+	cmdctx.LoadConfig = loadConfig
 	// this sets up the function that will initialize the node
 	// this is so that we can construct the node lazily.
-	ctx.ConstructNode = i.constructNode
+	cmdctx.ConstructNode = i.constructNodeFunc(ctx)
 
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
