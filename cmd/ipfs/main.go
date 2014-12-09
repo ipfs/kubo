@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"syscall"
+	"time"
 
 	// TODO rm direct reference to go-logging
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
@@ -55,7 +57,8 @@ type cmdInvocation struct {
 // - output the response
 // - if anything fails, print error, maybe with help
 func main() {
-	runtime.GOMAXPROCS(3)
+	rand.Seed(time.Now().UnixNano())
+	runtime.GOMAXPROCS(3) // FIXME rm arbitrary choice for n
 	ctx := context.Background()
 	var err error
 	var invoc cmdInvocation
