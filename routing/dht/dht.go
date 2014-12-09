@@ -343,18 +343,26 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 // Bootstrap builds up list of peers by requesting random peer IDs
 func (dht *IpfsDHT) Bootstrap(ctx context.Context, queries int) error {
 
-	// bootstrap sequentially, as results will compound
-	for i := 0; i < NumBootstrapQueries; i++ {
+	randomID := func() peer.ID {
+		// 16 random bytes is not a valid peer id. it may be fine becuase
+		// the dht will rehash to its own keyspace anyway.
 		id := make([]byte, 16)
 		rand.Read(id)
-		pi, err := dht.FindPeer(ctx, peer.ID(id))
+		return peer.ID(id)
+	}
+
+	// bootstrap sequentially, as results will compound
+	for i := 0; i < queries; i++ {
+		id := randomID()
+		log.Debugf("Bootstrapping query (%d/%d) to random ID: %s", i, queries, id)
+		p, err := dht.FindPeer(ctx, id)
 		if err == routing.ErrNotFound {
 			// this isn't an error. this is precisely what we expect.
 		} else if err != nil {
 			log.Errorf("Bootstrap peer error: %s", err)
 		} else {
 			// woah, we got a peer under a random id? it _cannot_ be valid.
-			log.Errorf("dht seemingly found a peer at a random bootstrap id (%s)...", pi)
+			log.Errorf("dht seemingly found a peer at a random bootstrap id (%s)...", p)
 		}
 	}
 	return nil
