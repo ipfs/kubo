@@ -61,7 +61,7 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 	// madialer := manet.Dialer{LocalAddr: laddr}
 	madialer := manet.Dialer{}
 
-	log.Infof("%s dialing %s %s", d.LocalPeer, remote, raddr)
+	log.Debugf("%s dialing %s %s", d.LocalPeer, remote, raddr)
 	maconn, err := madialer.Dial(raddr)
 	if err != nil {
 		return nil, err

@@ -69,7 +69,7 @@ func (c *MultiConn) Add(conns ...Conn) {
 	defer c.Unlock()
 
 	for _, c2 := range conns {
-		log.Infof("MultiConn: adding %s", c2)
+		log.Debugf("MultiConn: adding %s", c2)
 		if c.LocalPeer() != c2.LocalPeer() || c.RemotePeer() != c2.RemotePeer() {
 			log.Error(c2)
 			c.Unlock() // ok to unlock (to log). panicing.
@@ -86,7 +86,7 @@ func (c *MultiConn) Add(conns ...Conn) {
 		c.Children().Add(1)
 		c2.Children().Add(1) // yep, on the child too.
 		go c.fanInSingle(c2)
-		log.Infof("MultiConn: added %s", c2)
+		log.Debugf("MultiConn: added %s", c2)
 	}
 }
 
@@ -149,7 +149,7 @@ func (c *MultiConn) fanOut() {
 		// send data out through our "best connection"
 		case m, more := <-c.duplex.Out:
 			if !more {
-				log.Infof("%s out channel closed", c)
+				log.Debugf("%s out channel closed", c)
 				return
 			}
 			sc := c.BestConn()
@@ -159,7 +159,7 @@ func (c *MultiConn) fanOut() {
 			}
 
 			i++
-			log.Infof("%s sending (%d)", sc, i)
+			log.Debugf("%s sending (%d)", sc, i)
 			sc.Out() <- m
 		}
 	}
@@ -170,7 +170,7 @@ func (c *MultiConn) fanOut() {
 func (c *MultiConn) fanInSingle(child Conn) {
 	// cleanup all data associated with this child Connection.
 	defer func() {
-		log.Infof("closing: %s", child)
+		log.Debugf("closing: %s", child)
 
 		// in case it still is in the map, remove it.
 		c.Lock()
@@ -197,7 +197,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 
 		case m, more := <-child.In(): // receiving data
 			if !more {
-				log.Infof("%s in channel closed", child)
+				log.Debugf("%s in channel closed", child)
 				err := c.GetError()
 				if err != nil {
 					log.Errorf("Found error on connection: %s", err)
@@ -205,7 +205,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 				return // closed
 			}
 			i++
-			log.Infof("%s received (%d)", child, i)
+			log.Debugf("%s received (%d)", child, i)
 			c.duplex.In <- m
 		}
 	}

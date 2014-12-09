@@ -61,7 +61,7 @@ func resolveUnspecifiedAddresses(unspecifiedAddrs []ma.Multiaddr) ([]ma.Multiadd
 		}
 		return eventlog.Metadata{"addresses": addrs}
 	}())
-	log.Info("InterfaceListenAddresses:", outputAddrs)
+	log.Debug("InterfaceListenAddresses:", outputAddrs)
 	return outputAddrs, nil
 }
 

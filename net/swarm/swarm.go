@@ -132,6 +132,9 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 		Peerstore: s.peers,
 	}
 
+	if len(peer.Addresses()) == 0 {
+		return nil, errors.New("peer has no addresses")
+	}
 	// try to connect to one of the peer's known addresses.
 	// for simplicity, we do this sequentially.
 	// A future commit will do this asynchronously.
@@ -145,7 +148,7 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 		return nil, err
 	}
 
-	c, err = s.connSetup(c)
+	c2, err := s.connSetup(c)
 	if err != nil {
 		c.Close()
 		return nil, err
@@ -153,14 +156,14 @@ func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
 
 	// TODO replace the TODO ctx with a context passed in from caller
 	log.Event(context.TODO(), "dial", peer)
-	return c, nil
+	return c2, nil
 }
 
 // GetConnection returns the connection in the swarm to given peer.ID
 func (s *Swarm) GetConnection(pid peer.ID) conn.Conn {
 	s.connsLock.RLock()
+	defer s.connsLock.RUnlock()
 	c, found := s.conns[u.Key(pid)]
-	s.connsLock.RUnlock()
 
 	if !found {
 		return nil

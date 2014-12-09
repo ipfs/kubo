@@ -274,10 +274,10 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 // Ping a peer, log the time it took
 func (dht *IpfsDHT) Ping(ctx context.Context, p peer.Peer) error {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
-	log.Infof("ping %s start", p)
+	log.Debugf("ping %s start", p)
 
 	pmes := pb.NewMessage(pb.Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
-	log.Infof("ping %s end (err = %s)", p, err)
+	log.Debugf("ping %s end (err = %s)", p, err)
 	return err
 }

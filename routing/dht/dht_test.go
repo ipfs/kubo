@@ -101,7 +101,7 @@ func TestPing(t *testing.T) {
 	defer dhtA.dialer.(inet.Network).Close()
 	defer dhtB.dialer.(inet.Network).Close()
 
-	_, err = dhtA.Connect(ctx, peerB)
+	err = dhtA.Connect(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestValueGetSet(t *testing.T) {
 	defer dhtA.dialer.(inet.Network).Close()
 	defer dhtB.dialer.(inet.Network).Close()
 
-	_, err = dhtA.Connect(ctx, peerB)
+	err = dhtA.Connect(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,17 +194,17 @@ func TestProvides(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(ctx, peers[1])
+	err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[2])
+	err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[3])
+	err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,17 +256,17 @@ func TestProvidesAsync(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(ctx, peers[1])
+	err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[2])
+	err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[3])
+	err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,17 +321,17 @@ func TestLayeredGet(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(ctx, peers[1])
+	err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatalf("Failed to connect: %s", err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[2])
+	err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[3])
+	err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,17 +376,17 @@ func TestFindPeer(t *testing.T) {
 		}
 	}()
 
-	_, err := dhts[0].Connect(ctx, peers[1])
+	err := dhts[0].Connect(ctx, peers[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[2])
+	err = dhts[1].Connect(ctx, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = dhts[1].Connect(ctx, peers[3])
+	err = dhts[1].Connect(ctx, peers[3])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -435,14 +435,14 @@ func TestConnectCollision(t *testing.T) {
 
 		done := make(chan struct{})
 		go func() {
-			_, err := dhtA.Connect(ctx, peerB)
+			err := dhtA.Connect(ctx, peerB)
 			if err != nil {
 				t.Fatal(err)
 			}
 			done <- struct{}{}
 		}()
 		go func() {
-			_, err := dhtB.Connect(ctx, peerA)
+			err := dhtB.Connect(ctx, peerA)
 			if err != nil {
 				t.Fatal(err)
 			}
