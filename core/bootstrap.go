@@ -23,7 +23,7 @@ const (
 	period                               = 30 * time.Second // how often to check connection status
 	connectiontimeout      time.Duration = period / 3       // duration to wait when attempting to connect
 	recoveryThreshold                    = 4                // attempt to bootstrap if connection count falls below this value
-	numDHTBootstrapQueries               = 10               // number of DHT queries to execute
+	numDHTBootstrapQueries               = 15               // number of DHT queries to execute
 )
 
 func superviseConnections(parent context.Context,
