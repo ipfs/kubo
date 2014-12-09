@@ -1,0 +1,10 @@
+#!/bin/sh
+# Author: Juan Batiz-Benet <juan@benet.ai>
+# MIT LICENSED
+
+read -p "continue? [y/N] "
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    exit 0
+fi
+exit -1

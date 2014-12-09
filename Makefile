@@ -28,3 +28,9 @@ test_sharness:
 
 test_sharness_expensive:
 	cd test/ && make TEST_EXPENSIVE=1
+
+test_all_commits:
+	@echo "testing all commits between origin/master..HEAD"
+	@echo "WARNING: this will 'git rebase --exec'."
+	@test/bin/continueyn
+	GIT_EDITOR=true git rebase -i --exec "make test" origin/master
