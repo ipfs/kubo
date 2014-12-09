@@ -5,12 +5,19 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
+	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	"github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// asyncQueryBuffer is the size of buffered channels in async queries. This
+// buffer allows multiple queries to execute simultaneously, return their
+// results and continue querying closer peers. Note that different query
+// results will wait for the channel to drain.
+var asyncQueryBuffer = 10
 
 // This file implements the Routing interface for the IpfsDHT struct.
 
@@ -125,6 +132,9 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	return nil
 }
 
+// FindProvidersAsync is the same thing as FindProviders, but returns a channel.
+// Peers will be returned on the channel as soon as they are found, even before
+// the search query completes.
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan peer.Peer {
 	log.Event(ctx, "findProviders", &key)
 	peerOut := make(chan peer.Peer, count)
@@ -199,7 +209,6 @@ func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.M
 	wg.Wait()
 }
 
-// Find specific Peer
 // FindPeer searches for a peer with given ID.
 func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error) {
 
@@ -232,26 +241,21 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 		}
 
 		closer := pmes.GetCloserPeers()
-		var clpeers []peer.Peer
-		for _, pbp := range closer {
-			np, err := dht.getPeer(peer.ID(pbp.GetId()))
+		clpeers, errs := pb.PBPeersToPeers(dht.peerstore, closer)
+		for _, err := range errs {
 			if err != nil {
-				log.Warningf("Received invalid peer from query: %v", err)
-				continue
+				log.Warning(err)
 			}
-			ma, err := pbp.Address()
-			if err != nil {
-				log.Warning("Received peer with bad or missing address.")
-				continue
-			}
-			np.AddAddress(ma)
-			if pbp.GetId() == string(id) {
+		}
+
+		// see it we got the peer here
+		for _, np := range clpeers {
+			if string(np.ID()) == string(id) {
 				return &dhtQueryResult{
 					peer:    np,
 					success: true,
 				}, nil
 			}
-			clpeers = append(clpeers, np)
 		}
 
 		return &dhtQueryResult{closerPeers: clpeers}, nil
@@ -269,6 +273,75 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 	}
 
 	return result.peer, nil
+}
+
+// FindPeersConnectedToPeer searches for peers directly connected to a given peer.
+func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<-chan peer.Peer, error) {
+
+	peerchan := make(chan peer.Peer, asyncQueryBuffer)
+	peersSeen := map[string]peer.Peer{}
+
+	routeLevel := 0
+	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertPeerID(id), AlphaValue)
+	if closest == nil || len(closest) == 0 {
+		return nil, kb.ErrLookupFailure
+	}
+
+	// setup the Query
+	query := newQuery(u.Key(id), dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
+
+		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
+		if err != nil {
+			return nil, err
+		}
+
+		var clpeers []peer.Peer
+		closer := pmes.GetCloserPeers()
+		for _, pbp := range closer {
+			// skip peers already seen
+			if _, found := peersSeen[string(pbp.GetId())]; found {
+				continue
+			}
+
+			// skip peers that fail to unmarshal
+			p, err := pb.PBPeerToPeer(dht.peerstore, pbp)
+			if err != nil {
+				log.Warning(err)
+				continue
+			}
+
+			// if peer is connected, send it to our client.
+			if pb.Connectedness(*pbp.Connection) == inet.Connected {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case peerchan <- p:
+				}
+			}
+
+			peersSeen[string(p.ID())] = p
+
+			// if peer is the peer we're looking for, don't bother querying it.
+			if pb.Connectedness(*pbp.Connection) != inet.Connected {
+				clpeers = append(clpeers, p)
+			}
+		}
+
+		return &dhtQueryResult{closerPeers: clpeers}, nil
+	})
+
+	// run it! run it asynchronously to gen peers as results are found.
+	// this does no error checking
+	go func() {
+		if _, err := query.Run(ctx, closest); err != nil {
+			log.Error(err)
+		}
+
+		// close the peerchan channel when done.
+		close(peerchan)
+	}()
+
+	return peerchan, nil
 }
 
 // Ping a peer, log the time it took

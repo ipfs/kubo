@@ -161,7 +161,12 @@ func (r *dhtQueryRunner) addPeerToQuery(next peer.Peer, benchmark peer.Peer) {
 		return
 	}
 
-	// if new peer further away than whom we got it from, bother (loops)
+	// if new peer is ourselves...
+	if next.ID().Equal(r.query.dialer.LocalPeer().ID()) {
+		return
+	}
+
+	// if new peer further away than whom we got it from, don't bother (loops)
 	if benchmark != nil && kb.Closer(benchmark.ID(), next.ID(), r.query.key) {
 		return
 	}

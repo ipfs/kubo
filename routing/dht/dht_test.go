@@ -2,6 +2,7 @@ package dht
 
 import (
 	"bytes"
+	"sort"
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -62,6 +63,14 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	}
 
 	return addrs, peers, dhts
+}
+
+func makePeerString(t *testing.T, addr string) peer.Peer {
+	maddr, err := ma.NewMultiaddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return makePeer(maddr)
 }
 
 func makePeer(addr ma.Multiaddr) peer.Peer {
@@ -403,6 +412,100 @@ func TestFindPeer(t *testing.T) {
 
 	if !p.ID().Equal(peers[2].ID()) {
 		t.Fatal("Didnt find expected peer.")
+	}
+}
+
+func TestFindPeersConnectedToPeer(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	ctx := context.Background()
+	u.Debug = false
+
+	_, peers, dhts := setupDHTS(ctx, 4, t)
+	defer func() {
+		for i := 0; i < 4; i++ {
+			dhts[i].Close()
+			dhts[i].dialer.(inet.Network).Close()
+		}
+	}()
+
+	// topology:
+	// 0-1, 1-2, 1-3, 2-3
+	err := dhts[0].Connect(ctx, peers[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[1].Connect(ctx, peers[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[1].Connect(ctx, peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dhts[2].Connect(ctx, peers[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fmt.Println("0 is", peers[0])
+	// fmt.Println("1 is", peers[1])
+	// fmt.Println("2 is", peers[2])
+	// fmt.Println("3 is", peers[3])
+
+	ctxT, _ := context.WithTimeout(ctx, time.Second)
+	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2].ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// shouldFind := []peer.Peer{peers[1], peers[3]}
+	found := []peer.Peer{}
+	for nextp := range pchan {
+		found = append(found, nextp)
+	}
+
+	// fmt.Printf("querying 0 (%s) FindPeersConnectedToPeer 2 (%s)\n", peers[0], peers[2])
+	// fmt.Println("should find 1, 3", shouldFind)
+	// fmt.Println("found", found)
+
+	// testPeerListsMatch(t, shouldFind, found)
+
+	log.Warning("TestFindPeersConnectedToPeer is not quite correct")
+	if len(found) == 0 {
+		t.Fatal("didn't find any peers.")
+	}
+}
+
+func testPeerListsMatch(t *testing.T, p1, p2 []peer.Peer) {
+
+	if len(p1) != len(p2) {
+		t.Fatal("did not find as many peers as should have", p1, p2)
+	}
+
+	ids1 := make([]string, len(p1))
+	ids2 := make([]string, len(p2))
+
+	for i, p := range p1 {
+		ids1[i] = p.ID().Pretty()
+	}
+
+	for i, p := range p2 {
+		ids2[i] = p.ID().Pretty()
+	}
+
+	sort.Sort(sort.StringSlice(ids1))
+	sort.Sort(sort.StringSlice(ids2))
+
+	for i := range ids1 {
+		if ids1[i] != ids2[i] {
+			t.Fatal("Didnt find expected peer", ids1[i], ids2)
+		}
 	}
 }
 

@@ -1,4 +1,4 @@
-// package net provides an interface for ipfs to interact with the network through
+// Package net provides an interface for ipfs to interact with the network through
 package net
 
 import (
@@ -69,6 +69,11 @@ func (n *IpfsNetwork) DialPeer(ctx context.Context, p peer.Peer) error {
 	return err
 }
 
+// LocalPeer the network's LocalPeer
+func (n *IpfsNetwork) LocalPeer() peer.Peer {
+	return n.swarm.LocalPeer()
+}
+
 // ClosePeer connection to peer
 func (n *IpfsNetwork) ClosePeer(p peer.Peer) error {
 	return n.swarm.CloseConnection(p)
@@ -125,4 +130,13 @@ func (n *IpfsNetwork) ListenAddresses() []ma.Multiaddr {
 // use the known local interfaces.
 func (n *IpfsNetwork) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 	return n.swarm.InterfaceListenAddresses()
+}
+
+// Connectedness returns a state signaling connection capabilities
+// For now only returns Connecter || NotConnected. Expand into more later.
+func (n *IpfsNetwork) Connectedness(p peer.Peer) Connectedness {
+	if n.swarm.GetConnection(p.ID()) != nil {
+		return Connected
+	}
+	return NotConnected
 }

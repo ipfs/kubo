@@ -81,12 +81,12 @@
 			"Rev": "654d875bb65e96729678180215cf080fe2810371"
 		},
 		{
-			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/go-update",
+			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",

@@ -20,14 +20,17 @@ type Network interface {
 	// Listen(*ma.Muliaddr) error
 	// TODO: for now, only listen on addrs in local peer when initializing.
 
+	// LocalPeer returns the local peer associated with this network
+	LocalPeer() peer.Peer
+
 	// DialPeer attempts to establish a connection to a given peer
 	DialPeer(context.Context, peer.Peer) error
 
 	// ClosePeer connection to peer
 	ClosePeer(peer.Peer) error
 
-	// IsConnected returns whether a connection to given peer exists.
-	IsConnected(peer.Peer) bool
+	// Connectedness returns a state signaling connection capabilities
+	Connectedness(peer.Peer) Connectedness
 
 	// GetProtocols returns the protocols registered in the network.
 	GetProtocols() *mux.ProtocolMap
@@ -71,7 +74,31 @@ type Service srv.Service
 // (this is usually just a Network, but other services may not need the whole
 // stack, and thus it becomes easier to mock)
 type Dialer interface {
+	// LocalPeer returns the local peer associated with this network
+	LocalPeer() peer.Peer
 
 	// DialPeer attempts to establish a connection to a given peer
 	DialPeer(context.Context, peer.Peer) error
+
+	// Connectedness returns a state signaling connection capabilities
+	Connectedness(peer.Peer) Connectedness
 }
+
+// Connectedness signals the capacity for a connection with a given node.
+// It is used to signal to services and other peers whether a node is reachable.
+type Connectedness int
+
+const (
+	// NotConnected means no connection to peer, and no extra information (default)
+	NotConnected Connectedness = iota
+
+	// Connected means has an open, live connection to peer
+	Connected
+
+	// CanConnect means recently connected to peer, terminated gracefully
+	CanConnect
+
+	// CannotConnect means recently attempted connecting but failed to connect.
+	// (should signal "made effort, failed")
+	CannotConnect
+)

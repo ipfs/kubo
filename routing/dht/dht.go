@@ -1,4 +1,4 @@
-// package dht implements a distributed hash table that satisfies the ipfs routing
+// Package dht implements a distributed hash table that satisfies the ipfs routing
 // interface. This DHT is modeled after kademlia with Coral and S/Kademlia modifications.
 package dht
 
@@ -227,7 +227,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
 
 	// add self as the provider
-	pmes.ProviderPeers = pb.PeersToPBPeers([]peer.Peer{dht.self})
+	pmes.ProviderPeers = pb.PeersToPBPeers(dht.dialer, []peer.Peer{dht.self})
 
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
@@ -274,14 +274,11 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 	}
 
 	// Perhaps we were given closer peers
-	var peers []peer.Peer
-	for _, pb := range pmes.GetCloserPeers() {
-		pr, err := dht.peerFromInfo(pb)
+	peers, errs := pb.PBPeersToPeers(dht.peerstore, pmes.GetCloserPeers())
+	for _, err := range errs {
 		if err != nil {
 			log.Error(err)
-			continue
 		}
-		peers = append(peers, pr)
 	}
 
 	if len(peers) > 0 {
@@ -426,22 +423,20 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) addProviders(key u.Key, peers []*pb.Message_Peer) []peer.Peer {
+func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.Peer {
+	peers, errs := pb.PBPeersToPeers(dht.peerstore, pbps)
+	for _, err := range errs {
+		log.Errorf("error converting peer: %v", err)
+	}
+
 	var provArr []peer.Peer
-	for _, prov := range peers {
-		p, err := dht.peerFromInfo(prov)
-		if err != nil {
-			log.Errorf("error getting peer from info: %v", err)
-			continue
-		}
-
-		log.Debugf("%s adding provider: %s for %s", dht.self, p, key)
-
+	for _, p := range peers {
 		// Dont add outselves to the list
 		if p.ID().Equal(dht.self.ID()) {
 			continue
 		}
 
+		log.Debugf("%s adding provider: %s for %s", dht.self, p, key)
 		// TODO(jbenet) ensure providers is idempotent
 		dht.providers.AddProvider(key, p)
 		provArr = append(provArr, p)
@@ -500,35 +495,14 @@ func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
 	return p, nil
 }
 
-// peerFromInfo returns a peer using info in the protobuf peer struct
-// to lookup or create a peer
-func (dht *IpfsDHT) peerFromInfo(pbp *pb.Message_Peer) (peer.Peer, error) {
-
-	id := peer.ID(pbp.GetId())
-
-	// bail out if it's ourselves
-	//TODO(jbenet) not sure this should be an error _here_
-	if id.Equal(dht.self.ID()) {
-		return nil, errors.New("found self")
-	}
-
-	p, err := dht.getPeer(id)
-	if err != nil {
-		return nil, err
-	}
-
-	maddr, err := pbp.Address()
-	if err != nil {
-		return nil, err
-	}
-	p.AddAddress(maddr)
-	return p, nil
-}
-
 func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, pbp *pb.Message_Peer) (peer.Peer, error) {
-	p, err := dht.peerFromInfo(pbp)
+	p, err := pb.PBPeerToPeer(dht.peerstore, pbp)
 	if err != nil {
 		return nil, err
+	}
+
+	if dht.dialer.LocalPeer().ID().Equal(p.ID()) {
+		return nil, errors.New("attempting to ensure connection to self")
 	}
 
 	// dial connection
@@ -583,7 +557,7 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	rand.Read(id)
 	p, err := dht.FindPeer(ctx, peer.ID(id))
 	if err != nil {
-		log.Error("Bootstrap peer error: %s", err)
+		log.Errorf("Bootstrap peer error: %s", err)
 	}
 	err = dht.dialer.DialPeer(ctx, p)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	inet "github.com/jbenet/go-ipfs/net"
 	msg "github.com/jbenet/go-ipfs/net/message"
 	mux "github.com/jbenet/go-ipfs/net/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -79,11 +80,16 @@ func (f *fauxSender) SendMessage(ctx context.Context, m msg.NetMessage) error {
 // fauxNet is a standin for a swarm.Network in order to more easily recreate
 // different testing scenarios
 type fauxNet struct {
+	local peer.Peer
 }
 
 // DialPeer attempts to establish a connection to a given peer
 func (f *fauxNet) DialPeer(context.Context, peer.Peer) error {
 	return nil
+}
+
+func (f *fauxNet) LocalPeer() peer.Peer {
+	return f.local
 }
 
 // ClosePeer connection to peer
@@ -94,6 +100,11 @@ func (f *fauxNet) ClosePeer(peer.Peer) error {
 // IsConnected returns whether a connection to given peer exists.
 func (f *fauxNet) IsConnected(peer.Peer) (bool, error) {
 	return true, nil
+}
+
+// Connectedness returns whether a connection to given peer exists.
+func (f *fauxNet) Connectedness(peer.Peer) inet.Connectedness {
+	return inet.Connected
 }
 
 // GetProtocols returns the protocols registered in the network.
@@ -120,15 +131,15 @@ func TestGetFailures(t *testing.T) {
 		t.SkipNow()
 	}
 
+	peerstore := peer.NewPeerstore()
+	local := makePeerString(t, "")
+
 	ctx := context.Background()
-	fn := &fauxNet{}
+	fn := &fauxNet{local}
 	fs := &fauxSender{}
 
-	peerstore := peer.NewPeerstore()
-	local := makePeer(nil)
-
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
-	other := makePeer(nil)
+	other := makePeerString(t, "")
 	d.Update(ctx, other)
 
 	// This one should time out
@@ -219,13 +230,13 @@ func TestNotFound(t *testing.T) {
 		t.SkipNow()
 	}
 
-	ctx := context.Background()
-	fn := &fauxNet{}
-	fs := &fauxSender{}
-
-	local := makePeer(nil)
+	local := makePeerString(t, "")
 	peerstore := peer.NewPeerstore()
 	peerstore.Add(local)
+
+	ctx := context.Background()
+	fn := &fauxNet{local}
+	fs := &fauxSender{}
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
@@ -251,7 +262,7 @@ func TestNotFound(t *testing.T) {
 			for i := 0; i < 7; i++ {
 				peers = append(peers, _randPeer())
 			}
-			resp.CloserPeers = pb.PeersToPBPeers(peers)
+			resp.CloserPeers = pb.PeersToPBPeers(d.dialer, peers)
 			mes, err := msg.FromObject(mes.Peer(), resp)
 			if err != nil {
 				t.Error(err)
@@ -285,13 +296,14 @@ func TestNotFound(t *testing.T) {
 func TestLessThanKResponses(t *testing.T) {
 	// t.Skip("skipping test because it makes a lot of output")
 
-	ctx := context.Background()
-	u.Debug = false
-	fn := &fauxNet{}
-	fs := &fauxSender{}
-	local := makePeer(nil)
+	local := makePeerString(t, "")
 	peerstore := peer.NewPeerstore()
 	peerstore.Add(local)
+
+	ctx := context.Background()
+	u.Debug = false
+	fn := &fauxNet{local}
+	fs := &fauxSender{}
 
 	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
 
@@ -314,7 +326,7 @@ func TestLessThanKResponses(t *testing.T) {
 		case pb.Message_GET_VALUE:
 			resp := &pb.Message{
 				Type:        pmes.Type,
-				CloserPeers: pb.PeersToPBPeers([]peer.Peer{other}),
+				CloserPeers: pb.PeersToPBPeers(d.dialer, []peer.Peer{other}),
 			}
 
 			mes, err := msg.FromObject(mes.Peer(), resp)

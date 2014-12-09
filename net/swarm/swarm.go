@@ -217,3 +217,8 @@ func (s *Swarm) GetPeerList() []peer.Peer {
 	s.connsLock.RUnlock()
 	return out
 }
+
+// LocalPeer returns the local peer swarm is associated to.
+func (s *Swarm) LocalPeer() peer.Peer {
+	return s.local
+}

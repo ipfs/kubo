@@ -87,7 +87,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.Peer, pmes *pb.Me
 	provs := dht.providers.GetProviders(ctx, u.Key(pmes.GetKey()))
 	if len(provs) > 0 {
 		log.Debugf("handleGetValue returning %d provider[s]", len(provs))
-		resp.ProviderPeers = pb.PeersToPBPeers(provs)
+		resp.ProviderPeers = pb.PeersToPBPeers(dht.dialer, provs)
 	}
 
 	// Find closest peer on given cluster to desired key and reply with that info
@@ -99,7 +99,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.Peer, pmes *pb.Me
 				log.Critical("no addresses on peer being sent!")
 			}
 		}
-		resp.CloserPeers = pb.PeersToPBPeers(closer)
+		resp.CloserPeers = pb.PeersToPBPeers(dht.dialer, closer)
 	}
 
 	return resp, nil
@@ -159,7 +159,8 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.Peer, pmes *pb.Me
 	for _, p := range withAddresses {
 		log.Debugf("handleFindPeer: sending back '%s'", p)
 	}
-	resp.CloserPeers = pb.PeersToPBPeers(withAddresses)
+
+	resp.CloserPeers = pb.PeersToPBPeers(dht.dialer, withAddresses)
 	return resp, nil
 }
 
@@ -183,13 +184,13 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.Peer, pmes *p
 
 	// if we've got providers, send thos those.
 	if providers != nil && len(providers) > 0 {
-		resp.ProviderPeers = pb.PeersToPBPeers(providers)
+		resp.ProviderPeers = pb.PeersToPBPeers(dht.dialer, providers)
 	}
 
 	// Also send closer peers.
 	closer := dht.betterPeersToQuery(pmes, CloserPeerCount)
 	if closer != nil {
-		resp.CloserPeers = pb.PeersToPBPeers(closer)
+		resp.CloserPeers = pb.PeersToPBPeers(dht.dialer, closer)
 	}
 
 	return resp, nil
@@ -210,14 +211,16 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.Peer, pmes *pb
 		pid := peer.ID(pb.GetId())
 		if pid.Equal(p.ID()) {
 
-			addr, err := pb.Address()
+			maddrs, err := pb.Addresses()
 			if err != nil {
-				log.Errorf("provider %s error with address %s", p, *pb.Addr)
+				log.Errorf("provider %s error with addresses %s", p, pb.Addrs)
 				continue
 			}
 
-			log.Infof("received provider %s %s for %s", p, addr, key)
-			p.AddAddress(addr)
+			log.Infof("received provider %s %s for %s", p, maddrs, key)
+			for _, maddr := range maddrs {
+				p.AddAddress(maddr)
+			}
 			dht.providers.AddProvider(key, p)
 
 		} else {
