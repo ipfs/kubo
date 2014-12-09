@@ -13,6 +13,12 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// asyncQueryBuffer is the size of buffered channels in async queries. This
+// buffer allows multiple queries to execute simultaneously, return their
+// results and continue querying closer peers. Note that different query
+// results will wait for the channel to drain.
+var asyncQueryBuffer = 10
+
 // This file implements the Routing interface for the IpfsDHT struct.
 
 // Basic Put/Get
@@ -272,7 +278,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 // FindPeersConnectedToPeer searches for peers directly connected to a given peer.
 func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<-chan peer.Peer, error) {
 
-	peerchan := make(chan peer.Peer, 10)
+	peerchan := make(chan peer.Peer, asyncQueryBuffer)
 	peersSeen := map[string]peer.Peer{}
 
 	routeLevel := 0
