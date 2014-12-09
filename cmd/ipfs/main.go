@@ -172,7 +172,7 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	return res.Reader()
 }
 
-func (i *cmdInvocation) nodeFunc(ctx context.Context) func() (*core.IpfsNode, error) {
+func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.IpfsNode, error) {
 	return func() (*core.IpfsNode, error) {
 		if i.req == nil {
 			return nil, errors.New("constructing node without a request")
@@ -225,7 +225,7 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	cmdctx.LoadConfig = loadConfig
 	// this sets up the function that will initialize the node
 	// this is so that we can construct the node lazily.
-	cmdctx.ConstructNode = i.nodeFunc(ctx)
+	cmdctx.ConstructNode = i.constructNodeFunc(ctx)
 
 	// if no encoding was specified by user, default to plaintext encoding
 	// (if command doesn't support plaintext, use JSON instead)
