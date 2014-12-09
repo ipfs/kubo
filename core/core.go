@@ -185,7 +185,7 @@ func NewIpfsNode(cfg *config.Config, online bool) (n *IpfsNode, err error) {
 		// an Exchange, Network, or Routing component and have the constructor
 		// manage the wiring. In that scenario, this dangling function is a bit
 		// awkward.
-		go superviseConnections(ctx, n, dhtRouting, n.Peerstore, n.Config.Bootstrap)
+		go superviseConnections(ctx, n.Network, dhtRouting, n.Peerstore, n.Config.Bootstrap)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap

@@ -20,8 +20,8 @@ const (
 )
 
 func superviseConnections(parent context.Context,
-	n *IpfsNode,
-	route *dht.IpfsDHT,
+	n inet.Network,
+	route *dht.IpfsDHT, // TODO depend on abstract interface for testing purposes
 	store peer.Peerstore,
 	peers []*config.BootstrapPeer) error {
 
@@ -29,7 +29,7 @@ func superviseConnections(parent context.Context,
 		ctx, _ := context.WithTimeout(parent, connectiontimeout)
 		// TODO get config from disk so |peers| always reflects the latest
 		// information
-		if err := bootstrap(ctx, n.Network, route, store, peers); err != nil {
+		if err := bootstrap(ctx, n, route, store, peers); err != nil {
 			log.Error(err)
 		}
 		select {
