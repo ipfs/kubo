@@ -108,6 +108,13 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
+	// ignore error for gateway address
+	// if there is an error (invalid address), then don't run the gateway
+	gatewayMaddr, _ := ma.NewMultiaddr(cfg.Addresses.Gateway)
+	if gatewayMaddr == nil {
+		fmt.Println("Invalid gateway address, not running gateway")
+	}
+
 	// mount if the user provided the --mount flag
 	mount, _, err := req.Option(mountKwd).Bool()
 	if err != nil {
@@ -138,11 +145,14 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	}
 
+	if gatewayMaddr != nil {
+		listenAndServeGateway(node, gatewayMaddr)
+	}
+
 	return nil, listenAndServeAPI(node, req, apiMaddr)
 }
 
 func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr) error {
-
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return err
@@ -163,7 +173,7 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	serverExited := make(chan struct{})
 
 	go func() {
-		fmt.Printf("daemon listening on %s\n", addr)
+		fmt.Printf("API server listening on %s\n", addr)
 		serverError = server.ListenAndServe(host, mux)
 		close(serverExited)
 	}()
@@ -176,9 +186,47 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	case <-node.Closing():
 		log.Infof("daemon at %s terminating...", addr)
 		server.Shutdown <- true
-		<-serverExited // now, DO wait until server exits
+		<-serverExited // now, DO wait until server exit
 	}
 
 	log.Infof("daemon at %s terminated", addr)
 	return serverError
+}
+
+func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		return err
+	}
+
+	server := manners.NewServer()
+	mux := http.NewServeMux()
+	ifpsHandler := &ipfsHandler{node}
+	mux.Handle("/ipfs/", ifpsHandler)
+
+	done := make(chan struct{}, 1)
+	defer func() {
+		done <- struct{}{}
+	}()
+
+	// go wait until the node dies
+	go func() {
+		select {
+		case <-node.Closed():
+		case <-done:
+			return
+		}
+
+		log.Infof("terminating gateway at %s...", addr)
+		server.Shutdown <- true
+	}()
+
+	fmt.Printf("Gateway listening on %s\n", addr)
+	go func() {
+		if err := server.ListenAndServe(host, mux); err != nil {
+			log.Error(err)
+		}
+	}()
+
+	return nil
 }
