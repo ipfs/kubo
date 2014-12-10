@@ -6,13 +6,15 @@ import (
 	"errors"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
+
+var ErrNotFound = errors.New("blockstore: block not found")
 
 // Blockstore wraps a ThreadSafeDatastore
 type Blockstore interface {
@@ -34,6 +36,9 @@ type blockstore struct {
 
 func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
 	maybeData, err := bs.datastore.Get(k.DsKey())
+	if err == ds.ErrNotFound {
+		return nil, ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
