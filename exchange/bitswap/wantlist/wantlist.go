@@ -9,7 +9,7 @@ type Wantlist struct {
 	set map[u.Key]*Entry
 }
 
-func NewWantlist() *Wantlist {
+func New() *Wantlist {
 	return &Wantlist{
 		set: make(map[u.Key]*Entry),
 	}

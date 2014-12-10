@@ -27,10 +27,13 @@ var log = eventlog.Logger("bitswap")
 // TODO: if a 'non-nice' strategy is implemented, consider increasing this value
 const maxProvidersPerRequest = 3
 
-const providerRequestTimeout = time.Second * 10
-const hasBlockTimeout = time.Second * 15
+var providerRequestTimeout = time.Second * 10
+var hasBlockTimeout = time.Second * 15
+var rebroadcastDelay = time.Second * 10
 
 const roundTime = time.Second / 2
+
+var bandwidthPerRound = 500000
 
 // New initializes a BitSwap instance that communicates over the
 // provided BitSwapNetwork. This function registers the returned instance as
@@ -53,13 +56,14 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 		cancelFunc:    cancelFunc,
 		notifications: notif,
 		strategy:      strategy.New(nice),
+		ledgerset:     strategy.NewLedgerSet(),
 		routing:       routing,
 		sender:        network,
-		wantlist:      wl.NewWantlist(),
+		wantlist:      wl.New(),
 		batchRequests: make(chan []u.Key, 32),
 	}
 	network.SetDelegate(bs)
-	go bs.loop(ctx)
+	go bs.clientWorker(ctx)
 	go bs.roundWorker(ctx)
 
 	return bs
@@ -85,10 +89,10 @@ type bitswap struct {
 	// have more than a single block in the set
 	batchRequests chan []u.Key
 
-	// strategy listens to network traffic and makes decisions about how to
-	// interact with partners.
-	// TODO(brian): save the strategy's state to the datastore
+	// strategy makes decisions about how to interact with partners.
 	strategy strategy.Strategy
+
+	ledgerset *strategy.LedgerSet
 
 	wantlist *wl.Wantlist
 
@@ -159,10 +163,6 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
 	child, _ := context.WithTimeout(ctx, hasBlockTimeout)
-	if err := bs.sendToPeersThatWant(child, blk); err != nil {
-		return err
-	}
-	child, _ = context.WithTimeout(ctx, hasBlockTimeout)
 	return bs.routing.Provide(child, blk.Key())
 }
 
@@ -194,7 +194,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 			// FIXME ensure accounting is handled correctly when
 			// communication fails. May require slightly different API to
 			// get better guarantees. May need shared sequence numbers.
-			bs.strategy.MessageSent(p, message)
+			bs.ledgerset.MessageSent(p, message)
 		}(peerToQuery)
 	}
 	return nil
@@ -220,17 +220,16 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 
 func (bs *bitswap) roundWorker(ctx context.Context) {
 	roundTicker := time.NewTicker(roundTime)
-	bandwidthPerRound := 500000
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-roundTicker.C:
-			alloc, err := bs.strategy.GetAllocation(bandwidthPerRound, bs.blockstore)
+			alloc, err := bs.strategy.GetTasks(bandwidthPerRound, bs.ledgerset, bs.blockstore)
 			if err != nil {
 				log.Critical("%s", err)
 			}
-			//log.Errorf("Allocation: %v", alloc)
+			log.Error(alloc)
 			bs.processStrategyAllocation(ctx, alloc)
 		}
 	}
@@ -241,9 +240,6 @@ func (bs *bitswap) processStrategyAllocation(ctx context.Context, alloc []*strat
 		for _, block := range t.Blocks {
 			message := bsmsg.New()
 			message.AddBlock(block)
-			for _, wanted := range bs.wantlist.Entries() {
-				message.AddEntry(wanted.Value, wanted.Priority, false)
-			}
 			if err := bs.send(ctx, t.Peer, message); err != nil {
 				log.Errorf("Message Send Failed: %s", err)
 			}
@@ -252,11 +248,11 @@ func (bs *bitswap) processStrategyAllocation(ctx context.Context, alloc []*strat
 }
 
 // TODO ensure only one active request per key
-func (bs *bitswap) loop(parent context.Context) {
+func (bs *bitswap) clientWorker(parent context.Context) {
 
 	ctx, cancel := context.WithCancel(parent)
 
-	broadcastSignal := time.NewTicker(bs.strategy.GetRebroadcastDelay())
+	broadcastSignal := time.NewTicker(rebroadcastDelay)
 	defer func() {
 		cancel() // signal to derived async functions
 		broadcastSignal.Stop()
@@ -317,13 +313,14 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
-	bs.strategy.MessageReceived(p, incoming)
+	bs.ledgerset.MessageReceived(p, incoming)
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
 	var blkeys []u.Key
 	for _, block := range incoming.Blocks() {
 		blkeys = append(blkeys, block.Key())
+		log.Errorf("Got block: %s", block)
 		if err := bs.HasBlock(ctx, block); err != nil {
 			log.Error(err)
 		}
@@ -342,7 +339,7 @@ func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	for _, k := range bkeys {
 		message.AddEntry(k, 0, true)
 	}
-	for _, p := range bs.strategy.Peers() {
+	for _, p := range bs.ledgerset.Peers() {
 		err := bs.send(ctx, p, message)
 		if err != nil {
 			log.Errorf("Error sending message: %s", err)
@@ -362,25 +359,7 @@ func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage
 	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
 		return err
 	}
-	return bs.strategy.MessageSent(p, m)
-}
-
-func (bs *bitswap) sendToPeersThatWant(ctx context.Context, block *blocks.Block) error {
-	for _, p := range bs.strategy.Peers() {
-		if bs.strategy.BlockIsWantedByPeer(block.Key(), p) {
-			if bs.strategy.ShouldSendBlockToPeer(block.Key(), p) {
-				message := bsmsg.New()
-				message.AddBlock(block)
-				for _, wanted := range bs.wantlist.Entries() {
-					message.AddEntry(wanted.Value, wanted.Priority, false)
-				}
-				if err := bs.send(ctx, p, message); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
+	return bs.ledgerset.MessageSent(p, m)
 }
 
 func (bs *bitswap) Close() error {
