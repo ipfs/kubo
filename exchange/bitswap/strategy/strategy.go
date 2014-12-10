@@ -5,7 +5,10 @@ import (
 	"sync"
 	"time"
 
+	blocks "github.com/jbenet/go-ipfs/blocks"
+	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
+	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -77,6 +80,60 @@ func (s *strategist) ShouldSendBlockToPeer(k u.Key, p peer.Peer) bool {
 	return ledger.ShouldSend()
 }
 
+type Task struct {
+	Peer   peer.Peer
+	Blocks []*blocks.Block
+}
+
+func (s *strategist) GetAllocation(bandwidth int, bs bstore.Blockstore) ([]*Task, error) {
+	var tasks []*Task
+
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	var partners []peer.Peer
+	for _, ledger := range s.ledgerMap {
+		if ledger.ShouldSend() {
+			partners = append(partners, ledger.Partner)
+		}
+	}
+	if len(partners) == 0 {
+		return nil, nil
+	}
+
+	bandwidthPerPeer := bandwidth / len(partners)
+	for _, p := range partners {
+		blksForPeer, err := s.getSendableBlocks(s.ledger(p).wantList, bs, bandwidthPerPeer)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, &Task{
+			Peer:   p,
+			Blocks: blksForPeer,
+		})
+	}
+
+	return tasks, nil
+}
+
+func (s *strategist) getSendableBlocks(wantlist *wl.Wantlist, bs bstore.Blockstore, bw int) ([]*blocks.Block, error) {
+	var outblocks []*blocks.Block
+	for _, e := range wantlist.Entries() {
+		block, err := bs.Get(e.Value)
+		if err == u.ErrNotFound {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		outblocks = append(outblocks, block)
+		bw -= len(block.Data)
+		if bw <= 0 {
+			break
+		}
+	}
+	return outblocks, nil
+}
+
 func (s *strategist) BlockSentToPeer(k u.Key, p peer.Peer) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -106,8 +163,15 @@ func (s *strategist) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error 
 		return errors.New("Strategy received nil message")
 	}
 	l := s.ledger(p)
-	for _, key := range m.Wantlist() {
-		l.Wants(key)
+	if m.Full() {
+		l.wantList = wl.NewWantlist()
+	}
+	for _, e := range m.Wantlist() {
+		if e.Cancel {
+			l.CancelWant(e.Key)
+		} else {
+			l.Wants(e.Key, e.Priority)
+		}
 	}
 	for _, block := range m.Blocks() {
 		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
@@ -165,5 +229,5 @@ func (s *strategist) GetBatchSize() int {
 }
 
 func (s *strategist) GetRebroadcastDelay() time.Duration {
-	return time.Second * 5
+	return time.Second * 10
 }
