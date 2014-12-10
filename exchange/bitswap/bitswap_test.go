@@ -11,6 +11,7 @@ import (
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -25,6 +26,7 @@ func TestClose(t *testing.T) {
 	vnet := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rout := mockrouting.NewServer()
 	sesgen := NewSessionGenerator(vnet, rout)
+	defer sesgen.Stop()
 	bgen := blocksutil.NewBlockGenerator()
 
 	block := bgen.Next()
@@ -39,6 +41,7 @@ func TestGetBlockTimeout(t *testing.T) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
+	defer g.Stop()
 
 	self := g.Next()
 
@@ -56,11 +59,13 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
+	defer g.Stop()
 
 	block := blocks.NewBlock([]byte("block"))
 	rs.Client(testutil.NewPeerWithIDString("testing")).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()
+	defer solo.Exchange.Close()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
 	_, err := solo.Exchange.GetBlock(ctx, block.Key())
@@ -78,8 +83,10 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	rs := mockrouting.NewServer()
 	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
+	defer g.Stop()
 
 	hasBlock := g.Next()
+	defer hasBlock.Exchange.Close()
 
 	if err := hasBlock.Blockstore().Put(block); err != nil {
 		t.Fatal(err)
@@ -89,6 +96,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	}
 
 	wantsBlock := g.Next()
+	defer wantsBlock.Exchange.Close()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
 	received, err := wantsBlock.Exchange.GetBlock(ctx, block.Key())
@@ -107,7 +115,7 @@ func TestLargeSwarm(t *testing.T) {
 		t.SkipNow()
 	}
 	t.Parallel()
-	numInstances := 5
+	numInstances := 500
 	numBlocks := 2
 	PerformDistributionTest(t, numInstances, numBlocks)
 }
@@ -129,6 +137,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
+	defer sg.Stop()
 	bg := blocksutil.NewBlockGenerator()
 
 	t.Log("Test a few nodes trying to get one file with a lot of blocks")
@@ -138,24 +147,29 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	t.Log("Give the blocks to the first instance")
 
+	var blkeys []u.Key
 	first := instances[0]
 	for _, b := range blocks {
 		first.Blockstore().Put(b)
+		blkeys = append(blkeys, b.Key())
 		first.Exchange.HasBlock(context.Background(), b)
 		rs.Client(first.Peer).Provide(context.Background(), b.Key())
 	}
 
 	t.Log("Distribute!")
 
-	var wg sync.WaitGroup
-
+	wg := sync.WaitGroup{}
 	for _, inst := range instances {
-		for _, b := range blocks {
-			wg.Add(1)
-			// NB: executing getOrFail concurrently puts tremendous pressure on
-			// the goroutine scheduler
-			getOrFail(inst, b, t, &wg)
-		}
+		wg.Add(1)
+		go func(inst Instance) {
+			defer wg.Done()
+			outch, err := inst.Exchange.GetBlocks(context.TODO(), blkeys)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _ = range outch {
+			}
+		}(inst)
 	}
 	wg.Wait()
 
@@ -189,6 +203,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
+	defer sg.Stop()
 	bg := blocksutil.NewBlockGenerator()
 
 	me := sg.Next()
@@ -201,7 +216,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	alpha := bg.Next()
 
-	const timeout = 100 * time.Millisecond // FIXME don't depend on time
+	const timeout = 1000 * time.Millisecond // FIXME don't depend on time
 
 	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.Peer, alpha.Key())
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
@@ -244,5 +259,35 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 	if block.Key() != alpha.Key() {
 		t.Fatal("Expected to receive alpha from me")
+	}
+}
+
+func TestBasicBitswap(t *testing.T) {
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rs := mockrouting.NewServer()
+	sg := NewSessionGenerator(net, rs)
+	bg := blocksutil.NewBlockGenerator()
+
+	t.Log("Test a few nodes trying to get one file with a lot of blocks")
+
+	instances := sg.Instances(2)
+	blocks := bg.Blocks(1)
+	err := instances[0].Exchange.HasBlock(context.TODO(), blocks[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	blk, err := instances[1].Exchange.GetBlock(ctx, blocks[0].Key())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(blk)
+	for _, inst := range instances {
+		err := inst.Exchange.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

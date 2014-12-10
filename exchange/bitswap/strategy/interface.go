@@ -3,6 +3,7 @@ package strategy
 import (
 	"time"
 
+	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -33,6 +34,8 @@ type Strategy interface {
 	NumBytesReceivedFrom(peer.Peer) uint64
 
 	BlockSentToPeer(u.Key, peer.Peer)
+
+	GetAllocation(int, bstore.Blockstore) ([]*Task, error)
 
 	// Values determining bitswap behavioural patterns
 	GetBatchSize() int
