@@ -206,60 +206,44 @@ func TestSendToWantingPeer(t *testing.T) {
 	defer sg.Stop()
 	bg := blocksutil.NewBlockGenerator()
 
-	me := sg.Next()
-	w := sg.Next()
-	o := sg.Next()
+	oldVal := rebroadcastDelay
+	rebroadcastDelay = time.Second / 2
+	defer func() { rebroadcastDelay = oldVal }()
 
-	t.Logf("Session %v\n", me.Peer)
-	t.Logf("Session %v\n", w.Peer)
-	t.Logf("Session %v\n", o.Peer)
+	peerA := sg.Next()
+	peerB := sg.Next()
+
+	t.Logf("Session %v\n", peerA.Peer)
+	t.Logf("Session %v\n", peerB.Peer)
+
+	timeout := time.Second
+	waitTime := time.Second * 5
 
 	alpha := bg.Next()
-
-	const timeout = 1000 * time.Millisecond // FIXME don't depend on time
-
-	t.Logf("Peer %v attempts to get %v. NB: not available\n", w.Peer, alpha.Key())
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
-	_, err := w.Exchange.GetBlock(ctx, alpha.Key())
-	if err == nil {
-		t.Fatalf("Expected %v to NOT be available", alpha.Key())
-	}
-
-	beta := bg.Next()
-	t.Logf("Peer %v announes availability  of %v\n", w.Peer, beta.Key())
-	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := w.Blockstore().Put(beta); err != nil {
-		t.Fatal(err)
-	}
-	w.Exchange.HasBlock(ctx, beta)
-
-	t.Logf("%v gets %v from %v and discovers it wants %v\n", me.Peer, beta.Key(), w.Peer, alpha.Key())
-	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if _, err := me.Exchange.GetBlock(ctx, beta.Key()); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("%v announces availability of %v\n", o.Peer, alpha.Key())
-	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := o.Blockstore().Put(alpha); err != nil {
-		t.Fatal(err)
-	}
-	o.Exchange.HasBlock(ctx, alpha)
-
-	t.Logf("%v requests %v\n", me.Peer, alpha.Key())
-	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if _, err := me.Exchange.GetBlock(ctx, alpha.Key()); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("%v should now have %v\n", w.Peer, alpha.Key())
-	block, err := w.Blockstore().Get(alpha.Key())
+	// peerA requests and waits for block alpha
+	ctx, _ := context.WithTimeout(context.TODO(), waitTime)
+	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []u.Key{alpha.Key()})
 	if err != nil {
-		t.Fatalf("Should not have received an error: %s", err)
+		t.Fatal(err)
 	}
-	if block.Key() != alpha.Key() {
-		t.Fatal("Expected to receive alpha from me")
+
+	// peerB announces to the network that he has block alpha
+	ctx, _ = context.WithTimeout(context.TODO(), timeout)
+	err = peerB.Exchange.HasBlock(ctx, alpha)
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	// At some point, peerA should get alpha (or timeout)
+	blkrecvd, ok := <-alphaPromise
+	if !ok {
+		t.Fatal("context timed out and broke promise channel!")
+	}
+
+	if blkrecvd.Key() != alpha.Key() {
+		t.Fatal("Wrong block!")
+	}
+
 }
 
 func TestBasicBitswap(t *testing.T) {

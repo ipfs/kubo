@@ -24,13 +24,13 @@ type BitSwapMessage interface {
 	Blocks() []*blocks.Block
 
 	// AddEntry adds an entry to the Wantlist.
-	AddEntry(u.Key, int, bool)
+	AddEntry(key u.Key, priority int, cancel bool)
 
 	// Sets whether or not the contained wantlist represents the entire wantlist
 	// true = full wantlist
 	// false = wantlist 'patch'
 	// default: true
-	SetFull(bool)
+	SetFull(isFull bool)
 
 	Full() bool
 

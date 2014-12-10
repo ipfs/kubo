@@ -12,10 +12,9 @@ import (
 // access/lookups.
 type keySet map[u.Key]struct{}
 
-func newLedger(p peer.Peer, strategy strategyFunc) *ledger {
+func newLedger(p peer.Peer) *ledger {
 	return &ledger{
-		wantList:   wl.NewWantlist(),
-		Strategy:   strategy,
+		wantList:   wl.New(),
 		Partner:    p,
 		sentToPeer: make(map[u.Key]time.Time),
 	}
@@ -45,12 +44,6 @@ type ledger struct {
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
 	sentToPeer map[u.Key]time.Time
-
-	Strategy strategyFunc
-}
-
-func (l *ledger) ShouldSend() bool {
-	return l.Strategy(l)
 }
 
 func (l *ledger) SentBytes(n int) {
