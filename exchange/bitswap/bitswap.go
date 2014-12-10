@@ -174,10 +174,12 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 	for _, wanted := range bs.wantlist.Entries() {
 		message.AddEntry(wanted.Value, wanted.Priority, false)
 	}
+	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
-		log.Debug("sending query to: %s", peerToQuery)
 		log.Event(ctx, "PeerToQuery", peerToQuery)
+		wg.Add(1)
 		go func(p peer.Peer) {
+			defer wg.Done()
 
 			log.Event(ctx, "DialPeer", p)
 			err := bs.sender.DialPeer(ctx, p)
@@ -197,6 +199,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 			bs.ledgerset.MessageSent(p, message)
 		}(peerToQuery)
 	}
+	wg.Wait()
 	return nil
 }
 
@@ -305,8 +308,8 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-			for _, k := range ks {
-				bs.wantlist.Add(k, 1)
+			for i, k := range ks {
+				bs.wantlist.Add(k, len(ks)-i)
 			}
 			// NB: send want list to providers for the first peer in this list.
 			//		the assumption is made that the providers of the first key in
