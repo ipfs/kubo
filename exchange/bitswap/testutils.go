@@ -17,24 +17,33 @@ import (
 
 func NewSessionGenerator(
 	net tn.Network, rs mockrouting.Server) SessionGenerator {
+	ctx, cancel := context.WithCancel(context.TODO())
 	return SessionGenerator{
-		net: net,
-		rs:  rs,
-		ps:  peer.NewPeerstore(),
-		seq: 0,
+		ps:     peer.NewPeerstore(),
+		net:    net,
+		rs:     rs,
+		seq:    0,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
 type SessionGenerator struct {
-	seq int
-	net tn.Network
-	rs  mockrouting.Server
-	ps  peer.Peerstore
+	seq    int
+	net    tn.Network
+	rs     mockrouting.Server
+	ps     peer.Peerstore
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (g *SessionGenerator) Stop() {
+	g.cancel()
 }
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	return session(g.net, g.rs, g.ps, []byte(string(g.seq)))
+	return session(g.ctx, g.net, g.rs, g.ps, []byte(string(g.seq)))
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -67,7 +76,7 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.ID) Instance {
+func session(ctx context.Context, net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.ID) Instance {
 	p := ps.WithID(id)
 
 	adapter := net.Adapter(p)
@@ -82,7 +91,6 @@ func session(net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.I
 	}
 
 	const alwaysSendToPeer = true
-	ctx := context.TODO()
 
 	bs := New(ctx, p, adapter, htc, bstore, alwaysSendToPeer)
 
