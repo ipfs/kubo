@@ -201,21 +201,57 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wantlist) {
+	provset := make(map[u.Key]peer.Peer)
+	provcollect := make(chan peer.Peer)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	wg := sync.WaitGroup{}
+	// Get providers for all entries in wantlist (could take a while)
 	for _, e := range wantlist.Entries() {
 		wg.Add(1)
 		go func(k u.Key) {
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
 
-			err := bs.sendWantListTo(ctx, providers)
-			if err != nil {
-				log.Errorf("error sending wantlist: %s", err)
+			for prov := range providers {
+				provcollect <- prov
 			}
 			wg.Done()
 		}(e.Value)
 	}
-	wg.Wait()
+
+	// When all workers finish, close the providers channel
+	go func() {
+		wg.Wait()
+		close(provcollect)
+	}()
+
+	// Filter out duplicates,
+	// no need to send our wantlists out twice in a given time period
+	for {
+		select {
+		case p, ok := <-provcollect:
+			if !ok {
+				break
+			}
+			provset[p.Key()] = p
+		case <-ctx.Done():
+			log.Error("Context cancelled before we got all the providers!")
+			return
+		}
+	}
+
+	message := bsmsg.New()
+	message.SetFull(true)
+	for _, e := range bs.wantlist.Entries() {
+		message.AddEntry(e.Value, e.Priority, false)
+	}
+
+	for _, prov := range provset {
+		bs.send(ctx, prov, message)
+	}
 }
 
 func (bs *bitswap) roundWorker(ctx context.Context) {
@@ -229,22 +265,25 @@ func (bs *bitswap) roundWorker(ctx context.Context) {
 			if err != nil {
 				log.Critical("%s", err)
 			}
-			log.Error(alloc)
-			bs.processStrategyAllocation(ctx, alloc)
+			err = bs.processStrategyAllocation(ctx, alloc)
+			if err != nil {
+				log.Critical("Error processing strategy allocation: %s", err)
+			}
 		}
 	}
 }
 
-func (bs *bitswap) processStrategyAllocation(ctx context.Context, alloc []*strategy.Task) {
+func (bs *bitswap) processStrategyAllocation(ctx context.Context, alloc []*strategy.Task) error {
 	for _, t := range alloc {
 		for _, block := range t.Blocks {
 			message := bsmsg.New()
 			message.AddBlock(block)
 			if err := bs.send(ctx, t.Peer, message); err != nil {
-				log.Errorf("Message Send Failed: %s", err)
+				return err
 			}
 		}
 	}
+	return nil
 }
 
 // TODO ensure only one active request per key
@@ -252,22 +291,16 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 
 	ctx, cancel := context.WithCancel(parent)
 
-	broadcastSignal := time.NewTicker(rebroadcastDelay)
-	defer func() {
-		cancel() // signal to derived async functions
-		broadcastSignal.Stop()
-	}()
+	broadcastSignal := time.After(rebroadcastDelay)
+	defer cancel()
 
 	for {
 		select {
-		case <-broadcastSignal.C:
+		case <-broadcastSignal:
 			// Resend unfulfilled wantlist keys
 			bs.sendWantlistToProviders(ctx, bs.wantlist)
+			broadcastSignal = time.After(rebroadcastDelay)
 		case ks := <-bs.batchRequests:
-			// TODO: implement batching on len(ks) > X for some X
-			//		i.e. if given 20 keys, fetch first five, then next
-			//		five, and so on, so we are more likely to be able to
-			//		effectively stream the data
 			if len(ks) == 0 {
 				log.Warning("Received batch request for zero blocks")
 				continue
