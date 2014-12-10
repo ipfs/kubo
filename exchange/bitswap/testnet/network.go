@@ -102,8 +102,6 @@ func (n *network) deliver(
 	return nil
 }
 
-var NoResponse = errors.New("No response received from the receiver")
-
 // TODO
 func (n *network) SendRequest(
 	ctx context.Context,
