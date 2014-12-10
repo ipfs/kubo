@@ -68,7 +68,7 @@ func (s *strategist) getSendableBlocks(wantlist *wl.Wantlist, bs bstore.Blocksto
 	var outblocks []*blocks.Block
 	for _, e := range wantlist.Entries() {
 		block, err := bs.Get(e.Value)
-		if err == u.ErrNotFound {
+		if err == bstore.ErrNotFound {
 			continue
 		}
 		if err != nil {

@@ -43,7 +43,7 @@ type entrySlice []*Entry
 
 func (es entrySlice) Len() int           { return len(es) }
 func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es entrySlice) Less(i, j int) bool { return es[i].Priority < es[j].Priority }
+func (es entrySlice) Less(i, j int) bool { return es[i].Priority > es[j].Priority }
 
 func (w *Wantlist) Entries() []*Entry {
 	var es entrySlice
