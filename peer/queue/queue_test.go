@@ -74,7 +74,15 @@ func newPeerTime(t time.Time) peer.Peer {
 }
 
 func TestSyncQueue(t *testing.T) {
+	tickT := time.Microsecond * 100
+	max := 10000
+	consumerN := 10
+	countsIn := make([]int, consumerN*2)
+	countsOut := make([]int, consumerN)
+
 	if testing.Short() {
+		tickT = time.Microsecond * 50
+		max = 1000
 		t.SkipNow()
 	}
 	ctx := context.Background()
@@ -83,15 +91,10 @@ func TestSyncQueue(t *testing.T) {
 	cq := NewChanQueue(ctx, pq)
 	wg := sync.WaitGroup{}
 
-	max := 10000
-	consumerN := 10
-	countsIn := make([]int, consumerN*2)
-	countsOut := make([]int, consumerN)
-
 	produce := func(p int) {
 		defer wg.Done()
 
-		tick := time.Tick(time.Microsecond * 100)
+		tick := time.Tick(tickT)
 		for i := 0; i < max; i++ {
 			select {
 			case tim := <-tick:
