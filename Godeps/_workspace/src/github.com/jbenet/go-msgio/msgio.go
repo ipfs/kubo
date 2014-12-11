@@ -17,7 +17,7 @@ const lengthSize = 4
 type Writer interface {
 
 	// Write writes passed in buffer as a single message.
-	Write([]byte) error
+	Write([]byte) (int, error)
 
 	// WriteMsg writes the msg in the passed in buffer.
 	WriteMsg([]byte) error
@@ -79,8 +79,12 @@ func NewWriter(w io.Writer) WriteCloser {
 	return &writer{W: w, lock: new(sync.Mutex)}
 }
 
-func (s *writer) Write(msg []byte) (err error) {
-	return s.WriteMsg(msg)
+func (s *writer) Write(msg []byte) (int, error) {
+	err := s.WriteMsg(msg)
+	if err != nil {
+		return 0, err
+	}
+	return len(msg), nil
 }
 
 func (s *writer) WriteMsg(msg []byte) (err error) {
