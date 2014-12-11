@@ -37,7 +37,7 @@ const doPinging = false
 type IpfsDHT struct {
 	// Array of routing tables for differently distanced nodes
 	// NOTE: (currently, only a single table is used)
-	routingTables []*kb.RoutingTable
+	routingTable *kb.RoutingTable
 
 	// the network services we need
 	dialer inet.Dialer
@@ -80,10 +80,7 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 	dht.providers = NewProviderManager(dht.Context(), p.ID())
 	dht.AddCloserChild(dht.providers)
 
-	dht.routingTables = make([]*kb.RoutingTable, 3)
-	dht.routingTables[0] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Millisecond*1000)
-	dht.routingTables[1] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Millisecond*1000)
-	dht.routingTables[2] = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Hour)
+	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Minute)
 	dht.birth = time.Now()
 
 	dht.Validators = make(map[string]ValidatorFunc)
@@ -243,9 +240,9 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 }
 
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
-	key u.Key, level int) ([]byte, []peer.Peer, error) {
+	key u.Key) ([]byte, []peer.Peer, error) {
 
-	pmes, err := dht.getValueSingle(ctx, p, key, level)
+	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -265,7 +262,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 
 	// TODO decide on providers. This probably shouldn't be happening.
 	if prv := pmes.GetProviderPeers(); prv != nil && len(prv) > 0 {
-		val, err := dht.getFromPeerList(ctx, key, prv, level)
+		val, err := dht.getFromPeerList(ctx, key, prv)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -292,9 +289,9 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 
 // getValueSingle simply performs the get value RPC with the given parameters
 func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.Peer,
-	key u.Key, level int) (*pb.Message, error) {
+	key u.Key) (*pb.Message, error) {
 
-	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), level)
+	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
@@ -303,7 +300,7 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.Peer,
 // one to get the value from? Or just connect to one at a time until we get a
 // successful connection and request the value from it?
 func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
-	peerlist []*pb.Message_Peer, level int) ([]byte, error) {
+	peerlist []*pb.Message_Peer) ([]byte, error) {
 
 	for _, pinfo := range peerlist {
 		p, err := dht.ensureConnectedToPeer(ctx, pinfo)
@@ -312,7 +309,7 @@ func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
 			continue
 		}
 
-		pmes, err := dht.getValueSingle(ctx, p, key, level)
+		pmes, err := dht.getValueSingle(ctx, p, key)
 		if err != nil {
 			log.Errorf("getFromPeers error: %s\n", err)
 			continue
@@ -379,47 +376,30 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 	return dht.datastore.Put(key.DsKey(), data)
 }
 
-// Update signals to all routingTables to Update their last-seen status
+// Update signals the routingTable to Update its last-seen status
 // on the given peer.
 func (dht *IpfsDHT) Update(ctx context.Context, p peer.Peer) {
 	log.Event(ctx, "updatePeer", p)
-	removedCount := 0
-	for _, route := range dht.routingTables {
-		removed := route.Update(p)
-		// Only close the connection if no tables refer to this peer
-		if removed != nil {
-			removedCount++
-		}
-	}
-
-	// Only close the connection if no tables refer to this peer
-	// if removedCount == len(dht.routingTables) {
-	// 	dht.network.ClosePeer(p)
-	// }
-	// ACTUALLY, no, let's not just close the connection. it may be connected
-	// due to other things. it seems that we just need connection timeouts
-	// after some deadline of inactivity.
+	dht.routingTable.Update(p)
 }
 
 // FindLocal looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
 func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.Peer, *kb.RoutingTable) {
-	for _, table := range dht.routingTables {
-		p := table.Find(id)
-		if p != nil {
-			return p, table
-		}
+	p := dht.routingTable.Find(id)
+	if p != nil {
+		return p, dht.routingTable
 	}
 	return nil, nil
 }
 
 // findPeerSingle asks peer 'p' if they know where the peer with id 'id' is
-func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID, level int) (*pb.Message, error) {
-	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), level)
+func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID) (*pb.Message, error) {
+	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.Key, level int) (*pb.Message, error) {
-	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), level)
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.Key) (*pb.Message, error) {
+	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
@@ -446,11 +426,8 @@ func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.Peer
 
 // nearestPeersToQuery returns the routing tables closest peers.
 func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.Peer {
-	level := pmes.GetClusterLevel()
-	cluster := dht.routingTables[level]
-
 	key := u.Key(pmes.GetKey())
-	closer := cluster.NearestPeers(kb.ConvertKey(key), count)
+	closer := dht.routingTable.NearestPeers(kb.ConvertKey(key), count)
 	return closer
 }
 
@@ -537,7 +514,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 		case <-tick:
 			id := make([]byte, 16)
 			rand.Read(id)
-			peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(u.Key(id)), 5)
+			peers := dht.routingTable.NearestPeers(kb.ConvertKey(u.Key(id)), 5)
 			for _, p := range peers {
 				ctx, _ := context.WithTimeout(dht.Context(), time.Second*5)
 				err := dht.Ping(ctx, p)

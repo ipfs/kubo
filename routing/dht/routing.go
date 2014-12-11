@@ -38,11 +38,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	var peers []peer.Peer
-	for _, route := range dht.routingTables {
-		npeers := route.NearestPeers(kb.ConvertKey(key), KValue)
-		peers = append(peers, npeers...)
-	}
+	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
 
 	query := newQuery(key, dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 		log.Debugf("%s PutValue qry part %v", dht.self, p)
@@ -71,9 +67,8 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 		return val, nil
 	}
 
-	// get closest peers in the routing tables
-	routeLevel := 0
-	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertKey(key), PoolSize)
+	// get closest peers in the routing table
+	closest := dht.routingTable.NearestPeers(kb.ConvertKey(key), PoolSize)
 	if closest == nil || len(closest) == 0 {
 		log.Warning("Got no peers back from routing table!")
 		return nil, kb.ErrLookupFailure
@@ -82,7 +77,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	// setup the Query
 	query := newQuery(key, dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 
-		val, peers, err := dht.getValueOrPeers(ctx, p, key, routeLevel)
+		val, peers, err := dht.getValueOrPeers(ctx, p, key)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +111,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 
 	dht.providers.AddProvider(key, dht.self)
-	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), PoolSize)
+	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), PoolSize)
 	if len(peers) == 0 {
 		return nil
 	}
@@ -166,7 +161,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	// setup the Query
 	query := newQuery(key, dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 
-		pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
+		pmes, err := dht.findProvidersSingle(ctx, p, key)
 		if err != nil {
 			return nil, err
 		}
@@ -205,7 +200,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 		return &dhtQueryResult{closerPeers: clpeers}, nil
 	})
 
-	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
+	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
 	_, err := query.Run(ctx, peers)
 	if err != nil {
 		log.Errorf("FindProviders Query error: %s", err)
@@ -253,8 +248,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 		return p, nil
 	}
 
-	routeLevel := 0
-	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertPeerID(id), AlphaValue)
+	closest := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if closest == nil || len(closest) == 0 {
 		return nil, kb.ErrLookupFailure
 	}
@@ -270,7 +264,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.Peer, error)
 	// setup the Query
 	query := newQuery(u.Key(id), dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 
-		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
+		pmes, err := dht.findPeerSingle(ctx, p, id)
 		if err != nil {
 			return nil, err
 		}
@@ -316,8 +310,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 	peerchan := make(chan peer.Peer, asyncQueryBuffer)
 	peersSeen := map[string]peer.Peer{}
 
-	routeLevel := 0
-	closest := dht.routingTables[routeLevel].NearestPeers(kb.ConvertPeerID(id), AlphaValue)
+	closest := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if closest == nil || len(closest) == 0 {
 		return nil, kb.ErrLookupFailure
 	}
@@ -325,7 +318,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 	// setup the Query
 	query := newQuery(u.Key(id), dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
 
-		pmes, err := dht.findPeerSingle(ctx, p, id, routeLevel)
+		pmes, err := dht.findPeerSingle(ctx, p, id)
 		if err != nil {
 			return nil, err
 		}
