@@ -74,19 +74,17 @@ func newPeerTime(t time.Time) peer.Peer {
 }
 
 func TestSyncQueue(t *testing.T) {
-	tickT := time.Microsecond * 100
-	max := 10000
+	tickT := time.Microsecond * 50
+	max := 5000
 	consumerN := 10
 	countsIn := make([]int, consumerN*2)
 	countsOut := make([]int, consumerN)
 
 	if testing.Short() {
-		tickT = time.Microsecond * 50
 		max = 1000
-		t.SkipNow()
 	}
-	ctx := context.Background()
 
+	ctx := context.Background()
 	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	cq := NewChanQueue(ctx, pq)
 	wg := sync.WaitGroup{}
