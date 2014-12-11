@@ -209,11 +209,16 @@ type readWriter struct {
 
 // NewReadWriter wraps an io.ReadWriter with a msgio.ReadWriter. Writing
 // and Reading will be appropriately framed.
-func NewReadWriter(rw io.ReadWriter) ReadWriter {
+func NewReadWriter(rw io.ReadWriter) ReadWriteCloser {
 	return &readWriter{
 		Reader: NewReader(rw),
 		Writer: NewWriter(rw),
 	}
+}
+
+// Combine wraps a pair of msgio.Writer and msgio.Reader with a msgio.ReadWriter.
+func Combine(w Writer, r Reader) ReadWriteCloser {
+	return &readWriter{Reader: r, Writer: w}
 }
 
 func (rw *readWriter) Close() error {
