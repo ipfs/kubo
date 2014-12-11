@@ -182,7 +182,6 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.Peer, pmes *p
 		providers = append(providers, dht.self)
 	}
 
-	// if we've got providers, send thos those.
 	if providers != nil && len(providers) > 0 {
 		resp.ProviderPeers = pb.PeersToPBPeers(dht.dialer, providers)
 	}

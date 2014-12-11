@@ -138,43 +138,78 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan peer.Peer {
 	log.Event(ctx, "findProviders", &key)
 	peerOut := make(chan peer.Peer, count)
-	go func() {
-		defer close(peerOut)
-
-		ps := newPeerSet()
-		// TODO may want to make this function async to hide latency
-		provs := dht.providers.GetProviders(ctx, key)
-		for _, p := range provs {
-			count--
-			// NOTE: assuming that this list of peers is unique
-			ps.Add(p)
-			select {
-			case peerOut <- p:
-			case <-ctx.Done():
-				return
-			}
-			if count <= 0 {
-				return
-			}
-		}
-
-		var wg sync.WaitGroup
-		peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
-		for _, pp := range peers {
-			wg.Add(1)
-			go func(p peer.Peer) {
-				defer wg.Done()
-				pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				dht.addPeerListAsync(ctx, key, pmes.GetProviderPeers(), ps, count, peerOut)
-			}(pp)
-		}
-		wg.Wait()
-	}()
+	go dht.findProvidersAsyncRoutine(ctx, key, count, peerOut)
 	return peerOut
+}
+
+func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.Peer) {
+	defer close(peerOut)
+
+	ps := newPeerSet()
+	provs := dht.providers.GetProviders(ctx, key)
+	for _, p := range provs {
+		count--
+		// NOTE: assuming that this list of peers is unique
+		ps.Add(p)
+		select {
+		case peerOut <- p:
+		case <-ctx.Done():
+			return
+		}
+		if count <= 0 {
+			return
+		}
+	}
+
+	// setup the Query
+	query := newQuery(key, dht.dialer, func(ctx context.Context, p peer.Peer) (*dhtQueryResult, error) {
+
+		pmes, err := dht.findProvidersSingle(ctx, p, key, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		provs, errs := pb.PBPeersToPeers(dht.peerstore, pmes.GetProviderPeers())
+		for _, err := range errs {
+			if err != nil {
+				log.Warning(err)
+			}
+		}
+
+		// Add unique providers from request, up to 'count'
+		for _, prov := range provs {
+			if ps.Contains(prov) {
+				continue
+			}
+			select {
+			case peerOut <- prov:
+			case <-ctx.Done():
+				log.Error("Context timed out sending more providers")
+				return nil, ctx.Err()
+			}
+			ps.Add(prov)
+			if ps.Size() >= count {
+				return &dhtQueryResult{success: true}, nil
+			}
+		}
+
+		// Give closer peers back to the query to be queried
+		closer := pmes.GetCloserPeers()
+		clpeers, errs := pb.PBPeersToPeers(dht.peerstore, closer)
+		for _, err := range errs {
+			if err != nil {
+				log.Warning(err)
+			}
+		}
+
+		return &dhtQueryResult{closerPeers: clpeers}, nil
+	})
+
+	peers := dht.routingTables[0].NearestPeers(kb.ConvertKey(key), AlphaValue)
+	_, err := query.Run(ctx, peers)
+	if err != nil {
+		log.Errorf("FindProviders Query error: %s", err)
+	}
 }
 
 func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
