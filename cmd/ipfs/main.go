@@ -12,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	// TODO rm direct reference to go-logging
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
@@ -147,7 +145,7 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	}
 	if debug || u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
 		u.Debug = true
-		u.SetAllLoggers(logging.DEBUG)
+		u.SetDebugLogging()
 	}
 
 	// if debugging, let's profile.
