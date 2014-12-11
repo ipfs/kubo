@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -29,6 +30,7 @@ ipfs config <key>          - Get value of <key>
 ipfs config <key> <value>  - Set value of <key> to <value>
 ipfs config show           - Show config file
 ipfs config edit           - Edit config file in $EDITOR
+ipfs config replace <file> - Replaces the config file with <file>
 `,
 		ShortDescription: `
 ipfs config controls configuration variables. It works like 'git config'.
@@ -100,8 +102,9 @@ Set the value of the 'datastore.path' key:
 	},
 	Type: ConfigField{},
 	Subcommands: map[string]*cmds.Command{
-		"show": configShowCmd,
-		"edit": configEditCmd,
+		"show":    configShowCmd,
+		"edit":    configEditCmd,
+		"replace": configReplaceCmd,
 	},
 }
 
@@ -140,6 +143,35 @@ variable set to your preferred text editor.
 		}
 
 		return nil, editConfig(filename)
+	},
+}
+
+var configReplaceCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Replaces the config with <file>",
+		ShortDescription: `
+Make sure to back up the config file first if neccessary, this operation
+can't be undone.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.FileArg("file", true, false, "The file to use as the new config"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		r := fsrepo.At(req.Context().ConfigRoot)
+		if err := r.Open(); err != nil {
+			return nil, err
+		}
+		defer r.Close()
+
+		file, err := req.Files().NextFile()
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		return nil, replaceConfig(r, file)
 	},
 }
 
@@ -182,4 +214,13 @@ func editConfig(filename string) error {
 	cmd := exec.Command("sh", "-c", editor+" "+filename)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
+}
+
+func replaceConfig(r repo.Repo, file io.Reader) error {
+	var cfg config.Config
+	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
+		return errors.New("Failed to decode file as config")
+	}
+
+	return r.SetConfig(&cfg)
 }
