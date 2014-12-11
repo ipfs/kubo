@@ -148,15 +148,17 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	ps := newPeerSet()
 	provs := dht.providers.GetProviders(ctx, key)
 	for _, p := range provs {
-		count--
 		// NOTE: assuming that this list of peers is unique
-		ps.Add(p)
-		select {
-		case peerOut <- p:
-		case <-ctx.Done():
-			return
+		if ps.AddIfSmallerThan(p, count) {
+			select {
+			case peerOut <- p:
+			case <-ctx.Done():
+				return
+			}
 		}
-		if count <= 0 {
+
+		// If we have enough peers locally, dont bother with remote RPC
+		if ps.Size() >= count {
 			return
 		}
 	}
@@ -178,16 +180,14 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
-			if ps.Contains(prov) {
-				continue
+			if ps.AddIfSmallerThan(prov, count) {
+				select {
+				case peerOut <- prov:
+				case <-ctx.Done():
+					log.Error("Context timed out sending more providers")
+					return nil, ctx.Err()
+				}
 			}
-			select {
-			case peerOut <- prov:
-			case <-ctx.Done():
-				log.Error("Context timed out sending more providers")
-				return nil, ctx.Err()
-			}
-			ps.Add(prov)
 			if ps.Size() >= count {
 				return &dhtQueryResult{success: true}, nil
 			}
