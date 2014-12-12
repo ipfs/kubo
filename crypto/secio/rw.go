@@ -17,9 +17,9 @@ import (
 // ErrMACInvalid signals that a MAC verification failed
 var ErrMACInvalid = errors.New("MAC verification failed")
 
-// BufPool is a ByteSlicePool for messages. we need buffers because (sadly)
+// bufPool is a ByteSlicePool for messages. we need buffers because (sadly)
 // we cannot encrypt in place-- the user needs their buffer back.
-var BufPool = mpool.ByteSlicePool
+var bufPool = mpool.ByteSlicePool
 
 type etmWriter struct {
 	// params
@@ -31,7 +31,7 @@ type etmWriter struct {
 
 // NewETMWriter Encrypt-Then-MAC
 func NewETMWriter(w io.Writer, s cipher.Stream, mac HMAC) msgio.WriteCloser {
-	return &etmWriter{msg: msgio.NewWriter(w), str: s, mac: mac, pool: BufPool}
+	return &etmWriter{msg: msgio.NewWriter(w), str: s, mac: mac, pool: bufPool}
 }
 
 // Write writes passed in buffer as a single message.
