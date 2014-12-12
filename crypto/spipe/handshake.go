@@ -183,12 +183,19 @@ func (s *SecurePipe) handshake() error {
 		return err
 	}
 
+	k1, k2 := ci.KeyStretcher(cipherType, hashType, secret)
 	cmp := bytes.Compare(myPubKey, proposeResp.GetPubkey())
-
-	mIV, tIV, mCKey, tCKey, mMKey, tMKey := ci.KeyStretcher(cmp, cipherType, hashType, secret)
-
-	go s.handleSecureIn(hashType, cipherType, tIV, tCKey, tMKey)
-	go s.handleSecureOut(hashType, cipherType, mIV, mCKey, mMKey)
+	switch cmp {
+	case 1:
+	case -1:
+		k1, k2 = k2, k1 // swap
+	case 0: // really shouldnt kappen.
+		copy(k2.IV, k1.IV)
+		copy(k2.MacKey, k1.MacKey)
+		copy(k2.CipherKey, k1.CipherKey)
+	}
+	go s.handleSecureIn(hashType, cipherType, k2.IV, k2.CipherKey, k2.MacKey)
+	go s.handleSecureOut(hashType, cipherType, k1.IV, k1.CipherKey, k1.MacKey)
 
 	finished := []byte("Finished")
 

@@ -70,6 +70,11 @@ func SetupLogging() {
 
 }
 
+// SetDebugLogging calls SetAllLoggers with logging.DEBUG
+func SetDebugLogging() {
+	SetAllLoggers(logging.DEBUG)
+}
+
 // SetAllLoggers changes the logging.Level of all loggers to lvl
 func SetAllLoggers(lvl logging.Level) {
 	logging.SetLevel(lvl, "")

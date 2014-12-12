@@ -20,9 +20,12 @@ func TestReadWrite(t *testing.T) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range msgs {
 		msgs[i] = randbuf.RandBuf(r, r.Intn(1000))
-		err := writer.Write(msgs[i])
+		n, err := writer.Write(msgs[i])
 		if err != nil {
 			t.Fatal(err)
+		}
+		if n != len(msgs[i]) {
+			t.Fatal("wrong length:", n, len(msgs[i]))
 		}
 	}
 

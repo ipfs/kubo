@@ -134,9 +134,15 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 	return pubKey, done, nil
 }
 
+type StretchedKeys struct {
+	IV        []byte
+	MacKey    []byte
+	CipherKey []byte
+}
+
 // Generates a set of keys for each party by stretching the shared key.
 // (myIV, theirIV, myCipherKey, theirCipherKey, myMACKey, theirMACKey)
-func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([]byte, []byte, []byte, []byte, []byte, []byte) {
+func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedKeys, StretchedKeys) {
 	var cipherKeySize int
 	var ivSize int
 	switch cipherType {
@@ -198,31 +204,22 @@ func KeyStretcher(cmp int, cipherType string, hashType string, secret []byte) ([
 		a = m.Sum(nil)
 	}
 
-	myResult := make([]byte, ivSize+cipherKeySize+hmacKeySize)
-	theirResult := make([]byte, ivSize+cipherKeySize+hmacKeySize)
-
 	half := len(result) / 2
+	r1 := result[:half]
+	r2 := result[half:]
 
-	if cmp == 1 {
-		copy(myResult, result[:half])
-		copy(theirResult, result[half:])
-	} else if cmp == -1 {
-		copy(myResult, result[half:])
-		copy(theirResult, result[:half])
-	} else { // Shouldn't happen, but oh well.
-		copy(myResult, result[half:])
-		copy(theirResult, result[half:])
-	}
+	var k1 StretchedKeys
+	var k2 StretchedKeys
 
-	myIV := myResult[0:ivSize]
-	myCKey := myResult[ivSize : ivSize+cipherKeySize]
-	myMKey := myResult[ivSize+cipherKeySize:]
+	k1.IV = r1[0:ivSize]
+	k1.CipherKey = r1[ivSize : ivSize+cipherKeySize]
+	k1.MacKey = r1[ivSize+cipherKeySize:]
 
-	theirIV := theirResult[0:ivSize]
-	theirCKey := theirResult[ivSize : ivSize+cipherKeySize]
-	theirMKey := theirResult[ivSize+cipherKeySize:]
+	k2.IV = r2[0:ivSize]
+	k2.CipherKey = r2[ivSize : ivSize+cipherKeySize]
+	k2.MacKey = r2[ivSize+cipherKeySize:]
 
-	return myIV, theirIV, myCKey, theirCKey, myMKey, theirMKey
+	return k1, k2
 }
 
 // UnmarshalPublicKey converts a protobuf serialized public key into its
