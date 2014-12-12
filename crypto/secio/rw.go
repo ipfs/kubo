@@ -11,21 +11,27 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	mpool "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
 )
 
 // ErrMACInvalid signals that a MAC verification failed
 var ErrMACInvalid = errors.New("MAC verification failed")
 
+// BufPool is a ByteSlicePool for messages. we need buffers because (sadly)
+// we cannot encrypt in place-- the user needs their buffer back.
+var BufPool = mpool.ByteSlicePool
+
 type etmWriter struct {
 	// params
-	msg msgio.WriteCloser
-	str cipher.Stream
-	mac HMAC
+	pool mpool.Pool        // for the buffers with encrypted data
+	msg  msgio.WriteCloser // msgio for knowing where boundaries lie
+	str  cipher.Stream     // the stream cipher to encrypt with
+	mac  HMAC              // the mac to authenticate data with
 }
 
 // NewETMWriter Encrypt-Then-MAC
 func NewETMWriter(w io.Writer, s cipher.Stream, mac HMAC) msgio.WriteCloser {
-	return &etmWriter{msg: msgio.NewWriter(w), str: s, mac: mac}
+	return &etmWriter{msg: msgio.NewWriter(w), str: s, mac: mac, pool: BufPool}
 }
 
 // Write writes passed in buffer as a single message.
@@ -40,21 +46,26 @@ func (w *etmWriter) Write(b []byte) (int, error) {
 func (w *etmWriter) WriteMsg(b []byte) error {
 
 	// encrypt.
-	w.str.XORKeyStream(b, b)
+	data := w.pool.Get(uint32(len(b))).([]byte)
+	data = data[:len(b)] // the pool's buffer may be larger
+	w.str.XORKeyStream(data, b)
+
+	// log.Debugf("ENC plaintext (%d): %s %v", len(b), b, b)
+	// log.Debugf("ENC ciphertext (%d): %s %v", len(data), data, data)
 
 	// then, mac.
-	if _, err := w.mac.Write(b); err != nil {
+	if _, err := w.mac.Write(data); err != nil {
 		return err
 	}
 
 	// Sum appends.
-	b = w.mac.Sum(b)
+	data = w.mac.Sum(data)
 	w.mac.Reset()
 	// it's sad to append here. our buffers are -- hopefully -- coming from
 	// a shared buffer pool, so the append may not actually cause allocation
 	// one can only hope. i guess we'll see.
 
-	return w.msg.WriteMsg(b)
+	return w.msg.WriteMsg(data)
 }
 
 func (w *etmWriter) Close() error {
@@ -66,9 +77,9 @@ type etmReader struct {
 	io.Closer
 
 	// params
-	msg msgio.ReadCloser
-	str cipher.Stream
-	mac HMAC
+	msg msgio.ReadCloser // msgio for knowing where boundaries lie
+	str cipher.Stream    // the stream cipher to encrypt with
+	mac HMAC             // the mac to authenticate data with
 }
 
 // NewETMReader Encrypt-Then-MAC
@@ -137,8 +148,11 @@ func (r *etmReader) macCheckThenDecrypt(m []byte) (int, error) {
 		return 0, ErrMACInvalid
 	}
 
-	// ok seems good. decrypt.
+	// ok seems good. decrypt. (can decrypt in place, yay!)
+	// log.Debugf("DEC ciphertext (%d): %s %v", len(data), data, data)
 	r.str.XORKeyStream(data, data)
+	// log.Debugf("DEC plaintext (%d): %s %v", len(data), data, data)
+
 	return mark, nil
 }
 
