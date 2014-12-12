@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"errors"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -14,12 +15,6 @@ import (
 // MultiConnMap is for shorthand
 type MultiConnMap map[u.Key]*MultiConn
 
-// Duplex is a simple duplex channel
-type Duplex struct {
-	In  chan []byte
-	Out chan []byte
-}
-
 // MultiConn represents a single connection to another Peer (IPFS Node).
 type MultiConn struct {
 
@@ -30,8 +25,8 @@ type MultiConn struct {
 	local  peer.Peer
 	remote peer.Peer
 
-	// fan-in/fan-out
-	duplex Duplex
+	// fan-in
+	fanIn chan []byte
 
 	// for adding/removing connections concurrently
 	sync.RWMutex
@@ -45,10 +40,7 @@ func NewMultiConn(ctx context.Context, local, remote peer.Peer, conns []Conn) (*
 		local:  local,
 		remote: remote,
 		conns:  map[string]Conn{},
-		duplex: Duplex{
-			In:  make(chan []byte, 10),
-			Out: make(chan []byte, 10),
-		},
+		fanIn:  make(chan []byte),
 	}
 
 	// must happen before Adds / fanOut
@@ -58,8 +50,6 @@ func NewMultiConn(ctx context.Context, local, remote peer.Peer, conns []Conn) (*
 		c.Add(conns...)
 	}
 
-	c.Children().Add(1)
-	go c.fanOut()
 	return c, nil
 }
 
@@ -135,38 +125,8 @@ func CloseConns(conns ...Conn) {
 	wg.Wait()
 }
 
-// fanOut is the multiplexor out -- it sends outgoing messages over the
-// underlying single connections.
-func (c *MultiConn) fanOut() {
-	defer c.Children().Done()
-
-	i := 0
-	for {
-		select {
-		case <-c.Closing():
-			return
-
-		// send data out through our "best connection"
-		case m, more := <-c.duplex.Out:
-			if !more {
-				log.Debugf("%s out channel closed", c)
-				return
-			}
-			sc := c.BestConn()
-			if sc == nil {
-				// maybe this should be a logged error, not a panic.
-				panic("sending out multiconn without any live connection")
-			}
-
-			i++
-			log.Debugf("%s sending (%d)", sc, i)
-			sc.Out() <- m
-		}
-	}
-}
-
-// fanInSingle is a multiplexor in -- it receives incoming messages over the
-// underlying single connections.
+// fanInSingle Reads from a connection, and sends to the fanIn.
+// waits for child to close and reclaims resources
 func (c *MultiConn) fanInSingle(child Conn) {
 	// cleanup all data associated with this child Connection.
 	defer func() {
@@ -186,8 +146,13 @@ func (c *MultiConn) fanInSingle(child Conn) {
 		}
 	}()
 
-	i := 0
 	for {
+		msg, err := child.ReadMsg()
+		if err != nil {
+			log.Warning(err)
+			return
+		}
+
 		select {
 		case <-c.Closing(): // multiconn closing
 			return
@@ -195,18 +160,7 @@ func (c *MultiConn) fanInSingle(child Conn) {
 		case <-child.Closing(): // child closing
 			return
 
-		case m, more := <-child.In(): // receiving data
-			if !more {
-				log.Debugf("%s in channel closed", child)
-				err := c.GetError()
-				if err != nil {
-					log.Errorf("Found error on connection: %s", err)
-				}
-				return // closed
-			}
-			i++
-			log.Debugf("%s received (%d)", child, i)
-			c.duplex.In <- m
+		case c.fanIn <- msg:
 		}
 	}
 }
@@ -296,24 +250,38 @@ func (c *MultiConn) RemotePeer() peer.Peer {
 	return c.remote
 }
 
-// In returns a readable message channel
-func (c *MultiConn) In() <-chan []byte {
-	return c.duplex.In
+// Read reads data, net.Conn style
+func (c *MultiConn) Read(buf []byte) (int, error) {
+	return 0, errors.New("multiconn does not support Read. use ReadMsg")
 }
 
-// Out returns a writable message channel
-func (c *MultiConn) Out() chan<- []byte {
-	return c.duplex.Out
-}
-
-func (c *MultiConn) GetError() error {
-	c.RLock()
-	defer c.RUnlock()
-	for _, sub := range c.conns {
-		err := sub.GetError()
-		if err != nil {
-			return err
-		}
+// Write writes data, net.Conn style
+func (c *MultiConn) Write(buf []byte) (int, error) {
+	bc := c.BestConn()
+	if bc == nil {
+		return 0, errors.New("no best connection")
 	}
-	return nil
+	return bc.Write(buf)
+}
+
+// ReadMsg reads data, net.Conn style
+func (c *MultiConn) ReadMsg() ([]byte, error) {
+	next := <-c.fanIn
+	return next, nil
+}
+
+// WriteMsg writes data, net.Conn style
+func (c *MultiConn) WriteMsg(buf []byte) error {
+	bc := c.BestConn()
+	if bc == nil {
+		return errors.New("no best connection")
+	}
+	return bc.WriteMsg(buf)
+}
+
+// ReleaseMsg releases a buffer
+func (c *MultiConn) ReleaseMsg(m []byte) {
+	for _, c := range c.getConns() {
+		c.ReleaseMsg(m)
+	}
 }

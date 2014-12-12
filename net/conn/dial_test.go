@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"io"
 	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -42,14 +43,7 @@ func echoListen(ctx context.Context, listener Listener) {
 }
 
 func echo(ctx context.Context, c Conn) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case m := <-c.In():
-			c.Out() <- m
-		}
-	}
+	io.Copy(c, c)
 }
 
 func setupConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
@@ -137,17 +131,25 @@ func TestDialer(t *testing.T) {
 	}
 
 	// fmt.Println("sending")
-	c.Out() <- []byte("beep")
-	c.Out() <- []byte("boop")
+	c.WriteMsg([]byte("beep"))
+	c.WriteMsg([]byte("boop"))
 
-	out := <-c.In()
+	out, err := c.ReadMsg()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// fmt.Println("recving", string(out))
 	data := string(out)
 	if data != "beep" {
 		t.Error("unexpected conn output", data)
 	}
 
-	out = <-c.In()
+	out, err = c.ReadMsg()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	data = string(out)
 	if string(out) != "boop" {
 		t.Error("unexpected conn output", data)
@@ -207,17 +209,24 @@ func TestDialAddr(t *testing.T) {
 	}
 
 	// fmt.Println("sending")
-	c.Out() <- []byte("beep")
-	c.Out() <- []byte("boop")
+	c.WriteMsg([]byte("beep"))
+	c.WriteMsg([]byte("boop"))
 
-	out := <-c.In()
+	out, err := c.ReadMsg()
+	if err != nil {
+		t.Fatal(err)
+	}
 	// fmt.Println("recving", string(out))
 	data := string(out)
 	if data != "beep" {
 		t.Error("unexpected conn output", data)
 	}
 
-	out = <-c.In()
+	out, err = c.ReadMsg()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	data = string(out)
 	if string(out) != "boop" {
 		t.Error("unexpected conn output", data)

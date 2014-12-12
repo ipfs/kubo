@@ -178,7 +178,7 @@ func TestMulticonnSend(t *testing.T) {
 
 		for _, m := range msgs.msgs {
 			log.Info("send: %s", m.payload)
-			c.Out() <- []byte(m.payload)
+			c.WriteMsg([]byte(m.payload))
 			msgs.Sent(t, m.payload)
 			<-time.After(time.Microsecond * 10)
 		}
@@ -189,16 +189,20 @@ func TestMulticonnSend(t *testing.T) {
 
 		for {
 			select {
-			case payload := <-c.In():
-				msgs.Received(t, string(payload))
-				log.Info("recv: %s", payload)
-				if msgs.recv == len(msgs.msgs) {
-					return
-				}
-
+			default:
 			case <-ctx.Done():
 				return
+			}
 
+			payload, err := c.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
+
+			msgs.Received(t, string(payload))
+			log.Info("recv: %s", payload)
+			if msgs.recv == len(msgs.msgs) {
+				return
 			}
 		}
 
@@ -252,11 +256,11 @@ func TestMulticonnSendUnderlying(t *testing.T) {
 			log.Info("send: %s", m.payload)
 			switch i % 3 {
 			case 0:
-				conns[0].Out() <- []byte(m.payload)
+				conns[0].WriteMsg([]byte(m.payload))
 			case 1:
-				conns[1].Out() <- []byte(m.payload)
+				conns[1].WriteMsg([]byte(m.payload))
 			case 2:
-				c.Out() <- []byte(m.payload)
+				c.WriteMsg([]byte(m.payload))
 			}
 			msgs.Sent(t, m.payload)
 			<-time.After(time.Microsecond * 10)
@@ -269,16 +273,20 @@ func TestMulticonnSendUnderlying(t *testing.T) {
 
 		for {
 			select {
-			case payload := <-c.In():
-				msgs.Received(t, string(payload))
-				log.Info("recv: %s", payload)
-				if msgs.recv == len(msgs.msgs) {
-					return
-				}
-
+			default:
 			case <-ctx.Done():
 				return
+			}
 
+			payload, err := c.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
+
+			msgs.Received(t, string(payload))
+			log.Info("recv: %s", payload)
+			if msgs.recv == len(msgs.msgs) {
+				return
 			}
 		}
 

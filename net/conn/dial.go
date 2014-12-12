@@ -72,5 +72,6 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 		return nil, err
 	}
 
+	// return c, nil
 	return newSecureConn(ctx, c, d.Peerstore)
 }

@@ -200,7 +200,10 @@ func (s *Swarm) fanOut() {
 			log.Debugf("%s sent message to %s (%d)", s.local, msg.Peer(), i)
 			log.Event(context.TODO(), "sendMessage", s.local, msg)
 			// queue it in the connection's buffer
-			c.Out() <- msg.Data()
+			if err := c.WriteMsg(msg.Data()); err != nil {
+				log.Infof("%s connection failed to write: %s", c, err)
+				continue
+			}
 		}
 	}
 }
@@ -219,6 +222,9 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 		c.Children().Done() // child of Conn as well.
 	}()
 
+	// use readChan to be able to listen to Closing events
+	rchan := readChan(s.Context(), c)
+
 	i := 0
 	for {
 		select {
@@ -228,7 +234,7 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 		case <-c.Closing(): // Conn closing
 			return
 
-		case data, ok := <-c.In():
+		case data, ok := <-rchan:
 			if !ok {
 				log.Infof("%s in channel closed", c)
 				return // channel closed.
@@ -240,26 +246,30 @@ func (s *Swarm) fanInSingle(c conn.Conn) {
 	}
 }
 
-// Commenting out because it's platform specific
-// func setSocketReuse(l manet.Listener) error {
-// 	nl := l.NetListener()
-//
-// 	// for now only TCP. TODO change this when more networks.
-// 	file, err := nl.(*net.TCPListener).File()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	fd := file.Fd()
-// 	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
+// readChan is a temporary fixture to match the old interface. will be removed soon.
+func readChan(ctx context.Context, c conn.Conn) <-chan []byte {
+
+	ch := make(chan []byte) // no buffer. sync.
+
+	go func() {
+		defer close(ch)
+
+		for {
+			msg, err := c.ReadMsg()
+			if err != nil {
+				log.Infof("%s connection failed: %s", c, err)
+				return
+			}
+
+			select {
+			case <-c.Closing():
+				return
+			case <-ctx.Done():
+				return
+			case ch <- msg:
+			}
+		}
+	}()
+
+	return ch
+}

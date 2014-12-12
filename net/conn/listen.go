@@ -65,12 +65,15 @@ func (l *listener) listen() {
 			return
 		}
 
+		// if insecure:
+		// l.conns <- c
+
+		// if secure
 		sc, err := newSecureConn(l.ctx, c, l.peers)
 		if err != nil {
 			log.Errorf("Error securing connection: %v", err)
 			return
 		}
-
 		l.conns <- sc
 	}
 

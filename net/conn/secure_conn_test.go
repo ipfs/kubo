@@ -105,6 +105,8 @@ func TestSecureCancel(t *testing.T) {
 }
 
 func TestSecureCloseLeak(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
+
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -125,15 +127,21 @@ func TestSecureCloseLeak(t *testing.T) {
 
 		for i := 0; i < num; i++ {
 			b1 := []byte("beep")
-			c1.Out() <- b1
-			b2 := <-c2.In()
+			c1.WriteMsg(b1)
+			b2, err := c2.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
 				panic("bytes not equal")
 			}
 
-			b2 = []byte("boop")
-			c2.Out() <- b2
-			b1 = <-c1.In()
+			b2 = []byte("beep")
+			c2.WriteMsg(b2)
+			b1, err = c1.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
 				panic("bytes not equal")
 			}

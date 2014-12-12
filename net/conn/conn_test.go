@@ -100,18 +100,24 @@ func TestCloseLeak(t *testing.T) {
 		c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
 
 		for i := 0; i < num; i++ {
-			b1 := []byte("beep")
-			c1.Out() <- b1
-			b2 := <-c2.In()
+			b1 := []byte(fmt.Sprintf("beep%d", i))
+			c1.WriteMsg(b1)
+			b2, err := c2.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
-				panic("bytes not equal")
+				panic(fmt.Errorf("bytes not equal: %s != %s", b1, b2))
 			}
 
-			b2 = []byte("boop")
-			c2.Out() <- b2
-			b1 = <-c1.In()
+			b2 = []byte(fmt.Sprintf("boop%d", i))
+			c2.WriteMsg(b2)
+			b1, err = c1.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
-				panic("bytes not equal")
+				panic(fmt.Errorf("bytes not equal: %s != %s", b1, b2))
 			}
 
 			<-time.After(time.Microsecond * 5)
@@ -123,7 +129,7 @@ func TestCloseLeak(t *testing.T) {
 		wg.Done()
 	}
 
-	var cons = 20
+	var cons = 1
 	var msgs = 100
 	fmt.Printf("Running %d connections * %d msgs.\n", cons, msgs)
 	for i := 0; i < cons; i++ {

@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"errors"
 	"fmt"
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
@@ -25,29 +24,22 @@ func Handshake1(ctx context.Context, c Conn) error {
 		return err
 	}
 
-	c.Out() <- myVerBytes
-	log.Debugf("Sent my version (%s) to %s", localH, rpeer)
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-
-	case <-c.Closing():
-		return errors.New("remote closed connection during version exchange")
-
-	case data, ok := <-c.In():
-		if !ok {
-			return fmt.Errorf("error retrieving from conn: %v", rpeer)
-		}
-
-		remoteH = new(hspb.Handshake1)
-		err = proto.Unmarshal(data, remoteH)
-		if err != nil {
-			return fmt.Errorf("could not decode remote version: %q", err)
-		}
-
-		log.Debugf("Received remote version (%s) from %s", remoteH, rpeer)
+	if err := CtxWriteMsg(ctx, c, myVerBytes); err != nil {
+		return err
 	}
+	log.Debugf("%p sent my version (%s) to %s", c, localH, rpeer)
+
+	data, err := CtxReadMsg(ctx, c)
+	if err != nil {
+		return err
+	}
+
+	remoteH = new(hspb.Handshake1)
+	err = proto.Unmarshal(data, remoteH)
+	if err != nil {
+		return fmt.Errorf("could not decode remote version: %q", err)
+	}
+	log.Debugf("%p received remote version (%s) from %s", c, remoteH, rpeer)
 
 	if err := handshake.Handshake1Compatible(localH, remoteH); err != nil {
 		log.Infof("%s (%s) incompatible version with %s (%s)", lpeer, localH, rpeer, remoteH)
@@ -71,30 +63,24 @@ func Handshake3(ctx context.Context, c Conn) (*handshake.Handshake3Result, error
 		return nil, err
 	}
 
-	c.Out() <- localB
+	if err := CtxWriteMsg(ctx, c, localB); err != nil {
+		return nil, err
+	}
 	log.Debugf("Handshake1: sent to %s", rpeer)
 
 	// wait + listen for response
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-
-	case <-c.Closing():
-		return nil, errors.New("Handshake3: error remote connection closed")
-
-	case remoteB, ok := <-c.In():
-		if !ok {
-			return nil, fmt.Errorf("Handshake3 error receiving from conn: %v", rpeer)
-		}
-
-		remoteH = new(hspb.Handshake3)
-		err = proto.Unmarshal(remoteB, remoteH)
-		if err != nil {
-			return nil, fmt.Errorf("Handshake3 could not decode remote msg: %q", err)
-		}
-
-		log.Debugf("Handshake3 received from %s", rpeer)
+	remoteB, err := CtxReadMsg(ctx, c)
+	if err != nil {
+		return nil, err
 	}
+
+	remoteH = new(hspb.Handshake3)
+	err = proto.Unmarshal(remoteB, remoteH)
+	if err != nil {
+		return nil, fmt.Errorf("Handshake3 could not decode remote msg: %q", err)
+	}
+
+	log.Debugf("Handshake3 received from %s", rpeer)
 
 	// actually update our state based on the new knowledge
 	res, err := handshake.Handshake3Update(lpeer, rpeer, remoteH)
