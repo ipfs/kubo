@@ -14,9 +14,10 @@ import (
 	pb "github.com/jbenet/go-ipfs/crypto/spipe/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
-var log = u.Logger("spipe")
+var log = eventlog.Logger("secio")
 
 // ErrUnsupportedKeyType is returned when a private key cast/type switch fails.
 var ErrUnsupportedKeyType = errors.New("unsupported key type")
@@ -69,6 +70,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	}
 
 	log.Debugf("handshake: %s <--start--> %s", s.localPeer, s.remotePeer)
+	log.Event(ctx, "secureHandshakeStart", s.localPeer)
 	s.local.permanentPubKey = s.localPeer.PubKey()
 	myPubKeyBytes, err := s.local.permanentPubKey.Bytes()
 	if err != nil {
@@ -256,6 +258,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 
 	// Whew! ok, that's all folks.
 	log.Debugf("handshake: %s <--finish--> %s", s.localPeer, s.remotePeer)
+	log.Event(ctx, "secureHandshakeFinish", s.localPeer, s.remotePeer)
 	return nil
 }
 
