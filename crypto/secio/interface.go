@@ -44,7 +44,7 @@ type Session interface {
 	// LocalPeer retrieves the local peer.
 	LocalPeer() peer.Peer
 
-	// RemotePeer retrieves the local peer.
+	// RemotePeer retrieves the remote peer.
 	RemotePeer() peer.Peer
 
 	// Close closes the secure session
