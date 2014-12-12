@@ -61,7 +61,7 @@ func (s *secureSession) LocalPeer() peer.Peer {
 	return s.localPeer
 }
 
-// RemotePeer retrieves the local peer.
+// RemotePeer retrieves the remote peer.
 func (s *secureSession) RemotePeer() peer.Peer {
 	return s.remotePeer
 }
