@@ -251,7 +251,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return fmt.Errorf("Failed to read Finish nonce: %s", err)
 	}
 	if !bytes.Equal(nonceOut, nonceOut2) {
-		return fmt.Errorf("Failed to read our encrypted nonce, go: %s", nonceOut2)
+		return fmt.Errorf("Failed to read our encrypted nonce: %s != %s", nonceOut2, nonceOut)
 	}
 
 	// Whew! ok, that's all folks.
