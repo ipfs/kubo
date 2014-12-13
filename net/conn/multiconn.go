@@ -2,6 +2,7 @@ package conn
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -179,6 +180,7 @@ func (c *MultiConn) close() error {
 
 	// close underlying connections
 	CloseConns(conns...)
+	close(c.fanIn)
 	return nil
 }
 
@@ -266,7 +268,10 @@ func (c *MultiConn) Write(buf []byte) (int, error) {
 
 // ReadMsg reads data, net.Conn style
 func (c *MultiConn) ReadMsg() ([]byte, error) {
-	next := <-c.fanIn
+	next, ok := <-c.fanIn
+	if !ok {
+		return nil, fmt.Errorf("multiconn closed")
+	}
 	return next, nil
 }
 
@@ -281,6 +286,7 @@ func (c *MultiConn) WriteMsg(buf []byte) error {
 
 // ReleaseMsg releases a buffer
 func (c *MultiConn) ReleaseMsg(m []byte) {
+	// here, we dont know where it came from. hm.
 	for _, c := range c.getConns() {
 		c.ReleaseMsg(m)
 	}
