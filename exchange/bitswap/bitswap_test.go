@@ -15,10 +15,12 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
+const kNetworkDelay = 0 * time.Millisecond
+
 func TestClose(t *testing.T) {
 	// TODO
 	t.Skip("TODO Bitswap's Close implementation is a WIP")
-	vnet := tn.VirtualNetwork(delay.Fixed(0))
+	vnet := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rout := mock.VirtualRoutingServer()
 	sesgen := NewSessionGenerator(vnet, rout)
 	bgen := blocksutil.NewBlockGenerator()
@@ -32,7 +34,7 @@ func TestClose(t *testing.T) {
 
 func TestGetBlockTimeout(t *testing.T) {
 
-	net := tn.VirtualNetwork(delay.Fixed(0))
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mock.VirtualRoutingServer()
 	g := NewSessionGenerator(net, rs)
 
@@ -49,7 +51,7 @@ func TestGetBlockTimeout(t *testing.T) {
 
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
-	net := tn.VirtualNetwork(delay.Fixed(0))
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mock.VirtualRoutingServer()
 	g := NewSessionGenerator(net, rs)
 
@@ -70,7 +72,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
-	net := tn.VirtualNetwork(delay.Fixed(0))
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mock.VirtualRoutingServer()
 	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
@@ -122,7 +124,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	net := tn.VirtualNetwork(delay.Fixed(0))
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := blocksutil.NewBlockGenerator()
@@ -182,7 +184,7 @@ func TestSendToWantingPeer(t *testing.T) {
 		t.SkipNow()
 	}
 
-	net := tn.VirtualNetwork(delay.Fixed(0))
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mock.VirtualRoutingServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := blocksutil.NewBlockGenerator()
