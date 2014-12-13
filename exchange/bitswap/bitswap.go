@@ -356,7 +356,6 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	var blkeys []u.Key
 	for _, block := range incoming.Blocks() {
 		blkeys = append(blkeys, block.Key())
-		log.Errorf("Got block: %s", block)
 		if err := bs.HasBlock(ctx, block); err != nil {
 			log.Error(err)
 		}
