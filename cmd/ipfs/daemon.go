@@ -165,12 +165,12 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
 	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
-	ifpsHandler, err := NewIpfsHandler(node)
+	gateway, err := NewGatewayHandler(node)
 	if err != nil {
 		return err
 	}
 
-	mux.Handle("/ipfs/", ifpsHandler)
+	mux.Handle("/ipfs/", gateway)
 
 	// if the server exits beforehand
 	var serverError error
@@ -197,6 +197,7 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	return serverError
 }
 
+// the gateway also listens on its own address:port in addition to the API listener
 func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
@@ -205,11 +206,11 @@ func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
 
 	server := manners.NewServer()
 	mux := http.NewServeMux()
-	ifpsHandler, err := NewIpfsHandler(node)
+	gateway, err := NewGatewayHandler(node)
 	if err != nil {
 		return err
 	}
-	mux.Handle("/ipfs/", ifpsHandler)
+	mux.Handle("/ipfs/", gateway)
 
 	done := make(chan struct{}, 1)
 	defer func() {

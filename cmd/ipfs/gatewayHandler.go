@@ -17,7 +17,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type ipfs interface {
+type gateway interface {
 	ResolvePath(string) (*dag.Node, error)
 	NewDagFromReader(io.Reader) (*dag.Node, error)
 	AddNodeToDAG(nd *dag.Node) (u.Key, error)
@@ -33,15 +33,15 @@ type directoryItem struct {
 	Name string
 }
 
-// ipfsHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
+// gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
-type ipfsHandler struct {
+type gatewayHandler struct {
 	node    *core.IpfsNode
 	dirList *template.Template
 }
 
-func NewIpfsHandler(node *core.IpfsNode) (*ipfsHandler, error) {
-	i := &ipfsHandler{
+func NewGatewayHandler(node *core.IpfsNode) (*gatewayHandler, error) {
+	i := &gatewayHandler{
 		node: node,
 	}
 	err := i.loadTemplate()
@@ -52,7 +52,7 @@ func NewIpfsHandler(node *core.IpfsNode) (*ipfsHandler, error) {
 }
 
 // Load the directroy list template
-func (i *ipfsHandler) loadTemplate() error {
+func (i *gatewayHandler) loadTemplate() error {
 	t, err := template.New("dir").Parse(listingTemplate)
 	if err != nil {
 		return err
@@ -61,24 +61,24 @@ func (i *ipfsHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *ipfsHandler) ResolvePath(path string) (*dag.Node, error) {
+func (i *gatewayHandler) ResolvePath(path string) (*dag.Node, error) {
 	return i.node.Resolver.ResolvePath(path)
 }
 
-func (i *ipfsHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
+func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
 	return importer.BuildDagFromReader(
 		r, i.node.DAG, i.node.Pinning.GetManual(), chunk.DefaultSplitter)
 }
 
-func (i *ipfsHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
+func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 	return i.node.DAG.Add(nd)
 }
 
-func (i *ipfsHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
+func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
 	return uio.NewDagReader(nd, i.node.DAG)
 }
 
-func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[5:]
 
 	nd, err := i.ResolvePath(path)
@@ -147,7 +147,7 @@ func (i *ipfsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, dr)
 }
 
-func (i *ipfsHandler) postHandler(w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	nd, err := i.NewDagFromReader(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
