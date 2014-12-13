@@ -95,7 +95,11 @@ func addrInList(addr ma.Multiaddr, list []ma.Multiaddr) bool {
 
 // checkNATWarning checks if our observed addresses differ. if so,
 // informs the user that certain things might not work yet
-func (s *Swarm) checkNATWarning(observed ma.Multiaddr) {
+func (s *Swarm) checkNATWarning(observed ma.Multiaddr, expected ma.Multiaddr) {
+	if observed.Equal(expected) {
+		return
+	}
+
 	listen, err := s.InterfaceListenAddresses()
 	if err != nil {
 		log.Errorf("Error retrieving swarm.InterfaceListenAddresses: %s", err)

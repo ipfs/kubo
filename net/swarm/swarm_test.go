@@ -7,27 +7,86 @@ import (
 	"time"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
-	msg "github.com/jbenet/go-ipfs/net/message"
+	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	router "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-router"
 )
 
-func pong(ctx context.Context, swarm *Swarm) {
-	i := 0
+// needed to copy the data. otherwise gets reused... :/
+type queueClient struct {
+	addr  router.Address
+	queue chan *netmsg.Packet
+}
+
+func newQueueClient(addr router.Address) *queueClient {
+	return &queueClient{addr, make(chan *netmsg.Packet, 20)}
+}
+
+func (qc *queueClient) Address() router.Address {
+	return qc.addr
+}
+
+func (qc *queueClient) HandlePacket(p router.Packet, n router.Node) error {
+
+	pkt1 := p.(*netmsg.Packet)
+	pkt2 := netmsg.Packet{}
+	pkt2 = *pkt1
+	pkt2.Data = make([]byte, len(pkt1.Data))
+	copy(pkt2.Data, pkt1.Data)
+
+	qc.queue <- &pkt2
+	return nil
+}
+
+type pongClient struct {
+	peer  peer.Peer
+	count int
+	queue chan pongPkt
+}
+
+type pongPkt struct {
+	msg netmsg.Packet
+	dst router.Node
+}
+
+func newPongClient(ctx context.Context, peer peer.Peer) *pongClient {
+	pc := &pongClient{peer: peer, queue: make(chan pongPkt, 10)}
+	go pc.echo(ctx)
+	return pc
+}
+
+func (pc *pongClient) Address() router.Address {
+	return pc.peer.ID().Pretty() + "/pong"
+}
+
+func (pc *pongClient) HandlePacket(p router.Packet, n router.Node) error {
+	pkt1 := p.(*netmsg.Packet)
+	if !bytes.Equal(pkt1.Data, []byte("ping")) {
+		log.Debugf("%s pong dropped pkt: %s (%s -> %s)", pc.Address(), pkt1.Data, pkt1.Src, pkt1.Dst)
+		panic("why")
+		return nil // drop
+	}
+
+	pc.queue <- pongPkt{pkt1.Response([]byte("pong")), n}
+	return nil
+}
+
+func (pc *pongClient) echo(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case m1 := <-swarm.Incoming:
-			if bytes.Equal(m1.Data(), []byte("ping")) {
-				m2 := msg.New(m1.Peer(), []byte("pong"))
-				i++
-				log.Debugf("%s pong %s (%d)", swarm.local, m1.Peer(), i)
-				swarm.Outgoing <- m2
+
+		case pkt := <-pc.queue:
+			pc.count++
+			log.Debugf("%s pong %s (%d)", pkt.msg.Src, pkt.msg.Dst, pc.count)
+			if err := pkt.dst.HandlePacket(&pkt.msg, pc); err != nil {
+				log.Errorf("pong error sending: %s", err)
 			}
 		}
 	}
@@ -58,7 +117,8 @@ func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []
 	for _, addr := range addrs {
 		local := setupPeer(t, addr)
 		peerstore := peer.NewPeerstore()
-		swarm, err := NewSwarm(ctx, local.Addresses(), local, peerstore)
+		pong := newPongClient(ctx, local)
+		swarm, err := NewSwarm(ctx, local.Addresses(), local, peerstore, pong)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -91,11 +151,11 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 			}
 			cp.AddAddress(dst.Addresses()[0])
 
-			log.Info("SWARM TEST: %s dialing %s", s.local, dst)
+			log.Infof("SWARM TEST: %s dialing %s", s.local, dst)
 			if _, err := s.Dial(cp); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}
-			log.Info("SWARM TEST: %s connected to %s", s.local, dst)
+			log.Infof("SWARM TEST: %s connected to %s", s.local, dst)
 			wg.Done()
 		}
 
@@ -109,21 +169,24 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 			}
 		}
 		wg.Wait()
+
+		for _, s := range swarms {
+			log.Infof("%s swarm routing table: %s", s.local, s.GetPeerList())
+		}
 	}
 
 	// ping/pong
 	for _, s1 := range swarms {
+		log.Debugf("-------------------------------------------------------")
+		log.Debugf("%s ping pong round", s1.local)
+		log.Debugf("-------------------------------------------------------")
+
+		// for this test, we'll listen on s1.
+		queue := newQueueClient(s1.client().Address())
+		pong := s1.client() // set it back at the end.
+		s1.SetClient(queue)
+
 		ctx, cancel := context.WithCancel(ctx)
-
-		// setup all others to pong
-		for _, s2 := range swarms {
-			if s1 == s2 {
-				continue
-			}
-
-			go pong(ctx, s2)
-		}
-
 		peers, err := s1.peers.All()
 		if err != nil {
 			t.Fatal(err)
@@ -132,22 +195,26 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		for k := 0; k < MsgNum; k++ {
 			for _, p := range *peers {
 				log.Debugf("%s ping %s (%d)", s1.local, p, k)
-				s1.Outgoing <- msg.New(p, []byte("ping"))
+				pkt := netmsg.Packet{Src: s1.local, Dst: p, Data: []byte("ping"), Context: ctx}
+				s1.HandlePacket(&pkt, queue)
 			}
 		}
 
 		got := map[u.Key]int{}
 		for k := 0; k < (MsgNum * len(*peers)); k++ {
 			log.Debugf("%s waiting for pong (%d)", s1.local, k)
-			msg := <-s1.Incoming
-			if string(msg.Data()) != "pong" {
-				t.Error("unexpected conn output", msg.Data)
+
+			msg := <-queue.queue
+			if string(msg.Data) != "pong" {
+				t.Error("unexpected conn output", string(msg.Data), msg.Data)
 			}
 
-			n, _ := got[msg.Peer().Key()]
-			got[msg.Peer().Key()] = n + 1
+			p := msg.Src.(peer.Peer)
+			n, _ := got[p.Key()]
+			got[p.Key()] = n + 1
 		}
 
+		log.Debugf("%s got pongs", s1.local)
 		if len(*peers) != len(got) {
 			t.Error("got less messages than sent")
 		}
@@ -159,7 +226,8 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		}
 
 		cancel()
-		<-time.After(50 * time.Microsecond)
+		<-time.After(10 * time.Millisecond)
+		s1.SetClient(pong)
 	}
 
 	for _, s := range swarms {
@@ -168,9 +236,6 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 }
 
 func TestSwarm(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
 	// t.Skip("skipping for another test")
 
 	addrs := []string{

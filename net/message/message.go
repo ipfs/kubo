@@ -1,10 +1,44 @@
 package message
 
 import (
+	"errors"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	router "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-router"
 )
+
+// ErrInvalidPayload is an error used in the router.HandlePacket implementations
+var ErrInvalidPayload = errors.New("invalid packet: non-[]byte payload")
+
+// Packet is used inside the network package to represent a message
+// flowing across the subsystems (Conn, Swarm, Mux, Service).
+// implements router.Packet
+type Packet struct {
+	Src     router.Address  // peer.ID or service string
+	Dst     router.Address  // peer.ID or service string
+	Data    []byte          // raw data
+	Context context.Context // context of the Packet.
+}
+
+func (p *Packet) Destination() router.Address {
+	return p.Dst
+}
+
+func (p *Packet) Payload() interface{} {
+	return p.Data
+}
+
+func (p *Packet) Response(data []byte) Packet {
+	return Packet{
+		Src:     p.Dst,
+		Dst:     p.Src,
+		Data:    data,
+		Context: p.Context,
+	}
+}
 
 // NetMessage is the interface for the message
 type NetMessage interface {
@@ -53,37 +87,4 @@ func FromObject(p peer.Peer, data proto.Message) (NetMessage, error) {
 		return nil, err
 	}
 	return New(p, bytes), nil
-}
-
-// Pipe objects represent a bi-directional message channel.
-type Pipe struct {
-	Incoming chan NetMessage
-	Outgoing chan NetMessage
-}
-
-// NewPipe constructs a pipe with channels of a given buffer size.
-func NewPipe(bufsize int) *Pipe {
-	return &Pipe{
-		Incoming: make(chan NetMessage, bufsize),
-		Outgoing: make(chan NetMessage, bufsize),
-	}
-}
-
-// ConnectTo connects this pipe to another, using a context for termination.
-func (p *Pipe) ConnectTo(p2 *Pipe) {
-	connectChans(p.Outgoing, p2.Outgoing)
-	connectChans(p2.Incoming, p.Incoming)
-}
-
-func connectChans(a, b chan NetMessage) {
-	go func() {
-		for {
-			m, more := <-a
-			if !more {
-				close(b)
-				return
-			}
-			b <- m
-		}
-	}()
 }
