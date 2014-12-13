@@ -74,7 +74,12 @@ func session(net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.I
 	htc := rs.Client(p)
 
 	bsdelay := delay.Fixed(0)
-	bstore := blockstore.NewBlockstore(ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay)))
+	const kWriteCacheElems = 100
+	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))), kWriteCacheElems)
+	if err != nil {
+		// FIXME perhaps change signature and return error.
+		panic(err.Error())
+	}
 
 	const alwaysSendToPeer = true
 	ctx := context.TODO()
