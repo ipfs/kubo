@@ -10,6 +10,7 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
 	"github.com/jbenet/go-ipfs/util"
+	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 type Network interface {
@@ -33,14 +34,16 @@ type Network interface {
 
 // network impl
 
-func VirtualNetwork() Network {
+func VirtualNetwork(d delay.D) Network {
 	return &network{
 		clients: make(map[util.Key]bsnet.Receiver),
+		delay:   d,
 	}
 }
 
 type network struct {
 	clients map[util.Key]bsnet.Receiver
+	delay   delay.D
 }
 
 func (n *network) Adapter(p peer.Peer) bsnet.BitSwapNetwork {
@@ -84,13 +87,15 @@ func (n *network) deliver(
 		return errors.New("Invalid input")
 	}
 
+	n.delay.Wait()
+
 	nextPeer, nextMsg := r.ReceiveMessage(context.TODO(), from, message)
 
 	if (nextPeer == nil && nextMsg != nil) || (nextMsg == nil && nextPeer != nil) {
 		return errors.New("Malformed client request")
 	}
 
-	if nextPeer == nil && nextMsg == nil {
+	if nextPeer == nil && nextMsg == nil { // no response to send
 		return nil
 	}
 

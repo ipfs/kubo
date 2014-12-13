@@ -5,12 +5,13 @@ import (
 
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	"github.com/jbenet/go-ipfs/routing/mock"
+	mock "github.com/jbenet/go-ipfs/routing/mock"
+	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 // Mocks returns |n| connected mock Blockservices
 func Mocks(t *testing.T, n int) []*BlockService {
-	net := tn.VirtualNetwork()
+	net := tn.VirtualNetwork(delay.Fixed(0))
 	rs := mock.VirtualRoutingServer()
 	sg := bitswap.NewSessionGenerator(net, rs)
 
