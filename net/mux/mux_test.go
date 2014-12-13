@@ -2,10 +2,7 @@ package mux
 
 import (
 	"bytes"
-	"fmt"
-	"sync"
 	"testing"
-	"time"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	msg "github.com/jbenet/go-ipfs/net/message"
@@ -13,15 +10,35 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	router "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-router"
 )
 
 type TestProtocol struct {
-	*msg.Pipe
+	mux *Muxer
+	pid pb.ProtocolID
+	msg []*msg.Packet
 }
 
-func (t *TestProtocol) GetPipe() *msg.Pipe {
-	return t.Pipe
+func (t *TestProtocol) ProtocolID() pb.ProtocolID {
+	return t.pid
+}
+
+func (t *TestProtocol) Address() router.Address {
+	return t.pid
+}
+
+func (t *TestProtocol) HandlePacket(p router.Packet, from router.Node) error {
+	pkt, ok := p.(*msg.Packet)
+	if !ok {
+		return msg.ErrInvalidPayload
+	}
+
+	log.Debugf("TestProtocol %d got: %v", t, p)
+	if from == t.mux {
+		t.msg = append(t.msg, pkt)
+		return nil
+	}
+	return t.mux.HandlePacket(p, t)
 }
 
 func newPeer(t *testing.T, id string) peer.Peer {
@@ -34,14 +51,14 @@ func newPeer(t *testing.T, id string) peer.Peer {
 	return testutil.NewPeerWithID(peer.ID(mh))
 }
 
-func testMsg(t *testing.T, m msg.NetMessage, data []byte) {
-	if !bytes.Equal(data, m.Data()) {
-		t.Errorf("Data does not match: %v != %v", data, m.Data())
+func testMsg(t *testing.T, m *msg.Packet, data []byte) {
+	if !bytes.Equal(data, m.Data) {
+		t.Errorf("Data does not match: %v != %v", data, m.Data)
 	}
 }
 
-func testWrappedMsg(t *testing.T, m msg.NetMessage, pid pb.ProtocolID, data []byte) {
-	data2, pid2, err := unwrapData(m.Data())
+func testWrappedMsg(t *testing.T, m *msg.Packet, pid pb.ProtocolID, data []byte) {
+	data2, pid2, err := unwrapData(m.Data)
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,228 +73,65 @@ func testWrappedMsg(t *testing.T, m msg.NetMessage, pid pb.ProtocolID, data []by
 }
 
 func TestSimpleMuxer(t *testing.T) {
-	ctx := context.Background()
-
 	// setup
-	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
+	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
+	peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
+
+	uplink := router.NewQueueNode("queue", make(chan router.Packet, 10))
+	mux1 := NewMuxer(string(peer1.ID()), uplink)
+
 	pid1 := pb.ProtocolID_Test
 	pid2 := pb.ProtocolID_Routing
-	mux1 := NewMuxer(ctx, ProtocolMap{
-		pid1: p1,
-		pid2: p2,
-	})
-	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
-	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
+	p1 := &TestProtocol{mux1, pid1, nil}
+	p2 := &TestProtocol{mux1, pid2, nil}
+	mux1.AddProtocol(p1, pid1)
+	mux1.AddProtocol(p2, pid2)
 
 	// test outgoing p1
 	for _, s := range []string{"foo", "bar", "baz"} {
-		p1.Outgoing <- msg.New(peer1, []byte(s))
-		testWrappedMsg(t, <-mux1.Outgoing, pid1, []byte(s))
+
+		pkt := msg.Packet{Src: peer1, Dst: peer2, Data: []byte(s)}
+		if err := p1.HandlePacket(&pkt, nil); err != nil {
+			t.Fatal(err)
+		}
+		testWrappedMsg(t, (<-uplink.Queue()).(*msg.Packet), pid1, []byte(s))
 	}
 
 	// test incoming p1
-	for _, s := range []string{"foo", "bar", "baz"} {
+	for i, s := range []string{"foo", "bar", "baz"} {
 		d, err := wrapData([]byte(s), pid1)
 		if err != nil {
 			t.Error(err)
 		}
-		mux1.Incoming <- msg.New(peer1, d)
-		testMsg(t, <-p1.Incoming, []byte(s))
+
+		pkt := msg.Packet{Src: peer1, Dst: peer2, Data: d}
+		if err := mux1.HandlePacket(&pkt, uplink); err != nil {
+			t.Fatal(err)
+		}
+		testMsg(t, p1.msg[i], []byte(s))
 	}
 
 	// test outgoing p2
 	for _, s := range []string{"foo", "bar", "baz"} {
-		p2.Outgoing <- msg.New(peer1, []byte(s))
-		testWrappedMsg(t, <-mux1.Outgoing, pid2, []byte(s))
+
+		pkt := msg.Packet{Src: peer1, Dst: peer2, Data: []byte(s)}
+		if err := p2.HandlePacket(&pkt, nil); err != nil {
+			t.Fatal(err)
+		}
+		testWrappedMsg(t, (<-uplink.Queue()).(*msg.Packet), pid2, []byte(s))
 	}
 
 	// test incoming p2
-	for _, s := range []string{"foo", "bar", "baz"} {
+	for i, s := range []string{"foo", "bar", "baz"} {
 		d, err := wrapData([]byte(s), pid2)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
-		mux1.Incoming <- msg.New(peer1, d)
-		testMsg(t, <-p2.Incoming, []byte(s))
-	}
-}
 
-func TestSimultMuxer(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	// run muxer
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// setup
-	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	pid1 := pb.ProtocolID_Test
-	pid2 := pb.ProtocolID_Identify
-	mux1 := NewMuxer(ctx, ProtocolMap{
-		pid1: p1,
-		pid2: p2,
-	})
-	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
-	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
-
-	// counts
-	total := 10000
-	speed := time.Microsecond * 1
-	counts := [2][2][2]int{}
-	var countsLock sync.Mutex
-
-	// run producers at every end sending incrementing messages
-	produceOut := func(pid pb.ProtocolID, size int) {
-		limiter := time.Tick(speed)
-		for i := 0; i < size; i++ {
-			<-limiter
-			s := fmt.Sprintf("proto %v out %v", pid, i)
-			m := msg.New(peer1, []byte(s))
-			mux1.Protocols[pid].GetPipe().Outgoing <- m
-			countsLock.Lock()
-			counts[pid][0][0]++
-			countsLock.Unlock()
-			// log.Debug("sent %v", s)
+		pkt := msg.Packet{Src: peer1, Dst: peer2, Data: d}
+		if err := mux1.HandlePacket(&pkt, uplink); err != nil {
+			t.Fatal(err)
 		}
-	}
-
-	produceIn := func(pid pb.ProtocolID, size int) {
-		limiter := time.Tick(speed)
-		for i := 0; i < size; i++ {
-			<-limiter
-			s := fmt.Sprintf("proto %v in %v", pid, i)
-			d, err := wrapData([]byte(s), pid)
-			if err != nil {
-				t.Error(err)
-			}
-
-			m := msg.New(peer1, d)
-			mux1.Incoming <- m
-			countsLock.Lock()
-			counts[pid][1][0]++
-			countsLock.Unlock()
-			// log.Debug("sent %v", s)
-		}
-	}
-
-	consumeOut := func() {
-		for {
-			select {
-			case m := <-mux1.Outgoing:
-				data, pid, err := unwrapData(m.Data())
-				if err != nil {
-					t.Error(err)
-				}
-
-				// log.Debug("got %v", string(data))
-				_ = data
-				countsLock.Lock()
-				counts[pid][1][1]++
-				countsLock.Unlock()
-
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
-
-	consumeIn := func(pid pb.ProtocolID) {
-		for {
-			select {
-			case m := <-mux1.Protocols[pid].GetPipe().Incoming:
-				countsLock.Lock()
-				counts[pid][0][1]++
-				countsLock.Unlock()
-				// log.Debug("got %v", string(m.Data()))
-				_ = m
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
-
-	go produceOut(pid1, total)
-	go produceOut(pid2, total)
-	go produceIn(pid1, total)
-	go produceIn(pid2, total)
-	go consumeOut()
-	go consumeIn(pid1)
-	go consumeIn(pid2)
-
-	limiter := time.Tick(speed)
-	for {
-		<-limiter
-		countsLock.Lock()
-		got := counts[0][0][0] + counts[0][0][1] +
-			counts[0][1][0] + counts[0][1][1] +
-			counts[1][0][0] + counts[1][0][1] +
-			counts[1][1][0] + counts[1][1][1]
-		countsLock.Unlock()
-
-		if got == total*8 {
-			cancel()
-			return
-		}
-	}
-
-}
-
-func TestStopping(t *testing.T) {
-	ctx := context.Background()
-
-	// setup
-	p1 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	p2 := &TestProtocol{Pipe: msg.NewPipe(10)}
-	pid1 := pb.ProtocolID_Test
-	pid2 := pb.ProtocolID_Identify
-	mux1 := NewMuxer(ctx, ProtocolMap{
-		pid1: p1,
-		pid2: p2,
-	})
-	peer1 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275aaaaaa")
-	// peer2 := newPeer(t, "11140beec7b5ea3f0fdbc95d0dd47f3c5bc275bbbbbb")
-
-	// test outgoing p1
-	for _, s := range []string{"foo1", "bar1", "baz1"} {
-		p1.Outgoing <- msg.New(peer1, []byte(s))
-		testWrappedMsg(t, <-mux1.Outgoing, pid1, []byte(s))
-	}
-
-	// test incoming p1
-	for _, s := range []string{"foo2", "bar2", "baz2"} {
-		d, err := wrapData([]byte(s), pid1)
-		if err != nil {
-			t.Error(err)
-		}
-		mux1.Incoming <- msg.New(peer1, d)
-		testMsg(t, <-p1.Incoming, []byte(s))
-	}
-
-	mux1.Close() // waits
-
-	// test outgoing p1
-	for _, s := range []string{"foo3", "bar3", "baz3"} {
-		p1.Outgoing <- msg.New(peer1, []byte(s))
-		select {
-		case m := <-mux1.Outgoing:
-			t.Errorf("should not have received anything. Got: %v", string(m.Data()))
-		case <-time.After(time.Millisecond):
-		}
-	}
-
-	// test incoming p1
-	for _, s := range []string{"foo4", "bar4", "baz4"} {
-		d, err := wrapData([]byte(s), pid1)
-		if err != nil {
-			t.Error(err)
-		}
-		mux1.Incoming <- msg.New(peer1, d)
-		select {
-		case <-p1.Incoming:
-			t.Error("should not have received anything.")
-		case <-time.After(time.Millisecond):
-		}
+		testMsg(t, p2.msg[i], []byte(s))
 	}
 }
