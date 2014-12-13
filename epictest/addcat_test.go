@@ -2,7 +2,6 @@ package epictest
 
 import (
 	"bytes"
-	randcrypto "crypto/rand"
 	"fmt"
 	"io"
 	"os"
@@ -21,7 +20,10 @@ import (
 	util "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 )
+
+const kSeed = 1
 
 func Test100MBInstantaneous(t *testing.T) {
 	t.Log("a sanity check")
@@ -109,8 +111,7 @@ func AddCatBytes(conf Config) error {
 
 	adder.SetBlockstoreLatency(0) // disable blockstore latency during add operation
 	var data bytes.Buffer
-	// FIXME replace with a random data generator that reproduces data given a seed value
-	io.Copy(&data, &io.LimitedReader{R: randcrypto.Reader, N: conf.DataAmountBytes})
+	random.WritePseudoRandomBytes(conf.DataAmountBytes, &data, kSeed) // FIXME get a lazy reader
 	keyAdded, err := add(adder, bytes.NewReader(data.Bytes()))
 	if err != nil {
 		return err
