@@ -14,6 +14,7 @@ import (
 
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
+// Blockstore wraps a ThreadSafeDatastore
 type Blockstore interface {
 	DeleteBlock(u.Key) error
 	Has(u.Key) (bool, error)
