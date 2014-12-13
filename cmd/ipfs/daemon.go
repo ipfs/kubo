@@ -165,8 +165,10 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
 	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 
-	ifpsHandler := &ipfsHandler{node: node}
-	ifpsHandler.LoadTemplate()
+	ifpsHandler, err := NewIpfsHandler(node)
+	if err != nil {
+		return err
+	}
 
 	mux.Handle("/ipfs/", ifpsHandler)
 
@@ -203,7 +205,10 @@ func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
 
 	server := manners.NewServer()
 	mux := http.NewServeMux()
-	ifpsHandler := &ipfsHandler{node}
+	ifpsHandler, err := NewIpfsHandler(node)
+	if err != nil {
+		return err
+	}
 	mux.Handle("/ipfs/", ifpsHandler)
 
 	done := make(chan struct{}, 1)

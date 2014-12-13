@@ -40,13 +40,25 @@ type ipfsHandler struct {
 	dirList *template.Template
 }
 
+func NewIpfsHandler(node *core.IpfsNode) (*ipfsHandler, error) {
+	i := &ipfsHandler{
+		node: node,
+	}
+	err := i.loadTemplate()
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
+}
+
 // Load the directroy list template
-func (i *ipfsHandler) LoadTemplate() {
+func (i *ipfsHandler) loadTemplate() error {
 	t, err := template.New("dir").Parse(listingTemplate)
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 	i.dirList = t
+	return nil
 }
 
 func (i *ipfsHandler) ResolvePath(path string) (*dag.Node, error) {
@@ -175,9 +187,9 @@ var listingTemplate = `
 	<body>
 	<h2>Index of {{ .path }}</h2>
 	<ul>
-	<li> <a href="./..">Parent</a></li>	
-    {{ range $item := .listing }}
-	 <li> <a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>	
+	<li><a href="./..">..</a></li>	
+  {{ range $item := .listing }}
+	<li><a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>	
 	{{ end }}
 	</ul>
 	</body>
