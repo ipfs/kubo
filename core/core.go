@@ -28,10 +28,10 @@ import (
 	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
-	u "github.com/jbenet/go-ipfs/util"
 	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
-	"github.com/jbenet/go-ipfs/util/eventlog"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -52,7 +52,7 @@ type IpfsNode struct {
 	Peerstore peer.Peerstore
 
 	// the local datastore
-	Datastore u.ThreadSafeDatastoreCloser
+	Datastore ds2.ThreadSafeDatastoreCloser
 
 	// the network message stream
 	Network inet.Network

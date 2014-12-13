@@ -9,10 +9,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/importer/chunk"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
+	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // NOTE:
@@ -91,7 +91,7 @@ func TestBuilderConsistency(t *testing.T) {
 	buf := new(bytes.Buffer)
 	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
 	should := dup(buf.Bytes())
-	dagserv := testutil.GetDAGServ(t)
+	dagserv := merkledag.Mock(t)
 	nd, err := BuildDagFromReader(buf, dagserv, nil, chunk.DefaultSplitter)
 	if err != nil {
 		t.Fatal(err)

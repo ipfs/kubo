@@ -10,15 +10,20 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	mock "github.com/jbenet/go-ipfs/routing/mock"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
+
+// FIXME the tests are really sensitive to the network delay. fix them to work
+// well under varying conditions
+const kNetworkDelay = 0 * time.Millisecond
 
 func TestClose(t *testing.T) {
 	// TODO
 	t.Skip("TODO Bitswap's Close implementation is a WIP")
-	vnet := tn.VirtualNetwork()
-	rout := mock.VirtualRoutingServer()
+	vnet := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rout := mockrouting.NewServer()
 	sesgen := NewSessionGenerator(vnet, rout)
 	bgen := blocksutil.NewBlockGenerator()
 
@@ -31,8 +36,8 @@ func TestClose(t *testing.T) {
 
 func TestGetBlockTimeout(t *testing.T) {
 
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
 
 	self := g.Next()
@@ -48,12 +53,12 @@ func TestGetBlockTimeout(t *testing.T) {
 
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
 
 	block := blocks.NewBlock([]byte("block"))
-	rs.Announce(testutil.NewPeerWithIDString("testing"), block.Key()) // but not on network
+	rs.Client(testutil.NewPeerWithIDString("testing")).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()
 
@@ -69,14 +74,14 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rs := mockrouting.NewServer()
 	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
 
 	hasBlock := g.Next()
 
-	if err := hasBlock.Blockstore.Put(block); err != nil {
+	if err := hasBlock.Blockstore().Put(block); err != nil {
 		t.Fatal(err)
 	}
 	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
@@ -121,8 +126,8 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := blocksutil.NewBlockGenerator()
 
@@ -135,9 +140,9 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	first := instances[0]
 	for _, b := range blocks {
-		first.Blockstore.Put(b)
+		first.Blockstore().Put(b)
 		first.Exchange.HasBlock(context.Background(), b)
-		rs.Announce(first.Peer, b.Key())
+		rs.Client(first.Peer).Provide(context.Background(), b.Key())
 	}
 
 	t.Log("Distribute!")
@@ -158,7 +163,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	for _, inst := range instances {
 		for _, b := range blocks {
-			if _, err := inst.Blockstore.Get(b.Key()); err != nil {
+			if _, err := inst.Blockstore().Get(b.Key()); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -166,7 +171,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 }
 
 func getOrFail(bitswap Instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
-	if _, err := bitswap.Blockstore.Get(b.Key()); err != nil {
+	if _, err := bitswap.Blockstore().Get(b.Key()); err != nil {
 		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {
 			t.Fatal(err)
@@ -181,8 +186,8 @@ func TestSendToWantingPeer(t *testing.T) {
 		t.SkipNow()
 	}
 
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
+	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
+	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := blocksutil.NewBlockGenerator()
 
@@ -208,7 +213,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	beta := bg.Next()
 	t.Logf("Peer %v announes availability  of %v\n", w.Peer, beta.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := w.Blockstore.Put(beta); err != nil {
+	if err := w.Blockstore().Put(beta); err != nil {
 		t.Fatal(err)
 	}
 	w.Exchange.HasBlock(ctx, beta)
@@ -221,7 +226,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	t.Logf("%v announces availability of %v\n", o.Peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := o.Blockstore.Put(alpha); err != nil {
+	if err := o.Blockstore().Put(alpha); err != nil {
 		t.Fatal(err)
 	}
 	o.Exchange.HasBlock(ctx, alpha)
@@ -233,7 +238,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 
 	t.Logf("%v should now have %v\n", w.Peer, alpha.Key())
-	block, err := w.Blockstore.Get(alpha.Key())
+	block, err := w.Blockstore().Get(alpha.Key())
 	if err != nil {
 		t.Fatalf("Should not have received an error: %s", err)
 	}
