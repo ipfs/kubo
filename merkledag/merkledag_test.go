@@ -7,13 +7,10 @@ import (
 	"io/ioutil"
 	"testing"
 
-	bserv "github.com/jbenet/go-ipfs/blockservice"
-	bs "github.com/jbenet/go-ipfs/exchange/bitswap"
-	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
+	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	imp "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	. "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/routing/mock"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -79,20 +76,8 @@ func makeTestDag(t *testing.T) *Node {
 }
 
 func TestBatchFetch(t *testing.T) {
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
-	sg := bs.NewSessionGenerator(net, rs)
-
-	instances := sg.Instances(5)
-
-	var servs []*bserv.BlockService
 	var dagservs []DAGService
-	for _, i := range instances {
-		bsi, err := bserv.New(i.Blockstore, i.Exchange)
-		if err != nil {
-			t.Fatal(err)
-		}
-		servs = append(servs, bsi)
+	for _, bsi := range blockservice.Mocks(t, 5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 	t.Log("finished setup.")

@@ -12,7 +12,7 @@ import (
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	mdht "github.com/jbenet/go-ipfs/routing/mock"
-	"github.com/jbenet/go-ipfs/util"
+	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.
@@ -39,7 +39,7 @@ func NewMockNode() (*IpfsNode, error) {
 
 	// Temp Datastore
 	dstore := ds.NewMapDatastore()
-	nd.Datastore = util.CloserWrap(syncds.MutexWrap(dstore))
+	nd.Datastore = ds2.CloserWrap(syncds.MutexWrap(dstore))
 
 	// Routing
 	dht := mdht.NewMockRouter(nd.Identity, nd.Datastore)

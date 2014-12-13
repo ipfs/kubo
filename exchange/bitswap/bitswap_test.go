@@ -76,7 +76,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	hasBlock := g.Next()
 
-	if err := hasBlock.Blockstore.Put(block); err != nil {
+	if err := hasBlock.Blockstore().Put(block); err != nil {
 		t.Fatal(err)
 	}
 	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
@@ -135,7 +135,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	first := instances[0]
 	for _, b := range blocks {
-		first.Blockstore.Put(b)
+		first.Blockstore().Put(b)
 		first.Exchange.HasBlock(context.Background(), b)
 		rs.Announce(first.Peer, b.Key())
 	}
@@ -158,7 +158,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	for _, inst := range instances {
 		for _, b := range blocks {
-			if _, err := inst.Blockstore.Get(b.Key()); err != nil {
+			if _, err := inst.Blockstore().Get(b.Key()); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -166,7 +166,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 }
 
 func getOrFail(bitswap Instance, b *blocks.Block, t *testing.T, wg *sync.WaitGroup) {
-	if _, err := bitswap.Blockstore.Get(b.Key()); err != nil {
+	if _, err := bitswap.Blockstore().Get(b.Key()); err != nil {
 		_, err := bitswap.Exchange.GetBlock(context.Background(), b.Key())
 		if err != nil {
 			t.Fatal(err)
@@ -208,7 +208,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	beta := bg.Next()
 	t.Logf("Peer %v announes availability  of %v\n", w.Peer, beta.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := w.Blockstore.Put(beta); err != nil {
+	if err := w.Blockstore().Put(beta); err != nil {
 		t.Fatal(err)
 	}
 	w.Exchange.HasBlock(ctx, beta)
@@ -221,7 +221,7 @@ func TestSendToWantingPeer(t *testing.T) {
 
 	t.Logf("%v announces availability of %v\n", o.Peer, alpha.Key())
 	ctx, _ = context.WithTimeout(context.Background(), timeout)
-	if err := o.Blockstore.Put(alpha); err != nil {
+	if err := o.Blockstore().Put(alpha); err != nil {
 		t.Fatal(err)
 	}
 	o.Exchange.HasBlock(ctx, alpha)
@@ -233,7 +233,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 
 	t.Logf("%v should now have %v\n", w.Peer, alpha.Key())
-	block, err := w.Blockstore.Get(alpha.Key())
+	block, err := w.Blockstore().Get(alpha.Key())
 	if err != nil {
 		t.Fatalf("Should not have received an error: %s", err)
 	}

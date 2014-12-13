@@ -11,10 +11,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
-	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
-	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
-	"github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -63,23 +60,9 @@ func TestBlocks(t *testing.T) {
 }
 
 func TestGetBlocksSequential(t *testing.T) {
-	net := tn.VirtualNetwork()
-	rs := mock.VirtualRoutingServer()
-	sg := bitswap.NewSessionGenerator(net, rs)
+	var servs = Mocks(t, 4)
 	bg := blocksutil.NewBlockGenerator()
-
-	instances := sg.Instances(4)
 	blks := bg.Blocks(50)
-	// TODO: verify no duplicates
-
-	var servs []*BlockService
-	for _, i := range instances {
-		bserv, err := New(i.Blockstore, i.Exchange)
-		if err != nil {
-			t.Fatal(err)
-		}
-		servs = append(servs, bserv)
-	}
 
 	var keys []u.Key
 	for _, blk := range blks {
@@ -89,7 +72,7 @@ func TestGetBlocksSequential(t *testing.T) {
 
 	t.Log("one instance at a time, get blocks concurrently")
 
-	for i := 1; i < len(instances); i++ {
+	for i := 1; i < len(servs); i++ {
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
 		out := servs[i].GetBlocks(ctx, keys)
 		gotten := make(map[u.Key]*blocks.Block)

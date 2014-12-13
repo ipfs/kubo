@@ -1,14 +1,18 @@
 package bitswap
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"time"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	"github.com/jbenet/go-ipfs/blocks/blockstore"
-	"github.com/jbenet/go-ipfs/exchange"
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	"github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/routing/mock"
+	peer "github.com/jbenet/go-ipfs/peer"
+	mock "github.com/jbenet/go-ipfs/routing/mock"
+	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
+	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 func NewSessionGenerator(
@@ -45,7 +49,17 @@ func (g *SessionGenerator) Instances(n int) []Instance {
 type Instance struct {
 	Peer       peer.Peer
 	Exchange   exchange.Interface
-	Blockstore blockstore.Blockstore
+	blockstore blockstore.Blockstore
+
+	blockstoreDelay delay.D
+}
+
+func (i *Instance) Blockstore() blockstore.Blockstore {
+	return i.blockstore
+}
+
+func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
+	return i.blockstoreDelay.Set(t)
 }
 
 // session creates a test bitswap session.
@@ -58,7 +72,9 @@ func session(net tn.Network, rs mock.RoutingServer, ps peer.Peerstore, id peer.I
 
 	adapter := net.Adapter(p)
 	htc := rs.Client(p)
-	bstore := blockstore.NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+
+	bsdelay := delay.Fixed(0)
+	bstore := blockstore.NewBlockstore(ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay)))
 
 	const alwaysSendToPeer = true
 	ctx := context.TODO()
@@ -66,8 +82,9 @@ func session(net tn.Network, rs mock.RoutingServer, ps peer.Peerstore, id peer.I
 	bs := New(ctx, p, adapter, htc, bstore, alwaysSendToPeer)
 
 	return Instance{
-		Peer:       p,
-		Exchange:   bs,
-		Blockstore: bstore,
+		Peer:            p,
+		Exchange:        bs,
+		blockstore:      bstore,
+		blockstoreDelay: bsdelay,
 	}
 }

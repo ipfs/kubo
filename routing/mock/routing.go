@@ -30,10 +30,6 @@ func NewMockRouter(local peer.Peer, dstore ds.Datastore) routing.IpfsRouting {
 	}
 }
 
-func (mr *MockRouter) SetRoutingServer(rs RoutingServer) {
-	mr.hashTable = rs
-}
-
 func (mr *MockRouter) PutValue(ctx context.Context, key u.Key, val []byte) error {
 	log.Debugf("PutValue: %s", key)
 	return mr.datastore.Put(key.DsKey(), val)
@@ -119,7 +115,8 @@ func (rs *hashTable) Announce(p peer.Peer, k u.Key) error {
 func (rs *hashTable) Providers(k u.Key) []peer.Peer {
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
-	ret := make([]peer.Peer, 0)
+
+	var ret []peer.Peer
 	peerset, ok := rs.providers[k]
 	if !ok {
 		return ret

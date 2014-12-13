@@ -1,4 +1,4 @@
-package util
+package datastore2
 
 import (
 	"io"

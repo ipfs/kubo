@@ -1,9 +1,8 @@
 package testutil
 
 import (
-	"github.com/jbenet/go-ipfs/peer"
-
 	ic "github.com/jbenet/go-ipfs/crypto"
+	peer "github.com/jbenet/go-ipfs/peer"
 )
 
 func NewPeerWithKeyPair(sk ic.PrivKey, pk ic.PubKey) (peer.Peer, error) {
