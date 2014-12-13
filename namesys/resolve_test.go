@@ -3,17 +3,15 @@ package namesys
 import (
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	mock "github.com/jbenet/go-ipfs/routing/mock"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestRoutingResolve(t *testing.T) {
 	local := testutil.NewPeerWithIDString("testID")
-	lds := ds.NewMapDatastore()
-	d := mock.NewMockRouter(local, lds)
+	d := mockrouting.NewServer().Client(local)
 
 	resolver := NewRoutingResolver(d)
 	publisher := NewRoutingPublisher(d)

@@ -42,7 +42,7 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.Datastore = ds2.CloserWrap(syncds.MutexWrap(dstore))
 
 	// Routing
-	dht := mdht.NewMockRouter(nd.Identity, nd.Datastore)
+	dht := mdht.NewServer().ClientWithDatastore(nd.Identity, nd.Datastore)
 	nd.Routing = dht
 
 	// Bitswap

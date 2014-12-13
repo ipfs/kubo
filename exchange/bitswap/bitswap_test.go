@@ -10,18 +10,20 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	mock "github.com/jbenet/go-ipfs/routing/mock"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
+// FIXME the tests are really sensitive to the network delay. fix them to work
+// well under varying conditions
 const kNetworkDelay = 0 * time.Millisecond
 
 func TestClose(t *testing.T) {
 	// TODO
 	t.Skip("TODO Bitswap's Close implementation is a WIP")
 	vnet := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rout := mock.VirtualRoutingServer()
+	rout := mockrouting.NewServer()
 	sesgen := NewSessionGenerator(vnet, rout)
 	bgen := blocksutil.NewBlockGenerator()
 
@@ -35,7 +37,7 @@ func TestClose(t *testing.T) {
 func TestGetBlockTimeout(t *testing.T) {
 
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mock.VirtualRoutingServer()
+	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
 
 	self := g.Next()
@@ -52,11 +54,11 @@ func TestGetBlockTimeout(t *testing.T) {
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mock.VirtualRoutingServer()
+	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
 
 	block := blocks.NewBlock([]byte("block"))
-	rs.Announce(testutil.NewPeerWithIDString("testing"), block.Key()) // but not on network
+	rs.Client(testutil.NewPeerWithIDString("testing")).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()
 
@@ -73,7 +75,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mock.VirtualRoutingServer()
+	rs := mockrouting.NewServer()
 	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
 
@@ -125,7 +127,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 		t.SkipNow()
 	}
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mock.VirtualRoutingServer()
+	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := blocksutil.NewBlockGenerator()
 
@@ -140,7 +142,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	for _, b := range blocks {
 		first.Blockstore().Put(b)
 		first.Exchange.HasBlock(context.Background(), b)
-		rs.Announce(first.Peer, b.Key())
+		rs.Client(first.Peer).Provide(context.Background(), b.Key())
 	}
 
 	t.Log("Distribute!")
@@ -185,7 +187,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	}
 
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mock.VirtualRoutingServer()
+	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
 	bg := blocksutil.NewBlockGenerator()
 

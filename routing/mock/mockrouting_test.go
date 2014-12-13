@@ -1,4 +1,4 @@
-package mock
+package mockrouting
 
 import (
 	"bytes"
@@ -12,37 +12,21 @@ import (
 
 func TestKeyNotFound(t *testing.T) {
 
-	vrs := VirtualRoutingServer()
-	empty := vrs.Providers(u.Key("not there"))
-	if len(empty) != 0 {
-		t.Fatal("should be empty")
-	}
-}
+	var peer = testutil.NewPeerWithID(peer.ID([]byte("the peer id")))
+	var key = u.Key("mock key")
+	var ctx = context.Background()
 
-func TestSetAndGet(t *testing.T) {
-	pid := peer.ID([]byte("the peer id"))
-	p := testutil.NewPeerWithID(pid)
-	k := u.Key("42")
-	rs := VirtualRoutingServer()
-	err := rs.Announce(p, k)
-	if err != nil {
-		t.Fatal(err)
+	rs := NewServer()
+	providers := rs.Client(peer).FindProvidersAsync(ctx, key, 10)
+	_, ok := <-providers
+	if ok {
+		t.Fatal("should be closed")
 	}
-	providers := rs.Providers(k)
-	if len(providers) != 1 {
-		t.Fatal("should be one")
-	}
-	for _, elem := range providers {
-		if bytes.Equal(elem.ID(), pid) {
-			return
-		}
-	}
-	t.Fatal("ID should have matched")
 }
 
 func TestClientFindProviders(t *testing.T) {
 	peer := testutil.NewPeerWithIDString("42")
-	rs := VirtualRoutingServer()
+	rs := NewServer()
 	client := rs.Client(peer)
 
 	k := u.Key("hello")
@@ -52,7 +36,10 @@ func TestClientFindProviders(t *testing.T) {
 	}
 	max := 100
 
-	providersFromHashTable := rs.Providers(k)
+	providersFromHashTable, err := rs.Client(peer).FindProviders(context.Background(), k)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	isInHT := false
 	for _, p := range providersFromHashTable {
@@ -76,20 +63,15 @@ func TestClientFindProviders(t *testing.T) {
 }
 
 func TestClientOverMax(t *testing.T) {
-	rs := VirtualRoutingServer()
+	rs := NewServer()
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
 		peer := testutil.NewPeerWithIDString(string(i))
-		err := rs.Announce(peer, k)
+		err := rs.Client(peer).Provide(context.Background(), k)
 		if err != nil {
 			t.Fatal(err)
 		}
-	}
-	providersFromHashTable := rs.Providers(k)
-	if len(providersFromHashTable) != numProvidersForHelloKey {
-		t.Log(1 == len(providersFromHashTable))
-		t.Fatal("not all providers were returned")
 	}
 
 	max := 10
@@ -108,7 +90,7 @@ func TestClientOverMax(t *testing.T) {
 
 // TODO does dht ensure won't receive self as a provider? probably not.
 func TestCanceledContext(t *testing.T) {
-	rs := VirtualRoutingServer()
+	rs := NewServer()
 	k := u.Key("hello")
 
 	t.Log("async'ly announce infinite stream of providers for key")
@@ -116,7 +98,7 @@ func TestCanceledContext(t *testing.T) {
 	go func() { // infinite stream
 		for {
 			peer := testutil.NewPeerWithIDString(string(i))
-			err := rs.Announce(peer, k)
+			err := rs.Client(peer).Provide(context.Background(), k)
 			if err != nil {
 				t.Fatal(err)
 			}

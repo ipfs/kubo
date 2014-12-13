@@ -10,13 +10,13 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
-	mock "github.com/jbenet/go-ipfs/routing/mock"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 func NewSessionGenerator(
-	net tn.Network, rs mock.RoutingServer) SessionGenerator {
+	net tn.Network, rs mockrouting.Server) SessionGenerator {
 	return SessionGenerator{
 		net: net,
 		rs:  rs,
@@ -28,7 +28,7 @@ func NewSessionGenerator(
 type SessionGenerator struct {
 	seq int
 	net tn.Network
-	rs  mock.RoutingServer
+	rs  mockrouting.Server
 	ps  peer.Peerstore
 }
 
@@ -67,7 +67,7 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(net tn.Network, rs mock.RoutingServer, ps peer.Peerstore, id peer.ID) Instance {
+func session(net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.ID) Instance {
 	p := ps.WithID(id)
 
 	adapter := net.Adapter(p)
