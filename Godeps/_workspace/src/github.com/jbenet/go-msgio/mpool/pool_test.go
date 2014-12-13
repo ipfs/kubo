@@ -9,6 +9,7 @@ package mpool
 
 import (
 	"fmt"
+	"math/rand"
 	"runtime"
 	"runtime/debug"
 	"sync/atomic"
@@ -62,7 +63,7 @@ func TestPoolNew(t *testing.T) {
 	s := [32]int{}
 	p := Pool{
 		New: func(length int) interface{} {
-			idx := largerPowerOfTwo(uint32(length))
+			idx := nextPowerOfTwo(uint32(length))
 			s[idx]++
 			return s[idx]
 		},
@@ -148,7 +149,60 @@ func TestPoolStress(t *testing.T) {
 		}()
 	}
 	for i := 0; i < P; i++ {
+		// fmt.Printf("%d/%d\n", i, P)
 		<-done
+	}
+}
+
+func TestPoolStressByteSlicePool(t *testing.T) {
+	const P = 10
+	chs := 10
+	maxSize := uint32(1 << 16)
+	N := int(1e4)
+	if testing.Short() {
+		N /= 100
+	}
+	p := ByteSlicePool
+	done := make(chan bool)
+	errs := make(chan error)
+	for i := 0; i < P; i++ {
+		go func() {
+			ch := make(chan []byte, chs+1)
+
+			for i := 0; i < chs; i++ {
+				j := rand.Uint32() % maxSize
+				ch <- p.Get(j).([]byte)
+			}
+
+			for j := 0; j < N; j++ {
+				r := uint32(0)
+				for i := 0; i < chs; i++ {
+					v := <-ch
+					p.Put(uint32(cap(v)), v)
+					r = rand.Uint32() % maxSize
+					v = p.Get(r).([]byte)
+					if uint32(len(v)) < r {
+						errs <- fmt.Errorf("expect len(v) >= %d, got %d", j, len(v))
+					}
+					ch <- v
+				}
+
+				if r%1000 == 0 {
+					runtime.GC()
+				}
+			}
+			done <- true
+		}()
+	}
+
+	for i := 0; i < P; {
+		select {
+		case <-done:
+			i++
+			// fmt.Printf("%d/%d\n", i, P)
+		case err := <-errs:
+			t.Error(err)
+		}
 	}
 }
 

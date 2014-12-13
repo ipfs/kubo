@@ -72,8 +72,9 @@ func (p *Pool) getPool(idx uint32) *sync.Pool {
 // If Get would otherwise return nil and p.New is non-nil, Get returns the
 // result of calling p.New.
 func (p *Pool) Get(length uint32) interface{} {
-	idx := largerPowerOfTwo(length)
+	idx := nextPowerOfTwo(length)
 	sp := p.getPool(idx)
+	// fmt.Printf("Get(%d) idx(%d)\n", length, idx)
 	val := sp.Get()
 	if val == nil && p.New != nil {
 		val = p.New(0x1 << idx)
@@ -83,27 +84,42 @@ func (p *Pool) Get(length uint32) interface{} {
 
 // Put adds x to the pool.
 func (p *Pool) Put(length uint32, val interface{}) {
-	idx := smallerPowerOfTwo(length)
+	idx := prevPowerOfTwo(length)
+	// fmt.Printf("Put(%d, -) idx(%d)\n", length, idx)
 	sp := p.getPool(idx)
 	sp.Put(val)
 }
 
-func largerPowerOfTwo(num uint32) uint32 {
-	for p := uint32(0); p < 32; p++ {
-		if (0x1 << p) >= num {
-			return p
-		}
+func nextPowerOfTwo(v uint32) uint32 {
+	// fmt.Printf("nextPowerOfTwo(%d) ", v)
+	v--
+	v |= v >> 1
+	v |= v >> 2
+	v |= v >> 4
+	v |= v >> 8
+	v |= v >> 16
+	v++
+
+	// fmt.Printf("-> %d", v)
+
+	i := uint32(0)
+	for i = 0; v > 1; i++ {
+		v = v >> 1
 	}
 
-	panic("unreachable")
+	// fmt.Printf("-> %d\n", i)
+	return i
 }
 
-func smallerPowerOfTwo(num uint32) uint32 {
-	for p := uint32(1); p < 32; p++ {
-		if (0x1 << p) > num {
-			return p - 1
-		}
+func prevPowerOfTwo(num uint32) uint32 {
+	next := nextPowerOfTwo(num)
+	// fmt.Printf("prevPowerOfTwo(%d) next: %d", num, next)
+	switch {
+	case num == (1 << next): // num is a power of 2
+	case next == 0:
+	default:
+		next = next - 1 // smaller
 	}
-
-	panic("unreachable")
+	// fmt.Printf(" = %d\n", next)
+	return next
 }
