@@ -93,6 +93,10 @@
 			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-ctxgroup",
+			"Rev": "6b9437e8517175306e30ffec241c523752a38303"
+		},
+		{
 			"ImportPath": "github.com/jbenet/go-datastore",
 			"Rev": "6a1c83bda2a71a9bdc936749fdb507df958ed949"
 		},
@@ -125,6 +129,10 @@
 		{
 			"ImportPath": "github.com/jbenet/go-random",
 			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-router",
+			"Rev": "7a4053217b7bfe3a14cc79541557d47d0c4ad85f"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",
