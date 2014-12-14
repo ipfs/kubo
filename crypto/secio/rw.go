@@ -87,22 +87,34 @@ func NewETMReader(r io.Reader, s cipher.Stream, mac HMAC) msgio.ReadCloser {
 	return &etmReader{msg: msgio.NewReader(r), str: s, mac: mac}
 }
 
+func (r *etmReader) NextMsgLen() (int, error) {
+	return r.msg.NextMsgLen()
+}
+
 func (r *etmReader) Read(buf []byte) (int, error) {
-	buf2 := buf
-	changed := false
-	if cap(buf2) < (len(buf) + r.mac.size) {
-		buf2 = make([]byte, len(buf)+r.mac.size)
-		changed = true
+	// first, check the buffer has enough space.
+	fullLen, err := r.msg.NextMsgLen()
+	if err != nil {
+		return 0, err
 	}
 
-	// WARNING: assumes msg.Read will only read _one_ message. this is what
-	// msgio is supposed to do. but msgio may change in the future. may this
-	// comment be your guiding light.
-	n, err := r.msg.Read(buf2)
+	dataLen := fullLen - r.mac.size
+	if cap(buf) < dataLen {
+		return 0, io.ErrShortBuffer
+	}
+
+	buf2 := buf
+	changed := false
+	if cap(buf) < fullLen {
+		buf2 = make([]byte, fullLen)
+		changed = true
+	}
+	buf2 = buf2[:fullLen]
+
+	n, err := io.ReadFull(r.msg, buf2)
 	if err != nil {
 		return n, err
 	}
-	buf2 = buf2[:n]
 
 	m, err := r.macCheckThenDecrypt(buf2)
 	if err != nil {

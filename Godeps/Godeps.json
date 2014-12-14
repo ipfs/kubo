@@ -110,7 +110,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-msgio",
-			"Rev": "753e598a1d24b311ee05c4ce001cff74e2a8e745"
+			"Rev": "281b085dc602c4f0377438e20331f45a91bcdf9c"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",

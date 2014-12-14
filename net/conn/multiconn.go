@@ -266,6 +266,14 @@ func (c *MultiConn) Write(buf []byte) (int, error) {
 	return bc.Write(buf)
 }
 
+func (c *MultiConn) NextMsgLen() (int, error) {
+	bc := c.BestConn()
+	if bc == nil {
+		return 0, errors.New("no best connection")
+	}
+	return bc.NextMsgLen()
+}
+
 // ReadMsg reads data, net.Conn style
 func (c *MultiConn) ReadMsg() ([]byte, error) {
 	next, ok := <-c.fanIn

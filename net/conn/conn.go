@@ -115,6 +115,10 @@ func (c *singleConn) Write(buf []byte) (int, error) {
 	return c.msgrw.Write(buf)
 }
 
+func (c *singleConn) NextMsgLen() (int, error) {
+	return c.msgrw.NextMsgLen()
+}
+
 // ReadMsg reads data, net.Conn style
 func (c *singleConn) ReadMsg() ([]byte, error) {
 	return c.msgrw.ReadMsg()
