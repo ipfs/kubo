@@ -13,17 +13,14 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
-var log = u.Logger("conn")
+var log = eventlog.Logger("conn")
 
 const (
 	// MaxMessageSize is the size of the largest single message. (4MB)
 	MaxMessageSize = 1 << 22
-
-	// HandshakeTimeout for when nodes first connect
-	HandshakeTimeout = time.Second * 5
 )
 
 // ReleaseBuffer puts the given byte array back into the buffer pool,
@@ -39,13 +36,10 @@ type singleConn struct {
 	remote peer.Peer
 	maconn manet.Conn
 	msgrw  msgio.ReadWriteCloser
-
-	ctxc.ContextCloser
 }
 
 // newConn constructs a new connection
-func newSingleConn(ctx context.Context, local, remote peer.Peer,
-	maconn manet.Conn) (Conn, error) {
+func newSingleConn(ctx context.Context, local, remote peer.Peer, maconn manet.Conn) (Conn, error) {
 
 	conn := &singleConn{
 		local:  local,
@@ -53,14 +47,10 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 		maconn: maconn,
 		msgrw:  msgio.NewReadWriter(maconn),
 	}
-
-	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
-
 	log.Debugf("newSingleConn %p: %v to %v", conn, local, remote)
 
 	// version handshake
-	ctxT, _ := context.WithTimeout(ctx, HandshakeTimeout)
-	if err := Handshake1(ctxT, conn); err != nil {
+	if err := Handshake1(ctx, conn); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("Handshake1 failed: %s", err)
 	}
@@ -70,9 +60,8 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 }
 
 // close is the internal close function, called by ContextCloser.Close
-func (c *singleConn) close() error {
+func (c *singleConn) Close() error {
 	log.Debugf("%s closing Conn with %s", c.local, c.remote)
-
 	// close underlying connection
 	return c.msgrw.Close()
 }

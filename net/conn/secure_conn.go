@@ -10,7 +10,6 @@ import (
 
 	secio "github.com/jbenet/go-ipfs/crypto/secio"
 	peer "github.com/jbenet/go-ipfs/peer"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.
@@ -24,8 +23,6 @@ type secureConn struct {
 
 	// secure Session
 	session secio.Session
-
-	ctxc.ContextCloser
 }
 
 // newConn constructs a new connection
@@ -43,13 +40,11 @@ func newSecureConn(ctx context.Context, insecure Conn, peers peer.Peerstore) (Co
 		session:  session,
 		secure:   session.ReadWriter(),
 	}
-	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
 	log.Debugf("newSecureConn: %v to %v handshake success!", conn.LocalPeer(), conn.RemotePeer())
 	return conn, nil
 }
 
-// close is called by ContextCloser
-func (c *secureConn) close() error {
+func (c *secureConn) Close() error {
 	if err := c.secure.Close(); err != nil {
 		c.insecure.Close()
 		return err

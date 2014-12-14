@@ -13,73 +13,51 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+func testOneSendRecv(t *testing.T, c1, c2 Conn) {
+	m1 := []byte("hello")
+	if err := c1.WriteMsg(m1); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := c2.ReadMsg()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(m1, m2) {
+		t.Fatal("failed to send: %s %s", m1, m2)
+	}
+}
+
+func testNotOneSendRecv(t *testing.T, c1, c2 Conn) {
+	m1 := []byte("hello")
+	if err := c1.WriteMsg(m1); err == nil {
+		t.Fatal("write should have failed", err)
+	}
+	_, err := c2.ReadMsg()
+	if err == nil {
+		t.Fatal("read should have failed", err)
+	}
+}
+
 func TestClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
 
-	select {
-	case <-c1.Closed():
-		t.Fatal("done before close")
-	case <-c2.Closed():
-		t.Fatal("done before close")
-	default:
-	}
+	testOneSendRecv(t, c1, c2)
+	testOneSendRecv(t, c2, c1)
 
 	c1.Close()
 
-	select {
-	case <-c1.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
+	time.After(200 * time.Millisecond)
+	testNotOneSendRecv(t, c1, c2)
+	testNotOneSendRecv(t, c2, c1)
 
 	c2.Close()
 
-	select {
-	case <-c2.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
-	cancel() // close the listener :P
-}
-
-func TestCancel(t *testing.T) {
-	// t.Skip("Skipping in favor of another test")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
-
-	select {
-	case <-c1.Closed():
-		t.Fatal("done before close")
-	case <-c2.Closed():
-		t.Fatal("done before close")
-	default:
-	}
-
-	c1.Close()
-	c2.Close()
-	cancel() // listener
-
-	// wait to ensure other goroutines run and close things.
-	<-time.After(time.Microsecond * 10)
-	// test that cancel called Close.
-
-	select {
-	case <-c1.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
-	select {
-	case <-c2.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
+	time.After(20000 * time.Millisecond)
+	testNotOneSendRecv(t, c1, c2)
+	testNotOneSendRecv(t, c2, c1)
 }
 
 func TestCloseLeak(t *testing.T) {

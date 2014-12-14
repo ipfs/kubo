@@ -33,16 +33,19 @@ func setupPeer(addr string) (peer.Peer, error) {
 
 func echoListen(ctx context.Context, listener Listener) {
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		case c := <-listener.Accept():
-			go echo(ctx, c)
+		c, err := listener.Accept()
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
+		go echo(c.(Conn))
 	}
 }
 
-func echo(ctx context.Context, c Conn) {
+func echo(c Conn) {
 	io.Copy(c, c)
 }
 
@@ -78,14 +81,24 @@ func setupConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
 		LocalPeer: p2,
 	}
 
-	c2, err := d2.Dial(ctx, "tcp", p1)
+	var c2 Conn
+
+	done := make(chan struct{})
+	go func() {
+		c2, err = d2.Dial(ctx, "tcp", p1)
+		if err != nil {
+			t.Fatal("error dialing peer", err)
+		}
+		done <- struct{}{}
+	}()
+
+	c1, err := l1.Accept()
 	if err != nil {
-		t.Fatal("error dialing peer", err)
+		t.Fatal("failed to accept")
 	}
+	<-done
 
-	c1 := <-l1.Accept()
-
-	return c1, c2
+	return c1.(Conn), c2
 }
 
 func TestDialer(t *testing.T) {

@@ -23,8 +23,5 @@ func (e *Error) Error() string {
 }
 
 func New(errs ...error) *Error {
-	if len(errs) == 0 {
-		return nil
-	}
 	return &Error{errs}
 }

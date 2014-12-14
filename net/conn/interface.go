@@ -1,15 +1,13 @@
 package conn
 
 import (
-	"errors"
+	"io"
 	"net"
 	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
@@ -19,9 +17,6 @@ type Map map[u.Key]Conn
 
 // Conn is a generic message-based Peer-to-Peer connection.
 type Conn interface {
-
-	// implement ContextCloser too!
-	ctxc.ContextCloser
 
 	// ID is an identifier unique to this connection.
 	ID() string
@@ -47,6 +42,7 @@ type Conn interface {
 
 	msgio.Reader
 	msgio.Writer
+	io.Closer
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
@@ -67,9 +63,12 @@ type Dialer struct {
 type Listener interface {
 
 	// Accept waits for and returns the next connection to the listener.
-	Accept() <-chan Conn
+	Accept() (net.Conn, error)
 
-	// Multiaddr is the identity of the local Peer.
+	// Addr is the local address
+	Addr() net.Addr
+
+	// Multiaddr is the local multiaddr address
 	Multiaddr() ma.Multiaddr
 
 	// LocalPeer is the identity of the local Peer.
@@ -83,90 +82,4 @@ type Listener interface {
 	// Close closes the listener.
 	// Any blocked Accept operations will be unblocked and return errors.
 	Close() error
-}
-
-// CtxRead is a function that Reads from a connection while respecting a
-// Context. Though it cannot cancel the read per-se (as not all Connections
-// implement SetTimeout, and a CancelFunc can't be predicted), at least it
-// doesn't hang. The Read will eventually return and the goroutine will exit.
-func CtxRead(ctx context.Context, c Conn, buf []byte) (n int, err error) {
-	done := make(chan struct{})
-	go func() {
-		n, err = c.Read(buf)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return 0, ctx.Err()
-
-	case <-c.Closing():
-		return 0, errors.New("remote connection closed")
-
-	case <-done:
-		return n, err
-	}
-}
-
-// CtxReadMsg is a function that Reads from a connection while respecting a
-// Context. See CtxRead.
-func CtxReadMsg(ctx context.Context, c Conn) (msg []byte, err error) {
-	done := make(chan struct{})
-	go func() {
-		msg, err = c.ReadMsg()
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return msg, ctx.Err()
-
-	case <-c.Closing():
-		return msg, errors.New("remote connection closed")
-
-	case <-done:
-		return msg, err
-	}
-}
-
-// CtxWrite is a function that Writes to a connection while respecting a
-// Context. See CtxRead.
-func CtxWrite(ctx context.Context, c Conn, buf []byte) (n int, err error) {
-	done := make(chan struct{})
-	go func() {
-		n, err = c.Read(buf)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return 0, ctx.Err()
-
-	case <-c.Closing():
-		return 0, errors.New("remote connection closed")
-
-	case <-done:
-		return n, err
-	}
-}
-
-// CtxWriteMsg is a function that Writes to a connection while respecting a
-// Context. See CtxRead.
-func CtxWriteMsg(ctx context.Context, c Conn, buf []byte) (err error) {
-	done := make(chan struct{})
-	go func() {
-		err = c.WriteMsg(buf)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-
-	case <-c.Closing():
-		return errors.New("remote connection closed")
-
-	case <-done:
-		return err
-	}
 }
