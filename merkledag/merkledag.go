@@ -332,6 +332,13 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 				break
 			}
 			nodes[i] = nd
+			for { //Check for duplicate links
+				ni, err := FindLink(root, blk.Key(), nodes)
+				if err != nil {
+					break
+				}
+				nodes[ni] = nd
+			}
 
 			if next == i {
 				sig <- nd

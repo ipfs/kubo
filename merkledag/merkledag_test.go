@@ -75,6 +75,25 @@ func makeTestDag(t *testing.T) *Node {
 	return root
 }
 
+type devZero struct{}
+
+func (_ devZero) Read(b []byte) (int, error) {
+	for i, _ := range b {
+		b[i] = 0
+	}
+	return len(b), nil
+}
+
+func makeZeroDag(t *testing.T) *Node {
+	read := io.LimitReader(devZero{}, 1024*32)
+	spl := &chunk.SizeSplitter{512}
+	root, err := imp.NewDagFromReaderWithSplitter(read, spl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func TestBatchFetch(t *testing.T) {
 	var dagservs []DAGService
 	for _, bsi := range blockservice.Mocks(t, 5) {
@@ -83,6 +102,65 @@ func TestBatchFetch(t *testing.T) {
 	t.Log("finished setup.")
 
 	root := makeTestDag(t)
+	read, err := uio.NewDagReader(root, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := ioutil.ReadAll(read)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dagservs[0].AddRecursive(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("Added file to first node.")
+
+	k, err := root.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan struct{})
+	for i := 1; i < len(dagservs); i++ {
+		go func(i int) {
+			first, err := dagservs[i].Get(k)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fmt.Println("Got first node back.")
+
+			read, err := uio.NewDagReader(first, dagservs[i])
+			if err != nil {
+				t.Fatal(err)
+			}
+			datagot, err := ioutil.ReadAll(read)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !bytes.Equal(datagot, expected) {
+				t.Fatal("Got bad data back!")
+			}
+			done <- struct{}{}
+		}(i)
+	}
+
+	for i := 1; i < len(dagservs); i++ {
+		<-done
+	}
+}
+
+func TestBatchFetchDupBlock(t *testing.T) {
+	var dagservs []DAGService
+	for _, bsi := range blockservice.Mocks(t, 5) {
+		dagservs = append(dagservs, NewDAGService(bsi))
+	}
+	t.Log("finished setup.")
+
+	root := makeZeroDag(t)
 	read, err := uio.NewDagReader(root, nil)
 	if err != nil {
 		t.Fatal(err)
