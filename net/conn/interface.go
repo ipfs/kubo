@@ -2,6 +2,8 @@ package conn
 
 import (
 	"errors"
+	"net"
+	"time"
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -17,6 +19,7 @@ type Map map[u.Key]Conn
 
 // Conn is a generic message-based Peer-to-Peer connection.
 type Conn interface {
+
 	// implement ContextCloser too!
 	ctxc.ContextCloser
 
@@ -34,6 +37,13 @@ type Conn interface {
 
 	// RemotePeer is the Peer on the remote side
 	RemotePeer() peer.Peer
+
+	// net.Conn, cause duplicates.
+	LocalAddr() net.Addr
+	RemoteAddr() net.Addr
+	SetDeadline(t time.Time) error
+	SetReadDeadline(t time.Time) error
+	SetWriteDeadline(t time.Time) error
 
 	msgio.Reader
 	msgio.Writer

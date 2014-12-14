@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -83,6 +84,25 @@ func (c *singleConn) ID() string {
 
 func (c *singleConn) String() string {
 	return String(c, "singleConn")
+}
+
+func (c *singleConn) LocalAddr() net.Addr {
+	return c.maconn.LocalAddr()
+}
+
+func (c *singleConn) RemoteAddr() net.Addr {
+	return c.maconn.RemoteAddr()
+}
+
+func (c *singleConn) SetDeadline(t time.Time) error {
+	return c.maconn.SetDeadline(t)
+}
+func (c *singleConn) SetReadDeadline(t time.Time) error {
+	return c.maconn.SetReadDeadline(t)
+}
+
+func (c *singleConn) SetWriteDeadline(t time.Time) error {
+	return c.maconn.SetWriteDeadline(t)
 }
 
 // LocalMultiaddr is the Multiaddr on this side

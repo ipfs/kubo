@@ -1,6 +1,9 @@
 package conn
 
 import (
+	"net"
+	"time"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -61,6 +64,26 @@ func (c *secureConn) ID() string {
 
 func (c *secureConn) String() string {
 	return String(c, "secureConn")
+}
+
+func (c *secureConn) LocalAddr() net.Addr {
+	return c.insecure.LocalAddr()
+}
+
+func (c *secureConn) RemoteAddr() net.Addr {
+	return c.insecure.RemoteAddr()
+}
+
+func (c *secureConn) SetDeadline(t time.Time) error {
+	return c.insecure.SetDeadline(t)
+}
+
+func (c *secureConn) SetReadDeadline(t time.Time) error {
+	return c.insecure.SetReadDeadline(t)
+}
+
+func (c *secureConn) SetWriteDeadline(t time.Time) error {
+	return c.insecure.SetWriteDeadline(t)
 }
 
 // LocalMultiaddr is the Multiaddr on this side

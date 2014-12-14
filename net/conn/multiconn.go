@@ -3,7 +3,9 @@ package conn
 import (
 	"errors"
 	"fmt"
+	"net"
 	"sync"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -232,14 +234,62 @@ func (c *MultiConn) String() string {
 	return String(c, "MultiConn")
 }
 
+func (c *MultiConn) LocalAddr() net.Addr {
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.LocalAddr()
+}
+
+func (c *MultiConn) RemoteAddr() net.Addr {
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.RemoteAddr()
+}
+
+func (c *MultiConn) SetDeadline(t time.Time) error {
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.SetDeadline(t)
+}
+
+func (c *MultiConn) SetReadDeadline(t time.Time) error {
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.SetReadDeadline(t)
+}
+
+func (c *MultiConn) SetWriteDeadline(t time.Time) error {
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.SetWriteDeadline(t)
+}
+
 // LocalMultiaddr is the Multiaddr on this side
 func (c *MultiConn) LocalMultiaddr() ma.Multiaddr {
-	return c.BestConn().LocalMultiaddr()
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.LocalMultiaddr()
 }
 
 // RemoteMultiaddr is the Multiaddr on the remote side
 func (c *MultiConn) RemoteMultiaddr() ma.Multiaddr {
-	return c.BestConn().RemoteMultiaddr()
+	bc := c.BestConn()
+	if bc == nil {
+		return nil
+	}
+	return bc.RemoteMultiaddr()
 }
 
 // LocalPeer is the Peer on this side
