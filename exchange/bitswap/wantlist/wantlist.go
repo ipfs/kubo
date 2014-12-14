@@ -3,9 +3,11 @@ package wantlist
 import (
 	u "github.com/jbenet/go-ipfs/util"
 	"sort"
+	"sync"
 )
 
 type Wantlist struct {
+	lk  sync.RWMutex
 	set map[u.Key]*Entry
 }
 
@@ -21,6 +23,8 @@ type Entry struct {
 }
 
 func (w *Wantlist) Add(k u.Key, priority int) {
+	w.lk.Lock()
+	defer w.lk.Unlock()
 	if _, ok := w.set[k]; ok {
 		return
 	}
@@ -31,10 +35,14 @@ func (w *Wantlist) Add(k u.Key, priority int) {
 }
 
 func (w *Wantlist) Remove(k u.Key) {
+	w.lk.Lock()
+	defer w.lk.Unlock()
 	delete(w.set, k)
 }
 
 func (w *Wantlist) Contains(k u.Key) bool {
+	w.lk.RLock()
+	defer w.lk.RUnlock()
 	_, ok := w.set[k]
 	return ok
 }
@@ -46,6 +54,8 @@ func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
 func (es entrySlice) Less(i, j int) bool { return es[i].Priority > es[j].Priority }
 
 func (w *Wantlist) Entries() []*Entry {
+	w.lk.RLock()
+	defer w.lk.RUnlock()
 	var es entrySlice
 
 	for _, e := range w.set {
