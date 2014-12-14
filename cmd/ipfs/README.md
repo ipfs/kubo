@@ -10,7 +10,7 @@ ipfs - global versioned p2p merkledag file system
 
 Basic commands:
 
-    init          Initialize ipfs local configurationx
+    init          Initialize ipfs local configuration
     add <path>    Add an object to ipfs
     cat <ref>     Show ipfs object data
     ls <ref>      List links from an object
