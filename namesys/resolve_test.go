@@ -15,7 +15,7 @@ func TestRoutingResolve(t *testing.T) {
 	resolver := NewRoutingResolver(d)
 	publisher := NewRoutingPublisher(d)
 
-	privk, pubk, err := ci.GenerateKeyPair(ci.RSA, 512)
+	privk, pubk, err := ci.GenerateKeyPair(ci.RSA, 512, u.NewTimeSeededRand())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -103,9 +103,8 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 }
 
 // putValueToNetwork stores the given key/value pair at the peer 'p'
-// meaning: it sends a PUT_VALUE message to p
 func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.ID,
-	key string, rec *pb.Record) error {
+	key u.Key, rec *pb.Record) error {
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
 	pmes.Record = rec
@@ -285,7 +284,7 @@ func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 }
 
 // betterPeerToQuery returns nearestPeersToQuery, but iff closer than self.
-func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.ID {
+func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) []peer.ID {
 	closer := dht.nearestPeersToQuery(pmes, count)
 
 	// no node? nil
@@ -302,11 +301,16 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 	}
 
 	var filtered []peer.ID
-	for _, p := range closer {
+	for _, clp := range closer {
+		// Dont send a peer back themselves
+		if p == clp {
+			continue
+		}
+
 		// must all be closer than self
 		key := u.Key(pmes.GetKey())
-		if !kb.Closer(dht.self, p, key) {
-			filtered = append(filtered, p)
+		if !kb.Closer(dht.self, clp, key) {
+			filtered = append(filtered, clp)
 		}
 	}
 
@@ -321,23 +325,6 @@ func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, p peer.ID) error 
 
 	// dial connection
 	return dht.network.DialPeer(ctx, p)
-}
-
-//TODO: this should be smarter about which keys it selects.
-func (dht *IpfsDHT) loadProvidableKeys() error {
-	kl, err := dht.datastore.KeyList()
-	if err != nil {
-		return err
-	}
-	for _, dsk := range kl {
-		k := u.KeyFromDsKey(dsk)
-		if len(k) == 0 {
-			log.Errorf("loadProvidableKeys error: %v", dsk)
-		}
-
-		dht.providers.AddProvider(k, dht.self)
-	}
-	return nil
 }
 
 // PingRoutine periodically pings nearest neighbors.

@@ -14,7 +14,6 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	// ci "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -33,9 +32,9 @@ func init() {
 	}
 }
 
-func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
+func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr, seed int64) *IpfsDHT {
 
-	sk, pk, err := testutil.RandKeyPair(512)
+	sk, pk, err := testutil.SeededKeyPair(512, seed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +70,7 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 
 	for i := 0; i < n; i++ {
 		addrs[i] = testutil.RandLocalTCPAddress()
-		dhts[i] = setupDHT(ctx, t, addrs[i])
+		dhts[i] = setupDHT(ctx, t, addrs[i], int64(i))
 		peers[i] = dhts[i].self
 	}
 
@@ -120,8 +119,8 @@ func TestPing(t *testing.T) {
 	addrA := testutil.RandLocalTCPAddress()
 	addrB := testutil.RandLocalTCPAddress()
 
-	dhtA := setupDHT(ctx, t, addrA)
-	dhtB := setupDHT(ctx, t, addrB)
+	dhtA := setupDHT(ctx, t, addrA, 1)
+	dhtB := setupDHT(ctx, t, addrB, 2)
 
 	peerA := dhtA.self
 	peerB := dhtB.self
@@ -153,8 +152,8 @@ func TestValueGetSet(t *testing.T) {
 	addrA := testutil.RandLocalTCPAddress()
 	addrB := testutil.RandLocalTCPAddress()
 
-	dhtA := setupDHT(ctx, t, addrA)
-	dhtB := setupDHT(ctx, t, addrB)
+	dhtA := setupDHT(ctx, t, addrA, 1)
+	dhtB := setupDHT(ctx, t, addrB, 2)
 
 	defer dhtA.Close()
 	defer dhtB.Close()
@@ -642,8 +641,8 @@ func TestConnectCollision(t *testing.T) {
 		addrA := testutil.RandLocalTCPAddress()
 		addrB := testutil.RandLocalTCPAddress()
 
-		dhtA := setupDHT(ctx, t, addrA)
-		dhtB := setupDHT(ctx, t, addrB)
+		dhtA := setupDHT(ctx, t, addrA, int64((rtime*2)+1))
+		dhtB := setupDHT(ctx, t, addrB, int64((rtime*2)+2))
 
 		peerA := dhtA.self
 		peerB := dhtB.self

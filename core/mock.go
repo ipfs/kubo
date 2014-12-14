@@ -1,7 +1,9 @@
 package core
 
 import (
+	"crypto/rand"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -28,7 +30,7 @@ func NewMockNode() (*IpfsNode, error) {
 	nd := new(IpfsNode)
 
 	// Generate Identity
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 1024)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 1024, rand.Reader)
 	if err != nil {
 		return nil, err
 	}

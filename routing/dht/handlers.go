@@ -93,7 +93,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	}
 
 	// Find closest peer on given cluster to desired key and reply with that info
-	closer := dht.betterPeersToQuery(pmes, CloserPeerCount)
+	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	closerinfos := peer.PeerInfos(dht.peerstore, closer)
 	if closer != nil {
 		for _, pi := range closerinfos {
@@ -137,6 +137,9 @@ func (dht *IpfsDHT) handlePing(_ context.Context, p peer.ID, pmes *pb.Message) (
 }
 
 func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
+	log.Errorf("handle find peer %s start", p)
+	defer log.Errorf("handle find peer %s end", p)
+
 	resp := pb.NewMessage(pmes.GetType(), "", pmes.GetClusterLevel())
 	var closest []peer.ID
 
@@ -144,11 +147,11 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 	if peer.ID(pmes.GetKey()) == dht.self {
 		closest = []peer.ID{dht.self}
 	} else {
-		closest = dht.betterPeersToQuery(pmes, CloserPeerCount)
+		closest = dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	}
 
 	if closest == nil {
-		log.Debugf("handleFindPeer: could not find anything.")
+		log.Warningf("handleFindPeer: could not find anything.")
 		return resp, nil
 	}
 
@@ -189,7 +192,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	}
 
 	// Also send closer peers.
-	closer := dht.betterPeersToQuery(pmes, CloserPeerCount)
+	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	if closer != nil {
 		infos := peer.PeerInfos(dht.peerstore, providers)
 		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.network, infos)

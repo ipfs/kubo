@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 
 	"crypto/elliptic"
 	"crypto/hmac"
@@ -75,10 +76,10 @@ type PubKey interface {
 type GenSharedKey func([]byte) ([]byte, error)
 
 // Generates a keypair of the given type and bitsize
-func GenerateKeyPair(typ, bits int) (PrivKey, PubKey, error) {
+func GenerateKeyPair(typ, bits int, src io.Reader) (PrivKey, PubKey, error) {
 	switch typ {
 	case RSA:
-		priv, err := rsa.GenerateKey(rand.Reader, bits)
+		priv, err := rsa.GenerateKey(src, bits)
 		if err != nil {
 			return nil, nil, err
 		}

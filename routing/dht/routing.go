@@ -40,19 +40,24 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), KValue)
+	pchan, err := dht.getClosestPeers(ctx, key, KValue)
+	if err != nil {
+		return err
+	}
 
-	query := newQuery(key, dht.network, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
-		log.Debugf("%s PutValue qry part %v", dht.self, p)
-		err := dht.putValueToNetwork(ctx, p, string(key), rec)
-		if err != nil {
-			return nil, err
-		}
-		return &dhtQueryResult{success: true}, nil
-	})
-
-	_, err = query.Run(ctx, peers)
-	return err
+	wg := sync.WaitGroup{}
+	for p := range pchan {
+		wg.Add(1)
+		go func(p peer.ID) {
+			defer wg.Done()
+			err := dht.putValueToNetwork(ctx, p, key, rec)
+			if err != nil {
+				log.Errorf("failed putting value to peer: %s", err)
+			}
+		}(p)
+	}
+	wg.Wait()
+	return nil
 }
 
 // GetValue searches for the value corresponding to given Key.
@@ -111,18 +116,19 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 // Provide makes this node announce that it can provide a value for the given key
 func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 
+	log.Event(ctx, "Provide Value start", &key)
+	defer log.Event(ctx, "Provide Value end", &key)
 	dht.providers.AddProvider(key, dht.self)
-	peers := dht.routingTable.NearestPeers(kb.ConvertKey(key), PoolSize)
-	if len(peers) == 0 {
-		return nil
+
+	peers, err := dht.getClosestPeers(ctx, key, KValue)
+	if err != nil {
+		return err
 	}
 
-	//TODO FIX: this doesn't work! it needs to be sent to the actual nearest peers.
-	// `peers` are the closest peers we have, not the ones that should get the value.
-	for _, p := range peers {
+	for p := range peers {
 		err := dht.putProvider(ctx, p, string(key))
 		if err != nil {
-			return err
+			log.Error(err)
 		}
 	}
 	return nil
@@ -135,6 +141,87 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerIn
 		providers = append(providers, p)
 	}
 	return providers, nil
+}
+
+func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key, count int) (<-chan peer.ID, error) {
+	log.Error("Get Closest Peers")
+	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
+	if len(tablepeers) == 0 {
+		return nil, kb.ErrLookupFailure
+	}
+
+	out := make(chan peer.ID, count)
+	peerset := pset.NewLimited(count)
+
+	for _, p := range tablepeers {
+		out <- p
+		peerset.Add(p)
+	}
+
+	wg := sync.WaitGroup{}
+	for _, p := range tablepeers {
+		wg.Add(1)
+		go func(p peer.ID) {
+			dht.getClosestPeersRecurse(ctx, key, p, peerset, out)
+			wg.Done()
+		}(p)
+	}
+
+	go func() {
+		wg.Wait()
+		close(out)
+		log.Error("Closing closest peer chan")
+	}()
+
+	return out, nil
+}
+
+func (dht *IpfsDHT) getClosestPeersRecurse(ctx context.Context, key u.Key, p peer.ID, peers *pset.PeerSet, peerOut chan<- peer.ID) {
+	log.Error("closest peers recurse")
+	defer log.Error("closest peers recurse end")
+	closer, err := dht.closerPeersSingle(ctx, key, p)
+	if err != nil {
+		log.Errorf("error getting closer peers: %s", err)
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	for _, p := range closer {
+		if kb.Closer(p, dht.self, key) && peers.TryAdd(p) {
+			select {
+			case peerOut <- p:
+			case <-ctx.Done():
+				return
+			}
+			wg.Add(1)
+			go func(p peer.ID) {
+				dht.getClosestPeersRecurse(ctx, key, p, peers, peerOut)
+				wg.Done()
+			}(p)
+		}
+	}
+	wg.Wait()
+}
+
+func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key u.Key, p peer.ID) ([]peer.ID, error) {
+	log.Errorf("closest peers single %s %s", p, key)
+	defer log.Errorf("closest peers single end %s %s", p, key)
+	pmes, err := dht.findPeerSingle(ctx, p, peer.ID(key))
+	if err != nil {
+		return nil, err
+	}
+
+	var out []peer.ID
+	for _, pbp := range pmes.GetCloserPeers() {
+		pid := peer.ID(pbp.GetId())
+		dht.peerstore.AddAddresses(pid, pbp.Addresses())
+		err := dht.ensureConnectedToPeer(ctx, pid)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, pid)
+	}
+	return out, nil
 }
 
 // FindProvidersAsync is the same thing as FindProviders, but returns a channel.
@@ -182,6 +269,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
 			if ps.TryAdd(prov.ID) {
+				dht.peerstore.AddAddresses(prov.ID, prov.Addrs)
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():

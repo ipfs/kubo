@@ -41,7 +41,7 @@ func New(ctx context.Context) Mocknet {
 }
 
 func (mn *mocknet) GenPeer() (inet.Network, error) {
-	sk, _, err := testutil.RandKeyPair(512)
+	sk, _, err := testutil.SeededKeyPair(512, int64(len(mn.nets)))
 	if err != nil {
 		return nil, err
 	}

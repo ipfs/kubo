@@ -17,7 +17,11 @@ import (
 )
 
 func RandKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
-	return ci.GenerateKeyPair(ci.RSA, bits)
+	return ci.GenerateKeyPair(ci.RSA, bits, crand.Reader)
+}
+
+func SeededKeyPair(bits int, seed int64) (ci.PrivKey, ci.PubKey, error) {
+	return ci.GenerateKeyPair(ci.RSA, bits, u.NewSeededRand(seed))
 }
 
 // RandPeerID generates random "valid" peer IDs. it does not NEED to generate
@@ -120,7 +124,7 @@ func RandPeerNetParams() (*PeerNetParams, error) {
 	var p PeerNetParams
 	var err error
 	p.Addr = RandLocalTCPAddress()
-	p.PrivKey, p.PubKey, err = ci.GenerateKeyPair(ci.RSA, 512)
+	p.PrivKey, p.PubKey, err = ci.GenerateKeyPair(ci.RSA, 512, u.NewTimeSeededRand())
 	if err != nil {
 		return nil, err
 	}
