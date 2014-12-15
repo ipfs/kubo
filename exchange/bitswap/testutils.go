@@ -37,8 +37,9 @@ type SessionGenerator struct {
 	cancel context.CancelFunc
 }
 
-func (g *SessionGenerator) Stop() {
+func (g *SessionGenerator) Close() error {
 	g.cancel()
+	return nil // for Closer interface
 }
 
 func (g *SessionGenerator) Next() Instance {

@@ -104,6 +104,7 @@ func AddCatBytes(conf Config) error {
 		tn.VirtualNetwork(delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
 		mockrouting.NewServerWithDelay(delay.Fixed(conf.RoutingLatency)),
 	)
+	defer sessionGenerator.Close()
 
 	adder := sessionGenerator.Next()
 	catter := sessionGenerator.Next()
