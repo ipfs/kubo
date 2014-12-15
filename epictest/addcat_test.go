@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
@@ -20,7 +21,6 @@ import (
 	util "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	delay "github.com/jbenet/go-ipfs/util/delay"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 )
 
 const kSeed = 1
@@ -34,10 +34,9 @@ func Test100MBInstantaneous(t *testing.T) {
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
-		DataAmountBytes:   100 * 1024 * 1024,
 	}
 
-	AddCatBytes(conf)
+	AddCatBytes(RandomBytes(100*1024*1024), conf)
 }
 
 func TestDegenerateSlowBlockstore(t *testing.T) {
@@ -77,11 +76,9 @@ func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	t.Parallel()
 
-	conf := Config{
-		DataAmountBytes: 100 * 1024 * 1024,
-	}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
+	conf := Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
 
-	if err := AddCatBytes(conf); err != nil {
+	if err := AddCatBytes(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -90,15 +87,20 @@ func AddCatPowers(conf Config, megabytesMax int64) error {
 	var i int64
 	for i = 1; i < megabytesMax; i = i * 2 {
 		fmt.Printf("%d MB\n", i)
-		conf.DataAmountBytes = i * 1024 * 1024
-		if err := AddCatBytes(conf); err != nil {
+		if err := AddCatBytes(RandomBytes(i*1024*1024), conf); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func AddCatBytes(conf Config) error {
+func RandomBytes(n int64) []byte {
+	var data bytes.Buffer
+	random.WritePseudoRandomBytes(n, &data, kSeed)
+	return data.Bytes()
+}
+
+func AddCatBytes(data []byte, conf Config) error {
 
 	sessionGenerator := bitswap.NewSessionGenerator(
 		tn.VirtualNetwork(delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
@@ -111,9 +113,7 @@ func AddCatBytes(conf Config) error {
 	catter.SetBlockstoreLatency(conf.BlockstoreLatency)
 
 	adder.SetBlockstoreLatency(0) // disable blockstore latency during add operation
-	var data bytes.Buffer
-	random.WritePseudoRandomBytes(conf.DataAmountBytes, &data, kSeed) // FIXME get a lazy reader
-	keyAdded, err := add(adder, bytes.NewReader(data.Bytes()))
+	keyAdded, err := add(adder, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func AddCatBytes(conf Config) error {
 	// verify
 	var bufout bytes.Buffer
 	io.Copy(&bufout, readerCatted)
-	if 0 != bytes.Compare(bufout.Bytes(), data.Bytes()) {
+	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}
 	return nil

@@ -6,7 +6,6 @@ type Config struct {
 	BlockstoreLatency time.Duration
 	NetworkLatency    time.Duration
 	RoutingLatency    time.Duration
-	DataAmountBytes   int64
 }
 
 func (c Config) All_Instantaneous() Config {
@@ -45,11 +44,5 @@ func (c Config) Blockstore_7200RPM() Config {
 
 func (c Config) Routing_Slow() Config {
 	c.BlockstoreLatency = 200 * time.Millisecond
-	return c
-}
-
-// Megabytes is a convenience method to set DataAmountBytes
-func (c Config) Megabytes(mb int64) Config {
-	c.DataAmountBytes = mb * 1024 * 1024
 	return c
 }
