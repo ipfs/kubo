@@ -290,8 +290,8 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 	return done
 }
 
-// Searches this nodes links for one to the given key,
-// returns the index of said link
+// FindLinks searches this nodes links for the given key,
+// returns the indexes of any links pointing to it
 func FindLinks(n *Node, k u.Key) []int {
 	var out []int
 	for i, lnk := range n.Links {
