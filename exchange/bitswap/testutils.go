@@ -23,7 +23,7 @@ func NewSessionGenerator(
 		net:    net,
 		rs:     rs,
 		seq:    0,
-		ctx:    ctx,
+		ctx:    ctx, // TODO take ctx as param to Next, Instances
 		cancel: cancel,
 	}
 }
