@@ -1,5 +1,6 @@
 FROM ubuntu
 
-ADD file /data/file
+ADD filetiny /data/filetiny
+ADD filerand /data/filerand
 
 VOLUME ["/data"]

@@ -2,6 +2,7 @@ data:
     build: ./data
     volumes:
         - /data
+    command: sleep 1000000
 
 bootstrap:
     build: ./bootstrap
@@ -9,7 +10,7 @@ bootstrap:
         - "4011"
         - "4012/udp"
     environment:
-        IPFS_LOGGING: error
+        IPFS_LOGGING: debug
 
 server:
     build: ./server
@@ -21,7 +22,7 @@ server:
         - "4021"
         - "4022/udp"
     environment:
-        IPFS_LOGGING: error
+        IPFS_LOGGING: debug
 
 client:
     build: ./client
@@ -33,4 +34,4 @@ client:
         - "4031"
         - "4032/udp"
     environment:
-        IPFS_LOGGING: error
+        IPFS_LOGGING: debug

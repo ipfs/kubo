@@ -3,23 +3,41 @@ ipfs bootstrap add /ip4/$BOOTSTRAP_PORT_4011_TCP_ADDR/tcp/$BOOTSTRAP_PORT_4011_T
 ipfs daemon &
 sleep 3
 
-while [ ! -f /data/id ]
+while [ ! -f /data/idtiny ]
 do
     echo waiting for server to add the file...
     sleep 1
 done
-echo client found file with hash: $(cat /data/id)
+echo client found file with hash: $(cat /data/idtiny)
 
-ipfs cat $(cat /data/id) > file
+ipfs cat $(cat /data/idtiny) > filetiny
 
-cat file
+cat filetiny
+
+diff -u filetiny /data/filetiny
 
 if (($? > 0)); then
-    printf '%s\n' 'ipfs cat failed.' >&2
+    printf '%s\n' 'files did not match' >&2
     exit 1
 fi
 
-diff -u file /data/file
+while [ ! -f /data/idrand ]
+do
+    echo waiting for server to add the file...
+    sleep 1
+done
+echo client found file with hash: $(cat /data/idrand)
+
+cat /data/idrand
+
+ipfs cat $(cat /data/idrand) > filerand
+
+if (($? > 0)); then
+    printf '%s\n' 'ipfs cat failed' >&2
+    exit 1
+fi
+
+diff -u filerand /data/filerand
 
 if (($? > 0)); then
     printf '%s\n' 'files did not match' >&2
