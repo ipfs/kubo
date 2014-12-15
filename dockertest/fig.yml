@@ -1,0 +1,36 @@
+data:
+    build: ./data
+    volumes:
+        - /data
+
+bootstrap:
+    build: ./bootstrap
+    expose:
+        - "4011"
+        - "4012/udp"
+    environment:
+        IPFS_LOGGING: error
+
+server:
+    build: ./server
+    links:
+        - bootstrap
+    volumes_from:
+        - data
+    expose:
+        - "4021"
+        - "4022/udp"
+    environment:
+        IPFS_LOGGING: error
+
+client:
+    build: ./client
+    links:
+        - bootstrap
+    volumes_from:
+        - data
+    expose:
+        - "4031"
+        - "4032/udp"
+    environment:
+        IPFS_LOGGING: error
