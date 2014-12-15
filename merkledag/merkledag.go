@@ -327,7 +327,7 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 			nd, err := Decoded(blk.Data)
 			if err != nil {
 				// NB: can occur in normal situations, with improperly formatted
-				//		input data
+				// input data
 				log.Error("Got back bad block!")
 				break
 			}
