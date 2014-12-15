@@ -1,3 +1,4 @@
+# STRIP strips color from terminal output
 STRIP="perl -pe 's/\e\[?.*?[\@-~]//g'"
 
 # TODO use a for loop like a grownup
