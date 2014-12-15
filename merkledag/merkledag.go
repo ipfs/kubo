@@ -331,12 +331,8 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 				nodes[i] = nd
 			}
 
-			if next == is[0] {
-				sig <- nd
-				next++
-				for ; next < len(nodes) && nodes[next] != nil; next++ {
-					sig <- nodes[next]
-				}
+			for ; next < len(nodes) && nodes[next] != nil; next++ {
+				sig <- nodes[next]
 			}
 		}
 		if next < len(nodes) {
