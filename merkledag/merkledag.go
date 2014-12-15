@@ -290,15 +290,16 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 	return done
 }
 
-// Searches this nodes links for one to the given key,
-// returns the index of said link
-func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
+// FindLinks searches this nodes links for the given key,
+// returns the indexes of any links pointing to it
+func FindLinks(n *Node, k u.Key) []int {
+	var out []int
 	for i, lnk := range n.Links {
-		if u.Key(lnk.Hash) == k && found[i] == nil {
-			return i, nil
+		if u.Key(lnk.Hash) == k {
+			out = append(out, i)
 		}
 	}
-	return -1, u.ErrNotFound
+	return out
 }
 
 // GetDAG will fill out all of the links of the given Node.
@@ -307,45 +308,37 @@ func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
 func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 	sig := make(chan *Node)
 	go func() {
-		var keys []u.Key
-		nodes := make([]*Node, len(root.Links))
+		defer close(sig)
 
+		var keys []u.Key
 		for _, lnk := range root.Links {
 			keys = append(keys, u.Key(lnk.Hash))
 		}
-
 		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
+		nodes := make([]*Node, len(root.Links))
 		next := 0
 		for blk := range blkchan {
-			i, err := FindLink(root, blk.Key(), nodes)
-			if err != nil {
-				// NB: can only occur as a result of programmer error
-				panic("Received block that wasnt in this nodes links!")
-			}
-
 			nd, err := Decoded(blk.Data)
 			if err != nil {
 				// NB: can occur in normal situations, with improperly formatted
-				//		input data
+				// input data
 				log.Error("Got back bad block!")
 				break
 			}
-			nodes[i] = nd
+			is := FindLinks(root, blk.Key())
+			for _, i := range is {
+				nodes[i] = nd
+			}
 
-			if next == i {
-				sig <- nd
-				next++
-				for ; next < len(nodes) && nodes[next] != nil; next++ {
-					sig <- nodes[next]
-				}
+			for ; next < len(nodes) && nodes[next] != nil; next++ {
+				sig <- nodes[next]
 			}
 		}
 		if next < len(nodes) {
 			// TODO: bubble errors back up.
 			log.Errorf("Did not receive correct number of nodes!")
 		}
-		close(sig)
 	}()
 
 	return sig

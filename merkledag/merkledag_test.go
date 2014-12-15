@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 	"testing"
 
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
@@ -75,14 +76,42 @@ func makeTestDag(t *testing.T) *Node {
 	return root
 }
 
+type devZero struct{}
+
+func (_ devZero) Read(b []byte) (int, error) {
+	for i, _ := range b {
+		b[i] = 0
+	}
+	return len(b), nil
+}
+
+func makeZeroDag(t *testing.T) *Node {
+	read := io.LimitReader(devZero{}, 1024*32)
+	spl := &chunk.SizeSplitter{512}
+	root, err := imp.NewDagFromReaderWithSplitter(read, spl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func TestBatchFetch(t *testing.T) {
+	root := makeTestDag(t)
+	runBatchFetchTest(t, root)
+}
+
+func TestBatchFetchDupBlock(t *testing.T) {
+	root := makeZeroDag(t)
+	runBatchFetchTest(t, root)
+}
+
+func runBatchFetchTest(t *testing.T, root *Node) {
 	var dagservs []DAGService
 	for _, bsi := range blockservice.Mocks(t, 5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 	t.Log("finished setup.")
 
-	root := makeTestDag(t)
 	read, err := uio.NewDagReader(root, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -104,9 +133,11 @@ func TestBatchFetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	done := make(chan struct{})
+	wg := sync.WaitGroup{}
 	for i := 1; i < len(dagservs); i++ {
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			first, err := dagservs[i].Get(k)
 			if err != nil {
 				t.Fatal(err)
@@ -125,11 +156,8 @@ func TestBatchFetch(t *testing.T) {
 			if !bytes.Equal(datagot, expected) {
 				t.Fatal("Got bad data back!")
 			}
-			done <- struct{}{}
 		}(i)
 	}
 
-	for i := 1; i < len(dagservs); i++ {
-		<-done
-	}
+	wg.Done()
 }
