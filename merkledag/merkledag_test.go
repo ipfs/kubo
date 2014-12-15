@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 	"testing"
 
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
@@ -95,72 +96,22 @@ func makeZeroDag(t *testing.T) *Node {
 }
 
 func TestBatchFetch(t *testing.T) {
-	var dagservs []DAGService
-	for _, bsi := range blockservice.Mocks(t, 5) {
-		dagservs = append(dagservs, NewDAGService(bsi))
-	}
-	t.Log("finished setup.")
-
 	root := makeTestDag(t)
-	read, err := uio.NewDagReader(root, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected, err := ioutil.ReadAll(read)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dagservs[0].AddRecursive(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log("Added file to first node.")
-
-	k, err := root.Key()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	done := make(chan struct{})
-	for i := 1; i < len(dagservs); i++ {
-		go func(i int) {
-			first, err := dagservs[i].Get(k)
-			if err != nil {
-				t.Fatal(err)
-			}
-			fmt.Println("Got first node back.")
-
-			read, err := uio.NewDagReader(first, dagservs[i])
-			if err != nil {
-				t.Fatal(err)
-			}
-			datagot, err := ioutil.ReadAll(read)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if !bytes.Equal(datagot, expected) {
-				t.Fatal("Got bad data back!")
-			}
-			done <- struct{}{}
-		}(i)
-	}
-
-	for i := 1; i < len(dagservs); i++ {
-		<-done
-	}
+	runBatchFetchTest(t, root)
 }
 
 func TestBatchFetchDupBlock(t *testing.T) {
+	root := makeZeroDag(t)
+	runBatchFetchTest(t, root)
+}
+
+func runBatchFetchTest(t *testing.T, root *Node) {
 	var dagservs []DAGService
 	for _, bsi := range blockservice.Mocks(t, 5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 	t.Log("finished setup.")
 
-	root := makeZeroDag(t)
 	read, err := uio.NewDagReader(root, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -182,9 +133,11 @@ func TestBatchFetchDupBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	done := make(chan struct{})
+	wg := sync.WaitGroup{}
 	for i := 1; i < len(dagservs); i++ {
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			first, err := dagservs[i].Get(k)
 			if err != nil {
 				t.Fatal(err)
@@ -203,11 +156,8 @@ func TestBatchFetchDupBlock(t *testing.T) {
 			if !bytes.Equal(datagot, expected) {
 				t.Fatal("Got bad data back!")
 			}
-			done <- struct{}{}
 		}(i)
 	}
 
-	for i := 1; i < len(dagservs); i++ {
-		<-done
-	}
+	wg.Done()
 }
