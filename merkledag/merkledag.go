@@ -308,14 +308,12 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 	sig := make(chan *Node)
 	go func() {
 		var keys []u.Key
-		nodes := make([]*Node, len(root.Links))
-
 		for _, lnk := range root.Links {
 			keys = append(keys, u.Key(lnk.Hash))
 		}
-
 		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
+		nodes := make([]*Node, len(root.Links))
 		next := 0
 		for blk := range blkchan {
 			i, err := FindLink(root, blk.Key(), nodes)
