@@ -2,13 +2,13 @@ package conn
 
 import (
 	"fmt"
+	"io"
 
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
 
 	ggprotoio "code.google.com/p/gogoprotobuf/io"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ps "github.com/jbenet/go-peerstream"
 )
 
 // Handshake1 exchanges local and remote versions and compares them
@@ -53,7 +53,7 @@ func Handshake1(ctx context.Context, c Conn) error {
 }
 
 // Handshake3 exchanges local and remote service information
-func Handshake3(ctx context.Context, stream ps.Stream, c Conn) (*handshake.Handshake3Result, error) {
+func Handshake3(ctx context.Context, stream io.ReadWriter, c Conn) (*handshake.Handshake3Result, error) {
 	rpeer := c.RemotePeer()
 	lpeer := c.LocalPeer()
 

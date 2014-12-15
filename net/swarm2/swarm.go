@@ -3,7 +3,6 @@
 package swarm
 
 import (
-	conn "github.com/jbenet/go-ipfs/net/conn"
 	peer "github.com/jbenet/go-ipfs/peer"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
@@ -51,22 +50,43 @@ func (s *Swarm) teardown() error {
 	return s.swarm.Close()
 }
 
+// Close stops the Swarm. See
 func (s *Swarm) Close() error {
 	return s.cg.Close()
 }
 
+// StreamSwarm returns the underlying peerstream.Swarm
 func (s *Swarm) StreamSwarm() *ps.Swarm {
 	return s.swarm
 }
 
+// SetStreamHandler assigns the handler for new streams.
+// See peerstream.
+func (s *Swarm) SetStreamHandler(handler StreamHandler) {
+	s.swarm.SetStreamHandler(func(s *ps.Stream) {
+		handler(wrapStream(s))
+	})
+}
+
+// NewStreamWithPeer creates a new stream on any available connection to p
+func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
+	st, err := s.swarm.NewStreamWithGroup(p)
+	return wrapStream(st), err
+}
+
+// StreamsWithPeer returns all the live Streams to p
+func (s *Swarm) StreamsWithPeer(p peer.Peer) []*Stream {
+	return wrapStreams(ps.StreamsWithGroup(p, s.swarm.Streams()))
+}
+
+// ConnectionsToPeer returns all the live connections to p
+func (s *Swarm) ConnectionsToPeer(p peer.Peer) []*SwarmConn {
+	return wrapConns(ps.ConnsWithGroup(p, s.swarm.Conns()))
+}
+
 // Connections returns a slice of all connections.
-func (s *Swarm) Connections() []conn.Conn {
-	conns1 := s.swarm.Conns()
-	conns2 := make([]conn.Conn, len(conns1))
-	for i, c1 := range conns1 {
-		conns2[i] = UnwrapConn(c1)
-	}
-	return conns2
+func (s *Swarm) Connections() []*SwarmConn {
+	return wrapConns(s.swarm.Conns())
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection
@@ -80,16 +100,16 @@ func (s *Swarm) CloseConnection(p peer.Peer) error {
 
 // GetPeerList returns a copy of the set of peers swarm is connected to.
 func (s *Swarm) GetPeerList() []peer.Peer {
-	conns := s.swarm.Conns()
+	conns := s.Connections()
 
 	seen := make(map[peer.Peer]struct{})
 	peers := make([]peer.Peer, 0, len(conns))
 	for _, c := range conns {
-		c2 := UnwrapConn(c)
-		p := c2.RemotePeer()
+		p := c.RemotePeer()
 		if _, found := seen[p]; found {
 			continue
 		}
+
 		peers = append(peers, p)
 	}
 	return peers
@@ -98,8 +118,4 @@ func (s *Swarm) GetPeerList() []peer.Peer {
 // LocalPeer returns the local peer swarm is associated to.
 func (s *Swarm) LocalPeer() peer.Peer {
 	return s.local
-}
-
-func UnwrapConn(c *ps.Conn) conn.Conn {
-	return c.NetConn().(conn.Conn)
 }

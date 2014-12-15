@@ -1,9 +1,8 @@
 package swarm
 
 import (
-	"fmt"
-
 	conn "github.com/jbenet/go-ipfs/net/conn"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -58,51 +57,21 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 // here we configure it slightly. Note that this is sequential, so if anything
 // will take a while do it in a goroutine.
 // See https://godoc.org/github.com/jbenet/go-peerstream for more information
-func (s *Swarm) connHandler(c1 *ps.Conn) {
+func (s *Swarm) connHandler(c *ps.Conn) {
+	go func() {
+		ctx := context.Background()
+		// this context is for running the handshake, which -- when receiveing connections
+		// -- we have no bound on beyond what the transport protocol bounds it at.
+		// note that setup + the handshake are bounded by underlying io.
+		// (i.e. if TCP or UDP disconnects (or the swarm closes), we're done.
+		// Q: why not have a shorter handshake? think about an HTTP server on really slow conns.
+		// as long as the conn is live (TCP says its online), it tries its best. we follow suit.)
 
-	// grab the underlying connection.
-	if c2, ok := c1.NetConn().(conn.Conn); ok {
-
-		// set the RemotePeer as a group on the conn. this lets us group
-		// connections in the StreamSwarm by peer, and get a streams from
-		// any available connection in the group (better multiconn):
-		//   swarm.StreamSwarm().NewStreamWithGroup(remotePeer)
-		c1.AddGroup(c2.RemotePeer())
-
-		go func() {
-			ctx := context.Background()
-			err := runHandshake3(ctx, s, c1, c2)
-			if err != nil {
-				log.Error("Handshake3 failed. disconnecting", err)
-				log.Event(ctx, "Handshake3FailureDisconnect", c2.LocalPeer(), c2.RemotePeer())
-				c1.Close() // boom.
-			}
-		}()
-	}
-}
-
-func runHandshake3(ctx context.Context, s *Swarm, sc *ps.Conn, c conn.Conn) error {
-	log.Event(ctx, "newConnection", c.LocalPeer(), c.RemotePeer())
-
-	stream, err := sc.NewStream()
-	if err != nil {
-		return err
-	}
-
-	// handshake3
-	h3result, err := conn.Handshake3(ctx, stream, c)
-	if err != nil {
-		return fmt.Errorf("Handshake3 failed: %s", err)
-	}
-
-	// check for nats. you know, just in case.
-	if h3result.LocalObservedAddress != nil {
-		checkNATWarning(s, h3result.LocalObservedAddress, c.LocalMultiaddr())
-	} else {
-		log.Warningf("Received nil observed address from %s", c.RemotePeer())
-	}
-
-	stream.Close()
-	log.Event(ctx, "handshake3Succeeded", c.LocalPeer(), c.RemotePeer())
-	return nil
+		if _, err := s.newConnSetup(ctx, c); err != nil {
+			log.Error(err)
+			log.Event(ctx, "newConnHandlerDisconnect", lgbl.NetConn(c.NetConn()), lgbl.Error(err))
+			c.Close() // boom. close it.
+			return
+		}
+	}()
 }
