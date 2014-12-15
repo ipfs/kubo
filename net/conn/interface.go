@@ -57,6 +57,10 @@ type Dialer struct {
 	// because when an incoming connection is identified, we should reuse the
 	// same peer objects (otherwise things get inconsistent).
 	Peerstore peer.Peerstore
+
+	// WithoutSecureTransport determines whether to initialize an insecure connection.
+	// Phrased negatively so default is Secure, and verbosely to be very clear.
+	WithoutSecureTransport bool
 }
 
 // Listener is an object that can accept connections. It matches net.Listener
@@ -64,6 +68,11 @@ type Listener interface {
 
 	// Accept waits for and returns the next connection to the listener.
 	Accept() (net.Conn, error)
+
+	// {Set}WithoutSecureTransport decides whether to start insecure connections.
+	// Phrased negatively so default is Secure, and verbosely to be very clear.
+	WithoutSecureTransport() bool
+	SetWithoutSecureTransport(bool)
 
 	// Addr is the local address
 	Addr() net.Addr

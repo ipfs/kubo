@@ -15,9 +15,8 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-func setupSecureConn(t *testing.T, ctx context.Context, c Conn) (Conn, error) {
-	c, ok := c.(*secureConn)
-	if ok {
+func upgradeToSecureConn(t *testing.T, ctx context.Context, c Conn) (Conn, error) {
+	if c, ok := c.(*secureConn); ok {
 		return c, nil
 	}
 
@@ -29,26 +28,33 @@ func setupSecureConn(t *testing.T, ctx context.Context, c Conn) (Conn, error) {
 	return s, nil
 }
 
+func secureHandshake(t *testing.T, ctx context.Context, c Conn, done chan error) {
+	_, err := upgradeToSecureConn(t, ctx, c)
+	done <- err
+}
+
 func TestSecureClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
 	ctx := context.Background()
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
+	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
 
-	c1, err1 := setupSecureConn(t, ctx, c1)
-	c2, err2 := setupSecureConn(t, ctx, c2)
-	if err1 != nil {
-		t.Fatal(err1)
-	}
-	if err2 != nil {
-		t.Fatal(err2)
+	done := make(chan error)
+	go secureHandshake(t, ctx, c1, done)
+	go secureHandshake(t, ctx, c2, done)
+
+	for i := 0; i < 2; i++ {
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
 	}
 
 	testOneSendRecv(t, c1, c2)
-	testOneSendRecv(t, c2, c1)
 
 	c1.Close()
+	testNotOneSendRecv(t, c1, c2)
 
+	c2.Close()
 	testNotOneSendRecv(t, c1, c2)
 	testNotOneSendRecv(t, c2, c1)
 
@@ -57,23 +63,20 @@ func TestSecureClose(t *testing.T) {
 func TestSecureCancelHandshake(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
-	ctx := context.Background()
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
+	ctx, cancel := context.WithCancel(context.Background())
+	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
 
-	done := make(chan struct{})
-	go func() {
-		_, err1 := setupSecureConn(t, ctx, c1)
-		_, err2 := setupSecureConn(t, ctx, c2)
-		if err1 == nil {
-			t.Fatal(err1)
-		}
-		if err2 == nil {
-			t.Fatal(err2)
-		}
-		done <- struct{}{}
-	}()
+	done := make(chan error)
+	go secureHandshake(t, ctx, c1, done)
+	<-time.After(50 * time.Millisecond)
+	cancel() // cancel ctx
+	go secureHandshake(t, ctx, c2, done)
 
-	<-done
+	for i := 0; i < 2; i++ {
+		if err := <-done; err == nil {
+			t.Error("cancel should've errored out")
+		}
+	}
 }
 
 func TestSecureCloseLeak(t *testing.T) {
@@ -92,16 +95,7 @@ func TestSecureCloseLeak(t *testing.T) {
 		a1 := strconv.Itoa(p1)
 		a2 := strconv.Itoa(p2)
 		ctx, cancel := context.WithCancel(context.Background())
-		c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
-
-		c1, err1 := setupSecureConn(t, ctx, c1)
-		c2, err2 := setupSecureConn(t, ctx, c2)
-		if err1 != nil {
-			t.Fatal(err1)
-		}
-		if err2 != nil {
-			t.Fatal(err2)
-		}
+		c1, c2 := setupSecureConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
 
 		for i := 0; i < num; i++ {
 			b1 := []byte("beep")

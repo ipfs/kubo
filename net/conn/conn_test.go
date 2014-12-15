@@ -42,22 +42,17 @@ func TestClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
 	ctx := context.Background()
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
+	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
 
 	testOneSendRecv(t, c1, c2)
 	testOneSendRecv(t, c2, c1)
 
 	c1.Close()
-
-	time.After(200 * time.Millisecond)
 	testNotOneSendRecv(t, c1, c2)
-	testNotOneSendRecv(t, c2, c1)
 
 	c2.Close()
-
-	time.After(20000 * time.Millisecond)
-	testNotOneSendRecv(t, c1, c2)
 	testNotOneSendRecv(t, c2, c1)
+	testNotOneSendRecv(t, c1, c2)
 }
 
 func TestCloseLeak(t *testing.T) {
@@ -75,7 +70,7 @@ func TestCloseLeak(t *testing.T) {
 		a1 := strconv.Itoa(p1)
 		a2 := strconv.Itoa(p2)
 		ctx, cancel := context.WithCancel(context.Background())
-		c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
+		c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
 
 		for i := 0; i < num; i++ {
 			b1 := []byte(fmt.Sprintf("beep%d", i))

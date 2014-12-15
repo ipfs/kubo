@@ -13,8 +13,7 @@ import (
 
 // listener is an object that can accept connections. It implements Listener
 type listener struct {
-	notSecure        bool
-	notSecureIMeanIt bool
+	withoutSecureTransport bool
 
 	manet.Listener
 
@@ -52,19 +51,22 @@ func (l *listener) Accept() (net.Conn, error) {
 		return nil, fmt.Errorf("Error accepting connection: %v", err)
 	}
 
-	if l.Secure() {
-		sc, err := newSecureConn(ctx, c, l.peers)
-		if err != nil {
-			return nil, fmt.Errorf("Error securing connection: %v", err)
-		}
-		return sc, nil
+	if l.withoutSecureTransport {
+		return c, nil
 	}
-
-	return c, nil
+	sc, err := newSecureConn(ctx, c, l.peers)
+	if err != nil {
+		return nil, fmt.Errorf("Error securing connection: %v", err)
+	}
+	return sc, nil
 }
 
-func (l *listener) Secure() bool {
-	return !(l.notSecure && l.notSecureIMeanIt)
+func (l *listener) WithoutSecureTransport() bool {
+	return l.withoutSecureTransport
+}
+
+func (l *listener) SetWithoutSecureTransport(b bool) {
+	l.withoutSecureTransport = b
 }
 
 func (l *listener) Addr() net.Addr {
@@ -91,9 +93,9 @@ func (l *listener) Peerstore() peer.Peerstore {
 func (l *listener) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"listener": map[string]interface{}{
-			"peer":    l.LocalPeer(),
-			"address": l.Multiaddr(),
-			"secure":  l.Secure(),
+			"peer":                   l.LocalPeer(),
+			"address":                l.Multiaddr(),
+			"withoutSecureTransport": l.withoutSecureTransport,
 		},
 	}
 }
@@ -107,12 +109,11 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.Peer, peers peer.
 	}
 
 	l := &listener{
-		Listener:         ml,
-		maddr:            addr,
-		peers:            peers,
-		local:            local,
-		notSecure:        false,
-		notSecureIMeanIt: false,
+		Listener: ml,
+		maddr:    addr,
+		peers:    peers,
+		local:    local,
+		withoutSecureTransport: false,
 	}
 
 	log.Infof("swarm listening on %s\n", l.Multiaddr())

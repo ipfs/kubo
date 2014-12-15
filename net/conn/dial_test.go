@@ -49,7 +49,15 @@ func echo(c Conn) {
 	io.Copy(c, c)
 }
 
-func setupConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
+func setupSecureConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
+	return setupConn(t, ctx, a1, a2, true)
+}
+
+func setupSingleConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
+	return setupConn(t, ctx, a1, a2, false)
+}
+
+func setupConn(t *testing.T, ctx context.Context, a1, a2 string, secure bool) (a, b Conn) {
 
 	p1, err := setupPeer(a1)
 	if err != nil {
@@ -72,13 +80,15 @@ func setupConn(t *testing.T, ctx context.Context, a1, a2 string) (a, b Conn) {
 	ps2.Add(p2)
 
 	l1, err := Listen(ctx, laddr, p1, ps1)
+	l1.SetWithoutSecureTransport(!secure)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	d2 := &Dialer{
-		Peerstore: ps2,
-		LocalPeer: p2,
+		Peerstore:              ps2,
+		LocalPeer:              p2,
+		WithoutSecureTransport: !secure,
 	}
 
 	var c2 Conn

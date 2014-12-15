@@ -78,6 +78,10 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 		return nil, err
 	}
 
+	if d.WithoutSecureTransport {
+		return c, nil
+	}
+
 	select {
 	case <-ctx.Done():
 		c.Close()
