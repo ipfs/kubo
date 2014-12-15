@@ -292,13 +292,14 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 
 // Searches this nodes links for one to the given key,
 // returns the index of said link
-func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
+func FindLinks(n *Node, k u.Key) []int {
+	var out []int
 	for i, lnk := range n.Links {
-		if u.Key(lnk.Hash) == k && found[i] == nil {
-			return i, nil
+		if u.Key(lnk.Hash) == k {
+			out = append(out, i)
 		}
 	}
-	return -1, u.ErrNotFound
+	return out
 }
 
 // GetDAG will fill out all of the links of the given Node.
@@ -318,12 +319,6 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 		nodes := make([]*Node, len(root.Links))
 		next := 0
 		for blk := range blkchan {
-			i, err := FindLink(root, blk.Key(), nodes)
-			if err != nil {
-				// NB: can only occur as a result of programmer error
-				panic("Received block that wasnt in this nodes links!")
-			}
-
 			nd, err := Decoded(blk.Data)
 			if err != nil {
 				// NB: can occur in normal situations, with improperly formatted
@@ -331,16 +326,12 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 				log.Error("Got back bad block!")
 				break
 			}
-			nodes[i] = nd
-			for { //Check for duplicate links
-				ni, err := FindLink(root, blk.Key(), nodes)
-				if err != nil {
-					break
-				}
-				nodes[ni] = nd
+			is := FindLinks(root, blk.Key())
+			for _, i := range is {
+				nodes[i] = nd
 			}
 
-			if next == i {
+			if next == is[0] {
 				sig <- nd
 				next++
 				for ; next < len(nodes) && nodes[next] != nil; next++ {
