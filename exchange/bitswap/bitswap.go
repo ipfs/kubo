@@ -19,6 +19,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	pset "github.com/jbenet/go-ipfs/util/peerset"
 )
 
 var log = eventlog.Logger("bitswap")
@@ -204,47 +205,8 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 }
 
 func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wantlist) {
-	provset := make(map[u.Key]peer.Peer)
-	provcollect := make(chan peer.Peer)
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
-	wg := sync.WaitGroup{}
-	// Get providers for all entries in wantlist (could take a while)
-	for _, e := range wantlist.Entries() {
-		wg.Add(1)
-		go func(k u.Key) {
-			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
-
-			for prov := range providers {
-				provcollect <- prov
-			}
-			wg.Done()
-		}(e.Value)
-	}
-
-	// When all workers finish, close the providers channel
-	go func() {
-		wg.Wait()
-		close(provcollect)
-	}()
-
-	// Filter out duplicates,
-	// no need to send our wantlists out twice in a given time period
-	for {
-		select {
-		case p, ok := <-provcollect:
-			if !ok {
-				break
-			}
-			provset[p.Key()] = p
-		case <-ctx.Done():
-			log.Error("Context cancelled before we got all the providers!")
-			return
-		}
-	}
 
 	message := bsmsg.New()
 	message.SetFull(true)
@@ -252,9 +214,25 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 		message.AddEntry(e.Value, e.Priority, false)
 	}
 
-	for _, prov := range provset {
-		bs.send(ctx, prov, message)
+	ps := pset.NewPeerSet()
+
+	// Get providers for all entries in wantlist (could take a while)
+	wg := sync.WaitGroup{}
+	for _, e := range wantlist.Entries() {
+		wg.Add(1)
+		go func(k u.Key) {
+			defer wg.Done()
+			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
+			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
+
+			for prov := range providers {
+				if ps.AddIfSmallerThan(prov, -1) { //Do once per peer
+					bs.send(ctx, prov, message)
+				}
+			}
+		}(e.Value)
 	}
+	wg.Wait()
 }
 
 func (bs *bitswap) roundWorker(ctx context.Context) {
