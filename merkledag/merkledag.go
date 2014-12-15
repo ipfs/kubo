@@ -307,6 +307,8 @@ func FindLink(n *Node, k u.Key, found []*Node) (int, error) {
 func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 	sig := make(chan *Node)
 	go func() {
+		defer close(sig)
+
 		var keys []u.Key
 		for _, lnk := range root.Links {
 			keys = append(keys, u.Key(lnk.Hash))
@@ -350,7 +352,6 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 			// TODO: bubble errors back up.
 			log.Errorf("Did not receive correct number of nodes!")
 		}
-		close(sig)
 	}()
 
 	return sig
