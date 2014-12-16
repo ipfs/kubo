@@ -80,21 +80,17 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, n inet.Network,
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) error {
-	err := dht.network.DialPeer(ctx, npeer)
-	if err != nil {
+	if err := dht.network.DialPeer(ctx, npeer); err != nil {
 		return err
 	}
 
 	// Ping new peer to register in their routing table
 	// NOTE: this should be done better...
-	err = dht.Ping(ctx, npeer)
-	if err != nil {
+	if err := dht.Ping(ctx, npeer); err != nil {
 		return fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
 	log.Event(ctx, "connect", dht.self, npeer)
-
 	dht.Update(ctx, npeer)
-
 	return nil
 }
 

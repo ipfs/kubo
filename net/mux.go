@@ -69,19 +69,21 @@ func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
 
 // Handle reads the next name off the Stream, and calls a function
 func (m *Mux) Handle(s Stream) {
-	ctx := context.Background()
+	go func() {
+		ctx := context.Background()
 
-	name, handler, err := m.ReadProtocolHeader(s)
-	if err != nil {
-		err = fmt.Errorf("protocol mux error: %s", err)
-		log.Error(err)
-		log.Event(ctx, "muxError", lgbl.Error(err))
-		return
-	}
+		name, handler, err := m.ReadProtocolHeader(s)
+		if err != nil {
+			err = fmt.Errorf("protocol mux error: %s", err)
+			log.Error(err)
+			log.Event(ctx, "muxError", lgbl.Error(err))
+			return
+		}
 
-	log.Info("muxer handle protocol: %s", name)
-	log.Event(ctx, "muxHandle", eventlog.Metadata{"protocol": name})
-	handler(s)
+		log.Info("muxer handle protocol: %s", name)
+		log.Event(ctx, "muxHandle", eventlog.Metadata{"protocol": name})
+		handler(s)
+	}()
 }
 
 // ReadLengthPrefix reads the name from Reader with a length-byte-prefix.
