@@ -145,7 +145,7 @@ func (n *network) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 }
 
 // Connectedness returns a state signaling connection capabilities
-// For now only returns Connecter || NotConnected. Expand into more later.
+// For now only returns Connected || NotConnected. Expand into more later.
 func (n *network) Connectedness(p peer.Peer) Connectedness {
 	c := n.swarm.ConnectionsToPeer(p)
 	if c != nil && len(c) < 1 {
