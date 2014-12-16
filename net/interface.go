@@ -11,10 +11,12 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+type ProtocolID string
+
 const (
-	ProtocolBitswap = "/ipfs/bitswap"
-	ProtocolDHT     = "/ipfs/dht"
-	ProtocolDiag    = "/ipfs/diagnostics"
+	ProtocolBitswap ProtocolID = "/ipfs/bitswap"
+	ProtocolDHT     ProtocolID = "/ipfs/dht"
+	ProtocolDiag    ProtocolID = "/ipfs/diagnostics"
 )
 
 // Stream represents a bidirectional channel between two agents in
@@ -34,7 +36,7 @@ type Stream interface {
 // incoming streams must implement.
 type StreamHandler func(Stream)
 
-type StreamHandlerMap map[string]StreamHandler
+type StreamHandlerMap map[ProtocolID]StreamHandler
 
 // Conn is a connection to a remote peer. It multiplexes streams.
 // Usually there is no need to use a Conn directly, but it may
@@ -47,28 +49,6 @@ type Conn interface {
 	NewStream(p peer.Peer) (Stream, error)
 }
 
-// Mux provides simple stream multixplexing.
-// It helps you precisely when:
-//  * You have many streams
-//  * You have function handlers
-//
-// It contains the handlers for each protocol accepted.
-// It dispatches handlers for streams opened by remote peers.
-//
-// We use a totally ad-hoc encoding:
-//   <1 byte length in bytes><string name>
-// So "bitswap" is 0x0762697473776170
-//
-// NOTE: only the dialer specifies this muxing line.
-// This is because we're using Streams :)
-//
-// WARNING: this datastructure IS NOT threadsafe.
-// do not modify it once the network is using it.
-type Mux struct {
-	Default  StreamHandler // handles unknown protocols.
-	Handlers StreamHandlerMap
-}
-
 // Network is the interface IPFS uses for connecting to the world.
 // It dials and listens for connections. it uses a Swarm to pool
 // connnections (see swarm pkg, and peerstream.Swarm). Connections
@@ -76,6 +56,10 @@ type Mux struct {
 type Network interface {
 	Dialer
 	io.Closer
+
+	// SetHandler sets the protocol handler on the Network's Muxer.
+	// This operation is threadsafe.
+	SetHandler(ProtocolID, StreamHandler)
 
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.

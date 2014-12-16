@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -11,6 +12,30 @@ import (
 )
 
 var log = eventlog.Logger("mux2")
+
+// Mux provides simple stream multixplexing.
+// It helps you precisely when:
+//  * You have many streams
+//  * You have function handlers
+//
+// It contains the handlers for each protocol accepted.
+// It dispatches handlers for streams opened by remote peers.
+//
+// We use a totally ad-hoc encoding:
+//   <1 byte length in bytes><string name>
+// So "bitswap" is 0x0762697473776170
+//
+// NOTE: only the dialer specifies this muxing line.
+// This is because we're using Streams :)
+//
+// WARNING: this datastructure IS NOT threadsafe.
+// do not modify it once the network is using it.
+type Mux struct {
+	Default  StreamHandler // handles unknown protocols.
+	Handlers StreamHandlerMap
+
+	sync.RWMutex
+}
 
 // NextName reads the stream and returns the next protocol name
 // according to the muxer encoding.
@@ -41,16 +66,26 @@ func (m *Mux) NextHandler(s io.Reader) (string, StreamHandler, error) {
 		return "", nil, err
 	}
 
-	h, found := m.Handlers[name]
-	if !found {
-		if m.Default == nil {
-			return name, nil, errors.New("no handler with name: " + name)
-		}
+	m.RLock()
+	h, found := m.Handlers[ProtocolID(name)]
+	m.RUnlock()
 
+	switch {
+	case !found && m.Default != nil:
 		return name, m.Default, nil
+	case !found && m.Default == nil:
+		return name, nil, errors.New("no handler with name: " + name)
+	default:
+		return name, h, nil
 	}
+}
 
-	return name, h, nil
+// SetHandler sets the protocol handler on the Network's Muxer.
+// This operation is threadsafe.
+func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
+	m.Lock()
+	m.Handlers[p] = h
+	m.Unlock()
 }
 
 // Handle reads the next name off the Stream, and calls a function

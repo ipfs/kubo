@@ -81,9 +81,9 @@ type network struct {
 	cg ctxgroup.ContextGroup // for Context closing
 }
 
-// NewConn is the structure that implements the network interface
-func NewConn(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
-	peers peer.Peerstore, m Mux) (*network, error) {
+// NewNetwork constructs a new network and starts listening on given addresses.
+func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
+	peers peer.Peerstore) (*network, error) {
 
 	s, err := swarm.NewSwarm(ctx, listen, local, peers)
 	if err != nil {
@@ -93,12 +93,12 @@ func NewConn(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 	n := &network{
 		local: local,
 		swarm: s,
-		mux:   m,
+		mux:   Mux{},
 		cg:    ctxgroup.WithContext(ctx),
 	}
 
 	s.SetStreamHandler(func(s *swarm.Stream) {
-		m.Handle((*stream)(s))
+		n.mux.Handle((*stream)(s))
 	})
 
 	n.cg.AddChildGroup(s.CtxGroup())
@@ -152,4 +152,10 @@ func (n *network) Connectedness(p peer.Peer) Connectedness {
 		return Connected
 	}
 	return NotConnected
+}
+
+// SetHandler sets the protocol handler on the Network's Muxer.
+// This operation is threadsafe.
+func (n *network) SetHandler(p ProtocolID, h StreamHandler) {
+	n.mux.SetHandler(p, h)
 }
