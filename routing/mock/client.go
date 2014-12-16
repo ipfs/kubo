@@ -68,7 +68,8 @@ func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 }
 
 func (c *client) Provide(_ context.Context, key u.Key) error {
-	return c.server.Announce(c.peer, key)
+	go c.server.Announce(c.peer, key)
+	return nil
 }
 
 var _ routing.IpfsRouting = &client{}

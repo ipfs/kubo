@@ -200,6 +200,22 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Messa
 	return rpmes, nil
 }
 
+// sendMessage sends out a message using dht.sender
+func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.Peer, pmes *pb.Message) error {
+	mes, err := msg.FromObject(p, pmes)
+	if err != nil {
+		return err
+	}
+
+	err = dht.sender.SendMessage(ctx, mes) // respect?
+	if err != nil {
+		return err
+	}
+	log.Event(ctx, "sentMessage", dht.self, p)
+
+	return nil
+}
+
 // putValueToNetwork stores the given key/value pair at the peer 'p'
 func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
 	key string, rec *pb.Record) error {
@@ -226,15 +242,12 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 	// add self as the provider
 	pmes.ProviderPeers = pb.PeersToPBPeers(dht.dialer, []peer.Peer{dht.self})
 
-	rpmes, err := dht.sendRequest(ctx, p, pmes)
+	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
 
 	log.Debugf("%s putProvider: %s for %s", dht.self, p, u.Key(key))
-	if rpmes.GetKey() != pmes.GetKey() {
-		return errors.New("provider not added correctly")
-	}
 
 	return nil
 }
