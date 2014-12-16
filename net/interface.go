@@ -46,7 +46,7 @@ type Conn interface {
 	conn.PeerConn
 
 	// NewStream constructs a new Stream directly connected to p.
-	NewStream(p peer.Peer) (Stream, error)
+	NewStream(pr ProtocolID, p peer.Peer) (Stream, error)
 }
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -63,7 +63,8 @@ type Network interface {
 
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.
-	NewStream(p peer.Peer) (Stream, error)
+	// If ProtocolID is "", writes no header.
+	NewStream(ProtocolID, peer.Peer) (Stream, error)
 
 	// Swarm returns the connection Swarm
 	Swarm() *swarm.Swarm

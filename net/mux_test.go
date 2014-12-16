@@ -15,7 +15,7 @@ var testCases = map[string]string{
 func TestWrite(t *testing.T) {
 	for k, v := range testCases {
 		var buf bytes.Buffer
-		Write(&buf, k)
+		WriteLengthPrefix(&buf, k)
 
 		v2 := buf.Bytes()
 		if !bytes.Equal(v2, []byte(v)) {
@@ -48,7 +48,7 @@ func TestHandler(t *testing.T) {
 			continue
 		}
 
-		name, _, err := m.NextHandler(&buf)
+		name, _, err := m.ReadProtocolHeader(&buf)
 		if err != nil {
 			t.Error(err)
 			continue

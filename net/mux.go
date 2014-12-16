@@ -37,31 +37,10 @@ type Mux struct {
 	sync.RWMutex
 }
 
-// NextName reads the stream and returns the next protocol name
+// ReadProtocolHeader reads the stream and returns the next Handler function
 // according to the muxer encoding.
-func (m *Mux) NextName(s io.Reader) (string, error) {
-
-	// c-string identifier
-	// the first byte is our length
-	l := make([]byte, 1)
-	if _, err := io.ReadFull(s, l); err != nil {
-		return "", err
-	}
-	length := int(l[0])
-
-	// the next are our identifier
-	name := make([]byte, length)
-	if _, err := io.ReadFull(s, name); err != nil {
-		return "", err
-	}
-
-	return string(name), nil
-}
-
-// NextHandler reads the stream and returns the next Handler function
-// according to the muxer encoding.
-func (m *Mux) NextHandler(s io.Reader) (string, StreamHandler, error) {
-	name, err := m.NextName(s)
+func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {
+	name, err := ReadLengthPrefix(s)
 	if err != nil {
 		return "", nil, err
 	}
@@ -92,7 +71,7 @@ func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
 func (m *Mux) Handle(s Stream) {
 	ctx := context.Background()
 
-	name, handler, err := m.NextHandler(s)
+	name, handler, err := m.ReadProtocolHeader(s)
 	if err != nil {
 		err = fmt.Errorf("protocol mux error: %s", err)
 		log.Error(err)
@@ -105,8 +84,27 @@ func (m *Mux) Handle(s Stream) {
 	handler(s)
 }
 
-// Write writes the name into Writer with a length-byte-prefix.
-func Write(w io.Writer, name string) error {
+// ReadLengthPrefix reads the name from Reader with a length-byte-prefix.
+func ReadLengthPrefix(r io.Reader) (string, error) {
+	// c-string identifier
+	// the first byte is our length
+	l := make([]byte, 1)
+	if _, err := io.ReadFull(r, l); err != nil {
+		return "", err
+	}
+	length := int(l[0])
+
+	// the next are our identifier
+	name := make([]byte, length)
+	if _, err := io.ReadFull(r, name); err != nil {
+		return "", err
+	}
+
+	return string(name), nil
+}
+
+// WriteLengthPrefix writes the name into Writer with a length-byte-prefix.
+func WriteLengthPrefix(w io.Writer, name string) error {
 	s := make([]byte, len(name)+1)
 	s[0] = byte(len(name))
 	copy(s[1:], []byte(name))

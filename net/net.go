@@ -44,12 +44,20 @@ func (c *conn_) SwarmConn() *swarm.Conn {
 	return (*swarm.Conn)(c)
 }
 
-func (c *conn_) NewStream(p peer.Peer) (Stream, error) {
+func (c *conn_) NewStream(pr ProtocolID, p peer.Peer) (Stream, error) {
 	s, err := (*swarm.Conn)(c).NewStream()
 	if err != nil {
 		return nil, err
 	}
-	return (*stream)(s), nil
+
+	ss := (*stream)(s)
+
+	if err := writeProtocolHeader(pr, ss); err != nil {
+		ss.Close()
+		return nil, err
+	}
+
+	return ss, nil
 }
 
 // LocalMultiaddr is the Multiaddr on this side
@@ -154,8 +162,36 @@ func (n *network) Connectedness(p peer.Peer) Connectedness {
 	return NotConnected
 }
 
+// NewStream returns a new stream to given peer p.
+// If there is no connection to p, attempts to create one.
+// If ProtocolID is "", writes no header.
+func (c *network) NewStreamWithPeer(pr ProtocolID, p peer.Peer) (Stream, error) {
+	s, err := c.swarm.NewStreamWithPeer(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ss := (*stream)(s)
+
+	if err := writeProtocolHeader(pr, ss); err != nil {
+		ss.Close()
+		return nil, err
+	}
+
+	return ss, nil
+}
+
 // SetHandler sets the protocol handler on the Network's Muxer.
 // This operation is threadsafe.
 func (n *network) SetHandler(p ProtocolID, h StreamHandler) {
 	n.mux.SetHandler(p, h)
+}
+
+func writeProtocolHeader(pr ProtocolID, s Stream) error {
+	if pr != "" { // only write proper protocol headers
+		if err := WriteLengthPrefix(s, string(pr)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
