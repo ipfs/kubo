@@ -101,7 +101,7 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 	n := &network{
 		local: local,
 		swarm: s,
-		mux:   Mux{},
+		mux:   Mux{Handlers: StreamHandlerMap{}},
 		cg:    ctxgroup.WithContext(ctx),
 	}
 

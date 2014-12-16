@@ -102,6 +102,10 @@ func (c *Conn) removeStream(s *Stream) {
 
 func (c *Conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.Peer) (inet.Stream, error) {
 
+	if _, connected := c.local.conns[p]; !connected {
+		return nil, fmt.Errorf("cannot create new stream for %s. not connected.", p)
+	}
+
 	log.Debugf("NewStreamWithProtocol: %s --> %s", c.local, p)
 	ss, _ := newStreamPair(c.local, p)
 
@@ -193,7 +197,11 @@ func (n *Network) DialPeer(ctx context.Context, p peer.Peer) error {
 	n.Lock()
 	defer n.Unlock()
 
-	n.conns[p].connected = true
+	c, ok := n.conns[p]
+	if !ok {
+		return fmt.Errorf("cannot connect to %s (mock needs all nets at start)", p)
+	}
+	c.connected = true
 	return nil
 }
 
@@ -237,7 +245,11 @@ func (n *Network) Conns() []inet.Conn {
 
 // ClosePeer connection to peer
 func (n *Network) ClosePeer(p peer.Peer) error {
-	return n.conns[p].Close()
+	c, ok := n.conns[p]
+	if !ok {
+		return nil
+	}
+	return c.Close()
 }
 
 // close is the real teardown function

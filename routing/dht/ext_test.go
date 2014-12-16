@@ -1,150 +1,48 @@
 package dht
 
 import (
+	"math/rand"
 	"testing"
 
 	crand "crypto/rand"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	inet "github.com/jbenet/go-ipfs/net"
+	mocknet "github.com/jbenet/go-ipfs/net/mock"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
-	"sync"
+	ggio "code.google.com/p/gogoprotobuf/io"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+
 	"time"
 )
-
-// mesHandleFunc is a function that takes in outgoing messages
-// and can respond to them, simulating other peers on the network.
-// returning nil will chose not to respond and pass the message onto the
-// next registered handler
-type mesHandleFunc func(msg.NetMessage) msg.NetMessage
-
-// fauxNet is a standin for a swarm.Network in order to more easily recreate
-// different testing scenarios
-type fauxSender struct {
-	sync.Mutex
-	handlers []mesHandleFunc
-}
-
-func (f *fauxSender) AddHandler(fn func(msg.NetMessage) msg.NetMessage) {
-	f.Lock()
-	defer f.Unlock()
-
-	f.handlers = append(f.handlers, fn)
-}
-
-func (f *fauxSender) SendRequest(ctx context.Context, m msg.NetMessage) (msg.NetMessage, error) {
-	f.Lock()
-	handlers := make([]mesHandleFunc, len(f.handlers))
-	copy(handlers, f.handlers)
-	f.Unlock()
-
-	for _, h := range handlers {
-		reply := h(m)
-		if reply != nil {
-			return reply, nil
-		}
-	}
-
-	// no reply? ok force a timeout
-	select {
-	case <-ctx.Done():
-	}
-
-	return nil, ctx.Err()
-}
-
-func (f *fauxSender) SendMessage(ctx context.Context, m msg.NetMessage) error {
-	f.Lock()
-	handlers := make([]mesHandleFunc, len(f.handlers))
-	copy(handlers, f.handlers)
-	f.Unlock()
-
-	for _, h := range handlers {
-		reply := h(m)
-		if reply != nil {
-			return nil
-		}
-	}
-	return nil
-}
-
-// fauxNet is a standin for a swarm.Network in order to more easily recreate
-// different testing scenarios
-type fauxNet struct {
-	local peer.Peer
-}
-
-// DialPeer attempts to establish a connection to a given peer
-func (f *fauxNet) DialPeer(context.Context, peer.Peer) error {
-	return nil
-}
-
-func (f *fauxNet) LocalPeer() peer.Peer {
-	return f.local
-}
-
-// ClosePeer connection to peer
-func (f *fauxNet) ClosePeer(peer.Peer) error {
-	return nil
-}
-
-// IsConnected returns whether a connection to given peer exists.
-func (f *fauxNet) IsConnected(peer.Peer) (bool, error) {
-	return true, nil
-}
-
-// Connectedness returns whether a connection to given peer exists.
-func (f *fauxNet) Connectedness(peer.Peer) inet.Connectedness {
-	return inet.Connected
-}
-
-// GetProtocols returns the protocols registered in the network.
-func (f *fauxNet) GetProtocols() *mux.ProtocolMap { return nil }
-
-// SendMessage sends given Message out
-func (f *fauxNet) SendMessage(msg.NetMessage) error {
-	return nil
-}
-
-func (f *fauxNet) GetPeerList() []peer.Peer {
-	return nil
-}
-
-func (f *fauxNet) GetBandwidthTotals() (uint64, uint64) {
-	return 0, 0
-}
-
-// Close terminates all network operation
-func (f *fauxNet) Close() error { return nil }
 
 func TestGetFailures(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 
+	ctx := context.Background()
 	peerstore := peer.NewPeerstore()
 	local := makePeerString(t, "")
+	peers := []peer.Peer{local, testutil.RandPeer()}
 
-	ctx := context.Background()
-	fn := &fauxNet{local}
-	fs := &fauxSender{}
+	nets, err := mocknet.MakeNetworks(ctx, peers)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
-	other := makePeerString(t, "")
-	d.Update(ctx, other)
+	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
+	d.Update(ctx, peers[1])
 
 	// This one should time out
 	// u.POut("Timout Test\n")
 	ctx1, _ := context.WithTimeout(context.Background(), time.Second)
-	_, err := d.GetValue(ctx1, u.Key("test"))
-	if err != nil {
+	if _, err := d.GetValue(ctx1, u.Key("test")); err != nil {
 		if err != context.DeadlineExceeded {
 			t.Fatal("Got different error than we expected", err)
 		}
@@ -152,20 +50,29 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal("Did not get expected error!")
 	}
 
+	msgs := make(chan *pb.Message, 100)
+
 	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
-	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
+	nets[1].SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
+		defer s.Close()
+
+		pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
+		pbw := ggio.NewDelimitedWriter(s)
+
 		pmes := new(pb.Message)
-		err := proto.Unmarshal(mes.Data(), pmes)
-		if err != nil {
-			t.Fatal(err)
+		if err := pbr.ReadMsg(pmes); err != nil {
+			panic(err)
 		}
 
 		resp := &pb.Message{
 			Type: pmes.Type,
 		}
-		m, err := msg.FromObject(mes.Peer(), resp)
-		return m
+		if err := pbw.WriteMsg(resp); err != nil {
+			panic(err)
+		}
+
+		msgs <- resp
 	})
 
 	// This one should fail with NotFound
@@ -179,40 +86,45 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal("expected error, got none.")
 	}
 
-	fs.handlers = nil
 	// Now we test this DHT's handleGetValue failure
-	typ := pb.Message_GET_VALUE
-	str := "hello"
-	rec, err := d.makePutRecord(u.Key(str), []byte("blah"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req := pb.Message{
-		Type:   &typ,
-		Key:    &str,
-		Record: rec,
-	}
+	{
+		typ := pb.Message_GET_VALUE
+		str := "hello"
+		rec, err := d.makePutRecord(u.Key(str), []byte("blah"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req := pb.Message{
+			Type:   &typ,
+			Key:    &str,
+			Record: rec,
+		}
 
-	// u.POut("handleGetValue Test\n")
-	mes, err := msg.FromObject(other, &req)
-	if err != nil {
-		t.Error(err)
-	}
+		// u.POut("handleGetValue Test\n")
+		s, err := nets[1].NewStream(inet.ProtocolDHT, peers[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer s.Close()
 
-	mes = d.HandleMessage(ctx, mes)
+		pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
+		pbw := ggio.NewDelimitedWriter(s)
 
-	pmes := new(pb.Message)
-	err = proto.Unmarshal(mes.Data(), pmes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pmes.GetRecord() != nil {
-		t.Fatal("shouldnt have value")
-	}
-	if pmes.GetProviderPeers() != nil {
-		t.Fatal("shouldnt have provider peers")
-	}
+		if err := pbw.WriteMsg(&req); err != nil {
+			t.Fatal(err)
+		}
 
+		pmes := new(pb.Message)
+		if err := pbr.ReadMsg(pmes); err != nil {
+			t.Fatal(err)
+		}
+		if pmes.GetRecord() != nil {
+			t.Fatal("shouldnt have value")
+		}
+		if pmes.GetProviderPeers() != nil {
+			t.Fatal("shouldnt have provider peers")
+		}
+	}
 }
 
 // TODO: Maybe put these in some sort of "ipfs_testutil" package
@@ -228,49 +140,57 @@ func TestNotFound(t *testing.T) {
 		t.SkipNow()
 	}
 
-	local := makePeerString(t, "")
-	peerstore := peer.NewPeerstore()
-	peerstore.Add(local)
-
 	ctx := context.Background()
-	fn := &fauxNet{local}
-	fs := &fauxSender{}
+	peerstore := peer.NewPeerstore()
 
-	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
+	var peers []peer.Peer
+	for i := 0; i < 16; i++ {
+		peers = append(peers, testutil.RandPeer())
+	}
 
-	var ps []peer.Peer
-	for i := 0; i < 5; i++ {
-		ps = append(ps, _randPeer())
-		d.Update(ctx, ps[i])
+	nets, err := mocknet.MakeNetworks(ctx, peers)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
+
+	for _, p := range peers {
+		d.Update(ctx, p)
 	}
 
 	// Reply with random peers to every message
-	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
-		pmes := new(pb.Message)
-		err := proto.Unmarshal(mes.Data(), pmes)
-		if err != nil {
-			t.Fatal(err)
-		}
+	for _, neti := range nets {
+		neti.SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
+			defer s.Close()
 
-		switch pmes.GetType() {
-		case pb.Message_GET_VALUE:
-			resp := &pb.Message{Type: pmes.Type}
+			pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
+			pbw := ggio.NewDelimitedWriter(s)
 
-			peers := []peer.Peer{}
-			for i := 0; i < 7; i++ {
-				peers = append(peers, _randPeer())
+			pmes := new(pb.Message)
+			if err := pbr.ReadMsg(pmes); err != nil {
+				panic(err)
 			}
-			resp.CloserPeers = pb.PeersToPBPeers(d.dialer, peers)
-			mes, err := msg.FromObject(mes.Peer(), resp)
-			if err != nil {
-				t.Error(err)
-			}
-			return mes
-		default:
-			panic("Shouldnt recieve this.")
-		}
 
-	})
+			switch pmes.GetType() {
+			case pb.Message_GET_VALUE:
+				resp := &pb.Message{Type: pmes.Type}
+
+				ps := []peer.Peer{}
+				for i := 0; i < 7; i++ {
+					ps = append(ps, peers[rand.Intn(len(peers))])
+				}
+
+				resp.CloserPeers = pb.PeersToPBPeers(d.network, peers)
+				if err := pbw.WriteMsg(resp); err != nil {
+					panic(err)
+				}
+
+			default:
+				panic("Shouldnt recieve this.")
+			}
+		})
+	}
 
 	ctx, _ = context.WithTimeout(ctx, time.Second*5)
 	v, err := d.GetValue(ctx, u.Key("hello"))
@@ -294,53 +214,57 @@ func TestNotFound(t *testing.T) {
 func TestLessThanKResponses(t *testing.T) {
 	// t.Skip("skipping test because it makes a lot of output")
 
-	local := makePeerString(t, "")
-	peerstore := peer.NewPeerstore()
-	peerstore.Add(local)
-
 	ctx := context.Background()
-	u.Debug = false
-	fn := &fauxNet{local}
-	fs := &fauxSender{}
+	peerstore := peer.NewPeerstore()
 
-	d := NewDHT(ctx, local, peerstore, fn, fs, ds.NewMapDatastore())
-
-	var ps []peer.Peer
-	for i := 0; i < 5; i++ {
-		ps = append(ps, _randPeer())
-		d.Update(ctx, ps[i])
+	var peers []peer.Peer
+	for i := 0; i < 6; i++ {
+		peers = append(peers, testutil.RandPeer())
 	}
-	other := _randPeer()
+
+	nets, err := mocknet.MakeNetworks(ctx, peers)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
+
+	for i := 1; i < 5; i++ {
+		d.Update(ctx, peers[i])
+	}
 
 	// Reply with random peers to every message
-	fs.AddHandler(func(mes msg.NetMessage) msg.NetMessage {
-		pmes := new(pb.Message)
-		err := proto.Unmarshal(mes.Data(), pmes)
-		if err != nil {
-			t.Fatal(err)
-		}
+	for _, neti := range nets {
+		neti.SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
+			defer s.Close()
 
-		switch pmes.GetType() {
-		case pb.Message_GET_VALUE:
-			resp := &pb.Message{
-				Type:        pmes.Type,
-				CloserPeers: pb.PeersToPBPeers(d.dialer, []peer.Peer{other}),
+			pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
+			pbw := ggio.NewDelimitedWriter(s)
+
+			pmes := new(pb.Message)
+			if err := pbr.ReadMsg(pmes); err != nil {
+				panic(err)
 			}
 
-			mes, err := msg.FromObject(mes.Peer(), resp)
-			if err != nil {
-				t.Error(err)
-			}
-			return mes
-		default:
-			panic("Shouldnt recieve this.")
-		}
+			switch pmes.GetType() {
+			case pb.Message_GET_VALUE:
+				resp := &pb.Message{
+					Type:        pmes.Type,
+					CloserPeers: pb.PeersToPBPeers(d.network, []peer.Peer{peers[1]}),
+				}
 
-	})
+				if err := pbw.WriteMsg(resp); err != nil {
+					panic(err)
+				}
+			default:
+				panic("Shouldnt recieve this.")
+			}
+
+		})
+	}
 
 	ctx, _ = context.WithTimeout(ctx, time.Second*30)
-	_, err := d.GetValue(ctx, u.Key("hello"))
-	if err != nil {
+	if _, err := d.GetValue(ctx, u.Key("hello")); err != nil {
 		switch err {
 		case routing.ErrNotFound:
 			//Success!

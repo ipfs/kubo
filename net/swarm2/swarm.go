@@ -32,6 +32,12 @@ type Swarm struct {
 func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	local peer.Peer, peers peer.Peerstore) (*Swarm, error) {
 
+	// make sure our own peer is in our peerstore...
+	local, err := peers.Add(local)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Swarm{
 		swarm: ps.NewSwarm(),
 		local: local,
@@ -75,13 +81,20 @@ func (s *Swarm) SetStreamHandler(handler StreamHandler) {
 
 // NewStreamWithPeer creates a new stream on any available connection to p
 func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
+	// make sure we use OUR peers. (the tests mess with you...)
+	p, err := s.peers.Add(p)
+	if err != nil {
+		return nil, err
+	}
 
 	// if we have no connections, try connecting.
 	if len(s.ConnectionsToPeer(p)) == 0 {
+		log.Debug("Swarm: NewStreamWithPeer no connections. Attempting to connect...")
 		if _, err := s.Dial(p); err != nil {
 			return nil, err
 		}
 	}
+	log.Debug("Swarm: NewStreamWithPeer...")
 
 	st, err := s.swarm.NewStreamWithGroup(p)
 	return wrapStream(st), err
@@ -89,11 +102,20 @@ func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
 
 // StreamsWithPeer returns all the live Streams to p
 func (s *Swarm) StreamsWithPeer(p peer.Peer) []*Stream {
+	// make sure we use OUR peers. (the tests mess with you...)
+	if p2, err := s.peers.Add(p); err == nil {
+		p = p2
+	}
+
 	return wrapStreams(ps.StreamsWithGroup(p, s.swarm.Streams()))
 }
 
 // ConnectionsToPeer returns all the live connections to p
 func (s *Swarm) ConnectionsToPeer(p peer.Peer) []*Conn {
+	// make sure we use OUR peers. (the tests mess with you...)
+	if p2, err := s.peers.Add(p); err == nil {
+		p = p2
+	}
 	return wrapConns(ps.ConnsWithGroup(p, s.swarm.Conns()))
 }
 
@@ -104,6 +126,12 @@ func (s *Swarm) Connections() []*Conn {
 
 // CloseConnection removes a given peer from swarm + closes the connection
 func (s *Swarm) CloseConnection(p peer.Peer) error {
+	// make sure we use OUR peers. (the tests mess with you...)
+	p, err := s.peers.Add(p)
+	if err != nil {
+		return err
+	}
+
 	conns := s.swarm.ConnsWithGroup(p) // boom.
 	for _, c := range conns {
 		c.Close()
