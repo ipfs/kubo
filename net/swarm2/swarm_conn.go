@@ -14,11 +14,11 @@ import (
 // a Conn is a simple wrapper around a ps.Conn that also exposes
 // some of the methods from the underlying conn.Conn.
 // There's **five** "layers" to each connection:
-// - 0. the net.Conn - underlying net.Conn (TCP/UDP/UTP/etc)
-// - 1. the manet.Conn - provides multiaddr friendly Conn
-// - 2. the conn.Conn - provides Peer friendly Conn (inc Secure channel)
-// - 3. the peerstream.Conn - provides peerstream / spdysptream happiness
-// - 4. the Conn - abstracts everyting out, exposing only key parts of underlying layers
+//  * 0. the net.Conn - underlying net.Conn (TCP/UDP/UTP/etc)
+//  * 1. the manet.Conn - provides multiaddr friendly Conn
+//  * 2. the conn.Conn - provides Peer friendly Conn (inc Secure channel)
+//  * 3. the peerstream.Conn - provides peerstream / spdysptream happiness
+//  * 4. the Conn - abstracts everyting out, exposing only key parts of underlying layers
 // (I know, this is kinda crazy. it's more historical than a good design. though the
 // layers do build up pieces of functionality. and they're all just io.RW :) )
 type Conn ps.Conn

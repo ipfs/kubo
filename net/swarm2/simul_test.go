@@ -12,7 +12,7 @@ import (
 )
 
 func TestSimultOpen(t *testing.T) {
-	t.Skip("skipping for another test")
+	// t.Skip("skipping for another test")
 
 	addrs := []string{
 		"/ip4/127.0.0.1/tcp/1244",
@@ -49,9 +49,9 @@ func TestSimultOpen(t *testing.T) {
 }
 
 func TestSimultOpenMany(t *testing.T) {
-	t.Skip("very very slow")
+	// t.Skip("very very slow")
 
-	many := 500
+	many := 10
 	addrs := []string{}
 	for i := 2200; i < (2200 + many); i++ {
 		s := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", i)
@@ -65,7 +65,7 @@ func TestSimultOpenFewStress(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Skip("skipping for another test")
+	// t.Skip("skipping for another test")
 
 	num := 10
 	// num := 100

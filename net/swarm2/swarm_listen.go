@@ -18,12 +18,15 @@ func (s *Swarm) listen(addrs []ma.Multiaddr) error {
 	for i, addr := range addrs {
 		err := s.setupListener(addr)
 		if err != nil {
+			if retErr.Errors == nil {
+				retErr.Errors = make([]error, len(addrs))
+			}
 			retErr.Errors[i] = err
 			log.Errorf("Failed to listen on: %s - %s", addr, err)
 		}
 	}
 
-	if len(retErr.Errors) > 0 {
+	if retErr.Errors != nil {
 		return retErr
 	}
 	return nil

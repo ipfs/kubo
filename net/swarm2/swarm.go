@@ -70,6 +70,14 @@ func (s *Swarm) SetStreamHandler(handler StreamHandler) {
 
 // NewStreamWithPeer creates a new stream on any available connection to p
 func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
+
+	// if we have no connections, try connecting.
+	if len(s.ConnectionsToPeer(p)) == 0 {
+		if _, err := s.Dial(p); err != nil {
+			return nil, err
+		}
+	}
+
 	st, err := s.swarm.NewStreamWithGroup(p)
 	return wrapStream(st), err
 }
