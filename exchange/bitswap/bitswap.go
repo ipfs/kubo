@@ -222,7 +222,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
 
 			for prov := range providers {
-				if ps.AddIfSmallerThan(prov, -1) { //Do once per peer
+				if ps.TryAdd(prov) { //Do once per peer
 					bs.send(ctx, prov, message)
 				}
 			}

@@ -7,13 +7,22 @@ import (
 
 // PeerSet is a threadsafe set of peers
 type PeerSet struct {
-	ps map[string]bool
-	lk sync.RWMutex
+	ps   map[string]bool
+	lk   sync.RWMutex
+	size int
 }
 
 func NewPeerSet() *PeerSet {
 	ps := new(PeerSet)
 	ps.ps = make(map[string]bool)
+	ps.size = -1
+	return ps
+}
+
+func NewLimitedPeerSet(size int) *PeerSet {
+	ps := new(PeerSet)
+	ps.ps = make(map[string]bool)
+	ps.size = -1
 	return ps
 }
 
@@ -36,10 +45,14 @@ func (ps *PeerSet) Size() int {
 	return len(ps.ps)
 }
 
-func (ps *PeerSet) AddIfSmallerThan(p peer.Peer, maxsize int) bool {
+// TryAdd Attempts to add the given peer into the set.
+// This operation can fail for one of two reasons:
+// 1) The given peer is already in the set
+// 2) The number of peers in the set is equal to size
+func (ps *PeerSet) TryAdd(p peer.Peer) bool {
 	var success bool
 	ps.lk.Lock()
-	if _, ok := ps.ps[string(p.ID())]; !ok && len(ps.ps) < maxsize {
+	if _, ok := ps.ps[string(p.ID())]; !ok && (len(ps.ps) < ps.size || ps.size == -1) {
 		success = true
 		ps.ps[string(p.ID())] = true
 	}
