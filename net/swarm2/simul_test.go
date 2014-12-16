@@ -30,7 +30,7 @@ func TestSimultOpen(t *testing.T) {
 			cp := testutil.NewPeerWithID(dst.ID())
 			cp.AddAddress(dst.Addresses()[0])
 
-			if _, err := s.Dial(cp); err != nil {
+			if _, err := s.Dial(ctx, cp); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}
 			wg.Done()

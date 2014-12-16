@@ -4,7 +4,6 @@ package net
 import (
 	swarm "github.com/jbenet/go-ipfs/net/swarm2"
 	peer "github.com/jbenet/go-ipfs/peer"
-	util "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
@@ -117,10 +116,7 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
 func (n *network) DialPeer(ctx context.Context, p peer.Peer) error {
-	err := util.ContextDo(ctx, func() error {
-		_, err := n.swarm.Dial(p)
-		return err
-	})
+	_, err := n.swarm.Dial(ctx, p)
 	return err
 }
 

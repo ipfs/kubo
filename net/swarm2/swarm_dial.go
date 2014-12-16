@@ -17,8 +17,7 @@ import (
 // the connection will happen over. Swarm can use whichever it choses.
 // This allows us to use various transport protocols, do NAT traversal/relay,
 // etc. to achive connection.
-func (s *Swarm) Dial(p peer.Peer) (*Conn, error) {
-	ctx := context.TODO()
+func (s *Swarm) Dial(ctx context.Context, p peer.Peer) (*Conn, error) {
 
 	if p.ID().Equal(s.local.ID()) {
 		return nil, errors.New("Attempted connection to self!")
