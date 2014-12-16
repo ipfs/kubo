@@ -67,6 +67,8 @@ func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 	return out
 }
 
+// Provide returns once the message is on the network. Value is not necessarily
+// visible yet.
 func (c *client) Provide(_ context.Context, key u.Key) error {
 	return c.server.Announce(c.peer, key)
 }

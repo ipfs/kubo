@@ -30,12 +30,16 @@ func BenchmarkInstantaneousAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, i
 
 var routing = Config{}.Routing_Slow()
 
-func BenchmarkRoutingSlowAddCat1MB(b *testing.B)  { benchmarkAddCat(1*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat2MB(b *testing.B)  { benchmarkAddCat(2*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat4MB(b *testing.B)  { benchmarkAddCat(4*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat8MB(b *testing.B)  { benchmarkAddCat(8*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat16MB(b *testing.B) { benchmarkAddCat(16*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat32MB(b *testing.B) { benchmarkAddCat(32*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat4MB(b *testing.B)   { benchmarkAddCat(4*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat8MB(b *testing.B)   { benchmarkAddCat(8*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat16MB(b *testing.B)  { benchmarkAddCat(16*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat32MB(b *testing.B)  { benchmarkAddCat(32*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat512MB(b *testing.B) { benchmarkAddCat(512*MB, routing, b) }
 
 var network = Config{}.Network_NYtoSF()
 
@@ -60,3 +64,15 @@ func BenchmarkBlockstoreSlowAddCat32MB(b *testing.B)  { benchmarkAddCat(32*MB, b
 func BenchmarkBlockstoreSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*MB, blockstore, b) }
 func BenchmarkBlockstoreSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, blockstore, b) }
 func BenchmarkBlockstoreSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, blockstore, b) }
+
+var mixed = Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
+
+func BenchmarkMixedAddCat1MBXX(b *testing.B) { benchmarkAddCat(1*MB, mixed, b) }
+func BenchmarkMixedAddCat2MBXX(b *testing.B) { benchmarkAddCat(2*MB, mixed, b) }
+func BenchmarkMixedAddCat4MBXX(b *testing.B) { benchmarkAddCat(4*MB, mixed, b) }
+func BenchmarkMixedAddCat8MBXX(b *testing.B) { benchmarkAddCat(8*MB, mixed, b) }
+func BenchmarkMixedAddCat16MBX(b *testing.B) { benchmarkAddCat(16*MB, mixed, b) }
+func BenchmarkMixedAddCat32MBX(b *testing.B) { benchmarkAddCat(32*MB, mixed, b) }
+func BenchmarkMixedAddCat64MBX(b *testing.B) { benchmarkAddCat(64*MB, mixed, b) }
+func BenchmarkMixedAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, mixed, b) }
+func BenchmarkMixedAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, mixed, b) }
