@@ -35,6 +35,15 @@
 			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
 		},
 		{
+			"ImportPath": "code.google.com/p/go.net/spdy",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
+		},
+		{
+			"ImportPath": "code.google.com/p/gogoprotobuf/io",
+			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
+		},
+		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
 			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
 		},
@@ -59,6 +68,10 @@
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
+		},
+		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "e9d52d77345028f700deb3799ec0b77d5df56dcd"
 		},
 		{
 			"ImportPath": "github.com/facebookgo/stack",
@@ -127,12 +140,12 @@
 			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-random",
-			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
+			"ImportPath": "github.com/jbenet/go-peerstream",
+			"Rev": "5023d0d6b3efeb50c2c30535d011bdcb2351e212"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-router",
-			"Rev": "7a4053217b7bfe3a14cc79541557d47d0c4ad85f"
+			"ImportPath": "github.com/jbenet/go-random",
+			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",

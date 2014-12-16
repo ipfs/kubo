@@ -1,7 +1,7 @@
 package swarm
 
 import (
-	ps "github.com/jbenet/go-peerstream"
+	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 )
 
 // a Stream is a wrapper around a ps.Stream that exposes a way to get
