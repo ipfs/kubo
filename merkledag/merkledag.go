@@ -2,6 +2,7 @@
 package merkledag
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -294,8 +295,9 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 // returns the indexes of any links pointing to it
 func FindLinks(n *Node, k u.Key) []int {
 	var out []int
+	keybytes := []byte(k)
 	for i, lnk := range n.Links {
-		if u.Key(lnk.Hash) == k {
+		if bytes.Equal([]byte(lnk.Hash), keybytes) {
 			out = append(out, i)
 		}
 	}

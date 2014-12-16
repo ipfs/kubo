@@ -36,6 +36,9 @@ func TestClientFindProviders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// This is bad... but simulating networks is hard
+	time.Sleep(time.Millisecond * 300)
 	max := 100
 
 	providersFromHashTable, err := rs.Client(peer).FindProviders(context.Background(), k)
@@ -160,6 +163,7 @@ func TestValidAfter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log("providers", providers)
 	if len(providers) != 1 {
 		t.Fail()
 	}

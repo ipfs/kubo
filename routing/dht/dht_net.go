@@ -8,8 +8,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 )
 
 // handleNewStream implements the inet.StreamHandler
@@ -101,4 +101,25 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Messa
 	p.SetLatency(time.Since(start))
 	log.Event(ctx, "dhtReceivedMessage", dht.self, p, rpmes)
 	return rpmes, nil
+}
+
+// sendMessage sends out a message
+func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.Peer, pmes *pb.Message) error {
+
+	log.Debugf("%s dht starting stream", dht.self)
+	s, err := dht.network.NewStream(inet.ProtocolDHT, p)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	w := ggio.NewDelimitedWriter(s)
+
+	log.Debugf("%s writing", dht.self)
+	if err := w.WriteMsg(pmes); err != nil {
+		return err
+	}
+	log.Event(ctx, "dhtSentMessage", dht.self, p, pmes)
+	log.Debugf("%s done", dht.self)
+	return nil
 }
