@@ -30,12 +30,16 @@ func BenchmarkInstantaneousAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, i
 
 var routing = Config{}.Routing_Slow()
 
-func BenchmarkRoutingSlowAddCat1MB(b *testing.B)  { benchmarkAddCat(1*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat2MB(b *testing.B)  { benchmarkAddCat(2*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat4MB(b *testing.B)  { benchmarkAddCat(4*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat8MB(b *testing.B)  { benchmarkAddCat(8*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat16MB(b *testing.B) { benchmarkAddCat(16*MB, routing, b) }
-func BenchmarkRoutingSlowAddCat32MB(b *testing.B) { benchmarkAddCat(32*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat4MB(b *testing.B)   { benchmarkAddCat(4*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat8MB(b *testing.B)   { benchmarkAddCat(8*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat16MB(b *testing.B)  { benchmarkAddCat(16*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat32MB(b *testing.B)  { benchmarkAddCat(32*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, routing, b) }
+func BenchmarkRoutingSlowAddCat512MB(b *testing.B) { benchmarkAddCat(512*MB, routing, b) }
 
 var network = Config{}.Network_NYtoSF()
 
