@@ -3,7 +3,7 @@ package msgio
 import (
 	"io"
 
-	mpool "github.com/jbenet/go-msgio/mpool"
+	mpool "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
 )
 
 // Chan is a msgio duplex channel. It is used to have a channel interface

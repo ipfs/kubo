@@ -8,7 +8,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	u "github.com/jbenet/go-ipfs/util"
 
-	ggio "code.google.com/p/gogoprotobuf/io"
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 )
 
 // TODO move message.go into the bitswap package

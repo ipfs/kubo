@@ -7,7 +7,7 @@ import (
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	hspb "github.com/jbenet/go-ipfs/net/handshake/pb"
 
-	ggprotoio "code.google.com/p/gogoprotobuf/io"
+	ggprotoio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 

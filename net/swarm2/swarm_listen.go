@@ -7,7 +7,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	multierr "github.com/jbenet/go-ipfs/util/multierr"
-	ps "github.com/jbenet/go-peerstream"
+	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 )
 
 // Open listeners for each network the swarm should listen on
