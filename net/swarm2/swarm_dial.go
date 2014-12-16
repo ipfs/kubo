@@ -17,7 +17,7 @@ import (
 // the connection will happen over. Swarm can use whichever it choses.
 // This allows us to use various transport protocols, do NAT traversal/relay,
 // etc. to achive connection.
-func (s *Swarm) Dial(p peer.Peer) (*SwarmConn, error) {
+func (s *Swarm) Dial(p peer.Peer) (*Conn, error) {
 	ctx := context.TODO()
 
 	if p.ID().Equal(s.local.ID()) {
@@ -77,7 +77,7 @@ func (s *Swarm) Dial(p peer.Peer) (*SwarmConn, error) {
 
 // dialConnSetup is the setup logic for a connection from the dial side. it
 // needs to add the Conn to the StreamSwarm, then run newConnSetup
-func dialConnSetup(ctx context.Context, s *Swarm, connC conn.Conn) (*SwarmConn, error) {
+func dialConnSetup(ctx context.Context, s *Swarm, connC conn.Conn) (*Conn, error) {
 
 	psC, err := s.swarm.AddConn(connC)
 	if err != nil {

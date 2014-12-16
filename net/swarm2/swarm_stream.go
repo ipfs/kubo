@@ -5,7 +5,7 @@ import (
 )
 
 // a Stream is a wrapper around a ps.Stream that exposes a way to get
-// our SwarmConn and Swarm (instead of just the ps.Conn and ps.Swarm)
+// our Conn and Swarm (instead of just the ps.Conn and ps.Swarm)
 type Stream ps.Stream
 
 // StreamHandler is called when new streams are opened from remote peers.
@@ -18,8 +18,8 @@ func (s *Stream) Stream() *ps.Stream {
 }
 
 // Conn returns the Conn associated with this Stream
-func (s *Stream) Conn() *SwarmConn {
-	return (*SwarmConn)(s.Stream().Conn())
+func (s *Stream) Conn() *Conn {
+	return (*Conn)(s.Stream().Conn())
 }
 
 // Write writes bytes to a stream, calling write data for each call.

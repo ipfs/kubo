@@ -50,7 +50,7 @@ func (s *Swarm) teardown() error {
 	return s.swarm.Close()
 }
 
-// Close stops the Swarm. See
+// Close stops the Swarm.
 func (s *Swarm) Close() error {
 	return s.cg.Close()
 }
@@ -80,12 +80,12 @@ func (s *Swarm) StreamsWithPeer(p peer.Peer) []*Stream {
 }
 
 // ConnectionsToPeer returns all the live connections to p
-func (s *Swarm) ConnectionsToPeer(p peer.Peer) []*SwarmConn {
+func (s *Swarm) ConnectionsToPeer(p peer.Peer) []*Conn {
 	return wrapConns(ps.ConnsWithGroup(p, s.swarm.Conns()))
 }
 
 // Connections returns a slice of all connections.
-func (s *Swarm) Connections() []*SwarmConn {
+func (s *Swarm) Connections() []*Conn {
 	return wrapConns(s.swarm.Conns())
 }
 
