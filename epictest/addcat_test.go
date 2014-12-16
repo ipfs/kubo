@@ -104,7 +104,10 @@ func AddCatBytes(data []byte, conf Config) error {
 
 	sessionGenerator := bitswap.NewSessionGenerator(
 		tn.VirtualNetwork(delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
-		mockrouting.NewServerWithDelay(delay.Fixed(conf.RoutingLatency)),
+		mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
+			Query:           delay.Fixed(conf.RoutingLatency),
+			ValueVisibility: delay.Fixed(conf.RoutingLatency),
+		}),
 	)
 	defer sessionGenerator.Close()
 

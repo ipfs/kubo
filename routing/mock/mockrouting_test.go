@@ -3,10 +3,12 @@ package mockrouting
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
@@ -127,5 +129,38 @@ func TestCanceledContext(t *testing.T) {
 
 	if numProvidersReturned == max {
 		t.Fatal("Context cancel had no effect")
+	}
+}
+
+func TestValidAfter(t *testing.T) {
+
+	var p = testutil.NewPeerWithID(peer.ID([]byte("the peer id")))
+	var key = u.Key("mock key")
+	var ctx = context.Background()
+	conf := DelayConfig{
+		ValueVisibility: delay.Fixed(1 * time.Hour),
+		Query:           delay.Fixed(0),
+	}
+
+	rs := NewServerWithDelay(conf)
+
+	rs.Client(p).Provide(ctx, key)
+
+	var providers []peer.Peer
+	providers, err := rs.Client(p).FindProviders(ctx, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(providers) > 0 {
+		t.Fail()
+	}
+
+	conf.ValueVisibility.Set(0)
+	providers, err = rs.Client(p).FindProviders(ctx, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(providers) != 1 {
+		t.Fail()
 	}
 }

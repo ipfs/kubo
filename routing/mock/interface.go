@@ -28,13 +28,25 @@ type Client interface {
 
 // NewServer returns a mockrouting Server
 func NewServer() Server {
-	return NewServerWithDelay(delay.Fixed(0))
+	return NewServerWithDelay(DelayConfig{
+		ValueVisibility: delay.Fixed(0),
+		Query:           delay.Fixed(0),
+	})
 }
 
 // NewServerWithDelay returns a mockrouting Server with a delay!
-func NewServerWithDelay(d delay.D) Server {
+func NewServerWithDelay(conf DelayConfig) Server {
 	return &s{
-		providers: make(map[u.Key]peer.Map),
-		delay:     d,
+		providers: make(map[u.Key]map[u.Key]providerRecord),
+		delayConf: conf,
 	}
+}
+
+type DelayConfig struct {
+	// ValueVisibility is the time it takes for a value to be visible in the network
+	// FIXME there _must_ be a better term for this
+	ValueVisibility delay.D
+
+	// Query is the time it takes to receive a response from a routing query
+	Query delay.D
 }

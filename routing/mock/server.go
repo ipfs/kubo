@@ -3,11 +3,11 @@ package mockrouting
 import (
 	"math/rand"
 	"sync"
+	"time"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 // server is the mockrouting.Client's private interface to the routing server
@@ -20,39 +20,47 @@ type server interface {
 
 // s is an implementation of the private server interface
 type s struct {
-	delay delay.D
+	delayConf DelayConfig
 
 	lock      sync.RWMutex
-	providers map[u.Key]peer.Map
+	providers map[u.Key]map[u.Key]providerRecord
+}
+
+type providerRecord struct {
+	Peer    peer.Peer
+	Created time.Time
 }
 
 func (rs *s) Announce(p peer.Peer, k u.Key) error {
-	rs.delay.Wait() // before locking
-
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
 	_, ok := rs.providers[k]
 	if !ok {
-		rs.providers[k] = make(peer.Map)
+		rs.providers[k] = make(map[u.Key]providerRecord)
 	}
-	rs.providers[k][p.Key()] = p
+	rs.providers[k][p.Key()] = providerRecord{
+		Created: time.Now(),
+		Peer:    p,
+	}
 	return nil
 }
 
 func (rs *s) Providers(k u.Key) []peer.Peer {
-	rs.delay.Wait() // before locking
+	rs.delayConf.Query.Wait() // before locking
 
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
 
 	var ret []peer.Peer
-	peerset, ok := rs.providers[k]
+	records, ok := rs.providers[k]
 	if !ok {
 		return ret
 	}
-	for _, peer := range peerset {
-		ret = append(ret, peer)
+	for _, r := range records {
+		if time.Now().Sub(r.Created) > rs.delayConf.ValueVisibility.Get() {
+			ret = append(ret, r.Peer)
+		}
 	}
 
 	for i := range ret {

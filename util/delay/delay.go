@@ -10,6 +10,7 @@ import (
 type D interface {
 	Set(time.Duration) time.Duration
 	Wait()
+	Get() time.Duration
 }
 
 // Fixed returns a delay with fixed latency
@@ -36,4 +37,10 @@ func (d *delay) Wait() {
 	d.l.RLock()
 	defer d.l.RUnlock()
 	time.Sleep(d.t)
+}
+
+func (d *delay) Get() time.Duration {
+	d.l.Lock()
+	defer d.l.Unlock()
+	return d.t
 }
