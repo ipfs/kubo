@@ -87,7 +87,7 @@ func (lm *LedgerManager) BlockIsWantedByPeer(k u.Key, p peer.Peer) bool {
 	lm.lock.RLock()
 	defer lm.lock.RUnlock()
 
-	ledger := lm.ledger(p)
+	ledger := lm.findOrCreate(p)
 	return ledger.WantListContains(k)
 }
 
@@ -97,7 +97,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
 
-	l := lm.ledger(p)
+	l := lm.findOrCreate(p)
 	if m.Full() {
 		l.wantList = wl.New()
 	}
@@ -146,7 +146,7 @@ func (lm *LedgerManager) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error 
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
 
-	l := lm.ledger(p)
+	l := lm.findOrCreate(p)
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 		l.wantList.Remove(block.Key())
@@ -160,18 +160,18 @@ func (lm *LedgerManager) NumBytesSentTo(p peer.Peer) uint64 {
 	lm.lock.RLock()
 	defer lm.lock.RUnlock()
 
-	return lm.ledger(p).Accounting.BytesSent
+	return lm.findOrCreate(p).Accounting.BytesSent
 }
 
 func (lm *LedgerManager) NumBytesReceivedFrom(p peer.Peer) uint64 {
 	lm.lock.RLock()
 	defer lm.lock.RUnlock()
 
-	return lm.ledger(p).Accounting.BytesRecv
+	return lm.findOrCreate(p).Accounting.BytesRecv
 }
 
 // ledger lazily instantiates a ledger
-func (lm *LedgerManager) ledger(p peer.Peer) *ledger {
+func (lm *LedgerManager) findOrCreate(p peer.Peer) *ledger {
 	l, ok := lm.ledgerMap[peerKey(p.Key())]
 	if !ok {
 		l = newLedger(p)
