@@ -11,6 +11,12 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+const (
+	ProtocolBitswap = "/ipfs/bitswap"
+	ProtocolDHT     = "/ipfs/dht"
+	ProtocolDiag    = "/ipfs/diagnostics"
+)
+
 // Stream represents a bidirectional channel between two agents in
 // the IPFS network. "agent" is as granular as desired, potentially
 // being a "request -> reply" pair, or whole protocols.
@@ -27,6 +33,8 @@ type Stream interface {
 // StreamHandler is the function protocols who wish to listen to
 // incoming streams must implement.
 type StreamHandler func(Stream)
+
+type StreamHandlerMap map[string]StreamHandler
 
 // Conn is a connection to a remote peer. It multiplexes streams.
 // Usually there is no need to use a Conn directly, but it may
@@ -58,7 +66,7 @@ type Conn interface {
 // do not modify it once the network is using it.
 type Mux struct {
 	Default  StreamHandler // handles unknown protocols.
-	Handlers map[string]StreamHandler
+	Handlers StreamHandlerMap
 }
 
 // Network is the interface IPFS uses for connecting to the world.

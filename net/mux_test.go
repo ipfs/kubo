@@ -34,7 +34,7 @@ func TestHandler(t *testing.T) {
 		}
 	}
 
-	m := Mux{Handlers: map[string]StreamHandler{}}
+	m := Mux{Handlers: StreamHandlerMap{}}
 	m.Default = h("default")
 	m.Handlers["dht"] = h("bitswap")
 	// m.Handlers["ipfs"] = h("bitswap") // default!
