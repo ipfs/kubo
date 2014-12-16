@@ -45,7 +45,7 @@ func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager 
 
 func (lm *LedgerManager) taskWorker() {
 	for {
-		nextTask := lm.tasklist.GetNext()
+		nextTask := lm.tasklist.Pop()
 		if nextTask == nil {
 			// No tasks in the list?
 			// Wait until there are!
@@ -107,7 +107,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 			lm.tasklist.Cancel(e.Key, p)
 		} else {
 			l.Wants(e.Key, e.Priority)
-			lm.tasklist.Add(e.Key, e.Priority, p)
+			lm.tasklist.Push(e.Key, e.Priority, p)
 
 			// Signal task generation to restart (if stopped!)
 			select {
@@ -122,7 +122,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range lm.ledgerMap {
 			if l.WantListContains(block.Key()) {
-				lm.tasklist.Add(block.Key(), 1, l.Partner)
+				lm.tasklist.Push(block.Key(), 1, l.Partner)
 
 				// Signal task generation to restart (if stopped!)
 				select {
