@@ -1,15 +1,16 @@
 package strategy
 
 import (
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/jbenet/go-ipfs/peer"
+	//blocks "github.com/jbenet/go-ipfs/blocks"
+	//bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	//wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
+	//peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 var log = u.Logger("strategy")
 
+/*
 // TODO niceness should be on a per-peer basis. Use-case: Certain peers are
 // "trusted" and/or controlled by a single human user. The user may want for
 // these peers to exchange data freely
@@ -29,12 +30,7 @@ type strategist struct {
 	strategyFunc
 }
 
-type Task struct {
-	Peer   peer.Peer
-	Blocks []*blocks.Block
-}
-
-func (s *strategist) GetTasks(bandwidth int, ledgers *LedgerSet, bs bstore.Blockstore) ([]*Task, error) {
+func (s *strategist) GetTasks(bandwidth int, ledgers *LedgerManager, bs bstore.Blockstore) ([]*Task, error) {
 	var tasks []*Task
 
 	ledgers.lock.RLock()
@@ -87,3 +83,5 @@ func test() {}
 func (s *strategist) Seed(int64) {
 	// TODO
 }
+
+*/

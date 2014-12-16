@@ -4,28 +4,30 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-type peerAndLedgerset struct {
+type peerAndLedgermanager struct {
 	peer.Peer
-	ls *LedgerSet
+	ls *LedgerManager
 }
 
-func newPeerAndLedgerset(idStr string) peerAndLedgerset {
-	return peerAndLedgerset{
+func newPeerAndLedgermanager(idStr string) peerAndLedgermanager {
+	return peerAndLedgermanager{
 		Peer: testutil.NewPeerWithIDString(idStr),
 		//Strategy: New(true),
-		ls: NewLedgerSet(),
+		ls: NewLedgerManager(nil, context.TODO()),
 	}
 }
 
 func TestConsistentAccounting(t *testing.T) {
-	sender := newPeerAndLedgerset("Ernie")
-	receiver := newPeerAndLedgerset("Bert")
+	sender := newPeerAndLedgermanager("Ernie")
+	receiver := newPeerAndLedgermanager("Bert")
 
 	// Send messages from Ernie to Bert
 	for i := 0; i < 1000; i++ {
@@ -56,8 +58,8 @@ func TestConsistentAccounting(t *testing.T) {
 }
 
 func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
-	beggar := newPeerAndLedgerset("can't be chooser")
-	chooser := newPeerAndLedgerset("chooses JIF")
+	beggar := newPeerAndLedgermanager("can't be chooser")
+	chooser := newPeerAndLedgermanager("chooses JIF")
 
 	block := blocks.NewBlock([]byte("data wanted by beggar"))
 
@@ -74,8 +76,8 @@ func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
 
 func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 
-	sanfrancisco := newPeerAndLedgerset("sf")
-	seattle := newPeerAndLedgerset("sea")
+	sanfrancisco := newPeerAndLedgermanager("sf")
+	seattle := newPeerAndLedgermanager("sea")
 
 	m := message.New()
 
@@ -95,7 +97,7 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 	}
 }
 
-func peerIsPartner(p peer.Peer, ls *LedgerSet) bool {
+func peerIsPartner(p peer.Peer, ls *LedgerManager) bool {
 	for _, partner := range ls.Peers() {
 		if partner.Key() == p.Key() {
 			return true
