@@ -90,7 +90,7 @@ func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
 	// if we have no connections, try connecting.
 	if len(s.ConnectionsToPeer(p)) == 0 {
 		log.Debug("Swarm: NewStreamWithPeer no connections. Attempting to connect...")
-		if _, err := s.Dial(p); err != nil {
+		if _, err := s.Dial(context.Background(), p); err != nil {
 			return nil, err
 		}
 	}

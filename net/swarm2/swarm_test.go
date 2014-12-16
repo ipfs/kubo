@@ -108,7 +108,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 			cp.AddAddress(dst.Addresses()[0])
 
 			log.Infof("SWARM TEST: %s dialing %s", s.local, dst)
-			if _, err := s.Dial(cp); err != nil {
+			if _, err := s.Dial(ctx, cp); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}
 			log.Infof("SWARM TEST: %s connected to %s", s.local, dst)
