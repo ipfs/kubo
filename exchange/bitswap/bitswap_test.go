@@ -26,7 +26,7 @@ func TestClose(t *testing.T) {
 	vnet := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rout := mockrouting.NewServer()
 	sesgen := NewSessionGenerator(vnet, rout)
-	defer sesgen.Stop()
+	defer sesgen.Close()
 	bgen := blocksutil.NewBlockGenerator()
 
 	block := bgen.Next()
@@ -41,7 +41,7 @@ func TestGetBlockTimeout(t *testing.T) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
-	defer g.Stop()
+	defer g.Close()
 
 	self := g.Next()
 
@@ -59,7 +59,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	g := NewSessionGenerator(net, rs)
-	defer g.Stop()
+	defer g.Close()
 
 	block := blocks.NewBlock([]byte("block"))
 	rs.Client(testutil.NewPeerWithIDString("testing")).Provide(context.Background(), block.Key()) // but not on network
@@ -83,7 +83,7 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	rs := mockrouting.NewServer()
 	block := blocks.NewBlock([]byte("block"))
 	g := NewSessionGenerator(net, rs)
-	defer g.Stop()
+	defer g.Close()
 
 	hasBlock := g.Next()
 	defer hasBlock.Exchange.Close()
@@ -137,7 +137,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
-	defer sg.Stop()
+	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
 	t.Log("Test a few nodes trying to get one file with a lot of blocks")
@@ -203,7 +203,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
 	sg := NewSessionGenerator(net, rs)
-	defer sg.Stop()
+	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
 	oldVal := rebroadcastDelay
