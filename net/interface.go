@@ -1,56 +1,84 @@
 package net
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	conn "github.com/jbenet/go-ipfs/net/conn"
-	msg "github.com/jbenet/go-ipfs/net/message"
-	mux "github.com/jbenet/go-ipfs/net/mux"
-	srv "github.com/jbenet/go-ipfs/net/service"
-	peer "github.com/jbenet/go-ipfs/peer"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	"io"
 
+	conn "github.com/jbenet/go-ipfs/net/conn"
+	swarm "github.com/jbenet/go-ipfs/net/swarm2"
+	peer "github.com/jbenet/go-ipfs/peer"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+// Stream represents a bidirectional channel between two agents in
+// the IPFS network. "agent" is as granular as desired, potentially
+// being a "request -> reply" pair, or whole protocols.
+// Streams are backed by SPDY streams underneath the hood.
+type Stream interface {
+	io.Reader
+	io.Writer
+	io.Closer
+
+	// Conn returns the connection this stream is part of.
+	Conn() Conn
+}
+
+// StreamHandler is the function protocols who wish to listen to
+// incoming streams must implement.
+type StreamHandler func(Stream)
+
+// Conn is a connection to a remote peer. It multiplexes streams.
+// Usually there is no need to use a Conn directly, but it may
+// be useful to get information about the peer on the other side:
+//  stream.Conn().RemotePeer()
+type Conn interface {
+	conn.PeerConn
+
+	// NewStream constructs a new Stream directly connected to p.
+	NewStream(p peer.Peer) (Stream, error)
+}
+
+// Mux provides simple stream multixplexing.
+// It helps you precisely when:
+//  * You have many streams
+//  * You have function handlers
+//
+// It contains the handlers for each protocol accepted.
+// It dispatches handlers for streams opened by remote peers.
+//
+// We use a totally ad-hoc encoding:
+//   <1 byte length in bytes><string name>
+// So "bitswap" is 0x0762697473776170
+//
+// NOTE: only the dialer specifies this muxing line.
+// This is because we're using Streams :)
+//
+// WARNING: this datastructure IS NOT threadsafe.
+// do not modify it once the network is using it.
+type Mux struct {
+	Default  StreamHandler // handles unknown protocols.
+	Handlers map[string]StreamHandler
+}
+
 // Network is the interface IPFS uses for connecting to the world.
+// It dials and listens for connections. it uses a Swarm to pool
+// connnections (see swarm pkg, and peerstream.Swarm). Connections
+// are encrypted with a TLS-like protocol.
 type Network interface {
-	ctxc.ContextCloser
+	Dialer
+	io.Closer
 
-	// Listen handles incoming connections on given Multiaddr.
-	// Listen(*ma.Muliaddr) error
-	// TODO: for now, only listen on addrs in local peer when initializing.
+	// NewStream returns a new stream to given peer p.
+	// If there is no connection to p, attempts to create one.
+	NewStream(p peer.Peer) (Stream, error)
 
-	// LocalPeer returns the local peer associated with this network
-	LocalPeer() peer.Peer
+	// Swarm returns the connection Swarm
+	Swarm() *swarm.Swarm
 
-	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(context.Context, peer.Peer) error
-
-	// ClosePeer connection to peer
-	ClosePeer(peer.Peer) error
-
-	// Connectedness returns a state signaling connection capabilities
-	Connectedness(peer.Peer) Connectedness
-
-	// GetProtocols returns the protocols registered in the network.
-	GetProtocols() *mux.ProtocolMap
-
-	// GetPeerList returns the list of peers currently connected in this network.
-	GetPeerList() []peer.Peer
-
-	// GetConnections returns the list of connections currently open in this network.
-	GetConnections() []conn.Conn
-
-	// GetBandwidthTotals returns the total number of bytes passed through
+	// BandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated
-	GetBandwidthTotals() (uint64, uint64)
-
-	// GetMessageCounts returns the total number of messages passed through
-	// the network since it was instantiated
-	GetMessageCounts() (uint64, uint64)
-
-	// SendMessage sends given Message out
-	SendMessage(msg.NetMessage) error
+	BandwidthTotals() (uint64, uint64)
 
 	// ListenAddresses returns a list of addresses at which this network listens.
 	ListenAddresses() []ma.Multiaddr
@@ -60,15 +88,6 @@ type Network interface {
 	// use the known local interfaces.
 	InterfaceListenAddresses() ([]ma.Multiaddr, error)
 }
-
-// Sender interface for network services.
-type Sender srv.Sender
-
-// Handler interface for network services.
-type Handler srv.Handler
-
-// Service interface for network resources.
-type Service srv.Service
 
 // Dialer represents a service that can dial out to peers
 // (this is usually just a Network, but other services may not need the whole

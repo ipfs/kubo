@@ -22,19 +22,23 @@ func (s *Stream) Conn() *Conn {
 	return (*Conn)(s.Stream().Conn())
 }
 
-// Write writes bytes to a stream, calling write data for each call.
+// Wait waits for the stream to receive a reply.
 func (s *Stream) Wait() error {
 	return s.Stream().Wait()
 }
 
+// Read reads bytes from a stream.
 func (s *Stream) Read(p []byte) (n int, err error) {
 	return s.Stream().Read(p)
 }
 
+// Write writes bytes to a stream, flushing for each call.
 func (s *Stream) Write(p []byte) (n int, err error) {
 	return s.Stream().Write(p)
 }
 
+// Close closes the stream, indicating this side is finished
+// with the stream.
 func (s *Stream) Close() error {
 	return s.Stream().Close()
 }

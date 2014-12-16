@@ -15,12 +15,7 @@ import (
 // Map maps Keys (Peer.IDs) to Connections.
 type Map map[u.Key]Conn
 
-// Conn is a generic message-based Peer-to-Peer connection.
-type Conn interface {
-
-	// ID is an identifier unique to this connection.
-	ID() string
-
+type PeerConn interface {
 	// LocalMultiaddr is the Multiaddr on this side
 	LocalMultiaddr() ma.Multiaddr
 
@@ -32,8 +27,16 @@ type Conn interface {
 
 	// RemotePeer is the Peer on the remote side
 	RemotePeer() peer.Peer
+}
 
-	// net.Conn, cause duplicates.
+// Conn is a generic message-based Peer-to-Peer connection.
+type Conn interface {
+	PeerConn
+
+	// ID is an identifier unique to this connection.
+	ID() string
+
+	// can't just say "net.Conn" cause we have duplicate methods.
 	LocalAddr() net.Addr
 	RemoteAddr() net.Addr
 	SetDeadline(t time.Time) error

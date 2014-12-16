@@ -50,6 +50,11 @@ func (s *Swarm) teardown() error {
 	return s.swarm.Close()
 }
 
+// CtxGroup returns the Context Group of the swarm
+func (s *Swarm) CtxGroup() ctxgroup.ContextGroup {
+	return s.cg
+}
+
 // Close stops the Swarm.
 func (s *Swarm) Close() error {
 	return s.cg.Close()
@@ -106,8 +111,8 @@ func (s *Swarm) CloseConnection(p peer.Peer) error {
 	return nil
 }
 
-// GetPeerList returns a copy of the set of peers swarm is connected to.
-func (s *Swarm) GetPeerList() []peer.Peer {
+// Peers returns a copy of the set of peers swarm is connected to.
+func (s *Swarm) Peers() []peer.Peer {
 	conns := s.Connections()
 
 	seen := make(map[peer.Peer]struct{})

@@ -1,4 +1,4 @@
-package mux
+package net
 
 import (
 	"errors"
@@ -6,35 +6,11 @@ import (
 	"io"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	swarm "github.com/jbenet/go-ipfs/net/swarm2"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 var log = eventlog.Logger("mux2")
-
-// Mux provides simple stream multixplexing.
-// It helps you precisely when:
-//  * You have many streams
-//  * You have function handlers
-//
-// We use a totally ad-hoc encoding:
-//
-//   <1 byte length in bytes><string name>
-//
-// So "bitswap" is 0x0762697473776170
-//
-// NOTE: only the dialer specifies this muxing line.
-// This is because we're using Streams :)
-//
-// WARNING: this datastructure IS NOT threadsafe.
-// do not modify it once it's begun serving.
-type Mux struct {
-	Default  StreamHandler
-	Handlers map[string]StreamHandler
-}
-
-type StreamHandler func(s *swarm.Stream)
 
 // NextName reads the stream and returns the next protocol name
 // according to the muxer encoding.
@@ -78,7 +54,7 @@ func (m *Mux) NextHandler(s io.Reader) (string, StreamHandler, error) {
 }
 
 // Handle reads the next name off the Stream, and calls a function
-func (m *Mux) Handle(s *swarm.Stream) {
+func (m *Mux) Handle(s Stream) {
 	ctx := context.Background()
 
 	name, handler, err := m.NextHandler(s)

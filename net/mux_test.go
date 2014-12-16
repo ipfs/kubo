@@ -1,10 +1,8 @@
-package mux
+package net
 
 import (
 	"bytes"
 	"testing"
-
-	swarm "github.com/jbenet/go-ipfs/net/swarm2"
 )
 
 var testCases = map[string]string{
@@ -30,8 +28,8 @@ func TestHandler(t *testing.T) {
 
 	outs := make(chan string, 10)
 
-	h := func(n string) func(s *swarm.Stream) {
-		return func(s *swarm.Stream) {
+	h := func(n string) func(s Stream) {
+		return func(s Stream) {
 			outs <- n
 		}
 	}
