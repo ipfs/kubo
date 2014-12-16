@@ -42,51 +42,28 @@ var log = eventlog.Logger("core")
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
 
-	// the node's configuration
-	Config *config.Config
+	// Self
+	Config     *config.Config // the node's configuration
+	Identity   peer.Peer      // the local node's identity
+	onlineMode bool           // alternatively, offline
 
-	// the local node's identity
-	Identity peer.Peer
+	// Local node
+	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
+	Pinning   pin.Pinner                    // the pinning manager
+	Mounts    Mounts                        // current mount state, if any.
 
-	// storage for other Peer instances
-	Peerstore peer.Peerstore
-
-	// the local datastore
-	Datastore ds2.ThreadSafeDatastoreCloser
-
-	// the network message stream
-	Network inet.Network
-
-	// the routing system. recommend ipfs-dht
-	Routing routing.IpfsRouting
-
-	// the block exchange + strategy (bitswap)
-	Exchange exchange.Interface
-
-	// the block service, get/add blocks.
-	Blocks *bserv.BlockService
-
-	// the merkle dag service, get/add objects.
-	DAG merkledag.DAGService
-
-	// the path resolution system
-	Resolver *path.Resolver
-
-	// the name system, resolves paths to hashes
-	Namesys namesys.NameSystem
-
-	// the diagnostics service
-	Diagnostics *diag.Diagnostics
-
-	// the pinning manager
-	Pinning pin.Pinner
-
-	// current mount state, if any.
-	Mounts Mounts
+	// Services
+	Peerstore   peer.Peerstore       // storage for other Peer instances
+	Network     inet.Network         // the network message stream
+	Routing     routing.IpfsRouting  // the routing system. recommend ipfs-dht
+	Exchange    exchange.Interface   // the block exchange + strategy (bitswap)
+	Blocks      *bserv.BlockService  // the block service, get/add blocks.
+	DAG         merkledag.DAGService // the merkle dag service, get/add objects.
+	Resolver    *path.Resolver       // the path resolution system
+	Namesys     namesys.NameSystem   // the name system, resolves paths to hashes
+	Diagnostics *diag.Diagnostics    // the diagnostics service
 
 	ctxc.ContextCloser
-
-	onlineMode bool // alternatively, offline
 }
 
 // Mounts defines what the node's mount state is. This should
