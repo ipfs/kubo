@@ -127,7 +127,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		wg.Wait()
 
 		for _, s := range swarms {
-			log.Infof("%s swarm routing table: %s", s.local, s.GetPeerList())
+			log.Infof("%s swarm routing table: %s", s.local, s.Peers())
 		}
 	}
 
@@ -174,6 +174,10 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 			}
 
 			for _, p := range *peers {
+				if p == s1.local {
+					continue // dont send to self...
+				}
+
 				wg.Add(1)
 				go send(p)
 			}
@@ -184,7 +188,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		go func() {
 			defer close(errChan)
 			count := 0
-			countShouldBe := (MsgNum * len(*peers))
+			countShouldBe := MsgNum * (len(*peers) - 1)
 			for stream := range streamChan { // one per peer
 				defer stream.Close()
 
@@ -228,7 +232,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		}
 
 		log.Debugf("%s got pongs", s1.local)
-		if len(*peers) != len(got) {
+		if (len(*peers) - 1) != len(got) {
 			t.Error("got less messages than sent")
 		}
 
