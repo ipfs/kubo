@@ -24,7 +24,9 @@ type BitSwapMessage interface {
 	Blocks() []*blocks.Block
 
 	// AddEntry adds an entry to the Wantlist.
-	AddEntry(key u.Key, priority int, cancel bool)
+	AddEntry(key u.Key, priority int)
+
+	Cancel(key u.Key)
 
 	// Sets whether or not the contained wantlist represents the entire wantlist
 	// true = full wantlist
@@ -50,6 +52,10 @@ type impl struct {
 }
 
 func New() BitSwapMessage {
+	return newMsg()
+}
+
+func newMsg() *impl {
 	return &impl{
 		blocks:   make(map[u.Key]*blocks.Block),
 		wantlist: make(map[u.Key]*Entry),
@@ -64,10 +70,10 @@ type Entry struct {
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
-	m := New()
+	m := newMsg()
 	m.SetFull(pbm.GetWantlist().GetFull())
 	for _, e := range pbm.GetWantlist().GetEntries() {
-		m.AddEntry(u.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
+		m.addEntry(u.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
@@ -100,7 +106,15 @@ func (m *impl) Blocks() []*blocks.Block {
 	return bs
 }
 
-func (m *impl) AddEntry(k u.Key, priority int, cancel bool) {
+func (m *impl) Cancel(k u.Key) {
+	m.addEntry(k, 0, true)
+}
+
+func (m *impl) AddEntry(k u.Key, priority int) {
+	m.addEntry(k, priority, false)
+}
+
+func (m *impl) addEntry(k u.Key, priority int, cancel bool) {
 	e, exists := m.wantlist[k]
 	if exists {
 		e.Priority = priority
