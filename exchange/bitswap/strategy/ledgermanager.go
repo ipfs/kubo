@@ -12,6 +12,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var log = u.Logger("strategy")
+
 // LedgerMap lists Ledgers by their Partner key.
 type ledgerMap map[peerKey]*ledger
 
