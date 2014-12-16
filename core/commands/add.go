@@ -76,7 +76,7 @@ remains to be implemented.
 		return added, nil
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			val, ok := res.Output().(*AddOutput)
 			if !ok {
 				return nil, u.ErrCast()
@@ -93,7 +93,7 @@ remains to be implemented.
 					buf.Write([]byte(fmt.Sprintf("added %s %s\n", obj.Hash, val.Names[i])))
 				}
 			}
-			return buf.Bytes(), nil
+			return &buf, nil
 		},
 	},
 	Type: &AddOutput{},

@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 
@@ -15,9 +16,9 @@ var log = u.Logger("command")
 // It reads from the Request, and writes results to the Response.
 type Function func(Request) (interface{}, error)
 
-// Marshaler is a function that takes in a Response, and returns a marshalled []byte
+// Marshaler is a function that takes in a Response, and returns an io.Reader
 // (or an error on failure)
-type Marshaler func(Response) ([]byte, error)
+type Marshaler func(Response) (io.Reader, error)
 
 // MarshalerMap is a map of Marshaler functions, keyed by EncodingType
 // (or an error on failure)
@@ -113,12 +114,16 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	// If the command specified an output type, ensure the actual value returned is of that type
-	if cmd.Type != nil {
-		definedType := reflect.ValueOf(cmd.Type).Type()
-		actualType := reflect.ValueOf(output).Type()
+	actualType := reflect.ValueOf(output).Type()
 
-		if definedType != actualType {
+	// test if output is a channel
+	isChan := actualType.Kind() == reflect.Chan
+
+	// If the command specified an output type, ensure the actual value returned is of that type
+	if cmd.Type != nil && !isChan {
+		expectedType := reflect.ValueOf(cmd.Type).Type()
+
+		if actualType != expectedType {
 			res.SetError(ErrIncorrectType, ErrNormal)
 			return res
 		}

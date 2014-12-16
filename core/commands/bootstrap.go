@@ -114,7 +114,7 @@ in the bootstrap list).
 	},
 	Type: &BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, ok := res.Output().(*BootstrapOutput)
 			if !ok {
 				return nil, u.ErrCast()
@@ -122,7 +122,7 @@ in the bootstrap list).
 
 			var buf bytes.Buffer
 			err := bootstrapWritePeers(&buf, "added ", v.Peers)
-			return buf.Bytes(), err
+			return &buf, err
 		},
 	},
 }
@@ -175,7 +175,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 	},
 	Type: &BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, ok := res.Output().(*BootstrapOutput)
 			if !ok {
 				return nil, u.ErrCast()
@@ -183,7 +183,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 			var buf bytes.Buffer
 			err := bootstrapWritePeers(&buf, "removed ", v.Peers)
-			return buf.Bytes(), err
+			return &buf, err
 		},
 	},
 }
@@ -209,7 +209,7 @@ var bootstrapListCmd = &cmds.Command{
 	},
 }
 
-func bootstrapMarshaler(res cmds.Response) ([]byte, error) {
+func bootstrapMarshaler(res cmds.Response) (io.Reader, error) {
 	v, ok := res.Output().(*BootstrapOutput)
 	if !ok {
 		return nil, u.ErrCast()
@@ -217,7 +217,7 @@ func bootstrapMarshaler(res cmds.Response) ([]byte, error) {
 
 	var buf bytes.Buffer
 	err := bootstrapWritePeers(&buf, "", v.Peers)
-	return buf.Bytes(), err
+	return &buf, err
 }
 
 func bootstrapWritePeers(w io.Writer, prefix string, peers []config.BootstrapPeer) error {

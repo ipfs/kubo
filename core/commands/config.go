@@ -72,7 +72,7 @@ Set the value of the 'datastore.path' key:
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			if len(res.Request().Arguments()) == 2 {
 				return nil, nil // dont output anything
 			}
@@ -92,7 +92,7 @@ Set the value of the 'datastore.path' key:
 				return nil, err
 			}
 			buf = append(buf, byte('\n'))
-			return buf, nil
+			return bytes.NewReader(buf), nil
 		},
 	},
 	Type: &ConfigField{},

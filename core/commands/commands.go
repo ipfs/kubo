@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"io"
 	"sort"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -26,13 +27,13 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			return &root, nil
 		},
 		Marshalers: cmds.MarshalerMap{
-			cmds.Text: func(res cmds.Response) ([]byte, error) {
+			cmds.Text: func(res cmds.Response) (io.Reader, error) {
 				v := res.Output().(*Command)
 				var buf bytes.Buffer
 				for _, s := range cmdPathStrings(v) {
 					buf.Write([]byte(s + "\n"))
 				}
-				return buf.Bytes(), nil
+				return &buf, nil
 			},
 		},
 		Type: &Command{},

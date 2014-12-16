@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
@@ -70,7 +72,7 @@ it contains, with the following format:
 		return &LsOutput{output}, nil
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			s := ""
 			output := res.Output().(*LsOutput).Objects
 
@@ -84,7 +86,7 @@ it contains, with the following format:
 				}
 			}
 
-			return []byte(s), nil
+			return strings.NewReader(s), nil
 		},
 	},
 	Type: &LsOutput{},

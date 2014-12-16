@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -16,13 +18,13 @@ type KeyList struct {
 }
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
-func KeyListTextMarshaler(res cmds.Response) ([]byte, error) {
+func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 	output := res.Output().(*KeyList)
-	s := ""
+	var buf bytes.Buffer
 	for _, key := range output.Keys {
-		s += key.B58String() + "\n"
+		buf.WriteString(key.B58String() + "\n")
 	}
-	return []byte(s), nil
+	return &buf, nil
 }
 
 var RefsCmd = &cmds.Command{

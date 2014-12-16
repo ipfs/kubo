@@ -3,6 +3,8 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
+	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
@@ -78,10 +80,10 @@ Publish a <ref> to another public key:
 		return publish(n, n.PrivateKey, ref)
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*IpnsEntry)
 			s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
-			return []byte(s), nil
+			return strings.NewReader(s), nil
 		},
 	},
 	Type: &IpnsEntry{},

@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
@@ -26,7 +28,7 @@ var VersionCmd = &cmds.Command{
 		}, nil
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*VersionOutput)
 
 			number, found, err := res.Request().Option("number").Bool()
@@ -34,9 +36,9 @@ var VersionCmd = &cmds.Command{
 				return nil, err
 			}
 			if found && number {
-				return []byte(fmt.Sprintln(v.Version)), nil
+				return strings.NewReader(fmt.Sprintln(v.Version)), nil
 			}
-			return []byte(fmt.Sprintf("ipfs version %s\n", v.Version)), nil
+			return strings.NewReader(fmt.Sprintf("ipfs version %s\n", v.Version)), nil
 		},
 	},
 	Type: &VersionOutput{},

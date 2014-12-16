@@ -2,7 +2,9 @@ package commands
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -123,9 +125,9 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	},
 	Type: &Block{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			block := res.Output().(*Block)
-			return []byte(block.Key + "\n"), nil
+			return strings.NewReader(block.Key + "\n"), nil
 		},
 	},
 }

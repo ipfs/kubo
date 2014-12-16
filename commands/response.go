@@ -41,17 +41,33 @@ const (
 )
 
 var marshallers = map[EncodingType]Marshaler{
-	JSON: func(res Response) ([]byte, error) {
+	JSON: func(res Response) (io.Reader, error) {
+		var value interface{}
 		if res.Error() != nil {
-			return json.MarshalIndent(res.Error(), "", "  ")
+			value = res.Error()
+		} else {
+			value = res.Output()
 		}
-		return json.MarshalIndent(res.Output(), "", "  ")
+
+		b, err := json.MarshalIndent(value, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(b), nil
 	},
-	XML: func(res Response) ([]byte, error) {
+	XML: func(res Response) (io.Reader, error) {
+		var value interface{}
 		if res.Error() != nil {
-			return xml.Marshal(res.Error())
+			value = res.Error()
+		} else {
+			value = res.Output()
 		}
-		return xml.Marshal(res.Output())
+
+		b, err := xml.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(b), nil
 	},
 }
 
@@ -70,7 +86,7 @@ type Response interface {
 
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaler (Codec).
-	Marshal() ([]byte, error)
+	Marshal() (io.Reader, error)
 
 	// Gets a io.Reader that reads the marshalled output
 	Reader() (io.Reader, error)
@@ -103,9 +119,9 @@ func (r *response) SetError(err error, code ErrorType) {
 	r.err = &Error{Message: err.Error(), Code: code}
 }
 
-func (r *response) Marshal() ([]byte, error) {
+func (r *response) Marshal() (io.Reader, error) {
 	if r.err == nil && r.value == nil {
-		return []byte{}, nil
+		return bytes.NewReader([]byte{}), nil
 	}
 
 	enc, found, err := r.req.Option(EncShort).String()
@@ -119,7 +135,7 @@ func (r *response) Marshal() ([]byte, error) {
 
 	// Special case: if text encoding and an error, just print it out.
 	if encType == Text && r.Error() != nil {
-		return []byte(r.Error().Error()), nil
+		return strings.NewReader(r.Error().Error()), nil
 	}
 
 	var marshaller Marshaler
@@ -140,22 +156,20 @@ func (r *response) Marshal() ([]byte, error) {
 // Reader returns an `io.Reader` representing marshalled output of this Response
 // Note that multiple calls to this will return a reference to the same io.Reader
 func (r *response) Reader() (io.Reader, error) {
-	// if command set value to a io.Reader, use that as our reader
 	if r.out == nil {
 		if out, ok := r.value.(io.Reader); ok {
+			// if command returned a io.Reader, use that as our reader
 			r.out = out
-		}
-	}
 
-	if r.out == nil {
-		// no reader set, so marshal the error or value
-		marshalled, err := r.Marshal()
-		if err != nil {
-			return nil, err
-		}
+		} else {
+			// otherwise, use the response marshaler output
+			marshalled, err := r.Marshal()
+			if err != nil {
+				return nil, err
+			}
 
-		// create a Reader from the marshalled data
-		r.out = bytes.NewReader(marshalled)
+			r.out = marshalled
+		}
 	}
 
 	return r.out, nil
