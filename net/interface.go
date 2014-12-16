@@ -4,20 +4,30 @@ import (
 	"io"
 
 	conn "github.com/jbenet/go-ipfs/net/conn"
-	swarm "github.com/jbenet/go-ipfs/net/swarm2"
+	// swarm "github.com/jbenet/go-ipfs/net/swarm2"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+// ProtocolID is an identifier used to write protocol headers in streams
 type ProtocolID string
 
+// These are the ProtocolIDs of the protocols running. It is useful
+// to keep them in one place.
 const (
 	ProtocolBitswap ProtocolID = "/ipfs/bitswap"
 	ProtocolDHT     ProtocolID = "/ipfs/dht"
 	ProtocolDiag    ProtocolID = "/ipfs/diagnostics"
 )
+
+// MessageSizeMax is a soft (recommended) maximum for network messages.
+// One can write more, as the interface is a stream. But it is useful
+// to bunch it up into multiple read/writes when the whole message is
+// a single, large serialized object.
+const MessageSizeMax = 2 << 22 // 4MB
 
 // Stream represents a bidirectional channel between two agents in
 // the IPFS network. "agent" is as granular as desired, potentially
@@ -45,8 +55,8 @@ type StreamHandlerMap map[ProtocolID]StreamHandler
 type Conn interface {
 	conn.PeerConn
 
-	// NewStream constructs a new Stream directly connected to p.
-	NewStream(pr ProtocolID, p peer.Peer) (Stream, error)
+	// NewStreamWithProtocol constructs a new Stream directly connected to p.
+	NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error)
 }
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -66,8 +76,11 @@ type Network interface {
 	// If ProtocolID is "", writes no header.
 	NewStream(ProtocolID, peer.Peer) (Stream, error)
 
-	// Swarm returns the connection Swarm
-	Swarm() *swarm.Swarm
+	// Peers returns the peers connected
+	Peers() []peer.Peer
+
+	// Conns returns the connections in this Netowrk
+	Conns() []Conn
 
 	// BandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated
@@ -80,6 +93,9 @@ type Network interface {
 	// listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
 	// use the known local interfaces.
 	InterfaceListenAddresses() ([]ma.Multiaddr, error)
+
+	// CtxGroup returns the network's contextGroup
+	CtxGroup() ctxgroup.ContextGroup
 }
 
 // Dialer represents a service that can dial out to peers

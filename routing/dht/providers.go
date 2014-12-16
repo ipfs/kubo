@@ -3,9 +3,9 @@ package dht
 import (
 	"time"
 
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -18,7 +18,7 @@ type ProviderManager struct {
 	newprovs  chan *addProv
 	getprovs  chan *getProv
 	period    time.Duration
-	ctxc.ContextCloser
+	ctxgroup.ContextGroup
 }
 
 type addProv struct {
@@ -38,7 +38,7 @@ func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm.providers = make(map[u.Key][]*providerInfo)
 	pm.getlocal = make(chan chan []u.Key)
 	pm.local = make(map[u.Key]struct{})
-	pm.ContextCloser = ctxc.NewContextCloser(ctx, nil)
+	pm.ContextGroup = ctxgroup.WithContext(ctx)
 
 	pm.Children().Add(1)
 	go pm.run()

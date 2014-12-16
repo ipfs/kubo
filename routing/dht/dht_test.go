@@ -12,8 +12,6 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
-	mux "github.com/jbenet/go-ipfs/net/mux"
-	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -25,16 +23,14 @@ import (
 func setupDHT(ctx context.Context, t *testing.T, p peer.Peer) *IpfsDHT {
 	peerstore := peer.NewPeerstore()
 
-	dhts := netservice.NewService(ctx, nil) // nil handler for now, need to patch it
-	net, err := inet.NewIpfsNetwork(ctx, p.Addresses(), p, peerstore, &mux.ProtocolMap{
-		mux.ProtocolID_Routing: dhts,
-	})
+	n, err := inet.NewNetwork(ctx, p.Addresses(), p, peerstore)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	d := NewDHT(ctx, p, peerstore, net, dhts, ds.NewMapDatastore())
-	dhts.SetHandler(d)
+	d := NewDHT(ctx, p, peerstore, n, ds.NewMapDatastore())
+	d.network.SetHandler(inet.ProtocolDHT, d.handleNewStream)
+
 	d.Validators["v"] = func(u.Key, []byte) error {
 		return nil
 	}
@@ -107,8 +103,8 @@ func TestPing(t *testing.T) {
 
 	defer dhtA.Close()
 	defer dhtB.Close()
-	defer dhtA.dialer.(inet.Network).Close()
-	defer dhtB.dialer.(inet.Network).Close()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
 	err = dhtA.Connect(ctx, peerB)
 	if err != nil {
@@ -157,8 +153,8 @@ func TestValueGetSet(t *testing.T) {
 
 	defer dhtA.Close()
 	defer dhtB.Close()
-	defer dhtA.dialer.(inet.Network).Close()
-	defer dhtB.dialer.(inet.Network).Close()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
 	err = dhtA.Connect(ctx, peerB)
 	if err != nil {
@@ -199,7 +195,7 @@ func TestProvides(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].dialer.(inet.Network).Close()
+			defer dhts[i].network.Close()
 		}
 	}()
 
@@ -261,7 +257,7 @@ func TestProvidesAsync(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].dialer.(inet.Network).Close()
+			defer dhts[i].network.Close()
 		}
 	}()
 
@@ -326,7 +322,7 @@ func TestLayeredGet(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].dialer.(inet.Network).Close()
+			defer dhts[i].network.Close()
 		}
 	}()
 
@@ -381,7 +377,7 @@ func TestFindPeer(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			dhts[i].dialer.(inet.Network).Close()
+			dhts[i].network.Close()
 		}
 	}()
 
@@ -427,7 +423,7 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			dhts[i].dialer.(inet.Network).Close()
+			dhts[i].network.Close()
 		}
 	}()
 
@@ -566,8 +562,8 @@ func TestConnectCollision(t *testing.T) {
 
 		dhtA.Close()
 		dhtB.Close()
-		dhtA.dialer.(inet.Network).Close()
-		dhtB.dialer.(inet.Network).Close()
+		dhtA.network.Close()
+		dhtB.network.Close()
 
 		<-time.After(200 * time.Millisecond)
 	}

@@ -55,7 +55,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 			return nil, errNotOnline
 		}
 
-		conns := n.Network.GetConnections()
+		conns := n.Network.Conns()
 		addrs := make([]string, len(conns))
 		for i, c := range conns {
 			pid := c.RemotePeer().ID()

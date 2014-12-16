@@ -7,7 +7,6 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestAppendWanted(t *testing.T) {
@@ -87,18 +86,6 @@ func TestCopyProtoByValue(t *testing.T) {
 	}
 }
 
-func TestToNetMethodSetsPeer(t *testing.T) {
-	m := New()
-	p := testutil.NewPeerWithIDString("X")
-	netmsg, err := m.ToNet(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !(netmsg.Peer().Key() == p.Key()) {
-		t.Fatal("Peer key is different")
-	}
-}
-
 func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original := New()
 	original.AddWanted(u.Key("M"))
@@ -107,13 +94,12 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original.AddWanted(u.Key("T"))
 	original.AddWanted(u.Key("F"))
 
-	p := testutil.NewPeerWithIDString("X")
-	netmsg, err := original.ToNet(p)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := original.ToNet(&buf); err != nil {
 		t.Fatal(err)
 	}
 
-	copied, err := FromNet(netmsg)
+	copied, err := FromNet(&buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,13 +124,12 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AddBlock(blocks.NewBlock([]byte("F")))
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
-	p := testutil.NewPeerWithIDString("X")
-	netmsg, err := original.ToNet(p)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := original.ToNet(&buf); err != nil {
 		t.Fatal(err)
 	}
 
-	m2, err := FromNet(netmsg)
+	m2, err := FromNet(&buf)
 	if err != nil {
 		t.Fatal(err)
 	}

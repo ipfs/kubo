@@ -44,7 +44,7 @@ func (c *conn_) SwarmConn() *swarm.Conn {
 	return (*swarm.Conn)(c)
 }
 
-func (c *conn_) NewStream(pr ProtocolID, p peer.Peer) (Stream, error) {
+func (c *conn_) NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error) {
 	s, err := (*swarm.Conn)(c).NewStream()
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ type network struct {
 
 // NewNetwork constructs a new network and starts listening on given addresses.
 func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
-	peers peer.Peerstore) (*network, error) {
+	peers peer.Peerstore) (Network, error) {
 
 	s, err := swarm.NewSwarm(ctx, listen, local, peers)
 	if err != nil {
@@ -109,6 +109,7 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 		n.mux.Handle((*stream)(s))
 	})
 
+	n.cg.SetTeardown(n.close)
 	n.cg.AddChildGroup(s.CtxGroup())
 	return n, nil
 }
@@ -123,14 +124,49 @@ func (n *network) DialPeer(ctx context.Context, p peer.Peer) error {
 	return err
 }
 
+// CtxGroup returns the network's ContextGroup
+func (n *network) CtxGroup() ctxgroup.ContextGroup {
+	return n.cg
+}
+
+// Swarm returns the network's peerstream.Swarm
+func (n *network) Swarm() *swarm.Swarm {
+	return n.Swarm()
+}
+
 // LocalPeer the network's LocalPeer
 func (n *network) LocalPeer() peer.Peer {
 	return n.swarm.LocalPeer()
 }
 
+// Peers returns the connected peers
+func (n *network) Peers() []peer.Peer {
+	return n.swarm.Peers()
+}
+
+// Conns returns the connected peers
+func (n *network) Conns() []Conn {
+	conns1 := n.swarm.Connections()
+	out := make([]Conn, len(conns1))
+	for i, c := range conns1 {
+		out[i] = (*conn_)(c)
+	}
+	return out
+}
+
 // ClosePeer connection to peer
 func (n *network) ClosePeer(p peer.Peer) error {
 	return n.swarm.CloseConnection(p)
+}
+
+// close is the real teardown function
+func (n *network) close() error {
+	return n.swarm.Close()
+}
+
+// Close calls the ContextCloser func
+func (n *network) Close() error {
+	return n.cg.Close()
 }
 
 // BandwidthTotals returns the total amount of bandwidth transferred
@@ -165,7 +201,7 @@ func (n *network) Connectedness(p peer.Peer) Connectedness {
 // NewStream returns a new stream to given peer p.
 // If there is no connection to p, attempts to create one.
 // If ProtocolID is "", writes no header.
-func (c *network) NewStreamWithPeer(pr ProtocolID, p peer.Peer) (Stream, error) {
+func (c *network) NewStream(pr ProtocolID, p peer.Peer) (Stream, error) {
 	s, err := c.swarm.NewStreamWithPeer(p)
 	if err != nil {
 		return nil, err
