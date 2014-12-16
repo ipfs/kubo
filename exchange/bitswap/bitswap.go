@@ -32,10 +32,6 @@ var providerRequestTimeout = time.Second * 10
 var hasBlockTimeout = time.Second * 15
 var rebroadcastDelay = time.Second * 10
 
-const roundTime = time.Second / 2
-
-var bandwidthPerRound = 500000
-
 // New initializes a BitSwap instance that communicates over the
 // provided BitSwapNetwork. This function registers the returned instance as
 // the network delegate.
@@ -64,7 +60,7 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 	}
 	network.SetDelegate(bs)
 	go bs.clientWorker(ctx)
-	go bs.roundWorker(ctx)
+	go bs.taskWorker(ctx)
 
 	return bs
 }
@@ -90,7 +86,8 @@ type bitswap struct {
 	batchRequests chan []u.Key
 
 	// strategy makes decisions about how to interact with partners.
-	strategy strategy.Strategy
+	// TODO: strategy commented out until we have a use for it again
+	//strategy strategy.Strategy
 
 	ledgermanager *strategy.LedgerManager
 
@@ -234,7 +231,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 	wg.Wait()
 }
 
-func (bs *bitswap) roundWorker(ctx context.Context) {
+func (bs *bitswap) taskWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():

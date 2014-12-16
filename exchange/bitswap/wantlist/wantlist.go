@@ -56,6 +56,19 @@ func (es entrySlice) Less(i, j int) bool { return es[i].Priority > es[j].Priorit
 func (w *Wantlist) Entries() []*Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
+
+	var es entrySlice
+
+	for _, e := range w.set {
+		es = append(es, e)
+	}
+	sort.Sort(es)
+	return es
+}
+
+func (w *Wantlist) SortedEntries() []*Entry {
+	w.lk.RLock()
+	defer w.lk.RUnlock()
 	var es entrySlice
 
 	for _, e := range w.set {
