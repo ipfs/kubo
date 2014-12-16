@@ -17,6 +17,19 @@ type stringList struct {
 	Strings []string
 }
 
+type peerOutput struct {
+	ID          string
+	Address     string
+	IpfsAddress string
+
+	BytesRead    int
+	BytesWritten int
+}
+
+type peerList struct {
+	Peers []peerOutput
+}
+
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "swarm inspection tool",
@@ -56,19 +69,33 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		}
 
 		conns := n.Network.GetConnections()
-		addrs := make([]string, len(conns))
+		peers := make([]peerOutput, len(conns))
 		for i, c := range conns {
-			pid := c.RemotePeer().ID()
-			addr := c.RemoteMultiaddr()
-			addrs[i] = fmt.Sprintf("%s/%s", addr, pid)
+			p := peerOutput{
+				ID:           c.RemotePeer().ID().String(),
+				Address:      c.RemoteMultiaddr().String(),
+				BytesRead:    c.BytesRead(),
+				BytesWritten: c.BytesWritten(),
+			}
+			p.IpfsAddress = fmt.Sprintf("%s/%s", p.Address, p.ID)
+			peers[i] = p
 		}
 
-		return &stringList{addrs}, nil
+		return &peerList{peers}, nil
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: stringListMarshaler,
+		cmds.Text: func(res cmds.Response) ([]byte, error) {
+			peers := res.Output().(*peerList).Peers
+
+			var buf bytes.Buffer
+			for _, p := range peers {
+				buf.Write([]byte(p.IpfsAddress))
+				buf.Write([]byte("\n"))
+			}
+			return buf.Bytes(), nil
+		},
 	},
-	Type: &stringList{},
+	Type: &peerList{},
 }
 
 var swarmConnectCmd = &cmds.Command{

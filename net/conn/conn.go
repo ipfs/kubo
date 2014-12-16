@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	counting "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/counting"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	mpool "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
@@ -50,10 +51,12 @@ func newMsgioPipe(size int) *msgioPipe {
 
 // singleConn represents a single connection to another Peer (IPFS Node).
 type singleConn struct {
-	local  peer.Peer
-	remote peer.Peer
-	maconn manet.Conn
-	msgio  *msgioPipe
+	local        peer.Peer
+	remote       peer.Peer
+	maconn       manet.Conn
+	readCounter  *counting.Reader
+	writeCounter *counting.Writer
+	msgio        *msgioPipe
 
 	ctxc.ContextCloser
 }
@@ -63,10 +66,12 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 	maconn manet.Conn) (Conn, error) {
 
 	conn := &singleConn{
-		local:  local,
-		remote: remote,
-		maconn: maconn,
-		msgio:  newMsgioPipe(10),
+		local:        local,
+		remote:       remote,
+		maconn:       maconn,
+		readCounter:  counting.NewReader(maconn),
+		writeCounter: counting.NewWriter(maconn),
+		msgio:        newMsgioPipe(10),
 	}
 
 	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
@@ -76,12 +81,12 @@ func newSingleConn(ctx context.Context, local, remote peer.Peer,
 	// setup the various io goroutines
 	conn.Children().Add(1)
 	go func() {
-		conn.msgio.outgoing.WriteTo(maconn)
+		conn.msgio.outgoing.WriteTo(conn.writeCounter)
 		conn.Children().Done()
 	}()
 	conn.Children().Add(1)
 	go func() {
-		conn.msgio.incoming.ReadFromWithPool(maconn, &mpool.ByteSlicePool)
+		conn.msgio.incoming.ReadFromWithPool(conn.readCounter, &mpool.ByteSlicePool)
 		conn.Children().Done()
 	}()
 
@@ -153,6 +158,16 @@ func (c *singleConn) In() <-chan []byte {
 // Out returns a writable message channel
 func (c *singleConn) Out() chan<- []byte {
 	return c.msgio.outgoing.MsgChan
+}
+
+// BytesRead returns the total number of bytes received from the peer
+func (c *singleConn) BytesRead() int {
+	return c.readCounter.Count()
+}
+
+// BytesWritten returns the total number of bytes sent to the peer
+func (c *singleConn) BytesWritten() int {
+	return c.writeCounter.Count()
 }
 
 // ID returns the ID of a given Conn.

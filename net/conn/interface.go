@@ -37,6 +37,12 @@ type Conn interface {
 	// Out returns a writable message channel
 	Out() chan<- []byte
 
+	// BytesRead returns the total number of bytes received from the peer
+	BytesRead() int
+
+	// BytesWritten returns the total number of bytes sent to the peer
+	BytesWritten() int
+
 	// Get an error from this conn if one is available
 	// TODO: implement a better error handling system
 	GetError() error

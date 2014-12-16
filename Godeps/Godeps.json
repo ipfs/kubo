@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3rc2",
 	"Packages": [
 		"./..."
 	],
@@ -59,6 +59,10 @@
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
+		},
+		{
+			"ImportPath": "github.com/facebookgo/counting",
+			"Rev": "0f3846f780cadb7682ce04da0ee105a65fd49de5"
 		},
 		{
 			"ImportPath": "github.com/facebookgo/stack",
