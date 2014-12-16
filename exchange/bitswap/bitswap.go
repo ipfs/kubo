@@ -169,7 +169,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 	}
 	message := bsmsg.New()
 	for _, wanted := range bs.wantlist.Entries() {
-		message.AddEntry(wanted.Value, wanted.Priority, false)
+		message.AddEntry(wanted.Value, wanted.Priority)
 	}
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
@@ -207,7 +207,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 	message := bsmsg.New()
 	message.SetFull(true)
 	for _, e := range bs.wantlist.Entries() {
-		message.AddEntry(e.Value, e.Priority, false)
+		message.AddEntry(e.Value, e.Priority)
 	}
 
 	ps := pset.NewPeerSet()
@@ -335,7 +335,7 @@ func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	message := bsmsg.New()
 	message.SetFull(false)
 	for _, k := range bkeys {
-		message.AddEntry(k, 0, true)
+		message.Cancel(k)
 	}
 	for _, p := range bs.ledgermanager.Peers() {
 		err := bs.send(ctx, p, message)
