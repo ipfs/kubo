@@ -27,7 +27,6 @@ type LedgerManager struct {
 	tasklist   *TaskList
 	taskOut    chan *Task
 	workSignal chan struct{}
-	ctx        context.Context
 }
 
 func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager {
@@ -37,20 +36,19 @@ func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager 
 		tasklist:   NewTaskList(),
 		taskOut:    make(chan *Task, 4),
 		workSignal: make(chan struct{}),
-		ctx:        ctx,
 	}
-	go lm.taskWorker()
+	go lm.taskWorker(ctx)
 	return lm
 }
 
-func (lm *LedgerManager) taskWorker() {
+func (lm *LedgerManager) taskWorker(ctx context.Context) {
 	for {
 		nextTask := lm.tasklist.Pop()
 		if nextTask == nil {
 			// No tasks in the list?
 			// Wait until there are!
 			select {
-			case <-lm.ctx.Done():
+			case <-ctx.Done():
 				return
 			case <-lm.workSignal:
 			}
@@ -58,7 +56,7 @@ func (lm *LedgerManager) taskWorker() {
 		}
 
 		select {
-		case <-lm.ctx.Done():
+		case <-ctx.Done():
 			return
 		case lm.taskOut <- nextTask:
 		}
