@@ -52,7 +52,7 @@ func (c *conn_) NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error
 
 	ss := (*stream)(s)
 
-	if err := writeProtocolHeader(pr, ss); err != nil {
+	if err := WriteProtocolHeader(pr, ss); err != nil {
 		ss.Close()
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (c *network) NewStream(pr ProtocolID, p peer.Peer) (Stream, error) {
 
 	ss := (*stream)(s)
 
-	if err := writeProtocolHeader(pr, ss); err != nil {
+	if err := WriteProtocolHeader(pr, ss); err != nil {
 		ss.Close()
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (n *network) SetHandler(p ProtocolID, h StreamHandler) {
 	n.mux.SetHandler(p, h)
 }
 
-func writeProtocolHeader(pr ProtocolID, s Stream) error {
+func WriteProtocolHeader(pr ProtocolID, s Stream) error {
 	if pr != "" { // only write proper protocol headers
 		if err := WriteLengthPrefix(s, string(pr)); err != nil {
 			return err
