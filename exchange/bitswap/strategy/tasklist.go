@@ -25,9 +25,9 @@ type Task struct {
 	theirPriority int
 }
 
-// Add currently adds a new task to the end of the list
+// Push currently adds a new task to the end of the list
 // TODO: make this into a priority queue
-func (tl *TaskList) Add(block u.Key, priority int, to peer.Peer) {
+func (tl *TaskList) Push(block u.Key, priority int, to peer.Peer) {
 	if task, ok := tl.taskmap[to.Key()+block]; ok {
 		// TODO: when priority queue is implemented,
 		//       rearrange this Task
@@ -43,9 +43,9 @@ func (tl *TaskList) Add(block u.Key, priority int, to peer.Peer) {
 	tl.taskmap[to.Key()+block] = task
 }
 
-// GetNext returns the next task to be performed by bitswap
-// the task is then removed from the list
-func (tl *TaskList) GetNext() *Task {
+// Pop returns the next task to be performed by bitswap the task is then
+// removed from the list
+func (tl *TaskList) Pop() *Task {
 	var out *Task
 	for len(tl.tasks) > 0 {
 		// TODO: instead of zero, use exponential distribution
