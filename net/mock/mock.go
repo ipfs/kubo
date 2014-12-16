@@ -2,16 +2,20 @@
 package mocknet
 
 import (
+	"fmt"
 	"io"
 	"sync"
 
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
+
+var log = eventlog.Logger("mocknet")
 
 type Stream struct {
 	io.Reader
@@ -98,6 +102,7 @@ func (c *Conn) removeStream(s *Stream) {
 
 func (c *Conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.Peer) (inet.Stream, error) {
 
+	log.Debugf("NewStreamWithProtocol: %s --> %s", c.local, p)
 	ss, _ := newStreamPair(c.local, p)
 
 	if err := inet.WriteProtocolHeader(pr, ss); err != nil {
@@ -149,13 +154,12 @@ func MakeNetworks(ctx context.Context, peers []peer.Peer) (nets []*Network, err 
 		}
 	}
 
+	i := 0
 	for _, n1 := range nets {
 		for _, n2 := range nets {
-			if n1 == n2 {
-				continue
-			}
-
 			n1.conns[n2.local] = &Conn{local: n1, remote: n2}
+			log.Debugf("%d setup %s -> %s", i, n1, n2)
+			i++
 		}
 	}
 
@@ -174,6 +178,9 @@ func newNetwork(ctx context.Context, local peer.Peer, peers peer.Peerstore) (*Ne
 
 	n.cg.SetTeardown(n.close)
 	return n, nil
+}
+func (n *Network) String() string {
+	return fmt.Sprintf("<Network %s - %d conns>", n.local, len(n.conns))
 }
 
 func (n *Network) handle(s inet.Stream) {
