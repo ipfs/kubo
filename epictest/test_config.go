@@ -43,6 +43,6 @@ func (c Config) Blockstore_7200RPM() Config {
 }
 
 func (c Config) Routing_Slow() Config {
-	c.BlockstoreLatency = 200 * time.Millisecond
+	c.RoutingLatency = 200 * time.Millisecond
 	return c
 }
