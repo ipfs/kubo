@@ -1,4 +1,4 @@
-package strategy
+package decision
 
 import (
 	"strings"
@@ -14,16 +14,16 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-type peerAndLedgermanager struct {
+type peerAndEngine struct {
 	peer.Peer
-	ls *LedgerManager
+	Engine *Engine
 }
 
-func newPeerAndLedgermanager(idStr string) peerAndLedgermanager {
-	return peerAndLedgermanager{
+func newPeerAndLedgermanager(idStr string) peerAndEngine {
+	return peerAndEngine{
 		Peer: testutil.NewPeerWithIDString(idStr),
 		//Strategy: New(true),
-		ls: NewLedgerManager(context.TODO(),
+		Engine: NewEngine(context.TODO(),
 			blockstore.NewBlockstore(sync.MutexWrap(ds.NewMapDatastore()))),
 	}
 }
@@ -39,23 +39,23 @@ func TestConsistentAccounting(t *testing.T) {
 		content := []string{"this", "is", "message", "i"}
 		m.AddBlock(blocks.NewBlock([]byte(strings.Join(content, " "))))
 
-		sender.ls.MessageSent(receiver.Peer, m)
-		receiver.ls.MessageReceived(sender.Peer, m)
+		sender.Engine.MessageSent(receiver.Peer, m)
+		receiver.Engine.MessageReceived(sender.Peer, m)
 	}
 
 	// Ensure sender records the change
-	if sender.ls.NumBytesSentTo(receiver.Peer) == 0 {
+	if sender.Engine.NumBytesSentTo(receiver.Peer) == 0 {
 		t.Fatal("Sent bytes were not recorded")
 	}
 
 	// Ensure sender and receiver have the same values
-	if sender.ls.NumBytesSentTo(receiver.Peer) != receiver.ls.NumBytesReceivedFrom(sender.Peer) {
+	if sender.Engine.NumBytesSentTo(receiver.Peer) != receiver.Engine.NumBytesReceivedFrom(sender.Peer) {
 		t.Fatal("Inconsistent book-keeping. Strategies don't agree")
 	}
 
 	// Ensure sender didn't record receving anything. And that the receiver
 	// didn't record sending anything
-	if receiver.ls.NumBytesSentTo(sender.Peer) != 0 || sender.ls.NumBytesReceivedFrom(receiver.Peer) != 0 {
+	if receiver.Engine.NumBytesSentTo(sender.Peer) != 0 || sender.Engine.NumBytesReceivedFrom(receiver.Peer) != 0 {
 		t.Fatal("Bert didn't send bytes to Ernie")
 	}
 }
@@ -69,10 +69,10 @@ func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
 	messageFromBeggarToChooser := message.New()
 	messageFromBeggarToChooser.AddEntry(block.Key(), 1)
 
-	chooser.ls.MessageReceived(beggar.Peer, messageFromBeggarToChooser)
+	chooser.Engine.MessageReceived(beggar.Peer, messageFromBeggarToChooser)
 	// for this test, doesn't matter if you record that beggar sent
 
-	if !chooser.ls.BlockIsWantedByPeer(block.Key(), beggar.Peer) {
+	if !chooser.Engine.BlockIsWantedByPeer(block.Key(), beggar.Peer) {
 		t.Fatal("chooser failed to record that beggar wants block")
 	}
 }
@@ -84,24 +84,24 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 
 	m := message.New()
 
-	sanfrancisco.ls.MessageSent(seattle.Peer, m)
-	seattle.ls.MessageReceived(sanfrancisco.Peer, m)
+	sanfrancisco.Engine.MessageSent(seattle.Peer, m)
+	seattle.Engine.MessageReceived(sanfrancisco.Peer, m)
 
 	if seattle.Peer.Key() == sanfrancisco.Peer.Key() {
 		t.Fatal("Sanity Check: Peers have same Key!")
 	}
 
-	if !peerIsPartner(seattle.Peer, sanfrancisco.ls) {
+	if !peerIsPartner(seattle.Peer, sanfrancisco.Engine) {
 		t.Fatal("Peer wasn't added as a Partner")
 	}
 
-	if !peerIsPartner(sanfrancisco.Peer, seattle.ls) {
+	if !peerIsPartner(sanfrancisco.Peer, seattle.Engine) {
 		t.Fatal("Peer wasn't added as a Partner")
 	}
 }
 
-func peerIsPartner(p peer.Peer, ls *LedgerManager) bool {
-	for _, partner := range ls.Peers() {
+func peerIsPartner(p peer.Peer, e *Engine) bool {
+	for _, partner := range e.Peers() {
 		if partner.Key() == p.Key() {
 			return true
 		}

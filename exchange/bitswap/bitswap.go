@@ -7,14 +7,13 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
+	decision "github.com/jbenet/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
-	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -56,7 +55,7 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 		blockstore:    bstore,
 		cancelFunc:    cancelFunc,
 		notifications: notif,
-		ledgermanager: strategy.NewLedgerManager(ctx, bstore),
+		engine:        decision.NewEngine(ctx, bstore),
 		routing:       routing,
 		sender:        network,
 		wantlist:      wantlist.NewThreadSafe(),
@@ -89,11 +88,7 @@ type bitswap struct {
 	// have more than a single block in the set
 	batchRequests chan []u.Key
 
-	// strategy makes decisions about how to interact with partners.
-	// TODO: strategy commented out until we have a use for it again
-	//strategy strategy.Strategy
-
-	ledgermanager *strategy.LedgerManager
+	engine *decision.Engine
 
 	wantlist *wantlist.ThreadSafe
 
@@ -196,7 +191,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 			// FIXME ensure accounting is handled correctly when
 			// communication fails. May require slightly different API to
 			// get better guarantees. May need shared sequence numbers.
-			bs.ledgermanager.MessageSent(p, message)
+			bs.engine.MessageSent(p, message)
 		}(peerToQuery)
 	}
 	wg.Wait()
@@ -239,7 +234,7 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case envelope := <-bs.ledgermanager.Outbox():
+		case envelope := <-bs.engine.Outbox():
 			bs.send(ctx, envelope.Peer, envelope.Message)
 		}
 	}
@@ -305,7 +300,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
-	bs.ledgermanager.MessageReceived(p, incoming)
+	bs.engine.MessageReceived(p, incoming)
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
@@ -334,7 +329,7 @@ func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	for _, k := range bkeys {
 		message.Cancel(k)
 	}
-	for _, p := range bs.ledgermanager.Peers() {
+	for _, p := range bs.engine.Peers() {
 		err := bs.send(ctx, p, message)
 		if err != nil {
 			log.Errorf("Error sending message: %s", err)
@@ -354,7 +349,7 @@ func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage
 	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
 		return err
 	}
-	return bs.ledgermanager.MessageSent(p, m)
+	return bs.engine.MessageSent(p, m)
 }
 
 func (bs *bitswap) Close() error {
