@@ -172,7 +172,7 @@ func TestStreamsStress(t *testing.T) {
 			to := rand.Intn(len(nets))
 			p := rand.Intn(3)
 			proto := protos[p]
-			log.Debug("%d (%s) %d (%s) %d (%s)", from, nets[from], to, nets[to], p, protos[p])
+			// log.Debug("%d (%s) %d (%s) %d (%s)", from, nets[from], to, nets[to], p, protos[p])
 			s, err := nets[from].NewStream(protos[p], nets[to].LocalPeer())
 			if err != nil {
 				panic(err)

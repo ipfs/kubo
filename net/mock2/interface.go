@@ -7,6 +7,7 @@
 package mocknet
 
 import (
+	"io"
 	"time"
 
 	inet "github.com/jbenet/go-ipfs/net"
@@ -25,6 +26,8 @@ type Mocknet interface {
 	LinksBetweenPeers(a, b peer.Peer) []Link
 	LinksBetweenNets(a, b inet.Network) []Link
 
+	PrintLinkMap(io.Writer)
+
 	// Links are the **ability to connect**.
 	// think of Links as the physical medium.
 	// For p1 and p2 to connect, a link must exist between them.
@@ -42,8 +45,7 @@ type Mocknet interface {
 	LinkDefaults() LinkOptions
 
 	// Connections are the usual. Connecting means Dialing.
-	// For convenience, if no link exists, Connect will add one.
-	// (this is because Connect is called manually by tests).
+	// **to succeed, peers must be linked beforehand**
 	ConnectPeers(peer.Peer, peer.Peer) error
 	ConnectNets(inet.Network, inet.Network) error
 	DisconnectPeers(peer.Peer, peer.Peer) error
