@@ -19,7 +19,7 @@ import (
 type BitSwapMessage interface {
 	// Wantlist returns a slice of unique keys that represent data wanted by
 	// the sender.
-	Wantlist() []*Entry
+	Wantlist() []Entry
 
 	// Blocks returns a slice of unique blocks
 	Blocks() []*blocks.Block
@@ -48,7 +48,7 @@ type Exportable interface {
 
 type impl struct {
 	full     bool
-	wantlist map[u.Key]*Entry
+	wantlist map[u.Key]Entry
 	blocks   map[u.Key]*blocks.Block // map to detect duplicates
 }
 
@@ -59,7 +59,7 @@ func New() BitSwapMessage {
 func newMsg() *impl {
 	return &impl{
 		blocks:   make(map[u.Key]*blocks.Block),
-		wantlist: make(map[u.Key]*Entry),
+		wantlist: make(map[u.Key]Entry),
 		full:     true,
 	}
 }
@@ -90,8 +90,8 @@ func (m *impl) Full() bool {
 	return m.full
 }
 
-func (m *impl) Wantlist() []*Entry {
-	var out []*Entry
+func (m *impl) Wantlist() []Entry {
+	var out []Entry
 	for _, e := range m.wantlist {
 		out = append(out, e)
 	}
@@ -120,7 +120,7 @@ func (m *impl) addEntry(k u.Key, priority int, cancel bool) {
 		e.Priority = priority
 		e.Cancel = cancel
 	} else {
-		m.wantlist[k] = &Entry{
+		m.wantlist[k] = Entry{
 			Entry: wantlist.Entry{
 				Key:      k,
 				Priority: priority,
