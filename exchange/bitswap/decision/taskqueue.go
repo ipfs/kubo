@@ -28,22 +28,19 @@ type task struct {
 }
 
 // Push currently adds a new task to the end of the list
-func (tl *taskQueue) Push(block u.Key, priority int, to peer.Peer) {
-	if task, ok := tl.taskmap[taskKey(to, block)]; ok {
+func (tl *taskQueue) Push(entry wantlist.Entry, to peer.Peer) {
+	if task, ok := tl.taskmap[taskKey(to, entry.Key)]; ok {
 		// TODO: when priority queue is implemented,
 		//       rearrange this task
-		task.Entry.Priority = priority
+		task.Entry.Priority = entry.Priority
 		return
 	}
 	task := &task{
-		Entry: wantlist.Entry{
-			Key:      block,
-			Priority: priority,
-		},
+		Entry:  entry,
 		Target: to,
 	}
 	tl.tasks = append(tl.tasks, task)
-	tl.taskmap[taskKey(to, block)] = task
+	tl.taskmap[taskKey(to, entry.Key)] = task
 }
 
 // Pop 'pops' the next task to be performed. Returns nil no task exists.
