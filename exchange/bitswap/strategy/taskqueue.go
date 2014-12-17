@@ -23,6 +23,7 @@ func newTaskQueue() *taskQueue {
 type task struct {
 	Entry  wantlist.Entry
 	Target peer.Peer
+	Trash  bool
 }
 
 // Push currently adds a new task to the end of the list
@@ -55,12 +56,11 @@ func (tl *taskQueue) Pop() *task {
 		out = tl.tasks[0]
 		tl.tasks = tl.tasks[1:]
 		delete(tl.taskmap, taskKey(out.Target, out.Entry.Key))
-		// Filter out blocks that have been cancelled
-		if out.Entry.Priority >= 0 { // FIXME separate the "cancel" signal from priority
-			break
+		if out.Trash {
+			continue // discarding tasks that have been removed
 		}
+		break // and return |out|
 	}
-
 	return out
 }
 
@@ -68,7 +68,7 @@ func (tl *taskQueue) Pop() *task {
 func (tl *taskQueue) Remove(k u.Key, p peer.Peer) {
 	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
-		t.Entry.Priority = -1
+		t.Trash = true
 	}
 }
 
