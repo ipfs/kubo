@@ -3,8 +3,7 @@ package strategy
 import (
 	"sync"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
@@ -13,9 +12,6 @@ import (
 )
 
 var log = u.Logger("strategy")
-
-// LedgerMap lists Ledgers by their Partner key.
-type ledgerMap map[u.Key]*ledger
 
 // Envelope contains a message for a Peer
 type Envelope struct {
@@ -26,8 +22,9 @@ type Envelope struct {
 }
 
 type LedgerManager struct {
-	lock      sync.RWMutex
-	ledgerMap ledgerMap
+	lock sync.RWMutex
+	// ledgerMap lists Ledgers by their Partner key.
+	ledgerMap map[u.Key]*ledger
 	bs        bstore.Blockstore
 	// FIXME taskqueue isn't threadsafe nor is it protected by a mutex. consider
 	// a way to avoid sharing the taskqueue between the worker and the receiver
@@ -38,7 +35,7 @@ type LedgerManager struct {
 
 func NewLedgerManager(ctx context.Context, bs bstore.Blockstore) *LedgerManager {
 	lm := &LedgerManager{
-		ledgerMap:  make(ledgerMap),
+		ledgerMap:  make(map[u.Key]*ledger),
 		bs:         bs,
 		taskqueue:  newTaskQueue(),
 		outbox:     make(chan Envelope, 4), // TODO extract constant
