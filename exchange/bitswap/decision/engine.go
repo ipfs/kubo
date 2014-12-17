@@ -129,7 +129,7 @@ func (e *Engine) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				newWorkExists = true
-				e.peerRequestQueue.Push(entry.Key, entry.Priority, p)
+				e.peerRequestQueue.Push(entry.Entry, p)
 			}
 		}
 	}
@@ -140,7 +140,7 @@ func (e *Engine) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
 		for _, l := range e.ledgerMap {
 			if l.WantListContains(block.Key()) {
 				newWorkExists = true
-				e.peerRequestQueue.Push(block.Key(), 1, l.Partner)
+				e.peerRequestQueue.Push(wl.Entry{block.Key(), 1}, l.Partner)
 			}
 		}
 	}
