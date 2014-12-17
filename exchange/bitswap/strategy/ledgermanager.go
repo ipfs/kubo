@@ -104,6 +104,16 @@ func (lm *LedgerManager) BlockIsWantedByPeer(k u.Key, p peer.Peer) bool {
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
+	newWorkExists := false
+	defer func() {
+		if newWorkExists {
+			// Signal task generation to restart (if stopped!)
+			select {
+			case lm.workSignal <- struct{}{}:
+			default:
+			}
+		}
+	}()
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
 
@@ -117,13 +127,8 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 			lm.tasklist.Cancel(e.Key, p)
 		} else {
 			l.Wants(e.Key, e.Priority)
+			newWorkExists = true
 			lm.tasklist.Push(e.Key, e.Priority, p)
-
-			// Signal task generation to restart (if stopped!)
-			select {
-			case lm.workSignal <- struct{}{}:
-			default:
-			}
 		}
 	}
 
@@ -132,14 +137,8 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range lm.ledgerMap {
 			if l.WantListContains(block.Key()) {
+				newWorkExists = true
 				lm.tasklist.Push(block.Key(), 1, l.Partner)
-
-				// Signal task generation to restart (if stopped!)
-				select {
-				case lm.workSignal <- struct{}{}:
-				default:
-				}
-
 			}
 		}
 	}
