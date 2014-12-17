@@ -3,6 +3,7 @@
 package bitswap
 
 import (
+	"math"
 	"sync"
 	"time"
 
@@ -30,6 +31,8 @@ const (
 	providerRequestTimeout = time.Second * 10
 	hasBlockTimeout        = time.Second * 15
 	sizeBatchRequestChan   = 32
+	// kMaxPriority is the max priority as defined by the bitswap protocol
+	kMaxPriority = math.MaxInt32
 )
 
 var (
@@ -261,7 +264,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 				continue
 			}
 			for i, k := range ks {
-				bs.wantlist.Add(k, len(ks)-i)
+				bs.wantlist.Add(k, kMaxPriority-i)
 			}
 			// NB: send want list to providers for the first peer in this list.
 			//		the assumption is made that the providers of the first key in
