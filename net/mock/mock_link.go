@@ -23,7 +23,7 @@ func newLink(mn *mocknet, opts LinkOptions) *link {
 	return &link{mock: mn, opts: opts}
 }
 
-func (l *link) newConnPair() (*conn, *conn) {
+func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -43,7 +43,11 @@ func (l *link) newConnPair() (*conn, *conn) {
 	c2 := mkconn(l.nets[1], l.nets[0].peer.ID())
 	c1.rconn = c2
 	c2.rconn = c1
-	return c1, c2
+
+	if dialer == c1.net {
+		return c1, c2
+	}
+	return c2, c1
 }
 
 func (l *link) newStreamPair() (*stream, *stream) {

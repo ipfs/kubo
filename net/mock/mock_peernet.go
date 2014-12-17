@@ -137,13 +137,15 @@ func (pn *peernet) connect(p peer.Peer) error {
 }
 
 func (pn *peernet) openConn(r peer.Peer, l *link) *conn {
-	lc, rc := l.newConnPair()
+	lc, rc := l.newConnPair(pn)
+	log.Debugf("%s opening connection to %s", pn.LocalPeer(), lc.RemotePeer())
 	pn.addConn(lc)
 	rc.net.remoteOpenedConn(rc)
 	return lc
 }
 
 func (pn *peernet) remoteOpenedConn(c *conn) {
+	log.Debugf("%s accepting connection from %s", pn.LocalPeer(), c.RemotePeer())
 	pn.addConn(c)
 }
 
