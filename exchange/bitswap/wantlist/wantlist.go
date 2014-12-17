@@ -17,6 +17,8 @@ type Wantlist struct {
 }
 
 type Entry struct {
+	// TODO consider making entries immutable so they can be shared safely and
+	// slices can be copied efficiently.
 	Key      u.Key
 	Priority int
 }
