@@ -102,9 +102,8 @@ func RandomBytes(n int64) []byte {
 }
 
 func AddCatBytes(data []byte, conf Config) error {
-	const numPeers = 2
 	ctx := context.Background()
-	net, err := tn.LimitedStreamNetWithDelay(ctx, numPeers, delay.Fixed(conf.NetworkLatency))
+	net, err := tn.StreamNetWithDelay(ctx, delay.Fixed(conf.NetworkLatency))
 	if err != nil {
 		return errors.Wrap(err)
 	}

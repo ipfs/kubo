@@ -16,11 +16,8 @@ type peernet struct {
 	mockpeernet.Mocknet
 }
 
-func LimitedStreamNetWithDelay(ctx context.Context, n int, d delay.D) (Network, error) {
-	net, err := mockpeernet.FullMeshLinked(ctx, n)
-	if err != nil {
-		return nil, errors.Wrap(err)
-	}
+func StreamNetWithDelay(ctx context.Context, d delay.D) (Network, error) {
+	net := mockpeernet.New(ctx)
 	net.SetLinkDefaults(mockpeernet.LinkOptions{
 		Latency:   d.Get(),
 		Bandwidth: math.MaxInt32, // TODO inject
@@ -29,9 +26,13 @@ func LimitedStreamNetWithDelay(ctx context.Context, n int, d delay.D) (Network, 
 }
 
 func (pn *peernet) Adapter(p peer.Peer) bsnet.BitSwapNetwork {
+	peers := pn.Mocknet.Peers()
 	client, err := pn.Mocknet.AddPeer(p.ID())
 	if err != nil {
 		panic(err.Error())
+	}
+	for _, other := range peers {
+		pn.Mocknet.LinkPeers(p, other)
 	}
 	return bsnet.NewFromIpfsNetwork(client)
 }
