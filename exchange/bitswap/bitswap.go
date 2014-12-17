@@ -315,19 +315,20 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 			log.Error(err)
 		}
 	}
-	var blkeys []u.Key
+	var keys []u.Key
 	for _, block := range incoming.Blocks() {
-		blkeys = append(blkeys, block.Key())
+		keys = append(keys, block.Key())
 	}
-	if len(blkeys) > 0 {
-		bs.cancelBlocks(ctx, blkeys)
-	}
+	bs.cancelBlocks(ctx, keys)
 
 	// TODO: consider changing this function to not return anything
 	return nil, nil
 }
 
 func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
+	if len(bkeys) < 1 {
+		return
+	}
 	message := bsmsg.New()
 	message.SetFull(false)
 	for _, k := range bkeys {
