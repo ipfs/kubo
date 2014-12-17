@@ -61,7 +61,7 @@ func (lm *LedgerManager) taskWorker(ctx context.Context) {
 			}
 			continue
 		}
-		block, err := lm.bs.Get(nextTask.Key)
+		block, err := lm.bs.Get(nextTask.Entry.Key)
 		if err != nil {
 			continue // TODO maybe return an error
 		}
