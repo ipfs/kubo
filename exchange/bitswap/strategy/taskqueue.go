@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -20,9 +21,8 @@ func newTaskQueue() *taskQueue {
 }
 
 type task struct {
-	Key           u.Key
-	Target        peer.Peer
-	theirPriority int
+	Entry  wantlist.Entry
+	Target peer.Peer
 }
 
 // Push currently adds a new task to the end of the list
@@ -31,13 +31,15 @@ func (tl *taskQueue) Push(block u.Key, priority int, to peer.Peer) {
 	if task, ok := tl.taskmap[taskKey(to, block)]; ok {
 		// TODO: when priority queue is implemented,
 		//       rearrange this task
-		task.theirPriority = priority
+		task.Entry.Priority = priority
 		return
 	}
 	task := &task{
-		Key:           block,
-		Target:        to,
-		theirPriority: priority,
+		Entry: wantlist.Entry{
+			Key:      block,
+			Priority: priority,
+		},
+		Target: to,
 	}
 	tl.tasks = append(tl.tasks, task)
 	tl.taskmap[taskKey(to, block)] = task
@@ -52,9 +54,9 @@ func (tl *taskQueue) Pop() *task {
 		//		 the same block from multiple peers
 		out = tl.tasks[0]
 		tl.tasks = tl.tasks[1:]
-		delete(tl.taskmap, taskKey(out.Target, out.Key))
+		delete(tl.taskmap, taskKey(out.Target, out.Entry.Key))
 		// Filter out blocks that have been cancelled
-		if out.theirPriority >= 0 {
+		if out.Entry.Priority >= 0 { // FIXME separate the "cancel" signal from priority
 			break
 		}
 	}
@@ -66,7 +68,7 @@ func (tl *taskQueue) Pop() *task {
 func (tl *taskQueue) Remove(k u.Key, p peer.Peer) {
 	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
-		t.theirPriority = -1
+		t.Entry.Priority = -1
 	}
 }
 

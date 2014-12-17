@@ -5,6 +5,7 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
+	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	inet "github.com/jbenet/go-ipfs/net"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -64,9 +65,8 @@ func newMsg() *impl {
 }
 
 type Entry struct {
-	Key      u.Key
-	Priority int
-	Cancel   bool
+	wantlist.Entry
+	Cancel bool
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
@@ -121,9 +121,11 @@ func (m *impl) addEntry(k u.Key, priority int, cancel bool) {
 		e.Cancel = cancel
 	} else {
 		m.wantlist[k] = &Entry{
-			Key:      k,
-			Priority: priority,
-			Cancel:   cancel,
+			Entry: wantlist.Entry{
+				Key:      k,
+				Priority: priority,
+			},
+			Cancel: cancel,
 		}
 	}
 }

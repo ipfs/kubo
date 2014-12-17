@@ -172,7 +172,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 	}
 	message := bsmsg.New()
 	for _, wanted := range bs.wantlist.Entries() {
-		message.AddEntry(wanted.Value, wanted.Priority)
+		message.AddEntry(wanted.Key, wanted.Priority)
 	}
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
@@ -210,7 +210,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 	message := bsmsg.New()
 	message.SetFull(true)
 	for _, e := range bs.wantlist.Entries() {
-		message.AddEntry(e.Value, e.Priority)
+		message.AddEntry(e.Key, e.Priority)
 	}
 
 	ps := pset.NewPeerSet()
@@ -229,7 +229,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wan
 					bs.send(ctx, prov, message)
 				}
 			}
-		}(e.Value)
+		}(e.Key)
 	}
 	wg.Wait()
 }

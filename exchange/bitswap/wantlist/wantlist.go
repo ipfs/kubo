@@ -18,7 +18,7 @@ func New() *Wantlist {
 }
 
 type Entry struct {
-	Value    u.Key
+	Key      u.Key
 	Priority int
 }
 
@@ -29,7 +29,7 @@ func (w *Wantlist) Add(k u.Key, priority int) {
 		return
 	}
 	w.set[k] = &Entry{
-		Value:    k,
+		Key:      k,
 		Priority: priority,
 	}
 }
