@@ -239,18 +239,8 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case task := <-bs.ledgermanager.GetTaskChan():
-			block, err := bs.blockstore.Get(task.Key)
-			if err != nil {
-				log.Errorf("Expected to have block %s, but it was not found!", task.Key)
-				continue
-			}
-
-			message := bsmsg.New()
-			message.AddBlock(block)
-			// TODO: maybe add keys from our wantlist?
-
-			bs.send(ctx, task.Target, message)
+		case envelope := <-bs.ledgermanager.Outbox():
+			bs.send(ctx, envelope.Peer, envelope.Message)
 		}
 	}
 }

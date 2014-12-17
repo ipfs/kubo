@@ -20,12 +20,17 @@ type ledgerMap map[peerKey]*ledger
 // FIXME share this externally
 type peerKey u.Key
 
+type Envelope struct {
+	Peer    peer.Peer
+	Message bsmsg.BitSwapMessage
+}
+
 type LedgerManager struct {
 	lock       sync.RWMutex
 	ledgerMap  ledgerMap
 	bs         bstore.Blockstore
 	tasklist   *TaskList
-	taskOut    chan *Task
+	outbox     chan Envelope
 	workSignal chan struct{}
 }
 
@@ -34,7 +39,7 @@ func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager 
 		ledgerMap:  make(ledgerMap),
 		bs:         bs,
 		tasklist:   NewTaskList(),
-		taskOut:    make(chan *Task, 4),
+		outbox:     make(chan Envelope, 4), // TODO extract constant
 		workSignal: make(chan struct{}),
 	}
 	go lm.taskWorker(ctx)
@@ -54,17 +59,25 @@ func (lm *LedgerManager) taskWorker(ctx context.Context) {
 			}
 			continue
 		}
-
+		block, err := lm.bs.Get(nextTask.Key)
+		if err != nil {
+			continue // TODO maybe return an error
+		}
+		// construct message here so we can make decisions about any additional
+		// information we may want to include at this time.
+		m := bsmsg.New()
+		m.AddBlock(block)
+		// TODO: maybe add keys from our wantlist?
 		select {
 		case <-ctx.Done():
 			return
-		case lm.taskOut <- nextTask:
+		case lm.outbox <- Envelope{Peer: nextTask.Target, Message: m}:
 		}
 	}
 }
 
-func (lm *LedgerManager) GetTaskChan() <-chan *Task {
-	return lm.taskOut
+func (lm *LedgerManager) Outbox() <-chan Envelope {
+	return lm.outbox
 }
 
 // Returns a slice of Peers with whom the local node has active sessions
