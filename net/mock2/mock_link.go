@@ -19,8 +19,8 @@ type link struct {
 	sync.RWMutex
 }
 
-func newLink(mn *mocknet) *link {
-	return &link{mock: mn, opts: mn.linkDefaults}
+func newLink(mn *mocknet, opts LinkOptions) *link {
+	return &link{mock: mn, opts: opts}
 }
 
 func (l *link) newConnPair() (*conn, *conn) {
