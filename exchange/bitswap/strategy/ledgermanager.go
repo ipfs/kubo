@@ -34,7 +34,7 @@ type LedgerManager struct {
 	workSignal chan struct{}
 }
 
-func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager {
+func NewLedgerManager(ctx context.Context, bs bstore.Blockstore) *LedgerManager {
 	lm := &LedgerManager{
 		ledgerMap:  make(ledgerMap),
 		bs:         bs,
