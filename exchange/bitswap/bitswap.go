@@ -32,10 +32,10 @@ var providerRequestTimeout = time.Second * 10
 var hasBlockTimeout = time.Second * 15
 var rebroadcastDelay = time.Second * 10
 
-// New initializes a BitSwap instance that communicates over the
-// provided BitSwapNetwork. This function registers the returned instance as
-// the network delegate.
-// Runs until context is cancelled
+// New initializes a BitSwap instance that communicates over the provided
+// BitSwapNetwork. This function registers the returned instance as the network
+// delegate.
+// Runs until context is cancelled.
 func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
 	bstore blockstore.Blockstore, nice bool) exchange.Interface {
 
