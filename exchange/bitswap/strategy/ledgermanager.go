@@ -23,9 +23,11 @@ type Envelope struct {
 }
 
 type LedgerManager struct {
-	lock       sync.RWMutex
-	ledgerMap  ledgerMap
-	bs         bstore.Blockstore
+	lock      sync.RWMutex
+	ledgerMap ledgerMap
+	bs        bstore.Blockstore
+	// FIXME tasklist isn't threadsafe nor is it protected by a mutex. consider
+	// a way to avoid sharing the tasklist between the worker and the receiver
 	tasklist   *taskList
 	outbox     chan Envelope
 	workSignal chan struct{}
