@@ -1,6 +1,8 @@
 package decision
 
 import (
+	"sync"
+
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -11,6 +13,7 @@ import (
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
 type taskQueue struct {
 	// TODO: make this into a priority queue
+	lock    sync.Mutex
 	tasks   []*task
 	taskmap map[string]*task
 }
@@ -29,6 +32,8 @@ type task struct {
 
 // Push currently adds a new task to the end of the list
 func (tl *taskQueue) Push(entry wantlist.Entry, to peer.Peer) {
+	tl.lock.Lock()
+	defer tl.lock.Unlock()
 	if task, ok := tl.taskmap[taskKey(to, entry.Key)]; ok {
 		// TODO: when priority queue is implemented,
 		//       rearrange this task
@@ -45,6 +50,8 @@ func (tl *taskQueue) Push(entry wantlist.Entry, to peer.Peer) {
 
 // Pop 'pops' the next task to be performed. Returns nil no task exists.
 func (tl *taskQueue) Pop() *task {
+	tl.lock.Lock()
+	defer tl.lock.Unlock()
 	var out *task
 	for len(tl.tasks) > 0 {
 		// TODO: instead of zero, use exponential distribution
@@ -63,10 +70,12 @@ func (tl *taskQueue) Pop() *task {
 
 // Remove lazily removes a task from the queue
 func (tl *taskQueue) Remove(k u.Key, p peer.Peer) {
+	tl.lock.Lock()
 	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
 		t.Trash = true
 	}
+	tl.lock.Unlock()
 }
 
 // taskKey returns a key that uniquely identifies a task.
