@@ -2,6 +2,7 @@ package mocknet
 
 import (
 	"fmt"
+	"io"
 	"sync"
 
 	inet "github.com/jbenet/go-ipfs/net"
@@ -166,7 +167,7 @@ func (mn *mocknet) validate(n inet.Network) (*peernet, error) {
 func (mn *mocknet) LinkNets(n1, n2 inet.Network) (Link, error) {
 	mn.RLock()
 	n1r, err1 := mn.validate(n1)
-	n2r, err2 := mn.validate(n1)
+	n2r, err2 := mn.validate(n2)
 	ld := mn.linkDefaults
 	mn.RUnlock()
 
@@ -214,6 +215,7 @@ func (mn *mocknet) UnlinkNets(n1, n2 inet.Network) error {
 
 // get from the links map. and lazily contruct.
 func (mn *mocknet) linksMapGet(p1, p2 peer.Peer) *map[*link]struct{} {
+
 	l1, found := mn.links[pid(p1)]
 	if !found {
 		mn.links[pid(p1)] = map[peerID]map[*link]struct{}{}
@@ -306,4 +308,18 @@ func (mn *mocknet) LinkDefaults() LinkOptions {
 	mn.RLock()
 	defer mn.RUnlock()
 	return mn.linkDefaults
+}
+
+func (mn *mocknet) PrintLinkMap(w io.Writer) {
+	mn.RLock()
+	defer mn.RUnlock()
+
+	fmt.Fprintf(w, "Mocknet link map:\n")
+	for p1, lm := range mn.links {
+		fmt.Fprintf(w, "\t%s linked to:\n", peer.ID(p1))
+		for p2, l := range lm {
+			fmt.Fprintf(w, "\t\t%s (%d links)\n", peer.ID(p2), len(l))
+		}
+	}
+	fmt.Fprintf(w, "\n")
 }

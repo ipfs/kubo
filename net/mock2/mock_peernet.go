@@ -1,7 +1,6 @@
 package mocknet
 
 import (
-	"container/list"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -24,8 +23,8 @@ type peernet struct {
 	// conns are actual live connections between peers.
 	// many conns could run over each link.
 	// **conns are NOT shared between peers**
-	connsByPeer map[peerID]list.List
-	connsByLink map[*link]list.List
+	connsByPeer map[peerID]map[*conn]struct{}
+	connsByLink map[*link]map[*conn]struct{}
 
 	// needed to implement inet.Network
 	mux inet.Mux
@@ -52,8 +51,8 @@ func newPeernet(ctx context.Context, m *mocknet, id peer.ID) (*peernet, error) {
 		mux:     inet.Mux{Handlers: inet.StreamHandlerMap{}},
 		cg:      ctxgroup.WithContext(ctx),
 
-		connsByPeer: map[peerID]list.List{},
-		connsByLink: map[*link]list.List{},
+		connsByPeer: map[peerID]map[*conn]struct{}{},
+		connsByLink: map[*link]map[*conn]struct{}{},
 	}
 
 	n.cg.SetTeardown(n.teardown)
@@ -74,8 +73,7 @@ func (pn *peernet) allConns() []*conn {
 	pn.RLock()
 	var cs []*conn
 	for _, csl := range pn.connsByPeer {
-		for e := csl.Front(); e != nil; e = e.Next() {
-			c := e.Value.(*conn)
+		for c := range csl {
 			cs = append(cs, c)
 		}
 	}
@@ -104,6 +102,8 @@ func (pn *peernet) DialPeer(ctx context.Context, p peer.Peer) error {
 }
 
 func (pn *peernet) connect(p peer.Peer) error {
+	log.Debugf("%s dialing %s", pn.peer, p)
+
 	// cannot trust the peer we get. typical for tests to give us
 	// a peer from some other peerstore...
 	p, err := pn.ps.Add(p)
@@ -114,16 +114,15 @@ func (pn *peernet) connect(p peer.Peer) error {
 	// first, check if we already have live connections
 	pn.RLock()
 	cs, found := pn.connsByPeer[pid(p)]
-	ncs := cs.Len()
 	pn.RUnlock()
-	if found && ncs > 0 {
+	if found && len(cs) > 0 {
 		return nil
 	}
 
 	// ok, must create a new connection. we need a link
 	links := pn.mocknet.LinksBetweenPeers(pn.peer, p)
 	if len(links) < 1 {
-		return fmt.Errorf("cannot connect to peer %s", p)
+		return fmt.Errorf("%s cannot connect to %s", pn.peer, p)
 	}
 
 	// if many links found, how do we select? for now, randomly...
@@ -131,6 +130,7 @@ func (pn *peernet) connect(p peer.Peer) error {
 	// links (network interfaces) and select properly
 	l := links[rand.Intn(len(links))]
 
+	log.Debugf("%s dialing %s openingConn", pn.peer, p)
 	// create a new connection with link
 	pn.openConn(p, l.(*link))
 	return nil
@@ -153,17 +153,17 @@ func (pn *peernet) addConn(c *conn) {
 	pn.Lock()
 	cs, found := pn.connsByPeer[pid(c.RemotePeer())]
 	if !found {
-		cs = list.List{}
+		cs = map[*conn]struct{}{}
 		pn.connsByPeer[pid(c.RemotePeer())] = cs
 	}
-	cs.PushBack(c)
+	pn.connsByPeer[pid(c.RemotePeer())][c] = struct{}{}
 
 	cs, found = pn.connsByLink[c.link]
 	if !found {
-		cs = list.List{}
+		cs = map[*conn]struct{}{}
 		pn.connsByLink[c.link] = cs
 	}
-	cs.PushBack(c)
+	pn.connsByLink[c.link][c] = struct{}{}
 	pn.Unlock()
 }
 
@@ -173,28 +173,16 @@ func (pn *peernet) removeConn(c *conn) {
 	defer pn.Unlock()
 
 	cs, found := pn.connsByLink[c.link]
-	if !found {
+	if !found || len(cs) < 1 {
 		panic("attempting to remove a conn that doesnt exist")
 	}
-
-	for e := cs.Front(); e != nil; e = e.Next() {
-		if c == e.Value {
-			cs.Remove(e)
-			break
-		}
-	}
+	delete(cs, c)
 
 	cs, found = pn.connsByPeer[pid(c.remote)]
 	if !found {
 		panic("attempting to remove a conn that doesnt exist")
 	}
-
-	for e := cs.Front(); e != nil; e = e.Next() {
-		if c == e.Value {
-			cs.Remove(e)
-			break
-		}
-	}
+	delete(cs, c)
 }
 
 // CtxGroup returns the network's ContextGroup
@@ -214,12 +202,10 @@ func (pn *peernet) Peers() []peer.Peer {
 
 	peers := make([]peer.Peer, 0, len(pn.connsByPeer))
 	for _, cs := range pn.connsByPeer {
-		if cs.Len() == 0 {
-			panic("found empty connection list. not removed properly...")
+		for c := range cs {
+			peers = append(peers, c.remote)
+			break
 		}
-
-		c := cs.Front().Value.(*conn)
-		peers = append(peers, c.remote)
 	}
 	return peers
 }
@@ -231,8 +217,7 @@ func (pn *peernet) Conns() []inet.Conn {
 
 	out := make([]inet.Conn, 0, len(pn.connsByPeer))
 	for _, cs := range pn.connsByPeer {
-		for e := cs.Front(); e != nil; e = e.Next() {
-			c := e.Value.(*conn)
+		for c := range cs {
 			out = append(out, c)
 		}
 	}
@@ -244,16 +229,12 @@ func (pn *peernet) ConnsToPeer(p peer.Peer) []inet.Conn {
 	defer pn.RUnlock()
 
 	cs, found := pn.connsByPeer[pid(p)]
-	if !found {
+	if !found || len(cs) == 0 {
 		return nil
-	}
-	if cs.Len() == 0 {
-		panic("found empty connection list. not removed properly...")
 	}
 
 	var cs2 []inet.Conn
-	for e := cs.Front(); e != nil; e = e.Next() {
-		c := e.Value.(*conn)
+	for c := range cs {
 		cs2 = append(cs2, c)
 	}
 	return cs2
@@ -268,45 +249,10 @@ func (pn *peernet) ClosePeer(p peer.Peer) error {
 		return nil
 	}
 
-	for e := cs.Front(); e != nil; e = e.Next() {
-		c := e.Value.(*conn)
-		pn.closeConn(c)
+	for c := range cs {
+		c.Close()
 	}
 	return nil
-}
-
-func (pn *peernet) closeConn(c *conn) {
-	pn.Lock()
-	defer pn.Unlock()
-
-	// remove it from connsByPeer
-	cs, found := pn.connsByPeer[pid(c.remote)]
-	if !found {
-		panic("attempted to close connection that doesnt exist! (peer)")
-	}
-
-	for e := cs.Front(); e != nil; e = e.Next() {
-		if c == e.Value.(*conn) {
-			cs.Remove(e)
-		}
-	}
-	if cs.Len() == 0 {
-		delete(pn.connsByPeer, pid(c.remote))
-	}
-
-	// remove it from connsByLink
-	cs, found = pn.connsByLink[c.link]
-	if !found {
-		panic("attempted to close connection that doesnt exist! (link)")
-	}
-	for e := cs.Front(); e != nil; e = e.Next() {
-		if c == e.Value.(*conn) {
-			cs.Remove(e)
-		}
-	}
-	if cs.Len() == 0 {
-		delete(pn.connsByLink, c.link)
-	}
 }
 
 // BandwidthTotals returns the total amount of bandwidth transferred
@@ -335,11 +281,7 @@ func (pn *peernet) Connectedness(p peer.Peer) inet.Connectedness {
 	defer pn.Unlock()
 
 	cs, found := pn.connsByPeer[pid(p)]
-	if found {
-		if cs.Len() == 0 {
-			panic("found empty connection list. not removed properly...")
-		}
-
+	if found && len(cs) > 0 {
 		return inet.Connected
 	}
 	return inet.NotConnected
@@ -353,14 +295,21 @@ func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.Peer) (inet.Stream, erro
 	defer pn.Unlock()
 
 	cs, found := pn.connsByPeer[pid(p)]
-	if !found {
+	if !found || len(cs) < 1 {
 		return nil, fmt.Errorf("no connection to peer")
 	}
 
 	// if many conns are found, how do we select? for now, randomly...
 	// this would be an interesting place to test logic that can measure
 	// links (network interfaces) and select properly
-	c := randomListElem(&cs).Value.(*conn)
+	n := rand.Intn(len(cs))
+	var c *conn
+	for c = range cs {
+		if n == 0 {
+			break
+		}
+		n--
+	}
 
 	return c.NewStreamWithProtocol(pr, p)
 }
@@ -373,16 +322,4 @@ func (pn *peernet) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
 
 func pid(p peer.Peer) peerID {
 	return peerID(p.ID())
-}
-
-func randomListElem(l *list.List) *list.Element {
-	n := rand.Intn(l.Len())
-	for e := l.Front(); e != nil; e = e.Next() {
-		if n == 0 {
-			return e
-		}
-		n--
-	}
-
-	panic("unreachable")
 }
