@@ -15,14 +15,6 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-type Network interface {
-	Adapter(testutil.Peer) bsnet.BitSwapNetwork
-
-	HasPeer(peer.ID) bool
-}
-
-// network impl
-
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
 		clients:       make(map[peer.ID]bsnet.Receiver),
