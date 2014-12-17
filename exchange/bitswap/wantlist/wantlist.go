@@ -63,26 +63,13 @@ func (w *ThreadSafe) Contains(k u.Key) bool {
 func (w *ThreadSafe) Entries() []*Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
-	var es entrySlice
-	for _, e := range w.set {
-		es = append(es, e)
-	}
-	// TODO rename SortedEntries (state that they're sorted so callers know
-	// they're paying an expense)
-	sort.Sort(es)
-	return es
+	return w.Wantlist.Entries()
 }
 
 func (w *ThreadSafe) SortedEntries() []*Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
-	var es entrySlice
-
-	for _, e := range w.set {
-		es = append(es, e)
-	}
-	sort.Sort(es)
-	return es
+	return w.Wantlist.SortedEntries()
 }
 
 func (w *Wantlist) Add(k u.Key, priority int) {
@@ -106,17 +93,14 @@ func (w *Wantlist) Contains(k u.Key) bool {
 
 func (w *Wantlist) Entries() []*Entry {
 	var es entrySlice
-
 	for _, e := range w.set {
 		es = append(es, e)
 	}
-	sort.Sort(es)
 	return es
 }
 
 func (w *Wantlist) SortedEntries() []*Entry {
 	var es entrySlice
-
 	for _, e := range w.set {
 		es = append(es, e)
 	}
