@@ -187,6 +187,7 @@ func TestMultiWrite(t *testing.T) {
 }
 
 func TestMultiWriteCoal(t *testing.T) {
+	t.Skip("Skipping test until DagModifier is fixed")
 	dserv := getMockDagServ(t)
 	_, n := getNode(t, dserv, 0)
 

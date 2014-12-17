@@ -118,3 +118,11 @@ func (mb *MultiBlock) GetBytes() ([]byte, error) {
 	pbn.Data = mb.Data
 	return proto.Marshal(pbn)
 }
+
+func (mb *MultiBlock) FileSize() uint64 {
+	return uint64(len(mb.Data)) + mb.subtotal
+}
+
+func (mb *MultiBlock) NumChildren() int {
+	return len(mb.blocksizes)
+}

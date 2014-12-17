@@ -295,12 +295,12 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 
 // FindLinks searches this nodes links for the given key,
 // returns the indexes of any links pointing to it
-func FindLinks(n *Node, k u.Key) []int {
+func FindLinks(n *Node, k u.Key, start int) []int {
 	var out []int
 	keybytes := []byte(k)
-	for i, lnk := range n.Links {
+	for i, lnk := range n.Links[start:] {
 		if bytes.Equal([]byte(lnk.Hash), keybytes) {
-			out = append(out, i)
+			out = append(out, i+start)
 		}
 	}
 	return out
@@ -330,7 +330,7 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
 				log.Error("Got back bad block!")
 				break
 			}
-			is := FindLinks(root, blk.Key())
+			is := FindLinks(root, blk.Key(), next)
 			for _, i := range is {
 				nodes[i] = nd
 			}

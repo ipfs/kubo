@@ -8,13 +8,39 @@ import (
 	"sync"
 	"testing"
 
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
+	bserv "github.com/jbenet/go-ipfs/blockservice"
+	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	imp "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	. "github.com/jbenet/go-ipfs/merkledag"
+	"github.com/jbenet/go-ipfs/pin"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+type dagservAndPinner struct {
+	ds DAGService
+	mp pin.ManualPinner
+}
+
+func getDagservAndPinner(t *testing.T) dagservAndPinner {
+	db := ds.NewMapDatastore()
+	bs := bstore.NewBlockstore(dssync.MutexWrap(db))
+	blockserv, err := bserv.New(bs, offline.Exchange(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dserv := NewDAGService(blockserv)
+	mpin := pin.NewPinner(db, dserv).GetManual()
+	return dagservAndPinner{
+		ds: dserv,
+		mp: mpin,
+	}
+}
 
 func TestNode(t *testing.T) {
 
@@ -66,16 +92,6 @@ func TestNode(t *testing.T) {
 	printn("beep boop", n3)
 }
 
-func makeTestDag(t *testing.T) *Node {
-	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
-	spl := &chunk.SizeSplitter{512}
-	root, err := imp.NewDagFromReaderWithSplitter(read, spl)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return root
-}
-
 type devZero struct{}
 
 func (_ devZero) Read(b []byte) (int, error) {
@@ -85,38 +101,37 @@ func (_ devZero) Read(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func makeZeroDag(t *testing.T) *Node {
-	read := io.LimitReader(devZero{}, 1024*32)
-	spl := &chunk.SizeSplitter{512}
-	root, err := imp.NewDagFromReaderWithSplitter(read, spl)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return root
-}
-
 func TestBatchFetch(t *testing.T) {
-	root := makeTestDag(t)
-	runBatchFetchTest(t, root)
+	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
+	runBatchFetchTest(t, read)
 }
 
 func TestBatchFetchDupBlock(t *testing.T) {
-	root := makeZeroDag(t)
-	runBatchFetchTest(t, root)
+	read := io.LimitReader(devZero{}, 1024*32)
+	runBatchFetchTest(t, read)
 }
 
-func runBatchFetchTest(t *testing.T, root *Node) {
+func runBatchFetchTest(t *testing.T, read io.Reader) {
 	var dagservs []DAGService
 	for _, bsi := range blockservice.Mocks(t, 5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
-	t.Log("finished setup.")
 
-	read, err := uio.NewDagReader(root, nil)
+	spl := &chunk.SizeSplitter{512}
+
+	root, err := imp.BuildDagFromReader(read, dagservs[0], nil, spl)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected, err := ioutil.ReadAll(read)
+
+	t.Log("finished setup.")
+
+	dagr, err := uio.NewDagReader(root, dagservs[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := ioutil.ReadAll(dagr)
 	if err != nil {
 		t.Fatal(err)
 	}

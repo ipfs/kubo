@@ -6,40 +6,19 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"testing"
 
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	bserv "github.com/jbenet/go-ipfs/blockservice"
+	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	pin "github.com/jbenet/go-ipfs/pin"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
-
-// NOTE:
-// These tests tests a combination of unixfs/io/dagreader and importer/chunk.
-// Maybe split them up somehow?
-func TestBuildDag(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	td := os.TempDir()
-	fi, err := os.Create(td + "/tmpfi")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = io.CopyN(fi, rand.Reader, 1024*1024)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fi.Close()
-
-	_, err = NewDagFromFile(td + "/tmpfi")
-	if err != nil {
-		t.Fatal(err)
-	}
-}
 
 //Test where calls to read are smaller than the chunk size
 func TestSizeBasedSplit(t *testing.T) {
@@ -62,15 +41,17 @@ func dup(b []byte) []byte {
 }
 
 func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
-	buf := new(bytes.Buffer)
-	io.CopyN(buf, rand.Reader, int64(nbytes))
-	should := dup(buf.Bytes())
-	nd, err := NewDagFromReaderWithSplitter(buf, bs)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, bs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	r, err := uio.NewDagReader(nd, nil)
+	r, err := uio.NewDagReader(nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,4 +129,53 @@ func TestRabinBlockSize(t *testing.T) {
 
 	fmt.Printf("Avg block size: %d\n", nbytes/len(blocks))
 
+}
+
+type dagservAndPinner struct {
+	ds merkledag.DAGService
+	mp pin.ManualPinner
+}
+
+func getDagservAndPinner(t *testing.T) dagservAndPinner {
+	db := ds.NewMapDatastore()
+	bs := bstore.NewBlockstore(dssync.MutexWrap(db))
+	blockserv, err := bserv.New(bs, offline.Exchange(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dserv := merkledag.NewDAGService(blockserv)
+	mpin := pin.NewPinner(db, dserv).GetManual()
+	return dagservAndPinner{
+		ds: dserv,
+		mp: mpin,
+	}
+}
+
+func TestIndirectBlocks(t *testing.T) {
+	splitter := &chunk.SizeSplitter{512}
+	nbytes := 1024 * 1024
+	buf := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(buf)
+
+	read := bytes.NewReader(buf)
+
+	dnp := getDagservAndPinner(t)
+	dag, err := BuildDagFromReader(read, dnp.ds, dnp.mp, splitter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader, err := uio.NewDagReader(dag, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(out, buf) {
+		t.Fatal("Not equal!")
+	}
 }
