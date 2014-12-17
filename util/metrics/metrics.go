@@ -14,10 +14,10 @@ type BandwidthCounter struct {
 	out metrics.StandardCounter
 }
 
-func (c *BandwidthCounter) In() Counter {
+func (c *BandwidthCounter) BytesIn() Counter {
 	return &c.in
 }
 
-func (c *BandwidthCounter) Out() Counter {
+func (c *BandwidthCounter) BytesOut() Counter {
 	return &c.out
 }
