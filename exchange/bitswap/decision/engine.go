@@ -13,6 +13,10 @@ import (
 
 var log = u.Logger("engine")
 
+const (
+	sizeOutboxChan = 4
+)
+
 // Envelope contains a message for a Peer
 type Envelope struct {
 	// Peer is the intended recipient
@@ -43,7 +47,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 		ledgerMap:        make(map[u.Key]*ledger),
 		bs:               bs,
 		peerRequestQueue: newTaskQueue(),
-		outbox:           make(chan Envelope, 4), // TODO extract constant
+		outbox:           make(chan Envelope, sizeOutboxChan),
 		workSignal:       make(chan struct{}),
 	}
 	go e.taskWorker(ctx)
