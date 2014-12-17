@@ -17,7 +17,6 @@ var log = u.Logger("strategy")
 // LedgerMap lists Ledgers by their Partner key.
 type ledgerMap map[peerKey]*ledger
 
-// FIXME share this externally
 type peerKey u.Key
 
 type Envelope struct {
