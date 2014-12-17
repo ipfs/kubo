@@ -26,9 +26,9 @@ type LedgerManager struct {
 	lock      sync.RWMutex
 	ledgerMap ledgerMap
 	bs        bstore.Blockstore
-	// FIXME tasklist isn't threadsafe nor is it protected by a mutex. consider
-	// a way to avoid sharing the tasklist between the worker and the receiver
-	tasklist   *taskList
+	// FIXME taskqueue isn't threadsafe nor is it protected by a mutex. consider
+	// a way to avoid sharing the taskqueue between the worker and the receiver
+	taskqueue  *taskQueue
 	outbox     chan Envelope
 	workSignal chan struct{}
 }
@@ -37,7 +37,7 @@ func NewLedgerManager(ctx context.Context, bs bstore.Blockstore) *LedgerManager 
 	lm := &LedgerManager{
 		ledgerMap:  make(ledgerMap),
 		bs:         bs,
-		tasklist:   newTaskList(),
+		taskqueue:  newTaskQueue(),
 		outbox:     make(chan Envelope, 4), // TODO extract constant
 		workSignal: make(chan struct{}),
 	}
@@ -47,7 +47,7 @@ func NewLedgerManager(ctx context.Context, bs bstore.Blockstore) *LedgerManager 
 
 func (lm *LedgerManager) taskWorker(ctx context.Context) {
 	for {
-		nextTask := lm.tasklist.Pop()
+		nextTask := lm.taskqueue.Pop()
 		if nextTask == nil {
 			// No tasks in the list?
 			// Wait until there are!
@@ -124,11 +124,11 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 	for _, e := range m.Wantlist() {
 		if e.Cancel {
 			l.CancelWant(e.Key)
-			lm.tasklist.Cancel(e.Key, p)
+			lm.taskqueue.Cancel(e.Key, p)
 		} else {
 			l.Wants(e.Key, e.Priority)
 			newWorkExists = true
-			lm.tasklist.Push(e.Key, e.Priority, p)
+			lm.taskqueue.Push(e.Key, e.Priority, p)
 		}
 	}
 
@@ -138,7 +138,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 		for _, l := range lm.ledgerMap {
 			if l.WantListContains(block.Key()) {
 				newWorkExists = true
-				lm.tasklist.Push(block.Key(), 1, l.Partner)
+				lm.taskqueue.Push(block.Key(), 1, l.Partner)
 			}
 		}
 	}
@@ -159,7 +159,7 @@ func (lm *LedgerManager) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error 
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 		l.wantList.Remove(block.Key())
-		lm.tasklist.Cancel(block.Key(), p)
+		lm.taskqueue.Cancel(block.Key(), p)
 	}
 
 	return nil

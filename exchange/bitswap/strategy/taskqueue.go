@@ -8,13 +8,13 @@ import (
 // TODO: at some point, the strategy needs to plug in here
 // to help decide how to sort tasks (on add) and how to select
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
-type taskList struct {
+type taskQueue struct {
 	tasks   []*Task
 	taskmap map[string]*Task
 }
 
-func newTaskList() *taskList {
-	return &taskList{
+func newTaskQueue() *taskQueue {
+	return &taskQueue{
 		taskmap: make(map[string]*Task),
 	}
 }
@@ -27,7 +27,7 @@ type Task struct {
 
 // Push currently adds a new task to the end of the list
 // TODO: make this into a priority queue
-func (tl *taskList) Push(block u.Key, priority int, to peer.Peer) {
+func (tl *taskQueue) Push(block u.Key, priority int, to peer.Peer) {
 	if task, ok := tl.taskmap[taskKey(to, block)]; ok {
 		// TODO: when priority queue is implemented,
 		//       rearrange this Task
@@ -44,7 +44,7 @@ func (tl *taskList) Push(block u.Key, priority int, to peer.Peer) {
 }
 
 // Pop 'pops' the next task to be performed. Returns nil no task exists.
-func (tl *taskList) Pop() *Task {
+func (tl *taskQueue) Pop() *Task {
 	var out *Task
 	for len(tl.tasks) > 0 {
 		// TODO: instead of zero, use exponential distribution
@@ -63,7 +63,7 @@ func (tl *taskList) Pop() *Task {
 }
 
 // Cancel lazily cancels the sending of a block to a given peer
-func (tl *taskList) Cancel(k u.Key, p peer.Peer) {
+func (tl *taskQueue) Cancel(k u.Key, p peer.Peer) {
 	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
 		t.theirPriority = -1
