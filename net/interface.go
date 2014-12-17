@@ -12,7 +12,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-// ProtocolID is an identifier used to write protocol headers in streams
+// ProtocolID is an identifier used to write protocol headers in streams.
 type ProtocolID string
 
 // These are the ProtocolIDs of the protocols running. It is useful
