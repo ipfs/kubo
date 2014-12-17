@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
@@ -85,15 +86,16 @@ func RandomBytes(n int64) []byte {
 }
 
 func AddCatBytes(data []byte, conf Config) error {
-
-	sessionGenerator := bitswap.NewSessionGenerator(
-		tn.VirtualNetwork(
-			mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
-				Query:           delay.Fixed(conf.RoutingLatency),
-				ValueVisibility: delay.Fixed(conf.RoutingLatency),
-			}),
-			delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
-	)
+	ctx := context.Background()
+	rs := mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
+		Query:           delay.Fixed(conf.RoutingLatency),
+		ValueVisibility: delay.Fixed(conf.RoutingLatency),
+	})
+	net, err := tn.StreamNetWithDelay(ctx, rs, delay.Fixed(conf.NetworkLatency))
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	sessionGenerator := bitswap.NewSessionGenerator(net)
 	defer sessionGenerator.Close()
 
 	adder := sessionGenerator.Next()
