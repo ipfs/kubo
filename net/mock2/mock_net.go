@@ -226,8 +226,20 @@ func (mn *mocknet) removeLink(l *link) {
 	delete(mn.links[pid(n2.peer)][pid(n1.peer)], l)
 }
 
-func (mn *mocknet) ConnectAll(p1, p2 peer.Peer) (Link, error) {
-	panic("nyi")
+func (mn *mocknet) ConnectAll() error {
+	nets := mn.Nets()
+	for _, n1 := range nets {
+		for _, n2 := range nets {
+			if n1 == n2 {
+				continue
+			}
+
+			if err := mn.ConnectNets(n1, n2); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (mn *mocknet) ConnectPeers(a, b peer.Peer) error {
