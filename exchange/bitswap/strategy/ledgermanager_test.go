@@ -23,7 +23,8 @@ func newPeerAndLedgermanager(idStr string) peerAndLedgermanager {
 	return peerAndLedgermanager{
 		Peer: testutil.NewPeerWithIDString(idStr),
 		//Strategy: New(true),
-		ls: NewLedgerManager(blockstore.NewBlockstore(sync.MutexWrap(ds.NewMapDatastore())), context.TODO()),
+		ls: NewLedgerManager(context.TODO(),
+			blockstore.NewBlockstore(sync.MutexWrap(ds.NewMapDatastore()))),
 	}
 }
 

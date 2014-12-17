@@ -56,7 +56,7 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 		blockstore:    bstore,
 		cancelFunc:    cancelFunc,
 		notifications: notif,
-		ledgermanager: strategy.NewLedgerManager(bstore, ctx),
+		ledgermanager: strategy.NewLedgerManager(ctx, bstore),
 		routing:       routing,
 		sender:        network,
 		wantlist:      wl.New(),
