@@ -22,15 +22,19 @@ type Envelope struct {
 }
 
 type LedgerManager struct {
+	// FIXME taskqueue isn't threadsafe nor is it protected by a mutex. consider
+	// a way to avoid sharing the taskqueue between the worker and the receiver
+	taskqueue *taskQueue
+
+	workSignal chan struct{}
+
+	outbox chan Envelope
+
+	bs bstore.Blockstore
+
 	lock sync.RWMutex
 	// ledgerMap lists Ledgers by their Partner key.
 	ledgerMap map[u.Key]*ledger
-	bs        bstore.Blockstore
-	// FIXME taskqueue isn't threadsafe nor is it protected by a mutex. consider
-	// a way to avoid sharing the taskqueue between the worker and the receiver
-	taskqueue  *taskQueue
-	outbox     chan Envelope
-	workSignal chan struct{}
 }
 
 func NewLedgerManager(ctx context.Context, bs bstore.Blockstore) *LedgerManager {
