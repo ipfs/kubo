@@ -15,7 +15,7 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	strategy "github.com/jbenet/go-ipfs/exchange/bitswap/strategy"
-	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
+	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -59,7 +59,7 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 		ledgermanager: strategy.NewLedgerManager(ctx, bstore),
 		routing:       routing,
 		sender:        network,
-		wantlist:      wl.New(),
+		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan []u.Key, 32),
 	}
 	network.SetDelegate(bs)
@@ -95,7 +95,7 @@ type bitswap struct {
 
 	ledgermanager *strategy.LedgerManager
 
-	wantlist *wl.Wantlist
+	wantlist *wantlist.ThreadSafe
 
 	// cancelFunc signals cancellation to the bitswap event loop
 	cancelFunc func()
@@ -203,7 +203,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 	return nil
 }
 
-func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wl.Wantlist) {
+func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantlist.ThreadSafe) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
