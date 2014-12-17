@@ -15,9 +15,7 @@ import (
 var log = u.Logger("strategy")
 
 // LedgerMap lists Ledgers by their Partner key.
-type ledgerMap map[peerKey]*ledger
-
-type peerKey u.Key
+type ledgerMap map[u.Key]*ledger
 
 type Envelope struct {
 	Peer    peer.Peer
@@ -182,10 +180,10 @@ func (lm *LedgerManager) NumBytesReceivedFrom(p peer.Peer) uint64 {
 
 // ledger lazily instantiates a ledger
 func (lm *LedgerManager) findOrCreate(p peer.Peer) *ledger {
-	l, ok := lm.ledgerMap[peerKey(p.Key())]
+	l, ok := lm.ledgerMap[p.Key()]
 	if !ok {
 		l = newLedger(p)
-		lm.ledgerMap[peerKey(p.Key())] = l
+		lm.ledgerMap[p.Key()] = l
 	}
 	return l
 }
