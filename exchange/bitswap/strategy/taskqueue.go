@@ -9,17 +9,17 @@ import (
 // to help decide how to sort tasks (on add) and how to select
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
 type taskQueue struct {
-	tasks   []*Task
-	taskmap map[string]*Task
+	tasks   []*task
+	taskmap map[string]*task
 }
 
 func newTaskQueue() *taskQueue {
 	return &taskQueue{
-		taskmap: make(map[string]*Task),
+		taskmap: make(map[string]*task),
 	}
 }
 
-type Task struct {
+type task struct {
 	Key           u.Key
 	Target        peer.Peer
 	theirPriority int
@@ -30,11 +30,11 @@ type Task struct {
 func (tl *taskQueue) Push(block u.Key, priority int, to peer.Peer) {
 	if task, ok := tl.taskmap[taskKey(to, block)]; ok {
 		// TODO: when priority queue is implemented,
-		//       rearrange this Task
+		//       rearrange this task
 		task.theirPriority = priority
 		return
 	}
-	task := &Task{
+	task := &task{
 		Key:           block,
 		Target:        to,
 		theirPriority: priority,
@@ -44,8 +44,8 @@ func (tl *taskQueue) Push(block u.Key, priority int, to peer.Peer) {
 }
 
 // Pop 'pops' the next task to be performed. Returns nil no task exists.
-func (tl *taskQueue) Pop() *Task {
-	var out *Task
+func (tl *taskQueue) Pop() *task {
+	var out *task
 	for len(tl.tasks) > 0 {
 		// TODO: instead of zero, use exponential distribution
 		//       it will help reduce the chance of receiving
