@@ -7,7 +7,7 @@ import (
 
 // PeerSet is a threadsafe set of peers
 type PeerSet struct {
-	ps   map[string]bool
+	ps   map[string]bool // FIXME can be map[string]struct{}
 	lk   sync.RWMutex
 	size int
 }
