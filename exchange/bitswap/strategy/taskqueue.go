@@ -62,8 +62,8 @@ func (tl *taskQueue) Pop() *Task {
 	return out
 }
 
-// Cancel lazily cancels the sending of a block to a given peer
-func (tl *taskQueue) Cancel(k u.Key, p peer.Peer) {
+// Remove lazily removes a task from the queue
+func (tl *taskQueue) Remove(k u.Key, p peer.Peer) {
 	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
 		t.theirPriority = -1

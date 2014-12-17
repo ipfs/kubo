@@ -124,7 +124,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 	for _, e := range m.Wantlist() {
 		if e.Cancel {
 			l.CancelWant(e.Key)
-			lm.taskqueue.Cancel(e.Key, p)
+			lm.taskqueue.Remove(e.Key, p)
 		} else {
 			l.Wants(e.Key, e.Priority)
 			newWorkExists = true
@@ -159,7 +159,7 @@ func (lm *LedgerManager) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error 
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 		l.wantList.Remove(block.Key())
-		lm.taskqueue.Cancel(block.Key(), p)
+		lm.taskqueue.Remove(block.Key(), p)
 	}
 
 	return nil
