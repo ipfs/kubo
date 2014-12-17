@@ -7,15 +7,15 @@ import (
 	crand "crypto/rand"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
+	mocknet "github.com/jbenet/go-ipfs/net/mock2"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 
 	"time"
@@ -27,16 +27,15 @@ func TestGetFailures(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	peerstore := peer.NewPeerstore()
-	local := makePeerString(t, "")
-	peers := []peer.Peer{local, testutil.RandPeer()}
-
-	nets, err := mocknet.MakeNetworks(ctx, peers)
+	mn, err := mocknet.FullMeshConnected(ctx, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
+	nets := mn.Nets()
+	peers := mn.Peers()
 
-	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
+	ps := peer.NewPeerstore()
+	d := NewDHT(ctx, peers[0], ps, nets[0], ds.NewMapDatastore())
 	d.Update(ctx, peers[1])
 
 	// This one should time out
@@ -141,17 +140,13 @@ func TestNotFound(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	peerstore := peer.NewPeerstore()
-
-	var peers []peer.Peer
-	for i := 0; i < 16; i++ {
-		peers = append(peers, testutil.RandPeer())
-	}
-
-	nets, err := mocknet.MakeNetworks(ctx, peers)
+	mn, err := mocknet.FullMeshConnected(ctx, 16)
 	if err != nil {
 		t.Fatal(err)
 	}
+	nets := mn.Nets()
+	peers := mn.Peers()
+	peerstore := peer.NewPeerstore()
 
 	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
 
@@ -215,17 +210,13 @@ func TestLessThanKResponses(t *testing.T) {
 	// t.Skip("skipping test because it makes a lot of output")
 
 	ctx := context.Background()
-	peerstore := peer.NewPeerstore()
-
-	var peers []peer.Peer
-	for i := 0; i < 6; i++ {
-		peers = append(peers, testutil.RandPeer())
-	}
-
-	nets, err := mocknet.MakeNetworks(ctx, peers)
+	mn, err := mocknet.FullMeshConnected(ctx, 6)
 	if err != nil {
 		t.Fatal(err)
 	}
+	nets := mn.Nets()
+	peers := mn.Peers()
+	peerstore := peer.NewPeerstore()
 
 	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
 
