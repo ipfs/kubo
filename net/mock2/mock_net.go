@@ -205,7 +205,7 @@ func (mn *mocknet) UnlinkPeers(p1, p2 peer.Peer) error {
 }
 
 func (mn *mocknet) UnlinkNets(n1, n2 inet.Network) error {
-	return mn.DisconnectPeers(n1.LocalPeer(), n2.LocalPeer())
+	return mn.UnlinkPeers(n1.LocalPeer(), n2.LocalPeer())
 }
 
 func (mn *mocknet) addLink(l *link) {
