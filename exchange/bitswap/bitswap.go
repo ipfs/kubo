@@ -212,7 +212,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 		message.AddEntry(e.Key, e.Priority)
 	}
 
-	ps := pset.NewPeerSet()
+	ps := pset.New()
 
 	// Get providers for all entries in wantlist (could take a while)
 	wg := sync.WaitGroup{}

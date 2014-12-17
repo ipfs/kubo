@@ -12,14 +12,14 @@ type PeerSet struct {
 	size int
 }
 
-func NewPeerSet() *PeerSet {
+func New() *PeerSet {
 	ps := new(PeerSet)
 	ps.ps = make(map[string]bool)
 	ps.size = -1
 	return ps
 }
 
-func NewLimitedPeerSet(size int) *PeerSet {
+func NewLimited(size int) *PeerSet {
 	ps := new(PeerSet)
 	ps.ps = make(map[string]bool)
 	ps.size = size

@@ -141,7 +141,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.Peer) {
 	defer close(peerOut)
 
-	ps := pset.NewLimitedPeerSet(count)
+	ps := pset.NewLimited(count)
 	provs := dht.providers.GetProviders(ctx, key)
 	for _, p := range provs {
 		// NOTE: assuming that this list of peers is unique
