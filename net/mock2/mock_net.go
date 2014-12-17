@@ -36,6 +36,7 @@ func New(ctx context.Context) Mocknet {
 	return &mocknet{
 		nets:  map[peerID]*peernet{},
 		links: map[peerID]map[peerID]map[*link]struct{}{},
+		cg:    ctxgroup.WithContext(ctx),
 	}
 }
 
