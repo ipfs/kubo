@@ -33,7 +33,7 @@ func (n *network) Adapter(p testutil.Peer) bsnet.BitSwapNetwork {
 	client := &networkClient{
 		local:   p.ID(),
 		network: n,
-		routing: n.routingserver.Client(peer.PeerInfo{ID: p.ID()}),
+		routing: n.routingserver.Client(p),
 	}
 	n.clients[p.ID()] = client
 	return client

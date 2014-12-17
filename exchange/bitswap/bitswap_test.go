@@ -11,10 +11,10 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	peer "github.com/jbenet/go-ipfs/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -61,7 +61,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 	defer g.Close()
 
 	block := blocks.NewBlock([]byte("block"))
-	pinfo := peer.PeerInfo{ID: peer.ID("testing")}
+	pinfo := testutil.RandPeerOrFatal(t)
 	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()

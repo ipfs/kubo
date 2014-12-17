@@ -76,6 +76,7 @@ func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {
 // This operation is threadsafe.
 func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
 	m.Lock()
+	log.Debug("setting protocol ", p)
 	m.Handlers[p] = h
 	m.Unlock()
 }

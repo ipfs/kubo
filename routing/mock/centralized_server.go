@@ -5,9 +5,11 @@ import (
 	"sync"
 	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // server is the mockrouting.Client's private interface to the routing server
@@ -71,11 +73,11 @@ func (rs *s) Providers(k u.Key) []peer.PeerInfo {
 	return ret
 }
 
-func (rs *s) Client(p peer.PeerInfo) Client {
-	return rs.ClientWithDatastore(p, ds.NewMapDatastore())
+func (rs *s) Client(p testutil.Peer) Client {
+	return rs.ClientWithDatastore(context.Background(), p, ds.NewMapDatastore())
 }
 
-func (rs *s) ClientWithDatastore(p peer.PeerInfo, datastore ds.Datastore) Client {
+func (rs *s) ClientWithDatastore(_ context.Context, p testutil.Peer, datastore ds.Datastore) Client {
 	return &client{
 		peer:      p,
 		datastore: ds.NewMapDatastore(),

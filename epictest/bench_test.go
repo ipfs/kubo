@@ -18,6 +18,7 @@ func benchmarkAddCat(numBytes int64, conf Config, b *testing.B) {
 
 var instant = Config{}.All_Instantaneous()
 
+func BenchmarkInstantaneousAddCat1KB(b *testing.B)   { benchmarkAddCat(1*KB, instant, b) }
 func BenchmarkInstantaneousAddCat1MB(b *testing.B)   { benchmarkAddCat(1*MB, instant, b) }
 func BenchmarkInstantaneousAddCat2MB(b *testing.B)   { benchmarkAddCat(2*MB, instant, b) }
 func BenchmarkInstantaneousAddCat4MB(b *testing.B)   { benchmarkAddCat(4*MB, instant, b) }

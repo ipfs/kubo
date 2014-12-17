@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"math"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -125,6 +126,15 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 		}
 	}
 	return nil
+}
+
+// FindProviders searches until the context expires.
+func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
+	var providers []peer.PeerInfo
+	for p := range dht.FindProvidersAsync(ctx, key, math.MaxInt32) {
+		providers = append(providers, p)
+	}
+	return providers, nil
 }
 
 // FindProvidersAsync is the same thing as FindProviders, but returns a channel.

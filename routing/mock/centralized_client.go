@@ -5,9 +5,11 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 var log = u.Logger("mockrouter")
@@ -15,7 +17,7 @@ var log = u.Logger("mockrouter")
 type client struct {
 	datastore ds.Datastore
 	server    server
-	peer      peer.PeerInfo
+	peer      testutil.Peer
 }
 
 // FIXME(brian): is this method meant to simulate putting a value into the network?
@@ -70,7 +72,11 @@ func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 // Provide returns once the message is on the network. Value is not necessarily
 // visible yet.
 func (c *client) Provide(_ context.Context, key u.Key) error {
-	return c.server.Announce(c.peer, key)
+	info := peer.PeerInfo{
+		ID:    c.peer.ID(),
+		Addrs: []ma.Multiaddr{c.peer.Address()},
+	}
+	return c.server.Announce(info, key)
 }
 
 var _ routing.IpfsRouting = &client{}

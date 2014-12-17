@@ -79,15 +79,15 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
 func session(ctx context.Context, net tn.Network, p testutil.Peer) Instance {
-
-	adapter := net.Adapter(p)
-
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100
-	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))), kWriteCacheElems)
+
+	adapter := net.Adapter(p)
+	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
+
+	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), kWriteCacheElems)
 	if err != nil {
-		// FIXME perhaps change signature and return error.
-		panic(err.Error())
+		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
 	const alwaysSendToPeer = true

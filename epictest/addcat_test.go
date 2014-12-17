@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"testing"
 	"time"
@@ -16,12 +17,12 @@ import (
 	importer "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	mocknet "github.com/jbenet/go-ipfs/net/mock"
 	path "github.com/jbenet/go-ipfs/path"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	util "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 const kSeed = 1
@@ -87,11 +88,14 @@ func RandomBytes(n int64) []byte {
 
 func AddCatBytes(data []byte, conf Config) error {
 	ctx := context.Background()
-	rs := mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
-		Query:           delay.Fixed(conf.RoutingLatency),
-		ValueVisibility: delay.Fixed(conf.RoutingLatency),
+	mn := mocknet.New(ctx)
+	// defer mn.Close() FIXME does mocknet require clean-up
+	mn.SetLinkDefaults(mocknet.LinkOptions{
+		Latency:   conf.NetworkLatency,
+		Bandwidth: math.MaxInt32, // TODO add to conf
 	})
-	net, err := tn.StreamNetWithDelay(ctx, rs, delay.Fixed(conf.NetworkLatency))
+	dhtNetwork := mockrouting.NewDHTNetwork(mn)
+	net, err := tn.StreamNet(ctx, mn, dhtNetwork)
 	if err != nil {
 		return errors.Wrap(err)
 	}
@@ -100,6 +104,28 @@ func AddCatBytes(data []byte, conf Config) error {
 
 	adder := sessionGenerator.Next()
 	catter := sessionGenerator.Next()
+	// catter.Routing.Update(context.TODO(), adder.Peer)
+
+	peers := mn.Peers()
+	if len(peers) != 2 {
+		return errors.New("peers not in network")
+	}
+
+	for _, i := range peers {
+		for _, j := range peers {
+			if i == j {
+				continue
+			}
+			fmt.Println(i, " and ", j)
+			if _, err := mn.LinkPeers(i, j); err != nil {
+				return err
+			}
+			if err := mn.ConnectPeers(i, j); err != nil {
+				return err
+			}
+		}
+	}
+
 	catter.SetBlockstoreLatency(conf.BlockstoreLatency)
 
 	adder.SetBlockstoreLatency(0) // disable blockstore latency during add operation
