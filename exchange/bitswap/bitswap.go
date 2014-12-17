@@ -159,8 +159,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	}
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
-	child, _ := context.WithTimeout(ctx, hasBlockTimeout)
-	return bs.routing.Provide(child, blk.Key())
+	return bs.routing.Provide(ctx, blk.Key())
 }
 
 func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) error {
@@ -319,7 +318,8 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	var blkeys []u.Key
 	for _, block := range incoming.Blocks() {
 		blkeys = append(blkeys, block.Key())
-		if err := bs.HasBlock(ctx, block); err != nil {
+		hasBlockCtx, _ := context.WithTimeout(ctx, hasBlockTimeout)
+		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
 			log.Error(err)
 		}
 	}
