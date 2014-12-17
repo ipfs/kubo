@@ -309,13 +309,15 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
-	var blkeys []u.Key
 	for _, block := range incoming.Blocks() {
-		blkeys = append(blkeys, block.Key())
 		hasBlockCtx, _ := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
 			log.Error(err)
 		}
+	}
+	var blkeys []u.Key
+	for _, block := range incoming.Blocks() {
+		blkeys = append(blkeys, block.Key())
 	}
 	if len(blkeys) > 0 {
 		bs.cancelBlocks(ctx, blkeys)
