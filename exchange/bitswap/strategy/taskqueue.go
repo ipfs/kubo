@@ -10,6 +10,7 @@ import (
 // to help decide how to sort tasks (on add) and how to select
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
 type taskQueue struct {
+	// TODO: make this into a priority queue
 	tasks   []*task
 	taskmap map[string]*task
 }
@@ -27,7 +28,6 @@ type task struct {
 }
 
 // Push currently adds a new task to the end of the list
-// TODO: make this into a priority queue
 func (tl *taskQueue) Push(block u.Key, priority int, to peer.Peer) {
 	if task, ok := tl.taskmap[taskKey(to, block)]; ok {
 		// TODO: when priority queue is implemented,
