@@ -1,4 +1,4 @@
-package strategy
+package decision
 
 import (
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
