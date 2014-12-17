@@ -2,7 +2,6 @@ package mocknet
 
 import (
 	"fmt"
-	"io"
 	"sync"
 
 	inet "github.com/jbenet/go-ipfs/net"
@@ -118,6 +117,27 @@ func (mn *mocknet) Nets() []inet.Network {
 		cp = append(cp, n)
 	}
 	return cp
+}
+
+// Links returns a copy of the internal link state map.
+// (wow, much map. so data structure. how compose. ahhh pointer)
+func (mn *mocknet) Links() LinkMap {
+	mn.RLock()
+	defer mn.RUnlock()
+
+	links := map[string]map[string]map[Link]struct{}{}
+	for p1, lm := range mn.links {
+		sp1 := string(p1)
+		links[sp1] = map[string]map[Link]struct{}{}
+		for p2, ls := range lm {
+			sp2 := string(p2)
+			links[sp1][sp2] = map[Link]struct{}{}
+			for l := range ls {
+				links[sp1][sp2][l] = struct{}{}
+			}
+		}
+	}
+	return links
 }
 
 func (mn *mocknet) LinkAll() error {
@@ -308,18 +328,4 @@ func (mn *mocknet) LinkDefaults() LinkOptions {
 	mn.RLock()
 	defer mn.RUnlock()
 	return mn.linkDefaults
-}
-
-func (mn *mocknet) PrintLinkMap(w io.Writer) {
-	mn.RLock()
-	defer mn.RUnlock()
-
-	fmt.Fprintf(w, "Mocknet link map:\n")
-	for p1, lm := range mn.links {
-		fmt.Fprintf(w, "\t%s linked to:\n", peer.ID(p1))
-		for p2, l := range lm {
-			fmt.Fprintf(w, "\t\t%s (%d links)\n", peer.ID(p2), len(l))
-		}
-	}
-	fmt.Fprintf(w, "\n")
 }

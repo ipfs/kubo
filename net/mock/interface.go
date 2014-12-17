@@ -23,10 +23,9 @@ type Mocknet interface {
 	Peers() []peer.Peer
 	Net(peer.ID) inet.Network
 	Nets() []inet.Network
+	Links() LinkMap
 	LinksBetweenPeers(a, b peer.Peer) []Link
 	LinksBetweenNets(a, b inet.Network) []Link
-
-	PrintLinkMap(io.Writer)
 
 	// Links are the **ability to connect**.
 	// think of Links as the physical medium.
@@ -52,12 +51,19 @@ type Mocknet interface {
 	DisconnectNets(inet.Network, inet.Network) error
 }
 
+// LinkOptions are used to change aspects of the links.
+// Sorry but they dont work yet :(
 type LinkOptions struct {
 	Latency   time.Duration
 	Bandwidth int // in bytes-per-second
 	// we can make these values distributions down the road.
 }
 
+// Link represents the **possibility** of a connection between
+// two peers. Think of it like physical network links. Without
+// them, the peers can try and try but they won't be able to
+// connect. This allows constructing topologies where specific
+// nodes cannot talk to each other directly. :)
 type Link interface {
 	Networks() []inet.Network
 	Peers() []peer.Peer
@@ -66,4 +72,20 @@ type Link interface {
 	Options() LinkOptions
 
 	// Metrics() Metrics
+}
+
+// LinkMap is a 3D map to give us an easy way to track links.
+// (wow, much map. so data structure. how compose. ahhh pointer)
+type LinkMap map[string]map[string]map[Link]struct{}
+
+// Printer lets you inspect things :)
+type Printer interface {
+	// MocknetLinks shows the entire Mocknet's link table :)
+	MocknetLinks(mn Mocknet)
+	NetworkConns(ni inet.Network)
+}
+
+// PrinterTo returns a Printer ready to write to w.
+func PrinterTo(w io.Writer) Printer {
+	return &printer{w}
 }
