@@ -43,8 +43,7 @@ func (tl *TaskList) Push(block u.Key, priority int, to peer.Peer) {
 	tl.taskmap[to.Key()+block] = task
 }
 
-// Pop returns the next task to be performed by bitswap the task is then
-// removed from the list
+// Pop 'pops' the next task to be performed. Returns nil no task exists.
 func (tl *TaskList) Pop() *Task {
 	var out *Task
 	for len(tl.tasks) > 0 {
