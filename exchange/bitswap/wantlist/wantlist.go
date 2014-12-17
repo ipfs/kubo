@@ -13,7 +13,7 @@ type ThreadSafe struct {
 
 // not threadsafe
 type Wantlist struct {
-	set map[u.Key]*Entry
+	set map[u.Key]Entry
 }
 
 type Entry struct {
@@ -23,7 +23,7 @@ type Entry struct {
 	Priority int
 }
 
-type entrySlice []*Entry
+type entrySlice []Entry
 
 func (es entrySlice) Len() int           { return len(es) }
 func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
@@ -37,7 +37,7 @@ func NewThreadSafe() *ThreadSafe {
 
 func New() *Wantlist {
 	return &Wantlist{
-		set: make(map[u.Key]*Entry),
+		set: make(map[u.Key]Entry),
 	}
 }
 
@@ -62,13 +62,13 @@ func (w *ThreadSafe) Contains(k u.Key) bool {
 	return w.Wantlist.Contains(k)
 }
 
-func (w *ThreadSafe) Entries() []*Entry {
+func (w *ThreadSafe) Entries() []Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.Entries()
 }
 
-func (w *ThreadSafe) SortedEntries() []*Entry {
+func (w *ThreadSafe) SortedEntries() []Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.SortedEntries()
@@ -78,7 +78,7 @@ func (w *Wantlist) Add(k u.Key, priority int) {
 	if _, ok := w.set[k]; ok {
 		return
 	}
-	w.set[k] = &Entry{
+	w.set[k] = Entry{
 		Key:      k,
 		Priority: priority,
 	}
@@ -93,7 +93,7 @@ func (w *Wantlist) Contains(k u.Key) bool {
 	return ok
 }
 
-func (w *Wantlist) Entries() []*Entry {
+func (w *Wantlist) Entries() []Entry {
 	var es entrySlice
 	for _, e := range w.set {
 		es = append(es, e)
@@ -101,7 +101,7 @@ func (w *Wantlist) Entries() []*Entry {
 	return es
 }
 
-func (w *Wantlist) SortedEntries() []*Entry {
+func (w *Wantlist) SortedEntries() []Entry {
 	var es entrySlice
 	for _, e := range w.set {
 		es = append(es, e)
