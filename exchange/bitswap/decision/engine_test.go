@@ -44,18 +44,18 @@ func TestConsistentAccounting(t *testing.T) {
 	}
 
 	// Ensure sender records the change
-	if sender.Engine.NumBytesSentTo(receiver.Peer) == 0 {
+	if sender.Engine.numBytesSentTo(receiver.Peer) == 0 {
 		t.Fatal("Sent bytes were not recorded")
 	}
 
 	// Ensure sender and receiver have the same values
-	if sender.Engine.NumBytesSentTo(receiver.Peer) != receiver.Engine.NumBytesReceivedFrom(sender.Peer) {
+	if sender.Engine.numBytesSentTo(receiver.Peer) != receiver.Engine.numBytesReceivedFrom(sender.Peer) {
 		t.Fatal("Inconsistent book-keeping. Strategies don't agree")
 	}
 
 	// Ensure sender didn't record receving anything. And that the receiver
 	// didn't record sending anything
-	if receiver.Engine.NumBytesSentTo(sender.Peer) != 0 || sender.Engine.NumBytesReceivedFrom(receiver.Peer) != 0 {
+	if receiver.Engine.numBytesSentTo(sender.Peer) != 0 || sender.Engine.numBytesReceivedFrom(receiver.Peer) != 0 {
 		t.Fatal("Bert didn't send bytes to Ernie")
 	}
 }
