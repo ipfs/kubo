@@ -28,7 +28,7 @@ type LedgerManager struct {
 	lock       sync.RWMutex
 	ledgerMap  ledgerMap
 	bs         bstore.Blockstore
-	tasklist   *TaskList
+	tasklist   *taskList
 	outbox     chan Envelope
 	workSignal chan struct{}
 }
@@ -37,7 +37,7 @@ func NewLedgerManager(ctx context.Context, bs bstore.Blockstore) *LedgerManager 
 	lm := &LedgerManager{
 		ledgerMap:  make(ledgerMap),
 		bs:         bs,
-		tasklist:   NewTaskList(),
+		tasklist:   newTaskList(),
 		outbox:     make(chan Envelope, 4), // TODO extract constant
 		workSignal: make(chan struct{}),
 	}
