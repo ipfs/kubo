@@ -164,18 +164,21 @@ func (mn *mocknet) validate(n inet.Network) (*peernet, error) {
 }
 
 func (mn *mocknet) LinkNets(n1, n2 inet.Network) (Link, error) {
-	mn.Lock()
-	defer mn.Unlock()
+	mn.RLock()
+	n1r, err1 := mn.validate(n1)
+	n2r, err2 := mn.validate(n1)
+	ld := mn.linkDefaults
+	mn.RUnlock()
 
-	if _, err := mn.validate(n1); err != nil {
-		return nil, err
+	if err1 != nil {
+		return nil, err1
+	}
+	if err2 != nil {
+		return nil, err2
 	}
 
-	if _, err := mn.validate(n2); err != nil {
-		return nil, err
-	}
-
-	l := newLink(mn)
+	l := newLink(mn, ld)
+	l.nets = append(l.nets, n1r, n2r)
 	mn.addLink(l)
 	return l, nil
 }
@@ -209,13 +212,31 @@ func (mn *mocknet) UnlinkNets(n1, n2 inet.Network) error {
 	return mn.UnlinkPeers(n1.LocalPeer(), n2.LocalPeer())
 }
 
+// get from the links map. and lazily contruct.
+func (mn *mocknet) linksMapGet(p1, p2 peer.Peer) *map[*link]struct{} {
+	l1, found := mn.links[pid(p1)]
+	if !found {
+		mn.links[pid(p1)] = map[peerID]map[*link]struct{}{}
+		l1 = mn.links[pid(p1)] // so we make sure it's there.
+	}
+
+	l2, found := l1[pid(p2)]
+	if !found {
+		m := map[*link]struct{}{}
+		l1[pid(p2)] = m
+		l2 = l1[pid(p2)]
+	}
+
+	return &l2
+}
+
 func (mn *mocknet) addLink(l *link) {
 	mn.Lock()
 	defer mn.Unlock()
 
 	n1, n2 := l.nets[0], l.nets[1]
-	mn.links[pid(n1.peer)][pid(n2.peer)][l] = struct{}{}
-	mn.links[pid(n2.peer)][pid(n1.peer)][l] = struct{}{}
+	(*mn.linksMapGet(n1.peer, n2.peer))[l] = struct{}{}
+	(*mn.linksMapGet(n2.peer, n1.peer))[l] = struct{}{}
 }
 
 func (mn *mocknet) removeLink(l *link) {
@@ -223,8 +244,8 @@ func (mn *mocknet) removeLink(l *link) {
 	defer mn.Unlock()
 
 	n1, n2 := l.nets[0], l.nets[1]
-	delete(mn.links[pid(n1.peer)][pid(n2.peer)], l)
-	delete(mn.links[pid(n2.peer)][pid(n1.peer)], l)
+	delete(*mn.linksMapGet(n1.peer, n2.peer), l)
+	delete(*mn.linksMapGet(n2.peer, n1.peer), l)
 }
 
 func (mn *mocknet) ConnectAll() error {
@@ -263,16 +284,7 @@ func (mn *mocknet) LinksBetweenPeers(p1, p2 peer.Peer) []Link {
 	mn.RLock()
 	defer mn.RUnlock()
 
-	ls1, found := mn.links[pid(p1)]
-	if !found {
-		return nil
-	}
-
-	ls2, found := ls1[pid(p2)]
-	if !found {
-		return nil
-	}
-
+	ls2 := *mn.linksMapGet(p1, p2)
 	cp := make([]Link, 0, len(ls2))
 	for l := range ls2 {
 		cp = append(cp, l)
