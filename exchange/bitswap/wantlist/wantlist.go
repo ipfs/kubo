@@ -6,9 +6,31 @@ import (
 	"sync"
 )
 
+type ThreadSafe struct {
+	lk sync.RWMutex
+	Wantlist
+}
+
+// not threadsafe
 type Wantlist struct {
-	lk  sync.RWMutex
 	set map[u.Key]*Entry
+}
+
+type Entry struct {
+	Key      u.Key
+	Priority int
+}
+
+type entrySlice []*Entry
+
+func (es entrySlice) Len() int           { return len(es) }
+func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
+func (es entrySlice) Less(i, j int) bool { return es[i].Priority > es[j].Priority }
+
+func NewThreadSafe() *ThreadSafe {
+	return &ThreadSafe{
+		Wantlist: *New(),
+	}
 }
 
 func New() *Wantlist {
@@ -17,14 +39,53 @@ func New() *Wantlist {
 	}
 }
 
-type Entry struct {
-	Key      u.Key
-	Priority int
+func (w *ThreadSafe) Add(k u.Key, priority int) {
+	// TODO rm defer for perf
+	w.lk.Lock()
+	defer w.lk.Unlock()
+	w.Wantlist.Add(k, priority)
+}
+
+func (w *ThreadSafe) Remove(k u.Key) {
+	// TODO rm defer for perf
+	w.lk.Lock()
+	defer w.lk.Unlock()
+	w.Wantlist.Remove(k)
+}
+
+func (w *ThreadSafe) Contains(k u.Key) bool {
+	// TODO rm defer for perf
+	w.lk.RLock()
+	defer w.lk.RUnlock()
+	return w.Wantlist.Contains(k)
+}
+
+func (w *ThreadSafe) Entries() []*Entry {
+	w.lk.RLock()
+	defer w.lk.RUnlock()
+	var es entrySlice
+	for _, e := range w.set {
+		es = append(es, e)
+	}
+	// TODO rename SortedEntries (state that they're sorted so callers know
+	// they're paying an expense)
+	sort.Sort(es)
+	return es
+}
+
+func (w *ThreadSafe) SortedEntries() []*Entry {
+	w.lk.RLock()
+	defer w.lk.RUnlock()
+	var es entrySlice
+
+	for _, e := range w.set {
+		es = append(es, e)
+	}
+	sort.Sort(es)
+	return es
 }
 
 func (w *Wantlist) Add(k u.Key, priority int) {
-	w.lk.Lock()
-	defer w.lk.Unlock()
 	if _, ok := w.set[k]; ok {
 		return
 	}
@@ -35,28 +96,15 @@ func (w *Wantlist) Add(k u.Key, priority int) {
 }
 
 func (w *Wantlist) Remove(k u.Key) {
-	w.lk.Lock()
-	defer w.lk.Unlock()
 	delete(w.set, k)
 }
 
 func (w *Wantlist) Contains(k u.Key) bool {
-	w.lk.RLock()
-	defer w.lk.RUnlock()
 	_, ok := w.set[k]
 	return ok
 }
 
-type entrySlice []*Entry
-
-func (es entrySlice) Len() int           { return len(es) }
-func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es entrySlice) Less(i, j int) bool { return es[i].Priority > es[j].Priority }
-
 func (w *Wantlist) Entries() []*Entry {
-	w.lk.RLock()
-	defer w.lk.RUnlock()
-
 	var es entrySlice
 
 	for _, e := range w.set {
@@ -67,8 +115,6 @@ func (w *Wantlist) Entries() []*Entry {
 }
 
 func (w *Wantlist) SortedEntries() []*Entry {
-	w.lk.RLock()
-	defer w.lk.RUnlock()
 	var es entrySlice
 
 	for _, e := range w.set {
