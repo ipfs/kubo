@@ -4,9 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -21,7 +23,7 @@ func newPeerAndLedgermanager(idStr string) peerAndLedgermanager {
 	return peerAndLedgermanager{
 		Peer: testutil.NewPeerWithIDString(idStr),
 		//Strategy: New(true),
-		ls: NewLedgerManager(nil, context.TODO()),
+		ls: NewLedgerManager(blockstore.NewBlockstore(sync.MutexWrap(ds.NewMapDatastore())), context.TODO()),
 	}
 }
 
