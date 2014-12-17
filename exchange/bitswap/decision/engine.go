@@ -11,6 +11,36 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// TODO consider taking responsibility for other types of requests. For
+// example, there could be a |cancelQueue| for all of the cancellation
+// messages that need to go out. There could also be a |wantlistQueue| for
+// the local peer's wantlists. Alternatively, these could all be bundled
+// into a single, intelligent global queue that efficiently
+// batches/combines and takes all of these into consideration.
+//
+// Right now, messages go onto the network for four reasons:
+// 1. an initial `sendwantlist` message to a provider of the first key in a request
+// 2. a periodic full sweep of `sendwantlist` messages to all providers
+// 3. upon receipt of blocks, a `cancel` message to all peers
+// 4. draining the priority queue of `blockrequests` from peers
+//
+// Presently, only `blockrequests` are handled by the decision engine.
+// However, there is an opportunity to give it more responsibility! If the
+// decision engine is given responsibility for all of the others, it can
+// intelligently decide how to combine requests efficiently.
+//
+// Some examples of what would be possible:
+//
+// * when sending out the wantlists, include `cancel` requests
+// * when handling `blockrequests`, include `sendwantlist` and `cancel` as appropriate
+// * when handling `cancel`, if we recently received a wanted block from a
+// 	 peer, include a partial wantlist that contains a few other high priority
+//   blocks
+//
+// In a sense, if we treat the decision engine as a black box, it could do
+// whatever it sees fit to produce desired outcomes (get wanted keys
+// quickly, maintain good relationships with peers, etc).
+
 var log = u.Logger("engine")
 
 const (
@@ -26,18 +56,24 @@ type Envelope struct {
 }
 
 type Engine struct {
-	// FIXME peerRequestQueue isn't threadsafe nor is it protected by a mutex.
-	// consider a way to avoid sharing the peerRequestQueue between the worker
-	// and the receiver
+	// peerRequestQueue is a priority queue of requests received from peers.
+	// Requests are popped from the queue, packaged up, and placed in the
+	// outbox.
 	peerRequestQueue *taskQueue
 
+	// FIXME it's a bit odd for the client and the worker to both share memory
+	// (both modify the peerRequestQueue) and also to communicate over the
+	// workSignal channel. consider sending requests over the channel and
+	// allowing the worker to have exclusive access to the peerRequestQueue. In
+	// that case, no lock would be required.
 	workSignal chan struct{}
 
+	// outbox contains outgoing messages to peers
 	outbox chan Envelope
 
 	bs bstore.Blockstore
 
-	lock sync.RWMutex
+	lock sync.RWMutex // protects the fields immediatly below
 	// ledgerMap lists Ledgers by their Partner key.
 	ledgerMap map[u.Key]*ledger
 }
