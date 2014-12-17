@@ -17,8 +17,11 @@ var log = u.Logger("strategy")
 // LedgerMap lists Ledgers by their Partner key.
 type ledgerMap map[u.Key]*ledger
 
+// Envelope contains a message for a Peer
 type Envelope struct {
-	Peer    peer.Peer
+	// Peer is the intended recipient
+	Peer peer.Peer
+	// Message is the payload
 	Message bsmsg.BitSwapMessage
 }
 
