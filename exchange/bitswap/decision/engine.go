@@ -160,17 +160,13 @@ func (e *Engine) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error {
 	return nil
 }
 
-func (e *Engine) NumBytesSentTo(p peer.Peer) uint64 {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
-
+func (e *Engine) numBytesSentTo(p peer.Peer) uint64 {
+	// NB not threadsafe
 	return e.findOrCreate(p).Accounting.BytesSent
 }
 
-func (e *Engine) NumBytesReceivedFrom(p peer.Peer) uint64 {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
-
+func (e *Engine) numBytesReceivedFrom(p peer.Peer) uint64 {
+	// NB not threadsafe
 	return e.findOrCreate(p).Accounting.BytesRecv
 }
 
