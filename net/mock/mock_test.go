@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	inet "github.com/jbenet/go-ipfs/net"
+	peer "github.com/jbenet/go-ipfs/peer"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -185,4 +187,80 @@ func TestStreamsStress(t *testing.T) {
 	}
 
 	wg.Done()
+}
+
+func TestAdding(t *testing.T) {
+
+	mn := New(context.Background())
+
+	p1 := testutil.RandPeer()
+	p2 := testutil.RandPeer()
+	p3 := testutil.RandPeer()
+	peers := []peer.Peer{p1, p2, p3}
+
+	for _, p := range peers {
+		if _, err := mn.AddPeer(p.ID()); err != nil {
+			t.Error(err)
+		}
+	}
+
+	// link them
+	for _, p1 := range peers {
+		for _, p2 := range peers {
+			if _, err := mn.LinkPeers(p1, p2); err != nil {
+				t.Error(err)
+			}
+		}
+	}
+
+	// set the new stream handler on p2
+	n2 := mn.Net(p2.ID())
+	if n2 == nil {
+		t.Fatalf("no network for %s", p2.ID())
+	}
+	n2.SetHandler(inet.ProtocolBitswap, func(s inet.Stream) {
+		go func() {
+			defer s.Close()
+
+			b := make([]byte, 4)
+			if _, err := io.ReadFull(s, b); err != nil {
+				panic(err)
+			}
+			if string(b) != "beep" {
+				panic("did not beep!")
+			}
+
+			if _, err := s.Write([]byte("boop")); err != nil {
+				panic(err)
+			}
+		}()
+	})
+
+	// connect p1 to p2
+	if err := mn.ConnectPeers(p1, p2); err != nil {
+		t.Fatal(err)
+	}
+
+	// talk to p2
+	n1 := mn.Net(p1.ID())
+	if n1 == nil {
+		t.Fatalf("no network for %s", p1.ID())
+	}
+
+	s, err := n1.NewStream(inet.ProtocolBitswap, p2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.Write([]byte("beep")); err != nil {
+		t.Error(err)
+	}
+	b := make([]byte, 4)
+	if _, err := io.ReadFull(s, b); err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(b, []byte("boop")) {
+		t.Error("bytes mismatch 2")
+	}
+
 }
