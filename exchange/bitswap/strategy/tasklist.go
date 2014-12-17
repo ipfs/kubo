@@ -10,12 +10,12 @@ import (
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
 type TaskList struct {
 	tasks   []*Task
-	taskmap map[u.Key]*Task
+	taskmap map[string]*Task
 }
 
 func NewTaskList() *TaskList {
 	return &TaskList{
-		taskmap: make(map[u.Key]*Task),
+		taskmap: make(map[string]*Task),
 	}
 }
 
@@ -28,7 +28,7 @@ type Task struct {
 // Push currently adds a new task to the end of the list
 // TODO: make this into a priority queue
 func (tl *TaskList) Push(block u.Key, priority int, to peer.Peer) {
-	if task, ok := tl.taskmap[to.Key()+block]; ok {
+	if task, ok := tl.taskmap[taskKey(to, block)]; ok {
 		// TODO: when priority queue is implemented,
 		//       rearrange this Task
 		task.theirPriority = priority
@@ -40,7 +40,7 @@ func (tl *TaskList) Push(block u.Key, priority int, to peer.Peer) {
 		theirPriority: priority,
 	}
 	tl.tasks = append(tl.tasks, task)
-	tl.taskmap[to.Key()+block] = task
+	tl.taskmap[taskKey(to, block)] = task
 }
 
 // Pop 'pops' the next task to be performed. Returns nil no task exists.
@@ -52,7 +52,7 @@ func (tl *TaskList) Pop() *Task {
 		//		 the same block from multiple peers
 		out = tl.tasks[0]
 		tl.tasks = tl.tasks[1:]
-		delete(tl.taskmap, out.Target.Key()+out.Key)
+		delete(tl.taskmap, taskKey(out.Target, out.Key))
 		// Filter out blocks that have been cancelled
 		if out.theirPriority >= 0 {
 			break
@@ -64,8 +64,13 @@ func (tl *TaskList) Pop() *Task {
 
 // Cancel lazily cancels the sending of a block to a given peer
 func (tl *TaskList) Cancel(k u.Key, p peer.Peer) {
-	t, ok := tl.taskmap[p.Key()+k]
+	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
 		t.theirPriority = -1
 	}
+}
+
+// taskKey returns a key that uniquely identifies a task.
+func taskKey(p peer.Peer, k u.Key) string {
+	return string(p.Key() + k)
 }
