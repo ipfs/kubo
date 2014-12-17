@@ -24,13 +24,17 @@ import (
 
 var log = eventlog.Logger("bitswap")
 
-// Number of providers to request for sending a wantlist to
-// TODO: if a 'non-nice' strategy is implemented, consider increasing this value
-const maxProvidersPerRequest = 3
+const (
+	// Number of providers to request for sending a wantlist to
+	// TODO: if a 'non-nice' strategy is implemented, consider increasing this value
+	maxProvidersPerRequest = 3
+	providerRequestTimeout = time.Second * 10
+	hasBlockTimeout        = time.Second * 15
+)
 
-var providerRequestTimeout = time.Second * 10
-var hasBlockTimeout = time.Second * 15
-var rebroadcastDelay = time.Second * 10
+var (
+	rebroadcastDelay = time.Second * 10
+)
 
 // New initializes a BitSwap instance that communicates over the provided
 // BitSwapNetwork. This function registers the returned instance as the network
