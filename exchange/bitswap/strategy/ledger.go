@@ -46,6 +46,15 @@ type ledger struct {
 	sentToPeer map[u.Key]time.Time
 }
 
+type debtRatio struct {
+	BytesSent uint64
+	BytesRecv uint64
+}
+
+func (dr *debtRatio) Value() float64 {
+	return float64(dr.BytesSent) / float64(dr.BytesRecv+1)
+}
+
 func (l *ledger) SentBytes(n int) {
 	l.exchangeCount++
 	l.lastExchange = time.Now()

@@ -15,7 +15,7 @@ import (
 func TestAppendWanted(t *testing.T) {
 	const str = "foo"
 	m := New()
-	m.AddEntry(u.Key(str), 1, false)
+	m.AddEntry(u.Key(str), 1)
 
 	if !wantlistContains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
@@ -64,7 +64,7 @@ func TestWantlist(t *testing.T) {
 	keystrs := []string{"foo", "bar", "baz", "bat"}
 	m := New()
 	for _, s := range keystrs {
-		m.AddEntry(u.Key(s), 1, false)
+		m.AddEntry(u.Key(s), 1)
 	}
 	exported := m.Wantlist()
 
@@ -87,7 +87,7 @@ func TestCopyProtoByValue(t *testing.T) {
 	const str = "foo"
 	m := New()
 	protoBeforeAppend := m.ToProto()
-	m.AddEntry(u.Key(str), 1, false)
+	m.AddEntry(u.Key(str), 1)
 	if wantlistContains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
 	}
@@ -107,11 +107,11 @@ func TestToNetMethodSetsPeer(t *testing.T) {
 
 func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original := New()
-	original.AddEntry(u.Key("M"), 1, false)
-	original.AddEntry(u.Key("B"), 1, false)
-	original.AddEntry(u.Key("D"), 1, false)
-	original.AddEntry(u.Key("T"), 1, false)
-	original.AddEntry(u.Key("F"), 1, false)
+	original.AddEntry(u.Key("M"), 1)
+	original.AddEntry(u.Key("B"), 1)
+	original.AddEntry(u.Key("D"), 1)
+	original.AddEntry(u.Key("T"), 1)
+	original.AddEntry(u.Key("F"), 1)
 
 	p := testutil.NewPeerWithIDString("X")
 	netmsg, err := original.ToNet(p)
@@ -189,8 +189,8 @@ func TestDuplicates(t *testing.T) {
 	b := blocks.NewBlock([]byte("foo"))
 	msg := New()
 
-	msg.AddEntry(b.Key(), 1, false)
-	msg.AddEntry(b.Key(), 1, false)
+	msg.AddEntry(b.Key(), 1)
+	msg.AddEntry(b.Key(), 1)
 	if len(msg.Wantlist()) != 1 {
 		t.Fatal("Duplicate in BitSwapMessage")
 	}

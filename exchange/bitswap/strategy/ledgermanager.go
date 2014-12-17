@@ -27,7 +27,6 @@ type LedgerManager struct {
 	tasklist   *TaskList
 	taskOut    chan *Task
 	workSignal chan struct{}
-	ctx        context.Context
 }
 
 func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager {
@@ -37,20 +36,19 @@ func NewLedgerManager(bs bstore.Blockstore, ctx context.Context) *LedgerManager 
 		tasklist:   NewTaskList(),
 		taskOut:    make(chan *Task, 4),
 		workSignal: make(chan struct{}),
-		ctx:        ctx,
 	}
-	go lm.taskWorker()
+	go lm.taskWorker(ctx)
 	return lm
 }
 
-func (lm *LedgerManager) taskWorker() {
+func (lm *LedgerManager) taskWorker(ctx context.Context) {
 	for {
-		nextTask := lm.tasklist.GetNext()
+		nextTask := lm.tasklist.Pop()
 		if nextTask == nil {
 			// No tasks in the list?
 			// Wait until there are!
 			select {
-			case <-lm.ctx.Done():
+			case <-ctx.Done():
 				return
 			case <-lm.workSignal:
 			}
@@ -58,7 +56,7 @@ func (lm *LedgerManager) taskWorker() {
 		}
 
 		select {
-		case <-lm.ctx.Done():
+		case <-ctx.Done():
 			return
 		case lm.taskOut <- nextTask:
 		}
@@ -87,7 +85,7 @@ func (lm *LedgerManager) BlockIsWantedByPeer(k u.Key, p peer.Peer) bool {
 	lm.lock.RLock()
 	defer lm.lock.RUnlock()
 
-	ledger := lm.ledger(p)
+	ledger := lm.findOrCreate(p)
 	return ledger.WantListContains(k)
 }
 
@@ -97,7 +95,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
 
-	l := lm.ledger(p)
+	l := lm.findOrCreate(p)
 	if m.Full() {
 		l.wantList = wl.New()
 	}
@@ -107,7 +105,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 			lm.tasklist.Cancel(e.Key, p)
 		} else {
 			l.Wants(e.Key, e.Priority)
-			lm.tasklist.Add(e.Key, e.Priority, p)
+			lm.tasklist.Push(e.Key, e.Priority, p)
 
 			// Signal task generation to restart (if stopped!)
 			select {
@@ -122,7 +120,7 @@ func (lm *LedgerManager) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) er
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range lm.ledgerMap {
 			if l.WantListContains(block.Key()) {
-				lm.tasklist.Add(block.Key(), 1, l.Partner)
+				lm.tasklist.Push(block.Key(), 1, l.Partner)
 
 				// Signal task generation to restart (if stopped!)
 				select {
@@ -146,7 +144,7 @@ func (lm *LedgerManager) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error 
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
 
-	l := lm.ledger(p)
+	l := lm.findOrCreate(p)
 	for _, block := range m.Blocks() {
 		l.SentBytes(len(block.Data))
 		l.wantList.Remove(block.Key())
@@ -160,18 +158,18 @@ func (lm *LedgerManager) NumBytesSentTo(p peer.Peer) uint64 {
 	lm.lock.RLock()
 	defer lm.lock.RUnlock()
 
-	return lm.ledger(p).Accounting.BytesSent
+	return lm.findOrCreate(p).Accounting.BytesSent
 }
 
 func (lm *LedgerManager) NumBytesReceivedFrom(p peer.Peer) uint64 {
 	lm.lock.RLock()
 	defer lm.lock.RUnlock()
 
-	return lm.ledger(p).Accounting.BytesRecv
+	return lm.findOrCreate(p).Accounting.BytesRecv
 }
 
 // ledger lazily instantiates a ledger
-func (lm *LedgerManager) ledger(p peer.Peer) *ledger {
+func (lm *LedgerManager) findOrCreate(p peer.Peer) *ledger {
 	l, ok := lm.ledgerMap[peerKey(p.Key())]
 	if !ok {
 		l = newLedger(p)
