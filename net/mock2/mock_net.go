@@ -243,19 +243,19 @@ func (mn *mocknet) ConnectAll() error {
 }
 
 func (mn *mocknet) ConnectPeers(a, b peer.Peer) error {
-	panic("nyi")
+	return mn.Net(a.ID()).DialPeer(mn.cg.Context(), b)
 }
 
-func (mn *mocknet) ConnectNets(inet.Network, inet.Network) error {
-	panic("nyi")
+func (mn *mocknet) ConnectNets(a, b inet.Network) error {
+	return a.DialPeer(mn.cg.Context(), b.LocalPeer())
 }
 
 func (mn *mocknet) DisconnectPeers(p1, p2 peer.Peer) error {
-	panic("nyi")
+	return mn.Net(p1.ID()).ClosePeer(p2)
 }
 
 func (mn *mocknet) DisconnectNets(n1, n2 inet.Network) error {
-	return mn.DisconnectPeers(n1.LocalPeer(), n2.LocalPeer())
+	return n1.ClosePeer(n2.LocalPeer())
 }
 
 func (mn *mocknet) LinksBetweenPeers(p1, p2 peer.Peer) []Link {

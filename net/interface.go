@@ -108,6 +108,9 @@ type Dialer interface {
 	// DialPeer attempts to establish a connection to a given peer
 	DialPeer(context.Context, peer.Peer) error
 
+	// ClosePeer closes the connection to a given peer
+	ClosePeer(peer.Peer) error
+
 	// Connectedness returns a state signaling connection capabilities
 	Connectedness(peer.Peer) Connectedness
 }
