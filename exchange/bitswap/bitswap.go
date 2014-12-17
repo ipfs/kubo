@@ -29,6 +29,7 @@ const (
 	maxProvidersPerRequest = 3
 	providerRequestTimeout = time.Second * 10
 	hasBlockTimeout        = time.Second * 15
+	sizeBatchRequestChan   = 32
 )
 
 var (
@@ -59,7 +60,7 @@ func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, rout
 		routing:       routing,
 		sender:        network,
 		wantlist:      wantlist.NewThreadSafe(),
-		batchRequests: make(chan []u.Key, 32),
+		batchRequests: make(chan []u.Key, sizeBatchRequestChan),
 	}
 	network.SetDelegate(bs)
 	go bs.clientWorker(ctx)
