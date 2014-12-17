@@ -22,7 +22,7 @@ func NewPeerSet() *PeerSet {
 func NewLimitedPeerSet(size int) *PeerSet {
 	ps := new(PeerSet)
 	ps.ps = make(map[string]bool)
-	ps.size = -1
+	ps.size = size
 	return ps
 }
 
