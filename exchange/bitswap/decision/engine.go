@@ -122,8 +122,10 @@ func (e *Engine) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
 			l.Wants(entry.Key, entry.Priority)
-			newWorkExists = true
-			e.peerRequestQueue.Push(entry.Key, entry.Priority, p)
+			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
+				newWorkExists = true
+				e.peerRequestQueue.Push(entry.Key, entry.Priority, p)
+			}
 		}
 	}
 
