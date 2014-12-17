@@ -60,23 +60,6 @@ func TestConsistentAccounting(t *testing.T) {
 	}
 }
 
-func TestBlockRecordedAsWantedAfterMessageReceived(t *testing.T) {
-	beggar := newPeerAndLedgermanager("can't be chooser")
-	chooser := newPeerAndLedgermanager("chooses JIF")
-
-	block := blocks.NewBlock([]byte("data wanted by beggar"))
-
-	messageFromBeggarToChooser := message.New()
-	messageFromBeggarToChooser.AddEntry(block.Key(), 1)
-
-	chooser.Engine.MessageReceived(beggar.Peer, messageFromBeggarToChooser)
-	// for this test, doesn't matter if you record that beggar sent
-
-	if !chooser.Engine.BlockIsWantedByPeer(block.Key(), beggar.Peer) {
-		t.Fatal("chooser failed to record that beggar wants block")
-	}
-}
-
 func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 
 	sanfrancisco := newPeerAndLedgermanager("sf")

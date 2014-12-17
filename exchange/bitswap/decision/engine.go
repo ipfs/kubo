@@ -96,16 +96,6 @@ func (e *Engine) Peers() []peer.Peer {
 	return response
 }
 
-// BlockIsWantedByPeer returns true if peer wants the block given by this
-// key
-func (e *Engine) BlockIsWantedByPeer(k u.Key, p peer.Peer) bool {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
-
-	ledger := e.findOrCreate(p)
-	return ledger.WantListContains(k)
-}
-
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (e *Engine) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
