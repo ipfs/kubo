@@ -2,7 +2,7 @@
 package net
 
 import (
-	swarm "github.com/jbenet/go-ipfs/net/swarm2"
+	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
