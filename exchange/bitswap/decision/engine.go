@@ -65,7 +65,8 @@ func (e *Engine) taskWorker(ctx context.Context) {
 		}
 		block, err := e.bs.Get(nextTask.Entry.Key)
 		if err != nil {
-			continue // TODO maybe return an error
+			log.Warning("engine: task exists to send block, but block is not in blockstore")
+			continue
 		}
 		// construct message here so we can make decisions about any additional
 		// information we may want to include at this time.
