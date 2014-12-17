@@ -7,7 +7,7 @@ import (
 	crand "crypto/rand"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	mocknet "github.com/jbenet/go-ipfs/net/mock2"
+	mocknet "github.com/jbenet/go-ipfs/net/mock"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
