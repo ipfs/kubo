@@ -11,6 +11,7 @@ import (
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
+	pset "github.com/jbenet/go-ipfs/util/peerset"
 )
 
 // asyncQueryBuffer is the size of buffered channels in async queries. This
@@ -140,11 +141,11 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.Peer) {
 	defer close(peerOut)
 
-	ps := newPeerSet()
+	ps := pset.NewLimited(count)
 	provs := dht.providers.GetProviders(ctx, key)
 	for _, p := range provs {
 		// NOTE: assuming that this list of peers is unique
-		if ps.AddIfSmallerThan(p, count) {
+		if ps.TryAdd(p) {
 			select {
 			case peerOut <- p:
 			case <-ctx.Done():
@@ -175,7 +176,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
-			if ps.AddIfSmallerThan(prov, count) {
+			if ps.TryAdd(prov) {
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():
@@ -207,7 +208,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	}
 }
 
-func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.Message_Peer, ps *peerSet, count int, out chan peer.Peer) {
+func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.Message_Peer, ps *pset.PeerSet, count int, out chan peer.Peer) {
 	var wg sync.WaitGroup
 	for _, pbp := range peers {
 		wg.Add(1)
@@ -225,7 +226,7 @@ func (dht *IpfsDHT) addPeerListAsync(ctx context.Context, k u.Key, peers []*pb.M
 			}
 
 			dht.providers.AddProvider(k, p)
-			if ps.AddIfSmallerThan(p, count) {
+			if ps.TryAdd(p) {
 				select {
 				case out <- p:
 				case <-ctx.Done():

@@ -26,10 +26,6 @@ import (
 const kSeed = 1
 
 func Test100MBInstantaneous(t *testing.T) {
-	t.Log("a sanity check")
-
-	t.Parallel()
-
 	conf := Config{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
@@ -41,10 +37,7 @@ func Test100MBInstantaneous(t *testing.T) {
 
 func TestDegenerateSlowBlockstore(t *testing.T) {
 	SkipUnlessEpic(t)
-	t.Parallel()
-
 	conf := Config{BlockstoreLatency: 50 * time.Millisecond}
-
 	if err := AddCatPowers(conf, 128); err != nil {
 		t.Fatal(err)
 	}
@@ -52,10 +45,7 @@ func TestDegenerateSlowBlockstore(t *testing.T) {
 
 func TestDegenerateSlowNetwork(t *testing.T) {
 	SkipUnlessEpic(t)
-	t.Parallel()
-
 	conf := Config{NetworkLatency: 400 * time.Millisecond}
-
 	if err := AddCatPowers(conf, 128); err != nil {
 		t.Fatal(err)
 	}
@@ -63,10 +53,7 @@ func TestDegenerateSlowNetwork(t *testing.T) {
 
 func TestDegenerateSlowRouting(t *testing.T) {
 	SkipUnlessEpic(t)
-	t.Parallel()
-
 	conf := Config{RoutingLatency: 400 * time.Millisecond}
-
 	if err := AddCatPowers(conf, 128); err != nil {
 		t.Fatal(err)
 	}
@@ -74,10 +61,7 @@ func TestDegenerateSlowRouting(t *testing.T) {
 
 func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
-	t.Parallel()
-
 	conf := Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
-
 	if err := AddCatBytes(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}

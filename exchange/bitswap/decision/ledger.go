@@ -1,8 +1,9 @@
-package strategy
+package decision
 
 import (
 	"time"
 
+	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -11,10 +12,9 @@ import (
 // access/lookups.
 type keySet map[u.Key]struct{}
 
-func newLedger(p peer.Peer, strategy strategyFunc) *ledger {
+func newLedger(p peer.Peer) *ledger {
 	return &ledger{
-		wantList:   keySet{},
-		Strategy:   strategy,
+		wantList:   wl.New(),
 		Partner:    p,
 		sentToPeer: make(map[u.Key]time.Time),
 	}
@@ -39,17 +39,20 @@ type ledger struct {
 	exchangeCount uint64
 
 	// wantList is a (bounded, small) set of keys that Partner desires.
-	wantList keySet
+	wantList *wl.Wantlist
 
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
 	sentToPeer map[u.Key]time.Time
-
-	Strategy strategyFunc
 }
 
-func (l *ledger) ShouldSend() bool {
-	return l.Strategy(l)
+type debtRatio struct {
+	BytesSent uint64
+	BytesRecv uint64
+}
+
+func (dr *debtRatio) Value() float64 {
+	return float64(dr.BytesSent) / float64(dr.BytesRecv+1)
 }
 
 func (l *ledger) SentBytes(n int) {
@@ -65,14 +68,17 @@ func (l *ledger) ReceivedBytes(n int) {
 }
 
 // TODO: this needs to be different. We need timeouts.
-func (l *ledger) Wants(k u.Key) {
+func (l *ledger) Wants(k u.Key, priority int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
-	l.wantList[k] = struct{}{}
+	l.wantList.Add(k, priority)
+}
+
+func (l *ledger) CancelWant(k u.Key) {
+	l.wantList.Remove(k)
 }
 
 func (l *ledger) WantListContains(k u.Key) bool {
-	_, ok := l.wantList[k]
-	return ok
+	return l.wantList.Contains(k)
 }
 
 func (l *ledger) ExchangeCount() uint64 {

@@ -5,10 +5,12 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
+	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	inet "github.com/jbenet/go-ipfs/net"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 // TODO move message.go into the bitswap package
@@ -17,21 +19,23 @@ import (
 type BitSwapMessage interface {
 	// Wantlist returns a slice of unique keys that represent data wanted by
 	// the sender.
-	Wantlist() []u.Key
+	Wantlist() []Entry
 
 	// Blocks returns a slice of unique blocks
 	Blocks() []*blocks.Block
 
-	// AddWanted adds the key to the Wantlist.
-	//
-	// Insertion order determines priority. That is, earlier insertions are
-	// deemed higher priority than keys inserted later.
-	//
-	// t = 0, msg.AddWanted(A)
-	// t = 1, msg.AddWanted(B)
-	//
-	// implies Priority(A) > Priority(B)
-	AddWanted(u.Key)
+	// AddEntry adds an entry to the Wantlist.
+	AddEntry(key u.Key, priority int)
+
+	Cancel(key u.Key)
+
+	// Sets whether or not the contained wantlist represents the entire wantlist
+	// true = full wantlist
+	// false = wantlist 'patch'
+	// default: true
+	SetFull(isFull bool)
+
+	Full() bool
 
 	AddBlock(*blocks.Block)
 	Exportable
@@ -43,23 +47,33 @@ type Exportable interface {
 }
 
 type impl struct {
-	existsInWantlist map[u.Key]struct{}      // map to detect duplicates
-	wantlist         []u.Key                 // slice to preserve ordering
-	blocks           map[u.Key]*blocks.Block // map to detect duplicates
+	full     bool
+	wantlist map[u.Key]Entry
+	blocks   map[u.Key]*blocks.Block // map to detect duplicates
 }
 
 func New() BitSwapMessage {
+	return newMsg()
+}
+
+func newMsg() *impl {
 	return &impl{
-		blocks:           make(map[u.Key]*blocks.Block),
-		existsInWantlist: make(map[u.Key]struct{}),
-		wantlist:         make([]u.Key, 0),
+		blocks:   make(map[u.Key]*blocks.Block),
+		wantlist: make(map[u.Key]Entry),
+		full:     true,
 	}
 }
 
+type Entry struct {
+	wantlist.Entry
+	Cancel bool
+}
+
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
-	m := New()
-	for _, s := range pbm.GetWantlist() {
-		m.AddWanted(u.Key(s))
+	m := newMsg()
+	m.SetFull(pbm.GetWantlist().GetFull())
+	for _, e := range pbm.GetWantlist().GetEntries() {
+		m.addEntry(u.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
@@ -68,8 +82,20 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	return m
 }
 
-func (m *impl) Wantlist() []u.Key {
-	return m.wantlist
+func (m *impl) SetFull(full bool) {
+	m.full = full
+}
+
+func (m *impl) Full() bool {
+	return m.full
+}
+
+func (m *impl) Wantlist() []Entry {
+	var out []Entry
+	for _, e := range m.wantlist {
+		out = append(out, e)
+	}
+	return out
 }
 
 func (m *impl) Blocks() []*blocks.Block {
@@ -80,13 +106,28 @@ func (m *impl) Blocks() []*blocks.Block {
 	return bs
 }
 
-func (m *impl) AddWanted(k u.Key) {
-	_, exists := m.existsInWantlist[k]
+func (m *impl) Cancel(k u.Key) {
+	m.addEntry(k, 0, true)
+}
+
+func (m *impl) AddEntry(k u.Key, priority int) {
+	m.addEntry(k, priority, false)
+}
+
+func (m *impl) addEntry(k u.Key, priority int, cancel bool) {
+	e, exists := m.wantlist[k]
 	if exists {
-		return
+		e.Priority = priority
+		e.Cancel = cancel
+	} else {
+		m.wantlist[k] = Entry{
+			Entry: wantlist.Entry{
+				Key:      k,
+				Priority: priority,
+			},
+			Cancel: cancel,
+		}
 	}
-	m.existsInWantlist[k] = struct{}{}
-	m.wantlist = append(m.wantlist, k)
 }
 
 func (m *impl) AddBlock(b *blocks.Block) {
@@ -106,14 +147,19 @@ func FromNet(r io.Reader) (BitSwapMessage, error) {
 }
 
 func (m *impl) ToProto() *pb.Message {
-	pb := new(pb.Message)
-	for _, k := range m.Wantlist() {
-		pb.Wantlist = append(pb.Wantlist, string(k))
+	pbm := new(pb.Message)
+	pbm.Wantlist = new(pb.Message_Wantlist)
+	for _, e := range m.wantlist {
+		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
+			Block:    proto.String(string(e.Key)),
+			Priority: proto.Int32(int32(e.Priority)),
+			Cancel:   &e.Cancel,
+		})
 	}
 	for _, b := range m.Blocks() {
-		pb.Blocks = append(pb.Blocks, b.Data)
+		pbm.Blocks = append(pbm.Blocks, b.Data)
 	}
-	return pb
+	return pbm
 }
 
 func (m *impl) ToNet(w io.Writer) error {

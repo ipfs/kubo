@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -12,22 +14,26 @@ import (
 func TestAppendWanted(t *testing.T) {
 	const str = "foo"
 	m := New()
-	m.AddWanted(u.Key(str))
+	m.AddEntry(u.Key(str), 1)
 
-	if !contains(m.ToProto().GetWantlist(), str) {
+	if !wantlistContains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
 	}
+	m.ToProto().GetWantlist().GetEntries()
 }
 
 func TestNewMessageFromProto(t *testing.T) {
 	const str = "a_key"
 	protoMessage := new(pb.Message)
-	protoMessage.Wantlist = []string{string(str)}
-	if !contains(protoMessage.Wantlist, str) {
+	protoMessage.Wantlist = new(pb.Message_Wantlist)
+	protoMessage.Wantlist.Entries = []*pb.Message_Wantlist_Entry{
+		&pb.Message_Wantlist_Entry{Block: proto.String(str)},
+	}
+	if !wantlistContains(protoMessage.Wantlist, str) {
 		t.Fail()
 	}
 	m := newMessageFromProto(*protoMessage)
-	if !contains(m.ToProto().GetWantlist(), str) {
+	if !wantlistContains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
 	}
 }
@@ -57,7 +63,7 @@ func TestWantlist(t *testing.T) {
 	keystrs := []string{"foo", "bar", "baz", "bat"}
 	m := New()
 	for _, s := range keystrs {
-		m.AddWanted(u.Key(s))
+		m.AddEntry(u.Key(s), 1)
 	}
 	exported := m.Wantlist()
 
@@ -65,12 +71,12 @@ func TestWantlist(t *testing.T) {
 		present := false
 		for _, s := range keystrs {
 
-			if s == string(k) {
+			if s == string(k.Key) {
 				present = true
 			}
 		}
 		if !present {
-			t.Logf("%v isn't in original list", string(k))
+			t.Logf("%v isn't in original list", k.Key)
 			t.Fail()
 		}
 	}
@@ -80,19 +86,19 @@ func TestCopyProtoByValue(t *testing.T) {
 	const str = "foo"
 	m := New()
 	protoBeforeAppend := m.ToProto()
-	m.AddWanted(u.Key(str))
-	if contains(protoBeforeAppend.GetWantlist(), str) {
+	m.AddEntry(u.Key(str), 1)
+	if wantlistContains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
 	}
 }
 
 func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original := New()
-	original.AddWanted(u.Key("M"))
-	original.AddWanted(u.Key("B"))
-	original.AddWanted(u.Key("D"))
-	original.AddWanted(u.Key("T"))
-	original.AddWanted(u.Key("F"))
+	original.AddEntry(u.Key("M"), 1)
+	original.AddEntry(u.Key("B"), 1)
+	original.AddEntry(u.Key("D"), 1)
+	original.AddEntry(u.Key("T"), 1)
+	original.AddEntry(u.Key("F"), 1)
 
 	var buf bytes.Buffer
 	if err := original.ToNet(&buf); err != nil {
@@ -106,11 +112,11 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 
 	keys := make(map[u.Key]bool)
 	for _, k := range copied.Wantlist() {
-		keys[k] = true
+		keys[k.Key] = true
 	}
 
 	for _, k := range original.Wantlist() {
-		if _, ok := keys[k]; !ok {
+		if _, ok := keys[k.Key]; !ok {
 			t.Fatalf("Key Missing: \"%v\"", k)
 		}
 	}
@@ -146,9 +152,18 @@ func TestToAndFromNetMessage(t *testing.T) {
 	}
 }
 
-func contains(s []string, x string) bool {
-	for _, a := range s {
-		if a == x {
+func wantlistContains(wantlist *pb.Message_Wantlist, x string) bool {
+	for _, e := range wantlist.GetEntries() {
+		if e.GetBlock() == x {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(strs []string, x string) bool {
+	for _, s := range strs {
+		if s == x {
 			return true
 		}
 	}
@@ -159,8 +174,8 @@ func TestDuplicates(t *testing.T) {
 	b := blocks.NewBlock([]byte("foo"))
 	msg := New()
 
-	msg.AddWanted(b.Key())
-	msg.AddWanted(b.Key())
+	msg.AddEntry(b.Key(), 1)
+	msg.AddEntry(b.Key(), 1)
 	if len(msg.Wantlist()) != 1 {
 		t.Fatal("Duplicate in BitSwapMessage")
 	}

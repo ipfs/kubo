@@ -120,15 +120,12 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 	// add self as the provider
 	pmes.ProviderPeers = pb.PeersToPBPeers(dht.network, []peer.Peer{dht.self})
 
-	rpmes, err := dht.sendRequest(ctx, p, pmes)
+	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
 
 	log.Debugf("%s putProvider: %s for %s", dht.self, p, u.Key(key))
-	if rpmes.GetKey() != pmes.GetKey() {
-		return errors.New("provider not added correctly")
-	}
 
 	return nil
 }
