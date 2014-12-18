@@ -135,6 +135,7 @@ func (n *network) newConnHandler(c *swarm.Conn) {
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
 func (n *network) DialPeer(ctx context.Context, p peer.ID) error {
+	log.Debugf("[%s] network dialing peer [%s]", n.local, p)
 	sc, err := n.swarm.Dial(ctx, p)
 	if err != nil {
 		return err
@@ -242,8 +243,9 @@ func (n *network) Connectedness(p peer.ID) Connectedness {
 // NewStream returns a new stream to given peer p.
 // If there is no connection to p, attempts to create one.
 // If ProtocolID is "", writes no header.
-func (c *network) NewStream(pr ProtocolID, p peer.ID) (Stream, error) {
-	s, err := c.swarm.NewStreamWithPeer(p)
+func (n *network) NewStream(pr ProtocolID, p peer.ID) (Stream, error) {
+	log.Debugf("[%s] network opening stream to peer [%s]: %s", n.local, p, pr)
+	s, err := n.swarm.NewStreamWithPeer(p)
 	if err != nil {
 		return nil, err
 	}

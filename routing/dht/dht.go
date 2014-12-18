@@ -77,6 +77,11 @@ func NewDHT(ctx context.Context, p peer.ID, n inet.Network, dstore ds.ThreadSafe
 	return dht
 }
 
+// LocalPeer returns the peer.Peer of the dht.
+func (dht *IpfsDHT) LocalPeer() peer.ID {
+	return dht.self
+}
+
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 	if err := dht.network.DialPeer(ctx, npeer); err != nil {

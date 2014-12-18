@@ -1,17 +1,21 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	config "github.com/jbenet/go-ipfs/config"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 	math2 "github.com/jbenet/go-ipfs/util/math2"
+
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 const (
@@ -50,14 +54,23 @@ func bootstrap(ctx context.Context,
 
 	connectedPeers := n.Peers()
 	if len(connectedPeers) >= recoveryThreshold {
+		log.Event(ctx, "bootstrapSkip", n.LocalPeer())
+		log.Debugf("%s bootstrap skipped -- connected to %d (> %d) nodes",
+			n.LocalPeer(), len(connectedPeers), recoveryThreshold)
+
 		return nil
 	}
 	numCxnsToCreate := recoveryThreshold - len(connectedPeers)
+
+	log.Event(ctx, "bootstrapStart", n.LocalPeer())
+	log.Debugf("%s bootstrapping to %d more nodes", n.LocalPeer(), numCxnsToCreate)
 
 	var bootstrapPeers []peer.PeerInfo
 	for _, bootstrap := range boots {
 		p, err := toPeer(bootstrap)
 		if err != nil {
+			log.Event(ctx, "bootstrapError", n.LocalPeer(), lgbl.Error(err))
+			log.Errorf("%s bootstrap error: %s", n.LocalPeer(), err)
 			return err
 		}
 		bootstrapPeers = append(bootstrapPeers, p)
@@ -70,14 +83,30 @@ func bootstrap(ctx context.Context,
 		}
 	}
 
+	if len(notConnected) < 1 {
+		s := "must bootstrap to %d more nodes, but already connected to all candidates"
+		err := fmt.Errorf(s, numCxnsToCreate)
+		log.Event(ctx, "bootstrapError", n.LocalPeer(), lgbl.Error(err))
+		log.Errorf("%s bootstrap error: %s", n.LocalPeer(), err)
+		return err
+	}
+
 	var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
+
+	log.Debugf("%s bootstrapping to %d nodes: %s", n.LocalPeer(), numCxnsToCreate, randomSubset)
 	if err := connect(ctx, ps, r, randomSubset); err != nil {
+		log.Event(ctx, "bootstrapError", n.LocalPeer(), lgbl.Error(err))
+		log.Errorf("%s bootstrap error: %s", n.LocalPeer(), err)
 		return err
 	}
 	return nil
 }
 
 func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []peer.PeerInfo) error {
+	if len(peers) < 1 {
+		return errors.New("bootstrap set empty")
+	}
+
 	var wg sync.WaitGroup
 	for _, p := range peers {
 
@@ -88,6 +117,9 @@ func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []pee
 		wg.Add(1)
 		go func(p peer.PeerInfo) {
 			defer wg.Done()
+			log.Event(ctx, "bootstrapDial", r.LocalPeer(), p.ID)
+			log.Debugf("%s bootstrapping to %s", r.LocalPeer(), p.ID)
+
 			ps.AddAddresses(p.ID, p.Addrs)
 			err := r.Connect(ctx, p.ID)
 			if err != nil {
