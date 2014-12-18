@@ -184,9 +184,7 @@ type dagService struct {
 
 // Add adds a node to the dagService, storing the block in the BlockService
 func (n *dagService) Add(nd *Node) (u.Key, error) {
-	k, _ := nd.Key()
-	log.Debugf("DagService Add [%s]", k)
-	if n == nil {
+	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return "", fmt.Errorf("dagService is nil")
 	}
 
