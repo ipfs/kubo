@@ -354,6 +354,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	stop <- struct{}{}
 	contTime := time.Now().Sub(contStart)
 
+	// now compare! continuous should've been faster AND larger
 	if roundsTime < contTime {
 		t.Error("continuous should have been faster")
 	}
@@ -362,10 +363,17 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 		t.Error("continuous should have been larger, too!")
 	}
 
-	<-time.After(300 * time.Millisecond)
-	writeStats()
-	testSenderWrote(0)
-	testSenderWrote(0)
+	// and a couple rounds more for good measure ;)
+	for i := 0; i < 3; i++ {
+		// let the sender fill its buffers, it will stop sending.
+		<-time.After(300 * time.Millisecond)
+		b, _ := writeStats()
+		testSenderWrote(0)
+		testSenderWrote(0)
+
+		// drain it all, wait again
+		receive(s, b)
+	}
 
 	// this doesn't work :(:
 	// // now for the sugar on top: let's tear down the receiver. it should
