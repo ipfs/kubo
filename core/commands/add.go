@@ -20,10 +20,9 @@ import (
 // Error indicating the max depth has been exceded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
-type AddOutput struct {
-	Objects []*Object
-	Names   []string
-	Quiet   bool
+type AddedObject struct {
+	Name string
+	Hash string
 }
 
 var AddCmd = &cmds.Command{
@@ -45,58 +44,65 @@ remains to be implemented.
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		added := &AddOutput{}
 		n, err := req.Context().GetNode()
 		if err != nil {
 			return nil, err
 		}
 
-		for {
-			file, err := req.Files().NextFile()
-			if err != nil && err != io.EOF {
-				return nil, err
+		outChan := make(chan interface{})
+
+		go func() {
+			defer close(outChan)
+
+			for {
+				file, err := req.Files().NextFile()
+				if (err != nil && err != io.EOF) || file == nil {
+					return
+				}
+
+				_, err = addFile(n, file, outChan)
+				if err != nil {
+					return
+				}
 			}
-			if file == nil {
-				break
-			}
+		}()
 
-			_, err = addFile(n, file, added)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		quiet, _, err := req.Option("quiet").Bool()
-		if err != nil {
-			return nil, err
-		}
-
-		added.Quiet = quiet
-
-		return added, nil
+		return outChan, nil
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			val, ok := res.Output().(*AddOutput)
+			outChan, ok := res.Output().(chan interface{})
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			// TODO: use this with an option
-			// sort.Stable(val)
-
-			var buf bytes.Buffer
-			for i, obj := range val.Objects {
-				if val.Quiet {
-					buf.Write([]byte(fmt.Sprintf("%s\n", obj.Hash)))
-				} else {
-					buf.Write([]byte(fmt.Sprintf("added %s %s\n", obj.Hash, val.Names[i])))
-				}
+			quiet, _, err := res.Request().Option("quiet").Bool()
+			if err != nil {
+				return nil, err
 			}
-			return &buf, nil
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*AddedObject)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				var buf bytes.Buffer
+				if quiet {
+					buf.WriteString(fmt.Sprintf("%s\n", obj.Hash))
+				} else {
+					buf.WriteString(fmt.Sprintf("added %s %s\n", obj.Hash, obj.Name))
+				}
+				return &buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+			}, nil
 		},
 	},
-	Type: &AddOutput{},
+	Type: &AddedObject{},
 }
 
 func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
@@ -132,9 +138,9 @@ func addNode(n *core.IpfsNode, node *dag.Node) error {
 	return nil
 }
 
-func addFile(n *core.IpfsNode, file cmds.File, added *AddOutput) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, file cmds.File, out chan interface{}) (*dag.Node, error) {
 	if file.IsDirectory() {
-		return addDir(n, file, added)
+		return addDir(n, file, out)
 	}
 
 	dns, err := add(n, []io.Reader{file})
@@ -143,13 +149,13 @@ func addFile(n *core.IpfsNode, file cmds.File, added *AddOutput) (*dag.Node, err
 	}
 
 	log.Infof("adding file: %s", file.FileName())
-	if err := addDagnode(added, file.FileName(), dns[len(dns)-1]); err != nil {
+	if err := outputDagnode(out, file.FileName(), dns[len(dns)-1]); err != nil {
 		return nil, err
 	}
 	return dns[len(dns)-1], nil // last dag node is the file.
 }
 
-func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error) {
+func addDir(n *core.IpfsNode, dir cmds.File, out chan interface{}) (*dag.Node, error) {
 	log.Infof("adding directory: %s", dir.FileName())
 
 	tree := &dag.Node{Data: ft.FolderPBData()}
@@ -163,7 +169,7 @@ func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error
 			break
 		}
 
-		node, err := addFile(n, file, added)
+		node, err := addFile(n, file, out)
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +182,7 @@ func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error
 		}
 	}
 
-	err := addDagnode(added, dir.FileName(), tree)
+	err := outputDagnode(out, dir.FileName(), tree)
 	if err != nil {
 		return nil, err
 	}
@@ -189,27 +195,17 @@ func addDir(n *core.IpfsNode, dir cmds.File, added *AddOutput) (*dag.Node, error
 	return tree, nil
 }
 
-// addDagnode adds dagnode info to an output object
-func addDagnode(output *AddOutput, name string, dn *dag.Node) error {
+// outputDagnode sends dagnode info over the output channel
+func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
 	o, err := getOutput(dn)
 	if err != nil {
 		return err
 	}
 
-	output.Objects = append(output.Objects, o)
-	output.Names = append(output.Names, name)
+	out <- &AddedObject{
+		Hash: o.Hash,
+		Name: name,
+	}
+
 	return nil
-}
-
-// Sort interface implementation to sort add output by name
-
-func (a AddOutput) Len() int {
-	return len(a.Names)
-}
-func (a AddOutput) Swap(i, j int) {
-	a.Names[i], a.Names[j] = a.Names[j], a.Names[i]
-	a.Objects[i], a.Objects[j] = a.Objects[j], a.Objects[i]
-}
-func (a AddOutput) Less(i, j int) bool {
-	return a.Names[i] < a.Names[j]
 }
