@@ -40,20 +40,30 @@ const (
 	// TODO: support more encoding types
 )
 
+func marshalJson(value interface{}) (io.Reader, error) {
+	b, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(b), nil
+}
+
 var marshallers = map[EncodingType]Marshaler{
 	JSON: func(res Response) (io.Reader, error) {
+		if ch, ok := res.Output().(chan interface{}); ok {
+			return &ChannelMarshaler{
+				Channel:   ch,
+				Marshaler: marshalJson,
+			}, nil
+		}
+
 		var value interface{}
 		if res.Error() != nil {
 			value = res.Error()
 		} else {
 			value = res.Output()
 		}
-
-		b, err := json.MarshalIndent(value, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(b), nil
+		return marshalJson(value)
 	},
 	XML: func(res Response) (io.Reader, error) {
 		var value interface{}
