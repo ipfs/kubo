@@ -84,13 +84,6 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentTypeHeader, mime)
 	}
 
-	// if the res output is a channel, set a custom header for it
-	isChan := false
-	if _, ok := res.Output().(chan interface{}); ok {
-		w.Header().Set(channelHeader, "1")
-		isChan = true
-	}
-
 	// if response contains an error, write an HTTP error status code
 	if e := res.Error(); e != nil {
 		if e.Code == cmds.ErrClient {
@@ -108,11 +101,14 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isChan {
+	// if output is a channel and user requested streaming channels,
+	// use chunk copier for the output
+	_, isChan := res.Output().(chan interface{})
+	streamChans, _, _ := req.Option("stream-channels").Bool()
+	if isChan && streamChans {
 		err = copyChunks(w, out)
 		if err != nil {
 			log.Error(err)
-			fmt.Println(err)
 		}
 		return
 	}

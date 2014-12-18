@@ -42,6 +42,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	// override with json to send to server
 	req.SetOption(cmds.EncShort, cmds.JSON)
 
+	// stream channel output
+	req.SetOption(cmds.ChanOpt, "true")
+
 	query, err := getQuery(req)
 	if err != nil {
 		return nil, err
