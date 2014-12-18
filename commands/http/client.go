@@ -150,10 +150,12 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 			for {
 				err := dec.Decode(&v)
-				if err != nil {
-					if err != io.EOF {
-						fmt.Println(err.Error())
-					}
+				if err != nil && err != io.EOF {
+					fmt.Println(err.Error())
+					return
+				}
+				if err == io.EOF {
+					close(outChan)
 					return
 				}
 				outChan <- v
