@@ -13,27 +13,6 @@ import (
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
-type Network interface {
-	Adapter(peer.Peer) bsnet.BitSwapNetwork
-
-	HasPeer(peer.Peer) bool
-
-	SendMessage(
-		ctx context.Context,
-		from peer.Peer,
-		to peer.Peer,
-		message bsmsg.BitSwapMessage) error
-
-	SendRequest(
-		ctx context.Context,
-		from peer.Peer,
-		to peer.Peer,
-		message bsmsg.BitSwapMessage) (
-		incoming bsmsg.BitSwapMessage, err error)
-}
-
-// network impl
-
 func VirtualNetwork(d delay.D) Network {
 	return &network{
 		clients: make(map[util.Key]bsnet.Receiver),
