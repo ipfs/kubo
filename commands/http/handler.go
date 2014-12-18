@@ -20,8 +20,11 @@ type Handler struct {
 var ErrNotFound = errors.New("404 page not found")
 
 const (
-	streamHeader      = "X-Stream-Output"
-	contentTypeHeader = "Content-Type"
+	streamHeader           = "X-Stream-Output"
+	channelHeader          = "X-Chunked-Output"
+	contentTypeHeader      = "Content-Type"
+	contentLengthHeader    = "Content-Length"
+	transferEncodingHeader = "Transfer-Encoding"
 )
 
 var mimeTypes = map[string]string{
@@ -80,6 +83,11 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentTypeHeader, mime)
 	}
 
+	// if the res output is a channel, set a custom header for it
+	if _, ok := res.Output().(chan interface{}); ok {
+		w.Header().Set(channelHeader, "1")
+	}
+
 	// if response contains an error, write an HTTP error status code
 	if e := res.Error(); e != nil {
 		if e.Code == cmds.ErrClient {
@@ -97,5 +105,34 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	io.Copy(w, out)
+	err = copyChunks(w, out)
+	if err != nil {
+		log.Error(err)
+	}
+}
+
+// Copies from an io.Reader to a http.ResponseWriter.
+// Flushes chunks over HTTP stream as they are read (if supported by transport).
+func copyChunks(w http.ResponseWriter, out io.Reader) error {
+	buf := make([]byte, 32*1024)
+
+	for {
+		n, err := out.Read(buf)
+
+		if n > 0 {
+			_, err := w.Write(buf[0:n])
+			if err != nil {
+				return err
+			}
+
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
