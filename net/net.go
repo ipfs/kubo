@@ -42,6 +42,10 @@ func (s *stream) Write(p []byte) (n int, err error) {
 
 type conn_ swarm.Conn
 
+func (s *conn_) String() string {
+	return s.SwarmConn().String()
+}
+
 func (c *conn_) SwarmConn() *swarm.Conn {
 	return (*swarm.Conn)(c)
 }

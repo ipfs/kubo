@@ -11,7 +11,7 @@ import (
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
-var log = eventlog.Logger("mux2")
+var log = eventlog.Logger("network")
 
 // Mux provides simple stream multixplexing.
 // It helps you precisely when:
