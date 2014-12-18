@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -84,8 +85,10 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if the res output is a channel, set a custom header for it
+	isChan := false
 	if _, ok := res.Output().(chan interface{}); ok {
 		w.Header().Set(channelHeader, "1")
+		isChan = true
 	}
 
 	// if response contains an error, write an HTTP error status code
@@ -105,34 +108,64 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = copyChunks(w, out)
-	if err != nil {
-		log.Error(err)
+	if isChan {
+		err = copyChunks(w, out)
+		if err != nil {
+			log.Error(err)
+			fmt.Println(err)
+		}
+		return
 	}
+
+	io.Copy(w, out)
 }
 
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
 func copyChunks(w http.ResponseWriter, out io.Reader) error {
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		return errors.New("Could not create hijacker")
+	}
+	conn, writer, err := hijacker.Hijack()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	writer.WriteString("HTTP/1.1 200 OK\r\n")
+	writer.WriteString(contentTypeHeader + ": application/json\r\n")
+	writer.WriteString(transferEncodingHeader + ": chunked\r\n")
+	writer.WriteString(channelHeader + ": 1\r\n\r\n")
+
 	buf := make([]byte, 32*1024)
 
 	for {
 		n, err := out.Read(buf)
 
 		if n > 0 {
-			_, err := w.Write(buf[0:n])
+			length := fmt.Sprintf("%x\r\n", n)
+			writer.WriteString(length)
+
+			_, err := writer.Write(buf[0:n])
 			if err != nil {
 				return err
 			}
 
-			if f, ok := w.(http.Flusher); ok {
-				f.Flush()
-			}
+			writer.WriteString("\r\n")
+			writer.Flush()
 		}
 
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return err
 		}
+		if err == io.EOF {
+			break
+		}
 	}
+
+	writer.WriteString("0\r\n\r\n")
+	writer.Flush()
+
 	return nil
 }
