@@ -2,6 +2,8 @@
 package net
 
 import (
+	"fmt"
+
 	ic "github.com/jbenet/go-ipfs/crypto"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -234,7 +236,7 @@ func (n *network) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 // For now only returns Connected || NotConnected. Expand into more later.
 func (n *network) Connectedness(p peer.ID) Connectedness {
 	c := n.swarm.ConnectionsToPeer(p)
-	if c != nil && len(c) < 1 {
+	if c != nil && len(c) > 0 {
 		return Connected
 	}
 	return NotConnected
@@ -264,6 +266,10 @@ func (n *network) NewStream(pr ProtocolID, p peer.ID) (Stream, error) {
 // This operation is threadsafe.
 func (n *network) SetHandler(p ProtocolID, h StreamHandler) {
 	n.mux.SetHandler(p, h)
+}
+
+func (n *network) String() string {
+	return fmt.Sprintf("<Network %s>", n.LocalPeer())
 }
 
 func (n *network) IdentifyProtocol() *IDService {
