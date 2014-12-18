@@ -110,28 +110,34 @@ func (s *Swarm) SelectConn() SelectConn {
 
 // Conns returns all the connections associated with this Swarm.
 func (s *Swarm) Conns() []*Conn {
+	s.connLock.RLock()
 	conns := make([]*Conn, 0, len(s.conns))
 	for c := range s.conns {
 		conns = append(conns, c)
 	}
+	s.connLock.RUnlock()
 	return conns
 }
 
 // Listeners returns all the listeners associated with this Swarm.
 func (s *Swarm) Listeners() []*Listener {
+	s.listenerLock.RLock()
 	out := make([]*Listener, 0, len(s.listeners))
 	for c := range s.listeners {
 		out = append(out, c)
 	}
+	s.listenerLock.RUnlock()
 	return out
 }
 
 // Streams returns all the streams associated with this Swarm.
 func (s *Swarm) Streams() []*Stream {
+	s.streamLock.RLock()
 	out := make([]*Stream, 0, len(s.streams))
 	for c := range s.streams {
 		out = append(out, c)
 	}
+	s.streamLock.RUnlock()
 	return out
 }
 

@@ -159,7 +159,6 @@ func (s *Swarm) addConn(netConn net.Conn, server bool) (*Conn, error) {
 		// first, check if we already have it...
 		for c := range s.conns {
 			if c.netConn == netConn {
-				s.connLock.Unlock()
 				return c, nil
 			}
 		}
@@ -167,7 +166,6 @@ func (s *Swarm) addConn(netConn net.Conn, server bool) (*Conn, error) {
 		// create a new spdystream connection
 		ssConn, err := ss.NewConnection(netConn, server)
 		if err != nil {
-			s.connLock.Unlock()
 			return nil, err
 		}
 
