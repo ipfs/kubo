@@ -137,7 +137,30 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	contentType = strings.Split(contentType, ";")[0]
 
 	if len(httpRes.Header.Get(streamHeader)) > 0 {
+		// if output is a stream, we can just use the body reader
 		res.SetOutput(httpRes.Body)
+		return res, nil
+
+	} else if len(httpRes.Header.Get(channelHeader)) > 0 {
+		// if output is coming from a channel, decode each chunk
+		outChan := make(chan interface{})
+		go func() {
+			dec := json.NewDecoder(httpRes.Body)
+			v := req.Command().Type
+
+			for {
+				err := dec.Decode(&v)
+				if err != nil {
+					if err != io.EOF {
+						fmt.Println(err.Error())
+					}
+					return
+				}
+				outChan <- v
+			}
+		}()
+
+		res.SetOutput(outChan)
 		return res, nil
 	}
 
