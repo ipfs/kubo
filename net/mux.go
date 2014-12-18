@@ -40,11 +40,13 @@ type Mux struct {
 // ReadProtocolHeader reads the stream and returns the next Handler function
 // according to the muxer encoding.
 func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {
+	// log.Error("ReadProtocolHeader")
 	name, err := ReadLengthPrefix(s)
 	if err != nil {
 		return "", nil, err
 	}
 
+	// log.Debug("ReadProtocolHeader got:", name)
 	m.RLock()
 	h, found := m.Handlers[ProtocolID(name)]
 	m.RUnlock()
@@ -69,6 +71,19 @@ func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
 
 // Handle reads the next name off the Stream, and calls a function
 func (m *Mux) Handle(s Stream) {
+
+	// Flow control and backpressure of Opening streams is broken.
+	// I believe that spdystream has one set of workers that both send
+	// data AND accept new streams (as it's just more data). there
+	// is a problem where if the new stream handlers want to throttle,
+	// they also eliminate the ability to read/write data, which makes
+	// forward-progress impossible. Thus, throttling this function is
+	// -- at this moment -- not the solution. Either spdystream must
+	// change, or we must throttle another way.
+	//
+	// In light of this, we use a goroutine for now (otherwise the
+	// spdy worker totally blocks, and we can't even read the protocol
+	// header). The better route in the future is to use a worker pool.
 	go func() {
 		ctx := context.Background()
 
@@ -107,6 +122,7 @@ func ReadLengthPrefix(r io.Reader) (string, error) {
 
 // WriteLengthPrefix writes the name into Writer with a length-byte-prefix.
 func WriteLengthPrefix(w io.Writer, name string) error {
+	// log.Error("WriteLengthPrefix", name)
 	s := make([]byte, len(name)+1)
 	s[0] = byte(len(name))
 	copy(s[1:], []byte(name))
