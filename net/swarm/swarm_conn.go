@@ -40,6 +40,10 @@ func (c *Conn) RawConn() conn.Conn {
 	return (*ps.Conn)(c).NetConn().(conn.Conn)
 }
 
+func (c *Conn) String() string {
+	return fmt.Sprintf("<SwarmConn %s>", c.RawConn())
+}
+
 // LocalMultiaddr is the Multiaddr on this side
 func (c *Conn) LocalMultiaddr() ma.Multiaddr {
 	return c.RawConn().LocalMultiaddr()
