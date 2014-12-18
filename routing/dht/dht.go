@@ -11,19 +11,17 @@ import (
 	"time"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 	"github.com/jbenet/go-ipfs/util/eventlog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 var log = eventlog.Logger("dht")
@@ -35,50 +33,37 @@ const doPinging = false
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
-	// Array of routing tables for differently distanced nodes
-	// NOTE: (currently, only a single table is used)
-	routingTable *kb.RoutingTable
+	network   inet.Network   // the network services we need
+	self      peer.Peer      // Local peer (yourself)
+	peerstore peer.Peerstore // Other peers
 
-	// the network services we need
-	dialer inet.Dialer
-	sender inet.Sender
-
-	// Local peer (yourself)
-	self peer.Peer
-
-	// Other peers
-	peerstore peer.Peerstore
-
-	// Local data
-	datastore ds.Datastore
+	datastore ds.Datastore // Local data
 	dslock    sync.Mutex
 
-	providers *ProviderManager
+	routingTable *kb.RoutingTable // Array of routing tables for differently distanced nodes
+	providers    *ProviderManager
 
-	// When this peer started up
-	birth time.Time
-
-	//lock to make diagnostics work better
-	diaglock sync.Mutex
+	birth    time.Time  // When this peer started up
+	diaglock sync.Mutex // lock to make diagnostics work better
 
 	// record validator funcs
 	Validators map[string]ValidatorFunc
 
-	ctxc.ContextCloser
+	ctxgroup.ContextGroup
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dialer, sender inet.Sender, dstore ds.Datastore) *IpfsDHT {
+func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, n inet.Network, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
-	dht.dialer = dialer
-	dht.sender = sender
 	dht.datastore = dstore
 	dht.self = p
 	dht.peerstore = ps
-	dht.ContextCloser = ctxc.NewContextCloser(ctx, nil)
+	dht.ContextGroup = ctxgroup.WithContext(ctx)
+	dht.network = n
+	n.SetHandler(inet.ProtocolDHT, dht.handleNewStream)
 
 	dht.providers = NewProviderManager(dht.Context(), p.ID())
-	dht.AddCloserChild(dht.providers)
+	dht.AddChildGroup(dht.providers)
 
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Minute)
 	dht.birth = time.Now()
@@ -95,109 +80,18 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, dialer inet.Dia
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) error {
-	err := dht.dialer.DialPeer(ctx, npeer)
-	if err != nil {
+	if err := dht.network.DialPeer(ctx, npeer); err != nil {
 		return err
 	}
 
 	// Ping new peer to register in their routing table
 	// NOTE: this should be done better...
-	err = dht.Ping(ctx, npeer)
-	if err != nil {
+	if err := dht.Ping(ctx, npeer); err != nil {
 		return fmt.Errorf("failed to ping newly connected peer: %s\n", err)
 	}
 	log.Event(ctx, "connect", dht.self, npeer)
-
 	dht.Update(ctx, npeer)
-
 	return nil
-}
-
-// HandleMessage implements the inet.Handler interface.
-func (dht *IpfsDHT) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.NetMessage {
-
-	mData := mes.Data()
-	if mData == nil {
-		log.Error("Message contained nil data.")
-		return nil
-	}
-
-	mPeer := mes.Peer()
-	if mPeer == nil {
-		log.Error("Message contained nil peer.")
-		return nil
-	}
-
-	// deserialize msg
-	pmes := new(pb.Message)
-	err := proto.Unmarshal(mData, pmes)
-	if err != nil {
-		log.Error("Error unmarshaling data")
-		return nil
-	}
-
-	// update the peer (on valid msgs only)
-	dht.Update(ctx, mPeer)
-
-	log.Event(ctx, "foo", dht.self, mPeer, pmes)
-
-	// get handler for this msg type.
-	handler := dht.handlerForMsgType(pmes.GetType())
-	if handler == nil {
-		log.Error("got back nil handler from handlerForMsgType")
-		return nil
-	}
-
-	// dispatch handler.
-	rpmes, err := handler(ctx, mPeer, pmes)
-	if err != nil {
-		log.Errorf("handle message error: %s", err)
-		return nil
-	}
-
-	// if nil response, return it before serializing
-	if rpmes == nil {
-		log.Warning("Got back nil response from request.")
-		return nil
-	}
-
-	// serialize response msg
-	rmes, err := msg.FromObject(mPeer, rpmes)
-	if err != nil {
-		log.Errorf("serialze response error: %s", err)
-		return nil
-	}
-
-	return rmes
-}
-
-// sendRequest sends out a request using dht.sender, but also makes sure to
-// measure the RTT for latency measurements.
-func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
-
-	mes, err := msg.FromObject(p, pmes)
-	if err != nil {
-		return nil, err
-	}
-
-	start := time.Now()
-
-	rmes, err := dht.sender.SendRequest(ctx, mes) // respect?
-	if err != nil {
-		return nil, err
-	}
-	if rmes == nil {
-		return nil, errors.New("no response to request")
-	}
-	log.Event(ctx, "sentMessage", dht.self, p, pmes)
-
-	rmes.Peer().SetLatency(time.Since(start))
-
-	rpmes := new(pb.Message)
-	if err := proto.Unmarshal(rmes.Data(), rpmes); err != nil {
-		return nil, err
-	}
-	return rpmes, nil
 }
 
 // putValueToNetwork stores the given key/value pair at the peer 'p'
@@ -224,7 +118,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) er
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
 
 	// add self as the provider
-	pmes.ProviderPeers = pb.PeersToPBPeers(dht.dialer, []peer.Peer{dht.self})
+	pmes.ProviderPeers = pb.PeersToPBPeers(dht.network, []peer.Peer{dht.self})
 
 	rpmes, err := dht.sendRequest(ctx, p, pmes)
 	if err != nil {
@@ -478,12 +372,12 @@ func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, pbp *pb.Message_P
 		return nil, err
 	}
 
-	if dht.dialer.LocalPeer().ID().Equal(p.ID()) {
+	if dht.self.ID().Equal(p.ID()) {
 		return nil, errors.New("attempting to ensure connection to self")
 	}
 
 	// dial connection
-	err = dht.dialer.DialPeer(ctx, p)
+	err = dht.network.DialPeer(ctx, p)
 	return p, err
 }
 
@@ -536,7 +430,7 @@ func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 	if err != nil {
 		log.Errorf("Bootstrap peer error: %s", err)
 	}
-	err = dht.dialer.DialPeer(ctx, p)
+	err = dht.network.DialPeer(ctx, p)
 	if err != nil {
 		log.Errorf("Bootstrap peer error: %s", err)
 	}

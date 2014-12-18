@@ -5,7 +5,6 @@ import (
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	inet "github.com/jbenet/go-ipfs/net"
-	netmsg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	util "github.com/jbenet/go-ipfs/util"
 )
@@ -14,46 +13,48 @@ var log = util.Logger("bitswap_network")
 
 // NewFromIpfsNetwork returns a BitSwapNetwork supported by underlying IPFS
 // Dialer & Service
-func NewFromIpfsNetwork(s inet.Service, dialer inet.Dialer) BitSwapNetwork {
+func NewFromIpfsNetwork(n inet.Network) BitSwapNetwork {
 	bitswapNetwork := impl{
-		service: s,
-		dialer:  dialer,
+		network: n,
 	}
-	s.SetHandler(&bitswapNetwork)
+	n.SetHandler(inet.ProtocolBitswap, bitswapNetwork.handleNewStream)
 	return &bitswapNetwork
 }
 
 // impl transforms the ipfs network interface, which sends and receives
 // NetMessage objects, into the bitswap network interface.
 type impl struct {
-	service inet.Service
-	dialer  inet.Dialer
+	network inet.Network
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
 }
 
-// HandleMessage marshals and unmarshals net messages, forwarding them to the
-// BitSwapMessage receiver
-func (bsnet *impl) HandleMessage(
-	ctx context.Context, incoming netmsg.NetMessage) netmsg.NetMessage {
+// handleNewStream receives a new stream from the network.
+func (bsnet *impl) handleNewStream(s inet.Stream) {
 
 	if bsnet.receiver == nil {
-		return nil
+		return
 	}
 
-	received, err := bsmsg.FromNet(incoming)
-	if err != nil {
-		go bsnet.receiver.ReceiveError(err)
-		return nil
-	}
+	go func() {
+		defer s.Close()
 
-	bsnet.receiver.ReceiveMessage(ctx, incoming.Peer(), received)
-	return nil
+		received, err := bsmsg.FromNet(s)
+		if err != nil {
+			go bsnet.receiver.ReceiveError(err)
+			return
+		}
+
+		p := s.Conn().RemotePeer()
+		ctx := context.Background()
+		bsnet.receiver.ReceiveMessage(ctx, p, received)
+	}()
+
 }
 
 func (bsnet *impl) DialPeer(ctx context.Context, p peer.Peer) error {
-	return bsnet.dialer.DialPeer(ctx, p)
+	return bsnet.network.DialPeer(ctx, p)
 }
 
 func (bsnet *impl) SendMessage(
@@ -61,11 +62,13 @@ func (bsnet *impl) SendMessage(
 	p peer.Peer,
 	outgoing bsmsg.BitSwapMessage) error {
 
-	nmsg, err := outgoing.ToNet(p)
+	s, err := bsnet.network.NewStream(inet.ProtocolBitswap, p)
 	if err != nil {
 		return err
 	}
-	return bsnet.service.SendMessage(ctx, nmsg)
+	defer s.Close()
+
+	return outgoing.ToNet(s)
 }
 
 func (bsnet *impl) SendRequest(
@@ -73,15 +76,17 @@ func (bsnet *impl) SendRequest(
 	p peer.Peer,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
-	outgoingMsg, err := outgoing.ToNet(p)
+	s, err := bsnet.network.NewStream(inet.ProtocolBitswap, p)
 	if err != nil {
 		return nil, err
 	}
-	incomingMsg, err := bsnet.service.SendRequest(ctx, outgoingMsg)
-	if err != nil {
+	defer s.Close()
+
+	if err := outgoing.ToNet(s); err != nil {
 		return nil, err
 	}
-	return bsmsg.FromNet(incomingMsg)
+
+	return bsmsg.FromNet(s)
 }
 
 func (bsnet *impl) SetDelegate(r Receiver) {

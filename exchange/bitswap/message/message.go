@@ -1,13 +1,14 @@
 package message
 
 import (
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"io"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
-	netmsg "github.com/jbenet/go-ipfs/net/message"
-	nm "github.com/jbenet/go-ipfs/net/message"
-	peer "github.com/jbenet/go-ipfs/peer"
+	inet "github.com/jbenet/go-ipfs/net"
 	u "github.com/jbenet/go-ipfs/util"
+
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 )
 
 // TODO move message.go into the bitswap package
@@ -38,7 +39,7 @@ type BitSwapMessage interface {
 
 type Exportable interface {
 	ToProto() *pb.Message
-	ToNet(p peer.Peer) (nm.NetMessage, error)
+	ToNet(w io.Writer) error
 }
 
 type impl struct {
@@ -92,11 +93,14 @@ func (m *impl) AddBlock(b *blocks.Block) {
 	m.blocks[b.Key()] = b
 }
 
-func FromNet(nmsg netmsg.NetMessage) (BitSwapMessage, error) {
+func FromNet(r io.Reader) (BitSwapMessage, error) {
+	pbr := ggio.NewDelimitedReader(r, inet.MessageSizeMax)
+
 	pb := new(pb.Message)
-	if err := proto.Unmarshal(nmsg.Data(), pb); err != nil {
+	if err := pbr.ReadMsg(pb); err != nil {
 		return nil, err
 	}
+
 	m := newMessageFromProto(*pb)
 	return m, nil
 }
@@ -112,6 +116,11 @@ func (m *impl) ToProto() *pb.Message {
 	return pb
 }
 
-func (m *impl) ToNet(p peer.Peer) (nm.NetMessage, error) {
-	return nm.FromObject(p, m.ToProto())
+func (m *impl) ToNet(w io.Writer) error {
+	pbw := ggio.NewDelimitedWriter(w)
+
+	if err := pbw.WriteMsg(m.ToProto()); err != nil {
+		return err
+	}
+	return nil
 }

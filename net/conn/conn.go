@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -12,20 +13,14 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
-var log = u.Logger("conn")
+var log = eventlog.Logger("conn")
 
 const (
-	// ChanBuffer is the size of the buffer in the Conn Chan
-	ChanBuffer = 10
-
 	// MaxMessageSize is the size of the largest single message. (4MB)
 	MaxMessageSize = 1 << 22
-
-	// HandshakeTimeout for when nodes first connect
-	HandshakeTimeout = time.Second * 5
 )
 
 // ReleaseBuffer puts the given byte array back into the buffer pool,
@@ -35,85 +30,40 @@ func ReleaseBuffer(b []byte) {
 	mpool.ByteSlicePool.Put(uint32(cap(b)), b)
 }
 
-// msgioPipe is a pipe using msgio channels.
-type msgioPipe struct {
-	outgoing *msgio.Chan
-	incoming *msgio.Chan
-}
-
-func newMsgioPipe(size int) *msgioPipe {
-	return &msgioPipe{
-		outgoing: msgio.NewChan(size),
-		incoming: msgio.NewChan(size),
-	}
-}
-
 // singleConn represents a single connection to another Peer (IPFS Node).
 type singleConn struct {
 	local  peer.Peer
 	remote peer.Peer
 	maconn manet.Conn
-	msgio  *msgioPipe
-
-	ctxc.ContextCloser
+	msgrw  msgio.ReadWriteCloser
 }
 
 // newConn constructs a new connection
-func newSingleConn(ctx context.Context, local, remote peer.Peer,
-	maconn manet.Conn) (Conn, error) {
+func newSingleConn(ctx context.Context, local, remote peer.Peer, maconn manet.Conn) (Conn, error) {
 
 	conn := &singleConn{
 		local:  local,
 		remote: remote,
 		maconn: maconn,
-		msgio:  newMsgioPipe(10),
+		msgrw:  msgio.NewReadWriter(maconn),
 	}
-
-	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
-
-	log.Debugf("newSingleConn: %v to %v", local, remote)
-
-	// setup the various io goroutines
-	conn.Children().Add(1)
-	go func() {
-		conn.msgio.outgoing.WriteTo(maconn)
-		conn.Children().Done()
-	}()
-	conn.Children().Add(1)
-	go func() {
-		conn.msgio.incoming.ReadFromWithPool(maconn, &mpool.ByteSlicePool)
-		conn.Children().Done()
-	}()
+	log.Debugf("newSingleConn %p: %v to %v", conn, local, remote)
 
 	// version handshake
-	ctxT, _ := context.WithTimeout(ctx, HandshakeTimeout)
-	if err := Handshake1(ctxT, conn); err != nil {
+	if err := Handshake1(ctx, conn); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("Handshake1 failed: %s", err)
 	}
 
+	log.Debugf("newSingleConn %p: %v to %v finished", conn, local, remote)
 	return conn, nil
 }
 
 // close is the internal close function, called by ContextCloser.Close
-func (c *singleConn) close() error {
+func (c *singleConn) Close() error {
 	log.Debugf("%s closing Conn with %s", c.local, c.remote)
-
 	// close underlying connection
-	err := c.maconn.Close()
-	c.msgio.outgoing.Close()
-	return err
-}
-
-func (c *singleConn) GetError() error {
-	select {
-	case err := <-c.msgio.incoming.ErrChan:
-		return err
-	case err := <-c.msgio.outgoing.ErrChan:
-		return err
-	default:
-		return nil
-	}
+	return c.msgrw.Close()
 }
 
 // ID is an identifier unique to this connection.
@@ -123,6 +73,25 @@ func (c *singleConn) ID() string {
 
 func (c *singleConn) String() string {
 	return String(c, "singleConn")
+}
+
+func (c *singleConn) LocalAddr() net.Addr {
+	return c.maconn.LocalAddr()
+}
+
+func (c *singleConn) RemoteAddr() net.Addr {
+	return c.maconn.RemoteAddr()
+}
+
+func (c *singleConn) SetDeadline(t time.Time) error {
+	return c.maconn.SetDeadline(t)
+}
+func (c *singleConn) SetReadDeadline(t time.Time) error {
+	return c.maconn.SetReadDeadline(t)
+}
+
+func (c *singleConn) SetWriteDeadline(t time.Time) error {
+	return c.maconn.SetWriteDeadline(t)
 }
 
 // LocalMultiaddr is the Multiaddr on this side
@@ -145,14 +114,33 @@ func (c *singleConn) RemotePeer() peer.Peer {
 	return c.remote
 }
 
-// In returns a readable message channel
-func (c *singleConn) In() <-chan []byte {
-	return c.msgio.incoming.MsgChan
+// Read reads data, net.Conn style
+func (c *singleConn) Read(buf []byte) (int, error) {
+	return c.msgrw.Read(buf)
 }
 
-// Out returns a writable message channel
-func (c *singleConn) Out() chan<- []byte {
-	return c.msgio.outgoing.MsgChan
+// Write writes data, net.Conn style
+func (c *singleConn) Write(buf []byte) (int, error) {
+	return c.msgrw.Write(buf)
+}
+
+func (c *singleConn) NextMsgLen() (int, error) {
+	return c.msgrw.NextMsgLen()
+}
+
+// ReadMsg reads data, net.Conn style
+func (c *singleConn) ReadMsg() ([]byte, error) {
+	return c.msgrw.ReadMsg()
+}
+
+// WriteMsg writes data, net.Conn style
+func (c *singleConn) WriteMsg(buf []byte) error {
+	return c.msgrw.WriteMsg(buf)
+}
+
+// ReleaseMsg releases a buffer
+func (c *singleConn) ReleaseMsg(m []byte) {
+	c.msgrw.ReleaseMsg(m)
 }
 
 // ID returns the ID of a given Conn.
@@ -167,6 +155,6 @@ func ID(c Conn) string {
 
 // String returns the user-friendly String representation of a conn
 func String(c Conn, typ string) string {
-	return fmt.Sprintf("%s (%s) <-- %s --> (%s) %s",
-		c.LocalPeer(), c.LocalMultiaddr(), typ, c.RemoteMultiaddr(), c.RemotePeer())
+	return fmt.Sprintf("%s (%s) <-- %s %p --> (%s) %s",
+		c.LocalPeer(), c.LocalMultiaddr(), typ, c, c.RemoteMultiaddr(), c.RemotePeer())
 }

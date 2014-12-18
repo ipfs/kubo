@@ -13,73 +13,46 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+func testOneSendRecv(t *testing.T, c1, c2 Conn) {
+	m1 := []byte("hello")
+	if err := c1.WriteMsg(m1); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := c2.ReadMsg()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(m1, m2) {
+		t.Fatal("failed to send: %s %s", m1, m2)
+	}
+}
+
+func testNotOneSendRecv(t *testing.T, c1, c2 Conn) {
+	m1 := []byte("hello")
+	if err := c1.WriteMsg(m1); err == nil {
+		t.Fatal("write should have failed", err)
+	}
+	_, err := c2.ReadMsg()
+	if err == nil {
+		t.Fatal("read should have failed", err)
+	}
+}
+
 func TestClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
+	ctx := context.Background()
+	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
 
-	select {
-	case <-c1.Closed():
-		t.Fatal("done before close")
-	case <-c2.Closed():
-		t.Fatal("done before close")
-	default:
-	}
+	testOneSendRecv(t, c1, c2)
+	testOneSendRecv(t, c2, c1)
 
 	c1.Close()
-
-	select {
-	case <-c1.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
+	testNotOneSendRecv(t, c1, c2)
 
 	c2.Close()
-
-	select {
-	case <-c2.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
-	cancel() // close the listener :P
-}
-
-func TestCancel(t *testing.T) {
-	// t.Skip("Skipping in favor of another test")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
-
-	select {
-	case <-c1.Closed():
-		t.Fatal("done before close")
-	case <-c2.Closed():
-		t.Fatal("done before close")
-	default:
-	}
-
-	c1.Close()
-	c2.Close()
-	cancel() // listener
-
-	// wait to ensure other goroutines run and close things.
-	<-time.After(time.Microsecond * 10)
-	// test that cancel called Close.
-
-	select {
-	case <-c1.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
-	select {
-	case <-c2.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
+	testNotOneSendRecv(t, c2, c1)
+	testNotOneSendRecv(t, c1, c2)
 }
 
 func TestCloseLeak(t *testing.T) {
@@ -97,21 +70,27 @@ func TestCloseLeak(t *testing.T) {
 		a1 := strconv.Itoa(p1)
 		a2 := strconv.Itoa(p2)
 		ctx, cancel := context.WithCancel(context.Background())
-		c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
+		c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
 
 		for i := 0; i < num; i++ {
-			b1 := []byte("beep")
-			c1.Out() <- b1
-			b2 := <-c2.In()
+			b1 := []byte(fmt.Sprintf("beep%d", i))
+			c1.WriteMsg(b1)
+			b2, err := c2.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
-				panic("bytes not equal")
+				panic(fmt.Errorf("bytes not equal: %s != %s", b1, b2))
 			}
 
-			b2 = []byte("boop")
-			c2.Out() <- b2
-			b1 = <-c1.In()
+			b2 = []byte(fmt.Sprintf("boop%d", i))
+			c2.WriteMsg(b2)
+			b1, err = c1.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
-				panic("bytes not equal")
+				panic(fmt.Errorf("bytes not equal: %s != %s", b1, b2))
 			}
 
 			<-time.After(time.Microsecond * 5)
@@ -123,7 +102,7 @@ func TestCloseLeak(t *testing.T) {
 		wg.Done()
 	}
 
-	var cons = 20
+	var cons = 1
 	var msgs = 100
 	fmt.Printf("Running %d connections * %d msgs.\n", cons, msgs)
 	for i := 0; i < cons; i++ {

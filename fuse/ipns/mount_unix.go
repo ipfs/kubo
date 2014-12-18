@@ -33,9 +33,9 @@ func Mount(ipfs *core.IpfsNode, fpath string, ipfspath string) (mount.Mount, err
 		// assume it worked...
 	}
 
-	// bind the mount (ContextCloser) to the node, so that when the node exits
+	// bind the mount (ContextGroup) to the node, so that when the node exits
 	// the fsclosers are automatically closed.
-	ipfs.AddCloserChild(m)
+	ipfs.AddChildGroup(m)
 	return m, nil
 }
 

@@ -3,219 +3,157 @@
 package swarm
 
 import (
-	"errors"
-	"fmt"
-	"sync"
-
-	conn "github.com/jbenet/go-ipfs/net/conn"
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
-	"github.com/jbenet/go-ipfs/util/eventlog"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 )
 
-var log = eventlog.Logger("swarm")
-
-// ErrAlreadyOpen signals that a connection to a peer is already open.
-var ErrAlreadyOpen = errors.New("Error: Connection to this peer already open.")
-
-// ListenErr contains a set of errors mapping to each of the swarms addresses.
-// Used to return multiple errors, as in listen.
-type ListenErr struct {
-	Errors []error
-}
-
-func (e *ListenErr) Error() string {
-	if e == nil {
-		return "<nil error>"
-	}
-	var out string
-	for i, v := range e.Errors {
-		if v != nil {
-			out += fmt.Sprintf("%d: %s\n", i, v)
-		}
-	}
-	return out
-}
+var log = eventlog.Logger("swarm2")
 
 // Swarm is a connection muxer, allowing connections to other peers to
 // be opened and closed, while still using the same Chan for all
 // communication. The Chan sends/receives Messages, which note the
 // destination or source Peer.
+//
+// Uses peerstream.Swarm
 type Swarm struct {
-
-	// local is the peer this swarm represents
+	swarm *ps.Swarm
 	local peer.Peer
-
-	// peers is a collection of peers for swarm to use
 	peers peer.Peerstore
 
-	// Swarm includes a Pipe object.
-	*msg.Pipe
-
-	// errChan is the channel of errors.
-	errChan chan error
-
-	// conns are the open connections the swarm is handling.
-	// these are MultiConns, which multiplex multiple separate underlying Conns.
-	conns     conn.MultiConnMap
-	connsLock sync.RWMutex
-
-	// listeners for each network address
-	listeners []conn.Listener
-
-	// ContextCloser
-	ctxc.ContextCloser
+	cg ctxgroup.ContextGroup
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
-func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr, local peer.Peer, ps peer.Peerstore) (*Swarm, error) {
-	s := &Swarm{
-		Pipe:    msg.NewPipe(10),
-		conns:   conn.MultiConnMap{},
-		local:   local,
-		peers:   ps,
-		errChan: make(chan error, 100),
+func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
+	local peer.Peer, peers peer.Peerstore) (*Swarm, error) {
+
+	// make sure our own peer is in our peerstore...
+	local, err := peers.Add(local)
+	if err != nil {
+		return nil, err
 	}
 
-	// ContextCloser for proper child management.
-	s.ContextCloser = ctxc.NewContextCloser(ctx, s.close)
+	s := &Swarm{
+		swarm: ps.NewSwarm(),
+		local: local,
+		peers: peers,
+		cg:    ctxgroup.WithContext(ctx),
+	}
 
-	s.Children().Add(1)
-	go s.fanOut()
+	// configure Swarm
+	s.cg.SetTeardown(s.teardown)
+	s.swarm.SetConnHandler(s.connHandler)
+
 	return s, s.listen(listenAddrs)
 }
 
-// close stops a swarm. It's the underlying function called by ContextCloser
-func (s *Swarm) close() error {
-	// close listeners
-	for _, list := range s.listeners {
-		list.Close()
-	}
-	// close connections
-	conn.CloseConns(s.Connections()...)
-	return nil
+func (s *Swarm) teardown() error {
+	return s.swarm.Close()
 }
 
-// Dial connects to a peer.
-//
-// The idea is that the client of Swarm does not need to know what network
-// the connection will happen over. Swarm can use whichever it choses.
-// This allows us to use various transport protocols, do NAT traversal/relay,
-// etc. to achive connection.
-//
-// For now, Dial uses only TCP. This will be extended.
-func (s *Swarm) Dial(peer peer.Peer) (conn.Conn, error) {
-	if peer.ID().Equal(s.local.ID()) {
-		return nil, errors.New("Attempted connection to self!")
-	}
+// CtxGroup returns the Context Group of the swarm
+func (s *Swarm) CtxGroup() ctxgroup.ContextGroup {
+	return s.cg
+}
 
-	// check if we already have an open connection first
-	c := s.GetConnection(peer.ID())
-	if c != nil {
-		return c, nil
-	}
+// Close stops the Swarm.
+func (s *Swarm) Close() error {
+	return s.cg.Close()
+}
 
-	// check if we don't have the peer in Peerstore
-	peer, err := s.peers.Add(peer)
+// StreamSwarm returns the underlying peerstream.Swarm
+func (s *Swarm) StreamSwarm() *ps.Swarm {
+	return s.swarm
+}
+
+// SetStreamHandler assigns the handler for new streams.
+// See peerstream.
+func (s *Swarm) SetStreamHandler(handler StreamHandler) {
+	s.swarm.SetStreamHandler(func(s *ps.Stream) {
+		handler(wrapStream(s))
+	})
+}
+
+// NewStreamWithPeer creates a new stream on any available connection to p
+func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
+	// make sure we use OUR peers. (the tests mess with you...)
+	p, err := s.peers.Add(p)
 	if err != nil {
 		return nil, err
 	}
 
-	// open connection to peer
-	d := &conn.Dialer{
-		LocalPeer: s.local,
-		Peerstore: s.peers,
-	}
-
-	if len(peer.Addresses()) == 0 {
-		return nil, errors.New("peer has no addresses")
-	}
-	// try to connect to one of the peer's known addresses.
-	// for simplicity, we do this sequentially.
-	// A future commit will do this asynchronously.
-	for _, addr := range peer.Addresses() {
-		c, err = d.DialAddr(s.Context(), addr, peer)
-		if err == nil {
-			break
+	// if we have no connections, try connecting.
+	if len(s.ConnectionsToPeer(p)) == 0 {
+		log.Debug("Swarm: NewStreamWithPeer no connections. Attempting to connect...")
+		if _, err := s.Dial(context.Background(), p); err != nil {
+			return nil, err
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
+	log.Debug("Swarm: NewStreamWithPeer...")
 
-	c2, err := s.connSetup(c)
-	if err != nil {
-		c.Close()
-		return nil, err
-	}
-
-	// TODO replace the TODO ctx with a context passed in from caller
-	log.Event(context.TODO(), "dial", peer)
-	return c2, nil
+	st, err := s.swarm.NewStreamWithGroup(p)
+	return wrapStream(st), err
 }
 
-// GetConnection returns the connection in the swarm to given peer.ID
-func (s *Swarm) GetConnection(pid peer.ID) conn.Conn {
-	s.connsLock.RLock()
-	defer s.connsLock.RUnlock()
-	c, found := s.conns[u.Key(pid)]
-
-	if !found {
-		return nil
+// StreamsWithPeer returns all the live Streams to p
+func (s *Swarm) StreamsWithPeer(p peer.Peer) []*Stream {
+	// make sure we use OUR peers. (the tests mess with you...)
+	if p2, err := s.peers.Add(p); err == nil {
+		p = p2
 	}
-	return c
+
+	return wrapStreams(ps.StreamsWithGroup(p, s.swarm.Streams()))
+}
+
+// ConnectionsToPeer returns all the live connections to p
+func (s *Swarm) ConnectionsToPeer(p peer.Peer) []*Conn {
+	// make sure we use OUR peers. (the tests mess with you...)
+	if p2, err := s.peers.Add(p); err == nil {
+		p = p2
+	}
+	return wrapConns(ps.ConnsWithGroup(p, s.swarm.Conns()))
 }
 
 // Connections returns a slice of all connections.
-func (s *Swarm) Connections() []conn.Conn {
-	s.connsLock.RLock()
-
-	conns := make([]conn.Conn, 0, len(s.conns))
-	for _, c := range s.conns {
-		conns = append(conns, c)
-	}
-
-	s.connsLock.RUnlock()
-	return conns
+func (s *Swarm) Connections() []*Conn {
+	return wrapConns(s.swarm.Conns())
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection
 func (s *Swarm) CloseConnection(p peer.Peer) error {
-	c := s.GetConnection(p.ID())
-	if c == nil {
-		return u.ErrNotFound
+	// make sure we use OUR peers. (the tests mess with you...)
+	p, err := s.peers.Add(p)
+	if err != nil {
+		return err
 	}
 
-	s.connsLock.Lock()
-	delete(s.conns, u.Key(p.ID()))
-	s.connsLock.Unlock()
-
-	return c.Close()
-}
-
-func (s *Swarm) Error(e error) {
-	s.errChan <- e
-}
-
-// GetErrChan returns the errors chan.
-func (s *Swarm) GetErrChan() chan error {
-	return s.errChan
-}
-
-// GetPeerList returns a copy of the set of peers swarm is connected to.
-func (s *Swarm) GetPeerList() []peer.Peer {
-	var out []peer.Peer
-	s.connsLock.RLock()
-	for _, p := range s.conns {
-		out = append(out, p.RemotePeer())
+	conns := s.swarm.ConnsWithGroup(p) // boom.
+	for _, c := range conns {
+		c.Close()
 	}
-	s.connsLock.RUnlock()
-	return out
+	return nil
+}
+
+// Peers returns a copy of the set of peers swarm is connected to.
+func (s *Swarm) Peers() []peer.Peer {
+	conns := s.Connections()
+
+	seen := make(map[peer.Peer]struct{})
+	peers := make([]peer.Peer, 0, len(conns))
+	for _, c := range conns {
+		p := c.RemotePeer()
+		if _, found := seen[p]; found {
+			continue
+		}
+
+		peers = append(peers, p)
+	}
+	return peers
 }
 
 // LocalPeer returns the local peer swarm is associated to.

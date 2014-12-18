@@ -2,6 +2,7 @@ package dht
 
 import (
 	"bytes"
+	"math/rand"
 	"sort"
 	"testing"
 
@@ -12,8 +13,6 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
-	mux "github.com/jbenet/go-ipfs/net/mux"
-	netservice "github.com/jbenet/go-ipfs/net/service"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -22,19 +21,26 @@ import (
 	"time"
 )
 
+func randMultiaddr(t *testing.T) ma.Multiaddr {
+
+	s := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 10000+rand.Intn(40000))
+	a, err := ma.NewMultiaddr(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return a
+}
+
 func setupDHT(ctx context.Context, t *testing.T, p peer.Peer) *IpfsDHT {
 	peerstore := peer.NewPeerstore()
 
-	dhts := netservice.NewService(ctx, nil) // nil handler for now, need to patch it
-	net, err := inet.NewIpfsNetwork(ctx, p.Addresses(), p, peerstore, &mux.ProtocolMap{
-		mux.ProtocolID_Routing: dhts,
-	})
+	n, err := inet.NewNetwork(ctx, p.Addresses(), p, peerstore)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	d := NewDHT(ctx, p, peerstore, net, dhts, ds.NewMapDatastore())
-	dhts.SetHandler(d)
+	d := NewDHT(ctx, p, peerstore, n, ds.NewMapDatastore())
+
 	d.Validators["v"] = func(u.Key, []byte) error {
 		return nil
 	}
@@ -44,7 +50,8 @@ func setupDHT(ctx context.Context, t *testing.T, p peer.Peer) *IpfsDHT {
 func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer.Peer, []*IpfsDHT) {
 	var addrs []ma.Multiaddr
 	for i := 0; i < n; i++ {
-		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5000+i))
+		r := rand.Intn(40000)
+		a, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 10000+r))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,15 +96,9 @@ func makePeer(addr ma.Multiaddr) peer.Peer {
 func TestPing(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 	ctx := context.Background()
-	u.Debug = false
-	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/2222")
-	if err != nil {
-		t.Fatal(err)
-	}
-	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5678")
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	addrA := randMultiaddr(t)
+	addrB := randMultiaddr(t)
 
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
@@ -107,24 +108,25 @@ func TestPing(t *testing.T) {
 
 	defer dhtA.Close()
 	defer dhtB.Close()
-	defer dhtA.dialer.(inet.Network).Close()
-	defer dhtB.dialer.(inet.Network).Close()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
-	err = dhtA.Connect(ctx, peerB)
-	if err != nil {
+	if err := dhtA.Connect(ctx, peerB); err != nil {
 		t.Fatal(err)
 	}
 
+	// if err := dhtB.Connect(ctx, peerA); err != nil {
+	// 	t.Fatal(err)
+	// }
+
 	//Test that we can ping the node
 	ctxT, _ := context.WithTimeout(ctx, 100*time.Millisecond)
-	err = dhtA.Ping(ctxT, peerB)
-	if err != nil {
+	if err := dhtA.Ping(ctxT, peerB); err != nil {
 		t.Fatal(err)
 	}
 
 	ctxT, _ = context.WithTimeout(ctx, 100*time.Millisecond)
-	err = dhtB.Ping(ctxT, peerA)
-	if err != nil {
+	if err := dhtB.Ping(ctxT, peerA); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -133,15 +135,9 @@ func TestValueGetSet(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
 	ctx := context.Background()
-	u.Debug = false
-	addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/11235")
-	if err != nil {
-		t.Fatal(err)
-	}
-	addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/15679")
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	addrA := randMultiaddr(t)
+	addrB := randMultiaddr(t)
 
 	peerA := makePeer(addrA)
 	peerB := makePeer(addrB)
@@ -157,10 +153,10 @@ func TestValueGetSet(t *testing.T) {
 
 	defer dhtA.Close()
 	defer dhtB.Close()
-	defer dhtA.dialer.(inet.Network).Close()
-	defer dhtB.dialer.(inet.Network).Close()
+	defer dhtA.network.Close()
+	defer dhtB.network.Close()
 
-	err = dhtA.Connect(ctx, peerB)
+	err := dhtA.Connect(ctx, peerB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,13 +189,11 @@ func TestProvides(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 	ctx := context.Background()
 
-	u.Debug = false
-
 	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].dialer.(inet.Network).Close()
+			defer dhts[i].network.Close()
 		}
 	}()
 
@@ -255,13 +249,12 @@ func TestProvidesAsync(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	u.Debug = false
 
 	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].dialer.(inet.Network).Close()
+			defer dhts[i].network.Close()
 		}
 	}()
 
@@ -321,12 +314,12 @@ func TestLayeredGet(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	u.Debug = false
+
 	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].dialer.(inet.Network).Close()
+			defer dhts[i].network.Close()
 		}
 	}()
 
@@ -375,13 +368,12 @@ func TestFindPeer(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	u.Debug = false
 
 	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			dhts[i].dialer.(inet.Network).Close()
+			dhts[i].network.Close()
 		}
 	}()
 
@@ -416,18 +408,19 @@ func TestFindPeer(t *testing.T) {
 }
 
 func TestFindPeersConnectedToPeer(t *testing.T) {
+	t.Skip("not quite correct (see note)")
+
 	if testing.Short() {
 		t.SkipNow()
 	}
 
 	ctx := context.Background()
-	u.Debug = false
 
 	_, peers, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			dhts[i].dialer.(inet.Network).Close()
+			dhts[i].network.Close()
 		}
 	}()
 
@@ -520,15 +513,9 @@ func TestConnectCollision(t *testing.T) {
 		log.Notice("Running Time: ", rtime)
 
 		ctx := context.Background()
-		u.Debug = false
-		addrA, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/11235")
-		if err != nil {
-			t.Fatal(err)
-		}
-		addrB, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/15679")
-		if err != nil {
-			t.Fatal(err)
-		}
+
+		addrA := randMultiaddr(t)
+		addrB := randMultiaddr(t)
 
 		peerA := makePeer(addrA)
 		peerB := makePeer(addrB)
@@ -566,8 +553,8 @@ func TestConnectCollision(t *testing.T) {
 
 		dhtA.Close()
 		dhtB.Close()
-		dhtA.dialer.(inet.Network).Close()
-		dhtB.dialer.(inet.Network).Close()
+		dhtA.network.Close()
+		dhtB.network.Close()
 
 		<-time.After(200 * time.Millisecond)
 	}

@@ -65,7 +65,7 @@ func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 // which can be written to a message and sent out. the key thing this function
 // does (in addition to PeersToPBPeers) is set the ConnectionType with
 // information from the given inet.Dialer.
-func PeersToPBPeers(d inet.Dialer, peers []peer.Peer) []*Message_Peer {
+func PeersToPBPeers(d inet.Network, peers []peer.Peer) []*Message_Peer {
 	pbps := RawPeersToPBPeers(peers)
 	for i, pbp := range pbps {
 		c := ConnectionType(d.Connectedness(peers[i]))

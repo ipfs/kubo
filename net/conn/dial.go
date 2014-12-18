@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
@@ -67,10 +66,29 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 		return nil, err
 	}
 
+	select {
+	case <-ctx.Done():
+		maconn.Close()
+		return nil, err
+	default:
+	}
+
 	c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
 	if err != nil {
 		return nil, err
 	}
 
+	if d.WithoutSecureTransport {
+		return c, nil
+	}
+
+	select {
+	case <-ctx.Done():
+		c.Close()
+		return nil, err
+	default:
+	}
+
+	// return c, nil
 	return newSecureConn(ctx, c, d.Peerstore)
 }

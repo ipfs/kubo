@@ -13,12 +13,12 @@ import (
 
 	"crypto/rand"
 
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
 	net "github.com/jbenet/go-ipfs/net"
-	msg "github.com/jbenet/go-ipfs/net/message"
 	peer "github.com/jbenet/go-ipfs/peer"
 	util "github.com/jbenet/go-ipfs/util"
 )
@@ -31,7 +31,6 @@ const ResponseTimeout = time.Second * 10
 // requests
 type Diagnostics struct {
 	network net.Network
-	sender  net.Sender
 	self    peer.Peer
 
 	diagLock sync.Mutex
@@ -40,14 +39,16 @@ type Diagnostics struct {
 }
 
 // NewDiagnostics instantiates a new diagnostics service running on the given network
-func NewDiagnostics(self peer.Peer, inet net.Network, sender net.Sender) *Diagnostics {
-	return &Diagnostics{
+func NewDiagnostics(self peer.Peer, inet net.Network) *Diagnostics {
+	d := &Diagnostics{
 		network: inet,
-		sender:  sender,
 		self:    self,
-		diagMap: make(map[string]time.Time),
 		birth:   time.Now(),
+		diagMap: make(map[string]time.Time),
 	}
+
+	inet.SetHandler(net.ProtocolDiag, d.handleNewStream)
+	return d
 }
 
 type connDiagInfo struct {
@@ -91,7 +92,7 @@ func (di *DiagInfo) Marshal() []byte {
 }
 
 func (d *Diagnostics) getPeers() []peer.Peer {
-	return d.network.GetPeerList()
+	return d.network.Peers()
 }
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
@@ -100,7 +101,7 @@ func (d *Diagnostics) getDiagInfo() *DiagInfo {
 	di.ID = d.self.ID().Pretty()
 	di.LifeSpan = time.Since(d.birth)
 	di.Keys = nil // Currently no way to query datastore
-	di.BwIn, di.BwOut = d.network.GetBandwidthTotals()
+	di.BwIn, di.BwOut = d.network.BandwidthTotals()
 
 	for _, p := range d.getPeers() {
 		d := connDiagInfo{p.GetLatency(), p.ID().Pretty()}
@@ -110,7 +111,7 @@ func (d *Diagnostics) getDiagInfo() *DiagInfo {
 }
 
 func newID() string {
-	id := make([]byte, 4)
+	id := make([]byte, 16)
 	rand.Read(id)
 	return string(id)
 }
@@ -196,29 +197,31 @@ func newMessage(diagID string) *pb.Message {
 
 func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
 
-	mes, err := msg.FromObject(p, pmes)
+	s, err := d.network.NewStream(net.ProtocolDiag, p)
 	if err != nil {
 		return nil, err
 	}
+	defer s.Close()
+
+	r := ggio.NewDelimitedReader(s, net.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(s)
 
 	start := time.Now()
 
-	rmes, err := d.sender.SendRequest(ctx, mes)
-	if err != nil {
+	if err := w.WriteMsg(pmes); err != nil {
 		return nil, err
 	}
-	if rmes == nil {
+
+	var rpmes *pb.Message
+	if err := r.ReadMsg(rpmes); err != nil {
+		return nil, err
+	}
+	if rpmes == nil {
 		return nil, errors.New("no response to request")
 	}
 
 	rtt := time.Since(start)
 	log.Infof("diagnostic request took: %s", rtt.String())
-
-	rpmes := new(pb.Message)
-	if err := proto.Unmarshal(rmes.Data(), rpmes); err != nil {
-		return nil, err
-	}
-
 	return rpmes, nil
 }
 
@@ -271,33 +274,25 @@ func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Messa
 	return resp, nil
 }
 
-func (d *Diagnostics) HandleMessage(ctx context.Context, mes msg.NetMessage) msg.NetMessage {
-	mData := mes.Data()
-	if mData == nil {
-		log.Error("message did not include Data")
-		return nil
-	}
+func (d *Diagnostics) HandleMessage(ctx context.Context, s net.Stream) error {
 
-	mPeer := mes.Peer()
-	if mPeer == nil {
-		log.Error("message did not include a Peer")
-		return nil
-	}
+	r := ggio.NewDelimitedReader(s, 32768) // maxsize
+	w := ggio.NewDelimitedWriter(s)
 
 	// deserialize msg
 	pmes := new(pb.Message)
-	err := proto.Unmarshal(mData, pmes)
-	if err != nil {
+	if err := r.ReadMsg(pmes); err != nil {
 		log.Errorf("Failed to decode protobuf message: %v", err)
 		return nil
 	}
 
 	// Print out diagnostic
 	log.Infof("[peer: %s] Got message from [%s]\n",
-		d.self.ID().Pretty(), mPeer.ID().Pretty())
+		d.self.ID().Pretty(), s.Conn().RemotePeer().ID().Pretty())
 
 	// dispatch handler.
-	rpmes, err := d.handleDiagnostic(mPeer, pmes)
+	p := s.Conn().RemotePeer()
+	rpmes, err := d.handleDiagnostic(p, pmes)
 	if err != nil {
 		log.Errorf("handleDiagnostic error: %s", err)
 		return nil
@@ -308,12 +303,19 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, mes msg.NetMessage) msg
 		return nil
 	}
 
-	// serialize response msg
-	rmes, err := msg.FromObject(mPeer, rpmes)
-	if err != nil {
+	// serialize + send response msg
+	if err := w.WriteMsg(rpmes); err != nil {
 		log.Errorf("Failed to encode protobuf message: %v", err)
 		return nil
 	}
 
-	return rmes
+	return nil
+}
+
+func (d *Diagnostics) handleNewStream(s net.Stream) {
+
+	go func() {
+		d.HandleMessage(context.Background(), s)
+	}()
+
 }

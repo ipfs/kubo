@@ -45,6 +45,10 @@ type Reader interface {
 
 	// ReleaseMsg signals a buffer can be reused.
 	ReleaseMsg([]byte)
+
+	// NextMsgLen returns the length of the next (peeked) message. Does
+	// not destroy the message or have other adverse effects
+	NextMsgLen() (int, error)
 }
 
 // ReadCloser combines a Reader and Closer.
@@ -142,9 +146,15 @@ func NewReaderWithPool(r io.Reader, p *mpool.Pool) ReadCloser {
 	}
 }
 
-// nextMsgLen reads the length of the next msg into s.lbuf, and returns it.
-// WARNING: like ReadMsg, nextMsgLen is destructive. It reads from the internal
+// NextMsgLen reads the length of the next msg into s.lbuf, and returns it.
+// WARNING: like Read, NextMsgLen is destructive. It reads from the internal
 // reader.
+func (s *reader) NextMsgLen() (int, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.nextMsgLen()
+}
+
 func (s *reader) nextMsgLen() (int, error) {
 	if s.next == -1 {
 		if _, err := io.ReadFull(s.R, s.lbuf); err != nil {

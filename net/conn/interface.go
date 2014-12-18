@@ -1,24 +1,21 @@
 package conn
 
 import (
+	"io"
+	"net"
+	"time"
+
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 
+	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // Map maps Keys (Peer.IDs) to Connections.
 type Map map[u.Key]Conn
 
-// Conn is a generic message-based Peer-to-Peer connection.
-type Conn interface {
-	// implement ContextCloser too!
-	ctxc.ContextCloser
-
-	// ID is an identifier unique to this connection.
-	ID() string
-
+type PeerConn interface {
 	// LocalMultiaddr is the Multiaddr on this side
 	LocalMultiaddr() ma.Multiaddr
 
@@ -30,16 +27,25 @@ type Conn interface {
 
 	// RemotePeer is the Peer on the remote side
 	RemotePeer() peer.Peer
+}
 
-	// In returns a readable message channel
-	In() <-chan []byte
+// Conn is a generic message-based Peer-to-Peer connection.
+type Conn interface {
+	PeerConn
 
-	// Out returns a writable message channel
-	Out() chan<- []byte
+	// ID is an identifier unique to this connection.
+	ID() string
 
-	// Get an error from this conn if one is available
-	// TODO: implement a better error handling system
-	GetError() error
+	// can't just say "net.Conn" cause we have duplicate methods.
+	LocalAddr() net.Addr
+	RemoteAddr() net.Addr
+	SetDeadline(t time.Time) error
+	SetReadDeadline(t time.Time) error
+	SetWriteDeadline(t time.Time) error
+
+	msgio.Reader
+	msgio.Writer
+	io.Closer
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
@@ -54,15 +60,27 @@ type Dialer struct {
 	// because when an incoming connection is identified, we should reuse the
 	// same peer objects (otherwise things get inconsistent).
 	Peerstore peer.Peerstore
+
+	// WithoutSecureTransport determines whether to initialize an insecure connection.
+	// Phrased negatively so default is Secure, and verbosely to be very clear.
+	WithoutSecureTransport bool
 }
 
 // Listener is an object that can accept connections. It matches net.Listener
 type Listener interface {
 
 	// Accept waits for and returns the next connection to the listener.
-	Accept() <-chan Conn
+	Accept() (net.Conn, error)
 
-	// Multiaddr is the identity of the local Peer.
+	// {Set}WithoutSecureTransport decides whether to start insecure connections.
+	// Phrased negatively so default is Secure, and verbosely to be very clear.
+	WithoutSecureTransport() bool
+	SetWithoutSecureTransport(bool)
+
+	// Addr is the local address
+	Addr() net.Addr
+
+	// Multiaddr is the local multiaddr address
 	Multiaddr() ma.Multiaddr
 
 	// LocalPeer is the identity of the local Peer.

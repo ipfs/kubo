@@ -1,15 +1,15 @@
 package conn
 
 import (
-	"errors"
+	"net"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	spipe "github.com/jbenet/go-ipfs/crypto/spipe"
+	secio "github.com/jbenet/go-ipfs/crypto/secio"
 	peer "github.com/jbenet/go-ipfs/peer"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
-	"github.com/jbenet/go-ipfs/util/pipes"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.
@@ -18,83 +18,38 @@ type secureConn struct {
 	// the wrapped conn
 	insecure Conn
 
-	// secure pipe, wrapping insecure
-	secure *spipe.SecurePipe
+	// secure io (wrapping insecure)
+	secure msgio.ReadWriteCloser
 
-	ctxc.ContextCloser
+	// secure Session
+	session secio.Session
 }
 
 // newConn constructs a new connection
 func newSecureConn(ctx context.Context, insecure Conn, peers peer.Peerstore) (Conn, error) {
 
-	conn := &secureConn{
-		insecure: insecure,
-	}
-	conn.ContextCloser = ctxc.NewContextCloser(ctx, conn.close)
-
-	log.Debugf("newSecureConn: %v to %v", insecure.LocalPeer(), insecure.RemotePeer())
-	// perform secure handshake before returning this connection.
-	if err := conn.secureHandshake(peers); err != nil {
-		conn.Close()
+	// NewSession performs the secure handshake, which takes multiple RTT
+	sessgen := secio.SessionGenerator{Local: insecure.LocalPeer(), Peerstore: peers}
+	session, err := sessgen.NewSession(ctx, insecure)
+	if err != nil {
 		return nil, err
 	}
-	log.Debugf("newSecureConn: %v to %v handshake success!", insecure.LocalPeer(), insecure.RemotePeer())
 
+	conn := &secureConn{
+		insecure: insecure,
+		session:  session,
+		secure:   session.ReadWriter(),
+	}
+	log.Debugf("newSecureConn: %v to %v handshake success!", conn.LocalPeer(), conn.RemotePeer())
 	return conn, nil
 }
 
-// secureHandshake performs the spipe secure handshake.
-func (c *secureConn) secureHandshake(peers peer.Peerstore) error {
-	if c.secure != nil {
-		return errors.New("Conn is already secured or being secured.")
-	}
-
-	// ok to panic here if this type assertion fails. Interface hack.
-	// when we support wrapping other Conns, we'll need to change
-	// spipe to do something else.
-	insecureSC := c.insecure.(*singleConn)
-
-	// setup a Duplex pipe for spipe
-	insecureD := pipes.Duplex{
-		In:  insecureSC.msgio.incoming.MsgChan,
-		Out: insecureSC.msgio.outgoing.MsgChan,
-	}
-
-	// spipe performs the secure handshake, which takes multiple RTT
-	sp, err := spipe.NewSecurePipe(c.Context(), 10, c.LocalPeer(), peers, insecureD)
-	if err != nil {
+func (c *secureConn) Close() error {
+	if err := c.secure.Close(); err != nil {
+		c.insecure.Close()
 		return err
 	}
-
-	// assign it into the conn object
-	c.secure = sp
-
-	// if we do not know RemotePeer, get it from secure chan (who identifies it)
-	if insecureSC.remote == nil {
-		insecureSC.remote = c.secure.RemotePeer()
-
-	} else if insecureSC.remote != c.secure.RemotePeer() {
-		// this panic is here because this would be an insidious programmer error
-		// that we need to ensure we catch.
-		// update: this actually might happen under normal operation-- should
-		// perhaps return an error. TBD.
-
-		log.Errorf("secureConn peer mismatch. %v != %v", insecureSC.remote, c.secure.RemotePeer())
-		log.Errorf("insecureSC.remote: %s %#v", insecureSC.remote, insecureSC.remote)
-		log.Errorf("c.secure.LocalPeer: %s %#v", c.secure.RemotePeer(), c.secure.RemotePeer())
-		panic("secureConn peer mismatch. consructed incorrectly?")
-	}
-
-	return nil
-}
-
-// close is called by ContextCloser
-func (c *secureConn) close() error {
-	err := c.insecure.Close()
-	if c.secure != nil { // may never have gotten here.
-		err = c.secure.Close()
-	}
-	return err
+	return c.insecure.Close()
 }
 
 // ID is an identifier unique to this connection.
@@ -104,6 +59,26 @@ func (c *secureConn) ID() string {
 
 func (c *secureConn) String() string {
 	return String(c, "secureConn")
+}
+
+func (c *secureConn) LocalAddr() net.Addr {
+	return c.insecure.LocalAddr()
+}
+
+func (c *secureConn) RemoteAddr() net.Addr {
+	return c.insecure.RemoteAddr()
+}
+
+func (c *secureConn) SetDeadline(t time.Time) error {
+	return c.insecure.SetDeadline(t)
+}
+
+func (c *secureConn) SetReadDeadline(t time.Time) error {
+	return c.insecure.SetReadDeadline(t)
+}
+
+func (c *secureConn) SetWriteDeadline(t time.Time) error {
+	return c.insecure.SetWriteDeadline(t)
 }
 
 // LocalMultiaddr is the Multiaddr on this side
@@ -118,24 +93,39 @@ func (c *secureConn) RemoteMultiaddr() ma.Multiaddr {
 
 // LocalPeer is the Peer on this side
 func (c *secureConn) LocalPeer() peer.Peer {
-	return c.insecure.LocalPeer()
+	return c.session.LocalPeer()
 }
 
 // RemotePeer is the Peer on the remote side
 func (c *secureConn) RemotePeer() peer.Peer {
-	return c.insecure.RemotePeer()
+	return c.session.RemotePeer()
 }
 
-// In returns a readable message channel
-func (c *secureConn) In() <-chan []byte {
-	return c.secure.In
+// Read reads data, net.Conn style
+func (c *secureConn) Read(buf []byte) (int, error) {
+	return c.secure.Read(buf)
 }
 
-// Out returns a writable message channel
-func (c *secureConn) Out() chan<- []byte {
-	return c.secure.Out
+// Write writes data, net.Conn style
+func (c *secureConn) Write(buf []byte) (int, error) {
+	return c.secure.Write(buf)
 }
 
-func (c *secureConn) GetError() error {
-	return c.insecure.GetError()
+func (c *secureConn) NextMsgLen() (int, error) {
+	return c.secure.NextMsgLen()
+}
+
+// ReadMsg reads data, net.Conn style
+func (c *secureConn) ReadMsg() ([]byte, error) {
+	return c.secure.ReadMsg()
+}
+
+// WriteMsg writes data, net.Conn style
+func (c *secureConn) WriteMsg(buf []byte) error {
+	return c.secure.WriteMsg(buf)
+}
+
+// ReleaseMsg releases a buffer
+func (c *secureConn) ReleaseMsg(m []byte) {
+	c.secure.ReleaseMsg(m)
 }

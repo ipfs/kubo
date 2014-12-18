@@ -50,7 +50,7 @@ func (dht *IpfsDHT) getPublicKey(pid peer.ID) (ci.PubKey, error) {
 	}
 
 	log.Debug("not in peerstore, searching dht.")
-	ctxT, _ := context.WithTimeout(dht.ContextCloser.Context(), time.Second*5)
+	ctxT, _ := context.WithTimeout(dht.ContextGroup.Context(), time.Second*5)
 	val, err := dht.GetValue(ctxT, u.Key("/pk/"+string(pid)))
 	if err != nil {
 		log.Warning("Failed to find requested public key.")

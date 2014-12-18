@@ -6,9 +6,9 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 
 	u "github.com/jbenet/go-ipfs/util"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 )
 
 var log = u.Logger("mount")
@@ -25,7 +25,7 @@ type Mount interface {
 	// Unmount calls Close.
 	Unmount() error
 
-	ctxc.ContextCloser
+	ctxgroup.ContextGroup
 }
 
 // UnmountFunc is a function used to Unmount a mount
@@ -39,12 +39,12 @@ type MountFunc func(Mount) error
 // in an UnmountFunc to perform the unmounting logic.
 func New(ctx context.Context, mountpoint string) Mount {
 	m := &mount{mpoint: mountpoint}
-	m.ContextCloser = ctxc.NewContextCloser(ctx, m.persistentUnmount)
+	m.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, m.persistentUnmount)
 	return m
 }
 
 type mount struct {
-	ctxc.ContextCloser
+	ctxgroup.ContextGroup
 
 	unmount UnmountFunc
 	mpoint  string
@@ -80,15 +80,13 @@ func (m *mount) Unmount() error {
 }
 
 func (m *mount) Mount(mount MountFunc, unmount UnmountFunc) {
-	m.Children().Add(1)
 	m.unmount = unmount
 
 	// go serve the mount
-	go func() {
+	m.ContextGroup.AddChildFunc(func(parent ctxgroup.ContextGroup) {
 		if err := mount(m); err != nil {
 			log.Error("%s mount: %s", m.MountPoint(), err)
 		}
-		m.Children().Done()
 		m.Unmount()
-	}()
+	})
 }

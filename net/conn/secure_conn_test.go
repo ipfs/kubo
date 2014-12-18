@@ -15,96 +15,73 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-func setupSecureConn(t *testing.T, c Conn) Conn {
-	c, ok := c.(*secureConn)
-	if ok {
-		return c
+func upgradeToSecureConn(t *testing.T, ctx context.Context, c Conn) (Conn, error) {
+	if c, ok := c.(*secureConn); ok {
+		return c, nil
 	}
 
 	// shouldn't happen, because dial + listen already return secure conns.
-	s, err := newSecureConn(c.Context(), c, peer.NewPeerstore())
+	s, err := newSecureConn(ctx, c, peer.NewPeerstore())
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-	return s
+	return s, nil
+}
+
+func secureHandshake(t *testing.T, ctx context.Context, c Conn, done chan error) {
+	_, err := upgradeToSecureConn(t, ctx, c)
+	done <- err
 }
 
 func TestSecureClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
+	ctx := context.Background()
+	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
 
-	c1 = setupSecureConn(t, c1)
-	c2 = setupSecureConn(t, c2)
+	done := make(chan error)
+	go secureHandshake(t, ctx, c1, done)
+	go secureHandshake(t, ctx, c2, done)
 
-	select {
-	case <-c1.Closed():
-		t.Fatal("done before close")
-	case <-c2.Closed():
-		t.Fatal("done before close")
-	default:
+	for i := 0; i < 2; i++ {
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
 	}
+
+	testOneSendRecv(t, c1, c2)
 
 	c1.Close()
-
-	select {
-	case <-c1.Closed():
-	default:
-		t.Fatal("not done after close")
-	}
+	testNotOneSendRecv(t, c1, c2)
 
 	c2.Close()
+	testNotOneSendRecv(t, c1, c2)
+	testNotOneSendRecv(t, c2, c1)
 
-	select {
-	case <-c2.Closed():
-	default:
-		t.Fatal("not done after close")
-	}
-
-	cancel() // close the listener :P
 }
 
-func TestSecureCancel(t *testing.T) {
+func TestSecureCancelHandshake(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
+	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
 
-	c1 = setupSecureConn(t, c1)
-	c2 = setupSecureConn(t, c2)
+	done := make(chan error)
+	go secureHandshake(t, ctx, c1, done)
+	<-time.After(50 * time.Millisecond)
+	cancel() // cancel ctx
+	go secureHandshake(t, ctx, c2, done)
 
-	select {
-	case <-c1.Closed():
-		t.Fatal("done before close")
-	case <-c2.Closed():
-		t.Fatal("done before close")
-	default:
+	for i := 0; i < 2; i++ {
+		if err := <-done; err == nil {
+			t.Error("cancel should've errored out")
+		}
 	}
-
-	c1.Close()
-	c2.Close()
-	cancel() // listener
-
-	// wait to ensure other goroutines run and close things.
-	<-time.After(time.Microsecond * 10)
-	// test that cancel called Close.
-
-	select {
-	case <-c1.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
-	select {
-	case <-c2.Closed():
-	default:
-		t.Fatal("not done after cancel")
-	}
-
 }
 
 func TestSecureCloseLeak(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
+
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -118,22 +95,25 @@ func TestSecureCloseLeak(t *testing.T) {
 		a1 := strconv.Itoa(p1)
 		a2 := strconv.Itoa(p2)
 		ctx, cancel := context.WithCancel(context.Background())
-		c1, c2 := setupConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
-
-		c1 = setupSecureConn(t, c1)
-		c2 = setupSecureConn(t, c2)
+		c1, c2 := setupSecureConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
 
 		for i := 0; i < num; i++ {
 			b1 := []byte("beep")
-			c1.Out() <- b1
-			b2 := <-c2.In()
+			c1.WriteMsg(b1)
+			b2, err := c2.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
 				panic("bytes not equal")
 			}
 
-			b2 = []byte("boop")
-			c2.Out() <- b2
-			b1 = <-c1.In()
+			b2 = []byte("beep")
+			c2.WriteMsg(b2)
+			b1, err = c1.ReadMsg()
+			if err != nil {
+				panic(err)
+			}
 			if !bytes.Equal(b1, b2) {
 				panic("bytes not equal")
 			}

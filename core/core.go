@@ -6,6 +6,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -21,14 +22,11 @@ import (
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
-	mux "github.com/jbenet/go-ipfs/net/mux"
-	netservice "github.com/jbenet/go-ipfs/net/service"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
-	ctxc "github.com/jbenet/go-ipfs/util/ctxcloser"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -42,51 +40,28 @@ var log = eventlog.Logger("core")
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
 
-	// the node's configuration
-	Config *config.Config
+	// Self
+	Config     *config.Config // the node's configuration
+	Identity   peer.Peer      // the local node's identity
+	onlineMode bool           // alternatively, offline
 
-	// the local node's identity
-	Identity peer.Peer
+	// Local node
+	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
+	Pinning   pin.Pinner                    // the pinning manager
+	Mounts    Mounts                        // current mount state, if any.
 
-	// storage for other Peer instances
-	Peerstore peer.Peerstore
+	// Services
+	Peerstore   peer.Peerstore       // storage for other Peer instances
+	Network     inet.Network         // the network message stream
+	Routing     routing.IpfsRouting  // the routing system. recommend ipfs-dht
+	Exchange    exchange.Interface   // the block exchange + strategy (bitswap)
+	Blocks      *bserv.BlockService  // the block service, get/add blocks.
+	DAG         merkledag.DAGService // the merkle dag service, get/add objects.
+	Resolver    *path.Resolver       // the path resolution system
+	Namesys     namesys.NameSystem   // the name system, resolves paths to hashes
+	Diagnostics *diag.Diagnostics    // the diagnostics service
 
-	// the local datastore
-	Datastore ds2.ThreadSafeDatastoreCloser
-
-	// the network message stream
-	Network inet.Network
-
-	// the routing system. recommend ipfs-dht
-	Routing routing.IpfsRouting
-
-	// the block exchange + strategy (bitswap)
-	Exchange exchange.Interface
-
-	// the block service, get/add blocks.
-	Blocks *bserv.BlockService
-
-	// the merkle dag service, get/add objects.
-	DAG merkledag.DAGService
-
-	// the path resolution system
-	Resolver *path.Resolver
-
-	// the name system, resolves paths to hashes
-	Namesys namesys.NameSystem
-
-	// the diagnostics service
-	Diagnostics *diag.Diagnostics
-
-	// the pinning manager
-	Pinning pin.Pinner
-
-	// current mount state, if any.
-	Mounts Mounts
-
-	ctxc.ContextCloser
-
-	onlineMode bool // alternatively, offline
+	ctxgroup.ContextGroup
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -114,8 +89,8 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 		onlineMode: online,
 		Config:     cfg,
 	}
-	n.ContextCloser = ctxc.NewContextCloser(ctx, n.teardown)
-	ctx = n.ContextCloser.Context()
+	n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
+	ctx = n.ContextGroup.Context()
 
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
@@ -135,45 +110,32 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 	// setup online services
 	if online {
 
-		dhtService := netservice.NewService(ctx, nil)      // nil handler for now, need to patch it
-		exchangeService := netservice.NewService(ctx, nil) // nil handler for now, need to patch it
-		diagService := netservice.NewService(ctx, nil)     // nil handler for now, need to patch it
-
-		muxMap := &mux.ProtocolMap{
-			mux.ProtocolID_Routing:    dhtService,
-			mux.ProtocolID_Exchange:   exchangeService,
-			mux.ProtocolID_Diagnostic: diagService,
-			// add protocol services here.
-		}
-
 		// setup the network
 		listenAddrs, err := listenAddresses(cfg)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
 
-		n.Network, err = inet.NewIpfsNetwork(ctx, listenAddrs, n.Identity, n.Peerstore, muxMap)
+		n.Network, err = inet.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
-		n.AddCloserChild(n.Network)
+		n.AddChildGroup(n.Network.CtxGroup())
 
 		// setup diagnostics service
-		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.Network, diagService)
-		diagService.SetHandler(n.Diagnostics)
+		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.Network)
 
 		// setup routing service
-		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Peerstore, n.Network, dhtService, n.Datastore)
+		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Peerstore, n.Network, n.Datastore)
 		dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 
 		// TODO(brian): perform this inside NewDHT factory method
-		dhtService.SetHandler(dhtRouting) // wire the handler to the service.
 		n.Routing = dhtRouting
-		n.AddCloserChild(dhtRouting)
+		n.AddChildGroup(dhtRouting)
 
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
-		bitswapNetwork := bsnet.NewFromIpfsNetwork(exchangeService, n.Network)
+		bitswapNetwork := bsnet.NewFromIpfsNetwork(n.Network)
 
 		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, blockstore, alwaysSendToPeer)
 

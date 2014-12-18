@@ -1,0 +1,14 @@
+{
+	"ImportPath": "github.com/jbenet/go-ctxgroup",
+	"GoVersion": "go1.3",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go.net/context",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
+		}
+	]
+}

@@ -48,10 +48,11 @@ func bootstrap(ctx context.Context,
 	ps peer.Peerstore,
 	boots []*config.BootstrapPeer) error {
 
-	if len(n.GetConnections()) >= recoveryThreshold {
+	connectedPeers := n.Peers()
+	if len(connectedPeers) >= recoveryThreshold {
 		return nil
 	}
-	numCxnsToCreate := recoveryThreshold - len(n.GetConnections())
+	numCxnsToCreate := recoveryThreshold - len(connectedPeers)
 
 	var bootstrapPeers []peer.Peer
 	for _, bootstrap := range boots {
