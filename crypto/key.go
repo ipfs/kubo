@@ -83,7 +83,7 @@ func GenerateKeyPair(typ, bits int) (PrivKey, PubKey, error) {
 			return nil, nil, err
 		}
 		pk := &priv.PublicKey
-		return &RsaPrivateKey{priv}, &RsaPublicKey{pk}, nil
+		return &RsaPrivateKey{sk: priv}, &RsaPublicKey{pk}, nil
 	default:
 		return nil, nil, ErrBadKeyType
 	}

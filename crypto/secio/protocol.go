@@ -36,9 +36,9 @@ type secureSession struct {
 	insecure  io.ReadWriter
 	insecureM msgio.ReadWriter
 
-	peers      peer.Peerstore
-	localPeer  peer.Peer
-	remotePeer peer.Peer
+	localKey   ci.PrivKey
+	localPeer  peer.ID
+	remotePeer peer.ID
 
 	local  encParams
 	remote encParams
@@ -46,8 +46,8 @@ type secureSession struct {
 	sharedSecret []byte
 }
 
-func newSecureSession(local peer.Peer, peers peer.Peerstore) *secureSession {
-	return &secureSession{peers: peers, localPeer: local}
+func newSecureSession(local peer.ID, key ci.PrivKey) *secureSession {
+	return &secureSession{localPeer: local, localKey: key}
 }
 
 // handsahke performs initial communication over insecure channel to share
@@ -71,7 +71,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 
 	log.Debugf("handshake: %s <--start--> %s", s.localPeer, s.remotePeer)
 	log.Event(ctx, "secureHandshakeStart", s.localPeer)
-	s.local.permanentPubKey = s.localPeer.PubKey()
+	s.local.permanentPubKey = s.localKey.GetPublic()
 	myPubKeyBytes, err := s.local.permanentPubKey.Bytes()
 	if err != nil {
 		return err
@@ -106,8 +106,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return err
 	}
 
-	// get or construct peer
-	s.remotePeer, err = getOrConstructPeer(s.peers, s.remote.permanentPubKey)
+	// get peer id
+	s.remotePeer, err = peer.IDFromPubKey(s.remote.permanentPubKey)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 
 	exchangeOut := new(pb.Exchange)
 	exchangeOut.Epubkey = s.local.ephemeralPubKey
-	exchangeOut.Signature, err = s.localPeer.PrivKey().Sign(selectionOutBytes)
+	exchangeOut.Signature, err = s.localKey.Sign(selectionOutBytes)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	selectionInBytes := selectionIn.Bytes()
 
 	// u.POut("Remote Peer Identified as %s\n", s.remote)
-	sigOK, err := s.remotePeer.PubKey().Verify(selectionInBytes, exchangeIn.GetSignature())
+	sigOK, err := s.local.permanentPubKey.Verify(selectionInBytes, exchangeIn.GetSignature())
 	if err != nil {
 		return err
 	}
@@ -260,26 +260,4 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	log.Debugf("handshake: %s <--finish--> %s", s.localPeer, s.remotePeer)
 	log.Event(ctx, "secureHandshakeFinish", s.localPeer, s.remotePeer)
 	return nil
-}
-
-// getOrConstructPeer attempts to fetch a peer from a peerstore.
-// if succeeds, verify ID and PubKey match.
-// else, construct it.
-func getOrConstructPeer(peers peer.Peerstore, rpk ci.PubKey) (peer.Peer, error) {
-
-	rid, err := peer.IDFromPubKey(rpk)
-	if err != nil {
-		return nil, err
-	}
-
-	npeer, err := peers.FindOrCreate(rid)
-	if err != nil {
-		return nil, err // unexpected error happened.
-	}
-
-	// public key verification happens in Peer.VerifyAndSetPubKey
-	if err := npeer.VerifyAndSetPubKey(rpk); err != nil {
-		return nil, err // pubkey mismatch or other problem
-	}
-	return npeer, nil
 }

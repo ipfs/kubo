@@ -1,65 +1,40 @@
 package peer
 
 import (
+	"bytes"
+	"encoding/base64"
+	"strings"
 	"testing"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
-func TestNetAddress(t *testing.T) {
-
-	tcp, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/1234")
+func TestIDMatchesKey(t *testing.T) {
+	p2, err := IDB58Decode("QmcNstKuwBBoVTpSCSDrwzjgrRcaYXK833Psuz2EMHwyQN")
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
-	udp, err := ma.NewMultiaddr("/ip4/127.0.0.1/udp/2345")
+	key := `CAASpgQwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC81JT2dK7zWjKWVAK4X
+Csfuu2mjPssRopgF9zNOoP9fUPms1wtSwXKLMkXSSq8hBdk4LLem9X++DaDNu1uU/Focse/yeQ1XwJA
+cwOyHtBfUrM2os4ViwXmpVcVfO4h6ZcqDebxfb30aXpjvk0ujbtC//zpHp4pRfClq0Q/f/pQaKJbrR6
+3jodY8g77uLP5LOUmV/e2L0KuF/mluzNMAZU5dtBMwUBTBWEDTvRyU4S9BrgJimaIX7Szrr7SpA/Zcv
+HRYclIramjhT1g9lcJkgS/MHgfm961AURprA4VvhG/QuBhXTFH187Pn2Ru8q7zANtmbdlsfgu2zpjfn
+2B4aBBtJcGlKfiVcIiLR4ZoZZO+YadNbZPgA8MMJue8pA+KgaMSkz06pM3PB8d29RdkvsU9Mb9gbjlc
+OeMwlJ9+XhKqFq4q7NRA9syH8ehZLAdPXZHHoqhvCoFgWUNoWeofcw6Rgq4S2T2xdwyj1wDAlSOpFFZ
+yl05aJBxK8Qc2u6DXDdR3kLBpgMNYFwDosmY4imLNVUZCG2qW9X3PjyWvwCq3EXihY+64em/FIOjfPU
+IRby5H1QoB7/HmsfQH5ctpxa+8xRxiVQJc90J8YT6xjWPSiTPHA6Dv00+e8aq3gDoPDqqTiv5CixP+r
+7oKHR/QOHGiq2wlW7tk19gUuAD9KQDBxwIDAQAB`
+	key = strings.Replace(key, "\n", "", -1)
+
+	keyb, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
-	mh, err := mh.FromHexString("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	p := NewPeerstore().WithID(ID(mh))
-	p.AddAddress(tcp)
-	p.AddAddress(udp)
-	p.AddAddress(tcp)
-
-	if len(p.Addresses()) == 3 {
-		t.Error("added same address twice")
-	}
-
-	tcp2 := p.NetAddress("tcp")
-	if tcp2 != tcp {
-		t.Error("NetAddress lookup failed", tcp, tcp2)
-	}
-
-	udp2 := p.NetAddress("udp")
-	if udp2 != udp {
-		t.Error("NetAddress lookup failed", udp, udp2)
-	}
-}
-
-func TestStringMethodWithSmallId(t *testing.T) {
-	p := NewPeerstore().WithID([]byte(string(0)))
-	p1, ok := p.(*peer)
-	if !ok {
-		t.Fatal("WithID doesn't return a peer")
-	}
-	p1.String()
-}
-
-func TestDefaultType(t *testing.T) {
-	t.Log("Ensure that peers are initialized to Unspecified by default")
-	p := peer{}
-	if p.GetType() != Unspecified {
-		t.Fatalf("Peer's default type is was not `Unspecified`")
+	// cast is using multihash Cast
+	hsh := u.Hash(keyb)
+	if !bytes.Equal(hsh, []byte(p2)) {
+		t.Error("peerID and key should match")
 	}
 }

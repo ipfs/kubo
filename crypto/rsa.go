@@ -14,7 +14,8 @@ import (
 )
 
 type RsaPrivateKey struct {
-	k *rsa.PrivateKey
+	sk *rsa.PrivateKey
+	pk *rsa.PublicKey
 }
 
 type RsaPublicKey struct {
@@ -64,19 +65,22 @@ func (sk *RsaPrivateKey) GenSecret() []byte {
 
 func (sk *RsaPrivateKey) Sign(message []byte) ([]byte, error) {
 	hashed := sha256.Sum256(message)
-	return rsa.SignPKCS1v15(rand.Reader, sk.k, crypto.SHA256, hashed[:])
+	return rsa.SignPKCS1v15(rand.Reader, sk.sk, crypto.SHA256, hashed[:])
 }
 
 func (sk *RsaPrivateKey) GetPublic() PubKey {
-	return &RsaPublicKey{&sk.k.PublicKey}
+	if sk.pk == nil {
+		sk.pk = &sk.sk.PublicKey
+	}
+	return &RsaPublicKey{sk.pk}
 }
 
 func (sk *RsaPrivateKey) Decrypt(b []byte) ([]byte, error) {
-	return rsa.DecryptPKCS1v15(rand.Reader, sk.k, b)
+	return rsa.DecryptPKCS1v15(rand.Reader, sk.sk, b)
 }
 
 func (sk *RsaPrivateKey) Bytes() ([]byte, error) {
-	b := x509.MarshalPKCS1PrivateKey(sk.k)
+	b := x509.MarshalPKCS1PrivateKey(sk.sk)
 	pbmes := new(pb.PrivateKey)
 	typ := pb.KeyType_RSA
 	pbmes.Type = &typ
@@ -98,7 +102,7 @@ func UnmarshalRsaPrivateKey(b []byte) (*RsaPrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &RsaPrivateKey{sk}, nil
+	return &RsaPrivateKey{sk: sk}, nil
 }
 
 func MarshalRsaPrivateKey(k *RsaPrivateKey) []byte {
