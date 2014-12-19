@@ -107,7 +107,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	}
 
 	// get peer id
-	s.remotePeer, err = peer.IDFromPubKey(s.remote.permanentPubKey)
+	s.remotePeer, err = peer.IDFromPublicKey(s.remote.permanentPubKey)
 	if err != nil {
 		return err
 	}

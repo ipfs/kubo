@@ -42,6 +42,20 @@ func (id ID) String() string {
 	return fmt.Sprintf("<peer.ID %s>", pid[:maxRunes])
 }
 
+// MatchesPrivateKey tests whether this ID was derived from sk
+func (id ID) MatchesPrivateKey(sk ic.PrivKey) bool {
+	return id.MatchesPublicKey(sk.GetPublic())
+}
+
+// MatchesPublicKey tests whether this ID was derived from pk
+func (id ID) MatchesPublicKey(pk ic.PubKey) bool {
+	oid, err := IDFromPublicKey(pk)
+	if err != nil {
+		return false
+	}
+	return oid == id
+}
+
 // IDFromString cast a string to ID type, and validate
 // the id to make sure it is a multihash.
 func IDFromString(s string) (ID, error) {
@@ -74,14 +88,19 @@ func IDB58Encode(id ID) string {
 	return b58.Encode([]byte(id))
 }
 
-// IDFromPubKey returns the Peer ID corresponding to pk
-func IDFromPubKey(pk ic.PubKey) (ID, error) {
+// IDFromPublicKey returns the Peer ID corresponding to pk
+func IDFromPublicKey(pk ic.PubKey) (ID, error) {
 	b, err := pk.Bytes()
 	if err != nil {
 		return "", err
 	}
 	hash := u.Hash(b)
 	return ID(hash), nil
+}
+
+// IDFromPrivateKey returns the Peer ID corresponding to sk
+func IDFromPrivateKey(sk ic.PrivKey) (ID, error) {
+	return IDFromPublicKey(sk.GetPublic())
 }
 
 // Map maps a Peer ID to a struct.

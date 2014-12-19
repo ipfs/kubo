@@ -117,7 +117,7 @@ func (kb *keybook) AddPubKey(p ID, pk ic.PubKey) error {
 
 // VerifyPubKey checks public key matches given peer Peer
 func VerifyPubKey(p ID, pk ic.PubKey) error {
-	p2, err := IDFromPubKey(pk)
+	p2, err := IDFromPublicKey(pk)
 	if err != nil {
 		return fmt.Errorf("Failed to hash public key: %v", err)
 	}
