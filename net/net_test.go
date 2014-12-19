@@ -36,28 +36,28 @@ func TestConnectednessCorrect(t *testing.T) {
 	// test those connected show up correctly
 
 	// test connected
-	testConnectedness(t, nets[0], nets[1], inet.Connected)
-	testConnectedness(t, nets[0], nets[3], inet.Connected)
-	testConnectedness(t, nets[1], nets[2], inet.Connected)
-	testConnectedness(t, nets[3], nets[2], inet.Connected)
+	expectConnectedness(t, nets[0], nets[1], inet.Connected)
+	expectConnectedness(t, nets[0], nets[3], inet.Connected)
+	expectConnectedness(t, nets[1], nets[2], inet.Connected)
+	expectConnectedness(t, nets[3], nets[2], inet.Connected)
 
 	// test not connected
-	testConnectedness(t, nets[0], nets[2], inet.NotConnected)
-	testConnectedness(t, nets[1], nets[3], inet.NotConnected)
+	expectConnectedness(t, nets[0], nets[2], inet.NotConnected)
+	expectConnectedness(t, nets[1], nets[3], inet.NotConnected)
 
 	for _, n := range nets {
 		n.Close()
 	}
 }
 
-func testConnectedness(t *testing.T, a, b inet.Network, c inet.Connectedness) {
+func expectConnectedness(t *testing.T, a, b inet.Network, expected inet.Connectedness) {
 	es := "%s is connected to %s, but Connectedness incorrect. %s %s"
-	if a.Connectedness(b.LocalPeer()) != c {
+	if a.Connectedness(b.LocalPeer()) != expected {
 		t.Errorf(es, a, b, printConns(a), printConns(b))
 	}
 
 	// test symmetric case
-	if b.Connectedness(a.LocalPeer()) != c {
+	if b.Connectedness(a.LocalPeer()) != expected {
 		t.Errorf(es, b, a, printConns(b), printConns(a))
 	}
 }
