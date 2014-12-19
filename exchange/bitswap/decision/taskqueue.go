@@ -3,6 +3,7 @@ package decision
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -28,7 +29,9 @@ func newTaskQueue() *taskQueue {
 type task struct {
 	Entry  wantlist.Entry
 	Target peer.ID
-	Trash  bool
+	Trash  bool // TODO make private
+
+	created time.Time
 }
 
 func (t *task) String() string {
@@ -46,8 +49,9 @@ func (tl *taskQueue) Push(entry wantlist.Entry, to peer.ID) {
 		return
 	}
 	task := &task{
-		Entry:  entry,
-		Target: to,
+		Entry:   entry,
+		Target:  to,
+		created: time.Now(),
 	}
 	tl.tasks = append(tl.tasks, task)
 	tl.taskmap[taskKey(to, entry.Key)] = task
