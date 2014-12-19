@@ -101,6 +101,10 @@ func UnmarshalRsaPrivateKey(b []byte) (*RsaPrivateKey, error) {
 	return &RsaPrivateKey{sk}, nil
 }
 
+func MarshalRsaPrivateKey(k *RsaPrivateKey) []byte {
+	return x509.MarshalPKCS1PrivateKey(k.sk)
+}
+
 func UnmarshalRsaPublicKey(b []byte) (*RsaPublicKey, error) {
 	pub, err := x509.ParsePKIXPublicKey(b)
 	if err != nil {
@@ -111,4 +115,8 @@ func UnmarshalRsaPublicKey(b []byte) (*RsaPublicKey, error) {
 		return nil, errors.New("Not actually an rsa public key.")
 	}
 	return &RsaPublicKey{pk}, nil
+}
+
+func MarshalRsaPublicKey(k *RsaPublicKey) ([]byte, error) {
+	return x509.MarshalPKIXPublicKey(k.k)
 }
