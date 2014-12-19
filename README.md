@@ -14,12 +14,10 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-[Install Go 1.3+](http://golang.org/doc/install). Then:
+[Install Go 1.3+](http://golang.org/doc/install). Then simply:
 
 ```
-go get github.com/jbenet/go-ipfs/cmd/ipfs
-cd $GOPATH/src/github.com/jbenet/go-ipfs/cmd/ipfs
-go install
+go get -u github.com/jbenet/go-ipfs/cmd/ipfs
 ```
 
 NOTES:
@@ -38,41 +36,43 @@ dependencies as well.
 ## Usage
 
 ```
-ipfs - global versioned p2p merkledag file system
+    ipfs - global p2p merkle-dag filesystem
 
-Basic commands:
+    ipfs [<flags>] <command> [<arg>] ...
 
-    init          Initialize ipfs local configuration.
-    add <path>    Add an object to ipfs.
-    cat <ref>     Show ipfs object data.
-    ls <ref>      List links from an object.
-    refs <ref>    List link hashes from an object.
-
-Tool commands:
-
-    config        Manage configuration.
-    update        Download and apply go-ipfs updates.
-    version       Show ipfs version information.
-    commands      List all available commands.
-
-Advanced Commands:
-
-    mount         Mount an ipfs read-only mountpoint.
-    serve         Serve an interface to ipfs.
-    net-diag      Print network diagnostic
-
-Plumbing commands:
-
-    block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
-
-
-Use "ipfs help <command>" for more information about a command.
+    Basic commands:
+    
+        init          Initialize ipfs local configuration
+        add <path>    Add an object to ipfs
+        cat <ref>     Show ipfs object data
+        ls <ref>      List links from an object
+    
+    Tool commands:
+    
+        config        Manage configuration
+        update        Download and apply go-ipfs updates
+        version       Show ipfs version information
+        commands      List all available commands
+        id            Show info about ipfs peers
+    
+    Advanced Commands:
+    
+        daemon        Start a long-running daemon process
+        mount         Mount an ipfs read-only mountpoint
+        serve         Serve an interface to ipfs
+        diag          Print diagnostics
+    
+    Plumbing commands:
+    
+        block         Interact with raw blocks in the datastore
+        object        Interact with raw dag nodes
+    
+    Use 'ipfs <command> --help' to learn more about each command.
 ```
 
 ## Getting Started
 To start using ipfs, you must first initialize ipfs's config files on your
-system, this is done with `ipfs init`. See `ipfs help init` for information on
+system, this is done with `ipfs init`. See `ipfs init --help` for information on
 the optional arguments it takes. After initialization is complete, you can use
 `ipfs mount`, `ipfs add` and any of the other commands to explore!
 
@@ -90,7 +90,7 @@ Basic proof of 'ipfs working' locally:
 ### Troubleshooting
 If you have previously installed ipfs before and you are running into
 problems getting a newer version to work, try deleting (or backing up somewhere
-else) your config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
+else) your ipfs config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
 This will reinitialize the config file to its defaults and clear out the local
 datastore of any bad entries.
 
