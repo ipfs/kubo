@@ -1,55 +1,21 @@
 package testutil
 
 import (
-	crand "crypto/rand"
 	"fmt"
 	"math/rand"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-func RandPeer() peer.Peer {
-	id := make([]byte, 16)
-	crand.Read(id)
-	mhid := u.Hash(id)
-	return NewPeerWithID(peer.ID(mhid))
-}
-
-func PeerWithNewKeys() (peer.Peer, error) {
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
+func RandPeerID() (peer.ID, error) {
+	_, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	return NewPeerWithKeyPair(sk, pk)
-}
-
-func PeerWithKeysAndStringAddress(addr string) (peer.Peer, error) {
-	maddr, err := ma.NewMultiaddr(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	return PeerWithKeysAndAddress(maddr)
-}
-
-func PeerWithKeysAndAddress(maddr ma.Multiaddr) (peer.Peer, error) {
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := NewPeerWithKeyPair(sk, pk)
-	if err != nil {
-		return nil, err
-	}
-
-	p.AddAddress(maddr)
-	return p, nil
+	return peer.IDFromPublicKey(pk)
 }
 
 // RandLocalTCPAddress returns a random multiaddr. it suppresses errors
