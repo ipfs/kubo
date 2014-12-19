@@ -5,31 +5,37 @@ import (
 	"net"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 )
 
 // listener is an object that can accept connections. It implements Listener
 type listener struct {
-	withoutSecureTransport bool
-
 	manet.Listener
 
-	// Local multiaddr to listen on
-	maddr ma.Multiaddr
+	maddr ma.Multiaddr // Local multiaddr to listen on
+	local peer.ID      // LocalPeer is the identity of the local Peer
+	privk ic.PrivKey   // private key to use to initialize secure conns
 
-	// LocalPeer is the identity of the local Peer.
-	local peer.Peer
+	cg ctxgroup.ContextGroup
+}
 
-	// Peerstore is the set of peers we know about locally
-	peers peer.Peerstore
+func (l *listener) teardown() error {
+	defer log.Debugf("listener closed: %s %s", l.local, l.maddr)
+	return l.Listener.Close()
 }
 
 func (l *listener) Close() error {
-	log.Infof("listener closing: %s %s", l.local, l.maddr)
-	return l.Listener.Close()
+	log.Debugf("listener closing: %s %s", l.local, l.maddr)
+	return l.cg.Close()
+}
+
+func (l *listener) String() string {
+	return fmt.Sprintf("<Listener %s %s>", l.local, l.maddr)
 }
 
 // Accept waits for and returns the next connection to the listener.
@@ -46,27 +52,20 @@ func (l *listener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	c, err := newSingleConn(ctx, l.local, nil, maconn)
+	c, err := newSingleConn(ctx, l.local, "", maconn)
 	if err != nil {
 		return nil, fmt.Errorf("Error accepting connection: %v", err)
 	}
 
-	if l.withoutSecureTransport {
+	if l.privk == nil {
+		log.Warning("listener %s listening INSECURELY!", l)
 		return c, nil
 	}
-	sc, err := newSecureConn(ctx, c, l.peers)
+	sc, err := newSecureConn(ctx, l.privk, c)
 	if err != nil {
 		return nil, fmt.Errorf("Error securing connection: %v", err)
 	}
 	return sc, nil
-}
-
-func (l *listener) WithoutSecureTransport() bool {
-	return l.withoutSecureTransport
-}
-
-func (l *listener) SetWithoutSecureTransport(b bool) {
-	l.withoutSecureTransport = b
 }
 
 func (l *listener) Addr() net.Addr {
@@ -79,29 +78,22 @@ func (l *listener) Multiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the identity of the local Peer.
-func (l *listener) LocalPeer() peer.Peer {
+func (l *listener) LocalPeer() peer.ID {
 	return l.local
-}
-
-// Peerstore is the set of peers we know about locally. The Listener needs it
-// because when an incoming connection is identified, we should reuse the
-// same peer objects (otherwise things get inconsistent).
-func (l *listener) Peerstore() peer.Peerstore {
-	return l.peers
 }
 
 func (l *listener) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"listener": map[string]interface{}{
-			"peer":                   l.LocalPeer(),
-			"address":                l.Multiaddr(),
-			"withoutSecureTransport": l.withoutSecureTransport,
+			"peer":    l.LocalPeer(),
+			"address": l.Multiaddr(),
+			"secure":  (l.privk != nil),
 		},
 	}
 }
 
 // Listen listens on the particular multiaddr, with given peer and peerstore.
-func Listen(ctx context.Context, addr ma.Multiaddr, local peer.Peer, peers peer.Peerstore) (Listener, error) {
+func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey) (Listener, error) {
 
 	ml, err := manet.Listen(addr)
 	if err != nil {
@@ -111,10 +103,11 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.Peer, peers peer.
 	l := &listener{
 		Listener: ml,
 		maddr:    addr,
-		peers:    peers,
 		local:    local,
-		withoutSecureTransport: false,
+		privk:    sk,
+		cg:       ctxgroup.WithContext(ctx),
 	}
+	l.cg.SetTeardown(l.teardown)
 
 	log.Infof("swarm listening on %s\n", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)

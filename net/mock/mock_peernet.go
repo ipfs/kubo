@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -17,13 +18,13 @@ import (
 type peernet struct {
 	mocknet *mocknet // parent
 
-	peer peer.Peer
+	peer peer.ID
 	ps   peer.Peerstore
 
 	// conns are actual live connections between peers.
 	// many conns could run over each link.
 	// **conns are NOT shared between peers**
-	connsByPeer map[peerID]map[*conn]struct{}
+	connsByPeer map[peer.ID]map[*conn]struct{}
 	connsByLink map[*link]map[*conn]struct{}
 
 	// needed to implement inet.Network
@@ -34,15 +35,19 @@ type peernet struct {
 }
 
 // newPeernet constructs a new peernet
-func newPeernet(ctx context.Context, m *mocknet, id peer.ID) (*peernet, error) {
+func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
+	a ma.Multiaddr) (*peernet, error) {
 
-	// create our own entirely, so that peers dont get shuffled across
-	// network divides. dont share peers.
-	ps := peer.NewPeerstore()
-	p, err := ps.FindOrCreate(id)
+	p, err := peer.IDFromPublicKey(k.GetPublic())
 	if err != nil {
 		return nil, err
 	}
+
+	// create our own entirely, so that peers knowledge doesn't get shared
+	ps := peer.NewPeerstore()
+	ps.AddAddress(p, a)
+	ps.AddPrivKey(p, k)
+	ps.AddPubKey(p, k.GetPublic())
 
 	n := &peernet{
 		mocknet: m,
@@ -51,7 +56,7 @@ func newPeernet(ctx context.Context, m *mocknet, id peer.ID) (*peernet, error) {
 		mux:     inet.Mux{Handlers: inet.StreamHandlerMap{}},
 		cg:      ctxgroup.WithContext(ctx),
 
-		connsByPeer: map[peerID]map[*conn]struct{}{},
+		connsByPeer: map[peer.ID]map[*conn]struct{}{},
 		connsByLink: map[*link]map[*conn]struct{}{},
 	}
 
@@ -86,6 +91,14 @@ func (pn *peernet) Close() error {
 	return pn.cg.Close()
 }
 
+func (pn *peernet) Protocols() []inet.ProtocolID {
+	return pn.mux.Protocols()
+}
+
+func (pn *peernet) Peerstore() peer.Peerstore {
+	return pn.ps
+}
+
 func (pn *peernet) String() string {
 	return fmt.Sprintf("<mock.peernet %s - %d conns>", pn.peer, len(pn.allConns()))
 }
@@ -97,23 +110,16 @@ func (pn *peernet) handleNewStream(s inet.Stream) {
 
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
-func (pn *peernet) DialPeer(ctx context.Context, p peer.Peer) error {
+func (pn *peernet) DialPeer(ctx context.Context, p peer.ID) error {
 	return pn.connect(p)
 }
 
-func (pn *peernet) connect(p peer.Peer) error {
+func (pn *peernet) connect(p peer.ID) error {
 	log.Debugf("%s dialing %s", pn.peer, p)
-
-	// cannot trust the peer we get. typical for tests to give us
-	// a peer from some other peerstore...
-	p, err := pn.ps.Add(p)
-	if err != nil {
-		return err
-	}
 
 	// first, check if we already have live connections
 	pn.RLock()
-	cs, found := pn.connsByPeer[pid(p)]
+	cs, found := pn.connsByPeer[p]
 	pn.RUnlock()
 	if found && len(cs) > 0 {
 		return nil
@@ -136,7 +142,7 @@ func (pn *peernet) connect(p peer.Peer) error {
 	return nil
 }
 
-func (pn *peernet) openConn(r peer.Peer, l *link) *conn {
+func (pn *peernet) openConn(r peer.ID, l *link) *conn {
 	lc, rc := l.newConnPair(pn)
 	log.Debugf("%s opening connection to %s", pn.LocalPeer(), lc.RemotePeer())
 	pn.addConn(lc)
@@ -153,12 +159,12 @@ func (pn *peernet) remoteOpenedConn(c *conn) {
 // to given remote peer over given link
 func (pn *peernet) addConn(c *conn) {
 	pn.Lock()
-	cs, found := pn.connsByPeer[pid(c.RemotePeer())]
+	cs, found := pn.connsByPeer[c.RemotePeer()]
 	if !found {
 		cs = map[*conn]struct{}{}
-		pn.connsByPeer[pid(c.RemotePeer())] = cs
+		pn.connsByPeer[c.RemotePeer()] = cs
 	}
-	pn.connsByPeer[pid(c.RemotePeer())][c] = struct{}{}
+	pn.connsByPeer[c.RemotePeer()][c] = struct{}{}
 
 	cs, found = pn.connsByLink[c.link]
 	if !found {
@@ -180,7 +186,7 @@ func (pn *peernet) removeConn(c *conn) {
 	}
 	delete(cs, c)
 
-	cs, found = pn.connsByPeer[pid(c.remote)]
+	cs, found = pn.connsByPeer[c.remote]
 	if !found {
 		panic("attempting to remove a conn that doesnt exist")
 	}
@@ -193,16 +199,16 @@ func (pn *peernet) CtxGroup() ctxgroup.ContextGroup {
 }
 
 // LocalPeer the network's LocalPeer
-func (pn *peernet) LocalPeer() peer.Peer {
+func (pn *peernet) LocalPeer() peer.ID {
 	return pn.peer
 }
 
 // Peers returns the connected peers
-func (pn *peernet) Peers() []peer.Peer {
+func (pn *peernet) Peers() []peer.ID {
 	pn.RLock()
 	defer pn.RUnlock()
 
-	peers := make([]peer.Peer, 0, len(pn.connsByPeer))
+	peers := make([]peer.ID, 0, len(pn.connsByPeer))
 	for _, cs := range pn.connsByPeer {
 		for c := range cs {
 			peers = append(peers, c.remote)
@@ -226,11 +232,11 @@ func (pn *peernet) Conns() []inet.Conn {
 	return out
 }
 
-func (pn *peernet) ConnsToPeer(p peer.Peer) []inet.Conn {
+func (pn *peernet) ConnsToPeer(p peer.ID) []inet.Conn {
 	pn.RLock()
 	defer pn.RUnlock()
 
-	cs, found := pn.connsByPeer[pid(p)]
+	cs, found := pn.connsByPeer[p]
 	if !found || len(cs) == 0 {
 		return nil
 	}
@@ -243,9 +249,9 @@ func (pn *peernet) ConnsToPeer(p peer.Peer) []inet.Conn {
 }
 
 // ClosePeer connections to peer
-func (pn *peernet) ClosePeer(p peer.Peer) error {
+func (pn *peernet) ClosePeer(p peer.ID) error {
 	pn.RLock()
-	cs, found := pn.connsByPeer[pid(p)]
+	cs, found := pn.connsByPeer[p]
 	pn.RUnlock()
 	if !found {
 		return nil
@@ -278,11 +284,11 @@ func (pn *peernet) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 
 // Connectedness returns a state signaling connection capabilities
 // For now only returns Connecter || NotConnected. Expand into more later.
-func (pn *peernet) Connectedness(p peer.Peer) inet.Connectedness {
+func (pn *peernet) Connectedness(p peer.ID) inet.Connectedness {
 	pn.Lock()
 	defer pn.Unlock()
 
-	cs, found := pn.connsByPeer[pid(p)]
+	cs, found := pn.connsByPeer[p]
 	if found && len(cs) > 0 {
 		return inet.Connected
 	}
@@ -292,11 +298,11 @@ func (pn *peernet) Connectedness(p peer.Peer) inet.Connectedness {
 // NewStream returns a new stream to given peer p.
 // If there is no connection to p, attempts to create one.
 // If ProtocolID is "", writes no header.
-func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.Peer) (inet.Stream, error) {
+func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.ID) (inet.Stream, error) {
 	pn.Lock()
 	defer pn.Unlock()
 
-	cs, found := pn.connsByPeer[pid(p)]
+	cs, found := pn.connsByPeer[p]
 	if !found || len(cs) < 1 {
 		return nil, fmt.Errorf("no connection to peer")
 	}
@@ -313,15 +319,11 @@ func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.Peer) (inet.Stream, erro
 		n--
 	}
 
-	return c.NewStreamWithProtocol(pr, p)
+	return c.NewStreamWithProtocol(pr)
 }
 
 // SetHandler sets the protocol handler on the Network's Muxer.
 // This operation is threadsafe.
 func (pn *peernet) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
 	pn.mux.SetHandler(p, h)
-}
-
-func pid(p peer.Peer) peerID {
-	return peerID(p.ID())
 }

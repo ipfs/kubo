@@ -32,12 +32,12 @@ func (di *diagInfo) Marshal() []byte {
 func (dht *IpfsDHT) getDiagInfo() *diagInfo {
 	di := new(diagInfo)
 	di.CodeVersion = "github.com/jbenet/go-ipfs"
-	di.ID = dht.self.ID()
+	di.ID = dht.self
 	di.LifeSpan = time.Since(dht.birth)
 	di.Keys = nil // Currently no way to query datastore
 
 	for _, p := range dht.routingTable.ListPeers() {
-		d := connDiagInfo{p.GetLatency(), p.ID()}
+		d := connDiagInfo{dht.peerstore.LatencyEWMA(p), p}
 		di.Connections = append(di.Connections, d)
 	}
 	return di

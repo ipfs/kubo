@@ -50,7 +50,7 @@ const (
 // Envelope contains a message for a Peer
 type Envelope struct {
 	// Peer is the intended recipient
-	Peer peer.Peer
+	Peer peer.ID
 	// Message is the payload
 	Message bsmsg.BitSwapMessage
 }
@@ -75,12 +75,12 @@ type Engine struct {
 
 	lock sync.RWMutex // protects the fields immediatly below
 	// ledgerMap lists Ledgers by their Partner key.
-	ledgerMap map[u.Key]*ledger
+	ledgerMap map[peer.ID]*ledger
 }
 
 func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 	e := &Engine{
-		ledgerMap:        make(map[u.Key]*ledger),
+		ledgerMap:        make(map[peer.ID]*ledger),
 		bs:               bs,
 		peerRequestQueue: newTaskQueue(),
 		outbox:           make(chan Envelope, sizeOutboxChan),
@@ -126,11 +126,11 @@ func (e *Engine) Outbox() <-chan Envelope {
 }
 
 // Returns a slice of Peers with whom the local node has active sessions
-func (e *Engine) Peers() []peer.Peer {
+func (e *Engine) Peers() []peer.ID {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 
-	response := make([]peer.Peer, 0)
+	response := make([]peer.ID, 0)
 	for _, ledger := range e.ledgerMap {
 		response = append(response, ledger.Partner)
 	}
@@ -139,7 +139,7 @@ func (e *Engine) Peers() []peer.Peer {
 
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
-func (e *Engine) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
+func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	newWorkExists := false
 	defer func() {
 		if newWorkExists {
@@ -189,7 +189,7 @@ func (e *Engine) MessageReceived(p peer.Peer, m bsmsg.BitSwapMessage) error {
 // inconsistent. Would need to ensure that Sends and acknowledgement of the
 // send happen atomically
 
-func (e *Engine) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error {
+func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -203,22 +203,22 @@ func (e *Engine) MessageSent(p peer.Peer, m bsmsg.BitSwapMessage) error {
 	return nil
 }
 
-func (e *Engine) numBytesSentTo(p peer.Peer) uint64 {
+func (e *Engine) numBytesSentTo(p peer.ID) uint64 {
 	// NB not threadsafe
 	return e.findOrCreate(p).Accounting.BytesSent
 }
 
-func (e *Engine) numBytesReceivedFrom(p peer.Peer) uint64 {
+func (e *Engine) numBytesReceivedFrom(p peer.ID) uint64 {
 	// NB not threadsafe
 	return e.findOrCreate(p).Accounting.BytesRecv
 }
 
 // ledger lazily instantiates a ledger
-func (e *Engine) findOrCreate(p peer.Peer) *ledger {
-	l, ok := e.ledgerMap[p.Key()]
+func (e *Engine) findOrCreate(p peer.ID) *ledger {
+	l, ok := e.ledgerMap[p]
 	if !ok {
 		l = newLedger(p)
-		e.ledgerMap[p.Key()] = l
+		e.ledgerMap[p] = l
 	}
 	return l
 }

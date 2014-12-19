@@ -6,9 +6,12 @@ import (
 
 	config "github.com/jbenet/go-ipfs/config"
 	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
+	u "github.com/jbenet/go-ipfs/util"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 )
+
+var log = u.Logger("handshake")
 
 // IpfsVersion holds the current protocol version for a client running this code
 var IpfsVersion *semver.Version
@@ -51,6 +54,13 @@ func Handshake1Compatible(handshakeA, handshakeB *pb.Handshake1) error {
 
 // NewHandshake1 creates a new Handshake1 from the two strings
 func NewHandshake1(protoVer, agentVer string) *pb.Handshake1 {
+	if protoVer == "" {
+		protoVer = IpfsVersion.String()
+	}
+	if agentVer == "" {
+		agentVer = ClientVersion
+	}
+
 	return &pb.Handshake1{
 		ProtocolVersion: &protoVer,
 		AgentVersion:    &agentVer,

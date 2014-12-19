@@ -18,10 +18,11 @@ type ProtocolID string
 // These are the ProtocolIDs of the protocols running. It is useful
 // to keep them in one place.
 const (
-	ProtocolTesting ProtocolID = "/ipfs/testing"
-	ProtocolBitswap ProtocolID = "/ipfs/bitswap"
-	ProtocolDHT     ProtocolID = "/ipfs/dht"
-	ProtocolDiag    ProtocolID = "/ipfs/diagnostics"
+	ProtocolTesting  ProtocolID = "/ipfs/testing"
+	ProtocolBitswap  ProtocolID = "/ipfs/bitswap"
+	ProtocolDHT      ProtocolID = "/ipfs/dht"
+	ProtocolIdentify ProtocolID = "/ipfs/id"
+	ProtocolDiag     ProtocolID = "/ipfs/diagnostics"
 )
 
 // MessageSizeMax is a soft (recommended) maximum for network messages.
@@ -56,8 +57,8 @@ type StreamHandlerMap map[ProtocolID]StreamHandler
 type Conn interface {
 	conn.PeerConn
 
-	// NewStreamWithProtocol constructs a new Stream directly connected to p.
-	NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error)
+	// NewStreamWithProtocol constructs a new Stream over this conn.
+	NewStreamWithProtocol(pr ProtocolID) (Stream, error)
 }
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -72,13 +73,17 @@ type Network interface {
 	// This operation is threadsafe.
 	SetHandler(ProtocolID, StreamHandler)
 
+	// Protocols returns the list of protocols this network currently
+	// has registered handlers for.
+	Protocols() []ProtocolID
+
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.
 	// If ProtocolID is "", writes no header.
-	NewStream(ProtocolID, peer.Peer) (Stream, error)
+	NewStream(ProtocolID, peer.ID) (Stream, error)
 
 	// Peers returns the peers connected
-	Peers() []peer.Peer
+	Peers() []peer.ID
 
 	// Conns returns the connections in this Netowrk
 	Conns() []Conn
@@ -103,17 +108,23 @@ type Network interface {
 // (this is usually just a Network, but other services may not need the whole
 // stack, and thus it becomes easier to mock)
 type Dialer interface {
+
+	// Peerstore returns the internal peerstore
+	// This is useful to tell the dialer about a new address for a peer.
+	// Or use one of the public keys found out over the network.
+	Peerstore() peer.Peerstore
+
 	// LocalPeer returns the local peer associated with this network
-	LocalPeer() peer.Peer
+	LocalPeer() peer.ID
 
 	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(context.Context, peer.Peer) error
+	DialPeer(context.Context, peer.ID) error
 
 	// ClosePeer closes the connection to a given peer
-	ClosePeer(peer.Peer) error
+	ClosePeer(peer.ID) error
 
 	// Connectedness returns a state signaling connection capabilities
-	Connectedness(peer.Peer) Connectedness
+	Connectedness(peer.ID) Connectedness
 }
 
 // Connectedness signals the capacity for a connection with a given node.

@@ -1,7 +1,6 @@
 package mockrouting
 
 import (
-	"bytes"
 	"testing"
 	"time"
 
@@ -9,17 +8,16 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestKeyNotFound(t *testing.T) {
 
-	var peer = testutil.NewPeerWithID(peer.ID([]byte("the peer id")))
+	var pi = peer.PeerInfo{ID: peer.ID("the peer id")}
 	var key = u.Key("mock key")
 	var ctx = context.Background()
 
 	rs := NewServer()
-	providers := rs.Client(peer).FindProvidersAsync(ctx, key, 10)
+	providers := rs.Client(pi).FindProvidersAsync(ctx, key, 10)
 	_, ok := <-providers
 	if ok {
 		t.Fatal("should be closed")
@@ -27,9 +25,9 @@ func TestKeyNotFound(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	peer := testutil.NewPeerWithIDString("42")
+	pi := peer.PeerInfo{ID: peer.ID("42")}
 	rs := NewServer()
-	client := rs.Client(peer)
+	client := rs.Client(pi)
 
 	k := u.Key("hello")
 	err := client.Provide(context.Background(), k)
@@ -41,14 +39,14 @@ func TestClientFindProviders(t *testing.T) {
 	time.Sleep(time.Millisecond * 300)
 	max := 100
 
-	providersFromHashTable, err := rs.Client(peer).FindProviders(context.Background(), k)
+	providersFromHashTable, err := rs.Client(pi).FindProviders(context.Background(), k)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	isInHT := false
-	for _, p := range providersFromHashTable {
-		if bytes.Equal(p.ID(), peer.ID()) {
+	for _, pi := range providersFromHashTable {
+		if pi.ID == pi.ID {
 			isInHT = true
 		}
 	}
@@ -57,8 +55,8 @@ func TestClientFindProviders(t *testing.T) {
 	}
 	providersFromClient := client.FindProvidersAsync(context.Background(), u.Key("hello"), max)
 	isInClient := false
-	for p := range providersFromClient {
-		if bytes.Equal(p.ID(), peer.ID()) {
+	for pi := range providersFromClient {
+		if pi.ID == pi.ID {
 			isInClient = true
 		}
 	}
@@ -72,16 +70,16 @@ func TestClientOverMax(t *testing.T) {
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
-		peer := testutil.NewPeerWithIDString(string(i))
-		err := rs.Client(peer).Provide(context.Background(), k)
+		pi := peer.PeerInfo{ID: peer.ID(i)}
+		err := rs.Client(pi).Provide(context.Background(), k)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	max := 10
-	peer := testutil.NewPeerWithIDString("TODO")
-	client := rs.Client(peer)
+	pi := peer.PeerInfo{ID: peer.ID("TODO")}
+	client := rs.Client(pi)
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
 	i := 0
@@ -102,16 +100,16 @@ func TestCanceledContext(t *testing.T) {
 	i := 0
 	go func() { // infinite stream
 		for {
-			peer := testutil.NewPeerWithIDString(string(i))
-			err := rs.Client(peer).Provide(context.Background(), k)
+			pi := peer.PeerInfo{ID: peer.ID(i)}
+			err := rs.Client(pi).Provide(context.Background(), k)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 			i++
 		}
 	}()
 
-	local := testutil.NewPeerWithIDString("peer id doesn't matter")
+	local := peer.PeerInfo{ID: peer.ID("peer id doesn't matter")}
 	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
@@ -137,7 +135,7 @@ func TestCanceledContext(t *testing.T) {
 
 func TestValidAfter(t *testing.T) {
 
-	var p = testutil.NewPeerWithID(peer.ID([]byte("the peer id")))
+	var pi = peer.PeerInfo{ID: peer.ID("the peer id")}
 	var key = u.Key("mock key")
 	var ctx = context.Background()
 	conf := DelayConfig{
@@ -147,10 +145,10 @@ func TestValidAfter(t *testing.T) {
 
 	rs := NewServerWithDelay(conf)
 
-	rs.Client(p).Provide(ctx, key)
+	rs.Client(pi).Provide(ctx, key)
 
-	var providers []peer.Peer
-	providers, err := rs.Client(p).FindProviders(ctx, key)
+	var providers []peer.PeerInfo
+	providers, err := rs.Client(pi).FindProviders(ctx, key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +157,7 @@ func TestValidAfter(t *testing.T) {
 	}
 
 	conf.ValueVisibility.Set(0)
-	providers, err = rs.Client(p).FindProviders(ctx, key)
+	providers, err = rs.Client(pi).FindProviders(ctx, key)
 	if err != nil {
 		t.Fatal(err)
 	}

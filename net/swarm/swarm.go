@@ -22,21 +22,16 @@ var log = eventlog.Logger("swarm2")
 // Uses peerstream.Swarm
 type Swarm struct {
 	swarm *ps.Swarm
-	local peer.Peer
+	local peer.ID
 	peers peer.Peerstore
+	connh ConnHandler
 
 	cg ctxgroup.ContextGroup
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
-	local peer.Peer, peers peer.Peerstore) (*Swarm, error) {
-
-	// make sure our own peer is in our peerstore...
-	local, err := peers.Add(local)
-	if err != nil {
-		return nil, err
-	}
+	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
 
 	s := &Swarm{
 		swarm: ps.NewSwarm(),
@@ -47,7 +42,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 
 	// configure Swarm
 	s.cg.SetTeardown(s.teardown)
-	s.swarm.SetConnHandler(s.connHandler)
+	s.SetConnHandler(nil) // make sure to setup our own conn handler.
 
 	return s, s.listen(listenAddrs)
 }
@@ -71,6 +66,27 @@ func (s *Swarm) StreamSwarm() *ps.Swarm {
 	return s.swarm
 }
 
+// SetConnHandler assigns the handler for new connections.
+// See peerstream. You will rarely use this. See SetStreamHandler
+func (s *Swarm) SetConnHandler(handler ConnHandler) {
+
+	// handler is nil if user wants to clear the old handler.
+	if handler == nil {
+		s.swarm.SetConnHandler(func(psconn *ps.Conn) {
+			s.connHandler(psconn)
+		})
+		return
+	}
+
+	s.swarm.SetConnHandler(func(psconn *ps.Conn) {
+		// sc is nil if closed in our handler.
+		if sc := s.connHandler(psconn); sc != nil {
+			// call the user's handler. in a goroutine for sync safety.
+			go handler(sc)
+		}
+	})
+}
+
 // SetStreamHandler assigns the handler for new streams.
 // See peerstream.
 func (s *Swarm) SetStreamHandler(handler StreamHandler) {
@@ -80,13 +96,7 @@ func (s *Swarm) SetStreamHandler(handler StreamHandler) {
 }
 
 // NewStreamWithPeer creates a new stream on any available connection to p
-func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
-	// make sure we use OUR peers. (the tests mess with you...)
-	p, err := s.peers.Add(p)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Swarm) NewStreamWithPeer(p peer.ID) (*Stream, error) {
 	// if we have no connections, try connecting.
 	if len(s.ConnectionsToPeer(p)) == 0 {
 		log.Debug("Swarm: NewStreamWithPeer no connections. Attempting to connect...")
@@ -101,21 +111,12 @@ func (s *Swarm) NewStreamWithPeer(p peer.Peer) (*Stream, error) {
 }
 
 // StreamsWithPeer returns all the live Streams to p
-func (s *Swarm) StreamsWithPeer(p peer.Peer) []*Stream {
-	// make sure we use OUR peers. (the tests mess with you...)
-	if p2, err := s.peers.Add(p); err == nil {
-		p = p2
-	}
-
+func (s *Swarm) StreamsWithPeer(p peer.ID) []*Stream {
 	return wrapStreams(ps.StreamsWithGroup(p, s.swarm.Streams()))
 }
 
 // ConnectionsToPeer returns all the live connections to p
-func (s *Swarm) ConnectionsToPeer(p peer.Peer) []*Conn {
-	// make sure we use OUR peers. (the tests mess with you...)
-	if p2, err := s.peers.Add(p); err == nil {
-		p = p2
-	}
+func (s *Swarm) ConnectionsToPeer(p peer.ID) []*Conn {
 	return wrapConns(ps.ConnsWithGroup(p, s.swarm.Conns()))
 }
 
@@ -125,13 +126,7 @@ func (s *Swarm) Connections() []*Conn {
 }
 
 // CloseConnection removes a given peer from swarm + closes the connection
-func (s *Swarm) CloseConnection(p peer.Peer) error {
-	// make sure we use OUR peers. (the tests mess with you...)
-	p, err := s.peers.Add(p)
-	if err != nil {
-		return err
-	}
-
+func (s *Swarm) CloseConnection(p peer.ID) error {
 	conns := s.swarm.ConnsWithGroup(p) // boom.
 	for _, c := range conns {
 		c.Close()
@@ -140,11 +135,11 @@ func (s *Swarm) CloseConnection(p peer.Peer) error {
 }
 
 // Peers returns a copy of the set of peers swarm is connected to.
-func (s *Swarm) Peers() []peer.Peer {
+func (s *Swarm) Peers() []peer.ID {
 	conns := s.Connections()
 
-	seen := make(map[peer.Peer]struct{})
-	peers := make([]peer.Peer, 0, len(conns))
+	seen := make(map[peer.ID]struct{})
+	peers := make([]peer.ID, 0, len(conns))
 	for _, c := range conns {
 		p := c.RemotePeer()
 		if _, found := seen[p]; found {
@@ -157,6 +152,6 @@ func (s *Swarm) Peers() []peer.Peer {
 }
 
 // LocalPeer returns the local peer swarm is associated to.
-func (s *Swarm) LocalPeer() peer.Peer {
+func (s *Swarm) LocalPeer() peer.ID {
 	return s.local
 }

@@ -11,6 +11,7 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	ic "github.com/jbenet/go-ipfs/crypto"
 	"github.com/jbenet/go-ipfs/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
@@ -49,7 +50,7 @@ if no peer is specified, prints out local peers info.
 		}
 
 		if len(req.Arguments()) == 0 {
-			return printPeer(node.Identity)
+			return printPeer(node.Peerstore, node.Identity)
 		}
 
 		pid := req.Arguments()[0]
@@ -72,7 +73,7 @@ if no peer is specified, prints out local peers info.
 		if err != nil {
 			return nil, err
 		}
-		return printPeer(p)
+		return printPeer(node.Peerstore, p.ID)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {
@@ -87,27 +88,36 @@ if no peer is specified, prints out local peers info.
 	Type: &IdOutput{},
 }
 
-func printPeer(p peer.Peer) (interface{}, error) {
-	if p == nil {
+func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {
+	if p == "" {
 		return nil, errors.New("Attempted to print nil peer!")
 	}
-	info := new(IdOutput)
 
-	info.ID = p.ID().String()
-	if p.PubKey() != nil {
-		pkb, err := p.PubKey().Bytes()
+	info := new(IdOutput)
+	info.ID = p.Pretty()
+
+	if pk := ps.PubKey(p); pk != nil {
+		pkb, err := ic.MarshalPublicKey(pk)
 		if err != nil {
 			return nil, err
 		}
 		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
 	}
-	for _, a := range p.Addresses() {
+
+	for _, a := range ps.Addresses(p) {
 		info.Addresses = append(info.Addresses, a.String())
 	}
 
-	agent, protocol := p.GetVersions()
-	info.AgentVersion = agent
-	info.ProtocolVersion = protocol
+	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
+		if vs, ok := v.(string); ok {
+			info.AgentVersion = vs
+		}
+	}
+	if v, err := ps.Get(p, "AgentVersion"); err == nil {
+		if vs, ok := v.(string); ok {
+			info.ProtocolVersion = vs
+		}
+	}
 
 	return info, nil
 }

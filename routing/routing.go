@@ -16,7 +16,7 @@ var ErrNotFound = errors.New("routing: not found")
 // IpfsRouting is the routing module interface
 // It is implemented by things like DHTs, etc.
 type IpfsRouting interface {
-	FindProvidersAsync(context.Context, u.Key, int) <-chan peer.Peer
+	FindProvidersAsync(context.Context, u.Key, int) <-chan peer.PeerInfo
 
 	// Basic Put/Get
 
@@ -33,6 +33,7 @@ type IpfsRouting interface {
 	Provide(context.Context, u.Key) error
 
 	// Find specific Peer
-	// FindPeer searches for a peer with given ID.
-	FindPeer(context.Context, peer.ID) (peer.Peer, error)
+	// FindPeer searches for a peer with given ID, returns a peer.PeerInfo
+	// with relevant addresses.
+	FindPeer(context.Context, peer.ID) (peer.PeerInfo, error)
 }

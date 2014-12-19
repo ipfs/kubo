@@ -109,24 +109,28 @@ func main() {
 	}
 }
 
-func setupPeer(a args) (peer.Peer, peer.Peerstore, error) {
+func setupPeer(a args) (peer.ID, peer.Peerstore, error) {
 	if a.keybits < 1024 {
-		return nil, nil, errors.New("Bitsize less than 1024 is considered unsafe.")
+		return "", nil, errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
 	out("generating key pair...")
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, a.keybits)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
+	}
+
+	p, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return "", nil, err
 	}
 
 	ps := peer.NewPeerstore()
-	peer, err := ps.WithKeyPair(sk, pk)
-	if err != nil {
-		return nil, nil, err
-	}
-	out("local peer id: %s", peer.ID())
-	return peer, ps, nil
+	ps.AddPrivKey(p, sk)
+	ps.AddPubKey(p, pk)
+
+	out("local peer id: %s", p)
+	return p, ps, nil
 }
 
 func connect(args args) error {
@@ -149,12 +153,13 @@ func connect(args args) error {
 	rwc := &logRW{n: "conn", rw: conn}
 
 	// OK, let's setup the channel.
-	sg := secio.SessionGenerator{Local: p, Peerstore: ps}
+	sk := ps.PrivKey(p)
+	sg := secio.SessionGenerator{LocalID: p, PrivateKey: sk}
 	sess, err := sg.NewSession(nil, rwc)
 	if err != nil {
 		return err
 	}
-	out("remote peer id: %s", sess.RemotePeer().ID())
+	out("remote peer id: %s", sess.RemotePeer())
 	netcat(sess.ReadWriter().(io.ReadWriteCloser))
 	return nil
 }

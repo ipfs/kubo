@@ -11,6 +11,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -32,14 +33,14 @@ func ReleaseBuffer(b []byte) {
 
 // singleConn represents a single connection to another Peer (IPFS Node).
 type singleConn struct {
-	local  peer.Peer
-	remote peer.Peer
+	local  peer.ID
+	remote peer.ID
 	maconn manet.Conn
 	msgrw  msgio.ReadWriteCloser
 }
 
 // newConn constructs a new connection
-func newSingleConn(ctx context.Context, local, remote peer.Peer, maconn manet.Conn) (Conn, error) {
+func newSingleConn(ctx context.Context, local, remote peer.ID, maconn manet.Conn) (Conn, error) {
 
 	conn := &singleConn{
 		local:  local,
@@ -83,6 +84,14 @@ func (c *singleConn) RemoteAddr() net.Addr {
 	return c.maconn.RemoteAddr()
 }
 
+func (c *singleConn) LocalPrivateKey() ic.PrivKey {
+	return nil
+}
+
+func (c *singleConn) RemotePublicKey() ic.PubKey {
+	return nil
+}
+
 func (c *singleConn) SetDeadline(t time.Time) error {
 	return c.maconn.SetDeadline(t)
 }
@@ -105,12 +114,12 @@ func (c *singleConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on this side
-func (c *singleConn) LocalPeer() peer.Peer {
+func (c *singleConn) LocalPeer() peer.ID {
 	return c.local
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *singleConn) RemotePeer() peer.Peer {
+func (c *singleConn) RemotePeer() peer.ID {
 	return c.remote
 }
 
@@ -145,8 +154,8 @@ func (c *singleConn) ReleaseMsg(m []byte) {
 
 // ID returns the ID of a given Conn.
 func ID(c Conn) string {
-	l := fmt.Sprintf("%s/%s", c.LocalMultiaddr(), c.LocalPeer().ID())
-	r := fmt.Sprintf("%s/%s", c.RemoteMultiaddr(), c.RemotePeer().ID())
+	l := fmt.Sprintf("%s/%s", c.LocalMultiaddr(), c.LocalPeer().Pretty())
+	r := fmt.Sprintf("%s/%s", c.RemoteMultiaddr(), c.RemotePeer().Pretty())
 	lh := u.Hash([]byte(l))
 	rh := u.Hash([]byte(r))
 	ch := u.XOR(lh, rh)

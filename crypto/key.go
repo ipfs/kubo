@@ -5,6 +5,7 @@ package crypto
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -82,7 +83,7 @@ func GenerateKeyPair(typ, bits int) (PrivKey, PubKey, error) {
 			return nil, nil, err
 		}
 		pk := &priv.PublicKey
-		return &RsaPrivateKey{priv}, &RsaPublicKey{pk}, nil
+		return &RsaPrivateKey{sk: priv}, &RsaPublicKey{pk}, nil
 	default:
 		return nil, nil, ErrBadKeyType
 	}
@@ -239,6 +240,20 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 	}
 }
 
+// MarshalPublicKey converts a public key object into a protobuf serialized
+// public key
+func MarshalPublicKey(k PubKey) ([]byte, error) {
+	b, err := MarshalRsaPublicKey(k.(*RsaPublicKey))
+	if err != nil {
+		return nil, err
+	}
+	pmes := new(pb.PublicKey)
+	typ := pb.KeyType_RSA // for now only type.
+	pmes.Type = &typ
+	pmes.Data = b
+	return proto.Marshal(pmes)
+}
+
 // UnmarshalPrivateKey converts a protobuf serialized private key into its
 // representative object
 func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
@@ -254,6 +269,26 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 	default:
 		return nil, ErrBadKeyType
 	}
+}
+
+// MarshalPrivateKey converts a key object into its protobuf serialized form.
+func MarshalPrivateKey(k PrivKey) ([]byte, error) {
+	b := MarshalRsaPrivateKey(k.(*RsaPrivateKey))
+	pmes := new(pb.PrivateKey)
+	typ := pb.KeyType_RSA // for now only type.
+	pmes.Type = &typ
+	pmes.Data = b
+	return proto.Marshal(pmes)
+}
+
+// ConfigDecodeKey decodes from b64 (for config file), and unmarshals.
+func ConfigDecodeKey(b string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(b)
+}
+
+// ConfigEncodeKey encodes to b64 (for config file), and marshals.
+func ConfigEncodeKey(b []byte) string {
+	return base64.StdEncoding.EncodeToString(b)
 }
 
 // KeyEqual checks whether two

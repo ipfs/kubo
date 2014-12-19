@@ -1,6 +1,9 @@
 package crypto
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
 func TestRsaKeys(t *testing.T) {
 	sk, pk, err := GenerateKeyPair(RSA, 512)
@@ -33,25 +36,43 @@ func testKeySignature(t *testing.T, sk PrivKey) {
 }
 
 func testKeyEncoding(t *testing.T, sk PrivKey) {
-	skb, err := sk.Bytes()
+	skbm, err := MarshalPrivateKey(sk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = UnmarshalPrivateKey(skb)
+	sk2, err := UnmarshalPrivateKey(skbm)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	skbm2, err := MarshalPrivateKey(sk2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(skbm, skbm2) {
+		t.Error("skb -> marshal -> unmarshal -> skb failed.\n", skbm, "\n", skbm2)
 	}
 
 	pk := sk.GetPublic()
-	pkb, err := pk.Bytes()
+	pkbm, err := MarshalPublicKey(pk)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = UnmarshalPublicKey(pkb)
+	_, err = UnmarshalPublicKey(pkbm)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	pkbm2, err := MarshalPublicKey(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(pkbm, pkbm2) {
+		t.Error("skb -> marshal -> unmarshal -> skb failed.\n", pkbm, "\n", pkbm2)
 	}
 }
 

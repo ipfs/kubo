@@ -1,33 +1,32 @@
 package bitswap
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 type Network interface {
-	Adapter(peer.Peer) bsnet.BitSwapNetwork
+	Adapter(peer.ID) bsnet.BitSwapNetwork
 
-	HasPeer(peer.Peer) bool
+	HasPeer(peer.ID) bool
 
 	SendMessage(
 		ctx context.Context,
-		from peer.Peer,
-		to peer.Peer,
+		from peer.ID,
+		to peer.ID,
 		message bsmsg.BitSwapMessage) error
 
 	SendRequest(
 		ctx context.Context,
-		from peer.Peer,
-		to peer.Peer,
+		from peer.ID,
+		to peer.ID,
 		message bsmsg.BitSwapMessage) (
 		incoming bsmsg.BitSwapMessage, err error)
 }
@@ -36,27 +35,27 @@ type Network interface {
 
 func VirtualNetwork(d delay.D) Network {
 	return &network{
-		clients: make(map[util.Key]bsnet.Receiver),
+		clients: make(map[peer.ID]bsnet.Receiver),
 		delay:   d,
 	}
 }
 
 type network struct {
-	clients map[util.Key]bsnet.Receiver
+	clients map[peer.ID]bsnet.Receiver
 	delay   delay.D
 }
 
-func (n *network) Adapter(p peer.Peer) bsnet.BitSwapNetwork {
+func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
 	client := &networkClient{
 		local:   p,
 		network: n,
 	}
-	n.clients[p.Key()] = client
+	n.clients[p] = client
 	return client
 }
 
-func (n *network) HasPeer(p peer.Peer) bool {
-	_, found := n.clients[p.Key()]
+func (n *network) HasPeer(p peer.ID) bool {
+	_, found := n.clients[p]
 	return found
 }
 
@@ -64,11 +63,11 @@ func (n *network) HasPeer(p peer.Peer) bool {
 // TODO what does the network layer do with errors received from services?
 func (n *network) SendMessage(
 	ctx context.Context,
-	from peer.Peer,
-	to peer.Peer,
+	from peer.ID,
+	to peer.ID,
 	message bsmsg.BitSwapMessage) error {
 
-	receiver, ok := n.clients[to.Key()]
+	receiver, ok := n.clients[to]
 	if !ok {
 		return errors.New("Cannot locate peer on network")
 	}
@@ -82,8 +81,8 @@ func (n *network) SendMessage(
 }
 
 func (n *network) deliver(
-	r bsnet.Receiver, from peer.Peer, message bsmsg.BitSwapMessage) error {
-	if message == nil || from == nil {
+	r bsnet.Receiver, from peer.ID, message bsmsg.BitSwapMessage) error {
+	if message == nil || from == "" {
 		return errors.New("Invalid input")
 	}
 
@@ -91,15 +90,15 @@ func (n *network) deliver(
 
 	nextPeer, nextMsg := r.ReceiveMessage(context.TODO(), from, message)
 
-	if (nextPeer == nil && nextMsg != nil) || (nextMsg == nil && nextPeer != nil) {
+	if (nextPeer == "" && nextMsg != nil) || (nextMsg == nil && nextPeer != "") {
 		return errors.New("Malformed client request")
 	}
 
-	if nextPeer == nil && nextMsg == nil { // no response to send
+	if nextPeer == "" && nextMsg == nil { // no response to send
 		return nil
 	}
 
-	nextReceiver, ok := n.clients[nextPeer.Key()]
+	nextReceiver, ok := n.clients[nextPeer]
 	if !ok {
 		return errors.New("Cannot locate peer on network")
 	}
@@ -110,32 +109,32 @@ func (n *network) deliver(
 // TODO
 func (n *network) SendRequest(
 	ctx context.Context,
-	from peer.Peer,
-	to peer.Peer,
+	from peer.ID,
+	to peer.ID,
 	message bsmsg.BitSwapMessage) (
 	incoming bsmsg.BitSwapMessage, err error) {
 
-	r, ok := n.clients[to.Key()]
+	r, ok := n.clients[to]
 	if !ok {
 		return nil, errors.New("Cannot locate peer on network")
 	}
 	nextPeer, nextMsg := r.ReceiveMessage(context.TODO(), from, message)
 
 	// TODO dedupe code
-	if (nextPeer == nil && nextMsg != nil) || (nextMsg == nil && nextPeer != nil) {
+	if (nextPeer == "" && nextMsg != nil) || (nextMsg == nil && nextPeer != "") {
 		r.ReceiveError(errors.New("Malformed client request"))
 		return nil, nil
 	}
 
 	// TODO dedupe code
-	if nextPeer == nil && nextMsg == nil {
+	if nextPeer == "" && nextMsg == nil {
 		return nil, nil
 	}
 
 	// TODO test when receiver doesn't immediately respond to the initiator of the request
-	if !bytes.Equal(nextPeer.ID(), from.ID()) {
+	if nextPeer != from {
 		go func() {
-			nextReceiver, ok := n.clients[nextPeer.Key()]
+			nextReceiver, ok := n.clients[nextPeer]
 			if !ok {
 				// TODO log the error?
 			}
@@ -147,26 +146,26 @@ func (n *network) SendRequest(
 }
 
 type networkClient struct {
-	local peer.Peer
+	local peer.ID
 	bsnet.Receiver
 	network Network
 }
 
 func (nc *networkClient) SendMessage(
 	ctx context.Context,
-	to peer.Peer,
+	to peer.ID,
 	message bsmsg.BitSwapMessage) error {
 	return nc.network.SendMessage(ctx, nc.local, to, message)
 }
 
 func (nc *networkClient) SendRequest(
 	ctx context.Context,
-	to peer.Peer,
+	to peer.ID,
 	message bsmsg.BitSwapMessage) (incoming bsmsg.BitSwapMessage, err error) {
 	return nc.network.SendRequest(ctx, nc.local, to, message)
 }
 
-func (nc *networkClient) DialPeer(ctx context.Context, p peer.Peer) error {
+func (nc *networkClient) DialPeer(ctx context.Context, p peer.ID) error {
 	// no need to do anything because dialing isn't a thing in this test net.
 	if !nc.network.HasPeer(p) {
 		return fmt.Errorf("Peer not in network: %s", p)

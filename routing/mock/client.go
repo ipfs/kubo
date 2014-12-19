@@ -15,7 +15,7 @@ var log = u.Logger("mockrouter")
 type client struct {
 	datastore ds.Datastore
 	server    server
-	peer      peer.Peer
+	peer      peer.PeerInfo
 }
 
 // FIXME(brian): is this method meant to simulate putting a value into the network?
@@ -40,17 +40,17 @@ func (c *client) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	return data, nil
 }
 
-func (c *client) FindProviders(ctx context.Context, key u.Key) ([]peer.Peer, error) {
+func (c *client) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
 	return c.server.Providers(key), nil
 }
 
-func (c *client) FindPeer(ctx context.Context, pid peer.ID) (peer.Peer, error) {
+func (c *client) FindPeer(ctx context.Context, pid peer.ID) (peer.PeerInfo, error) {
 	log.Debugf("FindPeer: %s", pid)
-	return nil, nil
+	return peer.PeerInfo{}, nil
 }
 
-func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.Peer {
-	out := make(chan peer.Peer)
+func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+	out := make(chan peer.PeerInfo)
 	go func() {
 		defer close(out)
 		for i, p := range c.server.Providers(k) {

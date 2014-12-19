@@ -23,12 +23,12 @@ type ProviderManager struct {
 
 type addProv struct {
 	k   u.Key
-	val peer.Peer
+	val peer.ID
 }
 
 type getProv struct {
 	k    u.Key
-	resp chan []peer.Peer
+	resp chan []peer.ID
 }
 
 func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
@@ -53,7 +53,7 @@ func (pm *ProviderManager) run() {
 	for {
 		select {
 		case np := <-pm.newprovs:
-			if np.val.ID().Equal(pm.lpeer) {
+			if np.val == pm.lpeer {
 				pm.local[np.k] = struct{}{}
 			}
 			pi := new(providerInfo)
@@ -63,7 +63,7 @@ func (pm *ProviderManager) run() {
 			pm.providers[np.k] = append(arr, pi)
 
 		case gp := <-pm.getprovs:
-			var parr []peer.Peer
+			var parr []peer.ID
 			provs := pm.providers[gp.k]
 			for _, p := range provs {
 				parr = append(parr, p.Value)
@@ -94,17 +94,17 @@ func (pm *ProviderManager) run() {
 	}
 }
 
-func (pm *ProviderManager) AddProvider(k u.Key, val peer.Peer) {
+func (pm *ProviderManager) AddProvider(k u.Key, val peer.ID) {
 	pm.newprovs <- &addProv{
 		k:   k,
 		val: val,
 	}
 }
 
-func (pm *ProviderManager) GetProviders(ctx context.Context, k u.Key) []peer.Peer {
+func (pm *ProviderManager) GetProviders(ctx context.Context, k u.Key) []peer.ID {
 	gp := &getProv{
 		k:    k,
-		resp: make(chan []peer.Peer, 1), // buffered to prevent sender from blocking
+		resp: make(chan []peer.ID, 1), // buffered to prevent sender from blocking
 	}
 	select {
 	case <-ctx.Done():
