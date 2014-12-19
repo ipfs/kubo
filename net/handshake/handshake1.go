@@ -6,9 +6,12 @@ import (
 
 	config "github.com/jbenet/go-ipfs/config"
 	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
+	u "github.com/jbenet/go-ipfs/util"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 )
+
+var log = u.Logger("handshake")
 
 // IpfsVersion holds the current protocol version for a client running this code
 var IpfsVersion *semver.Version
