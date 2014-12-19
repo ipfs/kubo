@@ -19,6 +19,7 @@ import (
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/delay"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	pset "github.com/jbenet/go-ipfs/util/peerset"
 )
@@ -37,7 +38,7 @@ const (
 )
 
 var (
-	rebroadcastDelay = time.Second * 10
+	rebroadcastDelay = delay.Fixed(time.Second * 10)
 )
 
 // New initializes a BitSwap instance that communicates over the provided
@@ -250,7 +251,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 
 	ctx, cancel := context.WithCancel(parent)
 
-	broadcastSignal := time.After(rebroadcastDelay)
+	broadcastSignal := time.After(rebroadcastDelay.Get())
 	defer cancel()
 
 	for {
@@ -258,7 +259,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 		case <-broadcastSignal:
 			// Resend unfulfilled wantlist keys
 			bs.sendWantlistToProviders(ctx, bs.wantlist)
-			broadcastSignal = time.After(rebroadcastDelay)
+			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case ks := <-bs.batchRequests:
 			if len(ks) == 0 {
 				log.Warning("Received batch request for zero blocks")

@@ -208,9 +208,8 @@ func TestSendToWantingPeer(t *testing.T) {
 	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
-	oldVal := rebroadcastDelay
-	rebroadcastDelay = time.Second / 2
-	defer func() { rebroadcastDelay = oldVal }()
+	prev := rebroadcastDelay.Set(time.Second / 2)
+	defer func() { rebroadcastDelay.Set(prev) }()
 
 	peerA := sg.Next()
 	peerB := sg.Next()
