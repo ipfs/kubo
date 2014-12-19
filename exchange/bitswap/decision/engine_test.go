@@ -1,17 +1,19 @@
 package decision
 
 import (
+	"math"
 	"strings"
+	"sync"
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 type peerAndEngine struct {
@@ -19,18 +21,20 @@ type peerAndEngine struct {
 	Engine *Engine
 }
 
-func newPeerAndLedgermanager(idStr string) peerAndEngine {
+func newEngine(ctx context.Context, idStr string) peerAndEngine {
 	return peerAndEngine{
 		Peer: peer.ID(idStr),
 		//Strategy: New(true),
-		Engine: NewEngine(context.TODO(),
-			blockstore.NewBlockstore(sync.MutexWrap(ds.NewMapDatastore()))),
+		Engine: NewEngine(ctx,
+			blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))),
 	}
 }
 
 func TestConsistentAccounting(t *testing.T) {
-	sender := newPeerAndLedgermanager("Ernie")
-	receiver := newPeerAndLedgermanager("Bert")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	sender := newEngine(ctx, "Ernie")
+	receiver := newEngine(ctx, "Bert")
 
 	// Send messages from Ernie to Bert
 	for i := 0; i < 1000; i++ {
@@ -62,8 +66,10 @@ func TestConsistentAccounting(t *testing.T) {
 
 func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 
-	sanfrancisco := newPeerAndLedgermanager("sf")
-	seattle := newPeerAndLedgermanager("sea")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	sanfrancisco := newEngine(ctx, "sf")
+	seattle := newEngine(ctx, "sea")
 
 	m := message.New()
 
@@ -90,4 +96,97 @@ func peerIsPartner(p peer.ID, e *Engine) bool {
 		}
 	}
 	return false
+}
+
+func TestOutboxClosedWhenEngineClosed(t *testing.T) {
+	t.SkipNow() // TODO implement *Engine.Close
+	e := NewEngine(context.Background(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore())))
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		for _ = range e.Outbox() {
+		}
+		wg.Done()
+	}()
+	// e.Close()
+	wg.Wait()
+	if _, ok := <-e.Outbox(); ok {
+		t.Fatal("channel should be closed")
+	}
+}
+
+func TestPartnerWantsThenCancels(t *testing.T) {
+	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
+	vowels := strings.Split("aeiou", "")
+
+	type testCase [][]string
+	testcases := []testCase{
+		testCase{
+			alphabet, vowels,
+		},
+		testCase{
+			alphabet, stringsComplement(alphabet, vowels),
+		},
+	}
+
+	for _, testcase := range testcases {
+		set := testcase[0]
+		cancels := testcase[1]
+		keeps := stringsComplement(set, cancels)
+
+		bs := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
+		e := NewEngine(context.Background(), bs)
+		partner := testutil.RandPeerIDFatal(t)
+		for _, letter := range set {
+			block := blocks.NewBlock([]byte(letter))
+			bs.Put(block)
+		}
+		partnerWants(e, set, partner)
+		partnerCancels(e, cancels, partner)
+		assertPoppedInOrder(t, e, keeps)
+	}
+
+}
+
+func partnerWants(e *Engine, keys []string, partner peer.ID) {
+	add := message.New()
+	for i, letter := range keys {
+		block := blocks.NewBlock([]byte(letter))
+		add.AddEntry(block.Key(), math.MaxInt32-i)
+	}
+	e.MessageReceived(partner, add)
+}
+
+func partnerCancels(e *Engine, keys []string, partner peer.ID) {
+	cancels := message.New()
+	for _, k := range keys {
+		block := blocks.NewBlock([]byte(k))
+		cancels.Cancel(block.Key())
+	}
+	e.MessageReceived(partner, cancels)
+}
+
+func assertPoppedInOrder(t *testing.T, e *Engine, keys []string) {
+	for _, k := range keys {
+		envelope := <-e.Outbox()
+		received := envelope.Message.Blocks()[0]
+		expected := blocks.NewBlock([]byte(k))
+		if received.Key() != expected.Key() {
+			t.Fatal("received", string(received.Data), "expected", string(expected.Data))
+		}
+	}
+}
+
+func stringsComplement(set, subset []string) []string {
+	m := make(map[string]struct{})
+	for _, letter := range subset {
+		m[letter] = struct{}{}
+	}
+	var complement []string
+	for _, letter := range set {
+		if _, exists := m[letter]; !exists {
+			complement = append(complement, letter)
+		}
+	}
+	return complement
 }
