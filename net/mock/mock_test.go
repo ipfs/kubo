@@ -370,7 +370,7 @@ func TestStreamsStress(t *testing.T) {
 		}(i)
 	}
 
-	wg.Done()
+	wg.Wait()
 }
 
 func TestAdding(t *testing.T) {
