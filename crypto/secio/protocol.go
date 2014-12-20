@@ -46,18 +46,25 @@ type secureSession struct {
 	sharedSecret []byte
 }
 
-func newSecureSession(local peer.ID, key ci.PrivKey) *secureSession {
-	return &secureSession{localPeer: local, localKey: key}
+func newSecureSession(local peer.ID, key ci.PrivKey) (*secureSession, error) {
+	s := &secureSession{localPeer: local, localKey: key}
+
+	switch {
+	case s.localPeer == "":
+		return nil, errors.New("no local id provided")
+	case s.localKey == nil:
+		return nil, errors.New("no local private key provided")
+	case !s.localPeer.MatchesPrivateKey(s.localKey):
+		return nil, fmt.Errorf("peer.ID does not match PrivateKey")
+	}
+
+	return s, nil
 }
 
 // handsahke performs initial communication over insecure channel to share
 // keys, IDs, and initiate communication, assigning all necessary params.
 // requires the duplex channel to be a msgio.ReadWriter (for framed messaging)
 func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) error {
-
-	if !s.localPeer.MatchesPrivateKey(s.localKey) {
-		return fmt.Errorf("peer.ID does not match PrivateKey")
-	}
 
 	s.insecure = insecure
 	s.insecureM = msgio.NewReadWriter(insecure)

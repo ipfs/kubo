@@ -2,7 +2,6 @@
 package secio
 
 import (
-	"errors"
 	"io"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -26,24 +25,15 @@ type SessionGenerator struct {
 func (sg *SessionGenerator) NewSession(ctx context.Context,
 	insecure io.ReadWriter) (Session, error) {
 
-	if sg.LocalID == "" {
-		return nil, errors.New("no local id provided")
-	}
-
-	if sg.PrivateKey == nil {
-		return nil, errors.New("no local private key provided")
-	}
-
-	if !sg.LocalID.MatchesPrivateKey(sg.PrivateKey) {
-		return nil, errors.New("LocalID does not correspond to PrivateKey")
+	ss, err := newSecureSession(sg.LocalID, sg.PrivateKey)
+	if err != nil {
+		return nil, err
 	}
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-
-	ss := newSecureSession(sg.LocalID, sg.PrivateKey)
 	if err := ss.handshake(ctx, insecure); err != nil {
 		cancel()
 		return nil, err
