@@ -205,7 +205,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	log.Debugf("2.0.1 exchange recv: %v", selectionInBytes)
 
 	// u.POut("Remote Peer Identified as %s\n", s.remote)
-	sigOK, err := s.local.permanentPubKey.Verify(selectionInBytes, exchangeIn.GetSignature())
+	sigOK, err := s.remote.permanentPubKey.Verify(selectionInBytes, exchangeIn.GetSignature())
 	if err != nil {
 		log.Error("2.1 Verify: failed: %s", err)
 		return err
