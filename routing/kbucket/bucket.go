@@ -23,7 +23,7 @@ func (b *Bucket) find(id peer.ID) *list.Element {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		if e.Value.(peer.Peer).ID().Equal(id) {
+		if e.Value.(peer.ID) == id {
 			return e
 		}
 	}
@@ -36,18 +36,18 @@ func (b *Bucket) moveToFront(e *list.Element) {
 	b.lk.Unlock()
 }
 
-func (b *Bucket) pushFront(p peer.Peer) {
+func (b *Bucket) pushFront(p peer.ID) {
 	b.lk.Lock()
 	b.list.PushFront(p)
 	b.lk.Unlock()
 }
 
-func (b *Bucket) popBack() peer.Peer {
+func (b *Bucket) popBack() peer.ID {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	last := b.list.Back()
 	b.list.Remove(last)
-	return last.Value.(peer.Peer)
+	return last.Value.(peer.ID)
 }
 
 func (b *Bucket) len() int {
@@ -68,7 +68,7 @@ func (b *Bucket) Split(cpl int, target ID) *Bucket {
 	newbuck.list = out
 	e := b.list.Front()
 	for e != nil {
-		peerID := ConvertPeerID(e.Value.(peer.Peer).ID())
+		peerID := ConvertPeerID(e.Value.(peer.ID))
 		peerCPL := commonPrefixLen(peerID, target)
 		if peerCPL > cpl {
 			cur := e
