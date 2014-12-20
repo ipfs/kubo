@@ -20,6 +20,7 @@ type Peerstore interface {
 type AddressBook interface {
 	Addresses(ID) []ma.Multiaddr
 	AddAddress(ID, ma.Multiaddr)
+	AddAddresses(ID, []ma.Multiaddr)
 }
 
 type addressMap map[string]ma.Multiaddr
@@ -68,6 +69,19 @@ func (ab *addressbook) AddAddress(p ID, m ma.Multiaddr) {
 		ab.addrs[p] = addressMap{}
 	}
 	ab.addrs[p][m.String()] = m
+}
+
+func (ab *addressbook) AddAddresses(p ID, ms []ma.Multiaddr) {
+	ab.Lock()
+	defer ab.Unlock()
+
+	for _, m := range ms {
+		_, found := ab.addrs[p]
+		if !found {
+			ab.addrs[p] = addressMap{}
+		}
+		ab.addrs[p][m.String()] = m
+	}
 }
 
 // KeyBook tracks the Public keys of Peers.

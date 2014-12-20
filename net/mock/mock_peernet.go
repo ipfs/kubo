@@ -81,6 +81,10 @@ func (pn *peernet) Close() error {
 	return pn.cg.Close()
 }
 
+func (pn *peernet) Peerstore() peer.Peerstore {
+	return pn.ps
+}
+
 func (pn *peernet) String() string {
 	return fmt.Sprintf("<mock.peernet %s - %d conns>", pn.peer, len(pn.allConns()))
 }

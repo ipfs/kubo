@@ -17,15 +17,19 @@ import (
 
 var log = eventlog.Logger("backpressure")
 
-func GenNetwork(ctx context.Context) (inet.Network, error) {
-	p, err := testutil.PeerWithKeysAndAddress(testutil.RandLocalTCPAddress())
-	if err != nil {
-		return nil, err
-	}
-
-	listen := p.Addresses()
+func GenNetwork(t *testing.T, ctx context.Context) (inet.Network, error) {
+	p := testutil.RandPeerNetParams(t)
 	ps := peer.NewPeerstore()
-	return inet.NewNetwork(ctx, listen, p, ps)
+	ps.AddAddress(p.ID, p.Addr)
+	ps.AddPubKey(p.ID, p.PubKey)
+	ps.AddPrivKey(p.ID, p.PrivKey)
+	return inet.NewNetwork(ctx, ps.Addresses(p.ID), p.ID, ps)
+}
+
+func divulgeAddresses(a, b inet.Network) {
+	id := a.LocalPeer()
+	addrs := a.Peerstore().Addresses(id)
+	b.Peerstore().AddAddresses(id, addrs)
 }
 
 // TestBackpressureStreamHandler tests whether mux handler
@@ -83,7 +87,7 @@ a problem.
 	}
 
 	// the sender opens streams as fast as possible
-	sender := func(net inet.Network, remote peer.Peer) {
+	sender := func(net inet.Network, remote peer.ID) {
 		var s inet.Stream
 		var err error
 		defer func() {
@@ -145,11 +149,11 @@ a problem.
 	// ok that's enough setup. let's do it!
 
 	ctx := context.Background()
-	n1, err := GenNetwork(ctx)
+	n1, err := GenNetwork(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	n2, err := GenNetwork(ctx)
+	n2, err := GenNetwork(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,14 +291,17 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 	// setup the networks
 	ctx := context.Background()
-	n1, err := GenNetwork(ctx)
+	n1, err := GenNetwork(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	n2, err := GenNetwork(ctx)
+	n2, err := GenNetwork(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	divulgeAddresses(n1, n2)
+	divulgeAddresses(n2, n1)
 
 	// setup sender handler on 1
 	n1.SetHandler(inet.ProtocolTesting, sender)

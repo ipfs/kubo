@@ -83,6 +83,9 @@ type Network interface {
 	// Conns returns the connections in this Netowrk
 	Conns() []Conn
 
+	// Peerstore returns the internal peerstore
+	Peerstore() peer.Peerstore
+
 	// BandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated
 	BandwidthTotals() (uint64, uint64)

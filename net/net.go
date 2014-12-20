@@ -84,6 +84,7 @@ type network struct {
 	local peer.ID      // local peer
 	mux   Mux          // protocol multiplexing
 	swarm *swarm.Swarm // peer connection multiplexing
+	ps    peer.Peerstore
 
 	cg ctxgroup.ContextGroup // for Context closing
 }
@@ -102,6 +103,7 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
 		swarm: s,
 		mux:   Mux{Handlers: StreamHandlerMap{}},
 		cg:    ctxgroup.WithContext(ctx),
+		ps:    peers,
 	}
 
 	s.SetStreamHandler(func(s *swarm.Stream) {
@@ -138,6 +140,11 @@ func (n *network) LocalPeer() peer.ID {
 // Peers returns the connected peers
 func (n *network) Peers() []peer.ID {
 	return n.swarm.Peers()
+}
+
+// Peers returns the connected peers
+func (n *network) Peerstore() peer.Peerstore {
+	return n.ps
 }
 
 // Conns returns the connected peers
