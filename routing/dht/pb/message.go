@@ -20,43 +20,38 @@ func NewMessage(typ Message_MessageType, key string, level int) *Message {
 	return m
 }
 
-func peerToPBPeer(p peer.Peer) *Message_Peer {
+func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
 	pbp := new(Message_Peer)
 
-	maddrs := p.Addresses()
-	pbp.Addrs = make([]string, len(maddrs))
-	for i, maddr := range maddrs {
+	pbp.Addrs = make([]string, len(p.Addrs))
+	for i, maddr := range p.Addrs {
 		pbp.Addrs[i] = maddr.String()
 	}
-	pid := string(p.ID())
-	pbp.Id = &pid
+	s := string(p.ID)
+	pbp.Id = &s
 	return pbp
 }
 
-// PBPeerToPeer turns a *Message_Peer into its peer.Peer counterpart
-func PBPeerToPeer(ps peer.Peerstore, pbp *Message_Peer) (peer.Peer, error) {
-	p, err := ps.FindOrCreate(peer.ID(pbp.GetId()))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get peer from peerstore: %s", err)
-	}
+// PBPeerToPeer turns a *Message_Peer into its peer.PeerInfo counterpart
+func PBPeerToPeerInfo(pbp *Message_Peer) (peer.PeerInfo, error) {
 
-	// add addresses
 	maddrs, err := pbp.Addresses()
 	if err != nil {
-		return nil, fmt.Errorf("Received peer with bad or missing addresses: %s", pbp.Addrs)
+		return peer.PeerInfo{}, fmt.Errorf("Received peer without addresses: %s", pbp.Addrs)
 	}
-	for _, maddr := range maddrs {
-		p.AddAddress(maddr)
-	}
-	return p, nil
+
+	return peer.PeerInfo{
+		ID:    peer.ID(pbp.GetId()),
+		Addrs: maddrs,
+	}, nil
 }
 
-// RawPeersToPBPeers converts a slice of Peers into a slice of *Message_Peers,
+// RawPeerInfosToPBPeers converts a slice of Peers into a slice of *Message_Peers,
 // ready to go out on the wire.
-func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
+func RawPeerInfosToPBPeers(peers []peer.PeerInfo) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
-		pbpeers[i] = peerToPBPeer(p)
+		pbpeers[i] = peerInfoToPBPeer(p)
 	}
 	return pbpeers
 }
@@ -64,25 +59,25 @@ func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 // PeersToPBPeers converts given []peer.Peer into a set of []*Message_Peer,
 // which can be written to a message and sent out. the key thing this function
 // does (in addition to PeersToPBPeers) is set the ConnectionType with
-// information from the given inet.Dialer.
-func PeersToPBPeers(d inet.Network, peers []peer.Peer) []*Message_Peer {
-	pbps := RawPeersToPBPeers(peers)
+// information from the given inet.Network.
+func PeerInfosToPBPeers(n inet.Network, peers []peer.PeerInfo) []*Message_Peer {
+	pbps := RawPeerInfosToPBPeers(peers)
 	for i, pbp := range pbps {
-		c := ConnectionType(d.Connectedness(peers[i]))
+		c := ConnectionType(n.Connectedness(peers[i].ID))
 		pbp.Connection = &c
 	}
 	return pbps
 }
 
-// PBPeersToPeers converts given []*Message_Peer into a set of []peer.Peer
+// PBPeersToPeerInfos converts given []*Message_Peer into []peer.PeerInfo
 // Returns two slices, one of peers, and one of errors. The slice of peers
 // will ONLY contain successfully converted peers. The slice of errors contains
 // whether each input Message_Peer was successfully converted.
-func PBPeersToPeers(ps peer.Peerstore, pbps []*Message_Peer) ([]peer.Peer, []error) {
+func PBPeersToPeerInfos(pbps []*Message_Peer) ([]peer.PeerInfo, []error) {
 	errs := make([]error, len(pbps))
-	peers := make([]peer.Peer, 0, len(pbps))
+	peers := make([]peer.PeerInfo, 0, len(pbps))
 	for i, pbp := range pbps {
-		p, err := PBPeerToPeer(ps, pbp)
+		p, err := PBPeerToPeerInfo(pbp)
 		if err != nil {
 			errs[i] = err
 		} else {
