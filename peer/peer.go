@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	ic "github.com/jbenet/go-ipfs/crypto"
@@ -120,3 +121,12 @@ func IDFromPrivateKey(sk ic.PrivKey) (ID, error) {
 
 // Map maps a Peer ID to a struct.
 type Set map[ID]struct{}
+
+// PeerInfo is a small struct used to pass around a peer with
+// a set of addresses and keys. This is not meant to be a
+// complete view of the system, but rather to model updates to
+// the peerstore. It is used by things like the routing system.
+type PeerInfo struct {
+	ID    ID
+	Addrs []ma.Multiaddr
+}
