@@ -14,6 +14,7 @@ import (
 type Peerstore interface {
 	KeyBook
 	AddressBook
+	Metrics
 }
 
 // AddressBook tracks the addresses of Peers
@@ -165,6 +166,7 @@ func (kb *keybook) AddPrivKey(p ID, sk ic.PrivKey) error {
 type peerstore struct {
 	keybook
 	addressbook
+	metrics
 
 	// store other data, like versions
 	data map[ID]map[string]interface{}
@@ -175,6 +177,7 @@ func NewPeerstore() Peerstore {
 	return &peerstore{
 		keybook:     *newKeybook(),
 		addressbook: *newAddressbook(),
+		metrics:     *(NewMetrics()).(*metrics),
 		data:        map[ID]map[string]interface{}{},
 	}
 }
