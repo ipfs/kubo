@@ -123,8 +123,8 @@ func IDFromPrivateKey(sk ic.PrivKey) (ID, error) {
 type Set map[ID]struct{}
 
 // PeerInfo is a small struct used to pass around a peer with
-// a set of addresses and keys. This is not meant to be a
-// complete view of the system, but rather to model updates to
+// a set of addresses (and later, keys?). This is not meant to be
+// a complete view of the system, but rather to model updates to
 // the peerstore. It is used by things like the routing system.
 type PeerInfo struct {
 	ID    ID
