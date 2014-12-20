@@ -15,13 +15,13 @@ import (
 
 // Server provides mockrouting Clients
 type Server interface {
-	Client(p peer.Peer) Client
-	ClientWithDatastore(peer.Peer, ds.Datastore) Client
+	Client(p peer.PeerInfo) Client
+	ClientWithDatastore(peer.PeerInfo, ds.Datastore) Client
 }
 
 // Client implements IpfsRouting
 type Client interface {
-	FindProviders(context.Context, u.Key) ([]peer.Peer, error)
+	FindProviders(context.Context, u.Key) ([]peer.PeerInfo, error)
 
 	routing.IpfsRouting
 }
@@ -37,7 +37,7 @@ func NewServer() Server {
 // NewServerWithDelay returns a mockrouting Server with a delay!
 func NewServerWithDelay(conf DelayConfig) Server {
 	return &s{
-		providers: make(map[u.Key]map[u.Key]providerRecord),
+		providers: make(map[u.Key]map[peer.ID]providerRecord),
 		delayConf: conf,
 	}
 }
