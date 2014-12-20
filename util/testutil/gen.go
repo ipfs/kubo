@@ -2,12 +2,15 @@ package testutil
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
+	u "github.com/jbenet/go-ipfs/util"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
@@ -16,12 +19,26 @@ func RandKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPair(ci.RSA, bits)
 }
 
+// RandPeerID generates random "valid" peer IDs. it does not NEED to generate
+// keys because it is as if we lost the key right away. fine to read randomness
+// and hash it. to generate proper keys and corresponding PeerID, use:
+//  sk, pk, _ := testutil.RandKeyPair()
+//  id, _ := peer.IDFromPublicKey(pk)
 func RandPeerID() (peer.ID, error) {
-	_, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
-	if err != nil {
+	buf := make([]byte, 16)
+	if _, err := io.ReadFull(crand.Reader, buf); err != nil {
 		return "", err
 	}
-	return peer.IDFromPublicKey(pk)
+	h := u.Hash(buf)
+	return peer.ID(h), nil
+}
+
+func RandPeerIDFatal(t testing.TB) peer.ID {
+	p, err := RandPeerID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }
 
 var nextPort = 0
