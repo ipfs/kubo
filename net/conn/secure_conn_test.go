@@ -2,50 +2,73 @@ package conn
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"runtime"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
 
-	peer "github.com/jbenet/go-ipfs/peer"
+	ic "github.com/jbenet/go-ipfs/crypto"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-func upgradeToSecureConn(t *testing.T, ctx context.Context, c Conn) (Conn, error) {
+func upgradeToSecureConn(t *testing.T, ctx context.Context, sk ic.PrivKey, c Conn) (Conn, error) {
 	if c, ok := c.(*secureConn); ok {
 		return c, nil
 	}
 
 	// shouldn't happen, because dial + listen already return secure conns.
-	s, err := newSecureConn(ctx, c, peer.NewPeerstore())
+	s, err := newSecureConn(ctx, sk, c)
 	if err != nil {
 		return nil, err
 	}
 	return s, nil
 }
 
-func secureHandshake(t *testing.T, ctx context.Context, c Conn, done chan error) {
-	_, err := upgradeToSecureConn(t, ctx, c)
+func secureHandshake(t *testing.T, ctx context.Context, sk ic.PrivKey, c Conn, done chan error) {
+	_, err := upgradeToSecureConn(t, ctx, sk, c)
 	done <- err
+}
+
+func TestSecureSimple(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
+
+	ctx := context.Background()
+	c1, c2, p1, p2 := setupSingleConn(t, ctx)
+
+	done := make(chan error)
+	go secureHandshake(t, ctx, p1.PrivKey, c1, done)
+	go secureHandshake(t, ctx, p2.PrivKey, c2, done)
+
+	for i := 0; i < 2; i++ {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for i := 0; i < 100; i++ {
+		testOneSendRecv(t, c1, c2)
+		testOneSendRecv(t, c2, c1)
+	}
+
+	c1.Close()
+	c2.Close()
 }
 
 func TestSecureClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
 	ctx := context.Background()
-	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
+	c1, c2, p1, p2 := setupSingleConn(t, ctx)
 
 	done := make(chan error)
-	go secureHandshake(t, ctx, c1, done)
-	go secureHandshake(t, ctx, c2, done)
+	go secureHandshake(t, ctx, p1.PrivKey, c1, done)
+	go secureHandshake(t, ctx, p2.PrivKey, c2, done)
 
 	for i := 0; i < 2; i++ {
 		if err := <-done; err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}
 
@@ -64,17 +87,35 @@ func TestSecureCancelHandshake(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/6634", "/ip4/127.0.0.1/tcp/6645")
+	c1, c2, p1, p2 := setupSingleConn(t, ctx)
 
 	done := make(chan error)
-	go secureHandshake(t, ctx, c1, done)
+	go secureHandshake(t, ctx, p1.PrivKey, c1, done)
 	<-time.After(50 * time.Millisecond)
 	cancel() // cancel ctx
-	go secureHandshake(t, ctx, c2, done)
+	go secureHandshake(t, ctx, p2.PrivKey, c2, done)
 
 	for i := 0; i < 2; i++ {
 		if err := <-done; err == nil {
 			t.Error("cancel should've errored out")
+		}
+	}
+}
+
+func TestSecureHandshakeFailsWithWrongKeys(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c1, c2, p1, p2 := setupSingleConn(t, ctx)
+
+	done := make(chan error)
+	go secureHandshake(t, ctx, p2.PrivKey, c1, done)
+	go secureHandshake(t, ctx, p1.PrivKey, c2, done)
+
+	for i := 0; i < 2; i++ {
+		if err := <-done; err == nil {
+			t.Error("wrong keys should've errored out.")
 		}
 	}
 }
@@ -89,15 +130,11 @@ func TestSecureCloseLeak(t *testing.T) {
 		t.Skip("this doesn't work well on travis")
 	}
 
-	var wg sync.WaitGroup
-
-	runPair := func(p1, p2, num int) {
-		a1 := strconv.Itoa(p1)
-		a2 := strconv.Itoa(p2)
-		ctx, cancel := context.WithCancel(context.Background())
-		c1, c2 := setupSecureConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
+	runPair := func(c1, c2 Conn, num int) {
+		log.Debugf("runPair %d", num)
 
 		for i := 0; i < num; i++ {
+			log.Debugf("runPair iteration %d", i)
 			b1 := []byte("beep")
 			c1.WriteMsg(b1)
 			b2, err := c2.ReadMsg()
@@ -120,22 +157,32 @@ func TestSecureCloseLeak(t *testing.T) {
 
 			<-time.After(time.Microsecond * 5)
 		}
-
-		c1.Close()
-		c2.Close()
-		cancel() // close the listener
-		wg.Done()
 	}
 
 	var cons = 20
 	var msgs = 100
-	fmt.Printf("Running %d connections * %d msgs.\n", cons, msgs)
+	log.Debugf("Running %d connections * %d msgs.\n", cons, msgs)
+
+	var wg sync.WaitGroup
 	for i := 0; i < cons; i++ {
 		wg.Add(1)
-		go runPair(2000+i, 2001+i, msgs)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		c1, c2, _, _ := setupSecureConn(t, ctx)
+		go func(c1, c2 Conn) {
+
+			defer func() {
+				c1.Close()
+				c2.Close()
+				cancel()
+				wg.Done()
+			}()
+
+			runPair(c1, c2, msgs)
+		}(c1, c2)
 	}
 
-	fmt.Printf("Waiting...\n")
+	log.Debugf("Waiting...\n")
 	wg.Wait()
 	// done!
 

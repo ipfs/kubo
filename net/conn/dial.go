@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"fmt"
 	"strings"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -11,49 +12,32 @@ import (
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-// Dial connects to a particular peer, over a given network
-// Example: d.Dial(ctx, "udp", peer)
-func (d *Dialer) Dial(ctx context.Context, network string, remote peer.Peer) (Conn, error) {
-	raddr := remote.NetAddress(network)
-	if raddr == nil {
-		return nil, debugerror.Errorf("No remote address for network %s", network)
-	}
-	return d.DialAddr(ctx, raddr, remote)
+// String returns the string rep of d.
+func (d *Dialer) String() string {
+	return fmt.Sprintf("<Dialer %s %s ...>", d.LocalPeer, d.LocalAddrs[0])
 }
 
-// DialAddr connects to a peer over a particular address
+// Dial connects to a peer over a particular address
 // Ensures raddr is part of peer.Addresses()
 // Example: d.DialAddr(ctx, peer.Addresses()[0], peer)
-func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.Peer) (Conn, error) {
-
-	found := false
-	for _, addr := range remote.Addresses() {
-		if addr.Equal(raddr) {
-			found = true
-		}
-	}
-	if !found {
-		return nil, debugerror.Errorf("address %s is not in peer %s", raddr, remote)
-	}
+func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (Conn, error) {
 
 	network, _, err := manet.DialArgs(raddr)
 	if err != nil {
 		return nil, err
 	}
 
-	laddr := d.LocalPeer.NetAddress(network)
-	if laddr == nil {
-		return nil, debugerror.Errorf("No local address for network %s", network)
-	}
-
 	if strings.HasPrefix(raddr.String(), "/ip4/0.0.0.0") {
 		return nil, debugerror.Errorf("Attempted to connect to zero address: %s", raddr)
 	}
 
-	remote.SetType(peer.Remote)
-	remote, err = d.Peerstore.Add(remote)
-	if err != nil {
-		log.Errorf("Error putting peer into peerstore: %s", remote)
+	var laddr ma.Multiaddr
+	if len(d.LocalAddrs) > 0 {
+		// laddr := MultiaddrNetMatch(raddr, d.LocalAddrs)
+		laddr = NetAddress(network, d.LocalAddrs)
+		if laddr == nil {
+			return nil, debugerror.Errorf("No local address for network %s", network)
+		}
 	}
 
 	// TODO: try to get reusing addr/ports to work.
@@ -69,7 +53,7 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 	select {
 	case <-ctx.Done():
 		maconn.Close()
-		return nil, err
+		return nil, ctx.Err()
 	default:
 	}
 
@@ -78,17 +62,58 @@ func (d *Dialer) DialAddr(ctx context.Context, raddr ma.Multiaddr, remote peer.P
 		return nil, err
 	}
 
-	if d.WithoutSecureTransport {
+	if d.PrivateKey == nil {
+		log.Warning("dialer %s dialing INSECURELY %s at %s!", d, remote, raddr)
 		return c, nil
 	}
 
 	select {
 	case <-ctx.Done():
 		c.Close()
-		return nil, err
+		return nil, ctx.Err()
 	default:
 	}
 
 	// return c, nil
-	return newSecureConn(ctx, c, d.Peerstore)
+	return newSecureConn(ctx, d.PrivateKey, c)
+}
+
+// MultiaddrProtocolsMatch returns whether two multiaddrs match in protocol stacks.
+func MultiaddrProtocolsMatch(a, b ma.Multiaddr) bool {
+	ap := a.Protocols()
+	bp := b.Protocols()
+
+	if len(ap) != len(bp) {
+		return false
+	}
+
+	for i, api := range ap {
+		if api != bp[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// MultiaddrNetMatch returns the first Multiaddr found to match  network.
+func MultiaddrNetMatch(tgt ma.Multiaddr, srcs []ma.Multiaddr) ma.Multiaddr {
+	for _, a := range srcs {
+		if MultiaddrProtocolsMatch(tgt, a) {
+			return a
+		}
+	}
+	return nil
+}
+
+// NetAddress returns the first Multiaddr found for a given network.
+func NetAddress(n string, addrs []ma.Multiaddr) ma.Multiaddr {
+	for _, a := range addrs {
+		for _, p := range a.Protocols() {
+			if p.Name == n {
+				return a
+			}
+		}
+	}
+	return nil
 }

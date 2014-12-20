@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 )
 
 func testOneSendRecv(t *testing.T, c1, c2 Conn) {
+	log.Debugf("testOneSendRecv from %s to %s", c1.LocalPeer(), c2.LocalPeer())
 	m1 := []byte("hello")
 	if err := c1.WriteMsg(m1); err != nil {
 		t.Fatal(err)
@@ -41,8 +41,9 @@ func testNotOneSendRecv(t *testing.T, c1, c2 Conn) {
 func TestClose(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
-	ctx := context.Background()
-	c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/5534", "/ip4/127.0.0.1/tcp/5545")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c1, c2, _, _ := setupSingleConn(t, ctx)
 
 	testOneSendRecv(t, c1, c2)
 	testOneSendRecv(t, c2, c1)
@@ -56,6 +57,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestCloseLeak(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -66,11 +68,9 @@ func TestCloseLeak(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	runPair := func(p1, p2, num int) {
-		a1 := strconv.Itoa(p1)
-		a2 := strconv.Itoa(p2)
+	runPair := func(num int) {
 		ctx, cancel := context.WithCancel(context.Background())
-		c1, c2 := setupSingleConn(t, ctx, "/ip4/127.0.0.1/tcp/"+a1, "/ip4/127.0.0.1/tcp/"+a2)
+		c1, c2, _, _ := setupSingleConn(t, ctx)
 
 		for i := 0; i < num; i++ {
 			b1 := []byte(fmt.Sprintf("beep%d", i))
@@ -102,15 +102,15 @@ func TestCloseLeak(t *testing.T) {
 		wg.Done()
 	}
 
-	var cons = 1
+	var cons = 10
 	var msgs = 100
-	fmt.Printf("Running %d connections * %d msgs.\n", cons, msgs)
+	log.Debugf("Running %d connections * %d msgs.\n", cons, msgs)
 	for i := 0; i < cons; i++ {
 		wg.Add(1)
-		go runPair(2000+i, 2001+i, msgs)
+		go runPair(msgs)
 	}
 
-	fmt.Printf("Waiting...\n")
+	log.Debugf("Waiting...\n")
 	wg.Wait()
 	// done!
 

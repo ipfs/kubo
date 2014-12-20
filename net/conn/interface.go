@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -20,13 +21,13 @@ type PeerConn interface {
 	LocalMultiaddr() ma.Multiaddr
 
 	// LocalPeer is the Peer on our side of the connection
-	LocalPeer() peer.Peer
+	LocalPeer() peer.ID
 
 	// RemoteMultiaddr is the Multiaddr on the remote side
 	RemoteMultiaddr() ma.Multiaddr
 
 	// RemotePeer is the Peer on the remote side
-	RemotePeer() peer.Peer
+	RemotePeer() peer.ID
 }
 
 // Conn is a generic message-based Peer-to-Peer connection.
@@ -54,16 +55,14 @@ type Conn interface {
 type Dialer struct {
 
 	// LocalPeer is the identity of the local Peer.
-	LocalPeer peer.Peer
+	LocalPeer peer.ID
 
-	// Peerstore is the set of peers we know about locally. The Dialer needs it
-	// because when an incoming connection is identified, we should reuse the
-	// same peer objects (otherwise things get inconsistent).
-	Peerstore peer.Peerstore
+	// LocalAddrs is a set of local addresses to use.
+	LocalAddrs []ma.Multiaddr
 
-	// WithoutSecureTransport determines whether to initialize an insecure connection.
-	// Phrased negatively so default is Secure, and verbosely to be very clear.
-	WithoutSecureTransport bool
+	// PrivateKey used to initialize a secure connection.
+	// Warning: if PrivateKey is nil, connection will not be secured.
+	PrivateKey ic.PrivKey
 }
 
 // Listener is an object that can accept connections. It matches net.Listener
@@ -72,11 +71,6 @@ type Listener interface {
 	// Accept waits for and returns the next connection to the listener.
 	Accept() (net.Conn, error)
 
-	// {Set}WithoutSecureTransport decides whether to start insecure connections.
-	// Phrased negatively so default is Secure, and verbosely to be very clear.
-	WithoutSecureTransport() bool
-	SetWithoutSecureTransport(bool)
-
 	// Addr is the local address
 	Addr() net.Addr
 
@@ -84,12 +78,7 @@ type Listener interface {
 	Multiaddr() ma.Multiaddr
 
 	// LocalPeer is the identity of the local Peer.
-	LocalPeer() peer.Peer
-
-	// Peerstore is the set of peers we know about locally. The Listener needs it
-	// because when an incoming connection is identified, we should reuse the
-	// same peer objects (otherwise things get inconsistent).
-	Peerstore() peer.Peerstore
+	LocalPeer() peer.ID
 
 	// Close closes the listener.
 	// Any blocked Accept operations will be unblocked and return errors.
