@@ -1,7 +1,6 @@
 package mocknet
 
 import (
-	"fmt"
 	"io"
 	"sync"
 
@@ -30,17 +29,12 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 	mkconn := func(n *peernet, rid peer.ID) *conn {
 		c := &conn{net: n, link: l}
 		c.local = n.peer
-
-		r, err := n.ps.FindOrCreate(rid)
-		if err != nil {
-			panic(fmt.Errorf("error creating peer: %s", err))
-		}
-		c.remote = r
+		c.remote = rid
 		return c
 	}
 
-	c1 := mkconn(l.nets[0], l.nets[1].peer.ID())
-	c2 := mkconn(l.nets[1], l.nets[0].peer.ID())
+	c1 := mkconn(l.nets[0], l.nets[1].peer)
+	c2 := mkconn(l.nets[1], l.nets[0].peer)
 	c1.rconn = c2
 	c2.rconn = c1
 
@@ -70,11 +64,11 @@ func (l *link) Networks() []inet.Network {
 	return cp
 }
 
-func (l *link) Peers() []peer.Peer {
+func (l *link) Peers() []peer.ID {
 	l.RLock()
 	defer l.RUnlock()
 
-	cp := make([]peer.Peer, len(l.nets))
+	cp := make([]peer.ID, len(l.nets))
 	for i, n := range l.nets {
 		cp[i] = n.peer
 	}

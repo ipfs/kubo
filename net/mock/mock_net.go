@@ -12,19 +12,17 @@ import (
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 )
 
-type peerID string
-
 // mocknet implements mocknet.Mocknet
 type mocknet struct {
-	// must map on peer.ID (instead of peer.Peer) because
+	// must map on peer.ID (instead of peer.ID) because
 	// each inet.Network has different peerstore
-	nets map[peerID]*peernet
+	nets map[peer.ID]*peernet
 
 	// links make it possible to connect two peers.
 	// think of links as the physical medium.
 	// usually only one, but there could be multiple
 	// **links are shared between peers**
-	links map[peerID]map[peerID]map[*link]struct{}
+	links map[peer.ID]map[peer.ID]map[*link]struct{}
 
 	linkDefaults LinkOptions
 
@@ -34,25 +32,20 @@ type mocknet struct {
 
 func New(ctx context.Context) Mocknet {
 	return &mocknet{
-		nets:  map[peerID]*peernet{},
-		links: map[peerID]map[peerID]map[*link]struct{}{},
+		nets:  map[peer.ID]*peernet{},
+		links: map[peer.ID]map[peer.ID]map[*link]struct{}{},
 		cg:    ctxgroup.WithContext(ctx),
 	}
 }
 
 func (mn *mocknet) GenPeer() (inet.Network, error) {
-	p, err := testutil.PeerWithNewKeys()
+	p, err := testutil.RandPeerID()
 	if err != nil {
 		return nil, err
 	}
 
-	n, err := mn.AddPeer(p.ID())
+	n, err := mn.AddPeer(p)
 	if err != nil {
-		return nil, err
-	}
-
-	// copy over keys
-	if err := n.LocalPeer().Update(p); err != nil {
 		return nil, err
 	}
 
@@ -68,28 +61,16 @@ func (mn *mocknet) AddPeer(p peer.ID) (inet.Network, error) {
 	mn.cg.AddChildGroup(n.cg)
 
 	mn.Lock()
-	mn.nets[pid(n.peer)] = n
+	mn.nets[n.peer] = n
 	mn.Unlock()
 	return n, nil
 }
 
-func (mn *mocknet) Peer(pid peer.ID) peer.Peer {
+func (mn *mocknet) Peers() []peer.ID {
 	mn.RLock()
 	defer mn.RUnlock()
 
-	for _, n := range mn.nets {
-		if n.peer.ID().Equal(pid) {
-			return n.peer
-		}
-	}
-	return nil
-}
-
-func (mn *mocknet) Peers() []peer.Peer {
-	mn.RLock()
-	defer mn.RUnlock()
-
-	cp := make([]peer.Peer, 0, len(mn.nets))
+	cp := make([]peer.ID, 0, len(mn.nets))
 	for _, n := range mn.nets {
 		cp = append(cp, n.peer)
 	}
@@ -101,7 +82,7 @@ func (mn *mocknet) Net(pid peer.ID) inet.Network {
 	defer mn.RUnlock()
 
 	for _, n := range mn.nets {
-		if n.peer.ID().Equal(pid) {
+		if n.peer == pid {
 			return n
 		}
 	}
@@ -152,10 +133,10 @@ func (mn *mocknet) LinkAll() error {
 	return nil
 }
 
-func (mn *mocknet) LinkPeers(p1, p2 peer.Peer) (Link, error) {
+func (mn *mocknet) LinkPeers(p1, p2 peer.ID) (Link, error) {
 	mn.RLock()
-	n1 := mn.nets[pid(p1)]
-	n2 := mn.nets[pid(p2)]
+	n1 := mn.nets[p1]
+	n2 := mn.nets[p2]
 	mn.RUnlock()
 
 	if n1 == nil {
@@ -177,7 +158,7 @@ func (mn *mocknet) validate(n inet.Network) (*peernet, error) {
 		return nil, fmt.Errorf("Network not supported (use mock package nets only)")
 	}
 
-	if _, found := mn.nets[pid(nr.peer)]; !found {
+	if _, found := mn.nets[nr.peer]; !found {
 		return nil, fmt.Errorf("Network not on mocknet. is it from another mocknet?")
 	}
 
@@ -215,7 +196,7 @@ func (mn *mocknet) Unlink(l2 Link) error {
 	return nil
 }
 
-func (mn *mocknet) UnlinkPeers(p1, p2 peer.Peer) error {
+func (mn *mocknet) UnlinkPeers(p1, p2 peer.ID) error {
 	ls := mn.LinksBetweenPeers(p1, p2)
 	if ls == nil {
 		return fmt.Errorf("no link between p1 and p2")
@@ -234,19 +215,19 @@ func (mn *mocknet) UnlinkNets(n1, n2 inet.Network) error {
 }
 
 // get from the links map. and lazily contruct.
-func (mn *mocknet) linksMapGet(p1, p2 peer.Peer) *map[*link]struct{} {
+func (mn *mocknet) linksMapGet(p1, p2 peer.ID) *map[*link]struct{} {
 
-	l1, found := mn.links[pid(p1)]
+	l1, found := mn.links[p1]
 	if !found {
-		mn.links[pid(p1)] = map[peerID]map[*link]struct{}{}
-		l1 = mn.links[pid(p1)] // so we make sure it's there.
+		mn.links[p1] = map[peer.ID]map[*link]struct{}{}
+		l1 = mn.links[p1] // so we make sure it's there.
 	}
 
-	l2, found := l1[pid(p2)]
+	l2, found := l1[p2]
 	if !found {
 		m := map[*link]struct{}{}
-		l1[pid(p2)] = m
-		l2 = l1[pid(p2)]
+		l1[p2] = m
+		l2 = l1[p2]
 	}
 
 	return &l2
@@ -286,23 +267,23 @@ func (mn *mocknet) ConnectAll() error {
 	return nil
 }
 
-func (mn *mocknet) ConnectPeers(a, b peer.Peer) error {
-	return mn.Net(a.ID()).DialPeer(mn.cg.Context(), b)
+func (mn *mocknet) ConnectPeers(a, b peer.ID) error {
+	return mn.Net(a).DialPeer(mn.cg.Context(), b)
 }
 
 func (mn *mocknet) ConnectNets(a, b inet.Network) error {
 	return a.DialPeer(mn.cg.Context(), b.LocalPeer())
 }
 
-func (mn *mocknet) DisconnectPeers(p1, p2 peer.Peer) error {
-	return mn.Net(p1.ID()).ClosePeer(p2)
+func (mn *mocknet) DisconnectPeers(p1, p2 peer.ID) error {
+	return mn.Net(p1).ClosePeer(p2)
 }
 
 func (mn *mocknet) DisconnectNets(n1, n2 inet.Network) error {
 	return n1.ClosePeer(n2.LocalPeer())
 }
 
-func (mn *mocknet) LinksBetweenPeers(p1, p2 peer.Peer) []Link {
+func (mn *mocknet) LinksBetweenPeers(p1, p2 peer.ID) []Link {
 	mn.RLock()
 	defer mn.RUnlock()
 

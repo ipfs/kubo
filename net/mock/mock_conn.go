@@ -14,8 +14,8 @@ import (
 // live connection between two peers.
 // it goes over a particular link.
 type conn struct {
-	local   peer.Peer
-	remote  peer.Peer
+	local   peer.ID
+	remote  peer.ID
 	net     *peernet
 	link    *link
 	rconn   *conn // counterpart
@@ -74,7 +74,7 @@ func (c *conn) openStream() *stream {
 	return sl
 }
 
-func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.Peer) (inet.Stream, error) {
+func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.ID) (inet.Stream, error) {
 	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, p)
 
 	s := c.openStream()
@@ -91,7 +91,7 @@ func (c *conn) LocalMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on our side of the connection
-func (c *conn) LocalPeer() peer.Peer {
+func (c *conn) LocalPeer() peer.ID {
 	return c.local
 }
 
@@ -101,6 +101,6 @@ func (c *conn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *conn) RemotePeer() peer.Peer {
+func (c *conn) RemotePeer() peer.ID {
 	return c.remote
 }
