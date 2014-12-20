@@ -34,6 +34,10 @@ func (sg *SessionGenerator) NewSession(ctx context.Context,
 		return nil, errors.New("no local private key provided")
 	}
 
+	if !sg.LocalID.MatchesPrivateKey(sg.PrivateKey) {
+		return nil, errors.New("LocalID does not correspond to PrivateKey")
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}

@@ -55,6 +55,10 @@ func newSecureSession(local peer.ID, key ci.PrivKey) *secureSession {
 // requires the duplex channel to be a msgio.ReadWriter (for framed messaging)
 func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) error {
 
+	if !s.localPeer.MatchesPrivateKey(s.localKey) {
+		return fmt.Errorf("peer.ID does not match PrivateKey")
+	}
+
 	s.insecure = insecure
 	s.insecureM = msgio.NewReadWriter(insecure)
 
@@ -83,6 +87,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	proposeOut.Exchanges = &SupportedExchanges
 	proposeOut.Ciphers = &SupportedCiphers
 	proposeOut.Hashes = &SupportedHashes
+	log.Debugf("1.0 Propose: nonce:%s exchanges:%s ciphers:%s hashes:%s",
+		nonceOut, SupportedExchanges, SupportedCiphers, SupportedHashes)
 
 	// Send Propose packet (respects ctx)
 	proposeOutBytes, err := writeMsgCtx(ctx, s.insecureM, proposeOut)
@@ -97,6 +103,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return err
 	}
 
+	log.Debugf("1.0.1 Propose recv: nonce:%s exchanges:%s ciphers:%s hashes:%s",
+		proposeIn.GetRand(), proposeIn.GetExchanges(), proposeIn.GetCiphers(), proposeIn.GetHashes())
 	// =============================================================================
 	// step 1.1 Identify -- get identity from their key
 
@@ -111,7 +119,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	if err != nil {
 		return err
 	}
-	// log.Debugf("%s Remote Peer Identified as %s", s.localPeer, s.remotePeer)
+	log.Debugf("1.1 Identify: %s Remote Peer Identified as %s", s.localPeer, s.remotePeer)
 
 	// =============================================================================
 	// step 1.2 Selection -- select/agree on best encryption parameters
@@ -140,6 +148,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	s.remote.curveT = s.local.curveT
 	s.remote.cipherT = s.local.cipherT
 	s.remote.hashT = s.local.hashT
+	log.Debugf("1.2 selection: exchange:%s cipher:%s hash:%s",
+		s.local.curveT, s.local.cipherT, s.local.hashT)
 
 	// =============================================================================
 	// step 2. Exchange -- exchange (signed) ephemeral keys. verify signatures.
@@ -155,6 +165,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	selectionOut.Write(s.local.ephemeralPubKey)
 	selectionOutBytes := selectionOut.Bytes()
 
+	log.Debugf("2.0 exchange: %v", selectionOutBytes)
 	exchangeOut := new(pb.Exchange)
 	exchangeOut.Epubkey = s.local.ephemeralPubKey
 	exchangeOut.Signature, err = s.localKey.Sign(selectionOutBytes)
@@ -184,16 +195,21 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	selectionIn.Write(proposeOutBytes)
 	selectionIn.Write(s.remote.ephemeralPubKey)
 	selectionInBytes := selectionIn.Bytes()
+	log.Debugf("2.0.1 exchange recv: %v", selectionInBytes)
 
 	// u.POut("Remote Peer Identified as %s\n", s.remote)
 	sigOK, err := s.local.permanentPubKey.Verify(selectionInBytes, exchangeIn.GetSignature())
 	if err != nil {
+		log.Error("2.1 Verify: failed: %s", err)
 		return err
 	}
 
 	if !sigOK {
-		return errors.New("Bad signature!")
+		err := errors.New("Bad signature!")
+		log.Error("2.1 Verify: failed: %s", err)
+		return err
 	}
+	log.Debugf("2.1 Verify: signature verified.")
 
 	// =============================================================================
 	// step 2.2. Keys -- generate keys for mac + encryption
@@ -222,6 +238,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	}
 	s.local.keys = k1
 	s.remote.keys = k2
+	log.Debug("2.2 keys:\n\tshared: %v\n\tk1: %v\n\tk2: %v",
+		s.sharedSecret, s.local.keys, s.remote.keys)
 
 	// =============================================================================
 	// step 2.3. MAC + Cipher -- prepare MAC + cipher
@@ -233,6 +251,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	if err := s.remote.makeMacAndCipher(); err != nil {
 		return err
 	}
+	log.Debug("2.3 mac + cipher.")
 
 	// =============================================================================
 	// step 3. Finish -- send expected message (the nonces), verify encryption works
@@ -242,6 +261,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	r := NewETMReader(s.insecure, s.remote.cipher, s.remote.mac)
 	s.secure = msgio.Combine(w, r).(msgio.ReadWriteCloser)
 
+	log.Debug("3.0 finish. sending: %v", proposeIn.GetRand())
 	// send their Nonce.
 	if _, err := s.secure.Write(proposeIn.GetRand()); err != nil {
 		return fmt.Errorf("Failed to write Finish nonce: %s", err)
@@ -252,6 +272,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	if _, err := io.ReadFull(s.secure, nonceOut2); err != nil {
 		return fmt.Errorf("Failed to read Finish nonce: %s", err)
 	}
+	log.Debug("3.0 finish.\n\texpect: %v\n\tactual: %v", nonceOut, nonceOut2)
 	if !bytes.Equal(nonceOut, nonceOut2) {
 		return fmt.Errorf("Failed to read our encrypted nonce: %s != %s", nonceOut2, nonceOut)
 	}
