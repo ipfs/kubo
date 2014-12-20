@@ -102,8 +102,8 @@ func TestCloseLeak(t *testing.T) {
 		wg.Done()
 	}
 
-	var cons = 10
-	var msgs = 100
+	var cons = 5
+	var msgs = 50
 	log.Debugf("Running %d connections * %d msgs.\n", cons, msgs)
 	for i := 0; i < cons; i++ {
 		wg.Add(1)

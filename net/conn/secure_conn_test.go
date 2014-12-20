@@ -34,6 +34,11 @@ func secureHandshake(t *testing.T, ctx context.Context, sk ic.PrivKey, c Conn, d
 func TestSecureSimple(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 
+	numMsgs := 100
+	if testing.Short() {
+		numMsgs = 10
+	}
+
 	ctx := context.Background()
 	c1, c2, p1, p2 := setupSingleConn(t, ctx)
 
@@ -47,7 +52,7 @@ func TestSecureSimple(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numMsgs; i++ {
 		testOneSendRecv(t, c1, c2)
 		testOneSendRecv(t, c2, c1)
 	}
@@ -91,7 +96,7 @@ func TestSecureCancelHandshake(t *testing.T) {
 
 	done := make(chan error)
 	go secureHandshake(t, ctx, p1.PrivKey, c1, done)
-	<-time.After(50 * time.Millisecond)
+	<-time.After(time.Millisecond)
 	cancel() // cancel ctx
 	go secureHandshake(t, ctx, p2.PrivKey, c2, done)
 
@@ -115,7 +120,7 @@ func TestSecureHandshakeFailsWithWrongKeys(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		if err := <-done; err == nil {
-			t.Error("wrong keys should've errored out.")
+			t.Fatal("wrong keys should've errored out.")
 		}
 	}
 }
@@ -159,8 +164,8 @@ func TestSecureCloseLeak(t *testing.T) {
 		}
 	}
 
-	var cons = 20
-	var msgs = 100
+	var cons = 5
+	var msgs = 50
 	log.Debugf("Running %d connections * %d msgs.\n", cons, msgs)
 
 	var wg sync.WaitGroup

@@ -1,8 +1,11 @@
 package testutil
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
+	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -29,4 +32,61 @@ func RandLocalTCPAddress() ma.Multiaddr {
 	addr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 10000+rand.Intn(50000))
 	maddr, _ := ma.NewMultiaddr(addr)
 	return maddr
+}
+
+// PeerNetParams is a struct to bundle together the four things
+// you need to run a connection with a peer: id, 2keys, and addr.
+type PeerNetParams struct {
+	ID      peer.ID
+	PrivKey ci.PrivKey
+	PubKey  ci.PubKey
+	Addr    ma.Multiaddr
+}
+
+func (p *PeerNetParams) checkKeys() error {
+	if !p.ID.MatchesPrivateKey(p.PrivKey) {
+		return errors.New("p.ID does not match p.PrivKey")
+	}
+
+	if !p.ID.MatchesPublicKey(p.PubKey) {
+		return errors.New("p.ID does not match p.PubKey")
+	}
+
+	var buf bytes.Buffer
+	buf.Write([]byte("hello world. this is me, I swear."))
+	b := buf.Bytes()
+
+	sig, err := p.PrivKey.Sign(b)
+	if err != nil {
+		return fmt.Errorf("sig signing failed: %s", err)
+	}
+
+	sigok, err := p.PubKey.Verify(b, sig)
+	if err != nil {
+		return fmt.Errorf("sig verify failed: %s", err)
+	}
+	if !sigok {
+		return fmt.Errorf("sig verify failed: sig invalid!")
+	}
+
+	return nil // ok. move along.
+}
+
+func RandPeerNetParams(t *testing.T) (p PeerNetParams) {
+	var err error
+	p.Addr = RandLocalTCPAddress()
+	p.PrivKey, p.PubKey, err = ci.GenerateKeyPair(ci.RSA, 512)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.ID, err = peer.IDFromPublicKey(p.PubKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := p.checkKeys(); err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

@@ -25,7 +25,7 @@ func TestSimultOpen(t *testing.T) {
 	// connect everyone
 	{
 		var wg sync.WaitGroup
-		connect := func(s *Swarm, dst peer.Peer) {
+		connect := func(s *Swarm, dst peer.ID) {
 			// copy for other peer
 			cp := testutil.NewPeerWithID(dst.ID())
 			cp.AddAddress(dst.Addresses()[0])
