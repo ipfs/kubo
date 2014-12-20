@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/rand"
 	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -21,15 +20,21 @@ func RandPeerID() (peer.ID, error) {
 	return peer.IDFromPublicKey(pk)
 }
 
+var nextPort = 0
+
 // RandLocalTCPAddress returns a random multiaddr. it suppresses errors
 // for nice composability-- do check the address isn't nil.
 func RandLocalTCPAddress() ma.Multiaddr {
+	if nextPort == 0 {
+		nextPort = 10000 + SeededRand.Intn(50000)
+	}
 
 	// chances are it will work out, but it **might** fail if the port is in use
 	// most ports above 10000 aren't in use by long running processes, so yay.
 	// (maybe there should be a range of "loopback" ports that are guaranteed
 	// to be open for the process, but naturally can only talk to self.)
-	addr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 10000+rand.Intn(50000))
+	nextPort++
+	addr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", nextPort)
 	maddr, _ := ma.NewMultiaddr(addr)
 	return maddr
 }
