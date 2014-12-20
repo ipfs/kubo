@@ -57,7 +57,7 @@ type Conn interface {
 	conn.PeerConn
 
 	// NewStreamWithProtocol constructs a new Stream directly connected to p.
-	NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error)
+	NewStreamWithProtocol(pr ProtocolID, p peer.ID) (Stream, error)
 }
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -75,10 +75,10 @@ type Network interface {
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.
 	// If ProtocolID is "", writes no header.
-	NewStream(ProtocolID, peer.Peer) (Stream, error)
+	NewStream(ProtocolID, peer.ID) (Stream, error)
 
 	// Peers returns the peers connected
-	Peers() []peer.Peer
+	Peers() []peer.ID
 
 	// Conns returns the connections in this Netowrk
 	Conns() []Conn
@@ -104,16 +104,16 @@ type Network interface {
 // stack, and thus it becomes easier to mock)
 type Dialer interface {
 	// LocalPeer returns the local peer associated with this network
-	LocalPeer() peer.Peer
+	LocalPeer() peer.ID
 
 	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(context.Context, peer.Peer) error
+	DialPeer(context.Context, peer.ID) error
 
 	// ClosePeer closes the connection to a given peer
-	ClosePeer(peer.Peer) error
+	ClosePeer(peer.ID) error
 
 	// Connectedness returns a state signaling connection capabilities
-	Connectedness(peer.Peer) Connectedness
+	Connectedness(peer.ID) Connectedness
 }
 
 // Connectedness signals the capacity for a connection with a given node.
