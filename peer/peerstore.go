@@ -15,6 +15,14 @@ type Peerstore interface {
 	KeyBook
 	AddressBook
 	Metrics
+
+	// Peers returns a list of all peer.IDs in this Peerstore
+	Peers() []ID
+
+	// PeerInfo returns a peer.PeerInfo struct for given peer.ID.
+	// This is a small slice of the information Peerstore has on
+	// that peer, useful to other services.
+	PeerInfo(ID) PeerInfo
 }
 
 // AddressBook tracks the addresses of Peers
@@ -196,4 +204,11 @@ func (ps *peerstore) Peers() []ID {
 		pps = append(pps, p)
 	}
 	return pps
+}
+
+func (ps *peerstore) PeerInfo(p ID) PeerInfo {
+	return PeerInfo{
+		ID:    p,
+		Addrs: ps.addressbook.Addresses(p),
+	}
 }

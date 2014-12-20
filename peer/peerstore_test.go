@@ -44,10 +44,6 @@ func TestAddresses(t *testing.T) {
 	ps.AddAddress(id3, ma32)
 	ps.AddAddress(id3, ma33)
 
-	a1 := ps.Addresses(id1)
-	a2 := ps.Addresses(id2)
-	a3 := ps.Addresses(id3)
-
 	test := func(exp, act []ma.Multiaddr) {
 		if len(exp) != len(act) {
 			t.Fatal("lengths not the same")
@@ -69,7 +65,13 @@ func TestAddresses(t *testing.T) {
 		}
 	}
 
-	test([]ma.Multiaddr{ma11}, a1)
-	test([]ma.Multiaddr{ma21, ma22}, a2)
-	test([]ma.Multiaddr{ma31, ma32, ma33}, a3)
+	// test the Addresses return value
+	test([]ma.Multiaddr{ma11}, ps.Addresses(id1))
+	test([]ma.Multiaddr{ma21, ma22}, ps.Addresses(id2))
+	test([]ma.Multiaddr{ma31, ma32, ma33}, ps.Addresses(id3))
+
+	// test also the PeerInfo return
+	test([]ma.Multiaddr{ma11}, ps.PeerInfo(id1).Addrs)
+	test([]ma.Multiaddr{ma21, ma22}, ps.PeerInfo(id2).Addrs)
+	test([]ma.Multiaddr{ma31, ma32, ma33}, ps.PeerInfo(id3).Addrs)
 }
