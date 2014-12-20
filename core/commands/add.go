@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"sort"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
@@ -81,6 +82,8 @@ remains to be implemented.
 			if !ok {
 				return nil, u.ErrCast()
 			}
+
+			sort.Stable(val)
 
 			var buf bytes.Buffer
 			for i, obj := range val.Objects {
@@ -196,4 +199,17 @@ func addDagnode(output *AddOutput, name string, dn *dag.Node) error {
 	output.Objects = append(output.Objects, o)
 	output.Names = append(output.Names, name)
 	return nil
+}
+
+// Sort interface implementation to sort add output by name
+
+func (a AddOutput) Len() int {
+    return len(a.Names)
+}
+func (a AddOutput) Swap(i, j int) {
+    a.Names[i], a.Names[j] = a.Names[j], a.Names[i]
+    a.Objects[i], a.Objects[j] = a.Objects[j], a.Objects[i]
+}
+func (a AddOutput) Less(i, j int) bool {
+    return a.Names[i] < a.Names[j]
 }
