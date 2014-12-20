@@ -13,7 +13,7 @@ import (
 // peerMetric tracks a peer and its distance to something else.
 type peerMetric struct {
 	// the peer
-	peer peer.Peer
+	peer peer.ID
 
 	// big.Int for XOR metric
 	metric *big.Int
@@ -64,11 +64,11 @@ func (pq *distancePQ) Len() int {
 	return len(pq.heap)
 }
 
-func (pq *distancePQ) Enqueue(p peer.Peer) {
+func (pq *distancePQ) Enqueue(p peer.ID) {
 	pq.Lock()
 	defer pq.Unlock()
 
-	distance := ks.XORKeySpace.Key(p.ID()).Distance(pq.from)
+	distance := ks.XORKeySpace.Key([]byte(p)).Distance(pq.from)
 
 	heap.Push(&pq.heap, &peerMetric{
 		peer:   p,
@@ -76,7 +76,7 @@ func (pq *distancePQ) Enqueue(p peer.Peer) {
 	})
 }
 
-func (pq *distancePQ) Dequeue() peer.Peer {
+func (pq *distancePQ) Dequeue() peer.ID {
 	pq.Lock()
 	defer pq.Unlock()
 
