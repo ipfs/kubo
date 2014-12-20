@@ -12,6 +12,10 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+func RandKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
+	return ci.GenerateKeyPair(ci.RSA, bits)
+}
+
 func RandPeerID() (peer.ID, error) {
 	_, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
