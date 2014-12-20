@@ -34,7 +34,7 @@ func (id ID) Loggable() map[string]interface{} {
 // IDs safely. Then any peer.ID type found in the
 // codebase is known to be correct.
 func (id ID) String() string {
-	pid := string(id)
+	pid := id.Pretty()
 	maxRunes := 6
 	if len(pid) < maxRunes {
 		maxRunes = len(pid)
