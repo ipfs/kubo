@@ -94,8 +94,9 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	proposeOut.Exchanges = &SupportedExchanges
 	proposeOut.Ciphers = &SupportedCiphers
 	proposeOut.Hashes = &SupportedHashes
-	log.Debugf("1.0 Propose: nonce:%s exchanges:%s ciphers:%s hashes:%s",
-		nonceOut, SupportedExchanges, SupportedCiphers, SupportedHashes)
+
+	// log.Debugf("1.0 Propose: nonce:%s exchanges:%s ciphers:%s hashes:%s",
+	// 	nonceOut, SupportedExchanges, SupportedCiphers, SupportedHashes)
 
 	// Send Propose packet (respects ctx)
 	proposeOutBytes, err := writeMsgCtx(ctx, s.insecureM, proposeOut)
@@ -110,8 +111,9 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return err
 	}
 
-	log.Debugf("1.0.1 Propose recv: nonce:%s exchanges:%s ciphers:%s hashes:%s",
-		proposeIn.GetRand(), proposeIn.GetExchanges(), proposeIn.GetCiphers(), proposeIn.GetHashes())
+	// log.Debugf("1.0.1 Propose recv: nonce:%s exchanges:%s ciphers:%s hashes:%s",
+	// 	proposeIn.GetRand(), proposeIn.GetExchanges(), proposeIn.GetCiphers(), proposeIn.GetHashes())
+
 	// =============================================================================
 	// step 1.1 Identify -- get identity from their key
 
@@ -126,6 +128,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	if err != nil {
 		return err
 	}
+
 	log.Debugf("1.1 Identify: %s Remote Peer Identified as %s", s.localPeer, s.remotePeer)
 
 	// =============================================================================
@@ -155,8 +158,9 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	s.remote.curveT = s.local.curveT
 	s.remote.cipherT = s.local.cipherT
 	s.remote.hashT = s.local.hashT
-	log.Debugf("1.2 selection: exchange:%s cipher:%s hash:%s",
-		s.local.curveT, s.local.cipherT, s.local.hashT)
+
+	// log.Debugf("1.2 selection: exchange:%s cipher:%s hash:%s",
+	// 	s.local.curveT, s.local.cipherT, s.local.hashT)
 
 	// =============================================================================
 	// step 2. Exchange -- exchange (signed) ephemeral keys. verify signatures.
@@ -172,7 +176,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	selectionOut.Write(s.local.ephemeralPubKey)
 	selectionOutBytes := selectionOut.Bytes()
 
-	log.Debugf("2.0 exchange: %v", selectionOutBytes)
+	// log.Debugf("2.0 exchange: %v", selectionOutBytes)
 	exchangeOut := new(pb.Exchange)
 	exchangeOut.Epubkey = s.local.ephemeralPubKey
 	exchangeOut.Signature, err = s.localKey.Sign(selectionOutBytes)
@@ -202,21 +206,21 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	selectionIn.Write(proposeOutBytes)
 	selectionIn.Write(s.remote.ephemeralPubKey)
 	selectionInBytes := selectionIn.Bytes()
-	log.Debugf("2.0.1 exchange recv: %v", selectionInBytes)
+	// log.Debugf("2.0.1 exchange recv: %v", selectionInBytes)
 
 	// u.POut("Remote Peer Identified as %s\n", s.remote)
 	sigOK, err := s.remote.permanentPubKey.Verify(selectionInBytes, exchangeIn.GetSignature())
 	if err != nil {
-		log.Error("2.1 Verify: failed: %s", err)
+		// log.Error("2.1 Verify: failed: %s", err)
 		return err
 	}
 
 	if !sigOK {
 		err := errors.New("Bad signature!")
-		log.Error("2.1 Verify: failed: %s", err)
+		// log.Error("2.1 Verify: failed: %s", err)
 		return err
 	}
-	log.Debugf("2.1 Verify: signature verified.")
+	// log.Debugf("2.1 Verify: signature verified.")
 
 	// =============================================================================
 	// step 2.2. Keys -- generate keys for mac + encryption
