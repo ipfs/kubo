@@ -41,7 +41,7 @@ func (c *Conn) LocalMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on our side of the connection
-func (c *Conn) LocalPeer() peer.Peer {
+func (c *Conn) LocalPeer() peer.ID {
 	return c.RawConn().LocalPeer()
 }
 
@@ -51,7 +51,7 @@ func (c *Conn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *Conn) RemotePeer() peer.Peer {
+func (c *Conn) RemotePeer() peer.ID {
 	return c.RawConn().RemotePeer()
 }
 
@@ -96,13 +96,6 @@ func (s *Swarm) newConnSetup(ctx context.Context, psConn *ps.Conn) (*Conn, error
 		return nil, err
 	}
 
-	// removing this for now, as it has to change. we can put this in a different
-	// sub-protocol anyway.
-	// // run Handshake3
-	// if err := runHandshake3(ctx, s, sc); err != nil {
-	// 	return nil, err
-	// }
-
 	// ok great! we can use it. add it to our group.
 
 	// set the RemotePeer as a group on the conn. this lets us group
@@ -113,29 +106,3 @@ func (s *Swarm) newConnSetup(ctx context.Context, psConn *ps.Conn) (*Conn, error
 
 	return sc, nil
 }
-
-// func runHandshake3(ctx context.Context, s *Swarm, c *Conn) error {
-// 	log.Event(ctx, "newConnection", c.LocalPeer(), c.RemotePeer())
-
-// 	stream, err := c.NewStream()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// handshake3 (this whole thing is ugly. maybe lets get rid of it...)
-// 	h3result, err := conn.Handshake3(ctx, stream, c.RawConn())
-// 	if err != nil {
-// 		return fmt.Errorf("Handshake3 failed: %s", err)
-// 	}
-
-// 	// check for nats. you know, just in case.
-// 	if h3result.LocalObservedAddress != nil {
-// 		checkNATWarning(s, h3result.LocalObservedAddress, c.LocalMultiaddr())
-// 	} else {
-// 		log.Warningf("Received nil observed address from %s", c.RemotePeer())
-// 	}
-
-// 	stream.Close()
-// 	log.Event(ctx, "handshake3Succeeded", c.LocalPeer(), c.RemotePeer())
-// 	return nil
-// }

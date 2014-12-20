@@ -6,8 +6,8 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	multierr "github.com/jbenet/go-ipfs/util/multierr"
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	multierr "github.com/jbenet/go-ipfs/util/multierr"
 )
 
 // Open listeners for each network the swarm should listen on
@@ -35,19 +35,24 @@ func (s *Swarm) listen(addrs []ma.Multiaddr) error {
 // Listen for new connections on the given multiaddr
 func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 
-	resolved, err := resolveUnspecifiedAddresses([]ma.Multiaddr{maddr})
+	// TODO rethink how this has to work. (jbenet)
+	//
+	// resolved, err := resolveUnspecifiedAddresses([]ma.Multiaddr{maddr})
+	// if err != nil {
+	// 	return err
+	// }
+	// for _, a := range resolved {
+	// 	s.peers.AddAddress(s.local, a)
+	// }
+
+	sk := s.peers.PrivKey(s.local)
+	if sk == nil {
+		// may be fine for sk to be nil, just log a warning.
+		log.Warning("Listener not given PrivateKey, so WILL NOT SECURE conns.")
+	}
+	list, err := conn.Listen(s.cg.Context(), maddr, s.local, sk)
 	if err != nil {
 		return err
-	}
-
-	list, err := conn.Listen(s.cg.Context(), maddr, s.local, s.peers)
-	if err != nil {
-		return err
-	}
-
-	// add resolved local addresses to peer
-	for _, addr := range resolved {
-		s.local.AddAddress(addr)
 	}
 
 	// AddListener to the peerstream Listener. this will begin accepting connections

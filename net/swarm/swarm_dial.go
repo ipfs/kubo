@@ -17,9 +17,9 @@ import (
 // the connection will happen over. Swarm can use whichever it choses.
 // This allows us to use various transport protocols, do NAT traversal/relay,
 // etc. to achive connection.
-func (s *Swarm) Dial(ctx context.Context, p peer.Peer) (*Conn, error) {
+func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 
-	if p.ID().Equal(s.local.ID()) {
+	if p == s.local {
 		return nil, errors.New("Attempted connection to self!")
 	}
 
@@ -31,28 +31,35 @@ func (s *Swarm) Dial(ctx context.Context, p peer.Peer) (*Conn, error) {
 		}
 	}
 
-	// check if we don't have the peer in Peerstore
-	p, err := s.peers.Add(p)
-	if err != nil {
-		return nil, err
+	sk := s.peers.PrivKey(s.local)
+	if sk == nil {
+		// may be fine for sk to be nil, just log a warning.
+		log.Warning("Dial not given PrivateKey, so WILL NOT SECURE conn.")
+	}
+
+	remoteAddrs := s.peers.Addresses(p)
+	if len(remoteAddrs) == 0 {
+		return nil, errors.New("peer has no addresses")
+	}
+	localAddrs := s.peers.Addresses(s.local)
+	if len(localAddrs) == 0 {
+		log.Debug("Dialing out with no local addresses.")
 	}
 
 	// open connection to peer
 	d := &conn.Dialer{
-		LocalPeer: s.local,
-		Peerstore: s.peers,
-	}
-
-	if len(p.Addresses()) == 0 {
-		return nil, errors.New("peer has no addresses")
+		LocalPeer:  s.local,
+		LocalAddrs: localAddrs,
+		PrivateKey: sk,
 	}
 
 	// try to connect to one of the peer's known addresses.
 	// for simplicity, we do this sequentially.
 	// A future commit will do this asynchronously.
 	var connC conn.Conn
-	for _, addr := range p.Addresses() {
-		connC, err = d.DialAddr(ctx, addr, p)
+	var err error
+	for _, addr := range remoteAddrs {
+		connC, err = d.Dial(ctx, addr, p)
 		if err == nil {
 			break
 		}
