@@ -2,6 +2,7 @@
 package peer
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
@@ -86,6 +87,20 @@ func IDB58Decode(s string) (ID, error) {
 // IDB58Encode returns b58-encoded string
 func IDB58Encode(id ID) string {
 	return b58.Encode([]byte(id))
+}
+
+// IDHexDecode returns a b58-decoded Peer
+func IDHexDecode(s string) (ID, error) {
+	m, err := mh.FromHexString(s)
+	if err != nil {
+		return "", err
+	}
+	return ID(m), err
+}
+
+// IDHexEncode returns b58-encoded string
+func IDHexEncode(id ID) string {
+	return hex.EncodeToString([]byte(id))
 }
 
 // IDFromPublicKey returns the Peer ID corresponding to pk
