@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 
 	ic "github.com/jbenet/go-ipfs/crypto"
@@ -20,12 +20,6 @@ type Peerstore interface {
 type AddressBook interface {
 	Addresses(ID) []ma.Multiaddr
 	AddAddress(ID, ma.Multiaddr)
-}
-
-// KeyBook tracks the Public keys of Peers.
-type KeyBook interface {
-	PubKey(ID) ic.PubKey
-	AddPubKey(ID, ic.PubKey) error
 }
 
 type addressMap map[string]ma.Multiaddr
@@ -76,20 +70,39 @@ func (ab *addressbook) AddAddress(p ID, m ma.Multiaddr) {
 	ab.addrs[p][m.String()] = m
 }
 
+// KeyBook tracks the Public keys of Peers.
+type KeyBook interface {
+	PubKey(ID) ic.PubKey
+	AddPubKey(ID, ic.PubKey) error
+
+	PrivKey(ID) ic.PrivKey
+	AddPrivKey(ID, ic.PrivKey) error
+}
+
 type keybook struct {
-	keys map[ID]ic.PubKey
-	sync.RWMutex
+	pks map[ID]ic.PubKey
+	sks map[ID]ic.PrivKey
+
+	sync.RWMutex // same lock. wont happen a ton.
 }
 
 func newKeybook() *keybook {
-	return &keybook{keys: map[ID]ic.PubKey{}}
+	return &keybook{
+		pks: map[ID]ic.PubKey{},
+		sks: map[ID]ic.PrivKey{},
+	}
 }
 
 func (kb *keybook) Peers() []ID {
 	kb.RLock()
-	ps := make([]ID, 0, len(kb.keys))
-	for p := range kb.keys {
+	ps := make([]ID, 0, len(kb.pks)+len(kb.sks))
+	for p := range kb.pks {
 		ps = append(ps, p)
+	}
+	for p := range kb.sks {
+		if _, found := kb.pks[p]; !found {
+			ps = append(ps, p)
+		}
 	}
 	kb.RUnlock()
 	return ps
@@ -97,7 +110,7 @@ func (kb *keybook) Peers() []ID {
 
 func (kb *keybook) PubKey(p ID) ic.PubKey {
 	kb.RLock()
-	pk := kb.keys[p]
+	pk := kb.pks[p]
 	kb.RUnlock()
 	return pk
 }
@@ -105,27 +118,33 @@ func (kb *keybook) PubKey(p ID) ic.PubKey {
 func (kb *keybook) AddPubKey(p ID, pk ic.PubKey) error {
 
 	// check it's correct first
-	if err := VerifyPubKey(p, pk); err != nil {
-		return err
+	if !p.MatchesPublicKey(pk) {
+		return errors.New("ID does not match PublicKey")
 	}
 
 	kb.Lock()
-	kb.keys[p] = pk
+	kb.pks[p] = pk
 	kb.Unlock()
 	return nil
 }
 
-// VerifyPubKey checks public key matches given peer Peer
-func VerifyPubKey(p ID, pk ic.PubKey) error {
-	p2, err := IDFromPublicKey(pk)
-	if err != nil {
-		return fmt.Errorf("Failed to hash public key: %v", err)
+func (kb *keybook) PrivKey(p ID) ic.PrivKey {
+	kb.RLock()
+	sk := kb.sks[p]
+	kb.RUnlock()
+	return sk
+}
+
+func (kb *keybook) AddPrivKey(p ID, sk ic.PrivKey) error {
+
+	// check it's correct first
+	if !p.MatchesPrivateKey(sk) {
+		return errors.New("ID does not match PrivateKey")
 	}
 
-	if p != p2 {
-		return fmt.Errorf("Public key ID does not match: %s != %s", p, p2)
-	}
-
+	kb.Lock()
+	kb.sks[p] = sk
+	kb.Unlock()
 	return nil
 }
 
