@@ -3,6 +3,7 @@ package dht
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -26,32 +27,56 @@ var ErrBadRecord = errors.New("bad dht record")
 // is not found in the Validator map of the DHT.
 var ErrInvalidRecordType = errors.New("invalid record keytype")
 
+// KeyForPublicKey returns the key used to retrieve public keys
+// from the dht.
+func KeyForPublicKey(id peer.ID) u.Key {
+	return u.Key("/pk/" + string(id))
+}
+
+// RecordBlobForSig returns the blob protected by the record signature
+func RecordBlobForSig(r *pb.Record) []byte {
+	k := []byte(r.GetKey())
+	v := []byte(r.GetValue())
+	a := []byte(r.GetAuthor())
+	return bytes.Join([][]byte{k, v, a}, []byte{})
+}
+
 // creates and signs a dht record for the given key/value pair
 func (dht *IpfsDHT) makePutRecord(key u.Key, value []byte) (*pb.Record, error) {
 	record := new(pb.Record)
 
 	record.Key = proto.String(string(key))
 	record.Value = value
-	record.Author = proto.String(string(dht.self.ID()))
-	blob := bytes.Join([][]byte{[]byte(key), value, []byte(dht.self.ID())}, []byte{})
-	sig, err := dht.self.PrivKey().Sign(blob)
+	record.Author = proto.String(string(dht.self))
+	blob := RecordBlobForSig(record)
+
+	sk := dht.peerstore.PrivKey(dht.self)
+	if sk == nil {
+		log.Errorf("%s dht cannot get own private key!", dht.self)
+		return nil, fmt.Errorf("cannot get private key to sign record!")
+	}
+
+	sig, err := sk.Sign(blob)
 	if err != nil {
 		return nil, err
 	}
+
 	record.Signature = sig
 	return record, nil
 }
 
-func (dht *IpfsDHT) getPublicKey(pid peer.ID) (ci.PubKey, error) {
-	log.Debug("getPublicKey for: %s", pid)
-	p, err := dht.peerstore.FindOrCreate(pid)
-	if err == nil {
-		return p.PubKey(), nil
+func (dht *IpfsDHT) getPublicKey(p peer.ID) (ci.PubKey, error) {
+	log.Debug("getPublicKey for: %s", p)
+
+	// check locally.
+	pk := dht.peerstore.PubKey(p)
+	if pk != nil {
+		return pk, nil
 	}
 
 	log.Debug("not in peerstore, searching dht.")
 	ctxT, _ := context.WithTimeout(dht.ContextGroup.Context(), time.Second*5)
-	val, err := dht.GetValue(ctxT, u.Key("/pk/"+string(pid)))
+	val, err := dht.GetValue(ctxT, KeyForPublicKey(p))
 	if err != nil {
 		log.Warning("Failed to find requested public key.")
 		return nil, err
@@ -67,23 +92,20 @@ func (dht *IpfsDHT) getPublicKey(pid peer.ID) (ci.PubKey, error) {
 
 func (dht *IpfsDHT) verifyRecord(r *pb.Record) error {
 	// First, validate the signature
-	p, err := dht.peerstore.FindOrCreate(peer.ID(r.GetAuthor()))
+	p := peer.ID(r.GetAuthor())
+	pk, err := dht.getPublicKey(p)
 	if err != nil {
 		return err
 	}
-	k := u.Key(r.GetKey())
 
-	blob := bytes.Join([][]byte{[]byte(k),
-		r.GetValue(),
-		[]byte(r.GetAuthor())}, []byte{})
-
-	ok, err := p.PubKey().Verify(blob, r.GetSignature())
+	blob := RecordBlobForSig(r)
+	ok, err := pk.Verify(blob, r.GetSignature())
 	if err != nil {
 		log.Error("Signature verify failed.")
 		return err
 	}
-
 	if !ok {
+		log.Error("dht found a forged record! (ignored)")
 		return ErrBadRecord
 	}
 

@@ -1,14 +1,14 @@
 package dht_pb
 
 import (
-	"errors"
-	"fmt"
-
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
+
+var log = eventlog.Logger("dht.pb")
 
 // NewMessage constructs a new dht message with given type, key, and level
 func NewMessage(typ Message_MessageType, key string, level int) *Message {
@@ -33,17 +33,11 @@ func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
 }
 
 // PBPeerToPeer turns a *Message_Peer into its peer.PeerInfo counterpart
-func PBPeerToPeerInfo(pbp *Message_Peer) (peer.PeerInfo, error) {
-
-	maddrs, err := pbp.Addresses()
-	if err != nil {
-		return peer.PeerInfo{}, fmt.Errorf("Received peer without addresses: %s", pbp.Addrs)
-	}
-
+func PBPeerToPeerInfo(pbp *Message_Peer) peer.PeerInfo {
 	return peer.PeerInfo{
 		ID:    peer.ID(pbp.GetId()),
-		Addrs: maddrs,
-	}, nil
+		Addrs: pbp.Addresses(),
+	}
 }
 
 // RawPeerInfosToPBPeers converts a slice of Peers into a slice of *Message_Peers,
@@ -70,27 +64,19 @@ func PeerInfosToPBPeers(n inet.Network, peers []peer.PeerInfo) []*Message_Peer {
 }
 
 // PBPeersToPeerInfos converts given []*Message_Peer into []peer.PeerInfo
-// Returns two slices, one of peers, and one of errors. The slice of peers
-// will ONLY contain successfully converted peers. The slice of errors contains
-// whether each input Message_Peer was successfully converted.
-func PBPeersToPeerInfos(pbps []*Message_Peer) ([]peer.PeerInfo, []error) {
-	errs := make([]error, len(pbps))
+// Invalid addresses will be silently omitted.
+func PBPeersToPeerInfos(pbps []*Message_Peer) []peer.PeerInfo {
 	peers := make([]peer.PeerInfo, 0, len(pbps))
-	for i, pbp := range pbps {
-		p, err := PBPeerToPeerInfo(pbp)
-		if err != nil {
-			errs[i] = err
-		} else {
-			peers = append(peers, p)
-		}
+	for _, pbp := range pbps {
+		peers = append(peers, PBPeerToPeerInfo(pbp))
 	}
-	return peers, errs
+	return peers
 }
 
 // Addresses returns a multiaddr associated with the Message_Peer entry
-func (m *Message_Peer) Addresses() ([]ma.Multiaddr, error) {
+func (m *Message_Peer) Addresses() []ma.Multiaddr {
 	if m == nil {
-		return nil, errors.New("MessagePeer is nil")
+		return nil
 	}
 
 	var err error
@@ -98,10 +84,11 @@ func (m *Message_Peer) Addresses() ([]ma.Multiaddr, error) {
 	for i, addr := range m.Addrs {
 		maddrs[i], err = ma.NewMultiaddr(addr)
 		if err != nil {
-			return nil, err
+			log.Error("error decoding Multiaddr for peer: %s", m.GetId())
+			continue
 		}
 	}
-	return maddrs, nil
+	return maddrs
 }
 
 // GetClusterLevel gets and adjusts the cluster level on the message.
