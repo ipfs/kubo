@@ -24,6 +24,7 @@ type Swarm struct {
 	swarm *ps.Swarm
 	local peer.ID
 	peers peer.Peerstore
+	connh ConnHandler
 
 	cg ctxgroup.ContextGroup
 }
@@ -41,7 +42,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 
 	// configure Swarm
 	s.cg.SetTeardown(s.teardown)
-	s.swarm.SetConnHandler(s.connHandler)
+	s.SetConnHandler(nil) // make sure to setup our own conn handler.
 
 	return s, s.listen(listenAddrs)
 }
@@ -63,6 +64,27 @@ func (s *Swarm) Close() error {
 // StreamSwarm returns the underlying peerstream.Swarm
 func (s *Swarm) StreamSwarm() *ps.Swarm {
 	return s.swarm
+}
+
+// SetConnHandler assigns the handler for new connections.
+// See peerstream. You will rarely use this. See SetStreamHandler
+func (s *Swarm) SetConnHandler(handler ConnHandler) {
+
+	// handler is nil if user wants to clear the old handler.
+	if handler == nil {
+		s.swarm.SetConnHandler(func(psconn *ps.Conn) {
+			s.connHandler(psconn)
+		})
+		return
+	}
+
+	s.swarm.SetConnHandler(func(psconn *ps.Conn) {
+		// sc is nil if closed in our handler.
+		if sc := s.connHandler(psconn); sc != nil {
+			// call the user's handler. in a goroutine for sync safety.
+			go handler(sc)
+		}
+	})
 }
 
 // SetStreamHandler assigns the handler for new streams.

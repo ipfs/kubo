@@ -72,6 +72,34 @@ func makeSwarms(ctx context.Context, t *testing.T, num int) ([]*Swarm, []testuti
 	return swarms, peersnp
 }
 
+func connectSwarms(t *testing.T, ctx context.Context, swarms []*Swarm, peersnp []testutil.PeerNetParams) {
+
+	var wg sync.WaitGroup
+	connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
+		// TODO: make a DialAddr func.
+		s.peers.AddAddress(dst, addr)
+		if _, err := s.Dial(ctx, dst); err != nil {
+			t.Fatal("error swarm dialing to peer", err)
+		}
+		wg.Done()
+	}
+
+	log.Info("Connecting swarms simultaneously.")
+	for _, s := range swarms {
+		for _, p := range peersnp {
+			if p.ID != s.local { // don't connect to self.
+				wg.Add(1)
+				connect(s, p.ID, p.Addr)
+			}
+		}
+	}
+	wg.Wait()
+
+	for _, s := range swarms {
+		log.Infof("%s swarm routing table: %s", s.local, s.Peers())
+	}
+}
+
 func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 	// t.Skip("skipping for another test")
 
@@ -79,32 +107,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 	swarms, peersnp := makeSwarms(ctx, t, SwarmNum)
 
 	// connect everyone
-	{
-		var wg sync.WaitGroup
-		connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
-			// TODO: make a DialAddr func.
-			s.peers.AddAddress(dst, addr)
-			if _, err := s.Dial(ctx, dst); err != nil {
-				t.Fatal("error swarm dialing to peer", err)
-			}
-			wg.Done()
-		}
-
-		log.Info("Connecting swarms simultaneously.")
-		for _, s := range swarms {
-			for _, p := range peersnp {
-				if p.ID != s.local { // don't connect to self.
-					wg.Add(1)
-					connect(s, p.ID, p.Addr)
-				}
-			}
-		}
-		wg.Wait()
-
-		for _, s := range swarms {
-			log.Infof("%s swarm routing table: %s", s.local, s.Peers())
-		}
-	}
+	connectSwarms(t, ctx, swarms, peersnp)
 
 	// ping/pong
 	for _, s1 := range swarms {
@@ -228,4 +231,32 @@ func TestSwarm(t *testing.T) {
 	msgs := 100
 	swarms := 5
 	SubtestSwarm(t, swarms, msgs)
+}
+
+func TestConnHandler(t *testing.T) {
+	// t.Skip("skipping for another test")
+
+	ctx := context.Background()
+	swarms, peersnp := makeSwarms(ctx, t, 5)
+
+	gotconn := make(chan struct{}, 10)
+	swarms[0].SetConnHandler(func(conn *Conn) {
+		gotconn <- struct{}{}
+	})
+
+	connectSwarms(t, ctx, swarms, peersnp)
+
+	<-time.After(time.Millisecond)
+	// should've gotten 5 by now.
+	close(gotconn)
+
+	expect := 4
+	actual := 0
+	for _ = range gotconn {
+		actual++
+	}
+
+	if actual != expect {
+		t.Fatal("should have connected to %d swarms. got: %d", actual, expect)
+	}
 }

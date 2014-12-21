@@ -24,6 +24,10 @@ import (
 // layers do build up pieces of functionality. and they're all just io.RW :) )
 type Conn ps.Conn
 
+// ConnHandler is called when new conns are opened from remote peers.
+// See peerstream.ConnHandler
+type ConnHandler func(*Conn)
+
 func (c *Conn) StreamConn() *ps.Conn {
 	return (*ps.Conn)(c)
 }
