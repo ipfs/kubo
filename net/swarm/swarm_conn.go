@@ -107,6 +107,13 @@ func (s *Swarm) newConnSetup(ctx context.Context, psConn *ps.Conn) (*Conn, error
 		return nil, err
 	}
 
+	// if we have a public key, make sure we add it to our peerstore!
+	// This is an important detail. Otherwise we must fetch the public
+	// key from the DHT or some other system.
+	if pk := sc.RemotePublicKey(); pk != nil {
+		s.peers.AddPubKey(sc.RemotePeer(), pk)
+	}
+
 	// ok great! we can use it. add it to our group.
 
 	// set the RemotePeer as a group on the conn. this lets us group
