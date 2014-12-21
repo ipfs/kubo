@@ -58,7 +58,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		conns := n.Network.Conns()
 		addrs := make([]string, len(conns))
 		for i, c := range conns {
-			pid := c.RemotePeer().ID()
+			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
 			addrs[i] = fmt.Sprintf("%s/%s", addr, pid)
 		}
@@ -106,7 +106,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 
 		output := make([]string, len(peers))
 		for i, p := range peers {
-			output[i] = "connect " + p.ID().String()
+			output[i] = "connect " + p.Pretty()
 
 			err := n.Network.DialPeer(ctx, p)
 			if err != nil {
@@ -149,7 +149,7 @@ func splitAddresses(addrs []string) (maddrs []ma.Multiaddr, pids []peer.ID, err 
 		if err != nil {
 			return nil, nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}
-		id, err := peer.DecodePrettyID(path.Base(addr))
+		id, err := peer.IDB58Decode(path.Base(addr))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -161,21 +161,14 @@ func splitAddresses(addrs []string) (maddrs []ma.Multiaddr, pids []peer.ID, err 
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(ps peer.Peerstore, addrs []string) ([]peer.Peer, error) {
+func peersWithAddresses(ps peer.Peerstore, addrs []string) ([]peer.ID, error) {
 	maddrs, pids, err := splitAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
 
-	peers := make([]peer.Peer, len(pids))
-	for i, pid := range pids {
-		p, err := ps.FindOrCreate(pid)
-		if err != nil {
-			return nil, err
-		}
-
-		p.AddAddress(maddrs[i])
-		peers[i] = p
+	for i, p := range pids {
+		ps.AddAddress(p, maddrs[i])
 	}
-	return peers, nil
+	return pids, nil
 }
