@@ -23,9 +23,9 @@ func NewMessage(typ Message_MessageType, key string, level int) *Message {
 func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
 	pbp := new(Message_Peer)
 
-	pbp.Addrs = make([]string, len(p.Addrs))
+	pbp.Addrs = make([][]byte, len(p.Addrs))
 	for i, maddr := range p.Addrs {
-		pbp.Addrs[i] = maddr.String()
+		pbp.Addrs[i] = maddr.Bytes() // Bytes, not String. Compressed.
 	}
 	s := string(p.ID)
 	pbp.Id = &s
@@ -82,7 +82,7 @@ func (m *Message_Peer) Addresses() []ma.Multiaddr {
 	var err error
 	maddrs := make([]ma.Multiaddr, len(m.Addrs))
 	for i, addr := range m.Addrs {
-		maddrs[i], err = ma.NewMultiaddr(addr)
+		maddrs[i], err = ma.NewMultiaddrBytes(addr)
 		if err != nil {
 			log.Error("error decoding Multiaddr for peer: %s", m.GetId())
 			continue
