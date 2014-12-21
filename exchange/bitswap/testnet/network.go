@@ -132,7 +132,7 @@ func (n *network) SendRequest(
 	}
 
 	// TODO test when receiver doesn't immediately respond to the initiator of the request
-	if nextPeer == from {
+	if nextPeer != from {
 		go func() {
 			nextReceiver, ok := n.clients[nextPeer]
 			if !ok {
