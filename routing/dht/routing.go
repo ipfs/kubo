@@ -61,7 +61,6 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	log.Debugf("Get Value [%s]", key)
 
 	// If we have it local, dont bother doing an RPC!
-	// NOTE: this might not be what we want to do...
 	val, err := dht.getLocal(key)
 	if err == nil {
 		log.Debug("Got value locally!")

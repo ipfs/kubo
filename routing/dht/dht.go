@@ -227,7 +227,7 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 // }
 
 // getLocal attempts to retrieve the value from the datastore
-func (dht *IpfsDHT) getLocal(ctx context.Context, key u.Key) ([]byte, error) {
+func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 
 	log.Debug("getLocal %s", key)
 	v, err := dht.datastore.Get(key.DsKey())

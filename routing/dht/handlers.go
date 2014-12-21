@@ -113,9 +113,8 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	dskey := u.Key(pmes.GetKey()).DsKey()
 
-	if err := dht.verifyRecord(pmes.GetRecord()); err != nil {
-		fmt.Println(u.Key(pmes.GetRecord().GetAuthor()))
-		log.Error("Bad dht record in put request")
+	if err := dht.verifyRecordLocally(pmes.GetRecord()); err != nil {
+		log.Errorf("Bad dht record in PUT from: %s. %s", u.Key(pmes.GetRecord().GetAuthor()), err)
 		return nil, err
 	}
 
