@@ -200,7 +200,7 @@ func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (p pe
 		}
 
 		var id2 peer.ID
-		id2, err = peer.IDFromPrivateKey(sk)
+		id2, err = peer.IDFromPrivateKey(sk2)
 		if err != nil {
 			return
 		}
