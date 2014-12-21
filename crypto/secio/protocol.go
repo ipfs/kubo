@@ -249,8 +249,9 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	}
 	s.local.keys = k1
 	s.remote.keys = k2
-	log.Debug("2.2 keys:\n\tshared: %v\n\tk1: %v\n\tk2: %v",
-		s.sharedSecret, s.local.keys, s.remote.keys)
+
+	// log.Debug("2.2 keys:\n\tshared: %v\n\tk1: %v\n\tk2: %v",
+	// 	s.sharedSecret, s.local.keys, s.remote.keys)
 
 	// =============================================================================
 	// step 2.3. MAC + Cipher -- prepare MAC + cipher
@@ -262,7 +263,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	if err := s.remote.makeMacAndCipher(); err != nil {
 		return err
 	}
-	log.Debug("2.3 mac + cipher.")
+
+	// log.Debug("2.3 mac + cipher.")
 
 	// =============================================================================
 	// step 3. Finish -- send expected message (the nonces), verify encryption works
@@ -272,7 +274,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	r := NewETMReader(s.insecure, s.remote.cipher, s.remote.mac)
 	s.secure = msgio.Combine(w, r).(msgio.ReadWriteCloser)
 
-	log.Debug("3.0 finish. sending: %v", proposeIn.GetRand())
+	// log.Debug("3.0 finish. sending: %v", proposeIn.GetRand())
 	// send their Nonce.
 	if _, err := s.secure.Write(proposeIn.GetRand()); err != nil {
 		return fmt.Errorf("Failed to write Finish nonce: %s", err)
@@ -283,7 +285,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	if _, err := io.ReadFull(s.secure, nonceOut2); err != nil {
 		return fmt.Errorf("Failed to read Finish nonce: %s", err)
 	}
-	log.Debug("3.0 finish.\n\texpect: %v\n\tactual: %v", nonceOut, nonceOut2)
+
+	// log.Debug("3.0 finish.\n\texpect: %v\n\tactual: %v", nonceOut, nonceOut2)
 	if !bytes.Equal(nonceOut, nonceOut2) {
 		return fmt.Errorf("Failed to read our encrypted nonce: %s != %s", nonceOut2, nonceOut)
 	}
