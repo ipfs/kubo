@@ -168,6 +168,10 @@ func (kb *keybook) PrivKey(p ID) ic.PrivKey {
 
 func (kb *keybook) AddPrivKey(p ID, sk ic.PrivKey) error {
 
+	if sk == nil {
+		return errors.New("sk is nil (PrivKey)")
+	}
+
 	// check it's correct first
 	if !p.MatchesPrivateKey(sk) {
 		return errors.New("ID does not match PrivateKey")
