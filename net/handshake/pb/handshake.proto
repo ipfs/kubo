@@ -17,6 +17,9 @@ message Handshake1 {
 // Handshake3 is delivered _after_ the secure channel is initialized
 message Handshake3 {
 
+  // can include all the values in handshake1, for protocol version, etc.
+  optional Handshake1 h1 = 5;
+
   // publicKey is this node's public key (which also gives its node.ID)
   // - may not need to be sent, as secure channel implies it has been sent.
   // - then again, if we change / disable secure channel, may still want it.

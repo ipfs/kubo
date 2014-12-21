@@ -5,6 +5,7 @@ import (
 	"time"
 
 	inet "github.com/jbenet/go-ipfs/net"
+	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
@@ -57,6 +58,17 @@ func TestIDService(t *testing.T) {
 		}
 	}
 
+	testHasProtocolVersions := func(n inet.Network, p peer.ID) {
+		v, err := n.Peerstore().Get(p, "ProtocolVersion")
+		if v.(string) != handshake.IpfsVersion.String() {
+			t.Fatal("protocol mismatch", err)
+		}
+		v, err = n.Peerstore().Get(p, "AgentVersion")
+		if v.(string) != handshake.ClientVersion {
+			t.Fatal("agent version mismatch", err)
+		}
+	}
+
 	n1p := n1.LocalPeer()
 	n2p := n2.LocalPeer()
 
@@ -79,4 +91,8 @@ func TestIDService(t *testing.T) {
 	// what we should see now is that both peers know about each others listen addresses.
 	testKnowsAddrs(n1, n2p, n2.Peerstore().Addresses(n2p)) // has them
 	testKnowsAddrs(n2, n1p, n1.Peerstore().Addresses(n1p)) // has them
+
+	// and the protocol versions.
+	testHasProtocolVersions(n1, n2p)
+	testHasProtocolVersions(n2, n1p)
 }

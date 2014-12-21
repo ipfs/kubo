@@ -1,6 +1,7 @@
 package net
 
 import (
+	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
 
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
@@ -74,9 +75,13 @@ func (ids *IDService) populateMessage(mes *pb.Handshake3, c Conn) {
 	for i, addr := range laddrs {
 		mes.ListenAddrs[i] = addr.Bytes()
 	}
+
+	// set protocol versions
+	mes.H1 = handshake.NewHandshake1("", "")
 }
 
 func (ids *IDService) consumeMessage(mes *pb.Handshake3, c Conn) {
+	p := c.RemotePeer()
 
 	// mes.Protocols
 	// mes.ObservedAddr
@@ -87,13 +92,19 @@ func (ids *IDService) consumeMessage(mes *pb.Handshake3, c Conn) {
 	for _, addr := range laddrs {
 		maddr, err := ma.NewMultiaddrBytes(addr)
 		if err != nil {
-			log.Errorf("%s failed to parse multiaddr from %s %s", ProtocolIdentify,
-				c.RemotePeer(), c.RemoteMultiaddr())
+			log.Errorf("%s failed to parse multiaddr from %s %s", ProtocolIdentify, p,
+				c.RemoteMultiaddr())
 			continue
 		}
 		lmaddrs = append(lmaddrs, maddr)
 	}
 
 	// update our peerstore with the addresses.
-	ids.Network.Peerstore().AddAddresses(c.RemotePeer(), lmaddrs)
+	ids.Network.Peerstore().AddAddresses(p, lmaddrs)
+
+	// get protocol versions
+	pv := *mes.H1.ProtocolVersion
+	av := *mes.H1.AgentVersion
+	ids.Network.Peerstore().Put(p, "ProtocolVersion", pv)
+	ids.Network.Peerstore().Put(p, "AgentVersion", av)
 }

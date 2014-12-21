@@ -54,6 +54,13 @@ func Handshake1Compatible(handshakeA, handshakeB *pb.Handshake1) error {
 
 // NewHandshake1 creates a new Handshake1 from the two strings
 func NewHandshake1(protoVer, agentVer string) *pb.Handshake1 {
+	if protoVer == "" {
+		protoVer = IpfsVersion.String()
+	}
+	if agentVer == "" {
+		agentVer = ClientVersion
+	}
+
 	return &pb.Handshake1{
 		ProtocolVersion: &protoVer,
 		AgentVersion:    &agentVer,

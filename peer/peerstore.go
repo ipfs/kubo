@@ -6,6 +6,8 @@ import (
 
 	ic "github.com/jbenet/go-ipfs/crypto"
 
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
@@ -23,6 +25,12 @@ type Peerstore interface {
 	// This is a small slice of the information Peerstore has on
 	// that peer, useful to other services.
 	PeerInfo(ID) PeerInfo
+
+	// Get/Put is a simple registry for other peer-related key/value pairs.
+	// if we find something we use often, it should become its own set of
+	// methods. this is a last resort.
+	Get(id ID, key string) (interface{}, error)
+	Put(id ID, key string, val interface{}) error
 }
 
 // AddressBook tracks the addresses of Peers
@@ -177,7 +185,7 @@ type peerstore struct {
 	metrics
 
 	// store other data, like versions
-	data map[ID]map[string]interface{}
+	ds ds.ThreadSafeDatastore
 }
 
 // NewPeerstore creates a threadsafe collection of peers.
@@ -186,8 +194,18 @@ func NewPeerstore() Peerstore {
 		keybook:     *newKeybook(),
 		addressbook: *newAddressbook(),
 		metrics:     *(NewMetrics()).(*metrics),
-		data:        map[ID]map[string]interface{}{},
+		ds:          dssync.MutexWrap(ds.NewMapDatastore()),
 	}
+}
+
+func (ps *peerstore) Put(p ID, key string, val interface{}) error {
+	dsk := ds.NewKey(string(p) + "/" + key)
+	return ps.ds.Put(dsk, val)
+}
+
+func (ps *peerstore) Get(p ID, key string) (interface{}, error) {
+	dsk := ds.NewKey(string(p) + "/" + key)
+	return ps.ds.Get(dsk)
 }
 
 func (ps *peerstore) Peers() []ID {

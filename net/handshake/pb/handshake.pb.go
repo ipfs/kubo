@@ -53,6 +53,8 @@ func (m *Handshake1) GetAgentVersion() string {
 
 // Handshake3 is delivered _after_ the secure channel is initialized
 type Handshake3 struct {
+	// can include all the values in handshake1, for protocol version, etc.
+	H1 *Handshake1 `protobuf:"bytes,5,opt,name=h1" json:"h1,omitempty"`
 	// publicKey is this node's public key (which also gives its node.ID)
 	// - may not need to be sent, as secure channel implies it has been sent.
 	// - then again, if we change / disable secure channel, may still want it.
@@ -71,6 +73,13 @@ type Handshake3 struct {
 func (m *Handshake3) Reset()         { *m = Handshake3{} }
 func (m *Handshake3) String() string { return proto.CompactTextString(m) }
 func (*Handshake3) ProtoMessage()    {}
+
+func (m *Handshake3) GetH1() *Handshake1 {
+	if m != nil {
+		return m.H1
+	}
+	return nil
+}
 
 func (m *Handshake3) GetPublicKey() []byte {
 	if m != nil {
