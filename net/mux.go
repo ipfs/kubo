@@ -37,6 +37,17 @@ type Mux struct {
 	sync.RWMutex
 }
 
+// Protocols returns the list of protocols this muxer has handlers for
+func (m *Mux) Protocols() []ProtocolID {
+	m.RLock()
+	l := make([]ProtocolID, 0, len(m.Handlers))
+	for p := range m.Handlers {
+		l = append(l, p)
+	}
+	m.RUnlock()
+	return l
+}
+
 // ReadProtocolHeader reads the stream and returns the next Handler function
 // according to the muxer encoding.
 func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {

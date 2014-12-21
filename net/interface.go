@@ -56,8 +56,8 @@ type StreamHandlerMap map[ProtocolID]StreamHandler
 type Conn interface {
 	conn.PeerConn
 
-	// NewStreamWithProtocol constructs a new Stream directly connected to p.
-	NewStreamWithProtocol(pr ProtocolID, p peer.ID) (Stream, error)
+	// NewStreamWithProtocol constructs a new Stream over this conn.
+	NewStreamWithProtocol(pr ProtocolID) (Stream, error)
 }
 
 // Network is the interface IPFS uses for connecting to the world.
@@ -71,6 +71,10 @@ type Network interface {
 	// SetHandler sets the protocol handler on the Network's Muxer.
 	// This operation is threadsafe.
 	SetHandler(ProtocolID, StreamHandler)
+
+	// Protocols returns the list of protocols this network currently
+	// has registered handlers for.
+	Protocols() []ProtocolID
 
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.

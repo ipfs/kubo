@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -74,8 +75,8 @@ func (c *conn) openStream() *stream {
 	return sl
 }
 
-func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.ID) (inet.Stream, error) {
-	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, p)
+func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID) (inet.Stream, error) {
+	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, c.remote)
 
 	s := c.openStream()
 	if err := inet.WriteProtocolHeader(pr, s); err != nil {
@@ -95,6 +96,11 @@ func (c *conn) LocalPeer() peer.ID {
 	return c.local
 }
 
+// LocalPrivateKey is the private key of the peer on our side.
+func (c *conn) LocalPrivateKey() ic.PrivKey {
+	return nil
+}
+
 // RemoteMultiaddr is the Multiaddr on the remote side
 func (c *conn) RemoteMultiaddr() ma.Multiaddr {
 	return nil
@@ -103,4 +109,9 @@ func (c *conn) RemoteMultiaddr() ma.Multiaddr {
 // RemotePeer is the Peer on the remote side
 func (c *conn) RemotePeer() peer.ID {
 	return c.remote
+}
+
+// RemotePublicKey is the private key of the peer on our side.
+func (c *conn) RemotePublicKey() ic.PubKey {
+	return nil
 }

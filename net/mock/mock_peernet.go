@@ -81,6 +81,10 @@ func (pn *peernet) Close() error {
 	return pn.cg.Close()
 }
 
+func (pn *peernet) Protocols() []inet.ProtocolID {
+	return pn.mux.Protocols()
+}
+
 func (pn *peernet) Peerstore() peer.Peerstore {
 	return pn.ps
 }
@@ -305,7 +309,7 @@ func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.ID) (inet.Stream, error)
 		n--
 	}
 
-	return c.NewStreamWithProtocol(pr, p)
+	return c.NewStreamWithProtocol(pr)
 }
 
 // SetHandler sets the protocol handler on the Network's Muxer.

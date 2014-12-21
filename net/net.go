@@ -44,7 +44,7 @@ func (c *conn_) SwarmConn() *swarm.Conn {
 	return (*swarm.Conn)(c)
 }
 
-func (c *conn_) NewStreamWithProtocol(pr ProtocolID, p peer.ID) (Stream, error) {
+func (c *conn_) NewStreamWithProtocol(pr ProtocolID) (Stream, error) {
 	s, err := (*swarm.Conn)(c).NewStream()
 	if err != nil {
 		return nil, err
@@ -125,6 +125,10 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
 func (n *network) DialPeer(ctx context.Context, p peer.ID) error {
 	_, err := n.swarm.Dial(ctx, p)
 	return err
+}
+
+func (n *network) Protocols() []ProtocolID {
+	return n.mux.Protocols()
 }
 
 // CtxGroup returns the network's ContextGroup
