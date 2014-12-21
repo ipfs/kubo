@@ -99,7 +99,10 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		for _, pi := range closerinfos {
 			log.Debugf("handleGetValue returning closer peer: '%s'", pi.ID)
 			if len(pi.Addrs) < 1 {
-				log.Critical("no addresses on peer being sent!")
+				log.Criticalf(`no addresses on peer being sent!
+					[local:%s]
+					[sending:%s]
+					[remote:%s]`, dht.self, pi.ID, p)
 			}
 		}
 

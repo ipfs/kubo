@@ -52,11 +52,11 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, p peer.ID, ps peer.Peerstore, n inet.Network, dstore ds.ThreadSafeDatastore) *IpfsDHT {
+func NewDHT(ctx context.Context, p peer.ID, n inet.Network, dstore ds.ThreadSafeDatastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.datastore = dstore
 	dht.self = p
-	dht.peerstore = ps
+	dht.peerstore = n.Peerstore()
 	dht.ContextGroup = ctxgroup.WithContext(ctx)
 	dht.network = n
 	n.SetHandler(inet.ProtocolDHT, dht.handleNewStream)

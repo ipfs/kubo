@@ -1,8 +1,8 @@
 package dht
 
 import (
-	// "fmt"
 	"bytes"
+	"sort"
 	"testing"
 	"time"
 
@@ -42,7 +42,7 @@ func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
 	}
 
 	dss := dssync.MutexWrap(ds.NewMapDatastore())
-	d := NewDHT(ctx, p, peerstore, n, dss)
+	d := NewDHT(ctx, p, n, dss)
 
 	d.Validators["v"] = func(u.Key, []byte) error {
 		return nil
@@ -208,7 +208,6 @@ func TestProvides(t *testing.T) {
 	}
 }
 
-/*
 func TestProvidesAsync(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -216,7 +215,7 @@ func TestProvidesAsync(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, peers, dhts := setupDHTS(ctx, 4, t)
+	_, _, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
@@ -224,22 +223,11 @@ func TestProvidesAsync(t *testing.T) {
 		}
 	}()
 
-	err := dhts[0].Connect(ctx, peers[1])
-	if err != nil {
-		t.Fatal(err)
-	}
+	connect(t, ctx, dhts[0], dhts[1])
+	connect(t, ctx, dhts[1], dhts[2])
+	connect(t, ctx, dhts[1], dhts[3])
 
-	err = dhts[1].Connect(ctx, peers[2])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[1].Connect(ctx, peers[3])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	err := dhts[3].putLocal(u.Key("hello"), []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,10 +251,10 @@ func TestProvidesAsync(t *testing.T) {
 		if !ok {
 			t.Fatal("Provider channel was closed...")
 		}
-		if p == nil {
+		if p.ID == "" {
 			t.Fatal("Got back nil provider!")
 		}
-		if !p.ID().Equal(dhts[3].self.ID()) {
+		if p.ID != dhts[3].self {
 			t.Fatalf("got a provider, but not the right one. %s", p)
 		}
 	case <-ctxT.Done():
@@ -281,7 +269,7 @@ func TestLayeredGet(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, peers, dhts := setupDHTS(ctx, 4, t)
+	_, _, dhts := setupDHTS(ctx, 4, t)
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
@@ -289,22 +277,11 @@ func TestLayeredGet(t *testing.T) {
 		}
 	}()
 
-	err := dhts[0].Connect(ctx, peers[1])
-	if err != nil {
-		t.Fatalf("Failed to connect: %s", err)
-	}
+	connect(t, ctx, dhts[0], dhts[1])
+	connect(t, ctx, dhts[1], dhts[2])
+	connect(t, ctx, dhts[1], dhts[3])
 
-	err = dhts[1].Connect(ctx, peers[2])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[1].Connect(ctx, peers[3])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].putLocal(u.Key("/v/hello"), []byte("world"))
+	err := dhts[3].putLocal(u.Key("/v/hello"), []byte("world"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -343,32 +320,21 @@ func TestFindPeer(t *testing.T) {
 		}
 	}()
 
-	err := dhts[0].Connect(ctx, peers[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[1].Connect(ctx, peers[2])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[1].Connect(ctx, peers[3])
-	if err != nil {
-		t.Fatal(err)
-	}
+	connect(t, ctx, dhts[0], dhts[1])
+	connect(t, ctx, dhts[1], dhts[2])
+	connect(t, ctx, dhts[1], dhts[3])
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	p, err := dhts[0].FindPeer(ctxT, peers[2].ID())
+	p, err := dhts[0].FindPeer(ctxT, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if p == nil {
+	if p.ID == "" {
 		t.Fatal("Failed to find peer.")
 	}
 
-	if !p.ID().Equal(peers[2].ID()) {
+	if p.ID != peers[2] {
 		t.Fatal("Didnt find expected peer.")
 	}
 }
@@ -392,25 +358,10 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 
 	// topology:
 	// 0-1, 1-2, 1-3, 2-3
-	err := dhts[0].Connect(ctx, peers[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[1].Connect(ctx, peers[2])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[1].Connect(ctx, peers[3])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[2].Connect(ctx, peers[3])
-	if err != nil {
-		t.Fatal(err)
-	}
+	connect(t, ctx, dhts[0], dhts[1])
+	connect(t, ctx, dhts[1], dhts[2])
+	connect(t, ctx, dhts[1], dhts[3])
+	connect(t, ctx, dhts[2], dhts[3])
 
 	// fmt.Println("0 is", peers[0])
 	// fmt.Println("1 is", peers[1])
@@ -418,13 +369,13 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	// fmt.Println("3 is", peers[3])
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2].ID())
+	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// shouldFind := []peer.ID{peers[1], peers[3]}
-	found := []peer.ID{}
+	found := []peer.PeerInfo{}
 	for nextp := range pchan {
 		found = append(found, nextp)
 	}
@@ -451,11 +402,11 @@ func testPeerListsMatch(t *testing.T, p1, p2 []peer.ID) {
 	ids2 := make([]string, len(p2))
 
 	for i, p := range p1 {
-		ids1[i] = p.ID().Pretty()
+		ids1[i] = string(p)
 	}
 
 	for i, p := range p2 {
-		ids2[i] = p.ID().Pretty()
+		ids2[i] = string(p)
 	}
 
 	sort.Sort(sort.StringSlice(ids1))
@@ -480,39 +431,41 @@ func TestConnectCollision(t *testing.T) {
 
 		ctx := context.Background()
 
-		addrA := randMultiaddr(t)
-		addrB := randMultiaddr(t)
+		addrA := testutil.RandLocalTCPAddress()
+		addrB := testutil.RandLocalTCPAddress()
 
-		peerA := makePeer(addrA)
-		peerB := makePeer(addrB)
+		dhtA := setupDHT(ctx, t, addrA)
+		dhtB := setupDHT(ctx, t, addrB)
 
-		dhtA := setupDHT(ctx, t, peerA)
-		dhtB := setupDHT(ctx, t, peerB)
+		peerA := dhtA.self
+		peerB := dhtB.self
 
-		done := make(chan struct{})
+		errs := make(chan error)
 		go func() {
+			dhtA.peerstore.AddAddress(peerB, addrB)
 			err := dhtA.Connect(ctx, peerB)
-			if err != nil {
-				t.Fatal(err)
-			}
-			done <- struct{}{}
+			errs <- err
 		}()
 		go func() {
+			dhtB.peerstore.AddAddress(peerA, addrA)
 			err := dhtB.Connect(ctx, peerA)
-			if err != nil {
-				t.Fatal(err)
-			}
-			done <- struct{}{}
+			errs <- err
 		}()
 
 		timeout := time.After(time.Second)
 		select {
-		case <-done:
+		case e := <-errs:
+			if e != nil {
+				t.Fatal(e)
+			}
 		case <-timeout:
 			t.Fatal("Timeout received!")
 		}
 		select {
-		case <-done:
+		case e := <-errs:
+			if e != nil {
+				t.Fatal(e)
+			}
 		case <-timeout:
 			t.Fatal("Timeout received!")
 		}
@@ -521,8 +474,5 @@ func TestConnectCollision(t *testing.T) {
 		dhtB.Close()
 		dhtA.network.Close()
 		dhtB.network.Close()
-
-		<-time.After(200 * time.Millisecond)
 	}
 }
-*/
