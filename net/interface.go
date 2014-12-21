@@ -18,10 +18,11 @@ type ProtocolID string
 // These are the ProtocolIDs of the protocols running. It is useful
 // to keep them in one place.
 const (
-	ProtocolTesting ProtocolID = "/ipfs/testing"
-	ProtocolBitswap ProtocolID = "/ipfs/bitswap"
-	ProtocolDHT     ProtocolID = "/ipfs/dht"
-	ProtocolDiag    ProtocolID = "/ipfs/diagnostics"
+	ProtocolTesting  ProtocolID = "/ipfs/testing"
+	ProtocolBitswap  ProtocolID = "/ipfs/bitswap"
+	ProtocolDHT      ProtocolID = "/ipfs/dht"
+	ProtocolIdentify ProtocolID = "/ipfs/id"
+	ProtocolDiag     ProtocolID = "/ipfs/diagnostics"
 )
 
 // MessageSizeMax is a soft (recommended) maximum for network messages.

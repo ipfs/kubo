@@ -90,6 +90,7 @@ type network struct {
 	mux   Mux          // protocol multiplexing
 	swarm *swarm.Swarm // peer connection multiplexing
 	ps    peer.Peerstore
+	ids   *IDService
 
 	cg ctxgroup.ContextGroup // for Context closing
 }
@@ -111,13 +112,31 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
 		ps:    peers,
 	}
 
+	n.cg.SetTeardown(n.close)
+	n.cg.AddChildGroup(s.CtxGroup())
+
 	s.SetStreamHandler(func(s *swarm.Stream) {
 		n.mux.Handle((*stream)(s))
 	})
 
-	n.cg.SetTeardown(n.close)
-	n.cg.AddChildGroup(s.CtxGroup())
+	// setup a conn handler that immediately "asks the other side about them"
+	// this is ProtocolIdentify.
+	n.ids = NewIDService(n)
+	s.SetConnHandler(n.newConnHandler)
+
 	return n, nil
+}
+
+func (n *network) newConnHandler(c *swarm.Conn) {
+	cc := (*conn_)(c)
+	s, err := cc.NewStreamWithProtocol(ProtocolIdentify)
+	if err != nil {
+		log.Error("network: unable to open initial stream for %s", ProtocolIdentify)
+		log.Event(n.CtxGroup().Context(), "IdentifyOpenFailed", c.RemotePeer())
+	}
+
+	// ok give the response to our handler.
+	n.ids.ResponseHandler(s)
 }
 
 // DialPeer attempts to establish a connection to a given peer.
