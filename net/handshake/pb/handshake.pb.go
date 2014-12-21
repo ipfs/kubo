@@ -53,8 +53,14 @@ func (m *Handshake1) GetAgentVersion() string {
 
 // Handshake3 is delivered _after_ the secure channel is initialized
 type Handshake3 struct {
+	// publicKey is this node's public key (which also gives its node.ID)
+	// - may not need to be sent, as secure channel implies it has been sent.
+	// - then again, if we change / disable secure channel, may still want it.
+	PublicKey []byte `protobuf:"bytes,1,opt,name=publicKey" json:"publicKey,omitempty"`
 	// listenAddrs are the multiaddrs the sender node listens for open connections on
 	ListenAddrs [][]byte `protobuf:"bytes,2,rep,name=listenAddrs" json:"listenAddrs,omitempty"`
+	// protocols are the services this node is running
+	Protocols []string `protobuf:"bytes,3,rep,name=protocols" json:"protocols,omitempty"`
 	// oservedAddr is the multiaddr of the remote endpoint that the sender node perceives
 	// this is useful information to convey to the other side, as it helps the remote endpoint
 	// determine whether its connection to the local peer goes through NAT.
@@ -66,9 +72,23 @@ func (m *Handshake3) Reset()         { *m = Handshake3{} }
 func (m *Handshake3) String() string { return proto.CompactTextString(m) }
 func (*Handshake3) ProtoMessage()    {}
 
+func (m *Handshake3) GetPublicKey() []byte {
+	if m != nil {
+		return m.PublicKey
+	}
+	return nil
+}
+
 func (m *Handshake3) GetListenAddrs() [][]byte {
 	if m != nil {
 		return m.ListenAddrs
+	}
+	return nil
+}
+
+func (m *Handshake3) GetProtocols() []string {
+	if m != nil {
+		return m.Protocols
 	}
 	return nil
 }

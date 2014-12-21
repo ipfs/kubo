@@ -20,16 +20,13 @@ message Handshake3 {
   // publicKey is this node's public key (which also gives its node.ID)
   // - may not need to be sent, as secure channel implies it has been sent.
   // - then again, if we change / disable secure channel, may still want it.
-  // optional bytes publicKey = 1;
+  optional bytes publicKey = 1;
 
   // listenAddrs are the multiaddrs the sender node listens for open connections on
   repeated bytes listenAddrs = 2;
 
-  // TODO
-  // services list the services this node is running
-  // repeated mux.ProtocolID services = 3;
-
-  // we'll have more fields here later.
+  // protocols are the services this node is running
+  repeated string protocols = 3;
 
   // oservedAddr is the multiaddr of the remote endpoint that the sender node perceives
   // this is useful information to convey to the other side, as it helps the remote endpoint
