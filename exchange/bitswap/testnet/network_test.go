@@ -1,7 +1,6 @@
 package bitswap
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 
@@ -140,14 +139,6 @@ type lambdaImpl struct {
 func (lam *lambdaImpl) ReceiveMessage(ctx context.Context,
 	p peer.ID, incoming bsmsg.BitSwapMessage) (
 	peer.ID, bsmsg.BitSwapMessage) {
-	if lam == nil {
-		panic("oh my")
-	}
-	if lam.f == nil {
-		panic("oh my god")
-	}
-	fmt.Printf("ReceiveMsg %s\n", p)
-	defer fmt.Printf("ReceivedMsg %s\n", p)
 	return lam.f(ctx, p, incoming)
 }
 
