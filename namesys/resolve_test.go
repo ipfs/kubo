@@ -4,14 +4,18 @@ import (
 	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
+	peer "github.com/jbenet/go-ipfs/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestRoutingResolve(t *testing.T) {
-	local := testutil.NewPeerWithIDString("testID")
-	d := mockrouting.NewServer().Client(local)
+	local, err := testutil.RandPeerID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := mockrouting.NewServer().Client(peer.PeerInfo{ID: local})
 
 	resolver := NewRoutingResolver(d)
 	publisher := NewRoutingPublisher(d)

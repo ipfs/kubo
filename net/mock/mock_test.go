@@ -25,28 +25,44 @@ func randPeer(t *testing.T) peer.ID {
 func TestNetworkSetup(t *testing.T) {
 
 	ctx := context.Background()
-	p1 := randPeer(t)
-	p2 := randPeer(t)
-	p3 := randPeer(t)
+	sk1, _, err := testutil.RandKeyPair(512)
+	if err != nil {
+		t.Fatal(t)
+	}
+	sk2, _, err := testutil.RandKeyPair(512)
+	if err != nil {
+		t.Fatal(t)
+	}
+	sk3, _, err := testutil.RandKeyPair(512)
+	if err != nil {
+		t.Fatal(t)
+	}
 	mn := New(ctx)
 	// peers := []peer.ID{p1, p2, p3}
 
 	// add peers to mock net
 
-	n1, err := mn.AddPeer(p1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	a1 := testutil.RandLocalTCPAddress()
+	a2 := testutil.RandLocalTCPAddress()
+	a3 := testutil.RandLocalTCPAddress()
 
-	n2, err := mn.AddPeer(p2)
+	n1, err := mn.AddPeer(sk1, a1)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p1 := n1.LocalPeer()
 
-	n3, err := mn.AddPeer(p3)
+	n2, err := mn.AddPeer(sk2, a2)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p2 := n2.LocalPeer()
+
+	n3, err := mn.AddPeer(sk3, a3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p3 := n3.LocalPeer()
 
 	// check peers and net
 	if mn.Net(p1) != n1 {
@@ -377,16 +393,24 @@ func TestAdding(t *testing.T) {
 
 	mn := New(context.Background())
 
-	p1 := randPeer(t)
-	p2 := randPeer(t)
-	p3 := randPeer(t)
-	peers := []peer.ID{p1, p2, p3}
-
-	for _, p := range peers {
-		if _, err := mn.AddPeer(p); err != nil {
-			t.Error(err)
+	peers := []peer.ID{}
+	for i := 0; i < 3; i++ {
+		sk, _, err := testutil.RandKeyPair(512)
+		if err != nil {
+			t.Fatal(err)
 		}
+
+		a := testutil.RandLocalTCPAddress()
+		n, err := mn.AddPeer(sk, a)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		peers = append(peers, n.LocalPeer())
 	}
+
+	p1 := peers[0]
+	p2 := peers[1]
 
 	// link them
 	for _, p1 := range peers {
