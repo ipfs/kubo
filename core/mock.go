@@ -25,24 +25,22 @@ func NewMockNode() (*IpfsNode, error) {
 		return nil, err
 	}
 
+	p, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return nil, err
+	}
+
+	nd.Identity = p
 	nd.Peerstore = peer.NewPeerstore()
-
-	p, err := nd.Peerstore.WithKeyPair(sk, pk)
-	if err != nil {
-		return nil, err
-	}
-
-	nd.Identity, err = nd.Peerstore.Add(p)
-	if err != nil {
-		return nil, err
-	}
+	nd.Peerstore.AddPrivKey(p, sk)
+	nd.Peerstore.AddPubKey(p, pk)
 
 	// Temp Datastore
 	dstore := ds.NewMapDatastore()
 	nd.Datastore = ds2.CloserWrap(syncds.MutexWrap(dstore))
 
 	// Routing
-	dht := mdht.NewServer().ClientWithDatastore(nd.Identity, nd.Datastore)
+	dht := mdht.NewServer().ClientWithDatastore(peer.PeerInfo{ID: p}, nd.Datastore)
 	nd.Routing = dht
 
 	// Bitswap

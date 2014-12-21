@@ -54,30 +54,30 @@ func bootstrap(ctx context.Context,
 	}
 	numCxnsToCreate := recoveryThreshold - len(connectedPeers)
 
-	var bootstrapPeers []peer.Peer
+	var bootstrapPeers []peer.PeerInfo
 	for _, bootstrap := range boots {
-		p, err := toPeer(ps, bootstrap)
+		p, err := toPeer(bootstrap)
 		if err != nil {
 			return err
 		}
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
 
-	var notConnected []peer.Peer
+	var notConnected []peer.PeerInfo
 	for _, p := range bootstrapPeers {
-		if n.Connectedness(p) != inet.Connected {
+		if n.Connectedness(p.ID) != inet.Connected {
 			notConnected = append(notConnected, p)
 		}
 	}
 
 	var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
-	if err := connect(ctx, r, randomSubset); err != nil {
+	if err := connect(ctx, ps, r, randomSubset); err != nil {
 		return err
 	}
 	return nil
 }
 
-func connect(ctx context.Context, r *dht.IpfsDHT, peers []peer.Peer) error {
+func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []peer.PeerInfo) error {
 	var wg sync.WaitGroup
 	for _, p := range peers {
 
@@ -86,42 +86,42 @@ func connect(ctx context.Context, r *dht.IpfsDHT, peers []peer.Peer) error {
 		// fail/abort due to an expiring context.
 
 		wg.Add(1)
-		go func(p peer.Peer) {
+		go func(p peer.PeerInfo) {
 			defer wg.Done()
-			err := r.Connect(ctx, p)
+			ps.AddAddresses(p.ID, p.Addrs)
+			err := r.Connect(ctx, p.ID)
 			if err != nil {
-				log.Event(ctx, "bootstrapFailed", p)
-				log.Criticalf("failed to bootstrap with %v", p)
+				log.Event(ctx, "bootstrapFailed", p.ID)
+				log.Criticalf("failed to bootstrap with %v", p.ID)
 				return
 			}
-			log.Event(ctx, "bootstrapSuccess", p)
-			log.Infof("bootstrapped with %v", p)
+			log.Event(ctx, "bootstrapSuccess", p.ID)
+			log.Infof("bootstrapped with %v", p.ID)
 		}(p)
 	}
 	wg.Wait()
 	return nil
 }
 
-func toPeer(ps peer.Peerstore, bootstrap *config.BootstrapPeer) (peer.Peer, error) {
-	id, err := peer.DecodePrettyID(bootstrap.PeerID)
+func toPeer(bootstrap *config.BootstrapPeer) (p peer.PeerInfo, err error) {
+	id, err := peer.IDB58Decode(bootstrap.PeerID)
 	if err != nil {
-		return nil, err
-	}
-	p, err := ps.FindOrCreate(id)
-	if err != nil {
-		return nil, err
+		return
 	}
 	maddr, err := ma.NewMultiaddr(bootstrap.Address)
 	if err != nil {
-		return nil, err
+		return
 	}
-	p.AddAddress(maddr)
-	return p, nil
+	p = peer.PeerInfo{
+		ID:    id,
+		Addrs: []ma.Multiaddr{maddr},
+	}
+	return
 }
 
-func randomSubsetOfPeers(in []peer.Peer, max int) []peer.Peer {
+func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {
 	n := math2.IntMin(max, len(in))
-	var out []peer.Peer
+	var out []peer.PeerInfo
 	for _, val := range rand.Perm(n) {
 		out = append(out, in[val])
 	}

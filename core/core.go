@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -21,7 +20,6 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
-	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	pin "github.com/jbenet/go-ipfs/pin"
@@ -42,7 +40,7 @@ type IpfsNode struct {
 
 	// Self
 	Config     *config.Config // the node's configuration
-	Identity   peer.Peer      // the local node's identity
+	Identity   peer.ID        // the local node's identity
 	onlineMode bool           // alternatively, offline
 
 	// Local node
@@ -126,7 +124,7 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.Network)
 
 		// setup routing service
-		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Peerstore, n.Network, n.Datastore)
+		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Network, n.Datastore)
 		dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 
 		// TODO(brian): perform this inside NewDHT factory method
@@ -178,42 +176,34 @@ func (n *IpfsNode) OnlineMode() bool {
 	return n.onlineMode
 }
 
-func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer.Peer, error) {
+func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer.ID, error) {
 	if cfg.PeerID == "" {
-		return nil, debugerror.New("Identity was not set in config (was ipfs init run?)")
+		return "", debugerror.New("Identity was not set in config (was ipfs init run?)")
 	}
 
 	if len(cfg.PeerID) == 0 {
-		return nil, debugerror.New("No peer ID in config! (was ipfs init run?)")
+		return "", debugerror.New("No peer ID in config! (was ipfs init run?)")
 	}
 
-	// get peer from peerstore (so it is constructed there)
 	id := peer.ID(b58.Decode(cfg.PeerID))
-	self, err := peers.FindOrCreate(id)
-	if err != nil {
-		return nil, err
-	}
-	self.SetType(peer.Local)
-	self, err = peers.Add(self)
-	if err != nil {
-		return nil, err
-	}
-
-	self.SetVersions(handshake.ClientVersion, handshake.IpfsVersion.String())
 
 	// when not online, don't need to parse private keys (yet)
 	if online {
-		skb, err := base64.StdEncoding.DecodeString(cfg.PrivKey)
+		sk, err := cfg.DecodePrivateKey("passphrase todo!")
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
-		if err := self.LoadAndVerifyKeyPair(skb); err != nil {
-			return nil, err
+		id2, err := peer.IDFromPrivateKey(sk)
+		if err != nil {
+			return "", err
+		}
+		if id2 != id {
+			return "", fmt.Errorf("private key in config does not match id: %s != %s", id, id2)
 		}
 	}
 
-	return self, nil
+	return id, nil
 }
 
 func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
