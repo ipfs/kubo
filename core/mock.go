@@ -31,6 +31,7 @@ func NewMockNode() (*IpfsNode, error) {
 	}
 
 	nd.Identity = p
+	nd.PrivateKey = sk
 	nd.Peerstore = peer.NewPeerstore()
 	nd.Peerstore.AddPrivKey(p, sk)
 	nd.Peerstore.AddPubKey(p, pk)

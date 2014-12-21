@@ -11,6 +11,7 @@ import (
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	config "github.com/jbenet/go-ipfs/config"
+	ic "github.com/jbenet/go-ipfs/crypto"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
@@ -41,6 +42,7 @@ type IpfsNode struct {
 	// Self
 	Config     *config.Config // the node's configuration
 	Identity   peer.ID        // the local node's identity
+	PrivateKey ic.PrivKey     // the local node's private Key
 	onlineMode bool           // alternatively, offline
 
 	// Local node
@@ -97,7 +99,7 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 
 	// setup peerstore + local peer identity
 	n.Peerstore = peer.NewPeerstore()
-	n.Identity, err = initIdentity(&n.Config.Identity, n.Peerstore, online)
+	n.Identity, n.PrivateKey, err = initIdentity(&n.Config.Identity, n.Peerstore, online)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
@@ -176,34 +178,41 @@ func (n *IpfsNode) OnlineMode() bool {
 	return n.onlineMode
 }
 
-func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (peer.ID, error) {
+func initIdentity(cfg *config.Identity, peers peer.Peerstore, online bool) (p peer.ID, sk ic.PrivKey, err error) {
 	if cfg.PeerID == "" {
-		return "", debugerror.New("Identity was not set in config (was ipfs init run?)")
+		err = debugerror.New("Identity was not set in config (was ipfs init run?)")
+		return
 	}
 
 	if len(cfg.PeerID) == 0 {
-		return "", debugerror.New("No peer ID in config! (was ipfs init run?)")
+		err = debugerror.New("No peer ID in config! (was ipfs init run?)")
+		return
 	}
 
 	id := peer.ID(b58.Decode(cfg.PeerID))
 
 	// when not online, don't need to parse private keys (yet)
 	if online {
-		sk, err := cfg.DecodePrivateKey("passphrase todo!")
+		var sk2 ic.PrivKey
+		sk2, err = cfg.DecodePrivateKey("passphrase todo!")
 		if err != nil {
-			return "", err
+			return
 		}
 
-		id2, err := peer.IDFromPrivateKey(sk)
+		var id2 peer.ID
+		id2, err = peer.IDFromPrivateKey(sk)
 		if err != nil {
-			return "", err
+			return
 		}
 		if id2 != id {
-			return "", fmt.Errorf("private key in config does not match id: %s != %s", id, id2)
+			err = fmt.Errorf("private key in config does not match id: %s != %s", id, id2)
+			return
 		}
-	}
 
-	return id, nil
+		sk = sk2
+	}
+	p = id
+	return
 }
 
 func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
