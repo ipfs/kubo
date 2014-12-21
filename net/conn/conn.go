@@ -11,6 +11,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -81,6 +82,14 @@ func (c *singleConn) LocalAddr() net.Addr {
 
 func (c *singleConn) RemoteAddr() net.Addr {
 	return c.maconn.RemoteAddr()
+}
+
+func (c *singleConn) LocalPrivateKey() ic.PrivKey {
+	return nil
+}
+
+func (c *singleConn) RemotePublicKey() ic.PubKey {
+	return nil
 }
 
 func (c *singleConn) SetDeadline(t time.Time) error {

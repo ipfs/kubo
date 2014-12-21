@@ -17,17 +17,15 @@ import (
 type Map map[u.Key]Conn
 
 type PeerConn interface {
-	// LocalMultiaddr is the Multiaddr on this side
+	// LocalPeer (this side) ID, PrivateKey, and Address
+	LocalPeer() peer.ID
+	LocalPrivateKey() ic.PrivKey
 	LocalMultiaddr() ma.Multiaddr
 
-	// LocalPeer is the Peer on our side of the connection
-	LocalPeer() peer.ID
-
-	// RemoteMultiaddr is the Multiaddr on the remote side
-	RemoteMultiaddr() ma.Multiaddr
-
-	// RemotePeer is the Peer on the remote side
+	// RemotePeer ID, PublicKey, and Address
 	RemotePeer() peer.ID
+	RemotePublicKey() ic.PubKey
+	RemoteMultiaddr() ma.Multiaddr
 }
 
 // Conn is a generic message-based Peer-to-Peer connection.

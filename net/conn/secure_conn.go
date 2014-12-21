@@ -114,6 +114,16 @@ func (c *secureConn) RemotePeer() peer.ID {
 	return c.session.RemotePeer()
 }
 
+// LocalPrivateKey is the public key of the peer on this side
+func (c *secureConn) LocalPrivateKey() ic.PrivKey {
+	return c.session.LocalPrivateKey()
+}
+
+// RemotePubKey is the public key of the peer on the remote side
+func (c *secureConn) RemotePublicKey() ic.PubKey {
+	return c.session.RemotePublicKey()
+}
+
 // Read reads data, net.Conn style
 func (c *secureConn) Read(buf []byte) (int, error) {
 	return c.secure.Read(buf)

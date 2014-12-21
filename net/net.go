@@ -2,6 +2,7 @@
 package net
 
 import (
+	ic "github.com/jbenet/go-ipfs/crypto"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -59,24 +60,28 @@ func (c *conn_) NewStreamWithProtocol(pr ProtocolID, p peer.ID) (Stream, error) 
 	return ss, nil
 }
 
-// LocalMultiaddr is the Multiaddr on this side
 func (c *conn_) LocalMultiaddr() ma.Multiaddr {
 	return c.SwarmConn().LocalMultiaddr()
 }
 
-// LocalPeer is the Peer on our side of the connection
-func (c *conn_) LocalPeer() peer.ID {
-	return c.SwarmConn().LocalPeer()
-}
-
-// RemoteMultiaddr is the Multiaddr on the remote side
 func (c *conn_) RemoteMultiaddr() ma.Multiaddr {
 	return c.SwarmConn().RemoteMultiaddr()
 }
 
-// RemotePeer is the Peer on the remote side
+func (c *conn_) LocalPeer() peer.ID {
+	return c.SwarmConn().LocalPeer()
+}
+
 func (c *conn_) RemotePeer() peer.ID {
 	return c.SwarmConn().RemotePeer()
+}
+
+func (c *conn_) LocalPrivateKey() ic.PrivKey {
+	return c.SwarmConn().LocalPrivateKey()
+}
+
+func (c *conn_) RemotePublicKey() ic.PubKey {
+	return c.SwarmConn().RemotePublicKey()
 }
 
 // network implements the Network interface,

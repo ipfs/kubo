@@ -3,6 +3,7 @@ package swarm
 import (
 	"fmt"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -53,6 +54,16 @@ func (c *Conn) RemoteMultiaddr() ma.Multiaddr {
 // RemotePeer is the Peer on the remote side
 func (c *Conn) RemotePeer() peer.ID {
 	return c.RawConn().RemotePeer()
+}
+
+// LocalPrivateKey is the public key of the peer on this side
+func (c *Conn) LocalPrivateKey() ic.PrivKey {
+	return c.RawConn().LocalPrivateKey()
+}
+
+// RemotePublicKey is the public key of the peer on the remote side
+func (c *Conn) RemotePublicKey() ic.PubKey {
+	return c.RawConn().RemotePublicKey()
 }
 
 // NewStream returns a new Stream from this connection
