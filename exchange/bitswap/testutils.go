@@ -44,7 +44,7 @@ func (g *SessionGenerator) Close() error {
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	return session(g.ctx, g.net, g.rs, g.ps, []byte(string(g.seq)))
+	return session(g.ctx, g.net, g.rs, g.ps, peer.ID(g.seq))
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -57,7 +57,7 @@ func (g *SessionGenerator) Instances(n int) []Instance {
 }
 
 type Instance struct {
-	Peer       peer.Peer
+	Peer       peer.ID
 	Exchange   exchange.Interface
 	blockstore blockstore.Blockstore
 
@@ -77,11 +77,10 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.ID) Instance {
-	p := ps.WithID(id)
+func session(ctx context.Context, net tn.Network, rs mockrouting.Server, ps peer.Peerstore, p peer.ID) Instance {
 
 	adapter := net.Adapter(p)
-	htc := rs.Client(p)
+	htc := rs.Client(peer.PeerInfo{ID: p})
 
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100

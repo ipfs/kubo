@@ -7,13 +7,14 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
+	peer "github.com/jbenet/go-ipfs/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -62,7 +63,8 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 	defer g.Close()
 
 	block := blocks.NewBlock([]byte("block"))
-	rs.Client(testutil.NewPeerWithIDString("testing")).Provide(context.Background(), block.Key()) // but not on network
+	pinfo := peer.PeerInfo{ID: peer.ID("testing")}
+	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()
 	defer solo.Exchange.Close()
@@ -153,7 +155,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 		first.Blockstore().Put(b)
 		blkeys = append(blkeys, b.Key())
 		first.Exchange.HasBlock(context.Background(), b)
-		rs.Client(first.Peer).Provide(context.Background(), b.Key())
+		rs.Client(peer.PeerInfo{ID: first.Peer}).Provide(context.Background(), b.Key())
 	}
 
 	t.Log("Distribute!")

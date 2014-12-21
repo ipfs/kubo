@@ -53,13 +53,13 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 
 }
 
-func (bsnet *impl) DialPeer(ctx context.Context, p peer.Peer) error {
+func (bsnet *impl) DialPeer(ctx context.Context, p peer.ID) error {
 	return bsnet.network.DialPeer(ctx, p)
 }
 
 func (bsnet *impl) SendMessage(
 	ctx context.Context,
-	p peer.Peer,
+	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) error {
 
 	s, err := bsnet.network.NewStream(inet.ProtocolBitswap, p)
@@ -73,7 +73,7 @@ func (bsnet *impl) SendMessage(
 
 func (bsnet *impl) SendRequest(
 	ctx context.Context,
-	p peer.Peer,
+	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
 	s, err := bsnet.network.NewStream(inet.ProtocolBitswap, p)

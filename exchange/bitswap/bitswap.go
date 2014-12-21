@@ -8,6 +8,7 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
@@ -43,7 +44,7 @@ var (
 // BitSwapNetwork. This function registers the returned instance as the network
 // delegate.
 // Runs until context is cancelled.
-func New(parent context.Context, p peer.Peer, network bsnet.BitSwapNetwork, routing bsnet.Routing,
+func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routing bsnet.Routing,
 	bstore blockstore.Blockstore, nice bool) exchange.Interface {
 
 	ctx, cancelFunc := context.WithCancel(parent)
@@ -165,7 +166,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	return bs.routing.Provide(ctx, blk.Key())
 }
 
-func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) error {
+func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInfo) error {
 	if peers == nil {
 		panic("Cant send wantlist to nil peerchan")
 	}
@@ -175,9 +176,9 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 	}
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
-		log.Event(ctx, "PeerToQuery", peerToQuery)
+		log.Event(ctx, "PeerToQuery", peerToQuery.ID)
 		wg.Add(1)
-		go func(p peer.Peer) {
+		go func(p peer.ID) {
 			defer wg.Done()
 
 			log.Event(ctx, "DialPeer", p)
@@ -196,7 +197,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.Peer) e
 			// communication fails. May require slightly different API to
 			// get better guarantees. May need shared sequence numbers.
 			bs.engine.MessageSent(p, message)
-		}(peerToQuery)
+		}(peerToQuery.ID)
 	}
 	wg.Wait()
 	return nil
@@ -224,8 +225,8 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
 
 			for prov := range providers {
-				if ps.TryAdd(prov) { //Do once per peer
-					bs.send(ctx, prov, message)
+				if ps.TryAdd(prov.ID) { //Do once per peer
+					bs.send(ctx, prov.ID, message)
 				}
 			}
 		}(e.Key)
@@ -287,19 +288,19 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 }
 
 // TODO(brian): handle errors
-func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsmsg.BitSwapMessage) (
-	peer.Peer, bsmsg.BitSwapMessage) {
+func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
+	peer.ID, bsmsg.BitSwapMessage) {
 	log.Debugf("ReceiveMessage from %s", p)
 
-	if p == nil {
+	if p == "" {
 		log.Error("Received message from nil peer!")
 		// TODO propagate the error upward
-		return nil, nil
+		return "", nil
 	}
 	if incoming == nil {
 		log.Error("Got nil bitswap message!")
 		// TODO propagate the error upward
-		return nil, nil
+		return "", nil
 	}
 
 	// This call records changes to wantlists, blocks received,
@@ -321,7 +322,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.Peer, incoming bsm
 	bs.cancelBlocks(ctx, keys)
 
 	// TODO: consider changing this function to not return anything
-	return nil, nil
+	return "", nil
 }
 
 func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
@@ -349,7 +350,7 @@ func (bs *bitswap) ReceiveError(err error) {
 
 // send strives to ensure that accounting is always performed when a message is
 // sent
-func (bs *bitswap) send(ctx context.Context, p peer.Peer, m bsmsg.BitSwapMessage) error {
+func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
 	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
 		return err
 	}

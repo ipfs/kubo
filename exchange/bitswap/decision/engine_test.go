@@ -7,21 +7,21 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/peer"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 type peerAndEngine struct {
-	peer.Peer
+	Peer   peer.ID
 	Engine *Engine
 }
 
 func newPeerAndLedgermanager(idStr string) peerAndEngine {
 	return peerAndEngine{
-		Peer: testutil.NewPeerWithIDString(idStr),
+		Peer: peer.ID(idStr),
 		//Strategy: New(true),
 		Engine: NewEngine(context.TODO(),
 			blockstore.NewBlockstore(sync.MutexWrap(ds.NewMapDatastore()))),
@@ -70,7 +70,7 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 	sanfrancisco.Engine.MessageSent(seattle.Peer, m)
 	seattle.Engine.MessageReceived(sanfrancisco.Peer, m)
 
-	if seattle.Peer.Key() == sanfrancisco.Peer.Key() {
+	if seattle.Peer == sanfrancisco.Peer {
 		t.Fatal("Sanity Check: Peers have same Key!")
 	}
 
@@ -83,9 +83,9 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 	}
 }
 
-func peerIsPartner(p peer.Peer, e *Engine) bool {
+func peerIsPartner(p peer.ID, e *Engine) bool {
 	for _, partner := range e.Peers() {
-		if partner.Key() == p.Key() {
+		if partner == p {
 			return true
 		}
 	}
