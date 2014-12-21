@@ -212,3 +212,19 @@ func (ps *peerstore) PeerInfo(p ID) PeerInfo {
 		Addrs: ps.addressbook.Addresses(p),
 	}
 }
+
+func PeerInfos(ps Peerstore, peers []ID) []PeerInfo {
+	pi := make([]PeerInfo, len(peers))
+	for i, p := range peers {
+		pi[i] = ps.PeerInfo(p)
+	}
+	return pi
+}
+
+func PeerInfoIDs(pis []PeerInfo) []ID {
+	ps := make([]ID, len(pis))
+	for i, pi := range pis {
+		ps[i] = pi.ID
+	}
+	return ps
+}
