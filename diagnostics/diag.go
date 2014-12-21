@@ -13,8 +13,8 @@ import (
 
 	"crypto/rand"
 
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
@@ -31,7 +31,7 @@ const ResponseTimeout = time.Second * 10
 // requests
 type Diagnostics struct {
 	network net.Network
-	self    peer.Peer
+	self    peer.ID
 
 	diagLock sync.Mutex
 	diagMap  map[string]time.Time
@@ -39,7 +39,7 @@ type Diagnostics struct {
 }
 
 // NewDiagnostics instantiates a new diagnostics service running on the given network
-func NewDiagnostics(self peer.Peer, inet net.Network) *Diagnostics {
+func NewDiagnostics(self peer.ID, inet net.Network) *Diagnostics {
 	d := &Diagnostics{
 		network: inet,
 		self:    self,
@@ -91,20 +91,20 @@ func (di *DiagInfo) Marshal() []byte {
 	return b
 }
 
-func (d *Diagnostics) getPeers() []peer.Peer {
+func (d *Diagnostics) getPeers() []peer.ID {
 	return d.network.Peers()
 }
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
 	di := new(DiagInfo)
 	di.CodeVersion = "github.com/jbenet/go-ipfs"
-	di.ID = d.self.ID().Pretty()
+	di.ID = d.self.Pretty()
 	di.LifeSpan = time.Since(d.birth)
 	di.Keys = nil // Currently no way to query datastore
 	di.BwIn, di.BwOut = d.network.BandwidthTotals()
 
 	for _, p := range d.getPeers() {
-		d := connDiagInfo{p.GetLatency(), p.ID().Pretty()}
+		d := connDiagInfo{d.network.Peerstore().LatencyEWMA(p), p.Pretty()}
 		di.Connections = append(di.Connections, d)
 	}
 	return di
@@ -142,7 +142,7 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 	for _, p := range peers {
 		log.Debugf("Sending getDiagnostic to: %s", p)
 		sends++
-		go func(p peer.Peer) {
+		go func(p peer.ID) {
 			data, err := d.getDiagnosticFromPeer(ctx, p, pmes)
 			if err != nil {
 				log.Errorf("GetDiagnostic error: %v", err)
@@ -181,7 +181,7 @@ func appendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
 }
 
 // TODO: this method no longer needed.
-func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.Peer, mes *pb.Message) ([]byte, error) {
+func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, mes *pb.Message) ([]byte, error) {
 	rpmes, err := d.sendRequest(ctx, p, mes)
 	if err != nil {
 		return nil, err
@@ -195,7 +195,7 @@ func newMessage(diagID string) *pb.Message {
 	return pmes
 }
 
-func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
+func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 
 	s, err := d.network.NewStream(net.ProtocolDiag, p)
 	if err != nil {
@@ -225,7 +225,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.Peer, pmes *pb.Mes
 	return rpmes, nil
 }
 
-func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Message, error) {
+func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	log.Debugf("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
 	resp := newMessage(pmes.GetDiagID())
 
@@ -250,7 +250,7 @@ func (d *Diagnostics) handleDiagnostic(p peer.Peer, pmes *pb.Message) (*pb.Messa
 	for _, p := range d.getPeers() {
 		log.Debugf("Sending diagnostic request to peer: %s", p)
 		sendcount++
-		go func(p peer.Peer) {
+		go func(p peer.ID) {
 			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
 			if err != nil {
 				log.Errorf("getDiagnostic error: %v", err)
@@ -288,7 +288,7 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s net.Stream) error {
 
 	// Print out diagnostic
 	log.Infof("[peer: %s] Got message from [%s]\n",
-		d.self.ID().Pretty(), s.Conn().RemotePeer().ID().Pretty())
+		d.self.Pretty(), s.Conn().RemotePeer())
 
 	// dispatch handler.
 	p := s.Conn().RemotePeer()
