@@ -11,7 +11,7 @@ import (
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
-	pb "github.com/jbenet/go-ipfs/crypto/spipe/internal/pb"
+	pb "github.com/jbenet/go-ipfs/crypto/secio/internal/pb"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
