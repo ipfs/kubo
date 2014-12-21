@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // mocknet implements mocknet.Mocknet
@@ -39,12 +41,14 @@ func New(ctx context.Context) Mocknet {
 }
 
 func (mn *mocknet) GenPeer() (inet.Network, error) {
-	p, err := testutil.RandPeerID()
+	sk, _, err := testutil.RandKeyPair(512)
 	if err != nil {
 		return nil, err
 	}
 
-	n, err := mn.AddPeer(p)
+	a := testutil.RandLocalTCPAddress()
+
+	n, err := mn.AddPeer(sk, a)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +56,8 @@ func (mn *mocknet) GenPeer() (inet.Network, error) {
 	return n, nil
 }
 
-func (mn *mocknet) AddPeer(p peer.ID) (inet.Network, error) {
-	n, err := newPeernet(mn.cg.Context(), mn, p)
+func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (inet.Network, error) {
+	n, err := newPeernet(mn.cg.Context(), mn, k, a)
 	if err != nil {
 		return nil, err
 	}

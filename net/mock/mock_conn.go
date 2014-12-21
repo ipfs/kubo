@@ -15,8 +15,15 @@ import (
 // live connection between two peers.
 // it goes over a particular link.
 type conn struct {
-	local   peer.ID
-	remote  peer.ID
+	local  peer.ID
+	remote peer.ID
+
+	localAddr  ma.Multiaddr
+	remoteAddr ma.Multiaddr
+
+	localPrivKey ic.PrivKey
+	remotePubKey ic.PubKey
+
 	net     *peernet
 	link    *link
 	rconn   *conn // counterpart
@@ -88,7 +95,7 @@ func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID) (inet.Stream, error) {
 
 // LocalMultiaddr is the Multiaddr on this side
 func (c *conn) LocalMultiaddr() ma.Multiaddr {
-	return nil
+	return c.localAddr
 }
 
 // LocalPeer is the Peer on our side of the connection
@@ -98,12 +105,12 @@ func (c *conn) LocalPeer() peer.ID {
 
 // LocalPrivateKey is the private key of the peer on our side.
 func (c *conn) LocalPrivateKey() ic.PrivKey {
-	return nil
+	return c.localPrivKey
 }
 
 // RemoteMultiaddr is the Multiaddr on the remote side
 func (c *conn) RemoteMultiaddr() ma.Multiaddr {
-	return nil
+	return c.remoteAddr
 }
 
 // RemotePeer is the Peer on the remote side
@@ -113,5 +120,5 @@ func (c *conn) RemotePeer() peer.ID {
 
 // RemotePublicKey is the private key of the peer on our side.
 func (c *conn) RemotePublicKey() ic.PubKey {
-	return nil
+	return c.remotePubKey
 }

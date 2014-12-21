@@ -10,13 +10,21 @@ import (
 	"io"
 	"time"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 type Mocknet interface {
+
+	// GenPeer generates a peer and its inet.Network in the Mocknet
 	GenPeer() (inet.Network, error)
-	AddPeer(peer.ID) (inet.Network, error)
+
+	// AddPeer adds an existing peer. we need both a privkey and addr.
+	// ID is derived from PrivKey
+	AddPeer(ic.PrivKey, ma.Multiaddr) (inet.Network, error)
 
 	// retrieve things
 	Peers() []peer.ID

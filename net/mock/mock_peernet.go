@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -34,10 +35,19 @@ type peernet struct {
 }
 
 // newPeernet constructs a new peernet
-func newPeernet(ctx context.Context, m *mocknet, p peer.ID) (*peernet, error) {
+func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
+	a ma.Multiaddr) (*peernet, error) {
+
+	p, err := peer.IDFromPublicKey(k.GetPublic())
+	if err != nil {
+		return nil, err
+	}
 
 	// create our own entirely, so that peers knowledge doesn't get shared
 	ps := peer.NewPeerstore()
+	ps.AddAddress(p, a)
+	ps.AddPrivKey(p, k)
+	ps.AddPubKey(p, k.GetPublic())
 
 	n := &peernet{
 		mocknet: m,
