@@ -83,9 +83,6 @@ type Network interface {
 	// Conns returns the connections in this Netowrk
 	Conns() []Conn
 
-	// Peerstore returns the internal peerstore
-	Peerstore() peer.Peerstore
-
 	// BandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated
 	BandwidthTotals() (uint64, uint64)
@@ -106,6 +103,12 @@ type Network interface {
 // (this is usually just a Network, but other services may not need the whole
 // stack, and thus it becomes easier to mock)
 type Dialer interface {
+
+	// Peerstore returns the internal peerstore
+	// This is useful to tell the dialer about a new address for a peer.
+	// Or use one of the public keys found out over the network.
+	Peerstore() peer.Peerstore
+
 	// LocalPeer returns the local peer associated with this network
 	LocalPeer() peer.ID
 
