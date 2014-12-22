@@ -103,7 +103,7 @@ func TestCanceledContext(t *testing.T) {
 			pi := peer.PeerInfo{ID: peer.ID(i)}
 			err := rs.Client(pi).Provide(context.Background(), k)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 			i++
 		}
