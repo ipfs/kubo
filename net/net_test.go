@@ -3,6 +3,7 @@ package net_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	inet "github.com/jbenet/go-ipfs/net"
@@ -32,6 +33,10 @@ func TestConnectednessCorrect(t *testing.T) {
 	dial(nets[0], nets[3])
 	dial(nets[1], nets[2])
 	dial(nets[3], nets[2])
+
+	// there's something wrong with dial, i think. it's not finishing
+	// completely. there must be some async stuff.
+	<-time.After(100 * time.Millisecond)
 
 	// test those connected show up correctly
 
