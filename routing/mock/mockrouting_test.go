@@ -96,10 +96,23 @@ func TestCanceledContext(t *testing.T) {
 	rs := NewServer()
 	k := u.Key("hello")
 
+	// avoid leaking goroutine, without using the context to signal
+	// (we want the goroutine to keep trying to publish on a
+	// cancelled context until we've tested it doesnt do anything.)
+	done := make(chan struct{})
+	defer func() { done <- struct{}{} }()
+
 	t.Log("async'ly announce infinite stream of providers for key")
 	i := 0
 	go func() { // infinite stream
 		for {
+			select {
+			case <-done:
+				t.Log("exiting async worker")
+				return
+			default:
+			}
+
 			pi := peer.PeerInfo{ID: peer.ID(i)}
 			err := rs.Client(pi).Provide(context.Background(), k)
 			if err != nil {
