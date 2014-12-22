@@ -156,21 +156,6 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 		return record.GetValue(), nil, nil
 	}
 
-	// commenting out for now. i'm not sure this is correct -jbenet
-	// // TODO decide on providers. This probably shouldn't be happening.
-	// // TODO what did "this" mean? i think it's the notion of receiving
-	// // a list of providers and then immediately requesting that value
-	// // from them. providers a higher level construct for dht clients:
-	// // the dht shouldn't be _using_ providers... -@jbenet 2014-12-20
-	// if prv := pmes.GetProviderPeers(); prv != nil && len(prv) > 0 {
-	// 	val, err := dht.getFromPeerList(ctx, key, prv)
-	// 	if err != nil {
-	// 		return nil, nil, err
-	// 	}
-	// 	log.Debug("getValueOrPeers: get from providers")
-	// 	return val, nil, nil
-	// }
-
 	// Perhaps we were given closer peers
 	peers := pb.PBPeersToPeerInfos(pmes.GetCloserPeers())
 	if len(peers) > 0 {
@@ -189,42 +174,6 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
-
-// commenting out until i figure out whether this is needed -jbenet
-// // TODO: Im not certain on this implementation, we get a list of peers/providers
-// // from someone what do we do with it? Connect to each of them? randomly pick
-// // one to get the value from? Or just connect to one at a time until we get a
-// // successful connection and request the value from it?
-// func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
-// 	peerlist []*pb.Message_Peer) ([]byte, error) {
-
-// 	peerinfos := pb.PBPeersToPeerInfos(peerlist)
-// 	for _, pinfo := range peerinfos {
-// 		p := pinfo.ID
-// 		if err := dht.ensureConnectedToPeer(ctx, p); err != nil {
-// 			log.Errorf("getFromPeers error: %s", err)
-// 			continue
-// 		}
-
-// 		pmes, err := dht.getValueSingle(ctx, p, key)
-// 		if err != nil {
-// 			log.Errorf("getFromPeers error: %s\n", err)
-// 			continue
-// 		}
-
-// 		if record := pmes.GetRecord(); record != nil {
-// 			// Success! We were given the value
-
-// 			err := dht.verifyRecord(ctx, record)
-// 			if err != nil {
-// 				return nil, err
-// 			}
-// 			dht.providers.AddProvider(key, p)
-// 			return record.GetValue(), nil
-// 		}
-// 	}
-// 	return nil, routing.ErrNotFound
-// }
 
 // getLocal attempts to retrieve the value from the datastore
 func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
