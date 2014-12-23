@@ -182,23 +182,10 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInf
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
-
-			log.Event(ctx, "DialPeer", p)
-			err := bs.sender.DialPeer(ctx, p)
-			if err != nil {
-				log.Errorf("Error sender.DialPeer(%s): %s", p, err)
+			if err := bs.send(ctx, p, message); err != nil {
+				log.Error(err)
 				return
 			}
-
-			err = bs.sender.SendMessage(ctx, p, message)
-			if err != nil {
-				log.Errorf("Error sender.SendMessage(%s) = %s", p, err)
-				return
-			}
-			// FIXME ensure accounting is handled correctly when
-			// communication fails. May require slightly different API to
-			// get better guarantees. May need shared sequence numbers.
-			bs.engine.MessageSent(p, message)
 		}(peerToQuery.ID)
 	}
 	wg.Wait()
