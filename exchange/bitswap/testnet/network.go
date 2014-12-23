@@ -52,10 +52,9 @@ type network struct {
 
 func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
 	client := &networkClient{
-		local:     p,
-		network:   n,
-		peerstore: peer.NewPeerstore(),
-		routing:   n.routingserver.Client(peer.PeerInfo{ID: p}),
+		local:   p,
+		network: n,
+		routing: n.routingserver.Client(peer.PeerInfo{ID: p}),
 	}
 	n.clients[p] = client
 	return client
@@ -155,9 +154,8 @@ func (n *network) SendRequest(
 type networkClient struct {
 	local peer.ID
 	bsnet.Receiver
-	network   Network
-	peerstore peer.Peerstore
-	routing   routing.IpfsRouting
+	network Network
+	routing routing.IpfsRouting
 }
 
 func (nc *networkClient) SendMessage(
@@ -187,7 +185,6 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max
 		defer close(out)
 		providers := nc.routing.FindProvidersAsync(ctx, k, max)
 		for info := range providers {
-			nc.peerstore.AddAddresses(info.ID, info.Addrs)
 			select {
 			case <-ctx.Done():
 			case out <- info.ID:
@@ -212,8 +209,4 @@ func (nc *networkClient) DialPeer(ctx context.Context, p peer.ID) error {
 
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {
 	nc.Receiver = r
-}
-
-func (nc *networkClient) Peerstore() peer.Peerstore {
-	return nc.peerstore
 }

@@ -72,10 +72,6 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 	bsnet.receiver = r
 }
 
-func (bsnet *impl) Peerstore() peer.Peerstore {
-	return bsnet.Peerstore()
-}
-
 // FindProvidersAsync returns a channel of providers for the given key
 func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
 	out := make(chan peer.ID)
