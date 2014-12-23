@@ -202,7 +202,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 		message.AddEntry(e.Key, e.Priority)
 	}
 
-	ps := pset.New()
+	set := pset.New()
 
 	// Get providers for all entries in wantlist (could take a while)
 	wg := sync.WaitGroup{}
@@ -214,7 +214,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
 
 			for prov := range providers {
-				if ps.TryAdd(prov.ID) { //Do once per peer
+				if set.TryAdd(prov.ID) { //Do once per peer
 					bs.send(ctx, prov.ID, message)
 				}
 			}
