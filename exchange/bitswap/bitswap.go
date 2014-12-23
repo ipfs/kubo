@@ -176,16 +176,14 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInf
 		message.AddEntry(wanted.Key, wanted.Priority)
 	}
 	wg := sync.WaitGroup{}
-	for pi := range peers {
-		log.Debugf("bitswap.sendWantListTo: %s %s", pi.ID, pi.Addrs)
-		log.Event(ctx, "PeerToQuery", pi.ID)
+	for peerToQuery := range peers {
+		log.Event(ctx, "PeerToQuery", peerToQuery.ID)
 		wg.Add(1)
-		go func(pi peer.PeerInfo) {
+		go func(p peer.ID) {
 			defer wg.Done()
-			p := pi.ID
 
 			log.Event(ctx, "DialPeer", p)
-			err := bs.sender.DialPeer(ctx, pi)
+			err := bs.sender.DialPeer(ctx, p)
 			if err != nil {
 				log.Errorf("Error sender.DialPeer(%s): %s", p, err)
 				return
@@ -200,7 +198,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInf
 			// communication fails. May require slightly different API to
 			// get better guarantees. May need shared sequence numbers.
 			bs.engine.MessageSent(p, message)
-		}(pi)
+		}(peerToQuery.ID)
 	}
 	wg.Wait()
 	return nil
