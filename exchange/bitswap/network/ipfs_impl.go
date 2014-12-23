@@ -13,9 +13,10 @@ var log = util.Logger("bitswap_network")
 
 // NewFromIpfsNetwork returns a BitSwapNetwork supported by underlying IPFS
 // Dialer & Service
-func NewFromIpfsNetwork(n inet.Network) BitSwapNetwork {
+func NewFromIpfsNetwork(n inet.Network, r Routing) BitSwapNetwork {
 	bitswapNetwork := impl{
 		network: n,
+		routing: r,
 	}
 	n.SetHandler(inet.ProtocolBitswap, bitswapNetwork.handleNewStream)
 	return &bitswapNetwork
@@ -25,6 +26,7 @@ func NewFromIpfsNetwork(n inet.Network) BitSwapNetwork {
 // NetMessage objects, into the bitswap network interface.
 type impl struct {
 	network inet.Network
+	routing Routing
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
@@ -72,6 +74,16 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 
 func (bsnet *impl) Peerstore() peer.Peerstore {
 	return bsnet.Peerstore()
+}
+
+// FindProvidersAsync returns a channel of providers for the given key
+func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.PeerInfo { // TODO change to return ID
+	return bsnet.routing.FindProvidersAsync(ctx, k, max)
+}
+
+// Provide provides the key to the network
+func (bsnet *impl) Provide(ctx context.Context, k util.Key) error {
+	return bsnet.routing.Provide(ctx, k)
 }
 
 // handleNewStream receives a new stream from the network.

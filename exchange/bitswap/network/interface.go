@@ -31,6 +31,8 @@ type BitSwapNetwork interface {
 	// SetDelegate registers the Reciver to handle messages received from the
 	// network.
 	SetDelegate(Receiver)
+
+	Routing
 }
 
 // Implement Receiver to receive messages from the BitSwapNetwork
