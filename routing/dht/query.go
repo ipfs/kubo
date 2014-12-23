@@ -258,12 +258,15 @@ func (r *dhtQueryRunner) queryPeer(p peer.ID) {
 		r.Unlock()
 		r.cancel() // signal to everyone that we're done.
 
-	} else if res.closerPeers != nil {
-		log.Debugf("PEERS CLOSER -- worker for: %v", p)
+	} else if len(res.closerPeers) > 0 {
+		log.Debugf("PEERS CLOSER -- worker for: %v (%d closer peers)", p, len(res.closerPeers))
 		for _, next := range res.closerPeers {
 			// add their addresses to the dialer's peerstore
 			r.query.dialer.Peerstore().AddAddresses(next.ID, next.Addrs)
 			r.addPeerToQuery(next.ID, p)
+			log.Debugf("PEERS CLOSER -- worker for: %v added %v (%v)", p, next.ID, next.Addrs)
 		}
+	} else {
+		log.Debugf("QUERY worker for: %v - not found, and no closer peers.", p)
 	}
 }
