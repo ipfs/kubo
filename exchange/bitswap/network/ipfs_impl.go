@@ -2,10 +2,10 @@ package network
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+	routing "github.com/jbenet/go-ipfs/routing"
 	util "github.com/jbenet/go-ipfs/util"
 )
 
@@ -13,7 +13,7 @@ var log = util.Logger("bitswap_network")
 
 // NewFromIpfsNetwork returns a BitSwapNetwork supported by underlying IPFS
 // Dialer & Service
-func NewFromIpfsNetwork(n inet.Network, r Routing) BitSwapNetwork {
+func NewFromIpfsNetwork(n inet.Network, r routing.IpfsRouting) BitSwapNetwork {
 	bitswapNetwork := impl{
 		network: n,
 		routing: r,
@@ -26,7 +26,7 @@ func NewFromIpfsNetwork(n inet.Network, r Routing) BitSwapNetwork {
 // NetMessage objects, into the bitswap network interface.
 type impl struct {
 	network inet.Network
-	routing Routing
+	routing routing.IpfsRouting
 
 	// inbound messages from the network are forwarded to the receiver
 	receiver Receiver
@@ -77,8 +77,20 @@ func (bsnet *impl) Peerstore() peer.Peerstore {
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
-func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.PeerInfo { // TODO change to return ID
-	return bsnet.routing.FindProvidersAsync(ctx, k, max)
+func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
+	out := make(chan peer.ID)
+	go func() {
+		defer close(out)
+		providers := bsnet.routing.FindProvidersAsync(ctx, k, max)
+		for info := range providers {
+			bsnet.network.Peerstore().AddAddresses(info.ID, info.Addrs)
+			select {
+			case <-ctx.Done():
+			case out <- info.ID:
+			}
+		}
+	}()
+	return out
 }
 
 // Provide provides the key to the network

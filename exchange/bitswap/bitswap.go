@@ -164,7 +164,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	return bs.network.Provide(ctx, blk.Key())
 }
 
-func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInfo) error {
+func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.ID) error {
 	if peers == nil {
 		panic("Cant send wantlist to nil peerchan")
 	}
@@ -174,16 +174,15 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInf
 	}
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
-		log.Event(ctx, "PeerToQuery", peerToQuery.ID)
+		log.Event(ctx, "PeerToQuery", peerToQuery)
 		wg.Add(1)
-		bs.network.Peerstore().AddAddresses(peerToQuery.ID, peerToQuery.Addrs)
 		go func(p peer.ID) {
 			defer wg.Done()
 			if err := bs.send(ctx, p, message); err != nil {
 				log.Error(err)
 				return
 			}
-		}(peerToQuery.ID)
+		}(peerToQuery)
 	}
 	wg.Wait()
 	return nil
@@ -210,9 +209,8 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				bs.network.Peerstore().AddAddresses(prov.ID, prov.Addrs)
-				if set.TryAdd(prov.ID) { //Do once per peer
-					bs.send(ctx, prov.ID, message)
+				if set.TryAdd(prov) { //Do once per peer
+					bs.send(ctx, prov, message)
 				}
 			}
 		}(e.Key)
