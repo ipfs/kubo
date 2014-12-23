@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/routing"
 	"github.com/jbenet/go-ipfs/routing/mock"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
@@ -37,8 +38,8 @@ type Network interface {
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
-		clients: make(map[peer.ID]bsnet.Receiver),
-		delay:   d,
+		clients:       make(map[peer.ID]bsnet.Receiver),
+		delay:         d,
 		routingserver: rs,
 	}
 }
@@ -156,7 +157,7 @@ type networkClient struct {
 	bsnet.Receiver
 	network   Network
 	peerstore peer.Peerstore
-	routing   bsnet.Routing
+	routing   routing.IpfsRouting
 }
 
 func (nc *networkClient) SendMessage(
@@ -174,8 +175,26 @@ func (nc *networkClient) SendRequest(
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
-func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.PeerInfo { // TODO change to return ID
-	return nc.routing.FindProvidersAsync(ctx, k, max)
+func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
+
+	// NB: this function duplicates the PeerInfo -> ID transformation in the
+	// bitswap network adapter. Not to worry. This network client will be
+	// deprecated once the ipfsnet.Mock is added. The code below is only
+	// temporary.
+
+	out := make(chan peer.ID)
+	go func() {
+		defer close(out)
+		providers := nc.routing.FindProvidersAsync(ctx, k, max)
+		for info := range providers {
+			nc.peerstore.AddAddresses(info.ID, info.Addrs)
+			select {
+			case <-ctx.Done():
+			case out <- info.ID:
+			}
+		}
+	}()
+	return out
 }
 
 // Provide provides the key to the network
