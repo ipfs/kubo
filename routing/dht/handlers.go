@@ -219,7 +219,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		}
 
 		if len(pi.Addrs) < 1 {
-			log.Errorf("got no valid addresses for provider %s. Ignore.", p)
+			log.Errorf("%s got no valid addresses for provider %s. Ignore.", dht.self, p)
 			continue
 		}
 

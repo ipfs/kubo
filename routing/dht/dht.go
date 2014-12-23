@@ -126,7 +126,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) erro
 		return err
 	}
 
-	log.Debugf("%s putProvider: %s for %s", dht.self, p, u.Key(key))
+	log.Debugf("%s putProvider: %s for %s (%s)", dht.self, p, u.Key(key), pi.Addrs)
 
 	return nil
 }
