@@ -19,9 +19,10 @@ import (
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	"github.com/jbenet/go-ipfs/util/delay"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-	pset "github.com/jbenet/go-ipfs/util/peerset"
+	pset "github.com/jbenet/go-ipfs/util/peerset" // TODO move this to peerstore
 )
 
 var log = eventlog.Logger("bitswap")
@@ -45,7 +46,7 @@ var (
 // BitSwapNetwork. This function registers the returned instance as the network
 // delegate.
 // Runs until context is cancelled.
-func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routing bsnet.Routing,
+func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	bstore blockstore.Blockstore, nice bool) exchange.Interface {
 
 	ctx, cancelFunc := context.WithCancel(parent)
@@ -62,8 +63,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routin
 		cancelFunc:    cancelFunc,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore),
-		routing:       routing,
-		sender:        network,
+		network:       network,
 		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan []u.Key, sizeBatchRequestChan),
 	}
@@ -77,15 +77,12 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routin
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
 
-	// sender delivers messages on behalf of the session
-	sender bsnet.BitSwapNetwork
+	// network delivers messages on behalf of the session
+	network bsnet.BitSwapNetwork
 
 	// blockstore is the local database
 	// NB: ensure threadsafety
 	blockstore blockstore.Blockstore
-
-	// routing interface for communication
-	routing bsnet.Routing
 
 	notifications notifications.PubSub
 
@@ -164,10 +161,10 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	}
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
-	return bs.routing.Provide(ctx, blk.Key())
+	return bs.network.Provide(ctx, blk.Key())
 }
 
-func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInfo) error {
+func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.ID) error {
 	if peers == nil {
 		panic("Cant send wantlist to nil peerchan")
 	}
@@ -176,31 +173,16 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInf
 		message.AddEntry(wanted.Key, wanted.Priority)
 	}
 	wg := sync.WaitGroup{}
-	for pi := range peers {
-		log.Debugf("bitswap.sendWantListTo: %s %s", pi.ID, pi.Addrs)
-		log.Event(ctx, "PeerToQuery", pi.ID)
+	for peerToQuery := range peers {
+		log.Event(ctx, "PeerToQuery", peerToQuery)
 		wg.Add(1)
-		go func(pi peer.PeerInfo) {
+		go func(p peer.ID) {
 			defer wg.Done()
-			p := pi.ID
-
-			log.Event(ctx, "DialPeer", p)
-			err := bs.sender.DialPeer(ctx, pi)
-			if err != nil {
-				log.Errorf("Error sender.DialPeer(%s): %s", p, err)
+			if err := bs.send(ctx, p, message); err != nil {
+				log.Error(err)
 				return
 			}
-
-			err = bs.sender.SendMessage(ctx, p, message)
-			if err != nil {
-				log.Errorf("Error sender.SendMessage(%s) = %s", p, err)
-				return
-			}
-			// FIXME ensure accounting is handled correctly when
-			// communication fails. May require slightly different API to
-			// get better guarantees. May need shared sequence numbers.
-			bs.engine.MessageSent(p, message)
-		}(pi)
+		}(peerToQuery)
 	}
 	wg.Wait()
 	return nil
@@ -216,7 +198,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 		message.AddEntry(e.Key, e.Priority)
 	}
 
-	ps := pset.New()
+	set := pset.New()
 
 	// Get providers for all entries in wantlist (could take a while)
 	wg := sync.WaitGroup{}
@@ -225,11 +207,10 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 		go func(k u.Key) {
 			defer wg.Done()
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
-
+			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				if ps.TryAdd(prov.ID) { //Do once per peer
-					bs.send(ctx, prov.ID, message)
+				if set.TryAdd(prov) { //Do once per peer
+					bs.send(ctx, prov, message)
 				}
 			}
 		}(e.Key)
@@ -278,8 +259,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 			//		it. Later, this assumption may not hold as true if we implement
 			//		newer bitswap strategies.
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.routing.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
-
+			providers := bs.network.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
 			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
@@ -354,8 +334,13 @@ func (bs *bitswap) ReceiveError(err error) {
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
-	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
-		return err
+	log.Event(ctx, "DialPeer", p)
+	err := bs.network.DialPeer(ctx, p)
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	if err := bs.network.SendMessage(ctx, p, m); err != nil {
+		return errors.Wrap(err)
 	}
 	return bs.engine.MessageSent(p, m)
 }

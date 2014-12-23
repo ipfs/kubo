@@ -150,9 +150,9 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
-		bitswapNetwork := bsnet.NewFromIpfsNetwork(n.Network)
+		bitswapNetwork := bsnet.NewFromIpfsNetwork(n.Network, n.Routing)
 
-		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Routing, blockstore, alwaysSendToPeer)
+		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, blockstore, alwaysSendToPeer)
 
 		// TODO consider moving connection supervision into the Network. We've
 		// discussed improvements to this Node constructor. One improvement

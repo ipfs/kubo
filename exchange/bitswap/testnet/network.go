@@ -5,10 +5,13 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/routing"
+	"github.com/jbenet/go-ipfs/routing/mock"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
@@ -33,22 +36,25 @@ type Network interface {
 
 // network impl
 
-func VirtualNetwork(d delay.D) Network {
+func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
-		clients: make(map[peer.ID]bsnet.Receiver),
-		delay:   d,
+		clients:       make(map[peer.ID]bsnet.Receiver),
+		delay:         d,
+		routingserver: rs,
 	}
 }
 
 type network struct {
-	clients map[peer.ID]bsnet.Receiver
-	delay   delay.D
+	clients       map[peer.ID]bsnet.Receiver
+	routingserver mockrouting.Server
+	delay         delay.D
 }
 
 func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
 	client := &networkClient{
 		local:   p,
 		network: n,
+		routing: n.routingserver.Client(peer.PeerInfo{ID: p}),
 	}
 	n.clients[p] = client
 	return client
@@ -149,6 +155,7 @@ type networkClient struct {
 	local peer.ID
 	bsnet.Receiver
 	network Network
+	routing routing.IpfsRouting
 }
 
 func (nc *networkClient) SendMessage(
@@ -165,10 +172,37 @@ func (nc *networkClient) SendRequest(
 	return nc.network.SendRequest(ctx, nc.local, to, message)
 }
 
-func (nc *networkClient) DialPeer(ctx context.Context, p peer.PeerInfo) error {
+// FindProvidersAsync returns a channel of providers for the given key
+func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
+
+	// NB: this function duplicates the PeerInfo -> ID transformation in the
+	// bitswap network adapter. Not to worry. This network client will be
+	// deprecated once the ipfsnet.Mock is added. The code below is only
+	// temporary.
+
+	out := make(chan peer.ID)
+	go func() {
+		defer close(out)
+		providers := nc.routing.FindProvidersAsync(ctx, k, max)
+		for info := range providers {
+			select {
+			case <-ctx.Done():
+			case out <- info.ID:
+			}
+		}
+	}()
+	return out
+}
+
+// Provide provides the key to the network
+func (nc *networkClient) Provide(ctx context.Context, k util.Key) error {
+	return nc.routing.Provide(ctx, k)
+}
+
+func (nc *networkClient) DialPeer(ctx context.Context, p peer.ID) error {
 	// no need to do anything because dialing isn't a thing in this test net.
-	if !nc.network.HasPeer(p.ID) {
-		return fmt.Errorf("Peer not in network: %s", p.ID)
+	if !nc.network.HasPeer(p) {
+		return fmt.Errorf("Peer not in network: %s", p)
 	}
 	return nil
 }

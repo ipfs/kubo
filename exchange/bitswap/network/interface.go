@@ -12,7 +12,7 @@ import (
 type BitSwapNetwork interface {
 
 	// DialPeer ensures there is a connection to peer.
-	DialPeer(context.Context, peer.PeerInfo) error
+	DialPeer(context.Context, peer.ID) error
 
 	// SendMessage sends a BitSwap message to a peer.
 	SendMessage(
@@ -29,6 +29,8 @@ type BitSwapNetwork interface {
 	// SetDelegate registers the Reciver to handle messages received from the
 	// network.
 	SetDelegate(Receiver)
+
+	Routing
 }
 
 // Implement Receiver to receive messages from the BitSwapNetwork
@@ -42,7 +44,7 @@ type Receiver interface {
 
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
-	FindProvidersAsync(context.Context, u.Key, int) <-chan peer.PeerInfo
+	FindProvidersAsync(context.Context, u.Key, int) <-chan peer.ID
 
 	// Provide provides the key to the network
 	Provide(context.Context, u.Key) error
