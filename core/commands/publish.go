@@ -57,7 +57,7 @@ Publish a <ref> to another public key:
 			return nil, errNotOnline
 		}
 
-		if n.Identity == nil {
+		if n.Identity == "" {
 			return nil, errors.New("Identity not loaded!")
 		}
 
@@ -75,8 +75,7 @@ Publish a <ref> to another public key:
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey
-		k := n.Identity.PrivKey()
-		return publish(n, k, ref)
+		return publish(n, n.PrivateKey, ref)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) ([]byte, error) {

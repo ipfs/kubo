@@ -2,12 +2,11 @@
 package config
 
 import (
-	"crypto"
-	"crypto/x509"
 	"encoding/base64"
 	"os"
 	"path/filepath"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -132,7 +131,7 @@ func Filename(configroot string) (string, error) {
 }
 
 // DecodePrivateKey is a helper to decode the users PrivateKey
-func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error) {
+func (i *Identity) DecodePrivateKey(passphrase string) (ic.PrivKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
 	if err != nil {
 		return nil, err
@@ -140,7 +139,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivateKey, error
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
-	return x509.ParsePKCS1PrivateKey(pkb)
+	return ic.UnmarshalPrivateKey(pkb)
 }
 
 // Load reads given file and returns the read config, or error.

@@ -7,9 +7,7 @@ import (
 	"testing"
 	"time"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
-	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
@@ -48,88 +46,68 @@ func EchoStreamHandler(stream *Stream) {
 	}()
 }
 
-func setupPeer(t *testing.T, addr string) peer.Peer {
-	tcp, err := ma.NewMultiaddr(addr)
-	if err != nil {
-		t.Fatal(err)
-	}
+func makeSwarms(ctx context.Context, t *testing.T, num int) ([]*Swarm, []testutil.PeerNetParams) {
+	swarms := make([]*Swarm, 0, num)
+	peersnp := make([]testutil.PeerNetParams, 0, num)
 
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for i := 0; i < num; i++ {
+		localnp := testutil.RandPeerNetParams(t)
+		peersnp = append(peersnp, localnp)
 
-	p, err := testutil.NewPeerWithKeyPair(sk, pk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p.AddAddress(tcp)
-	return p
-}
-
-func makeSwarms(ctx context.Context, t *testing.T, addrs []string) ([]*Swarm, []peer.Peer) {
-	swarms := []*Swarm{}
-
-	for _, addr := range addrs {
-		local := setupPeer(t, addr)
 		peerstore := peer.NewPeerstore()
-		swarm, err := NewSwarm(ctx, local.Addresses(), local, peerstore)
+		peerstore.AddAddress(localnp.ID, localnp.Addr)
+		peerstore.AddPubKey(localnp.ID, localnp.PubKey)
+		peerstore.AddPrivKey(localnp.ID, localnp.PrivKey)
+
+		addrs := peerstore.Addresses(localnp.ID)
+		swarm, err := NewSwarm(ctx, addrs, localnp.ID, peerstore)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		swarm.SetStreamHandler(EchoStreamHandler)
 		swarms = append(swarms, swarm)
 	}
 
-	peers := make([]peer.Peer, len(swarms))
-	for i, s := range swarms {
-		peers[i] = s.local
-	}
-
-	return swarms, peers
+	return swarms, peersnp
 }
 
-func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
+func connectSwarms(t *testing.T, ctx context.Context, swarms []*Swarm, peersnp []testutil.PeerNetParams) {
+
+	var wg sync.WaitGroup
+	connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
+		// TODO: make a DialAddr func.
+		s.peers.AddAddress(dst, addr)
+		if _, err := s.Dial(ctx, dst); err != nil {
+			t.Fatal("error swarm dialing to peer", err)
+		}
+		wg.Done()
+	}
+
+	log.Info("Connecting swarms simultaneously.")
+	for _, s := range swarms {
+		for _, p := range peersnp {
+			if p.ID != s.local { // don't connect to self.
+				wg.Add(1)
+				connect(s, p.ID, p.Addr)
+			}
+		}
+	}
+	wg.Wait()
+
+	for _, s := range swarms {
+		log.Infof("%s swarm routing table: %s", s.local, s.Peers())
+	}
+}
+
+func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 	// t.Skip("skipping for another test")
 
 	ctx := context.Background()
-	swarms, peers := makeSwarms(ctx, t, addrs)
+	swarms, peersnp := makeSwarms(ctx, t, SwarmNum)
 
 	// connect everyone
-	{
-		var wg sync.WaitGroup
-		connect := func(s *Swarm, dst peer.Peer) {
-			// copy for other peer
-
-			cp, err := s.peers.FindOrCreate(dst.ID())
-			if err != nil {
-				t.Fatal(err)
-			}
-			cp.AddAddress(dst.Addresses()[0])
-
-			log.Infof("SWARM TEST: %s dialing %s", s.local, dst)
-			if _, err := s.Dial(ctx, cp); err != nil {
-				t.Fatal("error swarm dialing to peer", err)
-			}
-			log.Infof("SWARM TEST: %s connected to %s", s.local, dst)
-			wg.Done()
-		}
-
-		log.Info("Connecting swarms simultaneously.")
-		for _, s := range swarms {
-			for _, p := range peers {
-				if p != s.local { // don't connect to self.
-					wg.Add(1)
-					connect(s, p)
-				}
-			}
-		}
-		wg.Wait()
-
-		for _, s := range swarms {
-			log.Infof("%s swarm routing table: %s", s.local, s.Peers())
-		}
-	}
+	connectSwarms(t, ctx, swarms, peersnp)
 
 	// ping/pong
 	for _, s1 := range swarms {
@@ -138,13 +116,8 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		log.Debugf("-------------------------------------------------------")
 
 		_, cancel := context.WithCancel(ctx)
-		peers, err := s1.peers.All()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		got := map[u.Key]int{}
-		errChan := make(chan error, MsgNum*len(*peers))
+		got := map[peer.ID]int{}
+		errChan := make(chan error, MsgNum*len(peersnp))
 		streamChan := make(chan *Stream, MsgNum)
 
 		// send out "ping" x MsgNum to every peer
@@ -152,7 +125,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 			defer close(streamChan)
 
 			var wg sync.WaitGroup
-			send := func(p peer.Peer) {
+			send := func(p peer.ID) {
 				defer wg.Done()
 
 				// first, one stream per peer (nice)
@@ -173,13 +146,13 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 				streamChan <- stream
 			}
 
-			for _, p := range *peers {
-				if p == s1.local {
+			for _, p := range peersnp {
+				if p.ID == s1.local {
 					continue // dont send to self...
 				}
 
 				wg.Add(1)
-				go send(p)
+				go send(p.ID)
 			}
 			wg.Wait()
 		}()
@@ -188,7 +161,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		go func() {
 			defer close(errChan)
 			count := 0
-			countShouldBe := MsgNum * (len(*peers) - 1)
+			countShouldBe := MsgNum * (len(peersnp) - 1)
 			for stream := range streamChan { // one per peer
 				defer stream.Close()
 
@@ -215,7 +188,7 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 					msgCount++
 				}
 
-				got[p.Key()] = msgCount
+				got[p] = msgCount
 				count += msgCount
 			}
 
@@ -232,8 +205,8 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 		}
 
 		log.Debugf("%s got pongs", s1.local)
-		if (len(*peers) - 1) != len(got) {
-			t.Error("got less messages than sent")
+		if (len(peersnp) - 1) != len(got) {
+			t.Errorf("got (%d) less messages than sent (%d).", len(got), len(peersnp))
 		}
 
 		for p, n := range got {
@@ -254,15 +227,36 @@ func SubtestSwarm(t *testing.T, addrs []string, MsgNum int) {
 func TestSwarm(t *testing.T) {
 	// t.Skip("skipping for another test")
 
-	addrs := []string{
-		"/ip4/127.0.0.1/tcp/10234",
-		"/ip4/127.0.0.1/tcp/10235",
-		"/ip4/127.0.0.1/tcp/10236",
-		"/ip4/127.0.0.1/tcp/10237",
-		"/ip4/127.0.0.1/tcp/10238",
-	}
-
 	// msgs := 1000
 	msgs := 100
-	SubtestSwarm(t, addrs, msgs)
+	swarms := 5
+	SubtestSwarm(t, swarms, msgs)
+}
+
+func TestConnHandler(t *testing.T) {
+	// t.Skip("skipping for another test")
+
+	ctx := context.Background()
+	swarms, peersnp := makeSwarms(ctx, t, 5)
+
+	gotconn := make(chan struct{}, 10)
+	swarms[0].SetConnHandler(func(conn *Conn) {
+		gotconn <- struct{}{}
+	})
+
+	connectSwarms(t, ctx, swarms, peersnp)
+
+	<-time.After(time.Millisecond)
+	// should've gotten 5 by now.
+	close(gotconn)
+
+	expect := 4
+	actual := 0
+	for _ = range gotconn {
+		actual++
+	}
+
+	if actual != expect {
+		t.Fatal("should have connected to %d swarms. got: %d", actual, expect)
+	}
 }

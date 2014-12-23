@@ -1,7 +1,6 @@
 package mocknet
 
 import (
-	"fmt"
 	"io"
 	"sync"
 
@@ -16,6 +15,8 @@ type link struct {
 	nets []*peernet
 	opts LinkOptions
 
+	// this could have addresses on both sides.
+
 	sync.RWMutex
 }
 
@@ -27,20 +28,22 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 	l.RLock()
 	defer l.RUnlock()
 
-	mkconn := func(n *peernet, rid peer.ID) *conn {
-		c := &conn{net: n, link: l}
-		c.local = n.peer
+	mkconn := func(ln, rn *peernet) *conn {
+		c := &conn{net: ln, link: l}
+		c.local = ln.peer
+		c.remote = rn.peer
 
-		r, err := n.ps.FindOrCreate(rid)
-		if err != nil {
-			panic(fmt.Errorf("error creating peer: %s", err))
-		}
-		c.remote = r
+		c.localAddr = ln.ps.Addresses(ln.peer)[0]
+		c.remoteAddr = rn.ps.Addresses(rn.peer)[0]
+
+		c.localPrivKey = ln.ps.PrivKey(ln.peer)
+		c.remotePubKey = rn.ps.PubKey(rn.peer)
+
 		return c
 	}
 
-	c1 := mkconn(l.nets[0], l.nets[1].peer.ID())
-	c2 := mkconn(l.nets[1], l.nets[0].peer.ID())
+	c1 := mkconn(l.nets[0], l.nets[1])
+	c2 := mkconn(l.nets[1], l.nets[0])
 	c1.rconn = c2
 	c2.rconn = c1
 
@@ -70,11 +73,11 @@ func (l *link) Networks() []inet.Network {
 	return cp
 }
 
-func (l *link) Peers() []peer.Peer {
+func (l *link) Peers() []peer.ID {
 	l.RLock()
 	defer l.RUnlock()
 
-	cp := make([]peer.Peer, len(l.nets))
+	cp := make([]peer.ID, len(l.nets))
 	for i, n := range l.nets {
 		cp[i] = n.peer
 	}

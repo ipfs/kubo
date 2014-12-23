@@ -12,7 +12,7 @@ import (
 // access/lookups.
 type keySet map[u.Key]struct{}
 
-func newLedger(p peer.Peer) *ledger {
+func newLedger(p peer.ID) *ledger {
 	return &ledger{
 		wantList:   wl.New(),
 		Partner:    p,
@@ -24,7 +24,7 @@ func newLedger(p peer.Peer) *ledger {
 // NOT threadsafe
 type ledger struct {
 	// Partner is the remote Peer.
-	Partner peer.Peer
+	Partner peer.ID
 
 	// Accounting tracks bytes sent and recieved.
 	Accounting debtRatio

@@ -34,11 +34,10 @@ const doPinging = false
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
 	network   inet.Network   // the network services we need
-	self      peer.Peer      // Local peer (yourself)
-	peerstore peer.Peerstore // Other peers
+	self      peer.ID        // Local peer (yourself)
+	peerstore peer.Peerstore // Peer Registry
 
-	datastore ds.Datastore // Local data
-	dslock    sync.Mutex
+	datastore ds.ThreadSafeDatastore // Local data
 
 	routingTable *kb.RoutingTable // Array of routing tables for differently distanced nodes
 	providers    *ProviderManager
@@ -53,19 +52,19 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, n inet.Network, dstore ds.Datastore) *IpfsDHT {
+func NewDHT(ctx context.Context, p peer.ID, n inet.Network, dstore ds.ThreadSafeDatastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.datastore = dstore
 	dht.self = p
-	dht.peerstore = ps
+	dht.peerstore = n.Peerstore()
 	dht.ContextGroup = ctxgroup.WithContext(ctx)
 	dht.network = n
 	n.SetHandler(inet.ProtocolDHT, dht.handleNewStream)
 
-	dht.providers = NewProviderManager(dht.Context(), p.ID())
+	dht.providers = NewProviderManager(dht.Context(), p)
 	dht.AddChildGroup(dht.providers)
 
-	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(p.ID()), time.Minute)
+	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(p), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
 
 	dht.Validators = make(map[string]ValidatorFunc)
@@ -78,8 +77,13 @@ func NewDHT(ctx context.Context, p peer.Peer, ps peer.Peerstore, n inet.Network,
 	return dht
 }
 
+// LocalPeer returns the peer.Peer of the dht.
+func (dht *IpfsDHT) LocalPeer() peer.ID {
+	return dht.self
+}
+
 // Connect to a new peer at the given address, ping and add to the routing table
-func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) error {
+func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 	if err := dht.network.DialPeer(ctx, npeer); err != nil {
 		return err
 	}
@@ -95,7 +99,8 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.Peer) error {
 }
 
 // putValueToNetwork stores the given key/value pair at the peer 'p'
-func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
+// meaning: it sends a PUT_VALUE message to p
+func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.ID,
 	key string, rec *pb.Record) error {
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
@@ -113,25 +118,30 @@ func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.Peer,
 
 // putProvider sends a message to peer 'p' saying that the local node
 // can provide the value of 'key'
-func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.Peer, key string) error {
+func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) error {
 
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
 
 	// add self as the provider
-	pmes.ProviderPeers = pb.PeersToPBPeers(dht.network, []peer.Peer{dht.self})
+	pi := dht.peerstore.PeerInfo(dht.self)
+	pmes.ProviderPeers = pb.PeerInfosToPBPeers(dht.network, []peer.PeerInfo{pi})
 
 	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("%s putProvider: %s for %s", dht.self, p, u.Key(key))
+	log.Debugf("%s putProvider: %s for %s (%s)", dht.self, p, u.Key(key), pi.Addrs)
 
 	return nil
 }
 
-func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
-	key u.Key) ([]byte, []peer.Peer, error) {
+// getValueOrPeers queries a particular peer p for the value for
+// key. It returns either the value or a list of closer peers.
+// NOTE: it will update the dht's peerstore with any new addresses
+// it finds for the given peer.
+func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
+	key u.Key) ([]byte, []peer.PeerInfo, error) {
 
 	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
@@ -142,8 +152,8 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 		// Success! We were given the value
 		log.Debug("getValueOrPeers: got value")
 
-		// make sure record is still valid
-		err = dht.verifyRecord(record)
+		// make sure record is valid.
+		err = dht.verifyRecordOnline(ctx, record)
 		if err != nil {
 			log.Error("Received invalid record!")
 			return nil, nil, err
@@ -151,24 +161,8 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 		return record.GetValue(), nil, nil
 	}
 
-	// TODO decide on providers. This probably shouldn't be happening.
-	if prv := pmes.GetProviderPeers(); prv != nil && len(prv) > 0 {
-		val, err := dht.getFromPeerList(ctx, key, prv)
-		if err != nil {
-			return nil, nil, err
-		}
-		log.Debug("getValueOrPeers: get from providers")
-		return val, nil, nil
-	}
-
 	// Perhaps we were given closer peers
-	peers, errs := pb.PBPeersToPeers(dht.peerstore, pmes.GetCloserPeers())
-	for _, err := range errs {
-		if err != nil {
-			log.Error(err)
-		}
-	}
-
+	peers := pb.PBPeersToPeerInfos(pmes.GetCloserPeers())
 	if len(peers) > 0 {
 		log.Debug("getValueOrPeers: peers")
 		return nil, peers, nil
@@ -179,51 +173,16 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.Peer,
 }
 
 // getValueSingle simply performs the get value RPC with the given parameters
-func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.Peer,
+func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 	key u.Key) (*pb.Message, error) {
 
 	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-// TODO: Im not certain on this implementation, we get a list of peers/providers
-// from someone what do we do with it? Connect to each of them? randomly pick
-// one to get the value from? Or just connect to one at a time until we get a
-// successful connection and request the value from it?
-func (dht *IpfsDHT) getFromPeerList(ctx context.Context, key u.Key,
-	peerlist []*pb.Message_Peer) ([]byte, error) {
-
-	for _, pinfo := range peerlist {
-		p, err := dht.ensureConnectedToPeer(ctx, pinfo)
-		if err != nil {
-			log.Errorf("getFromPeers error: %s", err)
-			continue
-		}
-
-		pmes, err := dht.getValueSingle(ctx, p, key)
-		if err != nil {
-			log.Errorf("getFromPeers error: %s\n", err)
-			continue
-		}
-
-		if record := pmes.GetRecord(); record != nil {
-			// Success! We were given the value
-
-			err := dht.verifyRecord(record)
-			if err != nil {
-				return nil, err
-			}
-			dht.providers.AddProvider(key, p)
-			return record.GetValue(), nil
-		}
-	}
-	return nil, routing.ErrNotFound
-}
-
 // getLocal attempts to retrieve the value from the datastore
 func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
-	dht.dslock.Lock()
-	defer dht.dslock.Unlock()
+
 	log.Debug("getLocal %s", key)
 	v, err := dht.datastore.Get(key.DsKey())
 	if err != nil {
@@ -243,7 +202,7 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 
 	// TODO: 'if paranoid'
 	if u.Debug {
-		err = dht.verifyRecord(rec)
+		err = dht.verifyRecordLocally(rec)
 		if err != nil {
 			log.Errorf("local record verify failed: %s", err)
 			return nil, err
@@ -269,41 +228,40 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 
 // Update signals the routingTable to Update its last-seen status
 // on the given peer.
-func (dht *IpfsDHT) Update(ctx context.Context, p peer.Peer) {
+func (dht *IpfsDHT) Update(ctx context.Context, p peer.ID) {
 	log.Event(ctx, "updatePeer", p)
 	dht.routingTable.Update(p)
 }
 
 // FindLocal looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
-func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.Peer, *kb.RoutingTable) {
+func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.PeerInfo, *kb.RoutingTable) {
 	p := dht.routingTable.Find(id)
-	if p != nil {
-		return p, dht.routingTable
+	if p != "" {
+		return dht.peerstore.PeerInfo(p), dht.routingTable
 	}
-	return nil, nil
+	return peer.PeerInfo{}, nil
 }
 
 // findPeerSingle asks peer 'p' if they know where the peer with id 'id' is
-func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.Peer, id peer.ID) (*pb.Message, error) {
+func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (*pb.Message, error) {
 	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.Peer, key u.Key) (*pb.Message, error) {
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key u.Key) (*pb.Message, error) {
 	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.Peer {
-	peers, errs := pb.PBPeersToPeers(dht.peerstore, pbps)
-	for _, err := range errs {
-		log.Errorf("error converting peer: %v", err)
-	}
+func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.ID {
+	peers := pb.PBPeersToPeerInfos(pbps)
 
-	var provArr []peer.Peer
-	for _, p := range peers {
+	var provArr []peer.ID
+	for _, pi := range peers {
+		p := pi.ID
+
 		// Dont add outselves to the list
-		if p.ID().Equal(dht.self.ID()) {
+		if p == dht.self {
 			continue
 		}
 
@@ -316,14 +274,14 @@ func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.Peer
 }
 
 // nearestPeersToQuery returns the routing tables closest peers.
-func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.Peer {
+func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 	key := u.Key(pmes.GetKey())
 	closer := dht.routingTable.NearestPeers(kb.ConvertKey(key), count)
 	return closer
 }
 
 // betterPeerToQuery returns nearestPeersToQuery, but iff closer than self.
-func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.Peer {
+func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 	closer := dht.nearestPeersToQuery(pmes, count)
 
 	// no node? nil
@@ -333,17 +291,17 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.Peer 
 
 	// == to self? thats bad
 	for _, p := range closer {
-		if p.ID().Equal(dht.self.ID()) {
+		if p == dht.self {
 			log.Error("Attempted to return self! this shouldnt happen...")
 			return nil
 		}
 	}
 
-	var filtered []peer.Peer
+	var filtered []peer.ID
 	for _, p := range closer {
 		// must all be closer than self
 		key := u.Key(pmes.GetKey())
-		if !kb.Closer(dht.self.ID(), p.ID(), key) {
+		if !kb.Closer(dht.self, p, key) {
 			filtered = append(filtered, p)
 		}
 	}
@@ -352,30 +310,13 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.Peer 
 	return filtered
 }
 
-// getPeer searches the peerstore for a peer with the given peer ID
-func (dht *IpfsDHT) getPeer(id peer.ID) (peer.Peer, error) {
-	p, err := dht.peerstore.FindOrCreate(id)
-	if err != nil {
-		err = fmt.Errorf("Failed to get peer from peerstore: %s", err)
-		log.Error(err)
-		return nil, err
-	}
-	return p, nil
-}
-
-func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, pbp *pb.Message_Peer) (peer.Peer, error) {
-	p, err := pb.PBPeerToPeer(dht.peerstore, pbp)
-	if err != nil {
-		return nil, err
-	}
-
-	if dht.self.ID().Equal(p.ID()) {
-		return nil, errors.New("attempting to ensure connection to self")
+func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, p peer.ID) error {
+	if p == dht.self {
+		return errors.New("attempting to ensure connection to self")
 	}
 
 	// dial connection
-	err = dht.network.DialPeer(ctx, p)
-	return p, err
+	return dht.network.DialPeer(ctx, p)
 }
 
 //TODO: this should be smarter about which keys it selects.
@@ -421,14 +362,24 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 
 // Bootstrap builds up list of peers by requesting random peer IDs
 func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
-	id := make([]byte, 16)
-	rand.Read(id)
-	p, err := dht.FindPeer(ctx, peer.ID(id))
-	if err != nil {
-		log.Errorf("Bootstrap peer error: %s", err)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			id := make([]byte, 16)
+			rand.Read(id)
+			pi, err := dht.FindPeer(ctx, peer.ID(id))
+			if err != nil {
+				// NOTE: this is not an error. this is expected!
+				log.Errorf("Bootstrap peer error: %s", err)
+			}
+
+			// woah, we got a peer under a random id? it _cannot_ be valid.
+			log.Errorf("dht seemingly found a peer at a random bootstrap id (%s)...", pi)
+		}()
 	}
-	err = dht.network.DialPeer(ctx, p)
-	if err != nil {
-		log.Errorf("Bootstrap peer error: %s", err)
-	}
+	wg.Wait()
 }

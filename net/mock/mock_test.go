@@ -14,51 +14,64 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+func randPeer(t *testing.T) peer.ID {
+	p, err := testutil.RandPeerID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
 func TestNetworkSetup(t *testing.T) {
 
 	ctx := context.Background()
-	p1 := testutil.RandPeer()
-	p2 := testutil.RandPeer()
-	p3 := testutil.RandPeer()
+	sk1, _, err := testutil.RandKeyPair(512)
+	if err != nil {
+		t.Fatal(t)
+	}
+	sk2, _, err := testutil.RandKeyPair(512)
+	if err != nil {
+		t.Fatal(t)
+	}
+	sk3, _, err := testutil.RandKeyPair(512)
+	if err != nil {
+		t.Fatal(t)
+	}
 	mn := New(ctx)
-	// peers := []peer.Peer{p1, p2, p3}
+	// peers := []peer.ID{p1, p2, p3}
 
 	// add peers to mock net
 
-	n1, err := mn.AddPeer(p1.ID())
-	if err != nil {
-		t.Fatal(err)
-	}
+	a1 := testutil.RandLocalTCPAddress()
+	a2 := testutil.RandLocalTCPAddress()
+	a3 := testutil.RandLocalTCPAddress()
 
-	n2, err := mn.AddPeer(p2.ID())
+	n1, err := mn.AddPeer(sk1, a1)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p1 := n1.LocalPeer()
 
-	n3, err := mn.AddPeer(p3.ID())
+	n2, err := mn.AddPeer(sk2, a2)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p2 := n2.LocalPeer()
+
+	n3, err := mn.AddPeer(sk3, a3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p3 := n3.LocalPeer()
 
 	// check peers and net
-
-	if !mn.Peer(p1.ID()).ID().Equal(p1.ID()) {
-		t.Error("peer for p1.ID != p1.ID")
-	}
-	if !mn.Peer(p2.ID()).ID().Equal(p2.ID()) {
-		t.Error("peer for p2.ID != p2.ID")
-	}
-	if !mn.Peer(p3.ID()).ID().Equal(p3.ID()) {
-		t.Error("peer for p3.ID != p3.ID")
-	}
-
-	if mn.Net(p1.ID()) != n1 {
+	if mn.Net(p1) != n1 {
 		t.Error("net for p1.ID != n1")
 	}
-	if mn.Net(p2.ID()) != n2 {
+	if mn.Net(p2) != n2 {
 		t.Error("net for p2.ID != n1")
 	}
-	if mn.Net(p3.ID()) != n3 {
+	if mn.Net(p3) != n3 {
 		t.Error("net for p3.ID != n1")
 	}
 
@@ -373,23 +386,31 @@ func TestStreamsStress(t *testing.T) {
 		}(i)
 	}
 
-	wg.Done()
+	wg.Wait()
 }
 
 func TestAdding(t *testing.T) {
 
 	mn := New(context.Background())
 
-	p1 := testutil.RandPeer()
-	p2 := testutil.RandPeer()
-	p3 := testutil.RandPeer()
-	peers := []peer.Peer{p1, p2, p3}
-
-	for _, p := range peers {
-		if _, err := mn.AddPeer(p.ID()); err != nil {
-			t.Error(err)
+	peers := []peer.ID{}
+	for i := 0; i < 3; i++ {
+		sk, _, err := testutil.RandKeyPair(512)
+		if err != nil {
+			t.Fatal(err)
 		}
+
+		a := testutil.RandLocalTCPAddress()
+		n, err := mn.AddPeer(sk, a)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		peers = append(peers, n.LocalPeer())
 	}
+
+	p1 := peers[0]
+	p2 := peers[1]
 
 	// link them
 	for _, p1 := range peers {
@@ -401,9 +422,9 @@ func TestAdding(t *testing.T) {
 	}
 
 	// set the new stream handler on p2
-	n2 := mn.Net(p2.ID())
+	n2 := mn.Net(p2)
 	if n2 == nil {
-		t.Fatalf("no network for %s", p2.ID())
+		t.Fatalf("no network for %s", p2)
 	}
 	n2.SetHandler(inet.ProtocolBitswap, func(s inet.Stream) {
 		go func() {
@@ -429,9 +450,9 @@ func TestAdding(t *testing.T) {
 	}
 
 	// talk to p2
-	n1 := mn.Net(p1.ID())
+	n1 := mn.Net(p1)
 	if n1 == nil {
-		t.Fatalf("no network for %s", p1.ID())
+		t.Fatalf("no network for %s", p1)
 	}
 
 	s, err := n1.NewStream(inet.ProtocolBitswap, p2)

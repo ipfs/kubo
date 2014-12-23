@@ -18,8 +18,6 @@ test: test_go test_sharness
 test_expensive: test_go_expensive test_sharness_expensive
 
 test_docker:
-	cd ./src/github.com/jbenet/go-ipfs
-	docker build -t zaqwsx_ipfs-test-img .
 	cd dockertest/ && make
 
 test_go:

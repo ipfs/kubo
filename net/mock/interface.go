@@ -10,21 +10,28 @@ import (
 	"io"
 	"time"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 type Mocknet interface {
+
+	// GenPeer generates a peer and its inet.Network in the Mocknet
 	GenPeer() (inet.Network, error)
-	AddPeer(peer.ID) (inet.Network, error)
+
+	// AddPeer adds an existing peer. we need both a privkey and addr.
+	// ID is derived from PrivKey
+	AddPeer(ic.PrivKey, ma.Multiaddr) (inet.Network, error)
 
 	// retrieve things
-	Peer(peer.ID) peer.Peer
-	Peers() []peer.Peer
+	Peers() []peer.ID
 	Net(peer.ID) inet.Network
 	Nets() []inet.Network
 	Links() LinkMap
-	LinksBetweenPeers(a, b peer.Peer) []Link
+	LinksBetweenPeers(a, b peer.ID) []Link
 	LinksBetweenNets(a, b inet.Network) []Link
 
 	// Links are the **ability to connect**.
@@ -32,10 +39,10 @@ type Mocknet interface {
 	// For p1 and p2 to connect, a link must exist between them.
 	// (this makes it possible to test dial failures, and
 	// things like relaying traffic)
-	LinkPeers(peer.Peer, peer.Peer) (Link, error)
+	LinkPeers(peer.ID, peer.ID) (Link, error)
 	LinkNets(inet.Network, inet.Network) (Link, error)
 	Unlink(Link) error
-	UnlinkPeers(peer.Peer, peer.Peer) error
+	UnlinkPeers(peer.ID, peer.ID) error
 	UnlinkNets(inet.Network, inet.Network) error
 
 	// LinkDefaults are the default options that govern links
@@ -45,9 +52,9 @@ type Mocknet interface {
 
 	// Connections are the usual. Connecting means Dialing.
 	// **to succeed, peers must be linked beforehand**
-	ConnectPeers(peer.Peer, peer.Peer) error
+	ConnectPeers(peer.ID, peer.ID) error
 	ConnectNets(inet.Network, inet.Network) error
-	DisconnectPeers(peer.Peer, peer.Peer) error
+	DisconnectPeers(peer.ID, peer.ID) error
 	DisconnectNets(inet.Network, inet.Network) error
 }
 
@@ -66,7 +73,7 @@ type LinkOptions struct {
 // nodes cannot talk to each other directly. :)
 type Link interface {
 	Networks() []inet.Network
-	Peers() []peer.Peer
+	Peers() []peer.ID
 
 	SetOptions(LinkOptions)
 	Options() LinkOptions

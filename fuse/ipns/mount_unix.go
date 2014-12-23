@@ -48,7 +48,7 @@ func internalMount(ipfs *core.IpfsNode, fpath string, ipfspath string) error {
 	}
 	defer c.Close()
 
-	fsys, err := NewIpns(ipfs, ipfspath)
+	fsys, err := NewIpns(ipfs, ipfs.PrivateKey, ipfspath)
 	if err != nil {
 		return err
 	}

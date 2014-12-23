@@ -4,19 +4,17 @@ import (
 	"math/rand"
 	"testing"
 
-	crand "crypto/rand"
-
 	inet "github.com/jbenet/go-ipfs/net"
 	mocknet "github.com/jbenet/go-ipfs/net/mock"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 
 	"time"
 )
@@ -34,8 +32,8 @@ func TestGetFailures(t *testing.T) {
 	nets := mn.Nets()
 	peers := mn.Peers()
 
-	ps := peer.NewPeerstore()
-	d := NewDHT(ctx, peers[0], ps, nets[0], ds.NewMapDatastore())
+	tsds := dssync.MutexWrap(ds.NewMapDatastore())
+	d := NewDHT(ctx, peers[0], nets[0], tsds)
 	d.Update(ctx, peers[1])
 
 	// This one should time out
@@ -126,14 +124,6 @@ func TestGetFailures(t *testing.T) {
 	}
 }
 
-// TODO: Maybe put these in some sort of "ipfs_testutil" package
-func _randPeer() peer.Peer {
-	id := make(peer.ID, 16)
-	crand.Read(id)
-	p := testutil.NewPeerWithID(id)
-	return p
-}
-
 func TestNotFound(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -146,9 +136,8 @@ func TestNotFound(t *testing.T) {
 	}
 	nets := mn.Nets()
 	peers := mn.Peers()
-	peerstore := peer.NewPeerstore()
-
-	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
+	tsds := dssync.MutexWrap(ds.NewMapDatastore())
+	d := NewDHT(ctx, peers[0], nets[0], tsds)
 
 	for _, p := range peers {
 		d.Update(ctx, p)
@@ -156,6 +145,7 @@ func TestNotFound(t *testing.T) {
 
 	// Reply with random peers to every message
 	for _, neti := range nets {
+		neti := neti // shadow loop var
 		neti.SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
 			defer s.Close()
 
@@ -171,12 +161,14 @@ func TestNotFound(t *testing.T) {
 			case pb.Message_GET_VALUE:
 				resp := &pb.Message{Type: pmes.Type}
 
-				ps := []peer.Peer{}
+				ps := []peer.PeerInfo{}
 				for i := 0; i < 7; i++ {
-					ps = append(ps, peers[rand.Intn(len(peers))])
+					p := peers[rand.Intn(len(peers))]
+					pi := neti.Peerstore().PeerInfo(p)
+					ps = append(ps, pi)
 				}
 
-				resp.CloserPeers = pb.PeersToPBPeers(d.network, peers)
+				resp.CloserPeers = pb.PeerInfosToPBPeers(d.network, ps)
 				if err := pbw.WriteMsg(resp); err != nil {
 					panic(err)
 				}
@@ -216,9 +208,9 @@ func TestLessThanKResponses(t *testing.T) {
 	}
 	nets := mn.Nets()
 	peers := mn.Peers()
-	peerstore := peer.NewPeerstore()
 
-	d := NewDHT(ctx, peers[0], peerstore, nets[0], ds.NewMapDatastore())
+	tsds := dssync.MutexWrap(ds.NewMapDatastore())
+	d := NewDHT(ctx, peers[0], nets[0], tsds)
 
 	for i := 1; i < 5; i++ {
 		d.Update(ctx, peers[i])
@@ -226,6 +218,7 @@ func TestLessThanKResponses(t *testing.T) {
 
 	// Reply with random peers to every message
 	for _, neti := range nets {
+		neti := neti // shadow loop var
 		neti.SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
 			defer s.Close()
 
@@ -239,9 +232,10 @@ func TestLessThanKResponses(t *testing.T) {
 
 			switch pmes.GetType() {
 			case pb.Message_GET_VALUE:
+				pi := neti.Peerstore().PeerInfo(peers[1])
 				resp := &pb.Message{
 					Type:        pmes.Type,
-					CloserPeers: pb.PeersToPBPeers(d.network, []peer.Peer{peers[1]}),
+					CloserPeers: pb.PeerInfosToPBPeers(d.network, []peer.PeerInfo{pi}),
 				}
 
 				if err := pbw.WriteMsg(resp); err != nil {

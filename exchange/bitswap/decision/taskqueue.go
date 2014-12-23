@@ -26,12 +26,12 @@ func newTaskQueue() *taskQueue {
 
 type task struct {
 	Entry  wantlist.Entry
-	Target peer.Peer
+	Target peer.ID
 	Trash  bool
 }
 
 // Push currently adds a new task to the end of the list
-func (tl *taskQueue) Push(entry wantlist.Entry, to peer.Peer) {
+func (tl *taskQueue) Push(entry wantlist.Entry, to peer.ID) {
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
 	if task, ok := tl.taskmap[taskKey(to, entry.Key)]; ok {
@@ -69,7 +69,7 @@ func (tl *taskQueue) Pop() *task {
 }
 
 // Remove lazily removes a task from the queue
-func (tl *taskQueue) Remove(k u.Key, p peer.Peer) {
+func (tl *taskQueue) Remove(k u.Key, p peer.ID) {
 	tl.lock.Lock()
 	t, ok := tl.taskmap[taskKey(p, k)]
 	if ok {
@@ -79,6 +79,6 @@ func (tl *taskQueue) Remove(k u.Key, p peer.Peer) {
 }
 
 // taskKey returns a key that uniquely identifies a task.
-func taskKey(p peer.Peer, k u.Key) string {
-	return string(p.Key() + k)
+func taskKey(p peer.ID, k u.Key) string {
+	return string(p) + string(k)
 }

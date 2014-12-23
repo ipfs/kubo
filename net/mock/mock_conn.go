@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"sync"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -14,8 +15,15 @@ import (
 // live connection between two peers.
 // it goes over a particular link.
 type conn struct {
-	local   peer.Peer
-	remote  peer.Peer
+	local  peer.ID
+	remote peer.ID
+
+	localAddr  ma.Multiaddr
+	remoteAddr ma.Multiaddr
+
+	localPrivKey ic.PrivKey
+	remotePubKey ic.PubKey
+
 	net     *peernet
 	link    *link
 	rconn   *conn // counterpart
@@ -74,8 +82,8 @@ func (c *conn) openStream() *stream {
 	return sl
 }
 
-func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.Peer) (inet.Stream, error) {
-	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, p)
+func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID) (inet.Stream, error) {
+	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, c.remote)
 
 	s := c.openStream()
 	if err := inet.WriteProtocolHeader(pr, s); err != nil {
@@ -87,20 +95,30 @@ func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID, p peer.Peer) (inet.Stre
 
 // LocalMultiaddr is the Multiaddr on this side
 func (c *conn) LocalMultiaddr() ma.Multiaddr {
-	return nil
+	return c.localAddr
 }
 
 // LocalPeer is the Peer on our side of the connection
-func (c *conn) LocalPeer() peer.Peer {
+func (c *conn) LocalPeer() peer.ID {
 	return c.local
+}
+
+// LocalPrivateKey is the private key of the peer on our side.
+func (c *conn) LocalPrivateKey() ic.PrivKey {
+	return c.localPrivKey
 }
 
 // RemoteMultiaddr is the Multiaddr on the remote side
 func (c *conn) RemoteMultiaddr() ma.Multiaddr {
-	return nil
+	return c.remoteAddr
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *conn) RemotePeer() peer.Peer {
+func (c *conn) RemotePeer() peer.ID {
 	return c.remote
+}
+
+// RemotePublicKey is the private key of the peer on our side.
+func (c *conn) RemotePublicKey() ic.PubKey {
+	return c.remotePubKey
 }

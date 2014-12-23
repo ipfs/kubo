@@ -8,8 +8,10 @@ import (
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	secio "github.com/jbenet/go-ipfs/crypto/secio"
 	peer "github.com/jbenet/go-ipfs/peer"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.
@@ -26,10 +28,21 @@ type secureConn struct {
 }
 
 // newConn constructs a new connection
-func newSecureConn(ctx context.Context, insecure Conn, peers peer.Peerstore) (Conn, error) {
+func newSecureConn(ctx context.Context, sk ic.PrivKey, insecure Conn) (Conn, error) {
+
+	if insecure == nil {
+		return nil, errors.New("insecure is nil")
+	}
+	if insecure.LocalPeer() == "" {
+		return nil, errors.New("insecure.LocalPeer() is nil")
+	}
+	if sk == nil {
+		panic("way")
+		return nil, errors.New("private key is nil")
+	}
 
 	// NewSession performs the secure handshake, which takes multiple RTT
-	sessgen := secio.SessionGenerator{Local: insecure.LocalPeer(), Peerstore: peers}
+	sessgen := secio.SessionGenerator{LocalID: insecure.LocalPeer(), PrivateKey: sk}
 	session, err := sessgen.NewSession(ctx, insecure)
 	if err != nil {
 		return nil, err
@@ -92,13 +105,23 @@ func (c *secureConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // LocalPeer is the Peer on this side
-func (c *secureConn) LocalPeer() peer.Peer {
+func (c *secureConn) LocalPeer() peer.ID {
 	return c.session.LocalPeer()
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *secureConn) RemotePeer() peer.Peer {
+func (c *secureConn) RemotePeer() peer.ID {
 	return c.session.RemotePeer()
+}
+
+// LocalPrivateKey is the public key of the peer on this side
+func (c *secureConn) LocalPrivateKey() ic.PrivKey {
+	return c.session.LocalPrivateKey()
+}
+
+// RemotePubKey is the public key of the peer on the remote side
+func (c *secureConn) RemotePublicKey() ic.PubKey {
+	return c.session.RemotePublicKey()
 }
 
 // Read reads data, net.Conn style

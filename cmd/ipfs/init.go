@@ -266,7 +266,7 @@ func identityConfig(nbits int) (config.Identity, error) {
 	}
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := peer.IDFromPubKey(pk)
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return ident, err
 	}

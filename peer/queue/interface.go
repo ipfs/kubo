@@ -11,8 +11,8 @@ type PeerQueue interface {
 	Len() int
 
 	// Enqueue adds this node to the queue.
-	Enqueue(peer.Peer)
+	Enqueue(peer.ID)
 
 	// Dequeue retrieves the highest (smallest int) priority node
-	Dequeue() peer.Peer
+	Dequeue() peer.ID
 }

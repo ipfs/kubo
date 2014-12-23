@@ -40,7 +40,7 @@ func commonPrefixLen(a, b ID) int {
 
 // ConvertPeerID creates a DHT ID by hashing a Peer ID (Multihash)
 func ConvertPeerID(id peer.ID) ID {
-	hash := sha256.Sum256(id)
+	hash := sha256.Sum256([]byte(id))
 	return hash[:]
 }
 

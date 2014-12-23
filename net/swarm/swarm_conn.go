@@ -3,6 +3,7 @@ package swarm
 import (
 	"fmt"
 
+	ic "github.com/jbenet/go-ipfs/crypto"
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -23,6 +24,10 @@ import (
 // layers do build up pieces of functionality. and they're all just io.RW :) )
 type Conn ps.Conn
 
+// ConnHandler is called when new conns are opened from remote peers.
+// See peerstream.ConnHandler
+type ConnHandler func(*Conn)
+
 func (c *Conn) StreamConn() *ps.Conn {
 	return (*ps.Conn)(c)
 }
@@ -35,13 +40,17 @@ func (c *Conn) RawConn() conn.Conn {
 	return (*ps.Conn)(c).NetConn().(conn.Conn)
 }
 
+func (c *Conn) String() string {
+	return fmt.Sprintf("<SwarmConn %s>", c.RawConn())
+}
+
 // LocalMultiaddr is the Multiaddr on this side
 func (c *Conn) LocalMultiaddr() ma.Multiaddr {
 	return c.RawConn().LocalMultiaddr()
 }
 
 // LocalPeer is the Peer on our side of the connection
-func (c *Conn) LocalPeer() peer.Peer {
+func (c *Conn) LocalPeer() peer.ID {
 	return c.RawConn().LocalPeer()
 }
 
@@ -51,8 +60,18 @@ func (c *Conn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 // RemotePeer is the Peer on the remote side
-func (c *Conn) RemotePeer() peer.Peer {
+func (c *Conn) RemotePeer() peer.ID {
 	return c.RawConn().RemotePeer()
+}
+
+// LocalPrivateKey is the public key of the peer on this side
+func (c *Conn) LocalPrivateKey() ic.PrivKey {
+	return c.RawConn().LocalPrivateKey()
+}
+
+// RemotePublicKey is the public key of the peer on the remote side
+func (c *Conn) RemotePublicKey() ic.PubKey {
+	return c.RawConn().RemotePublicKey()
 }
 
 // NewStream returns a new Stream from this connection
@@ -96,12 +115,12 @@ func (s *Swarm) newConnSetup(ctx context.Context, psConn *ps.Conn) (*Conn, error
 		return nil, err
 	}
 
-	// removing this for now, as it has to change. we can put this in a different
-	// sub-protocol anyway.
-	// // run Handshake3
-	// if err := runHandshake3(ctx, s, sc); err != nil {
-	// 	return nil, err
-	// }
+	// if we have a public key, make sure we add it to our peerstore!
+	// This is an important detail. Otherwise we must fetch the public
+	// key from the DHT or some other system.
+	if pk := sc.RemotePublicKey(); pk != nil {
+		s.peers.AddPubKey(sc.RemotePeer(), pk)
+	}
 
 	// ok great! we can use it. add it to our group.
 
@@ -113,29 +132,3 @@ func (s *Swarm) newConnSetup(ctx context.Context, psConn *ps.Conn) (*Conn, error
 
 	return sc, nil
 }
-
-// func runHandshake3(ctx context.Context, s *Swarm, c *Conn) error {
-// 	log.Event(ctx, "newConnection", c.LocalPeer(), c.RemotePeer())
-
-// 	stream, err := c.NewStream()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// handshake3 (this whole thing is ugly. maybe lets get rid of it...)
-// 	h3result, err := conn.Handshake3(ctx, stream, c.RawConn())
-// 	if err != nil {
-// 		return fmt.Errorf("Handshake3 failed: %s", err)
-// 	}
-
-// 	// check for nats. you know, just in case.
-// 	if h3result.LocalObservedAddress != nil {
-// 		checkNATWarning(s, h3result.LocalObservedAddress, c.LocalMultiaddr())
-// 	} else {
-// 		log.Warningf("Received nil observed address from %s", c.RemotePeer())
-// 	}
-
-// 	stream.Close()
-// 	log.Event(ctx, "handshake3Succeeded", c.LocalPeer(), c.RemotePeer())
-// 	return nil
-// }
