@@ -1,6 +1,8 @@
 package testutil
 
 import (
+	"testing"
+
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ci "github.com/jbenet/go-ipfs/crypto"
 	peer "github.com/jbenet/go-ipfs/peer"
@@ -19,6 +21,14 @@ func RandPeer() (Peer, error) {
 		return nil, err
 	}
 	return &testpeer{*p}, nil
+}
+
+func RandPeerOrFatal(t *testing.T) Peer {
+	p, err := RandPeerNetParams()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &testpeer{*p}
 }
 
 // peer is a temporary shim to delay binding of PeerNetParams.
