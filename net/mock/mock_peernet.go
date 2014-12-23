@@ -29,6 +29,7 @@ type peernet struct {
 
 	// needed to implement inet.Network
 	mux inet.Mux
+	ids *inet.IDService
 
 	cg ctxgroup.ContextGroup
 	sync.RWMutex
@@ -61,6 +62,11 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 	}
 
 	n.cg.SetTeardown(n.teardown)
+
+	// setup a conn handler that immediately "asks the other side about them"
+	// this is ProtocolIdentify.
+	n.ids = inet.NewIDService(n)
+
 	return n, nil
 }
 
@@ -158,6 +164,10 @@ func (pn *peernet) remoteOpenedConn(c *conn) {
 // addConn constructs and adds a connection
 // to given remote peer over given link
 func (pn *peernet) addConn(c *conn) {
+
+	// run the Identify protocol/handshake.
+	pn.ids.IdentifyConn(c)
+
 	pn.Lock()
 	cs, found := pn.connsByPeer[c.RemotePeer()]
 	if !found {
@@ -326,4 +336,8 @@ func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.ID) (inet.Stream, error)
 // This operation is threadsafe.
 func (pn *peernet) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
 	pn.mux.SetHandler(p, h)
+}
+
+func (pn *peernet) IdentifyProtocol() *inet.IDService {
+	return pn.ids
 }

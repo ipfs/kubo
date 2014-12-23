@@ -129,21 +129,21 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
 
 func (n *network) newConnHandler(c *swarm.Conn) {
 	cc := (*conn_)(c)
-	s, err := cc.NewStreamWithProtocol(ProtocolIdentify)
-	if err != nil {
-		log.Error("network: unable to open initial stream for %s", ProtocolIdentify)
-		log.Event(n.CtxGroup().Context(), "IdentifyOpenFailed", c.RemotePeer())
-	}
-
-	// ok give the response to our handler.
-	n.ids.ResponseHandler(s)
+	n.ids.IdentifyConn(cc)
 }
 
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
 func (n *network) DialPeer(ctx context.Context, p peer.ID) error {
-	_, err := n.swarm.Dial(ctx, p)
-	return err
+	sc, err := n.swarm.Dial(ctx, p)
+	if err != nil {
+		return err
+	}
+
+	// identify the connection before returning.
+	n.ids.IdentifyConn((*conn_)(sc))
+	log.Debugf("network for %s finished dialing %s", n.local, p)
+	return nil
 }
 
 func (n *network) Protocols() []ProtocolID {
@@ -178,6 +178,16 @@ func (n *network) Peerstore() peer.Peerstore {
 // Conns returns the connected peers
 func (n *network) Conns() []Conn {
 	conns1 := n.swarm.Connections()
+	out := make([]Conn, len(conns1))
+	for i, c := range conns1 {
+		out[i] = (*conn_)(c)
+	}
+	return out
+}
+
+// ConnsToPeer returns the connections in this Netowrk for given peer.
+func (n *network) ConnsToPeer(p peer.ID) []Conn {
+	conns1 := n.swarm.ConnectionsToPeer(p)
 	out := make([]Conn, len(conns1))
 	for i, c := range conns1 {
 		out[i] = (*conn_)(c)
@@ -252,6 +262,10 @@ func (c *network) NewStream(pr ProtocolID, p peer.ID) (Stream, error) {
 // This operation is threadsafe.
 func (n *network) SetHandler(p ProtocolID, h StreamHandler) {
 	n.mux.SetHandler(p, h)
+}
+
+func (n *network) IdentifyProtocol() *IDService {
+	return n.ids
 }
 
 func WriteProtocolHeader(pr ProtocolID, s Stream) error {
