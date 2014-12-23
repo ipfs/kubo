@@ -1,6 +1,8 @@
 package net
 
 import (
+	"sync"
+
 	handshake "github.com/jbenet/go-ipfs/net/handshake"
 	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
 
@@ -18,12 +20,52 @@ import (
 //  * Our public Listen Addresses
 type IDService struct {
 	Network Network
+
+	// connections undergoing identification
+	// for wait purposes
+	currid map[Conn]chan struct{}
+	currmu sync.RWMutex
 }
 
 func NewIDService(n Network) *IDService {
-	s := &IDService{Network: n}
+	s := &IDService{
+		Network: n,
+		currid:  make(map[Conn]chan struct{}),
+	}
 	n.SetHandler(ProtocolIdentify, s.RequestHandler)
 	return s
+}
+
+func (ids *IDService) IdentifyConn(c Conn) {
+	ids.currmu.Lock()
+	if _, found := ids.currid[c]; found {
+		ids.currmu.Unlock()
+		log.Debugf("IdentifyConn called twice on: %s", c)
+		return // already identifying it.
+	}
+	ids.currid[c] = make(chan struct{})
+	ids.currmu.Unlock()
+
+	s, err := c.NewStreamWithProtocol(ProtocolIdentify)
+	if err != nil {
+		log.Error("network: unable to open initial stream for %s", ProtocolIdentify)
+		log.Event(ids.Network.CtxGroup().Context(), "IdentifyOpenFailed", c.RemotePeer())
+	}
+
+	// ok give the response to our handler.
+	ids.ResponseHandler(s)
+
+	ids.currmu.Lock()
+	ch, found := ids.currid[c]
+	delete(ids.currid, c)
+	ids.currmu.Unlock()
+
+	if !found {
+		log.Errorf("IdentifyConn failed to find channel (programmer error) for %s", c)
+		return
+	}
+
+	close(ch) // release everyone waiting.
 }
 
 func (ids *IDService) RequestHandler(s Stream) {
@@ -101,10 +143,31 @@ func (ids *IDService) consumeMessage(mes *pb.Handshake3, c Conn) {
 
 	// update our peerstore with the addresses.
 	ids.Network.Peerstore().AddAddresses(p, lmaddrs)
+	log.Debugf("%s received listen addrs for %s: %s", c.LocalPeer(), c.RemotePeer(), lmaddrs)
 
 	// get protocol versions
 	pv := *mes.H1.ProtocolVersion
 	av := *mes.H1.AgentVersion
 	ids.Network.Peerstore().Put(p, "ProtocolVersion", pv)
 	ids.Network.Peerstore().Put(p, "AgentVersion", av)
+}
+
+// IdentifyWait returns a channel which will be closed once
+// "ProtocolIdentify" (handshake3) finishes on given conn.
+// This happens async so the connection can start to be used
+// even if handshake3 knowledge is not necesary.
+// Users **MUST** call IdentifyWait _after_ IdentifyConn
+func (ids *IDService) IdentifyWait(c Conn) <-chan struct{} {
+	ids.currmu.Lock()
+	ch, found := ids.currid[c]
+	ids.currmu.Unlock()
+	if found {
+		return ch
+	}
+
+	// if not found, it means we are already done identifying it, or
+	// haven't even started. either way, return a new channel closed.
+	ch = make(chan struct{})
+	close(ch)
+	return ch
 }
