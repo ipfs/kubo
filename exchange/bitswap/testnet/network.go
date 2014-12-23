@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/routing/mock"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
@@ -33,16 +35,18 @@ type Network interface {
 
 // network impl
 
-func VirtualNetwork(d delay.D) Network {
+func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
 		clients: make(map[peer.ID]bsnet.Receiver),
 		delay:   d,
+		routingserver: rs,
 	}
 }
 
 type network struct {
-	clients map[peer.ID]bsnet.Receiver
-	delay   delay.D
+	clients       map[peer.ID]bsnet.Receiver
+	routingserver mockrouting.Server
+	delay         delay.D
 }
 
 func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
@@ -50,6 +54,7 @@ func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
 		local:     p,
 		network:   n,
 		peerstore: peer.NewPeerstore(),
+		routing:   n.routingserver.Client(peer.PeerInfo{ID: p}),
 	}
 	n.clients[p] = client
 	return client
@@ -151,6 +156,7 @@ type networkClient struct {
 	bsnet.Receiver
 	network   Network
 	peerstore peer.Peerstore
+	routing   bsnet.Routing
 }
 
 func (nc *networkClient) SendMessage(
@@ -165,6 +171,16 @@ func (nc *networkClient) SendRequest(
 	to peer.ID,
 	message bsmsg.BitSwapMessage) (incoming bsmsg.BitSwapMessage, err error) {
 	return nc.network.SendRequest(ctx, nc.local, to, message)
+}
+
+// FindProvidersAsync returns a channel of providers for the given key
+func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.PeerInfo { // TODO change to return ID
+	return nc.routing.FindProvidersAsync(ctx, k, max)
+}
+
+// Provide provides the key to the network
+func (nc *networkClient) Provide(ctx context.Context, k util.Key) error {
+	return nc.routing.Provide(ctx, k)
 }
 
 func (nc *networkClient) DialPeer(ctx context.Context, p peer.ID) error {

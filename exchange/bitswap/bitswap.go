@@ -46,7 +46,7 @@ var (
 // BitSwapNetwork. This function registers the returned instance as the network
 // delegate.
 // Runs until context is cancelled.
-func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routing bsnet.Routing,
+func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	bstore blockstore.Blockstore, nice bool) exchange.Interface {
 
 	ctx, cancelFunc := context.WithCancel(parent)
@@ -63,7 +63,6 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routin
 		cancelFunc:    cancelFunc,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore),
-		routing:       routing,
 		network:       network,
 		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan []u.Key, sizeBatchRequestChan),
@@ -84,9 +83,6 @@ type bitswap struct {
 	// blockstore is the local database
 	// NB: ensure threadsafety
 	blockstore blockstore.Blockstore
-
-	// routing interface for communication
-	routing bsnet.Routing
 
 	notifications notifications.PubSub
 
@@ -165,7 +161,7 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	}
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
-	return bs.routing.Provide(ctx, blk.Key())
+	return bs.network.Provide(ctx, blk.Key())
 }
 
 func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInfo) error {
@@ -212,7 +208,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 		go func(k u.Key) {
 			defer wg.Done()
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
+			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
 				bs.network.Peerstore().AddAddresses(prov.ID, prov.Addrs)
 				if set.TryAdd(prov.ID) { //Do once per peer
@@ -265,7 +261,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 			//		it. Later, this assumption may not hold as true if we implement
 			//		newer bitswap strategies.
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.routing.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
+			providers := bs.network.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
 			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)

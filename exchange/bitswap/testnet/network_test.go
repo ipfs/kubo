@@ -11,10 +11,11 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {
-	net := VirtualNetwork(delay.Fixed(0))
+	net := VirtualNetwork(mockrouting.NewServer(),delay.Fixed(0))
 
 	idOfRecipient := peer.ID("recipient")
 
@@ -65,7 +66,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 }
 
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
-	net := VirtualNetwork(delay.Fixed(0))
+	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
 	idOfResponder := peer.ID("responder")
 	waiter := net.Adapter(peer.ID("waiter"))
 	responder := net.Adapter(idOfResponder)
