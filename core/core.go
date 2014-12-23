@@ -130,7 +130,12 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 		// explicitly set these as our listen addrs.
 		// (why not do it inside inet.NewNetwork? because this way we can
 		// listen on addresses without necessarily advertising those publicly.)
-		n.Peerstore.AddAddresses(n.Identity, n.Network.ListenAddresses())
+		addrs, err := n.Network.InterfaceListenAddresses()
+		if err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+
+		n.Peerstore.AddAddresses(n.Identity, addrs)
 
 		// setup diagnostics service
 		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.Network)
