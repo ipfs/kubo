@@ -26,6 +26,7 @@ func NewSessionGenerator(
 	}
 }
 
+// TODO move this SessionGenerator to the core package and export it as the core generator
 type SessionGenerator struct {
 	seq    int
 	net    tn.Network

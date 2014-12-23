@@ -28,7 +28,9 @@ import (
 var log = eventlog.Logger("bitswap")
 
 const (
-	// Number of providers to request for sending a wantlist to
+	// maxProvidersPerRequest specifies the maximum number of providers desired
+	// from the network. This value is specified because the network streams
+	// results.
 	// TODO: if a 'non-nice' strategy is implemented, consider increasing this value
 	maxProvidersPerRequest = 3
 	providerRequestTimeout = time.Second * 10
