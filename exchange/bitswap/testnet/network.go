@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/routing"
-	"github.com/jbenet/go-ipfs/routing/mock"
-
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/util"
+	routing "github.com/jbenet/go-ipfs/routing"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	util "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
@@ -19,19 +18,6 @@ type Network interface {
 	Adapter(peer.ID) bsnet.BitSwapNetwork
 
 	HasPeer(peer.ID) bool
-
-	SendMessage(
-		ctx context.Context,
-		from peer.ID,
-		to peer.ID,
-		message bsmsg.BitSwapMessage) error
-
-	SendRequest(
-		ctx context.Context,
-		from peer.ID,
-		to peer.ID,
-		message bsmsg.BitSwapMessage) (
-		incoming bsmsg.BitSwapMessage, err error)
 }
 
 // network impl
@@ -154,7 +140,7 @@ func (n *network) SendRequest(
 type networkClient struct {
 	local peer.ID
 	bsnet.Receiver
-	network Network
+	network *network
 	routing routing.IpfsRouting
 }
 
