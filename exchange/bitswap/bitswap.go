@@ -180,6 +180,7 @@ func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.PeerInf
 	for peerToQuery := range peers {
 		log.Event(ctx, "PeerToQuery", peerToQuery.ID)
 		wg.Add(1)
+		bs.network.Peerstore().AddAddresses(peerToQuery.ID, peerToQuery.Addrs)
 		go func(p peer.ID) {
 			defer wg.Done()
 			if err := bs.send(ctx, p, message); err != nil {
@@ -212,8 +213,8 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantli
 			defer wg.Done()
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.routing.FindProvidersAsync(child, k, maxProvidersPerRequest)
-
 			for prov := range providers {
+				bs.network.Peerstore().AddAddresses(prov.ID, prov.Addrs)
 				if set.TryAdd(prov.ID) { //Do once per peer
 					bs.send(ctx, prov.ID, message)
 				}
@@ -265,7 +266,6 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 			//		newer bitswap strategies.
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.routing.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
-
 			err := bs.sendWantListTo(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
