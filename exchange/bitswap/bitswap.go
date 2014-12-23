@@ -64,7 +64,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routin
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore),
 		routing:       routing,
-		sender:        network,
+		network:       network,
 		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan []u.Key, sizeBatchRequestChan),
 	}
@@ -78,8 +78,8 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork, routin
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
 
-	// sender delivers messages on behalf of the session
-	sender bsnet.BitSwapNetwork
+	// network delivers messages on behalf of the session
+	network bsnet.BitSwapNetwork
 
 	// blockstore is the local database
 	// NB: ensure threadsafety
@@ -341,11 +341,11 @@ func (bs *bitswap) ReceiveError(err error) {
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
 	log.Event(ctx, "DialPeer", p)
-	err := bs.sender.DialPeer(ctx, p)
+	err := bs.network.DialPeer(ctx, p)
 	if err != nil {
 		return errors.Wrap(err)
 	}
-	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
+	if err := bs.network.SendMessage(ctx, p, m); err != nil {
 		return errors.Wrap(err)
 	}
 	return bs.engine.MessageSent(p, m)
