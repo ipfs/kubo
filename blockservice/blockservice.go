@@ -41,7 +41,6 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) (*BlockService, error
 // TODO pass a context into this if the remote.HasBlock is going to remain here.
 func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	k := b.Key()
-	log.Debugf("blockservice: storing [%s] in datastore", k)
 	err := s.Blockstore.Put(b)
 	if err != nil {
 		return k, err

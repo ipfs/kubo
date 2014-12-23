@@ -7,13 +7,14 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
+	peer "github.com/jbenet/go-ipfs/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -23,9 +24,8 @@ const kNetworkDelay = 0 * time.Millisecond
 func TestClose(t *testing.T) {
 	// TODO
 	t.Skip("TODO Bitswap's Close implementation is a WIP")
-	vnet := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rout := mockrouting.NewServer()
-	sesgen := NewSessionGenerator(vnet, rout)
+	vnet := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sesgen := NewSessionGenerator(vnet)
 	defer sesgen.Close()
 	bgen := blocksutil.NewBlockGenerator()
 
@@ -38,9 +38,8 @@ func TestClose(t *testing.T) {
 
 func TestGetBlockTimeout(t *testing.T) {
 
-	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mockrouting.NewServer()
-	g := NewSessionGenerator(net, rs)
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	g := NewSessionGenerator(net)
 	defer g.Close()
 
 	self := g.Next()
@@ -54,15 +53,16 @@ func TestGetBlockTimeout(t *testing.T) {
 	}
 }
 
-func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
+func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 
-	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
 	rs := mockrouting.NewServer()
-	g := NewSessionGenerator(net, rs)
+	net := tn.VirtualNetwork(rs, delay.Fixed(kNetworkDelay))
+	g := NewSessionGenerator(net)
 	defer g.Close()
 
 	block := blocks.NewBlock([]byte("block"))
-	rs.Client(testutil.NewPeerWithIDString("testing")).Provide(context.Background(), block.Key()) // but not on network
+	pinfo := peer.PeerInfo{ID: peer.ID("testing")}
+	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()
 	defer solo.Exchange.Close()
@@ -79,10 +79,9 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) {
 
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
-	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mockrouting.NewServer()
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	block := blocks.NewBlock([]byte("block"))
-	g := NewSessionGenerator(net, rs)
+	g := NewSessionGenerator(net)
 	defer g.Close()
 
 	hasBlock := g.Next()
@@ -134,9 +133,8 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mockrouting.NewServer()
-	sg := NewSessionGenerator(net, rs)
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewSessionGenerator(net)
 	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
@@ -150,10 +148,9 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	var blkeys []u.Key
 	first := instances[0]
 	for _, b := range blocks {
-		first.Blockstore().Put(b)
+		first.Blockstore().Put(b) // TODO remove. don't need to do this. bitswap owns block
 		blkeys = append(blkeys, b.Key())
 		first.Exchange.HasBlock(context.Background(), b)
-		rs.Client(first.Peer).Provide(context.Background(), b.Key())
 	}
 
 	t.Log("Distribute!")
@@ -200,15 +197,13 @@ func TestSendToWantingPeer(t *testing.T) {
 		t.SkipNow()
 	}
 
-	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mockrouting.NewServer()
-	sg := NewSessionGenerator(net, rs)
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewSessionGenerator(net)
 	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
-	oldVal := rebroadcastDelay
-	rebroadcastDelay = time.Second / 2
-	defer func() { rebroadcastDelay = oldVal }()
+	prev := rebroadcastDelay.Set(time.Second / 2)
+	defer func() { rebroadcastDelay.Set(prev) }()
 
 	peerA := sg.Next()
 	peerB := sg.Next()
@@ -247,9 +242,8 @@ func TestSendToWantingPeer(t *testing.T) {
 }
 
 func TestBasicBitswap(t *testing.T) {
-	net := tn.VirtualNetwork(delay.Fixed(kNetworkDelay))
-	rs := mockrouting.NewServer()
-	sg := NewSessionGenerator(net, rs)
+	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
+	sg := NewSessionGenerator(net)
 	bg := blocksutil.NewBlockGenerator()
 
 	t.Log("Test a few nodes trying to get one file with a lot of blocks")

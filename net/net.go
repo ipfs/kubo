@@ -2,6 +2,9 @@
 package net
 
 import (
+	"fmt"
+
+	ic "github.com/jbenet/go-ipfs/crypto"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
 	peer "github.com/jbenet/go-ipfs/peer"
 
@@ -39,11 +42,15 @@ func (s *stream) Write(p []byte) (n int, err error) {
 
 type conn_ swarm.Conn
 
+func (s *conn_) String() string {
+	return s.SwarmConn().String()
+}
+
 func (c *conn_) SwarmConn() *swarm.Conn {
 	return (*swarm.Conn)(c)
 }
 
-func (c *conn_) NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error) {
+func (c *conn_) NewStreamWithProtocol(pr ProtocolID) (Stream, error) {
 	s, err := (*swarm.Conn)(c).NewStream()
 	if err != nil {
 		return nil, err
@@ -59,37 +66,43 @@ func (c *conn_) NewStreamWithProtocol(pr ProtocolID, p peer.Peer) (Stream, error
 	return ss, nil
 }
 
-// LocalMultiaddr is the Multiaddr on this side
 func (c *conn_) LocalMultiaddr() ma.Multiaddr {
 	return c.SwarmConn().LocalMultiaddr()
 }
 
-// LocalPeer is the Peer on our side of the connection
-func (c *conn_) LocalPeer() peer.Peer {
-	return c.SwarmConn().LocalPeer()
-}
-
-// RemoteMultiaddr is the Multiaddr on the remote side
 func (c *conn_) RemoteMultiaddr() ma.Multiaddr {
 	return c.SwarmConn().RemoteMultiaddr()
 }
 
-// RemotePeer is the Peer on the remote side
-func (c *conn_) RemotePeer() peer.Peer {
+func (c *conn_) LocalPeer() peer.ID {
+	return c.SwarmConn().LocalPeer()
+}
+
+func (c *conn_) RemotePeer() peer.ID {
 	return c.SwarmConn().RemotePeer()
+}
+
+func (c *conn_) LocalPrivateKey() ic.PrivKey {
+	return c.SwarmConn().LocalPrivateKey()
+}
+
+func (c *conn_) RemotePublicKey() ic.PubKey {
+	return c.SwarmConn().RemotePublicKey()
 }
 
 // network implements the Network interface,
 type network struct {
-	local peer.Peer    // local peer
+	local peer.ID      // local peer
 	mux   Mux          // protocol multiplexing
 	swarm *swarm.Swarm // peer connection multiplexing
+	ps    peer.Peerstore
+	ids   *IDService
 
 	cg ctxgroup.ContextGroup // for Context closing
 }
 
 // NewNetwork constructs a new network and starts listening on given addresses.
-func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
+func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
 	peers peer.Peerstore) (Network, error) {
 
 	s, err := swarm.NewSwarm(ctx, listen, local, peers)
@@ -102,22 +115,46 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.Peer,
 		swarm: s,
 		mux:   Mux{Handlers: StreamHandlerMap{}},
 		cg:    ctxgroup.WithContext(ctx),
+		ps:    peers,
 	}
+
+	n.cg.SetTeardown(n.close)
+	n.cg.AddChildGroup(s.CtxGroup())
 
 	s.SetStreamHandler(func(s *swarm.Stream) {
 		n.mux.Handle((*stream)(s))
 	})
 
-	n.cg.SetTeardown(n.close)
-	n.cg.AddChildGroup(s.CtxGroup())
+	// setup a conn handler that immediately "asks the other side about them"
+	// this is ProtocolIdentify.
+	n.ids = NewIDService(n)
+	s.SetConnHandler(n.newConnHandler)
+
 	return n, nil
+}
+
+func (n *network) newConnHandler(c *swarm.Conn) {
+	cc := (*conn_)(c)
+	n.ids.IdentifyConn(cc)
 }
 
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
-func (n *network) DialPeer(ctx context.Context, p peer.Peer) error {
-	_, err := n.swarm.Dial(ctx, p)
-	return err
+func (n *network) DialPeer(ctx context.Context, p peer.ID) error {
+	log.Debugf("[%s] network dialing peer [%s]", n.local, p)
+	sc, err := n.swarm.Dial(ctx, p)
+	if err != nil {
+		return err
+	}
+
+	// identify the connection before returning.
+	n.ids.IdentifyConn((*conn_)(sc))
+	log.Debugf("network for %s finished dialing %s", n.local, p)
+	return nil
+}
+
+func (n *network) Protocols() []ProtocolID {
+	return n.mux.Protocols()
 }
 
 // CtxGroup returns the network's ContextGroup
@@ -131,13 +168,18 @@ func (n *network) Swarm() *swarm.Swarm {
 }
 
 // LocalPeer the network's LocalPeer
-func (n *network) LocalPeer() peer.Peer {
+func (n *network) LocalPeer() peer.ID {
 	return n.swarm.LocalPeer()
 }
 
 // Peers returns the connected peers
-func (n *network) Peers() []peer.Peer {
+func (n *network) Peers() []peer.ID {
 	return n.swarm.Peers()
+}
+
+// Peers returns the connected peers
+func (n *network) Peerstore() peer.Peerstore {
+	return n.ps
 }
 
 // Conns returns the connected peers
@@ -150,8 +192,18 @@ func (n *network) Conns() []Conn {
 	return out
 }
 
+// ConnsToPeer returns the connections in this Netowrk for given peer.
+func (n *network) ConnsToPeer(p peer.ID) []Conn {
+	conns1 := n.swarm.ConnectionsToPeer(p)
+	out := make([]Conn, len(conns1))
+	for i, c := range conns1 {
+		out[i] = (*conn_)(c)
+	}
+	return out
+}
+
 // ClosePeer connection to peer
-func (n *network) ClosePeer(p peer.Peer) error {
+func (n *network) ClosePeer(p peer.ID) error {
 	return n.swarm.CloseConnection(p)
 }
 
@@ -186,9 +238,9 @@ func (n *network) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 
 // Connectedness returns a state signaling connection capabilities
 // For now only returns Connected || NotConnected. Expand into more later.
-func (n *network) Connectedness(p peer.Peer) Connectedness {
+func (n *network) Connectedness(p peer.ID) Connectedness {
 	c := n.swarm.ConnectionsToPeer(p)
-	if c != nil && len(c) < 1 {
+	if c != nil && len(c) > 0 {
 		return Connected
 	}
 	return NotConnected
@@ -197,8 +249,9 @@ func (n *network) Connectedness(p peer.Peer) Connectedness {
 // NewStream returns a new stream to given peer p.
 // If there is no connection to p, attempts to create one.
 // If ProtocolID is "", writes no header.
-func (c *network) NewStream(pr ProtocolID, p peer.Peer) (Stream, error) {
-	s, err := c.swarm.NewStreamWithPeer(p)
+func (n *network) NewStream(pr ProtocolID, p peer.ID) (Stream, error) {
+	log.Debugf("[%s] network opening stream to peer [%s]: %s", n.local, p, pr)
+	s, err := n.swarm.NewStreamWithPeer(p)
 	if err != nil {
 		return nil, err
 	}
@@ -217,6 +270,14 @@ func (c *network) NewStream(pr ProtocolID, p peer.Peer) (Stream, error) {
 // This operation is threadsafe.
 func (n *network) SetHandler(p ProtocolID, h StreamHandler) {
 	n.mux.SetHandler(p, h)
+}
+
+func (n *network) String() string {
+	return fmt.Sprintf("<Network %s>", n.LocalPeer())
+}
+
+func (n *network) IdentifyProtocol() *IDService {
+	return n.ids
 }
 
 func WriteProtocolHeader(pr ProtocolID, s Stream) error {

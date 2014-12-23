@@ -11,7 +11,7 @@ import (
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
-var log = eventlog.Logger("mux2")
+var log = eventlog.Logger("network")
 
 // Mux provides simple stream multixplexing.
 // It helps you precisely when:
@@ -35,6 +35,17 @@ type Mux struct {
 	Handlers StreamHandlerMap
 
 	sync.RWMutex
+}
+
+// Protocols returns the list of protocols this muxer has handlers for
+func (m *Mux) Protocols() []ProtocolID {
+	m.RLock()
+	l := make([]ProtocolID, 0, len(m.Handlers))
+	for p := range m.Handlers {
+		l = append(l, p)
+	}
+	m.RUnlock()
+	return l
 }
 
 // ReadProtocolHeader reads the stream and returns the next Handler function

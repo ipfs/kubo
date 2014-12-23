@@ -52,10 +52,10 @@ Resolve te value of another name:
 		}
 
 		if len(req.Arguments()) == 0 {
-			if n.Identity == nil {
+			if n.Identity == "" {
 				return nil, errors.New("Identity not loaded!")
 			}
-			name = n.Identity.ID().String()
+			name = n.Identity.Pretty()
 
 		} else {
 			name = req.Arguments()[0]

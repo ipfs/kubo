@@ -12,8 +12,8 @@ import (
 
 // server is the mockrouting.Client's private interface to the routing server
 type server interface {
-	Announce(peer.Peer, u.Key) error
-	Providers(u.Key) []peer.Peer
+	Announce(peer.PeerInfo, u.Key) error
+	Providers(u.Key) []peer.PeerInfo
 
 	Server
 }
@@ -23,36 +23,36 @@ type s struct {
 	delayConf DelayConfig
 
 	lock      sync.RWMutex
-	providers map[u.Key]map[u.Key]providerRecord
+	providers map[u.Key]map[peer.ID]providerRecord
 }
 
 type providerRecord struct {
-	Peer    peer.Peer
+	Peer    peer.PeerInfo
 	Created time.Time
 }
 
-func (rs *s) Announce(p peer.Peer, k u.Key) error {
+func (rs *s) Announce(p peer.PeerInfo, k u.Key) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
 	_, ok := rs.providers[k]
 	if !ok {
-		rs.providers[k] = make(map[u.Key]providerRecord)
+		rs.providers[k] = make(map[peer.ID]providerRecord)
 	}
-	rs.providers[k][p.Key()] = providerRecord{
+	rs.providers[k][p.ID] = providerRecord{
 		Created: time.Now(),
 		Peer:    p,
 	}
 	return nil
 }
 
-func (rs *s) Providers(k u.Key) []peer.Peer {
+func (rs *s) Providers(k u.Key) []peer.PeerInfo {
 	rs.delayConf.Query.Wait() // before locking
 
 	rs.lock.RLock()
 	defer rs.lock.RUnlock()
 
-	var ret []peer.Peer
+	var ret []peer.PeerInfo
 	records, ok := rs.providers[k]
 	if !ok {
 		return ret
@@ -71,11 +71,11 @@ func (rs *s) Providers(k u.Key) []peer.Peer {
 	return ret
 }
 
-func (rs *s) Client(p peer.Peer) Client {
+func (rs *s) Client(p peer.PeerInfo) Client {
 	return rs.ClientWithDatastore(p, ds.NewMapDatastore())
 }
 
-func (rs *s) ClientWithDatastore(p peer.Peer, datastore ds.Datastore) Client {
+func (rs *s) ClientWithDatastore(p peer.PeerInfo, datastore ds.Datastore) Client {
 	return &client{
 		peer:      p,
 		datastore: ds.NewMapDatastore(),

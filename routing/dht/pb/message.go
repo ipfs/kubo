@@ -1,14 +1,14 @@
 package dht_pb
 
 import (
-	"errors"
-	"fmt"
-
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
+
+var log = eventlog.Logger("dht.pb")
 
 // NewMessage constructs a new dht message with given type, key, and level
 func NewMessage(typ Message_MessageType, key string, level int) *Message {
@@ -20,43 +20,32 @@ func NewMessage(typ Message_MessageType, key string, level int) *Message {
 	return m
 }
 
-func peerToPBPeer(p peer.Peer) *Message_Peer {
+func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
 	pbp := new(Message_Peer)
 
-	maddrs := p.Addresses()
-	pbp.Addrs = make([]string, len(maddrs))
-	for i, maddr := range maddrs {
-		pbp.Addrs[i] = maddr.String()
+	pbp.Addrs = make([][]byte, len(p.Addrs))
+	for i, maddr := range p.Addrs {
+		pbp.Addrs[i] = maddr.Bytes() // Bytes, not String. Compressed.
 	}
-	pid := string(p.ID())
-	pbp.Id = &pid
+	s := string(p.ID)
+	pbp.Id = &s
 	return pbp
 }
 
-// PBPeerToPeer turns a *Message_Peer into its peer.Peer counterpart
-func PBPeerToPeer(ps peer.Peerstore, pbp *Message_Peer) (peer.Peer, error) {
-	p, err := ps.FindOrCreate(peer.ID(pbp.GetId()))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get peer from peerstore: %s", err)
+// PBPeerToPeer turns a *Message_Peer into its peer.PeerInfo counterpart
+func PBPeerToPeerInfo(pbp *Message_Peer) peer.PeerInfo {
+	return peer.PeerInfo{
+		ID:    peer.ID(pbp.GetId()),
+		Addrs: pbp.Addresses(),
 	}
-
-	// add addresses
-	maddrs, err := pbp.Addresses()
-	if err != nil {
-		return nil, fmt.Errorf("Received peer with bad or missing addresses: %s", pbp.Addrs)
-	}
-	for _, maddr := range maddrs {
-		p.AddAddress(maddr)
-	}
-	return p, nil
 }
 
-// RawPeersToPBPeers converts a slice of Peers into a slice of *Message_Peers,
+// RawPeerInfosToPBPeers converts a slice of Peers into a slice of *Message_Peers,
 // ready to go out on the wire.
-func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
+func RawPeerInfosToPBPeers(peers []peer.PeerInfo) []*Message_Peer {
 	pbpeers := make([]*Message_Peer, len(peers))
 	for i, p := range peers {
-		pbpeers[i] = peerToPBPeer(p)
+		pbpeers[i] = peerInfoToPBPeer(p)
 	}
 	return pbpeers
 }
@@ -64,49 +53,42 @@ func RawPeersToPBPeers(peers []peer.Peer) []*Message_Peer {
 // PeersToPBPeers converts given []peer.Peer into a set of []*Message_Peer,
 // which can be written to a message and sent out. the key thing this function
 // does (in addition to PeersToPBPeers) is set the ConnectionType with
-// information from the given inet.Dialer.
-func PeersToPBPeers(d inet.Network, peers []peer.Peer) []*Message_Peer {
-	pbps := RawPeersToPBPeers(peers)
+// information from the given inet.Network.
+func PeerInfosToPBPeers(n inet.Network, peers []peer.PeerInfo) []*Message_Peer {
+	pbps := RawPeerInfosToPBPeers(peers)
 	for i, pbp := range pbps {
-		c := ConnectionType(d.Connectedness(peers[i]))
+		c := ConnectionType(n.Connectedness(peers[i].ID))
 		pbp.Connection = &c
 	}
 	return pbps
 }
 
-// PBPeersToPeers converts given []*Message_Peer into a set of []peer.Peer
-// Returns two slices, one of peers, and one of errors. The slice of peers
-// will ONLY contain successfully converted peers. The slice of errors contains
-// whether each input Message_Peer was successfully converted.
-func PBPeersToPeers(ps peer.Peerstore, pbps []*Message_Peer) ([]peer.Peer, []error) {
-	errs := make([]error, len(pbps))
-	peers := make([]peer.Peer, 0, len(pbps))
-	for i, pbp := range pbps {
-		p, err := PBPeerToPeer(ps, pbp)
-		if err != nil {
-			errs[i] = err
-		} else {
-			peers = append(peers, p)
-		}
+// PBPeersToPeerInfos converts given []*Message_Peer into []peer.PeerInfo
+// Invalid addresses will be silently omitted.
+func PBPeersToPeerInfos(pbps []*Message_Peer) []peer.PeerInfo {
+	peers := make([]peer.PeerInfo, 0, len(pbps))
+	for _, pbp := range pbps {
+		peers = append(peers, PBPeerToPeerInfo(pbp))
 	}
-	return peers, errs
+	return peers
 }
 
 // Addresses returns a multiaddr associated with the Message_Peer entry
-func (m *Message_Peer) Addresses() ([]ma.Multiaddr, error) {
+func (m *Message_Peer) Addresses() []ma.Multiaddr {
 	if m == nil {
-		return nil, errors.New("MessagePeer is nil")
+		return nil
 	}
 
 	var err error
 	maddrs := make([]ma.Multiaddr, len(m.Addrs))
 	for i, addr := range m.Addrs {
-		maddrs[i], err = ma.NewMultiaddr(addr)
+		maddrs[i], err = ma.NewMultiaddrBytes(addr)
 		if err != nil {
-			return nil, err
+			log.Error("error decoding Multiaddr for peer: %s", m.GetId())
+			continue
 		}
 	}
-	return maddrs, nil
+	return maddrs
 }
 
 // GetClusterLevel gets and adjusts the cluster level on the message.

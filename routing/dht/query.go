@@ -31,10 +31,10 @@ type dhtQuery struct {
 }
 
 type dhtQueryResult struct {
-	value         []byte      // GetValue
-	peer          peer.Peer   // FindPeer
-	providerPeers []peer.Peer // GetProviders
-	closerPeers   []peer.Peer // *
+	value         []byte          // GetValue
+	peer          peer.PeerInfo   // FindPeer
+	providerPeers []peer.PeerInfo // GetProviders
+	closerPeers   []peer.PeerInfo // *
 	success       bool
 }
 
@@ -53,10 +53,10 @@ func newQuery(k u.Key, d inet.Dialer, f queryFunc) *dhtQuery {
 // - the value
 // - a list of peers potentially better able to serve the query
 // - an error
-type queryFunc func(context.Context, peer.Peer) (*dhtQueryResult, error)
+type queryFunc func(context.Context, peer.ID) (*dhtQueryResult, error)
 
 // Run runs the query at hand. pass in a list of peers to use first.
-func (q *dhtQuery) Run(ctx context.Context, peers []peer.Peer) (*dhtQueryResult, error) {
+func (q *dhtQuery) Run(ctx context.Context, peers []peer.ID) (*dhtQueryResult, error) {
 	runner := newQueryRunner(ctx, q)
 	return runner.Run(peers)
 }
@@ -70,7 +70,7 @@ type dhtQueryRunner struct {
 	peersToQuery *queue.ChanQueue
 
 	// peersSeen are all the peers queried. used to prevent querying same peer 2x
-	peersSeen peer.Map
+	peersSeen peer.Set
 
 	// rateLimit is a channel used to rate limit our processing (semaphore)
 	rateLimit chan struct{}
@@ -101,12 +101,12 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 		query:          q,
 		peersToQuery:   queue.NewChanQueue(ctx, queue.NewXORDistancePQ(q.key)),
 		peersRemaining: todoctr.NewSyncCounter(),
-		peersSeen:      peer.Map{},
+		peersSeen:      peer.Set{},
 		rateLimit:      make(chan struct{}, q.concurrency),
 	}
 }
 
-func (r *dhtQueryRunner) Run(peers []peer.Peer) (*dhtQueryResult, error) {
+func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 	log.Debugf("Run query with %d peers.", len(peers))
 	if len(peers) == 0 {
 		log.Warning("Running query with no peers!")
@@ -120,7 +120,7 @@ func (r *dhtQueryRunner) Run(peers []peer.Peer) (*dhtQueryResult, error) {
 
 	// add all the peers we got first.
 	for _, p := range peers {
-		r.addPeerToQuery(p, nil) // don't have access to self here...
+		r.addPeerToQuery(p, "") // don't have access to self here...
 	}
 
 	// go do this thing.
@@ -154,31 +154,30 @@ func (r *dhtQueryRunner) Run(peers []peer.Peer) (*dhtQueryResult, error) {
 	return nil, err
 }
 
-func (r *dhtQueryRunner) addPeerToQuery(next peer.Peer, benchmark peer.Peer) {
-	if next == nil {
-		// wtf why are peers nil?!?
-		log.Error("Query getting nil peers!!!\n")
-		return
-	}
-
+func (r *dhtQueryRunner) addPeerToQuery(next peer.ID, benchmark peer.ID) {
 	// if new peer is ourselves...
-	if next.ID().Equal(r.query.dialer.LocalPeer().ID()) {
+	if next == r.query.dialer.LocalPeer() {
 		return
 	}
 
 	// if new peer further away than whom we got it from, don't bother (loops)
-	if benchmark != nil && kb.Closer(benchmark.ID(), next.ID(), r.query.key) {
+	// TODO----------- this benchmark should be replaced by a heap:
+	// we should be doing the s/kademlia "continue to search"
+	// (i.e. put all of them in a heap sorted by dht distance and then just
+	// pull from the the top until  a) you exhaust all peers you get,
+	// b) you succeed, c) your context expires.
+	if benchmark != "" && kb.Closer(benchmark, next, r.query.key) {
 		return
 	}
 
 	// if already seen, no need.
 	r.Lock()
-	_, found := r.peersSeen[next.Key()]
+	_, found := r.peersSeen[next]
 	if found {
 		r.Unlock()
 		return
 	}
-	r.peersSeen[next.Key()] = next
+	r.peersSeen[next] = struct{}{}
 	r.Unlock()
 
 	log.Debugf("adding peer to query: %v\n", next)
@@ -211,7 +210,7 @@ func (r *dhtQueryRunner) spawnWorkers() {
 	}
 }
 
-func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
+func (r *dhtQueryRunner) queryPeer(p peer.ID) {
 	log.Debugf("spawned worker for: %v", p)
 
 	// make sure we rate limit concurrency.
@@ -234,7 +233,6 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 	}()
 
 	// make sure we're connected to the peer.
-	// (Incidentally, this will add it to the peerstore too)
 	err := r.query.dialer.DialPeer(r.ctx, p)
 	if err != nil {
 		log.Debugf("ERROR worker for: %v -- err connecting: %v", p, err)
@@ -260,10 +258,15 @@ func (r *dhtQueryRunner) queryPeer(p peer.Peer) {
 		r.Unlock()
 		r.cancel() // signal to everyone that we're done.
 
-	} else if res.closerPeers != nil {
-		log.Debugf("PEERS CLOSER -- worker for: %v", p)
+	} else if len(res.closerPeers) > 0 {
+		log.Debugf("PEERS CLOSER -- worker for: %v (%d closer peers)", p, len(res.closerPeers))
 		for _, next := range res.closerPeers {
-			r.addPeerToQuery(next, p)
+			// add their addresses to the dialer's peerstore
+			r.query.dialer.Peerstore().AddAddresses(next.ID, next.Addrs)
+			r.addPeerToQuery(next.ID, p)
+			log.Debugf("PEERS CLOSER -- worker for: %v added %v (%v)", p, next.ID, next.Addrs)
 		}
+	} else {
+		log.Debugf("QUERY worker for: %v - not found, and no closer peers.", p)
 	}
 }

@@ -182,7 +182,7 @@ type Message_Peer struct {
 	// ID of a given peer.
 	Id *string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
 	// multiaddrs for a given peer
-	Addrs []string `protobuf:"bytes,2,rep,name=addrs" json:"addrs,omitempty"`
+	Addrs [][]byte `protobuf:"bytes,2,rep,name=addrs" json:"addrs,omitempty"`
 	// used to signal the sender's connection capabilities to the peer
 	Connection       *Message_ConnectionType `protobuf:"varint,3,opt,name=connection,enum=dht.pb.Message_ConnectionType" json:"connection,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
@@ -199,7 +199,7 @@ func (m *Message_Peer) GetId() string {
 	return ""
 }
 
-func (m *Message_Peer) GetAddrs() []string {
+func (m *Message_Peer) GetAddrs() [][]byte {
 	if m != nil {
 		return m.Addrs
 	}

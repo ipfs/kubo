@@ -8,10 +8,15 @@ import (
 )
 
 func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
-	var ps []peer.Peer
+	var ps []peer.PeerInfo
 	sizeofSlice := 100
 	for i := 0; i < sizeofSlice; i++ {
-		ps = append(ps, testutil.RandPeer())
+		pid, err := testutil.RandPeerID()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ps = append(ps, peer.PeerInfo{ID: pid})
 	}
 	out := randomSubsetOfPeers(ps, 2*sizeofSlice)
 	if len(out) != len(ps) {

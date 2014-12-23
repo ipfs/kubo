@@ -10,18 +10,16 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/peer"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 func NewSessionGenerator(
-	net tn.Network, rs mockrouting.Server) SessionGenerator {
+	net tn.Network) SessionGenerator {
 	ctx, cancel := context.WithCancel(context.TODO())
 	return SessionGenerator{
 		ps:     peer.NewPeerstore(),
 		net:    net,
-		rs:     rs,
 		seq:    0,
 		ctx:    ctx, // TODO take ctx as param to Next, Instances
 		cancel: cancel,
@@ -31,7 +29,6 @@ func NewSessionGenerator(
 type SessionGenerator struct {
 	seq    int
 	net    tn.Network
-	rs     mockrouting.Server
 	ps     peer.Peerstore
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -44,7 +41,7 @@ func (g *SessionGenerator) Close() error {
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	return session(g.ctx, g.net, g.rs, g.ps, []byte(string(g.seq)))
+	return session(g.ctx, g.net, g.ps, peer.ID(g.seq))
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -57,7 +54,7 @@ func (g *SessionGenerator) Instances(n int) []Instance {
 }
 
 type Instance struct {
-	Peer       peer.Peer
+	Peer       peer.ID
 	Exchange   exchange.Interface
 	blockstore blockstore.Blockstore
 
@@ -77,11 +74,9 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, rs mockrouting.Server, ps peer.Peerstore, id peer.ID) Instance {
-	p := ps.WithID(id)
+func session(ctx context.Context, net tn.Network, ps peer.Peerstore, p peer.ID) Instance {
 
 	adapter := net.Adapter(p)
-	htc := rs.Client(p)
 
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100
@@ -93,7 +88,7 @@ func session(ctx context.Context, net tn.Network, rs mockrouting.Server, ps peer
 
 	const alwaysSendToPeer = true
 
-	bs := New(ctx, p, adapter, htc, bstore, alwaysSendToPeer)
+	bs := New(ctx, p, adapter, bstore, alwaysSendToPeer)
 
 	return Instance{
 		Peer:            p,

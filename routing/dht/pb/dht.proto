@@ -32,7 +32,7 @@ message Message {
 		optional string id = 1;
 
 		// multiaddrs for a given peer
-		repeated string addrs = 2;
+		repeated bytes addrs = 2;
 
 		// used to signal the sender's connection capabilities to the peer
 		optional ConnectionType connection = 3;

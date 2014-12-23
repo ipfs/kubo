@@ -69,7 +69,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		}
 	}
 
-	fs, err := NewIpns(node, "")
+	fs, err := NewIpns(node, node.PrivateKey, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestFastRepublish(t *testing.T) {
 
 	node, mnt := setupIpnsTest(t, nil)
 
-	h, err := node.Identity.PrivKey().GetPublic().Hash()
+	h, err := node.PrivateKey.GetPublic().Hash()
 	if err != nil {
 		t.Fatal(err)
 	}

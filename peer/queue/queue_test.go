@@ -8,22 +8,18 @@ import (
 
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
-func newPeer(id string) peer.Peer {
-	return testutil.NewPeerWithIDString(id)
-}
-
 func TestQueue(t *testing.T) {
 
-	p1 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31")
-	p2 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32")
-	p3 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33")
-	p4 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34")
-	p5 := newPeer("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31")
+	p1 := peer.ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31") // these aren't valid, because need to hex-decode.
+	p2 := peer.ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a32") // these aren't valid, because need to hex-decode.
+	p3 := peer.ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33") // these aren't valid, because need to hex-decode.
+	p4 := peer.ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a34") // these aren't valid, because need to hex-decode.
+	p5 := peer.ID("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31") // these aren't valid, because need to hex-decode.
+	// but they work.
 
 	// these are the peer.IDs' XORKeySpace Key values:
 	// [228 47 151 130 156 102 222 232 218 31 132 94 170 208 80 253 120 103 55 35 91 237 48 157 81 245 57 247 66 150 9 40]
@@ -67,10 +63,10 @@ func TestQueue(t *testing.T) {
 
 }
 
-func newPeerTime(t time.Time) peer.Peer {
+func newPeerTime(t time.Time) peer.ID {
 	s := fmt.Sprintf("hmmm time: %v", t)
 	h := u.Hash([]byte(s))
-	return testutil.NewPeerWithID(peer.ID(h))
+	return peer.ID(h)
 }
 
 func TestSyncQueue(t *testing.T) {

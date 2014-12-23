@@ -1,21 +1,13 @@
 RANDOMSRC = Godeps/_workspace/src/github.com/jbenet/go-random/random
-IPFS_DOCKER_IMAGE = zaqwsx_ipfs-test-img
+IMAGE_NAME = ipfs-test-latest
 
 test: clean setup
-	fig build --no-cache
-	fig up --no-color | tee build/fig.log
-	make save_logs # save the ipfs logs for inspection
-	# fig up won't report the error using an error code, so we grep the
-	# fig.log file to find out whether the call succeeded
-	tail build/fig.log | grep "exited with code 0"
+	./run-test-on-img.sh $(IMAGE_NAME)
 
 setup: docker_ipfs_image data/filetiny data/filerand
 
 save_logs:
 	sh bin/save_logs.sh
-
-docker_ipfs_image:
-	docker images | grep $(IPFS_DOCKER_IMAGE)
 
 data/filetiny: Makefile
 	cp Makefile ./data/filetiny # simple
@@ -25,6 +17,12 @@ data/filerand: bin/random
 
 bin/random:
 	go build -o ./bin/random ../$(RANDOMSRC)
+
+# just build it every time... this part isn't
+# even the lengthy part, and it decreases pain.
+docker_ipfs_image:
+	cd .. && docker build -t $(IMAGE_NAME) .
+	docker images | grep $(IMAGE_NAME)
 
 clean:
 	sh bin/clean.sh

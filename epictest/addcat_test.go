@@ -87,11 +87,12 @@ func RandomBytes(n int64) []byte {
 func AddCatBytes(data []byte, conf Config) error {
 
 	sessionGenerator := bitswap.NewSessionGenerator(
-		tn.VirtualNetwork(delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
-		mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
-			Query:           delay.Fixed(conf.RoutingLatency),
-			ValueVisibility: delay.Fixed(conf.RoutingLatency),
-		}),
+		tn.VirtualNetwork(
+			mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
+				Query:           delay.Fixed(conf.RoutingLatency),
+				ValueVisibility: delay.Fixed(conf.RoutingLatency),
+			}),
+			delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
 	)
 	defer sessionGenerator.Close()
 
