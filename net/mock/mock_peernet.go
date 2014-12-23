@@ -1,6 +1,7 @@
 package mocknet
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -121,8 +122,6 @@ func (pn *peernet) DialPeer(ctx context.Context, p peer.ID) error {
 }
 
 func (pn *peernet) connect(p peer.ID) error {
-	log.Debugf("%s dialing %s", pn.peer, p)
-
 	// first, check if we already have live connections
 	pn.RLock()
 	cs, found := pn.connsByPeer[p]
@@ -130,6 +129,8 @@ func (pn *peernet) connect(p peer.ID) error {
 	if found && len(cs) > 0 {
 		return nil
 	}
+
+	log.Debugf("%s (newly) dialing %s", pn.peer, p)
 
 	// ok, must create a new connection. we need a link
 	links := pn.mocknet.LinksBetweenPeers(pn.peer, p)
@@ -282,14 +283,14 @@ func (pn *peernet) BandwidthTotals() (in uint64, out uint64) {
 
 // ListenAddresses returns a list of addresses at which this network listens.
 func (pn *peernet) ListenAddresses() []ma.Multiaddr {
-	return []ma.Multiaddr{}
+	return pn.Peerstore().Addresses(pn.LocalPeer())
 }
 
 // InterfaceListenAddresses returns a list of addresses at which this network
 // listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
 // use the known local interfaces.
 func (pn *peernet) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
-	return []ma.Multiaddr{}, nil
+	return nil, errors.New("Mocknet does not have interfaces.")
 }
 
 // Connectedness returns a state signaling connection capabilities
