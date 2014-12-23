@@ -30,29 +30,6 @@ type impl struct {
 	receiver Receiver
 }
 
-// handleNewStream receives a new stream from the network.
-func (bsnet *impl) handleNewStream(s inet.Stream) {
-
-	if bsnet.receiver == nil {
-		return
-	}
-
-	go func() {
-		defer s.Close()
-
-		received, err := bsmsg.FromNet(s)
-		if err != nil {
-			go bsnet.receiver.ReceiveError(err)
-			return
-		}
-
-		p := s.Conn().RemotePeer()
-		ctx := context.Background()
-		bsnet.receiver.ReceiveMessage(ctx, p, received)
-	}()
-
-}
-
 func (bsnet *impl) DialPeer(ctx context.Context, p peer.ID) error {
 	return bsnet.network.DialPeer(ctx, p)
 }
@@ -91,4 +68,27 @@ func (bsnet *impl) SendRequest(
 
 func (bsnet *impl) SetDelegate(r Receiver) {
 	bsnet.receiver = r
+}
+
+// handleNewStream receives a new stream from the network.
+func (bsnet *impl) handleNewStream(s inet.Stream) {
+
+	if bsnet.receiver == nil {
+		return
+	}
+
+	go func() {
+		defer s.Close()
+
+		received, err := bsmsg.FromNet(s)
+		if err != nil {
+			go bsnet.receiver.ReceiveError(err)
+			return
+		}
+
+		p := s.Conn().RemotePeer()
+		ctx := context.Background()
+		bsnet.receiver.ReceiveMessage(ctx, p, received)
+	}()
+
 }
