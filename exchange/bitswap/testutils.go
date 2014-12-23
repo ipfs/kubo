@@ -80,7 +80,7 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // just a much better idea.
 func session(ctx context.Context, net tn.Network, p testutil.Peer) Instance {
 
-	adapter := net.Adapter(p.ID())
+	adapter := net.Adapter(p)
 
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100

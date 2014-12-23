@@ -12,10 +12,11 @@ import (
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	util "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 type Network interface {
-	Adapter(peer.ID) bsnet.BitSwapNetwork
+	Adapter(testutil.Peer) bsnet.BitSwapNetwork
 
 	HasPeer(peer.ID) bool
 }
@@ -36,13 +37,13 @@ type network struct {
 	delay         delay.D
 }
 
-func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
+func (n *network) Adapter(p testutil.Peer) bsnet.BitSwapNetwork {
 	client := &networkClient{
-		local:   p,
+		local:   p.ID(),
 		network: n,
-		routing: n.routingserver.Client(peer.PeerInfo{ID: p}),
+		routing: n.routingserver.Client(peer.PeerInfo{ID: p.ID()}),
 	}
-	n.clients[p] = client
+	n.clients[p.ID()] = client
 	return client
 }
 

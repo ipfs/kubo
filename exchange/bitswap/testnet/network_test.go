@@ -5,24 +5,24 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {
 	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
 
-	idOfRecipient := peer.ID("recipient")
+	recipientPeer := testutil.RandPeerOrFatal(t)
 
 	t.Log("Get two network adapters")
 
-	initiator := net.Adapter(peer.ID("initiator"))
-	recipient := net.Adapter(idOfRecipient)
+	initiator := net.Adapter(testutil.RandPeerOrFatal(t))
+	recipient := net.Adapter(recipientPeer)
 
 	expectedStr := "response from recipient"
 	recipient.SetDelegate(lambda(func(
@@ -46,7 +46,7 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 	message := bsmsg.New()
 	message.AddBlock(blocks.NewBlock([]byte("data")))
 	response, err := initiator.SendRequest(
-		context.Background(), idOfRecipient, message)
+		context.Background(), recipientPeer.ID(), message)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,9 +67,9 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
-	idOfResponder := peer.ID("responder")
-	waiter := net.Adapter(peer.ID("waiter"))
-	responder := net.Adapter(idOfResponder)
+	responderPeer := testutil.RandPeerOrFatal(t)
+	waiter := net.Adapter(testutil.RandPeerOrFatal(t))
+	responder := net.Adapter(responderPeer)
 
 	var wg sync.WaitGroup
 
@@ -114,7 +114,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	messageSentAsync := bsmsg.New()
 	messageSentAsync.AddBlock(blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
-		context.Background(), idOfResponder, messageSentAsync)
+		context.Background(), responderPeer.ID(), messageSentAsync)
 	if errSending != nil {
 		t.Fatal(errSending)
 	}
