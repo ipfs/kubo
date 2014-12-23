@@ -49,8 +49,8 @@ func setupSingleConn(t *testing.T, ctx context.Context) (a, b Conn, p1, p2 tu.Pe
 
 func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p2 tu.PeerNetParams) {
 
-	p1 = tu.RandPeerNetParams(t)
-	p2 = tu.RandPeerNetParams(t)
+	p1 = tu.RandPeerNetParamsOrFatal(t)
+	p2 = tu.RandPeerNetParamsOrFatal(t)
 	laddr := p1.Addr
 
 	key1 := p1.PrivKey
@@ -95,8 +95,8 @@ func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p
 func testDialer(t *testing.T, secure bool) {
 	// t.Skip("Skipping in favor of another test")
 
-	p1 := tu.RandPeerNetParams(t)
-	p2 := tu.RandPeerNetParams(t)
+	p1 := tu.RandPeerNetParamsOrFatal(t)
+	p2 := tu.RandPeerNetParamsOrFatal(t)
 
 	key1 := p1.PrivKey
 	key2 := p2.PrivKey

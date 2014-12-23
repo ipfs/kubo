@@ -51,7 +51,7 @@ func makeSwarms(ctx context.Context, t *testing.T, num int) ([]*Swarm, []testuti
 	peersnp := make([]testutil.PeerNetParams, 0, num)
 
 	for i := 0; i < num; i++ {
-		localnp := testutil.RandPeerNetParams(t)
+		localnp := testutil.RandPeerNetParamsOrFatal(t)
 		peersnp = append(peersnp, localnp)
 
 		peerstore := peer.NewPeerstore()

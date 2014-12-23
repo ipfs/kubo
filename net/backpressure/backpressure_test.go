@@ -18,7 +18,7 @@ import (
 var log = eventlog.Logger("backpressure")
 
 func GenNetwork(t *testing.T, ctx context.Context) (inet.Network, error) {
-	p := testutil.RandPeerNetParams(t)
+	p := testutil.RandPeerNetParamsOrFatal(t)
 	ps := peer.NewPeerstore()
 	ps.AddAddress(p.ID, p.Addr)
 	ps.AddPubKey(p.ID, p.PubKey)
