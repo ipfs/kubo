@@ -19,9 +19,10 @@ import (
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	"github.com/jbenet/go-ipfs/util/delay"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-	pset "github.com/jbenet/go-ipfs/util/peerset"
+	pset "github.com/jbenet/go-ipfs/util/peerset" // TODO move this to peerstore
 )
 
 var log = eventlog.Logger("bitswap")
@@ -352,8 +353,13 @@ func (bs *bitswap) ReceiveError(err error) {
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
+	log.Event(ctx, "DialPeer", p)
+	err := bs.sender.DialPeer(ctx, p)
+	if err != nil {
+		return errors.Wrap(err)
+	}
 	if err := bs.sender.SendMessage(ctx, p, m); err != nil {
-		return err
+		return errors.Wrap(err)
 	}
 	return bs.engine.MessageSent(p, m)
 }
