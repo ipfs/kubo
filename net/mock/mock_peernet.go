@@ -1,7 +1,6 @@
 package mocknet
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -290,7 +289,7 @@ func (pn *peernet) ListenAddresses() []ma.Multiaddr {
 // listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
 // use the known local interfaces.
 func (pn *peernet) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
-	return nil, errors.New("Mocknet does not have interfaces.")
+	return pn.ListenAddresses(), nil
 }
 
 // Connectedness returns a state signaling connection capabilities
