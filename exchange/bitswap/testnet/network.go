@@ -165,10 +165,10 @@ func (nc *networkClient) SendRequest(
 	return nc.network.SendRequest(ctx, nc.local, to, message)
 }
 
-func (nc *networkClient) DialPeer(ctx context.Context, p peer.ID) error {
+func (nc *networkClient) DialPeer(ctx context.Context, p peer.PeerInfo) error {
 	// no need to do anything because dialing isn't a thing in this test net.
-	if !nc.network.HasPeer(p) {
-		return fmt.Errorf("Peer not in network: %s", p)
+	if !nc.network.HasPeer(p.ID) {
+		return fmt.Errorf("Peer not in network: %s", p.ID)
 	}
 	return nil
 }
