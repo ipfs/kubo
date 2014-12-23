@@ -117,6 +117,7 @@ func (ids *IDService) populateMessage(mes *pb.Handshake3, c Conn) {
 	for i, addr := range laddrs {
 		mes.ListenAddrs[i] = addr.Bytes()
 	}
+	log.Debugf("%s sent listen addrs to %s: %s", c.LocalPeer(), c.RemotePeer(), laddrs)
 
 	// set protocol versions
 	mes.H1 = handshake.NewHandshake1("", "")

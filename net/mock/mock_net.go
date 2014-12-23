@@ -62,6 +62,12 @@ func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (inet.Network, error) {
 		return nil, err
 	}
 
+	// make sure to add listening address!
+	// this makes debugging things simpler as remembering to register
+	// an address may cause unexpected failure.
+	n.Peerstore().AddAddress(n.LocalPeer(), a)
+	log.Debugf("mocknet added listen addr for peer: %s -- %s", n.LocalPeer(), a)
+
 	mn.cg.AddChildGroup(n.cg)
 
 	mn.Lock()
