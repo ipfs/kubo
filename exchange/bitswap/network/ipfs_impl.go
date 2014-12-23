@@ -70,6 +70,10 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 	bsnet.receiver = r
 }
 
+func (bsnet *impl) Peerstore() peer.Peerstore {
+	return bsnet.Peerstore()
+}
+
 // handleNewStream receives a new stream from the network.
 func (bsnet *impl) handleNewStream(s inet.Stream) {
 
