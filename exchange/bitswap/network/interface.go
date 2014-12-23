@@ -12,7 +12,7 @@ import (
 type BitSwapNetwork interface {
 
 	// DialPeer ensures there is a connection to peer.
-	DialPeer(context.Context, peer.PeerInfo) error
+	DialPeer(context.Context, peer.ID) error
 
 	// SendMessage sends a BitSwap message to a peer.
 	SendMessage(
