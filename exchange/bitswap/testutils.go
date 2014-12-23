@@ -12,6 +12,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func NewSessionGenerator(
@@ -40,7 +41,11 @@ func (g *SessionGenerator) Close() error {
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	return session(g.ctx, g.net, peer.ID(g.seq))
+	p, err := testutil.RandPeer()
+	if err != nil {
+		panic("FIXME") // TODO change signature
+	}
+	return session(g.ctx, g.net, p)
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -73,9 +78,9 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, p peer.ID) Instance {
+func session(ctx context.Context, net tn.Network, p testutil.Peer) Instance {
 
-	adapter := net.Adapter(p)
+	adapter := net.Adapter(p.ID())
 
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100
@@ -87,10 +92,10 @@ func session(ctx context.Context, net tn.Network, p peer.ID) Instance {
 
 	const alwaysSendToPeer = true
 
-	bs := New(ctx, p, adapter, bstore, alwaysSendToPeer)
+	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer)
 
 	return Instance{
-		Peer:            p,
+		Peer:            p.ID(),
 		Exchange:        bs,
 		blockstore:      bstore,
 		blockstoreDelay: bsdelay,
