@@ -53,8 +53,9 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 
 }
 
-func (bsnet *impl) DialPeer(ctx context.Context, p peer.ID) error {
-	return bsnet.network.DialPeer(ctx, p)
+func (bsnet *impl) DialPeer(ctx context.Context, p peer.PeerInfo) error {
+	bsnet.network.Peerstore().AddAddresses(p.ID, p.Addrs)
+	return bsnet.network.DialPeer(ctx, p.ID)
 }
 
 func (bsnet *impl) SendMessage(
