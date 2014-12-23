@@ -39,60 +39,61 @@ func TestIDService(t *testing.T) {
 	n1 := GenNetwork(t, ctx)
 	n2 := GenNetwork(t, ctx)
 
-	testKnowsAddrs := func(n inet.Network, p peer.ID, expected []ma.Multiaddr) {
-		actual := n.Peerstore().Addresses(p)
-
-		if len(actual) != len(expected) {
-			t.Error("dont have the same addresses")
-		}
-
-		have := map[string]struct{}{}
-		for _, addr := range actual {
-			have[addr.String()] = struct{}{}
-		}
-		for _, addr := range expected {
-			if _, found := have[addr.String()]; !found {
-				t.Errorf("%s did not have addr for %s: %s", n.LocalPeer(), p, addr)
-				panic("ahhhhhhh")
-			}
-		}
-	}
-
-	testHasProtocolVersions := func(n inet.Network, p peer.ID) {
-		v, err := n.Peerstore().Get(p, "ProtocolVersion")
-		if v.(string) != handshake.IpfsVersion.String() {
-			t.Fatal("protocol mismatch", err)
-		}
-		v, err = n.Peerstore().Get(p, "AgentVersion")
-		if v.(string) != handshake.ClientVersion {
-			t.Fatal("agent version mismatch", err)
-		}
-	}
-
 	n1p := n1.LocalPeer()
 	n2p := n2.LocalPeer()
 
-	testKnowsAddrs(n1, n2p, []ma.Multiaddr{}) // nothing
-	testKnowsAddrs(n2, n1p, []ma.Multiaddr{}) // nothing
+	testKnowsAddrs(t, n1, n2p, []ma.Multiaddr{}) // nothing
+	testKnowsAddrs(t, n2, n1p, []ma.Multiaddr{}) // nothing
 
 	// have n2 tell n1, so we can dial...
 	DivulgeAddresses(n2, n1)
 
-	testKnowsAddrs(n1, n2p, n2.Peerstore().Addresses(n2p)) // has them
-	testKnowsAddrs(n2, n1p, []ma.Multiaddr{})              // nothing
+	testKnowsAddrs(t, n1, n2p, n2.Peerstore().Addresses(n2p)) // has them
+	testKnowsAddrs(t, n2, n1p, []ma.Multiaddr{})              // nothing
 
 	if err := n1.DialPeer(ctx, n2p); err != nil {
 		t.Fatalf("Failed to dial:", err)
 	}
 
+	// this is shitty. dial should wait for connecting to end
 	<-time.After(100 * time.Millisecond)
 
 	// the IDService should be opened automatically, by the network.
 	// what we should see now is that both peers know about each others listen addresses.
-	testKnowsAddrs(n1, n2p, n2.Peerstore().Addresses(n2p)) // has them
-	testKnowsAddrs(n2, n1p, n1.Peerstore().Addresses(n1p)) // has them
+	testKnowsAddrs(t, n1, n2p, n2.Peerstore().Addresses(n2p)) // has them
+	testKnowsAddrs(t, n2, n1p, n1.Peerstore().Addresses(n1p)) // has them
 
 	// and the protocol versions.
-	testHasProtocolVersions(n1, n2p)
-	testHasProtocolVersions(n2, n1p)
+	testHasProtocolVersions(t, n1, n2p)
+	testHasProtocolVersions(t, n2, n1p)
+}
+
+func testKnowsAddrs(t *testing.T, n inet.Network, p peer.ID, expected []ma.Multiaddr) {
+	actual := n.Peerstore().Addresses(p)
+
+	if len(actual) != len(expected) {
+		t.Error("dont have the same addresses")
+	}
+
+	have := map[string]struct{}{}
+	for _, addr := range actual {
+		have[addr.String()] = struct{}{}
+	}
+	for _, addr := range expected {
+		if _, found := have[addr.String()]; !found {
+			t.Errorf("%s did not have addr for %s: %s", n.LocalPeer(), p, addr)
+			panic("ahhhhhhh")
+		}
+	}
+}
+
+func testHasProtocolVersions(t *testing.T, n inet.Network, p peer.ID) {
+	v, err := n.Peerstore().Get(p, "ProtocolVersion")
+	if v.(string) != handshake.IpfsVersion.String() {
+		t.Fatal("protocol mismatch", err)
+	}
+	v, err = n.Peerstore().Get(p, "AgentVersion")
+	if v.(string) != handshake.ClientVersion {
+		t.Fatal("agent version mismatch", err)
+	}
 }
