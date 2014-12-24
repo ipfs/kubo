@@ -21,13 +21,13 @@
 		},
 		{
 			"ImportPath": "code.google.com/p/go.crypto/blowfish",
-			"Comment": "null-219",
-			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+			"Comment": "null-236",
+			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
 		},
 		{
 			"ImportPath": "code.google.com/p/go.crypto/sha3",
-			"Comment": "null-219",
-			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+			"Comment": "null-236",
+			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
 		},
 		{
 			"ImportPath": "code.google.com/p/go.net/context",
