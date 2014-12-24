@@ -38,10 +38,11 @@ func NewIDService(n Network) *IDService {
 
 func (ids *IDService) IdentifyConn(c Conn) {
 	ids.currmu.Lock()
-	if _, found := ids.currid[c]; found {
+	if wait, found := ids.currid[c]; found {
 		ids.currmu.Unlock()
 		log.Debugf("IdentifyConn called twice on: %s", c)
-		return // already identifying it.
+		<-wait // already identifying it. wait for it.
+		return
 	}
 	ids.currid[c] = make(chan struct{})
 	ids.currmu.Unlock()
