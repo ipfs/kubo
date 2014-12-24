@@ -4,9 +4,13 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"errors"
 	"fmt"
+
 	sha3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.crypto/sha3"
 )
+
+var ErrSumNotSupported = errors.New("Function not implemented. Complain to lib maintainer.")
 
 func Sum(data []byte, code int, length int) (Multihash, error) {
 	m := Multihash{}
@@ -26,7 +30,7 @@ func Sum(data []byte, code int, length int) (Multihash, error) {
 	case SHA3:
 		d, err = sumSHA3(data)
 	default:
-		return m, fmt.Errorf("Function not implemented. Complain to lib maintainer.")
+		return m, ErrSumNotSupported
 	}
 
 	if err != nil {
@@ -60,7 +64,7 @@ func sumSHA512(data []byte) []byte {
 }
 
 func sumSHA3(data []byte) ([]byte, error) {
-	h := sha3.NewKeccak512()
+	h := sha3.New512()
 	if _, err := h.Write(data); err != nil {
 		return nil, err
 	}
