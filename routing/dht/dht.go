@@ -28,6 +28,10 @@ var log = eventlog.Logger("dht")
 
 const doPinging = false
 
+// NumBootstrapQueries defines the number of random dht queries to do to
+// collect members of the routing table.
+const NumBootstrapQueries = 5
+
 // TODO. SEE https://github.com/jbenet/node-ipfs/blob/master/submodules/ipfs-dht/index.js
 
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
@@ -364,7 +368,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 func (dht *IpfsDHT) Bootstrap(ctx context.Context) {
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < NumBootstrapQueries; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
