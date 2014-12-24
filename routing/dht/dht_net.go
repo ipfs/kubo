@@ -31,7 +31,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	// receive msg
 	pmes := new(pb.Message)
 	if err := r.ReadMsg(pmes); err != nil {
-		log.Error("Error unmarshaling data")
+		log.Errorf("Error unmarshaling data: %s", err)
 		return
 	}
 

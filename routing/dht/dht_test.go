@@ -265,7 +265,8 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	t.Logf("bootstrapping them so they find each other", nDHTs)
-	bootstrap(t, ctx, dhts)
+	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+	bootstrap(t, ctxT, dhts)
 
 	// the routing tables should be full now. let's inspect them.
 	t.Logf("checking routing table of %d", nDHTs)

@@ -50,32 +50,44 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 		return nil, err
 	}
 
+	var connOut Conn
+	var errOut error
+	done := make(chan struct{})
+
+	// do it async to ensure we respect don contexteone
+	go func() {
+		defer func() { done <- struct{}{} }()
+
+		c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
+		if err != nil {
+			errOut = err
+			return
+		}
+
+		if d.PrivateKey == nil {
+			log.Warning("dialer %s dialing INSECURELY %s at %s!", d, remote, raddr)
+			connOut = c
+			return
+		}
+		c2, err := newSecureConn(ctx, d.PrivateKey, c)
+		if err != nil {
+			errOut = err
+			c.Close()
+			return
+		}
+
+		connOut = c2
+	}()
+
 	select {
 	case <-ctx.Done():
 		maconn.Close()
 		return nil, ctx.Err()
-	default:
+	case <-done:
+		// whew, finished.
 	}
 
-	c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
-	if err != nil {
-		return nil, err
-	}
-
-	if d.PrivateKey == nil {
-		log.Warning("dialer %s dialing INSECURELY %s at %s!", d, remote, raddr)
-		return c, nil
-	}
-
-	select {
-	case <-ctx.Done():
-		c.Close()
-		return nil, ctx.Err()
-	default:
-	}
-
-	// return c, nil
-	return newSecureConn(ctx, d.PrivateKey, c)
+	return connOut, errOut
 }
 
 // MultiaddrProtocolsMatch returns whether two multiaddrs match in protocol stacks.

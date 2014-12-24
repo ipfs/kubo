@@ -73,7 +73,7 @@ func TestGetFailures(t *testing.T) {
 	})
 
 	// This one should fail with NotFound
-	ctx2, _ := context.WithTimeout(context.Background(), time.Second)
+	ctx2, _ := context.WithTimeout(context.Background(), 3*time.Second)
 	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
 		if err != routing.ErrNotFound {
