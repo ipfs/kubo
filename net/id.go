@@ -51,10 +51,11 @@ func (ids *IDService) IdentifyConn(c Conn) {
 	if err != nil {
 		log.Error("network: unable to open initial stream for %s", ProtocolIdentify)
 		log.Event(ids.Network.CtxGroup().Context(), "IdentifyOpenFailed", c.RemotePeer())
-	}
+	} else {
 
-	// ok give the response to our handler.
-	ids.ResponseHandler(s)
+		// ok give the response to our handler.
+		ids.ResponseHandler(s)
+	}
 
 	ids.currmu.Lock()
 	ch, found := ids.currid[c]
