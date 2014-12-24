@@ -23,6 +23,7 @@ const (
 	ProtocolDHT      ProtocolID = "/ipfs/dht"
 	ProtocolIdentify ProtocolID = "/ipfs/id"
 	ProtocolDiag     ProtocolID = "/ipfs/diagnostics"
+	ProtocolRelay    ProtocolID = "/ipfs/relay"
 )
 
 // MessageSizeMax is a soft (recommended) maximum for network messages.
@@ -96,11 +97,6 @@ type Network interface {
 
 	// CtxGroup returns the network's contextGroup
 	CtxGroup() ctxgroup.ContextGroup
-
-	// IdentifyProtocol returns the instance of the object running the Identify
-	// Protocol. This is what runs the ifps handshake-- this should be removed
-	// if this abstracted out to its own package.
-	IdentifyProtocol() *IDService
 }
 
 // Dialer represents a service that can dial out to peers

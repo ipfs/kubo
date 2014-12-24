@@ -21,6 +21,7 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	inet "github.com/jbenet/go-ipfs/net"
+	ipfsnet "github.com/jbenet/go-ipfs/net/ipfsnet"
 	path "github.com/jbenet/go-ipfs/path"
 	peer "github.com/jbenet/go-ipfs/peer"
 	pin "github.com/jbenet/go-ipfs/pin"
@@ -121,7 +122,7 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 			return nil, debugerror.Wrap(err)
 		}
 
-		n.Network, err = inet.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
+		n.Network, err = ipfsnet.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}

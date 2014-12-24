@@ -1,4 +1,4 @@
-package net
+package mux
 
 import (
 	"fmt"
@@ -6,11 +6,13 @@ import (
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
+	inet "github.com/jbenet/go-ipfs/net"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
-var log = eventlog.Logger("network")
+var log = eventlog.Logger("net/mux")
 
 // Mux provides simple stream multixplexing.
 // It helps you precisely when:
@@ -30,16 +32,16 @@ var log = eventlog.Logger("network")
 // WARNING: this datastructure IS NOT threadsafe.
 // do not modify it once the network is using it.
 type Mux struct {
-	Default  StreamHandler // handles unknown protocols.
-	Handlers StreamHandlerMap
+	Default  inet.StreamHandler // handles unknown protocols.
+	Handlers inet.StreamHandlerMap
 
 	sync.RWMutex
 }
 
 // Protocols returns the list of protocols this muxer has handlers for
-func (m *Mux) Protocols() []ProtocolID {
+func (m *Mux) Protocols() []inet.ProtocolID {
 	m.RLock()
-	l := make([]ProtocolID, 0, len(m.Handlers))
+	l := make([]inet.ProtocolID, 0, len(m.Handlers))
 	for p := range m.Handlers {
 		l = append(l, p)
 	}
@@ -49,7 +51,7 @@ func (m *Mux) Protocols() []ProtocolID {
 
 // ReadProtocolHeader reads the stream and returns the next Handler function
 // according to the muxer encoding.
-func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {
+func (m *Mux) ReadProtocolHeader(s io.Reader) (string, inet.StreamHandler, error) {
 	// log.Error("ReadProtocolHeader")
 	name, err := ReadLengthPrefix(s)
 	if err != nil {
@@ -58,7 +60,7 @@ func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {
 
 	// log.Debug("ReadProtocolHeader got:", name)
 	m.RLock()
-	h, found := m.Handlers[ProtocolID(name)]
+	h, found := m.Handlers[inet.ProtocolID(name)]
 	m.RUnlock()
 
 	switch {
@@ -80,7 +82,7 @@ func (m *Mux) String() string {
 
 // SetHandler sets the protocol handler on the Network's Muxer.
 // This operation is threadsafe.
-func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
+func (m *Mux) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
 	log.Debugf("%s setting handler for protocol: %s (%d)", m, p, len(p))
 	m.Lock()
 	m.Handlers[p] = h
@@ -88,7 +90,8 @@ func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
 }
 
 // Handle reads the next name off the Stream, and calls a function
-func (m *Mux) Handle(s Stream) {
+func (m *Mux) Handle(s inet.Stream) {
+
 	ctx := context.Background()
 
 	name, handler, err := m.ReadProtocolHeader(s)
@@ -132,4 +135,15 @@ func WriteLengthPrefix(w io.Writer, name string) error {
 
 	_, err := w.Write(s)
 	return err
+}
+
+// WriteProtocolHeader defines how a protocol is written into the header of
+// a stream. This is so the muxer can multiplex between services.
+func WriteProtocolHeader(pr inet.ProtocolID, s inet.Stream) error {
+	if pr != "" { // only write proper protocol headers
+		if err := WriteLengthPrefix(s, string(pr)); err != nil {
+			return err
+		}
+	}
+	return nil
 }

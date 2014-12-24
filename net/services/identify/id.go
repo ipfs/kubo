@@ -1,14 +1,21 @@
-package net
+package identify
 
 import (
 	"sync"
 
-	handshake "github.com/jbenet/go-ipfs/net/handshake"
-	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
-
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
+	inet "github.com/jbenet/go-ipfs/net"
+	handshake "github.com/jbenet/go-ipfs/net/handshake"
+	pb "github.com/jbenet/go-ipfs/net/handshake/pb"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
+
+var log = eventlog.Logger("net/identify")
+
+// ProtocolIdentify is the ProtocolID of the Identify Service.
+const ProtocolIdentify inet.ProtocolID = "/ipfs/identify"
 
 // IDService is a structure that implements ProtocolIdentify.
 // It is a trivial service that gives the other peer some
@@ -19,24 +26,24 @@ import (
 //  * Our IPFS Agent Version
 //  * Our public Listen Addresses
 type IDService struct {
-	Network Network
+	Network inet.Network
 
 	// connections undergoing identification
 	// for wait purposes
-	currid map[Conn]chan struct{}
+	currid map[inet.Conn]chan struct{}
 	currmu sync.RWMutex
 }
 
-func NewIDService(n Network) *IDService {
+func NewIDService(n inet.Network) *IDService {
 	s := &IDService{
 		Network: n,
-		currid:  make(map[Conn]chan struct{}),
+		currid:  make(map[inet.Conn]chan struct{}),
 	}
 	n.SetHandler(ProtocolIdentify, s.RequestHandler)
 	return s
 }
 
-func (ids *IDService) IdentifyConn(c Conn) {
+func (ids *IDService) IdentifyConn(c inet.Conn) {
 	ids.currmu.Lock()
 	if wait, found := ids.currid[c]; found {
 		ids.currmu.Unlock()
@@ -70,7 +77,7 @@ func (ids *IDService) IdentifyConn(c Conn) {
 	close(ch) // release everyone waiting.
 }
 
-func (ids *IDService) RequestHandler(s Stream) {
+func (ids *IDService) RequestHandler(s inet.Stream) {
 	defer s.Close()
 	c := s.Conn()
 
@@ -83,7 +90,7 @@ func (ids *IDService) RequestHandler(s Stream) {
 		c.RemotePeer(), c.RemoteMultiaddr())
 }
 
-func (ids *IDService) ResponseHandler(s Stream) {
+func (ids *IDService) ResponseHandler(s inet.Stream) {
 	defer s.Close()
 	c := s.Conn()
 
@@ -100,7 +107,7 @@ func (ids *IDService) ResponseHandler(s Stream) {
 		c.RemotePeer(), c.RemoteMultiaddr())
 }
 
-func (ids *IDService) populateMessage(mes *pb.Handshake3, c Conn) {
+func (ids *IDService) populateMessage(mes *pb.Handshake3, c inet.Conn) {
 
 	// set protocols this node is currently handling
 	protos := ids.Network.Protocols()
@@ -129,7 +136,7 @@ func (ids *IDService) populateMessage(mes *pb.Handshake3, c Conn) {
 	mes.H1 = handshake.NewHandshake1("", "")
 }
 
-func (ids *IDService) consumeMessage(mes *pb.Handshake3, c Conn) {
+func (ids *IDService) consumeMessage(mes *pb.Handshake3, c inet.Conn) {
 	p := c.RemotePeer()
 
 	// mes.Protocols
@@ -164,7 +171,7 @@ func (ids *IDService) consumeMessage(mes *pb.Handshake3, c Conn) {
 // This happens async so the connection can start to be used
 // even if handshake3 knowledge is not necesary.
 // Users **MUST** call IdentifyWait _after_ IdentifyConn
-func (ids *IDService) IdentifyWait(c Conn) <-chan struct{} {
+func (ids *IDService) IdentifyWait(c inet.Conn) <-chan struct{} {
 	ids.currmu.Lock()
 	ch, found := ids.currid[c]
 	ids.currmu.Unlock()

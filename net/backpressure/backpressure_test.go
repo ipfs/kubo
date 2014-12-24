@@ -8,29 +8,14 @@ import (
 	"time"
 
 	inet "github.com/jbenet/go-ipfs/net"
+	netutil "github.com/jbenet/go-ipfs/net/ipfsnet/util"
 	peer "github.com/jbenet/go-ipfs/peer"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
 var log = eventlog.Logger("backpressure")
-
-func GenNetwork(t *testing.T, ctx context.Context) (inet.Network, error) {
-	p := testutil.RandPeerNetParamsOrFatal(t)
-	ps := peer.NewPeerstore()
-	ps.AddAddress(p.ID, p.Addr)
-	ps.AddPubKey(p.ID, p.PubKey)
-	ps.AddPrivKey(p.ID, p.PrivKey)
-	return inet.NewNetwork(ctx, ps.Addresses(p.ID), p.ID, ps)
-}
-
-func divulgeAddresses(a, b inet.Network) {
-	id := a.LocalPeer()
-	addrs := a.Peerstore().Addresses(id)
-	b.Peerstore().AddAddresses(id, addrs)
-}
 
 // TestBackpressureStreamHandler tests whether mux handler
 // ratelimiting works. Meaning, since the handler is sequential
@@ -149,14 +134,8 @@ a problem.
 	// ok that's enough setup. let's do it!
 
 	ctx := context.Background()
-	n1, err := GenNetwork(t, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n2, err := GenNetwork(t, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	n1 := netutil.GenNetwork(t, ctx)
+	n2 := netutil.GenNetwork(t, ctx)
 
 	// setup receiver handler
 	n1.SetHandler(inet.ProtocolTesting, receiver)
@@ -291,17 +270,11 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 	// setup the networks
 	ctx := context.Background()
-	n1, err := GenNetwork(t, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n2, err := GenNetwork(t, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	n1 := netutil.GenNetwork(t, ctx)
+	n2 := netutil.GenNetwork(t, ctx)
 
-	divulgeAddresses(n1, n2)
-	divulgeAddresses(n2, n1)
+	netutil.DivulgeAddresses(n1, n2)
+	netutil.DivulgeAddresses(n2, n1)
 
 	// setup sender handler on 1
 	n1.SetHandler(inet.ProtocolTesting, sender)
@@ -313,6 +286,9 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 	// open a stream, from 2->1, this is our reader
 	s, err := n2.NewStream(inet.ProtocolTesting, n1.LocalPeer())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// let's make sure r/w works.
 	testSenderWrote := func(bytesE int) {

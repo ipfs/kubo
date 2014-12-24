@@ -14,7 +14,7 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	inet "github.com/jbenet/go-ipfs/net"
+	ipfsnet "github.com/jbenet/go-ipfs/net/ipfsnet"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
@@ -49,7 +49,7 @@ func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
 	peerstore.AddPubKey(p, pk)
 	peerstore.AddAddress(p, addr)
 
-	n, err := inet.NewNetwork(ctx, []ma.Multiaddr{addr}, p, peerstore)
+	n, err := ipfsnet.NewNetwork(ctx, []ma.Multiaddr{addr}, p, peerstore)
 	if err != nil {
 		t.Fatal(err)
 	}

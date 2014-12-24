@@ -1,8 +1,10 @@
-package net
+package mux
 
 import (
 	"bytes"
 	"testing"
+
+	inet "github.com/jbenet/go-ipfs/net"
 )
 
 var testCases = map[string]string{
@@ -28,13 +30,13 @@ func TestHandler(t *testing.T) {
 
 	outs := make(chan string, 10)
 
-	h := func(n string) func(s Stream) {
-		return func(s Stream) {
+	h := func(n string) func(s inet.Stream) {
+		return func(s inet.Stream) {
 			outs <- n
 		}
 	}
 
-	m := Mux{Handlers: StreamHandlerMap{}}
+	m := Mux{Handlers: inet.StreamHandlerMap{}}
 	m.Default = h("default")
 	m.Handlers["dht"] = h("bitswap")
 	// m.Handlers["ipfs"] = h("bitswap") // default!

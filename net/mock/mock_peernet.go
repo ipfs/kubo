@@ -7,6 +7,8 @@ import (
 
 	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
+	ids "github.com/jbenet/go-ipfs/net/services/identify"
+	mux "github.com/jbenet/go-ipfs/net/services/mux"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -28,8 +30,8 @@ type peernet struct {
 	connsByLink map[*link]map[*conn]struct{}
 
 	// needed to implement inet.Network
-	mux inet.Mux
-	ids *inet.IDService
+	mux mux.Mux
+	ids *ids.IDService
 
 	cg ctxgroup.ContextGroup
 	sync.RWMutex
@@ -54,7 +56,7 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 		mocknet: m,
 		peer:    p,
 		ps:      ps,
-		mux:     inet.Mux{Handlers: inet.StreamHandlerMap{}},
+		mux:     mux.Mux{Handlers: inet.StreamHandlerMap{}},
 		cg:      ctxgroup.WithContext(ctx),
 
 		connsByPeer: map[peer.ID]map[*conn]struct{}{},
@@ -65,7 +67,7 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 
 	// setup a conn handler that immediately "asks the other side about them"
 	// this is ProtocolIdentify.
-	n.ids = inet.NewIDService(n)
+	n.ids = ids.NewIDService(n)
 
 	return n, nil
 }
@@ -338,6 +340,6 @@ func (pn *peernet) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
 	pn.mux.SetHandler(p, h)
 }
 
-func (pn *peernet) IdentifyProtocol() *inet.IDService {
+func (pn *peernet) IdentifyProtocol() *ids.IDService {
 	return pn.ids
 }
