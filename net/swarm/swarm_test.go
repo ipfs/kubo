@@ -248,15 +248,21 @@ func TestConnHandler(t *testing.T) {
 
 	<-time.After(time.Millisecond)
 	// should've gotten 5 by now.
-	close(gotconn)
+
+	swarms[0].SetConnHandler(nil)
 
 	expect := 4
-	actual := 0
-	for _ = range gotconn {
-		actual++
+	for i := 0; i < expect; i++ {
+		select {
+		case <-time.After(time.Second):
+			t.Fatal("failed to get connections")
+		case <-gotconn:
+		}
 	}
 
-	if actual != expect {
-		t.Fatal("should have connected to %d swarms. got: %d", actual, expect)
+	select {
+	case <-gotconn:
+		t.Fatalf("should have connected to %d swarms", expect)
+	default:
 	}
 }
