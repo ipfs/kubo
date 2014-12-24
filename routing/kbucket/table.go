@@ -227,4 +227,5 @@ func (rt *RoutingTable) Print() {
 	for i, p := range peers {
 		fmt.Printf("%d) %s %s\n", i, p.Pretty(), rt.metrics.LatencyEWMA(p).String())
 	}
+	rt.tabLock.RUnlock()
 }
