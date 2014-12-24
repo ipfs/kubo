@@ -223,9 +223,16 @@ func (rt *RoutingTable) ListPeers() []peer.ID {
 func (rt *RoutingTable) Print() {
 	fmt.Printf("Routing Table, bs = %d, Max latency = %d\n", rt.bucketsize, rt.maxLatency)
 	rt.tabLock.RLock()
-	peers := rt.ListPeers()
-	for i, p := range peers {
-		fmt.Printf("%d) %s %s\n", i, p.Pretty(), rt.metrics.LatencyEWMA(p).String())
+
+	for i, b := range rt.Buckets {
+		fmt.Printf("\tbucket: %d\n", i)
+
+		b.lk.RLock()
+		for e := b.list.Front(); e != nil; e = e.Next() {
+			p := e.Value.(peer.ID)
+			fmt.Printf("\t\t- %s %s\n", p.Pretty(), rt.metrics.LatencyEWMA(p).String())
+		}
+		b.lk.RUnlock()
 	}
 	rt.tabLock.RUnlock()
 }
