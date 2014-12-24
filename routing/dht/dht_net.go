@@ -7,6 +7,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
@@ -21,8 +22,10 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	defer s.Close()
 
 	ctx := dht.Context()
-	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
-	w := ggio.NewDelimitedWriter(s)
+	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(cw)
 	mPeer := s.Conn().RemotePeer()
 
 	// receive msg
@@ -76,8 +79,10 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	defer s.Close()
 
-	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
-	w := ggio.NewDelimitedWriter(s)
+	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(cw)
 
 	start := time.Now()
 
@@ -113,7 +118,8 @@ func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	defer s.Close()
 
-	w := ggio.NewDelimitedWriter(s)
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	w := ggio.NewDelimitedWriter(cw)
 
 	log.Debugf("%s writing", dht.self)
 	if err := w.WriteMsg(pmes); err != nil {
