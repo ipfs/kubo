@@ -82,15 +82,6 @@ type Network interface {
 	// If ProtocolID is "", writes no header.
 	NewStream(ProtocolID, peer.ID) (Stream, error)
 
-	// Peers returns the peers connected
-	Peers() []peer.ID
-
-	// Conns returns the connections in this Netowrk
-	Conns() []Conn
-
-	// ConnsToPeer returns the connections in this Netowrk for given peer.
-	ConnsToPeer(p peer.ID) []Conn
-
 	// BandwidthTotals returns the total number of bytes passed through
 	// the network since it was instantiated
 	BandwidthTotals() (uint64, uint64)
@@ -133,6 +124,15 @@ type Dialer interface {
 
 	// Connectedness returns a state signaling connection capabilities
 	Connectedness(peer.ID) Connectedness
+
+	// Peers returns the peers connected
+	Peers() []peer.ID
+
+	// Conns returns the connections in this Netowrk
+	Conns() []Conn
+
+	// ConnsToPeer returns the connections in this Netowrk for given peer.
+	ConnsToPeer(p peer.ID) []Conn
 }
 
 // Connectedness signals the capacity for a connection with a given node.

@@ -109,7 +109,7 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 	}
 	l.cg.SetTeardown(l.teardown)
 
-	log.Infof("swarm listening on %s\n", l.Multiaddr())
+	log.Infof("swarm listening on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)
 	return l, nil
 }

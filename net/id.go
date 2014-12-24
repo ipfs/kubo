@@ -38,10 +38,11 @@ func NewIDService(n Network) *IDService {
 
 func (ids *IDService) IdentifyConn(c Conn) {
 	ids.currmu.Lock()
-	if _, found := ids.currid[c]; found {
+	if wait, found := ids.currid[c]; found {
 		ids.currmu.Unlock()
 		log.Debugf("IdentifyConn called twice on: %s", c)
-		return // already identifying it.
+		<-wait // already identifying it. wait for it.
+		return
 	}
 	ids.currid[c] = make(chan struct{})
 	ids.currmu.Unlock()
@@ -50,10 +51,11 @@ func (ids *IDService) IdentifyConn(c Conn) {
 	if err != nil {
 		log.Error("network: unable to open initial stream for %s", ProtocolIdentify)
 		log.Event(ids.Network.CtxGroup().Context(), "IdentifyOpenFailed", c.RemotePeer())
-	}
+	} else {
 
-	// ok give the response to our handler.
-	ids.ResponseHandler(s)
+		// ok give the response to our handler.
+		ids.ResponseHandler(s)
+	}
 
 	ids.currmu.Lock()
 	ch, found := ids.currid[c]

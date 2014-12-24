@@ -7,6 +7,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
@@ -21,18 +22,21 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	defer s.Close()
 
 	ctx := dht.Context()
-	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
-	w := ggio.NewDelimitedWriter(s)
+	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(cw)
 	mPeer := s.Conn().RemotePeer()
 
 	// receive msg
 	pmes := new(pb.Message)
 	if err := r.ReadMsg(pmes); err != nil {
-		log.Error("Error unmarshaling data")
+		log.Errorf("Error unmarshaling data: %s", err)
 		return
 	}
+
 	// update the peer (on valid msgs only)
-	dht.Update(ctx, mPeer)
+	dht.updateFromMessage(ctx, mPeer, pmes)
 
 	log.Event(ctx, "foo", dht.self, mPeer, pmes)
 
@@ -76,8 +80,10 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	defer s.Close()
 
-	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
-	w := ggio.NewDelimitedWriter(s)
+	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(cw)
 
 	start := time.Now()
 
@@ -98,6 +104,9 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 		return nil, errors.New("no response to request")
 	}
 
+	// update the peer (on valid msgs only)
+	dht.updateFromMessage(ctx, p, rpmes)
+
 	dht.peerstore.RecordLatency(p, time.Since(start))
 	log.Event(ctx, "dhtReceivedMessage", dht.self, p, rpmes)
 	return rpmes, nil
@@ -113,7 +122,8 @@ func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	defer s.Close()
 
-	w := ggio.NewDelimitedWriter(s)
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	w := ggio.NewDelimitedWriter(cw)
 
 	log.Debugf("%s writing", dht.self)
 	if err := w.WriteMsg(pmes); err != nil {
@@ -121,5 +131,10 @@ func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	log.Event(ctx, "dhtSentMessage", dht.self, p, pmes)
 	log.Debugf("%s done", dht.self)
+	return nil
+}
+
+func (dht *IpfsDHT) updateFromMessage(ctx context.Context, p peer.ID, mes *pb.Message) error {
+	dht.Update(ctx, p)
 	return nil
 }

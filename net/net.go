@@ -148,7 +148,19 @@ func (n *network) DialPeer(ctx context.Context, p peer.ID) error {
 	}
 
 	// identify the connection before returning.
-	n.ids.IdentifyConn((*conn_)(sc))
+	done := make(chan struct{})
+	go func() {
+		n.ids.IdentifyConn((*conn_)(sc))
+		close(done)
+	}()
+
+	// respect don contexteone
+	select {
+	case <-done:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	log.Debugf("network for %s finished dialing %s", n.local, p)
 	return nil
 }

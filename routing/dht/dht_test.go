@@ -2,7 +2,9 @@ package dht
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,9 +17,21 @@ import (
 	// ci "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
+
+var testCaseValues = map[u.Key][]byte{}
+
+func init() {
+	testCaseValues["hello"] = []byte("world")
+	for i := 0; i < 100; i++ {
+		k := fmt.Sprintf("%d -- key", i)
+		v := fmt.Sprintf("%d -- value", i)
+		testCaseValues[u.Key(k)] = []byte(v)
+	}
+}
 
 func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
 
@@ -76,6 +90,27 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	if err := a.Connect(ctx, idB); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	rounds := 1
+	for i := 0; i < rounds; i++ {
+		log.Debugf("bootstrapping round %d/%d\n", i, rounds)
+
+		// tried async. sequential fares much better. compare:
+		// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
+		// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
+		// probably because results compound
+		for _, dht := range dhts {
+			log.Debugf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
+			dht.Bootstrap(ctx, 3)
+		}
+	}
+
+	cancel()
 }
 
 func TestPing(t *testing.T) {
@@ -174,37 +209,208 @@ func TestProvides(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	err := dhts[3].putLocal(u.Key("hello"), []byte("world"))
-	if err != nil {
-		t.Fatal(err)
+	for k, v := range testCaseValues {
+		log.Debugf("adding local values for %s = %s", k, v)
+		err := dhts[3].putLocal(k, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		bits, err := dhts[3].getLocal(k)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(bits, v) {
+			t.Fatal("didn't store the right bits (%s, %s)", k, v)
+		}
 	}
 
-	bits, err := dhts[3].getLocal(u.Key("hello"))
-	if err != nil && bytes.Equal(bits, []byte("world")) {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].Provide(ctx, u.Key("hello"))
-	if err != nil {
-		t.Fatal(err)
+	for k, _ := range testCaseValues {
+		log.Debugf("announcing provider for %s", k)
+		if err := dhts[3].Provide(ctx, k); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// what is this timeout for? was 60ms before.
 	time.Sleep(time.Millisecond * 6)
 
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	provchan := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 1)
+	n := 0
+	for k, _ := range testCaseValues {
+		n = (n + 1) % 3
 
-	select {
-	case prov := <-provchan:
-		if prov.ID == "" {
-			t.Fatal("Got back nil provider")
+		log.Debugf("getting providers for %s from %d", k, n)
+		ctxT, _ := context.WithTimeout(ctx, time.Second)
+		provchan := dhts[n].FindProvidersAsync(ctxT, k, 1)
+
+		select {
+		case prov := <-provchan:
+			if prov.ID == "" {
+				t.Fatal("Got back nil provider")
+			}
+			if prov.ID != dhts[3].self {
+				t.Fatal("Got back wrong provider")
+			}
+		case <-ctxT.Done():
+			t.Fatal("Did not get a provider back.")
 		}
-		if prov.ID != dhts[3].self {
-			t.Fatal("Got back nil provider")
+	}
+}
+
+func TestBootstrap(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	ctx := context.Background()
+
+	nDHTs := 15
+	_, _, dhts := setupDHTS(ctx, nDHTs, t)
+	defer func() {
+		for i := 0; i < nDHTs; i++ {
+			dhts[i].Close()
+			defer dhts[i].network.Close()
 		}
-	case <-ctxT.Done():
-		t.Fatal("Did not get a provider back.")
+	}()
+
+	t.Logf("connecting %d dhts in a ring", nDHTs)
+	for i := 0; i < nDHTs; i++ {
+		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
+	}
+
+	<-time.After(100 * time.Millisecond)
+	t.Logf("bootstrapping them so they find each other", nDHTs)
+	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+	bootstrap(t, ctxT, dhts)
+
+	if u.Debug {
+		// the routing tables should be full now. let's inspect them.
+		<-time.After(5 * time.Second)
+		t.Logf("checking routing table of %d", nDHTs)
+		for _, dht := range dhts {
+			fmt.Printf("checking routing table of %s\n", dht.self)
+			dht.routingTable.Print()
+			fmt.Println("")
+		}
+	}
+
+	// test "well-formed-ness" (>= 3 peers in every routing table)
+	for _, dht := range dhts {
+		rtlen := dht.routingTable.Size()
+		if rtlen < 4 {
+			t.Errorf("routing table for %s only has %d peers", dht.self, rtlen)
+		}
+	}
+}
+
+func TestProvidesMany(t *testing.T) {
+	t.Skip("this test doesn't work")
+	// t.Skip("skipping test to debug another")
+	ctx := context.Background()
+
+	nDHTs := 40
+	_, _, dhts := setupDHTS(ctx, nDHTs, t)
+	defer func() {
+		for i := 0; i < nDHTs; i++ {
+			dhts[i].Close()
+			defer dhts[i].network.Close()
+		}
+	}()
+
+	t.Logf("connecting %d dhts in a ring", nDHTs)
+	for i := 0; i < nDHTs; i++ {
+		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
+	}
+
+	<-time.After(100 * time.Millisecond)
+	t.Logf("bootstrapping them so they find each other", nDHTs)
+	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+	bootstrap(t, ctxT, dhts)
+
+	if u.Debug {
+		// the routing tables should be full now. let's inspect them.
+		<-time.After(5 * time.Second)
+		t.Logf("checking routing table of %d", nDHTs)
+		for _, dht := range dhts {
+			fmt.Printf("checking routing table of %s\n", dht.self)
+			dht.routingTable.Print()
+			fmt.Println("")
+		}
+	}
+
+	var providers = map[u.Key]peer.ID{}
+
+	d := 0
+	for k, v := range testCaseValues {
+		d = (d + 1) % len(dhts)
+		dht := dhts[d]
+		providers[k] = dht.self
+
+		t.Logf("adding local values for %s = %s (on %s)", k, v, dht.self)
+		err := dht.putLocal(k, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		bits, err := dht.getLocal(k)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(bits, v) {
+			t.Fatal("didn't store the right bits (%s, %s)", k, v)
+		}
+
+		t.Logf("announcing provider for %s", k)
+		if err := dht.Provide(ctx, k); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// what is this timeout for? was 60ms before.
+	time.Sleep(time.Millisecond * 6)
+
+	errchan := make(chan error)
+
+	ctxT, _ = context.WithTimeout(ctx, 5*time.Second)
+
+	var wg sync.WaitGroup
+	getProvider := func(dht *IpfsDHT, k u.Key) {
+		defer wg.Done()
+
+		expected := providers[k]
+
+		provchan := dht.FindProvidersAsync(ctxT, k, 1)
+		select {
+		case prov := <-provchan:
+			actual := prov.ID
+			if actual == "" {
+				errchan <- fmt.Errorf("Got back nil provider (%s at %s)", k, dht.self)
+			} else if actual != expected {
+				errchan <- fmt.Errorf("Got back wrong provider (%s != %s) (%s at %s)",
+					expected, actual, k, dht.self)
+			}
+		case <-ctxT.Done():
+			errchan <- fmt.Errorf("Did not get a provider back (%s at %s)", k, dht.self)
+		}
+	}
+
+	for k, _ := range testCaseValues {
+		// everyone should be able to find it...
+		for _, dht := range dhts {
+			log.Debugf("getting providers for %s at %s", k, dht.self)
+			wg.Add(1)
+			go getProvider(dht, k)
+		}
+	}
+
+	// we need this because of printing errors
+	go func() {
+		wg.Wait()
+		close(errchan)
+	}()
+
+	for err := range errchan {
+		t.Error(err)
 	}
 }
 
@@ -291,18 +497,20 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 60)
+	time.Sleep(time.Millisecond * 6)
 
+	t.Log("interface was changed. GetValue should not use providers.")
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	val, err := dhts[0].GetValue(ctxT, u.Key("/v/hello"))
-	if err != nil {
-		t.Fatal(err)
+	if err != routing.ErrNotFound {
+		t.Error(err)
 	}
-
-	if string(val) != "world" {
-		t.Fatal("Got incorrect value.")
+	if string(val) == "world" {
+		t.Error("should not get value.")
 	}
-
+	if len(val) > 0 && string(val) != "world" {
+		t.Error("worse, there's a value and its not even the right one.")
+	}
 }
 
 func TestFindPeer(t *testing.T) {

@@ -148,7 +148,7 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 	}
 
 	if closest == nil {
-		log.Errorf("handleFindPeer: could not find anything.")
+		log.Debugf("handleFindPeer: could not find anything.")
 		return resp, nil
 	}
 
