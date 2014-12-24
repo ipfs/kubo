@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"testing"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
@@ -49,17 +50,24 @@ func RandLocalTCPAddress() ma.Multiaddr {
 	// most ports above 10000 aren't in use by long running processes, so yay.
 	// (maybe there should be a range of "loopback" ports that are guaranteed
 	// to be open for the process, but naturally can only talk to self.)
-	if lastPort == 0 {
-		lastPort = 10000 + SeededRand.Intn(50000)
-	}
-	lastPort++
 
-	addr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", lastPort)
+	lastPort.Lock()
+	if lastPort.port == 0 {
+		lastPort.port = 10000 + SeededRand.Intn(50000)
+	}
+	port := lastPort.port
+	lastPort.port++
+	lastPort.Unlock()
+
+	addr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)
 	maddr, _ := ma.NewMultiaddr(addr)
 	return maddr
 }
 
-var lastPort = 0
+var lastPort = struct {
+	port int
+	sync.Mutex
+}{}
 
 // PeerNetParams is a struct to bundle together the four things
 // you need to run a connection with a peer: id, 2keys, and addr.
