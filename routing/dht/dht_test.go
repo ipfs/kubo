@@ -17,6 +17,7 @@ import (
 	// ci "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
+	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -97,14 +98,14 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 
 	rounds := 1
 	for i := 0; i < rounds; i++ {
-		fmt.Printf("bootstrapping round %d/%d\n", i, rounds)
+		log.Debugf("bootstrapping round %d/%d\n", i, rounds)
 
 		// tried async. sequential fares much better. compare:
 		// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
 		// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
 		// probably because results compound
 		for _, dht := range dhts {
-			fmt.Printf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
+			log.Debugf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
 			dht.Bootstrap(ctx, 3)
 		}
 	}
@@ -209,7 +210,7 @@ func TestProvides(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[3])
 
 	for k, v := range testCaseValues {
-		t.Logf("adding local values for %s = %s", k, v)
+		log.Debugf("adding local values for %s = %s", k, v)
 		err := dhts[3].putLocal(k, v)
 		if err != nil {
 			t.Fatal(err)
@@ -225,7 +226,7 @@ func TestProvides(t *testing.T) {
 	}
 
 	for k, _ := range testCaseValues {
-		t.Logf("announcing provider for %s", k)
+		log.Debugf("announcing provider for %s", k)
 		if err := dhts[3].Provide(ctx, k); err != nil {
 			t.Fatal(err)
 		}
@@ -238,7 +239,7 @@ func TestProvides(t *testing.T) {
 	for k, _ := range testCaseValues {
 		n = (n + 1) % 3
 
-		t.Logf("getting providers for %s from %d", k, n)
+		log.Debugf("getting providers for %s from %d", k, n)
 		ctxT, _ := context.WithTimeout(ctx, time.Second)
 		provchan := dhts[n].FindProvidersAsync(ctxT, k, 1)
 
@@ -259,7 +260,7 @@ func TestProvides(t *testing.T) {
 func TestBootstrap(t *testing.T) {
 	ctx := context.Background()
 
-	nDHTs := 10
+	nDHTs := 15
 	_, _, dhts := setupDHTS(ctx, nDHTs, t)
 	defer func() {
 		for i := 0; i < nDHTs; i++ {
@@ -278,12 +279,23 @@ func TestBootstrap(t *testing.T) {
 	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
 	bootstrap(t, ctxT, dhts)
 
-	// the routing tables should be full now. let's inspect them.
-	t.Logf("checking routing table of %d", nDHTs)
+	if u.Debug {
+		// the routing tables should be full now. let's inspect them.
+		<-time.After(5 * time.Second)
+		t.Logf("checking routing table of %d", nDHTs)
+		for _, dht := range dhts {
+			fmt.Printf("checking routing table of %s\n", dht.self)
+			dht.routingTable.Print()
+			fmt.Println("")
+		}
+	}
+
+	// test "well-formed-ness" (>= 3 peers in every routing table)
 	for _, dht := range dhts {
-		fmt.Printf("checking routing table of %s\n", dht.self)
-		dht.routingTable.Print()
-		fmt.Println("")
+		rtlen := dht.routingTable.Size()
+		if rtlen < 4 {
+			t.Errorf("routing table for %s only has %d peers", dht.self, rtlen)
+		}
 	}
 }
 
@@ -311,13 +323,15 @@ func TestProvidesMany(t *testing.T) {
 	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
 	bootstrap(t, ctxT, dhts)
 
-	<-time.After(5 * time.Second)
-	// the routing tables should be full now. let's inspect them.
-	t.Logf("checking routing table of %d", nDHTs)
-	for _, dht := range dhts {
-		fmt.Printf("checking routing table of %s\n", dht.self)
-		dht.routingTable.Print()
-		fmt.Println("")
+	if u.Debug {
+		// the routing tables should be full now. let's inspect them.
+		<-time.After(5 * time.Second)
+		t.Logf("checking routing table of %d", nDHTs)
+		for _, dht := range dhts {
+			fmt.Printf("checking routing table of %s\n", dht.self)
+			dht.routingTable.Print()
+			fmt.Println("")
+		}
 	}
 
 	d := 0
@@ -372,7 +386,7 @@ func TestProvidesMany(t *testing.T) {
 	for k, _ := range testCaseValues {
 		// everyone should be able to find it...
 		for _, dht := range dhts {
-			t.Logf("getting providers for %s at %s", k, dht.self)
+			log.Debugf("getting providers for %s at %s", k, dht.self)
 			wg.Add(1)
 			go getProvider(dht, k)
 		}
@@ -384,7 +398,6 @@ func TestProvidesMany(t *testing.T) {
 		close(errchan)
 	}()
 
-	t.Logf("looking through errors")
 	for err := range errchan {
 		t.Error(err)
 	}
@@ -473,18 +486,20 @@ func TestLayeredGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 60)
+	time.Sleep(time.Millisecond * 6)
 
+	t.Log("interface was changed. GetValue should not use providers.")
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	val, err := dhts[0].GetValue(ctxT, u.Key("/v/hello"))
-	if err != nil {
-		t.Fatal(err)
+	if err != routing.ErrNotFound {
+		t.Error(err)
 	}
-
-	if string(val) != "world" {
-		t.Fatal("Got incorrect value.")
+	if string(val) == "world" {
+		t.Error("should not get value.")
 	}
-
+	if len(val) > 0 && string(val) != "world" {
+		t.Error("worse, there's a value and its not even the right one.")
+	}
 }
 
 func TestFindPeer(t *testing.T) {
