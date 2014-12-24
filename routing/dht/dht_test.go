@@ -92,15 +92,23 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 }
 
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
-	var wg sync.WaitGroup
-	for _, dht := range dhts {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			dht.Bootstrap(ctx)
-		}()
+
+	// try multiple rounds...
+	rounds := 5
+	for i := 0; i < rounds; i++ {
+		fmt.Printf("bootstrapping round %d/%d\n", i, rounds)
+
+		var wg sync.WaitGroup
+		for _, dht := range dhts {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				dht.Bootstrap(ctx)
+			}()
+		}
+		wg.Wait()
+
 	}
-	wg.Wait()
 }
 
 func TestPing(t *testing.T) {
@@ -263,6 +271,8 @@ func TestBootstrap(t *testing.T) {
 	for i := 0; i < nDHTs; i++ {
 		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
 	}
+
+	<-time.After(100 * time.Millisecond)
 
 	t.Logf("bootstrapping them so they find each other", nDHTs)
 	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
