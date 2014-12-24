@@ -119,7 +119,6 @@ func AddCatBytes(data []byte, conf Config) error {
 			if i == j {
 				continue
 			}
-			fmt.Println(i, " and ", j)
 			if _, err := mn.LinkPeers(i, j); err != nil {
 				return err
 			}
