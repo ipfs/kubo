@@ -15,6 +15,8 @@ type Identity interface {
 	PublicKey() ci.PubKey
 }
 
+// TODO add a cheaper way to generate identities
+
 func RandIdentity() (Identity, error) {
 	p, err := RandPeerNetParams()
 	if err != nil {
