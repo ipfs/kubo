@@ -34,8 +34,9 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 		log.Error("Error unmarshaling data")
 		return
 	}
+
 	// update the peer (on valid msgs only)
-	dht.Update(ctx, mPeer)
+	dht.updateFromMessage(ctx, mPeer, pmes)
 
 	log.Event(ctx, "foo", dht.self, mPeer, pmes)
 
@@ -103,6 +104,9 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 		return nil, errors.New("no response to request")
 	}
 
+	// update the peer (on valid msgs only)
+	dht.updateFromMessage(ctx, p, rpmes)
+
 	dht.peerstore.RecordLatency(p, time.Since(start))
 	log.Event(ctx, "dhtReceivedMessage", dht.self, p, rpmes)
 	return rpmes, nil
@@ -127,5 +131,10 @@ func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	log.Event(ctx, "dhtSentMessage", dht.self, p, pmes)
 	log.Debugf("%s done", dht.self)
+	return nil
+}
+
+func (dht *IpfsDHT) updateFromMessage(ctx context.Context, p peer.ID, mes *pb.Message) error {
+	dht.Update(ctx, p)
 	return nil
 }
