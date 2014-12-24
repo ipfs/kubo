@@ -91,6 +91,18 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	}
 }
 
+func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
+	var wg sync.WaitGroup
+	for _, dht := range dhts {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dht.Bootstrap(ctx)
+		}()
+	}
+	wg.Wait()
+}
+
 func TestPing(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 	ctx := context.Background()
@@ -235,8 +247,7 @@ func TestProvides(t *testing.T) {
 	}
 }
 
-func TestProvidesMany(t *testing.T) {
-	t.Skip("this test doesn't work")
+func TestBootstrap(t *testing.T) {
 	ctx := context.Background()
 
 	nDHTs := 40
@@ -253,10 +264,39 @@ func TestProvidesMany(t *testing.T) {
 		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
 	}
 
-	// t.Logf("bootstrapping them so they find each other", nDHTs)
-	// for _, dht := range dhts {
-	// 	bootstrap(t, ctx, dht)
-	// }
+	t.Logf("bootstrapping them so they find each other", nDHTs)
+	bootstrap(t, ctx, dhts)
+
+	// the routing tables should be full now. let's inspect them.
+	t.Logf("checking routing table of %d", nDHTs)
+	for _, dht := range dhts {
+		fmt.Printf("checking routing table of %s\n", dht.self)
+		dht.routingTable.Print()
+		fmt.Println("")
+	}
+}
+
+func TestProvidesMany(t *testing.T) {
+	t.Skip("this test doesn't work")
+	// t.Skip("skipping test to debug another")
+	ctx := context.Background()
+
+	nDHTs := 40
+	_, _, dhts := setupDHTS(ctx, nDHTs, t)
+	defer func() {
+		for i := 0; i < nDHTs; i++ {
+			dhts[i].Close()
+			defer dhts[i].network.Close()
+		}
+	}()
+
+	t.Logf("connecting %d dhts in a ring", nDHTs)
+	for i := 0; i < nDHTs; i++ {
+		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
+	}
+
+	t.Logf("bootstrapping them so they find each other", nDHTs)
+	bootstrap(t, ctx, dhts)
 
 	d := 0
 	for k, v := range testCaseValues {
