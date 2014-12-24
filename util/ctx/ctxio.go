@@ -45,7 +45,7 @@ func (w *ctxWriter) Write(buf []byte) (int, error) {
 	buf2 := make([]byte, len(buf))
 	copy(buf2, buf)
 
-	c := make(chan ioret)
+	c := make(chan ioret, 1)
 
 	go func() {
 		n, err := w.w.Write(buf2)
@@ -92,7 +92,7 @@ func NewReader(ctx context.Context, r io.Reader) *ctxReader {
 func (r *ctxReader) Read(buf []byte) (int, error) {
 	buf2 := make([]byte, len(buf))
 
-	c := make(chan ioret)
+	c := make(chan ioret, 1)
 
 	go func() {
 		n, err := r.r.Read(buf2)
