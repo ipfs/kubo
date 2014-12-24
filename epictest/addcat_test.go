@@ -27,14 +27,16 @@ import (
 
 const kSeed = 1
 
-func Test100MBInstantaneous(t *testing.T) {
+func Test1KBInstantaneous(t *testing.T) {
 	conf := Config{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
 
-	AddCatBytes(RandomBytes(100*1024*1024), conf)
+	if err := AddCatBytes(RandomBytes(1*KB), conf); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestDegenerateSlowBlockstore(t *testing.T) {
