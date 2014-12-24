@@ -89,9 +89,16 @@ func (m *Mux) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
 	m.Unlock()
 }
 
-// Handle reads the next name off the Stream, and calls a function
+// Handle reads the next name off the Stream, and calls a handler function
+// This is done in its own goroutine, to avoid blocking the caller.
 func (m *Mux) Handle(s inet.Stream) {
+	go m.HandleSync(s)
+}
 
+// HandleSync reads the next name off the Stream, and calls a handler function
+// This is done synchronously. The handler function will return before
+// HandleSync returns.
+func (m *Mux) HandleSync(s inet.Stream) {
 	ctx := context.Background()
 
 	name, handler, err := m.ReadProtocolHeader(s)
@@ -102,7 +109,7 @@ func (m *Mux) Handle(s inet.Stream) {
 		return
 	}
 
-	log.Info("muxer handle protocol: %s", name)
+	log.Infof("muxer handle protocol: %s", name)
 	log.Event(ctx, "muxHandle", eventlog.Metadata{"protocol": name})
 	handler(s)
 }

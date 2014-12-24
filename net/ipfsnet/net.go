@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	ic "github.com/jbenet/go-ipfs/crypto"
+	peer "github.com/jbenet/go-ipfs/peer"
+
 	inet "github.com/jbenet/go-ipfs/net"
 	ids "github.com/jbenet/go-ipfs/net/services/identify"
 	mux "github.com/jbenet/go-ipfs/net/services/mux"
+	relay "github.com/jbenet/go-ipfs/net/services/relay"
 	swarm "github.com/jbenet/go-ipfs/net/swarm"
-	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
@@ -105,6 +107,7 @@ type Network struct {
 	swarm *swarm.Swarm // peer connection multiplexing
 	mux   mux.Mux      // protocol multiplexing
 	ids   *ids.IDService
+	relay *relay.RelayService
 
 	cg ctxgroup.ContextGroup // for Context closing
 }
@@ -133,11 +136,13 @@ func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
 		n.mux.Handle((*stream)(s))
 	})
 
-	// setup a conn handler that immediately "asks the other side about them"
-	// this is ProtocolIdentify.
+	// setup ProtocolIdentify to immediately "asks the other side about them"
 	n.ids = ids.NewIDService(n)
 	s.SetConnHandler(n.newConnHandler)
 
+	// setup ProtocolRelay to allow traffic relaying.
+	// Feed things we get for ourselves into the muxer.
+	n.relay = relay.NewRelayService(n.cg.Context(), n, n.mux.HandleSync)
 	return n, nil
 }
 
