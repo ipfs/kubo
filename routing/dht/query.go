@@ -237,13 +237,18 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 	}()
 
 	// make sure we're connected to the peer.
-	err := r.query.dialer.DialPeer(cg.Context(), p)
-	if err != nil {
-		log.Debugf("ERROR worker for: %v -- err connecting: %v", p, err)
-		r.Lock()
-		r.errs = append(r.errs, err)
-		r.Unlock()
-		return
+	if conns := r.query.dialer.ConnsToPeer(p); len(conns) == 0 {
+		log.Infof("worker for: %v -- not connected. dial start", p)
+
+		if err := r.query.dialer.DialPeer(cg.Context(), p); err != nil {
+			log.Debugf("ERROR worker for: %v -- err connecting: %v", p, err)
+			r.Lock()
+			r.errs = append(r.errs, err)
+			r.Unlock()
+			return
+		}
+
+		log.Infof("worker for: %v -- not connected. dial success!", p)
 	}
 
 	// finally, run the query against this peer
