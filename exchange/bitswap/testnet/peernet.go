@@ -20,13 +20,9 @@ func StreamNet(ctx context.Context, net mockpeernet.Mocknet, rs mockrouting.Serv
 }
 
 func (pn *peernet) Adapter(p testutil.Peer) bsnet.BitSwapNetwork {
-	peers := pn.Mocknet.Peers()
 	client, err := pn.Mocknet.AddPeer(p.PrivateKey(), p.Address())
 	if err != nil {
 		panic(err.Error())
-	}
-	for _, other := range peers {
-		pn.Mocknet.LinkPeers(p.ID(), other)
 	}
 	routing := pn.routingserver.ClientWithDatastore(context.TODO(), p, ds.NewMapDatastore())
 	return bsnet.NewFromIpfsNetwork(client, routing)

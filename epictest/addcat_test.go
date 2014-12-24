@@ -95,7 +95,8 @@ func AddCatBytes(data []byte, conf Config) error {
 	// defer mn.Close() FIXME does mocknet require clean-up
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency:   conf.NetworkLatency,
-		Bandwidth: math.MaxInt32, // TODO add to conf
+		// TODO add to conf. This is tricky because we want 0 values to be functional.
+		Bandwidth: math.MaxInt32,
 	})
 	dhtNetwork := mockrouting.NewDHTNetwork(mn)
 	net, err := tn.StreamNet(ctx, mn, dhtNetwork)
