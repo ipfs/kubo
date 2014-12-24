@@ -258,6 +258,10 @@ func TestProvides(t *testing.T) {
 }
 
 func TestBootstrap(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
 	ctx := context.Background()
 
 	nDHTs := 15
