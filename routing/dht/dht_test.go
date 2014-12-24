@@ -94,17 +94,19 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 
 	// try multiple rounds...
-	rounds := 5
+	rounds := 1
 	for i := 0; i < rounds; i++ {
 		fmt.Printf("bootstrapping round %d/%d\n", i, rounds)
 
 		var wg sync.WaitGroup
 		for _, dht := range dhts {
 			wg.Add(1)
-			go func() {
+			go func(i int) {
 				defer wg.Done()
+				<-time.After(time.Duration(i) * time.Millisecond) // stagger them to avoid overwhelming
+				fmt.Printf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
 				dht.Bootstrap(ctx)
-			}()
+			}(i)
 		}
 		wg.Wait()
 
