@@ -89,7 +89,8 @@ func RandomBytes(n int64) []byte {
 }
 
 func AddCatBytes(data []byte, conf Config) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	mn := mocknet.New(ctx)
 	// defer mn.Close() FIXME does mocknet require clean-up
 	mn.SetLinkDefaults(mocknet.LinkOptions{
