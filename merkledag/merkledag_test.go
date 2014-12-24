@@ -159,5 +159,5 @@ func runBatchFetchTest(t *testing.T, root *Node) {
 		}(i)
 	}
 
-	wg.Done()
+	wg.Wait()
 }
