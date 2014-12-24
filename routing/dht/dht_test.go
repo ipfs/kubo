@@ -93,24 +93,23 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 
-	// try multiple rounds...
+	ctx, cancel := context.WithCancel(ctx)
+
 	rounds := 1
 	for i := 0; i < rounds; i++ {
 		fmt.Printf("bootstrapping round %d/%d\n", i, rounds)
 
-		var wg sync.WaitGroup
+		// tried async. sequential fares much better. compare:
+		// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
+		// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
+		// probably because results compound
 		for _, dht := range dhts {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				<-time.After(time.Duration(i) * time.Millisecond) // stagger them to avoid overwhelming
-				fmt.Printf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
-				dht.Bootstrap(ctx)
-			}(i)
+			fmt.Printf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
+			dht.Bootstrap(ctx, 3)
 		}
-		wg.Wait()
-
 	}
+
+	cancel()
 }
 
 func TestPing(t *testing.T) {
@@ -260,7 +259,7 @@ func TestProvides(t *testing.T) {
 func TestBootstrap(t *testing.T) {
 	ctx := context.Background()
 
-	nDHTs := 40
+	nDHTs := 10
 	_, _, dhts := setupDHTS(ctx, nDHTs, t)
 	defer func() {
 		for i := 0; i < nDHTs; i++ {
@@ -275,7 +274,6 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	<-time.After(100 * time.Millisecond)
-
 	t.Logf("bootstrapping them so they find each other", nDHTs)
 	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
 	bootstrap(t, ctxT, dhts)
@@ -308,8 +306,19 @@ func TestProvidesMany(t *testing.T) {
 		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
 	}
 
+	<-time.After(100 * time.Millisecond)
 	t.Logf("bootstrapping them so they find each other", nDHTs)
-	bootstrap(t, ctx, dhts)
+	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+	bootstrap(t, ctxT, dhts)
+
+	<-time.After(5 * time.Second)
+	// the routing tables should be full now. let's inspect them.
+	t.Logf("checking routing table of %d", nDHTs)
+	for _, dht := range dhts {
+		fmt.Printf("checking routing table of %s\n", dht.self)
+		dht.routingTable.Print()
+		fmt.Println("")
+	}
 
 	d := 0
 	for k, v := range testCaseValues {
@@ -341,7 +350,7 @@ func TestProvidesMany(t *testing.T) {
 
 	errchan := make(chan error)
 
-	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+	ctxT, _ = context.WithTimeout(ctx, 5*time.Second)
 
 	var wg sync.WaitGroup
 	getProvider := func(dht *IpfsDHT, k u.Key) {
