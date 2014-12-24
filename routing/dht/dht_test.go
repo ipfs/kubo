@@ -334,10 +334,13 @@ func TestProvidesMany(t *testing.T) {
 		}
 	}
 
+	var providers = map[u.Key]peer.ID{}
+
 	d := 0
 	for k, v := range testCaseValues {
 		d = (d + 1) % len(dhts)
 		dht := dhts[d]
+		providers[k] = dht.self
 
 		t.Logf("adding local values for %s = %s (on %s)", k, v, dht.self)
 		err := dht.putLocal(k, v)
@@ -370,13 +373,17 @@ func TestProvidesMany(t *testing.T) {
 	getProvider := func(dht *IpfsDHT, k u.Key) {
 		defer wg.Done()
 
+		expected := providers[k]
+
 		provchan := dht.FindProvidersAsync(ctxT, k, 1)
 		select {
 		case prov := <-provchan:
-			if prov.ID == "" {
+			actual := prov.ID
+			if actual == "" {
 				errchan <- fmt.Errorf("Got back nil provider (%s at %s)", k, dht.self)
-			} else if prov.ID != dhts[3].self {
-				errchan <- fmt.Errorf("Got back wrong provider (%s at %s)", k, dht.self)
+			} else if actual != expected {
+				errchan <- fmt.Errorf("Got back wrong provider (%s != %s) (%s at %s)",
+					expected, actual, k, dht.self)
 			}
 		case <-ctxT.Done():
 			errchan <- fmt.Errorf("Did not get a provider back (%s at %s)", k, dht.self)
