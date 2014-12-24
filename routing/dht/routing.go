@@ -269,7 +269,6 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
 			if ps.TryAdd(prov.ID) {
-				dht.peerstore.AddAddresses(prov.ID, prov.Addrs)
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():

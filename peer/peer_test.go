@@ -39,7 +39,7 @@ type keyset struct {
 
 func (ks *keyset) generate() error {
 	var err error
-	ks.sk, ks.pk, err = ic.GenerateKeyPair(ic.RSA, 1024)
+	ks.sk, ks.pk, err = ic.GenerateKeyPair(ic.RSA, 1024, u.NewTimeSeededRand())
 	if err != nil {
 		return err
 	}
