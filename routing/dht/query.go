@@ -179,7 +179,7 @@ func (r *dhtQueryRunner) addPeerToQuery(ctx context.Context, next peer.ID, bench
 	r.peersSeen[next] = struct{}{}
 	r.Unlock()
 
-	log.Debugf("adding peer to query: %v\n", next)
+	log.Debugf("adding peer to query: %v", next)
 
 	// do this after unlocking to prevent possible deadlocks.
 	r.peersRemaining.Increment(1)
