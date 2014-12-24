@@ -19,7 +19,7 @@ func StreamNet(ctx context.Context, net mockpeernet.Mocknet, rs mockrouting.Serv
 	return &peernet{net, rs}, nil
 }
 
-func (pn *peernet) Adapter(p testutil.Peer) bsnet.BitSwapNetwork {
+func (pn *peernet) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
 	client, err := pn.Mocknet.AddPeer(p.PrivateKey(), p.Address())
 	if err != nil {
 		panic(err.Error())

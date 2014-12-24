@@ -73,11 +73,11 @@ func (rs *s) Providers(k u.Key) []peer.PeerInfo {
 	return ret
 }
 
-func (rs *s) Client(p testutil.Peer) Client {
+func (rs *s) Client(p testutil.Identity) Client {
 	return rs.ClientWithDatastore(context.Background(), p, ds.NewMapDatastore())
 }
 
-func (rs *s) ClientWithDatastore(_ context.Context, p testutil.Peer, datastore ds.Datastore) Client {
+func (rs *s) ClientWithDatastore(_ context.Context, p testutil.Identity, datastore ds.Datastore) Client {
 	return &client{
 		peer:      p,
 		datastore: ds.NewMapDatastore(),

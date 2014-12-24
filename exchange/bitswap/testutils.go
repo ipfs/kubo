@@ -41,7 +41,7 @@ func (g *SessionGenerator) Close() error {
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	p, err := testutil.RandPeer()
+	p, err := testutil.RandIdentity()
 	if err != nil {
 		panic("FIXME") // TODO change signature
 	}
@@ -78,7 +78,7 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, p testutil.Peer) Instance {
+func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100
 

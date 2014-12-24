@@ -17,11 +17,11 @@ import (
 func TestSendRequestToCooperativePeer(t *testing.T) {
 	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
 
-	recipientPeer := testutil.RandPeerOrFatal(t)
+	recipientPeer := testutil.RandIdentityOrFatal(t)
 
 	t.Log("Get two network adapters")
 
-	initiator := net.Adapter(testutil.RandPeerOrFatal(t))
+	initiator := net.Adapter(testutil.RandIdentityOrFatal(t))
 	recipient := net.Adapter(recipientPeer)
 
 	expectedStr := "response from recipient"
@@ -67,8 +67,8 @@ func TestSendRequestToCooperativePeer(t *testing.T) {
 
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
-	responderPeer := testutil.RandPeerOrFatal(t)
-	waiter := net.Adapter(testutil.RandPeerOrFatal(t))
+	responderPeer := testutil.RandIdentityOrFatal(t)
+	waiter := net.Adapter(testutil.RandIdentityOrFatal(t))
 	responder := net.Adapter(responderPeer)
 
 	var wg sync.WaitGroup

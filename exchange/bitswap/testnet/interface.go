@@ -7,7 +7,7 @@ import (
 )
 
 type Network interface {
-	Adapter(testutil.Peer) bsnet.BitSwapNetwork
+	Adapter(testutil.Identity) bsnet.BitSwapNetwork
 
 	HasPeer(peer.ID) bool
 }

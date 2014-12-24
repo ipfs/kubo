@@ -61,7 +61,7 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 	defer g.Close()
 
 	block := blocks.NewBlock([]byte("block"))
-	pinfo := testutil.RandPeerOrFatal(t)
+	pinfo := testutil.RandIdentityOrFatal(t)
 	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
 
 	solo := g.Next()

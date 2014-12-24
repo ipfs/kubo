@@ -10,7 +10,7 @@ import (
 )
 
 func TestRoutingResolve(t *testing.T) {
-	d := mockrouting.NewServer().Client(testutil.RandPeerOrFatal(t))
+	d := mockrouting.NewServer().Client(testutil.RandIdentityOrFatal(t))
 
 	resolver := NewRoutingResolver(d)
 	publisher := NewRoutingPublisher(d)

@@ -13,7 +13,7 @@ import (
 
 func TestKeyNotFound(t *testing.T) {
 
-	var pi = testutil.RandPeerOrFatal(t)
+	var pi = testutil.RandIdentityOrFatal(t)
 	var key = u.Key("mock key")
 	var ctx = context.Background()
 
@@ -26,7 +26,7 @@ func TestKeyNotFound(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	pi := testutil.RandPeerOrFatal(t)
+	pi := testutil.RandIdentityOrFatal(t)
 	rs := NewServer()
 	client := rs.Client(pi)
 
@@ -57,7 +57,7 @@ func TestClientOverMax(t *testing.T) {
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
-		pi := testutil.RandPeerOrFatal(t)
+		pi := testutil.RandIdentityOrFatal(t)
 		err := rs.Client(pi).Provide(context.Background(), k)
 		if err != nil {
 			t.Fatal(err)
@@ -65,7 +65,7 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	pi := testutil.RandPeerOrFatal(t)
+	pi := testutil.RandIdentityOrFatal(t)
 	client := rs.Client(pi)
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
@@ -100,7 +100,7 @@ func TestCanceledContext(t *testing.T) {
 			default:
 			}
 
-			pi, err := testutil.RandPeer()
+			pi, err := testutil.RandIdentity()
 			if err != nil {
 				t.Error(err)
 			}
@@ -112,7 +112,7 @@ func TestCanceledContext(t *testing.T) {
 		}
 	}()
 
-	local := testutil.RandPeerOrFatal(t)
+	local := testutil.RandIdentityOrFatal(t)
 	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
@@ -138,7 +138,7 @@ func TestCanceledContext(t *testing.T) {
 
 func TestValidAfter(t *testing.T) {
 
-	pi := testutil.RandPeerOrFatal(t)
+	pi := testutil.RandIdentityOrFatal(t)
 	var key = u.Key("mock key")
 	var ctx = context.Background()
 	conf := DelayConfig{

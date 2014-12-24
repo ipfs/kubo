@@ -16,8 +16,8 @@ import (
 
 // Server provides mockrouting Clients
 type Server interface {
-	Client(p testutil.Peer) Client
-	ClientWithDatastore(context.Context, testutil.Peer, ds.Datastore) Client
+	Client(p testutil.Identity) Client
+	ClientWithDatastore(context.Context, testutil.Identity, ds.Datastore) Client
 }
 
 // Client implements IpfsRouting

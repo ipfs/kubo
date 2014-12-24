@@ -29,7 +29,7 @@ type network struct {
 	delay         delay.D
 }
 
-func (n *network) Adapter(p testutil.Peer) bsnet.BitSwapNetwork {
+func (n *network) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
 	client := &networkClient{
 		local:   p.ID(),
 		network: n,

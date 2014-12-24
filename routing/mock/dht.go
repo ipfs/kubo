@@ -19,11 +19,11 @@ func NewDHTNetwork(mn mocknet.Mocknet) Server {
 	}
 }
 
-func (rs *mocknetserver) Client(p testutil.Peer) Client {
+func (rs *mocknetserver) Client(p testutil.Identity) Client {
 	return rs.ClientWithDatastore(context.TODO(), p, ds.NewMapDatastore())
 }
 
-func (rs *mocknetserver) ClientWithDatastore(ctx context.Context, p testutil.Peer, ds ds.Datastore) Client {
+func (rs *mocknetserver) ClientWithDatastore(ctx context.Context, p testutil.Identity, ds ds.Datastore) Client {
 
 	// FIXME AddPeer doesn't appear to be idempotent
 

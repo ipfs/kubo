@@ -17,7 +17,7 @@ var log = u.Logger("mockrouter")
 type client struct {
 	datastore ds.Datastore
 	server    server
-	peer      testutil.Peer
+	peer      testutil.Identity
 }
 
 // FIXME(brian): is this method meant to simulate putting a value into the network?
