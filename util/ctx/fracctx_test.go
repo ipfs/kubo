@@ -1,6 +1,7 @@
 package ctxutil
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -9,6 +10,10 @@ import (
 
 // this test is on the context tool itself, not our stuff. it's for sanity on ours.
 func TestDeadline(t *testing.T) {
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("timeouts don't work reliably on travis")
+	}
+
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Millisecond)
 
 	select {
@@ -37,6 +42,9 @@ func TestDeadlineFractionForever(t *testing.T) {
 }
 
 func TestDeadlineFractionHalf(t *testing.T) {
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("timeouts don't work reliably on travis")
+	}
 
 	ctx1, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	ctx2, _ := WithDeadlineFraction(ctx1, 0.5)
