@@ -54,17 +54,17 @@ func BenchmarkNetworkSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*MB, netw
 func BenchmarkNetworkSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, network, b) }
 func BenchmarkNetworkSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, network, b) }
 
-var blockstore = Config{}.Blockstore_7200RPM()
+var hdd = Config{}.Blockstore_7200RPM()
 
-func BenchmarkBlockstoreSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat4MB(b *testing.B)   { benchmarkAddCat(4*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat8MB(b *testing.B)   { benchmarkAddCat(8*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat16MB(b *testing.B)  { benchmarkAddCat(16*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat32MB(b *testing.B)  { benchmarkAddCat(32*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, blockstore, b) }
-func BenchmarkBlockstoreSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, blockstore, b) }
+func BenchmarkBlockstoreSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat4MB(b *testing.B)   { benchmarkAddCat(4*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat8MB(b *testing.B)   { benchmarkAddCat(8*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat16MB(b *testing.B)  { benchmarkAddCat(16*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat32MB(b *testing.B)  { benchmarkAddCat(32*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*MB, hdd, b) }
+func BenchmarkBlockstoreSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*MB, hdd, b) }
 
 var mixed = Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
 
