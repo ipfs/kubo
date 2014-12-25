@@ -22,6 +22,7 @@ type Repo interface {
 	ID() peer.ID
 	Blockstore() blockstore.Blockstore
 	Exchange() exchange.Interface
+	Peerstore() peer.Peerstore
 
 	Bootstrap(ctx context.Context, peer peer.ID) error
 }
@@ -43,11 +44,11 @@ func MocknetTestRepo(p peer.ID, n net.Network, conf epictest.Config) RepoConfig 
 		return &repo{
 			bitSwapNetwork: bsn,
 			blockstore:     bstore,
-			exchange:       exch,
 			datastore:      ds,
-			network:        n,
 			dht:            dhtt,
+			exchange:       exch,
 			id:             p,
+			network:        n,
 		}, nil
 	}
 }
@@ -80,4 +81,8 @@ func (r *repo) Blockstore() blockstore.Blockstore {
 
 func (r *repo) Exchange() exchange.Interface {
 	return r.exchange
+}
+
+func (r *repo) Peerstore() peer.Peerstore {
+	return r.network.Peerstore()
 }
