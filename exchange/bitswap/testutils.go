@@ -12,13 +12,13 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func NewSessionGenerator(
 	net tn.Network) SessionGenerator {
 	ctx, cancel := context.WithCancel(context.TODO())
 	return SessionGenerator{
-		ps:     peer.NewPeerstore(),
 		net:    net,
 		seq:    0,
 		ctx:    ctx, // TODO take ctx as param to Next, Instances
@@ -26,10 +26,10 @@ func NewSessionGenerator(
 	}
 }
 
+// TODO move this SessionGenerator to the core package and export it as the core generator
 type SessionGenerator struct {
 	seq    int
 	net    tn.Network
-	ps     peer.Peerstore
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -41,7 +41,11 @@ func (g *SessionGenerator) Close() error {
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	return session(g.ctx, g.net, g.ps, peer.ID(g.seq))
+	p, err := testutil.RandIdentity()
+	if err != nil {
+		panic("FIXME") // TODO change signature
+	}
+	return session(g.ctx, g.net, p)
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -74,24 +78,24 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, ps peer.Peerstore, p peer.ID) Instance {
-
-	adapter := net.Adapter(p)
-
+func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
 	const kWriteCacheElems = 100
-	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))), kWriteCacheElems)
+
+	adapter := net.Adapter(p)
+	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
+
+	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), kWriteCacheElems)
 	if err != nil {
-		// FIXME perhaps change signature and return error.
-		panic(err.Error())
+		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
 	const alwaysSendToPeer = true
 
-	bs := New(ctx, p, adapter, bstore, alwaysSendToPeer)
+	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer)
 
 	return Instance{
-		Peer:            p,
+		Peer:            p.ID(),
 		Exchange:        bs,
 		blockstore:      bstore,
 		blockstoreDelay: bsdelay,

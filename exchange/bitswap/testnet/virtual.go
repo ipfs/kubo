@@ -5,36 +5,15 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/routing"
-	"github.com/jbenet/go-ipfs/routing/mock"
-
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/peer"
-	"github.com/jbenet/go-ipfs/util"
+	routing "github.com/jbenet/go-ipfs/routing"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	util "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
-
-type Network interface {
-	Adapter(peer.ID) bsnet.BitSwapNetwork
-
-	HasPeer(peer.ID) bool
-
-	SendMessage(
-		ctx context.Context,
-		from peer.ID,
-		to peer.ID,
-		message bsmsg.BitSwapMessage) error
-
-	SendRequest(
-		ctx context.Context,
-		from peer.ID,
-		to peer.ID,
-		message bsmsg.BitSwapMessage) (
-		incoming bsmsg.BitSwapMessage, err error)
-}
-
-// network impl
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {
 	return &network{
@@ -50,13 +29,13 @@ type network struct {
 	delay         delay.D
 }
 
-func (n *network) Adapter(p peer.ID) bsnet.BitSwapNetwork {
+func (n *network) Adapter(p testutil.Identity) bsnet.BitSwapNetwork {
 	client := &networkClient{
-		local:   p,
+		local:   p.ID(),
 		network: n,
-		routing: n.routingserver.Client(peer.PeerInfo{ID: p}),
+		routing: n.routingserver.Client(p),
 	}
-	n.clients[p] = client
+	n.clients[p.ID()] = client
 	return client
 }
 
@@ -154,7 +133,7 @@ func (n *network) SendRequest(
 type networkClient struct {
 	local peer.ID
 	bsnet.Receiver
-	network Network
+	network *network
 	routing routing.IpfsRouting
 }
 

@@ -107,21 +107,29 @@ func (p *PeerNetParams) checkKeys() error {
 	return nil // ok. move along.
 }
 
-func RandPeerNetParams(t *testing.T) (p PeerNetParams) {
+func RandPeerNetParamsOrFatal(t *testing.T) PeerNetParams {
+	p, err := RandPeerNetParams()
+	if err != nil {
+		t.Fatal(err)
+		return PeerNetParams{} // TODO return nil
+	}
+	return *p
+}
+
+func RandPeerNetParams() (*PeerNetParams, error) {
+	var p PeerNetParams
 	var err error
 	p.Addr = RandLocalTCPAddress()
 	p.PrivKey, p.PubKey, err = ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-
 	p.ID, err = peer.IDFromPublicKey(p.PubKey)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-
 	if err := p.checkKeys(); err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-	return p
+	return &p, nil
 }

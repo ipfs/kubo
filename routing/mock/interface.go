@@ -11,18 +11,18 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // Server provides mockrouting Clients
 type Server interface {
-	Client(p peer.PeerInfo) Client
-	ClientWithDatastore(peer.PeerInfo, ds.Datastore) Client
+	Client(p testutil.Identity) Client
+	ClientWithDatastore(context.Context, testutil.Identity, ds.Datastore) Client
 }
 
 // Client implements IpfsRouting
 type Client interface {
 	FindProviders(context.Context, u.Key) ([]peer.PeerInfo, error)
-
 	routing.IpfsRouting
 }
 

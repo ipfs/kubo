@@ -4,35 +4,29 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	blockservice "github.com/jbenet/go-ipfs/blockservice"
-	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
-	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	importer "github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	path "github.com/jbenet/go-ipfs/path"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	util "github.com/jbenet/go-ipfs/util"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
+	mocknet "github.com/jbenet/go-ipfs/net/mock"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 const kSeed = 1
 
-func Test100MBInstantaneous(t *testing.T) {
+func Test1KBInstantaneous(t *testing.T) {
 	conf := Config{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
 
-	AddCatBytes(RandomBytes(100*1024*1024), conf)
+	if err := DirectAddCat(RandomBytes(1*KB), conf); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestDegenerateSlowBlockstore(t *testing.T) {
@@ -62,7 +56,7 @@ func TestDegenerateSlowRouting(t *testing.T) {
 func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
-	if err := AddCatBytes(RandomBytes(100*1024*1024), conf); err != nil {
+	if err := DirectAddCat(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -71,7 +65,7 @@ func AddCatPowers(conf Config, megabytesMax int64) error {
 	var i int64
 	for i = 1; i < megabytesMax; i = i * 2 {
 		fmt.Printf("%d MB\n", i)
-		if err := AddCatBytes(RandomBytes(i*1024*1024), conf); err != nil {
+		if err := DirectAddCat(RandomBytes(i*1024*1024), conf); err != nil {
 			return err
 		}
 	}
@@ -84,30 +78,43 @@ func RandomBytes(n int64) []byte {
 	return data.Bytes()
 }
 
-func AddCatBytes(data []byte, conf Config) error {
+func DirectAddCat(data []byte, conf Config) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	const numPeers = 2
 
-	sessionGenerator := bitswap.NewSessionGenerator(
-		tn.VirtualNetwork(
-			mockrouting.NewServerWithDelay(mockrouting.DelayConfig{
-				Query:           delay.Fixed(conf.RoutingLatency),
-				ValueVisibility: delay.Fixed(conf.RoutingLatency),
-			}),
-			delay.Fixed(conf.NetworkLatency)), // TODO rename VirtualNetwork
-	)
-	defer sessionGenerator.Close()
+	// create network
+	mn, err := mocknet.FullMeshLinked(ctx, numPeers)
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	mn.SetLinkDefaults(mocknet.LinkOptions{
+		Latency: conf.NetworkLatency,
+		// TODO add to conf. This is tricky because we want 0 values to be functional.
+		Bandwidth: math.MaxInt32,
+	})
 
-	adder := sessionGenerator.Next()
-	catter := sessionGenerator.Next()
-	catter.SetBlockstoreLatency(conf.BlockstoreLatency)
-
-	adder.SetBlockstoreLatency(0) // disable blockstore latency during add operation
-	keyAdded, err := add(adder, bytes.NewReader(data))
+	if len(mn.Peers()) < numPeers {
+		return errors.New("test initialization error")
+	}
+	adder, err := makeCore(ctx, MocknetTestRepo(mn.Peers()[0], mn.Net(mn.Peers()[0]), conf))
 	if err != nil {
 		return err
 	}
-	adder.SetBlockstoreLatency(conf.BlockstoreLatency) // add some blockstore delay to make the catter wait
+	catter, err := makeCore(ctx, MocknetTestRepo(mn.Peers()[1], mn.Net(mn.Peers()[1]), conf))
+	if err != nil {
+		return err
+	}
 
-	readerCatted, err := cat(catter, keyAdded)
+	adder.Bootstrap(ctx, catter.ID())
+	catter.Bootstrap(ctx, adder.ID())
+
+	keyAdded, err := adder.Add(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
+	readerCatted, err := catter.Cat(keyAdded)
 	if err != nil {
 		return err
 	}
@@ -119,28 +126,6 @@ func AddCatBytes(data []byte, conf Config) error {
 		return errors.New("catted data does not match added data")
 	}
 	return nil
-}
-
-func cat(catter bitswap.Instance, k util.Key) (io.Reader, error) {
-	catterdag := merkledag.NewDAGService(&blockservice.BlockService{catter.Blockstore(), catter.Exchange})
-	nodeCatted, err := (&path.Resolver{catterdag}).ResolvePath(k.String())
-	if err != nil {
-		return nil, err
-	}
-	return uio.NewDagReader(nodeCatted, catterdag)
-}
-
-func add(adder bitswap.Instance, r io.Reader) (util.Key, error) {
-	nodeAdded, err := importer.BuildDagFromReader(
-		r,
-		merkledag.NewDAGService(&blockservice.BlockService{adder.Blockstore(), adder.Exchange}),
-		nil,
-		chunk.DefaultSplitter,
-	)
-	if err != nil {
-		return "", err
-	}
-	return nodeAdded.Key()
 }
 
 func SkipUnlessEpic(t *testing.T) {

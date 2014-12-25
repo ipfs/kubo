@@ -8,11 +8,12 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestKeyNotFound(t *testing.T) {
 
-	var pi = peer.PeerInfo{ID: peer.ID("the peer id")}
+	var pi = testutil.RandIdentityOrFatal(t)
 	var key = u.Key("mock key")
 	var ctx = context.Background()
 
@@ -25,7 +26,7 @@ func TestKeyNotFound(t *testing.T) {
 }
 
 func TestClientFindProviders(t *testing.T) {
-	pi := peer.PeerInfo{ID: peer.ID("42")}
+	pi := testutil.RandIdentityOrFatal(t)
 	rs := NewServer()
 	client := rs.Client(pi)
 
@@ -39,20 +40,6 @@ func TestClientFindProviders(t *testing.T) {
 	time.Sleep(time.Millisecond * 300)
 	max := 100
 
-	providersFromHashTable, err := rs.Client(pi).FindProviders(context.Background(), k)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	isInHT := false
-	for _, pi := range providersFromHashTable {
-		if pi.ID == pi.ID {
-			isInHT = true
-		}
-	}
-	if !isInHT {
-		t.Fatal("Despite client providing key, peer wasn't in hash table as a provider")
-	}
 	providersFromClient := client.FindProvidersAsync(context.Background(), u.Key("hello"), max)
 	isInClient := false
 	for pi := range providersFromClient {
@@ -70,7 +57,7 @@ func TestClientOverMax(t *testing.T) {
 	k := u.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
-		pi := peer.PeerInfo{ID: peer.ID(i)}
+		pi := testutil.RandIdentityOrFatal(t)
 		err := rs.Client(pi).Provide(context.Background(), k)
 		if err != nil {
 			t.Fatal(err)
@@ -78,7 +65,7 @@ func TestClientOverMax(t *testing.T) {
 	}
 
 	max := 10
-	pi := peer.PeerInfo{ID: peer.ID("TODO")}
+	pi := testutil.RandIdentityOrFatal(t)
 	client := rs.Client(pi)
 
 	providersFromClient := client.FindProvidersAsync(context.Background(), k, max)
@@ -113,8 +100,11 @@ func TestCanceledContext(t *testing.T) {
 			default:
 			}
 
-			pi := peer.PeerInfo{ID: peer.ID(i)}
-			err := rs.Client(pi).Provide(context.Background(), k)
+			pi, err := testutil.RandIdentity()
+			if err != nil {
+				t.Error(err)
+			}
+			err = rs.Client(pi).Provide(context.Background(), k)
 			if err != nil {
 				t.Error(err)
 			}
@@ -122,7 +112,7 @@ func TestCanceledContext(t *testing.T) {
 		}
 	}()
 
-	local := peer.PeerInfo{ID: peer.ID("peer id doesn't matter")}
+	local := testutil.RandIdentityOrFatal(t)
 	client := rs.Client(local)
 
 	t.Log("warning: max is finite so this test is non-deterministic")
@@ -148,7 +138,7 @@ func TestCanceledContext(t *testing.T) {
 
 func TestValidAfter(t *testing.T) {
 
-	var pi = peer.PeerInfo{ID: peer.ID("the peer id")}
+	pi := testutil.RandIdentityOrFatal(t)
 	var key = u.Key("mock key")
 	var ctx = context.Background()
 	conf := DelayConfig{
