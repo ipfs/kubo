@@ -24,7 +24,7 @@ func Test1KBInstantaneous(t *testing.T) {
 		BlockstoreLatency: 0,
 	}
 
-	if err := AddCatBytes(RandomBytes(1*KB), conf); err != nil {
+	if err := DirectAddCat(RandomBytes(1*KB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -56,7 +56,7 @@ func TestDegenerateSlowRouting(t *testing.T) {
 func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
-	if err := AddCatBytes(RandomBytes(100*1024*1024), conf); err != nil {
+	if err := DirectAddCat(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -65,7 +65,7 @@ func AddCatPowers(conf Config, megabytesMax int64) error {
 	var i int64
 	for i = 1; i < megabytesMax; i = i * 2 {
 		fmt.Printf("%d MB\n", i)
-		if err := AddCatBytes(RandomBytes(i*1024*1024), conf); err != nil {
+		if err := DirectAddCat(RandomBytes(i*1024*1024), conf); err != nil {
 			return err
 		}
 	}
@@ -78,7 +78,7 @@ func RandomBytes(n int64) []byte {
 	return data.Bytes()
 }
 
-func AddCatBytes(data []byte, conf Config) error {
+func DirectAddCat(data []byte, conf Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	const numPeers = 2

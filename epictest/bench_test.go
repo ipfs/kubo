@@ -10,7 +10,7 @@ func benchmarkAddCat(numBytes int64, conf Config, b *testing.B) {
 	b.StartTimer()
 
 	for n := 0; n < b.N; n++ {
-		if err := AddCatBytes(data, conf); err != nil {
+		if err := DirectAddCat(data, conf); err != nil {
 			b.Fatal(err)
 		}
 	}
