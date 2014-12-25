@@ -26,6 +26,7 @@ type Repo interface {
 	Bootstrap(ctx context.Context, peer peer.ID) error
 }
 
+// MocknetTestRepo belongs in the epictest/integration test package
 func MocknetTestRepo(p peer.ID, n net.Network, conf epictest.Config) RepoConfig {
 	return func(ctx context.Context) (Repo, error) {
 		const kWriteCacheElems = 100
@@ -52,7 +53,6 @@ func MocknetTestRepo(p peer.ID, n net.Network, conf epictest.Config) RepoConfig 
 }
 
 type repo struct {
-	// DHT, Exchange, Network,Datastore
 	bitSwapNetwork bsnet.BitSwapNetwork
 	blockstore     blockstore.Blockstore
 	exchange       exchange.Interface
