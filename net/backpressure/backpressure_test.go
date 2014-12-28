@@ -8,7 +8,7 @@ import (
 	"time"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	netutil "github.com/jbenet/go-ipfs/net/ipfsnet/util"
+	netutil "github.com/jbenet/go-ipfs/net/swarmnet/util"
 	peer "github.com/jbenet/go-ipfs/peer"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 

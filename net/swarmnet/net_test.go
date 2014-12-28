@@ -8,7 +8,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	netutil "github.com/jbenet/go-ipfs/net/ipfsnet/util"
+	netutil "github.com/jbenet/go-ipfs/net/swarmnet/util"
 )
 
 // TestConnectednessCorrect starts a few networks, connects a few

@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	netutil "github.com/jbenet/go-ipfs/net/ipfsnet/util"
 	mux "github.com/jbenet/go-ipfs/net/services/mux"
 	relay "github.com/jbenet/go-ipfs/net/services/relay"
+	netutil "github.com/jbenet/go-ipfs/net/swarmnet/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
