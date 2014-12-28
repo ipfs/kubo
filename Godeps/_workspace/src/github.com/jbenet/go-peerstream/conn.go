@@ -235,7 +235,12 @@ func (s *Swarm) removeStream(stream *Stream) error {
 	s.streamLock.Unlock()
 	stream.conn.streamLock.Unlock()
 
-	return stream.ssStream.Close()
+	// Reset is spdystream's full bidirectional close.
+	// We expose bidirectional close as our `Close`.
+	// To close only half of the connection, and use other
+	// spdystream options, just get the stream with:
+	// 	stream.SPDYStream()
+	return stream.ssStream.Reset()
 }
 
 func (s *Swarm) removeConn(conn *Conn) error {
