@@ -9,6 +9,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/net"
 	ids "github.com/jbenet/go-ipfs/net/services/identify"
 	mux "github.com/jbenet/go-ipfs/net/services/mux"
+	relay "github.com/jbenet/go-ipfs/net/services/relay"
 	peer "github.com/jbenet/go-ipfs/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -30,8 +31,9 @@ type peernet struct {
 	connsByLink map[*link]map[*conn]struct{}
 
 	// needed to implement inet.Network
-	mux mux.Mux
-	ids *ids.IDService
+	mux   mux.Mux
+	ids   *ids.IDService
+	relay *relay.RelayService
 
 	cg ctxgroup.ContextGroup
 	sync.RWMutex
@@ -69,6 +71,9 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 	// this is ProtocolIdentify.
 	n.ids = ids.NewIDService(n)
 
+	// setup ProtocolRelay to allow traffic relaying.
+	// Feed things we get for ourselves into the muxer.
+	n.relay = relay.NewRelayService(n.cg.Context(), n, n.mux.HandleSync)
 	return n, nil
 }
 
