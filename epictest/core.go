@@ -6,6 +6,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	exchange "github.com/jbenet/go-ipfs/exchange"
@@ -22,7 +23,10 @@ import (
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
+
+var log = eventlog.Logger("epictest")
 
 // TODO merge with core.IpfsNode
 type core struct {
@@ -128,6 +132,8 @@ func MocknetTestRepo(p peer.ID, n net.Network, conf Config) RepoFactory {
 		const alwaysSendToPeer = true
 		dsDelay := delay.Fixed(conf.BlockstoreLatency)
 		ds := sync.MutexWrap(datastore2.WithDelay(datastore.NewMapDatastore(), dsDelay))
+
+		log.Debugf("MocknetTestRepo: %s %s %s", p, n.LocalPeer(), n)
 		dhtt := dht.NewDHT(ctx, p, n, ds)
 		bsn := bsnet.NewFromIpfsNetwork(n, dhtt)
 		bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds), kWriteCacheElems)

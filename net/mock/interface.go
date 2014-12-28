@@ -26,7 +26,7 @@ type Mocknet interface {
 	// ID is derived from PrivKey
 	AddPeer(ic.PrivKey, ma.Multiaddr) (inet.Network, error)
 
-	// retrieve things
+	// retrieve things (with randomized iteration order)
 	Peers() []peer.ID
 	Net(peer.ID) inet.Network
 	Nets() []inet.Network

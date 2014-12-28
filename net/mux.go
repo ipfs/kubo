@@ -1,7 +1,6 @@
 package net
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -66,17 +65,24 @@ func (m *Mux) ReadProtocolHeader(s io.Reader) (string, StreamHandler, error) {
 	case !found && m.Default != nil:
 		return name, m.Default, nil
 	case !found && m.Default == nil:
-		return name, nil, errors.New("no handler with name: " + name)
+		return name, nil, fmt.Errorf("%s no handler with name: %s (%d)", m, name, len(name))
 	default:
 		return name, h, nil
 	}
 }
 
+// String returns the muxer's printing representation
+func (m *Mux) String() string {
+	m.RLock()
+	defer m.RUnlock()
+	return fmt.Sprintf("<Muxer %p %d>", m, len(m.Handlers))
+}
+
 // SetHandler sets the protocol handler on the Network's Muxer.
 // This operation is threadsafe.
 func (m *Mux) SetHandler(p ProtocolID, h StreamHandler) {
+	log.Debugf("%s setting handler for protocol: %s (%d)", m, p, len(p))
 	m.Lock()
-	log.Debug("setting protocol ", p)
 	m.Handlers[p] = h
 	m.Unlock()
 }
