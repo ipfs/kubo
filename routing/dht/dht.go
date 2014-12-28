@@ -102,8 +102,8 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 	return nil
 }
 
-// putValueToNetwork stores the given key/value pair at the peer 'p'
-func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.ID,
+// putValueToPeer stores the given key/value pair at the peer 'p'
+func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 	key u.Key, rec *pb.Record) error {
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
@@ -237,12 +237,12 @@ func (dht *IpfsDHT) Update(ctx context.Context, p peer.ID) {
 }
 
 // FindLocal looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
-func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.PeerInfo, *kb.RoutingTable) {
+func (dht *IpfsDHT) FindLocal(id peer.ID) peer.PeerInfo {
 	p := dht.routingTable.Find(id)
 	if p != "" {
-		return dht.peerstore.PeerInfo(p), dht.routingTable
+		return dht.peerstore.PeerInfo(p)
 	}
-	return peer.PeerInfo{}, nil
+	return peer.PeerInfo{}
 }
 
 // findPeerSingle asks peer 'p' if they know where the peer with id 'id' is
@@ -254,26 +254,6 @@ func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (
 func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key u.Key) (*pb.Message, error) {
 	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
-}
-
-func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.ID {
-	peers := pb.PBPeersToPeerInfos(pbps)
-
-	var provArr []peer.ID
-	for _, pi := range peers {
-		p := pi.ID
-
-		// Dont add outselves to the list
-		if p == dht.self {
-			continue
-		}
-
-		log.Debugf("%s adding provider: %s for %s", dht.self, p, key)
-		// TODO(jbenet) ensure providers is idempotent
-		dht.providers.AddProvider(key, p)
-		provArr = append(provArr, p)
-	}
-	return provArr
 }
 
 // nearestPeersToQuery returns the routing tables closest peers.

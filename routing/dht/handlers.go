@@ -39,7 +39,7 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 }
 
 func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("%s handleGetValue for key: %s\n", dht.self, pmes.GetKey())
+	log.Debugf("%s handleGetValue for key: %s", dht.self, pmes.GetKey())
 
 	// setup response
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
@@ -127,7 +127,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	}
 
 	err = dht.datastore.Put(dskey, data)
-	log.Debugf("%s handlePutValue %v\n", dht.self, dskey)
+	log.Debugf("%s handlePutValue %v", dht.self, dskey)
 	return pmes, err
 }
 
@@ -137,9 +137,6 @@ func (dht *IpfsDHT) handlePing(_ context.Context, p peer.ID, pmes *pb.Message) (
 }
 
 func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Errorf("handle find peer %s start", p)
-	defer log.Errorf("handle find peer %s end", p)
-
 	resp := pb.NewMessage(pmes.GetType(), "", pmes.GetClusterLevel())
 	var closest []peer.ID
 
