@@ -38,18 +38,19 @@ func RunThreeLeggedCat(data []byte, conf Config) error {
 		Bandwidth: math.MaxInt32,
 	})
 
-	if len(mn.Peers()) < numPeers {
+	peers := mn.Peers()
+	if len(peers) < numPeers {
 		return errors.New("test initialization error")
 	}
-	adder, err := makeCore(ctx, MocknetTestRepo(mn.Peers()[0], mn.Net(mn.Peers()[0]), conf))
+	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Net(peers[0]), conf))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(mn.Peers()[1], mn.Net(mn.Peers()[1]), conf))
+	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Net(peers[1]), conf))
 	if err != nil {
 		return err
 	}
-	bootstrap, err := makeCore(ctx, MocknetTestRepo(mn.Peers()[2], mn.Net(mn.Peers()[2]), conf))
+	bootstrap, err := makeCore(ctx, MocknetTestRepo(peers[2], mn.Net(peers[2]), conf))
 	if err != nil {
 		return err
 	}
