@@ -486,12 +486,7 @@ func TestLayeredGet(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	err := dhts[3].putLocal(u.Key("/v/hello"), []byte("world"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].Provide(ctx, u.Key("/v/hello"))
+	err := dhts[3].Provide(ctx, u.Key("/v/hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
