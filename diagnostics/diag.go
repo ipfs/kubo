@@ -18,7 +18,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
-	net "github.com/jbenet/go-ipfs/net"
+	net "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	util "github.com/jbenet/go-ipfs/util"
 )

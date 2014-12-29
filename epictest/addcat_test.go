@@ -11,7 +11,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 

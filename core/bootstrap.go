@@ -8,7 +8,7 @@ import (
 	"time"
 
 	config "github.com/jbenet/go-ipfs/config"
-	inet "github.com/jbenet/go-ipfs/net"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"

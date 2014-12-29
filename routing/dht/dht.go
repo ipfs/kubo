@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	inet "github.com/jbenet/go-ipfs/net"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"

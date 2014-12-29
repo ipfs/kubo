@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
-	inet "github.com/jbenet/go-ipfs/net"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"

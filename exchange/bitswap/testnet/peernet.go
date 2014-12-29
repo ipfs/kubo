@@ -4,7 +4,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	mockpeernet "github.com/jbenet/go-ipfs/net/mock"
+	mockpeernet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"

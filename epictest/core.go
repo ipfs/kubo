@@ -15,7 +15,7 @@ import (
 	importer "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	net "github.com/jbenet/go-ipfs/net"
+	net "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	dht "github.com/jbenet/go-ipfs/routing/dht"

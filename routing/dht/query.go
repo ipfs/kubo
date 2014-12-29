@@ -3,7 +3,7 @@ package dht
 import (
 	"sync"
 
-	inet "github.com/jbenet/go-ipfs/net"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	queue "github.com/jbenet/go-ipfs/p2p/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"
