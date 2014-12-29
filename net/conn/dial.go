@@ -8,7 +8,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 

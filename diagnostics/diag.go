@@ -19,7 +19,7 @@ import (
 
 	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
 	net "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	util "github.com/jbenet/go-ipfs/util"
 )
 

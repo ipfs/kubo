@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 // link implements mocknet.Link

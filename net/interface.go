@@ -5,7 +5,7 @@ import (
 
 	conn "github.com/jbenet/go-ipfs/net/conn"
 	// swarm "github.com/jbenet/go-ipfs/net/swarm2"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"

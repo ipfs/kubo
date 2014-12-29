@@ -5,7 +5,7 @@ import (
 
 	inet "github.com/jbenet/go-ipfs/net"
 	sn "github.com/jbenet/go-ipfs/net/swarmnet"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"

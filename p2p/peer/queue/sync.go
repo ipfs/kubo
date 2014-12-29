@@ -3,7 +3,7 @@ package queue
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 // ChanQueue makes any PeerQueue synchronizable through channels.

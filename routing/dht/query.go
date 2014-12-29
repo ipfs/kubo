@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	inet "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
-	queue "github.com/jbenet/go-ipfs/peer/queue"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	queue "github.com/jbenet/go-ipfs/p2p/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 	pset "github.com/jbenet/go-ipfs/util/peerset"

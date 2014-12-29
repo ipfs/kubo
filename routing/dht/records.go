@@ -10,7 +10,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	ci "github.com/jbenet/go-ipfs/crypto"
-	"github.com/jbenet/go-ipfs/peer"
+	"github.com/jbenet/go-ipfs/p2p/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxutil "github.com/jbenet/go-ipfs/util/ctx"

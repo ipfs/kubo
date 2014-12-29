@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ic "github.com/jbenet/go-ipfs/crypto"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	inet "github.com/jbenet/go-ipfs/net"
 	ids "github.com/jbenet/go-ipfs/net/services/identify"

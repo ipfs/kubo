@@ -5,7 +5,7 @@ import (
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ci "github.com/jbenet/go-ipfs/crypto"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 type Identity interface {

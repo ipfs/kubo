@@ -10,7 +10,7 @@ import (
 	ids "github.com/jbenet/go-ipfs/net/services/identify"
 	mux "github.com/jbenet/go-ipfs/net/services/mux"
 	relay "github.com/jbenet/go-ipfs/net/services/relay"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"

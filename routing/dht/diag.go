@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 type connDiagInfo struct {

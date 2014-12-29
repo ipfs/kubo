@@ -9,7 +9,7 @@ import (
 
 	inet "github.com/jbenet/go-ipfs/net"
 	netutil "github.com/jbenet/go-ipfs/net/swarmnet/util"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"

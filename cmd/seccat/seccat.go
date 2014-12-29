@@ -20,7 +20,7 @@ import (
 
 	ci "github.com/jbenet/go-ipfs/crypto"
 	secio "github.com/jbenet/go-ipfs/crypto/secio"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
