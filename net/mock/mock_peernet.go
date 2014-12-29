@@ -5,11 +5,11 @@ import (
 	"math/rand"
 	"sync"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	ids "github.com/jbenet/go-ipfs/net/services/identify"
 	mux "github.com/jbenet/go-ipfs/net/services/mux"
 	relay "github.com/jbenet/go-ipfs/net/services/relay"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"

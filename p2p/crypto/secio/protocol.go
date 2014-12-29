@@ -10,8 +10,8 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
-	pb "github.com/jbenet/go-ipfs/crypto/secio/internal/pb"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	pb "github.com/jbenet/go-ipfs/p2p/crypto/secio/internal/pb"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"

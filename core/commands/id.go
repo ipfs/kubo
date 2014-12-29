@@ -11,7 +11,7 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	ic "github.com/jbenet/go-ipfs/crypto"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"

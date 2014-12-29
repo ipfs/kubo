@@ -11,7 +11,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"

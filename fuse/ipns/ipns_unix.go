@@ -14,9 +14,9 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	core "github.com/jbenet/go-ipfs/core"
-	ci "github.com/jbenet/go-ipfs/crypto"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"

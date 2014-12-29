@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 )

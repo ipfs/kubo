@@ -15,7 +15,7 @@ import (
 
 	bfish "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.crypto/blowfish"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 )
 
 // List of supported ECDH curves

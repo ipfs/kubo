@@ -8,8 +8,8 @@ import (
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
-	secio "github.com/jbenet/go-ipfs/crypto/secio"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	secio "github.com/jbenet/go-ipfs/p2p/crypto/secio"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )

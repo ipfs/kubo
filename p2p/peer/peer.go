@@ -9,7 +9,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

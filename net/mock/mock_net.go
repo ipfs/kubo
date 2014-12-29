@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 

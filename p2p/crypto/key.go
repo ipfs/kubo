@@ -21,7 +21,7 @@ import (
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	pb "github.com/jbenet/go-ipfs/crypto/internal/pb"
+	pb "github.com/jbenet/go-ipfs/p2p/crypto/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

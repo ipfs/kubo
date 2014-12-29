@@ -1,7 +1,7 @@
 package namesys
 
 import (
-	ci "github.com/jbenet/go-ipfs/crypto"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	routing "github.com/jbenet/go-ipfs/routing"
 )
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )

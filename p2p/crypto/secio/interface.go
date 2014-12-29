@@ -4,7 +4,7 @@ package secio
 import (
 	"io"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"

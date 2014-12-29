@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	ic "github.com/jbenet/go-ipfs/crypto"
-	. "github.com/jbenet/go-ipfs/peer"
+	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	. "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 
