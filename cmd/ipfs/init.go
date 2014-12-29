@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -253,7 +252,7 @@ func identityConfig(nbits int) (config.Identity, error) {
 	}
 
 	fmt.Printf("generating key pair...")
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits, rand.Reader)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}

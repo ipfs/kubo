@@ -3,7 +3,6 @@ package namesys
 import (
 	"testing"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -15,7 +14,7 @@ func TestRoutingResolve(t *testing.T) {
 	resolver := NewRoutingResolver(d)
 	publisher := NewRoutingPublisher(d)
 
-	privk, pubk, err := ci.GenerateKeyPair(ci.RSA, 512, u.NewTimeSeededRand())
+	privk, pubk, err := testutil.RandKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-package peer
+package peer_test
 
 import (
 	"encoding/base64"
@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	ic "github.com/jbenet/go-ipfs/crypto"
+	. "github.com/jbenet/go-ipfs/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	tu "github.com/jbenet/go-ipfs/util/testutil"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 )
@@ -39,7 +41,7 @@ type keyset struct {
 
 func (ks *keyset) generate() error {
 	var err error
-	ks.sk, ks.pk, err = ic.GenerateKeyPair(ic.RSA, 1024, u.NewTimeSeededRand())
+	ks.sk, ks.pk, err = tu.RandKeyPair(512)
 	if err != nil {
 		return err
 	}

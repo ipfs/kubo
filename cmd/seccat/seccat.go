@@ -115,7 +115,7 @@ func setupPeer(a args) (peer.ID, peer.Peerstore, error) {
 	}
 
 	out("generating key pair...")
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, a.keybits, u.NewTimeSeededRand())
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, a.keybits)
 	if err != nil {
 		return "", nil, err
 	}
