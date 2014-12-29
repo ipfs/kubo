@@ -40,7 +40,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	pchan, err := dht.getClosestPeers(ctx, key, KValue)
+	pchan, err := dht.getClosestPeers(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -116,11 +116,11 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 // Provide makes this node announce that it can provide a value for the given key
 func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 
-	log.Event(ctx, "Provide Value start", &key)
-	defer log.Event(ctx, "Provide Value end", &key)
+	log.Event(ctx, "provideBegin", &key)
+	defer log.Event(ctx, "provideEnd", &key)
 	dht.providers.AddProvider(key, dht.self)
 
-	peers, err := dht.getClosestPeers(ctx, key, KValue)
+	peers, err := dht.getClosestPeers(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -149,14 +149,16 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerIn
 	return providers, nil
 }
 
-func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key, count int) (<-chan peer.ID, error) {
+// Kademlia 'node lookup' operation. Returns a channel of the K closest peers
+// to the given key
+func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key) (<-chan peer.ID, error) {
 	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
 	if len(tablepeers) == 0 {
 		return nil, kb.ErrLookupFailure
 	}
 
-	out := make(chan peer.ID, count)
-	peerset := pset.NewLimited(count)
+	out := make(chan peer.ID, KValue)
+	peerset := pset.NewLimited(KValue)
 
 	for _, p := range tablepeers {
 		select {
@@ -211,10 +213,6 @@ func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key u.Key, p peer.ID)
 	for _, pbp := range pmes.GetCloserPeers() {
 		pid := peer.ID(pbp.GetId())
 		dht.peerstore.AddAddresses(pid, pbp.Addresses())
-		err := dht.ensureConnectedToPeer(ctx, pid)
-		if err != nil {
-			return nil, err
-		}
 		out = append(out, pid)
 	}
 	return out, nil
