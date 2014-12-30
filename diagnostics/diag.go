@@ -212,7 +212,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Messa
 		return nil, err
 	}
 
-	var rpmes *pb.Message
+	rpmes := new(pb.Message)
 	if err := r.ReadMsg(rpmes); err != nil {
 		return nil, err
 	}
