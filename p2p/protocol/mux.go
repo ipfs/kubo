@@ -1,4 +1,4 @@
-package mux
+package protocol
 
 import (
 	"fmt"
@@ -8,14 +8,13 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 var log = eventlog.Logger("net/mux")
 
-type StreamHandlerMap map[protocol.ID]inet.StreamHandler
+type StreamHandlerMap map[ID]inet.StreamHandler
 
 // Mux provides simple stream multixplexing.
 // It helps you precisely when:
@@ -35,9 +34,9 @@ type Mux struct {
 }
 
 // Protocols returns the list of protocols this muxer has handlers for
-func (m *Mux) Protocols() []protocol.ID {
+func (m *Mux) Protocols() []ID {
 	m.RLock()
-	l := make([]protocol.ID, 0, len(m.Handlers))
+	l := make([]ID, 0, len(m.Handlers))
 	for p := range m.Handlers {
 		l = append(l, p)
 	}
@@ -47,9 +46,9 @@ func (m *Mux) Protocols() []protocol.ID {
 
 // readHeader reads the stream and returns the next Handler function
 // according to the muxer encoding.
-func (m *Mux) readHeader(s io.Reader) (protocol.ID, inet.StreamHandler, error) {
+func (m *Mux) readHeader(s io.Reader) (ID, inet.StreamHandler, error) {
 	// log.Error("ReadProtocolHeader")
-	p, err := protocol.ReadHeader(s)
+	p, err := ReadHeader(s)
 	if err != nil {
 		return "", nil, err
 	}
@@ -78,7 +77,7 @@ func (m *Mux) String() string {
 
 // SetHandler sets the protocol handler on the Network's Muxer.
 // This operation is threadsafe.
-func (m *Mux) SetHandler(p protocol.ID, h inet.StreamHandler) {
+func (m *Mux) SetHandler(p ID, h inet.StreamHandler) {
 	log.Debugf("%s setting handler for protocol: %s (%d)", m, p, len(p))
 	m.Lock()
 	m.Handlers[p] = h

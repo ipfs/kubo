@@ -1,11 +1,10 @@
-package mux
+package protocol
 
 import (
 	"bytes"
 	"testing"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 )
 
 var testCases = map[string]string{
@@ -18,7 +17,7 @@ var testCases = map[string]string{
 func TestWrite(t *testing.T) {
 	for k, v := range testCases {
 		var buf bytes.Buffer
-		if err := protocol.WriteHeader(&buf, protocol.ID(k)); err != nil {
+		if err := WriteHeader(&buf, ID(k)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -53,13 +52,13 @@ func TestHandler(t *testing.T) {
 			continue
 		}
 
-		name, err := protocol.ReadHeader(&buf)
+		name, err := ReadHeader(&buf)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
 
-		if name != protocol.ID(k) {
+		if name != ID(k) {
 			t.Errorf("name mismatch: %s != %s", k, name)
 			continue
 		}
