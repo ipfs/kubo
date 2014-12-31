@@ -70,10 +70,6 @@
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
 		},
 		{
-			"ImportPath": "github.com/docker/spdystream",
-			"Rev": "e9d52d77345028f700deb3799ec0b77d5df56dcd"
-		},
-		{
 			"ImportPath": "github.com/facebookgo/stack",
 			"Rev": "4da6d991fc3c389efa512151354d643eb5fae4e2"
 		},
@@ -141,11 +137,15 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "fc6b2a964210945ae2325e6678898d2222526f00"
+			"Rev": "c3ee65e805acc6a27036b9b892e0a95fc9769c3c"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
 			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
+		},
+		{
+			"ImportPath": "github.com/jbenet/spdystream",
+			"Rev": "ebaae88f58b8042aae386bd3972d07cf9a892a4b"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",

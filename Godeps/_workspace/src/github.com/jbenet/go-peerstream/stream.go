@@ -1,7 +1,7 @@
 package peerstream
 
 import (
-	ss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/docker/spdystream"
+	ss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/spdystream"
 )
 
 // StreamHandler is a function which receives a Stream. It

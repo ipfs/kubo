@@ -1,9 +1,9 @@
 package spdystream
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/spdy"
 	"errors"
 	"fmt"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/spdy"
 	"io"
 	"net"
 	"net/http"
@@ -262,16 +262,17 @@ func (s *Connection) addStreamFrame(frame *spdy.SynStreamFrame) {
 	}
 
 	stream := &Stream{
-		streamId:   frame.StreamId,
-		parent:     parent,
-		conn:       s,
-		startChan:  make(chan error),
-		headers:    frame.Headers,
-		finished:   (frame.CFHeader.Flags & spdy.ControlFlagUnidirectional) != 0x00,
-		replyCond:  sync.NewCond(new(sync.Mutex)),
-		dataChan:   make(chan []byte),
-		headerChan: make(chan http.Header),
-		closeChan:  make(chan bool),
+		streamId:     frame.StreamId,
+		parent:       parent,
+		conn:         s,
+		startChan:    make(chan error),
+		headers:      frame.Headers,
+		finished:     (frame.CFHeader.Flags & spdy.ControlFlagUnidirectional) != 0x00,
+		replyCond:    sync.NewCond(new(sync.Mutex)),
+		dataChan:     make(chan []byte),
+		headerChan:   make(chan http.Header),
+		closeChan:    make(chan bool),
+		shutdownChan: make(chan struct{}),
 	}
 	if frame.CFHeader.Flags&spdy.ControlFlagFin != 0x00 {
 		close(stream.dataChan)
@@ -415,8 +416,12 @@ func (s *Connection) handleDataFrame(frame *spdy.DataFrame) error {
 			break
 		default:
 			debugMessage("(%p) (%d) Data frame send chan", stream, stream.streamId)
-			stream.dataChan <- frame.Data
-			debugMessage("(%p) (%d) Data frame sent", stream, stream.streamId)
+			select {
+			case stream.dataChan <- frame.Data:
+				debugMessage("(%p) (%d) Data frame sent", stream, stream.streamId)
+			case <-stream.shutdownChan:
+				debugMessage("(%p) (%d) Data frame not sent (stream shut down)", stream, stream.streamId)
+			}
 		}
 		stream.dataLock.RUnlock()
 	}
@@ -495,14 +500,15 @@ func (s *Connection) CreateStream(headers http.Header, parent *Stream, fin bool)
 	}
 
 	stream := &Stream{
-		streamId:   streamId,
-		parent:     parent,
-		conn:       s,
-		startChan:  make(chan error),
-		headers:    headers,
-		dataChan:   make(chan []byte),
-		headerChan: make(chan http.Header),
-		closeChan:  make(chan bool),
+		streamId:     streamId,
+		parent:       parent,
+		conn:         s,
+		startChan:    make(chan error),
+		headers:      headers,
+		dataChan:     make(chan []byte),
+		headerChan:   make(chan http.Header),
+		closeChan:    make(chan bool),
+		shutdownChan: make(chan struct{}),
 	}
 
 	debugMessage("(%p) (%p) Create stream", s, stream)
