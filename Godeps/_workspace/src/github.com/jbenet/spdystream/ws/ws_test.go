@@ -2,7 +2,7 @@ package ws
 
 import (
 	"bytes"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/docker/spdystream"
+	"github.com/docker/spdystream"
 	"github.com/gorilla/websocket"
 	"io"
 	"log"

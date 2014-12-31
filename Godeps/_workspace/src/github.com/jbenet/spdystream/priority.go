@@ -1,8 +1,8 @@
 package spdystream
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/spdy"
 	"container/heap"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/spdy"
 	"sync"
 )
 

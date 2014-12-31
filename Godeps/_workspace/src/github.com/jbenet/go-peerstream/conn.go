@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	ss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/docker/spdystream"
+	ss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/spdystream"
 )
 
 // ConnHandler is a function which receives a Conn. It allows
