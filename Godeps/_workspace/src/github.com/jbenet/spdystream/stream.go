@@ -34,6 +34,7 @@ type Stream struct {
 	replied    bool
 	closeChan  chan bool
 
+	shutdownLock sync.Mutex
 	shutdownChan chan struct{} // closed when Reset is called (no more R/W).
 }
 
@@ -170,12 +171,14 @@ func (s *Stream) Reset() error {
 	s.conn.removeStream(s)
 
 	// only close it once.
+	s.shutdownLock.Lock()
 	select {
 	case <-s.shutdownChan:
 		// already was closed.
 	default:
 		close(s.shutdownChan)
 	}
+	s.shutdownLock.Unlock()
 
 	s.finishLock.Lock()
 	if s.finished {

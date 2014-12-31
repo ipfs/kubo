@@ -145,7 +145,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/spdystream",
-			"Rev": "ebaae88f58b8042aae386bd3972d07cf9a892a4b"
+			"Rev": "6daa2792a4c92f14c76b2b1caa99a76824f7705c"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",
