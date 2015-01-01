@@ -15,7 +15,7 @@ import (
 	importer "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	net "github.com/jbenet/go-ipfs/p2p/net"
+	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
@@ -101,7 +101,7 @@ type repo struct {
 	blockstore     blockstore.Blockstore
 	exchange       exchange.Interface
 	datastore      datastore.ThreadSafeDatastore
-	network        net.Network
+	host           host.Host
 	dht            *dht.IpfsDHT
 	id             peer.ID
 }
@@ -126,16 +126,16 @@ func (r *repo) Exchange() exchange.Interface {
 	return r.exchange
 }
 
-func MocknetTestRepo(p peer.ID, n net.Network, conf Config) RepoFactory {
+func MocknetTestRepo(p peer.ID, h host.Host, conf Config) RepoFactory {
 	return func(ctx context.Context) (Repo, error) {
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
 		dsDelay := delay.Fixed(conf.BlockstoreLatency)
 		ds := sync.MutexWrap(datastore2.WithDelay(datastore.NewMapDatastore(), dsDelay))
 
-		log.Debugf("MocknetTestRepo: %s %s %s", p, n.LocalPeer(), n)
-		dhtt := dht.NewDHT(ctx, p, n, ds)
-		bsn := bsnet.NewFromIpfsNetwork(n, dhtt)
+		log.Debugf("MocknetTestRepo: %s %s %s", p, h.ID(), h)
+		dhtt := dht.NewDHT(ctx, h, ds)
+		bsn := bsnet.NewFromIpfsHost(h, dhtt)
 		bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds), kWriteCacheElems)
 		if err != nil {
 			return nil, err
@@ -146,7 +146,7 @@ func MocknetTestRepo(p peer.ID, n net.Network, conf Config) RepoFactory {
 			blockstore:     bstore,
 			exchange:       exch,
 			datastore:      ds,
-			network:        n,
+			host:           h,
 			dht:            dhtt,
 			id:             p,
 		}, nil

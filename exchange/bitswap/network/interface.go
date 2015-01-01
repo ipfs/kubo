@@ -5,8 +5,11 @@ import (
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var ProtocolBitswap protocol.ID = "/ipfs/bitswap"
 
 // BitSwapNetwork provides network connectivity for BitSwap sessions
 type BitSwapNetwork interface {

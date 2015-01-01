@@ -53,7 +53,7 @@ Publish a <ref> to another public key:
 
 		args := req.Arguments()
 
-		if n.Network == nil {
+		if n.PeerHost == nil {
 			return nil, errNotOnline
 		}
 

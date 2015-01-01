@@ -7,9 +7,6 @@ import (
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
-	ids "github.com/jbenet/go-ipfs/p2p/net/services/identify"
-	mux "github.com/jbenet/go-ipfs/p2p/net/services/mux"
-	relay "github.com/jbenet/go-ipfs/p2p/net/services/relay"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -30,10 +27,9 @@ type peernet struct {
 	connsByPeer map[peer.ID]map[*conn]struct{}
 	connsByLink map[*link]map[*conn]struct{}
 
-	// needed to implement inet.Network
-	mux   mux.Mux
-	ids   *ids.IDService
-	relay *relay.RelayService
+	// implement inet.Network
+	streamHandler inet.StreamHandler
+	connHandler   inet.ConnHandler
 
 	cg ctxgroup.ContextGroup
 	sync.RWMutex
@@ -58,7 +54,6 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 		mocknet: m,
 		peer:    p,
 		ps:      ps,
-		mux:     mux.Mux{Handlers: inet.StreamHandlerMap{}},
 		cg:      ctxgroup.WithContext(ctx),
 
 		connsByPeer: map[peer.ID]map[*conn]struct{}{},
@@ -66,14 +61,6 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 	}
 
 	n.cg.SetTeardown(n.teardown)
-
-	// setup a conn handler that immediately "asks the other side about them"
-	// this is ProtocolIdentify.
-	n.ids = ids.NewIDService(n)
-
-	// setup ProtocolRelay to allow traffic relaying.
-	// Feed things we get for ourselves into the muxer.
-	n.relay = relay.NewRelayService(n.cg.Context(), n, n.mux.HandleSync)
 	return n, nil
 }
 
@@ -104,10 +91,6 @@ func (pn *peernet) Close() error {
 	return pn.cg.Close()
 }
 
-func (pn *peernet) Protocols() []inet.ProtocolID {
-	return pn.mux.Protocols()
-}
-
 func (pn *peernet) Peerstore() peer.Peerstore {
 	return pn.ps
 }
@@ -116,24 +99,41 @@ func (pn *peernet) String() string {
 	return fmt.Sprintf("<mock.peernet %s - %d conns>", pn.peer, len(pn.allConns()))
 }
 
-// handleNewStream is an internal function to trigger the muxer handler
+// handleNewStream is an internal function to trigger the client's handler
 func (pn *peernet) handleNewStream(s inet.Stream) {
-	go pn.mux.Handle(s)
+	pn.RLock()
+	handler := pn.streamHandler
+	pn.RUnlock()
+	if handler != nil {
+		go handler(s)
+	}
+}
+
+// handleNewConn is an internal function to trigger the client's handler
+func (pn *peernet) handleNewConn(c inet.Conn) {
+	pn.RLock()
+	handler := pn.connHandler
+	pn.RUnlock()
+	if handler != nil {
+		go handler(c)
+	}
 }
 
 // DialPeer attempts to establish a connection to a given peer.
 // Respects the context.
-func (pn *peernet) DialPeer(ctx context.Context, p peer.ID) error {
+func (pn *peernet) DialPeer(ctx context.Context, p peer.ID) (inet.Conn, error) {
 	return pn.connect(p)
 }
 
-func (pn *peernet) connect(p peer.ID) error {
+func (pn *peernet) connect(p peer.ID) (*conn, error) {
 	// first, check if we already have live connections
 	pn.RLock()
 	cs, found := pn.connsByPeer[p]
 	pn.RUnlock()
 	if found && len(cs) > 0 {
-		return nil
+		for c := range cs {
+			return c, nil
+		}
 	}
 
 	log.Debugf("%s (newly) dialing %s", pn.peer, p)
@@ -141,7 +141,7 @@ func (pn *peernet) connect(p peer.ID) error {
 	// ok, must create a new connection. we need a link
 	links := pn.mocknet.LinksBetweenPeers(pn.peer, p)
 	if len(links) < 1 {
-		return fmt.Errorf("%s cannot connect to %s", pn.peer, p)
+		return nil, fmt.Errorf("%s cannot connect to %s", pn.peer, p)
 	}
 
 	// if many links found, how do we select? for now, randomly...
@@ -151,8 +151,8 @@ func (pn *peernet) connect(p peer.ID) error {
 
 	log.Debugf("%s dialing %s openingConn", pn.peer, p)
 	// create a new connection with link
-	pn.openConn(p, l.(*link))
-	return nil
+	c := pn.openConn(p, l.(*link))
+	return c, nil
 }
 
 func (pn *peernet) openConn(r peer.ID, l *link) *conn {
@@ -166,16 +166,15 @@ func (pn *peernet) openConn(r peer.ID, l *link) *conn {
 func (pn *peernet) remoteOpenedConn(c *conn) {
 	log.Debugf("%s accepting connection from %s", pn.LocalPeer(), c.RemotePeer())
 	pn.addConn(c)
+	pn.handleNewConn(c)
 }
 
 // addConn constructs and adds a connection
 // to given remote peer over given link
 func (pn *peernet) addConn(c *conn) {
-
-	// run the Identify protocol/handshake.
-	pn.ids.IdentifyConn(c)
-
 	pn.Lock()
+	defer pn.Unlock()
+
 	cs, found := pn.connsByPeer[c.RemotePeer()]
 	if !found {
 		cs = map[*conn]struct{}{}
@@ -189,7 +188,6 @@ func (pn *peernet) addConn(c *conn) {
 		pn.connsByLink[c.link] = cs
 	}
 	pn.connsByLink[c.link][c] = struct{}{}
-	pn.Unlock()
 }
 
 // removeConn removes a given conn
@@ -314,15 +312,14 @@ func (pn *peernet) Connectedness(p peer.ID) inet.Connectedness {
 
 // NewStream returns a new stream to given peer p.
 // If there is no connection to p, attempts to create one.
-// If ProtocolID is "", writes no header.
-func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.ID) (inet.Stream, error) {
+func (pn *peernet) NewStream(p peer.ID) (inet.Stream, error) {
 	pn.Lock()
-	defer pn.Unlock()
-
 	cs, found := pn.connsByPeer[p]
 	if !found || len(cs) < 1 {
+		pn.Unlock()
 		return nil, fmt.Errorf("no connection to peer")
 	}
+	pn.Unlock()
 
 	// if many conns are found, how do we select? for now, randomly...
 	// this would be an interesting place to test logic that can measure
@@ -336,15 +333,21 @@ func (pn *peernet) NewStream(pr inet.ProtocolID, p peer.ID) (inet.Stream, error)
 		n--
 	}
 
-	return c.NewStreamWithProtocol(pr)
+	return c.NewStream()
 }
 
-// SetHandler sets the protocol handler on the Network's Muxer.
+// SetStreamHandler sets the new stream handler on the Network.
 // This operation is threadsafe.
-func (pn *peernet) SetHandler(p inet.ProtocolID, h inet.StreamHandler) {
-	pn.mux.SetHandler(p, h)
+func (pn *peernet) SetStreamHandler(h inet.StreamHandler) {
+	pn.Lock()
+	pn.streamHandler = h
+	pn.Unlock()
 }
 
-func (pn *peernet) IdentifyProtocol() *ids.IDService {
-	return pn.ids
+// SetConnHandler sets the new conn handler on the Network.
+// This operation is threadsafe.
+func (pn *peernet) SetConnHandler(h inet.ConnHandler) {
+	pn.Lock()
+	pn.connHandler = h
+	pn.Unlock()
 }

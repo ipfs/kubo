@@ -19,11 +19,6 @@ import (
 
 var log = eventlog.Logger("conn")
 
-const (
-	// MaxMessageSize is the size of the largest single message. (4MB)
-	MaxMessageSize = 1 << 22
-)
-
 // ReleaseBuffer puts the given byte array back into the buffer pool,
 // first verifying that it is the correct size
 func ReleaseBuffer(b []byte) {
@@ -48,15 +43,8 @@ func newSingleConn(ctx context.Context, local, remote peer.ID, maconn manet.Conn
 		maconn: maconn,
 		msgrw:  msgio.NewReadWriter(maconn),
 	}
+
 	log.Debugf("newSingleConn %p: %v to %v", conn, local, remote)
-
-	// version handshake
-	if err := Handshake1(ctx, conn); err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("Handshake1 failed: %s", err)
-	}
-
-	log.Debugf("newSingleConn %p: %v to %v finished", conn, local, remote)
 	return conn, nil
 }
 

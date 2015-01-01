@@ -20,8 +20,9 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	swarmnet "github.com/jbenet/go-ipfs/p2p/net/swarmnet"
+	p2phost "github.com/jbenet/go-ipfs/p2p/host"
+	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
+	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	pin "github.com/jbenet/go-ipfs/pin"
@@ -53,7 +54,7 @@ type IpfsNode struct {
 
 	// Services
 	Peerstore   peer.Peerstore       // storage for other Peer instances
-	Network     inet.Network         // the network message stream
+	PeerHost    p2phost.Host         // the network host (server+client)
 	Routing     routing.IpfsRouting  // the routing system. recommend ipfs-dht
 	Exchange    exchange.Interface   // the block exchange + strategy (bitswap)
 	Blocks      *bserv.BlockService  // the block service, get/add blocks.
@@ -122,16 +123,17 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 			return nil, debugerror.Wrap(err)
 		}
 
-		n.Network, err = swarmnet.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
+		network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
-		n.AddChildGroup(n.Network.CtxGroup())
+		n.AddChildGroup(network.CtxGroup())
+		n.PeerHost = p2pbhost.New(network)
 
 		// explicitly set these as our listen addrs.
 		// (why not do it inside inet.NewNetwork? because this way we can
 		// listen on addresses without necessarily advertising those publicly.)
-		addrs, err := n.Network.InterfaceListenAddresses()
+		addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
@@ -139,10 +141,10 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 		n.Peerstore.AddAddresses(n.Identity, addrs)
 
 		// setup diagnostics service
-		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.Network)
+		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
 		// setup routing service
-		dhtRouting := dht.NewDHT(ctx, n.Identity, n.Network, n.Datastore)
+		dhtRouting := dht.NewDHT(ctx, n.PeerHost, n.Datastore)
 		dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 
 		// TODO(brian): perform this inside NewDHT factory method
@@ -151,7 +153,7 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 
 		// setup exchange service
 		const alwaysSendToPeer = true // use YesManStrategy
-		bitswapNetwork := bsnet.NewFromIpfsNetwork(n.Network, n.Routing)
+		bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
 
 		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, blockstore, alwaysSendToPeer)
 
@@ -161,7 +163,7 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 		// an Exchange, Network, or Routing component and have the constructor
 		// manage the wiring. In that scenario, this dangling function is a bit
 		// awkward.
-		go superviseConnections(ctx, n.Network, dhtRouting, n.Peerstore, n.Config.Bootstrap)
+		go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, n.Config.Bootstrap)
 	}
 
 	// TODO(brian): when offline instantiate the BlockService with a bitswap

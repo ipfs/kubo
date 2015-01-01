@@ -1,4 +1,4 @@
-package net_test
+package swarm_test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
-	netutil "github.com/jbenet/go-ipfs/p2p/net/swarmnet/util"
+	testutil "github.com/jbenet/go-ipfs/p2p/test/util"
 )
 
 // TestConnectednessCorrect starts a few networks, connects a few
@@ -19,14 +19,14 @@ func TestConnectednessCorrect(t *testing.T) {
 
 	nets := make([]inet.Network, 4)
 	for i := 0; i < 4; i++ {
-		nets[i] = netutil.GenNetwork(t, ctx)
+		nets[i] = testutil.GenSwarmNetwork(t, ctx)
 	}
 
 	// connect 0-1, 0-2, 0-3, 1-2, 2-3
 
 	dial := func(a, b inet.Network) {
-		netutil.DivulgeAddresses(b, a)
-		if err := a.DialPeer(ctx, b.LocalPeer()); err != nil {
+		testutil.DivulgeAddresses(b, a)
+		if _, err := a.DialPeer(ctx, b.LocalPeer()); err != nil {
 			t.Fatalf("Failed to dial: %s", err)
 		}
 	}

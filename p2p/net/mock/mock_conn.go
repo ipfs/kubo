@@ -6,7 +6,6 @@ import (
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
-	mux "github.com/jbenet/go-ipfs/p2p/net/services/mux"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -83,14 +82,10 @@ func (c *conn) openStream() *stream {
 	return sl
 }
 
-func (c *conn) NewStreamWithProtocol(pr inet.ProtocolID) (inet.Stream, error) {
+func (c *conn) NewStream() (inet.Stream, error) {
 	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, c.remote)
 
 	s := c.openStream()
-	if err := mux.WriteProtocolHeader(pr, s); err != nil {
-		s.Close()
-		return nil, err
-	}
 	return s, nil
 }
 

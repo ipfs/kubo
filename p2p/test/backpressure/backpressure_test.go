@@ -8,7 +8,7 @@ import (
 	"time"
 
 	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net2"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	testutil "github.com/jbenet/go-ipfs/p2p/test/util"

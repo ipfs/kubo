@@ -3,8 +3,11 @@ package mocknet
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	host "github.com/jbenet/go-ipfs/p2p/host"
+	bhost "github.com/jbenet/go-ipfs/p2p/host/basic"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -16,9 +19,8 @@ import (
 
 // mocknet implements mocknet.Mocknet
 type mocknet struct {
-	// must map on peer.ID (instead of peer.ID) because
-	// each inet.Network has different peerstore
-	nets map[peer.ID]*peernet
+	nets  map[peer.ID]*peernet
+	hosts map[peer.ID]*bhost.BasicHost
 
 	// links make it possible to connect two peers.
 	// think of links as the physical medium.
@@ -35,32 +37,35 @@ type mocknet struct {
 func New(ctx context.Context) Mocknet {
 	return &mocknet{
 		nets:  map[peer.ID]*peernet{},
+		hosts: map[peer.ID]*bhost.BasicHost{},
 		links: map[peer.ID]map[peer.ID]map[*link]struct{}{},
 		cg:    ctxgroup.WithContext(ctx),
 	}
 }
 
-func (mn *mocknet) GenPeer() (inet.Network, error) {
-	sk, _, err := testutil.SeededKeyPair(int64(len(mn.nets)))
+func (mn *mocknet) GenPeer() (host.Host, error) {
+	sk, _, err := testutil.SeededKeyPair(time.Now().UnixNano())
 	if err != nil {
 		return nil, err
 	}
 
 	a := testutil.RandLocalTCPAddress()
 
-	n, err := mn.AddPeer(sk, a)
+	h, err := mn.AddPeer(sk, a)
 	if err != nil {
 		return nil, err
 	}
 
-	return n, nil
+	return h, nil
 }
 
-func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (inet.Network, error) {
+func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
 	n, err := newPeernet(mn.cg.Context(), mn, k, a)
 	if err != nil {
 		return nil, err
 	}
+
+	h := bhost.New(n)
 
 	// make sure to add listening address!
 	// this makes debugging things simpler as remembering to register
@@ -72,8 +77,9 @@ func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (inet.Network, error) {
 
 	mn.Lock()
 	mn.nets[n.peer] = n
+	mn.hosts[n.peer] = h
 	mn.Unlock()
-	return n, nil
+	return h, nil
 }
 
 func (mn *mocknet) Peers() []peer.ID {
@@ -87,16 +93,29 @@ func (mn *mocknet) Peers() []peer.ID {
 	return cp
 }
 
+func (mn *mocknet) Host(pid peer.ID) host.Host {
+	mn.RLock()
+	host := mn.hosts[pid]
+	mn.RUnlock()
+	return host
+}
+
 func (mn *mocknet) Net(pid peer.ID) inet.Network {
+	mn.RLock()
+	n := mn.nets[pid]
+	mn.RUnlock()
+	return n
+}
+
+func (mn *mocknet) Hosts() []host.Host {
 	mn.RLock()
 	defer mn.RUnlock()
 
-	for _, n := range mn.nets {
-		if n.peer == pid {
-			return n
-		}
+	cp := make([]host.Host, 0, len(mn.hosts))
+	for _, h := range mn.hosts {
+		cp = append(cp, h)
 	}
-	return nil
+	return cp
 }
 
 func (mn *mocknet) Nets() []inet.Network {
@@ -269,7 +288,7 @@ func (mn *mocknet) ConnectAll() error {
 				continue
 			}
 
-			if err := mn.ConnectNets(n1, n2); err != nil {
+			if _, err := mn.ConnectNets(n1, n2); err != nil {
 				return err
 			}
 		}
@@ -277,11 +296,11 @@ func (mn *mocknet) ConnectAll() error {
 	return nil
 }
 
-func (mn *mocknet) ConnectPeers(a, b peer.ID) error {
+func (mn *mocknet) ConnectPeers(a, b peer.ID) (inet.Conn, error) {
 	return mn.Net(a).DialPeer(mn.cg.Context(), b)
 }
 
-func (mn *mocknet) ConnectNets(a, b inet.Network) error {
+func (mn *mocknet) ConnectNets(a, b inet.Network) (inet.Conn, error) {
 	return a.DialPeer(mn.cg.Context(), b.LocalPeer())
 }
 

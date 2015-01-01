@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -15,12 +16,12 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
-func EchoStreamHandler(stream *Stream) {
+func EchoStreamHandler(stream inet.Stream) {
 	go func() {
 		defer stream.Close()
 
 		// pull out the ipfs conn
-		c := stream.Conn().RawConn()
+		c := stream.Conn()
 		log.Debugf("%s ponging to %s", c.LocalPeer(), c.RemotePeer())
 
 		buf := make([]byte, 4)

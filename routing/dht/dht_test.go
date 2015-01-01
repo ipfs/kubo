@@ -14,11 +14,10 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	swarmnet "github.com/jbenet/go-ipfs/p2p/net/swarmnet"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	netutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 var testCaseValues = map[u.Key][]byte{}
@@ -32,30 +31,11 @@ func init() {
 	}
 }
 
-func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
-
-	sk, pk, err := testutil.SeededKeyPair(time.Now().UnixNano())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	p, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	peerstore := peer.NewPeerstore()
-	peerstore.AddPrivKey(p, sk)
-	peerstore.AddPubKey(p, pk)
-	peerstore.AddAddress(p, addr)
-
-	n, err := swarmnet.NewNetwork(ctx, []ma.Multiaddr{addr}, p, peerstore)
-	if err != nil {
-		t.Fatal(err)
-	}
+func setupDHT(ctx context.Context, t *testing.T) *IpfsDHT {
+	h := netutil.GenHostSwarm(t, ctx)
 
 	dss := dssync.MutexWrap(ds.NewMapDatastore())
-	d := NewDHT(ctx, p, n, dss)
+	d := NewDHT(ctx, h, dss)
 
 	d.Validators["v"] = func(u.Key, []byte) error {
 		return nil
@@ -69,9 +49,9 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	peers := make([]peer.ID, n)
 
 	for i := 0; i < n; i++ {
-		addrs[i] = testutil.RandLocalTCPAddress()
-		dhts[i] = setupDHT(ctx, t, addrs[i])
+		dhts[i] = setupDHT(ctx, t)
 		peers[i] = dhts[i].self
+		addrs[i] = dhts[i].peerstore.Addresses(dhts[i].self)[0]
 	}
 
 	return addrs, peers, dhts
@@ -116,19 +96,16 @@ func TestPing(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 	ctx := context.Background()
 
-	addrA := testutil.RandLocalTCPAddress()
-	addrB := testutil.RandLocalTCPAddress()
-
-	dhtA := setupDHT(ctx, t, addrA)
-	dhtB := setupDHT(ctx, t, addrB)
+	dhtA := setupDHT(ctx, t)
+	dhtB := setupDHT(ctx, t)
 
 	peerA := dhtA.self
 	peerB := dhtB.self
 
 	defer dhtA.Close()
 	defer dhtB.Close()
-	defer dhtA.network.Close()
-	defer dhtB.network.Close()
+	defer dhtA.host.Close()
+	defer dhtB.host.Close()
 
 	connect(t, ctx, dhtA, dhtB)
 
@@ -149,16 +126,13 @@ func TestValueGetSet(t *testing.T) {
 
 	ctx := context.Background()
 
-	addrA := testutil.RandLocalTCPAddress()
-	addrB := testutil.RandLocalTCPAddress()
-
-	dhtA := setupDHT(ctx, t, addrA)
-	dhtB := setupDHT(ctx, t, addrB)
+	dhtA := setupDHT(ctx, t)
+	dhtB := setupDHT(ctx, t)
 
 	defer dhtA.Close()
 	defer dhtB.Close()
-	defer dhtA.network.Close()
-	defer dhtB.network.Close()
+	defer dhtA.host.Close()
+	defer dhtB.host.Close()
 
 	vf := func(u.Key, []byte) error {
 		return nil
@@ -200,7 +174,7 @@ func TestProvides(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].network.Close()
+			defer dhts[i].host.Close()
 		}
 	}()
 
@@ -268,7 +242,7 @@ func TestBootstrap(t *testing.T) {
 	defer func() {
 		for i := 0; i < nDHTs; i++ {
 			dhts[i].Close()
-			defer dhts[i].network.Close()
+			defer dhts[i].host.Close()
 		}
 	}()
 
@@ -312,7 +286,7 @@ func TestProvidesMany(t *testing.T) {
 	defer func() {
 		for i := 0; i < nDHTs; i++ {
 			dhts[i].Close()
-			defer dhts[i].network.Close()
+			defer dhts[i].host.Close()
 		}
 	}()
 
@@ -424,7 +398,7 @@ func TestProvidesAsync(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].network.Close()
+			defer dhts[i].host.Close()
 		}
 	}()
 
@@ -478,7 +452,7 @@ func TestLayeredGet(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			defer dhts[i].network.Close()
+			defer dhts[i].host.Close()
 		}
 	}()
 
@@ -518,7 +492,7 @@ func TestFindPeer(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			dhts[i].network.Close()
+			dhts[i].host.Close()
 		}
 	}()
 
@@ -554,7 +528,7 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	defer func() {
 		for i := 0; i < 4; i++ {
 			dhts[i].Close()
-			dhts[i].network.Close()
+			dhts[i].host.Close()
 		}
 	}()
 
@@ -633,11 +607,11 @@ func TestConnectCollision(t *testing.T) {
 
 		ctx := context.Background()
 
-		addrA := testutil.RandLocalTCPAddress()
-		addrB := testutil.RandLocalTCPAddress()
+		dhtA := setupDHT(ctx, t)
+		dhtB := setupDHT(ctx, t)
 
-		dhtA := setupDHT(ctx, t, addrA)
-		dhtB := setupDHT(ctx, t, addrB)
+		addrA := dhtA.peerstore.Addresses(dhtA.self)[0]
+		addrB := dhtB.peerstore.Addresses(dhtB.self)[0]
 
 		peerA := dhtA.self
 		peerB := dhtB.self
@@ -674,7 +648,7 @@ func TestConnectCollision(t *testing.T) {
 
 		dhtA.Close()
 		dhtB.Close()
-		dhtA.network.Close()
-		dhtB.network.Close()
+		dhtA.host.Close()
+		dhtB.host.Close()
 	}
 }

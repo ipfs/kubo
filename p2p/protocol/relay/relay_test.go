@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net2"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	relay "github.com/jbenet/go-ipfs/p2p/protocol/relay"
 	testutil "github.com/jbenet/go-ipfs/p2p/test/util"

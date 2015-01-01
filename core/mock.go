@@ -11,12 +11,12 @@ import (
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	"github.com/jbenet/go-ipfs/p2p/net/mock"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
-	"github.com/jbenet/go-ipfs/util/testutil"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 // TODO this is super sketch. Deprecate and initialize one that shares code
@@ -44,16 +44,18 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.Peerstore = peer.NewPeerstore()
 	nd.Peerstore.AddPrivKey(p, sk)
 	nd.Peerstore.AddPubKey(p, pk)
-	nd.Network, err = mocknet.New(ctx).AddPeer(sk, testutil.RandLocalTCPAddress()) // effectively offline
+
+	nd.PeerHost, err = mocknet.New(ctx).AddPeer(sk, testutil.RandLocalTCPAddress()) // effectively offline
 	if err != nil {
 		return nil, err
 	}
+
 	// Temp Datastore
 	dstore := ds.NewMapDatastore()
 	nd.Datastore = ds2.CloserWrap(syncds.MutexWrap(dstore))
 
 	// Routing
-	dht := dht.NewDHT(ctx, nd.Identity, nd.Network, nd.Datastore)
+	dht := dht.NewDHT(ctx, nd.PeerHost, nd.Datastore)
 	nd.Routing = dht
 
 	// Bitswap

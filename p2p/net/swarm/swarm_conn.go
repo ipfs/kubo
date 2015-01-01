@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
@@ -74,10 +75,16 @@ func (c *Conn) RemotePublicKey() ic.PubKey {
 	return c.RawConn().RemotePublicKey()
 }
 
-// NewStream returns a new Stream from this connection
-func (c *Conn) NewStream() (*Stream, error) {
+// NewSwarmStream returns a new Stream from this connection
+func (c *Conn) NewSwarmStream() (*Stream, error) {
 	s, err := c.StreamConn().NewStream()
 	return wrapStream(s), err
+}
+
+// NewStream returns a new Stream from this connection
+func (c *Conn) NewStream() (inet.Stream, error) {
+	s, err := c.NewSwarmStream()
+	return inet.Stream(s), err
 }
 
 func (c *Conn) Close() error {

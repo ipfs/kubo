@@ -3,6 +3,7 @@
 package swarm
 
 import (
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
@@ -92,7 +93,7 @@ func (s *Swarm) SetConnHandler(handler ConnHandler) {
 
 // SetStreamHandler assigns the handler for new streams.
 // See peerstream.
-func (s *Swarm) SetStreamHandler(handler StreamHandler) {
+func (s *Swarm) SetStreamHandler(handler inet.StreamHandler) {
 	s.swarm.SetStreamHandler(func(s *ps.Stream) {
 		handler(wrapStream(s))
 	})

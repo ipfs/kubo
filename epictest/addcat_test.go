@@ -99,11 +99,11 @@ func DirectAddCat(data []byte, conf Config) error {
 		return errors.New("test initialization error")
 	}
 
-	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Net(peers[0]), conf))
+	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Net(peers[1]), conf))
+	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
 	if err != nil {
 		return err
 	}

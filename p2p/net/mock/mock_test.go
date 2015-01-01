@@ -9,6 +9,7 @@ import (
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -46,31 +47,44 @@ func TestNetworkSetup(t *testing.T) {
 	a2 := testutil.RandLocalTCPAddress()
 	a3 := testutil.RandLocalTCPAddress()
 
-	n1, err := mn.AddPeer(sk1, a1)
+	h1, err := mn.AddPeer(sk1, a1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p1 := n1.LocalPeer()
+	p1 := h1.ID()
 
-	n2, err := mn.AddPeer(sk2, a2)
+	h2, err := mn.AddPeer(sk2, a2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p2 := n2.LocalPeer()
+	p2 := h2.ID()
 
-	n3, err := mn.AddPeer(sk3, a3)
+	h3, err := mn.AddPeer(sk3, a3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p3 := n3.LocalPeer()
+	p3 := h3.ID()
 
 	// check peers and net
+	if mn.Host(p1) != h1 {
+		t.Error("host for p1.ID != h1")
+	}
+	if mn.Host(p2) != h2 {
+		t.Error("host for p2.ID != h2")
+	}
+	if mn.Host(p3) != h3 {
+		t.Error("host for p3.ID != h3")
+	}
+
+	n1 := h1.Network()
 	if mn.Net(p1) != n1 {
 		t.Error("net for p1.ID != n1")
 	}
+	n2 := h2.Network()
 	if mn.Net(p2) != n2 {
 		t.Error("net for p2.ID != n1")
 	}
+	n3 := h3.Network()
 	if mn.Net(p3) != n3 {
 		t.Error("net for p3.ID != n1")
 	}
@@ -177,7 +191,7 @@ func TestNetworkSetup(t *testing.T) {
 	}
 
 	// connect p2->p3
-	if err := n2.DialPeer(ctx, p3); err != nil {
+	if _, err := n2.DialPeer(ctx, p3); err != nil {
 		t.Error(err)
 	}
 
@@ -191,41 +205,41 @@ func TestNetworkSetup(t *testing.T) {
 	// p.NetworkConns(n3)
 
 	// can create a stream 2->3, 3->2,
-	if _, err := n2.NewStream(inet.ProtocolDiag, p3); err != nil {
+	if _, err := n2.NewStream(p3); err != nil {
 		t.Error(err)
 	}
-	if _, err := n3.NewStream(inet.ProtocolDiag, p2); err != nil {
+	if _, err := n3.NewStream(p2); err != nil {
 		t.Error(err)
 	}
 
 	// but not 1->2 nor 2->2 (not linked), nor 1->1 (not connected)
-	if _, err := n1.NewStream(inet.ProtocolDiag, p2); err == nil {
+	if _, err := n1.NewStream(p2); err == nil {
 		t.Error("should not be able to connect")
 	}
-	if _, err := n2.NewStream(inet.ProtocolDiag, p2); err == nil {
+	if _, err := n2.NewStream(p2); err == nil {
 		t.Error("should not be able to connect")
 	}
-	if _, err := n1.NewStream(inet.ProtocolDiag, p1); err == nil {
+	if _, err := n1.NewStream(p1); err == nil {
 		t.Error("should not be able to connect")
 	}
 
 	// connect p1->p1 (should work)
-	if err := n1.DialPeer(ctx, p1); err != nil {
+	if _, err := n1.DialPeer(ctx, p1); err != nil {
 		t.Error("p1 should be able to dial self.", err)
 	}
 
 	// and a stream too
-	if _, err := n1.NewStream(inet.ProtocolDiag, p1); err != nil {
+	if _, err := n1.NewStream(p1); err != nil {
 		t.Error(err)
 	}
 
 	// connect p1->p2
-	if err := n1.DialPeer(ctx, p2); err == nil {
+	if _, err := n1.DialPeer(ctx, p2); err == nil {
 		t.Error("p1 should not be able to dial p2, not connected...")
 	}
 
 	// connect p3->p1
-	if err := n3.DialPeer(ctx, p1); err == nil {
+	if _, err := n3.DialPeer(ctx, p1); err == nil {
 		t.Error("p3 should not be able to dial p1, not connected...")
 	}
 
@@ -243,12 +257,12 @@ func TestNetworkSetup(t *testing.T) {
 	// should now be able to connect
 
 	// connect p1->p2
-	if err := n1.DialPeer(ctx, p2); err != nil {
+	if _, err := n1.DialPeer(ctx, p2); err != nil {
 		t.Error(err)
 	}
 
 	// and a stream should work now too :)
-	if _, err := n2.NewStream(inet.ProtocolDiag, p3); err != nil {
+	if _, err := n2.NewStream(p3); err != nil {
 		t.Error(err)
 	}
 
@@ -262,27 +276,25 @@ func TestStreams(t *testing.T) {
 	}
 
 	handler := func(s inet.Stream) {
-		go func() {
-			b := make([]byte, 4)
-			if _, err := io.ReadFull(s, b); err != nil {
-				panic(err)
-			}
-			if !bytes.Equal(b, []byte("beep")) {
-				panic("bytes mismatch")
-			}
-			if _, err := s.Write([]byte("boop")); err != nil {
-				panic(err)
-			}
-			s.Close()
-		}()
+		b := make([]byte, 4)
+		if _, err := io.ReadFull(s, b); err != nil {
+			panic(err)
+		}
+		if !bytes.Equal(b, []byte("beep")) {
+			panic("bytes mismatch")
+		}
+		if _, err := s.Write([]byte("boop")); err != nil {
+			panic(err)
+		}
+		s.Close()
 	}
 
-	nets := mn.Nets()
-	for _, n := range nets {
-		n.SetHandler(inet.ProtocolDHT, handler)
+	hosts := mn.Hosts()
+	for _, h := range mn.Hosts() {
+		h.SetStreamHandler(protocol.TestingID, handler)
 	}
 
-	s, err := nets[0].NewStream(inet.ProtocolDHT, nets[1].LocalPeer())
+	s, err := hosts[0].NewStream(protocol.TestingID, hosts[1].ID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -352,17 +364,10 @@ func TestStreamsStress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	protos := []inet.ProtocolID{
-		inet.ProtocolDHT,
-		inet.ProtocolBitswap,
-		inet.ProtocolDiag,
-	}
-
-	nets := mn.Nets()
-	for _, n := range nets {
-		for _, p := range protos {
-			n.SetHandler(p, makePonger(string(p)))
-		}
+	hosts := mn.Hosts()
+	for _, h := range hosts {
+		ponger := makePonger(string(protocol.TestingID))
+		h.SetStreamHandler(protocol.TestingID, ponger)
 	}
 
 	var wg sync.WaitGroup
@@ -370,18 +375,16 @@ func TestStreamsStress(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			from := rand.Intn(len(nets))
-			to := rand.Intn(len(nets))
-			p := rand.Intn(3)
-			proto := protos[p]
-			s, err := nets[from].NewStream(protos[p], nets[to].LocalPeer())
+			from := rand.Intn(len(hosts))
+			to := rand.Intn(len(hosts))
+			s, err := hosts[from].NewStream(protocol.TestingID, hosts[to].ID())
 			if err != nil {
-				log.Debugf("%d (%s) %d (%s) %d (%s)", from, nets[from], to, nets[to], p, protos[p])
+				log.Debugf("%d (%s) %d (%s)", from, hosts[from], to, hosts[to])
 				panic(err)
 			}
 
 			log.Infof("%d start pinging", i)
-			makePinger(string(proto), rand.Intn(100))(s)
+			makePinger("pingpong", rand.Intn(100))(s)
 			log.Infof("%d done pinging", i)
 		}(i)
 	}
@@ -401,12 +404,12 @@ func TestAdding(t *testing.T) {
 		}
 
 		a := testutil.RandLocalTCPAddress()
-		n, err := mn.AddPeer(sk, a)
+		h, err := mn.AddPeer(sk, a)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		peers = append(peers, n.LocalPeer())
+		peers = append(peers, h.ID())
 	}
 
 	p1 := peers[0]
@@ -422,40 +425,38 @@ func TestAdding(t *testing.T) {
 	}
 
 	// set the new stream handler on p2
-	n2 := mn.Net(p2)
-	if n2 == nil {
-		t.Fatalf("no network for %s", p2)
+	h2 := mn.Host(p2)
+	if h2 == nil {
+		t.Fatalf("no host for %s", p2)
 	}
-	n2.SetHandler(inet.ProtocolBitswap, func(s inet.Stream) {
-		go func() {
-			defer s.Close()
+	h2.SetStreamHandler(protocol.TestingID, func(s inet.Stream) {
+		defer s.Close()
 
-			b := make([]byte, 4)
-			if _, err := io.ReadFull(s, b); err != nil {
-				panic(err)
-			}
-			if string(b) != "beep" {
-				panic("did not beep!")
-			}
+		b := make([]byte, 4)
+		if _, err := io.ReadFull(s, b); err != nil {
+			panic(err)
+		}
+		if string(b) != "beep" {
+			panic("did not beep!")
+		}
 
-			if _, err := s.Write([]byte("boop")); err != nil {
-				panic(err)
-			}
-		}()
+		if _, err := s.Write([]byte("boop")); err != nil {
+			panic(err)
+		}
 	})
 
 	// connect p1 to p2
-	if err := mn.ConnectPeers(p1, p2); err != nil {
+	if _, err := mn.ConnectPeers(p1, p2); err != nil {
 		t.Fatal(err)
 	}
 
 	// talk to p2
-	n1 := mn.Net(p1)
-	if n1 == nil {
+	h1 := mn.Host(p1)
+	if h1 == nil {
 		t.Fatalf("no network for %s", p1)
 	}
 
-	s, err := n1.NewStream(inet.ProtocolBitswap, p2)
+	s, err := h1.NewStream(protocol.TestingID, p2)
 	if err != nil {
 		t.Fatal(err)
 	}

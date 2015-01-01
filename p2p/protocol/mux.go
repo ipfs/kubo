@@ -7,7 +7,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net2"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )

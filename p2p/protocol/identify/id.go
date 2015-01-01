@@ -13,7 +13,7 @@ import (
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
 	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net2"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 
 	pb "github.com/jbenet/go-ipfs/p2p/protocol/identify/pb"

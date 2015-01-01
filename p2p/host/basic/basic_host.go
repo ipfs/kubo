@@ -5,7 +5,7 @@ import (
 
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net2"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	identify "github.com/jbenet/go-ipfs/p2p/protocol/identify"

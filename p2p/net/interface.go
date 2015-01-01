@@ -4,26 +4,11 @@ import (
 	"io"
 
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
-	// swarm "github.com/jbenet/go-ipfs/p2p/net/swarm2"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-)
-
-// ProtocolID is an identifier used to write protocol headers in streams.
-type ProtocolID string
-
-// These are the ProtocolIDs of the protocols running. It is useful
-// to keep them in one place.
-const (
-	ProtocolTesting  ProtocolID = "/ipfs/testing"
-	ProtocolBitswap  ProtocolID = "/ipfs/bitswap"
-	ProtocolDHT      ProtocolID = "/ipfs/dht"
-	ProtocolIdentify ProtocolID = "/ipfs/id"
-	ProtocolDiag     ProtocolID = "/ipfs/diagnostics"
-	ProtocolRelay    ProtocolID = "/ipfs/relay"
 )
 
 // MessageSizeMax is a soft (recommended) maximum for network messages.
@@ -45,11 +30,9 @@ type Stream interface {
 	Conn() Conn
 }
 
-// StreamHandler is the function protocols who wish to listen to
-// incoming streams must implement.
+// StreamHandler is the type of function used to listen for
+// streams opened by the remote side.
 type StreamHandler func(Stream)
-
-type StreamHandlerMap map[ProtocolID]StreamHandler
 
 // Conn is a connection to a remote peer. It multiplexes streams.
 // Usually there is no need to use a Conn directly, but it may
@@ -58,11 +41,15 @@ type StreamHandlerMap map[ProtocolID]StreamHandler
 type Conn interface {
 	conn.PeerConn
 
-	// NewStreamWithProtocol constructs a new Stream over this conn.
-	NewStreamWithProtocol(pr ProtocolID) (Stream, error)
+	// NewStream constructs a new Stream over this conn.
+	NewStream() (Stream, error)
 }
 
-// Network is the interface IPFS uses for connecting to the world.
+// ConnHandler is the type of function used to listen for
+// connections opened by the remote side.
+type ConnHandler func(Conn)
+
+// Network is the interface used to connect to the outside world.
 // It dials and listens for connections. it uses a Swarm to pool
 // connnections (see swarm pkg, and peerstream.Swarm). Connections
 // are encrypted with a TLS-like protocol.
@@ -70,22 +57,17 @@ type Network interface {
 	Dialer
 	io.Closer
 
-	// SetHandler sets the protocol handler on the Network's Muxer.
-	// This operation is threadsafe.
-	SetHandler(ProtocolID, StreamHandler)
+	// SetStreamHandler sets the handler for new streams opened by the
+	// remote side. This operation is threadsafe.
+	SetStreamHandler(StreamHandler)
 
-	// Protocols returns the list of protocols this network currently
-	// has registered handlers for.
-	Protocols() []ProtocolID
+	// SetConnHandler sets the handler for new connections opened by the
+	// remote side. This operation is threadsafe.
+	SetConnHandler(ConnHandler)
 
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.
-	// If ProtocolID is "", writes no header.
-	NewStream(ProtocolID, peer.ID) (Stream, error)
-
-	// BandwidthTotals returns the total number of bytes passed through
-	// the network since it was instantiated
-	BandwidthTotals() (uint64, uint64)
+	NewStream(peer.ID) (Stream, error)
 
 	// ListenAddresses returns a list of addresses at which this network listens.
 	ListenAddresses() []ma.Multiaddr
@@ -112,8 +94,8 @@ type Dialer interface {
 	// LocalPeer returns the local peer associated with this network
 	LocalPeer() peer.ID
 
-	// DialPeer attempts to establish a connection to a given peer
-	DialPeer(context.Context, peer.ID) error
+	// DialPeer establishes a connection to a given peer
+	DialPeer(context.Context, peer.ID) (Conn, error)
 
 	// ClosePeer closes the connection to a given peer
 	ClosePeer(peer.ID) error

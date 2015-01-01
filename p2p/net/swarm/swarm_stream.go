@@ -1,6 +1,8 @@
 package swarm
 
 import (
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 )
 
@@ -8,17 +10,18 @@ import (
 // our Conn and Swarm (instead of just the ps.Conn and ps.Swarm)
 type Stream ps.Stream
 
-// StreamHandler is called when new streams are opened from remote peers.
-// See peerstream.StreamHandler
-type StreamHandler func(*Stream)
-
 // Stream returns the underlying peerstream.Stream
 func (s *Stream) Stream() *ps.Stream {
 	return (*ps.Stream)(s)
 }
 
-// Conn returns the Conn associated with this Stream
-func (s *Stream) Conn() *Conn {
+// Conn returns the Conn associated with this Stream, as an inet.Conn
+func (s *Stream) Conn() inet.Conn {
+	return s.SwarmConn()
+}
+
+// SwarmConn returns the Conn associated with this Stream, as a *Conn
+func (s *Stream) SwarmConn() *Conn {
 	return (*Conn)(s.Stream().Conn())
 }
 

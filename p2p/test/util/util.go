@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	bhost "github.com/jbenet/go-ipfs/p2p/host/basic"
-	inet "github.com/jbenet/go-ipfs/p2p/net2"
-	swarm "github.com/jbenet/go-ipfs/p2p/net2/swarm"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 

@@ -3,6 +3,7 @@ package network
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
+	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -11,21 +12,20 @@ import (
 
 var log = util.Logger("bitswap_network")
 
-// NewFromIpfsNetwork returns a BitSwapNetwork supported by underlying IPFS
-// Dialer & Service
-func NewFromIpfsNetwork(n inet.Network, r routing.IpfsRouting) BitSwapNetwork {
+// NewFromIpfsHost returns a BitSwapNetwork supported by underlying IPFS host
+func NewFromIpfsHost(host host.Host, r routing.IpfsRouting) BitSwapNetwork {
 	bitswapNetwork := impl{
-		network: n,
+		host:    host,
 		routing: r,
 	}
-	n.SetHandler(inet.ProtocolBitswap, bitswapNetwork.handleNewStream)
+	host.SetStreamHandler(ProtocolBitswap, bitswapNetwork.handleNewStream)
 	return &bitswapNetwork
 }
 
 // impl transforms the ipfs network interface, which sends and receives
 // NetMessage objects, into the bitswap network interface.
 type impl struct {
-	network inet.Network
+	host    host.Host
 	routing routing.IpfsRouting
 
 	// inbound messages from the network are forwarded to the receiver
@@ -33,7 +33,7 @@ type impl struct {
 }
 
 func (bsnet *impl) DialPeer(ctx context.Context, p peer.ID) error {
-	return bsnet.network.DialPeer(ctx, p)
+	return bsnet.host.Connect(ctx, peer.PeerInfo{ID: p})
 }
 
 func (bsnet *impl) SendMessage(
@@ -41,7 +41,7 @@ func (bsnet *impl) SendMessage(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) error {
 
-	s, err := bsnet.network.NewStream(inet.ProtocolBitswap, p)
+	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (bsnet *impl) SendRequest(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
-	s, err := bsnet.network.NewStream(inet.ProtocolBitswap, p)
+	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 		defer close(out)
 		providers := bsnet.routing.FindProvidersAsync(ctx, k, max)
 		for info := range providers {
-			bsnet.network.Peerstore().AddAddresses(info.ID, info.Addrs)
+			bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
 			select {
 			case <-ctx.Done():
 			case out <- info.ID:
