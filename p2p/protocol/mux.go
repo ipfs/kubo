@@ -7,7 +7,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
+	inet "github.com/jbenet/go-ipfs/p2p/net2"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
@@ -87,19 +87,6 @@ func (m *Mux) SetHandler(p ID, h inet.StreamHandler) {
 // Handle reads the next name off the Stream, and calls a handler function
 // This is done in its own goroutine, to avoid blocking the caller.
 func (m *Mux) Handle(s inet.Stream) {
-
-	// Flow control and backpressure of Opening streams is broken.
-	// I believe that spdystream has one set of workers that both send
-	// data AND accept new streams (as it's just more data). there
-	// is a problem where if the new stream handlers want to throttle,
-	// they also eliminate the ability to read/write data, which makes
-	// forward-progress impossible. Thus, throttling this function is
-	// -- at this moment -- not the solution. Either spdystream must
-	// change, or we must throttle another way.
-	//
-	// In light of this, we use a goroutine for now (otherwise the
-	// spdy worker totally blocks, and we can't even read the protocol
-	// header). The better route in the future is to use a worker pool.
 	go m.HandleSync(s)
 }
 
@@ -114,6 +101,7 @@ func (m *Mux) HandleSync(s inet.Stream) {
 		err = fmt.Errorf("protocol mux error: %s", err)
 		log.Error(err)
 		log.Event(ctx, "muxError", lgbl.Error(err))
+		s.Close()
 		return
 	}
 
