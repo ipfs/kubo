@@ -98,6 +98,10 @@
 			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
 		},
 		{
+			"ImportPath": "github.com/inconshreveable/muxado",
+			"Rev": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
 			"ImportPath": "github.com/jbenet/go-base58",
 			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
 		},

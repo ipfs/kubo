@@ -3,7 +3,7 @@ package peerstream_muxado
 import (
 	"net"
 
-	muxado "github.com/inconshreveable/muxado"
+	muxado "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/muxado"
 	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
