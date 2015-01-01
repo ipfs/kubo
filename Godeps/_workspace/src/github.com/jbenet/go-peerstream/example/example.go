@@ -7,23 +7,28 @@ import (
 	"os"
 
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	pstss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/spdystream"
 )
 
 func main() {
-	// create a new Swarm
-	swarm := ps.NewSwarm()
+
+	log("creating a new swarm with spdystream transport") // create a new Swarm
+	swarm := ps.NewSwarm(pstss.Transport)
 	defer swarm.Close()
 
 	// tell swarm what to do with a new incoming streams.
 	// EchoHandler just echos back anything they write.
+	log("setup EchoHandler")
 	swarm.SetStreamHandler(ps.EchoHandler)
 
 	// Okay, let's try listening on some transports
+	log("listening at localhost:8001")
 	l1, err := net.Listen("tcp", "localhost:8001")
 	if err != nil {
 		panic(err)
 	}
 
+	log("listening at localhost:8002")
 	l2, err := net.Listen("tcp", "localhost:8002")
 	if err != nil {
 		panic(err)
@@ -39,11 +44,13 @@ func main() {
 	}
 
 	// ok, let's try some outgoing connections
+	log("dialing localhost:8001")
 	nc1, err := net.Dial("tcp", "localhost:8001")
 	if err != nil {
 		panic(err)
 	}
 
+	log("dialing localhost:8002")
 	nc2, err := net.Dial("tcp", "localhost:8002")
 	if err != nil {
 		panic(err)
@@ -66,6 +73,7 @@ func main() {
 
 	// now let's try opening some streams!
 	// You can specify what connection you want to use
+	log("opening stream with NewStreamWithConn(c1)")
 	s1, err := swarm.NewStreamWithConn(c1)
 	if err != nil {
 		panic(err)
@@ -73,6 +81,7 @@ func main() {
 
 	// Or, you can specify a SelectConn function that picks between all
 	// (it calls NewStreamWithConn underneath the hood)
+	log("opening stream with NewStreamSelectConn(.)")
 	s2, err := swarm.NewStreamSelectConn(func(conns []*ps.Conn) *ps.Conn {
 		if len(conns) > 0 {
 			return conns[0]
@@ -92,6 +101,7 @@ func main() {
 	// connection it finds in that group, using a SelectConn you can rebind:
 	//   swarm.SetGroupSelectConn(1, SelectConn)
 	//   swarm.SetDegaultGroupSelectConn(SelectConn)
+	log("opening stream with NewStreamWithGroup(1)")
 	s3, err := swarm.NewStreamWithGroup(1)
 	if err != nil {
 		panic(err)
@@ -106,33 +116,23 @@ func main() {
 	// streams from github.com/docker/spdystream, so they work the same
 	// way:
 
+	log("preparing the streams")
 	for i, stream := range []*ps.Stream{s1, s2, s3} {
-		stream.Wait()
 		str := "stream %d ready:"
 		fmt.Fprintf(stream, str, i)
 
 		buf := make([]byte, len(str))
+		log(fmt.Sprintf("reading from stream %d", i))
 		stream.Read(buf)
 		fmt.Println(string(buf))
 	}
 
+	log("let's test the streams")
+	log("enter some text below:\n")
 	go io.Copy(os.Stdout, s1)
 	go io.Copy(os.Stdout, s2)
 	go io.Copy(os.Stdout, s3)
 	io.Copy(io.MultiWriter(s1, s2, s3), os.Stdin)
-
-	// r := peerstream.ProtoRouter()
-	// r.AddRoute("bitswap", BitswapHandler)
-	// r.AddRoute("dht", DHTHandler)
-	// r.AddRoute("id", IDHandler)
-
-	// // The router's StreamHandler does this
-	// swarm.SetStreamHandler(router.StreamHandler())
-
-	// func (r *router) StreamHandler(s Stream) {
-
-	// }
-
 }
 
 func log(s string) {

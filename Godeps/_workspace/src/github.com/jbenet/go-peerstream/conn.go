@@ -3,10 +3,9 @@ package peerstream
 import (
 	"errors"
 	"net"
-	"net/http"
 	"sync"
 
-	ss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/spdystream"
+	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
 // ConnHandler is a function which receives a Conn. It allows
@@ -36,7 +35,7 @@ var ErrNoConnections = errors.New("no connections")
 
 // Conn is a Swarm-associated connection.
 type Conn struct {
-	ssConn  *ss.Connection
+	pstConn pst.Conn
 	netConn net.Conn // underlying connection
 
 	swarm  *Swarm
@@ -46,10 +45,10 @@ type Conn struct {
 	streamLock sync.RWMutex
 }
 
-func newConn(nconn net.Conn, sconn *ss.Connection, s *Swarm) *Conn {
+func newConn(nconn net.Conn, tconn pst.Conn, s *Swarm) *Conn {
 	return &Conn{
 		netConn: nconn,
-		ssConn:  sconn,
+		pstConn: tconn,
 		swarm:   s,
 		groups:  groupSet{m: make(map[Group]struct{})},
 		streams: make(map[*Stream]struct{}),
@@ -66,10 +65,10 @@ func (c *Conn) NetConn() net.Conn {
 	return c.netConn
 }
 
-// SPDYConn returns the spdystream.Connection we use
+// Conn returns the underlying transport Connection we use
 // Warning: modifying this object is undefined.
-func (c *Conn) SPDYConn() *ss.Connection {
-	return c.ssConn
+func (c *Conn) Conn() pst.Conn {
+	return c.pstConn
 }
 
 // Groups returns the Groups this Conn belongs to
@@ -144,7 +143,7 @@ func ConnInConns(c1 *Conn, conns []*Conn) bool {
 
 // addConn is the internal version of AddConn. we need the server bool
 // as spdystream requires it.
-func (s *Swarm) addConn(netConn net.Conn, server bool) (*Conn, error) {
+func (s *Swarm) addConn(netConn net.Conn, isServer bool) (*Conn, error) {
 	if netConn == nil {
 		return nil, errors.New("nil conn")
 	}
@@ -164,7 +163,7 @@ func (s *Swarm) addConn(netConn net.Conn, server bool) (*Conn, error) {
 		}
 
 		// create a new spdystream connection
-		ssConn, err := ss.NewConnection(netConn, server)
+		ssConn, err := s.transport.NewConn(netConn, isServer)
 		if err != nil {
 			return nil, err
 		}
@@ -183,10 +182,9 @@ func (s *Swarm) addConn(netConn net.Conn, server bool) (*Conn, error) {
 	s.ConnHandler()(c)
 
 	// go listen for incoming streams on this connection
-	go c.ssConn.Serve(func(ssS *ss.Stream) {
+	go c.pstConn.Serve(func(ss pst.Stream) {
 		// log.Printf("accepted stream %d from %s\n", ssS.Identifier(), netConn.RemoteAddr())
-		ssS.SendReply(http.Header{}, false)
-		stream := s.setupSSStream(ssS, c)
+		stream := s.setupStream(ss, c)
 		s.StreamHandler()(stream) // call our handler
 	})
 
@@ -197,25 +195,23 @@ func (s *Swarm) addConn(netConn net.Conn, server bool) (*Conn, error) {
 // all validation has happened.
 func (s *Swarm) createStream(c *Conn) (*Stream, error) {
 
-	// Create a new ss.Stream
-	ssStream, err := c.ssConn.CreateStream(http.Header{}, nil, false)
+	// Create a new pst.Stream
+	pstStream, err := c.pstConn.OpenStream()
 	if err != nil {
 		return nil, err
 	}
 
-	// create a new stream
-	return s.setupSSStream(ssStream, c), nil
+	return s.setupStream(pstStream, c), nil
 }
 
 // newStream is the internal function that creates a new stream. assumes
 // all validation has happened.
-func (s *Swarm) setupSSStream(ssS *ss.Stream, c *Conn) *Stream {
-	// create a new *Stream
-	stream := newStream(ssS, c)
+func (s *Swarm) setupStream(pstStream pst.Stream, c *Conn) *Stream {
+
+	// create a new stream
+	stream := newStream(pstStream, c)
 
 	// add it to our streams maps
-
-	// add it to our map
 	s.streamLock.Lock()
 	c.streamLock.Lock()
 	s.streams[stream] = struct{}{}
@@ -235,12 +231,7 @@ func (s *Swarm) removeStream(stream *Stream) error {
 	s.streamLock.Unlock()
 	stream.conn.streamLock.Unlock()
 
-	// Reset is spdystream's full bidirectional close.
-	// We expose bidirectional close as our `Close`.
-	// To close only half of the connection, and use other
-	// spdystream options, just get the stream with:
-	// 	stream.SPDYStream()
-	return stream.ssStream.Reset()
+	return stream.pstStream.Close()
 }
 
 func (s *Swarm) removeConn(conn *Conn) error {

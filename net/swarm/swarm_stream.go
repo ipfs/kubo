@@ -22,11 +22,6 @@ func (s *Stream) Conn() *Conn {
 	return (*Conn)(s.Stream().Conn())
 }
 
-// Wait waits for the stream to receive a reply.
-func (s *Stream) Wait() error {
-	return s.Stream().Wait()
-}
-
 // Read reads bytes from a stream.
 func (s *Stream) Read(p []byte) (n int, err error) {
 	return s.Stream().Read(p)

@@ -10,6 +10,7 @@ import (
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	psss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/spdystream"
 )
 
 var log = eventlog.Logger("swarm2")
@@ -34,7 +35,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
 
 	s := &Swarm{
-		swarm: ps.NewSwarm(),
+		swarm: ps.NewSwarm(psss.Transport),
 		local: local,
 		peers: peers,
 		cg:    ctxgroup.WithContext(ctx),
