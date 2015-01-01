@@ -11,6 +11,7 @@ import (
 	"time"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net2"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
@@ -20,16 +21,18 @@ import (
 type Mocknet interface {
 
 	// GenPeer generates a peer and its inet.Network in the Mocknet
-	GenPeer() (inet.Network, error)
+	GenPeer() (host.Host, error)
 
 	// AddPeer adds an existing peer. we need both a privkey and addr.
 	// ID is derived from PrivKey
-	AddPeer(ic.PrivKey, ma.Multiaddr) (inet.Network, error)
+	AddPeer(ic.PrivKey, ma.Multiaddr) (host.Host, error)
 
 	// retrieve things (with randomized iteration order)
 	Peers() []peer.ID
 	Net(peer.ID) inet.Network
 	Nets() []inet.Network
+	Host(peer.ID) host.Host
+	Hosts() []host.Host
 	Links() LinkMap
 	LinksBetweenPeers(a, b peer.ID) []Link
 	LinksBetweenNets(a, b inet.Network) []Link
