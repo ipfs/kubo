@@ -26,6 +26,9 @@ type Peerstore interface {
 	// that peer, useful to other services.
 	PeerInfo(ID) PeerInfo
 
+	// AddPeerInfo absorbs the information listed in given PeerInfo.
+	AddPeerInfo(PeerInfo)
+
 	// Get/Put is a simple registry for other peer-related key/value pairs.
 	// if we find something we use often, it should become its own set of
 	// methods. this is a last resort.
@@ -233,6 +236,10 @@ func (ps *peerstore) PeerInfo(p ID) PeerInfo {
 		ID:    p,
 		Addrs: ps.addressbook.Addresses(p),
 	}
+}
+
+func (ps *peerstore) AddPeerInfo(pi PeerInfo) {
+	ps.AddAddresses(pi.ID, pi.Addrs)
 }
 
 func PeerInfos(ps Peerstore, peers []ID) []PeerInfo {
