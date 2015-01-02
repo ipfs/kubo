@@ -23,6 +23,10 @@ type routingResolver struct {
 // NewRoutingResolver constructs a name resolver using the IPFS Routing system
 // to implement SFS-like naming on top.
 func NewRoutingResolver(route routing.IpfsRouting) Resolver {
+	if route == nil {
+		panic("attempt to create resolver with nil routing system")
+	}
+
 	return &routingResolver{routing: route}
 }
 
