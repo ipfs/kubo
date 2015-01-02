@@ -7,7 +7,7 @@
 	"Deps": [
 		{
 			"ImportPath": "bazil.org/fuse",
-			"Rev": "a04507d54fc3610d38ee951402d8c4acab56c7b1"
+			"Rev": "d62a1291477b51b24becf4def173bd843138c4b6"
 		},
 		{
 			"ImportPath": "bitbucket.org/kardianos/osext",
