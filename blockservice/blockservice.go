@@ -50,9 +50,13 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	// consider moving this to an sync process.
 	if s.Exchange != nil {
 		ctx := context.TODO()
-		err = s.Exchange.HasBlock(ctx, b)
+		if err := s.Exchange.HasBlock(ctx, b); err != nil {
+			// suppress error, as the client shouldn't care about bitswap.
+			// the client only cares about the blockstore.Put.
+			log.Errorf("Exchange.HasBlock error: %s", err)
+		}
 	}
-	return k, err
+	return k, nil
 }
 
 // GetBlock retrieves a particular block from the service,
