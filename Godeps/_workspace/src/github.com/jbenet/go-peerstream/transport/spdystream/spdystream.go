@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
-	ss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/spdystream"
+	ss "github.com/jbenet/spdystream"
 )
 
 // stream implements pst.Stream using a ss.Stream
