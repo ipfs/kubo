@@ -134,6 +134,8 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("IPFS mounted at: %s\n", fsdir)
+		fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	}
 
 	return nil, listenAndServeAPI(node, req, apiMaddr)

@@ -143,6 +143,33 @@ baz
 	},
 }
 
+func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
+	// check if we already have live mounts.
+	// if the user said "Mount", then there must be something wrong.
+	// so, close them and try again.
+	if node.Mounts.Ipfs != nil {
+		node.Mounts.Ipfs.Unmount()
+	}
+	if node.Mounts.Ipns != nil {
+		node.Mounts.Ipns.Unmount()
+	}
+
+	if err := platformFuseChecks(); err != nil {
+		return err
+	}
+
+	var err error
+	if err = doMount(node, fsdir, nsdir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var platformFuseChecks = func() error {
+	return nil
+}
+
 func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 	fmtFuseErr := func(err error) error {
 		s := err.Error()
@@ -176,8 +203,14 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 	<-done
 
 	if err1 != nil || err2 != nil {
-		fsmount.Close()
-		nsmount.Close()
+		log.Infof("error mounting: %s %s", err1, err2)
+		if fsmount != nil {
+			fsmount.Unmount()
+		}
+		if nsmount != nil {
+			nsmount.Unmount()
+		}
+
 		if err1 != nil {
 			return fmtFuseErr(err1)
 		} else {
@@ -188,32 +221,5 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 	// setup node state, so that it can be cancelled
 	node.Mounts.Ipfs = fsmount
 	node.Mounts.Ipns = nsmount
-	return nil
-}
-
-var platformFuseChecks = func() error {
-	return nil
-}
-
-func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
-	// check if we already have live mounts.
-	// if the user said "Mount", then there must be something wrong.
-	// so, close them and try again.
-	if node.Mounts.Ipfs != nil {
-		node.Mounts.Ipfs.Unmount()
-	}
-	if node.Mounts.Ipns != nil {
-		node.Mounts.Ipns.Unmount()
-	}
-
-	if err := platformFuseChecks(); err != nil {
-		return err
-	}
-
-	var err error
-	if err = doMount(node, fsdir, nsdir); err != nil {
-		return err
-	}
-
 	return nil
 }
