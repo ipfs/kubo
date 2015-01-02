@@ -20,8 +20,8 @@ func RandKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPairWithReader(ci.RSA, bits, u.NewTimeSeededRand())
 }
 
-func SeededKeyPair(bits int, seed int64) (ci.PrivKey, ci.PubKey, error) {
-	return ci.GenerateKeyPairWithReader(ci.RSA, bits, u.NewSeededRand(seed))
+func SeededKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
+	return ci.GenerateKeyPairWithReader(ci.RSA, 512, u.NewSeededRand(seed))
 }
 
 // RandPeerID generates random "valid" peer IDs. it does not NEED to generate

@@ -32,9 +32,9 @@ func init() {
 	}
 }
 
-func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr, seed int64) *IpfsDHT {
+func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
 
-	sk, pk, err := testutil.SeededKeyPair(512, seed)
+	sk, pk, err := testutil.SeededKeyPair(time.Now().UnixNano())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 
 	for i := 0; i < n; i++ {
 		addrs[i] = testutil.RandLocalTCPAddress()
-		dhts[i] = setupDHT(ctx, t, addrs[i], int64(i))
+		dhts[i] = setupDHT(ctx, t, addrs[i])
 		peers[i] = dhts[i].self
 	}
 
@@ -119,8 +119,8 @@ func TestPing(t *testing.T) {
 	addrA := testutil.RandLocalTCPAddress()
 	addrB := testutil.RandLocalTCPAddress()
 
-	dhtA := setupDHT(ctx, t, addrA, 1)
-	dhtB := setupDHT(ctx, t, addrB, 2)
+	dhtA := setupDHT(ctx, t, addrA)
+	dhtB := setupDHT(ctx, t, addrB)
 
 	peerA := dhtA.self
 	peerB := dhtB.self
@@ -152,8 +152,8 @@ func TestValueGetSet(t *testing.T) {
 	addrA := testutil.RandLocalTCPAddress()
 	addrB := testutil.RandLocalTCPAddress()
 
-	dhtA := setupDHT(ctx, t, addrA, 1)
-	dhtB := setupDHT(ctx, t, addrB, 2)
+	dhtA := setupDHT(ctx, t, addrA)
+	dhtB := setupDHT(ctx, t, addrB)
 
 	defer dhtA.Close()
 	defer dhtB.Close()
@@ -636,8 +636,8 @@ func TestConnectCollision(t *testing.T) {
 		addrA := testutil.RandLocalTCPAddress()
 		addrB := testutil.RandLocalTCPAddress()
 
-		dhtA := setupDHT(ctx, t, addrA, int64((rtime*2)+1))
-		dhtB := setupDHT(ctx, t, addrB, int64((rtime*2)+2))
+		dhtA := setupDHT(ctx, t, addrA)
+		dhtB := setupDHT(ctx, t, addrB)
 
 		peerA := dhtA.self
 		peerB := dhtB.self
