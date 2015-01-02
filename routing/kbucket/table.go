@@ -2,7 +2,6 @@
 package kbucket
 
 import (
-	"container/list"
 	"fmt"
 	"sort"
 	"sync"
@@ -101,40 +100,6 @@ func (rt *RoutingTable) nextBucket() peer.ID {
 		return bucket.popBack()
 	}
 	return ""
-}
-
-// A helper struct to sort peers by their distance to the local node
-type peerDistance struct {
-	p        peer.ID
-	distance ID
-}
-
-// peerSorterArr implements sort.Interface to sort peers by xor distance
-type peerSorterArr []*peerDistance
-
-func (p peerSorterArr) Len() int      { return len(p) }
-func (p peerSorterArr) Swap(a, b int) { p[a], p[b] = p[b], p[a] }
-func (p peerSorterArr) Less(a, b int) bool {
-	return p[a].distance.less(p[b].distance)
-}
-
-//
-
-func copyPeersFromList(target ID, peerArr peerSorterArr, peerList *list.List) peerSorterArr {
-	for e := peerList.Front(); e != nil; e = e.Next() {
-		p := e.Value.(peer.ID)
-		pID := ConvertPeerID(p)
-		pd := peerDistance{
-			p:        p,
-			distance: xor(target, pID),
-		}
-		peerArr = append(peerArr, &pd)
-		if e == nil {
-			log.Debug("list element was nil")
-			return peerArr
-		}
-	}
-	return peerArr
 }
 
 // Find a specific peer by ID or return nil

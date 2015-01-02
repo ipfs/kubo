@@ -1,12 +1,15 @@
-package crypto
+package crypto_test
 
 import (
+	. "github.com/jbenet/go-ipfs/crypto"
+
 	"bytes"
+	tu "github.com/jbenet/go-ipfs/util/testutil"
 	"testing"
 )
 
 func TestRsaKeys(t *testing.T) {
-	sk, pk, err := GenerateKeyPair(RSA, 512)
+	sk, pk, err := tu.RandKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +93,7 @@ func testKeyEquals(t *testing.T, k Key) {
 		t.Fatal("Key not equal to key with same bytes.")
 	}
 
-	sk, pk, err := GenerateKeyPair(RSA, 512)
+	sk, pk, err := tu.RandKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -47,9 +47,8 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal("Did not get expected error!")
 	}
 
-	msgs := make(chan *pb.Message, 100)
+	t.Log("Timeout test passed.")
 
-	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
 	nets[1].SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
 		defer s.Close()
@@ -68,8 +67,6 @@ func TestGetFailures(t *testing.T) {
 		if err := pbw.WriteMsg(resp); err != nil {
 			panic(err)
 		}
-
-		msgs <- resp
 	})
 
 	// This one should fail with NotFound
@@ -82,6 +79,8 @@ func TestGetFailures(t *testing.T) {
 	} else {
 		t.Fatal("expected error, got none.")
 	}
+
+	t.Log("ErrNotFound check passed!")
 
 	// Now we test this DHT's handleGetValue failure
 	{

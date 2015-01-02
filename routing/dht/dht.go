@@ -102,10 +102,9 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 	return nil
 }
 
-// putValueToNetwork stores the given key/value pair at the peer 'p'
-// meaning: it sends a PUT_VALUE message to p
-func (dht *IpfsDHT) putValueToNetwork(ctx context.Context, p peer.ID,
-	key string, rec *pb.Record) error {
+// putValueToPeer stores the given key/value pair at the peer 'p'
+func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
+	key u.Key, rec *pb.Record) error {
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
 	pmes.Record = rec
@@ -238,12 +237,12 @@ func (dht *IpfsDHT) Update(ctx context.Context, p peer.ID) {
 }
 
 // FindLocal looks for a peer with a given ID connected to this dht and returns the peer and the table it was found in.
-func (dht *IpfsDHT) FindLocal(id peer.ID) (peer.PeerInfo, *kb.RoutingTable) {
+func (dht *IpfsDHT) FindLocal(id peer.ID) peer.PeerInfo {
 	p := dht.routingTable.Find(id)
 	if p != "" {
-		return dht.peerstore.PeerInfo(p), dht.routingTable
+		return dht.peerstore.PeerInfo(p)
 	}
-	return peer.PeerInfo{}, nil
+	return peer.PeerInfo{}
 }
 
 // findPeerSingle asks peer 'p' if they know where the peer with id 'id' is
@@ -257,26 +256,6 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key u.Ke
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) addProviders(key u.Key, pbps []*pb.Message_Peer) []peer.ID {
-	peers := pb.PBPeersToPeerInfos(pbps)
-
-	var provArr []peer.ID
-	for _, pi := range peers {
-		p := pi.ID
-
-		// Dont add outselves to the list
-		if p == dht.self {
-			continue
-		}
-
-		log.Debugf("%s adding provider: %s for %s", dht.self, p, key)
-		// TODO(jbenet) ensure providers is idempotent
-		dht.providers.AddProvider(key, p)
-		provArr = append(provArr, p)
-	}
-	return provArr
-}
-
 // nearestPeersToQuery returns the routing tables closest peers.
 func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 	key := u.Key(pmes.GetKey())
@@ -285,7 +264,7 @@ func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 }
 
 // betterPeerToQuery returns nearestPeersToQuery, but iff closer than self.
-func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.ID {
+func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) []peer.ID {
 	closer := dht.nearestPeersToQuery(pmes, count)
 
 	// no node? nil
@@ -302,11 +281,16 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, count int) []peer.ID {
 	}
 
 	var filtered []peer.ID
-	for _, p := range closer {
+	for _, clp := range closer {
+		// Dont send a peer back themselves
+		if p == clp {
+			continue
+		}
+
 		// must all be closer than self
 		key := u.Key(pmes.GetKey())
-		if !kb.Closer(dht.self, p, key) {
-			filtered = append(filtered, p)
+		if !kb.Closer(dht.self, clp, key) {
+			filtered = append(filtered, clp)
 		}
 	}
 
@@ -321,23 +305,6 @@ func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, p peer.ID) error 
 
 	// dial connection
 	return dht.network.DialPeer(ctx, p)
-}
-
-//TODO: this should be smarter about which keys it selects.
-func (dht *IpfsDHT) loadProvidableKeys() error {
-	kl, err := dht.datastore.KeyList()
-	if err != nil {
-		return err
-	}
-	for _, dsk := range kl {
-		k := u.KeyFromDsKey(dsk)
-		if len(k) == 0 {
-			log.Errorf("loadProvidableKeys error: %v", dsk)
-		}
-
-		dht.providers.AddProvider(k, dht.self)
-	}
-	return nil
 }
 
 // PingRoutine periodically pings nearest neighbors.

@@ -14,7 +14,6 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	// ci "github.com/jbenet/go-ipfs/crypto"
 	inet "github.com/jbenet/go-ipfs/net"
 	peer "github.com/jbenet/go-ipfs/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -35,7 +34,7 @@ func init() {
 
 func setupDHT(ctx context.Context, t *testing.T, addr ma.Multiaddr) *IpfsDHT {
 
-	sk, pk, err := testutil.RandKeyPair(512)
+	sk, pk, err := testutil.SeededKeyPair(time.Now().UnixNano())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,12 +486,7 @@ func TestLayeredGet(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	err := dhts[3].putLocal(u.Key("/v/hello"), []byte("world"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].Provide(ctx, u.Key("/v/hello"))
+	err := dhts[3].Provide(ctx, u.Key("/v/hello"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,8 +7,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/peer"
 	queue "github.com/jbenet/go-ipfs/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
+	pset "github.com/jbenet/go-ipfs/util/peerset"
 	todoctr "github.com/jbenet/go-ipfs/util/todocounter"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -71,7 +71,7 @@ type dhtQueryRunner struct {
 	peersToQuery *queue.ChanQueue
 
 	// peersSeen are all the peers queried. used to prevent querying same peer 2x
-	peersSeen peer.Set
+	peersSeen *pset.PeerSet
 
 	// rateLimit is a channel used to rate limit our processing (semaphore)
 	rateLimit chan struct{}
@@ -97,7 +97,7 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 		query:          q,
 		peersToQuery:   queue.NewChanQueue(ctx, queue.NewXORDistancePQ(q.key)),
 		peersRemaining: todoctr.NewSyncCounter(),
-		peersSeen:      peer.Set{},
+		peersSeen:      pset.New(),
 		rateLimit:      make(chan struct{}, q.concurrency),
 		cg:             ctxgroup.WithContext(ctx),
 	}
@@ -117,7 +117,7 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 
 	// add all the peers we got first.
 	for _, p := range peers {
-		r.addPeerToQuery(r.cg.Context(), p, "") // don't have access to self here...
+		r.addPeerToQuery(r.cg.Context(), p)
 	}
 
 	// go do this thing.
@@ -153,31 +153,16 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 	return nil, err
 }
 
-func (r *dhtQueryRunner) addPeerToQuery(ctx context.Context, next peer.ID, benchmark peer.ID) {
+func (r *dhtQueryRunner) addPeerToQuery(ctx context.Context, next peer.ID) {
 	// if new peer is ourselves...
 	if next == r.query.dialer.LocalPeer() {
 		return
 	}
 
-	// if new peer further away than whom we got it from, don't bother (loops)
-	// TODO----------- this benchmark should be replaced by a heap:
-	// we should be doing the s/kademlia "continue to search"
-	// (i.e. put all of them in a heap sorted by dht distance and then just
-	// pull from the the top until  a) you exhaust all peers you get,
-	// b) you succeed, c) your context expires.
-	if benchmark != "" && kb.Closer(benchmark, next, r.query.key) {
+	if !r.peersSeen.TryAdd(next) {
+		log.Debug("query peer was already seen")
 		return
 	}
-
-	// if already seen, no need.
-	r.Lock()
-	_, found := r.peersSeen[next]
-	if found {
-		r.Unlock()
-		return
-	}
-	r.peersSeen[next] = struct{}{}
-	r.Unlock()
 
 	log.Debugf("adding peer to query: %v", next)
 
@@ -278,7 +263,7 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 			}
 
 			r.query.dialer.Peerstore().AddAddresses(next.ID, next.Addrs)
-			r.addPeerToQuery(cg.Context(), next.ID, p)
+			r.addPeerToQuery(cg.Context(), next.ID)
 			log.Debugf("PEERS CLOSER -- worker for: %v added %v (%v)", p, next.ID, next.Addrs)
 		}
 	} else {
