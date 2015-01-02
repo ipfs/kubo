@@ -158,27 +158,27 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	ifpsHandler := &ipfsHandler{node}
 	mux.Handle("/ipfs/", ifpsHandler)
 
-	done := make(chan struct{}, 1)
-	defer func() {
-		done <- struct{}{}
-	}()
+	// if the server exits beforehand
+	var serverError error
+	serverExited := make(chan struct{})
 
-	// go wait until the node dies
 	go func() {
-		select {
-		case <-node.Closed():
-		case <-done:
-			return
-		}
-
-		log.Infof("terminating daemon at %s...", addr)
-		server.Shutdown <- true
+		fmt.Printf("daemon listening on %s\n", addr)
+		serverError = server.ListenAndServe(host, mux)
+		close(serverExited)
 	}()
 
-	fmt.Printf("daemon listening on %s\n", addr)
-	if err := server.ListenAndServe(host, mux); err != nil {
-		return err
+	// wait for server to exit.
+	select {
+	case <-serverExited:
+
+	// if node being closed before server exits, close server
+	case <-node.Closing():
+		log.Infof("daemon at %s terminating...", addr)
+		server.Shutdown <- true
+		<-serverExited // now, DO wait until server exits
 	}
 
-	return nil
+	log.Infof("daemon at %s terminated", addr)
+	return serverError
 }
