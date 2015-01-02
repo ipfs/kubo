@@ -10,18 +10,19 @@ import (
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 func GenSwarmNetwork(t *testing.T, ctx context.Context) *swarm.Network {
 	p := tu.RandPeerNetParamsOrFatal(t)
 	ps := peer.NewPeerstore()
-	ps.AddAddress(p.ID, p.Addr)
 	ps.AddPubKey(p.ID, p.PubKey)
 	ps.AddPrivKey(p.ID, p.PrivKey)
-	n, err := swarm.NewNetwork(ctx, ps.Addresses(p.ID), p.ID, ps)
+	n, err := swarm.NewNetwork(ctx, []ma.Multiaddr{p.Addr}, p.ID, ps)
 	if err != nil {
 		t.Fatal(err)
 	}
+	ps.AddAddresses(p.ID, n.ListenAddresses())
 	return n
 }
 

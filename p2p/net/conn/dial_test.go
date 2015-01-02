@@ -51,7 +51,6 @@ func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p
 
 	p1 = tu.RandPeerNetParamsOrFatal(t)
 	p2 = tu.RandPeerNetParamsOrFatal(t)
-	laddr := p1.Addr
 
 	key1 := p1.PrivKey
 	key2 := p2.PrivKey
@@ -59,10 +58,11 @@ func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p
 		key1 = nil
 		key2 = nil
 	}
-	l1, err := Listen(ctx, laddr, p1.ID, key1)
+	l1, err := Listen(ctx, p1.Addr, p1.ID, key1)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p1.Addr = l1.Multiaddr() // Addr has been determined by kernel.
 
 	d2 := &Dialer{
 		LocalPeer:  p2.ID,
@@ -110,6 +110,7 @@ func testDialer(t *testing.T, secure bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	p1.Addr = l1.Multiaddr() // Addr has been determined by kernel.
 
 	d2 := &Dialer{
 		LocalPeer:  p2.ID,

@@ -15,13 +15,14 @@ func TestSimultOpen(t *testing.T) {
 	// t.Skip("skipping for another test")
 
 	ctx := context.Background()
-	swarms, peers := makeSwarms(ctx, t, 2)
+	swarms := makeSwarms(ctx, t, 2)
 
 	// connect everyone
 	{
 		var wg sync.WaitGroup
 		connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
 			// copy for other peer
+			log.Debugf("TestSimultOpen: connecting: %s --> %s (%s)", s.local, dst, addr)
 			s.peers.AddAddress(dst, addr)
 			if _, err := s.Dial(ctx, dst); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
@@ -31,8 +32,8 @@ func TestSimultOpen(t *testing.T) {
 
 		log.Info("Connecting swarms simultaneously.")
 		wg.Add(2)
-		go connect(swarms[0], swarms[1].local, peers[1].Addr)
-		go connect(swarms[1], swarms[0].local, peers[0].Addr)
+		go connect(swarms[0], swarms[1].local, swarms[1].ListenAddresses()[0])
+		go connect(swarms[1], swarms[0].local, swarms[0].ListenAddresses()[0])
 		wg.Wait()
 	}
 

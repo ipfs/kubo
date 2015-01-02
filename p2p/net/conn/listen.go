@@ -17,25 +17,24 @@ import (
 type listener struct {
 	manet.Listener
 
-	maddr ma.Multiaddr // Local multiaddr to listen on
-	local peer.ID      // LocalPeer is the identity of the local Peer
-	privk ic.PrivKey   // private key to use to initialize secure conns
+	local peer.ID    // LocalPeer is the identity of the local Peer
+	privk ic.PrivKey // private key to use to initialize secure conns
 
 	cg ctxgroup.ContextGroup
 }
 
 func (l *listener) teardown() error {
-	defer log.Debugf("listener closed: %s %s", l.local, l.maddr)
+	defer log.Debugf("listener closed: %s %s", l.local, l.Multiaddr())
 	return l.Listener.Close()
 }
 
 func (l *listener) Close() error {
-	log.Debugf("listener closing: %s %s", l.local, l.maddr)
+	log.Debugf("listener closing: %s %s", l.local, l.Multiaddr())
 	return l.cg.Close()
 }
 
 func (l *listener) String() string {
-	return fmt.Sprintf("<Listener %s %s>", l.local, l.maddr)
+	return fmt.Sprintf("<Listener %s %s>", l.local, l.Multiaddr())
 }
 
 // Accept waits for and returns the next connection to the listener.
@@ -73,8 +72,14 @@ func (l *listener) Addr() net.Addr {
 }
 
 // Multiaddr is the identity of the local Peer.
+// If there is an error converting from net.Addr to ma.Multiaddr,
+// the return value will be nil.
 func (l *listener) Multiaddr() ma.Multiaddr {
-	return l.maddr
+	maddr, err := manet.FromNetAddr(l.Addr())
+	if err != nil {
+		return nil // error
+	}
+	return maddr
 }
 
 // LocalPeer is the identity of the local Peer.
@@ -102,7 +107,6 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 
 	l := &listener{
 		Listener: ml,
-		maddr:    addr,
 		local:    local,
 		privk:    sk,
 		cg:       ctxgroup.WithContext(ctx),

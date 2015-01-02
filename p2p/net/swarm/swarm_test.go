@@ -47,20 +47,17 @@ func EchoStreamHandler(stream inet.Stream) {
 	}()
 }
 
-func makeSwarms(ctx context.Context, t *testing.T, num int) ([]*Swarm, []testutil.PeerNetParams) {
+func makeSwarms(ctx context.Context, t *testing.T, num int) []*Swarm {
 	swarms := make([]*Swarm, 0, num)
-	peersnp := make([]testutil.PeerNetParams, 0, num)
 
 	for i := 0; i < num; i++ {
 		localnp := testutil.RandPeerNetParamsOrFatal(t)
-		peersnp = append(peersnp, localnp)
 
 		peerstore := peer.NewPeerstore()
-		peerstore.AddAddress(localnp.ID, localnp.Addr)
 		peerstore.AddPubKey(localnp.ID, localnp.PubKey)
 		peerstore.AddPrivKey(localnp.ID, localnp.PrivKey)
 
-		addrs := peerstore.Addresses(localnp.ID)
+		addrs := []ma.Multiaddr{localnp.Addr}
 		swarm, err := NewSwarm(ctx, addrs, localnp.ID, peerstore)
 		if err != nil {
 			t.Fatal(err)
@@ -70,10 +67,10 @@ func makeSwarms(ctx context.Context, t *testing.T, num int) ([]*Swarm, []testuti
 		swarms = append(swarms, swarm)
 	}
 
-	return swarms, peersnp
+	return swarms
 }
 
-func connectSwarms(t *testing.T, ctx context.Context, swarms []*Swarm, peersnp []testutil.PeerNetParams) {
+func connectSwarms(t *testing.T, ctx context.Context, swarms []*Swarm) {
 
 	var wg sync.WaitGroup
 	connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
@@ -86,11 +83,11 @@ func connectSwarms(t *testing.T, ctx context.Context, swarms []*Swarm, peersnp [
 	}
 
 	log.Info("Connecting swarms simultaneously.")
-	for _, s := range swarms {
-		for _, p := range peersnp {
-			if p.ID != s.local { // don't connect to self.
+	for _, s1 := range swarms {
+		for _, s2 := range swarms {
+			if s2.local != s1.local { // don't connect to self.
 				wg.Add(1)
-				connect(s, p.ID, p.Addr)
+				connect(s1, s2.LocalPeer(), s2.ListenAddresses()[0]) // try the first.
 			}
 		}
 	}
@@ -105,10 +102,10 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 	// t.Skip("skipping for another test")
 
 	ctx := context.Background()
-	swarms, peersnp := makeSwarms(ctx, t, SwarmNum)
+	swarms := makeSwarms(ctx, t, SwarmNum)
 
 	// connect everyone
-	connectSwarms(t, ctx, swarms, peersnp)
+	connectSwarms(t, ctx, swarms)
 
 	// ping/pong
 	for _, s1 := range swarms {
@@ -118,7 +115,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 
 		_, cancel := context.WithCancel(ctx)
 		got := map[peer.ID]int{}
-		errChan := make(chan error, MsgNum*len(peersnp))
+		errChan := make(chan error, MsgNum*len(swarms))
 		streamChan := make(chan *Stream, MsgNum)
 
 		// send out "ping" x MsgNum to every peer
@@ -150,13 +147,13 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 				streamChan <- stream
 			}
 
-			for _, p := range peersnp {
-				if p.ID == s1.local {
+			for _, s2 := range swarms {
+				if s2.local == s1.local {
 					continue // dont send to self...
 				}
 
 				wg.Add(1)
-				go send(p.ID)
+				go send(s2.local)
 			}
 			wg.Wait()
 		}()
@@ -165,7 +162,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 		go func() {
 			defer close(errChan)
 			count := 0
-			countShouldBe := MsgNum * (len(peersnp) - 1)
+			countShouldBe := MsgNum * (len(swarms) - 1)
 			for stream := range streamChan { // one per peer
 				defer stream.Close()
 
@@ -209,8 +206,8 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 		}
 
 		log.Debugf("%s got pongs", s1.local)
-		if (len(peersnp) - 1) != len(got) {
-			t.Errorf("got (%d) less messages than sent (%d).", len(got), len(peersnp))
+		if (len(swarms) - 1) != len(got) {
+			t.Errorf("got (%d) less messages than sent (%d).", len(got), len(swarms))
 		}
 
 		for p, n := range got {
@@ -241,14 +238,14 @@ func TestConnHandler(t *testing.T) {
 	// t.Skip("skipping for another test")
 
 	ctx := context.Background()
-	swarms, peersnp := makeSwarms(ctx, t, 5)
+	swarms := makeSwarms(ctx, t, 5)
 
 	gotconn := make(chan struct{}, 10)
 	swarms[0].SetConnHandler(func(conn *Conn) {
 		gotconn <- struct{}{}
 	})
 
-	connectSwarms(t, ctx, swarms, peersnp)
+	connectSwarms(t, ctx, swarms)
 
 	<-time.After(time.Millisecond)
 	// should've gotten 5 by now.

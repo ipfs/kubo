@@ -16,6 +16,19 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+// ZeroLocalTCPAddress is the "zero" tcp local multiaddr. This means:
+//   /ip4/127.0.0.1/tcp/0
+var ZeroLocalTCPAddress ma.Multiaddr
+
+func init() {
+	// initialize ZeroLocalTCPAddress
+	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
+	if err != nil {
+		panic(err)
+	}
+	ZeroLocalTCPAddress = maddr
+}
+
 func RandKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPairWithReader(ci.RSA, bits, u.NewTimeSeededRand())
 }
@@ -48,6 +61,11 @@ func RandPeerIDFatal(t testing.TB) peer.ID {
 
 // RandLocalTCPAddress returns a random multiaddr. it suppresses errors
 // for nice composability-- do check the address isn't nil.
+//
+// Note: for real network tests, use ZeroLocalTCPAddress so the kernel
+// assigns an unused TCP port. otherwise you may get clashes. This
+// function remains here so that p2p/net/mock (which does not touch the
+// real network) can assign different addresses to peers.
 func RandLocalTCPAddress() ma.Multiaddr {
 
 	// chances are it will work out, but it **might** fail if the port is in use
@@ -123,7 +141,7 @@ func RandPeerNetParamsOrFatal(t *testing.T) PeerNetParams {
 func RandPeerNetParams() (*PeerNetParams, error) {
 	var p PeerNetParams
 	var err error
-	p.Addr = RandLocalTCPAddress()
+	p.Addr = ZeroLocalTCPAddress
 	p.PrivKey, p.PubKey, err = RandKeyPair(512)
 	if err != nil {
 		return nil, err
