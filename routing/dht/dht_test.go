@@ -468,51 +468,6 @@ func TestProvidesAsync(t *testing.T) {
 	}
 }
 
-func TestLayeredGet(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-
-	ctx := context.Background()
-
-	_, _, dhts := setupDHTS(ctx, 4, t)
-	defer func() {
-		for i := 0; i < 4; i++ {
-			dhts[i].Close()
-			defer dhts[i].network.Close()
-		}
-	}()
-
-	connect(t, ctx, dhts[0], dhts[1])
-	connect(t, ctx, dhts[1], dhts[2])
-	connect(t, ctx, dhts[1], dhts[3])
-
-	err := dhts[3].putLocal(u.Key("/v/hello"), []byte("world"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dhts[3].Provide(ctx, u.Key("/v/hello"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	time.Sleep(time.Millisecond * 6)
-
-	t.Log("interface was changed. GetValue should not use providers.")
-	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	val, err := dhts[0].GetValue(ctxT, u.Key("/v/hello"))
-	if err != routing.ErrNotFound {
-		t.Error(err)
-	}
-	if string(val) == "world" {
-		t.Error("should not get value.")
-	}
-	if len(val) > 0 && string(val) != "world" {
-		t.Error("worse, there's a value and its not even the right one.")
-	}
-}
-
 func TestFindPeer(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
