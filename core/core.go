@@ -57,6 +57,7 @@ type IpfsNode struct {
 	PeerHost    p2phost.Host         // the network host (server+client)
 	Routing     routing.IpfsRouting  // the routing system. recommend ipfs-dht
 	Exchange    exchange.Interface   // the block exchange + strategy (bitswap)
+	Blockstore  bstore.Blockstore    // the block store (lower level)
 	Blocks      *bserv.BlockService  // the block service, get/add blocks.
 	DAG         merkledag.DAGService // the merkle dag service, get/add objects.
 	Resolver    *path.Resolver       // the path resolution system
@@ -94,87 +95,39 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 	n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
 	ctx = n.ContextGroup.Context()
 
+	// setup Peerstore
+	n.Peerstore = peer.NewPeerstore()
+
 	// setup datastore.
 	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
 		return nil, debugerror.Wrap(err)
 	}
 
-	// setup local peer identity
-	n.Identity, n.PrivateKey, err = initIdentity(&n.Config.Identity, online)
+	// setup local peer ID (private key is loaded in online setup)
+	if err := n.loadID(); err != nil {
+		return nil, err
+	}
+
+	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
 
-	// setup Peerstore
-	n.Peerstore = peer.NewPeerstore()
-	if n.PrivateKey != nil {
-		n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
-	}
-
-	blockstore, err := bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
-	n.Exchange = offline.Exchange(blockstore)
-
 	// setup online services
 	if online {
-
-		// setup the network
-		listenAddrs, err := listenAddresses(cfg)
-		if err != nil {
-			return nil, debugerror.Wrap(err)
+		if err := n.StartOnlineServices(); err != nil {
+			return nil, err // debugerror.Wraps.
 		}
-
-		network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
-		if err != nil {
-			return nil, debugerror.Wrap(err)
-		}
-		n.AddChildGroup(network.CtxGroup())
-		n.PeerHost = p2pbhost.New(network)
-
-		// explicitly set these as our listen addrs.
-		// (why not do it inside inet.NewNetwork? because this way we can
-		// listen on addresses without necessarily advertising those publicly.)
-		addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
-		if err != nil {
-			return nil, debugerror.Wrap(err)
-		}
-
-		n.Peerstore.AddAddresses(n.Identity, addrs)
-
-		// setup diagnostics service
-		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
-
-		// setup routing service
-		dhtRouting := dht.NewDHT(ctx, n.PeerHost, n.Datastore)
-		dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
-
-		// TODO(brian): perform this inside NewDHT factory method
-		n.Routing = dhtRouting
-		n.AddChildGroup(dhtRouting)
-
-		// setup exchange service
-		const alwaysSendToPeer = true // use YesManStrategy
-		bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
-
-		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, blockstore, alwaysSendToPeer)
-
-		// TODO consider moving connection supervision into the Network. We've
-		// discussed improvements to this Node constructor. One improvement
-		// would be to make the node configurable, allowing clients to inject
-		// an Exchange, Network, or Routing component and have the constructor
-		// manage the wiring. In that scenario, this dangling function is a bit
-		// awkward.
-		go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, n.Config.Bootstrap)
+	} else {
+		n.Exchange = offline.Exchange(n.Blockstore)
 	}
 
-	// TODO(brian): when offline instantiate the BlockService with a bitswap
-	// session that simply doesn't return blocks
-	n.Blocks, err = bserv.New(blockstore, n.Exchange)
+	n.Blocks, err = bserv.New(n.Blockstore, n.Exchange)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
 
 	n.DAG = merkledag.NewDAGService(n.Blocks)
-	n.Namesys = namesys.NewNameSystem(n.Routing)
 	n.Pinning, err = pin.LoadPinner(n.Datastore, n.DAG)
 	if err != nil {
 		n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
@@ -183,6 +136,67 @@ func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsN
 
 	success = true
 	return n, nil
+}
+
+func (n *IpfsNode) StartOnlineServices() error {
+	ctx := n.Context()
+
+	if n.PeerHost != nil { // already online.
+		return debugerror.New("node already online")
+	}
+
+	// load private key
+	if err := n.loadPrivateKey(); err != nil {
+		return err
+	}
+
+	// setup the network
+	listenAddrs, err := listenAddresses(n.Config)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.AddChildGroup(network.CtxGroup())
+	n.PeerHost = p2pbhost.New(network)
+
+	// explicitly set these as our listen addrs.
+	// (why not do it inside inet.NewNetwork? because this way we can
+	// listen on addresses without necessarily advertising those publicly.)
+	addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.Peerstore.AddAddresses(n.Identity, addrs)
+
+	// setup diagnostics service
+	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
+
+	// setup routing service
+	dhtRouting := dht.NewDHT(ctx, n.PeerHost, n.Datastore)
+	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	n.Routing = dhtRouting
+	n.AddChildGroup(dhtRouting)
+
+	// setup exchange service
+	const alwaysSendToPeer = true // use YesManStrategy
+	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
+	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
+
+	// setup name system
+	// TODO implement an offline namesys that serves only local names.
+	n.Namesys = namesys.NewNameSystem(n.Routing)
+
+	// TODO consider moving connection supervision into the Network. We've
+	// discussed improvements to this Node constructor. One improvement
+	// would be to make the node configurable, allowing clients to inject
+	// an Exchange, Network, or Routing component and have the constructor
+	// manage the wiring. In that scenario, this dangling function is a bit
+	// awkward.
+	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, n.Config.Bootstrap)
+	return nil
 }
 
 func (n *IpfsNode) teardown() error {
@@ -196,29 +210,40 @@ func (n *IpfsNode) OnlineMode() bool {
 	return n.onlineMode
 }
 
-func initIdentity(cfg *config.Identity, online bool) (peer.ID, ic.PrivKey, error) {
-
-	if cfg.PeerID == "" {
-		return "", nil, debugerror.New("Identity was not set in config (was ipfs init run?)")
+func (n *IpfsNode) loadID() error {
+	if n.Identity != "" {
+		return debugerror.New("identity already loaded")
 	}
 
-	if len(cfg.PeerID) == 0 {
-		return "", nil, debugerror.New("No peer ID in config! (was ipfs init run?)")
+	cid := n.Config.Identity.PeerID
+	if cid == "" {
+		return debugerror.New("Identity was not set in config (was ipfs init run?)")
+	}
+	if len(cid) == 0 {
+		return debugerror.New("No peer ID in config! (was ipfs init run?)")
 	}
 
-	id := peer.ID(b58.Decode(cfg.PeerID))
+	n.Identity = peer.ID(b58.Decode(cid))
+	return nil
+}
 
-	// when not online, don't need to parse private keys (yet)
-	if !online {
-		return id, nil, nil
+func (n *IpfsNode) loadPrivateKey() error {
+	if n.Identity == "" || n.Peerstore == nil {
+		return debugerror.New("loaded private key out of order.")
 	}
 
-	sk, err := loadPrivateKey(cfg, id)
+	if n.PrivateKey != nil {
+		return debugerror.New("private key already loaded")
+	}
+
+	sk, err := loadPrivateKey(&n.Config.Identity, n.Identity)
 	if err != nil {
-		return "", nil, err
+		return err
 	}
 
-	return id, sk, nil
+	n.PrivateKey = sk
+	n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
+	return nil
 }
 
 func loadPrivateKey(cfg *config.Identity, id peer.ID) (ic.PrivKey, error) {
