@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"crypto/hmac"
 
@@ -27,6 +28,8 @@ type etmWriter struct {
 	msg  msgio.WriteCloser // msgio for knowing where boundaries lie
 	str  cipher.Stream     // the stream cipher to encrypt with
 	mac  HMAC              // the mac to authenticate data with
+
+	sync.Mutex
 }
 
 // NewETMWriter Encrypt-Then-MAC
@@ -44,6 +47,8 @@ func (w *etmWriter) Write(b []byte) (int, error) {
 
 // WriteMsg writes the msg in the passed in buffer.
 func (w *etmWriter) WriteMsg(b []byte) error {
+	w.Lock()
+	defer w.Unlock()
 
 	// encrypt.
 	data := w.pool.Get(uint32(len(b))).([]byte)
@@ -83,6 +88,8 @@ type etmReader struct {
 	msg msgio.ReadCloser // msgio for knowing where boundaries lie
 	str cipher.Stream    // the stream cipher to encrypt with
 	mac HMAC             // the mac to authenticate data with
+
+	sync.Mutex
 }
 
 // NewETMReader Encrypt-Then-MAC
@@ -105,6 +112,9 @@ func (r *etmReader) drainBuf(buf []byte) int {
 }
 
 func (r *etmReader) Read(buf []byte) (int, error) {
+	r.Lock()
+	defer r.Unlock()
+
 	// first, check if we have anything in the buffer
 	copied := r.drainBuf(buf)
 	buf = buf[copied:]
@@ -151,6 +161,9 @@ func (r *etmReader) Read(buf []byte) (int, error) {
 }
 
 func (r *etmReader) ReadMsg() ([]byte, error) {
+	r.Lock()
+	defer r.Unlock()
+
 	msg, err := r.msg.ReadMsg()
 	if err != nil {
 		return nil, err
