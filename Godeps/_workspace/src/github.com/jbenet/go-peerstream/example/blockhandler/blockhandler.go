@@ -8,6 +8,7 @@ import (
 	"time"
 
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	pstss "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/spdystream"
 )
 
 func die(err error) {
@@ -17,7 +18,7 @@ func die(err error) {
 
 func main() {
 	// create a new Swarm
-	swarm := ps.NewSwarm()
+	swarm := ps.NewSwarm(pstss.Transport)
 	defer swarm.Close()
 
 	// tell swarm what to do with a new incoming streams.
@@ -62,13 +63,12 @@ func main() {
 	nSndStream := 0
 	for {
 		<-time.After(200 * time.Millisecond)
-		s, err := swarm.NewStreamWithConn(c)
+		_, err := swarm.NewStreamWithConn(c)
 		if err != nil {
 			die(err)
 		}
 		log("sender got new stream %d", nSndStream)
 		nSndStream++
-		s.Wait()
 	}
 }
 

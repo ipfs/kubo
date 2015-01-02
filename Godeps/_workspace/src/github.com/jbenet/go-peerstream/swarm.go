@@ -4,12 +4,17 @@ import (
 	"errors"
 	"net"
 	"sync"
+
+	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
 // fd is a (file) descriptor, unix style
 type fd uint32
 
 type Swarm struct {
+	// the transport we'll use.
+	transport pst.Transport
+
 	// active streams.
 	streams    map[*Stream]struct{}
 	streamLock sync.RWMutex
@@ -30,8 +35,9 @@ type Swarm struct {
 	selectConn    SelectConn    // default SelectConn function
 }
 
-func NewSwarm() *Swarm {
+func NewSwarm(t pst.Transport) *Swarm {
 	return &Swarm{
+		transport:     t,
 		streams:       make(map[*Stream]struct{}),
 		conns:         make(map[*Conn]struct{}),
 		listeners:     make(map[*Listener]struct{}),

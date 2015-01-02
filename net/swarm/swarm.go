@@ -10,9 +10,12 @@ import (
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	psy "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
 )
 
 var log = eventlog.Logger("swarm2")
+
+var PSTransport = psy.DefaultTransport
 
 // Swarm is a connection muxer, allowing connections to other peers to
 // be opened and closed, while still using the same Chan for all
@@ -34,7 +37,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
 
 	s := &Swarm{
-		swarm: ps.NewSwarm(),
+		swarm: ps.NewSwarm(PSTransport),
 		local: local,
 		peers: peers,
 		cg:    ctxgroup.WithContext(ctx),

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"crypto/hmac"
 
@@ -27,6 +28,8 @@ type etmWriter struct {
 	msg  msgio.WriteCloser // msgio for knowing where boundaries lie
 	str  cipher.Stream     // the stream cipher to encrypt with
 	mac  HMAC              // the mac to authenticate data with
+
+	sync.Mutex
 }
 
 // NewETMWriter Encrypt-Then-MAC
@@ -44,6 +47,8 @@ func (w *etmWriter) Write(b []byte) (int, error) {
 
 // WriteMsg writes the msg in the passed in buffer.
 func (w *etmWriter) WriteMsg(b []byte) error {
+	w.Lock()
+	defer w.Unlock()
 
 	// encrypt.
 	data := w.pool.Get(uint32(len(b))).([]byte)
@@ -76,10 +81,15 @@ type etmReader struct {
 	msgio.Reader
 	io.Closer
 
+	// buffer
+	buf []byte
+
 	// params
 	msg msgio.ReadCloser // msgio for knowing where boundaries lie
 	str cipher.Stream    // the stream cipher to encrypt with
 	mac HMAC             // the mac to authenticate data with
+
+	sync.Mutex
 }
 
 // NewETMReader Encrypt-Then-MAC
@@ -91,20 +101,38 @@ func (r *etmReader) NextMsgLen() (int, error) {
 	return r.msg.NextMsgLen()
 }
 
+func (r *etmReader) drainBuf(buf []byte) int {
+	if r.buf == nil {
+		return 0
+	}
+
+	n := copy(buf, r.buf)
+	r.buf = r.buf[n:]
+	return n
+}
+
 func (r *etmReader) Read(buf []byte) (int, error) {
-	// first, check the buffer has enough space.
+	r.Lock()
+	defer r.Unlock()
+
+	// first, check if we have anything in the buffer
+	copied := r.drainBuf(buf)
+	buf = buf[copied:]
+	if copied > 0 {
+		return copied, nil
+		// return here to avoid complicating the rest...
+		// user can call io.ReadFull.
+	}
+
+	// check the buffer has enough space for the next msg
 	fullLen, err := r.msg.NextMsgLen()
 	if err != nil {
 		return 0, err
 	}
 
-	dataLen := fullLen - r.mac.size
-	if cap(buf) < dataLen {
-		return 0, io.ErrShortBuffer
-	}
-
 	buf2 := buf
 	changed := false
+	// if not enough space, allocate a new buffer.
 	if cap(buf) < fullLen {
 		buf2 = make([]byte, fullLen)
 		changed = true
@@ -121,13 +149,21 @@ func (r *etmReader) Read(buf []byte) (int, error) {
 		return 0, err
 	}
 	buf2 = buf2[:m]
-	if changed {
-		return copy(buf, buf2), nil
+	if !changed {
+		return m, nil
 	}
-	return m, nil
+
+	n = copy(buf, buf2)
+	if len(buf2) > len(buf) {
+		r.buf = buf2[len(buf):] // had some left over? save it.
+	}
+	return n, nil
 }
 
 func (r *etmReader) ReadMsg() ([]byte, error) {
+	r.Lock()
+	defer r.Unlock()
+
 	msg, err := r.msg.ReadMsg()
 	if err != nil {
 		return nil, err

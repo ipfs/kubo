@@ -139,7 +139,10 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 				for k := 0; k < MsgNum; k++ { // with k messages
 					msg := "ping"
 					log.Debugf("%s %s %s (%d)", s1.local, msg, p, k)
-					stream.Write([]byte(msg))
+					if _, err := stream.Write([]byte(msg)); err != nil {
+						errChan <- err
+						continue
+					}
 				}
 
 				// read it later
@@ -200,7 +203,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 		// check any errors (blocks till consumer is done)
 		for err := range errChan {
 			if err != nil {
-				t.Fatal(err.Error())
+				t.Error(err.Error())
 			}
 		}
 
