@@ -513,7 +513,7 @@ type writeOut struct {
 	Padding uint32
 }
 
-// The WriteFlags are returned in the WriteResponse.
+// The WriteFlags are passed in WriteRequest.
 type WriteFlags uint32
 
 func (fl WriteFlags) String() string {

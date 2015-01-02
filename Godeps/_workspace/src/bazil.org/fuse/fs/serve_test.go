@@ -87,27 +87,6 @@ func (f childMapFS) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	return child, nil
 }
 
-// simpleFS is a trivial FS that just implements the Root method.
-type simpleFS struct {
-	node fs.Node
-}
-
-var _ = fs.FS(simpleFS{})
-
-func (f simpleFS) Root() (fs.Node, fuse.Error) {
-	return f.node, nil
-}
-
-// file can be embedded in a struct to make it look like a file.
-type file struct{}
-
-func (f file) Attr() fuse.Attr { return fuse.Attr{Mode: 0666} }
-
-// dir can be embedded in a struct to make it look like a directory.
-type dir struct{}
-
-func (f dir) Attr() fuse.Attr { return fuse.Attr{Mode: os.ModeDir | 0777} }
-
 // symlink can be embedded in a struct to make it look like a symlink.
 type symlink struct {
 	target string
@@ -261,7 +240,9 @@ func TestStatRoot(t *testing.T) {
 
 // Test Read calling ReadAll.
 
-type readAll struct{ file }
+type readAll struct {
+	fstestutil.File
+}
 
 const hi = "hello, world"
 
@@ -299,7 +280,9 @@ func TestReadAll(t *testing.T) {
 
 // Test Read.
 
-type readWithHandleRead struct{ file }
+type readWithHandleRead struct {
+	fstestutil.File
+}
 
 func (readWithHandleRead) Attr() fuse.Attr {
 	return fuse.Attr{
@@ -327,7 +310,7 @@ func TestReadAllWithHandleRead(t *testing.T) {
 // Test Release.
 
 type release struct {
-	file
+	fstestutil.File
 	record.ReleaseWaiter
 }
 
@@ -353,7 +336,7 @@ func TestRelease(t *testing.T) {
 // Test Write calling basic Write, with an fsync thrown in too.
 
 type write struct {
-	file
+	fstestutil.File
 	record.Writes
 	record.Fsyncs
 }
@@ -401,7 +384,7 @@ func TestWrite(t *testing.T) {
 // Test Write of a larger buffer.
 
 type writeLarge struct {
-	file
+	fstestutil.File
 	record.Writes
 }
 
@@ -446,7 +429,7 @@ func TestWriteLarge(t *testing.T) {
 // Test Write calling Setattr+Write+Flush.
 
 type writeTruncateFlush struct {
-	file
+	fstestutil.File
 	record.Writes
 	record.Setattrs
 	record.Flushes
@@ -479,7 +462,7 @@ func TestWriteTruncateFlush(t *testing.T) {
 // Test Mkdir.
 
 type mkdir1 struct {
-	dir
+	fstestutil.Dir
 	record.Mkdirs
 }
 
@@ -491,7 +474,7 @@ func (f *mkdir1) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Erro
 func TestMkdir(t *testing.T) {
 	t.Parallel()
 	f := &mkdir1{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,12 +496,12 @@ func TestMkdir(t *testing.T) {
 // Test Create (and fsync)
 
 type create1file struct {
-	file
+	fstestutil.File
 	record.Fsyncs
 }
 
 type create1 struct {
-	dir
+	fstestutil.Dir
 	f create1file
 }
 
@@ -553,7 +536,7 @@ func (f *create1) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, int
 func TestCreate(t *testing.T) {
 	t.Parallel()
 	f := &create1{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -583,12 +566,12 @@ func TestCreate(t *testing.T) {
 // Test Create + Write + Remove
 
 type create3file struct {
-	file
+	fstestutil.File
 	record.Writes
 }
 
 type create3 struct {
-	dir
+	fstestutil.Dir
 	f          create3file
 	fooCreated record.MarkRecorder
 	fooRemoved record.MarkRecorder
@@ -622,7 +605,7 @@ func (f *create3) Remove(r *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 func TestCreateWriteRemove(t *testing.T) {
 	t.Parallel()
 	f := &create3{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -659,7 +642,7 @@ func (f symlink1link) Readlink(*fuse.ReadlinkRequest, fs.Intr) (string, fuse.Err
 }
 
 type symlink1 struct {
-	dir
+	fstestutil.Dir
 	record.Symlinks
 }
 
@@ -671,7 +654,7 @@ func (f *symlink1) Symlink(req *fuse.SymlinkRequest, intr fs.Intr) (fs.Node, fus
 func TestSymlink(t *testing.T) {
 	t.Parallel()
 	f := &symlink1{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -701,26 +684,26 @@ func TestSymlink(t *testing.T) {
 // Test link
 
 type link1 struct {
-	dir
+	fstestutil.Dir
 	record.Links
 }
 
 func (f *link1) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	if name == "old" {
-		return file{}, nil
+		return fstestutil.File{}, nil
 	}
 	return nil, fuse.ENOENT
 }
 
 func (f *link1) Link(r *fuse.LinkRequest, old fs.Node, intr fs.Intr) (fs.Node, fuse.Error) {
 	f.Links.Link(r, old, intr)
-	return file{}, nil
+	return fstestutil.File{}, nil
 }
 
 func TestLink(t *testing.T) {
 	t.Parallel()
 	f := &link1{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -745,13 +728,13 @@ func TestLink(t *testing.T) {
 // Test Rename
 
 type rename1 struct {
-	dir
+	fstestutil.Dir
 	renamed record.Counter
 }
 
 func (f *rename1) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	if name == "old" {
-		return file{}, nil
+		return fstestutil.File{}, nil
 	}
 	return nil, fuse.ENOENT
 }
@@ -767,7 +750,7 @@ func (f *rename1) Rename(r *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fu
 func TestRename(t *testing.T) {
 	t.Parallel()
 	f := &rename1{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -789,7 +772,7 @@ func TestRename(t *testing.T) {
 // Test mknod
 
 type mknod1 struct {
-	dir
+	fstestutil.Dir
 	record.Mknods
 }
 
@@ -805,7 +788,7 @@ func TestMknod(t *testing.T) {
 	}
 
 	f := &mknod1{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -836,7 +819,7 @@ func TestMknod(t *testing.T) {
 // Test Read served with DataHandle.
 
 type dataHandleTest struct {
-	file
+	fstestutil.File
 }
 
 func (dataHandleTest) Attr() fuse.Attr {
@@ -872,7 +855,7 @@ func TestDataHandle(t *testing.T) {
 // Test interrupt
 
 type interrupt struct {
-	file
+	fstestutil.File
 
 	// strobes to signal we have a read hanging
 	hanging chan struct{}
@@ -955,7 +938,7 @@ func TestInterrupt(t *testing.T) {
 // Test truncate
 
 type truncate struct {
-	file
+	fstestutil.File
 	record.Setattrs
 }
 
@@ -996,7 +979,7 @@ func TestTruncate0(t *testing.T) {
 // Test ftruncate
 
 type ftruncate struct {
-	file
+	fstestutil.File
 	record.Setattrs
 }
 
@@ -1046,7 +1029,7 @@ func TestFtruncate0(t *testing.T) {
 // Test opening existing file truncates
 
 type truncateWithOpen struct {
-	file
+	fstestutil.File
 	record.Setattrs
 }
 
@@ -1083,7 +1066,7 @@ func TestTruncateWithOpen(t *testing.T) {
 // Test readdir
 
 type readdir struct {
-	dir
+	fstestutil.Dir
 }
 
 func (d *readdir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
@@ -1097,7 +1080,7 @@ func (d *readdir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 func TestReadDir(t *testing.T) {
 	t.Parallel()
 	f := &readdir{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1133,7 +1116,7 @@ func TestReadDir(t *testing.T) {
 // Test Chmod.
 
 type chmod struct {
-	file
+	fstestutil.File
 	record.Setattrs
 }
 
@@ -1169,7 +1152,7 @@ func TestChmod(t *testing.T) {
 // Test open
 
 type open struct {
-	file
+	fstestutil.File
 	record.Opens
 }
 
@@ -1233,14 +1216,14 @@ func TestOpen(t *testing.T) {
 // Test Fsync on a dir
 
 type fsyncDir struct {
-	dir
+	fstestutil.Dir
 	record.Fsyncs
 }
 
 func TestFsyncDir(t *testing.T) {
 	t.Parallel()
 	f := &fsyncDir{}
-	mnt, err := fstestutil.MountedT(t, simpleFS{f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1278,7 +1261,7 @@ func TestFsyncDir(t *testing.T) {
 // Test Getxattr
 
 type getxattr struct {
-	file
+	fstestutil.File
 	record.Getxattrs
 }
 
@@ -1316,7 +1299,7 @@ func TestGetxattr(t *testing.T) {
 // Test Getxattr that has no space to return value
 
 type getxattrTooSmall struct {
-	file
+	fstestutil.File
 }
 
 func (f *getxattrTooSmall) Getxattr(req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse, intr fs.Intr) fuse.Error {
@@ -1347,7 +1330,7 @@ func TestGetxattrTooSmall(t *testing.T) {
 // Test Getxattr used to probe result size
 
 type getxattrSize struct {
-	file
+	fstestutil.File
 }
 
 func (f *getxattrSize) Getxattr(req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse, intr fs.Intr) fuse.Error {
@@ -1377,7 +1360,7 @@ func TestGetxattrSize(t *testing.T) {
 // Test Listxattr
 
 type listxattr struct {
-	file
+	fstestutil.File
 	record.Listxattrs
 }
 
@@ -1418,7 +1401,7 @@ func TestListxattr(t *testing.T) {
 // Test Listxattr that has no space to return value
 
 type listxattrTooSmall struct {
-	file
+	fstestutil.File
 }
 
 func (f *listxattrTooSmall) Listxattr(req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse, intr fs.Intr) fuse.Error {
@@ -1449,7 +1432,7 @@ func TestListxattrTooSmall(t *testing.T) {
 // Test Listxattr used to probe result size
 
 type listxattrSize struct {
-	file
+	fstestutil.File
 }
 
 func (f *listxattrSize) Listxattr(req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse, intr fs.Intr) fuse.Error {
@@ -1479,11 +1462,16 @@ func TestListxattrSize(t *testing.T) {
 // Test Setxattr
 
 type setxattr struct {
-	file
+	fstestutil.File
 	record.Setxattrs
 }
 
-func TestSetxattr(t *testing.T) {
+func testSetxattr(t *testing.T, size int) {
+	const linux_XATTR_NAME_MAX = 64 * 1024
+	if size > linux_XATTR_NAME_MAX && runtime.GOOS == "linux" {
+		t.Skip("large xattrs are not supported by linux")
+	}
+
 	t.Parallel()
 	f := &setxattr{}
 	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
@@ -1492,7 +1480,9 @@ func TestSetxattr(t *testing.T) {
 	}
 	defer mnt.Close()
 
-	err = syscallx.Setxattr(mnt.Dir+"/child", "greeting", []byte("hello, world"), 0)
+	const g = "hello, world"
+	greeting := strings.Repeat(g, size/len(g)+1)[:size]
+	err = syscallx.Setxattr(mnt.Dir+"/child", "greeting", []byte(greeting), 0)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
@@ -1510,15 +1500,27 @@ func TestSetxattr(t *testing.T) {
 		t.Errorf("Setxattr incorrect flags: %d != %d", g, e)
 	}
 
-	if g, e := string(got.Xattr), "hello, world"; g != e {
+	if g, e := string(got.Xattr), greeting; g != e {
 		t.Errorf("Setxattr incorrect data: %q != %q", g, e)
 	}
+}
+
+func TestSetxattr(t *testing.T) {
+	testSetxattr(t, 20)
+}
+
+func TestSetxattr64kB(t *testing.T) {
+	testSetxattr(t, 64*1024)
+}
+
+func TestSetxattr16MB(t *testing.T) {
+	testSetxattr(t, 16*1024*1024)
 }
 
 // Test Removexattr
 
 type removexattr struct {
-	file
+	fstestutil.File
 	record.Removexattrs
 }
 
@@ -1546,7 +1548,7 @@ func TestRemovexattr(t *testing.T) {
 // Test default error.
 
 type defaultErrno struct {
-	dir
+	fstestutil.Dir
 }
 
 func (f defaultErrno) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
@@ -1555,7 +1557,7 @@ func (f defaultErrno) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 func TestDefaultErrno(t *testing.T) {
 	t.Parallel()
-	mnt, err := fstestutil.MountedT(t, simpleFS{defaultErrno{}})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{defaultErrno{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1580,7 +1582,7 @@ func TestDefaultErrno(t *testing.T) {
 // Test custom error.
 
 type customErrNode struct {
-	dir
+	fstestutil.Dir
 }
 
 type myCustomError struct {
@@ -1601,7 +1603,7 @@ func (f customErrNode) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 
 func TestCustomErrno(t *testing.T) {
 	t.Parallel()
-	mnt, err := fstestutil.MountedT(t, simpleFS{customErrNode{}})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{customErrNode{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1736,7 +1738,9 @@ func TestMmap(t *testing.T) {
 
 // Test direct Read.
 
-type directRead struct{ file }
+type directRead struct {
+	fstestutil.File
+}
 
 // explicitly not defining Attr and setting Size
 

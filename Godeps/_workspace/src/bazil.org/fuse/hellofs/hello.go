@@ -28,7 +28,13 @@ func main() {
 	}
 	mountpoint := flag.Arg(0)
 
-	c, err := fuse.Mount(mountpoint)
+	c, err := fuse.Mount(
+		mountpoint,
+		fuse.FSName("helloworld"),
+		fuse.Subtype("hellofs"),
+		fuse.LocalVolume(),
+		fuse.VolumeName("Hello world!"),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
