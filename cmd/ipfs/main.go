@@ -490,25 +490,32 @@ func (i *cmdInvocation) setupInterruptHandler() {
 	sig := allInterruptSignals()
 
 	go func() {
+		// first time, try to shut down.
 
-		for {
-			// first time, try to shut down.
+		// loop because we may be
+		for count := 0; ; count++ {
 			<-sig
-			log.Critical("Received interrupt signal, shutting down...")
 
 			n, err := ctx.GetNode()
-			if err == nil {
-				go n.Close()
-				select {
-				case <-n.Closed():
-				case <-sig:
-					log.Critical("Received another interrupt signal, terminating...")
-				}
+			if err != nil {
+				log.Error(err)
+				log.Critical("Received interrupt signal, terminating...")
+				os.Exit(-1)
 			}
 
-			os.Exit(0)
-		}
+			switch count {
+			case 0:
+				log.Critical("Received interrupt signal, shutting down...")
+				go func() {
+					n.Close()
+					log.Info("Gracefully shut down.")
+				}()
 
+			default:
+				log.Critical("Received another interrupt before graceful shutdown, terminating...")
+				os.Exit(-1)
+			}
+		}
 	}()
 }
 
