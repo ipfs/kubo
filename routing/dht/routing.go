@@ -12,6 +12,7 @@ import (
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	pset "github.com/jbenet/go-ipfs/util/peerset"
 )
 
@@ -77,7 +78,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	closest := dht.routingTable.NearestPeers(kb.ConvertKey(key), PoolSize)
 	if closest == nil || len(closest) == 0 {
 		log.Warning("Got no peers back from routing table!")
-		return nil, kb.ErrLookupFailure
+		return nil, errors.Wrap(kb.ErrLookupFailure)
 	}
 
 	// setup the Query
@@ -154,7 +155,7 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerIn
 func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key) (<-chan peer.ID, error) {
 	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
 	if len(tablepeers) == 0 {
-		return nil, kb.ErrLookupFailure
+		return nil, errors.Wrap(kb.ErrLookupFailure)
 	}
 
 	out := make(chan peer.ID, KValue)
@@ -299,7 +300,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 
 	closest := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if closest == nil || len(closest) == 0 {
-		return peer.PeerInfo{}, kb.ErrLookupFailure
+		return peer.PeerInfo{}, errors.Wrap(kb.ErrLookupFailure)
 	}
 
 	// Sanity...
@@ -356,7 +357,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 
 	closest := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if closest == nil || len(closest) == 0 {
-		return nil, kb.ErrLookupFailure
+		return nil, errors.Wrap(kb.ErrLookupFailure)
 	}
 
 	// setup the Query
