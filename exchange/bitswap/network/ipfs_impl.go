@@ -107,6 +107,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 			bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
 			select {
 			case <-ctx.Done():
+				return
 			case out <- info.ID:
 			}
 		}
