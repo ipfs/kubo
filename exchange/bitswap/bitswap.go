@@ -61,6 +61,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	}()
 
 	bs := &bitswap{
+		self:          p,
 		blockstore:    bstore,
 		cancelFunc:    cancelFunc,
 		notifications: notif,
@@ -78,6 +79,9 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
+
+	// the ID of the peer to act on behalf of
+	self peer.ID
 
 	// network delivers messages on behalf of the session
 	network bsnet.BitSwapNetwork
