@@ -143,13 +143,10 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	newWorkExists := false
 	defer func() {
 		if newWorkExists {
-			// Signal task generation to restart (if stopped!)
-			select {
-			case e.workSignal <- struct{}{}:
-			default:
-			}
+			e.signalNewWork()
 		}
 	}()
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -221,4 +218,12 @@ func (e *Engine) findOrCreate(p peer.ID) *ledger {
 		e.ledgerMap[p] = l
 	}
 	return l
+}
+
+func (e *Engine) signalNewWork() {
+	// Signal task generation to restart (if stopped!)
+	select {
+	case e.workSignal <- struct{}{}:
+	default:
+	}
 }
