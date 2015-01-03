@@ -8,7 +8,7 @@ import (
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	u "github.com/jbenet/go-ipfs/util"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -41,7 +41,7 @@ import (
 // whatever it sees fit to produce desired outcomes (get wanted keys
 // quickly, maintain good relationships with peers, etc).
 
-var log = u.Logger("engine")
+var log = eventlog.Logger("engine")
 
 const (
 	sizeOutboxChan = 4
@@ -140,6 +140,10 @@ func (e *Engine) Peers() []peer.ID {
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
+	log := log.Prefix("Engine.MessageReceived(%s)", p)
+	log.Debugf("enter")
+	defer log.Debugf("exit")
+
 	newWorkExists := false
 	defer e.signalNewWork(newWorkExists)
 
@@ -152,9 +156,11 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
+			log.Debug("cancel", entry.Key)
 			l.CancelWant(entry.Key)
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
+			log.Debug("wants", entry.Key, entry.Priority)
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				newWorkExists = true
@@ -165,6 +171,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	for _, block := range m.Blocks() {
 		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
+		log.Debug("got block %s %d bytes", block.Key(), len(block.Data))
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range e.ledgerMap {
 			if l.WantListContains(block.Key()) {

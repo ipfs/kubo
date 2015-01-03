@@ -3,7 +3,6 @@
 package bitswap
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -172,14 +171,14 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 }
 
 func (bs *bitswap) sendWantlistMsgToPeer(ctx context.Context, m bsmsg.BitSwapMessage, p peer.ID) error {
-	logd := fmt.Sprintf("%s bitswap.sendWantlistMsgToPeer(%d, %s)", bs.self, len(m.Wantlist()), p)
+	log := log.Prefix("bitswap(%s).bitswap.sendWantlistMsgToPeer(%d, %s)", bs.self, len(m.Wantlist()), p)
 
-	log.Debugf("%s sending wantlist", logd)
+	log.Debug("sending wantlist")
 	if err := bs.send(ctx, p, m); err != nil {
-		log.Errorf("%s send wantlist error: %s", logd, err)
+		log.Errorf("send wantlist error: %s", err)
 		return err
 	}
-	log.Debugf("%s send wantlist success", logd)
+	log.Debugf("send wantlist success")
 	return nil
 }
 
@@ -188,20 +187,20 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 		panic("Cant send wantlist to nil peerchan")
 	}
 
-	logd := fmt.Sprintf("%s bitswap.sendWantlistMsgTo(%d)", bs.self, len(m.Wantlist()))
-	log.Debugf("%s begin", logd)
-	defer log.Debugf("%s end", logd)
+	log := log.Prefix("bitswap(%s).sendWantlistMsgToPeers(%d)", bs.self, len(m.Wantlist()))
+	log.Debugf("begin")
+	defer log.Debugf("end")
 
 	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
 		log.Event(ctx, "PeerToQuery", peerToQuery)
-		logd := fmt.Sprintf("%sto(%s)", logd, peerToQuery)
 
 		if !set.TryAdd(peerToQuery) { //Do once per peer
-			log.Debugf("%s skipped (already sent)", logd)
+			log.Debugf("%s skipped (already sent)", peerToQuery)
 			continue
 		}
+		log.Debugf("%s sending", peerToQuery)
 
 		wg.Add(1)
 		go func(p peer.ID) {
@@ -223,9 +222,9 @@ func (bs *bitswap) sendWantlistToPeers(ctx context.Context, peers <-chan peer.ID
 }
 
 func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
-	logd := fmt.Sprintf("%s bitswap.sendWantlistToProviders", bs.self)
-	log.Debugf("%s begin", logd)
-	defer log.Debugf("%s end", logd)
+	log := log.Prefix("bitswap(%s).sendWantlistToProviders ", bs.self)
+	log.Debugf("begin")
+	defer log.Debugf("end")
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -240,13 +239,13 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 		go func(k u.Key) {
 			defer wg.Done()
 
-			logd := fmt.Sprintf("%s(entry: %s)", logd, k)
-			log.Debugf("%s asking dht for providers", logd)
+			log := log.Prefix("(entry: %s) ", k)
+			log.Debug("asking dht for providers")
 
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				log.Debugf("%s dht returned provider %s. send wantlist", logd, prov)
+				log.Debugf("dht returned provider %s. send wantlist", prov)
 				sendToPeers <- prov
 			}
 		}(e.Key)
@@ -254,7 +253,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 
 	err := bs.sendWantlistToPeers(ctx, sendToPeers)
 	if err != nil {
-		log.Errorf("%s sendWantlistToPeers error: %s", logd, err)
+		log.Errorf("sendWantlistToPeers error: %s", err)
 	}
 	wg.Wait() // make sure all our children do finish.
 }

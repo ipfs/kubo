@@ -87,14 +87,10 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 
 	start := time.Now()
 
-	log.Debugf("%s writing", dht.self)
 	if err := w.WriteMsg(pmes); err != nil {
 		return nil, err
 	}
 	log.Event(ctx, "dhtSentMessage", dht.self, p, pmes)
-
-	log.Debugf("%s reading", dht.self)
-	defer log.Debugf("%s done", dht.self)
 
 	rpmes := new(pb.Message)
 	if err := r.ReadMsg(rpmes); err != nil {
@@ -125,12 +121,10 @@ func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message
 	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	w := ggio.NewDelimitedWriter(cw)
 
-	log.Debugf("%s writing", dht.self)
 	if err := w.WriteMsg(pmes); err != nil {
 		return err
 	}
 	log.Event(ctx, "dhtSentMessage", dht.self, p, pmes)
-	log.Debugf("%s done", dht.self)
 	return nil
 }
 
