@@ -55,6 +55,7 @@ func (bsnet *impl) SendRequest(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
+	log.Debugf("bsnet SendRequest to %s", p)
 	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return nil, err
