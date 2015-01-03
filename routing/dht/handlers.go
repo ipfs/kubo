@@ -206,7 +206,7 @@ type providerInfo struct {
 func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	key := u.Key(pmes.GetKey())
 
-	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, peer.ID(key))
+	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)
 
 	// add provider should use the address given in the message
 	pinfos := pb.PBPeersToPeerInfos(pmes.GetProviderPeers())
