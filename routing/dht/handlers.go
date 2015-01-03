@@ -167,25 +167,31 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 
 func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
+	key := u.Key(pmes.GetKey())
+
+	// debug logging niceness.
+	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, key)
+	log.Debugf("%s begin", reqDesc)
+	defer log.Debugf("%s end", reqDesc)
 
 	// check if we have this value, to add ourselves as provider.
-	log.Debugf("handling GetProviders: '%s'", u.Key(pmes.GetKey()))
-	dsk := u.Key(pmes.GetKey()).DsKey()
-	has, err := dht.datastore.Has(dsk)
+	has, err := dht.datastore.Has(key.DsKey())
 	if err != nil && err != ds.ErrNotFound {
 		log.Errorf("unexpected datastore error: %v\n", err)
 		has = false
 	}
 
 	// setup providers
-	providers := dht.providers.GetProviders(ctx, u.Key(pmes.GetKey()))
+	providers := dht.providers.GetProviders(ctx, key)
 	if has {
 		providers = append(providers, dht.self)
+		log.Debugf("%s have the value. added self as provider", reqDesc)
 	}
 
 	if providers != nil && len(providers) > 0 {
 		infos := peer.PeerInfos(dht.peerstore, providers)
 		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
+		log.Debugf("%s have %d providers: %s", reqDesc, len(providers), infos)
 	}
 
 	// Also send closer peers.
@@ -193,6 +199,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	if closer != nil {
 		infos := peer.PeerInfos(dht.peerstore, providers)
 		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
+		log.Debugf("%s have %d closer peers: %s", reqDesc, len(closer), infos)
 	}
 
 	return resp, nil

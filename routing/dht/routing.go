@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"fmt"
 	"math"
 	"sync"
 
@@ -255,16 +256,24 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	// setup the Query
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
 
+		reqDesc := fmt.Sprintf("%s findProviders(%s).Query(%s): ", dht.self, key, p)
+		log.Debugf("%s begin", reqDesc)
+		defer log.Debugf("%s end", reqDesc)
+
 		pmes, err := dht.findProvidersSingle(ctx, p, key)
 		if err != nil {
 			return nil, err
 		}
 
+		log.Debugf("%s got %d provider entries", reqDesc, len(pmes.GetProviderPeers()))
 		provs := pb.PBPeersToPeerInfos(pmes.GetProviderPeers())
+		log.Debugf("%s got %d provider entries decoded", reqDesc, len(provs))
 
 		// Add unique providers from request, up to 'count'
 		for _, prov := range provs {
+			log.Debugf("%s got provider: %s", reqDesc, prov)
 			if ps.TryAdd(prov.ID) {
+				log.Debugf("%s using provider: %s", reqDesc, prov)
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():
@@ -273,6 +282,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 				}
 			}
 			if ps.Size() >= count {
+				log.Debugf("%s got enough providers (%d/%d)", reqDesc, ps.Size(), count)
 				return &dhtQueryResult{success: true}, nil
 			}
 		}
@@ -280,6 +290,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 		// Give closer peers back to the query to be queried
 		closer := pmes.GetCloserPeers()
 		clpeers := pb.PBPeersToPeerInfos(closer)
+		log.Debugf("%s got closer peers: %s", reqDesc, clpeers)
 		return &dhtQueryResult{closerPeers: clpeers}, nil
 	})
 
