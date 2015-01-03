@@ -2,15 +2,17 @@ package network
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	util "github.com/jbenet/go-ipfs/util"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
-var log = util.Logger("bitswap_network")
+var log = eventlog.Logger("bitswap_network")
 
 // NewFromIpfsHost returns a BitSwapNetwork supported by underlying IPFS host
 func NewFromIpfsHost(host host.Host, r routing.IpfsRouting) BitSwapNetwork {
@@ -41,13 +43,23 @@ func (bsnet *impl) SendMessage(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) error {
 
+	log := log.Prefix("bitswap net SendMessage to %s", p)
+
+	log.Debug("opening stream")
 	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	return outgoing.ToNet(s)
+	log.Debug("sending")
+	if err := outgoing.ToNet(s); err != nil {
+		log.Errorf("error: %s", err)
+		return err
+	}
+
+	log.Debug("sent")
+	return err
 }
 
 func (bsnet *impl) SendRequest(
@@ -55,18 +67,30 @@ func (bsnet *impl) SendRequest(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
-	log.Debugf("bsnet SendRequest to %s", p)
+	log := log.Prefix("bitswap net SendRequest to %s", p)
+
+	log.Debug("opening stream")
 	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return nil, err
 	}
 	defer s.Close()
 
+	log.Debug("sending")
 	if err := outgoing.ToNet(s); err != nil {
+		log.Errorf("error: %s", err)
 		return nil, err
 	}
 
-	return bsmsg.FromNet(s)
+	log.Debug("sent, now receiveing")
+	incoming, err := bsmsg.FromNet(s)
+	if err != nil {
+		log.Errorf("error: %s", err)
+		return incoming, err
+	}
+
+	log.Debug("received")
+	return incoming, nil
 }
 
 func (bsnet *impl) SetDelegate(r Receiver) {
@@ -106,11 +130,12 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 	received, err := bsmsg.FromNet(s)
 	if err != nil {
 		go bsnet.receiver.ReceiveError(err)
+		log.Errorf("bitswap net handleNewStream from %s error: %s", s.Conn().RemotePeer(), err)
 		return
 	}
 
 	p := s.Conn().RemotePeer()
 	ctx := context.Background()
-	log.Debugf("bsnet handleNewStream from %s", s.Conn().RemotePeer())
+	log.Debugf("bitswap net handleNewStream from %s", s.Conn().RemotePeer())
 	bsnet.receiver.ReceiveMessage(ctx, p, received)
 }

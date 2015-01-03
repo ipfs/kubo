@@ -108,6 +108,7 @@ type bitswap struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
+	log := log.Prefix("bitswap(%s).GetBlock(%s)", bs.self, k)
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
@@ -120,10 +121,12 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
 	log.Event(ctx, "GetBlockRequestBegin", &k)
+	log.Debugf("GetBlockRequestBegin")
 
 	defer func() {
 		cancelFunc()
 		log.Event(ctx, "GetBlockRequestEnd", &k)
+		log.Debugf("GetBlockRequestEnd")
 	}()
 
 	promise, err := bs.GetBlocks(ctx, []u.Key{k})
@@ -263,12 +266,16 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 }
 
 func (bs *bitswap) taskWorker(ctx context.Context) {
+	log := log.Prefix("bitswap(%s).taskWorker", bs.self)
 	for {
 		select {
 		case <-ctx.Done():
+			log.Debugf("exiting")
 			return
 		case envelope := <-bs.engine.Outbox():
+			log.Debugf("message to %s sending...", envelope.Peer)
 			bs.send(ctx, envelope.Peer, envelope.Message)
+			log.Debugf("message to %s sent", envelope.Peer)
 		}
 	}
 }

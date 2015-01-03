@@ -91,6 +91,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 }
 
 func (e *Engine) taskWorker(ctx context.Context) {
+	log := log.Prefix("bitswap.Engine.taskWorker")
 	for {
 		nextTask := e.peerRequestQueue.Pop()
 		if nextTask == nil {
@@ -98,11 +99,16 @@ func (e *Engine) taskWorker(ctx context.Context) {
 			// Wait until there are!
 			select {
 			case <-ctx.Done():
+				log.Debugf("exiting: %s", ctx.Err())
 				return
 			case <-e.workSignal:
+				log.Debugf("woken up")
 			}
 			continue
 		}
+		log := log.Prefix("%s", nextTask)
+		log.Debugf("processing")
+
 		block, err := e.bs.Get(nextTask.Entry.Key)
 		if err != nil {
 			log.Warning("engine: task exists to send block, but block is not in blockstore")
@@ -113,10 +119,12 @@ func (e *Engine) taskWorker(ctx context.Context) {
 		m := bsmsg.New()
 		m.AddBlock(block)
 		// TODO: maybe add keys from our wantlist?
+		log.Debugf("sending...")
 		select {
 		case <-ctx.Done():
 			return
 		case e.outbox <- Envelope{Peer: nextTask.Target, Message: m}:
+			log.Debugf("sent")
 		}
 	}
 }
@@ -140,7 +148,7 @@ func (e *Engine) Peers() []peer.ID {
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
-	log := log.Prefix("Engine.MessageReceived(%s)", p)
+	log := log.Prefix("bitswap.Engine.MessageReceived(%s)", p)
 	log.Debugf("enter")
 	defer log.Debugf("exit")
 

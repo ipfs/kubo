@@ -1,6 +1,7 @@
 package decision
 
 import (
+	"fmt"
 	"sync"
 
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
@@ -28,6 +29,10 @@ type task struct {
 	Entry  wantlist.Entry
 	Target peer.ID
 	Trash  bool
+}
+
+func (t *task) String() string {
+	return fmt.Sprintf("<Task %s, %s, %v>", t.Target, t.Entry.Key, t.Trash)
 }
 
 // Push currently adds a new task to the end of the list
