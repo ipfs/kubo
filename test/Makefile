@@ -14,7 +14,7 @@ all: clean deps $(T) aggregate
 
 clean:
 	@echo "*** $@ ***"
-	-rm -r test-results
+	-rm -rf test-results
 
 $(T):
 	@echo "*** $@ ***"
