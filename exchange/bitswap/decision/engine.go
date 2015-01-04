@@ -149,8 +149,12 @@ func (e *Engine) Peers() []peer.ID {
 // arguments.
 func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	log := log.Prefix("bitswap.Engine.MessageReceived(%s)", p)
-	log.Debugf("enter")
+	log.Debugf("enter. %d entries %d blocks", len(m.Wantlist()), len(m.Blocks()))
 	defer log.Debugf("exit")
+
+	if len(m.Wantlist()) == 0 && len(m.Blocks()) == 0 {
+		log.Info("superfluous message")
+	}
 
 	newWorkExists := false
 	defer func() {
@@ -166,6 +170,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	if m.Full() {
 		l.wantList = wl.New()
 	}
+
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
 			log.Debug("cancel", entry.Key)
