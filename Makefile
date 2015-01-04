@@ -13,20 +13,25 @@ vendor: godep
 install:
 	cd cmd/ipfs && go install
 
-test: test_go test_sharness
+##############################################################
+# tests targets
+
+test: test_expensive
+
+test_short: test_go_short test_sharness_short
 
 test_expensive: test_go_expensive test_sharness_expensive
 
 test_docker:
 	cd dockertest/ && make
 
-test_go:
+test_go_short:
 	go test -test.short ./...
 
 test_go_expensive:
 	go test ./...
 
-test_sharness:
+test_sharness_short:
 	cd test/ && make
 
 test_sharness_expensive:
