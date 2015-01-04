@@ -9,7 +9,7 @@ import (
 )
 
 func TestRsaKeys(t *testing.T) {
-	sk, pk, err := tu.RandKeyPair(512)
+	sk, pk, err := tu.RandTestKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func testKeyEquals(t *testing.T, k Key) {
 		t.Fatal("Key not equal to key with same bytes.")
 	}
 
-	sk, pk, err := tu.RandKeyPair(512)
+	sk, pk, err := tu.RandTestKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}

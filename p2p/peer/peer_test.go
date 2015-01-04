@@ -41,7 +41,7 @@ type keyset struct {
 
 func (ks *keyset) generate() error {
 	var err error
-	ks.sk, ks.pk, err = tu.RandKeyPair(512)
+	ks.sk, ks.pk, err = tu.RandTestKeyPair(512)
 	if err != nil {
 		return err
 	}

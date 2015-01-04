@@ -45,7 +45,7 @@ func New(ctx context.Context) Mocknet {
 }
 
 func (mn *mocknet) GenPeer() (host.Host, error) {
-	sk, _, err := testutil.SeededKeyPair(time.Now().UnixNano())
+	sk, _, err := testutil.SeededTestKeyPair(time.Now().UnixNano())
 	if err != nil {
 		return nil, err
 	}
