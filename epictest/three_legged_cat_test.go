@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -42,15 +42,15 @@ func RunThreeLeggedCat(data []byte, conf Config) error {
 	if len(peers) < numPeers {
 		return errors.New("test initialization error")
 	}
-	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Net(peers[0]), conf))
+	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Net(peers[1]), conf))
+	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
 	if err != nil {
 		return err
 	}
-	bootstrap, err := makeCore(ctx, MocknetTestRepo(peers[2], mn.Net(peers[2]), conf))
+	bootstrap, err := makeCore(ctx, MocknetTestRepo(peers[2], mn.Host(peers[2]), conf))
 	if err != nil {
 		return err
 	}

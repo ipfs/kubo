@@ -3,7 +3,7 @@ package namesys
 import (
 	"errors"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.

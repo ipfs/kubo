@@ -4,7 +4,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	"github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -27,12 +27,12 @@ func (rs *mocknetserver) ClientWithDatastore(ctx context.Context, p testutil.Ide
 
 	// FIXME AddPeer doesn't appear to be idempotent
 
-	net, err := rs.mn.AddPeer(p.PrivateKey(), p.Address())
+	host, err := rs.mn.AddPeer(p.PrivateKey(), p.Address())
 	if err != nil {
 		panic("FIXME")
 		// return nil, debugerror.Wrap(err)
 	}
-	return dht.NewDHT(ctx, p.ID(), net, sync.MutexWrap(ds))
+	return dht.NewDHT(ctx, host, sync.MutexWrap(ds))
 }
 
 var _ Server = &mocknetserver{}

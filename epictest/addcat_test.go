@@ -11,7 +11,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -99,11 +99,11 @@ func DirectAddCat(data []byte, conf Config) error {
 		return errors.New("test initialization error")
 	}
 
-	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Net(peers[0]), conf))
+	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Net(peers[1]), conf))
+	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
 	if err != nil {
 		return err
 	}

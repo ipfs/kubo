@@ -6,7 +6,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	inet "github.com/jbenet/go-ipfs/net"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"

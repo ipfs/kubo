@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	inet "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 
@@ -74,7 +74,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 
 	log.Debugf("%s dht starting stream", dht.self)
-	s, err := dht.network.NewStream(inet.ProtocolDHT, p)
+	s, err := dht.host.NewStream(ProtocolDHT, p)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
 
 	log.Debugf("%s dht starting stream", dht.self)
-	s, err := dht.network.NewStream(inet.ProtocolDHT, p)
+	s, err := dht.host.NewStream(ProtocolDHT, p)
 	if err != nil {
 		return err
 	}

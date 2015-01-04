@@ -6,8 +6,8 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
-	crypto "github.com/jbenet/go-ipfs/crypto"
 	nsys "github.com/jbenet/go-ipfs/namesys"
+	crypto "github.com/jbenet/go-ipfs/p2p/crypto"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -53,7 +53,7 @@ Publish a <ref> to another public key:
 
 		args := req.Arguments()
 
-		if n.Network == nil {
+		if n.PeerHost == nil {
 			return nil, errNotOnline
 		}
 

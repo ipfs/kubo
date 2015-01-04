@@ -7,7 +7,7 @@ import (
 
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 // Test basic features of the bucket struct

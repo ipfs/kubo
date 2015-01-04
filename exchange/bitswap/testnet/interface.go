@@ -2,7 +2,7 @@ package bitswap
 
 import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	"github.com/jbenet/go-ipfs/util/testutil"
 )
 

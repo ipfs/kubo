@@ -17,21 +17,27 @@ import (
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
+	host "github.com/jbenet/go-ipfs/p2p/host"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
+
 	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
-	net "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
 	util "github.com/jbenet/go-ipfs/util"
 )
 
 var log = util.Logger("diagnostics")
+
+// ProtocolDiag is the diagnostics protocol.ID
+var ProtocolDiag protocol.ID = "/ipfs/diagnostics"
 
 const ResponseTimeout = time.Second * 10
 
 // Diagnostics is a net service that manages requesting and responding to diagnostic
 // requests
 type Diagnostics struct {
-	network net.Network
-	self    peer.ID
+	host host.Host
+	self peer.ID
 
 	diagLock sync.Mutex
 	diagMap  map[string]time.Time
@@ -39,15 +45,15 @@ type Diagnostics struct {
 }
 
 // NewDiagnostics instantiates a new diagnostics service running on the given network
-func NewDiagnostics(self peer.ID, inet net.Network) *Diagnostics {
+func NewDiagnostics(self peer.ID, h host.Host) *Diagnostics {
 	d := &Diagnostics{
-		network: inet,
+		host:    h,
 		self:    self,
 		birth:   time.Now(),
 		diagMap: make(map[string]time.Time),
 	}
 
-	inet.SetHandler(net.ProtocolDiag, d.handleNewStream)
+	h.SetStreamHandler(ProtocolDiag, d.handleNewStream)
 	return d
 }
 
@@ -92,7 +98,7 @@ func (di *DiagInfo) Marshal() []byte {
 }
 
 func (d *Diagnostics) getPeers() []peer.ID {
-	return d.network.Peers()
+	return d.host.Network().Peers()
 }
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
@@ -101,10 +107,11 @@ func (d *Diagnostics) getDiagInfo() *DiagInfo {
 	di.ID = d.self.Pretty()
 	di.LifeSpan = time.Since(d.birth)
 	di.Keys = nil // Currently no way to query datastore
-	di.BwIn, di.BwOut = d.network.BandwidthTotals()
+
+	// di.BwIn, di.BwOut = d.host.BandwidthTotals() //TODO fix this.
 
 	for _, p := range d.getPeers() {
-		d := connDiagInfo{d.network.Peerstore().LatencyEWMA(p), p.Pretty()}
+		d := connDiagInfo{d.host.Peerstore().LatencyEWMA(p), p.Pretty()}
 		di.Connections = append(di.Connections, d)
 	}
 	return di
@@ -197,13 +204,13 @@ func newMessage(diagID string) *pb.Message {
 
 func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 
-	s, err := d.network.NewStream(net.ProtocolDiag, p)
+	s, err := d.host.NewStream(ProtocolDiag, p)
 	if err != nil {
 		return nil, err
 	}
 	defer s.Close()
 
-	r := ggio.NewDelimitedReader(s, net.MessageSizeMax)
+	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 
 	start := time.Now()
@@ -274,7 +281,7 @@ func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message
 	return resp, nil
 }
 
-func (d *Diagnostics) HandleMessage(ctx context.Context, s net.Stream) error {
+func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 
 	r := ggio.NewDelimitedReader(s, 32768) // maxsize
 	w := ggio.NewDelimitedWriter(s)
@@ -312,10 +319,7 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s net.Stream) error {
 	return nil
 }
 
-func (d *Diagnostics) handleNewStream(s net.Stream) {
-
-	go func() {
-		d.HandleMessage(context.Background(), s)
-	}()
-
+func (d *Diagnostics) handleNewStream(s inet.Stream) {
+	d.HandleMessage(context.Background(), s)
+	s.Close()
 }

@@ -47,7 +47,7 @@ Resolve te value of another name:
 
 		var name string
 
-		if n.Network == nil {
+		if n.PeerHost == nil {
 			return nil, errNotOnline
 		}
 

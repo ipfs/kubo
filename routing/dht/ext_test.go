@@ -1,12 +1,14 @@
 package dht
 
 import (
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"testing"
 
-	inet "github.com/jbenet/go-ipfs/net"
-	mocknet "github.com/jbenet/go-ipfs/net/mock"
-	peer "github.com/jbenet/go-ipfs/peer"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -29,12 +31,19 @@ func TestGetFailures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nets := mn.Nets()
+	hosts := mn.Hosts()
 	peers := mn.Peers()
 
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
-	d := NewDHT(ctx, peers[0], nets[0], tsds)
+	d := NewDHT(ctx, hosts[0], tsds)
 	d.Update(ctx, peers[1])
+
+	// u.POut("NotFound Test\n")
+	// Reply with failures to every message
+	hosts[1].SetStreamHandler(ProtocolDHT, func(s inet.Stream) {
+		defer s.Close()
+		io.Copy(ioutil.Discard, s)
+	})
 
 	// This one should time out
 	// u.POut("Timout Test\n")
@@ -50,7 +59,7 @@ func TestGetFailures(t *testing.T) {
 	t.Log("Timeout test passed.")
 
 	// Reply with failures to every message
-	nets[1].SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
+	hosts[1].SetStreamHandler(ProtocolDHT, func(s inet.Stream) {
 		defer s.Close()
 
 		pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
@@ -97,7 +106,7 @@ func TestGetFailures(t *testing.T) {
 		}
 
 		// u.POut("handleGetValue Test\n")
-		s, err := nets[1].NewStream(inet.ProtocolDHT, peers[0])
+		s, err := hosts[1].NewStream(ProtocolDHT, hosts[0].ID())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,19 +142,19 @@ func TestNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nets := mn.Nets()
+	hosts := mn.Hosts()
 	peers := mn.Peers()
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
-	d := NewDHT(ctx, peers[0], nets[0], tsds)
+	d := NewDHT(ctx, hosts[0], tsds)
 
 	for _, p := range peers {
 		d.Update(ctx, p)
 	}
 
 	// Reply with random peers to every message
-	for _, neti := range nets {
-		neti := neti // shadow loop var
-		neti.SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
+	for _, host := range hosts {
+		host := host // shadow loop var
+		host.SetStreamHandler(ProtocolDHT, func(s inet.Stream) {
 			defer s.Close()
 
 			pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
@@ -163,11 +172,11 @@ func TestNotFound(t *testing.T) {
 				ps := []peer.PeerInfo{}
 				for i := 0; i < 7; i++ {
 					p := peers[rand.Intn(len(peers))]
-					pi := neti.Peerstore().PeerInfo(p)
+					pi := host.Peerstore().PeerInfo(p)
 					ps = append(ps, pi)
 				}
 
-				resp.CloserPeers = pb.PeerInfosToPBPeers(d.network, ps)
+				resp.CloserPeers = pb.PeerInfosToPBPeers(d.host.Network(), ps)
 				if err := pbw.WriteMsg(resp); err != nil {
 					panic(err)
 				}
@@ -205,20 +214,20 @@ func TestLessThanKResponses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nets := mn.Nets()
+	hosts := mn.Hosts()
 	peers := mn.Peers()
 
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
-	d := NewDHT(ctx, peers[0], nets[0], tsds)
+	d := NewDHT(ctx, hosts[0], tsds)
 
 	for i := 1; i < 5; i++ {
 		d.Update(ctx, peers[i])
 	}
 
 	// Reply with random peers to every message
-	for _, neti := range nets {
-		neti := neti // shadow loop var
-		neti.SetHandler(inet.ProtocolDHT, func(s inet.Stream) {
+	for _, host := range hosts {
+		host := host // shadow loop var
+		host.SetStreamHandler(ProtocolDHT, func(s inet.Stream) {
 			defer s.Close()
 
 			pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
@@ -231,10 +240,10 @@ func TestLessThanKResponses(t *testing.T) {
 
 			switch pmes.GetType() {
 			case pb.Message_GET_VALUE:
-				pi := neti.Peerstore().PeerInfo(peers[1])
+				pi := host.Peerstore().PeerInfo(peers[1])
 				resp := &pb.Message{
 					Type:        pmes.Type,
-					CloserPeers: pb.PeerInfosToPBPeers(d.network, []peer.PeerInfo{pi}),
+					CloserPeers: pb.PeerInfosToPBPeers(d.host.Network(), []peer.PeerInfo{pi}),
 				}
 
 				if err := pbw.WriteMsg(resp); err != nil {

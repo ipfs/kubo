@@ -21,13 +21,13 @@
 		},
 		{
 			"ImportPath": "code.google.com/p/go.crypto/blowfish",
-			"Comment": "null-219",
-			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+			"Comment": "null-236",
+			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
 		},
 		{
 			"ImportPath": "code.google.com/p/go.crypto/sha3",
-			"Comment": "null-219",
-			"Rev": "00a7d3b31bbab5795b4a51933c04fc2768242970"
+			"Comment": "null-236",
+			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
 		},
 		{
 			"ImportPath": "code.google.com/p/go.net/context",
@@ -118,7 +118,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-msgio",
-			"Rev": "5e7289d3a0cd046a5bee30b187cc844c31f54dce"
+			"Rev": "dbae89193876910c736b2ce1291fa8bbcf299d77"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",
@@ -131,8 +131,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
-			"Comment": "0.1.0-5-g1976046",
-			"Rev": "1976046c2b0db0b668791b3e541d76a38b7c1af7"
+			"Comment": "0.1.0-19-g8ce5cb1",
+			"Rev": "8ce5cb1b82e1b4c1bea1fdf3cd467ef49301734e"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",

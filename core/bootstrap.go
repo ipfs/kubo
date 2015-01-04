@@ -8,8 +8,9 @@ import (
 	"time"
 
 	config "github.com/jbenet/go-ipfs/config"
-	inet "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
+	host "github.com/jbenet/go-ipfs/p2p/host"
+	inet "github.com/jbenet/go-ipfs/p2p/net"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 	math2 "github.com/jbenet/go-ipfs/util/math2"
@@ -25,7 +26,7 @@ const (
 )
 
 func superviseConnections(parent context.Context,
-	n inet.Network,
+	h host.Host,
 	route *dht.IpfsDHT, // TODO depend on abstract interface for testing purposes
 	store peer.Peerstore,
 	peers []*config.BootstrapPeer) error {
@@ -34,7 +35,7 @@ func superviseConnections(parent context.Context,
 		ctx, _ := context.WithTimeout(parent, connectiontimeout)
 		// TODO get config from disk so |peers| always reflects the latest
 		// information
-		if err := bootstrap(ctx, n, route, store, peers); err != nil {
+		if err := bootstrap(ctx, h, route, store, peers); err != nil {
 			log.Error(err)
 		}
 		select {
@@ -47,30 +48,30 @@ func superviseConnections(parent context.Context,
 }
 
 func bootstrap(ctx context.Context,
-	n inet.Network,
+	h host.Host,
 	r *dht.IpfsDHT,
 	ps peer.Peerstore,
 	boots []*config.BootstrapPeer) error {
 
-	connectedPeers := n.Peers()
+	connectedPeers := h.Network().Peers()
 	if len(connectedPeers) >= recoveryThreshold {
-		log.Event(ctx, "bootstrapSkip", n.LocalPeer())
+		log.Event(ctx, "bootstrapSkip", h.ID())
 		log.Debugf("%s bootstrap skipped -- connected to %d (> %d) nodes",
-			n.LocalPeer(), len(connectedPeers), recoveryThreshold)
+			h.ID(), len(connectedPeers), recoveryThreshold)
 
 		return nil
 	}
 	numCxnsToCreate := recoveryThreshold - len(connectedPeers)
 
-	log.Event(ctx, "bootstrapStart", n.LocalPeer())
-	log.Debugf("%s bootstrapping to %d more nodes", n.LocalPeer(), numCxnsToCreate)
+	log.Event(ctx, "bootstrapStart", h.ID())
+	log.Debugf("%s bootstrapping to %d more nodes", h.ID(), numCxnsToCreate)
 
 	var bootstrapPeers []peer.PeerInfo
 	for _, bootstrap := range boots {
 		p, err := toPeer(bootstrap)
 		if err != nil {
-			log.Event(ctx, "bootstrapError", n.LocalPeer(), lgbl.Error(err))
-			log.Errorf("%s bootstrap error: %s", n.LocalPeer(), err)
+			log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
+			log.Errorf("%s bootstrap error: %s", h.ID(), err)
 			return err
 		}
 		bootstrapPeers = append(bootstrapPeers, p)
@@ -78,7 +79,7 @@ func bootstrap(ctx context.Context,
 
 	var notConnected []peer.PeerInfo
 	for _, p := range bootstrapPeers {
-		if n.Connectedness(p.ID) != inet.Connected {
+		if h.Network().Connectedness(p.ID) != inet.Connected {
 			notConnected = append(notConnected, p)
 		}
 	}
@@ -86,17 +87,17 @@ func bootstrap(ctx context.Context,
 	if len(notConnected) < 1 {
 		s := "must bootstrap to %d more nodes, but already connected to all candidates"
 		err := fmt.Errorf(s, numCxnsToCreate)
-		log.Event(ctx, "bootstrapError", n.LocalPeer(), lgbl.Error(err))
-		log.Errorf("%s bootstrap error: %s", n.LocalPeer(), err)
+		log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
+		log.Errorf("%s bootstrap error: %s", h.ID(), err)
 		return err
 	}
 
 	var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
 
-	log.Debugf("%s bootstrapping to %d nodes: %s", n.LocalPeer(), numCxnsToCreate, randomSubset)
+	log.Debugf("%s bootstrapping to %d nodes: %s", h.ID(), numCxnsToCreate, randomSubset)
 	if err := connect(ctx, ps, r, randomSubset); err != nil {
-		log.Event(ctx, "bootstrapError", n.LocalPeer(), lgbl.Error(err))
-		log.Errorf("%s bootstrap error: %s", n.LocalPeer(), err)
+		log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
+		log.Errorf("%s bootstrap error: %s", h.ID(), err)
 		return err
 	}
 	return nil

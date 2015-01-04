@@ -18,9 +18,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	ci "github.com/jbenet/go-ipfs/crypto"
-	secio "github.com/jbenet/go-ipfs/crypto/secio"
-	peer "github.com/jbenet/go-ipfs/peer"
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	secio "github.com/jbenet/go-ipfs/p2p/crypto/secio"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

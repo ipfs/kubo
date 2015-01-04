@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	inet "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
+	host "github.com/jbenet/go-ipfs/p2p/host"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
@@ -26,6 +27,8 @@ import (
 
 var log = eventlog.Logger("dht")
 
+var ProtocolDHT protocol.ID = "/ipfs/dht"
+
 const doPinging = false
 
 // NumBootstrapQueries defines the number of random dht queries to do to
@@ -37,7 +40,7 @@ const NumBootstrapQueries = 5
 // IpfsDHT is an implementation of Kademlia with Coral and S/Kademlia modifications.
 // It is used to implement the base IpfsRouting module.
 type IpfsDHT struct {
-	network   inet.Network   // the network services we need
+	host      host.Host      // the network services we need
 	self      peer.ID        // Local peer (yourself)
 	peerstore peer.Peerstore // Peer Registry
 
@@ -56,19 +59,19 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, p peer.ID, n inet.Network, dstore ds.ThreadSafeDatastore) *IpfsDHT {
+func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.datastore = dstore
-	dht.self = p
-	dht.peerstore = n.Peerstore()
+	dht.self = h.ID()
+	dht.peerstore = h.Peerstore()
 	dht.ContextGroup = ctxgroup.WithContext(ctx)
-	dht.network = n
-	n.SetHandler(inet.ProtocolDHT, dht.handleNewStream)
+	dht.host = h
+	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 
-	dht.providers = NewProviderManager(dht.Context(), p)
+	dht.providers = NewProviderManager(dht.Context(), dht.self)
 	dht.AddChildGroup(dht.providers)
 
-	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(p), time.Minute, dht.peerstore)
+	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
 
 	dht.Validators = make(map[string]ValidatorFunc)
@@ -88,7 +91,8 @@ func (dht *IpfsDHT) LocalPeer() peer.ID {
 
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
-	if err := dht.network.DialPeer(ctx, npeer); err != nil {
+	// TODO: change interface to accept a PeerInfo as well.
+	if err := dht.host.Connect(ctx, peer.PeerInfo{ID: npeer}); err != nil {
 		return err
 	}
 
@@ -127,7 +131,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) erro
 
 	// add self as the provider
 	pi := dht.peerstore.PeerInfo(dht.self)
-	pmes.ProviderPeers = pb.PeerInfosToPBPeers(dht.network, []peer.PeerInfo{pi})
+	pmes.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), []peer.PeerInfo{pi})
 
 	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
@@ -304,7 +308,7 @@ func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, p peer.ID) error 
 	}
 
 	// dial connection
-	return dht.network.DialPeer(ctx, p)
+	return dht.host.Connect(ctx, peer.PeerInfo{ID: p})
 }
 
 // PingRoutine periodically pings nearest neighbors.

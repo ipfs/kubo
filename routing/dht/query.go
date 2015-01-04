@@ -3,9 +3,8 @@ package dht
 import (
 	"sync"
 
-	inet "github.com/jbenet/go-ipfs/net"
-	peer "github.com/jbenet/go-ipfs/peer"
-	queue "github.com/jbenet/go-ipfs/peer/queue"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	queue "github.com/jbenet/go-ipfs/p2p/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 	pset "github.com/jbenet/go-ipfs/util/peerset"
@@ -18,17 +17,10 @@ import (
 var maxQueryConcurrency = AlphaValue
 
 type dhtQuery struct {
-	// the key we're querying for
-	key u.Key
-
-	// dialer used to ensure we're connected to peers
-	dialer inet.Dialer
-
-	// the function to execute per peer
-	qfunc queryFunc
-
-	// the concurrency parameter
-	concurrency int
+	dht         *IpfsDHT
+	key         u.Key     // the key we're querying for
+	qfunc       queryFunc // the function to execute per peer
+	concurrency int       // the concurrency parameter
 }
 
 type dhtQueryResult struct {
@@ -40,10 +32,10 @@ type dhtQueryResult struct {
 }
 
 // constructs query
-func newQuery(k u.Key, d inet.Dialer, f queryFunc) *dhtQuery {
+func (dht *IpfsDHT) newQuery(k u.Key, f queryFunc) *dhtQuery {
 	return &dhtQuery{
 		key:         k,
-		dialer:      d,
+		dht:         dht,
 		qfunc:       f,
 		concurrency: maxQueryConcurrency,
 	}
@@ -155,7 +147,7 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 
 func (r *dhtQueryRunner) addPeerToQuery(ctx context.Context, next peer.ID) {
 	// if new peer is ourselves...
-	if next == r.query.dialer.LocalPeer() {
+	if next == r.query.dht.self {
 		return
 	}
 
@@ -222,10 +214,11 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 	}()
 
 	// make sure we're connected to the peer.
-	if conns := r.query.dialer.ConnsToPeer(p); len(conns) == 0 {
+	if conns := r.query.dht.host.Network().ConnsToPeer(p); len(conns) == 0 {
 		log.Infof("worker for: %v -- not connected. dial start", p)
 
-		if err := r.query.dialer.DialPeer(cg.Context(), p); err != nil {
+		pi := peer.PeerInfo{ID: p}
+		if err := r.query.dht.host.Connect(cg.Context(), pi); err != nil {
 			log.Debugf("ERROR worker for: %v -- err connecting: %v", p, err)
 			r.Lock()
 			r.errs = append(r.errs, err)
@@ -257,12 +250,7 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 		log.Debugf("PEERS CLOSER -- worker for: %v (%d closer peers)", p, len(res.closerPeers))
 		for _, next := range res.closerPeers {
 			// add their addresses to the dialer's peerstore
-			conns := r.query.dialer.ConnsToPeer(next.ID)
-			if len(conns) == 0 {
-				log.Infof("PEERS CLOSER -- worker for %v FOUND NEW PEER: %s %s", p, next.ID, next.Addrs)
-			}
-
-			r.query.dialer.Peerstore().AddAddresses(next.ID, next.Addrs)
+			r.query.dht.peerstore.AddPeerInfo(next)
 			r.addPeerToQuery(cg.Context(), next.ID)
 			log.Debugf("PEERS CLOSER -- worker for: %v added %v (%v)", p, next.ID, next.Addrs)
 		}

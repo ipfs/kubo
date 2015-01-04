@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	ks "github.com/jbenet/go-ipfs/routing/keyspace"
 	u "github.com/jbenet/go-ipfs/util"
 )

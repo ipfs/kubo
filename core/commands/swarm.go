@@ -6,7 +6,7 @@ import (
 	"path"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -51,11 +51,11 @@ ipfs swarm peers lists the set of peers this node is connected to.
 			return nil, err
 		}
 
-		if n.Network == nil {
+		if n.PeerHost == nil {
 			return nil, errNotOnline
 		}
 
-		conns := n.Network.Conns()
+		conns := n.PeerHost.Network().Conns()
 		addrs := make([]string, len(conns))
 		for i, c := range conns {
 			pid := c.RemotePeer()
@@ -95,7 +95,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 
 		addrs := req.Arguments()
 
-		if n.Network == nil {
+		if n.PeerHost == nil {
 			return nil, errNotOnline
 		}
 
@@ -108,7 +108,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 		for i, p := range peers {
 			output[i] = "connect " + p.Pretty()
 
-			err := n.Network.DialPeer(ctx, p)
+			err := n.PeerHost.Connect(ctx, peer.PeerInfo{ID: p})
 			if err != nil {
 				output[i] += " failure: " + err.Error()
 			} else {

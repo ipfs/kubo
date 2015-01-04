@@ -11,7 +11,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 type peerAndEngine struct {

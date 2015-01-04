@@ -57,3 +57,10 @@ func TestSum(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSum(b *testing.B) {
+	tc := sumTestCases[0]
+	for i := 0; i < b.N; i++ {
+		Sum([]byte(tc.input), tc.code, tc.length)
+	}
+}

@@ -8,7 +8,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	peer "github.com/jbenet/go-ipfs/peer"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -89,7 +89,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	provinfos := peer.PeerInfos(dht.peerstore, provs)
 	if len(provs) > 0 {
 		log.Debugf("handleGetValue returning %d provider[s]", len(provs))
-		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.network, provinfos)
+		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), provinfos)
 	}
 
 	// Find closest peer on given cluster to desired key and reply with that info
@@ -106,7 +106,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 			}
 		}
 
-		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.network, closerinfos)
+		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), closerinfos)
 	}
 
 	return resp, nil
@@ -161,7 +161,7 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 		}
 	}
 
-	resp.CloserPeers = pb.PeerInfosToPBPeers(dht.network, withAddresses)
+	resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), withAddresses)
 	return resp, nil
 }
 
@@ -185,14 +185,14 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 
 	if providers != nil && len(providers) > 0 {
 		infos := peer.PeerInfos(dht.peerstore, providers)
-		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.network, infos)
+		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
 	}
 
 	// Also send closer peers.
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	if closer != nil {
 		infos := peer.PeerInfos(dht.peerstore, providers)
-		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.network, infos)
+		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
 	}
 
 	return resp, nil

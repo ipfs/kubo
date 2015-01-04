@@ -15,6 +15,24 @@ func TestReadWrite(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	writer := NewWriter(buf)
 	reader := NewReader(buf)
+	SubtestReadWrite(t, writer, reader)
+}
+
+func TestReadWriteMsg(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	writer := NewWriter(buf)
+	reader := NewReader(buf)
+	SubtestReadWriteMsg(t, writer, reader)
+}
+
+func TestReadWriteMsgSync(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	writer := NewWriter(buf)
+	reader := NewReader(buf)
+	SubtestReadWriteMsgSync(t, writer, reader)
+}
+
+func SubtestReadWrite(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	msgs := [1000][]byte{}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -58,10 +76,7 @@ func TestReadWrite(t *testing.T) {
 	}
 }
 
-func TestReadWriteMsg(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	writer := NewWriter(buf)
-	reader := NewReader(buf)
+func SubtestReadWriteMsg(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	msgs := [1000][]byte{}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -100,10 +115,7 @@ func TestReadWriteMsg(t *testing.T) {
 	}
 }
 
-func TestReadWriteMsgSync(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	writer := NewWriter(buf)
-	reader := NewReader(buf)
+func SubtestReadWriteMsgSync(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	msgs := [1000][]byte{}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
