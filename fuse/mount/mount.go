@@ -3,9 +3,12 @@ package mount
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 
 	u "github.com/jbenet/go-ipfs/util"
@@ -13,62 +16,119 @@ import (
 
 var log = u.Logger("mount")
 
+var MountTimeout = time.Second * 5
+
 // Mount represents a filesystem mount
 type Mount interface {
-
 	// MountPoint is the path at which this mount is mounted
 	MountPoint() string
 
-	// Mount function sets up a mount + registers the unmount func
-	Mount(mount MountFunc, unmount UnmountFunc)
-
-	// Unmount calls Close.
+	// Unmounts the mount
 	Unmount() error
 
-	ctxgroup.ContextGroup
+	// CtxGroup returns the mount's CtxGroup to be able to link it
+	// to other processes. Unmount upon closing.
+	CtxGroup() ctxgroup.ContextGroup
 }
 
-// UnmountFunc is a function used to Unmount a mount
-type UnmountFunc func(Mount) error
-
-// MountFunc is a function used to Mount a mount
-type MountFunc func(Mount) error
-
-// New constructs a new Mount instance. ctx is a context to wait upon,
-// the mountpoint is the directory that the mount was mounted at, and unmount
-// in an UnmountFunc to perform the unmounting logic.
-func New(ctx context.Context, mountpoint string) Mount {
-	m := &mount{mpoint: mountpoint}
-	m.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, m.persistentUnmount)
-	return m
-}
-
+// mount implements go-ipfs/fuse/mount
 type mount struct {
-	ctxgroup.ContextGroup
+	mpoint   string
+	filesys  fs.FS
+	fuseConn *fuse.Conn
+	// closeErr error
 
-	unmount UnmountFunc
-	mpoint  string
+	cg ctxgroup.ContextGroup
 }
 
-// umount is called after the mount is closed.
-// TODO this is hacky, make it better.
-func (m *mount) persistentUnmount() error {
-	// no unmount func.
-	if m.unmount == nil {
+// Mount mounts a fuse fs.FS at a given location, and returns a Mount instance.
+// parent is a ContextGroup to bind the mount's ContextGroup to.
+func NewMount(p ctxgroup.ContextGroup, fsys fs.FS, mountpoint string) (Mount, error) {
+	conn, err := fuse.Mount(mountpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	m := &mount{
+		mpoint:   mountpoint,
+		fuseConn: conn,
+		filesys:  fsys,
+		cg:       ctxgroup.WithParent(p), // link it to parent.
+	}
+	m.cg.SetTeardown(m.unmount)
+
+	// launch the mounting process.
+	if err := m.mount(); err != nil {
+		m.Unmount() // just in case.
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func (m *mount) mount() error {
+	log.Infof("Mounting %s", m.MountPoint())
+
+	errs := make(chan error, 1)
+	go func() {
+		err := fs.Serve(m.fuseConn, m.filesys)
+		log.Debugf("Mounting %s -- fs.Serve returned (%s)", err)
+		errs <- err
+		close(errs)
+	}()
+
+	// wait for the mount process to be done, or timed out.
+	select {
+	case <-time.After(MountTimeout):
+		return fmt.Errorf("Mounting %s timed out.", m.MountPoint())
+	case err := <-errs:
+		return err
+	case <-m.fuseConn.Ready:
+	}
+
+	// check if the mount process has an error to report
+	if err := m.fuseConn.MountError; err != nil {
+		return err
+	}
+
+	log.Infof("Mounted %s", m.MountPoint())
+	return nil
+}
+
+// umount is called exactly once to unmount this service.
+// note that closing the connection will not always unmount
+// properly. If that happens, we bring out the big guns
+// (mount.ForceUnmountManyTimes, exec unmount).
+func (m *mount) unmount() error {
+	log.Infof("Unmounting %s", m.MountPoint())
+
+	// try unmounting with fuse lib
+	err := fuse.Unmount(m.MountPoint())
+	if err == nil {
 		return nil
 	}
+	log.Error("fuse unmount err: %s", err)
 
-	// ok try to unmount a whole bunch of times...
-	for i := 0; i < 34; i++ {
-		err := m.unmount(m)
-		if err == nil {
-			return nil
-		}
-		time.Sleep(time.Millisecond * 300)
+	// try closing the fuseConn
+	err = m.fuseConn.Close()
+	if err == nil {
+		return nil
+	}
+	if err != nil {
+		log.Error("fuse conn error: %s", err)
 	}
 
-	// didnt work.
-	return fmt.Errorf("Unmount %s failed after 10 seconds of trying.")
+	// try mount.ForceUnmountManyTimes
+	if err := ForceUnmountManyTimes(m, 10); err != nil {
+		return err
+	}
+
+	log.Infof("Seemingly unmounted %s", m.MountPoint())
+	return nil
+}
+
+func (m *mount) CtxGroup() ctxgroup.ContextGroup {
+	return m.cg
 }
 
 func (m *mount) MountPoint() string {
@@ -76,17 +136,59 @@ func (m *mount) MountPoint() string {
 }
 
 func (m *mount) Unmount() error {
-	return m.Close()
+	// call ContextCloser Close(), which calls unmount() exactly once.
+	return m.cg.Close()
 }
 
-func (m *mount) Mount(mount MountFunc, unmount UnmountFunc) {
-	m.unmount = unmount
+// ForceUnmount attempts to forcibly unmount a given mount.
+// It does so by calling diskutil or fusermount directly.
+func ForceUnmount(m Mount) error {
+	point := m.MountPoint()
+	log.Infof("Force-Unmounting %s...", point)
 
-	// go serve the mount
-	m.ContextGroup.AddChildFunc(func(parent ctxgroup.ContextGroup) {
-		if err := mount(m); err != nil {
-			log.Error("%s mount: %s", m.MountPoint(), err)
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("diskutil", "umount", "force", point)
+	case "linux":
+		cmd = exec.Command("fusermount", "-u", point)
+	default:
+		return fmt.Errorf("unmount: unimplemented")
+	}
+
+	errc := make(chan error, 1)
+	go func() {
+		defer close(errc)
+
+		// try vanilla unmount first.
+		if err := exec.Command("umount", point).Run(); err == nil {
+			return
 		}
-		m.Unmount()
-	})
+
+		// retry to unmount with the fallback cmd
+		errc <- cmd.Run()
+	}()
+
+	select {
+	case <-time.After(2 * time.Second):
+		return fmt.Errorf("umount timeout")
+	case err := <-errc:
+		return err
+	}
+}
+
+// ForceUnmountManyTimes attempts to forcibly unmount a given mount,
+// many times. It does so by calling diskutil or fusermount directly.
+// Attempts a given number of times.
+func ForceUnmountManyTimes(m Mount, attempts int) error {
+	var err error
+	for i := 0; i < attempts; i++ {
+		err = ForceUnmount(m)
+		if err == nil {
+			return err
+		}
+
+		<-time.After(time.Millisecond * 500)
+	}
+	return fmt.Errorf("Unmount %s failed after 10 seconds of trying.", m.MountPoint())
 }
