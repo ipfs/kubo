@@ -55,7 +55,7 @@ func (w *ThreadSafe) Remove(k u.Key) {
 	w.Wantlist.Remove(k)
 }
 
-func (w *ThreadSafe) Contains(k u.Key) bool {
+func (w *ThreadSafe) Contains(k u.Key) (Entry, bool) {
 	// TODO rm defer for perf
 	w.lk.RLock()
 	defer w.lk.RUnlock()
@@ -88,9 +88,9 @@ func (w *Wantlist) Remove(k u.Key) {
 	delete(w.set, k)
 }
 
-func (w *Wantlist) Contains(k u.Key) bool {
-	_, ok := w.set[k]
-	return ok
+func (w *Wantlist) Contains(k u.Key) (Entry, bool) {
+	e, ok := w.set[k]
+	return e, ok
 }
 
 func (w *Wantlist) Entries() []Entry {

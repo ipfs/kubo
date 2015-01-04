@@ -187,13 +187,12 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
 		log.Debug("got block %s %d bytes", block.Key(), len(block.Data))
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range e.ledgerMap {
-			if l.WantListContains(block.Key()) {
+			if entry, ok := l.WantListContains(block.Key()); ok {
 				newWorkExists = true
-				e.peerRequestQueue.Push(wl.Entry{block.Key(), 1}, l.Partner)
+				e.peerRequestQueue.Push(entry, l.Partner)
 			}
 		}
 	}
