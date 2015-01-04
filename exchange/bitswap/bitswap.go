@@ -295,8 +295,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 
 	for {
 		select {
-		case <-broadcastSignal:
-			// Resend unfulfilled wantlist keys
+		case <-broadcastSignal: // resend unfulfilled wantlist keys
 			bs.sendWantlistToProviders(ctx)
 			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case ks := <-bs.batchRequests:
