@@ -385,11 +385,6 @@ func (bs *bitswap) ReceiveError(err error) {
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
-	log.Event(ctx, "DialPeer", p)
-	err := bs.network.DialPeer(ctx, p)
-	if err != nil {
-		return errors.Wrap(err)
-	}
 	if err := bs.network.SendMessage(ctx, p, m); err != nil {
 		return errors.Wrap(err)
 	}
