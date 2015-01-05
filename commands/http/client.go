@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -149,7 +150,8 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		outChan := make(chan interface{})
 		go func() {
 			dec := json.NewDecoder(httpRes.Body)
-			v := req.Command().Type
+			outputType := reflect.ValueOf(req.Command().Type).Type()
+			v := reflect.New(outputType).Interface()
 
 			for {
 				err := dec.Decode(&v)
