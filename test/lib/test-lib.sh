@@ -31,6 +31,13 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 	exit 1
 }
 
+# overriding testcmp to make it use fsh (to see it better in output)
+# have to do it twice so the first diff output doesnt show unless it's
+# broken.
+test_cmp() {
+	diff -q "$@" >/dev/null || fsh diff -u "$@"
+}
+
 # Please put go-ipfs specific shell functions below
 
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
