@@ -231,6 +231,7 @@ func TestProvides(t *testing.T) {
 }
 
 func TestBootstrap(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -388,6 +389,7 @@ func TestProvidesMany(t *testing.T) {
 }
 
 func TestProvidesAsync(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -442,6 +444,7 @@ func TestProvidesAsync(t *testing.T) {
 }
 
 func TestLayeredGet(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -482,6 +485,7 @@ func TestLayeredGet(t *testing.T) {
 }
 
 func TestFindPeer(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -596,6 +600,7 @@ func testPeerListsMatch(t *testing.T, p1, p2 []peer.ID) {
 }
 
 func TestConnectCollision(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}

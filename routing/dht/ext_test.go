@@ -136,6 +136,7 @@ func TestGetFailures(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -210,6 +211,7 @@ func TestNotFound(t *testing.T) {
 // If less than K nodes are in the entire network, it should fail when we make
 // a GET rpc and nobody has the value
 func TestLessThanKResponses(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	// t.Skip("skipping test because it makes a lot of output")
 
 	ctx := context.Background()
