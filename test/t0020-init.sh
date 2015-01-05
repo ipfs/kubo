@@ -38,8 +38,7 @@ test_expect_success "ipfs init output looks good" '
 	echo "initializing ipfs node at $IPFS_DIR" >expected &&
 	echo "generating key pair...done" >>expected &&
 	echo "peer identity: $PEERID" >>expected &&
-	echo "" >> expected &&
-	echo "to get started, enter: ipfs cat $STARTHASH" >>expected &&
+	printf "\\n%s\\n" "to get started, enter: ipfs cat $STARTHASH" >>expected &&
 	test_cmp expected actual_init
 '
 
