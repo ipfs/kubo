@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"time"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	bhost "github.com/jbenet/go-ipfs/p2p/host/basic"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	p2putil "github.com/jbenet/go-ipfs/p2p/test/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -45,7 +45,7 @@ func New(ctx context.Context) Mocknet {
 }
 
 func (mn *mocknet) GenPeer() (host.Host, error) {
-	sk, _, err := testutil.SeededTestKeyPair(time.Now().UnixNano())
+	sk, err := p2putil.RandTestBogusPrivateKey()
 	if err != nil {
 		return nil, err
 	}

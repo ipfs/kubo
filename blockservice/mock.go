@@ -12,7 +12,7 @@ import (
 // Mocks returns |n| connected mock Blockservices
 func Mocks(t *testing.T, n int) []*BlockService {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
-	sg := bitswap.NewSessionGenerator(net)
+	sg := bitswap.NewTestSessionGenerator(net)
 
 	instances := sg.Instances(n)
 
