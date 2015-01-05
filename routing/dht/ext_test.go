@@ -47,7 +47,7 @@ func TestGetFailures(t *testing.T) {
 
 	// This one should time out
 	// u.POut("Timout Test\n")
-	ctx1, _ := context.WithTimeout(context.Background(), time.Second)
+	ctx1, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	if _, err := d.GetValue(ctx1, u.Key("test")); err != nil {
 		if err != context.DeadlineExceeded {
 			t.Fatal("Got different error than we expected", err)
@@ -78,8 +78,12 @@ func TestGetFailures(t *testing.T) {
 		}
 	})
 
-	// This one should fail with NotFound
-	ctx2, _ := context.WithTimeout(context.Background(), 3*time.Second)
+	// This one should fail with NotFound.
+	// long context timeout to ensure we dont end too early.
+	// the dht should be exhausting its query and returning not found.
+	// (was 3 seconds before which should be _plenty_ of time, but maybe
+	// travis machines really have a hard time...)
+	ctx2, _ := context.WithTimeout(context.Background(), 20*time.Second)
 	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
 		if err != routing.ErrNotFound {
@@ -187,7 +191,8 @@ func TestNotFound(t *testing.T) {
 		})
 	}
 
-	ctx, _ = context.WithTimeout(ctx, time.Second*5)
+	// long timeout to ensure timing is not at play.
+	ctx, _ = context.WithTimeout(ctx, time.Second*20)
 	v, err := d.GetValue(ctx, u.Key("hello"))
 	log.Debugf("get value got %v", v)
 	if err != nil {
