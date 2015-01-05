@@ -89,6 +89,11 @@ func (dht *IpfsDHT) LocalPeer() peer.ID {
 	return dht.self
 }
 
+// log returns the dht's logger
+func (dht *IpfsDHT) log() eventlog.EventLogger {
+	return log.Prefix("dht(%s)", dht.self)
+}
+
 // Connect to a new peer at the given address, ping and add to the routing table
 func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 	// TODO: change interface to accept a PeerInfo as well.
