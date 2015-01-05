@@ -32,11 +32,10 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := mn.Hosts()
-	peers := mn.Peers()
 
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, hosts[0], tsds)
-	d.Update(ctx, peers[1])
+	d.Update(ctx, hosts[1].ID())
 
 	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
@@ -147,12 +146,11 @@ func TestNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := mn.Hosts()
-	peers := mn.Peers()
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, hosts[0], tsds)
 
-	for _, p := range peers {
-		d.Update(ctx, p)
+	for _, p := range hosts {
+		d.Update(ctx, p.ID())
 	}
 
 	// Reply with random peers to every message
@@ -175,7 +173,7 @@ func TestNotFound(t *testing.T) {
 
 				ps := []peer.PeerInfo{}
 				for i := 0; i < 7; i++ {
-					p := peers[rand.Intn(len(peers))]
+					p := hosts[rand.Intn(len(hosts))].ID()
 					pi := host.Peerstore().PeerInfo(p)
 					ps = append(ps, pi)
 				}
@@ -220,13 +218,12 @@ func TestLessThanKResponses(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := mn.Hosts()
-	peers := mn.Peers()
 
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, hosts[0], tsds)
 
 	for i := 1; i < 5; i++ {
-		d.Update(ctx, peers[i])
+		d.Update(ctx, hosts[i].ID())
 	}
 
 	// Reply with random peers to every message
@@ -245,7 +242,7 @@ func TestLessThanKResponses(t *testing.T) {
 
 			switch pmes.GetType() {
 			case pb.Message_GET_VALUE:
-				pi := host.Peerstore().PeerInfo(peers[1])
+				pi := host.Peerstore().PeerInfo(hosts[1].ID())
 				resp := &pb.Message{
 					Type:        pmes.Type,
 					CloserPeers: pb.PeerInfosToPBPeers(d.host.Network(), []peer.PeerInfo{pi}),
