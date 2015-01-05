@@ -126,3 +126,21 @@ func GetenvBool(name string) bool {
 	v := strings.ToLower(os.Getenv(name))
 	return v == "true" || v == "t" || v == "1"
 }
+
+// multiErr is a util to return multiple errors
+type MultiErr []error
+
+func (m MultiErr) Error() string {
+	if len(m) == 0 {
+		return "no errors"
+	}
+
+	s := "Multiple errors: "
+	for i, e := range m {
+		if i != 0 {
+			s += ", "
+		}
+		s += e.Error()
+	}
+	return s
+}

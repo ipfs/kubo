@@ -341,20 +341,64 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 }
 
 // Bootstrap builds up list of peers by requesting random peer IDs
-func (dht *IpfsDHT) Bootstrap(ctx context.Context, queries int) {
+func (dht *IpfsDHT) Bootstrap(ctx context.Context, queries int) error {
+	var merr u.MultiErr
 
-	// bootstrap sequentially, as results will compound
-	for i := 0; i < NumBootstrapQueries; i++ {
+	randomID := func() peer.ID {
+		// 16 random bytes is not a valid peer id. it may be fine becuase
+		// the dht will rehash to its own keyspace anyway.
 		id := make([]byte, 16)
 		rand.Read(id)
-		pi, err := dht.FindPeer(ctx, peer.ID(id))
+		return peer.ID(id)
+	}
+
+	// bootstrap sequentially, as results will compound
+	runQuery := func(ctx context.Context, id peer.ID) {
+		p, err := dht.FindPeer(ctx, id)
 		if err == routing.ErrNotFound {
 			// this isn't an error. this is precisely what we expect.
 		} else if err != nil {
-			log.Errorf("Bootstrap peer error: %s", err)
+			merr = append(merr, err)
 		} else {
-			// woah, we got a peer under a random id? it _cannot_ be valid.
-			log.Errorf("dht seemingly found a peer at a random bootstrap id (%s)...", pi)
+			// woah, actually found a peer with that ID? this shouldn't happen normally
+			// (as the ID we use is not a real ID). this is an odd error worth logging.
+			err := fmt.Errorf("Bootstrap peer error: Actually FOUND peer. (%s, %s)", id, p)
+			log.Errorf("%s", err)
+			merr = append(merr, err)
 		}
 	}
+
+	sequential := true
+	if sequential {
+		// these should be parallel normally. but can make them sequential for debugging.
+		// note that the core/bootstrap context deadline should be extended too for that.
+		for i := 0; i < queries; i++ {
+			id := randomID()
+			log.Debugf("Bootstrapping query (%d/%d) to random ID: %s", i+1, queries, id)
+			runQuery(ctx, id)
+		}
+
+	} else {
+		// note on parallelism here: the context is passed in to the queries, so they
+		// **should** exit when it exceeds, making this function exit on ctx cancel.
+		// normally, we should be selecting on ctx.Done() here too, but this gets
+		// complicated to do with WaitGroup, and doesnt wait for the children to exit.
+		var wg sync.WaitGroup
+		for i := 0; i < queries; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				id := randomID()
+				log.Debugf("Bootstrapping query (%d/%d) to random ID: %s", i+1, queries, id)
+				runQuery(ctx, id)
+			}()
+		}
+		wg.Wait()
+	}
+
+	if len(merr) > 0 {
+		return merr
+	}
+	return nil
 }
