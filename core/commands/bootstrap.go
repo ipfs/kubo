@@ -100,7 +100,10 @@ var bootstrapRemoveCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer", true, true, peerOptionDesc),
+		cmds.StringArg("peer", false, true, peerOptionDesc),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("all", "Remove all bootstrap peers."),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		input, err := bootstrapInputToPeers(req.Arguments())
@@ -118,7 +121,17 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return nil, err
 		}
 
-		removed, err := bootstrapRemove(filename, cfg, input)
+		all, _, err := req.Option("all").Bool()
+		if err != nil {
+			return nil, err
+		}
+
+		var removed []*config.BootstrapPeer
+		if all {
+			removed, err = bootstrapRemoveAll(filename, cfg)
+		} else {
+			removed, err = bootstrapRemove(filename, cfg, input)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -268,6 +281,19 @@ func bootstrapRemove(filename string, cfg *config.Config, toRemove []*config.Boo
 	}
 	cfg.Bootstrap = keep
 
+	err := config.WriteConfigFile(filename, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return removed, nil
+}
+
+func bootstrapRemoveAll(filename string, cfg *config.Config) ([]*config.BootstrapPeer, error) {
+	removed := make([]*config.BootstrapPeer, len(cfg.Bootstrap))
+	copy(removed, cfg.Bootstrap)
+
+	cfg.Bootstrap = nil
 	err := config.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return nil, err
