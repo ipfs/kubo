@@ -3,6 +3,7 @@ package dht
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"sort"
 	"sync"
 	"testing"
@@ -76,6 +77,7 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	rounds := 1
+
 	for i := 0; i < rounds; i++ {
 		log.Debugf("bootstrapping round %d/%d\n", i, rounds)
 
@@ -83,7 +85,10 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 		// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
 		// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
 		// probably because results compound
-		for _, dht := range dhts {
+
+		start := rand.Intn(len(dhts)) // randomize to decrease bias.
+		for i := range dhts {
+			dht := dhts[(start+i)%len(dhts)]
 			log.Debugf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
 			dht.Bootstrap(ctx, 3)
 		}
@@ -309,7 +314,7 @@ func TestProvidesMany(t *testing.T) {
 
 	<-time.After(100 * time.Millisecond)
 	t.Logf("bootstrapping them so they find each other", nDHTs)
-	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+	ctxT, _ := context.WithTimeout(ctx, 20*time.Second)
 	bootstrap(t, ctxT, dhts)
 
 	if u.Debug {
