@@ -130,3 +130,10 @@ type PeerInfo struct {
 	ID    ID
 	Addrs []ma.Multiaddr
 }
+
+// IDSlice for sorting peers
+type IDSlice []ID
+
+func (es IDSlice) Len() int           { return len(es) }
+func (es IDSlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
+func (es IDSlice) Less(i, j int) bool { return string(es[i]) < string(es[j]) }

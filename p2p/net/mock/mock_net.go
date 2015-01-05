@@ -2,6 +2,7 @@ package mocknet
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -90,6 +91,7 @@ func (mn *mocknet) Peers() []peer.ID {
 	for _, n := range mn.nets {
 		cp = append(cp, n.peer)
 	}
+	sort.Sort(peer.IDSlice(cp))
 	return cp
 }
 
@@ -115,6 +117,8 @@ func (mn *mocknet) Hosts() []host.Host {
 	for _, h := range mn.hosts {
 		cp = append(cp, h)
 	}
+
+	sort.Sort(hostSlice(cp))
 	return cp
 }
 
@@ -126,6 +130,7 @@ func (mn *mocknet) Nets() []inet.Network {
 	for _, n := range mn.nets {
 		cp = append(cp, n)
 	}
+	sort.Sort(netSlice(cp))
 	return cp
 }
 
@@ -339,3 +344,17 @@ func (mn *mocknet) LinkDefaults() LinkOptions {
 	defer mn.RUnlock()
 	return mn.linkDefaults
 }
+
+// netSlice for sorting by peer
+type netSlice []inet.Network
+
+func (es netSlice) Len() int           { return len(es) }
+func (es netSlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
+func (es netSlice) Less(i, j int) bool { return string(es[i].LocalPeer()) < string(es[j].LocalPeer()) }
+
+// hostSlice for sorting by peer
+type hostSlice []host.Host
+
+func (es hostSlice) Len() int           { return len(es) }
+func (es hostSlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
+func (es hostSlice) Less(i, j int) bool { return string(es[i].ID()) < string(es[j].ID()) }
