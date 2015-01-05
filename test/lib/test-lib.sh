@@ -96,7 +96,10 @@ test_launch_ipfs_daemon() {
 
 test_mount_ipfs() {
 
+	# make sure stuff is unmounted first.
 	test_expect_success FUSE "'ipfs mount' succeeds" '
+		umount $(pwd)/ipfs || true &&
+		umount $(pwd)/ipns || true &&
 		ipfs mount >actual
 	'
 
