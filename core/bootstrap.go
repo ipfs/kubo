@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -85,20 +84,19 @@ func bootstrap(ctx context.Context,
 		}
 	}
 
-	if len(notConnected) < 1 {
-		s := "must bootstrap to %d more nodes, but already connected to all candidates"
-		err := fmt.Errorf(s, numCxnsToCreate)
-		log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
-		log.Errorf("%s bootstrap error: %s", h.ID(), err)
-		return err
+	// if not connected to all bootstrap peer candidates
+	if len(notConnected) > 0 {
+		var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
+		log.Debugf("%s bootstrapping to %d nodes: %s", h.ID(), numCxnsToCreate, randomSubset)
+		if err := connect(ctx, ps, r, randomSubset); err != nil {
+			log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
+			log.Errorf("%s bootstrap error: %s", h.ID(), err)
+			return err
+		}
 	}
 
-	var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
-
-	log.Debugf("%s bootstrapping to %d nodes: %s", h.ID(), numCxnsToCreate, randomSubset)
-	if err := connect(ctx, ps, r, randomSubset); err != nil {
-		log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
-		log.Errorf("%s bootstrap error: %s", h.ID(), err)
+	// we can try running dht bootstrap even if we're connected to all bootstrap peers.
+	if err := r.Bootstrap(ctx, numDHTBootstrapQueries); err != nil {
 		return err
 	}
 	return nil
@@ -134,9 +132,6 @@ func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []pee
 		}(p)
 	}
 	wg.Wait()
-	if err := r.Bootstrap(ctx, numDHTBootstrapQueries); err != nil {
-		return err
-	}
 	return nil
 }
 
