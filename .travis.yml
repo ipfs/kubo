@@ -8,4 +8,4 @@ go:
 script:
   - make test
 
-env: TEST_NO_FUSE=1
+env: TEST_NO_FUSE=1 TEST_VERBOSE=1

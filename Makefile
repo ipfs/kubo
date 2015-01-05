@@ -30,7 +30,7 @@ test_sharness:
 	cd test/ && make
 
 test_sharness_expensive:
-	cd test/ && make TEST_EXPENSIVE=1
+	cd test/ && TEST_EXPENSIVE=1 make
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
