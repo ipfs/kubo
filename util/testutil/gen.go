@@ -29,11 +29,11 @@ func init() {
 	ZeroLocalTCPAddress = maddr
 }
 
-func RandKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
+func RandTestKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPairWithReader(ci.RSA, bits, u.NewTimeSeededRand())
 }
 
-func SeededKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
+func SeededTestKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPairWithReader(ci.RSA, 512, u.NewSeededRand(seed))
 }
 
@@ -142,7 +142,7 @@ func RandPeerNetParams() (*PeerNetParams, error) {
 	var p PeerNetParams
 	var err error
 	p.Addr = ZeroLocalTCPAddress
-	p.PrivKey, p.PubKey, err = RandKeyPair(512)
+	p.PrivKey, p.PubKey, err = RandTestKeyPair(512)
 	if err != nil {
 		return nil, err
 	}

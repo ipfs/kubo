@@ -2,7 +2,6 @@ package bitswap
 
 import (
 	"errors"
-	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
@@ -176,14 +175,6 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max
 // Provide provides the key to the network
 func (nc *networkClient) Provide(ctx context.Context, k util.Key) error {
 	return nc.routing.Provide(ctx, k)
-}
-
-func (nc *networkClient) DialPeer(ctx context.Context, p peer.ID) error {
-	// no need to do anything because dialing isn't a thing in this test net.
-	if !nc.network.HasPeer(p) {
-		return fmt.Errorf("Peer not in network: %s", p)
-	}
-	return nil
 }
 
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {

@@ -191,8 +191,8 @@ func (dht *IpfsDHT) verifyRecord(r *pb.Record, pk ci.PubKey) error {
 	// Now, check validity func
 	parts := strings.Split(r.GetKey(), "/")
 	if len(parts) < 3 {
-		log.Errorf("Record had bad key: %s", u.Key(r.GetKey()))
-		return ErrBadRecord
+		log.Infof("Record key does not have validator: %s", u.Key(r.GetKey()))
+		return nil
 	}
 
 	fnc, ok := dht.Validators[parts[1]]

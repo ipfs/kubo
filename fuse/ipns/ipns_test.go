@@ -248,7 +248,7 @@ func TestFastRepublish(t *testing.T) {
 	// get first resolved hash
 	log.Debug("publishing first hash")
 	writeFileData(t, dataA, fname) // random
-	<-time.After(shortRepublishTimeout * 11 / 10)
+	<-time.After(shortRepublishTimeout * 2)
 	log.Debug("resolving first hash")
 	resolvedHash, err := node.Namesys.Resolve(pubkeyHash)
 	if err != nil {

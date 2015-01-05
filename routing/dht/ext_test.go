@@ -32,11 +32,10 @@ func TestGetFailures(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := mn.Hosts()
-	peers := mn.Peers()
 
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, hosts[0], tsds)
-	d.Update(ctx, peers[1])
+	d.Update(ctx, hosts[1].ID())
 
 	// u.POut("NotFound Test\n")
 	// Reply with failures to every message
@@ -47,7 +46,7 @@ func TestGetFailures(t *testing.T) {
 
 	// This one should time out
 	// u.POut("Timout Test\n")
-	ctx1, _ := context.WithTimeout(context.Background(), time.Second)
+	ctx1, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	if _, err := d.GetValue(ctx1, u.Key("test")); err != nil {
 		if err != context.DeadlineExceeded {
 			t.Fatal("Got different error than we expected", err)
@@ -78,8 +77,12 @@ func TestGetFailures(t *testing.T) {
 		}
 	})
 
-	// This one should fail with NotFound
-	ctx2, _ := context.WithTimeout(context.Background(), 3*time.Second)
+	// This one should fail with NotFound.
+	// long context timeout to ensure we dont end too early.
+	// the dht should be exhausting its query and returning not found.
+	// (was 3 seconds before which should be _plenty_ of time, but maybe
+	// travis machines really have a hard time...)
+	ctx2, _ := context.WithTimeout(context.Background(), 20*time.Second)
 	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
 		if err != routing.ErrNotFound {
@@ -133,6 +136,7 @@ func TestGetFailures(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -143,12 +147,11 @@ func TestNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := mn.Hosts()
-	peers := mn.Peers()
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, hosts[0], tsds)
 
-	for _, p := range peers {
-		d.Update(ctx, p)
+	for _, p := range hosts {
+		d.Update(ctx, p.ID())
 	}
 
 	// Reply with random peers to every message
@@ -171,7 +174,7 @@ func TestNotFound(t *testing.T) {
 
 				ps := []peer.PeerInfo{}
 				for i := 0; i < 7; i++ {
-					p := peers[rand.Intn(len(peers))]
+					p := hosts[rand.Intn(len(hosts))].ID()
 					pi := host.Peerstore().PeerInfo(p)
 					ps = append(ps, pi)
 				}
@@ -187,7 +190,8 @@ func TestNotFound(t *testing.T) {
 		})
 	}
 
-	ctx, _ = context.WithTimeout(ctx, time.Second*5)
+	// long timeout to ensure timing is not at play.
+	ctx, _ = context.WithTimeout(ctx, time.Second*20)
 	v, err := d.GetValue(ctx, u.Key("hello"))
 	log.Debugf("get value got %v", v)
 	if err != nil {
@@ -207,6 +211,7 @@ func TestNotFound(t *testing.T) {
 // If less than K nodes are in the entire network, it should fail when we make
 // a GET rpc and nobody has the value
 func TestLessThanKResponses(t *testing.T) {
+	// t.Skip("skipping test to debug another")
 	// t.Skip("skipping test because it makes a lot of output")
 
 	ctx := context.Background()
@@ -215,13 +220,12 @@ func TestLessThanKResponses(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := mn.Hosts()
-	peers := mn.Peers()
 
 	tsds := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, hosts[0], tsds)
 
 	for i := 1; i < 5; i++ {
-		d.Update(ctx, peers[i])
+		d.Update(ctx, hosts[i].ID())
 	}
 
 	// Reply with random peers to every message
@@ -240,7 +244,7 @@ func TestLessThanKResponses(t *testing.T) {
 
 			switch pmes.GetType() {
 			case pb.Message_GET_VALUE:
-				pi := host.Peerstore().PeerInfo(peers[1])
+				pi := host.Peerstore().PeerInfo(hosts[1].ID())
 				resp := &pb.Message{
 					Type:        pmes.Type,
 					CloserPeers: pb.PeerInfosToPBPeers(d.host.Network(), []peer.PeerInfo{pi}),

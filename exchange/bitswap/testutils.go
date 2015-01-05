@@ -10,12 +10,14 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	p2ptestutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-func NewSessionGenerator(
+// WARNING: this uses RandTestBogusIdentity DO NOT USE for NON TESTS!
+func NewTestSessionGenerator(
 	net tn.Network) SessionGenerator {
 	ctx, cancel := context.WithCancel(context.TODO())
 	return SessionGenerator{
@@ -41,7 +43,7 @@ func (g *SessionGenerator) Close() error {
 
 func (g *SessionGenerator) Next() Instance {
 	g.seq++
-	p, err := testutil.RandIdentity()
+	p, err := p2ptestutil.RandTestBogusIdentity()
 	if err != nil {
 		panic("FIXME") // TODO change signature
 	}

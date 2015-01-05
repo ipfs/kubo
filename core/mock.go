@@ -10,11 +10,10 @@ import (
 	"github.com/jbenet/go-ipfs/exchange/offline"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
-	dht "github.com/jbenet/go-ipfs/routing/dht"
+	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -29,23 +28,19 @@ func NewMockNode() (*IpfsNode, error) {
 	nd := new(IpfsNode)
 
 	// Generate Identity
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 1024)
+	ident, err := testutil.RandIdentity()
 	if err != nil {
 		return nil, err
 	}
 
-	p, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		return nil, err
-	}
-
+	p := ident.ID()
 	nd.Identity = p
-	nd.PrivateKey = sk
+	nd.PrivateKey = ident.PrivateKey()
 	nd.Peerstore = peer.NewPeerstore()
-	nd.Peerstore.AddPrivKey(p, sk)
-	nd.Peerstore.AddPubKey(p, pk)
+	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
+	nd.Peerstore.AddPubKey(p, ident.PublicKey())
 
-	nd.PeerHost, err = mocknet.New(ctx).AddPeer(sk, testutil.RandLocalTCPAddress()) // effectively offline
+	nd.PeerHost, err = mocknet.New(ctx).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +50,7 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.Datastore = ds2.CloserWrap(syncds.MutexWrap(dstore))
 
 	// Routing
-	dht := dht.NewDHT(ctx, nd.PeerHost, nd.Datastore)
-	nd.Routing = dht
+	nd.Routing = mockrouting.NewServer().Client(ident)
 
 	// Bitswap
 	bstore := blockstore.NewBlockstore(nd.Datastore)
@@ -68,7 +62,7 @@ func NewMockNode() (*IpfsNode, error) {
 	nd.DAG = mdag.NewDAGService(bserv)
 
 	// Namespace resolver
-	nd.Namesys = nsys.NewNameSystem(dht)
+	nd.Namesys = nsys.NewNameSystem(nd.Routing)
 
 	// Path resolver
 	nd.Resolver = &path.Resolver{DAG: nd.DAG}

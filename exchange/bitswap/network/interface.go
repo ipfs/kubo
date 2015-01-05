@@ -14,9 +14,6 @@ var ProtocolBitswap protocol.ID = "/ipfs/bitswap"
 // BitSwapNetwork provides network connectivity for BitSwap sessions
 type BitSwapNetwork interface {
 
-	// DialPeer ensures there is a connection to peer.
-	DialPeer(context.Context, peer.ID) error
-
 	// SendMessage sends a BitSwap message to a peer.
 	SendMessage(
 		context.Context,

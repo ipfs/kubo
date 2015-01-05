@@ -8,7 +8,7 @@ import (
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	u "github.com/jbenet/go-ipfs/util"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 // TODO consider taking responsibility for other types of requests. For
@@ -41,7 +41,7 @@ import (
 // whatever it sees fit to produce desired outcomes (get wanted keys
 // quickly, maintain good relationships with peers, etc).
 
-var log = u.Logger("engine")
+var log = eventlog.Logger("engine")
 
 const (
 	sizeOutboxChan = 4
@@ -91,6 +91,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 }
 
 func (e *Engine) taskWorker(ctx context.Context) {
+	log := log.Prefix("bitswap.Engine.taskWorker")
 	for {
 		nextTask := e.peerRequestQueue.Pop()
 		if nextTask == nil {
@@ -98,11 +99,16 @@ func (e *Engine) taskWorker(ctx context.Context) {
 			// Wait until there are!
 			select {
 			case <-ctx.Done():
+				log.Debugf("exiting: %s", ctx.Err())
 				return
 			case <-e.workSignal:
+				log.Debugf("woken up")
 			}
 			continue
 		}
+		log := log.Prefix("%s", nextTask)
+		log.Debugf("processing")
+
 		block, err := e.bs.Get(nextTask.Entry.Key)
 		if err != nil {
 			log.Warning("engine: task exists to send block, but block is not in blockstore")
@@ -113,10 +119,12 @@ func (e *Engine) taskWorker(ctx context.Context) {
 		m := bsmsg.New()
 		m.AddBlock(block)
 		// TODO: maybe add keys from our wantlist?
+		log.Debugf("sending...")
 		select {
 		case <-ctx.Done():
 			return
 		case e.outbox <- Envelope{Peer: nextTask.Target, Message: m}:
+			log.Debugf("sent")
 		}
 	}
 }
@@ -140,16 +148,21 @@ func (e *Engine) Peers() []peer.ID {
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
+	log := log.Prefix("bitswap.Engine.MessageReceived(%s)", p)
+	log.Debugf("enter. %d entries %d blocks", len(m.Wantlist()), len(m.Blocks()))
+	defer log.Debugf("exit")
+
+	if len(m.Wantlist()) == 0 && len(m.Blocks()) == 0 {
+		log.Info("superfluous message")
+	}
+
 	newWorkExists := false
 	defer func() {
 		if newWorkExists {
-			// Signal task generation to restart (if stopped!)
-			select {
-			case e.workSignal <- struct{}{}:
-			default:
-			}
+			e.signalNewWork()
 		}
 	}()
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -157,11 +170,14 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	if m.Full() {
 		l.wantList = wl.New()
 	}
+
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
+			log.Debug("cancel", entry.Key)
 			l.CancelWant(entry.Key)
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
+			log.Debug("wants", entry.Key, entry.Priority)
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				newWorkExists = true
@@ -172,6 +188,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	for _, block := range m.Blocks() {
 		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
+		log.Debug("got block %s %d bytes", block.Key(), len(block.Data))
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range e.ledgerMap {
 			if l.WantListContains(block.Key()) {
@@ -221,4 +238,12 @@ func (e *Engine) findOrCreate(p peer.ID) *ledger {
 		e.ledgerMap[p] = l
 	}
 	return l
+}
+
+func (e *Engine) signalNewWork() {
+	// Signal task generation to restart (if stopped!)
+	select {
+	case e.workSignal <- struct{}{}:
+	default:
+	}
 }

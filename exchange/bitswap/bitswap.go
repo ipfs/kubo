@@ -61,6 +61,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 	}()
 
 	bs := &bitswap{
+		self:          p,
 		blockstore:    bstore,
 		cancelFunc:    cancelFunc,
 		notifications: notif,
@@ -78,6 +79,9 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 
 // bitswap instances implement the bitswap protocol.
 type bitswap struct {
+
+	// the ID of the peer to act on behalf of
+	self peer.ID
 
 	// network delivers messages on behalf of the session
 	network bsnet.BitSwapNetwork
@@ -104,6 +108,7 @@ type bitswap struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
+	log := log.Prefix("bitswap(%s).GetBlock(%s)", bs.self, k)
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
@@ -116,10 +121,12 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
 	log.Event(ctx, "GetBlockRequestBegin", &k)
+	log.Debugf("GetBlockRequestBegin")
 
 	defer func() {
 		cancelFunc()
 		log.Event(ctx, "GetBlockRequestEnd", &k)
+		log.Debugf("GetBlockRequestEnd")
 	}()
 
 	promise, err := bs.GetBlocks(ctx, []u.Key{k})
@@ -166,67 +173,109 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	return bs.network.Provide(ctx, blk.Key())
 }
 
-func (bs *bitswap) sendWantListTo(ctx context.Context, peers <-chan peer.ID) error {
+func (bs *bitswap) sendWantlistMsgToPeer(ctx context.Context, m bsmsg.BitSwapMessage, p peer.ID) error {
+	log := log.Prefix("bitswap(%s).bitswap.sendWantlistMsgToPeer(%d, %s)", bs.self, len(m.Wantlist()), p)
+
+	log.Debug("sending wantlist")
+	if err := bs.send(ctx, p, m); err != nil {
+		log.Errorf("send wantlist error: %s", err)
+		return err
+	}
+	log.Debugf("send wantlist success")
+	return nil
+}
+
+func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
 	if peers == nil {
 		panic("Cant send wantlist to nil peerchan")
 	}
-	message := bsmsg.New()
-	for _, wanted := range bs.wantlist.Entries() {
-		message.AddEntry(wanted.Key, wanted.Priority)
-	}
+
+	log := log.Prefix("bitswap(%s).sendWantlistMsgToPeers(%d)", bs.self, len(m.Wantlist()))
+	log.Debugf("begin")
+	defer log.Debugf("end")
+
+	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
 		log.Event(ctx, "PeerToQuery", peerToQuery)
+
+		if !set.TryAdd(peerToQuery) { //Do once per peer
+			log.Debugf("%s skipped (already sent)", peerToQuery)
+			continue
+		}
+		log.Debugf("%s sending", peerToQuery)
+
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
-			if err := bs.send(ctx, p, message); err != nil {
-				log.Error(err)
-				return
-			}
+			bs.sendWantlistMsgToPeer(ctx, m, p)
 		}(peerToQuery)
 	}
 	wg.Wait()
 	return nil
 }
 
-func (bs *bitswap) sendWantlistToProviders(ctx context.Context, wantlist *wantlist.ThreadSafe) {
+func (bs *bitswap) sendWantlistToPeers(ctx context.Context, peers <-chan peer.ID) error {
+	message := bsmsg.New()
+	message.SetFull(true)
+	for _, wanted := range bs.wantlist.Entries() {
+		message.AddEntry(wanted.Key, wanted.Priority)
+	}
+	return bs.sendWantlistMsgToPeers(ctx, message, peers)
+}
+
+func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
+	log := log.Prefix("bitswap(%s).sendWantlistToProviders ", bs.self)
+	log.Debugf("begin")
+	defer log.Debugf("end")
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	message := bsmsg.New()
-	message.SetFull(true)
-	for _, e := range bs.wantlist.Entries() {
-		message.AddEntry(e.Key, e.Priority)
-	}
-
-	set := pset.New()
+	// prepare a channel to hand off to sendWantlistToPeers
+	sendToPeers := make(chan peer.ID)
 
 	// Get providers for all entries in wantlist (could take a while)
 	wg := sync.WaitGroup{}
-	for _, e := range wantlist.Entries() {
+	for _, e := range bs.wantlist.Entries() {
 		wg.Add(1)
 		go func(k u.Key) {
 			defer wg.Done()
+
+			log := log.Prefix("(entry: %s) ", k)
+			log.Debug("asking dht for providers")
+
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				if set.TryAdd(prov) { //Do once per peer
-					bs.send(ctx, prov, message)
-				}
+				log.Debugf("dht returned provider %s. send wantlist", prov)
+				sendToPeers <- prov
 			}
 		}(e.Key)
 	}
-	wg.Wait()
+
+	go func() {
+		wg.Wait() // make sure all our children do finish.
+		close(sendToPeers)
+	}()
+
+	err := bs.sendWantlistToPeers(ctx, sendToPeers)
+	if err != nil {
+		log.Errorf("sendWantlistToPeers error: %s", err)
+	}
 }
 
 func (bs *bitswap) taskWorker(ctx context.Context) {
+	log := log.Prefix("bitswap(%s).taskWorker", bs.self)
 	for {
 		select {
 		case <-ctx.Done():
+			log.Debugf("exiting")
 			return
 		case envelope := <-bs.engine.Outbox():
+			log.Debugf("message to %s sending...", envelope.Peer)
 			bs.send(ctx, envelope.Peer, envelope.Message)
+			log.Debugf("message to %s sent", envelope.Peer)
 		}
 	}
 }
@@ -243,7 +292,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 		select {
 		case <-broadcastSignal:
 			// Resend unfulfilled wantlist keys
-			bs.sendWantlistToProviders(ctx, bs.wantlist)
+			bs.sendWantlistToProviders(ctx)
 			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case ks := <-bs.batchRequests:
 			if len(ks) == 0 {
@@ -262,7 +311,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 			//		newer bitswap strategies.
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
-			err := bs.sendWantListTo(ctx, providers)
+			err := bs.sendWantlistToPeers(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
 			}
@@ -336,11 +385,6 @@ func (bs *bitswap) ReceiveError(err error) {
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
-	log.Event(ctx, "DialPeer", p)
-	err := bs.network.DialPeer(ctx, p)
-	if err != nil {
-		return errors.Wrap(err)
-	}
 	if err := bs.network.SendMessage(ctx, p, m); err != nil {
 		return errors.Wrap(err)
 	}

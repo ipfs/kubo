@@ -2,8 +2,7 @@
     "Addresses": {
         "API": "/ip4/127.0.0.1/tcp/5001",
         "Swarm": [
-            "/ip4/0.0.0.0/tcp/4021",
-            "/ip4/0.0.0.0/udp/4022/utp"
+            "/ip4/0.0.0.0/tcp/4021"
         ]
     },
     "Bootstrap": [
