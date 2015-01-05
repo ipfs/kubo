@@ -74,7 +74,8 @@ test_init_ipfs() {
 	test_expect_success "prepare config" '
 		mkdir mountdir ipfs ipns &&
 		ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
-		ipfs config Mounts.IPNS "$(pwd)/ipns"
+		ipfs config Mounts.IPNS "$(pwd)/ipns" &&
+		ipfs bootstrap rm --all
 	'
 
 }
