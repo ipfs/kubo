@@ -3,6 +3,19 @@
 ## Running all the tests
 
 Just use `make` in this directory to run all the tests.
+Run with `TEST_VERBOSE=1` to get helpful verbose output.
+
+```
+TEST_VERBOSE=1 make
+```
+
+The usual ipfs env flags also apply:
+
+```sh
+# the output will make your eyes bleed
+IPFS_LOGGING=debug TEST_VERBOSE=1 make
+```
+
 
 ## Running just one test
 

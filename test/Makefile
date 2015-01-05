@@ -4,6 +4,8 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
+# NOTE: run with TEST_VERBOSE=1 for verbose sharness tests.
+
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 SHARNESS = lib/sharness/sharness.sh
 RANDOMSRC = Godeps/_workspace/src/github.com/jbenet/go-random/random
