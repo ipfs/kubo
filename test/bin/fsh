@@ -1,0 +1,13 @@
+#!/bin/sh
+# Author: Juan Batiz-Benet <juan@benet.ai>
+# MIT LICENSED
+
+# verbose eval, and exit with error, so we can avoid writing:
+# echo "cat version.txt" && cat version.txt && false
+
+# echo "# > $@"
+# eval $@ | sed -e 's/^/# /'
+echo "> $@"
+eval $@
+echo ""
+exit 1

@@ -8,10 +8,7 @@ test_description="Test block command"
 
 . lib/test-lib.sh
 
-test_expect_success "ipfs init succeeds" '
-	export IPFS_DIR="$(pwd)/.go-ipfs" &&
-	ipfs init
-'
+test_init_ipfs
 
 test_expect_success "'ipfs block put' succeeds" '
 	echo "Hello Mars!" >expected_in &&

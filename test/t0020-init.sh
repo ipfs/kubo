@@ -16,7 +16,8 @@ test_expect_success "ipfs init succeeds" '
 test_expect_success ".go-ipfs/ has been created" '
 	test -d ".go-ipfs" &&
 	test -f ".go-ipfs/config" &&
-	test -d ".go-ipfs/datastore"
+	test -d ".go-ipfs/datastore" ||
+	fsh ls -al .go-ipfs
 '
 
 test_expect_success "ipfs config succeeds" '
