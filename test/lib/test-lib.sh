@@ -74,7 +74,8 @@ test_init_ipfs() {
 	test_expect_success "prepare config" '
 		mkdir mountdir ipfs ipns &&
 		ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
-		ipfs config Mounts.IPNS "$(pwd)/ipns"
+		ipfs config Mounts.IPNS "$(pwd)/ipns" &&
+		ipfs bootstrap rm --all
 	'
 
 }
@@ -95,7 +96,10 @@ test_launch_ipfs_daemon() {
 
 test_mount_ipfs() {
 
+	# make sure stuff is unmounted first.
 	test_expect_success FUSE "'ipfs mount' succeeds" '
+		umount $(pwd)/ipfs || true &&
+		umount $(pwd)/ipns || true &&
 		ipfs mount >actual
 	'
 
