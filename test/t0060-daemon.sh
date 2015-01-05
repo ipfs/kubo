@@ -11,7 +11,7 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-
+# NOTE: this should remove bootstrap peers (needs a flag)
 test_expect_success "ipfs daemon --init launches" '
   export IPFS_DIR="$(pwd)/.go-ipfs" &&
   ipfs daemon --init 2>&1 >actual_init &
