@@ -97,7 +97,9 @@ func bootstrap(ctx context.Context,
 
 	// we can try running dht bootstrap even if we're connected to all bootstrap peers.
 	if err := r.Bootstrap(ctx, numDHTBootstrapQueries); err != nil {
-		return err
+		// log this as Info. later on, discern better between errors.
+		log.Infof("dht bootstrap err: %s", err)
+		return nil
 	}
 	return nil
 }
