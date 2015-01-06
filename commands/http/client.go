@@ -150,11 +150,11 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		outChan := make(chan interface{})
 		go func() {
 			dec := json.NewDecoder(httpRes.Body)
-			outputType := reflect.ValueOf(req.Command().Type).Type()
-			v := reflect.New(outputType).Interface()
+			outputType := reflect.TypeOf(req.Command().Type)
 
 			for {
-				err := dec.Decode(&v)
+				v := reflect.New(outputType).Interface()
+				err := dec.Decode(v)
 				if err != nil && err != io.EOF {
 					fmt.Println(err.Error())
 					return
@@ -199,8 +199,9 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		res.SetError(e, e.Code)
 
 	} else {
-		v := req.Command().Type
-		err = dec.Decode(&v)
+		outputType := reflect.TypeOf(req.Command().Type)
+		v := reflect.New(outputType).Interface()
+		err = dec.Decode(v)
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
