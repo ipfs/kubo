@@ -38,10 +38,7 @@ func NewDagReader(n *mdag.Node, serv mdag.DAGService) (io.Reader, error) {
 		// Dont allow reading directories
 		return nil, ErrIsDir
 	case ftpb.Data_File:
-		var fetchChan <-chan *mdag.Node
-		if serv != nil {
-			fetchChan = serv.GetDAG(context.TODO(), n)
-		}
+		fetchChan := serv.GetDAG(context.TODO(), n)
 		return &DagReader{
 			node:      n,
 			serv:      serv,
@@ -62,32 +59,16 @@ func (dr *DagReader) precalcNextBuf() error {
 	var nxt *mdag.Node
 	var ok bool
 
-	// TODO: require non-nil dagservice, use offline bitswap exchange
-	if dr.serv == nil {
-		// Only used when fetchChan is nil,
-		// which only happens when passed in a nil dagservice
-		// TODO: this logic is hard to follow, do it better.
-		// NOTE: the only time this code is used, is during the
-		//			importer tests, consider just changing those tests
-		log.Warning("Running DAGReader with nil DAGService!")
-		if dr.linkPosition >= len(dr.node.Links) {
+	if dr.fetchChan == nil {
+		// This panic is appropriate because the select statement
+		// will not panic if you try and read from a nil channel
+		// it will simply hang.
+		panic("fetchChan should NOT be nil")
+	}
+	select {
+	case nxt, ok = <-dr.fetchChan:
+		if !ok {
 			return io.EOF
-		}
-		nxt = dr.node.Links[dr.linkPosition].Node
-		if nxt == nil {
-			return errors.New("Got nil node back from link! and no DAGService!")
-		}
-		dr.linkPosition++
-
-	} else {
-		if dr.fetchChan == nil {
-			panic("this is wrong.")
-		}
-		select {
-		case nxt, ok = <-dr.fetchChan:
-			if !ok {
-				return io.EOF
-			}
 		}
 	}
 

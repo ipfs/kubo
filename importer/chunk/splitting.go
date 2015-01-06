@@ -9,7 +9,8 @@ import (
 
 var log = util.Logger("chunk")
 
-var DefaultSplitter = &SizeSplitter{Size: 1024 * 256}
+var DefaultBlockSize = 1024 * 256
+var DefaultSplitter = &SizeSplitter{Size: DefaultBlockSize}
 
 type BlockSplitter interface {
 	Split(r io.Reader) chan []byte

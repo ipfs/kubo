@@ -9,6 +9,7 @@ import (
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/routing"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
@@ -33,7 +34,8 @@ func (i *ipfsHandler) ResolvePath(path string) (*dag.Node, error) {
 }
 
 func (i *ipfsHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
-	return importer.NewDagFromReader(r)
+	return importer.BuildDagFromReader(
+		r, i.node.DAG, i.node.Pinning.GetManual(), chunk.DefaultSplitter)
 }
 
 func (i *ipfsHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
