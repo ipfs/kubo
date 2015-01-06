@@ -2,6 +2,7 @@ package merkledag
 
 import (
 	"fmt"
+	"sort"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
@@ -30,6 +31,7 @@ func (n *Node) Unmarshal(encoded []byte) error {
 		}
 		n.Links[i].Hash = h
 	}
+	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 
 	n.Data = pbn.GetData()
 	return nil
@@ -59,6 +61,8 @@ func (n *Node) Marshal() ([]byte, error) {
 func (n *Node) getPBNode() *pb.PBNode {
 	pbn := &pb.PBNode{}
 	pbn.Links = make([]*pb.PBLink, len(n.Links))
+
+	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	for i, l := range n.Links {
 		pbn.Links[i] = &pb.PBLink{}
 		pbn.Links[i].Name = &l.Name
@@ -73,6 +77,7 @@ func (n *Node) getPBNode() *pb.PBNode {
 // Encoded returns the encoded raw data version of a Node instance.
 // It may use a cached encoded version, unless the force flag is given.
 func (n *Node) Encoded(force bool) ([]byte, error) {
+	sort.Stable(LinkSlice(n.Links)) // keep links sorted
 	if n.encoded == nil || force {
 		var err error
 		n.encoded, err = n.Marshal()
