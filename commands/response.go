@@ -160,7 +160,14 @@ func (r *response) Marshal() (io.Reader, error) {
 		}
 	}
 
-	return marshaller(r)
+	output, err := marshaller(r)
+	if err != nil {
+		return nil, err
+	}
+	if output == nil {
+		return bytes.NewReader([]byte{}), nil
+	}
+	return output, nil
 }
 
 // Reader returns an `io.Reader` representing marshalled output of this Response
