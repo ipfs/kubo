@@ -12,6 +12,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
+	corecmds "github.com/jbenet/go-ipfs/core/commands"
 	imp "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
@@ -179,6 +180,11 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		return nil, err
 	}
 
+	bootstrapPeers, err := corecmds.DefaultBootstrapPeers()
+	if err != nil {
+		return nil, err
+	}
+
 	conf := &config.Config{
 
 		// setup the node's default addresses.
@@ -191,39 +197,10 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 			API: "/ip4/127.0.0.1/tcp/5001",
 		},
 
-		Bootstrap: []*config.BootstrapPeer{
-			&config.BootstrapPeer{ // Use these hardcoded bootstrap peers for now.
-				// mars.i.ipfs.io
-				PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-				Address: "/ip4/104.131.131.82/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Neptune
-				PeerID:  "QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z",
-				Address: "/ip4/104.236.176.52/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Pluto
-				PeerID:  "QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69RrZm",
-				Address: "/ip4/104.236.179.241/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Uranus
-				PeerID:  "QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm",
-				Address: "/ip4/162.243.248.213/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Saturn
-				PeerID:  "QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-				Address: "/ip4/128.199.219.111/tcp/4001",
-			},
-		},
-
+		Bootstrap: bootstrapPeers,
 		Datastore: ds,
-
-		Logs: logConfig,
-
-		Identity: identity,
+		Logs:      logConfig,
+		Identity:  identity,
 
 		// setup the node mount points.
 		Mounts: config.Mounts{

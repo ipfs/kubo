@@ -3,18 +3,29 @@ package commands
 import (
 	"bytes"
 	"io"
-	"strings"
-
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
 	u "github.com/jbenet/go-ipfs/util"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
+// DefaultBootstrapAddresses are the hardcoded bootstrap addresses
+// for ipfs. they are nodes run by the ipfs team. docs on these later.
+// As with all p2p networks, bootstrap is an important security concern.
+//
+// Note: this is here -- and not inside cmd/ipfs/init.go -- because of an
+// import dependency issue. TODO: move this into a config/default/ package.
+var DefaultBootstrapAddresses = []string{
+	"/ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",  // mars.i.ipfs.io
+	"/ip4/104.236.176.52/tcp/4001/QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z",  // neptune (to be neptune.i.ipfs.io)
+	"/ip4/104.236.179.241/tcp/4001/QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69RrZm", // pluto (to be pluto.i.ipfs.io)
+	"/ip4/162.243.248.213/tcp/4001/QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm", // uranus (to be uranus.i.ipfs.io)
+	"/ip4/128.199.219.111/tcp/4001/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu", // saturn (to be saturn.i.ipfs.io)
+}
+
 type BootstrapOutput struct {
-	Peers []*config.BootstrapPeer
+	Peers []config.BootstrapPeer
 }
 
 var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multiaddr>/<peerID>')"
@@ -55,7 +66,7 @@ in the bootstrap list).
 		cmds.StringArg("peer", true, true, peerOptionDesc),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		input, err := bootstrapInputToPeers(req.Arguments())
+		inputPeers, err := config.ParseBootstrapPeers(req.Arguments())
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +81,7 @@ in the bootstrap list).
 			return nil, err
 		}
 
-		added, err := bootstrapAdd(filename, cfg, input)
+		added, err := bootstrapAdd(filename, cfg, inputPeers)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +117,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 		cmds.BoolOption("all", "Remove all bootstrap peers."),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		input, err := bootstrapInputToPeers(req.Arguments())
+		input, err := config.ParseBootstrapPeers(req.Arguments())
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +137,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return nil, err
 		}
 
-		var removed []*config.BootstrapPeer
+		var removed []config.BootstrapPeer
 		if all {
 			removed, err = bootstrapRemoveAll(filename, cfg)
 		} else {
@@ -185,7 +196,7 @@ func bootstrapMarshaler(res cmds.Response) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func bootstrapWritePeers(w io.Writer, prefix string, peers []*config.BootstrapPeer) error {
+func bootstrapWritePeers(w io.Writer, prefix string, peers []config.BootstrapPeer) error {
 
 	for _, peer := range peers {
 		s := prefix + peer.Address + "/" + peer.PeerID + "\n"
@@ -197,46 +208,8 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []*config.BootstrapPe
 	return nil
 }
 
-func bootstrapInputToPeers(input []string) ([]*config.BootstrapPeer, error) {
-	split := func(addr string) (string, string) {
-		idx := strings.LastIndex(addr, "/")
-		if idx == -1 {
-			return "", addr
-		}
-		return addr[:idx], addr[idx+1:]
-	}
-
-	peers := []*config.BootstrapPeer{}
-	for _, addr := range input {
-		addrS, peeridS := split(addr)
-
-		// make sure addrS parses as a multiaddr.
-		if len(addrS) > 0 {
-			maddr, err := ma.NewMultiaddr(addrS)
-			if err != nil {
-				return nil, err
-			}
-
-			addrS = maddr.String()
-		}
-
-		// make sure idS parses as a peer.ID
-		_, err := mh.FromB58String(peeridS)
-		if err != nil {
-			return nil, err
-		}
-
-		// construct config entry
-		peers = append(peers, &config.BootstrapPeer{
-			Address: addrS,
-			PeerID:  peeridS,
-		})
-	}
-	return peers, nil
-}
-
-func bootstrapAdd(filename string, cfg *config.Config, peers []*config.BootstrapPeer) ([]*config.BootstrapPeer, error) {
-	added := make([]*config.BootstrapPeer, 0, len(peers))
+func bootstrapAdd(filename string, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+	added := make([]config.BootstrapPeer, 0, len(peers))
 
 	for _, peer := range peers {
 		duplicate := false
@@ -261,9 +234,9 @@ func bootstrapAdd(filename string, cfg *config.Config, peers []*config.Bootstrap
 	return added, nil
 }
 
-func bootstrapRemove(filename string, cfg *config.Config, toRemove []*config.BootstrapPeer) ([]*config.BootstrapPeer, error) {
-	removed := make([]*config.BootstrapPeer, 0, len(toRemove))
-	keep := make([]*config.BootstrapPeer, 0, len(cfg.Bootstrap))
+func bootstrapRemove(filename string, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+	removed := make([]config.BootstrapPeer, 0, len(toRemove))
+	keep := make([]config.BootstrapPeer, 0, len(cfg.Bootstrap))
 
 	for _, peer := range cfg.Bootstrap {
 		found := false
@@ -289,8 +262,8 @@ func bootstrapRemove(filename string, cfg *config.Config, toRemove []*config.Boo
 	return removed, nil
 }
 
-func bootstrapRemoveAll(filename string, cfg *config.Config) ([]*config.BootstrapPeer, error) {
-	removed := make([]*config.BootstrapPeer, len(cfg.Bootstrap))
+func bootstrapRemoveAll(filename string, cfg *config.Config) ([]config.BootstrapPeer, error) {
+	removed := make([]config.BootstrapPeer, len(cfg.Bootstrap))
 	copy(removed, cfg.Bootstrap)
 
 	cfg.Bootstrap = nil
@@ -300,6 +273,18 @@ func bootstrapRemoveAll(filename string, cfg *config.Config) ([]*config.Bootstra
 	}
 
 	return removed, nil
+}
+
+// DefaultBootstrapPeers returns the (parsed) set of default bootstrap peers.
+// if it fails, it returns a meaningful error for the user.
+// This is here (and not inside cmd/ipfs/init) because of module dependency problems.
+func DefaultBootstrapPeers() ([]config.BootstrapPeer, error) {
+	ps, err := config.ParseBootstrapPeers(DefaultBootstrapAddresses)
+	if err != nil {
+		return nil, errors.Errorf(`failed to parse hardcoded bootstrap peers: %s
+This is a problem with the ipfs codebase. Please report it to the dev team.`, err)
+	}
+	return ps, nil
 }
 
 const bootstrapSecurityWarning = `
