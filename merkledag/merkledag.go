@@ -66,6 +66,12 @@ type Link struct {
 	Node *Node
 }
 
+type LinkSlice []*Link
+
+func (ls LinkSlice) Len() int           { return len(ls) }
+func (ls LinkSlice) Swap(a, b int)      { ls[a], ls[b] = ls[b], ls[a] }
+func (ls LinkSlice) Less(a, b int) bool { return ls[a].Name < ls[b].Name }
+
 // MakeLink creates a link to the given node
 func MakeLink(n *Node) (*Link, error) {
 	s, err := n.Size()
