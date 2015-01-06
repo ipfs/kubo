@@ -78,9 +78,9 @@ test_expect_success "'ipfs add -r' output looks good" '
 	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
 	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
 	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
-	echo "added $PLANETS mountdir/planets" >expected &&
-	echo "added $MARS mountdir/planets/mars.txt" >>expected &&
+	echo "added $MARS mountdir/planets/mars.txt" >expected &&
 	echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
+	echo "added $PLANETS mountdir/planets" >>expected &&
 	test_cmp expected actual
 '
 

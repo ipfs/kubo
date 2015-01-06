@@ -7,6 +7,7 @@ import (
 	"os"
 	fp "path"
 	"runtime"
+	"sort"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -319,8 +320,10 @@ func openPath(file *os.File, path string) (cmds.File, error) {
 		return nil, err
 	}
 
-	files := make([]cmds.File, 0, len(contents))
+	// make sure contents are sorted so -- repeatably -- we get the same inputs.
+	sort.Sort(sortFIByName(contents))
 
+	files := make([]cmds.File, 0, len(contents))
 	for _, child := range contents {
 		childPath := fp.Join(path, child.Name())
 		childFile, err := os.Open(childPath)
@@ -351,3 +354,9 @@ func isTerminal(stdin *os.File) (bool, error) {
 	// if stdin is a CharDevice, return true
 	return ((stat.Mode() & os.ModeCharDevice) != 0), nil
 }
+
+type sortFIByName []os.FileInfo
+
+func (es sortFIByName) Len() int           { return len(es) }
+func (es sortFIByName) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
+func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() }
