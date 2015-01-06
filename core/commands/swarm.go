@@ -60,7 +60,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		for i, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
-			addrs[i] = fmt.Sprintf("%s/%s", addr, pid)
+			addrs[i] = fmt.Sprintf("%s/%s", addr, pid.Pretty())
 		}
 
 		return &stringList{addrs}, nil
