@@ -135,14 +135,6 @@ func (c *Command) Call(req Request) Response {
 		}
 	}
 
-	// clean up the request (close the readers, e.g. fileargs)
-	// NOTE: this means commands can't expect to keep reading after cmd.Run returns (in a goroutine)
-	err = req.Cleanup()
-	if err != nil {
-		res.SetError(err, ErrNormal)
-		return res
-	}
-
 	res.SetOutput(output)
 	return res
 }
