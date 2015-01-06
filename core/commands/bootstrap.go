@@ -112,7 +112,7 @@ in the bootstrap list).
 
 		return &BootstrapOutput{added}, nil
 	},
-	Type: &BootstrapOutput{},
+	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, ok := res.Output().(*BootstrapOutput)
@@ -173,7 +173,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 		return &BootstrapOutput{removed}, nil
 	},
-	Type: &BootstrapOutput{},
+	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, ok := res.Output().(*BootstrapOutput)
@@ -203,7 +203,7 @@ var bootstrapListCmd = &cmds.Command{
 		peers := cfg.Bootstrap
 		return &BootstrapOutput{peers}, nil
 	},
-	Type: &BootstrapOutput{},
+	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: bootstrapMarshaler,
 	},

@@ -41,5 +41,5 @@ var VersionCmd = &cmds.Command{
 			return strings.NewReader(fmt.Sprintf("ipfs version %s\n", v.Version)), nil
 		},
 	},
-	Type: &VersionOutput{},
+	Type: VersionOutput{},
 }

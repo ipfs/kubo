@@ -157,7 +157,7 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 
 		return &KeyList{Keys: keys}, nil
 	},
-	Type: &KeyList{},
+	Type: KeyList{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,
 	},

@@ -91,7 +91,7 @@ if no peer is specified, prints out local peers info.
 			return bytes.NewReader(marshaled), nil
 		},
 	},
-	Type: &IdOutput{},
+	Type: IdOutput{},
 }
 
 func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {

@@ -133,7 +133,7 @@ baz
 		output.IPNS = nsdir
 		return &output, nil
 	},
-	Type: &config.Mounts{},
+	Type: config.Mounts{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*config.Mounts)

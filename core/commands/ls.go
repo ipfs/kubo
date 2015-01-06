@@ -89,7 +89,7 @@ it contains, with the following format:
 			return strings.NewReader(s), nil
 		},
 	},
-	Type: &LsOutput{},
+	Type: LsOutput{},
 }
 
 func marshalLinks(links []Link) (s string) {

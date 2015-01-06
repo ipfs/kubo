@@ -69,7 +69,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
 	},
-	Type: &stringList{},
+	Type: stringList{},
 }
 
 var swarmConnectCmd = &cmds.Command{
@@ -122,7 +122,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
 	},
-	Type: &stringList{},
+	Type: stringList{},
 }
 
 func stringListMarshaler(res cmds.Response) (io.Reader, error) {

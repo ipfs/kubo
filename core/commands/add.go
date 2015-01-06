@@ -102,7 +102,7 @@ remains to be implemented.
 			}, nil
 		},
 	},
-	Type: &AddedObject{},
+	Type: AddedObject{},
 }
 
 func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {

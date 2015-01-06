@@ -108,7 +108,7 @@ multihash.
 			return strings.NewReader(marshalled), nil
 		},
 	},
-	Type: &Object{},
+	Type: Object{},
 }
 
 var objectGetCmd = &cmds.Command{
@@ -162,7 +162,7 @@ This command outputs data in the following encodings:
 
 		return node, nil
 	},
-	Type: &Node{},
+	Type: Node{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.EncodingType("protobuf"): func(res cmds.Response) (io.Reader, error) {
 			node := res.Output().(*Node)
@@ -232,7 +232,7 @@ Data should be in the format specified by <encoding>.
 			return strings.NewReader("added " + object.Hash), nil
 		},
 	},
-	Type: &Object{},
+	Type: Object{},
 }
 
 // objectData takes a key string and writes out the raw bytes of that node (if there is one)

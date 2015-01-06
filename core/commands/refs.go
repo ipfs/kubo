@@ -71,7 +71,7 @@ Note: list all refs recursively with -r.
 
 		return getRefs(n, req.Arguments(), unique, recursive)
 	},
-	Type: &KeyList{},
+	Type: KeyList{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,
 	},

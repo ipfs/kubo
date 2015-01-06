@@ -123,7 +123,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			Length: len(data),
 		}, nil
 	},
-	Type: &Block{},
+	Type: Block{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			block := res.Output().(*Block)

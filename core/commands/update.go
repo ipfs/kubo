@@ -29,7 +29,7 @@ var UpdateCmd = &cmds.Command{
 		}
 		return updateApply(n)
 	},
-	Type: &UpdateOutput{},
+	Type: UpdateOutput{},
 	Subcommands: map[string]*cmds.Command{
 		"check": UpdateCheckCmd,
 		"log":   UpdateLogCmd,
@@ -62,7 +62,7 @@ var UpdateCheckCmd = &cmds.Command{
 		}
 		return updateCheck(n)
 	},
-	Type: &UpdateOutput{},
+	Type: UpdateOutput{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*UpdateOutput)

@@ -86,7 +86,7 @@ Publish a <ref> to another public key:
 			return strings.NewReader(s), nil
 		},
 	},
-	Type: &IpnsEntry{},
+	Type: IpnsEntry{},
 }
 
 func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error) {

@@ -95,7 +95,7 @@ Set the value of the 'datastore.path' key:
 			return bytes.NewReader(buf), nil
 		},
 	},
-	Type: &ConfigField{},
+	Type: ConfigField{},
 	Subcommands: map[string]*cmds.Command{
 		"show": configShowCmd,
 		"edit": configEditCmd,

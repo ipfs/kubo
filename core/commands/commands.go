@@ -36,7 +36,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 				return &buf, nil
 			},
 		},
-		Type: &Command{},
+		Type: Command{},
 	}
 }
 
