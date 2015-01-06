@@ -63,8 +63,13 @@ in the bootstrap list).
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer", true, true, peerOptionDesc),
+		cmds.StringArg("peer", false, true, peerOptionDesc),
 	},
+
+	Options: []cmds.Option{
+		cmds.BoolOption("default", "add default bootstrap nodes"),
+	},
+
 	Run: func(req cmds.Request) (interface{}, error) {
 		inputPeers, err := config.ParseBootstrapPeers(req.Arguments())
 		if err != nil {
@@ -81,9 +86,28 @@ in the bootstrap list).
 			return nil, err
 		}
 
+		deflt, _, err := req.Option("default").Bool()
+		if err != nil {
+			return nil, err
+		}
+
+		if deflt {
+			// parse separately for meaningful, correct error.
+			defltPeers, err := DefaultBootstrapPeers()
+			if err != nil {
+				return nil, err
+			}
+
+			inputPeers = append(inputPeers, defltPeers...)
+		}
+
 		added, err := bootstrapAdd(filename, cfg, inputPeers)
 		if err != nil {
 			return nil, err
+		}
+
+		if len(inputPeers) == 0 {
+			return nil, cmds.ClientError("no bootstrap peers to add")
 		}
 
 		return &BootstrapOutput{added}, nil
