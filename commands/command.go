@@ -114,14 +114,17 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	actualType := reflect.ValueOf(output).Type()
+	actualType := reflect.TypeOf(output)
+	if actualType.Kind() == reflect.Ptr {
+		actualType = actualType.Elem()
+	}
 
 	// test if output is a channel
 	isChan := actualType.Kind() == reflect.Chan
 
 	// If the command specified an output type, ensure the actual value returned is of that type
 	if cmd.Type != nil && !isChan {
-		expectedType := reflect.ValueOf(cmd.Type).Type()
+		expectedType := reflect.TypeOf(cmd.Type)
 
 		if actualType != expectedType {
 			res.SetError(ErrIncorrectType, ErrNormal)
