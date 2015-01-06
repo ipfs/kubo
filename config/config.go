@@ -3,8 +3,13 @@ package config
 
 import (
 	"encoding/base64"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
+
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	u "github.com/jbenet/go-ipfs/util"
@@ -55,6 +60,49 @@ func (bp *BootstrapPeer) String() string {
 	return bp.Address + "/" + bp.PeerID
 }
 
+func ParseBootstrapPeer(addr string) (BootstrapPeer, error) {
+	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
+	idx := strings.LastIndex(addr, "/")
+	if idx == -1 {
+		return BootstrapPeer{}, errors.New("invalid address")
+	}
+	addrS := addr[:idx]
+	peeridS := addr[idx+1:]
+
+	// make sure addrS parses as a multiaddr.
+	if len(addrS) > 0 {
+		maddr, err := ma.NewMultiaddr(addrS)
+		if err != nil {
+			return BootstrapPeer{}, err
+		}
+
+		addrS = maddr.String()
+	}
+
+	// make sure idS parses as a peer.ID
+	_, err := mh.FromB58String(peeridS)
+	if err != nil {
+		return BootstrapPeer{}, err
+	}
+
+	return BootstrapPeer{
+		Address: addrS,
+		PeerID:  peeridS,
+	}, nil
+}
+
+func ParseBootstrapPeers(addrs []string) ([]BootstrapPeer, error) {
+	peers := make([]BootstrapPeer, len(addrs))
+	var err error
+	for i, addr := range addrs {
+		peers[i], err = ParseBootstrapPeer(addr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return peers, nil
+}
+
 // Tour stores the ipfs tour read-list and resume point
 type Tour struct {
 	Last string // last tour topic read
@@ -63,14 +111,14 @@ type Tour struct {
 
 // Config is used to load IPFS config files.
 type Config struct {
-	Identity  Identity         // local node's peer identity
-	Datastore Datastore        // local node's storage
-	Addresses Addresses        // local node's addresses
-	Mounts    Mounts           // local node's mount points
-	Version   Version          // local node's version management
-	Bootstrap []*BootstrapPeer // local nodes's bootstrap peers
-	Tour      Tour             // local node's tour position
-	Logs      Logs             // local node's event log configuration
+	Identity  Identity        // local node's peer identity
+	Datastore Datastore       // local node's storage
+	Addresses Addresses       // local node's addresses
+	Mounts    Mounts          // local node's mount points
+	Version   Version         // local node's version management
+	Bootstrap []BootstrapPeer // local nodes's bootstrap peers
+	Tour      Tour            // local node's tour position
+	Logs      Logs            // local node's event log configuration
 }
 
 // DefaultPathRoot is the path to the default config dir location.
