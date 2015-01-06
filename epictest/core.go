@@ -74,7 +74,11 @@ func makeCore(ctx context.Context, rf RepoFactory) (*core, error) {
 		return nil, err
 	}
 
-	bss := &blockservice.BlockService{repo.Blockstore(), repo.Exchange()}
+	bss, err := blockservice.New(repo.Blockstore(), repo.Exchange())
+	if err != nil {
+		return nil, err
+	}
+
 	dag := merkledag.NewDAGService(bss)
 	// to make sure nothing is omitted, init each individual field and assign
 	// all at once at the bottom.
