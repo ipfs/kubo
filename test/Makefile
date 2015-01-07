@@ -1,45 +1,32 @@
-# Run tests
-#
-# Copyright (c) 2014 Christian Couder
-# MIT Licensed; see the LICENSE file in this repository.
-#
 
-# NOTE: run with TEST_VERBOSE=1 for verbose sharness tests.
+BINS = bin/random bin/ipfs
+IPFS_ROOT = ../
+IPFS_CMD = ../cmd/ipfs
+RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 
-T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
-SHARNESS = lib/sharness/sharness.sh
-RANDOMSRC = Godeps/_workspace/src/github.com/jbenet/go-random/random
+all: deps
 
-all: clean deps $(T) aggregate
+deps: bins
 
 clean:
-	@echo "*** $@ ***"
-	-rm -rf test-results
+	rm $(BINS)
 
-$(T):
-	@echo "*** $@ ***"
-	./$@
+bins: $(BINS)
 
-aggregate:
-	@echo "*** $@ ***"
-	lib/test-aggregate-results.sh
+bin/random: $(RANDOM_SRC)/**/*.go
+	go build -o bin/random $(RANDOM_SRC)/random
 
-deps: $(SHARNESS) ipfs random
+bin/ipfs: $(IPFS_ROOT)/**/*.go
+	go build -o bin/ipfs $(IPFS_CMD)
 
-$(SHARNESS):
-	@echo "*** installing $@ ***"
-	lib/install-sharness.sh
+test: test_expensive
 
-# phony to ensure we re-build it every time we run tests
-ipfs:
-	@echo "*** installing $@ ***"
-	mkdir -p bin
-	cd ../cmd/ipfs && go build
-	cp ../cmd/ipfs/ipfs bin/ipfs
+test_expensive:
+	cd sharness && make TEST_EXPENSIVE=1
+	cd 3nodetest && make
 
-random:
-	@echo "*** installing $@ ***"
-	mkdir -p bin
-	go build -o bin/random ../$(RANDOMSRC)
+test_cheap:
+	cd sharness && make
+	cd 3nodetest && make
 
-.PHONY: all clean $(T) aggregate ipfs random
+.PHONY: all clean

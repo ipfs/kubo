@@ -1,5 +1,6 @@
-RANDOMSRC = Godeps/_workspace/src/github.com/jbenet/go-random/random
+RANDOMSRC = ../../Godeps/_workspace/src/github.com/jbenet/go-random
 IMAGE_NAME = ipfs-test-latest
+IPFS_ROOT = ../..
 
 test: clean setup
 	./run-test-on-img.sh $(IMAGE_NAME)
@@ -15,13 +16,13 @@ data/filetiny: Makefile
 data/filerand: bin/random
 	./bin/random 50000000 > ./data/filerand
 
-bin/random:
-	go build -o ./bin/random ../$(RANDOMSRC)
+bin/random: $(RANDOMSRC)/**/*.go
+	go build -o ./bin/random $(RANDOMSRC)/random
 
 # just build it every time... this part isn't
 # even the lengthy part, and it decreases pain.
 docker_ipfs_image:
-	cd .. && docker build -t $(IMAGE_NAME) .
+	cd $(IPFS_ROOT) && docker build -t $(IMAGE_NAME) .
 	docker images | grep $(IMAGE_NAME)
 
 clean:
