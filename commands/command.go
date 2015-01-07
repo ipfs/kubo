@@ -114,32 +114,10 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	isChan := false
-	actualType := reflect.TypeOf(output)
-	if actualType != nil {
-		isChan = actualType.Kind() == reflect.Chan
-		isPointer := actualType.Kind() == reflect.Ptr
-		_, isReader := output.(io.Reader)
-
-		if !isReader {
-			if isChan || isPointer {
-				// use the dereferenced type, not the pointer type
-				actualType = actualType.Elem()
-			} else {
-				// ensures the developer of the command is returning a valid type
-				panic("Commands must return a pointer, io.Reader, or channel")
-			}
-		}
-	}
-
-	// If the command specified an output type, ensure the actual value returned is of that type
-	if cmd.Type != nil && !isChan {
-		expectedType := reflect.TypeOf(cmd.Type)
-
-		if actualType != expectedType {
-			res.SetError(ErrIncorrectType, ErrNormal)
-			return res
-		}
+	err = checkType(output, cmd.Type)
+	if err != nil {
+		res.SetOutput(err)
+		return res
 	}
 
 	res.SetOutput(output)
@@ -258,6 +236,42 @@ func (c *Command) Subcommand(id string) *Command {
 func checkArgValue(v string, found bool, def Argument) error {
 	if !found && def.Required {
 		return fmt.Errorf("Argument '%s' is required", def.Name)
+	}
+
+	return nil
+}
+
+// checkType returns an error if the command returned a value different from
+// what was specified in its Type field. It panics if the command returns a
+// value that is not a pointer, io.Reader, or channel (as a message to the
+// author of the command).
+func checkType(output interface{}, t interface{}) error {
+	isChan := false
+	actualType := reflect.TypeOf(output)
+	if actualType != nil {
+		isChan = actualType.Kind() == reflect.Chan
+		isPointer := actualType.Kind() == reflect.Ptr
+		_, isReader := output.(io.Reader)
+
+		if !isReader {
+			if isChan || isPointer {
+				// use the dereferenced type, not the pointer type
+				actualType = actualType.Elem()
+			} else {
+				// ensures the developer of the command is returning a valid type
+				panic("Commands must return a pointer, io.Reader, or channel")
+			}
+		}
+	}
+
+	// If the command specified an output type, ensure the actual value returned is of that type
+	if t != nil && !isChan {
+		expectedType := reflect.TypeOf(t)
+
+		if actualType != expectedType {
+			// TODO: should this be a panic, too?
+			return ErrIncorrectType
+		}
 	}
 
 	return nil
