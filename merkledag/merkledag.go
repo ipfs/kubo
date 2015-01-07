@@ -51,6 +51,20 @@ type Node struct {
 	cached mh.Multihash
 }
 
+// NodeStat is a statistics object for a Node. Mostly sizes.
+type NodeStat struct {
+	NumLinks       int // number of links in link table
+	BlockSize      int // size of the raw data
+	LinksSize      int // size of the links segment
+	DataSize       int // size of the data segment
+	CumulativeSize int // cumulatie size of object + all it references
+}
+
+func (ns NodeStat) String() string {
+	f := "NodeStat{NumLinks: %d, BlockSize: %d, LinksSize: %d, DataSize: %d, CumulativeSize: %d}"
+	return fmt.Sprintf(f, ns.NumLinks, ns.BlockSize, ns.LinksSize, ns.DataSize, ns.CumulativeSize)
+}
+
 // Link represents an IPFS Merkle DAG Link between Nodes.
 type Link struct {
 	// utf string name. should be unique per object
@@ -160,6 +174,27 @@ func (n *Node) Size() (uint64, error) {
 		s += l.Size
 	}
 	return s, nil
+}
+
+// Stat returns statistics on the node.
+func (n *Node) Stat() (NodeStat, error) {
+	enc, err := n.Encoded(false)
+	if err != nil {
+		return NodeStat{}, err
+	}
+
+	cumSize, err := n.Size()
+	if err != nil {
+		return NodeStat{}, err
+	}
+
+	return NodeStat{
+		NumLinks:       len(n.Links),
+		BlockSize:      len(enc),
+		LinksSize:      len(enc) - len(n.Data), // includes framing.
+		DataSize:       len(n.Data),
+		CumulativeSize: int(cumSize),
+	}, nil
 }
 
 // Multihash hashes the encoded data of this node.
