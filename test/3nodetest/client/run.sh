@@ -1,16 +1,16 @@
 ipfs bootstrap add /ip4/$BOOTSTRAP_PORT_4011_TCP_ADDR/tcp/$BOOTSTRAP_PORT_4011_TCP_PORT/QmNXuBh8HFsWq68Fid8dMbGNQTh7eG6hV9rr1fQyfmfomE
 
 
-echo "dockertest> starting client daemon"
+echo "3nodetest> starting client daemon"
 ipfs daemon &
 sleep 3
 
 while [ ! -f /data/idtiny ]
 do
-    echo "dockertest> waiting for server to add the file..."
+    echo "3nodetest> waiting for server to add the file..."
     sleep 1
 done
-echo "dockertest> client found file with hash:" $(cat /data/idtiny)
+echo "3nodetest> client found file with hash:" $(cat /data/idtiny)
 
 ipfs cat $(cat /data/idtiny) > filetiny
 
@@ -25,10 +25,10 @@ fi
 
 while [ ! -f /data/idrand ]
 do
-    echo "dockertest> waiting for server to add the file..."
+    echo "3nodetest> waiting for server to add the file..."
     sleep 1
 done
-echo "dockertest> client found file with hash:" $(cat /data/idrand)
+echo "3nodetest> client found file with hash:" $(cat /data/idrand)
 
 cat /data/idrand
 
@@ -46,4 +46,4 @@ if (($? > 0)); then
     exit 1
 fi
 
-echo "dockertest> success"
+echo "3nodetest> success"
