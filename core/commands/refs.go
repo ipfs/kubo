@@ -2,10 +2,11 @@ package commands
 
 import (
 	"bytes"
-	"fmt"
 	"io"
+	"sync"
 
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -44,6 +45,7 @@ Note: list all refs recursively with -r.
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from"),
 	},
 	Options: []cmds.Option{
+		cmds.BoolOption("edges", "e", "Emit edge format: <from> -> <to>"),
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
@@ -53,84 +55,191 @@ Note: list all refs recursively with -r.
 			return nil, err
 		}
 
-		unique, found, err := req.Option("unique").Bool()
-		if err != nil {
-			return nil, err
-		}
-		if !found {
-			unique = false
-		}
-
-		recursive, found, err := req.Option("recursive").Bool()
-		if err != nil {
-			return nil, err
-		}
-		if !found {
-			recursive = false
-		}
-
-		return getRefs(n, req.Arguments(), unique, recursive)
-	},
-	Type: KeyList{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: KeyListTextMarshaler,
-	},
-}
-
-func getRefs(n *core.IpfsNode, paths []string, unique, recursive bool) (*KeyList, error) {
-	var refsSeen map[u.Key]bool
-	if unique {
-		refsSeen = make(map[u.Key]bool)
-	}
-
-	refs := make([]u.Key, 0)
-
-	for _, path := range paths {
-		object, err := n.Resolver.ResolvePath(path)
+		unique, _, err := req.Option("unique").Bool()
 		if err != nil {
 			return nil, err
 		}
 
-		refs, err = addRefs(n, object, refs, refsSeen, recursive)
+		recursive, _, err := req.Option("recursive").Bool()
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	return &KeyList{refs}, nil
-}
+		edges, _, err := req.Option("edges").Bool()
+		if err != nil {
+			return nil, err
+		}
 
-func addRefs(n *core.IpfsNode, object *dag.Node, refs []u.Key, refsSeen map[u.Key]bool, recursive bool) ([]u.Key, error) {
-	for _, link := range object.Links {
-		var found bool
-		found, refs = addRef(link.Hash, refs, refsSeen)
+		objs, err := objectsForPaths(n, req.Arguments())
+		if err != nil {
+			return nil, err
+		}
 
-		if recursive && !found {
-			child, err := n.DAG.Get(u.Key(link.Hash))
-			if err != nil {
-				return nil, fmt.Errorf("cannot retrieve %s (%s)", link.Hash.B58String(), err)
+		piper, pipew := io.Pipe()
+		eptr := &ErrPassThroughReader{R: piper}
+
+		go func() {
+			defer pipew.Close()
+
+			rw := RefWriter{
+				W:         pipew,
+				DAG:       n.DAG,
+				Ctx:       n.Context(),
+				Unique:    unique,
+				PrintEdge: edges,
+				Recursive: recursive,
 			}
 
-			refs, err = addRefs(n, child, refs, refsSeen, recursive)
-			if err != nil {
-				return nil, err
+			for _, o := range objs {
+				if _, err := rw.WriteRefs(o); err != nil {
+					eptr.SetError(err)
+				}
 			}
-		}
-	}
+		}()
 
-	return refs, nil
+		return eptr, nil
+	},
 }
 
-func addRef(h mh.Multihash, refs []u.Key, refsSeen map[u.Key]bool) (bool, []u.Key) {
-	key := u.Key(h)
-	if refsSeen != nil {
-		_, found := refsSeen[key]
-		if found {
-			return true, refs
+func objectsForPaths(n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
+	objects := make([]*dag.Node, len(paths))
+	for i, p := range paths {
+		o, err := n.Resolver.ResolvePath(p)
+		if err != nil {
+			return nil, err
 		}
-		refsSeen[key] = true
+		objects[i] = o
+	}
+	return objects, nil
+}
+
+// ErrPassThroughReader is a reader that may return an externally set error.
+type ErrPassThroughReader struct {
+	R   io.ReadCloser
+	err error
+
+	sync.RWMutex
+}
+
+func (r *ErrPassThroughReader) Error() error {
+	r.RLock()
+	defer r.RUnlock()
+	return r.err
+}
+
+func (r *ErrPassThroughReader) SetError(err error) {
+	r.Lock()
+	r.err = err
+	r.Unlock()
+}
+
+func (r *ErrPassThroughReader) Read(buf []byte) (int, error) {
+	err := r.Error()
+	if err != nil {
+		return 0, err
 	}
 
-	refs = append(refs, key)
-	return false, refs
+	return r.R.Read(buf)
+}
+
+func (r *ErrPassThroughReader) Close() error {
+	err1 := r.R.Close()
+	err2 := r.Error()
+	if err2 != nil {
+		return err2
+	}
+	return err1
+}
+
+type RefWriter struct {
+	W   io.Writer
+	DAG dag.DAGService
+	Ctx context.Context
+
+	Unique    bool
+	Recursive bool
+	PrintEdge bool
+
+	seen map[u.Key]struct{}
+}
+
+// WriteRefs writes refs of the given object to the underlying writer.
+func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
+	nkey, err := n.Key()
+	if err != nil {
+		return 0, err
+	}
+
+	if rw.skip(nkey) {
+		return 0, nil
+	}
+
+	count := 0
+	for _, l := range n.Links {
+		lk := u.Key(l.Hash)
+
+		if rw.skip(lk) {
+			continue
+		}
+
+		if err := rw.WriteEdge(nkey, lk); err != nil {
+			return count, err
+		}
+		count++
+
+		if !rw.Recursive {
+			continue
+		}
+
+		child, err := l.GetNode(rw.DAG)
+		if err != nil {
+			return count, err
+		}
+
+		c, err := rw.WriteRefs(child)
+		count += c
+		if err != nil {
+			return count, err
+		}
+	}
+	return count, nil
+}
+
+// skip returns whether to skip a key
+func (rw *RefWriter) skip(k u.Key) bool {
+	if !rw.Unique {
+		return false
+	}
+
+	if rw.seen == nil {
+		rw.seen = make(map[u.Key]struct{})
+	}
+
+	_, found := rw.seen[k]
+	if !found {
+		rw.seen[k] = struct{}{}
+	}
+	return found
+}
+
+// Write one edge
+func (rw *RefWriter) WriteEdge(from, to u.Key) error {
+	if rw.Ctx != nil {
+		select {
+		case <-rw.Ctx.Done(): // just in case.
+			return rw.Ctx.Err()
+		default:
+		}
+	}
+
+	var s string
+	if rw.PrintEdge {
+		s = from.Pretty() + " -> "
+	}
+	s += to.Pretty() + "\n"
+
+	if _, err := rw.W.Write([]byte(s)); err != nil {
+		return err
+	}
+	return nil
 }
