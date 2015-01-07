@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"io"
+	"strings"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -90,6 +93,6 @@ type MessageOutput struct {
 	Message string
 }
 
-func MessageTextMarshaler(res cmds.Response) ([]byte, error) {
-	return []byte(res.Output().(*MessageOutput).Message), nil
+func MessageTextMarshaler(res cmds.Response) (io.Reader, error) {
+	return strings.NewReader(res.Output().(*MessageOutput).Message), nil
 }

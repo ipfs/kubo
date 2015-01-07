@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
@@ -101,13 +102,13 @@ multihash.
 		return objectLinks(n, key)
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			object := res.Output().(*Object)
 			marshalled := marshalLinks(object.Links)
-			return []byte(marshalled), nil
+			return strings.NewReader(marshalled), nil
 		},
 	},
-	Type: &Object{},
+	Type: Object{},
 }
 
 var objectGetCmd = &cmds.Command{
@@ -161,15 +162,20 @@ This command outputs data in the following encodings:
 
 		return node, nil
 	},
-	Type: &Node{},
+	Type: Node{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.EncodingType("protobuf"): func(res cmds.Response) ([]byte, error) {
+		cmds.EncodingType("protobuf"): func(res cmds.Response) (io.Reader, error) {
 			node := res.Output().(*Node)
 			object, err := deserializeNode(node)
 			if err != nil {
 				return nil, err
 			}
-			return object.Marshal()
+
+			marshaled, err := object.Marshal()
+			if err != nil {
+				return nil, err
+			}
+			return bytes.NewReader(marshaled), nil
 		},
 	},
 }
@@ -221,12 +227,12 @@ Data should be in the format specified by <encoding>.
 		return output, nil
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			object := res.Output().(*Object)
-			return []byte("added " + object.Hash), nil
+			return strings.NewReader("added " + object.Hash), nil
 		},
 	},
-	Type: &Object{},
+	Type: Object{},
 }
 
 // objectData takes a key string and writes out the raw bytes of that node (if there is one)

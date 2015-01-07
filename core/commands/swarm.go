@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"path"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -68,7 +69,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
 	},
-	Type: &stringList{},
+	Type: stringList{},
 }
 
 var swarmConnectCmd = &cmds.Command{
@@ -121,10 +122,10 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
 	},
-	Type: &stringList{},
+	Type: stringList{},
 }
 
-func stringListMarshaler(res cmds.Response) ([]byte, error) {
+func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 	list, ok := res.Output().(*stringList)
 	if !ok {
 		return nil, errors.New("failed to cast []string")
@@ -132,10 +133,10 @@ func stringListMarshaler(res cmds.Response) ([]byte, error) {
 
 	var buf bytes.Buffer
 	for _, s := range list.Strings {
-		buf.Write([]byte(s))
-		buf.Write([]byte("\n"))
+		buf.WriteString(s)
+		buf.WriteString("\n")
 	}
-	return buf.Bytes(), nil
+	return &buf, nil
 }
 
 // splitAddresses is a function that takes in a slice of string peer addresses

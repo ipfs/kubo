@@ -48,5 +48,5 @@ output of a running daemon.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
 	},
-	Type: &MessageOutput{},
+	Type: MessageOutput{},
 }

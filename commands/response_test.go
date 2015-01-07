@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -27,21 +28,25 @@ func TestMarshalling(t *testing.T) {
 
 	req.SetOption(EncShort, JSON)
 
-	bytes, err := res.Marshal()
+	reader, err := res.Marshal()
 	if err != nil {
 		t.Error(err, "Should have passed")
 	}
-	output := string(bytes)
+	var buf bytes.Buffer
+	buf.ReadFrom(reader)
+	output := buf.String()
 	if removeWhitespace(output) != "{\"Foo\":\"beep\",\"Bar\":\"boop\",\"Baz\":1337}" {
 		t.Error("Incorrect JSON output")
 	}
 
 	res.SetError(fmt.Errorf("Oops!"), ErrClient)
-	bytes, err = res.Marshal()
+	reader, err = res.Marshal()
 	if err != nil {
 		t.Error("Should have passed")
 	}
-	output = string(bytes)
+	buf.Reset()
+	buf.ReadFrom(reader)
+	output = buf.String()
 	fmt.Println(removeWhitespace(output))
 	if removeWhitespace(output) != "{\"Message\":\"Oops!\",\"Code\":1}" {
 		t.Error("Incorrect JSON output")

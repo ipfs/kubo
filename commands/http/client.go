@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -41,6 +42,9 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	// override with json to send to server
 	req.SetOption(cmds.EncShort, cmds.JSON)
+
+	// stream channel output
+	req.SetOption(cmds.ChanOpt, "true")
 
 	query, err := getQuery(req)
 	if err != nil {
@@ -137,7 +141,33 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	contentType = strings.Split(contentType, ";")[0]
 
 	if len(httpRes.Header.Get(streamHeader)) > 0 {
+		// if output is a stream, we can just use the body reader
 		res.SetOutput(httpRes.Body)
+		return res, nil
+
+	} else if len(httpRes.Header.Get(channelHeader)) > 0 {
+		// if output is coming from a channel, decode each chunk
+		outChan := make(chan interface{})
+		go func() {
+			dec := json.NewDecoder(httpRes.Body)
+			outputType := reflect.TypeOf(req.Command().Type)
+
+			for {
+				v := reflect.New(outputType).Interface()
+				err := dec.Decode(v)
+				if err != nil && err != io.EOF {
+					fmt.Println(err.Error())
+					return
+				}
+				if err == io.EOF {
+					close(outChan)
+					return
+				}
+				outChan <- v
+			}
+		}()
+
+		res.SetOutput(outChan)
 		return res, nil
 	}
 
@@ -169,8 +199,9 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		res.SetError(e, e.Code)
 
 	} else {
-		v := req.Command().Type
-		err = dec.Decode(&v)
+		outputType := reflect.TypeOf(req.Command().Type)
+		v := reflect.New(outputType).Interface()
+		err = dec.Decode(v)
 		if err != nil && err != io.EOF {
 			return nil, err
 		}

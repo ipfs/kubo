@@ -2,6 +2,8 @@ package commands
 
 import (
 	"errors"
+	"io"
+	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
@@ -71,9 +73,9 @@ Resolve te value of another name:
 		return output, nil
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			output := res.Output().(string)
-			return []byte(output), nil
+			return strings.NewReader(output), nil
 		},
 	},
 }

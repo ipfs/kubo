@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -76,16 +78,20 @@ if no peer is specified, prints out local peers info.
 		return printPeer(node.Peerstore, p.ID)
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			val, ok := res.Output().(*IdOutput)
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			return json.MarshalIndent(val, "", "\t")
+			marshaled, err := json.MarshalIndent(val, "", "\t")
+			if err != nil {
+				return nil, err
+			}
+			return bytes.NewReader(marshaled), nil
 		},
 	},
-	Type: &IdOutput{},
+	Type: IdOutput{},
 }
 
 func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {

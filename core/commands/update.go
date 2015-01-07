@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
@@ -27,22 +29,22 @@ var UpdateCmd = &cmds.Command{
 		}
 		return updateApply(n)
 	},
-	Type: &UpdateOutput{},
+	Type: UpdateOutput{},
 	Subcommands: map[string]*cmds.Command{
 		"check": UpdateCheckCmd,
 		"log":   UpdateLogCmd,
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*UpdateOutput)
-			s := ""
+			var buf bytes.Buffer
 			if v.NewVersion != v.OldVersion {
-				s = fmt.Sprintf("Successfully updated to IPFS version '%s' (from '%s')\n",
-					v.NewVersion, v.OldVersion)
+				buf.WriteString(fmt.Sprintf("Successfully updated to IPFS version '%s' (from '%s')\n",
+					v.NewVersion, v.OldVersion))
 			} else {
-				s = fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion)
+				buf.WriteString(fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion))
 			}
-			return []byte(s), nil
+			return &buf, nil
 		},
 	},
 }
@@ -60,18 +62,18 @@ var UpdateCheckCmd = &cmds.Command{
 		}
 		return updateCheck(n)
 	},
-	Type: &UpdateOutput{},
+	Type: UpdateOutput{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*UpdateOutput)
-			s := ""
+			var buf bytes.Buffer
 			if v.NewVersion != v.OldVersion {
-				s = fmt.Sprintf("A new version of IPFS is available ('%s', currently running '%s')\n",
-					v.NewVersion, v.OldVersion)
+				buf.WriteString(fmt.Sprintf("A new version of IPFS is available ('%s', currently running '%s')\n",
+					v.NewVersion, v.OldVersion))
 			} else {
-				s = fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion)
+				buf.WriteString(fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion))
 			}
-			return []byte(s), nil
+			return &buf, nil
 		},
 	},
 }

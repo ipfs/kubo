@@ -4,6 +4,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -132,13 +133,13 @@ baz
 		output.IPNS = nsdir
 		return &output, nil
 	},
-	Type: &config.Mounts{},
+	Type: config.Mounts{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) ([]byte, error) {
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*config.Mounts)
 			s := fmt.Sprintf("IPFS mounted at: %s\n", v.IPFS)
 			s += fmt.Sprintf("IPNS mounted at: %s\n", v.IPNS)
-			return []byte(s), nil
+			return strings.NewReader(s), nil
 		},
 	},
 }

@@ -70,7 +70,6 @@ type Request interface {
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
-	Cleanup() error
 
 	ConvertOptions() error
 }
@@ -172,11 +171,6 @@ func (r *request) SetContext(ctx Context) {
 
 func (r *request) Command() *Command {
 	return r.cmd
-}
-
-func (r *request) Cleanup() error {
-	// TODO
-	return nil
 }
 
 type converter func(string) (interface{}, error)
