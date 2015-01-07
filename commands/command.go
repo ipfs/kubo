@@ -117,12 +117,19 @@ func (c *Command) Call(req Request) Response {
 	isChan := false
 	actualType := reflect.TypeOf(output)
 	if actualType != nil {
-		if actualType.Kind() == reflect.Ptr {
-			actualType = actualType.Elem()
-		}
-
-		// test if output is a channel
 		isChan = actualType.Kind() == reflect.Chan
+		isPointer := actualType.Kind() == reflect.Ptr
+		_, isReader := output.(io.Reader)
+
+		if !isReader {
+			if isChan || isPointer {
+				// use the dereferenced type, not the pointer type
+				actualType = actualType.Elem()
+			} else {
+				// ensures the developer of the command is returning a valid type
+				panic("Commands must return a pointer, io.Reader, or channel")
+			}
+		}
 	}
 
 	// If the command specified an output type, ensure the actual value returned is of that type
