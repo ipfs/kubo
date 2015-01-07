@@ -25,8 +25,8 @@ test_short: build test_go_short test_sharness_short
 
 test_expensive: build test_go_expensive test_sharness_expensive
 
-test_docker:
-	cd dockertest/ && make
+test_3node:
+	cd test/3nodetest && make
 
 test_go_short:
 	go test -test.short ./...
