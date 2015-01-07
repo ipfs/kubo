@@ -100,6 +100,7 @@ Note: list all refs recursively with -r.
 
 			for _, o := range objs {
 				if _, err := rw.WriteRefs(o); err != nil {
+					log.Error(err)
 					eptr.SetError(err)
 				}
 			}
