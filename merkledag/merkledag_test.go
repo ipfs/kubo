@@ -85,11 +85,47 @@ func TestNode(t *testing.T) {
 		} else {
 			fmt.Println("key: ", k)
 		}
+
+		SubtestNodeStat(t, n)
 	}
 
 	printn("beep", n1)
 	printn("boop", n2)
 	printn("beep boop", n3)
+}
+
+func SubtestNodeStat(t *testing.T, n *Node) {
+	enc, err := n.Encoded(true)
+	if err != nil {
+		t.Error("n.Encoded(true) failed")
+		return
+	}
+
+	cumSize, err := n.Size()
+	if err != nil {
+		t.Error("n.Size() failed")
+		return
+	}
+
+	expected := NodeStat{
+		NumLinks:       len(n.Links),
+		BlockSize:      len(enc),
+		LinksSize:      len(enc) - len(n.Data), // includes framing.
+		DataSize:       len(n.Data),
+		CumulativeSize: int(cumSize),
+	}
+
+	actual, err := n.Stat()
+	if err != nil {
+		t.Error("n.Stat() failed")
+		return
+	}
+
+	if expected != actual {
+		t.Error("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
+	} else {
+		fmt.Printf("n.Stat correct: %s\n", actual)
+	}
 }
 
 type devZero struct{}

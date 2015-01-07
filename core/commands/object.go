@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -36,6 +37,7 @@ ipfs object get <key>             - Get the DAG node named by <key>
 ipfs object put <data> <encoding> - Stores input, outputs its key
 ipfs object data <key>            - Outputs raw bytes in an object
 ipfs object links <key>           - Outputs links pointed to by object
+ipfs object stat <key>            - Outputs statistics of object
 `,
 	},
 
@@ -44,6 +46,7 @@ ipfs object links <key>           - Outputs links pointed to by object
 		"links": objectLinksCmd,
 		"get":   objectGetCmd,
 		"put":   objectPutCmd,
+		"stat":  objectStatCmd,
 	},
 }
 
@@ -176,6 +179,64 @@ This command outputs data in the following encodings:
 				return nil, err
 			}
 			return bytes.NewReader(marshaled), nil
+		},
+	},
+}
+
+var objectStatCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get stats for the DAG node named by <key>",
+		ShortDescription: `
+'ipfs object stat' is a plumbing command to print DAG node statistics.
+<key> is a base58 encoded multihash. It outputs to stdout:
+
+	NumLinks        int number of links in link table
+	BlockSize       int size of the raw, encoded data
+	LinksSize       int size of the links segment
+	DataSize        int size of the data segment
+	CumulativeSize  int cumulative size of object and its references
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		key := req.Arguments()[0]
+
+		object, err := objectGet(n, key)
+		if err != nil {
+			return nil, err
+		}
+
+		ns, err := object.Stat()
+		if err != nil {
+			return nil, err
+		}
+
+		return ns, nil
+	},
+	Type: dag.NodeStat{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			ns := res.Output().(dag.NodeStat)
+
+			var buf bytes.Buffer
+			w := func(s string, n int) {
+				buf.Write([]byte(fmt.Sprintf("%s: %d\n", s, n)))
+			}
+			w("NumLinks", ns.NumLinks)
+			w("BlockSize", ns.BlockSize)
+			w("LinksSize", ns.LinksSize)
+			w("DataSize", ns.DataSize)
+			w("CumulativeSize", ns.CumulativeSize)
+
+			return &buf, nil
 		},
 	},
 }
