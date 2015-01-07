@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ "$#" -ne 1 ]; then
+  echo "usage: $0 <ipfs-path>..."
+  echo "output merkledag links in graphviz dot"
+  exit 1
+fi
+
+fmt='<src> -> <dst> [label="<linkname>"];'
+echo "digraph {"
+ipfs refs -r --format="$fmt" "$@" | awk '{ print "\t" $0 }'
+echo "}"
