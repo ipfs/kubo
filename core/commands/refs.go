@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"io"
+	"strings"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -45,7 +46,8 @@ Note: list all refs recursively with -r.
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from"),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("edges", "e", "Emit edge format: <from> -> <to>"),
+		cmds.StringOption("format", "Emit edges with given format. tokens: <src> <dst> <linkname>"),
+		cmds.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`"),
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
@@ -70,6 +72,11 @@ Note: list all refs recursively with -r.
 			return nil, err
 		}
 
+		format, _, err := req.Option("format").String()
+		if err != nil {
+			return nil, err
+		}
+
 		objs, err := objectsForPaths(n, req.Arguments())
 		if err != nil {
 			return nil, err
@@ -87,6 +94,7 @@ Note: list all refs recursively with -r.
 				Ctx:       n.Context(),
 				Unique:    unique,
 				PrintEdge: edges,
+				PrintFmt:  format,
 				Recursive: recursive,
 			}
 
@@ -159,6 +167,7 @@ type RefWriter struct {
 	Unique    bool
 	Recursive bool
 	PrintEdge bool
+	PrintFmt  string
 
 	seen map[u.Key]struct{}
 }
@@ -182,7 +191,7 @@ func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
 			continue
 		}
 
-		if err := rw.WriteEdge(nkey, lk); err != nil {
+		if err := rw.WriteEdge(nkey, lk, l.Name); err != nil {
 			return count, err
 		}
 		count++
@@ -223,7 +232,7 @@ func (rw *RefWriter) skip(k u.Key) bool {
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to u.Key) error {
+func (rw *RefWriter) WriteEdge(from, to u.Key, linkname string) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.
@@ -233,10 +242,18 @@ func (rw *RefWriter) WriteEdge(from, to u.Key) error {
 	}
 
 	var s string
-	if rw.PrintEdge {
-		s = from.Pretty() + " -> "
+	switch {
+	case rw.PrintFmt != "":
+		s = rw.PrintFmt
+		s = strings.Replace(s, "<src>", from.Pretty(), -1)
+		s = strings.Replace(s, "<dst>", to.Pretty(), -1)
+		s = strings.Replace(s, "<linkname>", linkname, -1)
+	case rw.PrintEdge:
+		s = from.Pretty() + " -> " + to.Pretty()
+	default:
+		s += to.Pretty()
 	}
-	s += to.Pretty() + "\n"
+	s += "\n"
 
 	if _, err := rw.W.Write([]byte(s)); err != nil {
 		return err
