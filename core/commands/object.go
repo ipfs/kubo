@@ -224,7 +224,7 @@ var objectStatCmd = &cmds.Command{
 	Type: dag.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			ns := res.Output().(dag.NodeStat)
+			ns := res.Output().(*dag.NodeStat)
 
 			var buf bytes.Buffer
 			w := func(s string, n int) {
