@@ -219,7 +219,7 @@ var objectStatCmd = &cmds.Command{
 			return nil, err
 		}
 
-		return ns, nil
+		return &ns, nil
 	},
 	Type: dag.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
