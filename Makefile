@@ -35,10 +35,10 @@ test_go_expensive:
 	go test ./...
 
 test_sharness_short:
-	cd test/ && make
+	cd test/sharness/ && make
 
 test_sharness_expensive:
-	cd test/ && TEST_EXPENSIVE=1 make
+	cd test/sharness/ && TEST_EXPENSIVE=1 make
 
 test_all_commits:
 	@echo "testing all commits between origin/master..HEAD"
