@@ -29,4 +29,14 @@ test_expect_success "'ipfs block get' output looks good" '
 	test_cmp expected_in actual_in
 '
 
+test_expect_success "'ipfs block stat' succeeds" '
+  ipfs block stat $HASH >actual_stat
+'
+
+test_expect_success "'ipfs block get' output looks good" '
+  echo "Key: $HASH" >expected_stat &&
+  echo "Size: 12" >>expected_stat &&
+  test_cmp expected_stat actual_stat
+'
+
 test_done
