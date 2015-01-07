@@ -2,10 +2,10 @@ package commands
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
-	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -15,9 +15,13 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type Block struct {
-	Key    string
-	Length int
+type BlockStat struct {
+	Key  string
+	Size int
+}
+
+func (bs BlockStat) String() string {
+	return fmt.Sprintf("Key: %s\nSize: %d\n", bs.Key, bs.Size)
 }
 
 var BlockCmd = &cmds.Command{
@@ -31,8 +35,45 @@ multihash.
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"get": blockGetCmd,
-		"put": blockPutCmd,
+		"stat": blockStatCmd,
+		"get":  blockGetCmd,
+		"put":  blockPutCmd,
+	},
+}
+
+var blockStatCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Print information of a raw IPFS block",
+		ShortDescription: `
+'ipfs block stat' is a plumbing command for retreiving information
+on raw ipfs blocks. It outputs the following to stdout:
+
+	Key  - the base58 encoded multihash
+	Size - the size of the block in bytes
+
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		b, err := getBlockForKey(req, req.Arguments()[0])
+		if err != nil {
+			return nil, err
+		}
+
+		return &BlockStat{
+			Key:  b.Key().Pretty(),
+			Size: len(b.Data),
+		}, nil
+	},
+	Type: BlockStat{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			bs := res.Output().(*BlockStat)
+			return strings.NewReader(bs.String()), nil
+		},
 	},
 }
 
@@ -49,29 +90,10 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-		n, err := req.Context().GetNode()
+		b, err := getBlockForKey(req, req.Arguments()[0])
 		if err != nil {
 			return nil, err
 		}
-
-		key := req.Arguments()[0]
-
-		if !u.IsValidHash(key) {
-			return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
-		}
-
-		h, err := mh.FromB58String(key)
-		if err != nil {
-			return nil, err
-		}
-
-		k := u.Key(h)
-		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-		b, err := n.Blocks.GetBlock(ctx, k)
-		if err != nil {
-			return nil, err
-		}
-		log.Debugf("BlockGet key: '%q'", b.Key())
 
 		return bytes.NewReader(b.Data), nil
 	},
@@ -118,16 +140,39 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return nil, err
 		}
 
-		return &Block{
-			Key:    k.String(),
-			Length: len(data),
+		return &BlockStat{
+			Key:  k.String(),
+			Size: len(data),
 		}, nil
 	},
-	Type: Block{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			block := res.Output().(*Block)
-			return strings.NewReader(block.Key + "\n"), nil
+			bs := res.Output().(*BlockStat)
+			return strings.NewReader(bs.Key + "\n"), nil
 		},
 	},
+}
+
+func getBlockForKey(req cmds.Request, key string) (*blocks.Block, error) {
+	n, err := req.Context().GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	if !u.IsValidHash(key) {
+		return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
+	}
+
+	h, err := mh.FromB58String(key)
+	if err != nil {
+		return nil, err
+	}
+
+	k := u.Key(h)
+	b, err := n.Blocks.GetBlock(context.TODO(), k)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("ipfs block: got block with key: %q", b.Key())
+	return b, nil
 }
