@@ -1,10 +1,11 @@
 # This Makefile provides a way to really simple way to run benchmarks in a
 # docker environment.
 
+IPFS_ROOT = ../..
 IMAGE = jbenet/go-ipfs-bench
 CONTAINER = go-ipfs-bench
 PACKAGE = epictest
-PACKAGE_DIR = epictest
+PACKAGE_DIR = test/epictest
 BUILD_DIR = ./build/bench
 CONTAINER_WORKING_DIR = /go
 CPU_PROF_NAME = cpu.out
@@ -18,7 +19,7 @@ cp_pprof_from_container:
 	docker cp $(CONTAINER):$(CONTAINER_WORKING_DIR)/$(PACKAGE).test $(BUILD_DIR)
 
 build_image:
-	cd .. && docker build -t $(IMAGE) .
+	cd $(IPFS_ROOT) && docker build -t $(IMAGE) .
 
 run_profiler:
 	docker run --name $(CONTAINER) -it --entrypoint go $(IMAGE) test ./src/github.com/jbenet/go-ipfs/$(PACKAGE_DIR) --cpuprofile=$(CPU_PROF_NAME)
