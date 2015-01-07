@@ -27,10 +27,10 @@ type Node struct {
 // NodeStat is a statistics object for a Node. Mostly sizes.
 type NodeStat struct {
 	NumLinks       int // number of links in link table
-	BlockSize      int // size of the raw data
+	BlockSize      int // size of the raw, encoded data
 	LinksSize      int // size of the links segment
 	DataSize       int // size of the data segment
-	CumulativeSize int // cumulatie size of object + all it references
+	CumulativeSize int // cumulative size of object and its references
 }
 
 func (ns NodeStat) String() string {
