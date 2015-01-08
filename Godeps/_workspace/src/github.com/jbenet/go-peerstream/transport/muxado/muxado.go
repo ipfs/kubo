@@ -31,6 +31,8 @@ func (s *stream) Close() error {
 // Conn is a connection to a remote peer.
 type conn struct {
 	ms muxado.Session
+
+	closed chan struct{}
 }
 
 func (c *conn) muxadoSession() muxado.Session {
@@ -39,6 +41,15 @@ func (c *conn) muxadoSession() muxado.Session {
 
 func (c *conn) Close() error {
 	return c.ms.Close()
+}
+
+func (c *conn) IsClosed() bool {
+	select {
+	case <-c.closed:
+		return true
+	default:
+		return false
+	}
 }
 
 // OpenStream creates a new stream.
@@ -76,5 +87,10 @@ func (t transport) NewConn(nc net.Conn, isServer bool) (pst.Conn, error) {
 	} else {
 		s = muxado.Client(nc)
 	}
-	return &conn{ms: s}, nil
+	cl := make(chan struct{})
+	go func() {
+		s.Wait()
+		close(cl)
+	}()
+	return &conn{ms: s, closed: cl}, nil
 }

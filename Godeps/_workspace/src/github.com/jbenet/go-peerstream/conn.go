@@ -111,8 +111,8 @@ func (c *Conn) Close() error {
 	}
 
 	// close underlying connection
-	c.netConn.Close()
-	return c.swarm.removeConn(c)
+	c.swarm.removeConn(c)
+	return c.pstConn.Close()
 }
 
 // ConnsWithGroup narrows down a set of connections to those in a given group.
@@ -234,10 +234,9 @@ func (s *Swarm) removeStream(stream *Stream) error {
 	return stream.pstStream.Close()
 }
 
-func (s *Swarm) removeConn(conn *Conn) error {
+func (s *Swarm) removeConn(conn *Conn) {
 	// remove from our maps
 	s.connLock.Lock()
 	delete(s.conns, conn)
 	s.connLock.Unlock()
-	return nil
 }

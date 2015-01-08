@@ -20,6 +20,10 @@ type StreamHandler func(Stream)
 type Conn interface {
 	io.Closer
 
+	// IsClosed returns whether a connection is fully closed, so it can
+	// be garbage collected.
+	IsClosed() bool
+
 	// OpenStream creates a new stream.
 	OpenStream() (Stream, error)
 

@@ -4,12 +4,16 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"time"
 
 	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
 // fd is a (file) descriptor, unix style
 type fd uint32
+
+// GarbageCollectTimeout governs the periodic connection closer.
+var GarbageCollectTimeout = 5 * time.Second
 
 type Swarm struct {
 	// the transport we'll use.
@@ -33,10 +37,12 @@ type Swarm struct {
 	connHandler   ConnHandler   // receives Conns intiated remotely
 	streamHandler StreamHandler // receives Streams initiated remotely
 	selectConn    SelectConn    // default SelectConn function
+
+	closed chan struct{}
 }
 
 func NewSwarm(t pst.Transport) *Swarm {
-	return &Swarm{
+	s := &Swarm{
 		transport:     t,
 		streams:       make(map[*Stream]struct{}),
 		conns:         make(map[*Conn]struct{}),
@@ -44,7 +50,10 @@ func NewSwarm(t pst.Transport) *Swarm {
 		selectConn:    SelectRandomConn,
 		streamHandler: NoOpStreamHandler,
 		connHandler:   NoOpConnHandler,
+		closed:        make(chan struct{}),
 	}
+	go s.connGarbageCollect()
+	return s
 }
 
 // SetStreamHandler assigns the stream handler in the swarm.
@@ -122,7 +131,16 @@ func (s *Swarm) Conns() []*Conn {
 		conns = append(conns, c)
 	}
 	s.connLock.RUnlock()
-	return conns
+
+	open := make([]*Conn, 0, len(conns))
+	for _, c := range conns {
+		if c.pstConn.IsClosed() {
+			c.Close()
+		} else {
+			open = append(open, c)
+		}
+	}
+	return open
 }
 
 // Listeners returns all the listeners associated with this Swarm.
@@ -225,6 +243,11 @@ func (s *Swarm) NewStreamWithConn(conn *Conn) (*Stream, error) {
 		return nil, errors.New("connection not associated with swarm")
 	}
 
+	if conn.pstConn.IsClosed() {
+		go conn.Close()
+		return nil, errors.New("conn is closed")
+	}
+
 	s.connLock.RLock()
 	if _, found := s.conns[conn]; !found {
 		s.connLock.RUnlock()
@@ -251,6 +274,46 @@ func (s *Swarm) StreamsWithGroup(g Group) []*Stream {
 
 // Close shuts down the Swarm, and it's listeners.
 func (s *Swarm) Close() error {
-	// shut down TODO
+	// automatically close everything new we get.
+	s.SetConnHandler(func(c *Conn) { c.Close() })
+	s.SetStreamHandler(func(s *Stream) { s.Close() })
+
+	var wgl sync.WaitGroup
+	for _, l := range s.Listeners() {
+		wgl.Add(1)
+		go func() {
+			l.Close()
+			wgl.Done()
+		}()
+	}
+	wgl.Wait()
+
+	var wgc sync.WaitGroup
+	for _, c := range s.Conns() {
+		wgc.Add(1)
+		go func() {
+			c.Close()
+			wgc.Done()
+		}()
+	}
+	wgc.Wait()
 	return nil
+}
+
+// connGarbageCollect periodically sweeps conns to make sure
+// they're still alive. if any are closed, remvoes them.
+func (s *Swarm) connGarbageCollect() {
+	for {
+		select {
+		case <-s.closed:
+			return
+		case <-time.After(GarbageCollectTimeout):
+		}
+
+		for _, c := range s.Conns() {
+			if c.pstConn.IsClosed() {
+				go c.Close()
+			}
+		}
+	}
 }

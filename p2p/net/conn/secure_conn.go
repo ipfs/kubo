@@ -58,11 +58,7 @@ func newSecureConn(ctx context.Context, sk ic.PrivKey, insecure Conn) (Conn, err
 }
 
 func (c *secureConn) Close() error {
-	if err := c.secure.Close(); err != nil {
-		c.insecure.Close()
-		return err
-	}
-	return c.insecure.Close()
+	return c.secure.Close()
 }
 
 // ID is an identifier unique to this connection.

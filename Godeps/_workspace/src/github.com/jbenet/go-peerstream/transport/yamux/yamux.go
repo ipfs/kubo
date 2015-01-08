@@ -39,6 +39,10 @@ func (c *conn) Close() error {
 	return c.yamuxSession().Close()
 }
 
+func (c *conn) IsClosed() bool {
+	return c.yamuxSession().IsClosed()
+}
+
 // OpenStream creates a new stream.
 func (c *conn) OpenStream() (pst.Stream, error) {
 	s, err := c.yamuxSession().OpenStream()
