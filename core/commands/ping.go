@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -12,6 +13,8 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
+
+const kPingTimeout = 10 * time.Second
 
 type PingResult struct {
 	Success bool
@@ -30,7 +33,7 @@ send pings, wait for pongs, and print out round-trip latency information.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer-id", true, true, "ID of peer to ping"),
+		cmds.StringArg("count", false, true, "Number of pings to perform"),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -66,15 +69,32 @@ send pings, wait for pongs, and print out round-trip latency information.
 			return nil, err
 		}
 
+		// Must be online!
 		if !n.OnlineMode() {
 			return nil, errNotOnline
 		}
 
-		peerID, err := peer.IDB58Decode("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
+		if len(req.Arguments()) == 0 {
+			return nil, errors.New("no peer specified!")
+		}
+
+		// Set up number of pings
+		numPings := 10
+		val, found, err := req.Option("count").Int()
 		if err != nil {
 			return nil, err
 		}
-		const kPingTimeout = 10 * time.Second
+		if found {
+			numPings = val
+		}
+
+		// One argument of input required, must be base58 encoded peerID
+		peerID, err := peer.IDB58Decode(req.Arguments()[0])
+		if err != nil {
+			return nil, err
+		}
+
+		// Make sure we can find the node in question
 		ctx, _ := context.WithTimeout(context.Background(), kPingTimeout)
 		p, err := n.Routing.FindPeer(ctx, peerID)
 		if err != nil {
@@ -85,11 +105,12 @@ send pings, wait for pongs, and print out round-trip latency information.
 
 		go func() {
 			defer close(outChan)
-			for i := 0; i < 10; i++ {
+			for i := 0; i < numPings; i++ {
 				ctx, _ = context.WithTimeout(context.Background(), kPingTimeout)
 				before := time.Now()
 				err := n.Routing.Ping(ctx, p.ID)
 				if err != nil {
+					log.Errorf("Ping error: %s", err)
 					outChan <- &PingResult{}
 					break
 				}
