@@ -10,8 +10,8 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
-// flags
-var formats = []string{"string", "bytes", "hex", "slice"}
+var formats = []string{"string", "bytes", // flags
+"hex", "slice"}
 var format string
 var hideLoopback bool
 

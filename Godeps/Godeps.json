@@ -127,7 +127,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "b6265d8119558acf3912db44abb34d97c30c3220"
+			"Rev": "2b8f35303d2855c79f9f3f9b3584338a1ff7edbd"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
