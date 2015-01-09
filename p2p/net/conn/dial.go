@@ -100,7 +100,7 @@ func MultiaddrProtocolsMatch(a, b ma.Multiaddr) bool {
 	}
 
 	for i, api := range ap {
-		if api != bp[i] {
+		if api.Code != bp[i].Code {
 			return false
 		}
 	}

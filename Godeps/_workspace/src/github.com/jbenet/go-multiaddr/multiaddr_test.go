@@ -14,6 +14,63 @@ func newMultiaddr(t *testing.T, a string) Multiaddr {
 	return m
 }
 
+func TestConstructFails(t *testing.T) {
+	cases := []string{
+		"/ip4",
+		"/ip4/::1",
+		"/ip4/fdpsofodsajfdoisa",
+		"/ip6",
+		"/udp",
+		"/tcp",
+		"/sctp",
+		"/udp/65536",
+		"/tcp/65536",
+		"/udp/1234/sctp",
+		"/udp/1234/udt/1234",
+		"/udp/1234/utp/1234",
+		"/ip4/127.0.0.1/udp/jfodsajfidosajfoidsa",
+		"/ip4/127.0.0.1/udp",
+		"/ip4/127.0.0.1/tcp/jfodsajfidosajfoidsa",
+		"/ip4/127.0.0.1/tcp",
+	}
+
+	for _, a := range cases {
+		if _, err := NewMultiaddr(a); err == nil {
+			t.Errorf("should have failed: %s", a)
+		}
+	}
+}
+
+func TestConstructSucceeds(t *testing.T) {
+	cases := []string{
+		"/ip4/1.2.3.4",
+		"/ip4/0.0.0.0",
+		"/ip6/::1",
+		"/ip6/2601:9:4f81:9700:803e:ca65:66e8:c21",
+		"/udp/0",
+		"/tcp/0",
+		"/sctp/0",
+		"/udp/1234",
+		"/tcp/1234",
+		"/sctp/1234",
+		"/udp/65535",
+		"/tcp/65535",
+		"/udp/1234/sctp/1234",
+		"/udp/1234/udt",
+		"/udp/1234/utp",
+		"/ip4/127.0.0.1/udp/1234",
+		"/ip4/127.0.0.1/udp/0",
+		"/ip4/127.0.0.1/tcp/1234",
+		"/ip4/127.0.0.1/tcp/1234/",
+	}
+
+	for _, a := range cases {
+		if _, err := NewMultiaddr(a); err != nil {
+			t.Errorf("should have succeeded: %s", a)
+		}
+	}
+}
+
 func TestEqual(t *testing.T) {
 	m1 := newMultiaddr(t, "/ip4/127.0.0.1/udp/1234")
 	m2 := newMultiaddr(t, "/ip4/127.0.0.1/tcp/1234")
@@ -147,14 +204,54 @@ func TestProtocols(t *testing.T) {
 	}
 
 	ps := m.Protocols()
-	if ps[0] != ProtocolWithName("ip4") {
+	if ps[0].Code != ProtocolWithName("ip4").Code {
 		t.Error(ps[0], ProtocolWithName("ip4"))
 		t.Error("failed to get ip4 protocol")
 	}
 
-	if ps[1] != ProtocolWithName("udp") {
+	if ps[1].Code != ProtocolWithName("udp").Code {
 		t.Error(ps[1], ProtocolWithName("udp"))
 		t.Error("failed to get udp protocol")
+	}
+
+}
+
+func TestProtocolsWithString(t *testing.T) {
+	pwn := ProtocolWithName
+	good := map[string][]Protocol{
+		"/ip4":                    []Protocol{pwn("ip4")},
+		"/ip4/tcp":                []Protocol{pwn("ip4"), pwn("tcp")},
+		"ip4/tcp/udp/ip6":         []Protocol{pwn("ip4"), pwn("tcp"), pwn("udp"), pwn("ip6")},
+		"////////ip4/tcp":         []Protocol{pwn("ip4"), pwn("tcp")},
+		"ip4/udp/////////":        []Protocol{pwn("ip4"), pwn("udp")},
+		"////////ip4/tcp////////": []Protocol{pwn("ip4"), pwn("tcp")},
+	}
+
+	for s, ps1 := range good {
+		ps2, err := ProtocolsWithString(s)
+		if err != nil {
+			t.Error("ProtocolsWithString(%s) should have succeeded", s)
+		}
+
+		for i, ps1p := range ps1 {
+			ps2p := ps2[i]
+			if ps1p.Code != ps2p.Code {
+				t.Errorf("mismatch: %s != %s, %s", ps1p.Name, ps2p.Name, s)
+			}
+		}
+	}
+
+	bad := []string{
+		"dsijafd",                           // bogus proto
+		"/ip4/tcp/fidosafoidsa",             // bogus proto
+		"////////ip4/tcp/21432141/////////", // bogus proto
+		"////////ip4///////tcp/////////",    // empty protos in between
+	}
+
+	for _, s := range bad {
+		if _, err := ProtocolsWithString(s); err == nil {
+			t.Error("ProtocolsWithString(%s) should have failed", s)
+		}
 	}
 
 }

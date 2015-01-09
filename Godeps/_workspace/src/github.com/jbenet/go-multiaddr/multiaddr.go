@@ -54,7 +54,7 @@ func (m *multiaddr) String() string {
 
 // Protocols returns the list of protocols this Multiaddr has.
 // will panic in case we access bytes incorrectly.
-func (m *multiaddr) Protocols() []*Protocol {
+func (m *multiaddr) Protocols() []Protocol {
 
 	// panic handler, in case we try accessing bytes incorrectly.
 	defer func() {
@@ -64,12 +64,12 @@ func (m *multiaddr) Protocols() []*Protocol {
 		}
 	}()
 
-	ps := []*Protocol{}
+	ps := []Protocol{}
 	b := m.bytes[:]
 	for len(b) > 0 {
 		code, n := ReadVarintCode(b)
 		p := ProtocolWithCode(code)
-		if p == nil {
+		if p.Code == 0 {
 			// this is a panic (and not returning err) because this should've been
 			// caught on constructing the Multiaddr
 			panic(fmt.Errorf("no protocol with code %d", b[0]))

@@ -122,8 +122,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",
-			"Comment": "0.1.2-30-g99cf3ed",
-			"Rev": "99cf3edc711751cf7b43505fac0e3913f6b9a75c"
+			"Comment": "0.1.2-34-g0d7b54b",
+			"Rev": "0d7b54ba432fda14bac37cdad717bd6270eacc85"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",

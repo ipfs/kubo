@@ -28,9 +28,9 @@ m2.Equal(m1)
 ```go
 // get the multiaddr protocol description objects
 addr.Protocols()
-// []*Protocol{
-//   &Protocol{ Code: 4, Name: 'ip4', Size: 32},
-//   &Protocol{ Code: 17, Name: 'udp', Size: 16},
+// []Protocol{
+//   Protocol{ Code: 4, Name: 'ip4', Size: 32},
+//   Protocol{ Code: 17, Name: 'udp', Size: 16},
 // }
 ```
 

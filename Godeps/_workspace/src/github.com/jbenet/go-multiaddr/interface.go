@@ -26,7 +26,7 @@ type Multiaddr interface {
 
 	// Protocols returns the list of Protocols this Multiaddr includes
 	// will panic if protocol code incorrect (and bytes accessed incorrectly)
-	Protocols() []*Protocol
+	Protocols() []Protocol
 
 	// Encapsulate wraps this Multiaddr around another. For example:
 	//
