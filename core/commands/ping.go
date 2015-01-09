@@ -110,6 +110,7 @@ send pings, wait for pongs, and print out round-trip latency information.
 			}
 			ctx, _ := context.WithTimeout(context.Background(), kPingTimeout)
 			p, err := n.Routing.FindPeer(ctx, peerID)
+			n.Peerstore.AddPeerInfo(p)
 			if err != nil {
 				outChan <- &PingResult{Text: "Peer lookup error!"}
 				outChan <- &PingResult{Text: err.Error()}
