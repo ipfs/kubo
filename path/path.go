@@ -26,6 +26,10 @@ func (s *Resolver) ResolvePath(fpath string) (*merkledag.Node, error) {
 	log.Debugf("Resolve: '%s'", fpath)
 	fpath = path.Clean(fpath)
 
+	if strings.HasPrefix(fpath, "/ipfs/") {
+		fpath = fpath[6:]
+	}
+
 	parts := strings.Split(fpath, "/")
 
 	// skip over empty first elem
