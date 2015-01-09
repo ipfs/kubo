@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -19,6 +18,7 @@ const kPingTimeout = 10 * time.Second
 type PingResult struct {
 	Success bool
 	Time    time.Duration
+	Text    string
 }
 
 var PingCmd = &cmds.Command{
@@ -33,7 +33,10 @@ send pings, wait for pongs, and print out round-trip latency information.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("count", false, true, "Number of pings to perform"),
+		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged"),
+	},
+	Options: []cmds.Option{
+		cmds.IntOption("count", "n"),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -49,7 +52,9 @@ send pings, wait for pongs, and print out round-trip latency information.
 				}
 
 				buf := new(bytes.Buffer)
-				if obj.Success {
+				if len(obj.Text) > 0 {
+					buf = bytes.NewBufferString(obj.Text + "\n")
+				} else if obj.Success {
 					fmt.Fprintf(buf, "Pong took %.2fms\n", obj.Time.Seconds()*1000)
 				} else {
 					fmt.Fprintf(buf, "Pong failed\n")
@@ -75,8 +80,10 @@ send pings, wait for pongs, and print out round-trip latency information.
 		}
 
 		if len(req.Arguments()) == 0 {
-			return nil, errors.New("no peer specified!")
+			return nil, cmds.ClientError("no peer specified!")
 		}
+
+		outChan := make(chan interface{}, 5)
 
 		// Set up number of pings
 		numPings := 10
@@ -94,32 +101,43 @@ send pings, wait for pongs, and print out round-trip latency information.
 			return nil, err
 		}
 
-		// Make sure we can find the node in question
-		ctx, _ := context.WithTimeout(context.Background(), kPingTimeout)
-		p, err := n.Routing.FindPeer(ctx, peerID)
-		if err != nil {
-			return nil, err
-		}
-
-		outChan := make(chan interface{})
-
 		go func() {
 			defer close(outChan)
+
+			// Make sure we can find the node in question
+			outChan <- &PingResult{
+				Text: fmt.Sprintf("Looking up peer %s", peerID.Pretty()),
+			}
+			ctx, _ := context.WithTimeout(context.Background(), kPingTimeout)
+			p, err := n.Routing.FindPeer(ctx, peerID)
+			if err != nil {
+				outChan <- &PingResult{Text: "Peer lookup error!"}
+				outChan <- &PingResult{Text: err.Error()}
+				return
+			}
+			outChan <- &PingResult{
+				Text: fmt.Sprintf("Peer found, starting pings."),
+			}
+
+			var total time.Duration
 			for i := 0; i < numPings; i++ {
 				ctx, _ = context.WithTimeout(context.Background(), kPingTimeout)
-				before := time.Now()
-				err := n.Routing.Ping(ctx, p.ID)
+				took, err := n.Routing.Ping(ctx, p.ID)
 				if err != nil {
 					log.Errorf("Ping error: %s", err)
 					outChan <- &PingResult{}
 					break
 				}
-				took := time.Now().Sub(before)
 				outChan <- &PingResult{
 					Success: true,
 					Time:    took,
 				}
+				total += took
 				time.Sleep(time.Second)
+			}
+			averagems := total.Seconds() * 1000 / float64(numPings)
+			outChan <- &PingResult{
+				Text: fmt.Sprintf("Average latency: %.2fms", averagems),
 			}
 		}()
 

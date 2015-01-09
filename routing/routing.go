@@ -3,6 +3,7 @@ package routing
 
 import (
 	"errors"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -38,5 +39,5 @@ type IpfsRouting interface {
 	FindPeer(context.Context, peer.ID) (peer.PeerInfo, error)
 
 	// Ping a peer, log the time it took
-	Ping(context.Context, peer.ID) error
+	Ping(context.Context, peer.ID) (time.Duration, error)
 }
