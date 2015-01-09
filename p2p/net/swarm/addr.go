@@ -9,6 +9,75 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
+// SupportedTransportStrings is the list of supported transports for the swarm.
+// These are strings of encapsulated multiaddr protocols. E.g.:
+//   /ip4/tcp
+var SupportedTransportStrings = []string{
+	"/ip4/tcp",
+	"/ip6/tcp",
+	// "/ip4/udp/utp", disabled because the lib is broken
+	// "/ip6/udp/utp", disabled because the lib is broken
+	// "/ip4/udp/udt", disabled because the lib doesnt work on arm
+	// "/ip6/udp/udt", disabled because the lib doesnt work on arm
+}
+
+// SupportedTransportProtocols is the list of supported transports for the swarm.
+// These are []ma.Protocol lists. Populated at runtime from SupportedTransportStrings
+var SupportedTransportProtocols = [][]ma.Protocol{}
+
+func init() {
+	// initialize SupportedTransportProtocols
+	transports := make([][]ma.Protocol, len(SupportedTransportStrings))
+	for _, s := range SupportedTransportStrings {
+		t, err := ma.ProtocolsWithString(s)
+		if err != nil {
+			panic(err) // important to fix this in the codebase
+		}
+		transports = append(transports, t)
+	}
+	SupportedTransportProtocols = transports
+}
+
+// FilterAddrs is a filter that removes certain addresses
+// from a list. the addresses removed are those known NOT
+// to work with swarm. Namely, addresses with UTP.
+func FilterAddrs(a []ma.Multiaddr) []ma.Multiaddr {
+	b := make([]ma.Multiaddr, 0, len(a))
+	for _, addr := range a {
+		if AddrUsable(addr) {
+			b = append(b, addr)
+		}
+	}
+	return b
+}
+
+// AddrUsable returns whether the swarm can use this addr.
+func AddrUsable(a ma.Multiaddr) bool {
+	// test the address protocol list is in SupportedTransportProtocols
+
+	matches := func(a, b []ma.Protocol) bool {
+		if len(a) != len(b) {
+			return false
+		}
+
+		for i := range a {
+			if a[i].Code != b[i].Code {
+				return false
+			}
+		}
+		return true
+	}
+
+	transport := a.Protocols()
+	for _, supported := range SupportedTransportProtocols {
+		if matches(supported, transport) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ListenAddresses returns a list of addresses at which this swarm listens.
 func (s *Swarm) ListenAddresses() []ma.Multiaddr {
 	listeners := s.swarm.Listeners()

@@ -1,6 +1,8 @@
 package swarm
 
 import (
+	"fmt"
+
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
@@ -12,6 +14,13 @@ import (
 
 // Open listeners for each network the swarm should listen on
 func (s *Swarm) listen(addrs []ma.Multiaddr) error {
+
+	for _, addr := range addrs {
+		if !AddrUsable(addr) {
+			return fmt.Errorf("cannot use addr: %s", addr)
+		}
+	}
+
 	retErr := multierr.New()
 
 	// listen on every address
