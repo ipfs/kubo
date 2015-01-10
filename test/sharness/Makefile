@@ -9,6 +9,7 @@
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 BINS = bin/random bin/ipfs
 SHARNESS = lib/sharness/sharness.sh
+IPFS_ROOT = ../..
 
 all: clean deps $(T) aggregate
 
@@ -30,7 +31,7 @@ $(SHARNESS):
 	@echo "*** installing $@ ***"
 	lib/install-sharness.sh
 
-bin/%:
+bin/%: $(IPFS_ROOT)/**/*.go
 	@echo "*** installing $@ ***"
 	cd .. && make $@
 
