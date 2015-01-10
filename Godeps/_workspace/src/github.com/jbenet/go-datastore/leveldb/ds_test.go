@@ -20,21 +20,28 @@ var testcases = map[string]string{
 	"/f":     "f",
 }
 
-func TestQuery(t *testing.T) {
+// returns datastore, and a function to call on exit.
+// (this garbage collects). So:
+//
+//  d, close := newDS(t)
+//  defer close()
+func newDS(t *testing.T) (Datastore, func()) {
 	path, err := ioutil.TempDir("/tmp", "testing_leveldb_")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		os.RemoveAll(path)
-	}()
 
 	d, err := NewDatastore(path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer d.Close()
+	return d, func() {
+		os.RemoveAll(path)
+		d.Close()
+	}
+}
 
+func addTestCases(t *testing.T, d Datastore, testcases map[string]string) {
 	for k, v := range testcases {
 		dsk := ds.NewKey(k)
 		if err := d.Put(dsk, []byte(v)); err != nil {
@@ -54,6 +61,13 @@ func TestQuery(t *testing.T) {
 		}
 	}
 
+}
+
+func TestQuery(t *testing.T) {
+	d, close := newDS(t)
+	defer close()
+	addTestCases(t, d, testcases)
+
 	rs, err := d.Query(dsq.Query{Prefix: "/a/"})
 	if err != nil {
 		t.Fatal(err)
@@ -65,7 +79,7 @@ func TestQuery(t *testing.T) {
 		"/a/b/d",
 		"/a/c",
 		"/a/d",
-	}, rs.AllEntries())
+	}, rs)
 
 	// test offset and limit
 
@@ -77,11 +91,22 @@ func TestQuery(t *testing.T) {
 	expectMatches(t, []string{
 		"/a/b/d",
 		"/a/c",
-	}, rs.AllEntries())
+	}, rs)
 
 }
 
-func expectMatches(t *testing.T, expect []string, actual []dsq.Entry) {
+func TestQueryRespectsProcess(t *testing.T) {
+	d, close := newDS(t)
+	defer close()
+	addTestCases(t, d, testcases)
+}
+
+func expectMatches(t *testing.T, expect []string, actualR dsq.Results) {
+	actual, err := actualR.Rest()
+	if err != nil {
+		t.Error(err)
+	}
+
 	if len(actual) != len(expect) {
 		t.Error("not enough", expect, actual)
 	}

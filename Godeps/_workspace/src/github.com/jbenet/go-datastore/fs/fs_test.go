@@ -67,7 +67,10 @@ func (ks *DSSuite) TestBasic(c *C) {
 		"/foo/bar/bazb",
 		"/foo/bar/baz/barb",
 	}
-	all := r.AllEntries()
+	all, err := r.Rest()
+	if err != nil {
+		c.Fatal(err)
+	}
 	c.Check(len(all), Equals, len(expect))
 
 	for _, k := range expect {

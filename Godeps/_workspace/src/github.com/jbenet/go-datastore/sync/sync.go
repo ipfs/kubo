@@ -58,7 +58,7 @@ func (d *MutexDatastore) Delete(key ds.Key) (err error) {
 }
 
 // KeyList implements Datastore.KeyList
-func (d *MutexDatastore) Query(q dsq.Query) (*dsq.Results, error) {
+func (d *MutexDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.child.Query(q)

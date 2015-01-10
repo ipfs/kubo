@@ -62,13 +62,18 @@ func (ks *DSSuite) TestBasic(c *C) {
 		c.Check(bytes.Equal(v2.([]byte), []byte(k.String())), Equals, true)
 	}
 
-	listAr, errA := mpds.Query(dsq.Query{})
-	listBr, errB := ktds.Query(dsq.Query{})
-	c.Check(errA, Equals, nil)
-	c.Check(errB, Equals, nil)
+	run := func(d ds.Datastore, q dsq.Query) []ds.Key {
+		r, err := d.Query(q)
+		c.Check(err, Equals, nil)
 
-	listA := ds.EntryKeys(listAr.AllEntries())
-	listB := ds.EntryKeys(listBr.AllEntries())
+		e, err := r.Rest()
+		c.Check(err, Equals, nil)
+
+		return ds.EntryKeys(e)
+	}
+
+	listA := run(mpds, dsq.Query{})
+	listB := run(ktds, dsq.Query{})
 	c.Check(len(listA), Equals, len(listB))
 
 	// sort them cause yeah.

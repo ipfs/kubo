@@ -58,7 +58,7 @@ func (d *datastore) Delete(key ds.Key) error {
 	return nil
 }
 
-func (d *datastore) Query(q dsq.Query) (*dsq.Results, error) {
+func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
 	r, err := d.child.Query(q)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "panic datastore: %s", err)

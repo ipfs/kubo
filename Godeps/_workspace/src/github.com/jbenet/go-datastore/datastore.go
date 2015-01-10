@@ -66,7 +66,7 @@ type Datastore interface {
 	//   result.Wait()
 	//   result.AllEntries()
 	//
-	Query(q query.Query) (*query.Results, error)
+	Query(q query.Query) (query.Results, error)
 }
 
 // ThreadSafeDatastore is an interface that all threadsafe datastore should

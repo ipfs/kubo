@@ -36,7 +36,7 @@ func (dds *delayed) Delete(key ds.Key) (err error) {
 	return dds.ds.Delete(key)
 }
 
-func (dds *delayed) Query(q dsq.Query) (*dsq.Results, error) {
+func (dds *delayed) Query(q dsq.Query) (dsq.Results, error) {
 	dds.delay.Wait()
 	return dds.ds.Query(q)
 }

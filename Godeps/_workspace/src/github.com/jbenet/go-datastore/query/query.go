@@ -1,5 +1,9 @@
 package query
 
+import (
+	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+)
+
 /*
 Query represents storage for any key-value pair.
 
@@ -64,7 +68,7 @@ type Query struct {
 // of an Entry has been fetched or not. This is needed because
 // datastore implementations get to decide whether Query returns values
 // or only keys. nil is not a good signal, as real values may be nil.
-var NotFetched = struct{}{}
+const NotFetched int = iota
 
 // Entry is a query result entry.
 type Entry struct {
@@ -72,74 +76,175 @@ type Entry struct {
 	Value interface{}
 }
 
-// Results is a set of Query results
-type Results struct {
-	Query Query // the query these Results correspond to
+// Result is a special entry that includes an error, so that the client
+// may be warned about internal errors.
+type Result struct {
+	Entry
 
-	done chan struct{}
-	res  chan Entry
-	all  []Entry
+	Error error
 }
 
-// ResultsWithEntriesChan returns a Results object from a
-// channel of ResultEntries. It's merely an encapsulation
-// that provides for AllEntries() functionality.
-func ResultsWithEntriesChan(q Query, res <-chan Entry) *Results {
-	r := &Results{
-		Query: q,
-		done:  make(chan struct{}),
-		res:   make(chan Entry),
-		all:   []Entry{},
-	}
+// Results is a set of Query results. This is the interface for clients.
+// Example:
+//
+//   qr, _ := myds.Query(q)
+//   for r := range qr.Next() {
+//     if r.Error != nil {
+//       // handle.
+//       break
+//     }
+//
+//     fmt.Println(r.Entry.Key, r.Entry.Value)
+//   }
+//
+// or, wait on all results at once:
+//
+//   qr, _ := myds.Query(q)
+//   es, _ := qr.Rest()
+//   for _, e := range es {
+//     	fmt.Println(e.Key, e.Value)
+//   }
+//
+type Results interface {
+	Query() Query           // the query these Results correspond to
+	Next() <-chan Result    // returns a channel to wait for the next result
+	Rest() ([]Entry, error) // waits till processing finishes, returns all entries at once.
+	Close() error           // client may call Close to signal early exit
 
-	// go consume all the results and add them to the results.
-	go func() {
-		for e := range res {
-			r.all = append(r.all, e)
-			r.res <- e
-		}
-		close(r.res)
-		close(r.done)
-	}()
-	return r
+	// Process returns a goprocess.Process associated with these results.
+	// most users will not need this function (Close is all they want),
+	// but it's here in case you want to connect the results to other
+	// goprocess-friendly things.
+	Process() goprocess.Process
 }
 
-// ResultsWithEntries returns a Results object from a
-// channel of ResultEntries. It's merely an encapsulation
-// that provides for AllEntries() functionality.
-func ResultsWithEntries(q Query, res []Entry) *Results {
-	r := &Results{
-		Query: q,
-		done:  make(chan struct{}),
-		res:   make(chan Entry),
-		all:   res,
-	}
-
-	// go add all the results
-	go func() {
-		for _, e := range res {
-			r.res <- e
-		}
-		close(r.res)
-		close(r.done)
-	}()
-	return r
+// results implements Results
+type results struct {
+	query Query
+	proc  goprocess.Process
+	res   <-chan Result
 }
 
-// Entries() returns results through a channel.
-// Results may arrive at any time.
-// The channel may or may not be buffered.
-// The channel may or may not rate limit the query processing.
-func (r *Results) Entries() <-chan Entry {
+func (r *results) Next() <-chan Result {
 	return r.res
 }
 
-// AllEntries returns all the entries in Results.
-// It blocks until all the results have come in.
-func (r *Results) AllEntries() []Entry {
+func (r *results) Rest() ([]Entry, error) {
+	var es []Entry
 	for e := range r.res {
-		_ = e
+		if e.Error != nil {
+			return es, e.Error
+		}
+		es = append(es, e.Entry)
 	}
-	<-r.done
-	return r.all
+	<-r.proc.Closed() // wait till the processing finishes.
+	return es, nil
+}
+
+func (r *results) Process() goprocess.Process {
+	return r.proc
+}
+
+func (r *results) Close() error {
+	return r.proc.Close()
+}
+
+func (r *results) Query() Query {
+	return r.query
+}
+
+// ResultBuilder is what implementors use to construct results
+// Implementors of datastores and their clients must respect the
+// Process of the Request:
+//
+//   * clients must call r.Process().Close() on an early exit, so
+//     implementations can reclaim resources.
+//   * if the Entries are read to completion (channel closed), Process
+//     should be closed automatically.
+//   * datastores must respect <-Process.Closing(), which intermediates
+//     an early close signal from the client.
+//
+type ResultBuilder struct {
+	Query   Query
+	Process goprocess.Process
+	Output  chan Result
+}
+
+// Results returns a Results to to this builder.
+func (rb *ResultBuilder) Results() Results {
+	return &results{
+		query: rb.Query,
+		proc:  rb.Process,
+		res:   rb.Output,
+	}
+}
+
+func NewResultBuilder(q Query) *ResultBuilder {
+	b := &ResultBuilder{
+		Query:  q,
+		Output: make(chan Result),
+	}
+	b.Process = goprocess.WithTeardown(func() error {
+		close(b.Output)
+		return nil
+	})
+	return b
+}
+
+// ResultsWithChan returns a Results object from a channel
+// of Result entries. Respects its own Close()
+func ResultsWithChan(q Query, res <-chan Result) Results {
+	b := NewResultBuilder(q)
+
+	// go consume all the entries and add them to the results.
+	b.Process.Go(func(worker goprocess.Process) {
+		for {
+			select {
+			case <-worker.Closing(): // client told us to close early
+				return
+			case e, more := <-res:
+				if !more {
+					return
+				}
+
+				select {
+				case b.Output <- e:
+				case <-worker.Closing(): // client told us to close early
+					return
+				}
+			}
+		}
+		return
+	})
+
+	go b.Process.CloseAfterChildren()
+	return b.Results()
+}
+
+// ResultsWithEntries returns a Results object from a list of entries
+func ResultsWithEntries(q Query, res []Entry) Results {
+	b := NewResultBuilder(q)
+
+	// go consume all the entries and add them to the results.
+	b.Process.Go(func(worker goprocess.Process) {
+		for _, e := range res {
+			select {
+			case b.Output <- Result{Entry: e}:
+			case <-worker.Closing(): // client told us to close early
+				return
+			}
+		}
+		return
+	})
+
+	go b.Process.CloseAfterChildren()
+	return b.Results()
+}
+
+func ResultsReplaceQuery(r Results, q Query) Results {
+	return &results{
+		query: q,
+		proc:  r.Process(),
+		res:   r.Next(),
+	}
 }

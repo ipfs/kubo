@@ -19,6 +19,10 @@
 			"Rev": "4dfff096c4973178c8f35cf6dd1a732a0a139370"
 		},
 		{
+			"ImportPath": "github.com/jbenet/goprocess",
+			"Rev": "b4b4178efcf2404ce9db72438c9c49db2fb399d8"
+		},
+		{
 			"ImportPath": "github.com/mattbaird/elastigo/api",
 			"Rev": "041b88c1fcf6489a5721ede24378ce1253b9159d"
 		},

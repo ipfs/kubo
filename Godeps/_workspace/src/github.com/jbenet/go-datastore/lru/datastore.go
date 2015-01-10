@@ -51,6 +51,6 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 }
 
 // KeyList returns a list of keys in the datastore
-func (d *Datastore) Query(q dsq.Query) (*dsq.Results, error) {
+func (d *Datastore) Query(q dsq.Query) (dsq.Results, error) {
 	return nil, errors.New("KeyList not implemented.")
 }

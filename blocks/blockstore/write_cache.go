@@ -1,7 +1,9 @@
 package blockstore
 
 import (
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/hashicorp/golang-lru"
+
 	"github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -44,6 +46,10 @@ func (w *writecache) Put(b *blocks.Block) error {
 	return w.blockstore.Put(b)
 }
 
-func (w *writecache) AllKeys(offset int, limit int) ([]u.Key, error) {
-	return w.blockstore.AllKeys(offset, limit)
+func (w *writecache) AllKeys(ctx context.Context, offset int, limit int) ([]u.Key, error) {
+	return w.blockstore.AllKeys(ctx, offset, limit)
+}
+
+func (w *writecache) AllKeysChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error) {
+	return w.blockstore.AllKeysChan(ctx, offset, limit)
 }

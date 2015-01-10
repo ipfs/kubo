@@ -83,9 +83,9 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 }
 
 // Query implements Datastore.Query
-func (d *Datastore) Query(q query.Query) (*query.Results, error) {
+func (d *Datastore) Query(q query.Query) (query.Results, error) {
 
-	entries := make(chan query.Entry)
+	results := make(chan query.Result)
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		// remove ds path prefix
@@ -98,17 +98,18 @@ func (d *Datastore) Query(q query.Query) (*query.Results, error) {
 				path = path[:len(path)-len(ObjectKeySuffix)]
 			}
 			key := ds.NewKey(path)
-			entries <- query.Entry{Key: key.String(), Value: query.NotFetched}
+			entry := query.Entry{Key: key.String(), Value: query.NotFetched}
+			results <- query.Result{Entry: entry}
 		}
 		return nil
 	}
 
 	go func() {
 		filepath.Walk(d.path, walkFn)
-		close(entries)
+		close(results)
 	}()
-	r := query.ResultsWithEntriesChan(q, entries)
-	r = q.ApplyTo(r)
+	r := query.ResultsWithChan(q, results)
+	r = query.NaiveQueryApply(q, r)
 	return r, nil
 }
 

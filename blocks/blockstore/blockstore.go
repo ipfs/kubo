@@ -5,6 +5,7 @@ package blockstore
 import (
 	"errors"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsns "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
@@ -12,7 +13,10 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
+
+var log = eventlog.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
 var BlockPrefix = ds.NewKey("blocks")
@@ -27,7 +31,9 @@ type Blockstore interface {
 	Has(u.Key) (bool, error)
 	Get(u.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
-	AllKeys(offset int, limit int) ([]u.Key, error)
+
+	AllKeys(ctx context.Context, offset int, limit int) ([]u.Key, error)
+	AllKeysChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error)
 }
 
 func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
@@ -80,10 +86,29 @@ func (s *blockstore) DeleteBlock(k u.Key) error {
 // AllKeys runs a query for keys from the blockstore.
 // this is very simplistic, in the future, take dsq.Query as a param?
 // if offset and limit are 0, they are ignored.
-func (bs *blockstore) AllKeys(offset int, limit int) ([]u.Key, error) {
-	var keys []u.Key
+//
+// AllKeys respects context
+func (bs *blockstore) AllKeys(ctx context.Context, offset int, limit int) ([]u.Key, error) {
 
-	// TODO make async inside ds/leveldb.Query
+	ch, err := bs.AllKeysChan(ctx, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	var keys []u.Key
+	for k := range ch {
+		keys = append(keys, k)
+	}
+	return keys, nil
+}
+
+// AllKeys runs a query for keys from the blockstore.
+// this is very simplistic, in the future, take dsq.Query as a param?
+// if offset and limit are 0, they are ignored.
+//
+// AllKeys respects context
+func (bs *blockstore) AllKeysChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error) {
+
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true, Offset: offset, Limit: limit}
 	res, err := bs.datastore.Query(q)
@@ -91,10 +116,46 @@ func (bs *blockstore) AllKeys(offset int, limit int) ([]u.Key, error) {
 		return nil, err
 	}
 
-	for e := range res.Entries() {
-		// need to convert to u.Key using u.KeyFromDsKey.
-		k := u.KeyFromDsKey(ds.NewKey(e.Key))
-		keys = append(keys, k)
+	// this function is here to compartmentalize
+	get := func() (k u.Key, ok bool) {
+		select {
+		case <-ctx.Done():
+			return k, false
+		case e, more := <-res.Next():
+			if !more {
+				return k, false
+			}
+			if e.Error != nil {
+				log.Debug("blockstore.AllKeysChan got err:", e.Error)
+				return k, false
+			}
+
+			// need to convert to u.Key using u.KeyFromDsKey.
+			k = u.KeyFromDsKey(ds.NewKey(e.Key))
+			return k, true
+		}
 	}
-	return keys, nil
+
+	output := make(chan u.Key)
+	go func() {
+		defer func() {
+			res.Process().Close() // ensure exit (signals early exit, too)
+			close(output)
+		}()
+
+		for {
+			k, ok := get()
+			if !ok {
+				return
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case output <- k:
+			}
+		}
+	}()
+
+	return output, nil
 }

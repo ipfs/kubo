@@ -84,7 +84,7 @@ func (c *callbackDatastore) Delete(key ds.Key) (err error) {
 	return c.ds.Delete(key)
 }
 
-func (c *callbackDatastore) Query(q dsq.Query) (*dsq.Results, error) {
+func (c *callbackDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	c.f()
 	return c.ds.Query(q)
 }

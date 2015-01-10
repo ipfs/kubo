@@ -110,7 +110,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "8a8988d1a4e174274bd4a9dd55c4837f46fdf323"
+			"Rev": "35738aceb35505bd3c77c2a618fb1947ca3f72da"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-fuse-version",

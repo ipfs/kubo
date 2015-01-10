@@ -113,7 +113,7 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 	return nil
 }
 
-func (d *Datastore) Query(query.Query) (*query.Results, error) {
+func (d *Datastore) Query(query.Query) (query.Results, error) {
 	return nil, errors.New("Not yet implemented!")
 }
 

@@ -19,7 +19,11 @@ func testKeyOrder(t *testing.T, f Order, keys []string, expect []string) {
 
 	res := ResultsWithEntries(Query{}, e)
 	res = NaiveOrder(res, f)
-	actualE := res.AllEntries()
+	actualE, err := res.Rest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	actual := make([]string, len(actualE))
 	for i, e := range actualE {
 		actual[i] = e.Key

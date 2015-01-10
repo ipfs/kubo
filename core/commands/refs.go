@@ -128,7 +128,7 @@ Displays the hashes of all local objects.
 		}
 
 		// todo: make async
-		allKeys, err := n.Blockstore.AllKeys(0, 0)
+		allKeys, err := n.Blockstore.AllKeys(context.TODO(), 0, 0)
 		if err != nil {
 			return nil, err
 		}
