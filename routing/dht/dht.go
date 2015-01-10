@@ -103,8 +103,8 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 
 	// Ping new peer to register in their routing table
 	// NOTE: this should be done better...
-	if err := dht.Ping(ctx, npeer); err != nil {
-		return fmt.Errorf("failed to ping newly connected peer: %s\n", err)
+	if _, err := dht.Ping(ctx, npeer); err != nil {
+		return fmt.Errorf("failed to ping newly connected peer: %s", err)
 	}
 	log.Event(ctx, "connect", dht.self, npeer)
 	dht.Update(ctx, npeer)
@@ -329,7 +329,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 			peers := dht.routingTable.NearestPeers(kb.ConvertKey(u.Key(id)), 5)
 			for _, p := range peers {
 				ctx, _ := context.WithTimeout(dht.Context(), time.Second*5)
-				err := dht.Ping(ctx, p)
+				_, err := dht.Ping(ctx, p)
 				if err != nil {
 					log.Errorf("Ping error: %s", err)
 				}

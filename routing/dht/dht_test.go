@@ -116,12 +116,12 @@ func TestPing(t *testing.T) {
 
 	//Test that we can ping the node
 	ctxT, _ := context.WithTimeout(ctx, 100*time.Millisecond)
-	if err := dhtA.Ping(ctxT, peerB); err != nil {
+	if _, err := dhtA.Ping(ctxT, peerB); err != nil {
 		t.Fatal(err)
 	}
 
 	ctxT, _ = context.WithTimeout(ctx, 100*time.Millisecond)
-	if err := dhtB.Ping(ctxT, peerA); err != nil {
+	if _, err := dhtB.Ping(ctxT, peerA); err != nil {
 		t.Fatal(err)
 	}
 }

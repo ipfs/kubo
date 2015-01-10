@@ -3,6 +3,7 @@ package dht
 import (
 	"math"
 	"sync"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -434,12 +435,14 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 }
 
 // Ping a peer, log the time it took
-func (dht *IpfsDHT) Ping(ctx context.Context, p peer.ID) error {
+func (dht *IpfsDHT) Ping(ctx context.Context, p peer.ID) (time.Duration, error) {
 	// Thoughts: maybe this should accept an ID and do a peer lookup?
 	log.Debugf("ping %s start", p)
+	before := time.Now()
 
 	pmes := pb.NewMessage(pb.Message_PING, "", 0)
 	_, err := dht.sendRequest(ctx, p, pmes)
 	log.Debugf("ping %s end (err = %s)", p, err)
-	return err
+
+	return time.Now().Sub(before), err
 }

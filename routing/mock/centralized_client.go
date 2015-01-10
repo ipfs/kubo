@@ -2,6 +2,7 @@ package mockrouting
 
 import (
 	"errors"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -77,6 +78,10 @@ func (c *client) Provide(_ context.Context, key u.Key) error {
 		Addrs: []ma.Multiaddr{c.peer.Address()},
 	}
 	return c.server.Announce(info, key)
+}
+
+func (c *client) Ping(ctx context.Context, p peer.ID) (time.Duration, error) {
+	return 0, nil
 }
 
 var _ routing.IpfsRouting = &client{}
