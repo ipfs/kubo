@@ -7,6 +7,7 @@ import (
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -25,18 +26,18 @@ var PingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "send echo request packets to IPFS hosts",
 		Synopsis: `
-ipfs ping <peer.ID> - Send pings to a peer using the routing system to discover its address
-`,
+Send pings to a peer using the routing system to discover its address
+		`,
 		ShortDescription: `
-ipfs ping is a tool to find a node (in the routing system),
-send pings, wait for pongs, and print out round-trip latency information.
-`,
+		ipfs ping is a tool to find a node (in the routing system),
+		send pings, wait for pongs, and print out round-trip latency information.
+		`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged"),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("count", "n"),
+		cmds.IntOption("count", "n", "number of ping messages to send"),
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -79,11 +80,10 @@ send pings, wait for pongs, and print out round-trip latency information.
 			return nil, errNotOnline
 		}
 
-		if len(req.Arguments()) == 0 {
-			return nil, cmds.ClientError("no peer specified!")
+		peerID, err := peer.IDB58Decode(req.Arguments()[0])
+		if err != nil {
+			return nil, err
 		}
-
-		outChan := make(chan interface{}, 5)
 
 		// Set up number of pings
 		numPings := 10
@@ -95,54 +95,52 @@ send pings, wait for pongs, and print out round-trip latency information.
 			numPings = val
 		}
 
-		// One argument of input required, must be base58 encoded peerID
-		peerID, err := peer.IDB58Decode(req.Arguments()[0])
-		if err != nil {
-			return nil, err
-		}
+		outChan := make(chan interface{})
 
-		go func() {
-			defer close(outChan)
-
-			// Make sure we can find the node in question
-			outChan <- &PingResult{
-				Text: fmt.Sprintf("Looking up peer %s", peerID.Pretty()),
-			}
-			ctx, _ := context.WithTimeout(context.Background(), kPingTimeout)
-			p, err := n.Routing.FindPeer(ctx, peerID)
-			n.Peerstore.AddPeerInfo(p)
-			if err != nil {
-				outChan <- &PingResult{Text: "Peer lookup error!"}
-				outChan <- &PingResult{Text: err.Error()}
-				return
-			}
-			outChan <- &PingResult{
-				Text: fmt.Sprintf("Peer found, starting pings."),
-			}
-
-			var total time.Duration
-			for i := 0; i < numPings; i++ {
-				ctx, _ = context.WithTimeout(context.Background(), kPingTimeout)
-				took, err := n.Routing.Ping(ctx, p.ID)
-				if err != nil {
-					log.Errorf("Ping error: %s", err)
-					outChan <- &PingResult{}
-					break
-				}
-				outChan <- &PingResult{
-					Success: true,
-					Time:    took,
-				}
-				total += took
-				time.Sleep(time.Second)
-			}
-			averagems := total.Seconds() * 1000 / float64(numPings)
-			outChan <- &PingResult{
-				Text: fmt.Sprintf("Average latency: %.2fms", averagems),
-			}
-		}()
+		go pingPeer(n, peerID, numPings, outChan)
 
 		return outChan, nil
 	},
 	Type: PingResult{},
+}
+
+func pingPeer(n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interface{}) {
+	defer close(outChan)
+
+	// Make sure we can find the node in question
+	outChan <- &PingResult{
+		Text: fmt.Sprintf("Looking up peer %s", pid.Pretty()),
+	}
+
+	// TODO: get master context passed in
+	ctx, _ := context.WithTimeout(context.TODO(), kPingTimeout)
+	p, err := n.Routing.FindPeer(ctx, pid)
+	if err != nil {
+		outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
+		return
+	}
+	n.Peerstore.AddPeerInfo(p)
+
+	outChan <- &PingResult{Text: fmt.Sprintf("Peer found, starting pings.")}
+
+	var total time.Duration
+	for i := 0; i < numPings; i++ {
+		ctx, _ = context.WithTimeout(context.TODO(), kPingTimeout)
+		took, err := n.Routing.Ping(ctx, p.ID)
+		if err != nil {
+			log.Errorf("Ping error: %s", err)
+			outChan <- &PingResult{Text: fmt.Sprintf("Ping error: %s", err)}
+			break
+		}
+		outChan <- &PingResult{
+			Success: true,
+			Time:    took,
+		}
+		total += took
+		time.Sleep(time.Second)
+	}
+	averagems := total.Seconds() * 1000 / float64(numPings)
+	outChan <- &PingResult{
+		Text: fmt.Sprintf("Average latency: %.2fms", averagems),
+	}
 }
