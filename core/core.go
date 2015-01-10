@@ -150,26 +150,9 @@ func (n *IpfsNode) StartOnlineServices() error {
 		return err
 	}
 
-	// setup the network
-	listenAddrs, err := listenAddresses(n.Config)
-	if err != nil {
-		return debugerror.Wrap(err)
+	if err := n.startNetwork(); err != nil {
+		return err
 	}
-	network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.AddChildGroup(network.CtxGroup())
-	n.PeerHost = p2pbhost.New(network)
-
-	// explicitly set these as our listen addrs.
-	// (why not do it inside inet.NewNetwork? because this way we can
-	// listen on addresses without necessarily advertising those publicly.)
-	addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.Peerstore.AddAddresses(n.Identity, addrs)
 
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
@@ -196,6 +179,34 @@ func (n *IpfsNode) StartOnlineServices() error {
 	// manage the wiring. In that scenario, this dangling function is a bit
 	// awkward.
 	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, n.Config.Bootstrap)
+	return nil
+}
+
+func (n *IpfsNode) startNetwork() error {
+	ctx := n.Context()
+
+	// setup the network
+	listenAddrs, err := listenAddresses(n.Config)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	// make sure we dont error out if our config includes some addresses we cant use.
+	listenAddrs = swarm.FilterAddrs(listenAddrs)
+	network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.AddChildGroup(network.CtxGroup())
+	n.PeerHost = p2pbhost.New(network)
+
+	// explicitly set these as our listen addrs.
+	// (why not do it inside inet.NewNetwork? because this way we can
+	// listen on addresses without necessarily advertising those publicly.)
+	addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.Peerstore.AddAddresses(n.Identity, addrs)
 	return nil
 }
 
