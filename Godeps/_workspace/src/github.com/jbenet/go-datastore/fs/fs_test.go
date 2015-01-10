@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"testing"
 
+	. "launchpad.net/gocheck"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/fs"
-	. "launchpad.net/gocheck"
+	query "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -53,6 +55,32 @@ func (ks *DSSuite) TestBasic(c *C) {
 		v, err := ks.ds.Get(k)
 		c.Check(err, Equals, nil)
 		c.Check(bytes.Equal(v.([]byte), []byte(k.String())), Equals, true)
+	}
+
+	r, err := ks.ds.Query(query.Query{Prefix: "/foo/bar/"})
+	if err != nil {
+		c.Check(err, Equals, nil)
+	}
+
+	expect := []string{
+		"/foo/bar/baz",
+		"/foo/bar/bazb",
+		"/foo/bar/baz/barb",
+	}
+	all := r.AllEntries()
+	c.Check(len(all), Equals, len(expect))
+
+	for _, k := range expect {
+		found := false
+		for _, e := range all {
+			if e.Key == k {
+				found = true
+			}
+		}
+
+		if !found {
+			c.Error("did not find expected key: ", k)
+		}
 	}
 }
 

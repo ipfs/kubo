@@ -5,6 +5,7 @@ import (
 	"os"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 type datastore struct {
@@ -57,11 +58,11 @@ func (d *datastore) Delete(key ds.Key) error {
 	return nil
 }
 
-func (d *datastore) KeyList() ([]ds.Key, error) {
-	kl, err := d.child.KeyList()
+func (d *datastore) Query(q dsq.Query) (*dsq.Results, error) {
+	r, err := d.child.Query(q)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "panic datastore: %s", err)
-		panic("panic datastore: KeyList failed")
+		panic("panic datastore: Query failed")
 	}
-	return kl, nil
+	return r, nil
 }

@@ -5,9 +5,11 @@ import (
 	"sort"
 	"testing"
 
+	. "launchpad.net/gocheck"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ns "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
-	. "launchpad.net/gocheck"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -46,10 +48,13 @@ func (ks *DSSuite) TestBasic(c *C) {
 		c.Check(bytes.Equal(v2.([]byte), []byte(k.String())), Equals, true)
 	}
 
-	listA, errA := mpds.KeyList()
-	listB, errB := nsds.KeyList()
+	listAr, errA := mpds.Query(dsq.Query{})
+	listBr, errB := nsds.Query(dsq.Query{})
 	c.Check(errA, Equals, nil)
 	c.Check(errB, Equals, nil)
+
+	listA := ds.EntryKeys(listAr.AllEntries())
+	listB := ds.EntryKeys(listBr.AllEntries())
 	c.Check(len(listA), Equals, len(listB))
 
 	// sort them cause yeah.

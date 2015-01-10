@@ -1,0 +1,11 @@
+language: go
+
+go:
+  - 1.3
+  - release
+  - tip
+
+script:
+  - make test
+
+env: TEST_NO_FUSE=1 TEST_VERBOSE=1
