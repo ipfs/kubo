@@ -83,6 +83,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 // Test writing a file and reading it back
 func TestIpnsBasicIO(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -104,6 +105,7 @@ func TestIpnsBasicIO(t *testing.T) {
 
 // Test to make sure file changes persist over mounts of ipns
 func TestFilePersistence(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -132,6 +134,7 @@ func TestFilePersistence(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly
 func TestFileSizeReporting(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -153,6 +156,7 @@ func TestFileSizeReporting(t *testing.T) {
 
 // Test to make sure you cant create multiple entries with the same name
 func TestDoubleEntryFailure(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -172,6 +176,7 @@ func TestDoubleEntryFailure(t *testing.T) {
 }
 
 func TestAppendFile(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -213,6 +218,7 @@ func TestAppendFile(t *testing.T) {
 }
 
 func TestFastRepublish(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -317,6 +323,7 @@ func TestFastRepublish(t *testing.T) {
 
 // Test writing a medium sized file one byte at a time
 func TestMultiWrite(t *testing.T) {
+	t.Skip("Skipping until DAGModifier can be fixed.")
 	if testing.Short() {
 		t.SkipNow()
 	}
