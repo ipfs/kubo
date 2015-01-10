@@ -98,7 +98,13 @@ func (di *DiagInfo) Marshal() []byte {
 }
 
 func (d *Diagnostics) getPeers() []peer.ID {
-	return d.host.Network().Peers()
+	conns := d.host.Network().Conns()
+	peers := make([]peer.ID, len(conns))
+
+	for i, c := range conns {
+		peers[i] = c.RemotePeer()
+	}
+	return peers
 }
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
