@@ -7,11 +7,13 @@ import (
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 const kPingTimeout = 10 * time.Second
@@ -56,7 +58,7 @@ Send pings to a peer using the routing system to discover its address
 				if len(obj.Text) > 0 {
 					buf = bytes.NewBufferString(obj.Text + "\n")
 				} else if obj.Success {
-					fmt.Fprintf(buf, "Pong took %.2fms\n", obj.Time.Seconds()*1000)
+					fmt.Fprintf(buf, "Pong received: time=%.2f ms\n", obj.Time.Seconds()*1000)
 				} else {
 					fmt.Fprintf(buf, "Pong failed\n")
 				}
@@ -80,9 +82,22 @@ Send pings to a peer using the routing system to discover its address
 			return nil, errNotOnline
 		}
 
-		peerID, err := peer.IDB58Decode(req.Arguments()[0])
+		bsp, err := config.ParseBootstrapPeer(req.Arguments()[0])
 		if err != nil {
 			return nil, err
+		}
+
+		peerID, err := peer.IDB58Decode(bsp.PeerID)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(bsp.Address) > 0 {
+			addr, err := ma.NewMultiaddr(bsp.Address)
+			if err != nil {
+				return nil, err
+			}
+			n.Peerstore.AddAddress(peerID, addr)
 		}
 
 		// Set up number of pings
@@ -107,26 +122,28 @@ Send pings to a peer using the routing system to discover its address
 func pingPeer(n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interface{}) {
 	defer close(outChan)
 
-	// Make sure we can find the node in question
-	outChan <- &PingResult{
-		Text: fmt.Sprintf("Looking up peer %s", pid.Pretty()),
+	if len(n.Peerstore.Addresses(pid)) == 0 {
+		// Make sure we can find the node in question
+		outChan <- &PingResult{
+			Text: fmt.Sprintf("Looking up peer %s", pid.Pretty()),
+		}
+
+		// TODO: get master context passed in
+		ctx, _ := context.WithTimeout(context.TODO(), kPingTimeout)
+		p, err := n.Routing.FindPeer(ctx, pid)
+		if err != nil {
+			outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
+			return
+		}
+		n.Peerstore.AddPeerInfo(p)
 	}
 
-	// TODO: get master context passed in
-	ctx, _ := context.WithTimeout(context.TODO(), kPingTimeout)
-	p, err := n.Routing.FindPeer(ctx, pid)
-	if err != nil {
-		outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
-		return
-	}
-	n.Peerstore.AddPeerInfo(p)
-
-	outChan <- &PingResult{Text: fmt.Sprintf("Peer found, starting pings.")}
+	outChan <- &PingResult{Text: fmt.Sprintf("PING %s.", pid.Pretty())}
 
 	var total time.Duration
 	for i := 0; i < numPings; i++ {
-		ctx, _ = context.WithTimeout(context.TODO(), kPingTimeout)
-		took, err := n.Routing.Ping(ctx, p.ID)
+		ctx, _ := context.WithTimeout(context.TODO(), kPingTimeout)
+		took, err := n.Routing.Ping(ctx, pid)
 		if err != nil {
 			log.Errorf("Ping error: %s", err)
 			outChan <- &PingResult{Text: fmt.Sprintf("Ping error: %s", err)}
