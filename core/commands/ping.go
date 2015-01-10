@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
@@ -82,21 +82,12 @@ Send pings to a peer using the routing system to discover its address
 			return nil, errNotOnline
 		}
 
-		bsp, err := config.ParseBootstrapPeer(req.Arguments()[0])
+		addr, peerID, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
 			return nil, err
 		}
 
-		peerID, err := peer.IDB58Decode(bsp.PeerID)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(bsp.Address) > 0 {
-			addr, err := ma.NewMultiaddr(bsp.Address)
-			if err != nil {
-				return nil, err
-			}
+		if addr != nil {
 			n.Peerstore.AddAddress(peerID, addr)
 		}
 
@@ -160,4 +151,41 @@ func pingPeer(n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interfac
 	outChan <- &PingResult{
 		Text: fmt.Sprintf("Average latency: %.2fms", averagems),
 	}
+}
+
+func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
+	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
+	idx := strings.LastIndex(text, "/")
+	if idx == -1 {
+		pid, err := peer.IDB58Decode(text)
+		if err != nil {
+			return nil, "", err
+		}
+
+		return nil, pid, nil
+	}
+
+	addrS := text[:idx]
+	peeridS := text[idx+1:]
+
+	var maddr ma.Multiaddr
+	var pid peer.ID
+
+	// make sure addrS parses as a multiaddr.
+	if len(addrS) > 0 {
+		var err error
+		maddr, err = ma.NewMultiaddr(addrS)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	// make sure idS parses as a peer.ID
+	var err error
+	pid, err = peer.IDB58Decode(peeridS)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return maddr, pid, nil
 }
