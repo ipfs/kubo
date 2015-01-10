@@ -107,7 +107,6 @@ test_expect_success "'ipfs add bigfile' output looks good" '
 	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '
-
 test_expect_success "'ipfs cat' succeeds" '
 	ipfs cat $HASH >actual
 '
@@ -139,7 +138,7 @@ test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
 '
 
 test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
-	HASH="QmbprabK1ucRoPLPns2zKtjAqZrTANDhZMgmcx6sDKPK92" &&
+	HASH="QmSVxWkYfbJ3cowQUUgF4iF4CQd92vubxw7bs2aZAVRUD9" &&
 	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '

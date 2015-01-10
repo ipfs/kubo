@@ -23,6 +23,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const IpnsReadonly = true
+
 var log = u.Logger("ipns")
 
 var (
@@ -237,8 +239,14 @@ func (s *Node) Attr() fuse.Attr {
 		if size == 0 {
 			size = s.dagMod.Size()
 		}
+
+		mode := os.FileMode(0666)
+		if IpnsReadonly {
+			mode = 0444
+		}
+
 		return fuse.Attr{
-			Mode:   0666,
+			Mode:   mode,
 			Size:   size,
 			Blocks: uint64(len(s.Nd.Links)),
 		}
@@ -316,6 +324,10 @@ func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 
 func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
 	log.Debugf("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
+	if IpnsReadonly {
+		log.Error("Attempted to write on readonly ipns filesystem.")
+		return fuse.EPERM
+	}
 
 	if n.dagMod == nil {
 		// Create a DagModifier to allow us to change the existing dag node
@@ -336,6 +348,9 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 
 func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 	log.Debugf("Got flush request [%s]!", n.name)
+	if IpnsReadonly {
+		return nil
+	}
 
 	// If a write has happened
 	if n.dagMod != nil {
@@ -380,6 +395,9 @@ func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 
 // Signal that a node in this tree was changed so the root can republish
 func (n *Node) wasChanged() {
+	if IpnsReadonly {
+		return
+	}
 	root := n.nsRoot
 	if root == nil {
 		root = n
@@ -428,6 +446,10 @@ func (n *Node) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
 
 func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
 	log.Debug("Got mkdir request!")
+	if IpnsReadonly {
+		log.Error("Attempted to call mkdir on readonly filesystem.")
+		return nil, fuse.EPERM
+	}
 	dagnd := &mdag.Node{Data: ft.FolderPBData()}
 	nnode := n.Nd.Copy()
 	nnode.AddNodeLink(req.Name, dagnd)
@@ -478,6 +500,10 @@ func (n *Node) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error)
 
 func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
 	log.Debugf("Got create request: %s", req.Name)
+	if IpnsReadonly {
+		log.Error("Attempted to call Create on a readonly filesystem.")
+		return nil, nil, fuse.EPERM
+	}
 
 	// New 'empty' file
 	nd := &mdag.Node{Data: ft.FilePBData(nil, 0)}
@@ -506,6 +532,11 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 
 func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 	log.Debugf("[%s] Got Remove request: %s", n.name, req.Name)
+	if IpnsReadonly {
+		log.Error("Attempted to call Remove on a readonly filesystem.")
+		return fuse.EPERM
+	}
+
 	nnode := n.Nd.Copy()
 	err := nnode.RemoveNodeLink(req.Name)
 	if err != nil {
@@ -527,6 +558,11 @@ func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 
 func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
 	log.Debugf("Got Rename request '%s' -> '%s'", req.OldName, req.NewName)
+	if IpnsReadonly {
+		log.Error("Attempted to call Rename on a readonly filesystem.")
+		return fuse.EPERM
+	}
+
 	var mdn *mdag.Node
 	for _, l := range n.Nd.Links {
 		if l.Name == req.OldName {
