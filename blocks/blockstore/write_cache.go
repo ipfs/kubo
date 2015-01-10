@@ -43,3 +43,7 @@ func (w *writecache) Put(b *blocks.Block) error {
 	w.cache.Add(b.Key(), struct{}{})
 	return w.blockstore.Put(b)
 }
+
+func (w *writecache) AllKeys(offset int, limit int) ([]u.Key, error) {
+	return w.blockstore.AllKeys(offset, limit)
+}

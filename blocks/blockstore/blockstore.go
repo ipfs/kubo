@@ -6,11 +6,16 @@ import (
 	"errors"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dsns "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+// BlockPrefix namespaces blockstore datastores
+var BlockPrefix = ds.NewKey("blocks")
 
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
@@ -22,16 +27,20 @@ type Blockstore interface {
 	Has(u.Key) (bool, error)
 	Get(u.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
+	AllKeys(offset int, limit int) ([]u.Key, error)
 }
 
 func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
+	dd := dsns.Wrap(d, BlockPrefix)
 	return &blockstore{
-		datastore: d,
+		datastore: dd,
 	}
 }
 
 type blockstore struct {
-	datastore ds.ThreadSafeDatastore
+	datastore ds.Datastore
+	// cant be ThreadSafeDatastore cause namespace.Datastore doesnt support it.
+	// we do check it on `NewBlockstore` though.
 }
 
 func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
@@ -66,4 +75,26 @@ func (bs *blockstore) Has(k u.Key) (bool, error) {
 
 func (s *blockstore) DeleteBlock(k u.Key) error {
 	return s.datastore.Delete(k.DsKey())
+}
+
+// AllKeys runs a query for keys from the blockstore.
+// this is very simplistic, in the future, take dsq.Query as a param?
+// if offset and limit are 0, they are ignored.
+func (bs *blockstore) AllKeys(offset int, limit int) ([]u.Key, error) {
+	var keys []u.Key
+
+	// TODO make async inside ds/leveldb.Query
+	// KeysOnly, because that would be _a lot_ of data.
+	q := dsq.Query{KeysOnly: true, Offset: offset, Limit: limit}
+	res, err := bs.datastore.Query(q)
+	if err != nil {
+		return nil, err
+	}
+
+	for e := range res.Entries() {
+		// need to convert to u.Key using u.KeyFromDsKey.
+		k := u.KeyFromDsKey(ds.NewKey(e.Key))
+		keys = append(keys, k)
+	}
+	return keys, nil
 }
