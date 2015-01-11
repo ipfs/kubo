@@ -99,13 +99,13 @@ func (di *DiagInfo) Marshal() []byte {
 
 func (d *Diagnostics) getPeers() []peer.ID {
 	peers := d.host.Network().Peers()
-	pmap := make(map[peer.ID]struct{})
+	seen := make(map[peer.ID]struct{})
 	out := make([]peer.ID, 0, len(peers))
 	for _, p := range peers {
-		_, ok := pmap[p]
+		_, ok := seen[p]
 		if !ok {
 			out = append(out, p)
-			pmap[p] = struct{}{}
+			seen[p] = struct{}{}
 		}
 	}
 
