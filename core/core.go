@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -75,7 +76,37 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
+var errTODO = errors.New("TODO")
+
+type Configuration *IpfsNode // define a different type
+
+type ConfigOption func(ctx context.Context) (Configuration, error)
+
+func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
+	config, err := option(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func Offline(cfg *config.Config) ConfigOption {
+	return Standard(cfg, false)
+}
+
+func Online(cfg *config.Config) ConfigOption {
+	return Standard(cfg, true)
+}
+
+// DEPRECATED: use Online, Offline functions
+func Standard(cfg *config.Config, online bool) ConfigOption {
+	return func(ctx context.Context) (Configuration, error) {
+		return NewIpfsNode(ctx, cfg, online)
+	}
+}
+
 // NewIpfsNode constructs a new IpfsNode based on the given config.
+// DEPRECATED: use `NewIPFSNode`
 func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsNode, err error) {
 	success := false // flip to true after all sub-system inits succeed
 	defer func() {
