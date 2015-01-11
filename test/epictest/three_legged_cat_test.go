@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/core"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
+	"github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -43,21 +45,21 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if len(peers) < numPeers {
 		return errors.New("test initialization error")
 	}
-	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
+	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf)))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
+	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
 	if err != nil {
 		return err
 	}
-	bootstrap, err := makeCore(ctx, MocknetTestRepo(peers[2], mn.Host(peers[2]), conf))
+	bootstrap, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[2], mn.Host(peers[2]), conf)))
 	if err != nil {
 		return err
 	}
 	boostrapInfo := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
-	adder.Bootstrap(ctx, boostrapInfo)
-	catter.Bootstrap(ctx, boostrapInfo)
+	adder.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
+	catter.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
 
 	keyAdded, err := adder.Add(bytes.NewReader(data))
 	if err != nil {

@@ -11,7 +11,9 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
+	"github.com/jbenet/go-ipfs/core"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
+	"github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -100,17 +102,17 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return errors.New("test initialization error")
 	}
 
-	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
+	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf)))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
+	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
 	if err != nil {
 		return err
 	}
 
-	adder.Bootstrap(ctx, catter.Peerstore.PeerInfo(catter.PeerHost.ID()))
-	catter.Bootstrap(ctx, adder.Peerstore.PeerInfo(adder.PeerHost.ID()))
+	catter.Bootstrap(ctx, []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)})
+	adder.Bootstrap(ctx, []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)})
 
 	keyAdded, err := adder.Add(bytes.NewReader(data))
 	if err != nil {
