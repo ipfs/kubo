@@ -10,7 +10,6 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
@@ -47,7 +46,6 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.C
 			Exchange:   exch,
 			Datastore:  ds,
 			PeerHost:   h,
-			DAG:        merkledag.NewDAGService(blockservice),
 			Blocks:     blockservice,
 			Routing:    dhtt,
 			Identity:   p,

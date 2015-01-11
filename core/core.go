@@ -96,6 +96,17 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Need to make sure it's perfectly clear 1) which variables are expected
+	// to be initialized at this point, and 2) which variables will be
+	// initialized after this point.
+
+	node.DAG = merkledag.NewDAGService(node.Blocks)
+	node.Pinning, err = pin.LoadPinner(node.Datastore, node.DAG)
+	if err != nil {
+		node.Pinning = pin.NewPinner(node.Datastore, node.DAG)
+	}
+	node.Resolver = &path.Resolver{DAG: node.DAG}
 	return node, nil
 }
 
@@ -160,13 +171,6 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
-
-		n.DAG = merkledag.NewDAGService(n.Blocks)
-		n.Pinning, err = pin.LoadPinner(n.Datastore, n.DAG)
-		if err != nil {
-			n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
-		}
-		n.Resolver = &path.Resolver{DAG: n.DAG}
 
 		success = true
 		return n, nil
