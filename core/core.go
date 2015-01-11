@@ -17,7 +17,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	"github.com/jbenet/go-ipfs/exchange/offline"
+	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	importer "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
@@ -45,12 +45,20 @@ const kSizeBlockstoreWriteCache = 100
 
 var log = eventlog.Logger("core")
 
+type mode int
+
+const (
+	// zero value is not a valid mode, must be explicitly set
+	invalidMode mode = iota
+	offlineMode
+	onlineMode
+)
+
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
 
 	// Self
-	Identity   peer.ID // the local node's identity
-	onlineMode bool    // alternatively, offline
+	Identity peer.ID // the local node's identity
 
 	// TODO abstract as repo.Repo
 	Config    *config.Config                // the node's configuration
@@ -80,7 +88,8 @@ type IpfsNode struct {
 	// dht allows node to Bootstrap when dht is present
 	// TODO privatize before merging. This is here temporarily during the
 	// migration of the TestNet constructor
-	DHT *dht.IpfsDHT
+	DHT  *dht.IpfsDHT
+	mode mode
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -142,8 +151,13 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 			return nil, debugerror.Errorf("configuration required")
 		}
 		n = &IpfsNode{
-			onlineMode: online,
-			Config:     cfg,
+			mode: func() mode {
+				if online {
+					return onlineMode
+				}
+				return offlineMode
+			}(),
+			Config: cfg,
 		}
 
 		n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
@@ -247,7 +261,12 @@ func (n *IpfsNode) teardown() error {
 }
 
 func (n *IpfsNode) OnlineMode() bool {
-	return n.onlineMode
+	switch n.mode {
+	case onlineMode:
+		return true
+	default:
+		return false
+	}
 }
 
 func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
