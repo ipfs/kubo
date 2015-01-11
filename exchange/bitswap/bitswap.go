@@ -225,6 +225,12 @@ func (bs *bitswap) sendWantlistToPeers(ctx context.Context, peers <-chan peer.ID
 }
 
 func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
+	entries := bs.wantlist.Entries()
+	if len(entries) == 0 {
+		log.Debug("No entries in wantlist, skipping send routine.")
+		return
+	}
+
 	log := log.Prefix("bitswap(%s).sendWantlistToProviders ", bs.self)
 	log.Debugf("begin")
 	defer log.Debugf("end")
@@ -237,7 +243,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 
 	// Get providers for all entries in wantlist (could take a while)
 	wg := sync.WaitGroup{}
-	for _, e := range bs.wantlist.Entries() {
+	for _, e := range entries {
 		wg.Add(1)
 		go func(k u.Key) {
 			defer wg.Done()
