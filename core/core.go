@@ -29,6 +29,7 @@ import (
 	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	util "github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -262,6 +263,10 @@ func (n *IpfsNode) OnlineMode() bool {
 	default:
 		return false
 	}
+}
+
+func (n *IpfsNode) Resolve(k util.Key) (*merkledag.Node, error) {
+	return (&path.Resolver{n.DAG}).ResolvePath(k.String())
 }
 
 func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
