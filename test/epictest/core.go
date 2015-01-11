@@ -6,7 +6,6 @@ import (
 	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	core "github.com/jbenet/go-ipfs/core"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
@@ -36,17 +35,12 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.C
 			return nil, err
 		}
 		exch := bitswap.New(ctx, p, bsn, bstore, alwaysSendToPeer)
-		blockservice, err := blockservice.New(bstore, exch)
-		if err != nil {
-			return nil, err
-		}
 		return &core.IpfsNode{
 			Peerstore:  h.Peerstore(),
 			Blockstore: bstore,
 			Exchange:   exch,
 			Datastore:  ds,
 			PeerHost:   h,
-			Blocks:     blockservice,
 			Routing:    dhtt,
 			Identity:   p,
 			DHT:        dhtt,

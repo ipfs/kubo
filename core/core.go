@@ -101,6 +101,10 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	// to be initialized at this point, and 2) which variables will be
 	// initialized after this point.
 
+	node.Blocks, err = bserv.New(node.Blockstore, node.Exchange)
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
 	node.DAG = merkledag.NewDAGService(node.Blocks)
 	node.Pinning, err = pin.LoadPinner(node.Datastore, node.DAG)
 	if err != nil {
@@ -165,11 +169,6 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 			}
 		} else {
 			n.Exchange = offline.Exchange(n.Blockstore)
-		}
-
-		n.Blocks, err = bserv.New(n.Blockstore, n.Exchange)
-		if err != nil {
-			return nil, debugerror.Wrap(err)
 		}
 
 		success = true
