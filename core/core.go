@@ -92,11 +92,11 @@ var errTODO = errors.New("TODO")
 type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
 func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
-	config, err := option(ctx)
+	node, err := option(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return config, nil
+	return node, nil
 }
 
 func Offline(cfg *config.Config) ConfigOption {
