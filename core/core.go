@@ -269,14 +269,13 @@ func (n *IpfsNode) Resolve(k util.Key) (*merkledag.Node, error) {
 	return (&path.Resolver{n.DAG}).ResolvePath(k.String())
 }
 
+// Bootstrap is undefined when node is not in OnlineMode
 func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
+
+	// TODO what should return value be when in offlineMode?
+
 	if n.DHT != nil {
-		for _, p := range peers {
-			// TODO bootstrap(ctx, n.PeerHost, n.DHT, n.Peerstore, peers)
-			if err := n.DHT.Connect(ctx, p.ID); err != nil {
-				return err
-			}
-		}
+		return bootstrap(ctx, n.PeerHost, n.DHT, n.Peerstore, peers)
 	}
 	return nil
 }
