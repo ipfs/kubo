@@ -188,7 +188,7 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 
 		// ok everything is good. set it on the invocation (for ownership)
 		// and return it.
-		i.node, err = core.NewIpfsNode(ctx, cfg, cmdctx.Online)
+		i.node, err = core.NewIPFSNode(ctx, core.Standard(cfg, cmdctx.Online))
 		return i.node, err
 	}
 }

@@ -45,14 +45,14 @@ func TestInitialization(t *testing.T) {
 	}
 
 	for i, c := range good {
-		n, err := NewIpfsNode(ctx, c, false)
+		n, err := NewIPFSNode(ctx, Standard(c, false))
 		if n == nil || err != nil {
 			t.Error("Should have constructed.", i, err)
 		}
 	}
 
 	for i, c := range bad {
-		n, err := NewIpfsNode(ctx, c, false)
+		n, err := NewIPFSNode(ctx, Standard(c, false))
 		if n != nil || err == nil {
 			t.Error("Should have failed to construct.", i)
 		}

@@ -121,7 +121,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 func addTheWelcomeFile(conf *config.Config) error {
 	// TODO extract this file creation operation into a function
 	ctx, cancel := context.WithCancel(context.Background())
-	nd, err := core.NewIpfsNode(ctx, conf, false)
+	nd, err := core.NewIPFSNode(ctx, core.Offline(conf))
 	if err != nil {
 		return err
 	}

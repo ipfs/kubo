@@ -7,12 +7,16 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	core "github.com/jbenet/go-ipfs/core"
+	core_io "github.com/jbenet/go-ipfs/core/io"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
+	"github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestThreeLeggedCat(t *testing.T) {
-	conf := Config{
+	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
@@ -22,7 +26,7 @@ func TestThreeLeggedCat(t *testing.T) {
 	}
 }
 
-func RunThreeLeggedCat(data []byte, conf Config) error {
+func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	const numPeers = 3
@@ -42,28 +46,28 @@ func RunThreeLeggedCat(data []byte, conf Config) error {
 	if len(peers) < numPeers {
 		return errors.New("test initialization error")
 	}
-	adder, err := makeCore(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
+	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf)))
 	if err != nil {
 		return err
 	}
-	catter, err := makeCore(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
+	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
 	if err != nil {
 		return err
 	}
-	bootstrap, err := makeCore(ctx, MocknetTestRepo(peers[2], mn.Host(peers[2]), conf))
+	bootstrap, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[2], mn.Host(peers[2]), conf)))
+	if err != nil {
+		return err
+	}
+	boostrapInfo := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
+	adder.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
+	catter.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
+
+	keyAdded, err := core_io.Add(adder, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 
-	adder.Bootstrap(ctx, bootstrap.ID())
-	catter.Bootstrap(ctx, bootstrap.ID())
-
-	keyAdded, err := adder.Add(bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-
-	readerCatted, err := catter.Cat(keyAdded)
+	readerCatted, err := core_io.Cat(catter, keyAdded)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -15,7 +16,7 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	"github.com/jbenet/go-ipfs/exchange/offline"
+	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
@@ -28,9 +29,11 @@ import (
 	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	util "github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -38,33 +41,51 @@ const kSizeBlockstoreWriteCache = 100
 
 var log = eventlog.Logger("core")
 
+type mode int
+
+const (
+	// zero value is not a valid mode, must be explicitly set
+	invalidMode mode = iota
+	offlineMode
+	onlineMode
+)
+
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {
 
 	// Self
-	Config     *config.Config // the node's configuration
-	Identity   peer.ID        // the local node's identity
-	PrivateKey ic.PrivKey     // the local node's private Key
-	onlineMode bool           // alternatively, offline
+	Identity peer.ID // the local node's identity
+
+	// TODO abstract as repo.Repo
+	Config    *config.Config                // the node's configuration
+	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
 
 	// Local node
-	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
-	Pinning   pin.Pinner                    // the pinning manager
-	Mounts    Mounts                        // current mount state, if any.
+	Pinning pin.Pinner // the pinning manager
+	Mounts  Mounts     // current mount state, if any.
 
 	// Services
-	Peerstore   peer.Peerstore       // storage for other Peer instances
-	PeerHost    p2phost.Host         // the network host (server+client)
-	Routing     routing.IpfsRouting  // the routing system. recommend ipfs-dht
-	Exchange    exchange.Interface   // the block exchange + strategy (bitswap)
-	Blockstore  bstore.Blockstore    // the block store (lower level)
-	Blocks      *bserv.BlockService  // the block service, get/add blocks.
-	DAG         merkledag.DAGService // the merkle dag service, get/add objects.
-	Resolver    *path.Resolver       // the path resolution system
-	Namesys     namesys.NameSystem   // the name system, resolves paths to hashes
-	Diagnostics *diag.Diagnostics    // the diagnostics service
+	Peerstore  peer.Peerstore       // storage for other Peer instances
+	Blockstore bstore.Blockstore    // the block store (lower level)
+	Blocks     *bserv.BlockService  // the block service, get/add blocks.
+	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
+	Resolver   *path.Resolver       // the path resolution system
+
+	// Online
+	PrivateKey  ic.PrivKey          // the local node's private Key
+	PeerHost    p2phost.Host        // the network host (server+client)
+	Routing     routing.IpfsRouting // the routing system. recommend ipfs-dht
+	Exchange    exchange.Interface  // the block exchange + strategy (bitswap)
+	Namesys     namesys.NameSystem  // the name system, resolves paths to hashes
+	Diagnostics *diag.Diagnostics   // the diagnostics service
 
 	ctxgroup.ContextGroup
+
+	// dht allows node to Bootstrap when dht is present
+	// TODO privatize before merging. This is here temporarily during the
+	// migration of the TestNet constructor
+	DHT  *dht.IpfsDHT
+	mode mode
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -75,67 +96,99 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-// NewIpfsNode constructs a new IpfsNode based on the given config.
-func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsNode, err error) {
-	success := false // flip to true after all sub-system inits succeed
-	defer func() {
-		if !success && n != nil {
-			n.Close()
-		}
-	}()
+type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
-	if cfg == nil {
-		return nil, debugerror.Errorf("configuration required")
-	}
-
-	n = &IpfsNode{
-		onlineMode: online,
-		Config:     cfg,
-	}
-	n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
-	ctx = n.ContextGroup.Context()
-
-	// setup Peerstore
-	n.Peerstore = peer.NewPeerstore()
-
-	// setup datastore.
-	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-		return nil, debugerror.Wrap(err)
-	}
-
-	// setup local peer ID (private key is loaded in online setup)
-	if err := n.loadID(); err != nil {
+func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
+	node, err := option(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
+	// Need to make sure it's perfectly clear 1) which variables are expected
+	// to be initialized at this point, and 2) which variables will be
+	// initialized after this point.
+
+	node.Blocks, err = bserv.New(node.Blockstore, node.Exchange)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
+	if node.Peerstore == nil {
+		node.Peerstore = peer.NewPeerstore()
+	}
+	node.DAG = merkledag.NewDAGService(node.Blocks)
+	node.Pinning, err = pin.LoadPinner(node.Datastore, node.DAG)
+	if err != nil {
+		node.Pinning = pin.NewPinner(node.Datastore, node.DAG)
+	}
+	node.Resolver = &path.Resolver{DAG: node.DAG}
+	return node, nil
+}
 
-	// setup online services
-	if online {
-		if err := n.StartOnlineServices(); err != nil {
-			return nil, err // debugerror.Wraps.
+func Offline(cfg *config.Config) ConfigOption {
+	return Standard(cfg, false)
+}
+
+func Online(cfg *config.Config) ConfigOption {
+	return Standard(cfg, true)
+}
+
+// DEPRECATED: use Online, Offline functions
+func Standard(cfg *config.Config, online bool) ConfigOption {
+	return func(ctx context.Context) (n *IpfsNode, err error) {
+
+		success := false // flip to true after all sub-system inits succeed
+		defer func() {
+			if !success && n != nil {
+				n.Close()
+			}
+		}()
+
+		if cfg == nil {
+			return nil, debugerror.Errorf("configuration required")
 		}
-	} else {
-		n.Exchange = offline.Exchange(n.Blockstore)
-	}
+		n = &IpfsNode{
+			mode: func() mode {
+				if online {
+					return onlineMode
+				}
+				return offlineMode
+			}(),
+			Config: cfg,
+		}
 
-	n.Blocks, err = bserv.New(n.Blockstore, n.Exchange)
-	if err != nil {
-		return nil, debugerror.Wrap(err)
-	}
+		n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
+		ctx = n.ContextGroup.Context()
 
-	n.DAG = merkledag.NewDAGService(n.Blocks)
-	n.Pinning, err = pin.LoadPinner(n.Datastore, n.DAG)
-	if err != nil {
-		n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
-	}
-	n.Resolver = &path.Resolver{DAG: n.DAG}
+		// setup Peerstore
+		n.Peerstore = peer.NewPeerstore()
 
-	success = true
-	return n, nil
+		// setup datastore.
+		if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+
+		// setup local peer ID (private key is loaded in online setup)
+		if err := n.loadID(); err != nil {
+			return nil, err
+		}
+
+		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
+		if err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+
+		// setup online services
+		if online {
+			if err := n.StartOnlineServices(); err != nil {
+				return nil, err // debugerror.Wraps.
+			}
+		} else {
+			n.Exchange = offline.Exchange(n.Blockstore)
+		}
+
+		success = true
+		return n, nil
+	}
 }
 
 func (n *IpfsNode) StartOnlineServices() error {
@@ -150,18 +203,22 @@ func (n *IpfsNode) StartOnlineServices() error {
 		return err
 	}
 
-	if err := n.startNetwork(); err != nil {
-		return err
+	peerhost, err := constructPeerHost(ctx, n.ContextGroup, n.Config, n.Identity, n.Peerstore)
+	if err != nil {
+		return debugerror.Wrap(err)
 	}
+	n.PeerHost = peerhost
 
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
 	// setup routing service
-	dhtRouting := dht.NewDHT(ctx, n.PeerHost, n.Datastore)
-	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	dhtRouting, err := constructDHTRouting(ctx, n.ContextGroup, n.PeerHost, n.Datastore)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.DHT = dhtRouting
 	n.Routing = dhtRouting
-	n.AddChildGroup(dhtRouting)
 
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
@@ -178,35 +235,17 @@ func (n *IpfsNode) StartOnlineServices() error {
 	// an Exchange, Network, or Routing component and have the constructor
 	// manage the wiring. In that scenario, this dangling function is a bit
 	// awkward.
-	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, n.Config.Bootstrap)
-	return nil
-}
-
-func (n *IpfsNode) startNetwork() error {
-	ctx := n.Context()
-
-	// setup the network
-	listenAddrs, err := listenAddresses(n.Config)
-	if err != nil {
-		return debugerror.Wrap(err)
+	var bootstrapPeers []peer.PeerInfo
+	for _, bootstrap := range n.Config.Bootstrap {
+		p, err := toPeer(bootstrap)
+		if err != nil {
+			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
+			log.Errorf("%s bootstrap error: %s", n.Identity, err)
+			return err
+		}
+		bootstrapPeers = append(bootstrapPeers, p)
 	}
-	// make sure we dont error out if our config includes some addresses we cant use.
-	listenAddrs = swarm.FilterAddrs(listenAddrs)
-	network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.AddChildGroup(network.CtxGroup())
-	n.PeerHost = p2pbhost.New(network)
-
-	// explicitly set these as our listen addrs.
-	// (why not do it inside inet.NewNetwork? because this way we can
-	// listen on addresses without necessarily advertising those publicly.)
-	addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.Peerstore.AddAddresses(n.Identity, addrs)
+	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
 	return nil
 }
 
@@ -218,7 +257,27 @@ func (n *IpfsNode) teardown() error {
 }
 
 func (n *IpfsNode) OnlineMode() bool {
-	return n.onlineMode
+	switch n.mode {
+	case onlineMode:
+		return true
+	default:
+		return false
+	}
+}
+
+func (n *IpfsNode) Resolve(k util.Key) (*merkledag.Node, error) {
+	return (&path.Resolver{n.DAG}).ResolvePath(k.String())
+}
+
+// Bootstrap is undefined when node is not in OnlineMode
+func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
+
+	// TODO what should return value be when in offlineMode?
+
+	if n.DHT != nil {
+		return bootstrap(ctx, n.PeerHost, n.DHT, n.Peerstore, peers)
+	}
+	return nil
 }
 
 func (n *IpfsNode) loadID() error {
@@ -288,4 +347,37 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	}
 
 	return listen, nil
+}
+
+// isolates the complex initialization steps
+func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *config.Config, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
+	listenAddrs, err := listenAddresses(cfg)
+	// make sure we dont error out if our config includes some addresses we cant use.
+	filteredAddrs := swarm.FilterAddrs(listenAddrs)
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+	network, err := swarm.NewNetwork(ctx, filteredAddrs, id, ps)
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+	ctxg.AddChildGroup(network.CtxGroup())
+
+	peerhost := p2pbhost.New(network)
+	// explicitly set these as our listen addrs.
+	// (why not do it inside inet.NewNetwork? because this way we can
+	// listen on addresses without necessarily advertising those publicly.)
+	addrs, err := peerhost.Network().InterfaceListenAddresses()
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+	ps.AddAddresses(id, addrs)
+	return peerhost, nil
+}
+
+func constructDHTRouting(ctx context.Context, ctxg ctxgroup.ContextGroup, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {
+	dhtRouting := dht.NewDHT(ctx, host, ds)
+	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	ctxg.AddChildGroup(dhtRouting)
+	return dhtRouting, nil
 }
