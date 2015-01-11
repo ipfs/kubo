@@ -52,7 +52,6 @@ type IpfsNode struct {
 	// Self
 	Config     *config.Config // the node's configuration
 	Identity   peer.ID        // the local node's identity
-	PrivateKey ic.PrivKey     // the local node's private Key
 	onlineMode bool           // alternatively, offline
 
 	// Local node
@@ -61,16 +60,19 @@ type IpfsNode struct {
 	Mounts    Mounts                        // current mount state, if any.
 
 	// Services
-	Peerstore   peer.Peerstore       // storage for other Peer instances
-	PeerHost    p2phost.Host         // the network host (server+client)
-	Routing     routing.IpfsRouting  // the routing system. recommend ipfs-dht
-	Exchange    exchange.Interface   // the block exchange + strategy (bitswap)
-	Blockstore  bstore.Blockstore    // the block store (lower level)
-	Blocks      *bserv.BlockService  // the block service, get/add blocks.
-	DAG         merkledag.DAGService // the merkle dag service, get/add objects.
-	Resolver    *path.Resolver       // the path resolution system
-	Namesys     namesys.NameSystem   // the name system, resolves paths to hashes
-	Diagnostics *diag.Diagnostics    // the diagnostics service
+	Peerstore  peer.Peerstore       // storage for other Peer instances
+	Blockstore bstore.Blockstore    // the block store (lower level)
+	Blocks     *bserv.BlockService  // the block service, get/add blocks.
+	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
+	Resolver   *path.Resolver       // the path resolution system
+
+	// Online
+	PrivateKey  ic.PrivKey          // the local node's private Key
+	PeerHost    p2phost.Host        // the network host (server+client)
+	Routing     routing.IpfsRouting // the routing system. recommend ipfs-dht
+	Exchange    exchange.Interface  // the block exchange + strategy (bitswap)
+	Namesys     namesys.NameSystem  // the name system, resolves paths to hashes
+	Diagnostics *diag.Diagnostics   // the diagnostics service
 
 	ctxgroup.ContextGroup
 
