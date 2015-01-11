@@ -144,11 +144,15 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "55792f89d00cf62166668ded3288536cbe6a72cc"
+			"Rev": "cddf450fca891e45aa471d882dae2c28ac642fb4"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
 			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
+			"Rev": "c531232018e678b2a702cfb86b5c3f68d1c8beb8"
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",

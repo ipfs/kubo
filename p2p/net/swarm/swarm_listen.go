@@ -66,8 +66,30 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 
 	// AddListener to the peerstream Listener. this will begin accepting connections
 	// and streams!
-	_, err = s.swarm.AddListener(list)
-	return err
+	sl, err := s.swarm.AddListener(list)
+	if err != nil {
+		return err
+	}
+
+	// go consume peerstream's listen accept errors. note, these ARE errors.
+	// they may be killing the listener, and if we get _any_ we should be
+	// fixing this in our conn.Listener (to ignore them or handle them
+	// differently.)
+	go func(ctx context.Context, sl *ps.Listener) {
+		for {
+			select {
+			case err, more := <-sl.AcceptErrors():
+				if !more {
+					return
+				}
+				log.Info(err)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(s.cg.Context(), sl)
+
+	return nil
 }
 
 // connHandler is called by the StreamSwarm whenever a new connection is added

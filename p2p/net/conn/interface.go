@@ -11,6 +11,7 @@ import (
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
 // Map maps Keys (Peer.IDs) to Connections.
@@ -51,6 +52,9 @@ type Conn interface {
 // Dial function as before, but it would have many arguments, as dialing is
 // no longer simple (need a peerstore, a local peer, a context, a network, etc)
 type Dialer struct {
+
+	// Dialer is an optional manet.Dialer to use.
+	Dialer manet.Dialer
 
 	// LocalPeer is the identity of the local Peer.
 	LocalPeer peer.ID
