@@ -41,7 +41,6 @@ func TestInitialization(t *testing.T) {
 		&config.Config{Identity: id, Datastore: config.Datastore{Type: "badtype"}},
 		&config.Config{},
 		&config.Config{Datastore: config.Datastore{Type: "memory"}},
-		nil,
 	}
 
 	for i, c := range good {
