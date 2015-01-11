@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -91,8 +90,6 @@ type Mounts struct {
 	Ipfs mount.Mount
 	Ipns mount.Mount
 }
-
-var errTODO = errors.New("TODO")
 
 type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
