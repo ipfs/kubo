@@ -8,6 +8,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -201,11 +202,12 @@ func (n *IpfsNode) StartOnlineServices() error {
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
 	// setup routing service
-	dhtRouting := dht.NewDHT(ctx, n.PeerHost, n.Datastore)
-	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
-	n.Routing = dhtRouting
+	dhtRouting, err := constructDHTRouting(ctx, n.ContextGroup, n.PeerHost, n.Datastore)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
 	n.DHT = dhtRouting
-	n.AddChildGroup(dhtRouting)
+	n.Routing = dhtRouting
 
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
@@ -232,7 +234,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 		}
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
-	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
+	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
 	return nil
 }
 
@@ -380,4 +382,11 @@ func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *con
 	}
 	ps.AddAddresses(id, addrs)
 	return peerhost, nil
+}
+
+func constructDHTRouting(ctx context.Context, ctxg ctxgroup.ContextGroup, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {
+	dhtRouting := dht.NewDHT(ctx, host, ds)
+	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	ctxg.AddChildGroup(dhtRouting)
+	return dhtRouting, nil
 }
