@@ -87,10 +87,8 @@ func (l *listener) Accept() (net.Conn, error) {
 		}
 		sc, err := newSecureConn(ctx, l.privk, c)
 		if err != nil {
-			if catcher.IsTemporary(err) {
-				continue
-			}
-			return nil, err
+			log.Info("ignoring conn we failed to secure: %s %s", err, sc)
+			continue
 		}
 		return sc, nil
 	}
