@@ -8,7 +8,6 @@ import (
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	core "github.com/jbenet/go-ipfs/core"
-	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
@@ -23,74 +22,9 @@ import (
 
 var log = eventlog.Logger("epictest")
 
-// TODO merge with core.IpfsNode
-type Core struct {
-	*core.IpfsNode
-}
+type ConfigOption func(ctx context.Context) (*core.IpfsNode, error)
 
-func (c *Core) ID() peer.ID {
-	return c.IpfsNode.Identity
-}
-
-func (c *Core) Bootstrap(ctx context.Context, p peer.PeerInfo) error {
-	return c.IpfsNode.Bootstrap(ctx, []peer.PeerInfo{p})
-}
-
-func makeCore(ctx context.Context, rf RepoFactory) (*Core, error) {
-	node, err := rf(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// to make sure nothing is omitted, init each individual field and assign
-	// all at once at the bottom.
-	return &Core{
-		IpfsNode: node,
-	}, nil
-}
-
-type RepoFactory func(ctx context.Context) (*core.IpfsNode, error)
-
-type Repo interface {
-	ID() peer.ID
-	Blockstore() blockstore.Blockstore
-	Exchange() exchange.Interface
-
-	Bootstrap(ctx context.Context, peer peer.ID) error
-}
-
-type repo struct {
-	// DHT, Exchange, Network,Datastore
-	bitSwapNetwork bsnet.BitSwapNetwork
-	blockstore     blockstore.Blockstore
-	exchange       exchange.Interface
-	datastore      datastore.ThreadSafeDatastore
-	host           host.Host
-	dht            *dht.IpfsDHT
-	id             peer.ID
-}
-
-func (r *repo) ID() peer.ID {
-	return r.id
-}
-
-func (c *repo) Bootstrap(ctx context.Context, p peer.ID) error {
-	return c.dht.Connect(ctx, p)
-}
-
-func (r *repo) Datastore() datastore.ThreadSafeDatastore {
-	return r.datastore
-}
-
-func (r *repo) Blockstore() blockstore.Blockstore {
-	return r.blockstore
-}
-
-func (r *repo) Exchange() exchange.Interface {
-	return r.exchange
-}
-
-func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) RepoFactory {
+func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) ConfigOption {
 	return func(ctx context.Context) (*core.IpfsNode, error) {
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
