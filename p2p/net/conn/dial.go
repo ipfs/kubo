@@ -41,11 +41,10 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 	}
 
 	// TODO: try to get reusing addr/ports to work.
-	// madialer := manet.Dialer{LocalAddr: laddr}
-	madialer := manet.Dialer{}
+	// d.Dialer.LocalAddr = laddr
 
 	log.Debugf("%s dialing %s %s", d.LocalPeer, remote, raddr)
-	maconn, err := madialer.Dial(raddr)
+	maconn, err := d.Dialer.Dial(raddr)
 	if err != nil {
 		return nil, err
 	}
