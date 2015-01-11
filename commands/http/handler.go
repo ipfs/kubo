@@ -95,8 +95,8 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	out, err := res.Reader()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set(contentTypeHeader, "text/plain")
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
 	}
