@@ -42,12 +42,6 @@ func makeCore(ctx context.Context, rf RepoFactory) (*Core, error) {
 		return nil, err
 	}
 
-	node.Blocks, err = blockservice.New(node.Blockstore, node.Exchange)
-	if err != nil {
-		return nil, err
-	}
-
-	node.DAG = merkledag.NewDAGService(node.Blocks)
 	// to make sure nothing is omitted, init each individual field and assign
 	// all at once at the bottom.
 	return &Core{
@@ -111,12 +105,19 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) RepoFa
 			return nil, err
 		}
 		exch := bitswap.New(ctx, p, bsn, bstore, alwaysSendToPeer)
+		blockservice, err := blockservice.New(bstore, exch)
+		if err != nil {
+			return nil, err
+		}
+
 		return &core.IpfsNode{
 			Peerstore:  h.Peerstore(),
 			Blockstore: bstore,
 			Exchange:   exch,
 			Datastore:  ds,
 			PeerHost:   h,
+			DAG:        merkledag.NewDAGService(blockservice),
+			Blocks:     blockservice,
 			Routing:    dhtt,
 			Identity:   p,
 			DHT:        dhtt,
