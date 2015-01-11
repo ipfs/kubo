@@ -29,7 +29,7 @@ func superviseConnections(parent context.Context,
 	h host.Host,
 	route *dht.IpfsDHT, // TODO depend on abstract interface for testing purposes
 	store peer.Peerstore,
-	peers []config.BootstrapPeer) error {
+	peers []peer.PeerInfo) error {
 
 	for {
 		ctx, _ := context.WithTimeout(parent, connectiontimeout)
@@ -51,7 +51,7 @@ func bootstrap(ctx context.Context,
 	h host.Host,
 	r *dht.IpfsDHT,
 	ps peer.Peerstore,
-	boots []config.BootstrapPeer) error {
+	bootstrapPeers []peer.PeerInfo) error {
 
 	connectedPeers := h.Network().Peers()
 	if len(connectedPeers) >= recoveryThreshold {
@@ -65,17 +65,6 @@ func bootstrap(ctx context.Context,
 
 	log.Event(ctx, "bootstrapStart", h.ID())
 	log.Debugf("%s bootstrapping to %d more nodes", h.ID(), numCxnsToCreate)
-
-	var bootstrapPeers []peer.PeerInfo
-	for _, bootstrap := range boots {
-		p, err := toPeer(bootstrap)
-		if err != nil {
-			log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
-			log.Errorf("%s bootstrap error: %s", h.ID(), err)
-			return err
-		}
-		bootstrapPeers = append(bootstrapPeers, p)
-	}
 
 	var notConnected []peer.PeerInfo
 	for _, p := range bootstrapPeers {

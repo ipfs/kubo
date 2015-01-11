@@ -32,6 +32,7 @@ import (
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -66,6 +67,11 @@ type IpfsNode struct {
 	Diagnostics *diag.Diagnostics    // the diagnostics service
 
 	ctxgroup.ContextGroup
+
+	// dht allows node to Bootstrap when dht is present
+	// TODO privatize before merging. This is here temporarily during the
+	// migration of the TestNet constructor
+	DHT *dht.IpfsDHT
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -185,6 +191,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 	dhtRouting := dht.NewDHT(ctx, n.PeerHost, n.Datastore)
 	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 	n.Routing = dhtRouting
+	n.DHT = dhtRouting
 	n.AddChildGroup(dhtRouting)
 
 	// setup exchange service
@@ -202,7 +209,17 @@ func (n *IpfsNode) StartOnlineServices() error {
 	// an Exchange, Network, or Routing component and have the constructor
 	// manage the wiring. In that scenario, this dangling function is a bit
 	// awkward.
-	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, n.Config.Bootstrap)
+	var bootstrapPeers []peer.PeerInfo
+	for _, bootstrap := range n.Config.Bootstrap {
+		p, err := toPeer(bootstrap)
+		if err != nil {
+			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
+			log.Errorf("%s bootstrap error: %s", n.Identity, err)
+			return err
+		}
+		bootstrapPeers = append(bootstrapPeers, p)
+	}
+	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
 	return nil
 }
 
@@ -243,6 +260,18 @@ func (n *IpfsNode) teardown() error {
 
 func (n *IpfsNode) OnlineMode() bool {
 	return n.onlineMode
+}
+
+func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
+	if n.DHT != nil {
+		for _, p := range peers {
+			// TODO bootstrap(ctx, n.PeerHost, n.DHT, n.Peerstore, peers)
+			if err := n.DHT.Connect(ctx, p.ID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (n *IpfsNode) loadID() error {
