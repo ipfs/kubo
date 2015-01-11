@@ -9,10 +9,11 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestThreeLeggedCat(t *testing.T) {
-	conf := Config{
+	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
@@ -22,7 +23,7 @@ func TestThreeLeggedCat(t *testing.T) {
 	}
 }
 
-func RunThreeLeggedCat(data []byte, conf Config) error {
+func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	const numPeers = 3

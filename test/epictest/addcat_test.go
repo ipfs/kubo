@@ -13,12 +13,13 @@ import (
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 const kSeed = 1
 
 func Test1KBInstantaneous(t *testing.T) {
-	conf := Config{
+	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
@@ -31,7 +32,7 @@ func Test1KBInstantaneous(t *testing.T) {
 
 func TestDegenerateSlowBlockstore(t *testing.T) {
 	SkipUnlessEpic(t)
-	conf := Config{BlockstoreLatency: 50 * time.Millisecond}
+	conf := testutil.LatencyConfig{BlockstoreLatency: 50 * time.Millisecond}
 	if err := AddCatPowers(conf, 128); err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +40,7 @@ func TestDegenerateSlowBlockstore(t *testing.T) {
 
 func TestDegenerateSlowNetwork(t *testing.T) {
 	SkipUnlessEpic(t)
-	conf := Config{NetworkLatency: 400 * time.Millisecond}
+	conf := testutil.LatencyConfig{NetworkLatency: 400 * time.Millisecond}
 	if err := AddCatPowers(conf, 128); err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +48,7 @@ func TestDegenerateSlowNetwork(t *testing.T) {
 
 func TestDegenerateSlowRouting(t *testing.T) {
 	SkipUnlessEpic(t)
-	conf := Config{RoutingLatency: 400 * time.Millisecond}
+	conf := testutil.LatencyConfig{RoutingLatency: 400 * time.Millisecond}
 	if err := AddCatPowers(conf, 128); err != nil {
 		t.Fatal(err)
 	}
@@ -55,13 +56,13 @@ func TestDegenerateSlowRouting(t *testing.T) {
 
 func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
-	conf := Config{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
+	conf := testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
 	if err := DirectAddCat(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func AddCatPowers(conf Config, megabytesMax int64) error {
+func AddCatPowers(conf testutil.LatencyConfig, megabytesMax int64) error {
 	var i int64
 	for i = 1; i < megabytesMax; i = i * 2 {
 		fmt.Printf("%d MB\n", i)
@@ -78,7 +79,7 @@ func RandomBytes(n int64) []byte {
 	return data.Bytes()
 }
 
-func DirectAddCat(data []byte, conf Config) error {
+func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	const numPeers = 2

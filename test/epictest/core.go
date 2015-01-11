@@ -9,6 +9,7 @@ import (
 
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
@@ -130,7 +131,7 @@ func (r *repo) Exchange() exchange.Interface {
 	return r.exchange
 }
 
-func MocknetTestRepo(p peer.ID, h host.Host, conf Config) RepoFactory {
+func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) RepoFactory {
 	return func(ctx context.Context) (Repo, error) {
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
