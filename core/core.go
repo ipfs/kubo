@@ -78,9 +78,7 @@ type Mounts struct {
 
 var errTODO = errors.New("TODO")
 
-type Configuration *IpfsNode // define a different type
-
-type ConfigOption func(ctx context.Context) (Configuration, error)
+type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
 func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	config, err := option(ctx)
@@ -100,73 +98,68 @@ func Online(cfg *config.Config) ConfigOption {
 
 // DEPRECATED: use Online, Offline functions
 func Standard(cfg *config.Config, online bool) ConfigOption {
-	return func(ctx context.Context) (Configuration, error) {
-		return NewIpfsNode(ctx, cfg, online)
-	}
-}
+	return func(ctx context.Context) (n *IpfsNode, err error) {
 
-// NewIpfsNode constructs a new IpfsNode based on the given config.
-// DEPRECATED: use `NewIPFSNode`
-func NewIpfsNode(ctx context.Context, cfg *config.Config, online bool) (n *IpfsNode, err error) {
-	success := false // flip to true after all sub-system inits succeed
-	defer func() {
-		if !success && n != nil {
-			n.Close()
+		success := false // flip to true after all sub-system inits succeed
+		defer func() {
+			if !success && n != nil {
+				n.Close()
+			}
+		}()
+
+		if cfg == nil {
+			return nil, debugerror.Errorf("configuration required")
 		}
-	}()
-
-	if cfg == nil {
-		return nil, debugerror.Errorf("configuration required")
-	}
-
-	n = &IpfsNode{
-		onlineMode: online,
-		Config:     cfg,
-	}
-	n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
-	ctx = n.ContextGroup.Context()
-
-	// setup Peerstore
-	n.Peerstore = peer.NewPeerstore()
-
-	// setup datastore.
-	if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-		return nil, debugerror.Wrap(err)
-	}
-
-	// setup local peer ID (private key is loaded in online setup)
-	if err := n.loadID(); err != nil {
-		return nil, err
-	}
-
-	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
-	if err != nil {
-		return nil, debugerror.Wrap(err)
-	}
-
-	// setup online services
-	if online {
-		if err := n.StartOnlineServices(); err != nil {
-			return nil, err // debugerror.Wraps.
+		n = &IpfsNode{
+			onlineMode: online,
+			Config:     cfg,
 		}
-	} else {
-		n.Exchange = offline.Exchange(n.Blockstore)
-	}
 
-	n.Blocks, err = bserv.New(n.Blockstore, n.Exchange)
-	if err != nil {
-		return nil, debugerror.Wrap(err)
-	}
+		n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
+		ctx = n.ContextGroup.Context()
 
-	n.DAG = merkledag.NewDAGService(n.Blocks)
-	n.Pinning, err = pin.LoadPinner(n.Datastore, n.DAG)
-	if err != nil {
-		n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
-	}
-	n.Resolver = &path.Resolver{DAG: n.DAG}
+		// setup Peerstore
+		n.Peerstore = peer.NewPeerstore()
 
-	success = true
-	return n, nil
+		// setup datastore.
+		if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+
+		// setup local peer ID (private key is loaded in online setup)
+		if err := n.loadID(); err != nil {
+			return nil, err
+		}
+
+		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
+		if err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+
+		// setup online services
+		if online {
+			if err := n.StartOnlineServices(); err != nil {
+				return nil, err // debugerror.Wraps.
+			}
+		} else {
+			n.Exchange = offline.Exchange(n.Blockstore)
+		}
+
+		n.Blocks, err = bserv.New(n.Blockstore, n.Exchange)
+		if err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+
+		n.DAG = merkledag.NewDAGService(n.Blocks)
+		n.Pinning, err = pin.LoadPinner(n.Datastore, n.DAG)
+		if err != nil {
+			n.Pinning = pin.NewPinner(n.Datastore, n.DAG)
+		}
+		n.Resolver = &path.Resolver{DAG: n.DAG}
+
+		success = true
+		return n, nil
+	}
 }
 
 func (n *IpfsNode) StartOnlineServices() error {
