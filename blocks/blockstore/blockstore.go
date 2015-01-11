@@ -132,6 +132,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context, offset int, limit int) (<
 
 			// need to convert to u.Key using u.KeyFromDsKey.
 			k = u.KeyFromDsKey(ds.NewKey(e.Key))
+			log.Debug("blockstore: query got key", k)
 			return k, true
 		}
 	}

@@ -54,6 +54,7 @@ Note: list all refs recursively with -r.
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
+		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
 			return nil, err
@@ -93,7 +94,7 @@ Note: list all refs recursively with -r.
 			rw := RefWriter{
 				W:         pipew,
 				DAG:       n.DAG,
-				Ctx:       n.Context(),
+				Ctx:       ctx,
 				Unique:    unique,
 				PrintEdge: edges,
 				PrintFmt:  format,
@@ -122,13 +123,14 @@ Displays the hashes of all local objects.
 	},
 
 	Run: func(req cmds.Request) (interface{}, error) {
+		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
 			return nil, err
 		}
 
 		// todo: make async
-		allKeys, err := n.Blockstore.AllKeys(context.TODO(), 0, 0)
+		allKeys, err := n.Blockstore.AllKeysChan(ctx, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +141,7 @@ Displays the hashes of all local objects.
 		go func() {
 			defer pipew.Close()
 
-			for _, k := range allKeys {
+			for k := range allKeys {
 				s := k.Pretty() + "\n"
 				if _, err := pipew.Write([]byte(s)); err != nil {
 					log.Error(err)
