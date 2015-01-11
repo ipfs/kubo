@@ -38,7 +38,6 @@ func TestInitialization(t *testing.T) {
 
 	bad := []*config.Config{
 		&config.Config{Identity: id, Datastore: config.Datastore{}},
-		&config.Config{Identity: id, Datastore: config.Datastore{Type: "badtype"}},
 		&config.Config{},
 		&config.Config{Datastore: config.Datastore{Type: "memory"}},
 	}
