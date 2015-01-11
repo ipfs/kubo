@@ -50,14 +50,16 @@ var log = eventlog.Logger("core")
 type IpfsNode struct {
 
 	// Self
-	Config     *config.Config // the node's configuration
-	Identity   peer.ID        // the local node's identity
-	onlineMode bool           // alternatively, offline
+	Identity   peer.ID // the local node's identity
+	onlineMode bool    // alternatively, offline
+
+	// TODO abstract as repo.Repo
+	Config    *config.Config                // the node's configuration
+	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
 
 	// Local node
-	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
-	Pinning   pin.Pinner                    // the pinning manager
-	Mounts    Mounts                        // current mount state, if any.
+	Pinning pin.Pinner // the pinning manager
+	Mounts  Mounts     // current mount state, if any.
 
 	// Services
 	Peerstore  peer.Peerstore       // storage for other Peer instances
