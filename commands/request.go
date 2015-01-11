@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
@@ -14,6 +16,10 @@ import (
 type optMap map[string]interface{}
 
 type Context struct {
+	// this Context is temporary. Will be replaced soon, as we get
+	// rid of this variable entirely.
+	Context context.Context
+
 	Online     bool
 	ConfigRoot string
 
@@ -267,7 +273,8 @@ func NewRequest(path []string, opts optMap, args []string, file File, cmd *Comma
 		optDefs = make(map[string]Option)
 	}
 
-	req := &request{path, opts, args, file, cmd, Context{}, optDefs}
+	ctx := Context{Context: context.TODO()}
+	req := &request{path, opts, args, file, cmd, ctx, optDefs}
 	err := req.ConvertOptions()
 	if err != nil {
 		return nil, err

@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -26,6 +28,7 @@ const (
 	contentTypeHeader      = "Content-Type"
 	contentLengthHeader    = "Content-Length"
 	transferEncodingHeader = "Transfer-Encoding"
+	applicationJson        = "application/json"
 )
 
 var mimeTypes = map[string]string{
@@ -44,6 +47,11 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, origin string) *Handler {
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// create a context.Context to pass into the commands.
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	i.ctx.Context = ctx
+
 	log.Debug("Incoming API request: ", r.URL)
 
 	if len(i.origin) > 0 {
@@ -106,19 +114,30 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, isChan := res.Output().(chan interface{})
 	streamChans, _, _ := req.Option("stream-channels").Bool()
 	if isChan && streamChans {
-		err = copyChunks(w, out)
+		err = copyChunks(applicationJson, w, out)
 		if err != nil {
 			log.Error(err)
 		}
 		return
 	}
 
-	io.Copy(w, out)
+	flushCopy(w, out)
+}
+
+// flushCopy Copies from an io.Reader to a http.ResponseWriter.
+// Flushes chunks over HTTP stream as they are read (if supported by transport).
+func flushCopy(w http.ResponseWriter, out io.Reader) error {
+	if _, ok := w.(http.Flusher); !ok {
+		return copyChunks("", w, out)
+	}
+
+	io.Copy(&flushResponse{w}, out)
+	return nil
 }
 
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
-func copyChunks(w http.ResponseWriter, out io.Reader) error {
+func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error {
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		return errors.New("Could not create hijacker")
@@ -130,7 +149,9 @@ func copyChunks(w http.ResponseWriter, out io.Reader) error {
 	defer conn.Close()
 
 	writer.WriteString("HTTP/1.1 200 OK\r\n")
-	writer.WriteString(contentTypeHeader + ": application/json\r\n")
+	if contentType != "" {
+		writer.WriteString(contentTypeHeader + ": " + contentType + "\r\n")
+	}
 	writer.WriteString(transferEncodingHeader + ": chunked\r\n")
 	writer.WriteString(channelHeader + ": 1\r\n\r\n")
 
@@ -164,4 +185,20 @@ func copyChunks(w http.ResponseWriter, out io.Reader) error {
 	writer.Flush()
 
 	return nil
+}
+
+type flushResponse struct {
+	W http.ResponseWriter
+}
+
+func (fr *flushResponse) Write(buf []byte) (int, error) {
+	n, err := fr.W.Write(buf)
+	if err != nil {
+		return n, err
+	}
+
+	if flusher, ok := fr.W.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	return n, err
 }
