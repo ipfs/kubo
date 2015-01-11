@@ -109,8 +109,8 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	adder.Bootstrap(ctx, catter.ID())
-	catter.Bootstrap(ctx, adder.ID())
+	adder.Bootstrap(ctx, catter.Peerstore.PeerInfo(catter.PeerHost.ID()))
+	catter.Bootstrap(ctx, adder.Peerstore.PeerInfo(adder.PeerHost.ID()))
 
 	keyAdded, err := adder.Add(bytes.NewReader(data))
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	core "github.com/jbenet/go-ipfs/core"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
@@ -25,30 +25,26 @@ import (
 	"github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 var log = eventlog.Logger("epictest")
 
 // TODO merge with core.IpfsNode
-type core struct {
-	repo Repo
-
-	blockService *blockservice.BlockService
-	blockstore   blockstore.Blockstore
-	dag          merkledag.DAGService
-	id           peer.ID
+type Core struct {
+	*core.IpfsNode
 }
 
-func (c *core) ID() peer.ID {
-	return c.repo.ID()
+func (c *Core) ID() peer.ID {
+	return c.IpfsNode.Identity
 }
 
-func (c *core) Bootstrap(ctx context.Context, p peer.ID) error {
-	return c.repo.Bootstrap(ctx, p)
+func (c *Core) Bootstrap(ctx context.Context, p peer.PeerInfo) error {
+	return c.IpfsNode.Bootstrap(ctx, []peer.PeerInfo{p})
 }
 
-func (c *core) Cat(k util.Key) (io.Reader, error) {
-	catterdag := c.dag
+func (c *Core) Cat(k util.Key) (io.Reader, error) {
+	catterdag := c.IpfsNode.DAG
 	nodeCatted, err := (&path.Resolver{catterdag}).ResolvePath(k.String())
 	if err != nil {
 		return nil, err
@@ -56,10 +52,10 @@ func (c *core) Cat(k util.Key) (io.Reader, error) {
 	return uio.NewDagReader(nodeCatted, catterdag)
 }
 
-func (c *core) Add(r io.Reader) (util.Key, error) {
+func (c *Core) Add(r io.Reader) (util.Key, error) {
 	nodeAdded, err := importer.BuildDagFromReader(
 		r,
-		c.dag,
+		c.IpfsNode.DAG,
 		nil,
 		chunk.DefaultSplitter,
 	)
@@ -69,28 +65,26 @@ func (c *core) Add(r io.Reader) (util.Key, error) {
 	return nodeAdded.Key()
 }
 
-func makeCore(ctx context.Context, rf RepoFactory) (*core, error) {
-	repo, err := rf(ctx)
+func makeCore(ctx context.Context, rf RepoFactory) (*Core, error) {
+	node, err := rf(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	bss, err := blockservice.New(repo.Blockstore(), repo.Exchange())
+	node.Blocks, err = blockservice.New(node.Blockstore, node.Exchange)
 	if err != nil {
 		return nil, err
 	}
 
-	dag := merkledag.NewDAGService(bss)
+	node.DAG = merkledag.NewDAGService(node.Blocks)
 	// to make sure nothing is omitted, init each individual field and assign
 	// all at once at the bottom.
-	return &core{
-		repo:         repo,
-		blockService: bss,
-		dag:          dag,
+	return &Core{
+		IpfsNode: node,
 	}, nil
 }
 
-type RepoFactory func(ctx context.Context) (Repo, error)
+type RepoFactory func(ctx context.Context) (*core.IpfsNode, error)
 
 type Repo interface {
 	ID() peer.ID
@@ -132,11 +126,11 @@ func (r *repo) Exchange() exchange.Interface {
 }
 
 func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) RepoFactory {
-	return func(ctx context.Context) (Repo, error) {
+	return func(ctx context.Context) (*core.IpfsNode, error) {
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
 		dsDelay := delay.Fixed(conf.BlockstoreLatency)
-		ds := sync.MutexWrap(datastore2.WithDelay(datastore.NewMapDatastore(), dsDelay))
+		ds := datastore2.CloserWrap(sync.MutexWrap(datastore2.WithDelay(datastore.NewMapDatastore(), dsDelay)))
 
 		log.Debugf("MocknetTestRepo: %s %s %s", p, h.ID(), h)
 		dhtt := dht.NewDHT(ctx, h, ds)
@@ -146,14 +140,15 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) RepoFa
 			return nil, err
 		}
 		exch := bitswap.New(ctx, p, bsn, bstore, alwaysSendToPeer)
-		return &repo{
-			bitSwapNetwork: bsn,
-			blockstore:     bstore,
-			exchange:       exch,
-			datastore:      ds,
-			host:           h,
-			dht:            dhtt,
-			id:             p,
+		return &core.IpfsNode{
+			Peerstore:  h.Peerstore(),
+			Blockstore: bstore,
+			Exchange:   exch,
+			Datastore:  ds,
+			PeerHost:   h,
+			Routing:    dhtt,
+			Identity:   p,
+			DHT:        dhtt,
 		}, nil
 	}
 }

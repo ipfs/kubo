@@ -55,9 +55,9 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
-
-	adder.Bootstrap(ctx, bootstrap.ID())
-	catter.Bootstrap(ctx, bootstrap.ID())
+	boostrapInfo := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
+	adder.Bootstrap(ctx, boostrapInfo)
+	catter.Bootstrap(ctx, boostrapInfo)
 
 	keyAdded, err := adder.Add(bytes.NewReader(data))
 	if err != nil {
