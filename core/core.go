@@ -105,6 +105,9 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
+	if node.Peerstore == nil {
+		node.Peerstore = peer.NewPeerstore()
+	}
 	node.DAG = merkledag.NewDAGService(node.Blocks)
 	node.Pinning, err = pin.LoadPinner(node.Datastore, node.DAG)
 	if err != nil {
