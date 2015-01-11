@@ -1,8 +1,10 @@
 package conn
 
 import (
+	"fmt"
 	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,6 +105,9 @@ func testDialer(t *testing.T, secure bool) {
 	if !secure {
 		key1 = nil
 		key2 = nil
+		t.Log("testing insecurely")
+	} else {
+		t.Log("testing securely")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -163,4 +168,90 @@ func TestDialerInsecure(t *testing.T) {
 func TestDialerSecure(t *testing.T) {
 	// t.Skip("Skipping in favor of another test")
 	testDialer(t, true)
+}
+
+func testDialerCloseEarly(t *testing.T, secure bool) {
+	// t.Skip("Skipping in favor of another test")
+
+	p1 := tu.RandPeerNetParamsOrFatal(t)
+	p2 := tu.RandPeerNetParamsOrFatal(t)
+
+	key1 := p1.PrivKey
+	if !secure {
+		key1 = nil
+		t.Log("testing insecurely")
+	} else {
+		t.Log("testing securely")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	l1, err := Listen(ctx, p1.Addr, p1.ID, key1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Addr = l1.Multiaddr() // Addr has been determined by kernel.
+
+	// lol nesting
+	d2 := &Dialer{
+		LocalPeer: p2.ID,
+		// PrivateKey: key2, -- dont give it key. we'll just close the conn.
+	}
+
+	errs := make(chan error, 100)
+	done := make(chan struct{}, 1)
+	gotclosed := make(chan struct{}, 1)
+	go func() {
+		defer func() { done <- struct{}{} }()
+
+		_, err := l1.Accept()
+		if err != nil {
+			if strings.Contains(err.Error(), "closed") {
+				gotclosed <- struct{}{}
+				return
+			}
+			errs <- err
+		}
+		errs <- fmt.Errorf("got conn")
+	}()
+
+	c, err := d2.Dial(ctx, p1.Addr, p1.ID)
+	if err != nil {
+		errs <- err
+	}
+	c.Close() // close it early.
+
+	readerrs := func() {
+		for {
+			select {
+			case e := <-errs:
+				t.Error(e)
+			default:
+				return
+			}
+		}
+	}
+	readerrs()
+
+	l1.Close()
+	<-done
+	cancel()
+	readerrs()
+	close(errs)
+
+	select {
+	case <-gotclosed:
+	default:
+		t.Error("did not get closed")
+	}
+}
+
+// we dont do a handshake with singleConn, so cant "close early."
+// func TestDialerCloseEarlyInsecure(t *testing.T) {
+// 	// t.Skip("Skipping in favor of another test")
+// 	testDialerCloseEarly(t, false)
+// }
+
+func TestDialerCloseEarlySecure(t *testing.T) {
+	// t.Skip("Skipping in favor of another test")
+	testDialerCloseEarly(t, true)
 }

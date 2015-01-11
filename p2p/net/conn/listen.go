@@ -2,13 +2,14 @@ package conn
 
 import (
 	"fmt"
+	"io"
 	"net"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-
+	tec "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
@@ -46,25 +47,53 @@ func (l *listener) Accept() (net.Conn, error) {
 	// Contexts and io don't mix.
 	ctx := context.Background()
 
-	maconn, err := l.Listener.Accept()
-	if err != nil {
-		return nil, err
+	var catcher tec.TempErrCatcher
+
+	catcher.IsTemp = func(e error) bool {
+		// ignore connection breakages up to this point. but log them
+		if e == io.EOF {
+			log.Debugf("listener ignoring conn with EOF: %s", e)
+			return true
+		}
+
+		te, ok := e.(tec.Temporary)
+		if ok {
+			log.Debugf("listener ignoring conn with temporary err: %s", e)
+			return te.Temporary()
+		}
+		return false
 	}
 
-	c, err := newSingleConn(ctx, l.local, "", maconn)
-	if err != nil {
-		return nil, fmt.Errorf("Error accepting connection: %v", err)
-	}
+	for {
+		maconn, err := l.Listener.Accept()
+		if err != nil {
+			if catcher.IsTemporary(err) {
+				continue
+			}
+			return nil, err
+		}
 
-	if l.privk == nil {
-		log.Warning("listener %s listening INSECURELY!", l)
-		return c, nil
+		c, err := newSingleConn(ctx, l.local, "", maconn)
+		if err != nil {
+			if catcher.IsTemporary(err) {
+				continue
+			}
+			return nil, err
+		}
+
+		if l.privk == nil {
+			log.Warning("listener %s listening INSECURELY!", l)
+			return c, nil
+		}
+		sc, err := newSecureConn(ctx, l.privk, c)
+		if err != nil {
+			if catcher.IsTemporary(err) {
+				continue
+			}
+			return nil, err
+		}
+		return sc, nil
 	}
-	sc, err := newSecureConn(ctx, l.privk, c)
-	if err != nil {
-		return nil, fmt.Errorf("Error securing connection: %v", err)
-	}
-	return sc, nil
 }
 
 func (l *listener) Addr() net.Addr {
