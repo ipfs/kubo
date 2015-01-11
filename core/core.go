@@ -191,9 +191,11 @@ func (n *IpfsNode) StartOnlineServices() error {
 		return err
 	}
 
-	if err := n.startNetwork(); err != nil {
-		return err
+	peerhost, err := constructPeerHost(ctx, n.ContextGroup, n.Config, n.Identity, n.Peerstore)
+	if err != nil {
+		return debugerror.Wrap(err)
 	}
+	n.PeerHost = peerhost
 
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
@@ -231,34 +233,6 @@ func (n *IpfsNode) StartOnlineServices() error {
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
 	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
-	return nil
-}
-
-func (n *IpfsNode) startNetwork() error {
-	ctx := n.Context()
-
-	// setup the network
-	listenAddrs, err := listenAddresses(n.Config)
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	// make sure we dont error out if our config includes some addresses we cant use.
-	listenAddrs = swarm.FilterAddrs(listenAddrs)
-	network, err := swarm.NewNetwork(ctx, listenAddrs, n.Identity, n.Peerstore)
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.AddChildGroup(network.CtxGroup())
-	n.PeerHost = p2pbhost.New(network)
-
-	// explicitly set these as our listen addrs.
-	// (why not do it inside inet.NewNetwork? because this way we can
-	// listen on addresses without necessarily advertising those publicly.)
-	addrs, err := n.PeerHost.Network().InterfaceListenAddresses()
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.Peerstore.AddAddresses(n.Identity, addrs)
 	return nil
 }
 
@@ -380,4 +354,30 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	}
 
 	return listen, nil
+}
+
+// isolates the complex initialization steps
+func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *config.Config, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
+	listenAddrs, err := listenAddresses(cfg)
+	// make sure we dont error out if our config includes some addresses we cant use.
+	filteredAddrs := swarm.FilterAddrs(listenAddrs)
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+	network, err := swarm.NewNetwork(ctx, filteredAddrs, id, ps)
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+	ctxg.AddChildGroup(network.CtxGroup())
+
+	peerhost := p2pbhost.New(network)
+	// explicitly set these as our listen addrs.
+	// (why not do it inside inet.NewNetwork? because this way we can
+	// listen on addresses without necessarily advertising those publicly.)
+	addrs, err := peerhost.Network().InterfaceListenAddresses()
+	if err != nil {
+		return nil, debugerror.Wrap(err)
+	}
+	ps.AddAddresses(id, addrs)
+	return peerhost, nil
 }
