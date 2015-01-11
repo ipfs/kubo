@@ -98,13 +98,18 @@ func (di *DiagInfo) Marshal() []byte {
 }
 
 func (d *Diagnostics) getPeers() []peer.ID {
-	conns := d.host.Network().Conns()
-	peers := make([]peer.ID, len(conns))
-
-	for i, c := range conns {
-		peers[i] = c.RemotePeer()
+	peers := d.host.Network().Peers()
+	pmap := make(map[peer.ID]struct{})
+	out := make([]peer.ID, 0, len(peers))
+	for _, p := range peers {
+		_, ok := pmap[p]
+		if !ok {
+			out = append(out, p)
+			pmap[p] = struct{}{}
+		}
 	}
-	return peers
+
+	return out
 }
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
@@ -239,7 +244,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Messa
 }
 
 func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
+	log.Debugf("HandleDiagnostic from %s for id = %s", p, util.Key(pmes.GetDiagID()).B58String())
 	resp := newMessage(pmes.GetDiagID())
 
 	// Make sure we havent already handled this request to prevent loops
