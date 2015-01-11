@@ -151,6 +151,10 @@
 			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
+			"Rev": "c531232018e678b2a702cfb86b5c3f68d1c8beb8"
+		},
+		{
 			"ImportPath": "github.com/jbenet/goprocess",
 			"Rev": "162148a58668ca38b0b8f0459ccc6ca88e32f1f4"
 		},
