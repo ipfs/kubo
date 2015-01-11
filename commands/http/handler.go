@@ -114,6 +114,9 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, isChan := res.Output().(chan interface{})
 	streamChans, _, _ := req.Option("stream-channels").Bool()
 	if isChan && streamChans {
+		// w.WriteString(transferEncodingHeader + ": chunked\r\n")
+		// w.Header().Set(channelHeader, "1")
+		// w.WriteHeader(200)
 		err = copyChunks(applicationJson, w, out)
 		if err != nil {
 			log.Error(err)
