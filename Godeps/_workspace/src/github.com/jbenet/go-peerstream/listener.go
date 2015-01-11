@@ -2,8 +2,10 @@ package peerstream
 
 import (
 	"errors"
+	"fmt"
 	"net"
-	"time"
+
+	tec "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
 )
 
 type Listener struct {
@@ -62,36 +64,19 @@ func (l *Listener) accept() {
 
 	// catching the error here is odd. doing what net/http does:
 	// http://golang.org/src/net/http/server.go?s=51504:51550#L1728
-	var tempDelay time.Duration // how long to sleep on accept failure
-
-	isTemporaryErr := func(e error) bool {
-		if ne, ok := e.(net.Error); ok && ne.Temporary() {
-			if tempDelay == 0 {
-				tempDelay = 5 * time.Millisecond
-			} else {
-				tempDelay *= 2
-			}
-			if max := 1 * time.Second; tempDelay > max {
-				tempDelay = max
-			}
-
-			time.Sleep(tempDelay)
-			return true
-		}
-		return false
-	}
+	// Using the lib: https://godoc.org/github.com/jbenet/go-temp-err-catcher
+	var catcher tec.TempErrCatcher
 
 	// loop forever accepting connections
 	for {
 		conn, err := l.netList.Accept()
 		if err != nil {
-			l.acceptErr <- err
-			if isTemporaryErr(err) {
+			if catcher.IsTemporary(err) {
 				continue
 			}
+			l.acceptErr <- fmt.Errorf("peerstream listener failed: %s", err)
 			return // ok, problems. bail.
 		}
-		tempDelay = 0
 
 		// add conn to swarm and listen for incoming streams
 		// log.Printf("accepted conn %s\n", conn.RemoteAddr())
