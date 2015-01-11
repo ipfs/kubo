@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
@@ -18,6 +19,8 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	"github.com/jbenet/go-ipfs/exchange/offline"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	importer "github.com/jbenet/go-ipfs/importer"
+	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
@@ -29,6 +32,8 @@ import (
 	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	u "github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -272,6 +277,34 @@ func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
 		}
 	}
 	return nil
+}
+
+// TODO we may not want to add these methods to the core. Maybe they should be
+// defined as free functions in another package that use public fields on the
+// node.
+//
+// e.g. reader, err := unix.Cat(node)
+
+func (n *IpfsNode) Cat(k u.Key) (io.Reader, error) {
+	catterdag := n.DAG
+	nodeCatted, err := (&path.Resolver{catterdag}).ResolvePath(k.String())
+	if err != nil {
+		return nil, err
+	}
+	return uio.NewDagReader(nodeCatted, catterdag)
+}
+
+func (n *IpfsNode) Add(r io.Reader) (u.Key, error) {
+	nodeAdded, err := importer.BuildDagFromReader(
+		r,
+		n.DAG,
+		nil,
+		chunk.DefaultSplitter,
+	)
+	if err != nil {
+		return "", err
+	}
+	return nodeAdded.Key()
 }
 
 func (n *IpfsNode) loadID() error {

@@ -1,8 +1,6 @@
 package epictest
 
 import (
-	"io"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
@@ -13,15 +11,10 @@ import (
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	importer "github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	path "github.com/jbenet/go-ipfs/path"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/datastore2"
 	delay "github.com/jbenet/go-ipfs/util/delay"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
@@ -41,28 +34,6 @@ func (c *Core) ID() peer.ID {
 
 func (c *Core) Bootstrap(ctx context.Context, p peer.PeerInfo) error {
 	return c.IpfsNode.Bootstrap(ctx, []peer.PeerInfo{p})
-}
-
-func (c *Core) Cat(k util.Key) (io.Reader, error) {
-	catterdag := c.IpfsNode.DAG
-	nodeCatted, err := (&path.Resolver{catterdag}).ResolvePath(k.String())
-	if err != nil {
-		return nil, err
-	}
-	return uio.NewDagReader(nodeCatted, catterdag)
-}
-
-func (c *Core) Add(r io.Reader) (util.Key, error) {
-	nodeAdded, err := importer.BuildDagFromReader(
-		r,
-		c.IpfsNode.DAG,
-		nil,
-		chunk.DefaultSplitter,
-	)
-	if err != nil {
-		return "", err
-	}
-	return nodeAdded.Key()
 }
 
 func makeCore(ctx context.Context, rf RepoFactory) (*Core, error) {
