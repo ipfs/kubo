@@ -22,9 +22,7 @@ import (
 
 var log = eventlog.Logger("epictest")
 
-type ConfigOption func(ctx context.Context) (*core.IpfsNode, error)
-
-func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) ConfigOption {
+func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.ConfigOption {
 	return func(ctx context.Context) (*core.IpfsNode, error) {
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
@@ -43,7 +41,6 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) Config
 		if err != nil {
 			return nil, err
 		}
-
 		return &core.IpfsNode{
 			Peerstore:  h.Peerstore(),
 			Blockstore: bstore,
