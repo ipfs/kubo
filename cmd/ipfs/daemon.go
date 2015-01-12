@@ -152,7 +152,12 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	}
 
 	if gatewayMaddr != nil {
-		go listenAndServeGateway(node, gatewayMaddr)
+		go func() {
+			err := listenAndServeGateway(node, gatewayMaddr)
+			if err != nil {
+				log.Error(err)
+			}
+		}()
 	}
 
 	return nil, listenAndServeAPI(node, req, apiMaddr)
