@@ -130,33 +130,37 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// storage for directory listing
 	var dirListing []directoryItem
 	// loop through files
+	foundIndex := false
 	for _, link := range nd.Links {
-		if link.Name != "index.html" {
-			dirListing = append(dirListing, directoryItem{link.Size, link.Name})
-			continue
+		if link.Name == "index.html" {
+			log.Debug("found index")
+			foundIndex = true
+			// return index page instead.
+			nd, err := i.ResolvePath(path + "/index.html")
+			if err != nil {
+				internalWebError(w, err)
+				return
+			}
+			dr, err := i.NewDagReader(nd)
+			if err != nil {
+				internalWebError(w, err)
+				return
+			}
+			// write to request
+			io.Copy(w, dr)
+			break
 		}
 
-		log.Debug("found index")
-		// return index page instead.
-		nd, err := i.ResolvePath(path + "/index.html")
-		if err != nil {
-			internalWebError(w, err)
-			return
-		}
-		dr, err := i.NewDagReader(nd)
-		if err != nil {
-			internalWebError(w, err)
-			return
-		}
-		// write to request
-		io.Copy(w, dr)
+		dirListing = append(dirListing, directoryItem{link.Size, link.Name})
 	}
 
-	// template and return directory listing
-	hndlr := webHandler{"listing": dirListing, "path": path}
-	if err := i.dirList.Execute(w, hndlr); err != nil {
-		internalWebError(w, err)
-		return
+	if !foundIndex {
+		// template and return directory listing
+		hndlr := webHandler{"listing": dirListing, "path": path}
+		if err := i.dirList.Execute(w, hndlr); err != nil {
+			internalWebError(w, err)
+			return
+		}
 	}
 }
 
