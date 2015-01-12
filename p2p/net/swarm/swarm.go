@@ -150,6 +150,7 @@ func (s *Swarm) Peers() []peer.ID {
 			continue
 		}
 
+		seen[p] = struct{}{}
 		peers = append(peers, p)
 	}
 	return peers

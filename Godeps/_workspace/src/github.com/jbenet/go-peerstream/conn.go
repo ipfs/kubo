@@ -2,6 +2,7 @@ package peerstream
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 
@@ -53,6 +54,15 @@ func newConn(nconn net.Conn, tconn pst.Conn, s *Swarm) *Conn {
 		groups:  groupSet{m: make(map[Group]struct{})},
 		streams: make(map[*Stream]struct{}),
 	}
+}
+
+// String returns a string representation of the Conn
+func (c *Conn) String() string {
+	c.streamLock.RLock()
+	ls := len(c.streams)
+	c.streamLock.RUnlock()
+	f := "<peerstream.Conn %d streams %s <--> %s>"
+	return fmt.Sprintf(f, ls, c.netConn.LocalAddr(), c.netConn.RemoteAddr())
 }
 
 // Swarm returns the Swarm associated with this Conn

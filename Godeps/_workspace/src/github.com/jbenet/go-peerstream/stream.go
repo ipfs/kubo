@@ -1,6 +1,8 @@
 package peerstream
 
 import (
+	"fmt"
+
 	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
@@ -29,6 +31,12 @@ func newStream(ss pst.Stream, c *Conn) *Stream {
 	}
 	s.groups.AddSet(&c.groups) // inherit groups
 	return s
+}
+
+// String returns a string representation of the Stream
+func (s *Stream) String() string {
+	f := "<peerstream.Stream %s <--> %s>"
+	return fmt.Sprintf(f, s.conn.NetConn().LocalAddr(), s.conn.NetConn().RemoteAddr())
 }
 
 // SPDYStream returns the underlying *spdystream.Stream

@@ -60,6 +60,7 @@ func NewDiagnostics(self peer.ID, h host.Host) *Diagnostics {
 type connDiagInfo struct {
 	Latency time.Duration
 	ID      string
+	Count   int
 }
 
 type DiagInfo struct {
@@ -97,8 +98,13 @@ func (di *DiagInfo) Marshal() []byte {
 	return b
 }
 
-func (d *Diagnostics) getPeers() []peer.ID {
-	return d.host.Network().Peers()
+func (d *Diagnostics) getPeers() map[peer.ID]int {
+	counts := make(map[peer.ID]int)
+	for _, p := range d.host.Network().Peers() {
+		counts[p]++
+	}
+
+	return counts
 }
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
@@ -110,8 +116,12 @@ func (d *Diagnostics) getDiagInfo() *DiagInfo {
 
 	// di.BwIn, di.BwOut = d.host.BandwidthTotals() //TODO fix this.
 
-	for _, p := range d.getPeers() {
-		d := connDiagInfo{d.host.Peerstore().LatencyEWMA(p), p.Pretty()}
+	for p, n := range d.getPeers() {
+		d := connDiagInfo{
+			Latency: d.host.Peerstore().LatencyEWMA(p),
+			ID:      p.Pretty(),
+			Count:   n,
+		}
 		di.Connections = append(di.Connections, d)
 	}
 	return di
@@ -146,7 +156,7 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 
 	respdata := make(chan []byte)
 	sends := 0
-	for _, p := range peers {
+	for p, _ := range peers {
 		log.Debugf("Sending getDiagnostic to: %s", p)
 		sends++
 		go func(p peer.ID) {
@@ -233,7 +243,7 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Messa
 }
 
 func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("HandleDiagnostic from %s for id = %s", p, pmes.GetDiagID())
+	log.Debugf("HandleDiagnostic from %s for id = %s", p, util.Key(pmes.GetDiagID()).B58String())
 	resp := newMessage(pmes.GetDiagID())
 
 	// Make sure we havent already handled this request to prevent loops
@@ -254,7 +264,7 @@ func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message
 
 	respdata := make(chan []byte)
 	sendcount := 0
-	for _, p := range d.getPeers() {
+	for p, _ := range d.getPeers() {
 		log.Debugf("Sending diagnostic request to peer: %s", p)
 		sendcount++
 		go func(p peer.ID) {
