@@ -22,7 +22,7 @@ func (d *Dialer) String() string {
 // Example: d.DialAddr(ctx, peer.Addresses()[0], peer)
 func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (Conn, error) {
 
-	network, _, err := manet.DialArgs(raddr)
+	_, _, err := manet.DialArgs(raddr)
 	if err != nil {
 		return nil, err
 	}
@@ -31,17 +31,20 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 		return nil, debugerror.Errorf("Attempted to connect to zero address: %s", raddr)
 	}
 
-	var laddr ma.Multiaddr
 	if len(d.LocalAddrs) > 0 {
-		// laddr := MultiaddrNetMatch(raddr, d.LocalAddrs)
-		laddr = NetAddress(network, d.LocalAddrs)
-		if laddr == nil {
-			return nil, debugerror.Errorf("No local address for network %s", network)
+		laddrs := manet.AddrMatch(raddr, d.LocalAddrs)
+		if len(laddrs) < 1 {
+			return nil, debugerror.Errorf("No local address matches %s %s", raddr, d.LocalAddrs)
 		}
-	}
 
-	// TODO: try to get reusing addr/ports to work.
-	// d.Dialer.LocalAddr = laddr
+		// TODO pick with a good heuristic
+		// we use a random one for now to prevent bad addresses from making nodes unreachable
+		// with a random selection, multiple tries may work.
+		// laddr := laddrs[rand.Intn(len(laddrs))]
+
+		// TODO: try to get reusing addr/ports to work.
+		// d.Dialer.LocalAddr = laddr
+	}
 
 	log.Debugf("%s dialing %s %s", d.LocalPeer, remote, raddr)
 	maconn, err := d.Dialer.Dial(raddr)
@@ -112,18 +115,6 @@ func MultiaddrNetMatch(tgt ma.Multiaddr, srcs []ma.Multiaddr) ma.Multiaddr {
 	for _, a := range srcs {
 		if MultiaddrProtocolsMatch(tgt, a) {
 			return a
-		}
-	}
-	return nil
-}
-
-// NetAddress returns the first Multiaddr found for a given network.
-func NetAddress(n string, addrs []ma.Multiaddr) ma.Multiaddr {
-	for _, a := range addrs {
-		for _, p := range a.Protocols() {
-			if p.Name == n {
-				return a
-			}
 		}
 	}
 	return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
+	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
@@ -38,6 +39,8 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	}
 
 	remoteAddrs := s.peers.Addresses(p)
+	// make sure we can use the addresses.
+	remoteAddrs = addrutil.FilterAddrs(remoteAddrs)
 	if len(remoteAddrs) == 0 {
 		return nil, errors.New("peer has no addresses")
 	}
@@ -66,6 +69,9 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	}
 	if err != nil {
 		return nil, err
+	}
+	if connC == nil {
+		err = fmt.Errorf("failed to dial %s", p)
 	}
 
 	// ok try to setup the new connection.

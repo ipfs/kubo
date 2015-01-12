@@ -3,7 +3,10 @@
 package swarm
 
 import (
+	"fmt"
+
 	inet "github.com/jbenet/go-ipfs/p2p/net"
+	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 
@@ -36,6 +39,14 @@ type Swarm struct {
 // NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
+
+	if len(listenAddrs) > 0 {
+		filtered := addrutil.FilterAddrs(listenAddrs)
+		if len(filtered) < 1 {
+			return nil, fmt.Errorf("swarm cannot use any addr in: %s", listenAddrs)
+		}
+		listenAddrs = filtered
+	}
 
 	s := &Swarm{
 		swarm: ps.NewSwarm(PSTransport),

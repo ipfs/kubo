@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
+	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -16,7 +17,7 @@ import (
 func (s *Swarm) listen(addrs []ma.Multiaddr) error {
 
 	for _, addr := range addrs {
-		if !AddrUsable(addr) {
+		if !addrutil.AddrUsable(addr, true) {
 			return fmt.Errorf("cannot use addr: %s", addr)
 		}
 	}
@@ -59,10 +60,12 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 		// may be fine for sk to be nil, just log a warning.
 		log.Warning("Listener not given PrivateKey, so WILL NOT SECURE conns.")
 	}
+	log.Infof("Swarm Listening at %s", maddr)
 	list, err := conn.Listen(s.cg.Context(), maddr, s.local, sk)
 	if err != nil {
 		return err
 	}
+	log.Infof("Swarm Listening at %s", s.ListenAddresses())
 
 	// AddListener to the peerstream Listener. this will begin accepting connections
 	// and streams!
