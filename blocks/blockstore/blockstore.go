@@ -133,6 +133,13 @@ func (bs *blockstore) AllKeysChan(ctx context.Context, offset int, limit int) (<
 			// need to convert to u.Key using u.KeyFromDsKey.
 			k = u.KeyFromDsKey(ds.NewKey(e.Key))
 			log.Debug("blockstore: query got key", k)
+
+			// key must be a multihash. else ignore it.
+			_, err := mh.Cast([]byte(k))
+			if err != nil {
+				return "", true
+			}
+
 			return k, true
 		}
 	}
@@ -148,6 +155,9 @@ func (bs *blockstore) AllKeysChan(ctx context.Context, offset int, limit int) (<
 			k, ok := get()
 			if !ok {
 				return
+			}
+			if k == "" {
+				continue
 			}
 
 			select {
