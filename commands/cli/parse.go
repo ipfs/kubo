@@ -260,7 +260,8 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 		return nil, nil, err
 	}
 
-	return append(args, buf.String()), nil, nil
+	input := strings.TrimSpace(buf.String())
+	return append(args, strings.Split(input, "\n")...), nil, nil
 }
 
 func appendFile(args []cmds.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]cmds.File, []string, error) {
