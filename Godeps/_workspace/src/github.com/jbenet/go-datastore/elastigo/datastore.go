@@ -8,6 +8,7 @@ import (
 
 	"github.com/codahale/blake2"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	query "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	"github.com/mattbaird/elastigo/api"
 	"github.com/mattbaird/elastigo/core"
 )
@@ -112,7 +113,7 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 	return nil
 }
 
-func (d *Datastore) KeyList() ([]ds.Key, error) {
+func (d *Datastore) Query(query.Query) (query.Results, error) {
 	return nil, errors.New("Not yet implemented!")
 }
 

@@ -4,7 +4,9 @@ import (
 	"errors"
 
 	lru "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/hashicorp/golang-lru"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 // Datastore uses golang-lru for internal storage.
@@ -49,6 +51,6 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 }
 
 // KeyList returns a list of keys in the datastore
-func (d *Datastore) KeyList() ([]ds.Key, error) {
+func (d *Datastore) Query(q dsq.Query) (dsq.Results, error) {
 	return nil, errors.New("KeyList not implemented.")
 }

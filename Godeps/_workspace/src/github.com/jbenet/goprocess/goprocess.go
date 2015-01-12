@@ -113,13 +113,17 @@ type Process interface {
 	//   }
 	//
 	// It is useful to construct simple asynchronous workers, children of p.
-	Go(f ProcessFunc)
+	Go(f ProcessFunc) Process
 
 	// Close ends the process. Close blocks until the process has completely
 	// shut down, and any teardown has run _exactly once_. The returned error
 	// is available indefinitely: calling Close twice returns the same error.
 	// If the process has already been closed, Close returns immediately.
 	Close() error
+
+	// CloseAfterChildren calls Close _after_ its children have Closed
+	// normally (i.e. it _does not_ attempt to close them).
+	CloseAfterChildren() error
 
 	// Closing is a signal to wait upon. The returned channel is closed
 	// _after_ Close has been called at least once, but teardown may or may
@@ -167,7 +171,19 @@ var nilProcessFunc = func(Process) {}
 //
 // This is because having the process you
 func Go(f ProcessFunc) Process {
-	return GoChild(Background(), f)
+	// return GoChild(Background(), f)
+
+	// we use two processes, one for communication, and
+	// one for ensuring we wait on the function (unclosable from the outside).
+	p := newProcess(nil)
+	waitFor := newProcess(nil)
+	p.WaitFor(waitFor) // prevent p from closing
+	go func() {
+		f(p)
+		waitFor.Close() // allow p to close.
+		p.Close()       // ensure p closes.
+	}()
+	return p
 }
 
 // GoChild is like Go, but it registers the returned Process as a child of parent,

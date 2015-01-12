@@ -1,6 +1,9 @@
 package keytransform
 
-import ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+import (
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+)
 
 type Pair struct {
 	Convert KeyMapping
@@ -48,16 +51,25 @@ func (d *ktds) Delete(key ds.Key) (err error) {
 	return d.child.Delete(d.ConvertKey(key))
 }
 
-// KeyList returns a list of all keys in the datastore, transforming keys out.
-func (d *ktds) KeyList() ([]ds.Key, error) {
-
-	keys, err := d.child.KeyList()
+// Query implements Query, inverting keys on the way back out.
+func (d *ktds) Query(q dsq.Query) (dsq.Results, error) {
+	qr, err := d.child.Query(q)
 	if err != nil {
 		return nil, err
 	}
 
-	for i, k := range keys {
-		keys[i] = d.InvertKey(k)
-	}
-	return keys, nil
+	ch := make(chan dsq.Result)
+	go func() {
+		defer close(ch)
+		defer qr.Close()
+
+		for r := range qr.Next() {
+			if r.Error == nil {
+				r.Entry.Key = d.InvertKey(ds.NewKey(r.Entry.Key)).String()
+			}
+			ch <- r
+		}
+	}()
+
+	return dsq.DerivedResults(qr, ch), nil
 }

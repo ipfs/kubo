@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go-uuid/uuid"
+
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 /*
@@ -239,3 +241,12 @@ type KeySlice []Key
 func (p KeySlice) Len() int           { return len(p) }
 func (p KeySlice) Less(i, j int) bool { return p[i].Less(p[j]) }
 func (p KeySlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+// EntryKeys
+func EntryKeys(e []dsq.Entry) []Key {
+	ks := make([]Key, len(e))
+	for i, e := range e {
+		ks[i] = NewKey(e.Key)
+	}
+	return ks
+}

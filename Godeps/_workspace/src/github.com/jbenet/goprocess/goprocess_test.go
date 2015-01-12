@@ -289,7 +289,6 @@ func TestAddChild(t *testing.T) {
 func TestGoChildrenClose(t *testing.T) {
 
 	var a, b, c, d, e Process
-
 	var ready = make(chan struct{})
 	var bWait = make(chan struct{})
 	var cWait = make(chan struct{})
@@ -335,10 +334,85 @@ func TestGoChildrenClose(t *testing.T) {
 	go a.Close()
 	testNone(t, Q)
 
+	bWait <- struct{}{} // relase b
 	go b.Close()
 	testNone(t, Q)
 
+	cWait <- struct{}{} // relase c
+	<-c.Closed()
+	<-b.Closed()
+	testStrs(t, Q, "b", "c")
+	testStrs(t, Q, "b", "c")
+
+	eWait <- struct{}{} // release e
+	<-e.Closed()
+	testStrs(t, Q, "e")
+
+	dWait <- struct{}{} // releasse d
+	<-d.Closed()
+	<-a.Closed()
+	testStrs(t, Q, "a", "d")
+	testStrs(t, Q, "a", "d")
+}
+
+func TestCloseAfterChildren(t *testing.T) {
+
+	var a, b, c, d, e Process
+
+	var ready = make(chan struct{})
+
+	a = WithParent(Background())
+	a.Go(func(p Process) {
+		b = p
+		b.Go(func(p Process) {
+			c = p
+			ready <- struct{}{}
+			<-p.Closing() // wait till we're told to close (parents mustnt)
+		})
+		ready <- struct{}{}
+	})
+	a.Go(func(p Process) {
+		d = p
+		d.Go(func(p Process) {
+			e = p
+			ready <- struct{}{}
+			<-p.Closing() // wait till we're told to close (parents mustnt)
+		})
+		ready <- struct{}{}
+	})
+
+	<-ready
+	<-ready
+	<-ready
+	<-ready
+
+	Q := make(chan string, 5)
+
+	go onClosedStr(Q, "a", a)
+	go onClosedStr(Q, "b", b)
+	go onClosedStr(Q, "c", c)
+	go onClosedStr(Q, "d", d)
+	go onClosedStr(Q, "e", e)
+
+	aDone := make(chan struct{})
+	bDone := make(chan struct{})
+
+	testNone(t, Q)
+	go func() {
+		a.CloseAfterChildren()
+		aDone <- struct{}{}
+	}()
+	testNone(t, Q)
+
+	go func() {
+		b.CloseAfterChildren()
+		bDone <- struct{}{}
+	}()
+	testNone(t, Q)
+
 	c.Close()
+	<-bDone
+	<-b.Closed()
 	testStrs(t, Q, "b", "c")
 	testStrs(t, Q, "b", "c")
 
@@ -346,6 +420,7 @@ func TestGoChildrenClose(t *testing.T) {
 	testStrs(t, Q, "e")
 
 	d.Close()
+	<-aDone
 	<-a.Closed()
 	testStrs(t, Q, "a", "d")
 	testStrs(t, Q, "a", "d")
@@ -354,11 +429,7 @@ func TestGoChildrenClose(t *testing.T) {
 func TestBackground(t *testing.T) {
 	// test it hangs indefinitely:
 	b := Background()
-
 	go b.Close()
-	go func() {
-		b.Close()
-	}()
 
 	select {
 	case <-b.Closing():

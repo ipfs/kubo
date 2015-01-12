@@ -1,6 +1,10 @@
 package datastore
 
-import "log"
+import (
+	"log"
+
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+)
 
 // Here are some basic datastore implementations.
 
@@ -45,13 +49,15 @@ func (d *MapDatastore) Delete(key Key) (err error) {
 	return nil
 }
 
-// KeyList implements Datastore.KeyList
-func (d *MapDatastore) KeyList() ([]Key, error) {
-	var keys []Key
-	for k := range d.values {
-		keys = append(keys, k)
+// Query implements Datastore.Query
+func (d *MapDatastore) Query(q dsq.Query) (dsq.Results, error) {
+	re := make([]dsq.Entry, 0, len(d.values))
+	for k, v := range d.values {
+		re = append(re, dsq.Entry{Key: k.String(), Value: v})
 	}
-	return keys, nil
+	r := dsq.ResultsWithEntries(q, re)
+	r = dsq.NaiveQueryApply(q, r)
+	return r, nil
 }
 
 // NullDatastore stores nothing, but conforms to the API.
@@ -84,9 +90,9 @@ func (d *NullDatastore) Delete(key Key) (err error) {
 	return nil
 }
 
-// KeyList implements Datastore.KeyList
-func (d *NullDatastore) KeyList() ([]Key, error) {
-	return nil, nil
+// Query implements Datastore.Query
+func (d *NullDatastore) Query(q dsq.Query) (dsq.Results, error) {
+	return dsq.ResultsWithEntries(q, nil), nil
 }
 
 // LogDatastore logs all accesses through the datastore.
@@ -140,8 +146,8 @@ func (d *LogDatastore) Delete(key Key) (err error) {
 	return d.child.Delete(key)
 }
 
-// KeyList implements Datastore.KeyList
-func (d *LogDatastore) KeyList() ([]Key, error) {
-	log.Printf("%s: Get KeyList\n", d.Name)
-	return d.child.KeyList()
+// Query implements Datastore.Query
+func (d *LogDatastore) Query(q dsq.Query) (dsq.Results, error) {
+	log.Printf("%s: Query\n", d.Name)
+	return d.child.Query(q)
 }

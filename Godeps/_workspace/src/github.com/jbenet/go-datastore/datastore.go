@@ -2,6 +2,8 @@ package datastore
 
 import (
 	"errors"
+
+	query "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 /*
@@ -52,8 +54,19 @@ type Datastore interface {
 	// Delete removes the value for given `key`.
 	Delete(key Key) (err error)
 
-	// KeyList returns a list of keys in the datastore
-	KeyList() ([]Key, error)
+	// Query searches the datastore and returns a query result. This function
+	// may return before the query actually runs. To wait for the query:
+	//
+	//   result, _ := ds.Query(q)
+	//
+	//   // use the channel interface; result may come in at different times
+	//   for entry := range result.Entries() { ... }
+	//
+	//	 // or wait for the query to be completely done
+	//   result.Wait()
+	//   result.AllEntries()
+	//
+	Query(q query.Query) (query.Results, error)
 }
 
 // ThreadSafeDatastore is an interface that all threadsafe datastore should

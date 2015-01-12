@@ -5,9 +5,11 @@ import (
 	"sort"
 	"testing"
 
+	. "launchpad.net/gocheck"
+
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	kt "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/keytransform"
-	. "launchpad.net/gocheck"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -60,10 +62,18 @@ func (ks *DSSuite) TestBasic(c *C) {
 		c.Check(bytes.Equal(v2.([]byte), []byte(k.String())), Equals, true)
 	}
 
-	listA, errA := mpds.KeyList()
-	listB, errB := ktds.KeyList()
-	c.Check(errA, Equals, nil)
-	c.Check(errB, Equals, nil)
+	run := func(d ds.Datastore, q dsq.Query) []ds.Key {
+		r, err := d.Query(q)
+		c.Check(err, Equals, nil)
+
+		e, err := r.Rest()
+		c.Check(err, Equals, nil)
+
+		return ds.EntryKeys(e)
+	}
+
+	listA := run(mpds, dsq.Query{})
+	listB := run(ktds, dsq.Query{})
 	c.Check(len(listA), Equals, len(listB))
 
 	// sort them cause yeah.
@@ -75,6 +85,9 @@ func (ks *DSSuite) TestBasic(c *C) {
 		c.Check(pair.Invert(kA), Equals, kB)
 		c.Check(kA, Equals, pair.Convert(kB))
 	}
+
+	c.Log("listA: ", listA)
+	c.Log("listB: ", listB)
 }
 
 func strsToKeys(strs []string) []ds.Key {

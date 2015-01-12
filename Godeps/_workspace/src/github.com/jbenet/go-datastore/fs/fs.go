@@ -8,7 +8,10 @@ import (
 	"strings"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	query "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
+
+var ObjectKeySuffix = ".dsobject"
 
 // Datastore uses a standard Go map for internal storage.
 type Datastore struct {
@@ -26,7 +29,7 @@ func NewDatastore(path string) (ds.Datastore, error) {
 
 // KeyFilename returns the filename associated with `key`
 func (d *Datastore) KeyFilename(key ds.Key) string {
-	return filepath.Join(d.path, key.String(), ".dsobject")
+	return filepath.Join(d.path, key.String(), ObjectKeySuffix)
 }
 
 // Put stores the given value.
@@ -79,10 +82,10 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 	return os.Remove(fn)
 }
 
-// KeyList returns a list of all keys in the datastore
-func (d *Datastore) KeyList() ([]ds.Key, error) {
+// Query implements Datastore.Query
+func (d *Datastore) Query(q query.Query) (query.Results, error) {
 
-	keys := []ds.Key{}
+	results := make(chan query.Result)
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		// remove ds path prefix
@@ -91,14 +94,23 @@ func (d *Datastore) KeyList() ([]ds.Key, error) {
 		}
 
 		if !info.IsDir() {
+			if strings.HasSuffix(path, ObjectKeySuffix) {
+				path = path[:len(path)-len(ObjectKeySuffix)]
+			}
 			key := ds.NewKey(path)
-			keys = append(keys, key)
+			entry := query.Entry{Key: key.String(), Value: query.NotFetched}
+			results <- query.Result{Entry: entry}
 		}
 		return nil
 	}
 
-	filepath.Walk(d.path, walkFn)
-	return keys, nil
+	go func() {
+		filepath.Walk(d.path, walkFn)
+		close(results)
+	}()
+	r := query.ResultsWithChan(q, results)
+	r = query.NaiveQueryApply(q, r)
+	return r, nil
 }
 
 // isDir returns whether given path is a directory

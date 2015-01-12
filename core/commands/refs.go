@@ -31,7 +31,7 @@ func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 
 var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Lists link hashes from an object",
+		Tagline: "Lists links (references) from an object",
 		ShortDescription: `
 Retrieves the object named by <ipfs-path> and displays the link
 hashes it contains, with the following format:
@@ -41,7 +41,9 @@ hashes it contains, with the following format:
 Note: list all refs recursively with -r.
 `,
 	},
-
+	Subcommands: map[string]*cmds.Command{
+		"local": RefsLocalCmd,
+	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from"),
 	},
@@ -52,6 +54,7 @@ Note: list all refs recursively with -r.
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
+		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
 			return nil, err
@@ -91,7 +94,7 @@ Note: list all refs recursively with -r.
 			rw := RefWriter{
 				W:         pipew,
 				DAG:       n.DAG,
-				Ctx:       n.Context(),
+				Ctx:       ctx,
 				Unique:    unique,
 				PrintEdge: edges,
 				PrintFmt:  format,
@@ -102,6 +105,48 @@ Note: list all refs recursively with -r.
 				if _, err := rw.WriteRefs(o); err != nil {
 					log.Error(err)
 					eptr.SetError(err)
+					return
+				}
+			}
+		}()
+
+		return eptr, nil
+	},
+}
+
+var RefsLocalCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Lists all local references",
+		ShortDescription: `
+Displays the hashes of all local objects.
+`,
+	},
+
+	Run: func(req cmds.Request) (interface{}, error) {
+		ctx := req.Context().Context
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		// todo: make async
+		allKeys, err := n.Blockstore.AllKeysChan(ctx, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		piper, pipew := io.Pipe()
+		eptr := &ErrPassThroughReader{R: piper}
+
+		go func() {
+			defer pipew.Close()
+
+			for k := range allKeys {
+				s := k.Pretty() + "\n"
+				if _, err := pipew.Write([]byte(s)); err != nil {
+					log.Error(err)
+					eptr.SetError(err)
+					return
 				}
 			}
 		}()

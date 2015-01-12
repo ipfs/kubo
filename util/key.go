@@ -71,7 +71,7 @@ func (k *Key) Loggable() map[string]interface{} {
 
 // KeyFromDsKey returns a Datastore key
 func KeyFromDsKey(dsk ds.Key) Key {
-	return Key(dsk.BaseNamespace())
+	return Key(dsk.String()[1:])
 }
 
 // B58KeyConverter -- for KeyTransform datastores
@@ -131,3 +131,10 @@ func XOR(a, b []byte) []byte {
 	}
 	return c
 }
+
+// KeySlice is used for sorting Keys
+type KeySlice []Key
+
+func (es KeySlice) Len() int           { return len(es) }
+func (es KeySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
+func (es KeySlice) Less(i, j int) bool { return es[i] < es[j] }

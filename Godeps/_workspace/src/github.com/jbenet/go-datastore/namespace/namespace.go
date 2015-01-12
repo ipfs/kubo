@@ -6,6 +6,7 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ktds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/keytransform"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 // PrefixTransform constructs a KeyTransform with a pair of functions that
@@ -40,5 +41,43 @@ func Wrap(child ds.Datastore, prefix ds.Key) ktds.Datastore {
 		panic("child (ds.Datastore) is nil")
 	}
 
-	return ktds.Wrap(child, PrefixTransform(prefix))
+	d := ktds.Wrap(child, PrefixTransform(prefix))
+	return &datastore{Datastore: d, raw: child, prefix: prefix}
+}
+
+type datastore struct {
+	prefix ds.Key
+	raw    ds.Datastore
+	ktds.Datastore
+}
+
+// Query implements Query, inverting keys on the way back out.
+func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
+	qr, err := d.raw.Query(q)
+	if err != nil {
+		return nil, err
+	}
+
+	ch := make(chan dsq.Result)
+	go func() {
+		defer close(ch)
+		defer qr.Close()
+
+		for r := range qr.Next() {
+			if r.Error != nil {
+				ch <- r
+				continue
+			}
+
+			k := ds.NewKey(r.Entry.Key)
+			if !d.prefix.IsAncestorOf(k) {
+				continue
+			}
+
+			r.Entry.Key = d.Datastore.InvertKey(k).String()
+			ch <- r
+		}
+	}()
+
+	return dsq.DerivedResults(qr, ch), nil
 }

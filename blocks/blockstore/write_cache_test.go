@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/jbenet/go-ipfs/blocks"
 )
@@ -83,7 +84,7 @@ func (c *callbackDatastore) Delete(key ds.Key) (err error) {
 	return c.ds.Delete(key)
 }
 
-func (c *callbackDatastore) KeyList() ([]ds.Key, error) {
+func (c *callbackDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	c.f()
-	return c.ds.KeyList()
+	return c.ds.Query(q)
 }

@@ -1,6 +1,9 @@
 build:
 	go build
 
+test:
+	go test ./...
+
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path
 # ./... performs operation on all packages in tree

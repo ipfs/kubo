@@ -31,8 +31,9 @@ var PingCmd = &cmds.Command{
 Send pings to a peer using the routing system to discover its address
 		`,
 		ShortDescription: `
-		ipfs ping is a tool to find a node (in the routing system),
-		send pings, wait for pongs, and print out round-trip latency information.
+ipfs ping is a tool to test sending data to other nodes. It finds nodes
+via the routing system, send pings, wait for pongs, and print out round-
+trip latency information.
 		`,
 	},
 	Arguments: []cmds.Argument{
@@ -72,6 +73,7 @@ Send pings to a peer using the routing system to discover its address
 		},
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
+		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
 			return nil, err
@@ -103,14 +105,14 @@ Send pings to a peer using the routing system to discover its address
 
 		outChan := make(chan interface{})
 
-		go pingPeer(n, peerID, numPings, outChan)
+		go pingPeer(ctx, n, peerID, numPings, outChan)
 
 		return outChan, nil
 	},
 	Type: PingResult{},
 }
 
-func pingPeer(n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interface{}) {
+func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interface{}) {
 	defer close(outChan)
 
 	if len(n.Peerstore.Addresses(pid)) == 0 {
@@ -119,8 +121,7 @@ func pingPeer(n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interfac
 			Text: fmt.Sprintf("Looking up peer %s", pid.Pretty()),
 		}
 
-		// TODO: get master context passed in
-		ctx, _ := context.WithTimeout(context.TODO(), kPingTimeout)
+		ctx, _ := context.WithTimeout(ctx, kPingTimeout)
 		p, err := n.Routing.FindPeer(ctx, pid)
 		if err != nil {
 			outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
@@ -131,9 +132,17 @@ func pingPeer(n *core.IpfsNode, pid peer.ID, numPings int, outChan chan interfac
 
 	outChan <- &PingResult{Text: fmt.Sprintf("PING %s.", pid.Pretty())}
 
+	var done bool
 	var total time.Duration
-	for i := 0; i < numPings; i++ {
-		ctx, _ := context.WithTimeout(context.TODO(), kPingTimeout)
+	for i := 0; i < numPings && !done; i++ {
+		select {
+		case <-ctx.Done():
+			done = true
+			continue
+		default:
+		}
+
+		ctx, _ := context.WithTimeout(ctx, kPingTimeout)
 		took, err := n.Routing.Ping(ctx, pid)
 		if err != nil {
 			log.Errorf("Ping error: %s", err)
