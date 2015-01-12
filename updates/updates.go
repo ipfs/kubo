@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	config "github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/repo/config"
 	u "github.com/jbenet/go-ipfs/util"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"

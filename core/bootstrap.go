@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	config "github.com/jbenet/go-ipfs/config"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	config "github.com/jbenet/go-ipfs/repo/config"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 	math2 "github.com/jbenet/go-ipfs/util/math2"

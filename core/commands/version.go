@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/repo/config"
 )
 
 type VersionOutput struct {

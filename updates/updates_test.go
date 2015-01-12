@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
-	"github.com/jbenet/go-ipfs/config"
+	"github.com/jbenet/go-ipfs/repo/config"
 )
 
 // TestParseVersion just makes sure that we dont commit a bad version number

@@ -8,7 +8,7 @@ import (
 	"os"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/repo/config"
 	tour "github.com/jbenet/go-ipfs/tour"
 )
 
