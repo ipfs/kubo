@@ -156,32 +156,46 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 }
 
 func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr) error {
-	_, host, err := manet.DialArgs(addr)
-	if err != nil {
-		return err
-	}
-
 	origin := os.Getenv(originEnvKey)
-
-	server := manners.NewServer()
-	mux := http.NewServeMux()
 	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
-	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
-
 	gateway, err := NewGatewayHandler(node)
 	if err != nil {
 		return err
 	}
 
+	mux := http.NewServeMux()
+	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 	mux.Handle("/ipfs/", gateway)
 	mux.Handle("/webui/", &redirectHandler{webuiPath})
+	return listenAndServe("API", node, addr, mux)
+}
+
+// the gateway also listens on its own address:port in addition to the API listener
+func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
+	gateway, err := NewGatewayHandler(node)
+	if err != nil {
+		return err
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/ipfs/", gateway)
+	return listenAndServe("gateway", node, addr, mux)
+}
+
+func listenAndServe(name string, node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
+	_, host, err := manet.DialArgs(addr)
+	if err != nil {
+		return err
+	}
+
+	server := manners.NewServer()
 
 	// if the server exits beforehand
 	var serverError error
 	serverExited := make(chan struct{})
 
 	go func() {
-		fmt.Printf("API server listening on %s\n", addr)
+		fmt.Printf("%s server listening on %s\n", name, addr)
 		serverError = server.ListenAndServe(host, mux)
 		close(serverExited)
 	}()
@@ -192,55 +206,13 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 
 	// if node being closed before server exits, close server
 	case <-node.Closing():
-		log.Infof("daemon at %s terminating...", addr)
+		log.Infof("server at %s terminating...", addr)
 		server.Shutdown <- true
 		<-serverExited // now, DO wait until server exit
 	}
 
-	log.Infof("daemon at %s terminated", addr)
+	log.Infof("server at %s terminated", addr)
 	return serverError
-}
-
-// the gateway also listens on its own address:port in addition to the API listener
-func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
-	_, host, err := manet.DialArgs(addr)
-	if err != nil {
-		return err
-	}
-
-	server := manners.NewServer()
-	mux := http.NewServeMux()
-	gateway, err := NewGatewayHandler(node)
-	if err != nil {
-		return err
-	}
-	mux.Handle("/ipfs/", gateway)
-
-	done := make(chan struct{}, 1)
-	defer func() {
-		done <- struct{}{}
-	}()
-
-	// go wait until the node dies
-	go func() {
-		select {
-		case <-node.Closed():
-		case <-done:
-			return
-		}
-
-		log.Infof("terminating gateway at %s...", addr)
-		server.Shutdown <- true
-	}()
-
-	fmt.Printf("Gateway listening on %s\n", addr)
-	go func() {
-		if err := server.ListenAndServe(host, mux); err != nil {
-			log.Error(err)
-		}
-	}()
-
-	return nil
 }
 
 type redirectHandler struct {
