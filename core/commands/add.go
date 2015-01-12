@@ -37,7 +37,7 @@ remains to be implemented.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS").EnableRecursive(),
+		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS").EnableRecursive().EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)

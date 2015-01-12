@@ -18,7 +18,7 @@ it contains.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted"),
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted").EnableStdin(),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		node, err := req.Context().GetNode()
