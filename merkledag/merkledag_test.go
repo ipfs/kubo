@@ -28,8 +28,8 @@ type dagservAndPinner struct {
 }
 
 func getDagservAndPinner(t *testing.T) dagservAndPinner {
-	db := ds.NewMapDatastore()
-	bs := bstore.NewBlockstore(dssync.MutexWrap(db))
+	db := dssync.MutexWrap(ds.NewMapDatastore())
+	bs := bstore.NewBlockstore(db)
 	blockserv, err := bserv.New(bs, offline.Exchange(bs))
 	if err != nil {
 		t.Fatal(err)

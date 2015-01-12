@@ -53,11 +53,11 @@ type pinner struct {
 	directPin  set.BlockSet
 	indirPin   *indirectPin
 	dserv      mdag.DAGService
-	dstore     ds.Datastore
+	dstore     ds.ThreadSafeDatastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
+func NewPinner(dstore ds.ThreadSafeDatastore, serv mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
 	rcds := nsds.Wrap(dstore, recursePinDatastoreKey)
@@ -176,7 +176,7 @@ func (p *pinner) IsPinned(key util.Key) bool {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	{ // load recursive set
