@@ -95,11 +95,6 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
 
-	configFilename, err := config.Filename(configRoot)
-	if err != nil {
-		return nil, debugerror.New("Couldn't get home directory path")
-	}
-
 	if fsrepo.ConfigIsInitialized(configRoot) && !force {
 		return nil, errCannotInitConfigExists
 	}
@@ -109,7 +104,14 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, err
 	}
 
-	if err := config.WriteConfigFile(configFilename, conf); err != nil {
+	repo := fsrepo.At(configRoot)
+	if err := repo.Open(); err != nil {
+		return nil, err
+	}
+	if err := repo.SetConfig(conf); err != nil {
+		return nil, err
+	}
+	if err := repo.Close(); err != nil {
 		return nil, err
 	}
 
