@@ -19,7 +19,7 @@ import (
 var log = eventlog.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ds.NewKey("blocks")
+var BlockPrefix = ds.NewKey("b")
 
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
