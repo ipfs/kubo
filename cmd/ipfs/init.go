@@ -18,6 +18,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	"github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -99,7 +100,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, debugerror.New("Couldn't get home directory path")
 	}
 
-	if u.FileExists(configFilename) && !force {
+	if fsrepo.ConfigIsInitialized(configRoot) && !force {
 		return nil, errCannotInitConfigExists
 	}
 
