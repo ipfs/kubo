@@ -111,11 +111,14 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	// ignore error for gateway address
-	// if there is an error (invalid address), then don't run the gateway
-	gatewayMaddr, _ := ma.NewMultiaddr(cfg.Addresses.Gateway)
-	if gatewayMaddr == nil {
-		fmt.Println("Invalid gateway address, not running gateway")
+	var gatewayMaddr ma.Multiaddr
+	if len(cfg.Addresses.Gateway) > 0 {
+		// ignore error for gateway address
+		// if there is an error (invalid address), then don't run the gateway
+		gatewayMaddr, _ = ma.NewMultiaddr(cfg.Addresses.Gateway)
+		if gatewayMaddr == nil {
+			log.Errorf("Invalid gateway address: %s", cfg.Addresses.Gateway)
+		}
 	}
 
 	// mount if the user provided the --mount flag
