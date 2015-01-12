@@ -35,7 +35,6 @@ var initCmd = &cmds.Command{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
 		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
-		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -43,11 +42,6 @@ var initCmd = &cmds.Command{
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-
-		dspathOverride, _, err := req.Option("d").String() // if !found it's okay. Let == ""
-		if err != nil {
-			return nil, err
-		}
 
 		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
 		if err != nil {
@@ -62,7 +56,7 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		return doInit(req.Context().ConfigRoot, dspathOverride, force, nBitsForKeypair)
+		return doInit(req.Context().ConfigRoot, force, nBitsForKeypair)
 	},
 }
 
@@ -87,11 +81,11 @@ For a short demo of what you can do, enter 'ipfs tour'
 `
 
 func initWithDefaults(configRoot string) error {
-	_, err := doInit(configRoot, "", false, nBitsForKeypairDefault)
+	_, err := doInit(configRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
 }
 
-func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
+func doInit(configRoot string, force bool, nBitsForKeypair int) (interface{}, error) {
 
 	u.POut("initializing ipfs node at %s\n", configRoot)
 
@@ -99,7 +93,7 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, errCannotInitConfigExists
 	}
 
-	conf, err := initConfig(dspathOverride, nBitsForKeypair)
+	conf, err := initConfig(nBitsForKeypair)
 	if err != nil {
 		return nil, err
 	}
@@ -151,28 +145,22 @@ func addTheWelcomeFile(conf *config.Config) error {
 	return nil
 }
 
-func datastoreConfig(dspath string) (config.Datastore, error) {
+func datastoreConfig() (config.Datastore, error) {
 	ds := config.Datastore{}
-	if len(dspath) == 0 {
-		var err error
-		dspath, err = config.DataStorePath("")
-		if err != nil {
-			return ds, err
-		}
+	dspath, err := config.DataStorePath("")
+	if err != nil {
+		return ds, err
 	}
 	ds.Path = dspath
 	ds.Type = "leveldb"
-
-	err := initCheckDir(dspath)
-	if err != nil {
+	if err := initCheckDir(dspath); err != nil {
 		return ds, debugerror.Errorf("datastore: %s", err)
 	}
-
 	return ds, nil
 }
 
-func initConfig(dspathOverride string, nBitsForKeypair int) (*config.Config, error) {
-	ds, err := datastoreConfig(dspathOverride)
+func initConfig(nBitsForKeypair int) (*config.Config, error) {
+	ds, err := datastoreConfig()
 	if err != nil {
 		return nil, err
 	}
