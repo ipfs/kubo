@@ -24,6 +24,12 @@ func newListener(nl net.Listener, s *Swarm) *Listener {
 	}
 }
 
+// String returns a string representation of the Listener
+func (l *Listener) String() string {
+	f := "<peerstream.Listener %s>"
+	return fmt.Sprintf(f, l.netList.Addr())
+}
+
 // NetListener is the underlying net.Listener
 func (l *Listener) NetListener() net.Listener {
 	return l.netList

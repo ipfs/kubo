@@ -2,6 +2,7 @@ package peerstream
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -54,6 +55,49 @@ func NewSwarm(t pst.Transport) *Swarm {
 	}
 	go s.connGarbageCollect()
 	return s
+}
+
+// String returns a string with various internal stats
+func (s *Swarm) String() string {
+	s.listenerLock.Lock()
+	ls := len(s.listeners)
+	s.listenerLock.Unlock()
+
+	s.connLock.Lock()
+	cs := len(s.conns)
+	s.connLock.Unlock()
+
+	s.streamLock.Lock()
+	ss := len(s.streams)
+	s.streamLock.Unlock()
+
+	str := "<peerstream.Swarm %d listeners %d conns %d streams>"
+	return fmt.Sprintf(str, ls, cs, ss)
+}
+
+// Dump returns a string with all the internal state
+func (s *Swarm) Dump() string {
+	str := s.String() + "\n"
+
+	s.listenerLock.Lock()
+	for l, _ := range s.listeners {
+		str += fmt.Sprintf("\t%s %v\n", l, l.Groups())
+	}
+	s.listenerLock.Unlock()
+
+	s.connLock.Lock()
+	for c, _ := range s.conns {
+		str += fmt.Sprintf("\t%s %v\n", c, c.Groups())
+	}
+	s.connLock.Unlock()
+
+	s.streamLock.Lock()
+	for ss, _ := range s.streams {
+		str += fmt.Sprintf("\t%s %v\n", ss, ss.Groups())
+	}
+	s.streamLock.Unlock()
+
+	return str
 }
 
 // SetStreamHandler assigns the stream handler in the swarm.
