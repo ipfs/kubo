@@ -1,4 +1,4 @@
-package config
+package fsrepo
 
 import (
 	"encoding/json"
@@ -7,7 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/jbenet/go-ipfs/repo/config"
+	"github.com/jbenet/go-ipfs/util"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 )
+
+var log = util.Logger("fsrepo")
 
 // ReadConfigFile reads the config from `filename` into `cfg`.
 func ReadConfigFile(filename string, cfg interface{}) error {
@@ -16,8 +23,7 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 		return err
 	}
 	defer f.Close()
-
-	if err := Decode(f, cfg); err != nil {
+	if err := json.NewDecoder(f).Decode(cfg); err != nil {
 		return fmt.Errorf("Failure to decode config: %s", err)
 	}
 	return nil
@@ -56,36 +62,15 @@ func WriteFile(filename string, buf []byte) error {
 	return err
 }
 
-// HumanOutput gets a config value ready for printing
-func HumanOutput(value interface{}) ([]byte, error) {
-	s, ok := value.(string)
-	if ok {
-		return []byte(strings.Trim(s, "\n")), nil
-	}
-	return Marshal(value)
-}
-
-// Marshal configuration with JSON
-func Marshal(value interface{}) ([]byte, error) {
-	// need to prettyprint, hence MarshalIndent, instead of Encoder
-	return json.MarshalIndent(value, "", "  ")
-}
-
 // Encode configuration with JSON
 func Encode(w io.Writer, value interface{}) error {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
-	buf, err := Marshal(value)
+	buf, err := config.Marshal(value)
 	if err != nil {
 		return err
 	}
-
 	_, err = w.Write(buf)
 	return err
-}
-
-// Decode configuration with JSON
-func Decode(r io.Reader, value interface{}) error {
-	return json.NewDecoder(r).Decode(value)
 }
 
 // ReadConfigKey retrieves only the value of a particular key
@@ -141,4 +126,44 @@ func WriteConfigKey(filename, key string, value interface{}) error {
 	}
 
 	return WriteConfigFile(filename, cfg)
+}
+
+// Load reads given file and returns the read config, or error.
+func Load(filename string) (*config.Config, error) {
+	// if nothing is there, fail. User must run 'ipfs init'
+	if !util.FileExists(filename) {
+		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+	}
+
+	var cfg config.Config
+	err := ReadConfigFile(filename, &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// tilde expansion on datastore path
+	cfg.Datastore.Path, err = util.TildeExpansion(cfg.Datastore.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, err
+}
+
+// Set sets the value of a particular config key
+func Set(filename, key, value string) error {
+	return WriteConfigKey(filename, key, value)
+}
+
+// RecordUpdateCheck is called to record that an update check was performed,
+// showing that the running version is the most recent one.
+func RecordUpdateCheck(cfg *config.Config, filename string) {
+	cfg.Version.CheckDate = time.Now()
+
+	if cfg.Version.CheckPeriod == "" {
+		// CheckPeriod was not initialized for some reason (e.g. config file broken)
+		log.Error("config.Version.CheckPeriod not set. config broken?")
+	}
+
+	WriteConfigFile(filename, cfg)
 }

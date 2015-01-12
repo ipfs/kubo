@@ -6,6 +6,7 @@ import (
 	"time"
 
 	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
@@ -209,7 +210,7 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 	// if there is no update available, record it, and exit.
 	if err == ErrNoUpdateAvailable {
 		log.Noticef("No update available, checked on %s", time.Now())
-		config.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
+		fsrepo.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
 		return nil
 	}
 

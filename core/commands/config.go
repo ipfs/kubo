@@ -11,6 +11,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -141,7 +142,7 @@ variable set to your preferred text editor.
 }
 
 func getConfig(filename string, key string) (*ConfigField, error) {
-	value, err := config.ReadConfigKey(filename, key)
+	value, err := fsrepo.ReadConfigKey(filename, key)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get config value: %s", err)
 	}
@@ -153,7 +154,7 @@ func getConfig(filename string, key string) (*ConfigField, error) {
 }
 
 func setConfig(filename string, key, value string) (*ConfigField, error) {
-	err := config.WriteConfigKey(filename, key, value)
+	err := fsrepo.WriteConfigKey(filename, key, value)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set config value: %s", err)
 	}

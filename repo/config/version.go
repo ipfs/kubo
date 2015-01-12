@@ -120,19 +120,6 @@ func (v *Version) ShouldCheckForUpdate() bool {
 	return true
 }
 
-// RecordUpdateCheck is called to record that an update check was performed,
-// showing that the running version is the most recent one.
-func RecordUpdateCheck(cfg *Config, filename string) {
-	cfg.Version.CheckDate = time.Now()
-
-	if cfg.Version.CheckPeriod == "" {
-		// CheckPeriod was not initialized for some reason (e.g. config file broken)
-		log.Error("config.Version.CheckPeriod not set. config broken?")
-	}
-
-	WriteConfigFile(filename, cfg)
-}
-
 // VersionDefaultValue returns the default version config value (for init).
 func VersionDefaultValue() Version {
 	return Version{

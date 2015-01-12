@@ -6,6 +6,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	"github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -250,7 +251,7 @@ func bootstrapAdd(filename string, cfg *config.Config, peers []config.BootstrapP
 		}
 	}
 
-	err := config.WriteConfigFile(filename, cfg)
+	err := fsrepo.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +279,7 @@ func bootstrapRemove(filename string, cfg *config.Config, toRemove []config.Boot
 	}
 	cfg.Bootstrap = keep
 
-	err := config.WriteConfigFile(filename, cfg)
+	err := fsrepo.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +292,7 @@ func bootstrapRemoveAll(filename string, cfg *config.Config) ([]config.Bootstrap
 	copy(removed, cfg.Bootstrap)
 
 	cfg.Bootstrap = nil
-	err := config.WriteConfigFile(filename, cfg)
+	err := fsrepo.WriteConfigFile(filename, cfg)
 	if err != nil {
 		return nil, err
 	}

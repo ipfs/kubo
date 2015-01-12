@@ -54,7 +54,7 @@ func (r *FSRepo) SetConfig(conf *config.Config) error {
 	if err != nil {
 		return err
 	}
-	if err := config.WriteConfigFile(configFilename, conf); err != nil {
+	if err := WriteConfigFile(configFilename, conf); err != nil {
 		return err
 	}
 	r.config = *conf // copy so caller cannot modify the private config

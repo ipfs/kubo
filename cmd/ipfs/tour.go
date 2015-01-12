@@ -10,6 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	tour "github.com/jbenet/go-ipfs/tour"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 )
 
 var tourCmd = &cmds.Command{
@@ -191,5 +192,5 @@ func writeConfig(path string, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	return config.WriteConfigFile(filename, cfg)
+	return fsrepo.WriteConfigFile(filename, cfg)
 }

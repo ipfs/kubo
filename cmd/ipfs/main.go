@@ -23,6 +23,7 @@ import (
 	daemon "github.com/jbenet/go-ipfs/core/daemon"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -449,7 +450,7 @@ func loadConfig(path string) (*config.Config, error) {
 		return nil, err
 	}
 
-	return config.Load(configFile)
+	return fsrepo.Load(configFile)
 }
 
 // startProfiling begins CPU profiling and returns a `stop` function to be
