@@ -38,6 +38,14 @@ func (r *FSRepo) Open() error {
 		return debugerror.Errorf("datastore: %s", err)
 	}
 
+	logpath, err := config.LogsPath("")
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	if err := initCheckDir(logpath); err != nil {
+		return debugerror.Errorf("logs: %s", err)
+	}
+
 	return nil
 }
 

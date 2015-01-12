@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -18,7 +16,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	"github.com/jbenet/go-ipfs/repo/fsrepo"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -98,17 +96,19 @@ func doInit(configRoot string, force bool, nBitsForKeypair int) (interface{}, er
 		return nil, err
 	}
 
-	repo := fsrepo.At(configRoot)
-	if err := repo.Open(); err != nil {
+	r := fsrepo.At(configRoot)
+	if err := r.Open(); err != nil {
 		return nil, err
 	}
-	if err := repo.SetConfig(conf); err != nil {
+	if err := r.SetConfig(conf); err != nil {
 		return nil, err
 	}
-	if err := repo.Close(); err != nil {
+	if err := r.Close(); err != nil {
 		return nil, err
 	}
-
+	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
+		return nil, err
+	}
 	err = addTheWelcomeFile(conf)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func initConfig(nBitsForKeypair int) (*config.Config, error) {
 		return nil, err
 	}
 
-	logConfig, err := initLogs("") // TODO allow user to override dir
+	logConfig, err := initLogs()
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func initConfig(nBitsForKeypair int) (*config.Config, error) {
 
 		Bootstrap: bootstrapPeers,
 		Datastore: *ds,
-		Logs:      logConfig,
+		Logs:      *logConfig,
 		Identity:  identity,
 
 		// setup the node mount points.
@@ -240,42 +240,14 @@ func identityConfig(nbits int) (config.Identity, error) {
 	return ident, nil
 }
 
-// initLogs initializes the event logger at the specified path. It uses the
-// default log path if no path is provided.
-func initLogs(logpath string) (config.Logs, error) {
-	if len(logpath) == 0 {
-		var err error
-		logpath, err = config.LogsPath("")
-		if err != nil {
-			return config.Logs{}, debugerror.Wrap(err)
-		}
-	}
-	err := initCheckDir(logpath)
+// initLogs initializes the event logger.
+func initLogs() (*config.Logs, error) {
+	logpath, err := config.LogsPath("")
 	if err != nil {
-		return config.Logs{}, debugerror.Errorf("logs: %s", err)
+		return nil, err
 	}
 	conf := config.Logs{
 		Filename: path.Join(logpath, "events.log"),
 	}
-	err = repo.ConfigureEventLogger(conf)
-	if err != nil {
-		return conf, err
-	}
-	return conf, nil
-}
-
-// initCheckDir ensures the directory exists and is writable
-func initCheckDir(path string) error {
-	// Construct the path if missing
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return debugerror.New("'" + path + "' is not writeable")
-	}
-	return nil
+	return &conf, nil
 }
