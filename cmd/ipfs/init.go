@@ -104,8 +104,12 @@ func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypai
 		return nil, errCannotInitConfigExists
 	}
 
-	conf, err := initConfig(configFilename, dspathOverride, nBitsForKeypair)
+	conf, err := initConfig(dspathOverride, nBitsForKeypair)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := config.WriteConfigFile(configFilename, conf); err != nil {
 		return nil, err
 	}
 
@@ -165,7 +169,7 @@ func datastoreConfig(dspath string) (config.Datastore, error) {
 	return ds, nil
 }
 
-func initConfig(configFilename string, dspathOverride string, nBitsForKeypair int) (*config.Config, error) {
+func initConfig(dspathOverride string, nBitsForKeypair int) (*config.Config, error) {
 	ds, err := datastoreConfig(dspathOverride)
 	if err != nil {
 		return nil, err
@@ -212,10 +216,6 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
 		Version: config.VersionDefaultValue(),
-	}
-
-	if err := config.WriteConfigFile(configFilename, conf); err != nil {
-		return nil, err
 	}
 
 	return conf, nil
