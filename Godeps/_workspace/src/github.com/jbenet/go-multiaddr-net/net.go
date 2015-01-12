@@ -106,12 +106,12 @@ func (d *Dialer) Dial(remote ma.Multiaddr) (Conn, error) {
 	// ok, Dial!
 	var nconn net.Conn
 	switch rnet {
-	case "tcp":
+	case "tcp", "tcp4", "tcp6":
 		nconn, err = d.Dialer.Dial(rnet, rnaddr)
 		if err != nil {
 			return nil, err
 		}
-	case "utp":
+	case "udp", "udp4", "udp6":
 		return nil, fmt.Errorf("utp is currently broken")
 
 		// // construct utp dialer, with options on our net.Dialer
@@ -236,6 +236,14 @@ func Listen(laddr ma.Multiaddr) (Listener, error) {
 		return nil, err
 	}
 
+	// we need to fetch the new multiaddr from the listener, as it
+	// may have resolved to some other value.
+	nladdr, err := FromNetAddr(nl.Addr())
+	if err != nil {
+		return nil, err
+	}
+	laddr = nladdr
+
 	return &maListener{
 		Listener: nl,
 		laddr:    laddr,
@@ -257,4 +265,31 @@ func InterfaceMultiaddrs() ([]ma.Multiaddr, error) {
 		}
 	}
 	return maddrs, nil
+}
+
+// AddrMatch returns the Multiaddrs that match the protocol stack on addr
+func AddrMatch(match ma.Multiaddr, addrs []ma.Multiaddr) []ma.Multiaddr {
+
+	// we should match transports entirely.
+	p1s := match.Protocols()
+
+	out := make([]ma.Multiaddr, 0, len(addrs))
+	for _, a := range addrs {
+		p2s := a.Protocols()
+		if len(p1s) != len(p2s) {
+			continue
+		}
+
+		match := true
+		for i, p2 := range p2s {
+			if p1s[i].Code != p2.Code {
+				match = false
+				break
+			}
+		}
+		if match {
+			out = append(out, a)
+		}
+	}
+	return out
 }

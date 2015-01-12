@@ -12,5 +12,8 @@ vendor: godep
 install: dep
 	cd multiaddr && go install
 
+test:
+	go test ./...
+
 dep:
 	cd multiaddr && go get ./...
