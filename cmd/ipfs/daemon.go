@@ -24,7 +24,10 @@ const (
 	ipnsMountKwd  = "mount-ipns"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
+
 	originEnvKey = "API_ORIGIN"
+
+	webuiPath = "/ipfs/QmTWvqK9dYvqjAMAcCeUun8b45Fwu7wPhEN9B9TsGbkXfJ"
 )
 
 var daemonCmd = &cmds.Command{
@@ -171,6 +174,7 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 	}
 
 	mux.Handle("/ipfs/", gateway)
+	mux.Handle("/webui/", &redirectHandler{webuiPath})
 
 	// if the server exits beforehand
 	var serverError error
@@ -237,4 +241,12 @@ func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
 	}()
 
 	return nil
+}
+
+type redirectHandler struct {
+	path string
+}
+
+func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, i.path, 302)
 }
