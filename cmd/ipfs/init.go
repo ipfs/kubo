@@ -145,18 +145,15 @@ func addTheWelcomeFile(conf *config.Config) error {
 	return nil
 }
 
-func datastoreConfig() (config.Datastore, error) {
-	ds := config.Datastore{}
+func datastoreConfig() (*config.Datastore, error) {
 	dspath, err := config.DataStorePath("")
 	if err != nil {
-		return ds, err
+		return nil, err
 	}
-	ds.Path = dspath
-	ds.Type = "leveldb"
-	if err := initCheckDir(dspath); err != nil {
-		return ds, debugerror.Errorf("datastore: %s", err)
-	}
-	return ds, nil
+	return &config.Datastore{
+		Path: dspath,
+		Type: "leveldb",
+	}, nil
 }
 
 func initConfig(nBitsForKeypair int) (*config.Config, error) {
@@ -193,7 +190,7 @@ func initConfig(nBitsForKeypair int) (*config.Config, error) {
 		},
 
 		Bootstrap: bootstrapPeers,
-		Datastore: ds,
+		Datastore: *ds,
 		Logs:      logConfig,
 		Identity:  identity,
 
