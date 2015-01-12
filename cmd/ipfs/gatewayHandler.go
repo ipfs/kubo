@@ -3,7 +3,9 @@ package main
 import (
 	"html/template"
 	"io"
+	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -94,6 +96,15 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 		w.Write([]byte(err.Error()))
 		return
+	}
+
+	extensionIndex := strings.LastIndex(path, ".")
+	if extensionIndex != -1 {
+		extension := path[extensionIndex:]
+		mimeType := mime.TypeByExtension(extension)
+		if len(mimeType) > 0 {
+			w.Header().Add("Content-Type", mimeType)
+		}
 	}
 
 	dr, err := i.NewDagReader(nd)
