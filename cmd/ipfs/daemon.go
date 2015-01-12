@@ -24,7 +24,10 @@ const (
 	ipnsMountKwd  = "mount-ipns"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
+
 	originEnvKey = "API_ORIGIN"
+
+	webuiPath = "/ipfs/QmTWvqK9dYvqjAMAcCeUun8b45Fwu7wPhEN9B9TsGbkXfJ"
 )
 
 var daemonCmd = &cmds.Command{
@@ -108,6 +111,16 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
+	var gatewayMaddr ma.Multiaddr
+	if len(cfg.Addresses.Gateway) > 0 {
+		// ignore error for gateway address
+		// if there is an error (invalid address), then don't run the gateway
+		gatewayMaddr, _ = ma.NewMultiaddr(cfg.Addresses.Gateway)
+		if gatewayMaddr == nil {
+			log.Errorf("Invalid gateway address: %s", cfg.Addresses.Gateway)
+		}
+	}
+
 	// mount if the user provided the --mount flag
 	mount, _, err := req.Option(mountKwd).Bool()
 	if err != nil {
@@ -138,32 +151,54 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	}
 
+	if gatewayMaddr != nil {
+		listenAndServeGateway(node, gatewayMaddr)
+	}
+
 	return nil, listenAndServeAPI(node, req, apiMaddr)
 }
 
 func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr) error {
+	origin := os.Getenv(originEnvKey)
+	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
+	gateway, err := NewGatewayHandler(node)
+	if err != nil {
+		return err
+	}
 
+	mux := http.NewServeMux()
+	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
+	mux.Handle("/ipfs/", gateway)
+	mux.Handle("/webui/", &redirectHandler{webuiPath})
+	return listenAndServe("API", node, addr, mux)
+}
+
+// the gateway also listens on its own address:port in addition to the API listener
+func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
+	gateway, err := NewGatewayHandler(node)
+	if err != nil {
+		return err
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/ipfs/", gateway)
+	return listenAndServe("gateway", node, addr, mux)
+}
+
+func listenAndServe(name string, node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return err
 	}
 
-	origin := os.Getenv(originEnvKey)
-
 	server := manners.NewServer()
-	mux := http.NewServeMux()
-	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
-	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
-
-	ifpsHandler := &ipfsHandler{node}
-	mux.Handle("/ipfs/", ifpsHandler)
 
 	// if the server exits beforehand
 	var serverError error
 	serverExited := make(chan struct{})
 
 	go func() {
-		fmt.Printf("daemon listening on %s\n", addr)
+		fmt.Printf("%s server listening on %s\n", name, addr)
 		serverError = server.ListenAndServe(host, mux)
 		close(serverExited)
 	}()
@@ -174,11 +209,19 @@ func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr)
 
 	// if node being closed before server exits, close server
 	case <-node.Closing():
-		log.Infof("daemon at %s terminating...", addr)
+		log.Infof("server at %s terminating...", addr)
 		server.Shutdown <- true
-		<-serverExited // now, DO wait until server exits
+		<-serverExited // now, DO wait until server exit
 	}
 
-	log.Infof("daemon at %s terminated", addr)
+	log.Infof("server at %s terminated", addr)
 	return serverError
+}
+
+type redirectHandler struct {
+	path string
+}
+
+func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, i.path, 302)
 }
