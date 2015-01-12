@@ -11,7 +11,7 @@ import (
 )
 
 var formats = []string{"string", "bytes", // flags
-"hex", "slice"}
+	"hex", "slice"}
 var format string
 var hideLoopback bool
 
