@@ -82,6 +82,7 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[5:]
+	log := log.Prefix("serving %s", path)
 
 	nd, err := i.ResolvePath(path)
 	if err != nil {
@@ -108,54 +109,55 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dr, err := i.NewDagReader(nd)
+	if err == nil {
+		io.Copy(w, dr)
+		return
+	}
 
-	if err != nil {
-		if err == uio.ErrIsDir {
-			log.Debug("is directory %s", path)
-
-			if path[len(path)-1:] != "/" {
-				log.Debug("missing trailing slash, redirect")
-				http.Redirect(w, r, "/ipfs/"+path+"/", 307)
-				return
-			}
-
-			// storage for directory listing
-			var dirListing []directoryItem
-			// loop through files
-			for _, link := range nd.Links {
-				if link.Name == "index.html" {
-					log.Debug("found index")
-					// return index page
-					nd, err := i.ResolvePath(path + "/index.html")
-					if err != nil {
-						internalWebError(w, err)
-						return
-					}
-					dr, err := i.NewDagReader(nd)
-					if err != nil {
-						internalWebError(w, err)
-						return
-					}
-					// write to request
-					io.Copy(w, dr)
-					return
-				}
-				dirListing = append(dirListing, directoryItem{link.Size, link.Name})
-			}
-			// template and return directory listing
-			err := i.dirList.Execute(w, webHandler{"listing": dirListing, "path": path})
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
-			return
-		}
+	if err != uio.ErrIsDir {
 		// not a directory and still an error
 		internalWebError(w, err)
 		return
 	}
-	// return data file
-	io.Copy(w, dr)
+
+	log.Debug("listing directory")
+	if path[len(path)-1:] != "/" {
+		log.Debug("missing trailing slash, redirect")
+		http.Redirect(w, r, "/ipfs/"+path+"/", 307)
+		return
+	}
+
+	// storage for directory listing
+	var dirListing []directoryItem
+	// loop through files
+	for _, link := range nd.Links {
+		if link.Name != "index.html" {
+			dirListing = append(dirListing, directoryItem{link.Size, link.Name})
+			continue
+		}
+
+		log.Debug("found index")
+		// return index page instead.
+		nd, err := i.ResolvePath(path + "/index.html")
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		dr, err := i.NewDagReader(nd)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		// write to request
+		io.Copy(w, dr)
+	}
+
+	// template and return directory listing
+	hndlr := webHandler{"listing": dirListing, "path": path}
+	if err := i.dirList.Execute(w, hndlr); err != nil {
+		internalWebError(w, err)
+		return
+	}
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
@@ -198,9 +200,9 @@ var listingTemplate = `
 	<body>
 	<h2>Index of {{ .path }}</h2>
 	<ul>
-	<li><a href="./..">..</a></li>	
+	<li><a href="./..">..</a></li>
   {{ range $item := .listing }}
-	<li><a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>	
+	<li><a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>
 	{{ end }}
 	</ul>
 	</body>
