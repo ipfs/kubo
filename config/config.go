@@ -3,6 +3,7 @@ package config
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var log = u.Logger("config")
@@ -191,29 +191,17 @@ func (i *Identity) DecodePrivateKey(passphrase string) (ic.PrivKey, error) {
 	return ic.UnmarshalPrivateKey(pkb)
 }
 
-// Load reads given file and returns the read config, or error.
-func Load(filename string) (*Config, error) {
-	// if nothing is there, fail. User must run 'ipfs init'
-	if !u.FileExists(filename) {
-		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+// HumanOutput gets a config value ready for printing
+func HumanOutput(value interface{}) ([]byte, error) {
+	s, ok := value.(string)
+	if ok {
+		return []byte(strings.Trim(s, "\n")), nil
 	}
-
-	var cfg Config
-	err := ReadConfigFile(filename, &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// tilde expansion on datastore path
-	cfg.Datastore.Path, err = u.TildeExpansion(cfg.Datastore.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, err
+	return Marshal(value)
 }
 
-// Set sets the value of a particular config key
-func Set(filename, key, value string) error {
-	return WriteConfigKey(filename, key, value)
+// Marshal configuration with JSON
+func Marshal(value interface{}) ([]byte, error) {
+	// need to prettyprint, hence MarshalIndent, instead of Encoder
+	return json.MarshalIndent(value, "", "  ")
 }
