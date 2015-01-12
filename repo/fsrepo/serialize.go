@@ -30,7 +30,7 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 }
 
 // WriteConfigFile writes the config from `cfg` into `filename`.
-func WriteConfigFile(filename string, cfg interface{}) error {
+func writeConfigFile(filename string, cfg interface{}) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0775)
 	if err != nil {
 		return err
@@ -125,7 +125,7 @@ func WriteConfigKey(filename, key string, value interface{}) error {
 		}
 	}
 
-	return WriteConfigFile(filename, cfg)
+	return writeConfigFile(filename, cfg)
 }
 
 // Load reads given file and returns the read config, or error.
@@ -165,5 +165,5 @@ func RecordUpdateCheck(cfg *config.Config, filename string) {
 		log.Error("config.Version.CheckPeriod not set. config broken?")
 	}
 
-	WriteConfigFile(filename, cfg)
+	writeConfigFile(filename, cfg)
 }

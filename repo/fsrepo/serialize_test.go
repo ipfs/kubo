@@ -11,7 +11,7 @@ func TestConfig(t *testing.T) {
 	const dsPath = "/path/to/datastore"
 	cfgWritten := new(config.Config)
 	cfgWritten.Datastore.Path = dsPath
-	err := WriteConfigFile(filename, cfgWritten)
+	err := writeConfigFile(filename, cfgWritten)
 	if err != nil {
 		t.Error(err)
 	}

@@ -9,8 +9,8 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	tour "github.com/jbenet/go-ipfs/tour"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
+	tour "github.com/jbenet/go-ipfs/tour"
 )
 
 var tourCmd = &cmds.Command{
@@ -188,9 +188,10 @@ func tourGet(id tour.ID) (*tour.Topic, error) {
 
 // TODO share func
 func writeConfig(path string, cfg *config.Config) error {
-	filename, err := config.Filename(path)
-	if err != nil {
+	r := fsrepo.At(path)
+	if err := r.Open(); err != nil {
 		return err
 	}
-	return fsrepo.WriteConfigFile(filename, cfg)
+	defer r.Close()
+	return r.SetConfig(cfg)
 }

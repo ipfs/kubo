@@ -78,16 +78,16 @@ IPFS and are now interfacing with the ipfs merkledag!
 For a short demo of what you can do, enter 'ipfs tour'
 `
 
-func initWithDefaults(configRoot string) error {
-	_, err := doInit(configRoot, false, nBitsForKeypairDefault)
+func initWithDefaults(repoRoot string) error {
+	_, err := doInit(repoRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
 }
 
-func doInit(configRoot string, force bool, nBitsForKeypair int) (interface{}, error) {
+func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, error) {
 
-	u.POut("initializing ipfs node at %s\n", configRoot)
+	u.POut("initializing ipfs node at %s\n", repoRoot)
 
-	if fsrepo.ConfigIsInitialized(configRoot) && !force {
+	if fsrepo.IsInitialized(repoRoot) && !force {
 		return nil, errCannotInitConfigExists
 	}
 
@@ -96,16 +96,23 @@ func doInit(configRoot string, force bool, nBitsForKeypair int) (interface{}, er
 		return nil, err
 	}
 
-	r := fsrepo.At(configRoot)
-	if err := r.Open(); err != nil {
-		return nil, err
+	if !fsrepo.IsInitialized(repoRoot) {
+		if err := fsrepo.Init(repoRoot, conf); err != nil {
+			return nil, err
+		}
+	} else {
+		r := fsrepo.At(repoRoot)
+		if err := r.Open(); err != nil {
+			return nil, err
+		}
+		if err := r.SetConfig(conf); err != nil {
+			return nil, err
+		}
+		if err := r.Close(); err != nil {
+			return nil, err
+		}
 	}
-	if err := r.SetConfig(conf); err != nil {
-		return nil, err
-	}
-	if err := r.Close(); err != nil {
-		return nil, err
-	}
+
 	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
 		return nil, err
 	}
