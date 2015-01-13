@@ -3,6 +3,7 @@ package swarm
 import (
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
 // dialAttempts governs how many times a goroutine will try to dial a given peer.
@@ -21,7 +23,7 @@ const dialAttempts = 3
 // DialTimeout is the amount of time each dial attempt has. We can think about making
 // this larger down the road, or putting more granular timeouts (i.e. within each
 // subcomponent of Dial)
-var DialTimeout time.Duration = time.Second * 30
+var DialTimeout time.Duration = time.Second * 10
 
 // dialsync is a small object that helps manage ongoing dials.
 // this way, if we receive many simultaneous dial requests, one
@@ -185,6 +187,11 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 
 	// open connection to peer
 	d := &conn.Dialer{
+		Dialer: manet.Dialer{
+			Dialer: net.Dialer{
+				Timeout: DialTimeout,
+			},
+		},
 		LocalPeer:  s.local,
 		LocalAddrs: localAddrs,
 		PrivateKey: sk,
