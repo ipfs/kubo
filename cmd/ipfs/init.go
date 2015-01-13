@@ -95,27 +95,14 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-
-	if !fsrepo.IsInitialized(repoRoot) {
-		if err := fsrepo.Init(repoRoot, conf); err != nil {
-			return nil, err
-		}
-	} else {
+	if fsrepo.IsInitialized(repoRoot) {
 		if err := fsrepo.Remove(repoRoot); err != nil {
 			return nil, err
 		}
-		r := fsrepo.At(repoRoot)
-		if err := r.Open(); err != nil {
-			return nil, err
-		}
-		if err := r.SetConfig(conf); err != nil {
-			return nil, err
-		}
-		if err := r.Close(); err != nil {
-			return nil, err
-		}
 	}
-
+	if err := fsrepo.Init(repoRoot, conf); err != nil {
+		return nil, err
+	}
 	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
 		return nil, err
 	}
