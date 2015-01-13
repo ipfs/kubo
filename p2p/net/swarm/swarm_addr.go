@@ -22,14 +22,14 @@ func (s *Swarm) ListenAddresses() []ma.Multiaddr {
 // InterfaceListenAddresses returns a list of addresses at which this swarm
 // listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
 // use the known local interfaces.
-func InterfaceListenAddresses(s *Swarm) ([]ma.Multiaddr, error) {
+func (s *Swarm) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 	return addrutil.ResolveUnspecifiedAddresses(s.ListenAddresses(), nil)
 }
 
 // checkNATWarning checks if our observed addresses differ. if so,
 // informs the user that certain things might not work yet
 func checkNATWarning(s *Swarm, observed ma.Multiaddr, expected ma.Multiaddr) {
-	listen, err := InterfaceListenAddresses(s)
+	listen, err := s.InterfaceListenAddresses()
 	if err != nil {
 		log.Errorf("Error retrieving swarm.InterfaceListenAddresses: %s", err)
 		return

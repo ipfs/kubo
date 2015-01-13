@@ -111,7 +111,7 @@ func (n *Network) ListenAddresses() []ma.Multiaddr {
 // listens. It expands "any interface" addresses (/ip4/0.0.0.0, /ip6/::) to
 // use the known local interfaces.
 func (n *Network) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
-	return InterfaceListenAddresses(n.Swarm())
+	return n.Swarm().InterfaceListenAddresses()
 }
 
 // Connectedness returns a state signaling connection capabilities

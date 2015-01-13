@@ -252,7 +252,7 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	remoteAddrs = addrutil.FilterUsableAddrs(remoteAddrs)
 	// drop out any addrs that would just dial ourselves. use ListenAddresses
 	// as that is a more authoritative view than localAddrs.
-	ila, _ := InterfaceListenAddresses(s)
+	ila, _ := s.InterfaceListenAddresses()
 	remoteAddrs = addrutil.Subtract(remoteAddrs, ila)
 	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addresses(s.local))
 	log.Debugf("%s swarm dialing %s -- remote:%s local:%s", s.local, p, remoteAddrs, s.ListenAddresses())
