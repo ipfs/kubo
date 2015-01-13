@@ -445,12 +445,12 @@ func getConfigRoot(req cmds.Request) (string, error) {
 }
 
 func loadConfig(path string) (*config.Config, error) {
-	configFile, err := config.Filename(path)
-	if err != nil {
+	r := fsrepo.At(path)
+	if err := r.Open(); err != nil {
 		return nil, err
 	}
-
-	return fsrepo.Load(configFile)
+	defer r.Close()
+	return r.Config(), nil
 }
 
 // startProfiling begins CPU profiling and returns a `stop` function to be
