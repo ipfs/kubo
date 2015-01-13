@@ -58,7 +58,7 @@ var initCmd = &cmds.Command{
 	},
 }
 
-var errCannotInitConfigExists = debugerror.New(`ipfs configuration file already exists!
+var errRepoExists = debugerror.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
@@ -88,7 +88,7 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 	u.POut("initializing ipfs node at %s\n", repoRoot)
 
 	if fsrepo.IsInitialized(repoRoot) && !force {
-		return nil, errCannotInitConfigExists
+		return nil, errRepoExists
 	}
 
 	conf, err := initConfig(nBitsForKeypair)
