@@ -32,6 +32,7 @@ type Swarm struct {
 	local peer.ID
 	peers peer.Peerstore
 	connh ConnHandler
+	dsync dialsync
 
 	cg ctxgroup.ContextGroup
 }
@@ -49,10 +50,10 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm: ps.NewSwarm(PSTransport),
-		local: local,
-		peers: peers,
-		cg:    ctxgroup.WithContext(ctx),
+		swarm:   ps.NewSwarm(PSTransport),
+		local:   local,
+		peers:   peers,
+		cg:      ctxgroup.WithContext(ctx),
 	}
 
 	// configure Swarm
