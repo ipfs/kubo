@@ -4,6 +4,7 @@ package swarm
 
 import (
 	"fmt"
+	"time"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
@@ -32,7 +33,10 @@ type Swarm struct {
 	local peer.ID
 	peers peer.Peerstore
 	connh ConnHandler
+
 	dsync dialsync
+	backf dialbackoff
+	dialT time.Duration // mainly for tests
 
 	cg ctxgroup.ContextGroup
 }
@@ -50,10 +54,11 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm:   ps.NewSwarm(PSTransport),
-		local:   local,
-		peers:   peers,
-		cg:      ctxgroup.WithContext(ctx),
+		swarm: ps.NewSwarm(PSTransport),
+		local: local,
+		peers: peers,
+		cg:    ctxgroup.WithContext(ctx),
+		dialT: DialTimeout,
 	}
 
 	// configure Swarm
