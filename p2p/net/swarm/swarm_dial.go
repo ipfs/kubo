@@ -41,7 +41,7 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 
 	remoteAddrs := s.peers.Addresses(p)
 	// make sure we can use the addresses.
-	remoteAddrs = addrutil.FilterAddrs(remoteAddrs)
+	remoteAddrs = addrutil.FilterUsableAddrs(remoteAddrs)
 	if len(remoteAddrs) == 0 {
 		return nil, errors.New("peer has no addresses")
 	}

@@ -51,9 +51,9 @@ func TestFilterAddrs(t *testing.T) {
 		}
 	}
 
-	subtestAddrsEqual(t, addrutil.FilterAddrs(bad), []ma.Multiaddr{})
-	subtestAddrsEqual(t, addrutil.FilterAddrs(good), good)
-	subtestAddrsEqual(t, addrutil.FilterAddrs(goodAndBad), good)
+	subtestAddrsEqual(t, addrutil.FilterUsableAddrs(bad), []ma.Multiaddr{})
+	subtestAddrsEqual(t, addrutil.FilterUsableAddrs(good), good)
+	subtestAddrsEqual(t, addrutil.FilterUsableAddrs(goodAndBad), good)
 
 	// now test it with swarm
 

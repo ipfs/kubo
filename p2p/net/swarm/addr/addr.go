@@ -41,17 +41,25 @@ func init() {
 	SupportedTransportProtocols = transports
 }
 
-// FilterAddrs is a filter that removes certain addresses
-// from a list. the addresses removed are those known NOT
-// to work with our network. Namely, addresses with UTP.
-func FilterAddrs(a []ma.Multiaddr) []ma.Multiaddr {
+// FilterAddrs is a filter that removes certain addresses, according to filter.
+// if filter returns true, the address is kept.
+func FilterAddrs(a []ma.Multiaddr, filter func(ma.Multiaddr) bool) []ma.Multiaddr {
 	b := make([]ma.Multiaddr, 0, len(a))
 	for _, addr := range a {
-		if AddrUsable(addr, false) {
+		if filter(addr) {
 			b = append(b, addr)
 		}
 	}
 	return b
+}
+
+// FilterUsableAddrs removes certain addresses
+// from a list. the addresses removed are those known NOT
+// to work with our network. Namely, addresses with UTP.
+func FilterUsableAddrs(a []ma.Multiaddr) []ma.Multiaddr {
+	return FilterAddrs(a, func(m ma.Multiaddr) bool {
+		return AddrUsable(m, false)
+	})
 }
 
 // AddrOverNonLocalIP returns whether the addr uses a non-local ip link
@@ -228,13 +236,19 @@ func AddrIsShareableOnWAN(addr ma.Multiaddr) bool {
 
 // WANShareableAddrs filters addresses based on whether they're shareable on WAN
 func WANShareableAddrs(inp []ma.Multiaddr) []ma.Multiaddr {
-	out := make([]ma.Multiaddr, 0, len(inp))
-	for _, a := range inp {
-		if AddrIsShareableOnWAN(a) {
-			out = append(out, a)
+	return FilterAddrs(inp, AddrIsShareableOnWAN)
+}
+
+// Subtract filters out all addrs in b from a
+func Subtract(a, b []ma.Multiaddr) []ma.Multiaddr {
+	return FilterAddrs(a, func(m ma.Multiaddr) bool {
+		for _, bb := range b {
+			if m.Equal(bb) {
+				return false
+			}
 		}
-	}
-	return out
+		return true
+	})
 }
 
 // CheckNATWarning checks if our observed addresses differ. if so,

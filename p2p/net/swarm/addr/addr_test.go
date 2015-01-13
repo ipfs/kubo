@@ -53,9 +53,9 @@ func TestFilterAddrs(t *testing.T) {
 		}
 	}
 
-	subtestAddrsEqual(t, FilterAddrs(bad), []ma.Multiaddr{})
-	subtestAddrsEqual(t, FilterAddrs(good), good)
-	subtestAddrsEqual(t, FilterAddrs(goodAndBad), good)
+	subtestAddrsEqual(t, FilterUsableAddrs(bad), []ma.Multiaddr{})
+	subtestAddrsEqual(t, FilterUsableAddrs(good), good)
+	subtestAddrsEqual(t, FilterUsableAddrs(goodAndBad), good)
 }
 
 func subtestAddrsEqual(t *testing.T, a, b []ma.Multiaddr) {
@@ -194,5 +194,39 @@ func TestWANShareable(t *testing.T) {
 	wanbad2 := WANShareableAddrs(wanbad)
 	if len(wanbad2) != 0 {
 		t.Error("should be zero")
+	}
+}
+
+func TestSubtract(t *testing.T) {
+
+	a := []ma.Multiaddr{
+		newMultiaddr(t, "/ip4/127.0.0.1/tcp/1234"),
+		newMultiaddr(t, "/ip4/0.0.0.0/tcp/1234"),
+		newMultiaddr(t, "/ip6/::1/tcp/1234"),
+		newMultiaddr(t, "/ip6/::/tcp/1234"),
+		newMultiaddr(t, "/ip6/fe80::1/tcp/1234"),
+		newMultiaddr(t, "/ip6/fe80::/tcp/1234"),
+	}
+
+	b := []ma.Multiaddr{
+		newMultiaddr(t, "/ip4/127.0.0.1/tcp/1234"),
+		newMultiaddr(t, "/ip6/::1/tcp/1234"),
+		newMultiaddr(t, "/ip6/fe80::1/tcp/1234"),
+	}
+
+	c1 := []ma.Multiaddr{
+		newMultiaddr(t, "/ip4/0.0.0.0/tcp/1234"),
+		newMultiaddr(t, "/ip6/::/tcp/1234"),
+		newMultiaddr(t, "/ip6/fe80::/tcp/1234"),
+	}
+
+	c2 := Subtract(a, b)
+	if len(c1) != len(c2) {
+		t.Error("should be the same")
+	}
+	for i, ca := range c1 {
+		if !c2[i].Equal(ca) {
+			t.Error("should be the same", ca, c2[i])
+		}
 	}
 }

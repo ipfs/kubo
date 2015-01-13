@@ -41,7 +41,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
 
 	if len(listenAddrs) > 0 {
-		filtered := addrutil.FilterAddrs(listenAddrs)
+		filtered := addrutil.FilterUsableAddrs(listenAddrs)
 		if len(filtered) < 1 {
 			return nil, fmt.Errorf("swarm cannot use any addr in: %s", listenAddrs)
 		}
