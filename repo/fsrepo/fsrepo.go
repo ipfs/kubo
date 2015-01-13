@@ -13,12 +13,14 @@ import (
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
+// FSRepo represents an IPFS FileSystem Repo
 type FSRepo struct {
 	state  state
 	path   string
 	config *config.Config
 }
 
+// At returns a handle to an FSRepo at the provided |path|.
 func At(path string) *FSRepo {
 	return &FSRepo{
 		path:  path,
@@ -26,6 +28,7 @@ func At(path string) *FSRepo {
 	}
 }
 
+// Init initializes a new FSRepo at the given path with the provided config.
 func Init(path string, conf *config.Config) error {
 	if IsInitialized(path) {
 		return nil
@@ -86,6 +89,8 @@ func (r *FSRepo) Open() error {
 	return nil
 }
 
+// Config returns the FSRepo's config. Result is undefined if the Repo is not
+// Open.
 func (r *FSRepo) Config() *config.Config {
 	if r.state != opened {
 		panic(fmt.Sprintln("repo is", r.state))
@@ -93,6 +98,7 @@ func (r *FSRepo) Config() *config.Config {
 	return r.config
 }
 
+// SetConfig updates the FSRepo's config.
 func (r *FSRepo) SetConfig(conf *config.Config) error {
 	if r.state != opened {
 		panic(fmt.Sprintln("repo is", r.state))
@@ -108,7 +114,7 @@ func (r *FSRepo) SetConfig(conf *config.Config) error {
 	return nil
 }
 
-// GetConfigKey retrieves only the value of a particular key
+// GetConfigKey retrieves only the value of a particular key.
 func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	if r.state != opened {
 		return nil, debugerror.Errorf("repo is %s", r.state)
@@ -124,7 +130,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	return common.MapGetKV(cfg, key)
 }
 
-// SetConfigKey writes the value of a particular key
+// SetConfigKey writes the value of a particular key.
 func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
@@ -150,6 +156,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	return r.SetConfig(conf)
 }
 
+// Close closes the FSRepo, releasing held resources.
 func (r *FSRepo) Close() error {
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
