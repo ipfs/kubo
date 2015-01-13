@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	common "github.com/jbenet/go-ipfs/repo/common"
 	"github.com/jbenet/go-ipfs/repo/config"
 	"github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -72,45 +71,6 @@ func encode(w io.Writer, value interface{}) error {
 	}
 	_, err = w.Write(buf)
 	return err
-}
-
-// GetConfigKey retrieves only the value of a particular key
-func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return nil, err
-	}
-	var cfg map[string]interface{}
-	if err := readConfigFile(filename, &cfg); err != nil {
-		return nil, err
-	}
-
-	return common.MapGetKV(cfg, key)
-}
-
-// SetConfigKey writes the value of a particular key
-func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
-	var mapconf map[string]interface{}
-	if err := readConfigFile(filename, &mapconf); err != nil {
-		return err
-	}
-	if err := common.MapSetKV(mapconf, key, value); err != nil {
-		return err
-	}
-	// must use raw method because there may exist keys not present in the *config.Config struct
-	if err := writeConfigFile(filename, mapconf); err != nil {
-		return err
-	}
-	conf, err := convertMapToConfig(mapconf)
-	if err != nil {
-		return err
-	}
-	*r.config = *conf // copy so caller cannot modify the private config
-	return nil
 }
 
 func convertMapToConfig(v map[string]interface{}) (*config.Config, error) {
