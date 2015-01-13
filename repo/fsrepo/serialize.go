@@ -43,23 +43,6 @@ func writeConfigFile(filename string, cfg interface{}) error {
 	return encode(f, cfg)
 }
 
-// writeFile writes the buffer at filename
-func writeFile(filename string, buf []byte) error {
-	err := os.MkdirAll(filepath.Dir(filename), 0775)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.Write(buf)
-	return err
-}
-
 // encode configuration with JSON
 func encode(w io.Writer, value interface{}) error {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
