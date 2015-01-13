@@ -49,7 +49,7 @@ func (r *FSRepo) Open() error {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
 	if !IsInitialized(r.path) {
-		return debugerror.New("repo is not initialized")
+		return debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
 	// check repo path, then check all constituent parts.
 	// TODO acquire repo lock
