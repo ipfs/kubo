@@ -36,3 +36,4 @@ clean:
 	rm -f data/filetiny
 	rm -f data/filerand
 	rm -rf build/*
+	docker rmi $(docker images | grep "^<none>" | awk "{print \$3}") -f || true
