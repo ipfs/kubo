@@ -35,9 +35,10 @@ var log = eventlog.Logger("cmd/ipfs")
 var errHelpRequested = errors.New("Help Requested")
 
 const (
-	cpuProfile  = "ipfs.cpuprof"
-	heapProfile = "ipfs.memprof"
-	errorFormat = "ERROR: %v\n\n"
+	EnvEnableProfiling = "IPFS_PROF"
+	cpuProfile         = "ipfs.cpuprof"
+	heapProfile        = "ipfs.memprof"
+	errorFormat        = "ERROR: %v\n\n"
 )
 
 type cmdInvocation struct {
@@ -512,9 +513,7 @@ func allInterruptSignals() chan os.Signal {
 func profileIfEnabled() (func(), error) {
 	// FIXME this is a temporary hack so profiling of asynchronous operations
 	// works as intended.
-	if u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
-		u.Debug = true
-		u.SetDebugLogging()
+	if os.Getenv(EnvEnableProfiling) != "" {
 		stopProfilingFunc, err := startProfiling() // TODO maybe change this to its own option... profiling makes it slower.
 		if err != nil {
 			return nil, err
