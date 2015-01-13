@@ -45,7 +45,7 @@ Note: list all refs recursively with -r.
 		"local": RefsLocalCmd,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from"),
+		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "Emit edges with given format. tokens: <src> <dst> <linkname>"),
