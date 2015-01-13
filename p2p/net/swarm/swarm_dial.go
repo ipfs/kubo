@@ -210,7 +210,7 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		// ok, we have been charged to dial! let's do it.
 		// if it succeeds, dial will add the conn to the swarm itself.
 		log.Debugf("dial start")
-		ctxT, _ := context.WithTimeout(ctx, DialTimeout)
+		ctxT, _ := context.WithTimeout(ctx, s.dialT)
 		conn, err = s.dial(ctxT, p)
 		s.dsync.Unlock(p)
 		log.Debugf("dial end %s", conn)
@@ -264,7 +264,7 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	d := &conn.Dialer{
 		Dialer: manet.Dialer{
 			Dialer: net.Dialer{
-				Timeout: DialTimeout,
+				Timeout: s.dialT,
 			},
 		},
 		LocalPeer:  s.local,
