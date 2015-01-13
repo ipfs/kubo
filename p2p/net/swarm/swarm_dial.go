@@ -39,15 +39,21 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		log.Warning("Dial not given PrivateKey, so WILL NOT SECURE conn.")
 	}
 
-	remoteAddrs := s.peers.Addresses(p)
-	// make sure we can use the addresses.
-	remoteAddrs = addrutil.FilterUsableAddrs(remoteAddrs)
-	if len(remoteAddrs) == 0 {
-		return nil, errors.New("peer has no addresses")
-	}
+	// get our own addrs
 	localAddrs := s.peers.Addresses(s.local)
 	if len(localAddrs) == 0 {
 		log.Debug("Dialing out with no local addresses.")
+	}
+
+	// get remote peer addrs
+	remoteAddrs := s.peers.Addresses(p)
+	// make sure we can use the addresses.
+	remoteAddrs = addrutil.FilterUsableAddrs(remoteAddrs)
+	// drop out any addrs that would just dial ourselves. use ListenAddresses
+	// as that is a more authoritative view than localAddrs.
+	remoteAddrs = addrutil.Subtract(remoteAddrs, s.ListenAddresses())
+	if len(remoteAddrs) == 0 {
+		return nil, errors.New("peer has no addresses")
 	}
 
 	// open connection to peer
