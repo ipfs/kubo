@@ -185,7 +185,7 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	if err != nil {
 		log.Error("Dial newConnSetup failed. disconnecting.")
 		log.Event(ctx, "dialFailureDisconnect", lgbl.NetConn(connC), lgbl.Error(err))
-		swarmC.Close() // close the connection. didn't work out :(
+		connC.Close() // close the connection. didn't work out :(
 		return nil, err
 	}
 
@@ -241,7 +241,7 @@ func dialConnSetup(ctx context.Context, s *Swarm, connC conn.Conn) (*Conn, error
 	if err != nil {
 		log.Error("Dial newConnSetup failed. disconnecting.")
 		log.Event(ctx, "dialFailureDisconnect", lgbl.NetConn(connC), lgbl.Error(err))
-		swarmC.Close() // we need to call this to make sure psC is Closed.
+		psC.Close() // we need to make sure psC is Closed.
 		return nil, err
 	}
 
