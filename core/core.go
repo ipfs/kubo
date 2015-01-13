@@ -24,6 +24,7 @@ import (
 	p2phost "github.com/jbenet/go-ipfs/p2p/host"
 	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
 	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
+	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	pin "github.com/jbenet/go-ipfs/pin"
@@ -352,11 +353,18 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 // isolates the complex initialization steps
 func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *config.Config, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
 	listenAddrs, err := listenAddresses(cfg)
-	// make sure we dont error out if our config includes some addresses we cant use.
-	filteredAddrs := swarm.FilterAddrs(listenAddrs)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
+
+	// make sure we error out if our config does not have addresses we can use
+	log.Debugf("Config.Addresses.Swarm:%s", listenAddrs)
+	filteredAddrs := addrutil.FilterAddrs(listenAddrs)
+	log.Debugf("Config.Addresses.Swarm:%s (filtered)", listenAddrs)
+	if len(filteredAddrs) < 1 {
+		return nil, debugerror.Errorf("addresses in config not usable: %s", listenAddrs)
+	}
+
 	network, err := swarm.NewNetwork(ctx, filteredAddrs, id, ps)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
@@ -371,6 +379,7 @@ func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *con
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
+	log.Info("Swarm listening at: %s", addrs)
 	ps.AddAddresses(id, addrs)
 	return peerhost, nil
 }

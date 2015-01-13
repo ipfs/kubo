@@ -112,13 +112,13 @@ func ToNetAddr(maddr ma.Multiaddr) (net.Addr, error) {
 	}
 
 	switch network {
-	case "tcp":
+	case "tcp", "tcp4", "tcp6":
 		return net.ResolveTCPAddr(network, host)
-	case "udp":
+	case "udp", "udp4", "udp6":
 		return net.ResolveUDPAddr(network, host)
-	case "utp":
+	case "utp", "utp4", "utp6":
 		return utp.ResolveUTPAddr(network, host)
-	case "ip":
+	case "ip", "ip4", "ip6":
 		return net.ResolveIPAddr(network, host)
 	}
 
@@ -158,8 +158,10 @@ func DialArgs(m ma.Multiaddr) (string, string, error) {
 	var host string
 	switch parts[0] {
 	case "ip4":
+		network = network + "4"
 		host = strings.Join([]string{parts[1], parts[3]}, ":")
 	case "ip6":
+		network = network + "6"
 		host = fmt.Sprintf("[%s]:%s", parts[1], parts[3])
 	}
 	return network, host, nil

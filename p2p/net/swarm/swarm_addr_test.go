@@ -3,6 +3,7 @@ package swarm
 import (
 	"testing"
 
+	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
@@ -25,6 +26,8 @@ func TestFilterAddrs(t *testing.T) {
 		m("/ip4/1.2.3.4/udp/1234/sctp/1234"), // not in manet
 		m("/ip4/1.2.3.4/udp/1234/utp"),       // utp is broken
 		m("/ip4/1.2.3.4/udp/1234/udt"),       // udt is broken on arm
+		m("/ip6/fe80::1/tcp/1234"),           // link local
+		m("/ip6/fe80::100/tcp/1234"),         // link local
 	}
 
 	good := []ma.Multiaddr{
@@ -37,20 +40,20 @@ func TestFilterAddrs(t *testing.T) {
 	// test filters
 
 	for _, a := range bad {
-		if AddrUsable(a) {
+		if addrutil.AddrUsable(a, true) {
 			t.Errorf("addr %s should be unusable", a)
 		}
 	}
 
 	for _, a := range good {
-		if !AddrUsable(a) {
+		if !addrutil.AddrUsable(a, true) {
 			t.Errorf("addr %s should be usable", a)
 		}
 	}
 
-	subtestAddrsEqual(t, FilterAddrs(bad), []ma.Multiaddr{})
-	subtestAddrsEqual(t, FilterAddrs(good), good)
-	subtestAddrsEqual(t, FilterAddrs(goodAndBad), good)
+	subtestAddrsEqual(t, addrutil.FilterAddrs(bad), []ma.Multiaddr{})
+	subtestAddrsEqual(t, addrutil.FilterAddrs(good), good)
+	subtestAddrsEqual(t, addrutil.FilterAddrs(goodAndBad), good)
 
 	// now test it with swarm
 
@@ -94,4 +97,30 @@ func subtestAddrsEqual(t *testing.T, a, b []ma.Multiaddr) {
 			t.Errorf("%s not in %s", aa, b)
 		}
 	}
+}
+
+func TestDialBadAddrs(t *testing.T) {
+
+	m := func(s string) ma.Multiaddr {
+		maddr, err := ma.NewMultiaddr(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return maddr
+	}
+
+	ctx := context.Background()
+	s := makeSwarms(ctx, t, 1)[0]
+
+	test := func(a ma.Multiaddr) {
+		p := testutil.RandPeerIDFatal(t)
+		s.peers.AddAddress(p, a)
+		if _, err := s.Dial(ctx, p); err == nil {
+			t.Error("swarm should not dial: %s", m)
+		}
+	}
+
+	test(m("/ip6/fe80::1"))                // link local
+	test(m("/ip6/fe80::100"))              // link local
+	test(m("/ip4/127.0.0.1/udp/1234/utp")) // utp
 }

@@ -66,8 +66,13 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.peerstore = h.Peerstore()
 	dht.ContextGroup = ctxgroup.WithContext(ctx)
 	dht.host = h
-	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 
+	// sanity check. this should **never** happen
+	if len(dht.peerstore.Addresses(dht.self)) < 1 {
+		panic("attempt to initialize dht without addresses for self")
+	}
+
+	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 	dht.providers = NewProviderManager(dht.Context(), dht.self)
 	dht.AddChildGroup(dht.providers)
 
@@ -132,19 +137,23 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 // can provide the value of 'key'
 func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) error {
 
-	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
-
 	// add self as the provider
 	pi := dht.peerstore.PeerInfo(dht.self)
-	pmes.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), []peer.PeerInfo{pi})
+	// // only share WAN-friendly addresses ??
+	// pi.Addrs = addrutil.WANShareableAddrs(pi.Addrs)
+	if len(pi.Addrs) < 1 {
+		log.Errorf("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, u.Key(key), pi.Addrs)
+		return fmt.Errorf("no known addresses for self. cannot put provider.")
+	}
 
+	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
+	pmes.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), []peer.PeerInfo{pi})
 	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
 
 	log.Debugf("%s putProvider: %s for %s (%s)", dht.self, p, u.Key(key), pi.Addrs)
-
 	return nil
 }
 

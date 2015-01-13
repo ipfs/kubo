@@ -102,11 +102,7 @@ func (l *listener) Addr() net.Addr {
 // If there is an error converting from net.Addr to ma.Multiaddr,
 // the return value will be nil.
 func (l *listener) Multiaddr() ma.Multiaddr {
-	maddr, err := manet.FromNetAddr(l.Addr())
-	if err != nil {
-		return nil // error
-	}
-	return maddr
+	return l.Listener.Multiaddr()
 }
 
 // LocalPeer is the identity of the local Peer.
@@ -140,7 +136,7 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 	}
 	l.cg.SetTeardown(l.teardown)
 
-	log.Infof("swarm listening on %s", l.Multiaddr())
+	log.Debugf("Conn Listener on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)
 	return l, nil
 }
