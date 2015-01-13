@@ -1,28 +1,22 @@
 package fsrepo
 
 import (
-	"os"
-	"path"
+	"io/ioutil"
 	"testing"
 
 	"github.com/jbenet/go-ipfs/repo/config"
 )
 
-// NB: These tests cannot be run in parallel
-
-func init() {
-	// ensure tests begin in clean state
-	os.RemoveAll(testRepoDir)
-}
-
-const testRepoDir = "./fsrepo_test/repos"
-
-func testRepoPath(p string) string {
-	return path.Join(testRepoDir, p)
+func testRepoPath(p string, t *testing.T) string {
+	name, err := ioutil.TempDir("", p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return name
 }
 
 func TestCannotRemoveIfOpen(t *testing.T) {
-	path := testRepoPath("TestCannotRemoveIfOpen")
+	path := testRepoPath("TestCannotRemoveIfOpen", t)
 	AssertNil(Init(path, &config.Config{}), t, "should initialize successfully")
 	r := At(path)
 	AssertNil(r.Open(), t)
@@ -32,8 +26,8 @@ func TestCannotRemoveIfOpen(t *testing.T) {
 }
 
 func TestCanManageReposIndependently(t *testing.T) {
-	pathA := testRepoPath("a")
-	pathB := testRepoPath("b")
+	pathA := testRepoPath("a", t)
+	pathB := testRepoPath("b", t)
 
 	t.Log("initialize two repos")
 	AssertNil(Init(pathA, &config.Config{}), t, "should initialize successfully")
