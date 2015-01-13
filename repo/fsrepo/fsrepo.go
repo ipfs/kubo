@@ -99,7 +99,7 @@ func (r *FSRepo) Config() *config.Config {
 }
 
 // SetConfig updates the FSRepo's config.
-func (r *FSRepo) SetConfig(conf *config.Config) error {
+func (r *FSRepo) SetConfig(updated *config.Config) error {
 	if r.state != opened {
 		panic(fmt.Sprintln("repo is", r.state))
 	}
@@ -107,10 +107,24 @@ func (r *FSRepo) SetConfig(conf *config.Config) error {
 	if err != nil {
 		return err
 	}
-	if err := writeConfigFile(configFilename, conf); err != nil {
+	// to avoid clobbering user-provided keys, must read the config from disk
+	// as a map, write the updated struct values to the map and write the map
+	// to disk.
+	var mapconf map[string]interface{}
+	if err := readConfigFile(configFilename, &mapconf); err != nil {
 		return err
 	}
-	*r.config = *conf // copy so caller cannot modify the private config
+	m, err := config.ToMap(updated)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		mapconf[k] = v
+	}
+	if err := writeConfigFile(configFilename, mapconf); err != nil {
+		return err
+	}
+	*r.config = *updated // copy so caller cannot modify this private config
 	return nil
 }
 

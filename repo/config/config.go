@@ -219,3 +219,15 @@ func FromMap(v map[string]interface{}) (*Config, error) {
 	}
 	return &conf, nil
 }
+
+func ToMap(conf *Config) (map[string]interface{}, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(conf); err != nil {
+		return nil, err
+	}
+	var m map[string]interface{}
+	if err := json.NewDecoder(&buf).Decode(&m); err != nil {
+		return nil, fmt.Errorf("Failure to decode config: %s", err)
+	}
+	return m, nil
+}
