@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,22 @@ import (
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-// FSRepo represents an IPFS FileSystem Repo
+var (
+	// pkgLock prevents the fsrepo from being removed while there exist open
+	// FSRepo handles. It also ensures that the Init is atomic.
+	//
+	// packageLock also protects numOpenedRepos
+	//
+	// If an operation is used when repo is Open and the operation does not
+	// change the repo's state, the package lock does not need to be acquired.
+	pkgLock *packageLock
+)
+
+func init() {
+	pkgLock = makePackageLock()
+}
+
+// FSRepo represents an IPFS FileSystem Repo. It is not thread-safe.
 type FSRepo struct {
 	state  state
 	path   string
@@ -22,6 +38,7 @@ type FSRepo struct {
 
 // At returns a handle to an FSRepo at the provided |path|.
 func At(path string) *FSRepo {
+	// This method must not have side-effects.
 	return &FSRepo{
 		path:  path,
 		state: unopened, // explicitly set for clarity
@@ -30,7 +47,10 @@ func At(path string) *FSRepo {
 
 // Init initializes a new FSRepo at the given path with the provided config.
 func Init(path string, conf *config.Config) error {
-	if IsInitialized(path) {
+	pkgLock.Lock() // lock must be held to ensure atomicity (prevent Removal)
+	defer pkgLock.Unlock()
+
+	if isInitializedUnsynced(path) {
 		return nil
 	}
 	configFilename, err := config.Filename(path)
@@ -43,12 +63,24 @@ func Init(path string, conf *config.Config) error {
 	return nil
 }
 
+// Remove recursively removes the FSRepo at |path|.
+func Remove(path string) error {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
+	if pkgLock.NumOpeners(path) != 0 {
+		return errors.New("repo in use")
+	}
+	return os.RemoveAll(path)
+}
+
 // Open returns an error if the repo is not initialized.
 func (r *FSRepo) Open() error {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
 	if r.state != unopened {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
-	if !IsInitialized(r.path) {
+	if !isInitializedUnsynced(r.path) {
 		return debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
 	// check repo path, then check all constituent parts.
@@ -86,12 +118,17 @@ func (r *FSRepo) Open() error {
 	}
 
 	r.state = opened
+	pkgLock.AddOpener(r.path)
 	return nil
 }
 
-// Config returns the FSRepo's config. Result is undefined if the Repo is not
-// Open.
+// Config returns the FSRepo's config. This method must not be called if the
+// repo is not open.
+//
+// Result when not Open is undefined. The method may panic if it pleases.
 func (r *FSRepo) Config() *config.Config {
+	// no lock necessary because repo is either Open (and thus protected from
+	// Removal) or has no side-effect
 	if r.state != opened {
 		panic(fmt.Sprintln("repo is", r.state))
 	}
@@ -100,6 +137,7 @@ func (r *FSRepo) Config() *config.Config {
 
 // SetConfig updates the FSRepo's config.
 func (r *FSRepo) SetConfig(updated *config.Config) error {
+	// no lock required because repo should be Open
 	if r.state != opened {
 		panic(fmt.Sprintln("repo is", r.state))
 	}
@@ -146,6 +184,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 
 // SetConfigKey writes the value of a particular key.
 func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
+	// no lock required because repo should be Open
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
@@ -172,9 +211,12 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 
 // Close closes the FSRepo, releasing held resources.
 func (r *FSRepo) Close() error {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
+	pkgLock.RemoveOpener(r.path)
 	return nil // TODO release repo lock
 }
 
@@ -183,6 +225,14 @@ var _ repo.Interface = &FSRepo{}
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
 func IsInitialized(path string) bool {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
+	return isInitializedUnsynced(path)
+}
+
+// isInitializedUnsynced reports whether the repo is initialized. Caller must
+// hold pkgLock.
+func isInitializedUnsynced(path string) bool {
 	configFilename, err := config.Filename(path)
 	if err != nil {
 		return false

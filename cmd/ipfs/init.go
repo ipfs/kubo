@@ -101,6 +101,9 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 			return nil, err
 		}
 	} else {
+		if err := fsrepo.Remove(repoRoot); err != nil {
+			return nil, err
+		}
 		r := fsrepo.At(repoRoot)
 		if err := r.Open(); err != nil {
 			return nil, err
