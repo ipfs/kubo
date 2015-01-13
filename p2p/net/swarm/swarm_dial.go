@@ -127,6 +127,7 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		}
 
 		// ok, we have been charged to dial! let's do it.
+		// if it succeeds, dial will add the conn to the swarm itself.
 		conn, err = s.dial(ctx, p)
 		s.dsync.Unlock(p)
 		if err != nil {
