@@ -13,6 +13,7 @@ import (
 
 func TestSimultOpen(t *testing.T) {
 	// t.Skip("skipping for another test")
+	t.Parallel()
 
 	ctx := context.Background()
 	swarms := makeSwarms(ctx, t, 2)
@@ -44,6 +45,7 @@ func TestSimultOpen(t *testing.T) {
 
 func TestSimultOpenMany(t *testing.T) {
 	// t.Skip("very very slow")
+	t.Parallel()
 
 	addrs := 20
 	SubtestSwarm(t, addrs, 10)
@@ -54,6 +56,7 @@ func TestSimultOpenFewStress(t *testing.T) {
 		t.SkipNow()
 	}
 	// t.Skip("skipping for another test")
+	t.Parallel()
 
 	msgs := 40
 	swarms := 2

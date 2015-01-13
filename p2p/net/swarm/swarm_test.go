@@ -227,6 +227,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 
 func TestSwarm(t *testing.T) {
 	// t.Skip("skipping for another test")
+	t.Parallel()
 
 	// msgs := 1000
 	msgs := 100
@@ -236,6 +237,7 @@ func TestSwarm(t *testing.T) {
 
 func TestConnHandler(t *testing.T) {
 	// t.Skip("skipping for another test")
+	t.Parallel()
 
 	ctx := context.Background()
 	swarms := makeSwarms(ctx, t, 5)
