@@ -5,7 +5,7 @@ import (
 	util "github.com/jbenet/go-ipfs/util"
 )
 
-type Interface interface {
+type Repo interface {
 	Config() *config.Config
 	SetConfig(*config.Config) error
 

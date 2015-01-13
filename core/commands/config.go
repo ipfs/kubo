@@ -143,7 +143,7 @@ variable set to your preferred text editor.
 	},
 }
 
-func getConfig(r repo.Interface, key string) (*ConfigField, error) {
+func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 	value, err := r.GetConfigKey(key)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get config value: %s", err)
@@ -154,7 +154,7 @@ func getConfig(r repo.Interface, key string) (*ConfigField, error) {
 	}, nil
 }
 
-func setConfig(r repo.Interface, key, value string) (*ConfigField, error) {
+func setConfig(r repo.Repo, key, value string) (*ConfigField, error) {
 	err := r.SetConfigKey(key, value)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set config value: %s", err)

@@ -228,7 +228,7 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []config.BootstrapPee
 	return nil
 }
 
-func bootstrapAdd(r repo.Interface, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
 	added := make([]config.BootstrapPeer, 0, len(peers))
 
 	for _, peer := range peers {
@@ -253,7 +253,7 @@ func bootstrapAdd(r repo.Interface, cfg *config.Config, peers []config.Bootstrap
 	return added, nil
 }
 
-func bootstrapRemove(r repo.Interface, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
 	removed := make([]config.BootstrapPeer, 0, len(toRemove))
 	keep := make([]config.BootstrapPeer, 0, len(cfg.Bootstrap))
 
@@ -280,7 +280,7 @@ func bootstrapRemove(r repo.Interface, cfg *config.Config, toRemove []config.Boo
 	return removed, nil
 }
 
-func bootstrapRemoveAll(r repo.Interface, cfg *config.Config) ([]config.BootstrapPeer, error) {
+func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]config.BootstrapPeer, error) {
 	removed := make([]config.BootstrapPeer, len(cfg.Bootstrap))
 	copy(removed, cfg.Bootstrap)
 

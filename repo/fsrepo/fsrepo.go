@@ -222,7 +222,7 @@ func (r *FSRepo) Close() error {
 }
 
 var _ io.Closer = &FSRepo{}
-var _ repo.Interface = &FSRepo{}
+var _ repo.Repo = &FSRepo{}
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
 func IsInitialized(path string) bool {
