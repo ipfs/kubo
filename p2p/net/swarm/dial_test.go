@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -113,6 +114,9 @@ func TestDialWait(t *testing.T) {
 	defer s1.Close()
 
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
+	if os.Getenv("TRAVIS") == "1" {
+		s1.dialT = time.Second
+	}
 
 	// dial to a non-existent peer.
 	s2p, s2addr, s2l := newSilentPeer(t)
@@ -144,6 +148,10 @@ func TestDialWait(t *testing.T) {
 
 func TestDialBackoff(t *testing.T) {
 	// t.Skip("skipping for another test")
+	if os.Getenv("TRAVIS") == "1" {
+		t.Skip("travis will never have fun with this test")
+	}
+
 	t.Parallel()
 
 	ctx := context.Background()
@@ -367,6 +375,10 @@ func TestDialBackoffClears(t *testing.T) {
 	defer s2.Close()
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
 	s2.dialT = time.Millisecond * 300 // lower timeout for tests.
+	if os.Getenv("TRAVIS") == "1" {
+		s1.dialT = time.Second
+		s2.dialT = time.Second
+	}
 
 	// use another address first, that accept and hang on conns
 	_, s2bad, s2l := newSilentPeer(t)
