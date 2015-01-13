@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
@@ -16,6 +17,11 @@ import (
 
 // dialAttempts governs how many times a goroutine will try to dial a given peer.
 const dialAttempts = 3
+
+// DialTimeout is the amount of time each dial attempt has. We can think about making
+// this larger down the road, or putting more granular timeouts (i.e. within each
+// subcomponent of Dial)
+var DialTimeout time.Duration = time.Second * 30
 
 // dialsync is a small object that helps manage ongoing dials.
 // this way, if we receive many simultaneous dial requests, one
@@ -118,6 +124,7 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 
 		// check if there's an ongoing dial to this peer
 		if ok, wait := s.dsync.Lock(p); !ok {
+			log.Debugf("swarm %s dialing %s -- waiting for ongoing dial", s.local, p)
 			select {
 			case <-wait: // wait for that dial to finish.
 				continue // and see if it worked (loop), OR we got an incoming dial.
@@ -128,12 +135,18 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 
 		// ok, we have been charged to dial! let's do it.
 		// if it succeeds, dial will add the conn to the swarm itself.
-		conn, err = s.dial(ctx, p)
+		log.Debugf("swarm %s dialing %s -- dial start", s.local, p)
+		ctxT, _ := context.WithTimeout(ctx, DialTimeout)
+		conn, err = s.dial(ctxT, p)
 		s.dsync.Unlock(p)
+		log.Debugf("swarm %s dialing %s -- dial end %s", s.local, p, conn)
 		if err != nil {
 			continue // ok, we failed. try again. (if loop is done, our error is output)
 		}
 		return conn, nil
+	}
+	if err == nil {
+		err = fmt.Errorf("%s failed to dial %s after %d attempts", s.local, p, dialAttempts)
 	}
 	return nil, err
 }
@@ -162,7 +175,10 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	remoteAddrs = addrutil.FilterUsableAddrs(remoteAddrs)
 	// drop out any addrs that would just dial ourselves. use ListenAddresses
 	// as that is a more authoritative view than localAddrs.
-	remoteAddrs = addrutil.Subtract(remoteAddrs, s.ListenAddresses())
+	ila, _ := InterfaceListenAddresses(s)
+	remoteAddrs = addrutil.Subtract(remoteAddrs, ila)
+	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addresses(s.local))
+	log.Debugf("%s swarm dialing %s -- remote:%s local:%s", s.local, p, remoteAddrs, s.ListenAddresses())
 	if len(remoteAddrs) == 0 {
 		return nil, errors.New("peer has no addresses")
 	}
@@ -198,15 +214,20 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	// try to connect to one of the peer's known addresses.
 	// for simplicity, we do this sequentially.
 	// A future commit will do this asynchronously.
+	log.Debugf("%s swarm dialing %s %s", s.local, p, remoteAddrs)
+	var err error
 	for _, addr := range remoteAddrs {
-		connC, err := d.Dial(ctx, addr, p)
+		log.Debugf("%s swarm dialing %s %s", s.local, p, addr)
+		var connC conn.Conn
+		connC, err = d.Dial(ctx, addr, p)
 		if err != nil {
+			log.Info("%s --> %s dial attempt failed: %s", s.local, p, err)
 			continue
 		}
 
 		// if the connection is not to whom we thought it would be...
 		if connC.RemotePeer() != p {
-			log.Infof("misdial to %s through %s (got %s)", p, addr, connC.RemoteMultiaddr())
+			log.Infof("misdial to %s through %s (got %s)", p, addr, connC.RemotePeer())
 			connC.Close()
 			continue
 		}
@@ -222,6 +243,9 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 
 		// success! we got one!
 		return connC, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 	return nil, fmt.Errorf("failed to dial %s", p)
 }
