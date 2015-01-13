@@ -67,6 +67,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 	}
 
+	stopFunc, err := profileIfEnabled()
+	if err != nil {
+		printErr(err)
+		os.Exit(1)
+	}
+	defer stopFunc() // to be executed as late as possible
+
 	// this is a local helper to print out help text.
 	// there's some considerations that this makes easier.
 	printHelp := func(long bool, w io.Writer) {
@@ -151,16 +158,6 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 	if debug || u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
 		u.Debug = true
 		u.SetDebugLogging()
-	}
-
-	// if debugging, let's profile.
-	// TODO maybe change this to its own option... profiling makes it slower.
-	if u.Debug {
-		stopProfilingFunc, err := startProfiling()
-		if err != nil {
-			return nil, err
-		}
-		defer stopProfilingFunc() // to be executed as late as possible
 	}
 
 	res, err := callCommand(ctx, i.req, Root, i.cmd)
@@ -510,4 +507,19 @@ func allInterruptSignals() chan os.Signal {
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
 		syscall.SIGTERM)
 	return sigc
+}
+
+func profileIfEnabled() (func(), error) {
+	// FIXME this is a temporary hack so profiling of asynchronous operations
+	// works as intended.
+	if u.GetenvBool("DEBUG") || os.Getenv("IPFS_LOGGING") == "debug" {
+		u.Debug = true
+		u.SetDebugLogging()
+		stopProfilingFunc, err := startProfiling() // TODO maybe change this to its own option... profiling makes it slower.
+		if err != nil {
+			return nil, err
+		}
+		return stopProfilingFunc, nil
+	}
+	return func() {}, nil
 }
