@@ -117,7 +117,7 @@ func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []pee
 			err := r.Connect(ctx, p.ID)
 			if err != nil {
 				log.Event(ctx, "bootstrapFailed", p.ID)
-				log.Criticalf("failed to bootstrap with %v", p.ID)
+				log.Criticalf("failed to bootstrap with %v: %s", p.ID, err)
 				return
 			}
 			log.Event(ctx, "bootstrapSuccess", p.ID)
