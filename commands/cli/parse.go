@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	fp "path"
 	"runtime"
-	"sort"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	cmdsFiles "github.com/jbenet/go-ipfs/commands/files"
+	files "github.com/jbenet/go-ipfs/commands/files"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -66,7 +64,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 	req.SetArguments(stringArgs)
 
-	file := &cmdsFiles.SliceFile{"", fileArgs}
+	file := &files.SliceFile{"", fileArgs}
 	req.SetFiles(file)
 
 	err = cmd.CheckArguments(req)
@@ -140,7 +138,7 @@ func parseOptions(input []string) (map[string]interface{}, []string, error) {
 	return opts, args, nil
 }
 
-func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []cmdsFiles.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []files.File, error) {
 	// ignore stdin on Windows
 	if runtime.GOOS == "windows" {
 		stdin = nil
@@ -177,7 +175,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	}
 
 	stringArgs := make([]string, 0, numInputs)
-	fileArgs := make([]cmdsFiles.File, 0, numInputs)
+	fileArgs := make([]files.File, 0, numInputs)
 
 	argDefIndex := 0 // the index of the current argument definition
 	for i := 0; i < numInputs; i++ {
@@ -264,7 +262,7 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 	return append(args, buf.String()), nil, nil
 }
 
-func appendFile(args []cmdsFiles.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]cmdsFiles.File, []string, error) {
+func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
 	path := inputs[0]
 
 	file, err := os.Open(path)
@@ -290,7 +288,7 @@ func appendFile(args []cmdsFiles.File, inputs []string, argDef *cmds.Argument, r
 		}
 	}
 
-	arg, err := openPath(file, path)
+	arg, err := files.NewSerialFile(path, file)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -298,49 +296,9 @@ func appendFile(args []cmdsFiles.File, inputs []string, argDef *cmds.Argument, r
 	return append(args, arg), inputs[1:], nil
 }
 
-func appendStdinAsFile(args []cmdsFiles.File, stdin *os.File) ([]cmdsFiles.File, *os.File) {
-	arg := &cmdsFiles.ReaderFile{"", stdin}
+func appendStdinAsFile(args []files.File, stdin *os.File) ([]files.File, *os.File) {
+	arg := &files.ReaderFile{"", stdin}
 	return append(args, arg), nil
-}
-
-// recursively get file or directory contents as a cmdsFiles.File
-func openPath(file *os.File, path string) (cmdsFiles.File, error) {
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	// for non-directories, return a ReaderFile
-	if !stat.IsDir() {
-		return &cmdsFiles.ReaderFile{path, file}, nil
-	}
-
-	// for directories, recursively iterate though children then return as a SliceFile
-	contents, err := file.Readdir(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// make sure contents are sorted so -- repeatably -- we get the same inputs.
-	sort.Sort(sortFIByName(contents))
-
-	files := make([]cmdsFiles.File, 0, len(contents))
-	for _, child := range contents {
-		childPath := fp.Join(path, child.Name())
-		childFile, err := os.Open(childPath)
-		if err != nil {
-			return nil, err
-		}
-
-		f, err := openPath(childFile, childPath)
-		if err != nil {
-			return nil, err
-		}
-
-		files = append(files, f)
-	}
-
-	return &cmdsFiles.SliceFile{path, files}, nil
 }
 
 // isTerminal returns true if stdin is a Stdin pipe (e.g. `cat file | ipfs`),
@@ -355,9 +313,3 @@ func isTerminal(stdin *os.File) (bool, error) {
 	// if stdin is a CharDevice, return true
 	return ((stat.Mode() & os.ModeCharDevice) != 0), nil
 }
-
-type sortFIByName []os.FileInfo
-
-func (es sortFIByName) Len() int           { return len(es) }
-func (es sortFIByName) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() }
