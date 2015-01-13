@@ -1,7 +1,6 @@
 package fsrepo
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -71,18 +70,6 @@ func encode(w io.Writer, value interface{}) error {
 	}
 	_, err = w.Write(buf)
 	return err
-}
-
-func convertMapToConfig(v map[string]interface{}) (*config.Config, error) {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		return nil, err
-	}
-	var conf config.Config
-	if err := json.NewDecoder(&buf).Decode(&conf); err != nil {
-		return nil, fmt.Errorf("Failure to decode config: %s", err)
-	}
-	return &conf, nil
 }
 
 // load reads given file and returns the read config, or error.

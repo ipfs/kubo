@@ -149,7 +149,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if err := writeConfigFile(filename, mapconf); err != nil {
 		return err
 	}
-	conf, err := convertMapToConfig(mapconf)
+	conf, err := config.FromMap(mapconf)
 	if err != nil {
 		return err
 	}

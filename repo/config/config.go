@@ -2,9 +2,11 @@
 package config
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -204,4 +206,16 @@ func HumanOutput(value interface{}) ([]byte, error) {
 func Marshal(value interface{}) ([]byte, error) {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	return json.MarshalIndent(value, "", "  ")
+}
+
+func FromMap(v map[string]interface{}) (*Config, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		return nil, err
+	}
+	var conf Config
+	if err := json.NewDecoder(&buf).Decode(&conf); err != nil {
+		return nil, fmt.Errorf("Failure to decode config: %s", err)
+	}
+	return &conf, nil
 }
