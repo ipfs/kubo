@@ -16,6 +16,7 @@ import (
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
+	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
@@ -79,6 +80,7 @@ type IpfsNode struct {
 	Exchange    exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys     namesys.NameSystem  // the name system, resolves paths to hashes
 	Diagnostics *diag.Diagnostics   // the diagnostics service
+	Reprovider  *rp.Reprovider      // the value reprovider system
 
 	ctxgroup.ContextGroup
 
@@ -183,6 +185,10 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 			if err := n.StartOnlineServices(); err != nil {
 				return nil, err // debugerror.Wraps.
 			}
+
+			// Start up reprovider system
+			n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
+			go n.Reprovider.Run(ctx)
 		} else {
 			n.Exchange = offline.Exchange(n.Blockstore)
 		}
