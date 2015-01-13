@@ -294,42 +294,83 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remoteAddrs []ma.Multiaddr) (conn.Conn, error) {
 
 	// try to connect to one of the peer's known addresses.
-	// for simplicity, we do this sequentially.
-	// A future commit will do this asynchronously.
+	// we dial concurrently to each of the addresses, which:
+	// * makes the process faster overall
+	// * attempts to get the fastest connection available.
+	// * mitigates the waste of trying bad addresses
 	log.Debugf("%s swarm dialing %s %s", s.local, p, remoteAddrs)
-	var err error
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel() // cancel work when we exit func
+
+	foundConn := make(chan struct{})
+	conns := make(chan conn.Conn, len(remoteAddrs))
+	errs := make(chan error, len(remoteAddrs))
+
+	//TODO: rate limiting just in case?
 	for _, addr := range remoteAddrs {
-		log.Debugf("%s swarm dialing %s %s", s.local, p, addr)
-		var connC conn.Conn
-		connC, err = d.Dial(ctx, addr, p)
-		if err != nil {
-			log.Info("%s --> %s dial attempt failed: %s", s.local, p, err)
-			continue
-		}
+		go func(addr ma.Multiaddr) {
+			connC, err := s.dialAddr(ctx, d, p, addr)
 
-		// if the connection is not to whom we thought it would be...
-		if connC.RemotePeer() != p {
-			log.Infof("misdial to %s through %s (got %s)", p, addr, connC.RemotePeer())
-			connC.Close()
-			continue
-		}
+			// check parent still wants our results
+			select {
+			case <-foundConn:
+				if connC != nil {
+					connC.Close()
+				}
+				return
+			default:
+			}
 
-		// if the connection is to ourselves...
-		// this can happen TONS when Loopback addrs are advertized.
-		// (this should be caught by two checks above, but let's just make sure.)
-		if connC.RemotePeer() == s.local {
-			log.Infof("misdial to %s through %s", p, addr)
-			connC.Close()
-			continue
-		}
-
-		// success! we got one!
-		return connC, nil
+			if err != nil {
+				errs <- err
+			} else if connC == nil {
+				errs <- fmt.Errorf("failed to dial %s %s", p, addr)
+			} else {
+				conns <- connC
+			}
+		}(addr)
 	}
+
+	err := fmt.Errorf("failed to dial %s", p)
+	for i := 0; i < len(remoteAddrs); i++ {
+		select {
+		case err = <-errs:
+			log.Info(err)
+		case connC := <-conns:
+			// take the first + return asap
+			close(foundConn)
+			return connC, nil
+		}
+	}
+	return nil, err
+}
+
+func (s *Swarm) dialAddr(ctx context.Context, d *conn.Dialer, p peer.ID, addr ma.Multiaddr) (conn.Conn, error) {
+	log.Debugf("%s swarm dialing %s %s", s.local, p, addr)
+
+	connC, err := d.Dial(ctx, addr, p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s --> %s dial attempt failed: %s", s.local, p, err)
 	}
-	return nil, fmt.Errorf("failed to dial %s", p)
+
+	// if the connection is not to whom we thought it would be...
+	remotep := connC.RemotePeer()
+	if remotep != p {
+		connC.Close()
+		return nil, fmt.Errorf("misdial to %s through %s (got %s)", p, addr, remotep)
+	}
+
+	// if the connection is to ourselves...
+	// this can happen TONS when Loopback addrs are advertized.
+	// (this should be caught by two checks above, but let's just make sure.)
+	if remotep == s.local {
+		connC.Close()
+		return nil, fmt.Errorf("misdial to %s through %s (got self)", p, addr)
+	}
+
+	// success! we got one!
+	return connC, nil
 }
 
 // dialConnSetup is the setup logic for a connection from the dial side. it
