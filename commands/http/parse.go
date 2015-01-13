@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	files "github.com/jbenet/go-ipfs/commands/files"
 )
 
 // Parse parses the data in a http.Request and returns a command Request object
@@ -94,9 +95,9 @@ func Parse(r *http.Request, root *cmds.Command) (cmds.Request, error) {
 	contentType := r.Header.Get(contentTypeHeader)
 	mediatype, _, _ := mime.ParseMediaType(contentType)
 
-	var f *cmds.MultipartFile
+	var f *files.MultipartFile
 	if mediatype == "multipart/form-data" {
-		f = &cmds.MultipartFile{Mediatype: mediatype}
+		f = &files.MultipartFile{Mediatype: mediatype}
 		f.Reader, err = r.MultipartReader()
 		if err != nil {
 			return nil, err

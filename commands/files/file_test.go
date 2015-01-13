@@ -1,4 +1,4 @@
-package commands
+package files
 
 import (
 	"io"

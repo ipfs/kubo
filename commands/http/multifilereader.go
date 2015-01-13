@@ -8,7 +8,7 @@ import (
 	"net/textproto"
 	"sync"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	files "github.com/jbenet/go-ipfs/commands/files"
 )
 
 // MultiFileReader reads from a `commands.File` (which can be a directory of files
@@ -16,7 +16,7 @@ import (
 type MultiFileReader struct {
 	io.Reader
 
-	files       cmds.File
+	files       files.File
 	currentFile io.Reader
 	buf         bytes.Buffer
 	mpWriter    *multipart.Writer
@@ -31,7 +31,7 @@ type MultiFileReader struct {
 // NewMultiFileReader constructs a MultiFileReader. `file` can be any `commands.File`.
 // If `form` is set to true, the multipart data will have a Content-Type of 'multipart/form-data',
 // if `form` is false, the Content-Type will be 'multipart/mixed'.
-func NewMultiFileReader(file cmds.File, form bool) *MultiFileReader {
+func NewMultiFileReader(file files.File, form bool) *MultiFileReader {
 	mfr := &MultiFileReader{
 		files: file,
 		form:  form,
