@@ -14,6 +14,9 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
+// dialAttempts governs how many times a goroutine will try to dial a given peer.
+const dialAttempts = 3
+
 // dialsync is a small object that helps manage ongoing dials.
 // this way, if we receive many simultaneous dial requests, one
 // can do its thing, while the rest wait.
@@ -101,11 +104,10 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	// to check s.ConnectionsToPeer(p) _first_, and _between_ attempts because we
 	// may have received an incoming connection! if so, we no longer must dial.
 	//
-	// dial attempts. we may be doing the dialing. if not, we wait.
-	attempts := 3
+	// During the dial attempts, we may be doing the dialing. if not, we wait.
 	var err error
 	var conn *Conn
-	for i := 0; i < attempts; i++ {
+	for i := 0; i < dialAttempts; i++ {
 		// check if we already have an open connection first
 		cs := s.ConnectionsToPeer(p)
 		for _, conn = range cs {
