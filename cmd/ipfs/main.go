@@ -19,10 +19,11 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
-	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	daemon "github.com/jbenet/go-ipfs/core/daemon"
 	repo "github.com/jbenet/go-ipfs/repo"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -444,12 +445,12 @@ func getConfigRoot(req cmds.Request) (string, error) {
 }
 
 func loadConfig(path string) (*config.Config, error) {
-	configFile, err := config.Filename(path)
-	if err != nil {
+	r := fsrepo.At(path)
+	if err := r.Open(); err != nil {
 		return nil, err
 	}
-
-	return config.Load(configFile)
+	defer r.Close()
+	return r.Config(), nil
 }
 
 // startProfiling begins CPU profiling and returns a `stop` function to be

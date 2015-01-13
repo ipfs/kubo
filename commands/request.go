@@ -8,8 +8,8 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-	"github.com/jbenet/go-ipfs/config"
 	"github.com/jbenet/go-ipfs/core"
+	"github.com/jbenet/go-ipfs/repo/config"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

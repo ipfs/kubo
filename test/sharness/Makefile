@@ -16,6 +16,7 @@ all: clean deps $(T) aggregate
 clean:
 	@echo "*** $@ ***"
 	-rm -rf test-results
+	-rm -rf bin/ipfs
 
 $(T):
 	@echo "*** $@ ***"

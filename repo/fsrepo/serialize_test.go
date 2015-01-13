@@ -1,19 +1,21 @@
-package config
+package fsrepo
 
 import (
 	"testing"
+
+	config "github.com/jbenet/go-ipfs/repo/config"
 )
 
 func TestConfig(t *testing.T) {
 	const filename = ".ipfsconfig"
 	const dsPath = "/path/to/datastore"
-	cfgWritten := new(Config)
+	cfgWritten := new(config.Config)
 	cfgWritten.Datastore.Path = dsPath
-	err := WriteConfigFile(filename, cfgWritten)
+	err := writeConfigFile(filename, cfgWritten)
 	if err != nil {
 		t.Error(err)
 	}
-	cfgRead, err := Load(filename)
+	cfgRead, err := load(filename)
 	if err != nil {
 		t.Error(err)
 		return

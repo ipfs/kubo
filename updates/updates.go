@@ -1,11 +1,13 @@
 package updates
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
-	config "github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
@@ -196,7 +198,7 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 }
 
 // CliCheckForUpdates is the automatic update check from the commandline.
-func CliCheckForUpdates(cfg *config.Config, confFile string) error {
+func CliCheckForUpdates(cfg *config.Config, repoPath string) error {
 
 	// if config says not to, don't check for updates
 	if !cfg.Version.ShouldCheckForUpdate() {
@@ -206,10 +208,22 @@ func CliCheckForUpdates(cfg *config.Config, confFile string) error {
 
 	log.Info("checking for update")
 	u, err := CheckForUpdate()
-	// if there is no update available, record it, and exit.
+	// if there is no update available, record it, and exit. NB:  only record
+	// if we checked successfully.
 	if err == ErrNoUpdateAvailable {
 		log.Noticef("No update available, checked on %s", time.Now())
-		config.RecordUpdateCheck(cfg, confFile) // only record if we checked successfully.
+		r := fsrepo.At(repoPath)
+		if err := r.Open(); err != nil {
+			return err
+		}
+		if err := recordUpdateCheck(cfg); err != nil {
+			return err
+		}
+		// NB: r's Config may be newer than cfg. This overwrites regardless.
+		r.SetConfig(cfg)
+		if err := r.Close(); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -275,3 +289,15 @@ To disable this notice, run:
     ipfs config Version.Check warn
 
 `
+
+// recordUpdateCheck is called to record that an update check was performed,
+// showing that the running version is the most recent one.
+func recordUpdateCheck(cfg *config.Config) error {
+	cfg.Version.CheckDate = time.Now()
+
+	if cfg.Version.CheckPeriod == "" {
+		// CheckPeriod was not initialized for some reason (e.g. config file broken)
+		return errors.New("config.Version.CheckPeriod not set. config broken?")
+	}
+	return nil
+}

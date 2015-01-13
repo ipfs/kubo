@@ -10,7 +10,9 @@ import (
 	"os/exec"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
+	repo "github.com/jbenet/go-ipfs/repo"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -57,18 +59,19 @@ Set the value of the 'datastore.path' key:
 		args := req.Arguments()
 		key := args[0]
 
-		filename, err := config.Filename(req.Context().ConfigRoot)
-		if err != nil {
+		r := fsrepo.At(req.Context().ConfigRoot)
+		if err := r.Open(); err != nil {
 			return nil, err
 		}
+		defer r.Close()
 
 		var value string
 		if len(args) == 2 {
 			value = args[1]
-			return setConfig(filename, key, value)
+			return setConfig(r, key, value)
 
 		} else {
-			return getConfig(filename, key)
+			return getConfig(r, key)
 		}
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -140,25 +143,23 @@ variable set to your preferred text editor.
 	},
 }
 
-func getConfig(filename string, key string) (*ConfigField, error) {
-	value, err := config.ReadConfigKey(filename, key)
+func getConfig(r repo.Repo, key string) (*ConfigField, error) {
+	value, err := r.GetConfigKey(key)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get config value: %s", err)
 	}
-
 	return &ConfigField{
 		Key:   key,
 		Value: value,
 	}, nil
 }
 
-func setConfig(filename string, key, value string) (*ConfigField, error) {
-	err := config.WriteConfigKey(filename, key, value)
+func setConfig(r repo.Repo, key, value string) (*ConfigField, error) {
+	err := r.SetConfigKey(key, value)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set config value: %s", err)
 	}
-
-	return getConfig(filename, key)
+	return getConfig(r, key)
 }
 
 func showConfig(filename string) (io.Reader, error) {

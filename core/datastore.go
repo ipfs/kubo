@@ -8,7 +8,7 @@ import (
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ldbopts "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 
-	config "github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/repo/config"
 	u "github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	"github.com/jbenet/go-ipfs/util/debugerror"

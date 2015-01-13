@@ -34,6 +34,9 @@ test_go_short:
 test_go_expensive:
 	go test ./...
 
+test_go_race:
+	go test ./... -race
+
 test_sharness_short:
 	cd test/sharness/ && make
 

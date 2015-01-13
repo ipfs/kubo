@@ -5,7 +5,9 @@ import (
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
+	repo "github.com/jbenet/go-ipfs/repo"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	"github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -76,15 +78,12 @@ in the bootstrap list).
 			return nil, err
 		}
 
-		filename, err := config.Filename(req.Context().ConfigRoot)
-		if err != nil {
+		r := fsrepo.At(req.Context().ConfigRoot)
+		if err := r.Open(); err != nil {
 			return nil, err
 		}
-
-		cfg, err := req.Context().GetConfig()
-		if err != nil {
-			return nil, err
-		}
+		defer r.Close()
+		cfg := r.Config()
 
 		deflt, _, err := req.Option("default").Bool()
 		if err != nil {
@@ -101,7 +100,7 @@ in the bootstrap list).
 			inputPeers = append(inputPeers, defltPeers...)
 		}
 
-		added, err := bootstrapAdd(filename, cfg, inputPeers)
+		added, err := bootstrapAdd(r, cfg, inputPeers)
 		if err != nil {
 			return nil, err
 		}
@@ -146,15 +145,12 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return nil, err
 		}
 
-		filename, err := config.Filename(req.Context().ConfigRoot)
-		if err != nil {
+		r := fsrepo.At(req.Context().ConfigRoot)
+		if err := r.Open(); err != nil {
 			return nil, err
 		}
-
-		cfg, err := req.Context().GetConfig()
-		if err != nil {
-			return nil, err
-		}
+		defer r.Close()
+		cfg := r.Config()
 
 		all, _, err := req.Option("all").Bool()
 		if err != nil {
@@ -163,9 +159,9 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 		var removed []config.BootstrapPeer
 		if all {
-			removed, err = bootstrapRemoveAll(filename, cfg)
+			removed, err = bootstrapRemoveAll(r, cfg)
 		} else {
-			removed, err = bootstrapRemove(filename, cfg, input)
+			removed, err = bootstrapRemove(r, cfg, input)
 		}
 		if err != nil {
 			return nil, err
@@ -232,7 +228,7 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []config.BootstrapPee
 	return nil
 }
 
-func bootstrapAdd(filename string, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
 	added := make([]config.BootstrapPeer, 0, len(peers))
 
 	for _, peer := range peers {
@@ -250,15 +246,14 @@ func bootstrapAdd(filename string, cfg *config.Config, peers []config.BootstrapP
 		}
 	}
 
-	err := config.WriteConfigFile(filename, cfg)
-	if err != nil {
+	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
 	}
 
 	return added, nil
 }
 
-func bootstrapRemove(filename string, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
 	removed := make([]config.BootstrapPeer, 0, len(toRemove))
 	keep := make([]config.BootstrapPeer, 0, len(cfg.Bootstrap))
 
@@ -278,21 +273,19 @@ func bootstrapRemove(filename string, cfg *config.Config, toRemove []config.Boot
 	}
 	cfg.Bootstrap = keep
 
-	err := config.WriteConfigFile(filename, cfg)
-	if err != nil {
+	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
 	}
 
 	return removed, nil
 }
 
-func bootstrapRemoveAll(filename string, cfg *config.Config) ([]config.BootstrapPeer, error) {
+func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]config.BootstrapPeer, error) {
 	removed := make([]config.BootstrapPeer, len(cfg.Bootstrap))
 	copy(removed, cfg.Bootstrap)
 
 	cfg.Bootstrap = nil
-	err := config.WriteConfigFile(filename, cfg)
-	if err != nil {
+	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
 	}
 

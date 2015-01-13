@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	config "github.com/jbenet/go-ipfs/config"
+	config "github.com/jbenet/go-ipfs/repo/config"
 )
 
 func TestInitialization(t *testing.T) {
@@ -37,11 +37,8 @@ func TestInitialization(t *testing.T) {
 	}
 
 	bad := []*config.Config{
-		&config.Config{Identity: id, Datastore: config.Datastore{}},
-		&config.Config{Identity: id, Datastore: config.Datastore{Type: "badtype"}},
 		&config.Config{},
 		&config.Config{Datastore: config.Datastore{Type: "memory"}},
-		nil,
 	}
 
 	for i, c := range good {

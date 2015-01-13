@@ -4,13 +4,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
 	core "github.com/jbenet/go-ipfs/core"
 	corecmds "github.com/jbenet/go-ipfs/core/commands"
 	imp "github.com/jbenet/go-ipfs/importer"
@@ -18,6 +15,8 @@ import (
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	repo "github.com/jbenet/go-ipfs/repo"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -34,7 +33,6 @@ var initCmd = &cmds.Command{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
 		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
-		cmds.StringOption("datastore", "d", "Location for the IPFS data store"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -42,11 +40,6 @@ var initCmd = &cmds.Command{
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
-
-		dspathOverride, _, err := req.Option("d").String() // if !found it's okay. Let == ""
-		if err != nil {
-			return nil, err
-		}
 
 		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
 		if err != nil {
@@ -61,11 +54,11 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		return doInit(req.Context().ConfigRoot, dspathOverride, force, nBitsForKeypair)
+		return doInit(req.Context().ConfigRoot, force, nBitsForKeypair)
 	},
 }
 
-var errCannotInitConfigExists = debugerror.New(`ipfs configuration file already exists!
+var errRepoExists = debugerror.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
@@ -85,29 +78,34 @@ IPFS and are now interfacing with the ipfs merkledag!
 For a short demo of what you can do, enter 'ipfs tour'
 `
 
-func initWithDefaults(configRoot string) error {
-	_, err := doInit(configRoot, "", false, nBitsForKeypairDefault)
+func initWithDefaults(repoRoot string) error {
+	_, err := doInit(repoRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
 }
 
-func doInit(configRoot string, dspathOverride string, force bool, nBitsForKeypair int) (interface{}, error) {
+func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, error) {
 
-	u.POut("initializing ipfs node at %s\n", configRoot)
+	u.POut("initializing ipfs node at %s\n", repoRoot)
 
-	configFilename, err := config.Filename(configRoot)
-	if err != nil {
-		return nil, debugerror.New("Couldn't get home directory path")
+	if fsrepo.IsInitialized(repoRoot) && !force {
+		return nil, errRepoExists
 	}
 
-	if u.FileExists(configFilename) && !force {
-		return nil, errCannotInitConfigExists
-	}
-
-	conf, err := initConfig(configFilename, dspathOverride, nBitsForKeypair)
+	conf, err := initConfig(nBitsForKeypair)
 	if err != nil {
 		return nil, err
 	}
-
+	if fsrepo.IsInitialized(repoRoot) {
+		if err := fsrepo.Remove(repoRoot); err != nil {
+			return nil, err
+		}
+	}
+	if err := fsrepo.Init(repoRoot, conf); err != nil {
+		return nil, err
+	}
+	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
+		return nil, err
+	}
 	err = addTheWelcomeFile(conf)
 	if err != nil {
 		return nil, err
@@ -144,28 +142,19 @@ func addTheWelcomeFile(conf *config.Config) error {
 	return nil
 }
 
-func datastoreConfig(dspath string) (config.Datastore, error) {
-	ds := config.Datastore{}
-	if len(dspath) == 0 {
-		var err error
-		dspath, err = config.DataStorePath("")
-		if err != nil {
-			return ds, err
-		}
-	}
-	ds.Path = dspath
-	ds.Type = "leveldb"
-
-	err := initCheckDir(dspath)
+func datastoreConfig() (*config.Datastore, error) {
+	dspath, err := config.DataStorePath("")
 	if err != nil {
-		return ds, debugerror.Errorf("datastore: %s", err)
+		return nil, err
 	}
-
-	return ds, nil
+	return &config.Datastore{
+		Path: dspath,
+		Type: "leveldb",
+	}, nil
 }
 
-func initConfig(configFilename string, dspathOverride string, nBitsForKeypair int) (*config.Config, error) {
-	ds, err := datastoreConfig(dspathOverride)
+func initConfig(nBitsForKeypair int) (*config.Config, error) {
+	ds, err := datastoreConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +164,7 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		return nil, err
 	}
 
-	logConfig, err := initLogs("") // TODO allow user to override dir
+	logConfig, err := initLogs()
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +187,8 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		},
 
 		Bootstrap: bootstrapPeers,
-		Datastore: ds,
-		Logs:      logConfig,
+		Datastore: *ds,
+		Logs:      *logConfig,
 		Identity:  identity,
 
 		// setup the node mount points.
@@ -211,10 +200,6 @@ func initConfig(configFilename string, dspathOverride string, nBitsForKeypair in
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
 		Version: config.VersionDefaultValue(),
-	}
-
-	if err := config.WriteConfigFile(configFilename, conf); err != nil {
-		return nil, err
 	}
 
 	return conf, nil
@@ -252,42 +237,14 @@ func identityConfig(nbits int) (config.Identity, error) {
 	return ident, nil
 }
 
-// initLogs initializes the event logger at the specified path. It uses the
-// default log path if no path is provided.
-func initLogs(logpath string) (config.Logs, error) {
-	if len(logpath) == 0 {
-		var err error
-		logpath, err = config.LogsPath("")
-		if err != nil {
-			return config.Logs{}, debugerror.Wrap(err)
-		}
-	}
-	err := initCheckDir(logpath)
+// initLogs initializes the event logger.
+func initLogs() (*config.Logs, error) {
+	logpath, err := config.LogsPath("")
 	if err != nil {
-		return config.Logs{}, debugerror.Errorf("logs: %s", err)
+		return nil, err
 	}
 	conf := config.Logs{
 		Filename: path.Join(logpath, "events.log"),
 	}
-	err = repo.ConfigureEventLogger(conf)
-	if err != nil {
-		return conf, err
-	}
-	return conf, nil
-}
-
-// initCheckDir ensures the directory exists and is writable
-func initCheckDir(path string) error {
-	// Construct the path if missing
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return debugerror.New("'" + path + "' is not writeable")
-	}
-	return nil
+	return &conf, nil
 }
