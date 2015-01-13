@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/jbenet/go-ipfs/repo/config"
 	"github.com/jbenet/go-ipfs/util"
@@ -92,19 +91,4 @@ func load(filename string) (*config.Config, error) {
 	}
 
 	return &cfg, err
-}
-
-// RecordUpdateCheck is called to record that an update check was performed,
-// showing that the running version is the most recent one.
-//
-// DEPRECATED
-func RecordUpdateCheck(cfg *config.Config, filename string) {
-	cfg.Version.CheckDate = time.Now()
-
-	if cfg.Version.CheckPeriod == "" {
-		// CheckPeriod was not initialized for some reason (e.g. config file broken)
-		log.Error("config.Version.CheckPeriod not set. config broken?")
-	}
-
-	writeConfigFile(filename, cfg)
 }
