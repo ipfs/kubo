@@ -110,6 +110,9 @@ func (r *FSRepo) SetConfig(conf *config.Config) error {
 
 // GetConfigKey retrieves only the value of a particular key
 func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
+	if r.state != opened {
+		return nil, debugerror.Errorf("repo is %s", r.state)
+	}
 	filename, err := config.Filename(r.path)
 	if err != nil {
 		return nil, err
@@ -123,6 +126,9 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 
 // SetConfigKey writes the value of a particular key
 func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
+	if r.state != opened {
+		return debugerror.Errorf("repo is %s", r.state)
+	}
 	filename, err := config.Filename(r.path)
 	if err != nil {
 		return err
