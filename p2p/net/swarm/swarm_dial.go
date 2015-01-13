@@ -17,6 +17,17 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
 
+// Diagram of dial sync:
+//
+//   many callers of Dial()   synched w.  dials many addrs       results to callers
+//  ----------------------\    dialsync    use earliest            /--------------
+//  -----------------------\              |----------\           /----------------
+//  ------------------------>------------<-------     >---------<-----------------
+//  -----------------------|              \----x                 \----------------
+//  ----------------------|                \-----x                \---------------
+//                                         any may fail          if no addr at end
+//                                                             retry dialAttempt x
+
 // dialAttempts governs how many times a goroutine will try to dial a given peer.
 const dialAttempts = 3
 
