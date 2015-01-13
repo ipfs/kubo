@@ -16,7 +16,7 @@ var log = eventlog.Logger("p2p/host/basic")
 
 type BasicHost struct {
 	network inet.Network
-	mux     protocol.Mux
+	mux     *protocol.Mux
 	ids     *identify.IDService
 	relay   *relay.RelayService
 }
@@ -25,7 +25,7 @@ type BasicHost struct {
 func New(net inet.Network) *BasicHost {
 	h := &BasicHost{
 		network: net,
-		mux:     protocol.Mux{Handlers: protocol.StreamHandlerMap{}},
+		mux:     protocol.NewMux(),
 	}
 
 	// setup host services
@@ -65,7 +65,7 @@ func (h *BasicHost) Network() inet.Network {
 
 // Mux returns the Mux multiplexing incoming streams to protocol handlers
 func (h *BasicHost) Mux() *protocol.Mux {
-	return &h.mux
+	return h.mux
 }
 
 func (h *BasicHost) IDService() *identify.IDService {

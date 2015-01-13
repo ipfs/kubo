@@ -14,7 +14,7 @@ import (
 
 var log = eventlog.Logger("net/mux")
 
-type StreamHandlerMap map[ID]inet.StreamHandler
+type streamHandlerMap map[ID]inet.StreamHandler
 
 // Mux provides simple stream multixplexing.
 // It helps you precisely when:
@@ -23,24 +23,28 @@ type StreamHandlerMap map[ID]inet.StreamHandler
 //
 // It contains the handlers for each protocol accepted.
 // It dispatches handlers for streams opened by remote peers.
-//
-// WARNING: this datastructure IS NOT threadsafe.
-// do not modify it once the network is using it.
 type Mux struct {
-	Default  inet.StreamHandler // handles unknown protocols.
-	Handlers StreamHandlerMap
+	// Default handles unknown protocols. Callers modify at your own risk.
+	Default inet.StreamHandler
 
-	sync.RWMutex
+	lock     sync.RWMutex
+	handlers streamHandlerMap
+}
+
+func NewMux() *Mux {
+	return &Mux{
+		handlers: streamHandlerMap{},
+	}
 }
 
 // Protocols returns the list of protocols this muxer has handlers for
 func (m *Mux) Protocols() []ID {
-	m.RLock()
-	l := make([]ID, 0, len(m.Handlers))
-	for p := range m.Handlers {
+	m.lock.RLock()
+	l := make([]ID, 0, len(m.handlers))
+	for p := range m.handlers {
 		l = append(l, p)
 	}
-	m.RUnlock()
+	m.lock.RUnlock()
 	return l
 }
 
@@ -54,9 +58,9 @@ func (m *Mux) readHeader(s io.Reader) (ID, inet.StreamHandler, error) {
 	}
 
 	// log.Debug("readHeader got:", p)
-	m.RLock()
-	h, found := m.Handlers[p]
-	m.RUnlock()
+	m.lock.RLock()
+	h, found := m.handlers[p]
+	m.lock.RUnlock()
 
 	switch {
 	case !found && m.Default != nil:
@@ -70,18 +74,18 @@ func (m *Mux) readHeader(s io.Reader) (ID, inet.StreamHandler, error) {
 
 // String returns the muxer's printing representation
 func (m *Mux) String() string {
-	m.RLock()
-	defer m.RUnlock()
-	return fmt.Sprintf("<Muxer %p %d>", m, len(m.Handlers))
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	return fmt.Sprintf("<Muxer %p %d>", m, len(m.handlers))
 }
 
 // SetHandler sets the protocol handler on the Network's Muxer.
 // This operation is threadsafe.
 func (m *Mux) SetHandler(p ID, h inet.StreamHandler) {
 	log.Debugf("%s setting handler for protocol: %s (%d)", m, p, len(p))
-	m.Lock()
-	m.Handlers[p] = h
-	m.Unlock()
+	m.lock.Lock()
+	m.handlers[p] = h
+	m.lock.Unlock()
 }
 
 // Handle reads the next name off the Stream, and calls a handler function

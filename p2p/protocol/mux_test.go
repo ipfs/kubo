@@ -38,12 +38,12 @@ func TestHandler(t *testing.T) {
 		}
 	}
 
-	m := Mux{Handlers: StreamHandlerMap{}}
+	m := NewMux()
 	m.Default = h("default")
-	m.Handlers["/dht"] = h("bitswap")
+	m.SetHandler("/dht", h("bitswap"))
 	// m.Handlers["/ipfs"] = h("bitswap") // default!
-	m.Handlers["/bitswap"] = h("bitswap")
-	m.Handlers["/ipfs/dksnafkasnfkdajfkdajfdsjadosiaaodj"] = h("bitswap")
+	m.SetHandler("/bitswap", h("bitswap"))
+	m.SetHandler("/ipfs/dksnafkasnfkdajfkdajfdsjadosiaaodj", h("bitswap"))
 
 	for k, v := range testCases {
 		var buf bytes.Buffer
