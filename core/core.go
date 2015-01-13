@@ -359,7 +359,7 @@ func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *con
 
 	// make sure we error out if our config does not have addresses we can use
 	log.Debugf("Config.Addresses.Swarm:%s", listenAddrs)
-	filteredAddrs := addrutil.FilterAddrs(listenAddrs)
+	filteredAddrs := addrutil.FilterUsableAddrs(listenAddrs)
 	log.Debugf("Config.Addresses.Swarm:%s (filtered)", listenAddrs)
 	if len(filteredAddrs) < 1 {
 		return nil, debugerror.Errorf("addresses in config not usable: %s", listenAddrs)
