@@ -10,6 +10,7 @@ import (
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // Dial connects to a peer.
@@ -56,22 +57,10 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		PrivateKey: sk,
 	}
 
-	// try to connect to one of the peer's known addresses.
-	// for simplicity, we do this sequentially.
-	// A future commit will do this asynchronously.
-	var connC conn.Conn
-	var err error
-	for _, addr := range remoteAddrs {
-		connC, err = d.Dial(ctx, addr, p)
-		if err == nil {
-			break
-		}
-	}
+	// try to get a connection to any addr
+	connC, err := s.dialAddrs(ctx, d, p, remoteAddrs)
 	if err != nil {
 		return nil, err
-	}
-	if connC == nil {
-		err = fmt.Errorf("failed to dial %s", p)
 	}
 
 	// ok try to setup the new connection.
@@ -85,6 +74,39 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 
 	log.Event(ctx, "dial", p)
 	return swarmC, nil
+}
+
+func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remoteAddrs []ma.Multiaddr) (conn.Conn, error) {
+
+	// try to connect to one of the peer's known addresses.
+	// for simplicity, we do this sequentially.
+	// A future commit will do this asynchronously.
+	for _, addr := range remoteAddrs {
+		connC, err := d.Dial(ctx, addr, p)
+		if err != nil {
+			continue
+		}
+
+		// if the connection is not to whom we thought it would be...
+		if connC.RemotePeer() != p {
+			log.Infof("misdial to %s through %s (got %s)", p, addr, connC.RemoteMultiaddr())
+			connC.Close()
+			continue
+		}
+
+		// if the connection is to ourselves...
+		// this can happen TONS when Loopback addrs are advertized.
+		// (this should be caught by two checks above, but let's just make sure.)
+		if connC.RemotePeer() == s.local {
+			log.Infof("misdial to %s through %s", p, addr)
+			connC.Close()
+			continue
+		}
+
+		// success! we got one!
+		return connC, nil
+	}
+	return nil, fmt.Errorf("failed to dial %s", p)
 }
 
 // dialConnSetup is the setup logic for a connection from the dial side. it
