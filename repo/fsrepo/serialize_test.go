@@ -15,7 +15,7 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cfgRead, err := Load(filename)
+	cfgRead, err := load(filename)
 	if err != nil {
 		t.Error(err)
 		return

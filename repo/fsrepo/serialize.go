@@ -17,8 +17,8 @@ import (
 
 var log = util.Logger("fsrepo")
 
-// ReadConfigFile reads the config from `filename` into `cfg`.
-func ReadConfigFile(filename string, cfg interface{}) error {
+// readConfigFile reads the config from `filename` into `cfg`.
+func readConfigFile(filename string, cfg interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 	return nil
 }
 
-// WriteConfigFile writes the config from `cfg` into `filename`.
+// writeConfigFile writes the config from `cfg` into `filename`.
 func writeConfigFile(filename string, cfg interface{}) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0775)
 	if err != nil {
@@ -43,11 +43,11 @@ func writeConfigFile(filename string, cfg interface{}) error {
 	}
 	defer f.Close()
 
-	return Encode(f, cfg)
+	return encode(f, cfg)
 }
 
-// WriteFile writes the buffer at filename
-func WriteFile(filename string, buf []byte) error {
+// writeFile writes the buffer at filename
+func writeFile(filename string, buf []byte) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0775)
 	if err != nil {
 		return err
@@ -63,8 +63,8 @@ func WriteFile(filename string, buf []byte) error {
 	return err
 }
 
-// Encode configuration with JSON
-func Encode(w io.Writer, value interface{}) error {
+// encode configuration with JSON
+func encode(w io.Writer, value interface{}) error {
 	// need to prettyprint, hence MarshalIndent, instead of Encoder
 	buf, err := config.Marshal(value)
 	if err != nil {
@@ -81,7 +81,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 		return nil, err
 	}
 	var cfg map[string]interface{}
-	if err := ReadConfigFile(filename, &cfg); err != nil {
+	if err := readConfigFile(filename, &cfg); err != nil {
 		return nil, err
 	}
 
@@ -95,7 +95,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return err
 	}
 	var mapconf map[string]interface{}
-	if err := ReadConfigFile(filename, &mapconf); err != nil {
+	if err := readConfigFile(filename, &mapconf); err != nil {
 		return err
 	}
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
@@ -125,15 +125,15 @@ func convertMapToConfig(v map[string]interface{}) (*config.Config, error) {
 	return &conf, nil
 }
 
-// Load reads given file and returns the read config, or error.
-func Load(filename string) (*config.Config, error) {
+// load reads given file and returns the read config, or error.
+func load(filename string) (*config.Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
 	if !util.FileExists(filename) {
 		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg config.Config
-	err := ReadConfigFile(filename, &cfg)
+	err := readConfigFile(filename, &cfg)
 	if err != nil {
 		return nil, err
 	}

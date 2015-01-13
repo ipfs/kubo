@@ -58,7 +58,7 @@ func (r *FSRepo) Open() error {
 	if err != nil {
 		return err
 	}
-	conf, err := Load(configFilename)
+	conf, err := load(configFilename)
 	if err != nil {
 		return err
 	}
