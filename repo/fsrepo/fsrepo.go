@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -114,6 +115,7 @@ func (r *FSRepo) Close() error {
 }
 
 var _ io.Closer = &FSRepo{}
+var _ repo.Interface = &FSRepo{}
 
 // IsInitialized returns true if the repo is initialized at provided |path|.
 func IsInitialized(path string) bool {

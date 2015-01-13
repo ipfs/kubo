@@ -6,7 +6,11 @@ import (
 )
 
 type Interface interface {
+	Config() *config.Config
 	SetConfig(*config.Config) error
+
+	SetConfigKey(key string, value interface{}) error
+	GetConfigKey(key string) (interface{}, error)
 }
 
 // IsInitialized returns true if the path is home to an initialized IPFS

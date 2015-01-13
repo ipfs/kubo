@@ -1,14 +1,15 @@
 package fsrepo
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
+	common "github.com/jbenet/go-ipfs/repo/common"
 	"github.com/jbenet/go-ipfs/repo/config"
 	"github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -73,59 +74,55 @@ func Encode(w io.Writer, value interface{}) error {
 	return err
 }
 
-// ReadConfigKey retrieves only the value of a particular key
-func ReadConfigKey(filename, key string) (interface{}, error) {
-	var cfg interface{}
+// GetConfigKey retrieves only the value of a particular key
+func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
+	filename, err := config.Filename(r.path)
+	if err != nil {
+		return nil, err
+	}
+	var cfg map[string]interface{}
 	if err := ReadConfigFile(filename, &cfg); err != nil {
 		return nil, err
 	}
 
-	var ok bool
-	cursor := cfg
-	parts := strings.Split(key, ".")
-	for i, part := range parts {
-		cursor, ok = cursor.(map[string]interface{})[part]
-		if !ok {
-			sofar := strings.Join(parts[:i], ".")
-			return nil, fmt.Errorf("%s key has no attributes", sofar)
-		}
-	}
-	return cursor, nil
+	return common.MapGetKV(cfg, key)
 }
 
-// WriteConfigKey writes the value of a particular key
-func WriteConfigKey(filename, key string, value interface{}) error {
-	var cfg interface{}
-	if err := ReadConfigFile(filename, &cfg); err != nil {
+// SetConfigKey writes the value of a particular key
+func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
+	filename, err := config.Filename(r.path)
+	if err != nil {
 		return err
 	}
-
-	var ok bool
-	var mcursor map[string]interface{}
-	cursor := cfg
-
-	parts := strings.Split(key, ".")
-	for i, part := range parts {
-		mcursor, ok = cursor.(map[string]interface{})
-		if !ok {
-			sofar := strings.Join(parts[:i], ".")
-			return fmt.Errorf("%s key is not a map", sofar)
-		}
-
-		// last part? set here
-		if i == (len(parts) - 1) {
-			mcursor[part] = value
-			break
-		}
-
-		cursor, ok = mcursor[part]
-		if !ok { // create map if this is empty
-			mcursor[part] = map[string]interface{}{}
-			cursor = mcursor[part]
-		}
+	var mapconf map[string]interface{}
+	if err := ReadConfigFile(filename, &mapconf); err != nil {
+		return err
 	}
+	if err := common.MapSetKV(mapconf, key, value); err != nil {
+		return err
+	}
+	// must use raw method because there may exist keys not present in the *config.Config struct
+	if err := writeConfigFile(filename, mapconf); err != nil {
+		return err
+	}
+	conf, err := convertMapToConfig(mapconf)
+	if err != nil {
+		return err
+	}
+	*r.config = *conf // copy so caller cannot modify the private config
+	return nil
+}
 
-	return writeConfigFile(filename, cfg)
+func convertMapToConfig(v map[string]interface{}) (*config.Config, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		return nil, err
+	}
+	var conf config.Config
+	if err := json.NewDecoder(&buf).Decode(&conf); err != nil {
+		return nil, fmt.Errorf("Failure to decode config: %s", err)
+	}
+	return &conf, nil
 }
 
 // Load reads given file and returns the read config, or error.
@@ -150,13 +147,10 @@ func Load(filename string) (*config.Config, error) {
 	return &cfg, err
 }
 
-// Set sets the value of a particular config key
-func Set(filename, key, value string) error {
-	return WriteConfigKey(filename, key, value)
-}
-
 // RecordUpdateCheck is called to record that an update check was performed,
 // showing that the running version is the most recent one.
+//
+// DEPRECATED
 func RecordUpdateCheck(cfg *config.Config, filename string) {
 	cfg.Version.CheckDate = time.Now()
 
