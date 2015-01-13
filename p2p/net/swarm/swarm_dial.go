@@ -25,12 +25,41 @@ func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		return nil, errors.New("Attempted connection to self!")
 	}
 
-	// check if we already have an open connection first
-	cs := s.ConnectionsToPeer(p)
-	for _, c := range cs {
-		if c != nil { // dump out the first one we find
-			return c, nil
+	for {
+		// check if we already have an open connection first
+		cs := s.ConnectionsToPeer(p)
+		for _, c := range cs {
+			if c != nil { // dump out the first one we find
+				return c, nil
+			}
 		}
+
+		// check if there's an ongoing dial to this peer
+		s.dialingmu.Lock()
+		dialDone, found := s.dialing[p]
+		if !found { // if not, set one up.
+			dialDone = make(chan struct{})
+			s.dialing[p] = dialDone
+		}
+		s.dialingmu.Unlock()
+
+		if found {
+			select {
+			case <-dialDone: // wait for that dial to finish.
+				continue // and see if it worked (loop). it may not have.
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+
+		// else, we're the ones dialing for others.
+		defer func() {
+			s.dialingmu.Lock()
+			delete(s.dialing, p)
+			close(dialDone)
+			s.dialingmu.Unlock()
+		}()
+		break
 	}
 
 	sk := s.peers.PrivKey(s.local)

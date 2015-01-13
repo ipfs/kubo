@@ -4,6 +4,7 @@ package swarm
 
 import (
 	"fmt"
+	"sync"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
@@ -33,6 +34,11 @@ type Swarm struct {
 	peers peer.Peerstore
 	connh ConnHandler
 
+	// dialing is a channel for the current peers being dialed.
+	// this way, we dont kick off N dials simultaneously.
+	dialing   map[peer.ID]chan struct{}
+	dialingmu sync.Mutex
+
 	cg ctxgroup.ContextGroup
 }
 
@@ -49,10 +55,11 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm: ps.NewSwarm(PSTransport),
-		local: local,
-		peers: peers,
-		cg:    ctxgroup.WithContext(ctx),
+		swarm:   ps.NewSwarm(PSTransport),
+		local:   local,
+		peers:   peers,
+		cg:      ctxgroup.WithContext(ctx),
+		dialing: map[peer.ID]chan struct{}{},
 	}
 
 	// configure Swarm
