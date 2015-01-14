@@ -185,10 +185,6 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 			if err := n.StartOnlineServices(); err != nil {
 				return nil, err // debugerror.Wraps.
 			}
-
-			// Start up reprovider system
-			n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-			go n.Reprovider.Run(ctx)
 		} else {
 			n.Exchange = offline.Exchange(n.Blockstore)
 		}
@@ -253,6 +249,10 @@ func (n *IpfsNode) StartOnlineServices() error {
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
 	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
+
+	// Start up reprovider system
+	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
+	go n.Reprovider.Run(ctx)
 	return nil
 }
 
