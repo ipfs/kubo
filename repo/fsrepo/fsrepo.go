@@ -48,10 +48,12 @@ type FSRepo struct {
 	state state
 	// path is the file-system path
 	path string
-	// config is loaded when FSRepo is opened and kept up to date when the
-	// FSRepo is modified.
+	// configComponent is loaded when FSRepo is opened and kept up to date when
+	// the FSRepo is modified.
 	// TODO test
 	configComponent component.ConfigComponent
+	// TODO test
+	datastoreComponent component.DatastoreComponent
 }
 
 type componentBuilder struct {
@@ -302,7 +304,7 @@ func (r *FSRepo) transitionToClosed() error {
 func (r *FSRepo) components() []component.Component {
 	return []component.Component{
 		&r.configComponent,
-		// TODO add datastore
+		&r.datastoreComponent,
 	}
 }
 
@@ -314,16 +316,29 @@ func componentBuilders() []componentBuilder {
 			Init:          component.InitConfigComponent,
 			IsInitialized: component.ConfigComponentIsInitialized,
 			OpenHandler: func(r *FSRepo) error {
-				cc := component.ConfigComponent{}
-				cc.SetPath(r.path)
-				if err := cc.Open(); err != nil {
+				c := component.ConfigComponent{}
+				c.SetPath(r.path)
+				if err := c.Open(); err != nil {
 					return err
 				}
-				r.configComponent = cc
+				r.configComponent = c
 				return nil
 			},
 		},
 
-		// TODO add datastore builder
+		// DatastoreComponent
+		componentBuilder{
+			Init:          component.InitDatastoreComponent,
+			IsInitialized: component.DatastoreComponentIsInitialized,
+			OpenHandler: func(r *FSRepo) error {
+				c := component.DatastoreComponent{}
+				c.SetPath(r.path)
+				if err := c.Open(); err != nil {
+					return err
+				}
+				r.datastoreComponent = c
+				return nil
+			},
+		},
 	}
 }
