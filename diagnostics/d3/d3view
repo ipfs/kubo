@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# put stdin in temp file
+file=`mktemp -t d3view`
+cat >"$file"
+
+# add file to ipfs
+hash=$(ipfs add -q "$file" </dev/null | tail -n1)
+
+# this viewer is the hash of go-ipfs/diagnostics/d3/viewer.html
+viewer="QmaY6Lq9MEhDfWUc1VfHcu9aLWSyvi4VDLvWQXLoVZ4Mau"
+
+# the ipfs gateway to use
+gatewayHTTP="http://ipfs.benet.ai:8080"
+gatewayIPFS="/ip4/104.236.32.22/tcp/4001/Qme7peMbkRH8qzb9TMXSoRwVmVDZz3Z4dseRXAyBwBmxA7"
+
+# make sure you're reachable (no NAT yet)
+ipfs swarm connect "$gatewayIPFS" </dev/null >/dev/null
+
+# output the url at the gateway
+url="$gatewayHTTP/ipfs/$viewer#$hash"
+echo "$url"
