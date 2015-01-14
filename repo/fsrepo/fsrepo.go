@@ -166,7 +166,7 @@ func (r *FSRepo) Open() error {
 		return debugerror.Errorf("logs: %s", err)
 	}
 
-	return transitionToOpened(r)
+	return r.transitionToOpened()
 }
 
 // Close closes the FSRepo, releasing held resources.
@@ -183,7 +183,7 @@ func (r *FSRepo) Close() error {
 			return err
 		}
 	}
-	return transitionToClosed(r)
+	return r.transitionToClosed()
 }
 
 // Config returns the FSRepo's config. This method must not be called if the
@@ -281,7 +281,7 @@ func initCheckDir(path string) error {
 
 // transitionToOpened manages the state transition to |opened|. Caller must hold
 // the package mutex.
-func transitionToOpened(r *FSRepo) error {
+func (r *FSRepo) transitionToOpened() error {
 	r.state = opened
 	if countBefore := openerCounter.NumOpeners(r.path); countBefore == 0 { // #first
 		closer, err := lockfile.Lock(r.path)
@@ -295,7 +295,7 @@ func transitionToOpened(r *FSRepo) error {
 
 // transitionToClosed manages the state transition to |closed|. Caller must
 // hold the package mutex.
-func transitionToClosed(r *FSRepo) error {
+func (r *FSRepo) transitionToClosed() error {
 	r.state = closed
 	if err := openerCounter.RemoveOpener(r.path); err != nil {
 		return err
