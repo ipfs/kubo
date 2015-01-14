@@ -3,11 +3,12 @@ package commands
 import (
 	"bytes"
 	"io"
+	"strings"
 	"text/template"
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	util "github.com/jbenet/go-ipfs/util"
+	diag "github.com/jbenet/go-ipfs/diagnostics"
 )
 
 type DiagnosticConnection struct {
@@ -16,6 +17,12 @@ type DiagnosticConnection struct {
 	NanosecondsLatency uint64
 	Count              int
 }
+
+var (
+	visD3   = "d3"
+	visDot  = "dot"
+	visFmts = []string{visD3, visDot}
+)
 
 type DiagnosticPeer struct {
 	ID                string
@@ -49,6 +56,10 @@ connected peers and latencies between them.
 `,
 	},
 
+	Options: []cmds.Option{
+		cmds.StringOption("vis", "output vis. one of: "+strings.Join(visFmts, ", ")),
+	},
+
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
 		if err != nil {
@@ -59,48 +70,60 @@ connected peers and latencies between them.
 			return nil, errNotOnline
 		}
 
+		vis, _, err := req.Option("vis").String()
+		if err != nil {
+			return nil, err
+		}
+
 		info, err := n.Diagnostics.GetDiagnostic(time.Second * 20)
 		if err != nil {
 			return nil, err
 		}
 
-		output := make([]DiagnosticPeer, len(info))
-		for i, peer := range info {
-			connections := make([]DiagnosticConnection, len(peer.Connections))
-			for j, conn := range peer.Connections {
-				connections[j] = DiagnosticConnection{
-					ID:                 conn.ID,
-					NanosecondsLatency: uint64(conn.Latency.Nanoseconds()),
-					Count:              conn.Count,
-				}
-			}
+		switch vis {
+		case visD3:
+			return bytes.NewReader(diag.GetGraphJson(info)), nil
+		case visDot:
+			var buf bytes.Buffer
+			w := diag.DotWriter{W: &buf}
+			err := w.WriteGraph(info)
+			return io.Reader(&buf), err
+		}
 
-			output[i] = DiagnosticPeer{
-				ID:                peer.ID,
-				UptimeSeconds:     uint64(peer.LifeSpan.Seconds()),
-				BandwidthBytesIn:  peer.BwIn,
-				BandwidthBytesOut: peer.BwOut,
-				Connections:       connections,
+		return stdDiagOutputMarshal(standardDiagOutput(info))
+	},
+}
+
+func stdDiagOutputMarshal(output *DiagnosticOutput) (io.Reader, error) {
+	var buf bytes.Buffer
+	err := printDiagnostics(&buf, output)
+	if err != nil {
+		return nil, err
+	}
+	return &buf, nil
+}
+
+func standardDiagOutput(info []*diag.DiagInfo) *DiagnosticOutput {
+	output := make([]DiagnosticPeer, len(info))
+	for i, peer := range info {
+		connections := make([]DiagnosticConnection, len(peer.Connections))
+		for j, conn := range peer.Connections {
+			connections[j] = DiagnosticConnection{
+				ID:                 conn.ID,
+				NanosecondsLatency: uint64(conn.Latency.Nanoseconds()),
+				Count:              conn.Count,
 			}
 		}
 
-		return &DiagnosticOutput{output}, nil
-	},
-	Type: DiagnosticOutput{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(r cmds.Response) (io.Reader, error) {
-			output, ok := r.Output().(*DiagnosticOutput)
-			if !ok {
-				return nil, util.ErrCast()
-			}
-			var buf bytes.Buffer
-			err := printDiagnostics(&buf, output)
-			if err != nil {
-				return nil, err
-			}
-			return &buf, nil
-		},
-	},
+		output[i] = DiagnosticPeer{
+			ID:                peer.ID,
+			UptimeSeconds:     uint64(peer.LifeSpan.Seconds()),
+			BandwidthBytesIn:  peer.BwIn,
+			BandwidthBytesOut: peer.BwOut,
+			Connections:       connections,
+		}
+	}
+	return &DiagnosticOutput{output}
 }
 
 func printDiagnostics(out io.Writer, info *DiagnosticOutput) error {

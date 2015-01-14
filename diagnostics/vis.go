@@ -1,6 +1,10 @@
 package diagnostics
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+)
 
 type node struct {
 	Name  string `json:"name"`
@@ -19,7 +23,7 @@ func GetGraphJson(dinfo []*DiagInfo) []byte {
 	var nodes []*node
 	for _, di := range dinfo {
 		names[di.ID] = len(nodes)
-		val := di.BwIn + di.BwOut
+		val := di.BwIn + di.BwOut + 10
 		nodes = append(nodes, &node{Name: di.ID, Value: val})
 	}
 
@@ -53,4 +57,81 @@ func GetGraphJson(dinfo []*DiagInfo) []byte {
 	}
 
 	return b
+}
+
+type DotWriter struct {
+	W   io.Writer
+	err error
+}
+
+// Write writes a buffer to the internal writer.
+// It handles errors as in: http://blog.golang.org/errors-are-values
+func (w *DotWriter) Write(buf []byte) (n int, err error) {
+	if w.err == nil {
+		n, w.err = w.W.Write(buf)
+	}
+	return n, w.err
+}
+
+// WriteS writes a string
+func (w *DotWriter) WriteS(s string) (n int, err error) {
+	return w.Write([]byte(s))
+}
+
+func (w *DotWriter) WriteNetHeader(dinfo []*DiagInfo) error {
+	label := fmt.Sprintf("Nodes: %d\\l", len(dinfo))
+
+	w.WriteS("subgraph cluster_L { ")
+	w.WriteS("L [shape=box fontsize=32 label=\"" + label + "\"] ")
+	w.WriteS("}\n")
+	return w.err
+}
+
+func (w *DotWriter) WriteNode(i int, di *DiagInfo) error {
+	box := "[label=\"%s\n%d conns\" fontsize=8 shape=box tooltip=\"%s (%d conns)\"]"
+	box = fmt.Sprintf(box, di.ID, len(di.Connections), di.ID, len(di.Connections))
+
+	w.WriteS(fmt.Sprintf("N%d %s\n", i, box))
+	return w.err
+}
+
+func (w *DotWriter) WriteEdge(i, j int, di *DiagInfo, conn connDiagInfo) error {
+
+	n := fmt.Sprintf("%s ... %s (%d)", di.ID, conn.ID, conn.Latency)
+	s := "[label=\" %d\" weight=%d tooltip=\"%s\" labeltooltip=\"%s\" style=\"dotted\"]"
+	s = fmt.Sprintf(s, conn.Latency, conn.Count, n, n)
+
+	w.WriteS(fmt.Sprintf("N%d -> N%d %s\n", i, j, s))
+	return w.err
+}
+
+func (w *DotWriter) WriteGraph(dinfo []*DiagInfo) error {
+	w.WriteS("digraph \"diag-net\" {\n")
+	w.WriteNetHeader(dinfo)
+
+	idx := make(map[string]int)
+	for i, di := range dinfo {
+		if _, found := idx[di.ID]; found {
+			log.Debugf("DotWriter skipped duplicate %s", di.ID)
+			continue
+		}
+
+		idx[di.ID] = i
+		w.WriteNode(i, di)
+	}
+
+	for i, di := range dinfo {
+		for _, conn := range di.Connections {
+			j, found := idx[conn.ID]
+			if !found { // if we didnt get it earlier...
+				j = len(idx)
+				idx[conn.ID] = j
+			}
+
+			w.WriteEdge(i, j, di, conn)
+		}
+	}
+
+	w.WriteS("}")
+	return w.err
 }
