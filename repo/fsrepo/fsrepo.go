@@ -6,12 +6,12 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 	"sync"
 
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
+	dir "github.com/jbenet/go-ipfs/repo/fsrepo/dir"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	opener "github.com/jbenet/go-ipfs/repo/fsrepo/opener"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
@@ -148,7 +148,7 @@ func (r *FSRepo) Open() error {
 	// check repo path, then check all constituent parts.
 	// TODO acquire repo lock
 	// TODO if err := initCheckDir(logpath); err != nil { // }
-	if err := initCheckDir(r.path); err != nil {
+	if err := dir.Writable(r.path); err != nil {
 		return err
 	}
 
@@ -162,7 +162,7 @@ func (r *FSRepo) Open() error {
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
-	if err := initCheckDir(logpath); err != nil {
+	if err := dir.Writable(logpath); err != nil {
 		return debugerror.Errorf("logs: %s", err)
 	}
 
@@ -262,21 +262,6 @@ func isInitializedUnsynced(path string) bool {
 		}
 	}
 	return true
-}
-
-// initCheckDir ensures the directory exists and is writable
-func initCheckDir(path string) error {
-	// Construct the path if missing
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-	// Check the directory is writeable
-	if f, err := os.Create(filepath.Join(path, "._check_writeable")); err == nil {
-		os.Remove(f.Name())
-	} else {
-		return debugerror.New("'" + path + "' is not writeable")
-	}
-	return nil
 }
 
 // transitionToOpened manages the state transition to |opened|. Caller must hold
