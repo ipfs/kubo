@@ -9,11 +9,11 @@ import (
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/repo/config"
 	core "github.com/jbenet/go-ipfs/core"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
+	config "github.com/jbenet/go-ipfs/repo/config"
 )
 
 // amount of time to wait for mount errors
