@@ -44,8 +44,13 @@ func init() {
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
 // callers.
 type FSRepo struct {
-	state  state
-	path   string
+	// state is the FSRepo's state (unopened, opened, closed)
+	state state
+	// path is the file-system path
+	path string
+	// config is loaded when FSRepo is opened and kept up to date when the
+	// FSRepo is modified.
+	// TODO test
 	config *config.Config
 }
 
