@@ -19,6 +19,7 @@ func testRepoPath(p string, t *testing.T) string {
 }
 
 func TestInitIdempotence(t *testing.T) {
+	t.Parallel()
 	path := testRepoPath("", t)
 	for i := 0; i < 10; i++ {
 		AssertNil(Init(path, &config.Config{}), t, "multiple calls to init should succeed")
@@ -26,11 +27,13 @@ func TestInitIdempotence(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
+	t.Parallel()
 	path := testRepoPath("foo", t)
 	AssertNil(Remove(path), t, "should be able to remove after closed")
 }
 
 func TestCannotRemoveIfOpen(t *testing.T) {
+	t.Parallel()
 	path := testRepoPath("TestCannotRemoveIfOpen", t)
 	AssertNil(Init(path, &config.Config{}), t, "should initialize successfully")
 	r := At(path)
@@ -41,6 +44,7 @@ func TestCannotRemoveIfOpen(t *testing.T) {
 }
 
 func TestCannotBeReopened(t *testing.T) {
+	t.Parallel()
 	path := testRepoPath("", t)
 	AssertNil(Init(path, &config.Config{}), t)
 	r := At(path)
@@ -53,6 +57,7 @@ func TestCannotBeReopened(t *testing.T) {
 }
 
 func TestCanManageReposIndependently(t *testing.T) {
+	t.Parallel()
 	pathA := testRepoPath("a", t)
 	pathB := testRepoPath("b", t)
 
@@ -80,6 +85,7 @@ func TestCanManageReposIndependently(t *testing.T) {
 }
 
 func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
+	t.Parallel()
 	path := testRepoPath("test", t)
 
 	Assert(!IsInitialized(path), t, "should NOT be initialized")
@@ -97,6 +103,7 @@ func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
 }
 
 func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
+	t.Parallel()
 	path := testRepoPath("test", t)
 
 	AssertNil(Init(path, &config.Config{}), t)
