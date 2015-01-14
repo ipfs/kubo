@@ -18,3 +18,5 @@
 //   ├── repo.lock                <------ protects datastore/ and config
 //   └── version
 package fsrepo
+
+// TODO prevent multiple daemons from running
