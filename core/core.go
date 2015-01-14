@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
@@ -252,7 +253,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 
 	// Start up reprovider system
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-	go n.Reprovider.Run(ctx)
+	go n.Reprovider.ProvideEvery(ctx, time.Hour*12)
 	return nil
 }
 

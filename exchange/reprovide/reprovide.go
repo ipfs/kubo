@@ -27,20 +27,20 @@ func NewReprovider(rsys routing.IpfsRouting, bstore blocks.Blockstore) *Reprovid
 	}
 }
 
-func (rp *Reprovider) Run(ctx context.Context) {
+func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
 	after := time.After(0)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-after:
-			rp.reprovide(ctx)
-			after = time.After(time.Hour * 12)
+			rp.Reprovide(ctx)
+			after = time.After(tick)
 		}
 	}
 }
 
-func (rp *Reprovider) reprovide(ctx context.Context) {
+func (rp *Reprovider) Reprovide(ctx context.Context) {
 	keychan, err := rp.bstore.AllKeysChan(ctx, 0, 1<<16)
 	if err != nil {
 		log.Errorf("Failed to get key chan from blockstore: %s", err)
