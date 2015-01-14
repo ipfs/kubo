@@ -1,13 +1,10 @@
 package fsrepo
 
-import (
-	"path"
-	"sync"
-)
+import "path"
+
+// TODO this could be made into something more generic.
 
 type Counter struct {
-	// lock protects repos
-	lock sync.Mutex
 	// repos maps repo paths to the number of openers holding an FSRepo handle
 	// to it
 	repos map[string]int
@@ -17,16 +14,6 @@ func NewCounter() *Counter {
 	return &Counter{
 		repos: make(map[string]int),
 	}
-}
-
-// Lock must be held to while performing any operation that modifies an
-// FSRepo's state field. This includes Init, Open, Close, and Remove.
-func (l *Counter) Lock() {
-	l.lock.Lock()
-}
-
-func (l *Counter) Unlock() {
-	l.lock.Unlock()
 }
 
 // NumOpeners returns the number of FSRepos holding a handle to the repo at
