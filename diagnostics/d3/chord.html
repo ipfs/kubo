@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node {
+  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.link {
+  stroke: steelblue;
+  stroke-opacity: .4;
+  fill: none;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+var hash = window.location.hash.substring(1)
+
+var diameter = 1400,
+    radius = diameter / 2,
+    innerRadius = radius - 200
+    rotate = 145;
+
+var color = d3.scale.category10()
+
+var diagonal = d3.svg.diagonal.radial()
+    .projection(function(d) { return [d.y, d.x / 180 * Math.PI]; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("viewBox", "0 0 " + diameter + " " + diameter )
+    .attr("preserveAspectRatio", "xMidYMid meet")
+  .append("g")
+    .attr("transform", "translate(" + radius + "," + radius + ")");
+
+d3.json(hash, function(error, data) {
+
+  graph = parseGraph(data)
+
+  var node = svg.selectAll(".node")
+    .data(graph.nodes)
+  .enter().append("g")
+    .attr("class", "node")
+    .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
+
+  node.append("svg:circle")
+    .attr("r", function(d) { return 4; })
+    .style("fill", function(d, i) { return color(i % 3); })
+
+  node.append("text")
+    .attr("dx", function(d) { return 8; })
+    .attr("dy", ".31em")
+    // .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+    // .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
+    .text(function(d) { return truncate(d.name, 16); });
+
+  var p = projection
+  var link = svg.selectAll(".link")
+      .data(graph.paths)
+    .enter().append("path")
+      .attr("class", "link")
+      .attr("d", function(d) {
+            return "M" + p(d[0])[0] + "," + p(d[0])[1]
+                 + "S" + p(d[1])[0] + "," + p(d[1])[1]
+                 + " " + p(d[2])[0] + "," + p(d[2])[1];
+          })
+
+  // var mid = svg.selectAll(".node-mid")
+  //   .data(graph.mids)
+  // .enter().append("g")
+  //   .attr("class", "node-mid")
+  //   .attr("transform", function(d) { return "rotate(" + (d.x + rotate) + ")translate(" + d.y + ")"; })
+
+  // mid.append("svg:circle")
+  //   .attr("r", function(d) { return 4; })
+  //   .style("fill", function(d, i) { return color(i % 3); })
+
+  console.log(graph.paths)
+});
+
+
+function parseGraph(graph2) {
+  graph = {}
+  graph.nodes = []
+  graph.links = []
+  graph.paths = []
+  graph.byName = {}
+  graph.mids = []
+
+  graph2.nodes.sort(function(a, b) {
+    if (a.name > b.name) return 1;
+    if (a.name < b.name) return -1;
+    return 0;
+  })
+
+  graph2.nodes.forEach(function(data, i) {
+    data.y = innerRadius
+    data.x = ((360 / graph2.nodes.length) * i)
+    graph.nodes.push(data)
+    graph.byName[data.name] = data
+  })
+
+  graph2.links.forEach(function(link) {
+    var source = graph2.nodes[link.source]
+    var target = graph2.nodes[link.target]
+
+    var mid = curveNode(source, target)
+    graph.mids.push(mid)
+
+    var link1 = {source: source, target: mid, value: link.value || 3}
+    var link2 = {source: mid, target: target, value: link.value || 3}
+    graph.links.push(link1)
+    graph.links.push(link2)
+
+    var path = [source, mid, target]
+    graph.paths.push(path)
+  })
+
+  return graph
+}
+
+function curveNode(source, target) {
+  var d = circleDistance(source.x, target.x)
+  var h = ((1-(d/180)) * innerRadius) * 0.7
+  var x = circleMidpoint(source.x, target.x)
+  return {x: x, y: h}
+}
+
+function circleMidpoint(x, y) {
+  var x2 = x > y ? x : y
+  var y2 = x > y ? y : x
+  var a = (x2-y2)
+  if (a > 180) {
+    a = 360 - a
+    return (x2 + a/2) % 360
+  } else {
+    return (y2 + a/2) % 360
+  }
+}
+
+function circleDistance(x, y) {
+  var a = abs(x-y)
+  return (a > 180) ? 360 - a :  a
+}
+
+function abs(x) {
+  return x < 0 ? -x : x
+}
+
+function projection(d) {
+  var r = d.y, a = (d.x - 90 + rotate) / 180 * Math.PI;
+  return [r * Math.cos(a), r * Math.sin(a)];
+}
+
+function truncate(name, limit) {
+    return name.substring(0, limit)
+}
+
+
+d3.select(self.frameElement).style("height", "100%");
+d3.select(self.frameElement).style("width", "100%");
+
+</script>
