@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	repo "github.com/jbenet/go-ipfs/repo"
@@ -42,10 +43,10 @@ type FSRepo struct {
 }
 
 // At returns a handle to an FSRepo at the provided |path|.
-func At(path string) *FSRepo {
+func At(repoPath string) *FSRepo {
 	// This method must not have side-effects.
 	return &FSRepo{
-		path:  path,
+		path:  path.Clean(repoPath),
 		state: unopened, // explicitly set for clarity
 	}
 }
