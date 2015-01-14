@@ -2,6 +2,7 @@ package http
 
 import (
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"strings"
 	"testing"
@@ -12,12 +13,12 @@ import (
 func TestOutput(t *testing.T) {
 	text := "Some text! :)"
 	fileset := []files.File{
-		&files.ReaderFile{"file.txt", strings.NewReader(text)},
+		&files.ReaderFile{"file.txt", ioutil.NopCloser(strings.NewReader(text))},
 		&files.SliceFile{"boop", []files.File{
-			&files.ReaderFile{"boop/a.txt", strings.NewReader("bleep")},
-			&files.ReaderFile{"boop/b.txt", strings.NewReader("bloop")},
+			&files.ReaderFile{"boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep"))},
+			&files.ReaderFile{"boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop"))},
 		}},
-		&files.ReaderFile{"beep.txt", strings.NewReader("beep")},
+		&files.ReaderFile{"beep.txt", ioutil.NopCloser(strings.NewReader("beep"))},
 	}
 	sf := &files.SliceFile{"", fileset}
 	buf := make([]byte, 20)
