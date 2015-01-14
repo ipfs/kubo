@@ -8,6 +8,7 @@ import (
 	"path"
 	"sync"
 
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
@@ -51,8 +52,7 @@ type FSRepo struct {
 	// configComponent is loaded when FSRepo is opened and kept up to date when
 	// the FSRepo is modified.
 	// TODO test
-	configComponent component.ConfigComponent
-	// TODO test
+	configComponent    component.ConfigComponent
 	datastoreComponent component.DatastoreComponent
 }
 
@@ -238,6 +238,15 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
 	return r.configComponent.SetConfigKey(key, value)
+}
+
+// Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
+// is undefined.
+func (r *FSRepo) Datastore() ds.ThreadSafeDatastore {
+	packageLock.Lock()
+	d := r.datastoreComponent.Datastore()
+	packageLock.Unlock()
+	return d
 }
 
 var _ io.Closer = &FSRepo{}

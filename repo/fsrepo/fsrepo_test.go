@@ -1,12 +1,15 @@
 package fsrepo
 
 import (
+	"bytes"
 	"io/ioutil"
 	"testing"
 
+	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/jbenet/go-ipfs/repo/config"
 )
 
+// swap arg order
 func testRepoPath(p string, t *testing.T) string {
 	name, err := ioutil.TempDir("", p)
 	if err != nil {
@@ -74,6 +77,45 @@ func TestCanManageReposIndependently(t *testing.T) {
 	t.Log("close and remove a")
 	AssertNil(repoA.Close(), t)
 	AssertNil(Remove(pathA), t)
+}
+
+func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
+	path := testRepoPath("test", t)
+
+	Assert(!IsInitialized(path), t, "should NOT be initialized")
+	AssertNil(Init(path, &config.Config{}), t, "should initialize successfully")
+	r := At(path)
+	AssertNil(r.Open(), t, "should open successfully")
+
+	k := "key"
+	data := []byte(k)
+	AssertNil(r.Datastore().Put(datastore.NewKey(k), data), t, "Put should be successful")
+
+	AssertNil(r.Close(), t)
+	_, err := r.Datastore().Get(datastore.NewKey(k))
+	AssertErr(err, t, "after closer, Get should be fail")
+}
+
+func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
+	path := testRepoPath("test", t)
+
+	AssertNil(Init(path, &config.Config{}), t)
+	r1 := At(path)
+	AssertNil(r1.Open(), t)
+
+	k := "key"
+	expected := []byte(k)
+	AssertNil(r1.Datastore().Put(datastore.NewKey(k), expected), t, "using first repo, Put should be successful")
+	AssertNil(r1.Close(), t)
+
+	r2 := At(path)
+	AssertNil(r2.Open(), t)
+	v, err := r2.Datastore().Get(datastore.NewKey(k))
+	AssertNil(err, t, "using second repo, Get should be successful")
+	actual, ok := v.([]byte)
+	Assert(ok, t, "value should be the []byte from r1's Put")
+	AssertNil(r2.Close(), t)
+	Assert(bytes.Compare(expected, actual) == 0, t, "data should match")
 }
 
 func AssertNil(err error, t *testing.T, msgs ...string) {
