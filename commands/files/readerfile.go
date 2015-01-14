@@ -6,7 +6,7 @@ import "io"
 // ReaderFiles are never directories, and can be read from and closed.
 type ReaderFile struct {
 	Filename string
-	Reader   io.Reader
+	Reader   io.ReadCloser
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -26,9 +26,5 @@ func (f *ReaderFile) Read(p []byte) (int, error) {
 }
 
 func (f *ReaderFile) Close() error {
-	closer, ok := f.Reader.(io.Closer)
-	if !ok {
-		return nil
-	}
-	return closer.Close()
+	return f.Reader.Close()
 }
