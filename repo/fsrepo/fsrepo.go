@@ -51,6 +51,14 @@ func At(repoPath string) *FSRepo {
 	}
 }
 
+func ConfigAt(repoPath string) (*config.Config, error) {
+	configFilename, err := config.Filename(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	return load(configFilename)
+}
+
 // Init initializes a new FSRepo at the given path with the provided config.
 func Init(path string, conf *config.Config) error {
 	openerCounter.Lock() // lock must be held to ensure atomicity (prevent Removal)
