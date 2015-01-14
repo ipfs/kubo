@@ -47,15 +47,15 @@ d3.json(hash, function(error, data) {
     .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
 
   node.append("svg:circle")
-    .attr("r", function(d) { return 4; })
-    .style("fill", function(d, i) { return color(i % 3); })
+    .attr("r", function(d) { return 6; })
+    .style("fill", function(d, i) { return color(i % 20); })
 
   node.append("text")
     .attr("dx", function(d) { return 8; })
     .attr("dy", ".31em")
     // .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
     // .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
-    .text(function(d) { return d.name; });
+    .text(function(d) { return d.conns + " - " + d.name; });
 
   var p = projection
   var link = svg.selectAll(".link")
@@ -99,6 +99,7 @@ function parseGraph(graph2) {
   graph2.nodes.forEach(function(data, i) {
     data.y = innerRadius
     data.x = ((360 / graph2.nodes.length) * i)
+    data.conns = 0
     graph.nodes.push(data)
     graph.byName[data.name] = data
   })
@@ -106,6 +107,8 @@ function parseGraph(graph2) {
   graph2.links.forEach(function(link) {
     var source = graph2.nodes[link.source]
     var target = graph2.nodes[link.target]
+    source.conns++
+    target.conns++
 
     var mid = curveNode(source, target)
     graph.mids.push(mid)

@@ -9,7 +9,7 @@ hash=$(ipfs add -q "$file" </dev/null | tail -n1)
 
 # this viewer is the hash of go-ipfs/diagnostics/d3/viewer.html
 force="QmaY6Lq9MEhDfWUc1VfHcu9aLWSyvi4VDLvWQXLoVZ4Mau"
-chord="QmVGcat7ieYqf8mwcvwACbJstCRH8m8k2Yyt2qhuFEMoAz"
+chord="QmYWjPa736Bk7FhNEEtWLjaEdioSxXkYMhRT9tLi45ccm7"
 viewer="$chord"
 
 # the ipfs gateway to use
