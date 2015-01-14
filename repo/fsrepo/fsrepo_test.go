@@ -125,3 +125,17 @@ func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 	assert.Nil(r2.Close(), t)
 	assert.True(bytes.Compare(expected, actual) == 0, t, "data should match")
 }
+
+func TestOpenMoreThanOnceInSameProcess(t *testing.T) {
+	t.Parallel()
+	path := testRepoPath("", t)
+	assert.Nil(Init(path, &config.Config{}), t)
+
+	r1 := At(path)
+	r2 := At(path)
+	assert.Nil(r1.Open(), t, "first repo should open successfully")
+	assert.Nil(r2.Open(), t, "second repo should open successfully")
+
+	assert.Nil(r1.Close(), t)
+	assert.Nil(r2.Close(), t)
+}
