@@ -2,6 +2,10 @@
 <meta charset="utf-8">
 <style>
 
+body {
+  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
 .node {
   font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -12,8 +16,27 @@
   fill: none;
 }
 
+#legend {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+#legend h1 {
+  font-weight: 200;
+  margin: 0px;
+  padding: 0px;
+}
+
 </style>
 <body>
+<div id="legend">
+<h1>IPFS TestNet</h1>
+<a href="http://ipfs.io">ipfs.io</a> - <span id="node-count"></span> nodes
+</div>
+
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 var hash = window.location.hash.substring(1)
@@ -47,7 +70,7 @@ d3.json(hash, function(error, data) {
     .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
 
   node.append("svg:circle")
-    .attr("r", function(d) { return 6; })
+    .attr("r", function(d) { return d.conns + 3; })
     .style("fill", function(d, i) { return color(i % 20); })
 
   node.append("text")
@@ -67,6 +90,9 @@ d3.json(hash, function(error, data) {
                  + "S" + p(d[1])[0] + "," + p(d[1])[1]
                  + " " + p(d[2])[0] + "," + p(d[2])[1];
           })
+      .style("stroke", function(d) { return color(d[0].index % 20); })
+      .style("stroke-opacity", function(d) { return 0.3; })
+
 
   // var mid = svg.selectAll(".node-mid")
   //   .data(graph.mids)
@@ -100,6 +126,7 @@ function parseGraph(graph2) {
     data.y = innerRadius
     data.x = ((360 / graph2.nodes.length) * i)
     data.conns = 0
+    data.index = i
     graph.nodes.push(data)
     graph.byName[data.name] = data
   })
@@ -121,6 +148,8 @@ function parseGraph(graph2) {
     var path = [source, mid, target]
     graph.paths.push(path)
   })
+
+  document.getElementById("node-count").innerText = graph.nodes.length
 
   return graph
 }
