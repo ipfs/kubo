@@ -307,6 +307,7 @@ func transitionToClosed(r *FSRepo) error {
 		if err := closer.Close(); err != nil {
 			return err
 		}
+		delete(lockfiles, r.path)
 	}
 	return nil
 }
