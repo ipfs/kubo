@@ -15,6 +15,18 @@ func testRepoPath(p string, t *testing.T) string {
 	return name
 }
 
+func TestInitIdempotence(t *testing.T) {
+	path := testRepoPath("", t)
+	for i := 0; i < 10; i++ {
+		AssertNil(Init(path, &config.Config{}), t, "multiple calls to init should succeed")
+	}
+}
+
+func TestRemove(t *testing.T) {
+	path := testRepoPath("foo", t)
+	AssertNil(Remove(path), t, "should be able to remove after closed")
+}
+
 func TestCannotRemoveIfOpen(t *testing.T) {
 	path := testRepoPath("TestCannotRemoveIfOpen", t)
 	AssertNil(Init(path, &config.Config{}), t, "should initialize successfully")
@@ -23,6 +35,18 @@ func TestCannotRemoveIfOpen(t *testing.T) {
 	AssertErr(Remove(path), t, "should not be able to remove while open")
 	AssertNil(r.Close(), t)
 	AssertNil(Remove(path), t, "should be able to remove after closed")
+}
+
+func TestCannotBeReopened(t *testing.T) {
+	path := testRepoPath("", t)
+	AssertNil(Init(path, &config.Config{}), t)
+	r := At(path)
+	AssertNil(r.Open(), t)
+	AssertNil(r.Close(), t)
+	AssertErr(r.Open(), t, "shouldn't be possible to re-open the repo")
+
+	// mutable state is the enemy. Take Close() as an opportunity to reduce
+	// entropy. Callers ought to start fresh with a new handle by calling `At`.
 }
 
 func TestCanManageReposIndependently(t *testing.T) {
