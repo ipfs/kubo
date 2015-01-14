@@ -2,12 +2,19 @@
 <meta charset="utf-8">
 <style>
 
-body {
-  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-
 .node {
   font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+.node:hover circle {
+  stroke: red;
+  stroke-width: 4px;
+}
+
+.node .link {
+  stroke-width: 0;
+}
+.node:hover .link {
+  stroke-width: 4px;
 }
 
 .link {
@@ -67,20 +74,14 @@ d3.json(hash, function(error, data) {
     .data(graph.nodes)
   .enter().append("g")
     .attr("class", "node")
-    .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
-
-  node.append("svg:circle")
-    .attr("r", function(d) { return d.conns + 3; })
-    .style("fill", function(d, i) { return color(i % 20); })
-
-  node.append("text")
-    .attr("dx", function(d) { return 8; })
-    .attr("dy", ".31em")
-    // .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
-    // .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
-    .text(function(d) { return d.conns + " - " + d.name; });
 
   var p = projection
+
+  node.append("svg:circle")
+    .attr("r", function(d) { return d.conns + 2; })
+    .style("fill", function(d, i) { return color(i % 20); })
+    .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
+
   var link = svg.selectAll(".link")
       .data(graph.paths)
     .enter().append("path")
@@ -90,9 +91,26 @@ d3.json(hash, function(error, data) {
                  + "S" + p(d[1])[0] + "," + p(d[1])[1]
                  + " " + p(d[2])[0] + "," + p(d[2])[1];
           })
-      .style("stroke", function(d) { return color(d[0].index % 20); })
-      .style("stroke-opacity", function(d) { return 0.3; })
 
+  node.selectAll('.link')
+      .data(function(d) { return d.links })
+    .enter().append('path')
+      .attr('class', 'link')
+      .style("stroke", function(d) { return color(d.source.index % 20); })
+      .attr("d", function(d) {
+            return "M" + p(d.path[0])[0] + "," + p(d.path[0])[1]
+                 + "S" + p(d.path[1])[0] + "," + p(d.path[1])[1]
+                 + " " + p(d.path[2])[0] + "," + p(d.path[2])[1];
+          })
+
+  node.append("text")
+    .attr("class", "label")
+    .attr("dx", -4)
+    .attr("dy", 3)
+    // .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+    // .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
+    .text(function(d) { return d.conns + " - " + d.name; })
+    .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
 
   // var mid = svg.selectAll(".node-mid")
   //   .data(graph.mids)
@@ -126,9 +144,10 @@ function parseGraph(graph2) {
     data.y = innerRadius
     data.x = ((360 / graph2.nodes.length) * i)
     data.conns = 0
-    data.index = i
     graph.nodes.push(data)
     graph.byName[data.name] = data
+    data.index = i
+    data.links = []
   })
 
   graph2.links.forEach(function(link) {
@@ -147,6 +166,9 @@ function parseGraph(graph2) {
 
     var path = [source, mid, target]
     graph.paths.push(path)
+
+    source.links.push({path: path, source: source})
+    target.links.push({path: path, source: target})
   })
 
   document.getElementById("node-count").innerText = graph.nodes.length
