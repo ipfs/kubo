@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/atomicfile"
 	"github.com/jbenet/go-ipfs/repo/config"
 	"github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -14,8 +15,8 @@ import (
 
 var log = util.Logger("fsrepo")
 
-// readConfigFile reads the config from `filename` into `cfg`.
-func readConfigFile(filename string, cfg interface{}) error {
+// ReadConfigFile reads the config from `filename` into `cfg`.
+func ReadConfigFile(filename string, cfg interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -27,37 +28,20 @@ func readConfigFile(filename string, cfg interface{}) error {
 	return nil
 }
 
-// writeConfigFile writes the config from `cfg` into `filename`.
-func writeConfigFile(filename string, cfg interface{}) error {
+// WriteConfigFile writes the config from `cfg` into `filename`.
+func WriteConfigFile(filename string, cfg interface{}) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0775)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create(filename)
+	f, err := atomicfile.New(filename, 0775)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
 	return encode(f, cfg)
-}
-
-// writeFile writes the buffer at filename
-func writeFile(filename string, buf []byte) error {
-	err := os.MkdirAll(filepath.Dir(filename), 0775)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.Write(buf)
-	return err
 }
 
 // encode configuration with JSON
@@ -71,20 +55,21 @@ func encode(w io.Writer, value interface{}) error {
 	return err
 }
 
-// load reads given file and returns the read config, or error.
-func load(filename string) (*config.Config, error) {
+// Load reads given file and returns the read config, or error.
+func Load(filename string) (*config.Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
 	if !util.FileExists(filename) {
 		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg config.Config
-	err := readConfigFile(filename, &cfg)
+	err := ReadConfigFile(filename, &cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	// tilde expansion on datastore path
+	// TODO why is this here??
 	cfg.Datastore.Path, err = util.TildeExpansion(cfg.Datastore.Path)
 	if err != nil {
 		return nil, err

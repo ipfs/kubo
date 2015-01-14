@@ -188,6 +188,7 @@ func tourGet(id tour.ID) (*tour.Topic, error) {
 
 // TODO share func
 func writeConfig(path string, cfg *config.Config) error {
+	// NB: This needs to run on the daemon.
 	r := fsrepo.At(path)
 	if err := r.Open(); err != nil {
 		return err

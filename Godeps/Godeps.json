@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.4",
 	"Packages": [
 		"./..."
 	],
@@ -67,6 +67,10 @@
 		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "b198514c204f20799b91c93b6ffd8b26be04c2c9"
+		},
+		{
+			"ImportPath": "github.com/facebookgo/atomicfile",
+			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
 		},
 		{
 			"ImportPath": "github.com/facebookgo/stack",
