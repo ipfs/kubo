@@ -12,9 +12,9 @@ import (
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
+	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
 	dir "github.com/jbenet/go-ipfs/repo/fsrepo/dir"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
-	opener "github.com/jbenet/go-ipfs/repo/fsrepo/opener"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -23,22 +23,22 @@ var (
 
 	// packageLock must be held to while performing any operation that modifies an
 	// FSRepo's state field. This includes Init, Open, Close, and Remove.
-	packageLock sync.Mutex // protects openerCounter and lockfiles
+	packageLock sync.Mutex // protects openersCounter and lockfiles
 	// lockfiles holds references to the Closers that ensure that repos are
 	// only accessed by one process at a time.
 	lockfiles map[string]io.Closer
-	// openerCounter prevents the fsrepo from being removed while there exist open
+	// openersCounter prevents the fsrepo from being removed while there exist open
 	// FSRepo handles. It also ensures that the Init is atomic.
 	//
 	// packageLock also protects numOpenedRepos
 	//
 	// If an operation is used when repo is Open and the operation does not
 	// change the repo's state, the package lock does not need to be acquired.
-	openerCounter *opener.Counter
+	openersCounter *counter.Openers
 )
 
 func init() {
-	openerCounter = opener.NewCounter()
+	openersCounter = counter.NewOpenersCounter()
 	lockfiles = make(map[string]io.Closer)
 }
 
@@ -113,7 +113,7 @@ func Remove(repoPath string) error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if openerCounter.NumOpeners(repoPath) != 0 {
+	if openersCounter.NumOpeners(repoPath) != 0 {
 		return errors.New("repo in use")
 	}
 	return os.RemoveAll(repoPath)
@@ -129,7 +129,7 @@ func LockedByOtherProcess(repoPath string) bool {
 	defer packageLock.Unlock()
 
 	// NB: the lock is only held when repos are Open
-	return lockfile.Locked(repoPath) && openerCounter.NumOpeners(repoPath) == 0
+	return lockfile.Locked(repoPath) && openersCounter.NumOpeners(repoPath) == 0
 }
 
 // Open returns an error if the repo is not initialized.
@@ -265,7 +265,7 @@ func IsInitialized(path string) bool {
 // private methods below this point. NB: packageLock must held by caller.
 
 // isInitializedUnsynced reports whether the repo is initialized. Caller must
-// hold openerCounter lock.
+// hold the packageLock.
 func isInitializedUnsynced(path string) bool {
 	for _, b := range componentBuilders() {
 		if !b.IsInitialized(path) {
@@ -279,24 +279,24 @@ func isInitializedUnsynced(path string) bool {
 // the package mutex.
 func (r *FSRepo) transitionToOpened() error {
 	r.state = opened
-	if countBefore := openerCounter.NumOpeners(r.path); countBefore == 0 { // #first
+	if countBefore := openersCounter.NumOpeners(r.path); countBefore == 0 { // #first
 		closer, err := lockfile.Lock(r.path)
 		if err != nil {
 			return err
 		}
 		lockfiles[r.path] = closer
 	}
-	return openerCounter.AddOpener(r.path)
+	return openersCounter.AddOpener(r.path)
 }
 
 // transitionToClosed manages the state transition to |closed|. Caller must
 // hold the package mutex.
 func (r *FSRepo) transitionToClosed() error {
 	r.state = closed
-	if err := openerCounter.RemoveOpener(r.path); err != nil {
+	if err := openersCounter.RemoveOpener(r.path); err != nil {
 		return err
 	}
-	if countAfter := openerCounter.NumOpeners(r.path); countAfter == 0 {
+	if countAfter := openersCounter.NumOpeners(r.path); countAfter == 0 {
 		closer, ok := lockfiles[r.path]
 		if !ok {
 			return errors.New("package error: lockfile is not held")
