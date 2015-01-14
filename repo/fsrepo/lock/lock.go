@@ -1,4 +1,4 @@
-package daemon
+package lock
 
 import (
 	"io"
@@ -10,6 +10,7 @@ import (
 )
 
 // LockFile is the filename of the daemon lock, relative to config dir
+// TODO rename repo lock and hide name
 const LockFile = "daemon.lock"
 
 func Lock(confdir string) (io.Closer, error) {
@@ -23,7 +24,6 @@ func Locked(confdir string) bool {
 	}
 	if lk, err := Lock(confdir); err != nil {
 		return true
-
 	} else {
 		lk.Close()
 		return false

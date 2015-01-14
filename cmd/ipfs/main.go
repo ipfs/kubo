@@ -20,7 +20,6 @@ import (
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
-	daemon "github.com/jbenet/go-ipfs/core/daemon"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
@@ -392,7 +391,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
-	daemonLocked := daemon.Locked(req.Context().ConfigRoot)
+	daemonLocked := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
 
 	if daemonLocked {
 

@@ -38,15 +38,17 @@ func (l *Counter) NumOpeners(repoPath string) int {
 
 // AddOpener messages that an FSRepo holds a handle to the repo at this path.
 // This method is not thread-safe. The caller must have this object locked.
-func (l *Counter) AddOpener(repoPath string) {
+func (l *Counter) AddOpener(repoPath string) error {
 	l.repos[key(repoPath)]++
+	return nil
 }
 
 // RemoveOpener messgaes that an FSRepo no longer holds a handle to the repo at
 // this path. This method is not thread-safe. The caller must have this object
 // locked.
-func (l *Counter) RemoveOpener(repoPath string) {
+func (l *Counter) RemoveOpener(repoPath string) error {
 	l.repos[key(repoPath)]--
+	return nil
 }
 
 func key(repoPath string) string {

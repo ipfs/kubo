@@ -12,7 +12,7 @@ import (
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands"
-	daemon "github.com/jbenet/go-ipfs/core/daemon"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -89,13 +89,13 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	// acquire the daemon lock _before_ constructing a node. we need to make
+	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	lock, err := daemon.Lock(req.Context().ConfigRoot)
-	if err != nil {
+	repo := fsrepo.At(req.Context().ConfigRoot)
+	if err := repo.Open(); err != nil {
 		return nil, debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?")
 	}
-	defer lock.Close()
+	defer repo.Close()
 
 	// OK!!! Now we're ready to construct the node.
 	// make sure we construct an online node.

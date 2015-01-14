@@ -10,6 +10,7 @@ import (
 	repo "github.com/jbenet/go-ipfs/repo"
 	common "github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	opener "github.com/jbenet/go-ipfs/repo/fsrepo/opener"
 	util "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
@@ -24,10 +25,13 @@ var (
 	// If an operation is used when repo is Open and the operation does not
 	// change the repo's state, the package lock does not need to be acquired.
 	openerCounter *opener.Counter
+
+	lockfiles map[string]io.Closer
 )
 
 func init() {
 	openerCounter = opener.NewCounter()
+	lockfiles = make(map[string]io.Closer)
 }
 
 // FSRepo represents an IPFS FileSystem Repo. It is not thread-safe.
@@ -74,6 +78,15 @@ func Remove(path string) error {
 	return os.RemoveAll(path)
 }
 
+// LockedByOtherProcess returns true if the FSRepo is locked by another
+// process. If true, then the repo cannot be opened by this process.
+func LockedByOtherProcess(repoPath string) bool {
+	openerCounter.Lock()
+	defer openerCounter.Unlock()
+	// NB: the lock is only held when repos are Open
+	return lockfile.Locked(repoPath) && openerCounter.NumOpeners(repoPath) == 0
+}
+
 // Open returns an error if the repo is not initialized.
 func (r *FSRepo) Open() error {
 	openerCounter.Lock()
@@ -118,9 +131,7 @@ func (r *FSRepo) Open() error {
 		return debugerror.Errorf("logs: %s", err)
 	}
 
-	r.state = opened
-	openerCounter.AddOpener(r.path)
-	return nil
+	return transitionToOpened(r)
 }
 
 // Config returns the FSRepo's config. This method must not be called if the
@@ -217,8 +228,7 @@ func (r *FSRepo) Close() error {
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
-	openerCounter.RemoveOpener(r.path)
-	return nil // TODO release repo lock
+	return transitionToClosed(r)
 }
 
 var _ io.Closer = &FSRepo{}
@@ -255,6 +265,39 @@ func initCheckDir(path string) error {
 		os.Remove(f.Name())
 	} else {
 		return debugerror.New("'" + path + "' is not writeable")
+	}
+	return nil
+}
+
+// transitionToOpened manages the state transition to |opened|. Caller must hold
+// openerCounter lock.
+func transitionToOpened(r *FSRepo) error {
+	r.state = opened
+	if countBefore := openerCounter.NumOpeners(r.path); countBefore == 0 { // #first
+		closer, err := lockfile.Lock(r.path)
+		if err != nil {
+			return err
+		}
+		lockfiles[r.path] = closer
+	}
+	return openerCounter.AddOpener(r.path)
+}
+
+// transitionToClosed manages the state transition to |closed|. Caller must
+// hold openerCounter lock.
+func transitionToClosed(r *FSRepo) error {
+	r.state = closed
+	if err := openerCounter.RemoveOpener(r.path); err != nil {
+		return err
+	}
+	if countAfter := openerCounter.NumOpeners(r.path); countAfter == 0 {
+		closer, ok := lockfiles[r.path]
+		if !ok {
+			return errors.New("package error: lockfile is not held")
+		}
+		if err := closer.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
