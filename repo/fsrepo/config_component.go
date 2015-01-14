@@ -7,6 +7,7 @@ import (
 )
 
 var _ component = &configComponent{}
+var _ componentInitializationChecker = configComponentIsInitialized
 
 // configComponent abstracts the config component of the FSRepo.
 // NB: create with makeConfigComponent function.

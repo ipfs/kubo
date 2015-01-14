@@ -56,6 +56,7 @@ type component interface {
 	Open() error
 	io.Closer
 }
+type componentInitializationChecker func(path string) bool
 
 // At returns a handle to an FSRepo at the provided |path|.
 func At(repoPath string) *FSRepo {
@@ -256,7 +257,7 @@ func IsInitialized(path string) bool {
 
 	// componentInitCheckers are functions that indicate whether the component
 	// is isInitialized
-	var componentInitCheckers = []func(path string) bool{
+	var componentInitCheckers = []componentInitializationChecker{
 		configComponentIsInitialized,
 		// TODO add datastore component initialization checker
 	}
