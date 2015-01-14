@@ -72,6 +72,7 @@ func ConfigAt(repoPath string) (*config.Config, error) {
 }
 
 // Init initializes a new FSRepo at the given path with the provided config.
+// TODO add support for custom datastores.
 func Init(path string, conf *config.Config) error {
 
 	// packageLock must be held to ensure that the repo is not initialized more
@@ -175,6 +176,17 @@ func (r *FSRepo) Open() error {
 	return transitionToOpened(r)
 }
 
+// Close closes the FSRepo, releasing held resources.
+func (r *FSRepo) Close() error {
+	packageLock.Lock()
+	defer packageLock.Unlock()
+
+	if r.state != opened {
+		return debugerror.Errorf("repo is %s", r.state)
+	}
+	return transitionToClosed(r)
+}
+
 // Config returns the FSRepo's config. This method must not be called if the
 // repo is not open.
 //
@@ -251,17 +263,6 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return err
 	}
 	return r.setConfigUnsynced(conf)
-}
-
-// Close closes the FSRepo, releasing held resources.
-func (r *FSRepo) Close() error {
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	if r.state != opened {
-		return debugerror.Errorf("repo is %s", r.state)
-	}
-	return transitionToClosed(r)
 }
 
 var _ io.Closer = &FSRepo{}
