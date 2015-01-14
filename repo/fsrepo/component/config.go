@@ -1,29 +1,27 @@
-package fsrepo
+package component
 
 import (
 	common "github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	util "github.com/jbenet/go-ipfs/util"
 )
 
-var _ component = &configComponent{}
-var _ componentInitializationChecker = configComponentIsInitialized
+var _ Component = &ConfigComponent{}
+var _ Initializer = InitConfigComponent
+var _ InitializationChecker = ConfigComponentIsInitialized
 
-// configComponent abstracts the config component of the FSRepo.
+// ConfigComponent abstracts the config component of the FSRepo.
 // NB: create with makeConfigComponent function.
-type configComponent struct {
-	path   string         // required at instantiation
+// NOT THREAD-SAFE
+type ConfigComponent struct {
+	Path   string         // required at instantiation
 	config *config.Config // assigned on Open()
 }
 
-// makeConfigComponent instantiates a valid configComponent.
-func makeConfigComponent(path string) configComponent {
-	return configComponent{path: path}
-}
-
-// fsrepoConfigInit initializes the FSRepo's configComponent.
-func initConfigComponent(path string, conf *config.Config) error {
-	if configComponentIsInitialized(path) {
+// fsrepoConfigInit initializes the FSRepo's ConfigComponent.
+func InitConfigComponent(path string, conf *config.Config) error {
+	if ConfigComponentIsInitialized(path) {
 		return nil
 	}
 	configFilename, err := config.Filename(path)
@@ -33,19 +31,19 @@ func initConfigComponent(path string, conf *config.Config) error {
 	// initialization is the one time when it's okay to write to the config
 	// without reading the config from disk and merging any user-provided keys
 	// that may exist.
-	if err := writeConfigFile(configFilename, conf); err != nil {
+	if err := serialize.WriteConfigFile(configFilename, conf); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Open returns an error if the config file is not present.
-func (c *configComponent) Open() error {
-	configFilename, err := config.Filename(c.path)
+func (c *ConfigComponent) Open() error {
+	configFilename, err := config.Filename(c.Path)
 	if err != nil {
 		return err
 	}
-	conf, err := load(configFilename)
+	conf, err := serialize.Load(configFilename)
 	if err != nil {
 		return err
 	}
@@ -54,46 +52,46 @@ func (c *configComponent) Open() error {
 }
 
 // Close satisfies the fsrepoComponent interface.
-func (c *configComponent) Close() error {
+func (c *ConfigComponent) Close() error {
 	return nil // config doesn't need to be closed.
 }
 
-func (c *configComponent) Config() *config.Config {
+func (c *ConfigComponent) Config() *config.Config {
 	return c.config
 }
 
 // SetConfig updates the config file.
-func (c *configComponent) SetConfig(updated *config.Config) error {
+func (c *ConfigComponent) SetConfig(updated *config.Config) error {
 	return c.setConfigUnsynced(updated)
 }
 
 // GetConfigKey retrieves only the value of a particular key.
-func (c *configComponent) GetConfigKey(key string) (interface{}, error) {
-	filename, err := config.Filename(c.path)
+func (c *ConfigComponent) GetConfigKey(key string) (interface{}, error) {
+	filename, err := config.Filename(c.Path)
 	if err != nil {
 		return nil, err
 	}
 	var cfg map[string]interface{}
-	if err := readConfigFile(filename, &cfg); err != nil {
+	if err := serialize.ReadConfigFile(filename, &cfg); err != nil {
 		return nil, err
 	}
 	return common.MapGetKV(cfg, key)
 }
 
 // SetConfigKey writes the value of a particular key.
-func (c *configComponent) SetConfigKey(key string, value interface{}) error {
-	filename, err := config.Filename(c.path)
+func (c *ConfigComponent) SetConfigKey(key string, value interface{}) error {
+	filename, err := config.Filename(c.Path)
 	if err != nil {
 		return err
 	}
 	var mapconf map[string]interface{}
-	if err := readConfigFile(filename, &mapconf); err != nil {
+	if err := serialize.ReadConfigFile(filename, &mapconf); err != nil {
 		return err
 	}
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
 		return err
 	}
-	if err := writeConfigFile(filename, mapconf); err != nil {
+	if err := serialize.WriteConfigFile(filename, mapconf); err != nil {
 		return err
 	}
 	// in order to get the updated values, read updated config from the
@@ -105,9 +103,9 @@ func (c *configComponent) SetConfigKey(key string, value interface{}) error {
 	return c.setConfigUnsynced(conf) // TODO roll this into this method
 }
 
-// configComponentIsInitialized returns true if the repo is initialized at
+// ConfigComponentIsInitialized returns true if the repo is initialized at
 // provided |path|.
-func configComponentIsInitialized(path string) bool {
+func ConfigComponentIsInitialized(path string) bool {
 	configFilename, err := config.Filename(path)
 	if err != nil {
 		return false
@@ -119,8 +117,8 @@ func configComponentIsInitialized(path string) bool {
 }
 
 // setConfigUnsynced is for private use.
-func (r *configComponent) setConfigUnsynced(updated *config.Config) error {
-	configFilename, err := config.Filename(r.path)
+func (r *ConfigComponent) setConfigUnsynced(updated *config.Config) error {
+	configFilename, err := config.Filename(r.Path)
 	if err != nil {
 		return err
 	}
@@ -128,7 +126,7 @@ func (r *configComponent) setConfigUnsynced(updated *config.Config) error {
 	// as a map, write the updated struct values to the map and write the map
 	// to disk.
 	var mapconf map[string]interface{}
-	if err := readConfigFile(configFilename, &mapconf); err != nil {
+	if err := serialize.ReadConfigFile(configFilename, &mapconf); err != nil {
 		return err
 	}
 	m, err := config.ToMap(updated)
@@ -138,7 +136,7 @@ func (r *configComponent) setConfigUnsynced(updated *config.Config) error {
 	for k, v := range m {
 		mapconf[k] = v
 	}
-	if err := writeConfigFile(configFilename, mapconf); err != nil {
+	if err := serialize.WriteConfigFile(configFilename, mapconf); err != nil {
 		return err
 	}
 	*r.config = *updated // copy so caller cannot modify this private config

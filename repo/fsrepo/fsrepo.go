@@ -11,8 +11,10 @@ import (
 
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	opener "github.com/jbenet/go-ipfs/repo/fsrepo/opener"
+	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -49,22 +51,21 @@ type FSRepo struct {
 	// config is loaded when FSRepo is opened and kept up to date when the
 	// FSRepo is modified.
 	// TODO test
-	configComponent configComponent
+	configComponent component.ConfigComponent
 }
 
-type component interface {
-	Open() error
-	io.Closer
+type componentBuilder struct {
+	Init          component.Initializer
+	IsInitialized component.InitializationChecker
+	OpenHandler   func(*FSRepo) error
 }
-type componentInitializationChecker func(path string) bool
 
 // At returns a handle to an FSRepo at the provided |path|.
 func At(repoPath string) *FSRepo {
 	// This method must not have side-effects.
 	return &FSRepo{
-		path:            path.Clean(repoPath),
-		configComponent: makeConfigComponent(repoPath),
-		state:           unopened, // explicitly set for clarity
+		path:  path.Clean(repoPath),
+		state: unopened, // explicitly set for clarity
 	}
 }
 
@@ -78,7 +79,7 @@ func ConfigAt(repoPath string) (*config.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return load(configFilename)
+	return serialize.Load(configFilename)
 }
 
 // Init initializes a new FSRepo at the given path with the provided config.
@@ -93,10 +94,11 @@ func Init(path string, conf *config.Config) error {
 	if isInitializedUnsynced(path) {
 		return nil
 	}
-	if err := initConfigComponent(path, conf); err != nil {
-		return err
+	for _, b := range componentBuilders() {
+		if err := b.Init(path, conf); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -150,19 +152,10 @@ func (r *FSRepo) Open() error {
 		return err
 	}
 
-	for _, opener := range r.components() {
-		if err := opener.Open(); err != nil {
+	for _, b := range componentBuilders() {
+		if err := b.OpenHandler(r); err != nil {
 			return err
 		}
-	}
-
-	// datastore
-	dspath, err := config.DataStorePath("")
-	if err != nil {
-		return err
-	}
-	if err := initCheckDir(dspath); err != nil {
-		return debugerror.Errorf("datastore: %s", err)
 	}
 
 	logpath, err := config.LogsPath("")
@@ -255,18 +248,7 @@ func IsInitialized(path string) bool {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	// componentInitCheckers are functions that indicate whether the component
-	// is isInitialized
-	var componentInitCheckers = []componentInitializationChecker{
-		configComponentIsInitialized,
-		// TODO add datastore component initialization checker
-	}
-	for _, isInitialized := range componentInitCheckers {
-		if !isInitialized(path) {
-			return false
-		}
-	}
-	return true
+	return isInitializedUnsynced(path)
 }
 
 // private methods below this point. NB: packageLock must held by caller.
@@ -274,7 +256,12 @@ func IsInitialized(path string) bool {
 // isInitializedUnsynced reports whether the repo is initialized. Caller must
 // hold openerCounter lock.
 func isInitializedUnsynced(path string) bool {
-	return configComponentIsInitialized(path)
+	for _, b := range componentBuilders() {
+		if !b.IsInitialized(path) {
+			return false
+		}
+	}
+	return true
 }
 
 // initCheckDir ensures the directory exists and is writable
@@ -327,9 +314,30 @@ func transitionToClosed(r *FSRepo) error {
 }
 
 // components returns the FSRepo's constituent components
-func (r *FSRepo) components() []component {
-	return []component{
+func (r *FSRepo) components() []component.Component {
+	return []component.Component{
 		&r.configComponent,
 		// TODO add datastore
+	}
+}
+
+func componentBuilders() []componentBuilder {
+	return []componentBuilder{
+
+		// ConfigComponent
+		componentBuilder{
+			Init:          component.InitConfigComponent,
+			IsInitialized: component.ConfigComponentIsInitialized,
+			OpenHandler: func(r *FSRepo) error {
+				cc := component.ConfigComponent{Path: r.path}
+				if err := cc.Open(); err != nil {
+					return err
+				}
+				r.configComponent = cc
+				return nil
+			},
+		},
+
+		// TODO add datastore builder
 	}
 }

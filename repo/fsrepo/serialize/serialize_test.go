@@ -11,11 +11,11 @@ func TestConfig(t *testing.T) {
 	const dsPath = "/path/to/datastore"
 	cfgWritten := new(config.Config)
 	cfgWritten.Datastore.Path = dsPath
-	err := writeConfigFile(filename, cfgWritten)
+	err := WriteConfigFile(filename, cfgWritten)
 	if err != nil {
 		t.Error(err)
 	}
-	cfgRead, err := load(filename)
+	cfgRead, err := Load(filename)
 	if err != nil {
 		t.Error(err)
 		return

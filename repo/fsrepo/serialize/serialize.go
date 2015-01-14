@@ -15,8 +15,8 @@ import (
 
 var log = util.Logger("fsrepo")
 
-// readConfigFile reads the config from `filename` into `cfg`.
-func readConfigFile(filename string, cfg interface{}) error {
+// ReadConfigFile reads the config from `filename` into `cfg`.
+func ReadConfigFile(filename string, cfg interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -28,8 +28,8 @@ func readConfigFile(filename string, cfg interface{}) error {
 	return nil
 }
 
-// writeConfigFile writes the config from `cfg` into `filename`.
-func writeConfigFile(filename string, cfg interface{}) error {
+// WriteConfigFile writes the config from `cfg` into `filename`.
+func WriteConfigFile(filename string, cfg interface{}) error {
 	err := os.MkdirAll(filepath.Dir(filename), 0775)
 	if err != nil {
 		return err
@@ -55,15 +55,15 @@ func encode(w io.Writer, value interface{}) error {
 	return err
 }
 
-// load reads given file and returns the read config, or error.
-func load(filename string) (*config.Config, error) {
+// Load reads given file and returns the read config, or error.
+func Load(filename string) (*config.Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
 	if !util.FileExists(filename) {
 		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg config.Config
-	err := readConfigFile(filename, &cfg)
+	err := ReadConfigFile(filename, &cfg)
 	if err != nil {
 		return nil, err
 	}
