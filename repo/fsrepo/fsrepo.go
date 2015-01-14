@@ -71,6 +71,9 @@ func At(repoPath string) *FSRepo {
 	}
 }
 
+// ConfigAt returns an error if the FSRepo at the given path is not
+// initialized. This function allows callers to read the config file even when
+// another process is running and holding the lock.
 func ConfigAt(repoPath string) (*config.Config, error) {
 
 	// packageLock must be held to ensure that the Read is atomic.
