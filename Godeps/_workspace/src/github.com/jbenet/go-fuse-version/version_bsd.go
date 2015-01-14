@@ -3,9 +3,10 @@
 package fuseversion
 
 import (
+	"fmt"
 	"runtime"
 )
 
 func getLocalFuseSystems() (*Systems, error) {
-	return nil, fmt.Sprintf(notImplYet, runtime.GOARCH())
+	return nil, fmt.Errorf(notImplYet, runtime.GOARCH)
 }

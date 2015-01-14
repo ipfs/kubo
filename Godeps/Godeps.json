@@ -114,7 +114,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-fuse-version",
-			"Rev": "ff72c39433f95ada15f116fa493a51eeec2bd52e"
+			"Rev": "c723f93ceeb1d1e21eb7fe6fd39aa21a9fe7db99"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-is-domain",
