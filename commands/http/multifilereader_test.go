@@ -2,24 +2,25 @@ package http
 
 import (
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"strings"
 	"testing"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	files "github.com/jbenet/go-ipfs/commands/files"
 )
 
 func TestOutput(t *testing.T) {
 	text := "Some text! :)"
-	files := []cmds.File{
-		&cmds.ReaderFile{"file.txt", strings.NewReader(text)},
-		&cmds.SliceFile{"boop", []cmds.File{
-			&cmds.ReaderFile{"boop/a.txt", strings.NewReader("bleep")},
-			&cmds.ReaderFile{"boop/b.txt", strings.NewReader("bloop")},
+	fileset := []files.File{
+		&files.ReaderFile{"file.txt", ioutil.NopCloser(strings.NewReader(text))},
+		&files.SliceFile{"boop", []files.File{
+			&files.ReaderFile{"boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep"))},
+			&files.ReaderFile{"boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop"))},
 		}},
-		&cmds.ReaderFile{"beep.txt", strings.NewReader("beep")},
+		&files.ReaderFile{"beep.txt", ioutil.NopCloser(strings.NewReader("beep"))},
 	}
-	sf := &cmds.SliceFile{"", files}
+	sf := &files.SliceFile{"", fileset}
 	buf := make([]byte, 20)
 
 	// testing output by reading it with the go stdlib "mime/multipart" Reader
@@ -30,7 +31,7 @@ func TestOutput(t *testing.T) {
 	if part == nil || err != nil {
 		t.Error("Expected non-nil part, nil error")
 	}
-	mpf, err := cmds.NewFileFromPart(part)
+	mpf, err := files.NewFileFromPart(part)
 	if mpf == nil || err != nil {
 		t.Error("Expected non-nil MultipartFile, nil error")
 	}
@@ -51,7 +52,7 @@ func TestOutput(t *testing.T) {
 	if part == nil || err != nil {
 		t.Error("Expected non-nil part, nil error")
 	}
-	mpf, err = cmds.NewFileFromPart(part)
+	mpf, err = files.NewFileFromPart(part)
 	if mpf == nil || err != nil {
 		t.Error("Expected non-nil MultipartFile, nil error")
 	}
@@ -93,7 +94,7 @@ func TestOutput(t *testing.T) {
 	if part == nil || err != nil {
 		t.Error("Expected non-nil part, nil error")
 	}
-	mpf, err = cmds.NewFileFromPart(part)
+	mpf, err = files.NewFileFromPart(part)
 	if mpf == nil || err != nil {
 		t.Error("Expected non-nil MultipartFile, nil error")
 	}

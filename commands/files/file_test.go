@@ -1,7 +1,8 @@
-package commands
+package files
 
 import (
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"strings"
 	"testing"
@@ -10,9 +11,9 @@ import (
 func TestSliceFiles(t *testing.T) {
 	name := "testname"
 	files := []File{
-		&ReaderFile{"file.txt", strings.NewReader("Some text!\n")},
-		&ReaderFile{"beep.txt", strings.NewReader("beep")},
-		&ReaderFile{"boop.txt", strings.NewReader("boop")},
+		&ReaderFile{"file.txt", ioutil.NopCloser(strings.NewReader("Some text!\n"))},
+		&ReaderFile{"beep.txt", ioutil.NopCloser(strings.NewReader("beep"))},
+		&ReaderFile{"boop.txt", ioutil.NopCloser(strings.NewReader("boop"))},
 	}
 	buf := make([]byte, 20)
 
@@ -54,7 +55,7 @@ func TestSliceFiles(t *testing.T) {
 
 func TestReaderFiles(t *testing.T) {
 	message := "beep boop"
-	rf := &ReaderFile{"file.txt", strings.NewReader(message)}
+	rf := &ReaderFile{"file.txt", ioutil.NopCloser(strings.NewReader(message))}
 	buf := make([]byte, len(message))
 
 	if rf.IsDirectory() {

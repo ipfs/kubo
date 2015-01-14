@@ -8,6 +8,7 @@ import (
 	"path"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	files "github.com/jbenet/go-ipfs/commands/files"
 	core "github.com/jbenet/go-ipfs/core"
 	importer "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
@@ -138,7 +139,7 @@ func addNode(n *core.IpfsNode, node *dag.Node) error {
 	return nil
 }
 
-func addFile(n *core.IpfsNode, file cmds.File, out chan interface{}) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, file files.File, out chan interface{}) (*dag.Node, error) {
 	if file.IsDirectory() {
 		return addDir(n, file, out)
 	}
@@ -155,7 +156,7 @@ func addFile(n *core.IpfsNode, file cmds.File, out chan interface{}) (*dag.Node,
 	return dns[len(dns)-1], nil // last dag node is the file.
 }
 
-func addDir(n *core.IpfsNode, dir cmds.File, out chan interface{}) (*dag.Node, error) {
+func addDir(n *core.IpfsNode, dir files.File, out chan interface{}) (*dag.Node, error) {
 	log.Infof("adding directory: %s", dir.FileName())
 
 	tree := &dag.Node{Data: ft.FolderPBData()}

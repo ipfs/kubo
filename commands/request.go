@@ -8,6 +8,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
+	"github.com/jbenet/go-ipfs/commands/files"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/repo/config"
 	u "github.com/jbenet/go-ipfs/util"
@@ -71,8 +72,8 @@ type Request interface {
 	SetOptions(opts map[string]interface{}) error
 	Arguments() []string
 	SetArguments([]string)
-	Files() File
-	SetFiles(File)
+	Files() files.File
+	SetFiles(files.File)
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
@@ -84,7 +85,7 @@ type request struct {
 	path       []string
 	options    optMap
 	arguments  []string
-	files      File
+	files      files.File
 	cmd        *Command
 	ctx        Context
 	optionDefs map[string]Option
@@ -159,11 +160,11 @@ func (r *request) SetArguments(args []string) {
 	r.arguments = args
 }
 
-func (r *request) Files() File {
+func (r *request) Files() files.File {
 	return r.files
 }
 
-func (r *request) SetFiles(f File) {
+func (r *request) SetFiles(f files.File) {
 	r.files = f
 }
 
@@ -259,7 +260,7 @@ func NewEmptyRequest() (Request, error) {
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts optMap, args []string, file File, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts optMap, args []string, file files.File, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
