@@ -86,6 +86,9 @@ func Init(path string, conf *config.Config) error {
 	if err != nil {
 		return err
 	}
+	// initialization is the one time when it's okay to write to the config
+	// without reading the config from disk and merging any user-provided keys
+	// that may exist.
 	if err := writeConfigFile(configFilename, conf); err != nil {
 		return err
 	}
