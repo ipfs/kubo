@@ -83,7 +83,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "address of peer to connect to"),
+		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		ctx := context.TODO()

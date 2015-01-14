@@ -31,7 +31,7 @@ on disk.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned"),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
@@ -71,7 +71,7 @@ collected if needed.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned"),
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),

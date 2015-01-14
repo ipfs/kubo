@@ -43,7 +43,7 @@ if no peer is specified, prints out local peers info.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peerid", false, false, "peer.ID of node to look up"),
+		cmds.StringArg("peerid", false, false, "peer.ID of node to look up").EnableStdin(),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 		node, err := req.Context().GetNode()

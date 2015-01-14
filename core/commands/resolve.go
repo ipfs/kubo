@@ -38,7 +38,7 @@ Resolve te value of another name:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
+		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
 	},
 	Run: func(req cmds.Request) (interface{}, error) {
 
