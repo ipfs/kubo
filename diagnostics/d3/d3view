@@ -8,7 +8,9 @@ cat >"$file"
 hash=$(ipfs add -q "$file" </dev/null | tail -n1)
 
 # this viewer is the hash of go-ipfs/diagnostics/d3/viewer.html
-viewer="QmaY6Lq9MEhDfWUc1VfHcu9aLWSyvi4VDLvWQXLoVZ4Mau"
+force="QmaY6Lq9MEhDfWUc1VfHcu9aLWSyvi4VDLvWQXLoVZ4Mau"
+chord="QmVGcat7ieYqf8mwcvwACbJstCRH8m8k2Yyt2qhuFEMoAz"
+viewer="$chord"
 
 # the ipfs gateway to use
 gatewayHTTP="http://ipfs.benet.ai:8080"
