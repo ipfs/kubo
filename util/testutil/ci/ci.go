@@ -42,11 +42,11 @@ func Env(v EnvVar) string {
 }
 
 // Returns whether FUSE is explicitly disabled wiht TEST_NO_FUSE.
-func NoFuse(v EnvVar) bool {
+func NoFuse() bool {
 	return os.Getenv(string(VarNoFuse)) == "1"
 }
 
 // Returns whether TEST_VERBOSE is enabled.
-func Verbose(v EnvVar) bool {
+func Verbose() bool {
 	return os.Getenv(string(VarVerbose)) == "1"
 }

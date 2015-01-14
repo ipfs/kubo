@@ -2,14 +2,16 @@ package swarm
 
 import (
 	"net"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	jenkins "github.com/jbenet/go-ipfs/util/testutil/ci/jenkins"
+	travis "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -114,7 +116,7 @@ func TestDialWait(t *testing.T) {
 	defer s1.Close()
 
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
-	if os.Getenv("TRAVIS") == "true" {
+	if travis.IsRunning() {
 		s1.dialT = time.Second
 	}
 
@@ -148,8 +150,8 @@ func TestDialWait(t *testing.T) {
 
 func TestDialBackoff(t *testing.T) {
 	// t.Skip("skipping for another test")
-	if os.Getenv("TRAVIS") == "true" {
-		t.Skip("travis will never have fun with this test")
+	if travis.IsRunning() || jenkins.IsRunning() {
+		t.Skip("travis and jenkins will never have fun with this test")
 	}
 
 	t.Parallel()
@@ -375,7 +377,7 @@ func TestDialBackoffClears(t *testing.T) {
 	defer s2.Close()
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
 	s2.dialT = time.Millisecond * 300 // lower timeout for tests.
-	if os.Getenv("TRAVIS") == "true" {
+	if travis.IsRunning() {
 		s1.dialT = time.Second
 		s2.dialT = time.Second
 	}

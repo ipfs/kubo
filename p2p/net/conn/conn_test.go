@@ -3,13 +3,14 @@ package conn
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+
+	travis "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
 )
 
 func testOneSendRecv(t *testing.T, c1, c2 Conn) {
@@ -62,7 +63,7 @@ func TestCloseLeak(t *testing.T) {
 		t.SkipNow()
 	}
 
-	if os.Getenv("TRAVIS") == "true" {
+	if travis.IsRunning() {
 		t.Skip("this doesn't work well on travis")
 	}
 
