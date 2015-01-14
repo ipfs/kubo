@@ -10,11 +10,9 @@ import (
 	"sync"
 
 	repo "github.com/jbenet/go-ipfs/repo"
-	common "github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	opener "github.com/jbenet/go-ipfs/repo/fsrepo/opener"
-	util "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -51,15 +49,21 @@ type FSRepo struct {
 	// config is loaded when FSRepo is opened and kept up to date when the
 	// FSRepo is modified.
 	// TODO test
-	config *config.Config
+	configComponent configComponent
+}
+
+type component interface {
+	Open() error
+	io.Closer
 }
 
 // At returns a handle to an FSRepo at the provided |path|.
 func At(repoPath string) *FSRepo {
 	// This method must not have side-effects.
 	return &FSRepo{
-		path:  path.Clean(repoPath),
-		state: unopened, // explicitly set for clarity
+		path:            path.Clean(repoPath),
+		configComponent: makeConfigComponent(repoPath),
+		state:           unopened, // explicitly set for clarity
 	}
 }
 
@@ -88,16 +92,10 @@ func Init(path string, conf *config.Config) error {
 	if isInitializedUnsynced(path) {
 		return nil
 	}
-	configFilename, err := config.Filename(path)
-	if err != nil {
+	if err := initConfigComponent(path, conf); err != nil {
 		return err
 	}
-	// initialization is the one time when it's okay to write to the config
-	// without reading the config from disk and merging any user-provided keys
-	// that may exist.
-	if err := writeConfigFile(configFilename, conf); err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -151,15 +149,11 @@ func (r *FSRepo) Open() error {
 		return err
 	}
 
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return err
+	for _, opener := range r.components() {
+		if err := opener.Open(); err != nil {
+			return err
+		}
 	}
-	conf, err := load(configFilename)
-	if err != nil {
-		return err
-	}
-	r.config = conf
 
 	// datastore
 	dspath, err := config.DataStorePath("")
@@ -189,6 +183,12 @@ func (r *FSRepo) Close() error {
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
+
+	for _, closer := range r.components() {
+		if err := closer.Close(); err != nil {
+			return err
+		}
+	}
 	return transitionToClosed(r)
 }
 
@@ -209,7 +209,7 @@ func (r *FSRepo) Config() *config.Config {
 	if r.state != opened {
 		panic(fmt.Sprintln("repo is", r.state))
 	}
-	return r.config
+	return r.configComponent.Config()
 }
 
 // SetConfig updates the FSRepo's config.
@@ -219,7 +219,7 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	return r.setConfigUnsynced(updated)
+	return r.configComponent.SetConfig(updated)
 }
 
 // GetConfigKey retrieves only the value of a particular key.
@@ -230,15 +230,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	if r.state != opened {
 		return nil, debugerror.Errorf("repo is %s", r.state)
 	}
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return nil, err
-	}
-	var cfg map[string]interface{}
-	if err := readConfigFile(filename, &cfg); err != nil {
-		return nil, err
-	}
-	return common.MapGetKV(cfg, key)
+	return r.configComponent.GetConfigKey(key)
 }
 
 // SetConfigKey writes the value of a particular key.
@@ -249,25 +241,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if r.state != opened {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
-	var mapconf map[string]interface{}
-	if err := readConfigFile(filename, &mapconf); err != nil {
-		return err
-	}
-	if err := common.MapSetKV(mapconf, key, value); err != nil {
-		return err
-	}
-	if err := writeConfigFile(filename, mapconf); err != nil {
-		return err
-	}
-	conf, err := config.FromMap(mapconf)
-	if err != nil {
-		return err
-	}
-	return r.setConfigUnsynced(conf)
+	return r.configComponent.SetConfigKey(key, value)
 }
 
 var _ io.Closer = &FSRepo{}
@@ -279,7 +253,19 @@ func IsInitialized(path string) bool {
 	// Init or Remove the repo while this call is in progress.
 	packageLock.Lock()
 	defer packageLock.Unlock()
-	return isInitializedUnsynced(path)
+
+	// componentInitCheckers are functions that indicate whether the component
+	// is isInitialized
+	var componentInitCheckers = []func(path string) bool{
+		configComponentIsInitialized,
+		// TODO add datastore component initialization checker
+	}
+	for _, isInitialized := range componentInitCheckers {
+		if !isInitialized(path) {
+			return false
+		}
+	}
+	return true
 }
 
 // private methods below this point. NB: packageLock must held by caller.
@@ -287,14 +273,7 @@ func IsInitialized(path string) bool {
 // isInitializedUnsynced reports whether the repo is initialized. Caller must
 // hold openerCounter lock.
 func isInitializedUnsynced(path string) bool {
-	configFilename, err := config.Filename(path)
-	if err != nil {
-		return false
-	}
-	if !util.FileExists(configFilename) {
-		return false
-	}
-	return true
+	return configComponentIsInitialized(path)
 }
 
 // initCheckDir ensures the directory exists and is writable
@@ -346,32 +325,10 @@ func transitionToClosed(r *FSRepo) error {
 	return nil
 }
 
-// setConfigUnsynced is for private use. Callers must hold the packageLock.
-func (r *FSRepo) setConfigUnsynced(updated *config.Config) error {
-	if r.state != opened {
-		return fmt.Errorf("repo is", r.state)
+// components returns the FSRepo's constituent components
+func (r *FSRepo) components() []component {
+	return []component{
+		&r.configComponent,
+		// TODO add datastore
 	}
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
-	// to avoid clobbering user-provided keys, must read the config from disk
-	// as a map, write the updated struct values to the map and write the map
-	// to disk.
-	var mapconf map[string]interface{}
-	if err := readConfigFile(configFilename, &mapconf); err != nil {
-		return err
-	}
-	m, err := config.ToMap(updated)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		mapconf[k] = v
-	}
-	if err := writeConfigFile(configFilename, mapconf); err != nil {
-		return err
-	}
-	*r.config = *updated // copy so caller cannot modify this private config
-	return nil
 }
