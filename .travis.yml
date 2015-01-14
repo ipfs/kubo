@@ -6,6 +6,6 @@ go:
   - tip
 
 script:
-  - make test
+  - TRAVES=true make test
 
 env: TEST_NO_FUSE=1 TEST_VERBOSE=1

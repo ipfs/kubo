@@ -114,7 +114,7 @@ func TestDialWait(t *testing.T) {
 	defer s1.Close()
 
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
-	if os.Getenv("TRAVIS") == "1" {
+	if os.Getenv("TRAVIS") == "true" {
 		s1.dialT = time.Second
 	}
 
@@ -148,7 +148,7 @@ func TestDialWait(t *testing.T) {
 
 func TestDialBackoff(t *testing.T) {
 	// t.Skip("skipping for another test")
-	if os.Getenv("TRAVIS") == "1" {
+	if os.Getenv("TRAVIS") == "true" {
 		t.Skip("travis will never have fun with this test")
 	}
 
@@ -375,7 +375,7 @@ func TestDialBackoffClears(t *testing.T) {
 	defer s2.Close()
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
 	s2.dialT = time.Millisecond * 300 // lower timeout for tests.
-	if os.Getenv("TRAVIS") == "1" {
+	if os.Getenv("TRAVIS") == "true" {
 		s1.dialT = time.Second
 		s2.dialT = time.Second
 	}
