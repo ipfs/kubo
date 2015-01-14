@@ -15,7 +15,7 @@ var _ InitializationChecker = ConfigComponentIsInitialized
 // NB: create with makeConfigComponent function.
 // NOT THREAD-SAFE
 type ConfigComponent struct {
-	Path   string         // required at instantiation
+	path   string         // required at instantiation
 	config *config.Config // assigned on Open()
 }
 
@@ -39,7 +39,7 @@ func InitConfigComponent(path string, conf *config.Config) error {
 
 // Open returns an error if the config file is not present.
 func (c *ConfigComponent) Open() error {
-	configFilename, err := config.Filename(c.Path)
+	configFilename, err := config.Filename(c.path)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (c *ConfigComponent) SetConfig(updated *config.Config) error {
 
 // GetConfigKey retrieves only the value of a particular key.
 func (c *ConfigComponent) GetConfigKey(key string) (interface{}, error) {
-	filename, err := config.Filename(c.Path)
+	filename, err := config.Filename(c.path)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *ConfigComponent) GetConfigKey(key string) (interface{}, error) {
 
 // SetConfigKey writes the value of a particular key.
 func (c *ConfigComponent) SetConfigKey(key string, value interface{}) error {
-	filename, err := config.Filename(c.Path)
+	filename, err := config.Filename(c.path)
 	if err != nil {
 		return err
 	}
@@ -103,6 +103,10 @@ func (c *ConfigComponent) SetConfigKey(key string, value interface{}) error {
 	return c.setConfigUnsynced(conf) // TODO roll this into this method
 }
 
+func (c *ConfigComponent) SetPath(p string) {
+	c.path = p
+}
+
 // ConfigComponentIsInitialized returns true if the repo is initialized at
 // provided |path|.
 func ConfigComponentIsInitialized(path string) bool {
@@ -118,7 +122,7 @@ func ConfigComponentIsInitialized(path string) bool {
 
 // setConfigUnsynced is for private use.
 func (r *ConfigComponent) setConfigUnsynced(updated *config.Config) error {
-	configFilename, err := config.Filename(r.Path)
+	configFilename, err := config.Filename(r.path)
 	if err != nil {
 		return err
 	}

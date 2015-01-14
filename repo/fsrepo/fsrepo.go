@@ -314,7 +314,8 @@ func componentBuilders() []componentBuilder {
 			Init:          component.InitConfigComponent,
 			IsInitialized: component.ConfigComponentIsInitialized,
 			OpenHandler: func(r *FSRepo) error {
-				cc := component.ConfigComponent{Path: r.path}
+				cc := component.ConfigComponent{}
+				cc.SetPath(r.path)
 				if err := cc.Open(); err != nil {
 					return err
 				}
