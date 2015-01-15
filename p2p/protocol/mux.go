@@ -116,7 +116,6 @@ func (m *Mux) HandleSync(s inet.Stream) {
 	}
 
 	log.Infof("muxer handle protocol: %s", name)
-	log.Event(ctx, "muxHandle", eventlog.Metadata{"protocol": name})
 	handler(s)
 }
 
