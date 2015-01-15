@@ -39,6 +39,7 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 }
 
 func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
+	defer log.EventBegin(ctx, "handleGetValue", p).Done()
 	log.Debugf("%s handleGetValue for key: %s", dht.self, pmes.GetKey())
 
 	// setup response
@@ -114,6 +115,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 
 // Store a value in this peer local storage
 func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
+	defer log.EventBegin(ctx, "handlePutValue", p).Done()
 	dskey := u.Key(pmes.GetKey()).DsKey()
 
 	if err := dht.verifyRecordLocally(pmes.GetRecord()); err != nil {
@@ -137,6 +139,7 @@ func (dht *IpfsDHT) handlePing(_ context.Context, p peer.ID, pmes *pb.Message) (
 }
 
 func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
+	defer log.EventBegin(ctx, "handleFindPeer", p).Done()
 	resp := pb.NewMessage(pmes.GetType(), "", pmes.GetClusterLevel())
 	var closest []peer.ID
 
@@ -166,6 +169,7 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 }
 
 func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
+	defer log.EventBegin(ctx, "handleGetProviders", p).Done()
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 	key := u.Key(pmes.GetKey())
 
@@ -211,6 +215,7 @@ type providerInfo struct {
 }
 
 func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
+	defer log.EventBegin(ctx, "handleAddProvider", p).Done()
 	key := u.Key(pmes.GetKey())
 
 	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)
