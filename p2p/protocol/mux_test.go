@@ -39,7 +39,7 @@ func TestHandler(t *testing.T) {
 	}
 
 	m := NewMux()
-	m.Default = h("default")
+	m.SetDefaultHandler(h("default"))
 	m.SetHandler("/dht", h("bitswap"))
 	// m.Handlers["/ipfs"] = h("bitswap") // default!
 	m.SetHandler("/bitswap", h("bitswap"))
