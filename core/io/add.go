@@ -25,7 +25,7 @@ func Add(n *core.IpfsNode, r io.Reader) (u.Key, error) {
 	dagNode, err := importer.BuildDagFromReader(
 		r,
 		n.DAG,
-		nil,
+		n.Pinning.GetManual(), // Fix this interface
 		chunk.DefaultSplitter,
 	)
 	if err != nil {
