@@ -2,19 +2,19 @@ package epictest
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	core "github.com/jbenet/go-ipfs/core"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	"github.com/jbenet/go-ipfs/repo"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	"github.com/jbenet/go-ipfs/util/datastore2"
+	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
@@ -25,7 +25,10 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.C
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
 		dsDelay := delay.Fixed(conf.BlockstoreLatency)
-		ds := datastore2.CloserWrap(sync.MutexWrap(datastore2.WithDelay(datastore.NewMapDatastore(), dsDelay)))
+		r := &repo.Mock{
+			D: ds2.CloserWrap(syncds.MutexWrap(ds2.WithDelay(datastore.NewMapDatastore(), dsDelay))),
+		}
+		ds := r.Datastore()
 
 		log.Debugf("MocknetTestRepo: %s %s %s", p, h.ID(), h)
 		dhtt := dht.NewDHT(ctx, h, ds)
@@ -39,7 +42,7 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.C
 			Peerstore:  h.Peerstore(),
 			Blockstore: bstore,
 			Exchange:   exch,
-			Datastore:  ds,
+			Repo:       r,
 			PeerHost:   h,
 			Routing:    dhtt,
 			Identity:   p,

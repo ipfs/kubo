@@ -2,8 +2,7 @@ package core
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
@@ -13,6 +12,7 @@ import (
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
+	"github.com/jbenet/go-ipfs/repo"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -46,14 +46,16 @@ func NewMockNode() (*IpfsNode, error) {
 	}
 
 	// Temp Datastore
-	dstore := ds.NewMapDatastore()
-	nd.Datastore = ds2.CloserWrap(syncds.MutexWrap(dstore))
+	nd.Repo = &repo.Mock{
+		// TODO C: conf,
+		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
+	}
 
 	// Routing
 	nd.Routing = mockrouting.NewServer().Client(ident)
 
 	// Bitswap
-	bstore := blockstore.NewBlockstore(nd.Datastore)
+	bstore := blockstore.NewBlockstore(nd.Repo.Datastore())
 	bserv, err := blockservice.New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		return nil, err

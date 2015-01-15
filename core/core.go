@@ -29,11 +29,11 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	pin "github.com/jbenet/go-ipfs/pin"
+	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	util "github.com/jbenet/go-ipfs/util"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
@@ -59,9 +59,7 @@ type IpfsNode struct {
 	// Self
 	Identity peer.ID // the local node's identity
 
-	// TODO abstract as repo.Repo
-	Config    *config.Config                // the node's configuration
-	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
+	Repo repo.Repo
 
 	// Local node
 	Pinning pin.Pinner // the pinning manager
@@ -120,24 +118,24 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 		node.Peerstore = peer.NewPeerstore()
 	}
 	node.DAG = merkledag.NewDAGService(node.Blocks)
-	node.Pinning, err = pin.LoadPinner(node.Datastore, node.DAG)
+	node.Pinning, err = pin.LoadPinner(node.Repo.Datastore(), node.DAG)
 	if err != nil {
-		node.Pinning = pin.NewPinner(node.Datastore, node.DAG)
+		node.Pinning = pin.NewPinner(node.Repo.Datastore(), node.DAG)
 	}
 	node.Resolver = &path.Resolver{DAG: node.DAG}
 	return node, nil
 }
 
-func Offline(cfg *config.Config) ConfigOption {
-	return Standard(cfg, false)
+func Offline(r repo.Repo) ConfigOption {
+	return Standard(r, false)
 }
 
-func Online(cfg *config.Config) ConfigOption {
-	return Standard(cfg, true)
+func Online(r repo.Repo) ConfigOption {
+	return Standard(r, true)
 }
 
 // DEPRECATED: use Online, Offline functions
-func Standard(cfg *config.Config, online bool) ConfigOption {
+func Standard(r repo.Repo, online bool) ConfigOption {
 	return func(ctx context.Context) (n *IpfsNode, err error) {
 
 		success := false // flip to true after all sub-system inits succeed
@@ -147,8 +145,8 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 			}
 		}()
 
-		if cfg == nil {
-			return nil, debugerror.Errorf("configuration required")
+		if r == nil {
+			return nil, debugerror.Errorf("repo required")
 		}
 		n = &IpfsNode{
 			mode: func() mode {
@@ -157,7 +155,7 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 				}
 				return offlineMode
 			}(),
-			Config: cfg,
+			Repo: r,
 		}
 
 		n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
@@ -166,17 +164,12 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 		// setup Peerstore
 		n.Peerstore = peer.NewPeerstore()
 
-		// setup datastore.
-		if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-			return nil, debugerror.Wrap(err)
-		}
-
 		// setup local peer ID (private key is loaded in online setup)
 		if err := n.loadID(); err != nil {
 			return nil, err
 		}
 
-		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
+		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
@@ -207,7 +200,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 		return err
 	}
 
-	peerhost, err := constructPeerHost(ctx, n.ContextGroup, n.Config, n.Identity, n.Peerstore)
+	peerhost, err := constructPeerHost(ctx, n.ContextGroup, n.Repo.Config(), n.Identity, n.Peerstore)
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
@@ -217,7 +210,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
 	// setup routing service
-	dhtRouting, err := constructDHTRouting(ctx, n.ContextGroup, n.PeerHost, n.Datastore)
+	dhtRouting, err := constructDHTRouting(ctx, n.ContextGroup, n.PeerHost, n.Repo.Datastore())
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
@@ -240,7 +233,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 	// manage the wiring. In that scenario, this dangling function is a bit
 	// awkward.
 	var bootstrapPeers []peer.PeerInfo
-	for _, bootstrap := range n.Config.Bootstrap {
+	for _, bootstrap := range n.Repo.Config().Bootstrap {
 		p, err := toPeer(bootstrap)
 		if err != nil {
 			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
@@ -258,7 +251,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 }
 
 func (n *IpfsNode) teardown() error {
-	if err := n.Datastore.Close(); err != nil {
+	if err := n.Repo.Close(); err != nil {
 		return err
 	}
 	return nil
@@ -293,7 +286,7 @@ func (n *IpfsNode) loadID() error {
 		return debugerror.New("identity already loaded")
 	}
 
-	cid := n.Config.Identity.PeerID
+	cid := n.Repo.Config().Identity.PeerID
 	if cid == "" {
 		return debugerror.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -314,7 +307,7 @@ func (n *IpfsNode) loadPrivateKey() error {
 		return debugerror.New("private key already loaded")
 	}
 
-	sk, err := loadPrivateKey(&n.Config.Identity, n.Identity)
+	sk, err := loadPrivateKey(&n.Repo.Config().Identity, n.Identity)
 	if err != nil {
 		return err
 	}

@@ -106,7 +106,7 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
 		return nil, err
 	}
-	err = addTheWelcomeFile(conf)
+	err = addTheWelcomeFile(repoRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -116,15 +116,19 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 
 // addTheWelcomeFile adds a file containing the welcome message to the newly
 // minted node. On success, it calls onSuccess
-func addTheWelcomeFile(conf *config.Config) error {
+func addTheWelcomeFile(repoRoot string) error {
 	// TODO extract this file creation operation into a function
 	ctx, cancel := context.WithCancel(context.Background())
-	nd, err := core.NewIPFSNode(ctx, core.Offline(conf))
+	defer cancel()
+	r := fsrepo.At(repoRoot)
+	if err := r.Open(); err != nil { // NB: repo is owned by the node
+		return err
+	}
+	nd, err := core.NewIPFSNode(ctx, core.Offline(r))
 	if err != nil {
 		return err
 	}
 	defer nd.Close()
-	defer cancel()
 
 	// Set up default file
 	reader := bytes.NewBufferString(welcomeMsg)

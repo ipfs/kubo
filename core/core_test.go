@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	"github.com/jbenet/go-ipfs/util/testutil"
 )
 
 func TestInitialization(t *testing.T) {
@@ -42,14 +44,22 @@ func TestInitialization(t *testing.T) {
 	}
 
 	for i, c := range good {
-		n, err := NewIPFSNode(ctx, Standard(c, false))
+		r := &repo.Mock{
+			C: *c,
+			D: testutil.ThreadSafeCloserMapDatastore(),
+		}
+		n, err := NewIPFSNode(ctx, Standard(r, false))
 		if n == nil || err != nil {
 			t.Error("Should have constructed.", i, err)
 		}
 	}
 
 	for i, c := range bad {
-		n, err := NewIPFSNode(ctx, Standard(c, false))
+		r := &repo.Mock{
+			C: *c,
+			D: testutil.ThreadSafeCloserMapDatastore(),
+		}
+		n, err := NewIPFSNode(ctx, Standard(r, false))
 		if n != nil || err == nil {
 			t.Error("Should have failed to construct.", i)
 		}
