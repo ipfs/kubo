@@ -126,8 +126,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	log.Debugf("start", key)
 	defer log.Debugf("end", key)
 
-	e := log.EventBegin(ctx, "provide", &key)
-	defer e.Done()
+	defer log.EventBegin(ctx, "provide", &key).Done()
 
 	// add self locally
 	dht.providers.AddProvider(key, dht.self)
@@ -246,8 +245,7 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.PeerInfo) {
 	log := dht.log().Prefix("FindProviders(%s)", key)
 
-	e := log.EventBegin(ctx, "findProvidersAsync", &key)
-	defer e.Done()
+	defer log.EventBegin(ctx, "findProvidersAsync", &key).Done()
 	defer close(peerOut)
 
 	ps := pset.NewLimited(count)
@@ -317,8 +315,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 
 // FindPeer searches for a peer with given ID.
 func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {
-	e := log.EventBegin(ctx, "FindPeer", id)
-	defer e.Done()
+	defer log.EventBegin(ctx, "FindPeer", id).Done()
 
 	// Check if were already connected to them
 	if pi := dht.FindLocal(id); pi.ID != "" {

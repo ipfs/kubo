@@ -196,8 +196,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 // getValueSingle simply performs the get value RPC with the given parameters
 func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 	key u.Key) (*pb.Message, error) {
-	e := log.EventBegin(ctx, "getValueSingle", p, &key)
-	defer e.Done()
+	defer log.EventBegin(ctx, "getValueSingle", p, &key).Done()
 
 	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)
@@ -267,16 +266,14 @@ func (dht *IpfsDHT) FindLocal(id peer.ID) peer.PeerInfo {
 
 // findPeerSingle asks peer 'p' if they know where the peer with id 'id' is
 func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (*pb.Message, error) {
-	e := log.EventBegin(ctx, "findPeerSingle", p, id)
-	defer e.Done()
+	defer log.EventBegin(ctx, "findPeerSingle", p, id).Done()
 
 	pmes := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	return dht.sendRequest(ctx, p, pmes)
 }
 
 func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key u.Key) (*pb.Message, error) {
-	e := log.EventBegin(ctx, "findProvidersSingle", p, &key)
-	defer e.Done()
+	defer log.EventBegin(ctx, "findProvidersSingle", p, &key).Done()
 
 	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
 	return dht.sendRequest(ctx, p, pmes)

@@ -120,12 +120,11 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	ctx, cancelFunc := context.WithCancel(parent)
 
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
-	e := log.EventBegin(ctx, "GetBlockRequest", &k)
+	defer log.EventBegin(ctx, "GetBlockRequest", &k).Done()
 	log.Debugf("GetBlockRequestBegin")
 
 	defer func() {
 		cancelFunc()
-		e.Done()
 		log.Debugf("GetBlockRequestEnd")
 	}()
 
