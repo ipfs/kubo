@@ -20,6 +20,8 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+// Add builds a merkledag from the a reader, pinning all objects to the local
+// datastore. Returns a key representing the root node.
 func Add(n *core.IpfsNode, r io.Reader) (u.Key, error) {
 	// TODO more attractive function signature importer.BuildDagFromReader
 	dagNode, err := importer.BuildDagFromReader(
