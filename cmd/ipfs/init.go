@@ -114,7 +114,7 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 }
 
 // addTheWelcomeFile adds a file containing the welcome message to the newly
-// minted node. On success, it calls onSuccess
+// minted node.
 func addTheWelcomeFile(repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
