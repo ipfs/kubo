@@ -1,4 +1,4 @@
-package reprovide_test
+package reprovide
 
 import (
 	"testing"
@@ -11,8 +11,6 @@ import (
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	mock "github.com/jbenet/go-ipfs/routing/mock"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
-
-	. "github.com/jbenet/go-ipfs/exchange/reprovide"
 )
 
 func TestReprovide(t *testing.T) {
