@@ -7,6 +7,7 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
 	routing "github.com/jbenet/go-ipfs/routing"
+	"github.com/jbenet/go-ipfs/util/debugerror"
 	"github.com/jbenet/go-ipfs/util/eventlog"
 )
 
@@ -20,36 +21,46 @@ type Reprovider struct {
 	bstore blocks.Blockstore
 }
 
-func NewReprovider(rsys routing.IpfsRouting, bstore blocks.Blockstore) *Reprovider {
-	return &Reprovider{
+type Option func(r *Reprovider)
+
+func NewReprovider(rsys routing.IpfsRouting, bstore blocks.Blockstore, options ...Option) *Reprovider {
+	r := &Reprovider{
 		rsys:   rsys,
 		bstore: bstore,
 	}
+	for _, option := range options {
+		option(r)
+	}
+	return r
 }
 
-func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
-	after := time.After(0)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-after:
-			rp.Reprovide(ctx)
-			after = time.After(tick)
+func ProvideEvery(ctx context.Context, tick time.Duration) Option {
+	return func(rp *Reprovider) {
+		after := time.After(0)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-after:
+				if err := rp.Reprovide(ctx); err != nil {
+					log.Error(err)
+				}
+				after = time.After(tick)
+			}
 		}
 	}
 }
 
-func (rp *Reprovider) Reprovide(ctx context.Context) {
+func (rp *Reprovider) Reprovide(ctx context.Context) error {
 	keychan, err := rp.bstore.AllKeysChan(ctx, 0, 1<<16)
 	if err != nil {
-		log.Errorf("Failed to get key chan from blockstore: %s", err)
-		return
+		return debugerror.Errorf("Failed to get key chan from blockstore: %s", err)
 	}
 	for k := range keychan {
 		err := rp.rsys.Provide(ctx, k)
 		if err != nil {
-			log.Errorf("Failed to provide key: %s, %s", k, err)
+			return debugerror.Errorf("Failed to provide key: %s, %s", k, err)
 		}
 	}
+	return nil
 }

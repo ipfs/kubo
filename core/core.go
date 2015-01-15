@@ -252,8 +252,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
 
 	// Start up reprovider system
-	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-	go n.Reprovider.ProvideEvery(ctx, time.Hour*12)
+	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore, rp.ProvideEvery(ctx, time.Hour*12))
 	return nil
 }
 

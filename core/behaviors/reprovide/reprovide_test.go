@@ -31,7 +31,9 @@ func TestReprovide(t *testing.T) {
 	bstore.Put(blk)
 
 	reprov := NewReprovider(clA, bstore)
-	reprov.Reprovide(ctx)
+	if err := reprov.Reprovide(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	provs, err := clB.FindProviders(ctx, blk.Key())
 	if err != nil {
