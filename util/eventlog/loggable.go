@@ -4,3 +4,9 @@ package eventlog
 type Loggable interface {
 	Loggable() map[string]interface{}
 }
+
+type LoggableMap map[string]interface{}
+
+func (l LoggableMap) Loggable() map[string]interface{} {
+	return l
+}
