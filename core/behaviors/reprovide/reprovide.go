@@ -36,18 +36,20 @@ func NewReprovider(rsys routing.IpfsRouting, bstore blocks.Blockstore, options .
 
 func ProvideEvery(ctx context.Context, tick time.Duration) Option {
 	return func(rp *Reprovider) {
-		after := time.After(0)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-after:
-				if err := rp.Reprovide(ctx); err != nil {
-					log.Error(err)
+		go func() {
+			after := time.After(0)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-after:
+					if err := rp.Reprovide(ctx); err != nil {
+						log.Error(err)
+					}
+					after = time.After(tick)
 				}
-				after = time.After(tick)
 			}
-		}
+		}()
 	}
 }
 
