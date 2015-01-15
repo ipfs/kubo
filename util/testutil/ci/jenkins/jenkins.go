@@ -12,7 +12,7 @@ import (
 // the type system.
 type EnvVar string
 
-// Environment variables that TravisCI uses.
+// Environment variables that Jenkins uses.
 const (
 	VarBuildNumber    EnvVar = "BUILD_NUMBER"
 	VarBuildId        EnvVar = "BUILD_ID"
