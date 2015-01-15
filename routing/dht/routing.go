@@ -123,9 +123,6 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	log := dht.log().Prefix("Provide(%s)", key)
 
-	log.Debugf("start", key)
-	defer log.Debugf("end", key)
-
 	defer log.EventBegin(ctx, "provide", &key).Done()
 
 	// add self locally
