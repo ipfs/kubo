@@ -10,8 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	corecmds "github.com/jbenet/go-ipfs/core/commands"
-	imp "github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
+	core_io "github.com/jbenet/go-ipfs/core/io"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	repo "github.com/jbenet/go-ipfs/repo"
@@ -117,7 +116,6 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 // addTheWelcomeFile adds a file containing the welcome message to the newly
 // minted node. On success, it calls onSuccess
 func addTheWelcomeFile(repoRoot string) error {
-	// TODO extract this file creation operation into a function
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	r := fsrepo.At(repoRoot)
@@ -132,13 +130,7 @@ func addTheWelcomeFile(repoRoot string) error {
 
 	// Set up default file
 	reader := bytes.NewBufferString(welcomeMsg)
-
-	defnd, err := imp.BuildDagFromReader(reader, nd.DAG, nd.Pinning.GetManual(), chunk.DefaultSplitter)
-	if err != nil {
-		return err
-	}
-
-	k, err := defnd.Key()
+	k, err := core_io.Add(nd, reader)
 	if err != nil {
 		return fmt.Errorf("failed to write test file: %s", err)
 	}
