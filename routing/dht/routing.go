@@ -122,10 +122,12 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 // Provide makes this node announce that it can provide a value for the given key
 func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	log := dht.log().Prefix("Provide(%s)", key)
+
 	log.Debugf("start", key)
-	log.Event(ctx, "provideBegin", &key)
 	defer log.Debugf("end", key)
-	defer log.Event(ctx, "provideEnd", &key)
+
+	e := log.EventBegin(ctx, "provide", &key)
+	defer e.Done()
 
 	// add self locally
 	dht.providers.AddProvider(key, dht.self)
@@ -163,6 +165,7 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerIn
 // Kademlia 'node lookup' operation. Returns a channel of the K closest peers
 // to the given key
 func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key) (<-chan peer.ID, error) {
+	e := log.EventBegin(ctx, "getClosestPeers", &key)
 	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
 	if len(tablepeers) == 0 {
 		return nil, errors.Wrap(kb.ErrLookupFailure)
@@ -204,6 +207,7 @@ func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key) (<-chan peer
 
 	go func() {
 		defer close(out)
+		defer e.Done()
 		// run it!
 		_, err := query.Run(ctx, tablepeers)
 		if err != nil {
@@ -242,10 +246,9 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.PeerInfo) {
 	log := dht.log().Prefix("FindProviders(%s)", key)
 
+	e := log.EventBegin(ctx, "findProvidersAsync", &key)
+	defer e.Done()
 	defer close(peerOut)
-	defer log.Event(ctx, "findProviders end", &key)
-	log.Debug("begin")
-	defer log.Debug("begin")
 
 	ps := pset.NewLimited(count)
 	provs := dht.providers.GetProviders(ctx, key)
@@ -314,6 +317,8 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 
 // FindPeer searches for a peer with given ID.
 func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {
+	e := log.EventBegin(ctx, "FindPeer", id)
+	defer e.Done()
 
 	// Check if were already connected to them
 	if pi := dht.FindLocal(id); pi.ID != "" {
