@@ -5,24 +5,20 @@ import (
 	"crypto/rand"
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
+
 	core "github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
+	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
 )
 
-func maybeSkipFuseTests(t *testing.T) bool {
-	v := "TEST_NO_FUSE"
-	n := strings.ToLower(os.Getenv(v))
-	skip := n != "" && n != "false" && n != "f"
-
-	if skip {
-		t.Skipf("Skipping FUSE tests (%s=%s)", v, n)
+func maybeSkipFuseTests(t *testing.T) {
+	if ci.NoFuse() {
+		t.Skip("Skipping FUSE tests")
 	}
-	return skip
 }
 
 func randBytes(size int) []byte {

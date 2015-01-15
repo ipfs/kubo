@@ -2,13 +2,13 @@ package conn
 
 import (
 	"bytes"
-	"os"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	travis "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
@@ -131,7 +131,7 @@ func TestSecureCloseLeak(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	if os.Getenv("TRAVIS") == "true" {
+	if travis.IsRunning() {
 		t.Skip("this doesn't work well on travis")
 	}
 
