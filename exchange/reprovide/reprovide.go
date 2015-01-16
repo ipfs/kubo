@@ -7,7 +7,8 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
 	routing "github.com/jbenet/go-ipfs/routing"
-	"github.com/jbenet/go-ipfs/util/eventlog"
+	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 var log = eventlog.Logger("reprovider")
@@ -34,22 +35,25 @@ func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-after:
-			rp.Reprovide(ctx)
+			err := rp.Reprovide(ctx)
+			if err != nil {
+				log.Error(err)
+			}
 			after = time.After(tick)
 		}
 	}
 }
 
-func (rp *Reprovider) Reprovide(ctx context.Context) {
+func (rp *Reprovider) Reprovide(ctx context.Context) error {
 	keychan, err := rp.bstore.AllKeysChan(ctx, 0, 1<<16)
 	if err != nil {
-		log.Errorf("Failed to get key chan from blockstore: %s", err)
-		return
+		return debugerror.Errorf("Failed to get key chan from blockstore: %s", err)
 	}
 	for k := range keychan {
 		err := rp.rsys.Provide(ctx, k)
 		if err != nil {
-			log.Errorf("Failed to provide key: %s, %s", k, err)
+			return debugerror.Errorf("Failed to provide key: %s, %s", k, err)
 		}
 	}
+	return nil
 }
