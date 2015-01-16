@@ -254,6 +254,11 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 	} else if len(res.closerPeers) > 0 {
 		log.Debugf("PEERS CLOSER -- worker for: %v (%d closer peers)", p, len(res.closerPeers))
 		for _, next := range res.closerPeers {
+			if next.ID == r.query.dht.self { // dont add self.
+				log.Debugf("PEERS CLOSER -- worker for: %v found self", p)
+				continue
+			}
+
 			// add their addresses to the dialer's peerstore
 			r.query.dht.peerstore.AddPeerInfo(next)
 			r.addPeerToQuery(cg.Context(), next.ID)
