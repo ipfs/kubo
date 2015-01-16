@@ -156,7 +156,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
-			"Rev": "2e83344e7dc7898f94501665af34edd4aa95a013"
+			"Rev": "c50d0ce235bacde481d3e885b5dfd562c75c981a"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
