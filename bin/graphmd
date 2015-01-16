@@ -12,7 +12,13 @@ if [ "$#" -ne 1 ]; then
   exit 1
 fi
 
-fmt='<src> -> <dst> [label="<linkname>"];'
+src='<src> [fontsize=8 shape=box];'
+dst='<dst> [fontsize=8 shape=box];'
+edge='<src> -> <dst> [label="<linkname>"];'
+fmt="$src
+$dst
+$edge"
+
 echo "digraph {"
 echo "	graph [rankdir=LR];"
 ipfs refs -r --format="$fmt" "$@" | awk '{ print "\t" $0 }'
