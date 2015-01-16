@@ -109,8 +109,11 @@ d3.json(hash, function(error, data) {
     .attr("dy", 3)
     // .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
     // .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
-    .text(function(d) { return d.conns + " - " + d.name; })
+    .text(function(d) { return d.conns + " - " + (d.rtkey || d.name); })
     .attr("transform", function(d) { return "rotate(" + (d.x - 90 + rotate) + ")translate(" + d.y + ")"; })
+
+  node.append("svg:title")
+      .text(function(d) { return d.name; });
 
   // var mid = svg.selectAll(".node-mid")
   //   .data(graph.mids)
@@ -135,8 +138,11 @@ function parseGraph(graph2) {
   graph.mids = []
 
   graph2.nodes.sort(function(a, b) {
-    if (a.name > b.name) return 1;
-    if (a.name < b.name) return -1;
+    var aname = a.rtkey || a.name
+    var bname = b.rtkey || b.name
+
+    if (aname > bname) return 1;
+    if (aname < bname) return -1;
     return 0;
   })
 

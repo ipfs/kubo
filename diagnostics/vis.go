@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	rtable "github.com/jbenet/go-ipfs/routing/kbucket"
 )
 
 type node struct {
 	Name  string `json:"name"`
 	Value uint64 `json:"value"`
+	RtKey string `json:"rtkey"`
 }
 
 type link struct {
@@ -24,7 +28,9 @@ func GetGraphJson(dinfo []*DiagInfo) []byte {
 	for _, di := range dinfo {
 		names[di.ID] = len(nodes)
 		val := di.BwIn + di.BwOut + 10
-		nodes = append(nodes, &node{Name: di.ID, Value: val})
+		// include the routing table key, for proper routing table display
+		rtk := peer.ID(rtable.ConvertPeerID(peer.ID(di.ID))).Pretty()
+		nodes = append(nodes, &node{Name: di.ID, Value: val, RtKey: rtk})
 	}
 
 	var links []*link
