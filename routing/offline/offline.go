@@ -27,6 +27,9 @@ func NewOfflineRouter(dstore ds.Datastore, privkey ci.PrivKey) routing.IpfsRouti
 	}
 }
 
+// offlineRouting implements the IpfsRouting interface,
+// but only provides the capability to Put and Get signed dht
+// records to and from the local datastore.
 type offlineRouting struct {
 	datastore ds.Datastore
 	sk        ci.PrivKey
@@ -86,4 +89,5 @@ func (c *offlineRouting) Ping(ctx context.Context, p peer.ID) (time.Duration, er
 	return 0, ErrOffline
 }
 
+// ensure offlineRouting matches the IpfsRouting interface
 var _ routing.IpfsRouting = &offlineRouting{}

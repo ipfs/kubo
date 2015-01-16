@@ -235,6 +235,8 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	return rec.GetValue(), nil
 }
 
+// getOwnPrivateKey attempts to load the local peers private
+// key from the peerstore.
 func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
 	sk := dht.peerstore.PrivKey(dht.self)
 	if sk == nil {

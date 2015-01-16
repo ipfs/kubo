@@ -355,6 +355,9 @@ func (n *IpfsNode) loadPrivateKey() error {
 	return nil
 }
 
+// SetupOfflineRouting loads the local nodes private key and
+// uses it to instantiate a routing system in offline mode.
+// This is primarily used for offline ipns modifications.
 func (n *IpfsNode) SetupOfflineRouting() error {
 	err := n.loadPrivateKey()
 	if err != nil {

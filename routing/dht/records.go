@@ -42,7 +42,7 @@ func RecordBlobForSig(r *pb.Record) []byte {
 	return bytes.Join([][]byte{k, v, a}, []byte{})
 }
 
-// creates and signs a dht record for the given key/value pair
+// MakePutRecord creates and signs a dht record for the given key/value pair
 func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte) (*pb.Record, error) {
 	record := new(pb.Record)
 
@@ -175,6 +175,8 @@ func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *pb.Record) error 
 	return dht.verifyRecord(r, pk)
 }
 
+// TODO: make this an independent exported function.
+// it might be useful for users to have access to.
 func (dht *IpfsDHT) verifyRecord(r *pb.Record, pk ci.PubKey) error {
 	// First, validate the signature
 	blob := RecordBlobForSig(r)

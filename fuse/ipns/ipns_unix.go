@@ -33,6 +33,8 @@ var (
 	longRepublishTimeout  = time.Millisecond * 500
 )
 
+// InitializeKeyspace sets the ipns record for the given key to
+// point to an empty directory.
 func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	emptyDir := &mdag.Node{Data: ft.FolderPBData()}
 	k, err := n.DAG.Add(emptyDir)
