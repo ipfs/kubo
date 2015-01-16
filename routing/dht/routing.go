@@ -223,8 +223,10 @@ func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key u.Key, p peer.ID)
 	var out []peer.ID
 	for _, pbp := range pmes.GetCloserPeers() {
 		pid := peer.ID(pbp.GetId())
-		dht.peerstore.AddAddresses(pid, pbp.Addresses())
-		out = append(out, pid)
+		if pid != dht.self { // dont add self
+			dht.peerstore.AddAddresses(pid, pbp.Addresses())
+			out = append(out, pid)
+		}
 	}
 	return out, nil
 }

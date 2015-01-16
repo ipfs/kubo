@@ -112,7 +112,9 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 		defer close(out)
 		providers := bsnet.routing.FindProvidersAsync(ctx, k, max)
 		for info := range providers {
-			bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
+			if info.ID != bsnet.host.ID() { // dont add addrs for ourselves.
+				bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
+			}
 			select {
 			case <-ctx.Done():
 				return
