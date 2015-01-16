@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
@@ -21,6 +23,10 @@ var PinCmd = &cmds.Command{
 	},
 }
 
+type PinOutput struct {
+	Pinned []u.Key
+}
+
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Pins objects to local storage",
@@ -36,6 +42,7 @@ on disk.
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
 	},
+	Type: PinOutput{},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
 		if err != nil {
@@ -51,13 +58,36 @@ on disk.
 			recursive = false
 		}
 
-		_, err = pin(n, req.Arguments(), recursive)
+		nodes, err := pin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}
 
+		var added []u.Key
+		for _, node := range nodes {
+			k, err := node.Key()
+			if err != nil {
+				return nil, err
+			}
+			added = append(added, k)
+		}
+
 		// TODO: create some output to show what got pinned
-		return nil, nil
+		return &PinOutput{added}, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			for _, k := range added.Pinned {
+				fmt.Fprintf(buf, "Pinned %s\n", k)
+			}
+			return buf, nil
+		},
 	},
 }
 
@@ -76,6 +106,7 @@ collected if needed.
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
 	},
+	Type: PinOutput{},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
 		if err != nil {
@@ -91,13 +122,35 @@ collected if needed.
 			recursive = false // default
 		}
 
-		_, err = unpin(n, req.Arguments(), recursive)
+		nodes, err := unpin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO: create some output to show what got unpinned
-		return nil, nil
+		var removed []u.Key
+		for _, node := range nodes {
+			k, err := node.Key()
+			if err != nil {
+				return nil, err
+			}
+			removed = append(removed, k)
+		}
+
+		return &PinOutput{removed}, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			for _, k := range added.Pinned {
+				fmt.Fprintf(buf, "Unpinned %s\n", k)
+			}
+			return buf, nil
+		},
 	},
 }
 
