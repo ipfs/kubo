@@ -43,19 +43,19 @@ func RecordBlobForSig(r *pb.Record) []byte {
 }
 
 // creates and signs a dht record for the given key/value pair
-func (dht *IpfsDHT) makePutRecord(key u.Key, value []byte) (*pb.Record, error) {
+func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte) (*pb.Record, error) {
 	record := new(pb.Record)
 
 	record.Key = proto.String(string(key))
 	record.Value = value
-	record.Author = proto.String(string(dht.self))
-	blob := RecordBlobForSig(record)
 
-	sk := dht.peerstore.PrivKey(dht.self)
-	if sk == nil {
-		log.Errorf("%s dht cannot get own private key!", dht.self)
-		return nil, fmt.Errorf("cannot get private key to sign record!")
+	pkh, err := sk.GetPublic().Hash()
+	if err != nil {
+		return nil, err
 	}
+
+	record.Author = proto.String(string(pkh))
+	blob := RecordBlobForSig(record)
 
 	sig, err := sk.Sign(blob)
 	if err != nil {

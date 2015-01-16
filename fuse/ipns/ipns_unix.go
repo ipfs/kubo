@@ -16,6 +16,7 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	nsys "github.com/jbenet/go-ipfs/namesys"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
@@ -31,6 +32,22 @@ var (
 	shortRepublishTimeout = time.Millisecond * 5
 	longRepublishTimeout  = time.Millisecond * 500
 )
+
+func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
+	emptyDir := &mdag.Node{Data: ft.FolderPBData()}
+	k, err := n.DAG.Add(emptyDir)
+	if err != nil {
+		return err
+	}
+
+	pub := nsys.NewRoutingPublisher(n.Routing)
+	err = pub.Publish(key, k.B58String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // FileSystem is the readwrite IPNS Fuse Filesystem.
 type FileSystem struct {

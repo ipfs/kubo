@@ -34,9 +34,10 @@ import (
 	config "github.com/jbenet/go-ipfs/repo/config"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	offroute "github.com/jbenet/go-ipfs/routing/offline"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	util "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
@@ -350,6 +351,17 @@ func (n *IpfsNode) loadPrivateKey() error {
 
 	n.PrivateKey = sk
 	n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
+	n.Peerstore.AddPubKey(n.Identity, sk.GetPublic())
+	return nil
+}
+
+func (n *IpfsNode) SetupOfflineRouting() error {
+	err := n.loadPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
 	return nil
 }
 

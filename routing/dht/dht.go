@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
@@ -234,9 +235,23 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	return rec.GetValue(), nil
 }
 
+func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
+	sk := dht.peerstore.PrivKey(dht.self)
+	if sk == nil {
+		log.Errorf("%s dht cannot get own private key!", dht.self)
+		return nil, fmt.Errorf("cannot get private key to sign record!")
+	}
+	return sk, nil
+}
+
 // putLocal stores the key value pair in the datastore
 func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
-	rec, err := dht.makePutRecord(key, value)
+	sk, err := dht.getOwnPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	rec, err := MakePutRecord(sk, key, value)
 	if err != nil {
 		return err
 	}

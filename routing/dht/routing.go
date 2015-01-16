@@ -36,7 +36,12 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	rec, err := dht.makePutRecord(key, value)
+	sk, err := dht.getOwnPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	rec, err := MakePutRecord(sk, key, value)
 	if err != nil {
 		log.Error("Creation of record failed!")
 		return err
@@ -75,6 +80,8 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	if err == nil {
 		log.Debug("have it locally")
 		return val, nil
+	} else {
+		log.Debug("failed to get value locally: %s", err)
 	}
 
 	// get closest peers in the routing table
