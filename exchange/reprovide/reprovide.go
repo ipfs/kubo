@@ -4,6 +4,7 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	backoff "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cenkalti/backoff"
 
 	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -50,9 +51,20 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 		return debugerror.Errorf("Failed to get key chan from blockstore: %s", err)
 	}
 	for k := range keychan {
-		err := rp.rsys.Provide(ctx, k)
+		op := func() error {
+			err := rp.rsys.Provide(ctx, k)
+			if err != nil {
+				log.Warningf("Failed to provide key: %s", err)
+			}
+			return err
+		}
+
+		// TODO: this backoff library does not respect our context, we should
+		// eventually work contexts into it. low priority.
+		err := backoff.Retry(op, backoff.NewExponentialBackOff())
 		if err != nil {
-			return debugerror.Errorf("Failed to provide key: %s, %s", k, err)
+			log.Errorf("Providing failed after number of retries: %s", err)
+			return err
 		}
 	}
 	return nil

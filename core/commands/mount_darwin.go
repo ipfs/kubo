@@ -6,7 +6,7 @@ import (
 	"strings"
 	"syscall"
 
-	fuseversion "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-fuse-version"
+	fuseversion "github.com/jbenet/go-fuse-version"
 )
 
 func init() {
