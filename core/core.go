@@ -84,10 +84,6 @@ type IpfsNode struct {
 
 	ctxgroup.ContextGroup
 
-	// dht allows node to Bootstrap when dht is present
-	// TODO privatize before merging. This is here temporarily during the
-	// migration of the TestNet constructor
-	DHT  *dht.IpfsDHT
 	mode mode
 }
 
@@ -227,7 +223,6 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
-	n.DHT = dhtRouting
 	n.Routing = dhtRouting
 
 	// setup exchange service
@@ -255,11 +250,12 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 		}
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
-	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
 
-	// Start up reprovider system
+	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
+
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
 	go n.Reprovider.ProvideEvery(ctx, time.Hour*12)
+
 	return nil
 }
 
@@ -272,8 +268,10 @@ func (n *IpfsNode) teardown() error {
 	if n.Repo != nil {
 		closers = append(closers, n.Repo)
 	}
-	if n.DHT != nil {
-		closers = append(closers, n.DHT)
+	if n.Routing != nil {
+		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+			closers = append(closers, dht)
+		}
 	}
 	if n.PeerHost != nil {
 		closers = append(closers, n.PeerHost)
@@ -310,8 +308,10 @@ func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
 
 	// TODO what should return value be when in offlineMode?
 
-	if n.DHT != nil {
-		return bootstrap(ctx, n.PeerHost, n.DHT, n.Peerstore, peers)
+	if n.Routing != nil {
+		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+			return bootstrap(ctx, n.PeerHost, dht, n.Peerstore, peers)
+		}
 	}
 	return nil
 }

@@ -46,7 +46,6 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.C
 			PeerHost:   h,
 			Routing:    dhtt,
 			Identity:   p,
-			DHT:        dhtt,
 		}, nil
 	}
 }
