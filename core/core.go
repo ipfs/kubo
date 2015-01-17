@@ -436,6 +436,6 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 
 func constructDHTRouting(ctx context.Context, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {
 	dhtRouting := dht.NewDHT(ctx, host, ds)
-	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	dhtRouting.Validator[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 	return dhtRouting, nil
 }

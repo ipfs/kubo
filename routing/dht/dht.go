@@ -54,8 +54,7 @@ type IpfsDHT struct {
 	birth    time.Time  // When this peer started up
 	diaglock sync.Mutex // lock to make diagnostics work better
 
-	// record validator funcs
-	Validators map[string]ValidatorFunc
+	Validator record.Validator // record validator funcs
 
 	ctxgroup.ContextGroup
 }
@@ -81,8 +80,8 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
 
-	dht.Validators = make(map[string]ValidatorFunc)
-	dht.Validators["pk"] = ValidatePublicKeyRecord
+	dht.Validator = make(record.Validator)
+	dht.Validator["pk"] = record.ValidatePublicKeyRecord
 
 	if doPinging {
 		dht.Children().Add(1)

@@ -38,7 +38,7 @@ func setupDHT(ctx context.Context, t *testing.T) *IpfsDHT {
 	dss := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, h, dss)
 
-	d.Validators["v"] = func(u.Key, []byte) error {
+	d.Validator["v"] = func(u.Key, []byte) error {
 		return nil
 	}
 	return d
@@ -142,8 +142,8 @@ func TestValueGetSet(t *testing.T) {
 	vf := func(u.Key, []byte) error {
 		return nil
 	}
-	dhtA.Validators["v"] = vf
-	dhtB.Validators["v"] = vf
+	dhtA.Validator["v"] = vf
+	dhtB.Validator["v"] = vf
 
 	connect(t, ctx, dhtA, dhtB)
 
