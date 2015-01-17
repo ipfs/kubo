@@ -42,6 +42,7 @@ import (
 
 const IpnsValidatorTag = "ipns"
 const kSizeBlockstoreWriteCache = 100
+const kReprovideFrequency = time.Hour * 12
 
 var log = eventlog.Logger("core")
 
@@ -254,7 +255,7 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
 
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-	go n.Reprovider.ProvideEvery(ctx, time.Hour*12)
+	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
 	return nil
 }
