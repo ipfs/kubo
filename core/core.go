@@ -263,8 +263,11 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	return nil
 }
 
-// teardown closes children
+// teardown closes owned children. If any errors occur, this function returns
+// the first error.
 func (n *IpfsNode) teardown() error {
+	// owned objects are closed in this teardown to ensure that they're closed
+	// regardless of which constructor was used to add them to the node.
 	var closers []io.Closer
 	if n.Repo != nil {
 		closers = append(closers, n.Repo)
@@ -277,10 +280,8 @@ func (n *IpfsNode) teardown() error {
 	}
 	var errs []error
 	for _, closer := range closers {
-		if closer != nil {
-			if err := closer.Close(); err != nil {
-				errs = append(errs, err)
-			}
+		if err := closer.Close(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 	if len(errs) > 0 {
