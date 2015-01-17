@@ -150,6 +150,18 @@ func Online(r repo.Repo) ConfigOption {
 // DEPRECATED: use Online, Offline functions
 func Standard(r repo.Repo, online bool) ConfigOption {
 	return func(ctx context.Context) (n *IpfsNode, err error) {
+		// FIXME perform node construction in the main constructor so it isn't
+		// necessary to perform this teardown in this scope.
+		success := false
+		defer func() {
+			if !success && n != nil {
+				n.teardown()
+			}
+		}()
+
+		// TODO move as much of node initialization as possible into
+		// NewIPFSNode. The larger these config options are, the harder it is
+		// to test all node construction code paths.
 
 		if r == nil {
 			return nil, debugerror.Errorf("repo required")
@@ -177,15 +189,15 @@ func Standard(r repo.Repo, online bool) ConfigOption {
 			return nil, debugerror.Wrap(err)
 		}
 
-		// setup online services
 		if online {
 			if err := n.StartOnlineServices(ctx); err != nil {
-				return nil, err // debugerror.Wraps.
+				return nil, err
 			}
 		} else {
 			n.Exchange = offline.Exchange(n.Blockstore)
 		}
 
+		success = true
 		return n, nil
 	}
 }

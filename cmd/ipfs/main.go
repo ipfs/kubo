@@ -182,7 +182,7 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 		}
 
 		r := fsrepo.At(i.req.Context().ConfigRoot)
-		if err := r.Open(); err != nil {
+		if err := r.Open(); err != nil { // repo is owned by the node
 			return nil, err
 		}
 
