@@ -12,7 +12,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	"github.com/jbenet/go-ipfs/core"
-	core_io "github.com/jbenet/go-ipfs/core/io"
+	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
@@ -115,12 +115,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	catter.Bootstrap(ctx, []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)})
 	adder.Bootstrap(ctx, []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)})
 
-	keyAdded, err := core_io.Add(adder, bytes.NewReader(data))
+	keyAdded, err := coreunix.Add(adder, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 
-	readerCatted, err := core_io.Cat(catter, keyAdded)
+	readerCatted, err := coreunix.Cat(catter, keyAdded)
 	if err != nil {
 		return err
 	}

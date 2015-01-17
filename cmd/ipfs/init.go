@@ -10,7 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	corecmds "github.com/jbenet/go-ipfs/core/commands"
-	core_io "github.com/jbenet/go-ipfs/core/io"
+	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	repo "github.com/jbenet/go-ipfs/repo"
@@ -130,7 +130,7 @@ func addTheWelcomeFile(repoRoot string) error {
 
 	// Set up default file
 	reader := bytes.NewBufferString(welcomeMsg)
-	k, err := core_io.Add(nd, reader)
+	k, err := coreunix.Add(nd, reader)
 	if err != nil {
 		return fmt.Errorf("failed to write test file: %s", err)
 	}
