@@ -17,7 +17,7 @@ data/filetiny: Makefile
 	cp Makefile ./data/filetiny # simple
 
 data/filerand: bin/random
-	./bin/random 50MB > ./data/filerand
+	./bin/random 500MB > ./data/filerand
 
 bin/random: $(RANDOMSRC)/**/*.go
 	go build -o ./bin/random $(RANDOMSRC)/random
@@ -32,8 +32,11 @@ clean:
 	sh bin/clean.sh
 	fig stop
 	fig rm -v --force
-	rm -f bin/random
-	rm -f data/filetiny
-	rm -f data/filerand
+	rm -f data/idtiny
+	rm -f data/idrand
 	rm -rf build/*
 	docker rmi $(docker images | grep "^<none>" | awk "{print \$3}") -f || true
+
+clean_data:
+	rm -f data/filetiny
+	rm -f data/filerand
