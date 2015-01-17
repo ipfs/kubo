@@ -17,6 +17,7 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -253,7 +254,7 @@ func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
 		return err
 	}
 
-	rec, err := MakePutRecord(sk, key, value)
+	rec, err := record.MakePutRecord(sk, key, value)
 	if err != nil {
 		return err
 	}

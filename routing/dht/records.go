@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 )
@@ -32,38 +32,6 @@ var ErrInvalidRecordType = errors.New("invalid record keytype")
 // from the dht.
 func KeyForPublicKey(id peer.ID) u.Key {
 	return u.Key("/pk/" + string(id))
-}
-
-// RecordBlobForSig returns the blob protected by the record signature
-func RecordBlobForSig(r *pb.Record) []byte {
-	k := []byte(r.GetKey())
-	v := []byte(r.GetValue())
-	a := []byte(r.GetAuthor())
-	return bytes.Join([][]byte{k, v, a}, []byte{})
-}
-
-// MakePutRecord creates and signs a dht record for the given key/value pair
-func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte) (*pb.Record, error) {
-	record := new(pb.Record)
-
-	record.Key = proto.String(string(key))
-	record.Value = value
-
-	pkh, err := sk.GetPublic().Hash()
-	if err != nil {
-		return nil, err
-	}
-
-	record.Author = proto.String(string(pkh))
-	blob := RecordBlobForSig(record)
-
-	sig, err := sk.Sign(blob)
-	if err != nil {
-		return nil, err
-	}
-
-	record.Signature = sig
-	return record, nil
 }
 
 func (dht *IpfsDHT) getPublicKeyOnline(ctx context.Context, p peer.ID) (ci.PubKey, error) {
@@ -179,7 +147,7 @@ func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *pb.Record) error 
 // it might be useful for users to have access to.
 func (dht *IpfsDHT) verifyRecord(r *pb.Record, pk ci.PubKey) error {
 	// First, validate the signature
-	blob := RecordBlobForSig(r)
+	blob := record.RecordBlobForSig(r)
 	ok, err := pk.Verify(blob, r.GetSignature())
 	if err != nil {
 		log.Error("Signature verify failed.")

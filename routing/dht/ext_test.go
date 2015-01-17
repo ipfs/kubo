@@ -11,6 +11,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -104,7 +105,7 @@ func TestGetFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		rec, err := MakePutRecord(sk, u.Key(str), []byte("blah"))
+		rec, err := record.MakePutRecord(sk, u.Key(str), []byte("blah"))
 		if err != nil {
 			t.Fatal(err)
 		}

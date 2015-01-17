@@ -10,8 +10,8 @@ import (
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
-	dht "github.com/jbenet/go-ipfs/routing/dht"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -36,7 +36,7 @@ type offlineRouting struct {
 }
 
 func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte) error {
-	rec, err := dht.MakePutRecord(c.sk, key, val)
+	rec, err := record.MakePutRecord(c.sk, key, val)
 	if err != nil {
 		return err
 	}

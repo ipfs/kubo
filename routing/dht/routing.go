@@ -12,6 +12,7 @@ import (
 	"github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	pset "github.com/jbenet/go-ipfs/util/peerset"
@@ -41,7 +42,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	rec, err := MakePutRecord(sk, key, value)
+	rec, err := record.MakePutRecord(sk, key, value)
 	if err != nil {
 		log.Error("Creation of record failed!")
 		return err
