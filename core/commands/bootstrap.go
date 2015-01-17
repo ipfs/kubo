@@ -69,7 +69,7 @@ in the bootstrap list).
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer", false, true, peerOptionDesc),
+		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 
 	Options: []cmds.Option{
@@ -138,7 +138,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer", false, true, peerOptionDesc),
+		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("all", "Remove all bootstrap peers."),
