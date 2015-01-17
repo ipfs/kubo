@@ -265,9 +265,9 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 
 // teardown closes children
 func (n *IpfsNode) teardown() error {
-	var errs []error
-	closers := []io.Closer{
-		n.Repo,
+	var closers []io.Closer
+	if n.Repo != nil {
+		closers = append(closers, n.Repo)
 	}
 	if n.DHT != nil {
 		closers = append(closers, n.DHT)
@@ -275,6 +275,7 @@ func (n *IpfsNode) teardown() error {
 	if n.PeerHost != nil {
 		closers = append(closers, n.PeerHost)
 	}
+	var errs []error
 	for _, closer := range closers {
 		if closer != nil {
 			if err := closer.Close(); err != nil {
