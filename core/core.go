@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
@@ -16,6 +17,7 @@ import (
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
+	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
@@ -79,6 +81,7 @@ type IpfsNode struct {
 	Exchange    exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys     namesys.NameSystem  // the name system, resolves paths to hashes
 	Diagnostics *diag.Diagnostics   // the diagnostics service
+	Reprovider  *rp.Reprovider      // the value reprovider system
 
 	ctxgroup.ContextGroup
 
@@ -247,6 +250,10 @@ func (n *IpfsNode) StartOnlineServices() error {
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
 	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
+
+	// Start up reprovider system
+	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
+	go n.Reprovider.ProvideEvery(ctx, time.Hour*12)
 	return nil
 }
 
