@@ -299,6 +299,8 @@ func (n *IpfsNode) OnlineMode() bool {
 	}
 }
 
+// TODO expose way to resolve path name
+
 func (n *IpfsNode) Resolve(k util.Key) (*merkledag.Node, error) {
 	return (&path.Resolver{n.DAG}).ResolvePath(k.String())
 }
