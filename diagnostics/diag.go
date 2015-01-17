@@ -16,6 +16,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
@@ -220,8 +221,10 @@ func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Messa
 	}
 	defer s.Close()
 
-	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
-	w := ggio.NewDelimitedWriter(s)
+	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(cw)
 
 	start := time.Now()
 
