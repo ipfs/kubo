@@ -129,12 +129,16 @@ func (pn *peernet) connect(p peer.ID) (*conn, error) {
 	// first, check if we already have live connections
 	pn.RLock()
 	cs, found := pn.connsByPeer[p]
-	pn.RUnlock()
 	if found && len(cs) > 0 {
-		for c := range cs {
-			return c, nil
+		var chosen *conn
+		for c := range cs { // because cs is a map
+			chosen = c // select first
+			break
 		}
+		pn.RUnlock()
+		return chosen, nil
 	}
+	pn.RUnlock()
 
 	log.Debugf("%s (newly) dialing %s", pn.peer, p)
 
@@ -267,12 +271,17 @@ func (pn *peernet) ConnsToPeer(p peer.ID) []inet.Conn {
 func (pn *peernet) ClosePeer(p peer.ID) error {
 	pn.RLock()
 	cs, found := pn.connsByPeer[p]
-	pn.RUnlock()
 	if !found {
+		pn.RUnlock()
 		return nil
 	}
 
+	var conns []*conn
 	for c := range cs {
+		conns = append(conns, c)
+	}
+	pn.RUnlock()
+	for _, c := range conns {
 		c.Close()
 	}
 	return nil
@@ -319,7 +328,6 @@ func (pn *peernet) NewStream(p peer.ID) (inet.Stream, error) {
 		pn.Unlock()
 		return nil, fmt.Errorf("no connection to peer")
 	}
-	pn.Unlock()
 
 	// if many conns are found, how do we select? for now, randomly...
 	// this would be an interesting place to test logic that can measure
@@ -332,6 +340,7 @@ func (pn *peernet) NewStream(p peer.ID) (inet.Stream, error) {
 		}
 		n--
 	}
+	pn.Unlock()
 
 	return c.NewStream()
 }
