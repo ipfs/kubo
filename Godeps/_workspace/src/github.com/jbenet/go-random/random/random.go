@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 )
 
@@ -14,10 +15,11 @@ func main() {
 		usageError()
 	}
 
-	count, err := strconv.ParseInt(os.Args[1], 10, 64)
+	countuint64, err := humanize.ParseBytes(os.Args[1])
 	if err != nil {
 		usageError()
 	}
+	count := int64(countuint64)
 
 	if l == 2 {
 		err = random.WriteRandomBytes(count, os.Stdout)

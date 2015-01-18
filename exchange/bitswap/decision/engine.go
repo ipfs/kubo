@@ -59,7 +59,7 @@ type Engine struct {
 	// peerRequestQueue is a priority queue of requests received from peers.
 	// Requests are popped from the queue, packaged up, and placed in the
 	// outbox.
-	peerRequestQueue *taskQueue
+	peerRequestQueue peerRequestQueue
 
 	// FIXME it's a bit odd for the client and the worker to both share memory
 	// (both modify the peerRequestQueue) and also to communicate over the
@@ -82,7 +82,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 	e := &Engine{
 		ledgerMap:        make(map[peer.ID]*ledger),
 		bs:               bs,
-		peerRequestQueue: newTaskQueue(),
+		peerRequestQueue: newPRQ(),
 		outbox:           make(chan Envelope, sizeOutboxChan),
 		workSignal:       make(chan struct{}),
 	}
@@ -180,20 +180,19 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 			log.Debug("wants", entry.Key, entry.Priority)
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
-				newWorkExists = true
 				e.peerRequestQueue.Push(entry.Entry, p)
+				newWorkExists = true
 			}
 		}
 	}
 
 	for _, block := range m.Blocks() {
-		// FIXME extract blocks.NumBytes(block) or block.NumBytes() method
 		log.Debug("got block %s %d bytes", block.Key(), len(block.Data))
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range e.ledgerMap {
-			if l.WantListContains(block.Key()) {
+			if entry, ok := l.WantListContains(block.Key()); ok {
+				e.peerRequestQueue.Push(entry, l.Partner)
 				newWorkExists = true
-				e.peerRequestQueue.Push(wl.Entry{block.Key(), 1}, l.Partner)
 			}
 		}
 	}
