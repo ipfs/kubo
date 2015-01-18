@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ var log = util.Logger("diagnostics")
 var ProtocolDiag protocol.ID = "/ipfs/diagnostics"
 
 const ResponseTimeout = time.Second * 10
+const HopTimeoutDecrement = time.Second * 2
 
 // Diagnostics is a net service that manages requesting and responding to diagnostic
 // requests
@@ -149,39 +151,24 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 	peers := d.getPeers()
 	log.Debugf("Sending diagnostic request to %d peers.", len(peers))
 
+	pmes := newMessage(diagID)
+
+	pmes.SetTimeoutDuration(timeout - HopTimeoutDecrement) // decrease timeout per hop
+	dpeers, err := d.getDiagnosticFromPeers(ctx, d.getPeers(), pmes)
+	if err != nil {
+		return nil, fmt.Errorf("diagnostic from peers err: %s", err)
+	}
+
 	var out []*DiagInfo
 	di := d.getDiagInfo()
 	out = append(out, di)
-
-	pmes := newMessage(diagID)
-
-	respdata := make(chan []byte)
-	sends := 0
-	for p, _ := range peers {
-		log.Debugf("Sending getDiagnostic to: %s", p)
-		sends++
-		go func(p peer.ID) {
-			data, err := d.getDiagnosticFromPeer(ctx, p, pmes)
-			if err != nil {
-				log.Errorf("GetDiagnostic error: %v", err)
-				respdata <- nil
-				return
-			}
-			respdata <- data
-		}(p)
-	}
-
-	for i := 0; i < sends; i++ {
-		data := <-respdata
-		if data == nil {
-			continue
-		}
-		out = appendDiagnostics(data, out)
+	for _, dpi := range dpeers {
+		out = appendDiagnostics(out, dpi)
 	}
 	return out, nil
 }
 
-func appendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
+func appendDiagnostics(cur []*DiagInfo, data []byte) []*DiagInfo {
 	buf := bytes.NewBuffer(data)
 	dec := json.NewDecoder(buf)
 	for {
@@ -196,6 +183,38 @@ func appendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
 		cur = append(cur, di)
 	}
 	return cur
+}
+
+func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer.ID]int, pmes *pb.Message) ([][]byte, error) {
+	timeout := pmes.GetTimeoutDuration()
+	if timeout < 1 {
+		return nil, fmt.Errorf("timeout too short: %s", timeout)
+	}
+	ctx, _ = context.WithTimeout(ctx, timeout)
+
+	respdata := make(chan []byte)
+	sendcount := 0
+	for p, _ := range peers {
+		log.Debugf("Sending diagnostic request to peer: %s", p)
+		sendcount++
+		go func(p peer.ID) {
+			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
+			if err != nil {
+				log.Errorf("getDiagnostic error: %v", err)
+				respdata <- nil
+				return
+			}
+			respdata <- out
+		}(p)
+	}
+
+	outall := make([][]byte, 0, len(peers))
+	for i := 0; i < sendcount; i++ {
+		out := <-respdata
+		outall = append(outall, out)
+	}
+
+	return outall, nil
 }
 
 // TODO: this method no longer needed.
@@ -259,38 +278,17 @@ func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message
 	d.diagMap[pmes.GetDiagID()] = time.Now()
 	d.diagLock.Unlock()
 
-	buf := new(bytes.Buffer)
 	di := d.getDiagInfo()
-	buf.Write(di.Marshal())
-
-	ctx, _ := context.WithTimeout(context.TODO(), ResponseTimeout)
-
-	respdata := make(chan []byte)
-	sendcount := 0
-	for p, _ := range d.getPeers() {
-		log.Debugf("Sending diagnostic request to peer: %s", p)
-		sendcount++
-		go func(p peer.ID) {
-			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
-			if err != nil {
-				log.Errorf("getDiagnostic error: %v", err)
-				respdata <- nil
-				return
-			}
-			respdata <- out
-		}(p)
-	}
-
-	for i := 0; i < sendcount; i++ {
-		out := <-respdata
-		_, err := buf.Write(out)
-		if err != nil {
-			log.Errorf("getDiagnostic write output error: %v", err)
-			continue
+	resp.Data = di.Marshal()
+	dpeers, err := d.getDiagnosticFromPeers(context.TODO(), d.getPeers(), pmes)
+	if err != nil {
+		log.Errorf("diagnostic from peers err: %s", err)
+	} else {
+		for _, b := range dpeers {
+			resp.Data = append(resp.Data, b...) // concatenate them all.
 		}
 	}
 
-	resp.Data = buf.Bytes()
 	return resp, nil
 }
 

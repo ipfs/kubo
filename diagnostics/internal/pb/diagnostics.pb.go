@@ -14,15 +14,18 @@ It has these top-level messages:
 package diagnostics_pb
 
 import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import json "encoding/json"
 import math "math"
 
-// Reference imports to suppress errors if they are not otherwise used.
+// Reference proto, json, and math imports to suppress error if they are not otherwise used.
 var _ = proto.Marshal
+var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type Message struct {
 	DiagID           *string `protobuf:"bytes,1,req" json:"DiagID,omitempty"`
 	Data             []byte  `protobuf:"bytes,2,opt" json:"Data,omitempty"`
+	Timeout          *int64  `protobuf:"varint,3,opt" json:"Timeout,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -42,6 +45,13 @@ func (m *Message) GetData() []byte {
 		return m.Data
 	}
 	return nil
+}
+
+func (m *Message) GetTimeout() int64 {
+	if m != nil && m.Timeout != nil {
+		return *m.Timeout
+	}
+	return 0
 }
 
 func init() {
