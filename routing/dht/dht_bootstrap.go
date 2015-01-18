@@ -42,6 +42,10 @@ const DefaultBootstrapQueries = 1
 // queries
 const DefaultBootstrapPeriod = time.Duration(10 * time.Second)
 
+// DefaultBootstrapTimeout specifies how long to wait for a bootstrap query
+// to run.
+const DefaultBootstrapTimeout = time.Duration(10 * time.Second)
+
 // Bootstrap runs bootstrapping once, then calls SignalBootstrap with default
 // parameters: DefaultBootstrapQueries and DefaultBootstrapPeriod. This allows
 // the user to catch an error off the bat if the connections are faulty. It also
@@ -76,10 +80,10 @@ func (dht *IpfsDHT) BootstrapOnSignal(queries int, signal <-chan time.Time) (gop
 	}
 
 	proc := goprocess.Go(func(worker goprocess.Process) {
+		defer log.Debug("dht bootstrapper shutting down")
 		for {
 			select {
 			case <-worker.Closing():
-				log.Debug("dht bootstrapper shutting down")
 				return
 
 			case <-signal:
@@ -118,6 +122,12 @@ func (dht *IpfsDHT) BootstrapOnSignal(queries int, signal <-chan time.Time) (gop
 
 // runBootstrap builds up list of peers by requesting random peer IDs
 func (dht *IpfsDHT) runBootstrap(ctx context.Context, queries int) error {
+	bslog := func(msg string) {
+		log.Debugf("DHT %s dhtRunBootstrap %s -- routing table size: %d", dht.self, msg, dht.routingTable.Size())
+	}
+	bslog("start")
+	defer bslog("end")
+	defer log.EventBegin(ctx, "dhtRunBootstrap").Done()
 
 	var merr u.MultiErr
 
