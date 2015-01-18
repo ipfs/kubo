@@ -24,6 +24,7 @@ test: test_expensive
 test_expensive:
 	cd sharness && make TEST_EXPENSIVE=1
 	cd 3nodetest && make
+	cd dependencies && make
 
 test_cheap:
 	cd sharness && make
