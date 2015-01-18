@@ -27,7 +27,7 @@ import (
 // Note there is also a tradeoff between the bootstrap period and the number
 // of queries. We could support a higher period with a smaller number of
 // queries
-const DefaultBootstrapQueries = 16
+const DefaultBootstrapQueries = 1
 
 // DefaultBootstrapPeriod specifies how often to periodically run bootstrap,
 // if the user does not specify a different number as an option.
