@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	pq "github.com/jbenet/go-ipfs/exchange/bitswap/decision/pq"
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	pq "github.com/jbenet/go-ipfs/thirdparty/pq"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
