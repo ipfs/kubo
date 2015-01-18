@@ -31,6 +31,8 @@ func superviseConnections(parent context.Context,
 	store peer.Peerstore,
 	peers []peer.PeerInfo) error {
 
+	var dhtAlreadyBootstrapping bool
+
 	for {
 		ctx, _ := context.WithTimeout(parent, connectiontimeout)
 		// TODO get config from disk so |peers| always reflects the latest
@@ -38,6 +40,14 @@ func superviseConnections(parent context.Context,
 		if err := bootstrap(ctx, h, route, store, peers); err != nil {
 			log.Error(err)
 		}
+
+		if !dhtAlreadyBootstrapping {
+			dhtAlreadyBootstrapping = true // only call dht.Bootstrap once.
+			if _, err := route.Bootstrap(); err != nil {
+				log.Error(err)
+			}
+		}
+
 		select {
 		case <-parent.Done():
 			return parent.Err()
@@ -56,7 +66,7 @@ func bootstrap(ctx context.Context,
 	connectedPeers := h.Network().Peers()
 	if len(connectedPeers) >= recoveryThreshold {
 		log.Event(ctx, "bootstrapSkip", h.ID())
-		log.Debugf("%s bootstrap skipped -- connected to %d (> %d) nodes",
+		log.Debugf("%s core bootstrap skipped -- connected to %d (> %d) nodes",
 			h.ID(), len(connectedPeers), recoveryThreshold)
 
 		return nil
@@ -64,7 +74,7 @@ func bootstrap(ctx context.Context,
 	numCxnsToCreate := recoveryThreshold - len(connectedPeers)
 
 	log.Event(ctx, "bootstrapStart", h.ID())
-	log.Debugf("%s bootstrapping to %d more nodes", h.ID(), numCxnsToCreate)
+	log.Debugf("%s core bootstrapping to %d more nodes", h.ID(), numCxnsToCreate)
 
 	var notConnected []peer.PeerInfo
 	for _, p := range bootstrapPeers {
@@ -81,15 +91,6 @@ func bootstrap(ctx context.Context,
 			log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
 			log.Errorf("%s bootstrap error: %s", h.ID(), err)
 			return err
-		}
-	}
-
-	// we can try running dht bootstrap even if we're connected to all bootstrap peers.
-	if len(h.Network().Conns()) > 0 {
-		if _, err := r.Bootstrap(); err != nil {
-			// log this as Info. later on, discern better between errors.
-			log.Infof("dht bootstrap err: %s", err)
-			return nil
 		}
 	}
 	return nil

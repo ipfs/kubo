@@ -235,29 +235,17 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	// TODO implement an offline namesys that serves only local names.
 	n.Namesys = namesys.NewNameSystem(n.Routing)
 
-	// TODO consider moving connection supervision into the Network. We've
-	// discussed improvements to this Node constructor. One improvement
-	// would be to make the node configurable, allowing clients to inject
-	// an Exchange, Network, or Routing component and have the constructor
-	// manage the wiring. In that scenario, this dangling function is a bit
-	// awkward.
-	var bootstrapPeers []peer.PeerInfo
-	for _, bootstrap := range n.Repo.Config().Bootstrap {
-		p, err := toPeer(bootstrap)
-		if err != nil {
-			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
-			log.Errorf("%s bootstrap error: %s", n.Identity, err)
-			return err
-		}
-		bootstrapPeers = append(bootstrapPeers, p)
-	}
-
-	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
-
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
-	return nil
+	// prepare bootstrap peers from config
+	bpeers, err := n.loadBootstrapPeers()
+	if err != nil {
+		log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
+		log.Errorf("%s bootstrap error: %s", n.Identity, err)
+		return debugerror.Wrap(err)
+	}
+	return n.Bootstrap(ctx, bpeers)
 }
 
 // teardown closes owned children. If any errors occur, this function returns
@@ -310,11 +298,28 @@ func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
 
 	// TODO what should return value be when in offlineMode?
 
-	if n.Routing != nil {
-		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-			return bootstrap(ctx, n.PeerHost, dht, n.Peerstore, peers)
-		}
+	if n.Routing == nil {
+		return nil
 	}
+
+	// TODO what bootstrapping should happen if there is no DHT? i.e. we could
+	// continue connecting to our bootstrap peers, but for what purpose?
+	dhtRouting, ok := n.Routing.(*dht.IpfsDHT)
+	if !ok {
+		return nil
+	}
+
+	// TODO consider moving connection supervision into the Network. We've
+	// discussed improvements to this Node constructor. One improvement
+	// would be to make the node configurable, allowing clients to inject
+	// an Exchange, Network, or Routing component and have the constructor
+	// manage the wiring. In that scenario, this dangling function is a bit
+	// awkward.
+
+	// spin off the node's connection supervisor.
+	// TODO, clean up how this thing works. Make the superviseConnections thing
+	// work like the DHT.Bootstrap.
+	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, peers)
 	return nil
 }
 
@@ -353,6 +358,18 @@ func (n *IpfsNode) loadPrivateKey() error {
 	n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
 	n.Peerstore.AddPubKey(n.Identity, sk.GetPublic())
 	return nil
+}
+
+func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
+	var peers []peer.PeerInfo
+	for _, bootstrap := range n.Repo.Config().Bootstrap {
+		p, err := toPeer(bootstrap)
+		if err != nil {
+			return nil, err
+		}
+		peers = append(peers, p)
+	}
+	return peers, nil
 }
 
 // SetupOfflineRouting loads the local nodes private key and
