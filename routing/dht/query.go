@@ -62,7 +62,7 @@ type dhtQueryRunner struct {
 	peersRemaining todoctr.Counter  // peersToQuery + currently processing
 
 	result *dhtQueryResult // query result
-	errs   []error         // result errors. maybe should be a map[peer.ID]error
+	errs   u.MultiErr      // result errors. maybe should be a map[peer.ID]error
 
 	rateLimit chan struct{} // processing semaphore
 	log       eventlog.EventLogger
@@ -122,8 +122,12 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 		r.RLock()
 		defer r.RUnlock()
 
-		if len(r.errs) > 0 {
-			err = r.errs[0] // take the first?
+		err = routing.ErrNotFound
+
+		// if every query to every peer failed, something must be very wrong.
+		if len(r.errs) > 0 && len(r.errs) == r.peersSeen.Size() {
+			log.Debugf("query errs: %s", r.errs)
+			err = r.errs[0]
 		}
 
 	case <-r.cg.Closed():
