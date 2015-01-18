@@ -140,6 +140,8 @@ func (dht *IpfsDHT) runBootstrap(ctx context.Context, queries int) error {
 	}
 
 	// bootstrap sequentially, as results will compound
+	ctx, cancel := context.WithTimeout(ctx, DefaultBootstrapTimeout)
+	defer cancel()
 	runQuery := func(ctx context.Context, id peer.ID) {
 		p, err := dht.FindPeer(ctx, id)
 		if err == routing.ErrNotFound {
