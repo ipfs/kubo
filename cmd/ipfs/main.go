@@ -181,15 +181,19 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 			return nil, errors.New("constructing node without a request context")
 		}
 
-		cfg, err := cmdctx.GetConfig()
-		if err != nil {
-			return nil, fmt.Errorf("constructing node without a config: %s", err)
+		r := fsrepo.At(i.req.Context().ConfigRoot)
+		if err := r.Open(); err != nil { // repo is owned by the node
+			return nil, err
 		}
 
 		// ok everything is good. set it on the invocation (for ownership)
 		// and return it.
-		i.node, err = core.NewIPFSNode(ctx, core.Standard(cfg, cmdctx.Online))
-		return i.node, err
+		n, err := core.NewIPFSNode(ctx, core.Standard(r, cmdctx.Online))
+		if err != nil {
+			return nil, err
+		}
+		i.node = n
+		return i.node, nil
 	}
 }
 

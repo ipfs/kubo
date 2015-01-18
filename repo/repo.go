@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"io"
+
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	util "github.com/jbenet/go-ipfs/util"
@@ -14,6 +16,8 @@ type Repo interface {
 	GetConfigKey(key string) (interface{}, error)
 
 	Datastore() datastore.ThreadSafeDatastore
+
+	io.Closer
 }
 
 // IsInitialized returns true if the path is home to an initialized IPFS

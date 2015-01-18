@@ -10,8 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	corecmds "github.com/jbenet/go-ipfs/core/commands"
-	imp "github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
+	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	repo "github.com/jbenet/go-ipfs/repo"
@@ -106,7 +105,7 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
 		return nil, err
 	}
-	err = addTheWelcomeFile(conf)
+	err = addTheWelcomeFile(repoRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -115,26 +114,23 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 }
 
 // addTheWelcomeFile adds a file containing the welcome message to the newly
-// minted node. On success, it calls onSuccess
-func addTheWelcomeFile(conf *config.Config) error {
-	// TODO extract this file creation operation into a function
+// minted node.
+func addTheWelcomeFile(repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
-	nd, err := core.NewIPFSNode(ctx, core.Offline(conf))
+	defer cancel()
+	r := fsrepo.At(repoRoot)
+	if err := r.Open(); err != nil { // NB: repo is owned by the node
+		return err
+	}
+	nd, err := core.NewIPFSNode(ctx, core.Offline(r))
 	if err != nil {
 		return err
 	}
 	defer nd.Close()
-	defer cancel()
 
 	// Set up default file
 	reader := bytes.NewBufferString(welcomeMsg)
-
-	defnd, err := imp.BuildDagFromReader(reader, nd.DAG, nd.Pinning.GetManual(), chunk.DefaultSplitter)
-	if err != nil {
-		return err
-	}
-
-	k, err := defnd.Key()
+	k, err := coreunix.Add(nd, reader)
 	if err != nil {
 		return fmt.Errorf("failed to write test file: %s", err)
 	}

@@ -8,7 +8,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	core "github.com/jbenet/go-ipfs/core"
-	core_io "github.com/jbenet/go-ipfs/core/io"
+	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
@@ -62,12 +62,12 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	adder.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
 	catter.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
 
-	keyAdded, err := core_io.Add(adder, bytes.NewReader(data))
+	keyAdded, err := coreunix.Add(adder, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 
-	readerCatted, err := core_io.Cat(catter, keyAdded)
+	readerCatted, err := coreunix.Cat(catter, keyAdded)
 	if err != nil {
 		return err
 	}

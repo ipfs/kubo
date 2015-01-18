@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -29,11 +30,11 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
 	pin "github.com/jbenet/go-ipfs/pin"
+	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	util "github.com/jbenet/go-ipfs/util"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
@@ -41,6 +42,7 @@ import (
 
 const IpnsValidatorTag = "ipns"
 const kSizeBlockstoreWriteCache = 100
+const kReprovideFrequency = time.Hour * 12
 
 var log = eventlog.Logger("core")
 
@@ -59,9 +61,7 @@ type IpfsNode struct {
 	// Self
 	Identity peer.ID // the local node's identity
 
-	// TODO abstract as repo.Repo
-	Config    *config.Config                // the node's configuration
-	Datastore ds2.ThreadSafeDatastoreCloser // the local datastore
+	Repo repo.Repo
 
 	// Local node
 	Pinning pin.Pinner // the pinning manager
@@ -85,10 +85,6 @@ type IpfsNode struct {
 
 	ctxgroup.ContextGroup
 
-	// dht allows node to Bootstrap when dht is present
-	// TODO privatize before merging. This is here temporarily during the
-	// migration of the TestNet constructor
-	DHT  *dht.IpfsDHT
 	mode mode
 }
 
@@ -102,11 +98,22 @@ type Mounts struct {
 
 type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
-func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
+func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error) {
+	ctxg := ctxgroup.WithContext(parent)
+	ctx := ctxg.Context()
+	success := false // flip to true after all sub-system inits succeed
+	defer func() {
+		if !success {
+			ctxg.Close()
+		}
+	}()
+
 	node, err := option(ctx)
 	if err != nil {
 		return nil, err
 	}
+	node.ContextGroup = ctxg
+	ctxg.SetTeardown(node.teardown)
 
 	// Need to make sure it's perfectly clear 1) which variables are expected
 	// to be initialized at this point, and 2) which variables will be
@@ -120,35 +127,41 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 		node.Peerstore = peer.NewPeerstore()
 	}
 	node.DAG = merkledag.NewDAGService(node.Blocks)
-	node.Pinning, err = pin.LoadPinner(node.Datastore, node.DAG)
+	node.Pinning, err = pin.LoadPinner(node.Repo.Datastore(), node.DAG)
 	if err != nil {
-		node.Pinning = pin.NewPinner(node.Datastore, node.DAG)
+		node.Pinning = pin.NewPinner(node.Repo.Datastore(), node.DAG)
 	}
 	node.Resolver = &path.Resolver{DAG: node.DAG}
+	success = true
 	return node, nil
 }
 
-func Offline(cfg *config.Config) ConfigOption {
-	return Standard(cfg, false)
+func Offline(r repo.Repo) ConfigOption {
+	return Standard(r, false)
 }
 
-func Online(cfg *config.Config) ConfigOption {
-	return Standard(cfg, true)
+func Online(r repo.Repo) ConfigOption {
+	return Standard(r, true)
 }
 
 // DEPRECATED: use Online, Offline functions
-func Standard(cfg *config.Config, online bool) ConfigOption {
+func Standard(r repo.Repo, online bool) ConfigOption {
 	return func(ctx context.Context) (n *IpfsNode, err error) {
-
-		success := false // flip to true after all sub-system inits succeed
+		// FIXME perform node construction in the main constructor so it isn't
+		// necessary to perform this teardown in this scope.
+		success := false
 		defer func() {
 			if !success && n != nil {
-				n.Close()
+				n.teardown()
 			}
 		}()
 
-		if cfg == nil {
-			return nil, debugerror.Errorf("configuration required")
+		// TODO move as much of node initialization as possible into
+		// NewIPFSNode. The larger these config options are, the harder it is
+		// to test all node construction code paths.
+
+		if r == nil {
+			return nil, debugerror.Errorf("repo required")
 		}
 		n = &IpfsNode{
 			mode: func() mode {
@@ -157,34 +170,25 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 				}
 				return offlineMode
 			}(),
-			Config: cfg,
+			Repo: r,
 		}
-
-		n.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, n.teardown)
-		ctx = n.ContextGroup.Context()
 
 		// setup Peerstore
 		n.Peerstore = peer.NewPeerstore()
-
-		// setup datastore.
-		if n.Datastore, err = makeDatastore(cfg.Datastore); err != nil {
-			return nil, debugerror.Wrap(err)
-		}
 
 		// setup local peer ID (private key is loaded in online setup)
 		if err := n.loadID(); err != nil {
 			return nil, err
 		}
 
-		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Datastore), kSizeBlockstoreWriteCache)
+		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
 		}
 
-		// setup online services
 		if online {
-			if err := n.StartOnlineServices(); err != nil {
-				return nil, err // debugerror.Wraps.
+			if err := n.StartOnlineServices(ctx); err != nil {
+				return nil, err
 			}
 		} else {
 			n.Exchange = offline.Exchange(n.Blockstore)
@@ -195,8 +199,7 @@ func Standard(cfg *config.Config, online bool) ConfigOption {
 	}
 }
 
-func (n *IpfsNode) StartOnlineServices() error {
-	ctx := n.Context()
+func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 
 	if n.PeerHost != nil { // already online.
 		return debugerror.New("node already online")
@@ -207,7 +210,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 		return err
 	}
 
-	peerhost, err := constructPeerHost(ctx, n.ContextGroup, n.Config, n.Identity, n.Peerstore)
+	peerhost, err := constructPeerHost(ctx, n.Repo.Config(), n.Identity, n.Peerstore)
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
@@ -217,11 +220,10 @@ func (n *IpfsNode) StartOnlineServices() error {
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
 	// setup routing service
-	dhtRouting, err := constructDHTRouting(ctx, n.ContextGroup, n.PeerHost, n.Datastore)
+	dhtRouting, err := constructDHTRouting(ctx, n.PeerHost, n.Repo.Datastore())
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
-	n.DHT = dhtRouting
 	n.Routing = dhtRouting
 
 	// setup exchange service
@@ -240,7 +242,7 @@ func (n *IpfsNode) StartOnlineServices() error {
 	// manage the wiring. In that scenario, this dangling function is a bit
 	// awkward.
 	var bootstrapPeers []peer.PeerInfo
-	for _, bootstrap := range n.Config.Bootstrap {
+	for _, bootstrap := range n.Repo.Config().Bootstrap {
 		p, err := toPeer(bootstrap)
 		if err != nil {
 			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
@@ -249,17 +251,40 @@ func (n *IpfsNode) StartOnlineServices() error {
 		}
 		bootstrapPeers = append(bootstrapPeers, p)
 	}
-	go superviseConnections(ctx, n.PeerHost, n.DHT, n.Peerstore, bootstrapPeers)
 
-	// Start up reprovider system
+	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
+
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-	go n.Reprovider.ProvideEvery(ctx, time.Hour*12)
+	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
+
 	return nil
 }
 
+// teardown closes owned children. If any errors occur, this function returns
+// the first error.
 func (n *IpfsNode) teardown() error {
-	if err := n.Datastore.Close(); err != nil {
-		return err
+	// owned objects are closed in this teardown to ensure that they're closed
+	// regardless of which constructor was used to add them to the node.
+	var closers []io.Closer
+	if n.Repo != nil {
+		closers = append(closers, n.Repo)
+	}
+	if n.Routing != nil {
+		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+			closers = append(closers, dht)
+		}
+	}
+	if n.PeerHost != nil {
+		closers = append(closers, n.PeerHost)
+	}
+	var errs []error
+	for _, closer := range closers {
+		if err := closer.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errs[0]
 	}
 	return nil
 }
@@ -273,6 +298,8 @@ func (n *IpfsNode) OnlineMode() bool {
 	}
 }
 
+// TODO expose way to resolve path name
+
 func (n *IpfsNode) Resolve(k util.Key) (*merkledag.Node, error) {
 	return (&path.Resolver{n.DAG}).ResolvePath(k.String())
 }
@@ -282,8 +309,10 @@ func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
 
 	// TODO what should return value be when in offlineMode?
 
-	if n.DHT != nil {
-		return bootstrap(ctx, n.PeerHost, n.DHT, n.Peerstore, peers)
+	if n.Routing != nil {
+		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+			return bootstrap(ctx, n.PeerHost, dht, n.Peerstore, peers)
+		}
 	}
 	return nil
 }
@@ -293,7 +322,7 @@ func (n *IpfsNode) loadID() error {
 		return debugerror.New("identity already loaded")
 	}
 
-	cid := n.Config.Identity.PeerID
+	cid := n.Repo.Config().Identity.PeerID
 	if cid == "" {
 		return debugerror.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -314,7 +343,7 @@ func (n *IpfsNode) loadPrivateKey() error {
 		return debugerror.New("private key already loaded")
 	}
 
-	sk, err := loadPrivateKey(&n.Config.Identity, n.Identity)
+	sk, err := loadPrivateKey(&n.Repo.Config().Identity, n.Identity)
 	if err != nil {
 		return err
 	}
@@ -358,7 +387,7 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 }
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *config.Config, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
 	listenAddrs, err := listenAddresses(cfg)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
@@ -376,7 +405,6 @@ func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *con
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
-	ctxg.AddChildGroup(network.CtxGroup())
 
 	peerhost := p2pbhost.New(network)
 	// explicitly set these as our listen addrs.
@@ -391,9 +419,8 @@ func constructPeerHost(ctx context.Context, ctxg ctxgroup.ContextGroup, cfg *con
 	return peerhost, nil
 }
 
-func constructDHTRouting(ctx context.Context, ctxg ctxgroup.ContextGroup, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {
+func constructDHTRouting(ctx context.Context, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {
 	dhtRouting := dht.NewDHT(ctx, host, ds)
 	dhtRouting.Validators[IpnsValidatorTag] = namesys.ValidateIpnsRecord
-	ctxg.AddChildGroup(dhtRouting)
 	return dhtRouting, nil
 }
