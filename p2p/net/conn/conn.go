@@ -13,8 +13,8 @@ import (
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 var log = eventlog.Logger("conn")

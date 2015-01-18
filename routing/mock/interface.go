@@ -9,8 +9,8 @@ import (
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
+	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	u "github.com/jbenet/go-ipfs/util"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 	"github.com/jbenet/go-ipfs/util/testutil"
 )
 

@@ -18,10 +18,10 @@ import (
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	"github.com/jbenet/go-ipfs/thirdparty/delay"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	"github.com/jbenet/go-ipfs/util/delay"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	pset "github.com/jbenet/go-ipfs/util/peerset" // TODO move this to peerstore
 )
 

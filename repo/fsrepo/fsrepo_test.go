@@ -7,7 +7,7 @@ import (
 
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/jbenet/go-ipfs/repo/config"
-	"github.com/jbenet/go-ipfs/repo/fsrepo/assert"
+	"github.com/jbenet/go-ipfs/thirdparty/assert"
 )
 
 // swap arg order

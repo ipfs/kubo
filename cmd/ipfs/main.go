@@ -23,10 +23,10 @@ import (
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 // log is the command logger

@@ -8,8 +8,8 @@ import (
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	util "github.com/jbenet/go-ipfs/util"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 var log = eventlog.Logger("bitswap_network")

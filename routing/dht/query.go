@@ -6,8 +6,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	queue "github.com/jbenet/go-ipfs/p2p/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	pset "github.com/jbenet/go-ipfs/util/peerset"
 	todoctr "github.com/jbenet/go-ipfs/util/todocounter"
 

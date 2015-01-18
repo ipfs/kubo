@@ -11,8 +11,8 @@ import (
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	p2ptestutil "github.com/jbenet/go-ipfs/p2p/test/util"
+	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

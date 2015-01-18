@@ -13,8 +13,8 @@ import (
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	pb "github.com/jbenet/go-ipfs/p2p/crypto/secio/internal/pb"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 var log = eventlog.Logger("secio")

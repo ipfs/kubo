@@ -13,8 +13,8 @@ import (
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	p2ptestutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	u "github.com/jbenet/go-ipfs/util"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work

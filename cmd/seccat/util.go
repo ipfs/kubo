@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("seccat")
