@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"

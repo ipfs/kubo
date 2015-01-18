@@ -9,7 +9,7 @@ package loggables
 import (
 	"net"
 
-	log "github.com/jbenet/go-ipfs/util/eventlog"
+	log "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
 
 // NetConn returns an eventlog.Metadata with the conn addresses

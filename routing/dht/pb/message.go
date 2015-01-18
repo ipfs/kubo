@@ -5,7 +5,7 @@ import (
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("dht.pb")

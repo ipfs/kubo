@@ -9,14 +9,12 @@ import (
 	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	config "github.com/jbenet/go-ipfs/repo/config"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-
 	pb "github.com/jbenet/go-ipfs/p2p/protocol/identify/pb"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("net/identify")

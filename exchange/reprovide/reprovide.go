@@ -8,8 +8,8 @@ import (
 
 	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
 	routing "github.com/jbenet/go-ipfs/routing"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 var log = eventlog.Logger("reprovider")

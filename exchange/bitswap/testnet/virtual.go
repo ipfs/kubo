@@ -9,8 +9,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	util "github.com/jbenet/go-ipfs/util"
-	delay "github.com/jbenet/go-ipfs/util/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

@@ -12,8 +12,8 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 )
 
 var log = eventlog.Logger("blockstore")

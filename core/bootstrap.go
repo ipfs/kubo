@@ -11,8 +11,8 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	math2 "github.com/jbenet/go-ipfs/thirdparty/math2"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
-	math2 "github.com/jbenet/go-ipfs/util/math2"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"

@@ -3,11 +3,10 @@ package host
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
-
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("p2p/host")

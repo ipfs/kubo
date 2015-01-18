@@ -10,7 +10,7 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
-	delay "github.com/jbenet/go-ipfs/util/delay"
+	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

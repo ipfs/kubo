@@ -12,9 +12,9 @@ import (
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	"github.com/jbenet/go-ipfs/util/datastore2"
-	delay "github.com/jbenet/go-ipfs/util/delay"
-	eventlog "github.com/jbenet/go-ipfs/util/eventlog"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
