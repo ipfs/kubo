@@ -36,6 +36,8 @@ type DiagnosticOutput struct {
 	Peers []DiagnosticPeer
 }
 
+var DefaultDiagnosticTimeout = time.Second * 20
+
 var DiagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Generates diagnostic reports",
@@ -57,6 +59,7 @@ connected peers and latencies between them.
 	},
 
 	Options: []cmds.Option{
+		cmds.StringOption("timeout", "diagnostic timeout duration"),
 		cmds.StringOption("vis", "output vis. one of: "+strings.Join(visFmts, ", ")),
 	},
 
@@ -75,7 +78,20 @@ connected peers and latencies between them.
 			return nil, err
 		}
 
-		info, err := n.Diagnostics.GetDiagnostic(time.Second * 20)
+		timeoutS, _, err := req.Option("timeout").String()
+		if err != nil {
+			return nil, err
+		}
+		timeout := DefaultDiagnosticTimeout
+		if timeoutS != "" {
+			t, err := time.ParseDuration(timeoutS)
+			if err != nil {
+				return nil, cmds.ClientError("error parsing timeout")
+			}
+			timeout = t
+		}
+
+		info, err := n.Diagnostics.GetDiagnostic(timeout)
 		if err != nil {
 			return nil, err
 		}
