@@ -122,6 +122,11 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 		dagnodes = append(dagnodes, node)
 	}
 
+	err := n.Pinning.Flush()
+	if err != nil {
+		return nil, err
+	}
+
 	return dagnodes, nil
 }
 
