@@ -277,10 +277,13 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 		case <-ctx.Done():
 			log.Debugf("exiting")
 			return
-		case envelope := <-bs.engine.Outbox():
-			log.Debugf("message to %s sending...", envelope.Peer)
-			bs.send(ctx, envelope.Peer, envelope.Message)
-			log.Debugf("message to %s sent", envelope.Peer)
+		case nextEnvelope := <-bs.engine.Outbox():
+			select {
+			case <-ctx.Done():
+				return
+			case envelope := <-nextEnvelope:
+				bs.send(ctx, envelope.Peer, envelope.Message)
+			}
 		}
 	}
 }

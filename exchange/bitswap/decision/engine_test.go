@@ -1,6 +1,8 @@
 package decision
 
 import (
+	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"sync"
@@ -104,7 +106,8 @@ func TestOutboxClosedWhenEngineClosed(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		for _ = range e.Outbox() {
+		for nextEnvelope := range e.Outbox() {
+			<-nextEnvelope
 		}
 		wg.Done()
 	}()
@@ -116,6 +119,10 @@ func TestOutboxClosedWhenEngineClosed(t *testing.T) {
 }
 
 func TestPartnerWantsThenCancels(t *testing.T) {
+	numRounds := 10
+	if testing.Short() {
+		numRounds = 1
+	}
 	alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 	vowels := strings.Split("aeiou", "")
 
@@ -129,23 +136,31 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 		},
 	}
 
-	for _, testcase := range testcases {
-		set := testcase[0]
-		cancels := testcase[1]
-		keeps := stringsComplement(set, cancels)
-
-		bs := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
-		e := NewEngine(context.Background(), bs)
-		partner := testutil.RandPeerIDFatal(t)
-		for _, letter := range set {
-			block := blocks.NewBlock([]byte(letter))
-			bs.Put(block)
+	bs := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
+	for _, letter := range alphabet {
+		block := blocks.NewBlock([]byte(letter))
+		if err := bs.Put(block); err != nil {
+			t.Fatal(err)
 		}
-		partnerWants(e, set, partner)
-		partnerCancels(e, cancels, partner)
-		assertPoppedInOrder(t, e, keeps)
 	}
 
+	for i := 0; i < numRounds; i++ {
+		for _, testcase := range testcases {
+			set := testcase[0]
+			cancels := testcase[1]
+			keeps := stringsComplement(set, cancels)
+
+			e := NewEngine(context.Background(), bs)
+			partner := testutil.RandPeerIDFatal(t)
+
+			partnerWants(e, set, partner)
+			partnerCancels(e, cancels, partner)
+			if err := checkHandledInOrder(t, e, keeps); err != nil {
+				t.Logf("run #%d of %d", i, numRounds)
+				t.Fatal(err)
+			}
+		}
+	}
 }
 
 func partnerWants(e *Engine, keys []string, partner peer.ID) {
@@ -166,15 +181,17 @@ func partnerCancels(e *Engine, keys []string, partner peer.ID) {
 	e.MessageReceived(partner, cancels)
 }
 
-func assertPoppedInOrder(t *testing.T, e *Engine, keys []string) {
+func checkHandledInOrder(t *testing.T, e *Engine, keys []string) error {
 	for _, k := range keys {
-		envelope := <-e.Outbox()
+		next := <-e.Outbox()
+		envelope := <-next
 		received := envelope.Message.Blocks()[0]
 		expected := blocks.NewBlock([]byte(k))
 		if received.Key() != expected.Key() {
-			t.Fatal("received", string(received.Data), "expected", string(expected.Data))
+			return errors.New(fmt.Sprintln("received", string(received.Data), "expected", string(expected.Data)))
 		}
 	}
+	return nil
 }
 
 func stringsComplement(set, subset []string) []string {
