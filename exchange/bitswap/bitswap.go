@@ -290,23 +290,19 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
 			bs.sendWantlistToProviders(ctx)
 			broadcastSignal = time.After(rebroadcastDelay.Get())
-		case ks := <-bs.batchRequests:
-			if len(ks) == 0 {
+		case keys := <-bs.batchRequests:
+			if len(keys) == 0 {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-			for i, k := range ks {
+			for i, k := range keys {
 				bs.wantlist.Add(k, kMaxPriority-i)
 			}
-			// NB: send want list to providers for the first peer in this list.
-			//		the assumption is made that the providers of the first key in
-			//		the set are likely to have others as well.
-			//		This currently holds true in most every situation, since when
-			//		pinning a file, you store and provide all blocks associated with
-			//		it. Later, this assumption may not hold as true if we implement
-			//		newer bitswap strategies.
+			// NB: Optimization. Assumes that providers of key[0] are likely to
+			// be able to provide for all keys. This currently holds true in most
+			// every situation. Later, this assumption may not hold as true.
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.network.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
+			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
 			err := bs.sendWantlistToPeers(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)
