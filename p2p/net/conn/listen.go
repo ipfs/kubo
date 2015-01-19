@@ -9,7 +9,9 @@ import (
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	reuseport "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
 	tec "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
+
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
@@ -123,9 +125,21 @@ func (l *listener) Loggable() map[string]interface{} {
 // Listen listens on the particular multiaddr, with given peer and peerstore.
 func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey) (Listener, error) {
 
-	ml, err := manet.Listen(addr)
+	network, naddr, err := manet.DialArgs(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	// _ := reuseport.Listen
+	// ml, err := manet.Listen(addr)
+	nl, err := reuseport.Listen(network, naddr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to listen on %s: %s", addr, err)
+	}
+
+	ml, err := manet.WrapNetListener(nl)
+	if err != nil {
+		return nil, err
 	}
 
 	l := &listener{
