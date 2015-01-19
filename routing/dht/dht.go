@@ -10,12 +10,14 @@ import (
 	"sync"
 	"time"
 
+	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -52,8 +54,7 @@ type IpfsDHT struct {
 	birth    time.Time  // When this peer started up
 	diaglock sync.Mutex // lock to make diagnostics work better
 
-	// record validator funcs
-	Validators map[string]ValidatorFunc
+	Validator record.Validator // record validator funcs
 
 	ctxgroup.ContextGroup
 }
@@ -79,8 +80,8 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
 
-	dht.Validators = make(map[string]ValidatorFunc)
-	dht.Validators["pk"] = ValidatePublicKeyRecord
+	dht.Validator = make(record.Validator)
+	dht.Validator["pk"] = record.ValidatePublicKeyRecord
 
 	if doPinging {
 		dht.Children().Add(1)
@@ -234,9 +235,25 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	return rec.GetValue(), nil
 }
 
+// getOwnPrivateKey attempts to load the local peers private
+// key from the peerstore.
+func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
+	sk := dht.peerstore.PrivKey(dht.self)
+	if sk == nil {
+		log.Errorf("%s dht cannot get own private key!", dht.self)
+		return nil, fmt.Errorf("cannot get private key to sign record!")
+	}
+	return sk, nil
+}
+
 // putLocal stores the key value pair in the datastore
 func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
-	rec, err := dht.makePutRecord(key, value)
+	sk, err := dht.getOwnPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	rec, err := record.MakePutRecord(sk, key, value)
 	if err != nil {
 		return err
 	}
