@@ -108,7 +108,6 @@ type bitswap struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
-	log := log.Prefix("bitswap(%s).GetBlock(%s)", bs.self, k)
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
@@ -121,11 +120,9 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
 	defer log.EventBegin(ctx, "GetBlockRequest", &k).Done()
-	log.Debugf("GetBlockRequestBegin")
 
 	defer func() {
 		cancelFunc()
-		log.Debugf("GetBlockRequestEnd")
 	}()
 
 	promise, err := bs.GetBlocks(ctx, []u.Key{k})
