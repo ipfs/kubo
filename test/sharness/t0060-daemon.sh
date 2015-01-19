@@ -13,7 +13,7 @@ test_description="Test daemon command"
 
 # NOTE: this should remove bootstrap peers (needs a flag)
 test_expect_success "ipfs daemon --init launches" '
-  export IPFS_DIR="$(pwd)/.go-ipfs" &&
+  export IPFS_PATH="$(pwd)/.go-ipfs" &&
   ipfs daemon --init 2>&1 >actual_init &
 '
 
@@ -35,7 +35,7 @@ test_expect_success "ipfs peer id looks good" '
 # note this is almost the same as t0020-init.sh "ipfs init output looks good"
 test_expect_success "ipfs daemon output looks good" '
   STARTHASH="QmYpv2VEsxzTTXRYX3PjDg961cnJE3kY1YDXLycHGQ3zZB" &&
-  echo "initializing ipfs node at $IPFS_DIR" >expected &&
+  echo "initializing ipfs node at $IPFS_PATH" >expected &&
   echo "generating key pair...done" >>expected &&
   echo "peer identity: $PEERID" >>expected &&
   echo "\nto get started, enter: ipfs cat $STARTHASH" >>expected &&
