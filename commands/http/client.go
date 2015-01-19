@@ -153,8 +153,14 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 			outputType := reflect.TypeOf(req.Command().Type)
 
 			for {
-				v := reflect.New(outputType).Interface()
-				err := dec.Decode(v)
+				var v interface{}
+				var err error
+				if outputType != nil {
+					v = reflect.New(outputType).Interface()
+					err = dec.Decode(v)
+				} else {
+					err = dec.Decode(&v)
+				}
 				if err != nil && err != io.EOF {
 					fmt.Println(err.Error())
 					return
@@ -200,13 +206,20 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 	} else {
 		outputType := reflect.TypeOf(req.Command().Type)
-		v := reflect.New(outputType).Interface()
-		err = dec.Decode(v)
+		var v interface{}
+
+		if outputType != nil {
+			v = reflect.New(outputType).Interface()
+			err = dec.Decode(v)
+		} else {
+			err = dec.Decode(&v)
+		}
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
-
-		res.SetOutput(v)
+		if v != nil {
+			res.SetOutput(v)
+		}
 	}
 
 	return res, nil
