@@ -6,8 +6,7 @@ import (
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/merkledag"
+	corerepo "github.com/jbenet/go-ipfs/core/repo"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -58,21 +57,11 @@ on disk.
 			recursive = false
 		}
 
-		nodes, err := pin(n, req.Arguments(), recursive)
+		added, err := corerepo.Pin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}
 
-		var added []u.Key
-		for _, node := range nodes {
-			k, err := node.Key()
-			if err != nil {
-				return nil, err
-			}
-			added = append(added, k)
-		}
-
-		// TODO: create some output to show what got pinned
 		return &PinOutput{added}, nil
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -122,18 +111,9 @@ collected if needed.
 			recursive = false // default
 		}
 
-		nodes, err := unpin(n, req.Arguments(), recursive)
+		removed, err := corerepo.Unpin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
-		}
-
-		var removed []u.Key
-		for _, node := range nodes {
-			k, err := node.Key()
-			if err != nil {
-				return nil, err
-			}
-			removed = append(removed, k)
 		}
 
 		return &PinOutput{removed}, nil
@@ -214,56 +194,4 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,
 	},
-}
-
-func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
-
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, path := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path)
-		if err != nil {
-			return nil, fmt.Errorf("pin error: %v", err)
-		}
-		dagnodes = append(dagnodes, dagnode)
-	}
-
-	for _, dagnode := range dagnodes {
-		err := n.Pinning.Pin(dagnode, recursive)
-		if err != nil {
-			return nil, fmt.Errorf("pin: %v", err)
-		}
-	}
-
-	err := n.Pinning.Flush()
-	if err != nil {
-		return nil, err
-	}
-
-	return dagnodes, nil
-}
-
-func unpin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
-
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, path := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path)
-		if err != nil {
-			return nil, err
-		}
-		dagnodes = append(dagnodes, dagnode)
-	}
-
-	for _, dagnode := range dagnodes {
-		k, _ := dagnode.Key()
-		err := n.Pinning.Unpin(k, recursive)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err := n.Pinning.Flush()
-	if err != nil {
-		return nil, err
-	}
-	return dagnodes, nil
 }

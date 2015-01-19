@@ -25,12 +25,13 @@ const (
 	Recursive PinMode = iota
 	Direct
 	Indirect
+	NotPinned
 )
 
 type Pinner interface {
 	IsPinned(util.Key) bool
 	Pin(*mdag.Node, bool) error
-	Unpin(util.Key, bool) error
+	Unpin(util.Key) error
 	Flush() error
 	GetManual() ManualPinner
 	DirectKeys() []util.Key
@@ -90,6 +91,10 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 			return nil
 		}
 
+		if p.directPin.HasKey(k) {
+			p.directPin.RemoveBlock(k)
+		}
+
 		p.recursePin.AddBlock(k)
 
 		err := p.pinLinks(node)
@@ -97,16 +102,19 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 			return err
 		}
 	} else {
+		if p.recursePin.HasKey(k) {
+			return errors.New("Key already pinned recursively.")
+		}
 		p.directPin.AddBlock(k)
 	}
 	return nil
 }
 
-// Unpin a given key with optional recursive unpinning
-func (p *pinner) Unpin(k util.Key, recurse bool) error {
+// Unpin a given key
+func (p *pinner) Unpin(k util.Key) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if recurse {
+	if p.recursePin.HasKey(k) {
 		p.recursePin.RemoveBlock(k)
 		node, err := p.dserv.Get(k)
 		if err != nil {
@@ -114,9 +122,14 @@ func (p *pinner) Unpin(k util.Key, recurse bool) error {
 		}
 
 		return p.unpinLinks(node)
+	} else if p.directPin.HasKey(k) {
+		p.directPin.RemoveBlock(k)
+		return nil
+	} else if p.indirPin.HasKey(k) {
+		return errors.New("Cannot unpin indirectly pinned block.")
+	} else {
+		return errors.New("Given key was not pinned.")
 	}
-	p.directPin.RemoveBlock(k)
-	return nil
 }
 
 func (p *pinner) unpinLinks(node *mdag.Node) error {

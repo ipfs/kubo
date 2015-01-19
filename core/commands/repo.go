@@ -3,10 +3,10 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"io"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	u "github.com/jbenet/go-ipfs/util"
+	"io"
 )
 
 var RepoCmd = &cmds.Command{
