@@ -236,13 +236,17 @@ func Listen(laddr ma.Multiaddr) (Listener, error) {
 		return nil, err
 	}
 
-	// we need to fetch the new multiaddr from the listener, as it
-	// may have resolved to some other value.
-	nladdr, err := FromNetAddr(nl.Addr())
+	// we want to fetch the new multiaddr from the listener, as it may
+	// have resolved to some other value. WrapNetListener does it for us.
+	return WrapNetListener(nl)
+}
+
+// WrapNetListener wraps a net.Listener with a manet.Listener.
+func WrapNetListener(nl net.Listener) (Listener, error) {
+	laddr, err := FromNetAddr(nl.Addr())
 	if err != nil {
 		return nil, err
 	}
-	laddr = nladdr
 
 	return &maListener{
 		Listener: nl,
