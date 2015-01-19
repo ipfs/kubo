@@ -281,7 +281,10 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				return
-			case envelope := <-nextEnvelope:
+			case envelope, ok := <-nextEnvelope:
+				if !ok {
+					continue
+				}
 				bs.send(ctx, envelope.Peer, envelope.Message)
 			}
 		}
