@@ -168,18 +168,6 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	return bs.network.Provide(ctx, blk.Key())
 }
 
-func (bs *bitswap) sendWantlistMsgToPeer(ctx context.Context, m bsmsg.BitSwapMessage, p peer.ID) error {
-	log := log.Prefix("bitswap(%s).bitswap.sendWantlistMsgToPeer(%d, %s)", bs.self, len(m.Wantlist()), p)
-
-	log.Debug("sending wantlist")
-	if err := bs.send(ctx, p, m); err != nil {
-		log.Errorf("send wantlist error: %s", err)
-		return err
-	}
-	log.Debugf("send wantlist success")
-	return nil
-}
-
 func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
 	if peers == nil {
 		panic("Cant send wantlist to nil peerchan")
@@ -203,7 +191,9 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
-			bs.sendWantlistMsgToPeer(ctx, m, p)
+			if err := bs.send(ctx, p, m); err != nil {
+				log.Error(err) // TODO remove if too verbose
+			}
 		}(peerToQuery)
 	}
 	wg.Wait()
