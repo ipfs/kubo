@@ -163,7 +163,9 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 	p := c.RemotePeer()
 
 	// mes.Protocols
+
 	// mes.ObservedAddr
+	ids.consumeObservedAddress(mes.GetObservedAddr(), c)
 
 	// mes.ListenAddrs
 	laddrs := mes.GetListenAddrs()
@@ -207,4 +209,45 @@ func (ids *IDService) IdentifyWait(c inet.Conn) <-chan struct{} {
 	ch = make(chan struct{})
 	close(ch)
 	return ch
+}
+
+func (ids *IDService) consumeObservedAddress(observed []byte, c inet.Conn) {
+	if observed == nil {
+		return
+	}
+
+	maddr, err := ma.NewMultiaddrBytes(observed)
+	if err != nil {
+		log.Debugf("error parsing received observed addr for %s: %s", c, err)
+		return
+	}
+
+	// we should only use ObservedAddr when our connection's LocalAddr is one
+	// of our ListenAddrs. If we Dial out using an ephemeral addr, knowing that
+	// address's external mapping is not very useful because the port will not be
+	// the same as the listen addr.
+	ifaceaddrs, err := ids.Host.Network().InterfaceListenAddresses()
+	if err != nil {
+		log.Infof("failed to get interface listen addrs", err)
+		return
+	}
+
+	log.Debugf("identify identifying observed multiaddr: %s %s", c.LocalMultiaddr(), ifaceaddrs)
+	if !addrInAddrs(c.LocalMultiaddr(), ifaceaddrs) {
+		// not in our list
+		return
+	}
+
+	// ok! we have the observed version of one of our ListenAddresses!
+	log.Debugf("added own observed listen addr: %s --> %s", c.LocalMultiaddr(), maddr)
+	ids.Host.Peerstore().AddAddress(ids.Host.ID(), maddr)
+}
+
+func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
+	for _, b := range as {
+		if a.Equal(b) {
+			return true
+		}
+	}
+	return false
 }
