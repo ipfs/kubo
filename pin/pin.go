@@ -5,6 +5,7 @@ package pin
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -103,7 +104,7 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 		}
 	} else {
 		if p.recursePin.HasKey(k) {
-			return errors.New("Key already pinned recursively.")
+			return fmt.Errorf("%s already pinned recursively", k.B58String())
 		}
 		p.directPin.AddBlock(k)
 	}
@@ -124,15 +125,15 @@ func (p *pinner) Unpin(k util.Key, recursive bool) error {
 
 			return p.unpinLinks(node)
 		} else {
-			return errors.New("Key pinned recursively.")
+			return fmt.Errorf("%s is pinned recursively", k)
 		}
 	} else if p.directPin.HasKey(k) {
 		p.directPin.RemoveBlock(k)
 		return nil
 	} else if p.indirPin.HasKey(k) {
-		return errors.New("Cannot unpin indirectly pinned block.")
+		return fmt.Errorf("%s is pinned indirectly. indirect pins cannot be removed directly", k)
 	} else {
-		return errors.New("Given key was not pinned.")
+		return fmt.Errorf("%s is not pinned", k)
 	}
 }
 

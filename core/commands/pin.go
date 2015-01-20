@@ -71,9 +71,17 @@ on disk.
 				return nil, u.ErrCast()
 			}
 
+			var pintype string
+			rec, _, _ := res.Request().Option("recursive").Bool()
+			if rec {
+				pintype = "recursively"
+			} else {
+				pintype = "directly"
+			}
+
 			buf := new(bytes.Buffer)
 			for _, k := range added.Pinned {
-				fmt.Fprintf(buf, "Pinned %s\n", k)
+				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
 			}
 			return buf, nil
 		},
@@ -127,7 +135,7 @@ collected if needed.
 
 			buf := new(bytes.Buffer)
 			for _, k := range added.Pinned {
-				fmt.Fprintf(buf, "Unpinned %s\n", k)
+				fmt.Fprintf(buf, "unpinned %s\n", k)
 			}
 			return buf, nil
 		},
