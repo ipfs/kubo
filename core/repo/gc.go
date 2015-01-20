@@ -1,0 +1,49 @@
+package corerepo
+
+import (
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/core"
+	u "github.com/jbenet/go-ipfs/util"
+
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+)
+
+var log = eventlog.Logger("corerepo")
+
+type KeyRemoved struct {
+	Key u.Key
+}
+
+func GarbageCollectBlockstore(n *core.IpfsNode, ctx context.Context) (<-chan interface{}, error) {
+
+	keychan, err := n.Blockstore.AllKeysChan(ctx, 0, 1<<16)
+	if err != nil {
+		return nil, err
+	}
+
+	output := make(chan interface{})
+	go func() {
+		defer close(output)
+		for {
+			select {
+			case k, ok := <-keychan:
+				if !ok {
+					return
+				}
+				if !n.Pinning.IsPinned(k) {
+					err := n.Blockstore.DeleteBlock(k)
+					if err != nil {
+						log.Errorf("Error removing key from blockstore: %s", err)
+					}
+					select {
+					case output <- &KeyRemoved{k}:
+					case <-ctx.Done():
+					}
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return output, nil
+}

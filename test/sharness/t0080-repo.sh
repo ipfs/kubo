@@ -21,7 +21,11 @@ test_expect_success "added file was pinned" '
 	ipfs pin ls -type=recursive | grep `cat hashfile`
 '
 
-# TODO: run gc, then ipfs cat file, should still be there
+test_expect_success "'ipfs repo gc' doesnt remove file" '
+	ipfs repo gc
+	ipfs cat `cat hashfile` > out
+	test_cmp out afile
+'
 
 test_expect_success "'ipfs pin rm' succeeds" '
 	echo unpinned `cat hashfile` > expected1
@@ -62,6 +66,18 @@ test_expect_success "remove direct pin" '
 	echo unpinned `cat hashfile` > expected6
 	ipfs pin rm `cat hashfile` > actual6
 	test_cmp expected6 actual6
+'
+
+test_expect_success "'ipfs repo gc' removes file" '
+	echo removed `cat hashfile` > expected7
+	ipfs repo gc > actual7
+	test_cmp expected7 actual7
+'
+
+test_expect_success "'ipfs refs local' no longer shows file" '
+	echo -n "" > expected8
+	ipfs refs local > actual8
+	test_cmp expected8 actual8
 '
 
 

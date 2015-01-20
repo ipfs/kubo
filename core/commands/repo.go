@@ -3,10 +3,11 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	u "github.com/jbenet/go-ipfs/util"
 	"io"
+
+	cmds "github.com/jbenet/go-ipfs/commands"
+	corerepo "github.com/jbenet/go-ipfs/core/repo"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var RepoCmd = &cmds.Command{
@@ -20,10 +21,6 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"gc": repoGcCmd,
 	},
-}
-
-type KeyRemoved struct {
-	Key u.Key
 }
 
 var repoGcCmd = &cmds.Command{
@@ -45,19 +42,17 @@ order to reclaim hard disk space.
 			return nil, err
 		}
 
-		keychan, err := n.Blockstore.AllKeysChan(req.Context().Context, 0, 1<<16)
+		outChan, err := corerepo.GarbageCollectBlockstore(n, req.Context().Context)
 		if err != nil {
 			return nil, err
 		}
 
-		outChan := make(chan interface{})
-		go GarbageCollectBlockstore(n, keychan, outChan)
 		return outChan, nil
 	},
-	Type: KeyRemoved{},
+	Type: corerepo.KeyRemoved{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(chan interface{})
+			outChan, ok := res.Output().(<-chan interface{})
 			if !ok {
 				return nil, u.ErrCast()
 			}
@@ -68,7 +63,7 @@ order to reclaim hard disk space.
 			}
 
 			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*KeyRemoved)
+				obj, ok := v.(*corerepo.KeyRemoved)
 				if !ok {
 					return nil, u.ErrCast()
 				}
@@ -88,17 +83,4 @@ order to reclaim hard disk space.
 			}, nil
 		},
 	},
-}
-
-func GarbageCollectBlockstore(n *core.IpfsNode, keychan <-chan u.Key, output chan interface{}) {
-	defer close(output)
-	for k := range keychan {
-		if !n.Pinning.IsPinned(k) {
-			err := n.Blockstore.DeleteBlock(k)
-			if err != nil {
-				log.Errorf("Error removing key from blockstore: %s", err)
-			}
-			output <- &KeyRemoved{k}
-		}
-	}
 }
