@@ -44,7 +44,7 @@ trip latency information.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(chan interface{})
+			outChan, ok := res.Output().(<-chan interface{})
 			if !ok {
 				return nil, u.ErrCast()
 			}

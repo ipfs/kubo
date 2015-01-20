@@ -50,7 +50,8 @@ func marshalJson(value interface{}) (io.Reader, error) {
 
 var marshallers = map[EncodingType]Marshaler{
 	JSON: func(res Response) (io.Reader, error) {
-		if ch, ok := res.Output().(chan interface{}); ok {
+		ch, ok := res.Output().(<-chan interface{})
+		if ok {
 			return &ChannelMarshaler{
 				Channel:   ch,
 				Marshaler: marshalJson,

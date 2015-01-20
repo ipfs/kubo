@@ -112,6 +112,10 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// if output is a channel and user requested streaming channels,
 	// use chunk copier for the output
 	_, isChan := res.Output().(chan interface{})
+	if !isChan {
+		_, isChan = res.Output().(<-chan interface{})
+	}
+
 	streamChans, _, _ := req.Option("stream-channels").Bool()
 	if isChan && streamChans {
 		// w.WriteString(transferEncodingHeader + ": chunked\r\n")
