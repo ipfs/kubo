@@ -3,14 +3,17 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	assets "github.com/jbenet/go-ipfs/assets"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -50,12 +53,15 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		output, err := doInit(req.Context().ConfigRoot, force, nBitsForKeypair)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(output)
+		rpipe, wpipe := io.Pipe()
+		go func() {
+			defer wpipe.Close()
+			if err := doInit(wpipe, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}()
+		res.SetOutput(rpipe)
 	},
 }
 
@@ -64,58 +70,45 @@ Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
 
-var welcomeMsg = `Hello and Welcome to IPFS!
-
-██╗██████╗ ███████╗███████╗
-██║██╔══██╗██╔════╝██╔════╝
-██║██████╔╝█████╗  ███████╗
-██║██╔═══╝ ██╔══╝  ╚════██║
-██║██║     ██║     ███████║
-╚═╝╚═╝     ╚═╝     ╚══════╝
-
-If you're seeing this, you have successfully installed
-IPFS and are now interfacing with the ipfs merkledag!
-
-`
-
-func initWithDefaults(repoRoot string) error {
-	_, err := doInit(repoRoot, false, nBitsForKeypairDefault)
+func initWithDefaults(out io.Writer, repoRoot string) error {
+	err := doInit(out, repoRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
 }
 
-func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, error) {
-	u.POut("initializing ipfs node at %s\n", repoRoot)
+func writef(out io.Writer, format string, ifs ...interface{}) error {
+	_, err := out.Write([]byte(fmt.Sprintf(format, ifs...)))
+	return err
+}
+
+func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
+	if err := writef(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
+		return err
+	}
 
 	if fsrepo.IsInitialized(repoRoot) && !force {
-		return nil, errRepoExists
+		return errRepoExists
 	}
-	conf, err := config.Init(nBitsForKeypair)
+	conf, err := config.Init(out, nBitsForKeypair)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if fsrepo.IsInitialized(repoRoot) {
 		if err := fsrepo.Remove(repoRoot); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
-		return nil, err
+		return err
 	}
 
-	err = addTheWelcomeFile(repoRoot)
-	if err != nil {
-		return nil, err
+	if err := addDefaultAssets(out, repoRoot); err != nil {
+		return err
 	}
-	err = initializeIpnsKeyspace(repoRoot)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
+
+	return initializeIpnsKeyspace(repoRoot)
 }
 
-// addTheWelcomeFile adds a file containing the welcome message to the newly
-// minted node.
-func addTheWelcomeFile(repoRoot string) error {
+func addDefaultAssets(out io.Writer, repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	r := fsrepo.At(repoRoot)
@@ -128,14 +121,35 @@ func addTheWelcomeFile(repoRoot string) error {
 	}
 	defer nd.Close()
 
-	// Set up default file
-	reader := bytes.NewBufferString(welcomeMsg)
-	k, err := coreunix.Add(nd, reader)
-	if err != nil {
-		return fmt.Errorf("failed to write test file: %s", err)
+	dirb := uio.NewDirectory(nd.DAG)
+
+	// add every file in the assets pkg
+	for fname, file := range assets.Init_dir {
+		buf := bytes.NewBufferString(file)
+		s, err := coreunix.Add(nd, buf)
+		if err != nil {
+			return err
+		}
+		k := u.B58KeyDecode(s)
+		if err := dirb.AddChild(fname, k); err != nil {
+			return err
+		}
 	}
-	fmt.Printf("\nto get started, enter: ipfs cat %s\n", k)
-	return nil
+
+	dir := dirb.GetNode()
+	dkey, err := nd.DAG.Add(dir)
+	if err != nil {
+		return err
+	}
+	if err := nd.Pinning.Pin(dir, true); err != nil {
+		return err
+	}
+	if err := nd.Pinning.Flush(); err != nil {
+		return err
+	}
+
+	writef(out, "to get started, enter:\n")
+	return writef(out, "\n\tipfs cat /ipfs/%s/readme\n\n", dkey)
 }
 
 func initializeIpnsKeyspace(repoRoot string) error {

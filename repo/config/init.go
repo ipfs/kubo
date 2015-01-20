@@ -3,19 +3,20 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-func Init(nBitsForKeypair int) (*Config, error) {
+func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	ds, err := datastoreConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	identity, err := identityConfig(nBitsForKeypair)
+	identity, err := identityConfig(out, nBitsForKeypair)
 	if err != nil {
 		return nil, err
 	}
@@ -71,19 +72,19 @@ func datastoreConfig() (*Datastore, error) {
 }
 
 // identityConfig initializes a new identity.
-func identityConfig(nbits int) (Identity, error) {
+func identityConfig(out io.Writer, nbits int) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
 	if nbits < 1024 {
 		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	fmt.Printf("generating %v-bit RSA keypair...", nbits)
+	out.Write([]byte(fmt.Sprintf("generating %v-bit RSA keypair...", nbits)))
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}
-	fmt.Printf("done\n")
+	out.Write([]byte(fmt.Sprintf("done\n")))
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
