@@ -24,15 +24,15 @@ test_expect_success "added file was pinned" '
 # TODO: run gc, then ipfs cat file, should still be there
 
 test_expect_success "'ipfs pin rm' succeeds" '
-	echo Unpinned `cat hashfile` > expected
-	ipfs pin rm -r `cat hashfile` > actual
-	test_cmp expected actual
+	echo unpinned `cat hashfile` > expected1
+	ipfs pin rm -r `cat hashfile` > actual1
+	test_cmp expected1 actual1
 '
 
 test_expect_success "file no longer pinned" '
-	echo -n "" > expected
-	ipfs pin ls -type=recursive > actual
-	test_cmp expected actual
+	echo -n "" > expected2
+	ipfs pin ls -type=recursive > actual2
+	test_cmp expected2 actual2
 '
 
 test_expect_success "recursively pin afile" '
@@ -40,28 +40,28 @@ test_expect_success "recursively pin afile" '
 '
 
 test_expect_success "pinning directly should fail now" '
-	echo "Error: pin: Key already pinned recursively." > expected
-	ipfs pin add `cat hashfile` 2> actual
-	test_cmp expected actual
+	echo Error: pin: `cat hashfile` already pinned recursively > expected3
+	ipfs pin add `cat hashfile` 2> actual3
+	test_cmp expected3 actual3
 '
 
 test_expect_success "'ipfs pin rm <hash>' should fail" '
-	echo Error: Key pinned recursively. > expected
-	ipfs pin rm `cat hashfile` 2> error
-	test_cmp expected error
+	echo Error: `cat hashfile` is pinned recursively > expected4
+	ipfs pin rm `cat hashfile` 2> actual4
+	test_cmp expected4 actual4
 '
 
 test_expect_success "remove recursive pin, add direct" '
-	echo Unpinned `cat hashfile` > expected
-	ipfs pin rm -r `cat hashfile` > actual
-	test_cmp expected actual
+	echo unpinned `cat hashfile` > expected5
+	ipfs pin rm -r `cat hashfile` > actual5
+	test_cmp expected5 actual5
 	ipfs pin add `cat hashfile`
 '
 
 test_expect_success "remove direct pin" '
-	echo Unpinned `cat hashfile` > expected
-	ipfs pin rm `cat hashfile` > actual
-	test_cmp expected actual
+	echo unpinned `cat hashfile` > expected6
+	ipfs pin rm `cat hashfile` > actual6
+	test_cmp expected6 actual6
 '
 	
 

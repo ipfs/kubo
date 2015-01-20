@@ -14,7 +14,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 	for _, path := range paths {
 		dagnode, err := n.Resolver.ResolvePath(path)
 		if err != nil {
-			return nil, fmt.Errorf("pin error: %v", err)
+			return nil, fmt.Errorf("pin: %s", err)
 		}
 		dagnodes = append(dagnodes, dagnode)
 	}
@@ -28,7 +28,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 
 		err = n.Pinning.Pin(dagnode, recursive)
 		if err != nil {
-			return nil, fmt.Errorf("pin: %v", err)
+			return nil, fmt.Errorf("pin: %s", err)
 		}
 		out = append(out, k)
 	}
