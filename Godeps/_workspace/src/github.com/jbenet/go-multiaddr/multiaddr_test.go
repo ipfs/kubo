@@ -32,11 +32,13 @@ func TestConstructFails(t *testing.T) {
 		"/ip4/127.0.0.1/udp",
 		"/ip4/127.0.0.1/tcp/jfodsajfidosajfoidsa",
 		"/ip4/127.0.0.1/tcp",
+		"/ip4/127.0.0.1/ipfs",
+		"/ip4/127.0.0.1/ipfs/tcp",
 	}
 
 	for _, a := range cases {
 		if _, err := NewMultiaddr(a); err == nil {
-			t.Errorf("should have failed: %s", a)
+			t.Errorf("should have failed: %s - %s", a, err)
 		}
 	}
 }
@@ -55,18 +57,24 @@ func TestConstructSucceeds(t *testing.T) {
 		"/sctp/1234",
 		"/udp/65535",
 		"/tcp/65535",
+		"/ipfs/QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC",
 		"/udp/1234/sctp/1234",
 		"/udp/1234/udt",
 		"/udp/1234/utp",
+		"/tcp/1234/http",
+		"/tcp/1234/https",
+		"/ipfs/QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC/tcp/1234",
 		"/ip4/127.0.0.1/udp/1234",
 		"/ip4/127.0.0.1/udp/0",
 		"/ip4/127.0.0.1/tcp/1234",
 		"/ip4/127.0.0.1/tcp/1234/",
+		"/ip4/127.0.0.1/ipfs/QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC",
+		"/ip4/127.0.0.1/ipfs/QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC/tcp/1234",
 	}
 
 	for _, a := range cases {
 		if _, err := NewMultiaddr(a); err != nil {
-			t.Errorf("should have succeeded: %s", a)
+			t.Errorf("should have succeeded: %s -- %s", a, err)
 		}
 	}
 }

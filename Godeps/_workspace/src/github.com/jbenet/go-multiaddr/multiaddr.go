@@ -64,6 +64,7 @@ func (m *multiaddr) Protocols() []Protocol {
 		}
 	}()
 
+	size := 0
 	ps := []Protocol{}
 	b := m.bytes[:]
 	for len(b) > 0 {
@@ -75,7 +76,10 @@ func (m *multiaddr) Protocols() []Protocol {
 			panic(fmt.Errorf("no protocol with code %d", b[0]))
 		}
 		ps = append(ps, p)
-		b = b[n+(p.Size/8):]
+		b = b[n:]
+
+		size = sizeForAddr(p, b)
+		b = b[size:]
 	}
 	return ps
 }
