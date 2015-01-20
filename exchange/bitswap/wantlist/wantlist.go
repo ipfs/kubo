@@ -7,13 +7,14 @@ import (
 )
 
 type ThreadSafe struct {
-	lk sync.RWMutex
-	Wantlist
+	lk       sync.RWMutex
+	Wantlist Wantlist
 }
 
 // not threadsafe
 type Wantlist struct {
 	set map[u.Key]Entry
+	// TODO provide O(1) len accessor if cost becomes an issue
 }
 
 type Entry struct {
@@ -72,6 +73,16 @@ func (w *ThreadSafe) SortedEntries() []Entry {
 	w.lk.RLock()
 	defer w.lk.RUnlock()
 	return w.Wantlist.SortedEntries()
+}
+
+func (w *ThreadSafe) Len() int {
+	w.lk.RLock()
+	defer w.lk.RUnlock()
+	return w.Wantlist.Len()
+}
+
+func (w *Wantlist) Len() int {
+	return len(w.set)
 }
 
 func (w *Wantlist) Add(k u.Key, priority int) {
