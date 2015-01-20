@@ -199,12 +199,7 @@ func (bs *bitswap) sendWantlistToPeers(ctx context.Context, peers <-chan peer.ID
 	return bs.sendWantlistMsgToPeers(ctx, message, peers)
 }
 
-func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
-	entries := bs.wantlist.Entries()
-	if len(entries) == 0 {
-		log.Debug("No entries in wantlist, skipping send routine.")
-		return
-	}
+func (bs *bitswap) sendWantlistToProviders(ctx context.Context, entries []wantlist.Entry) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -268,7 +263,10 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 	for {
 		select {
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
-			bs.sendWantlistToProviders(ctx)
+			entries := bs.wantlist.Entries()
+			if len(entries) > 0 {
+				bs.sendWantlistToProviders(ctx, entries)
+			}
 			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case keys := <-bs.batchRequests:
 			if len(keys) == 0 {
