@@ -14,6 +14,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	periodicproc "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
 )
 
 // DefaultBootstrapQueries specifies how many queries to run,
@@ -54,9 +55,9 @@ const DefaultBootstrapTimeout = time.Duration(10 * time.Second)
 // and connected to at least a few nodes.
 //
 // Like PeriodicBootstrap, Bootstrap returns a process, so the user can stop it.
-func (dht *IpfsDHT) Bootstrap() (goprocess.Process, error) {
+func (dht *IpfsDHT) Bootstrap(ctx context.Context) (goprocess.Process, error) {
 
-	if err := dht.runBootstrap(dht.Context(), DefaultBootstrapQueries); err != nil {
+	if err := dht.runBootstrap(ctx, DefaultBootstrapQueries); err != nil {
 		return nil, err
 	}
 
@@ -79,41 +80,32 @@ func (dht *IpfsDHT) BootstrapOnSignal(queries int, signal <-chan time.Time) (gop
 		return nil, fmt.Errorf("invalid signal: %v", signal)
 	}
 
-	proc := goprocess.Go(func(worker goprocess.Process) {
-		defer log.Debug("dht bootstrapper shutting down")
-		for {
-			select {
-			case <-worker.Closing():
-				return
+	proc := periodicproc.Ticker(signal, func(worker goprocess.Process) {
+		// it would be useful to be able to send out signals of when we bootstrap, too...
+		// maybe this is a good case for whole module event pub/sub?
 
-			case <-signal:
-				// it would be useful to be able to send out signals of when we bootstrap, too...
-				// maybe this is a good case for whole module event pub/sub?
-
-				ctx := dht.Context()
-				if err := dht.runBootstrap(ctx, queries); err != nil {
-					log.Error(err)
-					// A bootstrapping error is important to notice but not fatal.
-					// maybe the client should be able to consume these errors,
-					// though I dont have a clear use case in mind-- what **could**
-					// the client do if one of the bootstrap calls fails?
-					//
-					// This is also related to the core's bootstrap failures.
-					// superviseConnections should perhaps allow clients to detect
-					// bootstrapping problems.
-					//
-					// Anyway, passing errors could be done with a bootstrapper object.
-					// this would imply the client should be able to consume a lot of
-					// other non-fatal dht errors too. providing this functionality
-					// should be done correctly DHT-wide.
-					// NB: whatever the design, clients must ensure they drain errors!
-					// This pattern is common to many things, perhaps long-running services
-					// should have something like an ErrStream that allows clients to consume
-					// periodic errors and take action. It should allow the user to also
-					// ignore all errors with something like an ErrStreamDiscard. We should
-					// study what other systems do for ideas.
-				}
-			}
+		ctx := dht.Context()
+		if err := dht.runBootstrap(ctx, queries); err != nil {
+			log.Error(err)
+			// A bootstrapping error is important to notice but not fatal.
+			// maybe the client should be able to consume these errors,
+			// though I dont have a clear use case in mind-- what **could**
+			// the client do if one of the bootstrap calls fails?
+			//
+			// This is also related to the core's bootstrap failures.
+			// superviseConnections should perhaps allow clients to detect
+			// bootstrapping problems.
+			//
+			// Anyway, passing errors could be done with a bootstrapper object.
+			// this would imply the client should be able to consume a lot of
+			// other non-fatal dht errors too. providing this functionality
+			// should be done correctly DHT-wide.
+			// NB: whatever the design, clients must ensure they drain errors!
+			// This pattern is common to many things, perhaps long-running services
+			// should have something like an ErrStream that allows clients to consume
+			// periodic errors and take action. It should allow the user to also
+			// ignore all errors with something like an ErrStreamDiscard. We should
+			// study what other systems do for ideas.
 		}
 	})
 

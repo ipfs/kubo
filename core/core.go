@@ -297,30 +297,12 @@ func (n *IpfsNode) Resolve(path string) (*merkledag.Node, error) {
 func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
 
 	// TODO what should return value be when in offlineMode?
-
 	if n.Routing == nil {
 		return nil
 	}
 
-	// TODO what bootstrapping should happen if there is no DHT? i.e. we could
-	// continue connecting to our bootstrap peers, but for what purpose?
-	dhtRouting, ok := n.Routing.(*dht.IpfsDHT)
-	if !ok {
-		return nil
-	}
-
-	// TODO consider moving connection supervision into the Network. We've
-	// discussed improvements to this Node constructor. One improvement
-	// would be to make the node configurable, allowing clients to inject
-	// an Exchange, Network, or Routing component and have the constructor
-	// manage the wiring. In that scenario, this dangling function is a bit
-	// awkward.
-
-	// spin off the node's connection supervisor.
-	// TODO, clean up how this thing works. Make the superviseConnections thing
-	// work like the DHT.Bootstrap.
-	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, peers)
-	return nil
+	nb := nodeBootstrapper{n}
+	return nb.TryToBootstrap(ctx, peers)
 }
 
 func (n *IpfsNode) loadID() error {
