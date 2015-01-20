@@ -15,6 +15,7 @@ import (
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	"github.com/jbenet/go-ipfs/p2p/peer"
+	"github.com/jbenet/go-ipfs/thirdparty/unit"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -28,7 +29,7 @@ func Test1KBInstantaneous(t *testing.T) {
 		BlockstoreLatency: 0,
 	}
 
-	if err := DirectAddCat(RandomBytes(1*KB), conf); err != nil {
+	if err := DirectAddCat(RandomBytes(1*unit.KB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
