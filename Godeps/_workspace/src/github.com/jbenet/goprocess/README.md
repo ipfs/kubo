@@ -1,5 +1,7 @@
 # goprocess - lifecycles in go
 
+[![travisbadge](https://travis-ci.org/jbenet/goprocess.svg)](https://travis-ci.org/jbenet/goprocess)
+
 (Based on https://github.com/jbenet/go-ctxgroup)
 
 - Godoc: https://godoc.org/github.com/jbenet/goprocess

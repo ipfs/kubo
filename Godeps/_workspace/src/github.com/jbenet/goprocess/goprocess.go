@@ -18,7 +18,7 @@ import (
 // More specifically, it fits this:
 //
 //   p := WithTeardown(tf) // new process is created, it is now running.
-//   p.AddChild(q)         // can register children **before** Closing.
+//   p.AddChild(q)         // can register children **before** Closed().
 //   go p.Close()          // blocks until done running teardown func.
 //   <-p.Closing()         // would now return true.
 //   <-p.childrenDone()    // wait on all children to be done
