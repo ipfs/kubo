@@ -325,20 +325,20 @@ func (s *Swarm) Close() error {
 	var wgl sync.WaitGroup
 	for _, l := range s.Listeners() {
 		wgl.Add(1)
-		go func() {
-			l.Close()
+		go func(list *Listener) {
+			list.Close()
 			wgl.Done()
-		}()
+		}(l)
 	}
 	wgl.Wait()
 
 	var wgc sync.WaitGroup
 	for _, c := range s.Conns() {
 		wgc.Add(1)
-		go func() {
-			c.Close()
+		go func(conn *Conn) {
+			conn.Close()
 			wgc.Done()
-		}()
+		}(c)
 	}
 	wgc.Wait()
 	return nil

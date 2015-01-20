@@ -44,11 +44,6 @@ func checkErr(t *testing.T, err error) {
 	}
 }
 
-func getNextPort() int {
-	nextPort++
-	return nextPort
-}
-
 func log(s string, v ...interface{}) {
 	if testing.Verbose() {
 		fmt.Fprintf(os.Stderr, "> "+s+"\n", v...)
@@ -69,17 +64,15 @@ func singleConn(t *testing.T, tr pst.Transport) echoSetup {
 		log("closing stream")
 	})
 
-	port := getNextPort()
-	addr := fmt.Sprintf("localhost:%d", port)
-	log("listening at %s", addr)
-	l, err := net.Listen("tcp", addr)
+	log("listening at %s", "localhost:0")
+	l, err := net.Listen("tcp", "localhost:0")
 	checkErr(t, err)
 
 	_, err = swarm.AddListener(l)
 	checkErr(t, err)
 
-	log("dialing to %s", addr)
-	nc1, err := net.Dial("tcp", addr)
+	log("dialing to %s", l.Addr())
+	nc1, err := net.Dial("tcp", l.Addr().String())
 	checkErr(t, err)
 
 	c1, err := swarm.AddConn(nc1)
@@ -101,10 +94,8 @@ func makeSwarm(t *testing.T, tr pst.Transport, nListeners int) *ps.Swarm {
 	})
 
 	for i := 0; i < nListeners; i++ {
-		port := getNextPort()
-		addr := fmt.Sprintf("localhost:%d", port)
-		log("%p listening at %s", swarm, addr)
-		l, err := net.Listen("tcp", addr)
+		log("%p listening at %s", swarm, "localhost:0")
+		l, err := net.Listen("tcp", "localhost:0")
 		checkErr(t, err)
 		_, err = swarm.AddListener(l)
 		checkErr(t, err)
@@ -138,17 +129,15 @@ func SubtestSimpleWrite(t *testing.T, tr pst.Transport) {
 		log("closing stream")
 	})
 
-	port := getNextPort()
-	addr := fmt.Sprintf("localhost:%d", port)
-	log("listening at %s", addr)
-	l, err := net.Listen("tcp", addr)
+	log("listening at %s", "localhost:0")
+	l, err := net.Listen("tcp", "localhost:0")
 	checkErr(t, err)
 
 	_, err = swarm.AddListener(l)
 	checkErr(t, err)
 
-	log("dialing to %s", addr)
-	nc1, err := net.Dial("tcp", addr)
+	log("dialing to %s", l.Addr().String())
+	nc1, err := net.Dial("tcp", l.Addr().String())
 	checkErr(t, err)
 
 	c1, err := swarm.AddConn(nc1)

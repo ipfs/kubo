@@ -118,9 +118,11 @@ func TestAllKeysRespectsContext(t *testing.T) {
 	// Once without context, to make sure it all works
 	{
 		var results dsq.Results
+		var resultsmu = make(chan struct{})
 		resultChan := make(chan dsq.Result)
 		d.SetFunc(func(q dsq.Query) (dsq.Results, error) {
 			results = dsq.ResultsWithChan(q, resultChan)
+			resultsmu <- struct{}{}
 			return results, nil
 		})
 
@@ -128,6 +130,7 @@ func TestAllKeysRespectsContext(t *testing.T) {
 
 		// make sure it's waiting.
 		<-started
+		<-resultsmu
 		select {
 		case <-done:
 			t.Fatal("sync is wrong")
@@ -156,9 +159,11 @@ func TestAllKeysRespectsContext(t *testing.T) {
 	// Once with
 	{
 		var results dsq.Results
+		var resultsmu = make(chan struct{})
 		resultChan := make(chan dsq.Result)
 		d.SetFunc(func(q dsq.Query) (dsq.Results, error) {
 			results = dsq.ResultsWithChan(q, resultChan)
+			resultsmu <- struct{}{}
 			return results, nil
 		})
 
@@ -167,6 +172,7 @@ func TestAllKeysRespectsContext(t *testing.T) {
 
 		// make sure it's waiting.
 		<-started
+		<-resultsmu
 		select {
 		case <-done:
 			t.Fatal("sync is wrong")

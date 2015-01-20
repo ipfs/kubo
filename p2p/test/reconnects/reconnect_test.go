@@ -188,16 +188,16 @@ func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
 			defer wg.Done()
 
 			go sF(s)
-			log.Debugf("getting handle %d", i)
+			log.Debugf("getting handle %d", j)
 			sc := <-ss // wait to get handle.
-			log.Debugf("spawning worker %d", i)
+			log.Debugf("spawning worker %d", j)
 
-			for i := 0; i < numMsgs; i++ {
+			for k := 0; k < numMsgs; k++ {
 				sc.send <- struct{}{}
 				<-sc.sent
-				log.Debugf("%d sent %d", j, i)
+				log.Debugf("%d sent %d", j, k)
 				<-sc.read
-				log.Debugf("%d read %d", j, i)
+				log.Debugf("%d read %d", j, k)
 			}
 			sc.close_ <- struct{}{}
 			<-sc.closed
