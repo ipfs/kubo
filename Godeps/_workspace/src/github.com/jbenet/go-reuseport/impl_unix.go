@@ -106,18 +106,27 @@ func dial(dialer net.Dialer, netw, addr string) (c net.Conn, err error) {
 		}
 	}
 
-	if fd, err = socket(rfamily, socktype, rprotocol); err != nil {
-		return nil, err
-	}
+	// look at dialTCP in http://golang.org/src/net/tcpsock_posix.go  .... !
+	// here we just try again 3 times.
+	for i := 0; i < 3; i++ {
+		if fd, err = socket(rfamily, socktype, rprotocol); err != nil {
+			return nil, err
+		}
 
-	if err = syscall.Bind(fd, localSockaddr); err != nil {
-		// fmt.Println("bind failed")
-		syscall.Close(fd)
-		return nil, err
+		if err = syscall.Bind(fd, localSockaddr); err != nil {
+			// fmt.Println("bind failed")
+			syscall.Close(fd)
+			return nil, err
+		}
+		if err = connect(fd, remoteSockaddr); err != nil {
+			syscall.Close(fd)
+			// fmt.Println("connect failed", localSockaddr, err)
+			continue // try again.
+		}
+
+		break
 	}
-	if err = connect(fd, remoteSockaddr); err != nil {
-		syscall.Close(fd)
-		// fmt.Println("connect failed", localSockaddr, err)
+	if err != nil {
 		return nil, err
 	}
 
@@ -314,6 +323,7 @@ func connect(fd int, ra syscall.Sockaddr) error {
 	}
 
 	var err error
+	start := time.Now()
 	for {
 		// if err := fd.pd.WaitWrite(); err != nil {
 		// 	return err
@@ -321,7 +331,8 @@ func connect(fd int, ra syscall.Sockaddr) error {
 		// i'd use the above fd.pd.WaitWrite to poll io correctly, just like net sockets...
 		// but of course, it uses fucking runtime_* functions that _cannot_ be used by
 		// non-go-stdlib source... seriously guys, what kind of bullshit is that!?
-		<-time.After(20 * time.Microsecond)
+		// we're relegated to using syscall.Select (what nightmare that is) or using
+		// a simple but totally bogus time-based wait. garbage.
 		var nerr int
 		nerr, err = syscall.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
 		if err != nil {
@@ -329,6 +340,10 @@ func connect(fd int, ra syscall.Sockaddr) error {
 		}
 		switch err = syscall.Errno(nerr); err {
 		case syscall.EINPROGRESS, syscall.EALREADY, syscall.EINTR:
+			if time.Now().Sub(start) > time.Second {
+				return err
+			}
+			<-time.After(20 * time.Microsecond)
 		case syscall.Errno(0), syscall.EISCONN:
 			return nil
 		default:
