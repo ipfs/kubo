@@ -115,7 +115,7 @@ func (m *Mux) HandleSync(s inet.Stream) {
 		return
 	}
 
-	log.Infof("muxer handle protocol: %s", name)
+	log.Infof("muxer handle protocol %s: %s", s.Conn().RemotePeer(), name)
 	handler(s)
 }
 
