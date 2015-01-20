@@ -10,9 +10,6 @@ import (
 // returns AF_UNSPEC if unknown
 func NetAddrAF(addr net.Addr) int {
 	switch addr := addr.(type) {
-	default:
-		return AF_UNSPEC
-
 	case *net.IPAddr:
 		return IPAF(addr.IP)
 
@@ -24,6 +21,9 @@ func NetAddrAF(addr net.Addr) int {
 
 	case *net.UnixAddr:
 		return AF_UNIX
+
+	default:
+		return AF_UNSPEC
 	}
 }
 
@@ -31,14 +31,14 @@ func NetAddrAF(addr net.Addr) int {
 // returns AF_UNSPEC if unknown
 func IPAF(ip net.IP) int {
 	switch {
-	default:
-		return AF_UNSPEC
-
 	case ip.To4() != nil:
 		return AF_INET
 
 	case ip.To16() != nil:
 		return AF_INET6
+
+	default:
+		return AF_UNSPEC
 	}
 }
 
@@ -46,9 +46,6 @@ func IPAF(ip net.IP) int {
 // returns -1 if protocol unknown
 func NetAddrIPPROTO(addr net.Addr) int {
 	switch addr := addr.(type) {
-	default:
-		return -1
-
 	case *net.IPAddr:
 		switch {
 		default:
@@ -66,6 +63,9 @@ func NetAddrIPPROTO(addr net.Addr) int {
 
 	case *net.UDPAddr:
 		return IPPROTO_UDP
+
+	default:
+		return -1
 	}
 }
 
@@ -73,8 +73,6 @@ func NetAddrIPPROTO(addr net.Addr) int {
 // returns 0 if type unknown
 func NetAddrSOCK(addr net.Addr) int {
 	switch addr := addr.(type) {
-	default:
-		return 0
 	case *net.IPAddr:
 		return SOCK_DGRAM
 	case *net.TCPAddr:
@@ -92,6 +90,8 @@ func NetAddrSOCK(addr net.Addr) int {
 		case "unixpacket":
 			return SOCK_SEQPACKET
 		}
+	default:
+		return 0
 	}
 }
 
@@ -99,8 +99,6 @@ func NetAddrSOCK(addr net.Addr) int {
 // Returns nil if the input is invalid or conversion is not possible.
 func NetAddrToSockaddr(addr net.Addr) syscall.Sockaddr {
 	switch addr := addr.(type) {
-	default:
-		return nil
 	case *net.IPAddr:
 		return IPAddrToSockaddr(addr)
 	case *net.TCPAddr:
@@ -110,6 +108,8 @@ func NetAddrToSockaddr(addr net.Addr) syscall.Sockaddr {
 	case *net.UnixAddr:
 		sa, _ := UnixAddrToSockaddr(addr)
 		return sa
+	default:
+		return nil
 	}
 }
 
@@ -145,14 +145,14 @@ func IPAddrToSockaddr(addr *net.IPAddr) syscall.Sockaddr {
 func TCPAddrToSockaddr(addr *net.TCPAddr) syscall.Sockaddr {
 	sa := IPAndZoneToSockaddr(addr.IP, addr.Zone)
 	switch sa := sa.(type) {
-	default:
-		return nil
 	case *syscall.SockaddrInet4:
 		sa.Port = addr.Port
 		return sa
 	case *syscall.SockaddrInet6:
 		sa.Port = addr.Port
 		return sa
+	default:
+		return nil
 	}
 }
 
@@ -161,14 +161,14 @@ func TCPAddrToSockaddr(addr *net.TCPAddr) syscall.Sockaddr {
 func UDPAddrToSockaddr(addr *net.UDPAddr) syscall.Sockaddr {
 	sa := IPAndZoneToSockaddr(addr.IP, addr.Zone)
 	switch sa := sa.(type) {
-	default:
-		return nil
 	case *syscall.SockaddrInet4:
 		sa.Port = addr.Port
 		return sa
 	case *syscall.SockaddrInet6:
 		sa.Port = addr.Port
 		return sa
+	default:
+		return nil
 	}
 }
 
@@ -178,14 +178,14 @@ func UDPAddrToSockaddr(addr *net.UDPAddr) syscall.Sockaddr {
 func UnixAddrToSockaddr(addr *net.UnixAddr) (syscall.Sockaddr, int) {
 	t := 0
 	switch addr.Net {
-	default:
-		return nil, 0
 	case "unix":
 		t = syscall.SOCK_STREAM
 	case "unixgram":
 		t = syscall.SOCK_DGRAM
 	case "unixpacket":
 		t = syscall.SOCK_SEQPACKET
+	default:
+		return nil, 0
 	}
 	return &syscall.SockaddrUnix{Name: addr.Name}, t
 }

@@ -13,8 +13,6 @@ import (
 )
 
 const (
-	tcp4       = 52 // "4"
-	tcp6       = 54 // "6"
 	filePrefix = "port."
 )
 
@@ -305,6 +303,7 @@ func listenUDP(netw, addr string) (c net.Conn, err error) {
 	return c, err
 }
 
+// this is close to the connect() function inside stdlib/net
 func connect(fd int, ra syscall.Sockaddr) error {
 	switch err := syscall.Connect(fd, ra); err {
 	case syscall.EINPROGRESS, syscall.EALREADY, syscall.EINTR:

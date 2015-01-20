@@ -160,11 +160,11 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-reuseport",
-			"Rev": "f08ef6913526113c76e12e059ffe1b93319a7a18"
+			"Rev": "f2ab96a83e1b33b66478eedd314884755d771933"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-sockaddr/net",
-			"Rev": "47da30afb462a74cfc7f3df73d4e5cb1bc42b7c7"
+			"Rev": "da304f94eea1af8ba8d1faf184623e1f9d9777dc"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
