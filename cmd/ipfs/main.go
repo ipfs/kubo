@@ -268,6 +268,7 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 }
 
 func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd *cmds.Command) (cmds.Response, error) {
+	log.Info(config.EnvDir, req.Context().ConfigRoot)
 	var res cmds.Response
 
 	details, err := commandDetails(req.Path(), root)
