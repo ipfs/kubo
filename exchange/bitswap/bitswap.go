@@ -169,20 +169,14 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 }
 
 func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
-	if peers == nil {
-		panic("Cant send wantlist to nil peerchan")
-	}
-
 	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
 		log.Event(ctx, "PeerToQuery", peerToQuery)
 
 		if !set.TryAdd(peerToQuery) { //Do once per peer
-			log.Debugf("%s skipped (already sent)", peerToQuery)
 			continue
 		}
-		log.Debugf("%s sending", peerToQuery)
 
 		wg.Add(1)
 		go func(p peer.ID) {
@@ -228,7 +222,6 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				log.Debugf("dht returned provider %s. send wantlist", prov)
 				sendToPeers <- prov
 			}
 		}(e.Key)
@@ -249,7 +242,6 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debugf("exiting")
 			return
 		case nextEnvelope := <-bs.engine.Outbox():
 			select {
@@ -304,7 +296,6 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
 	peer.ID, bsmsg.BitSwapMessage) {
-	log.Debugf("ReceiveMessage from %s", p)
 
 	if p == "" {
 		log.Error("Received message from nil peer!")
