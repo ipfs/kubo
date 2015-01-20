@@ -8,6 +8,7 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	inflect "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/briantigerchow/inflect"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -265,7 +266,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 		case <-time.Tick(10 * time.Second):
 			n := bs.wantlist.Len()
 			if n > 0 {
-				log.Debugf("%d keys in bitswap wantlist...", n)
+				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
 			}
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
 			entries := bs.wantlist.Entries()
