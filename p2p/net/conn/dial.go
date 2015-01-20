@@ -91,11 +91,12 @@ func (d *Dialer) rawConnDial(ctx context.Context, raddr ma.Multiaddr, remote pee
 	if laddr != nil {
 		// dial using reuseport.Dialer, because we're probably reusing addrs.
 		// this is optimistic, as the reuseDial may fail to bind the port.
-		log.Debugf("trying to reuse: %s", laddr)
 		if nconn, err := d.reuseDial(laddr, raddr); err == nil {
 			// if it worked, wrap the raw net.Conn with our manet.Conn
-			log.Debugf("reuse worked! %s %s %s", laddr, nconn.RemoteAddr(), nconn)
+			log.Debugf("%s reuse worked! %s %s %s", d.LocalPeer, laddr, nconn.RemoteAddr(), nconn)
 			return manet.WrapNetConn(nconn)
+		} else {
+			log.Debugf("%s port reuse failed: %s %s", d.LocalPeer, laddr, err)
 		}
 		// if not, we fall back to regular Dial without a local addr specified.
 	}
