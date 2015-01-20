@@ -8,19 +8,32 @@ import (
 	"fmt"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	procrl "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
+	worker "github.com/jbenet/go-ipfs/blockservice/worker"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var wc = worker.Config{
+	// When running on a single core, NumWorkers has a harsh negative effect on
+	// throughput. (-80% when < 25)
+	// Running a lot more workers appears to have very little effect on both
+	// single and multicore configurations.
+	NumWorkers: 25,
+
+	// These have no effect on when running on multiple cores, but harsh
+	// negative effect on throughput when running on a single core
+	// On multicore configurations these buffers have little effect on
+	// throughput.
+	// On single core configurations, larger buffers have severe adverse
+	// effects on throughput.
+	ClientBufferSize: 0,
+	WorkerBufferSize: 0,
+}
+
 var log = u.Logger("blockservice")
 var ErrNotFound = errors.New("blockservice: key not found")
-
-// MaxExchangeAddWorkers rate limits the number of exchange workers
-var MaxExchangeAddWorkers = 100
 
 // BlockService is a hybrid block datastore. It stores data in a local
 // datastore and may retrieve data from a remote Exchange.
@@ -30,8 +43,7 @@ type BlockService struct {
 	Blockstore blockstore.Blockstore
 	Exchange   exchange.Interface
 
-	rateLimiter *procrl.RateLimiter
-	exchangeAdd chan blocks.Block
+	worker *worker.Worker
 }
 
 // NewBlockService creates a BlockService with given datastore instance.
@@ -43,15 +55,10 @@ func New(bs blockstore.Blockstore, rem exchange.Interface) (*BlockService, error
 		log.Warning("blockservice running in local (offline) mode.")
 	}
 
-	// exchangeAdd is a channel for async workers to add to the exchange.
-	// 100 blocks buffer. not clear what this number should be
-	exchangeAdd := make(chan blocks.Block, 100)
-
 	return &BlockService{
-		Blockstore:  bs,
-		Exchange:    rem,
-		exchangeAdd: exchangeAdd,
-		rateLimiter: procrl.NewRateLimiter(process.Background(), MaxExchangeAddWorkers),
+		Blockstore: bs,
+		Exchange:   rem,
+		worker:     worker.NewWorker(rem, wc),
 	}, nil
 }
 
@@ -63,22 +70,8 @@ func (s *BlockService) AddBlock(b *blocks.Block) (u.Key, error) {
 	if err != nil {
 		return k, err
 	}
-
-	// this operation rate-limits blockservice operations, so it is
-	// now an async process.
-	if s.Exchange != nil {
-
-		// LimitedGo will spawn a goroutine but provide proper backpressure.
-		// it will not spawn the goroutine until the ratelimiter's work load
-		// is under the threshold.
-		s.rateLimiter.LimitedGo(func(worker process.Process) {
-			ctx := context.TODO()
-			if err := s.Exchange.HasBlock(ctx, b); err != nil {
-				// suppress error, as the client shouldn't care about bitswap.
-				// the client only cares about the blockstore.Put.
-				log.Errorf("Exchange.HasBlock error: %s", err)
-			}
-		})
+	if err := s.worker.HasBlock(b); err != nil {
+		return "", errors.New("blockservice is closed")
 	}
 	return k, nil
 }
@@ -147,4 +140,9 @@ func (s *BlockService) GetBlocks(ctx context.Context, ks []u.Key) <-chan *blocks
 // DeleteBlock deletes a block in the blockservice from the datastore
 func (s *BlockService) DeleteBlock(k u.Key) error {
 	return s.Blockstore.DeleteBlock(k)
+}
+
+func (s *BlockService) Close() error {
+	log.Debug("blockservice is shutting down...")
+	return s.worker.Close()
 }

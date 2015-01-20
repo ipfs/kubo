@@ -22,6 +22,7 @@ func TestBlocks(t *testing.T) {
 		t.Error("failed to construct block service", err)
 		return
 	}
+	defer bs.Close()
 
 	b := blocks.NewBlock([]byte("beep boop"))
 	h := u.Hash([]byte("beep boop"))
@@ -61,6 +62,9 @@ func TestBlocks(t *testing.T) {
 
 func TestGetBlocksSequential(t *testing.T) {
 	var servs = Mocks(t, 4)
+	for _, s := range servs {
+		defer s.Close()
+	}
 	bg := blocksutil.NewBlockGenerator()
 	blks := bg.Blocks(50)
 
@@ -73,7 +77,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	t.Log("one instance at a time, get blocks concurrently")
 
 	for i := 1; i < len(servs); i++ {
-		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+		ctx, _ := context.WithTimeout(context.TODO(), time.Second*50)
 		out := servs[i].GetBlocks(ctx, keys)
 		gotten := make(map[u.Key]*blocks.Block)
 		for blk := range out {
