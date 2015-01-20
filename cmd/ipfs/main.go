@@ -24,7 +24,6 @@ import (
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	updates "github.com/jbenet/go-ipfs/updates"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -264,29 +263,6 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 
 	log.Event(ctx, "callPreCommandHooks", &details)
 	log.Debug("Calling pre-command hooks...")
-
-	// some hooks only run when the command is executed locally
-	daemon, err := commandShouldRunOnDaemon(details, req, root)
-	if err != nil {
-		return err
-	}
-
-	// check for updates when 1) commands is going to be run locally, 2) the
-	// command does not initialize the config, and 3) the command does not
-	// pre-empt updates
-	if !daemon && details.usesConfigAsInput() && details.doesNotPreemptAutoUpdate() {
-
-		log.Debug("Calling hook: Check for updates")
-
-		cfg, err := req.Context().GetConfig()
-		if err != nil {
-			return err
-		}
-		// Check for updates and potentially install one.
-		if err := updates.CliCheckForUpdates(cfg, req.Context().ConfigRoot); err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
