@@ -44,7 +44,8 @@ import (
 var log = eventlog.Logger("engine")
 
 const (
-	sizeOutboxChan = 4
+	// outboxChanBuffer must be 0 to prevent stale messages from being sent
+	outboxChanBuffer = 0
 )
 
 // Envelope contains a message for a Peer
@@ -68,8 +69,9 @@ type Engine struct {
 	// that case, no lock would be required.
 	workSignal chan struct{}
 
-	// outbox contains outgoing messages to peers
-	outbox chan Envelope
+	// outbox contains outgoing messages to peers. This is owned by the
+	// taskWorker goroutine
+	outbox chan (<-chan *Envelope)
 
 	bs bstore.Blockstore
 
@@ -83,7 +85,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 		ledgerMap:        make(map[peer.ID]*ledger),
 		bs:               bs,
 		peerRequestQueue: newPRQ(),
-		outbox:           make(chan Envelope, sizeOutboxChan),
+		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
 		workSignal:       make(chan struct{}),
 	}
 	go e.taskWorker(ctx)
@@ -91,45 +93,55 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 }
 
 func (e *Engine) taskWorker(ctx context.Context) {
-	log := log.Prefix("bitswap.Engine.taskWorker")
+	defer close(e.outbox) // because taskWorker uses the channel exclusively
 	for {
-		nextTask := e.peerRequestQueue.Pop()
-		if nextTask == nil {
-			// No tasks in the list?
-			// Wait until there are!
-			select {
-			case <-ctx.Done():
-				log.Debugf("exiting: %s", ctx.Err())
-				return
-			case <-e.workSignal:
-				log.Debugf("woken up")
-			}
-			continue
-		}
-		log := log.Prefix("%s", nextTask)
-		log.Debugf("processing")
-
-		block, err := e.bs.Get(nextTask.Entry.Key)
-		if err != nil {
-			log.Warning("engine: task exists to send block, but block is not in blockstore")
-			continue
-		}
-		// construct message here so we can make decisions about any additional
-		// information we may want to include at this time.
-		m := bsmsg.New()
-		m.AddBlock(block)
-		// TODO: maybe add keys from our wantlist?
-		log.Debugf("sending...")
+		oneTimeUse := make(chan *Envelope, 1) // buffer to prevent blocking
 		select {
 		case <-ctx.Done():
 			return
-		case e.outbox <- Envelope{Peer: nextTask.Target, Message: m}:
-			log.Debugf("sent")
+		case e.outbox <- oneTimeUse:
 		}
+		// receiver is ready for an outoing envelope. let's prepare one. first,
+		// we must acquire a task from the PQ...
+		envelope, err := e.nextEnvelope(ctx)
+		if err != nil {
+			close(oneTimeUse)
+			return // ctx cancelled
+		}
+		oneTimeUse <- envelope // buffered. won't block
+		close(oneTimeUse)
 	}
 }
 
-func (e *Engine) Outbox() <-chan Envelope {
+// nextEnvelope runs in the taskWorker goroutine. Returns an error if the
+// context is cancelled before the next Envelope can be created.
+func (e *Engine) nextEnvelope(ctx context.Context) (*Envelope, error) {
+	for {
+		nextTask := e.peerRequestQueue.Pop()
+		for nextTask == nil {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-e.workSignal:
+				nextTask = e.peerRequestQueue.Pop()
+			}
+		}
+
+		// with a task in hand, we're ready to prepare the envelope...
+
+		block, err := e.bs.Get(nextTask.Entry.Key)
+		if err != nil {
+			continue
+		}
+
+		m := bsmsg.New() // TODO: maybe add keys from our wantlist?
+		m.AddBlock(block)
+		return &Envelope{Peer: nextTask.Target, Message: m}, nil
+	}
+}
+
+// Outbox returns a channel of one-time use Envelope channels.
+func (e *Engine) Outbox() <-chan (<-chan *Envelope) {
 	return e.outbox
 }
 
