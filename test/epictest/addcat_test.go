@@ -108,10 +108,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	defer adder.Close()
 	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
 	if err != nil {
 		return err
 	}
+	defer catter.Close()
 
 	catter.Bootstrap(ctx, []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)})
 	adder.Bootstrap(ctx, []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)})
