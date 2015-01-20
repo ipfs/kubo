@@ -262,6 +262,11 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 
 	for {
 		select {
+		case <-time.Tick(10 * time.Second):
+			n := bs.wantlist.Len()
+			if n > 0 {
+				log.Debugf("%d keys in bitswap wantlist...", n)
+			}
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
 			entries := bs.wantlist.Entries()
 			if len(entries) > 0 {
