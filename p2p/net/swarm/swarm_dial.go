@@ -251,8 +251,10 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		log.Warning("Dial not given PrivateKey, so WILL NOT SECURE conn.")
 	}
 
-	// get our own addrs
-	localAddrs := s.peers.Addresses(s.local)
+	// get our own addrs. try dialing out from our listener addresses (reusing ports)
+	// Note that using our peerstore's addresses here is incorrect, as that would
+	// include observed addresses. TODO: make peerstore's address book smarter.
+	localAddrs := s.ListenAddresses()
 	if len(localAddrs) == 0 {
 		log.Debug("Dialing out with no local addresses.")
 	}

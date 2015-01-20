@@ -143,7 +143,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "04044c2289504304472715d827a8f564fa3759a8"
+			"Rev": "eae26b653a87d02193bb261ae5c5e1f39cc033d6"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
@@ -157,6 +157,14 @@
 		{
 			"ImportPath": "github.com/jbenet/go-random",
 			"Rev": "c50d0ce235bacde481d3e885b5dfd562c75c981a"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-reuseport",
+			"Rev": "1e1968c4744fef51234e83f015aa0187b4bd796b"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-sockaddr/net",
+			"Rev": "da304f94eea1af8ba8d1faf184623e1f9d9777dc"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",

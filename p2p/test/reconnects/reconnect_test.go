@@ -111,7 +111,7 @@ func TestReconnect2(t *testing.T) {
 	h1.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
 	h2.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
 
-	rounds := 10
+	rounds := 8
 	if testing.Short() {
 		rounds = 4
 	}
@@ -137,9 +137,9 @@ func TestReconnect5(t *testing.T) {
 	h4.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
 	h5.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
 
-	rounds := 10
+	rounds := 4
 	if testing.Short() {
-		rounds = 4
+		rounds = 2
 	}
 	for i := 0; i < rounds; i++ {
 		log.Debugf("TestReconnect: %d/%d\n", i, rounds)
