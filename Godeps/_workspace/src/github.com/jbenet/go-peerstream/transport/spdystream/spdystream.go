@@ -33,14 +33,31 @@ func (s *stream) Close() error {
 }
 
 // Conn is a connection to a remote peer.
-type conn ss.Connection
+type conn struct {
+	sc *ss.Connection
+
+	closed chan struct{}
+}
 
 func (c *conn) spdyConn() *ss.Connection {
-	return (*ss.Connection)(c)
+	return c.sc
 }
 
 func (c *conn) Close() error {
-	return c.spdyConn().Close()
+	err := c.spdyConn().CloseWait()
+	if !c.IsClosed() {
+		close(c.closed)
+	}
+	return err
+}
+
+func (c *conn) IsClosed() bool {
+	select {
+	case <-c.closed:
+		return true
+	default:
+		return false
+	}
 }
 
 // OpenStream creates a new stream.
@@ -84,6 +101,6 @@ type transport struct{}
 var Transport = transport{}
 
 func (t transport) NewConn(nc net.Conn, isServer bool) (pst.Conn, error) {
-	c, err := ss.NewConnection(nc, isServer)
-	return (*conn)(c), err
+	sc, err := ss.NewConnection(nc, isServer)
+	return &conn{sc: sc, closed: make(chan struct{})}, err
 }
