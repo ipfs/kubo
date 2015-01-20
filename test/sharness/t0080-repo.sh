@@ -25,7 +25,7 @@ test_expect_success "added file was pinned" '
 
 test_expect_success "'ipfs pin rm' succeeds" '
 	echo Unpinned `cat hashfile` > expected
-	ipfs pin rm `cat hashfile` > actual
+	ipfs pin rm -r `cat hashfile` > actual
 	test_cmp expected actual
 '
 
@@ -45,14 +45,21 @@ test_expect_success "pinning directly should fail now" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs pin rm <hash>' should fail" '
+	echo Error: Key pinned recursively. > expected
+	ipfs pin rm `cat hashfile` 2> error
+	test_cmp expected error
+'
+
 test_expect_success "remove recursive pin, add direct" '
 	echo Unpinned `cat hashfile` > expected
-	ipfs pin rm `cat hashfile` > actual
+	ipfs pin rm -r `cat hashfile` > actual
 	test_cmp expected actual
 	ipfs pin add `cat hashfile`
 '
 
 test_expect_success "remove direct pin" '
+	echo Unpinned `cat hashfile` > expected
 	ipfs pin rm `cat hashfile` > actual
 	test_cmp expected actual
 '

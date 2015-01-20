@@ -100,8 +100,8 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal("pinned node not found.")
 	}
 
-	// Test unpin
-	err = p.Unpin(dk)
+	// Test recursive unpin
+	err = p.Unpin(dk, true)
 	if err != nil {
 		t.Fatal(err)
 	}

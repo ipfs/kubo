@@ -55,7 +55,7 @@ func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 	var unpinned []u.Key
 	for _, dagnode := range dagnodes {
 		k, _ := dagnode.Key()
-		err := n.Pinning.Unpin(k)
+		err := n.Pinning.Unpin(k, recursive)
 		if err != nil {
 			return nil, err
 		}

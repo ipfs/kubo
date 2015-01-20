@@ -31,7 +31,7 @@ const (
 type Pinner interface {
 	IsPinned(util.Key) bool
 	Pin(*mdag.Node, bool) error
-	Unpin(util.Key) error
+	Unpin(util.Key, bool) error
 	Flush() error
 	GetManual() ManualPinner
 	DirectKeys() []util.Key
@@ -111,17 +111,21 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 }
 
 // Unpin a given key
-func (p *pinner) Unpin(k util.Key) error {
+func (p *pinner) Unpin(k util.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if p.recursePin.HasKey(k) {
-		p.recursePin.RemoveBlock(k)
-		node, err := p.dserv.Get(k)
-		if err != nil {
-			return err
-		}
+		if recursive {
+			p.recursePin.RemoveBlock(k)
+			node, err := p.dserv.Get(k)
+			if err != nil {
+				return err
+			}
 
-		return p.unpinLinks(node)
+			return p.unpinLinks(node)
+		} else {
+			return errors.New("Key pinned recursively.")
+		}
 	} else if p.directPin.HasKey(k) {
 		p.directPin.RemoveBlock(k)
 		return nil
