@@ -2,6 +2,8 @@ package component
 
 import (
 	"errors"
+	"path"
+	"path/filepath"
 	"sync"
 
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -13,6 +15,10 @@ import (
 	util "github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+)
+
+const (
+	DefaultDataStoreDirectory = "datastore"
 )
 
 var (
@@ -30,26 +36,22 @@ func init() {
 	datastores = make(map[string]ds2.ThreadSafeDatastoreCloser)
 }
 
-func InitDatastoreComponent(path string, conf *config.Config) error {
+func InitDatastoreComponent(dspath string, conf *config.Config) error {
 	// The actual datastore contents are initialized lazily when Opened.
 	// During Init, we merely check that the directory is writeable.
-	dspath, err := config.DataStorePath(path)
-	if err != nil {
-		return err
+	if !filepath.IsAbs(dspath) {
+		return debugerror.New("datastore filepath must be absolute") // during initialization (this isn't persisted)
 	}
-	if err := dir.Writable(dspath); err != nil {
+	p := path.Join(dspath, DefaultDataStoreDirectory)
+	if err := dir.Writable(p); err != nil {
 		return debugerror.Errorf("datastore: %s", err)
 	}
 	return nil
 }
 
 // DatastoreComponentIsInitialized returns true if the datastore dir exists.
-func DatastoreComponentIsInitialized(path string) bool {
-	dspath, err := config.DataStorePath(path)
-	if err != nil {
-		return false
-	}
-	if !util.FileExists(dspath) {
+func DatastoreComponentIsInitialized(dspath string) bool {
+	if !util.FileExists(path.Join(dspath, DefaultDataStoreDirectory)) {
 		return false
 	}
 	return true
@@ -61,7 +63,10 @@ type DatastoreComponent struct {
 	ds   ds2.ThreadSafeDatastoreCloser // assigned when repo is opened
 }
 
-func (dsc *DatastoreComponent) SetPath(p string)                         { dsc.path = p }
+func (dsc *DatastoreComponent) SetPath(p string) {
+	dsc.path = path.Join(p, DefaultDataStoreDirectory)
+}
+
 func (dsc *DatastoreComponent) Datastore() datastore.ThreadSafeDatastore { return dsc.ds }
 
 // Open returns an error if the config file is not present.
@@ -77,7 +82,7 @@ func (dsc *DatastoreComponent) Open() error {
 			Compression: ldbopts.NoCompression,
 		})
 		if err != nil {
-			return errors.New("unable to open leveldb datastore")
+			return debugerror.New("unable to open leveldb datastore")
 		}
 		datastores[dsc.path] = ds
 	}
