@@ -80,7 +80,6 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return err
 	}
 
-	log.Debugf("handshake: %s <--start--> %s", s.localPeer, s.remotePeer)
 	defer log.EventBegin(ctx, "secureHandshake", s.localPeer).Done()
 
 	s.local.permanentPubKey = s.localKey.GetPublic()
@@ -293,7 +292,6 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	}
 
 	// Whew! ok, that's all folks.
-	log.Debugf("handshake: %s <--finish--> %s", s.localPeer, s.remotePeer)
 	log.Event(ctx, "secureHandshakeFinish", s.localPeer, s.remotePeer)
 	return nil
 }
