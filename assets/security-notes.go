@@ -1,4 +1,5 @@
-IPFS Alpha Security Notes
+package assets
+var Init_doc_security_notes = `IPFS Alpha Security Notes
 
 We try hard to ensure our system is safe and robust, but all software
 has bugs, especially new software. This distribution is meant to be an
@@ -19,3 +20,4 @@ Please note the following:
   we benchmark our operations with encryption in mind. In the future,
   there will be an "unsafe" mode for high performance intranet apps.
   If this is a blocking feature for you, please contact us.
+`
