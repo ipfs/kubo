@@ -38,7 +38,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			API: "/ip4/127.0.0.1/tcp/5001",
 		},
 
-		Bootstrap: bootstrapPeers,
+		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Datastore: *ds,
 		Identity:  identity,
 
