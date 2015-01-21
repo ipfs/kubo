@@ -84,6 +84,8 @@ func (w *Worker) start(c Config) {
 		defer close(workerChan)
 
 		var workQueue BlockList
+		debugInfo := time.NewTicker(5 * time.Second)
+		defer debugInfo.Stop()
 		for {
 
 			// take advantage of the fact that sending on nil channel always
@@ -99,7 +101,7 @@ func (w *Worker) start(c Config) {
 			// if worker is ready and there's a block to process, send the
 			// block
 			case sendToWorker <- nextBlock:
-			case <-time.Tick(5 * time.Second):
+			case <-debugInfo.C:
 				if workQueue.Len() > 0 {
 					log.Debugf("%d blocks in blockservice provide queue...", workQueue.Len())
 				}
