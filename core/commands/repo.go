@@ -42,10 +42,18 @@ order to reclaim hard disk space.
 			return nil, err
 		}
 
-		outChan, err := corerepo.GarbageCollectBlockstore(n, req.Context().Context)
+		gcOutChan, err := corerepo.GarbageCollectBlockstore(n, req.Context().Context)
 		if err != nil {
 			return nil, err
 		}
+
+		outChan := make(chan interface{})
+		go func() {
+			defer close(outChan)
+			for k := range gcOutChan {
+				outChan <- k
+			}
+		}()
 
 		return outChan, nil
 	},

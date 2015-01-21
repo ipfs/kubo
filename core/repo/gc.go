@@ -14,14 +14,14 @@ type KeyRemoved struct {
 	Key u.Key
 }
 
-func GarbageCollectBlockstore(n *core.IpfsNode, ctx context.Context) (<-chan interface{}, error) {
+func GarbageCollectBlockstore(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
 
 	keychan, err := n.Blockstore.AllKeysChan(ctx, 0, 1<<16)
 	if err != nil {
 		return nil, err
 	}
 
-	output := make(chan interface{})
+	output := make(chan *KeyRemoved)
 	go func() {
 		defer close(output)
 		for {
@@ -34,6 +34,7 @@ func GarbageCollectBlockstore(n *core.IpfsNode, ctx context.Context) (<-chan int
 					err := n.Blockstore.DeleteBlock(k)
 					if err != nil {
 						log.Errorf("Error removing key from blockstore: %s", err)
+						continue
 					}
 					select {
 					case output <- &KeyRemoved{k}:
