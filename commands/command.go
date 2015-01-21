@@ -46,6 +46,7 @@ type Command struct {
 	Options    []Option
 	Arguments  []Argument
 	Run        Function
+	PostRun    func(res Response)
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
 

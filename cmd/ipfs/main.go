@@ -158,7 +158,7 @@ func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
 		defer stopProfilingFunc() // to be executed as late as possible
 	}
 
-	res, err := callCommand(ctx, i.req, Root)
+	res, err := callCommand(ctx, i.req, Root, i.cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 	return nil
 }
 
-func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command) (cmds.Response, error) {
+func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd *cmds.Command) (cmds.Response, error) {
 	var res cmds.Response
 
 	details, err := commandDetails(req.Path(), root)
@@ -347,6 +347,11 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command) (cmd
 		res = root.Call(req)
 
 	}
+
+	if cmd.PostRun != nil {
+		cmd.PostRun(res)
+	}
+
 	return res, nil
 }
 
