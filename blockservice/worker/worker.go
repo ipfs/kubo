@@ -117,14 +117,7 @@ func (w *Worker) start(c Config) {
 
 	// reads from |workerChan| until process closes
 	w.process.Go(func(proc process.Process) {
-		ctx, cancel := context.WithCancel(context.Background())
-
-		// shuts down an in-progress HasBlock operation
-		proc.Go(func(proc process.Process) {
-			<-proc.Closing()
-			cancel()
-		})
-
+		ctx := childContext(proc) // shut down in-progress HasBlock when time to die
 		limiter := ratelimit.NewRateLimiter(proc, c.NumWorkers)
 		for {
 			select {
@@ -168,4 +161,19 @@ func (s *BlockList) Pop() *blocks.Block {
 
 func (s *BlockList) Len() int {
 	return s.list.Len()
+}
+
+// TODO extract
+type waitable interface {
+	Closing() <-chan struct{}
+}
+
+// TODO extract
+func childContext(w waitable) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-w.Closing()
+		cancel()
+	}()
+	return ctx
 }
