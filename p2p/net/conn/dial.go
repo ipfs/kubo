@@ -89,7 +89,7 @@ func (d *Dialer) rawConnDial(ctx context.Context, raddr ma.Multiaddr, remote pee
 	laddr := pickLocalAddr(d.LocalAddrs, raddr)
 	log.Debugf("%s dialing %s -- %s --> %s", d.LocalPeer, remote, laddr, raddr)
 
-	if laddr != nil {
+	if laddr != nil && reuseport.Available() {
 		// dial using reuseport.Dialer, because we're probably reusing addrs.
 		// this is optimistic, as the reuseDial may fail to bind the port.
 		if nconn, retry, reuseErr := d.reuseDial(laddr, raddr); reuseErr == nil {

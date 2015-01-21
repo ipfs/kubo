@@ -20,8 +20,17 @@ package reuseport
 import (
 	"errors"
 	"net"
+	"syscall"
 	"time"
 )
+
+// Available returns whether or not SO_REUSEPORT is available in the OS.
+// It does so by attepting to open a tcp listener, setting the option, and
+// checking ENOPROTOOPT on error. After checking, the decision is cached
+// for the rest of the process run.
+func Available() bool {
+	return available()
+}
 
 // ErrUnsuportedProtocol signals that the protocol is not currently
 // supported by this package. This package currently only supports TCP.
@@ -34,6 +43,10 @@ var ErrReuseFailed = errors.New("reuse failed")
 // Returns a net.Listener created from a file discriptor for a socket
 // with SO_REUSEPORT and SO_REUSEADDR option set.
 func Listen(network, address string) (net.Listener, error) {
+	if !available() {
+		return nil, syscall.Errno(syscall.ENOPROTOOPT)
+	}
+
 	return listenStream(network, address)
 }
 
@@ -41,6 +54,10 @@ func Listen(network, address string) (net.Listener, error) {
 // Returns a net.Listener created from a file discriptor for a socket
 // with SO_REUSEPORT and SO_REUSEADDR option set.
 func ListenPacket(network, address string) (net.PacketConn, error) {
+	if !available() {
+		return nil, syscall.Errno(syscall.ENOPROTOOPT)
+	}
+
 	return listenPacket(network, address)
 }
 
@@ -48,6 +65,9 @@ func ListenPacket(network, address string) (net.PacketConn, error) {
 // Returns a net.Conn created from a file discriptor for a socket
 // with SO_REUSEPORT and SO_REUSEADDR option set.
 func Dial(network, laddr, raddr string) (net.Conn, error) {
+	if !available() {
+		return nil, syscall.Errno(syscall.ENOPROTOOPT)
+	}
 
 	var d Dialer
 	if laddr != "" {

@@ -124,20 +124,7 @@ func (l *listener) Loggable() map[string]interface{} {
 
 // Listen listens on the particular multiaddr, with given peer and peerstore.
 func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey) (Listener, error) {
-
-	network, naddr, err := manet.DialArgs(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	// _ := reuseport.Listen
-	// ml, err := manet.Listen(addr)
-	nl, err := reuseport.Listen(network, naddr)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to listen on %s: %s", addr, err)
-	}
-
-	ml, err := manet.WrapNetListener(nl)
+	ml, err := manetListen(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -153,4 +140,24 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 	log.Debugf("Conn Listener on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)
 	return l, nil
+}
+
+func manetListen(addr ma.Multiaddr) (manet.Listener, error) {
+	network, naddr, err := manet.DialArgs(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if reuseport.Available() {
+		nl, err := reuseport.Listen(network, naddr)
+		if err == nil {
+			// hey, it worked!
+			return manet.WrapNetListener(nl)
+		}
+		// reuseport is available, but we failed to listen. log debug, and retry normally.
+		log.Debugf("reuseport available, but failed to listen: %s %s, %s", network, naddr, err)
+	}
+
+	// either reuseport not available, or it failed. try normally.
+	return manet.Listen(addr)
 }
