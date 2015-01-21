@@ -45,6 +45,7 @@ type HelpText struct {
 type Command struct {
 	Options    []Option
 	Arguments  []Argument
+	PreRun     func(req Request) error
 	Run        Function
 	PostRun    func(res Response)
 	Marshalers map[EncodingType]Marshaler

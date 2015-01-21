@@ -315,6 +315,13 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		return nil, err
 	}
 
+	if cmd.PreRun != nil {
+		err = cmd.PreRun(req)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if useDaemon {
 
 		cfg, err := req.Context().GetConfig()
