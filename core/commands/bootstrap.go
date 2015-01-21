@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"io"
+	"sort"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	repo "github.com/jbenet/go-ipfs/repo"
@@ -197,8 +198,13 @@ var bootstrapListCmd = &cmds.Command{
 			return
 		}
 
-		peers := cfg.Bootstrap
+		peers, err := cfg.BootstrapPeers()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 		res.SetOutput(&BootstrapOutput{peers})
+		return
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
@@ -219,9 +225,10 @@ func bootstrapMarshaler(res cmds.Response) (io.Reader, error) {
 
 func bootstrapWritePeers(w io.Writer, prefix string, peers []config.BootstrapPeer) error {
 
-	for _, peer := range peers {
-		s := prefix + peer.Address + "/" + peer.PeerID + "\n"
-		_, err := w.Write([]byte(s))
+	pstrs := config.BootstrapPeerStrings(peers)
+	sort.Stable(sort.StringSlice(pstrs))
+	for _, peer := range pstrs {
+		_, err := w.Write([]byte(peer + "\n"))
 		if err != nil {
 			return err
 		}
@@ -235,14 +242,14 @@ func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []config.BootstrapPeer)
 	for _, peer := range peers {
 		duplicate := false
 		for _, peer2 := range cfg.Bootstrap {
-			if peer.Address == peer2.Address && peer.PeerID == peer2.PeerID {
+			if peer.Equal(peer2) {
 				duplicate = true
 				break
 			}
 		}
 
 		if !duplicate {
-			cfg.Bootstrap = append(cfg.Bootstrap, peer)
+			cfg.Bootstrap = append(cfg.Bootstrap, peer.String())
 			added = append(added, peer)
 		}
 	}
@@ -258,10 +265,15 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.Bootstra
 	removed := make([]config.BootstrapPeer, 0, len(toRemove))
 	keep := make([]config.BootstrapPeer, 0, len(cfg.Bootstrap))
 
-	for _, peer := range cfg.Bootstrap {
+	peers, err := cfg.BootstrapPeers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, peer := range peers {
 		found := false
 		for _, peer2 := range toRemove {
-			if peer.Address == peer2.Address && peer.PeerID == peer2.PeerID {
+			if peer.Equal(peer2) {
 				found = true
 				removed = append(removed, peer)
 				break
@@ -272,7 +284,7 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.Bootstra
 			keep = append(keep, peer)
 		}
 	}
-	cfg.Bootstrap = keep
+	cfg.SetBootstrapPeers(keep)
 
 	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
@@ -282,8 +294,10 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.Bootstra
 }
 
 func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]config.BootstrapPeer, error) {
-	removed := make([]config.BootstrapPeer, len(cfg.Bootstrap))
-	copy(removed, cfg.Bootstrap)
+	removed, err := cfg.BootstrapPeers()
+	if err != nil {
+		return nil, err
+	}
 
 	cfg.Bootstrap = nil
 	if err := r.SetConfig(cfg); err != nil {

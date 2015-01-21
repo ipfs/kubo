@@ -15,6 +15,8 @@ var ErrInvalidAddr = errors.New("invalid ipfs address")
 type IPFSAddr interface {
 	ID() peer.ID
 	Multiaddr() ma.Multiaddr
+	String() string
+	Equal(b interface{}) bool
 }
 
 type ipfsAddr struct {
@@ -28,6 +30,20 @@ func (a ipfsAddr) ID() peer.ID {
 
 func (a ipfsAddr) Multiaddr() ma.Multiaddr {
 	return a.ma
+}
+
+func (a ipfsAddr) String() string {
+	return a.ma.String()
+}
+
+func (a ipfsAddr) Equal(b interface{}) bool {
+	if ib, ok := b.(IPFSAddr); ok {
+		return a.Multiaddr().Equal(ib.Multiaddr())
+	}
+	if mb, ok := b.(ma.Multiaddr); ok {
+		return a.Multiaddr().Equal(mb)
+	}
+	return false
 }
 
 // ParseString parses a string representation of an address into an IPFSAddr
