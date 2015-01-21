@@ -140,15 +140,30 @@ func (w *Worker) start(c Config) {
 }
 
 type BlockList struct {
-	list list.List
+	list    list.List
+	uniques map[util.Key]*list.Element
 }
 
 func (s *BlockList) PushFront(b *blocks.Block) {
-	s.list.PushFront(b)
+	if s.uniques == nil {
+		s.uniques = make(map[util.Key]*list.Element)
+	}
+	_, ok := s.uniques[b.Key()]
+	if !ok {
+		e := s.list.PushFront(b)
+		s.uniques[b.Key()] = e
+	}
 }
 
 func (s *BlockList) Push(b *blocks.Block) {
-	s.list.PushBack(b)
+	if s.uniques == nil {
+		s.uniques = make(map[util.Key]*list.Element)
+	}
+	_, ok := s.uniques[b.Key()]
+	if !ok {
+		e := s.list.PushBack(b)
+		s.uniques[b.Key()] = e
+	}
 }
 
 func (s *BlockList) Pop() *blocks.Block {
@@ -157,7 +172,9 @@ func (s *BlockList) Pop() *blocks.Block {
 	}
 	e := s.list.Front()
 	s.list.Remove(e)
-	return e.Value.(*blocks.Block)
+	b := e.Value.(*blocks.Block)
+	delete(s.uniques, b.Key())
+	return b
 }
 
 func (s *BlockList) Len() int {
