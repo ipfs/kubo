@@ -95,6 +95,10 @@ type Response interface {
 	SetOutput(interface{})
 	Output() interface{}
 
+	// Sets/Returns the length of the output
+	SetLength(uint64)
+	Length() uint64
+
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaler (Codec).
 	Marshal() (io.Reader, error)
@@ -104,10 +108,11 @@ type Response interface {
 }
 
 type response struct {
-	req   Request
-	err   *Error
-	value interface{}
-	out   io.Reader
+	req    Request
+	err    *Error
+	value  interface{}
+	out    io.Reader
+	length uint64
 }
 
 func (r *response) Request() Request {
@@ -120,6 +125,14 @@ func (r *response) Output() interface{} {
 
 func (r *response) SetOutput(v interface{}) {
 	r.value = v
+}
+
+func (r *response) Length() uint64 {
+	return r.length
+}
+
+func (r *response) SetLength(l uint64) {
+	r.length = l
 }
 
 func (r *response) Error() *Error {
