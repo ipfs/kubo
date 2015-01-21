@@ -8,6 +8,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	ratelimit "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	util "github.com/jbenet/go-ipfs/util"
@@ -124,6 +125,7 @@ func (w *Worker) start(c Config) {
 			cancel()
 		})
 
+		limiter := ratelimit.NewRateLimiter(proc, c.NumWorkers)
 		for {
 			select {
 			case <-proc.Closing():
@@ -132,9 +134,11 @@ func (w *Worker) start(c Config) {
 				if !ok {
 					return
 				}
-				if err := w.exchange.HasBlock(ctx, block); err != nil {
-					// TODO log event?
-				}
+				limiter.LimitedGo(func(proc process.Process) {
+					if err := w.exchange.HasBlock(ctx, block); err != nil {
+						// TODO log event?
+					}
+				})
 			}
 		}
 	})
