@@ -93,6 +93,7 @@ func (nb *nodeBootstrapper) TryToBootstrap(ctx context.Context, peers []peer.Pee
 
 	// kick off the node's periodic bootstrapping
 	proc := periodicproc.Tick(BootstrapPeriod, func(worker goprocess.Process) {
+		defer log.EventBegin(ctx, "periodicBootstrap", n.Identity).Done()
 		if err := bootstrapRound(ctx, n.PeerHost, dht, n.Peerstore, peers); err != nil {
 			log.Error(err)
 		}
@@ -158,8 +159,8 @@ func bootstrapRound(ctx context.Context,
 	}
 
 	// connect to a random susbset of bootstrap candidates
-	var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
-	log.Event(ctx, "bootstrapStart", host.ID())
+	randomSubset := randomSubsetOfPeers(notConnected, numCxnsToCreate)
+	defer log.EventBegin(ctx, "bootstrapStart", host.ID()).Done()
 	log.Debugf("%s bootstrapping to %d nodes: %s", host.ID(), numCxnsToCreate, randomSubset)
 	if err := bootstrapConnect(ctx, peerstore, route, randomSubset); err != nil {
 		log.Event(ctx, "bootstrapError", host.ID(), lgbl.Error(err))
@@ -189,7 +190,7 @@ func bootstrapConnect(ctx context.Context,
 		wg.Add(1)
 		go func(p peer.PeerInfo) {
 			defer wg.Done()
-			log.Event(ctx, "bootstrapDial", route.LocalPeer(), p.ID)
+			defer log.EventBegin(ctx, "bootstrapDial", route.LocalPeer(), p.ID).Done()
 			log.Debugf("%s bootstrapping to %s", route.LocalPeer(), p.ID)
 
 			ps.AddAddresses(p.ID, p.Addrs)

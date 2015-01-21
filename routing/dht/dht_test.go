@@ -75,8 +75,6 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 
 	ctx, cancel := context.WithCancel(ctx)
-	log.Error("hmm")
-	defer log.Error("hmm end")
 	log.Debugf("bootstrapping dhts...")
 
 	// tried async. sequential fares much better. compare:

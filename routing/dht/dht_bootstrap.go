@@ -128,6 +128,7 @@ func (dht *IpfsDHT) runBootstrap(ctx context.Context, queries int) error {
 		// the dht will rehash to its own keyspace anyway.
 		id := make([]byte, 16)
 		rand.Read(id)
+		id = u.Hash(id)
 		return peer.ID(id)
 	}
 
