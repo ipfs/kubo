@@ -76,29 +76,33 @@ in the bootstrap list).
 		cmds.BoolOption("default", "add default bootstrap nodes"),
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		inputPeers, err := config.ParseBootstrapPeers(req.Arguments())
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		r := fsrepo.At(req.Context().ConfigRoot)
 		if err := r.Open(); err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		defer r.Close()
 		cfg := r.Config()
 
 		deflt, _, err := req.Option("default").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if deflt {
 			// parse separately for meaningful, correct error.
 			defltPeers, err := DefaultBootstrapPeers()
 			if err != nil {
-				return nil, err
+				res.SetError(err, cmds.ErrNormal)
+				return
 			}
 
 			inputPeers = append(inputPeers, defltPeers...)
@@ -106,14 +110,16 @@ in the bootstrap list).
 
 		added, err := bootstrapAdd(r, cfg, inputPeers)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if len(inputPeers) == 0 {
-			return nil, cmds.ClientError("no bootstrap peers to add")
+			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
+			return
 		}
 
-		return &BootstrapOutput{added}, nil
+		res.SetOutput(&BootstrapOutput{added})
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
@@ -125,7 +131,11 @@ in the bootstrap list).
 
 			var buf bytes.Buffer
 			err := bootstrapWritePeers(&buf, "added ", v.Peers)
-			return &buf, err
+			if err != nil {
+				return nil, err
+			}
+
+			return &buf, nil
 		},
 	},
 }
@@ -143,22 +153,25 @@ var bootstrapRemoveCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.BoolOption("all", "Remove all bootstrap peers."),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		input, err := config.ParseBootstrapPeers(req.Arguments())
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		r := fsrepo.At(req.Context().ConfigRoot)
 		if err := r.Open(); err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		defer r.Close()
 		cfg := r.Config()
 
 		all, _, err := req.Option("all").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		var removed []config.BootstrapPeer
@@ -168,10 +181,11 @@ var bootstrapRemoveCmd = &cmds.Command{
 			removed, err = bootstrapRemove(r, cfg, input)
 		}
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return &BootstrapOutput{removed}, nil
+		res.SetOutput(&BootstrapOutput{removed})
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
@@ -194,14 +208,15 @@ var bootstrapListCmd = &cmds.Command{
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		peers := cfg.Bootstrap
-		return &BootstrapOutput{peers}, nil
+		res.SetOutput(&BootstrapOutput{peers})
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{

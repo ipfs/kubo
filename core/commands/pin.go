@@ -42,16 +42,18 @@ on disk.
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
 	},
 	Type: PinOutput{},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			recursive = false
@@ -59,10 +61,11 @@ on disk.
 
 		added, err := corerepo.Pin(n, req.Arguments(), recursive)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return &PinOutput{added}, nil
+		res.SetOutput(&PinOutput{added})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -104,16 +107,18 @@ collected if needed.
 		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
 	},
 	Type: PinOutput{},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			recursive = false // default
@@ -121,10 +126,11 @@ collected if needed.
 
 		removed, err := corerepo.Unpin(n, req.Arguments(), recursive)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return &PinOutput{removed}, nil
+		res.SetOutput(&PinOutput{removed})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -165,15 +171,17 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		typeStr, found, err := req.Option("type").String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			typeStr = "direct"
@@ -182,7 +190,8 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
 		default:
-			return nil, cmds.ClientError("Invalid type '" + typeStr + "', must be one of {direct, indirect, recursive, all}")
+			err = fmt.Errorf("Invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+			res.SetError(err, cmds.ErrClient)
 		}
 
 		keys := make([]u.Key, 0)
@@ -196,7 +205,7 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 			keys = append(keys, n.Pinning.RecursiveKeys()...)
 		}
 
-		return &KeyList{Keys: keys}, nil
+		res.SetOutput(&KeyList{Keys: keys})
 	},
 	Type: KeyList{},
 	Marshalers: cmds.MarshalerMap{

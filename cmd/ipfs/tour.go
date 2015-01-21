@@ -36,11 +36,12 @@ IPFS very quickly. To start, run:
 	Run: tourRunFunc,
 }
 
-func tourRunFunc(req cmds.Request) (interface{}, error) {
+func tourRunFunc(req cmds.Request, res cmds.Response) {
 
 	cfg, err := req.Context().GetConfig()
 	if err != nil {
-		return nil, err
+		res.SetError(err, cmds.ErrNormal)
+		return
 	}
 
 	id := tour.TopicID(cfg.Tour.Last)
@@ -64,11 +65,10 @@ func tourRunFunc(req cmds.Request) (interface{}, error) {
 		fmt.Fprintln(&w, "")
 		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
 
-		return nil, nil
+		return
 	}
 
 	fprintTourShow(&w, t)
-	return nil, nil
 }
 
 var cmdIpfsTourNext = &cmds.Command{
@@ -76,21 +76,24 @@ var cmdIpfsTourNext = &cmds.Command{
 		Tagline: "Show the next IPFS Tour topic",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		var w bytes.Buffer
 		path := req.Context().ConfigRoot
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		id := tour.NextTopic(tour.TopicID(cfg.Tour.Last))
 		topic, err := tourGet(id)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if err := fprintTourShow(&w, topic); err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// topic changed, not last. write it out.
@@ -98,12 +101,12 @@ var cmdIpfsTourNext = &cmds.Command{
 			cfg.Tour.Last = string(id)
 			err := writeConfig(path, cfg)
 			if err != nil {
-				return nil, err
+				res.SetError(err, cmds.ErrNormal)
+				return
 			}
 		}
 
 		w.WriteTo(os.Stdout)
-		return nil, nil
 	},
 }
 
@@ -112,19 +115,20 @@ var cmdIpfsTourRestart = &cmds.Command{
 		Tagline: "Restart the IPFS Tour",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		path := req.Context().ConfigRoot
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		cfg.Tour.Last = ""
 		err = writeConfig(path, cfg)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
-		return nil, nil
 	},
 }
 
@@ -133,16 +137,16 @@ var cmdIpfsTourList = &cmds.Command{
 		Tagline: "Show a list of IPFS Tour topics",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		var w bytes.Buffer
 		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
 		w.WriteTo(os.Stdout)
-		return nil, nil
 	},
 }
 

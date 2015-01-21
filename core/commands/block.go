@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -57,16 +58,17 @@ on raw ipfs blocks. It outputs the following to stdout:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		b, err := getBlockForKey(req, req.Arguments()[0])
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return &BlockStat{
+		res.SetOutput(&BlockStat{
 			Key:  b.Key().Pretty(),
 			Size: len(b.Data),
-		}, nil
+		})
 	},
 	Type: BlockStat{},
 	Marshalers: cmds.MarshalerMap{
@@ -89,13 +91,14 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		b, err := getBlockForKey(req, req.Arguments()[0])
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return bytes.NewReader(b.Data), nil
+		res.SetOutput(bytes.NewReader(b.Data))
 	},
 }
 
@@ -111,25 +114,29 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	Arguments: []cmds.Argument{
 		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		file, err := req.Files().NextFile()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		data, err := ioutil.ReadAll(file)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		err = file.Close()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		b := blocks.NewBlock(data)
@@ -137,13 +144,14 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 
 		k, err := n.Blocks.AddBlock(b)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return &BlockStat{
+		res.SetOutput(&BlockStat{
 			Key:  k.String(),
 			Size: len(data),
-		}, nil
+		})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -160,7 +168,7 @@ func getBlockForKey(req cmds.Request, key string) (*blocks.Block, error) {
 	}
 
 	if !u.IsValidHash(key) {
-		return nil, cmds.Error{"Not a valid hash", cmds.ErrClient}
+		return nil, errors.New("Not a valid hash")
 	}
 
 	h, err := mh.FromB58String(key)
@@ -173,6 +181,7 @@ func getBlockForKey(req cmds.Request, key string) (*blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	log.Debugf("ipfs block: got block with key: %q", b.Key())
 	return b, nil
 }

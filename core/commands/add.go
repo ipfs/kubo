@@ -44,13 +44,15 @@ remains to be implemented.
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
 
 		go func() {
 			defer close(outChan)
@@ -67,8 +69,6 @@ remains to be implemented.
 				}
 			}
 		}()
-
-		return outChan, nil
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

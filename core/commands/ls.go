@@ -37,10 +37,11 @@ it contains, with the following format:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		paths := req.Arguments()
@@ -49,7 +50,8 @@ it contains, with the following format:
 		for _, path := range paths {
 			dagnode, err := node.Resolver.ResolvePath(path)
 			if err != nil {
-				return nil, err
+				res.SetError(err, cmds.ErrNormal)
+				return
 			}
 			dagnodes = append(dagnodes, dagnode)
 		}
@@ -69,7 +71,7 @@ it contains, with the following format:
 			}
 		}
 
-		return &LsOutput{output}, nil
+		res.SetOutput(&LsOutput{output})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

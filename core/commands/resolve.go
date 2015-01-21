@@ -40,22 +40,25 @@ Resolve te value of another name:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		var name string
 
 		if n.PeerHost == nil {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
 		}
 
 		if len(req.Arguments()) == 0 {
 			if n.Identity == "" {
-				return nil, errors.New("Identity not loaded!")
+				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
+				return
 			}
 			name = n.Identity.Pretty()
 
@@ -65,12 +68,13 @@ Resolve te value of another name:
 
 		output, err := n.Namesys.Resolve(name)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
 
-		return output, nil
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

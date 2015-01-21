@@ -90,25 +90,29 @@ baz
 		// TODO longform
 		cmds.StringOption("n", "The path where IPNS should be mounted"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		node, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// error if we aren't running node in online mode
 		if !node.OnlineMode() {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
 		}
 
 		fsdir, found, err := req.Option("f").String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			fsdir = cfg.Mounts.IPFS // use default value
@@ -117,7 +121,8 @@ baz
 		// get default mount points
 		nsdir, found, err := req.Option("n").String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
@@ -125,13 +130,14 @@ baz
 
 		err = Mount(node, fsdir, nsdir)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		var output config.Mounts
 		output.IPFS = fsdir
 		output.IPNS = nsdir
-		return &output, nil
+		res.SetOutput(&output)
 	},
 	Type: config.Mounts{},
 	Marshalers: cmds.MarshalerMap{

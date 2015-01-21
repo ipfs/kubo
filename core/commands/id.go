@@ -45,37 +45,54 @@ if no peer is specified, prints out local peers info.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peerid", false, false, "peer.ID of node to look up").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if len(req.Arguments()) == 0 {
-			return printPeer(node.Peerstore, node.Identity)
+			output, err := printPeer(node.Peerstore, node.Identity)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(output)
+			return
 		}
 
 		pid := req.Arguments()[0]
 
 		id := peer.ID(b58.Decode(pid))
 		if len(id) == 0 {
-			return nil, cmds.ClientError("Invalid peer id")
+			res.SetError(cmds.ClientError("Invalid peer id"), cmds.ErrClient)
+			return
 		}
 
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
 		// TODO handle offline mode with polymorphism instead of conditionals
 		if !node.OnlineMode() {
-			return nil, errors.New(offlineIdErrorMessage)
+			res.SetError(errors.New(offlineIdErrorMessage), cmds.ErrClient)
+			return
 		}
 
 		p, err := node.Routing.FindPeer(ctx, id)
 		if err == kb.ErrLookupFailure {
-			return nil, errors.New(offlineIdErrorMessage)
+			res.SetError(errors.New(offlineIdErrorMessage), cmds.ErrClient)
+			return
 		}
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
-		return printPeer(node.Peerstore, p.ID)
+
+		output, err := printPeer(node.Peerstore, p.ID)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
