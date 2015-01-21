@@ -114,32 +114,30 @@ func (w *Worker) start(c Config) {
 		}
 	})
 
-	for i := 0; i < c.NumWorkers; i++ {
-		// reads from |workerChan| until process closes
-		w.process.Go(func(proc process.Process) {
-			ctx, cancel := context.WithCancel(context.Background())
+	// reads from |workerChan| until process closes
+	w.process.Go(func(proc process.Process) {
+		ctx, cancel := context.WithCancel(context.Background())
 
-			// shuts down an in-progress HasBlock operation
-			proc.Go(func(proc process.Process) {
-				<-proc.Closing()
-				cancel()
-			})
+		// shuts down an in-progress HasBlock operation
+		proc.Go(func(proc process.Process) {
+			<-proc.Closing()
+			cancel()
+		})
 
-			for {
-				select {
-				case <-proc.Closing():
+		for {
+			select {
+			case <-proc.Closing():
+				return
+			case block, ok := <-workerChan:
+				if !ok {
 					return
-				case block, ok := <-workerChan:
-					if !ok {
-						return
-					}
-					if err := w.exchange.HasBlock(ctx, block); err != nil {
-						// TODO log event?
-					}
+				}
+				if err := w.exchange.HasBlock(ctx, block); err != nil {
+					// TODO log event?
 				}
 			}
-		})
-	}
+		}
+	})
 }
 
 type BlockList struct {
