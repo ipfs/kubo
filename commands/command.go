@@ -40,12 +40,6 @@ type HelpText struct {
 	Subcommands     string // overrides SUBCOMMANDS section
 }
 
-// TODO: check Argument definitions when creating a Command
-//   (might need to use a Command constructor)
-//   * make sure any variadic args are at the end
-//   * make sure there aren't duplicate names
-//   * make sure optional arguments aren't followed by required arguments
-
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
