@@ -69,6 +69,10 @@
 			"Rev": "9831e1e25c874e0a0601b6dc43641071414eec7a"
 		},
 		{
+			"ImportPath": "github.com/cheggaaa/pb",
+			"Rev": "e8c7cc515bfde3e267957a3b110080ceed51354e"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
 		},
