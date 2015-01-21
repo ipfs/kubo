@@ -131,7 +131,7 @@ func (w *Worker) start(c Config) {
 				}
 				limiter.LimitedGo(func(proc process.Process) {
 					if err := w.exchange.HasBlock(ctx, block); err != nil {
-						// TODO log event?
+						log.Infof("blockservice worker error: %s", err)
 					}
 				})
 			}
@@ -144,7 +144,6 @@ type BlockList struct {
 }
 
 func (s *BlockList) PushFront(b *blocks.Block) {
-	// FIXME find figures
 	s.list.PushFront(b)
 }
 
