@@ -91,21 +91,20 @@ type Dialer struct {
 // Returns a net.Conn created from a file discriptor for a socket
 // with SO_REUSEPORT and SO_REUSEADDR option set.
 func (d *Dialer) Dial(network, address string) (net.Conn, error) {
-	c, err := dial(d.D, network, address)
-	if err != nil {
-		return nil, err
+	if !available() {
+		return nil, syscall.Errno(syscall.ENOPROTOOPT)
 	}
 
-	// there's a rare case where dial returns successfully but for some reason the
-	// RemoteAddr is not yet set. We wait here a while until it is, and if too long
-	// passes, we fail. This is horrendous.
-	for start := time.Now(); c.RemoteAddr() == nil; {
-		if time.Now().Sub(start) > (time.Millisecond * 500) {
-			c.Close()
-			return nil, ErrReuseFailed
-		}
+	return dial(d.D, network, address)
+}
 
-		<-time.After(20 * time.Microsecond)
+func (d *Dialer) deadline(def time.Duration) time.Time {
+	switch {
+	case !d.D.Deadline.IsZero():
+		return d.D.Deadline
+	case d.D.Timeout != 0:
+		return time.Now().Add(d.D.Timeout)
+	default:
+		return time.Now().Add(def)
 	}
-	return c, nil
 }

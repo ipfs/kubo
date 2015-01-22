@@ -2,11 +2,15 @@ package reuseport
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 func echo(c net.Conn) {
@@ -226,7 +230,7 @@ func TestStreamListenDialSamePort(t *testing.T) {
 
 		c1, err := Dial(network, l1.Addr().String(), l2.Addr().String())
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal(err, network, l1.Addr().String(), l2.Addr().String())
 			continue
 		}
 		defer c1.Close()
@@ -257,6 +261,120 @@ func TestStreamListenDialSamePort(t *testing.T) {
 		}
 		t.Log("echoed", string(hello2))
 		c1.Close()
+	}
+}
+
+func TestStreamListenDialSamePortStressManyMsgs(t *testing.T) {
+	testCases := [][]string{
+		[]string{"tcp", "127.0.0.1:0"},
+		[]string{"tcp4", "127.0.0.1:0"},
+		[]string{"tcp6", "[::]:0"},
+	}
+
+	for _, tcase := range testCases {
+		subestStreamListenDialSamePortStress(t, tcase[0], tcase[1], 2, 1000)
+	}
+}
+
+func TestStreamListenDialSamePortStressManyNodes(t *testing.T) {
+	testCases := [][]string{
+		[]string{"tcp", "127.0.0.1:0"},
+		[]string{"tcp4", "127.0.0.1:0"},
+		[]string{"tcp6", "[::]:0"},
+	}
+
+	for _, tcase := range testCases {
+		subestStreamListenDialSamePortStress(t, tcase[0], tcase[1], 50, 1)
+	}
+}
+
+func TestStreamListenDialSamePortStressManyMsgsManyNodes(t *testing.T) {
+	testCases := [][]string{
+		[]string{"tcp", "127.0.0.1:0"},
+		[]string{"tcp4", "127.0.0.1:0"},
+		[]string{"tcp6", "[::]:0"},
+	}
+
+	for _, tcase := range testCases {
+		subestStreamListenDialSamePortStress(t, tcase[0], tcase[1], 50, 100)
+	}
+}
+
+func subestStreamListenDialSamePortStress(t *testing.T, network, addr string, nodes int, msgs int) {
+	t.Logf("testing %s:%s %d nodes %d msgs", network, addr, nodes, msgs)
+
+	var ls []net.Listener
+	for i := 0; i < nodes; i++ {
+		l, err := Listen(network, addr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer l.Close()
+		go acceptAndEcho(l)
+		ls = append(ls, l)
+		t.Logf("listening %s", l.Addr())
+	}
+
+	// connect them all
+	var cs []net.Conn
+	for i := 0; i < nodes; i++ {
+		for j := 0; j < i; j++ {
+			if i == j {
+				continue // cannot do self.
+			}
+
+			ia := ls[i].Addr().String()
+			ja := ls[j].Addr().String()
+			c, err := Dial(network, ia, ja)
+			if err != nil {
+				t.Fatal(network, ia, ja, err)
+			}
+			defer c.Close()
+			cs = append(cs, c)
+			t.Logf("dialed %s --> %s", c.LocalAddr(), c.RemoteAddr())
+		}
+	}
+
+	errs := make(chan error)
+
+	send := func(c net.Conn, buf []byte) {
+		if _, err := c.Write(buf); err != nil {
+			errs <- err
+		}
+	}
+
+	recv := func(c net.Conn, buf []byte) {
+		buf2 := make([]byte, len(buf))
+		if _, err := c.Read(buf2); err != nil {
+			errs <- err
+		}
+		if !bytes.Equal(buf, buf2) {
+			errs <- fmt.Errorf("recv failure: %s <--> %s -- %s %s", c.RemoteAddr(), c.LocalAddr(), buf, buf2)
+		}
+	}
+
+	t.Logf("sending %d msgs per conn", msgs)
+	go func() {
+		var wg sync.WaitGroup
+		for _, c := range cs {
+			wg.Add(1)
+			go func(c net.Conn) {
+				defer wg.Done()
+				for i := 0; i < msgs; i++ {
+					msg := []byte(fmt.Sprintf("message %d", i))
+					send(c, msg)
+					recv(c, msg)
+				}
+			}(c)
+		}
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -340,6 +458,68 @@ func TestPacketListenDialSamePort(t *testing.T) {
 			t.Fatal("echo failed", string(hello1), "!=", string(hello2))
 		}
 		t.Log("echoed", string(hello2))
+	}
+}
+
+func TestDialRespectsTimeout(t *testing.T) {
+
+	testCases := [][]string{
+		[]string{"tcp", "127.0.0.1:6780", "1.2.3.4:6781"},
+		[]string{"tcp4", "127.0.0.1:6782", "1.2.3.4:6783"},
+		[]string{"tcp6", "[::1]:6784", "[::2]:6785"},
+	}
+
+	timeout := 50 * time.Millisecond
+
+	for _, tcase := range testCases {
+		network := tcase[0]
+		laddr := tcase[1]
+		raddr := tcase[2]
+
+		// l, err := Listen(network, raddr)
+		// if err != nil {
+		// 	t.Error("without a listener it wont work")
+		// 	continue
+		// }
+		// defer l.Close()
+
+		nladdr, err := ResolveAddr(network, laddr)
+		if err != nil {
+			t.Error("failed to resolve addr", network, laddr, err)
+			continue
+		}
+		t.Log("testing", network, nladdr, raddr)
+
+		d := Dialer{
+			D: net.Dialer{
+				LocalAddr: nil,
+				Timeout:   timeout,
+			},
+		}
+
+		errs := make(chan error)
+		go func() {
+			c, err := d.Dial(network, raddr)
+			if err == nil {
+				errs <- errors.New("should've not connected")
+				c.Close()
+				return
+			}
+			close(errs) // success!
+		}()
+
+	ErrDrain:
+		select {
+		case <-time.After(5 * time.Second):
+			t.Fatal("took too long")
+		case err, more := <-errs:
+			if !more {
+				break
+			}
+			t.Error(err)
+			goto ErrDrain
+		}
+
 	}
 }
 
