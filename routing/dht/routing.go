@@ -48,7 +48,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	pchan, err := dht.GetClosestPeers(ctx, key, nil)
+	pchan, err := dht.GetClosestPeers(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	// add self locally
 	dht.providers.AddProvider(key, dht.self)
 
-	peers, err := dht.GetClosestPeers(ctx, key, nil)
+	peers, err := dht.GetClosestPeers(ctx, key)
 	if err != nil {
 		return err
 	}

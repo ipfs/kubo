@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	notif "github.com/jbenet/go-ipfs/notifications"
 	ipdht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -46,16 +47,18 @@ var queryDhtCmd = &cmds.Command{
 			return nil, errors.New("Routing service was not a dht")
 		}
 
-		events := make(chan *ipdht.QueryEvent)
-		closestPeers, err := dht.GetClosestPeers(req.Context().Context, u.Key(req.Arguments()[0]), events)
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+
+		closestPeers, err := dht.GetClosestPeers(ctx, u.Key(req.Arguments()[0]))
 
 		go func() {
 			defer close(events)
 			for p := range closestPeers {
-				events <- &ipdht.QueryEvent{
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					ID:   p,
-					Type: ipdht.FinalPeer,
-				}
+					Type: notif.FinalPeer,
+				})
 			}
 		}()
 
@@ -76,7 +79,7 @@ var queryDhtCmd = &cmds.Command{
 			}
 
 			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*ipdht.QueryEvent)
+				obj, ok := v.(*notif.QueryEvent)
 				if !ok {
 					return nil, u.ErrCast()
 				}
@@ -84,15 +87,15 @@ var queryDhtCmd = &cmds.Command{
 				buf := new(bytes.Buffer)
 				fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
 				switch obj.Type {
-				case ipdht.FinalPeer:
+				case notif.FinalPeer:
 					fmt.Fprintf(buf, "%s\n", obj.ID)
-				case ipdht.PeerResponse:
+				case notif.PeerResponse:
 					fmt.Fprintf(buf, "* %s says use ", obj.ID)
 					for _, p := range obj.Responses {
 						fmt.Fprintf(buf, "%s ", p.ID)
 					}
 					fmt.Fprintln(buf)
-				case ipdht.SendingQuery:
+				case notif.SendingQuery:
 					fmt.Fprintf(buf, "* querying %s\n", obj.ID)
 				}
 				return buf, nil
@@ -104,5 +107,5 @@ var queryDhtCmd = &cmds.Command{
 			}, nil
 		},
 	},
-	Type: ipdht.QueryEvent{},
+	Type: notif.QueryEvent{},
 }

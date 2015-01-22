@@ -1,10 +1,9 @@
 package dht
 
 import (
-	"encoding/json"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
+	notif "github.com/jbenet/go-ipfs/notifications"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
@@ -12,20 +11,7 @@ import (
 	pset "github.com/jbenet/go-ipfs/util/peerset"
 )
 
-type QueryEventType int
-
-const (
-	SendingQuery QueryEventType = iota
-	PeerResponse
-	FinalPeer
-)
-
-type QueryEvent struct {
-	ID        peer.ID
-	Type      QueryEventType
-	Responses []*peer.PeerInfo
-}
-
+// Required in order for proper JSON marshaling
 func pointerizePeerInfos(pis []peer.PeerInfo) []*peer.PeerInfo {
 	out := make([]*peer.PeerInfo, len(pis))
 	for i, p := range pis {
@@ -37,7 +23,7 @@ func pointerizePeerInfos(pis []peer.PeerInfo) []*peer.PeerInfo {
 
 // Kademlia 'node lookup' operation. Returns a channel of the K closest peers
 // to the given key
-func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key, events chan<- *QueryEvent) (<-chan peer.ID, error) {
+func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key) (<-chan peer.ID, error) {
 	e := log.EventBegin(ctx, "getClosestPeers", &key)
 	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
 	if len(tablepeers) == 0 {
@@ -58,12 +44,10 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key, events chan<
 
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
 		// For DHT query command
-		select {
-		case events <- &QueryEvent{
-			Type: SendingQuery,
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type: notif.SendingQuery,
 			ID:   p,
-		}:
-		}
+		})
 
 		closer, err := dht.closerPeersSingle(ctx, key, p)
 		if err != nil {
@@ -86,13 +70,11 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key, events chan<
 		log.Errorf("filtered: %v", filtered)
 
 		// For DHT query command
-		select {
-		case events <- &QueryEvent{
-			Type:      PeerResponse,
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:      notif.PeerResponse,
 			ID:        p,
 			Responses: pointerizePeerInfos(filtered),
-		}:
-		}
+		})
 
 		return &dhtQueryResult{closerPeers: filtered}, nil
 	})
@@ -125,32 +107,4 @@ func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key u.Key, p peer.ID)
 		}
 	}
 	return out, nil
-}
-
-func (qe *QueryEvent) MarshalJSON() ([]byte, error) {
-	out := make(map[string]interface{})
-	out["ID"] = peer.IDB58Encode(qe.ID)
-	out["Type"] = int(qe.Type)
-	out["Responses"] = qe.Responses
-	return json.Marshal(out)
-}
-
-func (qe *QueryEvent) UnmarshalJSON(b []byte) error {
-	temp := struct {
-		ID        string
-		Type      int
-		Responses []*peer.PeerInfo
-	}{}
-	err := json.Unmarshal(b, &temp)
-	if err != nil {
-		return err
-	}
-	pid, err := peer.IDB58Decode(temp.ID)
-	if err != nil {
-		return err
-	}
-	qe.ID = pid
-	qe.Type = QueryEventType(temp.Type)
-	qe.Responses = temp.Responses
-	return nil
 }
