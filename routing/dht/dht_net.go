@@ -38,8 +38,6 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	// update the peer (on valid msgs only)
 	dht.updateFromMessage(ctx, mPeer, pmes)
 
-	log.Event(ctx, "foo", dht.self, mPeer, pmes)
-
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
 	if handler == nil {

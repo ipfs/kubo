@@ -215,7 +215,7 @@ func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key) (<-chan peer
 		// run it!
 		_, err := query.Run(ctx, tablepeers)
 		if err != nil {
-			log.Errorf("closestPeers query run error: %s", err)
+			log.Debugf("closestPeers query run error: %s", err)
 		}
 	}()
 

@@ -270,6 +270,9 @@ func (n *IpfsNode) teardown() error {
 	if n.Repo != nil {
 		closers = append(closers, n.Repo)
 	}
+	if n.Blocks != nil {
+		closers = append(closers, n.Blocks)
+	}
 	if n.Routing != nil {
 		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
 			closers = append(closers, dht)

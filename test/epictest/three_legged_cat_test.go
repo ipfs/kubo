@@ -51,14 +51,17 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	defer adder.Close()
 	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
 	if err != nil {
 		return err
 	}
+	defer catter.Close()
 	bootstrap, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[2], mn.Host(peers[2]), conf)))
 	if err != nil {
 		return err
 	}
+	defer bootstrap.Close()
 	boostrapInfo := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
 	adder.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})
 	catter.Bootstrap(ctx, []peer.PeerInfo{boostrapInfo})

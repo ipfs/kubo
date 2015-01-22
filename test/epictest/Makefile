@@ -9,6 +9,7 @@ PACKAGE_DIR = test/epictest
 BUILD_DIR = ./build/bench
 CONTAINER_WORKING_DIR = /go
 CPU_PROF_NAME = cpu.out
+EXTRA_TEST_ARGS =
 
 all: collect
 
@@ -22,7 +23,7 @@ build_image:
 	cd $(IPFS_ROOT) && docker build -t $(IMAGE) .
 
 run_profiler:
-	docker run --name $(CONTAINER) -it --entrypoint go $(IMAGE) test ./src/github.com/jbenet/go-ipfs/$(PACKAGE_DIR) --cpuprofile=$(CPU_PROF_NAME)
+	docker run --name $(CONTAINER) -it --entrypoint go $(IMAGE) test ./src/github.com/jbenet/go-ipfs/$(PACKAGE_DIR) --cpuprofile=$(CPU_PROF_NAME) $(EXTRA_TEST_ARGS)
 
 
 clean:
