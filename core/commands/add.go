@@ -168,7 +168,9 @@ remains to be implemented.
 					lastBytes = output.Bytes
 					delta := prevFiles + lastBytes - totalProgress
 					totalProgress = bar.Add64(delta)
+				}
 
+				if showProgressBar {
 					bar.Update()
 				}
 			}
