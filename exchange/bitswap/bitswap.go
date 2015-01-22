@@ -108,7 +108,6 @@ type bitswap struct {
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
 func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
-	log := log.Prefix("bitswap(%s).GetBlock(%s)", bs.self, k)
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
@@ -121,11 +120,9 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
 	defer log.EventBegin(ctx, "GetBlockRequest", &k).Done()
-	log.Debugf("GetBlockRequestBegin")
 
 	defer func() {
 		cancelFunc()
-		log.Debugf("GetBlockRequestEnd")
 	}()
 
 	promise, err := bs.GetBlocks(ctx, []u.Key{k})
@@ -150,7 +147,6 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
 func (bs *bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.Block, error) {
-	// TODO log the request
 
 	promise := bs.notifications.Subscribe(ctx, keys...)
 	select {
@@ -170,18 +166,6 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
 	return bs.network.Provide(ctx, blk.Key())
-}
-
-func (bs *bitswap) sendWantlistMsgToPeer(ctx context.Context, m bsmsg.BitSwapMessage, p peer.ID) error {
-	log := log.Prefix("bitswap(%s).bitswap.sendWantlistMsgToPeer(%d, %s)", bs.self, len(m.Wantlist()), p)
-
-	log.Debug("sending wantlist")
-	if err := bs.send(ctx, p, m); err != nil {
-		log.Errorf("send wantlist error: %s", err)
-		return err
-	}
-	log.Debugf("send wantlist success")
-	return nil
 }
 
 func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
@@ -207,7 +191,9 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
-			bs.sendWantlistMsgToPeer(ctx, m, p)
+			if err := bs.send(ctx, p, m); err != nil {
+				log.Error(err) // TODO remove if too verbose
+			}
 		}(peerToQuery)
 	}
 	wg.Wait()
@@ -304,23 +290,19 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
 			bs.sendWantlistToProviders(ctx)
 			broadcastSignal = time.After(rebroadcastDelay.Get())
-		case ks := <-bs.batchRequests:
-			if len(ks) == 0 {
+		case keys := <-bs.batchRequests:
+			if len(keys) == 0 {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-			for i, k := range ks {
+			for i, k := range keys {
 				bs.wantlist.Add(k, kMaxPriority-i)
 			}
-			// NB: send want list to providers for the first peer in this list.
-			//		the assumption is made that the providers of the first key in
-			//		the set are likely to have others as well.
-			//		This currently holds true in most every situation, since when
-			//		pinning a file, you store and provide all blocks associated with
-			//		it. Later, this assumption may not hold as true if we implement
-			//		newer bitswap strategies.
+			// NB: Optimization. Assumes that providers of key[0] are likely to
+			// be able to provide for all keys. This currently holds true in most
+			// every situation. Later, this assumption may not hold as true.
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.network.FindProvidersAsync(child, ks[0], maxProvidersPerRequest)
+			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
 			err := bs.sendWantlistToPeers(ctx, providers)
 			if err != nil {
 				log.Errorf("error sending wantlist: %s", err)

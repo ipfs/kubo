@@ -67,7 +67,7 @@ test_wait_output_n_lines_60_sec() {
 test_init_ipfs() {
 
 	test_expect_success "ipfs init succeeds" '
-		export IPFS_DIR="$(pwd)/.go-ipfs" &&
+		export IPFS_PATH="$(pwd)/.go-ipfs" &&
 		ipfs init -b=1024 > /dev/null
 	'
 

@@ -160,6 +160,9 @@ func (e *Engine) Peers() []peer.ID {
 // MessageReceived performs book-keeping. Returns error if passed invalid
 // arguments.
 func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
 	log := log.Prefix("bitswap.Engine.MessageReceived(%s)", p)
 	log.Debugf("enter. %d entries %d blocks", len(m.Wantlist()), len(m.Blocks()))
 	defer log.Debugf("exit")
@@ -174,9 +177,6 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 			e.signalNewWork()
 		}
 	}()
-
-	e.lock.Lock()
-	defer e.lock.Unlock()
 
 	l := e.findOrCreate(p)
 	if m.Full() {
