@@ -15,12 +15,14 @@ const (
 	SendingQuery QueryEventType = iota
 	PeerResponse
 	FinalPeer
+	QueryError
 )
 
 type QueryEvent struct {
 	ID        peer.ID
 	Type      QueryEventType
 	Responses []*peer.PeerInfo
+	Extra     string
 }
 
 func RegisterForQueryEvents(ctx context.Context, ch chan<- *QueryEvent) context.Context {
@@ -49,6 +51,7 @@ func (qe *QueryEvent) MarshalJSON() ([]byte, error) {
 	out["ID"] = peer.IDB58Encode(qe.ID)
 	out["Type"] = int(qe.Type)
 	out["Responses"] = qe.Responses
+	out["Extra"] = qe.Extra
 	return json.Marshal(out)
 }
 
@@ -57,17 +60,21 @@ func (qe *QueryEvent) UnmarshalJSON(b []byte) error {
 		ID        string
 		Type      int
 		Responses []*peer.PeerInfo
+		Extra     string
 	}{}
 	err := json.Unmarshal(b, &temp)
 	if err != nil {
 		return err
 	}
-	pid, err := peer.IDB58Decode(temp.ID)
-	if err != nil {
-		return err
+	if len(temp.ID) > 0 {
+		pid, err := peer.IDB58Decode(temp.ID)
+		if err != nil {
+			return err
+		}
+		qe.ID = pid
 	}
-	qe.ID = pid
 	qe.Type = QueryEventType(temp.Type)
 	qe.Responses = temp.Responses
+	qe.Extra = temp.Extra
 	return nil
 }

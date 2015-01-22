@@ -9,6 +9,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	notif "github.com/jbenet/go-ipfs/notifications"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	ipdht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -20,7 +21,8 @@ var DhtCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"query": queryDhtCmd,
+		"query":     queryDhtCmd,
+		"findprovs": findProvidersDhtCmd,
 	},
 }
 
@@ -97,6 +99,10 @@ var queryDhtCmd = &cmds.Command{
 					fmt.Fprintln(buf)
 				case notif.SendingQuery:
 					fmt.Fprintf(buf, "* querying %s\n", obj.ID)
+				case notif.QueryError:
+					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
+				default:
+					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
 				}
 				return buf, nil
 			}
@@ -108,4 +114,79 @@ var queryDhtCmd = &cmds.Command{
 		},
 	},
 	Type: notif.QueryEvent{},
+}
+
+var findProvidersDhtCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Run a 'FindProviders' query through the DHT",
+		ShortDescription: `
+FindProviders will return a list of peers who are able to provide the value requested.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key to find providers for"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Write extra information"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		dht, ok := n.Routing.(*ipdht.IpfsDHT)
+		if !ok {
+			return nil, errors.New("Routing service was not a dht")
+		}
+
+		numProviders := 20
+
+		outChan := make(chan interface{})
+		pchan := dht.FindProvidersAsync(req.Context().Context, u.B58KeyDecode(req.Arguments()[0]), numProviders)
+
+		go func() {
+			defer close(outChan)
+			for p := range pchan {
+				np := p
+				outChan <- &np
+			}
+		}()
+		return outChan, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*peer.PeerInfo)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				verbose, _, err := res.Request().Option("v").Bool()
+				if err != nil {
+					return nil, err
+				}
+
+				buf := new(bytes.Buffer)
+				if verbose {
+					fmt.Fprintf(buf, "%s\n", obj.ID.Pretty())
+				} else {
+					fmt.Fprintf(buf, "%s\n", obj.ID)
+				}
+				return buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+			}, nil
+		},
+	},
+	Type: peer.PeerInfo{},
 }

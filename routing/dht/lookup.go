@@ -67,7 +67,6 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key) (<-chan peer
 				filtered = append(filtered, dht.peerstore.PeerInfo(clp))
 			}
 		}
-		log.Errorf("filtered: %v", filtered)
 
 		// For DHT query command
 		notif.PublishQueryEvent(ctx, &notif.QueryEvent{

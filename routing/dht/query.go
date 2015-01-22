@@ -3,6 +3,7 @@ package dht
 import (
 	"sync"
 
+	notif "github.com/jbenet/go-ipfs/notifications"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	queue "github.com/jbenet/go-ipfs/p2p/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"
@@ -230,6 +231,12 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 		pi := peer.PeerInfo{ID: p}
 		if err := r.query.dht.host.Connect(cg.Context(), pi); err != nil {
 			log.Debugf("Error connecting: %s", err)
+
+			notif.PublishQueryEvent(cg.Context(), &notif.QueryEvent{
+				Type:  notif.QueryError,
+				Extra: err.Error(),
+			})
+
 			r.Lock()
 			r.errs = append(r.errs, err)
 			r.Unlock()
