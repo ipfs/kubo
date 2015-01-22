@@ -1,6 +1,7 @@
 package files
 
 import (
+	"errors"
 	"io"
 	"os"
 )
@@ -39,4 +40,11 @@ func (f *ReaderFile) Close() error {
 
 func (f *ReaderFile) Stat() os.FileInfo {
 	return f.stat
+}
+
+func (f *ReaderFile) Size() (int64, error) {
+	if f.stat == nil {
+		return 0, errors.New("File size unknown")
+	}
+	return f.stat.Size(), nil
 }

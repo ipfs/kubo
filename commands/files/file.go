@@ -38,8 +38,14 @@ type StatFile interface {
 }
 
 type PeekFile interface {
-	File
+	SizeFile
 
 	Peek(n int) File
 	Length() int
+}
+
+type SizeFile interface {
+	File
+
+	Size() (int64, error)
 }

@@ -118,3 +118,33 @@ func (f *serialFile) Close() error {
 func (f *serialFile) Stat() os.FileInfo {
 	return f.stat
 }
+
+func (f *serialFile) Size() (int64, error) {
+	return size(f.stat, f.FileName())
+}
+
+func size(stat os.FileInfo, filename string) (int64, error) {
+	if !stat.IsDir() {
+		return stat.Size(), nil
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return 0, err
+	}
+	files, err := file.Readdir(0)
+	if err != nil {
+		return 0, err
+	}
+	file.Close()
+
+	var output int64
+	for _, child := range files {
+		s, err := size(child, fp.Join(filename, child.Name()))
+		if err != nil {
+			return 0, err
+		}
+		output += s
+	}
+	return output, nil
+}

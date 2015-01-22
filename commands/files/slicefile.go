@@ -1,6 +1,9 @@
 package files
 
-import "io"
+import (
+	"errors"
+	"io"
+)
 
 // SliceFile implements File, and provides simple directory handling.
 // It contains children files, and is created from a `[]File`.
@@ -46,4 +49,23 @@ func (f *SliceFile) Peek(n int) File {
 
 func (f *SliceFile) Length() int {
 	return len(f.files)
+}
+
+func (f *SliceFile) Size() (int64, error) {
+	var size int64
+
+	for _, file := range f.files {
+		sizeFile, ok := file.(SizeFile)
+		if !ok {
+			return 0, errors.New("Could not get size of child file")
+		}
+
+		s, err := sizeFile.Size()
+		if err != nil {
+			return 0, err
+		}
+		size += s
+	}
+
+	return size, nil
 }
