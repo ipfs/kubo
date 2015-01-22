@@ -223,6 +223,9 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 	// make sure we're connected to the peer.
 	if conns := r.query.dht.host.Network().ConnsToPeer(p); len(conns) == 0 {
 		log.Infof("not connected. dialing.")
+		// while we dial, we do not take up a rate limit. this is to allow
+		// forward progress during potentially very high latency dials.
+		r.rateLimit <- struct{}{}
 
 		pi := peer.PeerInfo{ID: p}
 		if err := r.query.dht.host.Connect(cg.Context(), pi); err != nil {
@@ -230,9 +233,10 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 			r.Lock()
 			r.errs = append(r.errs, err)
 			r.Unlock()
+			<-r.rateLimit // need to grab it again, as we deferred.
 			return
 		}
-
+		<-r.rateLimit // need to grab it again, as we deferred.
 		log.Debugf("connected. dial success.")
 	}
 
