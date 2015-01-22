@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +22,8 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
+
+var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
 
 var GetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -47,7 +50,14 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression"),
 		cmds.IntOption("compression-level", "l", "The level of compression (an int between 1 and 9)"),
 	},
+	PreRun: getCheckOptions,
 	Run: func(req cmds.Request, res cmds.Response) {
+		err := getCheckOptions(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrClient)
+			return
+		}
+
 		node, err := req.Context().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -61,6 +71,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				compressionLevel = gzip.DefaultCompression
 			} else {
 				compressionLevel = gzip.NoCompression
+			}
+		} else {
+			if compressionLevel < 1 || compressionLevel > 9 {
+				res.SetError(ErrInvalidCompressionLevel, cmds.ErrClient)
+				return
 			}
 		}
 
@@ -215,6 +230,14 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			}
 		}
 	},
+}
+
+func getCheckOptions(req cmds.Request) error {
+	compressionLevel, found, _ := req.Option("compression-level").Int()
+	if found && (compressionLevel < 1 || compressionLevel > 9) {
+		return ErrInvalidCompressionLevel
+	}
+	return nil
 }
 
 func get(node *core.IpfsNode, path string, compression int) (io.Reader, error) {
