@@ -1,12 +1,20 @@
 package files
 
-import "io"
+import (
+	"io"
+	"os"
+)
 
 // ReaderFile is a implementation of File created from an `io.Reader`.
 // ReaderFiles are never directories, and can be read from and closed.
 type ReaderFile struct {
-	Filename string
-	Reader   io.ReadCloser
+	filename string
+	reader   io.ReadCloser
+	stat     os.FileInfo
+}
+
+func NewReaderFile(filename string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
+	return &ReaderFile{filename, reader, stat}
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -18,13 +26,17 @@ func (f *ReaderFile) NextFile() (File, error) {
 }
 
 func (f *ReaderFile) FileName() string {
-	return f.Filename
+	return f.filename
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {
-	return f.Reader.Read(p)
+	return f.reader.Read(p)
 }
 
 func (f *ReaderFile) Close() error {
-	return f.Reader.Close()
+	return f.reader.Close()
+}
+
+func (f *ReaderFile) Stat() os.FileInfo {
+	return f.stat
 }

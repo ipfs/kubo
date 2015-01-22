@@ -13,14 +13,14 @@ import (
 func TestOutput(t *testing.T) {
 	text := "Some text! :)"
 	fileset := []files.File{
-		&files.ReaderFile{"file.txt", ioutil.NopCloser(strings.NewReader(text))},
-		&files.SliceFile{"boop", []files.File{
-			&files.ReaderFile{"boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep"))},
-			&files.ReaderFile{"boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop"))},
-		}},
-		&files.ReaderFile{"beep.txt", ioutil.NopCloser(strings.NewReader("beep"))},
+		files.NewReaderFile("file.txt", ioutil.NopCloser(strings.NewReader(text)), nil),
+		files.NewSliceFile("boop", []files.File{
+			files.NewReaderFile("boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
+			files.NewReaderFile("boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
+		}),
+		files.NewReaderFile("beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
 	}
-	sf := &files.SliceFile{"", fileset}
+	sf := files.NewSliceFile("", fileset)
 	buf := make([]byte, 20)
 
 	// testing output by reading it with the go stdlib "mime/multipart" Reader

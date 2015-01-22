@@ -6,8 +6,13 @@ import "io"
 // It contains children files, and is created from a `[]File`.
 // SliceFiles are always directories, and can't be read from or closed.
 type SliceFile struct {
-	Filename string
-	Files    []File
+	filename string
+	files    []File
+	n        int
+}
+
+func NewSliceFile(filename string, files []File) *SliceFile {
+	return &SliceFile{filename, files, 0}
 }
 
 func (f *SliceFile) IsDirectory() bool {
@@ -15,16 +20,16 @@ func (f *SliceFile) IsDirectory() bool {
 }
 
 func (f *SliceFile) NextFile() (File, error) {
-	if len(f.Files) == 0 {
+	if f.n >= len(f.files) {
 		return nil, io.EOF
 	}
-	file := f.Files[0]
-	f.Files = f.Files[1:]
+	file := f.files[f.n]
+	f.n++
 	return file, nil
 }
 
 func (f *SliceFile) FileName() string {
-	return f.Filename
+	return f.filename
 }
 
 func (f *SliceFile) Read(p []byte) (int, error) {
@@ -33,4 +38,12 @@ func (f *SliceFile) Read(p []byte) (int, error) {
 
 func (f *SliceFile) Close() error {
 	return ErrNotReader
+}
+
+func (f *SliceFile) Peek(n int) File {
+	return f.files[n]
+}
+
+func (f *SliceFile) Length() int {
+	return len(f.files)
 }

@@ -20,6 +20,7 @@ func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() 
 type serialFile struct {
 	path    string
 	files   []os.FileInfo
+	stat    os.FileInfo
 	current *os.File
 }
 
@@ -35,7 +36,7 @@ func NewSerialFile(path string, file *os.File) (File, error) {
 func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
 	// for non-directories, return a ReaderFile
 	if !stat.IsDir() {
-		return &ReaderFile{path, file}, nil
+		return &ReaderFile{path, file, stat}, nil
 	}
 
 	// for directories, stat all of the contents first, so we know what files to
@@ -55,7 +56,7 @@ func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
 	// make sure contents are sorted so -- repeatably -- we get the same inputs.
 	sort.Sort(sortFIByName(contents))
 
-	return &serialFile{path, contents, nil}, nil
+	return &serialFile{path, contents, stat, nil}, nil
 }
 
 func (f *serialFile) IsDirectory() bool {
@@ -112,4 +113,8 @@ func (f *serialFile) Close() error {
 	}
 
 	return nil
+}
+
+func (f *serialFile) Stat() os.FileInfo {
+	return f.stat
 }
