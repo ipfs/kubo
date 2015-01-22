@@ -3,8 +3,12 @@ package commands
 import (
 	"archive/tar"
 	"bytes"
+	"fmt"
 	"io"
+	"os"
 	p "path"
+	fp "path/filepath"
+	"strings"
 	"sync"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -50,6 +54,117 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 		}
 		res.SetOutput(reader)
 	},
+	PostRun: func(req cmds.Request, res cmds.Response) {
+		reader := res.Output().(io.Reader)
+		res.SetOutput(nil)
+
+		outPath, _, _ := res.Request().Option("output").String()
+		if len(outPath) == 0 {
+			outPath = res.Request().Arguments()[0]
+		}
+
+		if archive, _, _ := res.Request().Option("archive").Bool(); archive {
+			if !strings.HasSuffix(outPath, ".tar") {
+				outPath += ".tar"
+			}
+			fmt.Printf("Saving archive to %s\n", outPath)
+
+			file, err := os.Create(outPath)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			defer file.Close()
+
+			_, err = io.Copy(file, reader)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			return
+		}
+
+		fmt.Printf("Saving file(s) to %s\n", outPath)
+
+		preexisting := true
+		pathIsDir := false
+		if stat, err := os.Stat(outPath); err != nil && os.IsNotExist(err) {
+			preexisting = false
+		} else if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		} else if stat.IsDir() {
+			pathIsDir = true
+		}
+
+		tarReader := tar.NewReader(reader)
+
+		for i := 0; ; i++ {
+			header, err := tarReader.Next()
+			if err != nil && err != io.EOF {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			if header == nil || err == io.EOF {
+				break
+			}
+
+			if header.Typeflag == tar.TypeDir {
+				pathElements := strings.Split(header.Name, "/")
+				if !preexisting {
+					pathElements = pathElements[1:]
+				}
+				path := fp.Join(pathElements...)
+				path = fp.Join(outPath, path)
+				if i == 0 {
+					outPath = path
+				}
+
+				err = os.MkdirAll(path, 0755)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+				continue
+			}
+
+			var path string
+			if i == 0 {
+				if preexisting {
+					if !pathIsDir {
+						res.SetError(os.ErrExist, cmds.ErrNormal)
+						return
+					}
+					path = fp.Join(outPath, header.Name)
+				} else {
+					path = outPath
+				}
+			} else {
+				pathElements := strings.Split(header.Name, "/")[1:]
+				path = fp.Join(pathElements...)
+				path = fp.Join(outPath, path)
+			}
+
+			file, err := os.Create(path)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			_, err = io.Copy(file, tarReader)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			err = file.Close()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+	},
 }
 
 func get(node *core.IpfsNode, path string) (io.Reader, error) {
@@ -74,7 +189,7 @@ func copyFilesAsTar(node *core.IpfsNode, buf *bufReadWriter, path string) error 
 		return err
 	}
 
-	err = writer.Flush()
+	err = writer.Close()
 	if err != nil {
 		return err
 	}
