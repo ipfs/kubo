@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -108,9 +107,13 @@ remains to be implemented.
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
 			return
 		}
+		res.SetOutput(nil)
 
-		wrapperChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(wrapperChan))
+		quiet, _, err := res.Request().Option("quiet").Bool()
+		if err != nil {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
 
 		size := int64(0)
 		s, found := res.Request().Values()["size"]
@@ -138,78 +141,45 @@ remains to be implemented.
 			bar.Update()
 		}
 
-		go func() {
-			lastFile := ""
-			var totalProgress, prevFiles, lastBytes int64
+		lastFile := ""
+		var totalProgress, prevFiles, lastBytes int64
 
-			for out := range outChan {
-				output := out.(*AddedObject)
-				if len(output.Hash) > 0 {
-					if showProgressBar {
-						// clear progress bar line before we print "added x" output
-						fmt.Fprintf(os.Stderr, "\r%s\r", strings.Repeat(" ", terminalWidth))
-					}
-					wrapperChan <- output
-
-				} else {
-					log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
-
-					if !showProgressBar {
-						continue
-					}
-
-					if len(lastFile) == 0 {
-						lastFile = output.Name
-					}
-					if output.Name != lastFile || output.Bytes < lastBytes {
-						prevFiles += lastBytes
-						lastFile = output.Name
-					}
-					lastBytes = output.Bytes
-					delta := prevFiles + lastBytes - totalProgress
-					totalProgress = bar.Add64(delta)
-				}
-
+		for out := range outChan {
+			output := out.(*AddedObject)
+			if len(output.Hash) > 0 {
 				if showProgressBar {
-					bar.Update()
+					// clear progress bar line before we print "added x" output
+					fmt.Fprintf(os.Stderr, "\r%s\r", strings.Repeat(" ", terminalWidth))
 				}
-			}
-
-			close(wrapperChan)
-		}()
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
-			quiet, _, err := res.Request().Option("quiet").Bool()
-			if err != nil {
-				return nil, err
-			}
-
-			marshal := func(v interface{}) (io.Reader, error) {
-				obj, ok := v.(*AddedObject)
-				if !ok {
-					return nil, u.ErrCast()
-				}
-
-				var buf bytes.Buffer
 				if quiet {
-					buf.WriteString(fmt.Sprintf("%s\n", obj.Hash))
+					fmt.Printf("%s\n", output.Hash)
 				} else {
-					buf.WriteString(fmt.Sprintf("added %s %s\n", obj.Hash, obj.Name))
+					fmt.Printf("added %s %s\n", output.Hash, output.Name)
 				}
-				return &buf, nil
+
+			} else {
+				log.Debugf("add progress: %v %v\n", output.Name, output.Bytes)
+
+				if !showProgressBar {
+					continue
+				}
+
+				if len(lastFile) == 0 {
+					lastFile = output.Name
+				}
+				if output.Name != lastFile || output.Bytes < lastBytes {
+					prevFiles += lastBytes
+					lastFile = output.Name
+				}
+				lastBytes = output.Bytes
+				delta := prevFiles + lastBytes - totalProgress
+				totalProgress = bar.Add64(delta)
 			}
 
-			return &cmds.ChannelMarshaler{
-				Channel:   outChan,
-				Marshaler: marshal,
-			}, nil
-		},
+			if showProgressBar {
+				bar.Update()
+			}
+		}
 	},
 	Type: AddedObject{},
 }
