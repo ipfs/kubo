@@ -118,7 +118,7 @@ func run(ipfsPath, watchPath string) error {
 						addTree(watcher, e.Name)
 					}
 				}
-				func() {
+				proc.Go(func(p process.Process) {
 					file, err := os.Open(e.Name)
 					if err != nil {
 						log.Println(err)
@@ -129,7 +129,7 @@ func run(ipfsPath, watchPath string) error {
 						log.Println(err)
 					}
 					log.Printf("added %s... key: %s", e.Name, k)
-				}()
+				})
 			}
 		case err := <-watcher.Errors:
 			log.Println(err)
