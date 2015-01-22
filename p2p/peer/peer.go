@@ -3,6 +3,7 @@ package peer
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
@@ -129,6 +130,35 @@ type Set map[ID]struct{}
 type PeerInfo struct {
 	ID    ID
 	Addrs []ma.Multiaddr
+}
+
+func (pi *PeerInfo) MarshalJSON() ([]byte, error) {
+	out := make(map[string]interface{})
+	out["ID"] = IDB58Encode(pi.ID)
+	var addrs []string
+	for _, a := range pi.Addrs {
+		addrs = append(addrs, a.String())
+	}
+	out["Addrs"] = addrs
+	return json.Marshal(out)
+}
+
+func (pi *PeerInfo) UnmarshalJSON(b []byte) error {
+	var data map[string]interface{}
+	err := json.Unmarshal(b, &data)
+	if err != nil {
+		return err
+	}
+	pid, err := IDB58Decode(data["ID"].(string))
+	if err != nil {
+		return err
+	}
+	pi.ID = pid
+	addrs := data["Addrs"].([]interface{})
+	for _, a := range addrs {
+		pi.Addrs = append(pi.Addrs, ma.StringCast(a.(string)))
+	}
+	return nil
 }
 
 // IDSlice for sorting peers

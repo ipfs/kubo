@@ -71,6 +71,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"cat":       CatCmd,
 	"commands":  CommandsDaemonCmd,
 	"config":    ConfigCmd,
+	"dht":       DhtCmd,
 	"diag":      DiagCmd,
 	"id":        IDCmd,
 	"log":       LogCmd,
