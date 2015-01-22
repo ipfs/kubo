@@ -8,18 +8,18 @@ import (
 	"syscall"
 )
 
-type sortFIByName []os.FileInfo
+type sortFIByName []string
 
 func (es sortFIByName) Len() int           { return len(es) }
 func (es sortFIByName) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() }
+func (es sortFIByName) Less(i, j int) bool { return es[i] < es[j] }
 
 // serialFile implements File, and reads from a path on the OS filesystem.
 // No more than one file will be opened at a time (directories will advance
 // to the next file when NextFile() is called).
 type serialFile struct {
 	path    string
-	files   []os.FileInfo
+	files   []string
 	current *os.File
 }
 
@@ -40,7 +40,7 @@ func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
 
 	// for directories, stat all of the contents first, so we know what files to
 	// open when NextFile() is called
-	contents, err := file.Readdir(0)
+	contents, err := file.Readdirnames(0)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +76,14 @@ func (f *serialFile) NextFile() (File, error) {
 		return nil, io.EOF
 	}
 
-	stat := f.files[0]
+	// open the next file
+	filePath := fp.Join(f.path, f.files[0])
+	stat, err := os.Stat(filePath)
+	if err != nil {
+		return nil, err
+	}
 	f.files = f.files[1:]
 
-	// open the next file
-	filePath := fp.Join(f.path, stat.Name())
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
