@@ -6,17 +6,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-)
-import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/core/coreunix"
-	"github.com/jbenet/go-ipfs/repo/config"
-	"github.com/jbenet/go-ipfs/repo/fsrepo"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
+	commands "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
+	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
+	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
+	config "github.com/jbenet/go-ipfs/repo/config"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 )
 
+var http = flag.Bool("http", false, "expose IPFS HTTP API")
 var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
 var watchPath = flag.String("path", ".", "the path to watch")
 
@@ -65,6 +67,21 @@ func run(ipfsPath, watchPath string) error {
 		return err
 	}
 	defer node.Close()
+
+	if *http {
+		maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5001")
+		if err != nil {
+			return err
+		}
+		var opts = []corehttp.ServeOption{
+			corehttp.GatewayOption,
+			corehttp.WebUIOption,
+			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
+		}
+		if err := corehttp.ListenAndServe(node, maddr, opts...); err != nil {
+			return nil
+		}
+	}
 
 	for {
 		select {
@@ -151,4 +168,19 @@ func IsHidden(path string) bool {
 		return true
 	}
 	return false
+}
+
+func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
+	return commands.Context{
+		// TODO deprecate this shit
+		Context:    context.Background(),
+		Online:     true,
+		ConfigRoot: repoPath,
+		LoadConfig: func(path string) (*config.Config, error) {
+			return node.Repo.Config(), nil
+		},
+		ConstructNode: func() (*core.IpfsNode, error) {
+			return node, nil
+		},
+	}
 }
