@@ -4,10 +4,12 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
 	commands "github.com/jbenet/go-ipfs/commands"
@@ -40,6 +42,8 @@ func main() {
 }
 
 func run(ipfsPath, watchPath string) error {
+
+	proc := process.WithParent(process.Background())
 	log.Printf("running IPFSWatch on %s using repo at %s...", watchPath, ipfsPath)
 
 	ipfsPath, err := homedir.Expand(ipfsPath)
@@ -78,13 +82,20 @@ func run(ipfsPath, watchPath string) error {
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}
-		if err := corehttp.ListenAndServe(node, maddr, opts...); err != nil {
-			return nil
-		}
+		proc.Go(func(p process.Process) {
+			if err := corehttp.ListenAndServe(node, maddr, opts...); err != nil {
+				return
+			}
+		})
 	}
+
+	interrupts := make(chan os.Signal)
+	signal.Notify(interrupts, os.Interrupt, os.Kill)
 
 	for {
 		select {
+		case <-interrupts:
+			return nil
 		case e := <-watcher.Events:
 			log.Printf("received event: %s", e)
 			isDir, err := IsDirectory(e.Name)
