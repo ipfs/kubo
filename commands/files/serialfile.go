@@ -24,24 +24,14 @@ type serialFile struct {
 }
 
 func NewSerialFile(path string, file *os.File) (File, error) {
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	return newSerialFile(path, file, stat)
-}
-
-func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
-	// for non-directories, return a ReaderFile
-	if !stat.IsDir() {
-		return &ReaderFile{path, file}, nil
-	}
-
-	// for directories, stat all of the contents first, so we know what files to
-	// open when NextFile() is called
+	// try to list the content of the directory, and if it fails with no entries
+	// found, assume it is not a directory and return a ReaderFile. if we can,
+	// we should try to test that the error is ENOENT or ENOTDIR.
+	// See getdents(2)
 	contents, err := file.Readdirnames(0)
-	if err != nil {
+	if err != nil && len(contents) == 0 {
+		return &ReaderFile{path, file}, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -78,10 +68,6 @@ func (f *serialFile) NextFile() (File, error) {
 
 	// open the next file
 	filePath := fp.Join(f.path, f.files[0])
-	stat, err := os.Stat(filePath)
-	if err != nil {
-		return nil, err
-	}
 	f.files = f.files[1:]
 
 	file, err := os.Open(filePath)
@@ -93,7 +79,7 @@ func (f *serialFile) NextFile() (File, error) {
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	return newSerialFile(filePath, file, stat)
+	return NewSerialFile(filePath, file)
 }
 
 func (f *serialFile) FileName() string {
