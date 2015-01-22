@@ -167,7 +167,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 			}
 		}()
 
-		res.SetOutput(outChan)
+		res.SetOutput((<-chan interface{})(outChan))
 		return res, nil
 	}
 

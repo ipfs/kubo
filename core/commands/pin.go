@@ -1,11 +1,12 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/merkledag"
+	corerepo "github.com/jbenet/go-ipfs/core/repo"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -19,6 +20,10 @@ var PinCmd = &cmds.Command{
 		"rm":  rmPinCmd,
 		"ls":  listPinCmd,
 	},
+}
+
+type PinOutput struct {
+	Pinned []u.Key
 }
 
 var addPinCmd = &cmds.Command{
@@ -36,6 +41,7 @@ on disk.
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively pin the object linked to by the specified object(s)"),
 	},
+	Type: PinOutput{},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
 		if err != nil {
@@ -51,13 +57,34 @@ on disk.
 			recursive = false
 		}
 
-		_, err = pin(n, req.Arguments(), recursive)
+		added, err := corerepo.Pin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO: create some output to show what got pinned
-		return nil, nil
+		return &PinOutput{added}, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			var pintype string
+			rec, _, _ := res.Request().Option("recursive").Bool()
+			if rec {
+				pintype = "recursively"
+			} else {
+				pintype = "directly"
+			}
+
+			buf := new(bytes.Buffer)
+			for _, k := range added.Pinned {
+				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
+			}
+			return buf, nil
+		},
 	},
 }
 
@@ -76,6 +103,7 @@ collected if needed.
 	Options: []cmds.Option{
 		cmds.BoolOption("recursive", "r", "Recursively unpin the object linked to by the specified object(s)"),
 	},
+	Type: PinOutput{},
 	Run: func(req cmds.Request) (interface{}, error) {
 		n, err := req.Context().GetNode()
 		if err != nil {
@@ -91,13 +119,26 @@ collected if needed.
 			recursive = false // default
 		}
 
-		_, err = unpin(n, req.Arguments(), recursive)
+		removed, err := corerepo.Unpin(n, req.Arguments(), recursive)
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO: create some output to show what got unpinned
-		return nil, nil
+		return &PinOutput{removed}, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			added, ok := res.Output().(*PinOutput)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			for _, k := range added.Pinned {
+				fmt.Fprintf(buf, "unpinned %s\n", k)
+			}
+			return buf, nil
+		},
 	},
 }
 
@@ -161,56 +202,4 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,
 	},
-}
-
-func pin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
-
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, path := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path)
-		if err != nil {
-			return nil, fmt.Errorf("pin error: %v", err)
-		}
-		dagnodes = append(dagnodes, dagnode)
-	}
-
-	for _, dagnode := range dagnodes {
-		err := n.Pinning.Pin(dagnode, recursive)
-		if err != nil {
-			return nil, fmt.Errorf("pin: %v", err)
-		}
-	}
-
-	err := n.Pinning.Flush()
-	if err != nil {
-		return nil, err
-	}
-
-	return dagnodes, nil
-}
-
-func unpin(n *core.IpfsNode, paths []string, recursive bool) ([]*merkledag.Node, error) {
-
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, path := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path)
-		if err != nil {
-			return nil, err
-		}
-		dagnodes = append(dagnodes, dagnode)
-	}
-
-	for _, dagnode := range dagnodes {
-		k, _ := dagnode.Key()
-		err := n.Pinning.Unpin(k, recursive)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err := n.Pinning.Flush()
-	if err != nil {
-		return nil, err
-	}
-	return dagnodes, nil
 }

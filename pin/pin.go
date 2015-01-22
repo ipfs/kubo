@@ -5,6 +5,7 @@ package pin
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -25,6 +26,7 @@ const (
 	Recursive PinMode = iota
 	Direct
 	Indirect
+	NotPinned
 )
 
 type Pinner interface {
@@ -90,6 +92,10 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 			return nil
 		}
 
+		if p.directPin.HasKey(k) {
+			p.directPin.RemoveBlock(k)
+		}
+
 		p.recursePin.AddBlock(k)
 
 		err := p.pinLinks(node)
@@ -97,26 +103,38 @@ func (p *pinner) Pin(node *mdag.Node, recurse bool) error {
 			return err
 		}
 	} else {
+		if p.recursePin.HasKey(k) {
+			return fmt.Errorf("%s already pinned recursively", k.B58String())
+		}
 		p.directPin.AddBlock(k)
 	}
 	return nil
 }
 
-// Unpin a given key with optional recursive unpinning
-func (p *pinner) Unpin(k util.Key, recurse bool) error {
+// Unpin a given key
+func (p *pinner) Unpin(k util.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if recurse {
-		p.recursePin.RemoveBlock(k)
-		node, err := p.dserv.Get(k)
-		if err != nil {
-			return err
-		}
+	if p.recursePin.HasKey(k) {
+		if recursive {
+			p.recursePin.RemoveBlock(k)
+			node, err := p.dserv.Get(k)
+			if err != nil {
+				return err
+			}
 
-		return p.unpinLinks(node)
+			return p.unpinLinks(node)
+		} else {
+			return fmt.Errorf("%s is pinned recursively", k)
+		}
+	} else if p.directPin.HasKey(k) {
+		p.directPin.RemoveBlock(k)
+		return nil
+	} else if p.indirPin.HasKey(k) {
+		return fmt.Errorf("%s is pinned indirectly. indirect pins cannot be removed directly", k)
+	} else {
+		return fmt.Errorf("%s is not pinned", k)
 	}
-	p.directPin.RemoveBlock(k)
-	return nil
 }
 
 func (p *pinner) unpinLinks(node *mdag.Node) error {

@@ -200,6 +200,10 @@ func BuildDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl
 
 	if mp != nil {
 		mp.PinWithMode(rootkey, pin.Recursive)
+		err := mp.Flush()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return root.getDagNode()

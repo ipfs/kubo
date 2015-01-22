@@ -72,7 +72,7 @@ remains to be implemented.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(chan interface{})
+			outChan, ok := res.Output().(<-chan interface{})
 			if !ok {
 				return nil, u.ErrCast()
 			}
@@ -120,6 +120,11 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 			return nil, err
 		}
 		dagnodes = append(dagnodes, node)
+	}
+
+	err := n.Pinning.Flush()
+	if err != nil {
+		return nil, err
 	}
 
 	return dagnodes, nil

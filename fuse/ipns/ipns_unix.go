@@ -42,6 +42,16 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
+	err = n.Pinning.Pin(emptyDir, false)
+	if err != nil {
+		return err
+	}
+
+	err = n.Pinning.Flush()
+	if err != nil {
+		return err
+	}
+
 	pub := nsys.NewRoutingPublisher(n.Routing)
 	err = pub.Publish(key, k.B58String())
 	if err != nil {

@@ -125,6 +125,15 @@ func (c *Command) Call(req Request) Response {
 		isChan = actualType.Kind() == reflect.Chan
 	}
 
+	if isChan {
+		if ch, ok := output.(<-chan interface{}); ok {
+			output = ch
+
+		} else if ch, ok := output.(chan interface{}); ok {
+			output = (<-chan interface{})(ch)
+		}
+	}
+
 	// If the command specified an output type, ensure the actual value returned is of that type
 	if cmd.Type != nil && !isChan {
 		expectedType := reflect.TypeOf(cmd.Type)
