@@ -19,6 +19,7 @@ import (
 	upb "github.com/jbenet/go-ipfs/unixfs/pb"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
 var GetCmd = &cmds.Command{
@@ -99,7 +100,13 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			}
 			defer file.Close()
 
-			_, err = io.Copy(file, reader)
+			bar := pb.New(0).SetUnits(pb.U_BYTES)
+			bar.Output = os.Stderr
+			pbReader := bar.NewProxyReader(reader)
+			bar.Start()
+			defer bar.Finish()
+
+			_, err = io.Copy(file, pbReader)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -109,6 +116,10 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		}
 
 		fmt.Printf("Saving file(s) to %s\n", outPath)
+
+		// TODO: get total length of files
+		bar := pb.New(0).SetUnits(pb.U_BYTES)
+		bar.Output = os.Stderr
 
 		preexisting := true
 		pathIsDir := false
@@ -129,10 +140,15 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				return
 			}
 			defer gzipReader.Close()
-			tarReader = tar.NewReader(gzipReader)
+			pbReader := bar.NewProxyReader(gzipReader)
+			tarReader = tar.NewReader(pbReader)
 		} else {
-			tarReader = tar.NewReader(reader)
+			pbReader := bar.NewProxyReader(reader)
+			tarReader = tar.NewReader(pbReader)
 		}
+
+		bar.Start()
+		defer bar.Finish()
 
 		for i := 0; ; i++ {
 			header, err := tarReader.Next()
