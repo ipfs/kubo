@@ -5,7 +5,7 @@ import (
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	cmds "github.com/jbenet/go-ipfs/commands"
-	commands "github.com/jbenet/go-ipfs/core/commands"
+	corefuse "github.com/jbenet/go-ipfs/core/corefuse"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
@@ -144,7 +144,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			nsdir = cfg.Mounts.IPNS
 		}
 
-		err = commands.Mount(node, fsdir, nsdir)
+		err = corefuse.Mount(node, fsdir, nsdir)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
