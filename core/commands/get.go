@@ -3,6 +3,7 @@ package commands
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -30,6 +31,9 @@ By default, the output will be stored at ./<ipfs-path>, but an alternate path
 can be specified with '--output=<path>' or '-o=<path>'.
 
 To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
+
+To compress the output with GZIP compression, use '--compress' or '-C'. You
+may also specify the level of compression by specifying '-l=<1-9>'.
 `,
 	},
 
@@ -39,6 +43,8 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 	Options: []cmds.Option{
 		cmds.StringOption("output", "o", "The path where output should be stored"),
 		cmds.BoolOption("archive", "a", "Output a TAR archive"),
+		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression"),
+		cmds.IntOption("compression-level", "l", "The level of compression (an int between 1 and 9)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.Context().GetNode()
@@ -47,7 +53,17 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 			return
 		}
 
-		reader, err := get(node, req.Arguments()[0])
+		compress, _, _ := req.Option("compress").Bool()
+		compressionLevel, found, _ := req.Option("compression-level").Int()
+		if !found {
+			if compress {
+				compressionLevel = gzip.DefaultCompression
+			} else {
+				compressionLevel = gzip.NoCompression
+			}
+		}
+
+		reader, err := get(node, req.Arguments()[0], compressionLevel)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -58,14 +74,21 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 		reader := res.Output().(io.Reader)
 		res.SetOutput(nil)
 
-		outPath, _, _ := res.Request().Option("output").String()
+		outPath, _, _ := req.Option("output").String()
 		if len(outPath) == 0 {
-			outPath = res.Request().Arguments()[0]
+			outPath = req.Arguments()[0]
 		}
 
-		if archive, _, _ := res.Request().Option("archive").Bool(); archive {
+		compress, _, _ := req.Option("compress").Bool()
+		compressionLevel, found, _ := req.Option("compression-level").Int()
+		compress = (compress && (compressionLevel > 0 || !found)) || compressionLevel > 0
+
+		if archive, _, _ := req.Option("archive").Bool(); archive {
 			if !strings.HasSuffix(outPath, ".tar") {
 				outPath += ".tar"
+			}
+			if compress {
+				outPath += ".gz"
 			}
 			fmt.Printf("Saving archive to %s\n", outPath)
 
@@ -98,7 +121,18 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 			pathIsDir = true
 		}
 
-		tarReader := tar.NewReader(reader)
+		var tarReader *tar.Reader
+		if compress {
+			gzipReader, err := gzip.NewReader(reader)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			defer gzipReader.Close()
+			tarReader = tar.NewReader(gzipReader)
+		} else {
+			tarReader = tar.NewReader(reader)
+		}
 
 		for i := 0; ; i++ {
 			header, err := tarReader.Next()
@@ -167,11 +201,11 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 	},
 }
 
-func get(node *core.IpfsNode, path string) (io.Reader, error) {
+func get(node *core.IpfsNode, path string, compression int) (io.Reader, error) {
 	buf := NewBufReadWriter()
 
 	go func() {
-		err := copyFilesAsTar(node, buf, path)
+		err := copyFilesAsTar(node, buf, path, compression)
 		if err != nil {
 			log.Error(err)
 			return
@@ -181,19 +215,38 @@ func get(node *core.IpfsNode, path string) (io.Reader, error) {
 	return buf, nil
 }
 
-func copyFilesAsTar(node *core.IpfsNode, buf *bufReadWriter, path string) error {
-	writer := tar.NewWriter(buf)
+func copyFilesAsTar(node *core.IpfsNode, buf *bufReadWriter, path string, compression int) error {
+	var gzipWriter *gzip.Writer
+	var writer *tar.Writer
+	var err error
+	if compression != gzip.NoCompression {
+		gzipWriter, err = gzip.NewWriterLevel(buf, compression)
+		if err != nil {
+			return err
+		}
+		writer = tar.NewWriter(gzipWriter)
+	} else {
+		writer = tar.NewWriter(buf)
+	}
 
-	err := _copyFilesAsTar(node, writer, buf, path, nil)
+	err = _copyFilesAsTar(node, writer, buf, path, nil)
 	if err != nil {
 		return err
 	}
 
+	buf.mutex.Lock()
 	err = writer.Close()
 	if err != nil {
 		return err
 	}
+	if gzipWriter != nil {
+		err = gzipWriter.Close()
+		if err != nil {
+			return err
+		}
+	}
 	buf.Close()
+	buf.mutex.Unlock()
 	buf.Signal()
 	return nil
 }
