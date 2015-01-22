@@ -1,4 +1,4 @@
-package main
+package corehttp
 
 import (
 	"html/template"
@@ -42,7 +42,7 @@ type gatewayHandler struct {
 	dirList *template.Template
 }
 
-func NewGatewayHandler(node *core.IpfsNode) (*gatewayHandler, error) {
+func newGatewayHandler(node *core.IpfsNode) (*gatewayHandler, error) {
 	i := &gatewayHandler{
 		node: node,
 	}

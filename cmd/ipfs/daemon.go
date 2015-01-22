@@ -2,16 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"os"
 
-	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	cmds "github.com/jbenet/go-ipfs/commands"
-	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
-	core "github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands"
+	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -24,10 +19,6 @@ const (
 	ipnsMountKwd  = "mount-ipns"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
-
-	originEnvKey = "API_ORIGIN"
-
-	webuiPath = "/ipfs/QmTWvqK9dYvqjAMAcCeUun8b45Fwu7wPhEN9B9TsGbkXfJ"
 )
 
 var daemonCmd = &cmds.Command{
@@ -153,80 +144,17 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 
 	if gatewayMaddr != nil {
 		go func() {
-			err := listenAndServeGateway(node, gatewayMaddr)
+			err := corehttp.ListenAndServe(node, gatewayMaddr, corehttp.GatewayOption)
 			if err != nil {
 				log.Error(err)
 			}
 		}()
 	}
 
-	return nil, listenAndServeAPI(node, req, apiMaddr)
-}
-
-func listenAndServeAPI(node *core.IpfsNode, req cmds.Request, addr ma.Multiaddr) error {
-	origin := os.Getenv(originEnvKey)
-	cmdHandler := cmdsHttp.NewHandler(*req.Context(), commands.Root, origin)
-	gateway, err := NewGatewayHandler(node)
-	if err != nil {
-		return err
+	var opts = []corehttp.ServeOption{
+		corehttp.CommandsOption(*req.Context()),
+		corehttp.WebUIOption,
+		corehttp.GatewayOption,
 	}
-
-	mux := http.NewServeMux()
-	mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
-	mux.Handle("/ipfs/", gateway)
-	mux.Handle("/webui/", &redirectHandler{webuiPath})
-	return listenAndServe("API", node, addr, mux)
-}
-
-// the gateway also listens on its own address:port in addition to the API listener
-func listenAndServeGateway(node *core.IpfsNode, addr ma.Multiaddr) error {
-	gateway, err := NewGatewayHandler(node)
-	if err != nil {
-		return err
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/ipfs/", gateway)
-	return listenAndServe("gateway", node, addr, mux)
-}
-
-func listenAndServe(name string, node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
-	_, host, err := manet.DialArgs(addr)
-	if err != nil {
-		return err
-	}
-
-	server := manners.NewServer()
-
-	// if the server exits beforehand
-	var serverError error
-	serverExited := make(chan struct{})
-
-	go func() {
-		fmt.Printf("%s server listening on %s\n", name, addr)
-		serverError = server.ListenAndServe(host, mux)
-		close(serverExited)
-	}()
-
-	// wait for server to exit.
-	select {
-	case <-serverExited:
-
-	// if node being closed before server exits, close server
-	case <-node.Closing():
-		log.Infof("server at %s terminating...", addr)
-		server.Shutdown <- true
-		<-serverExited // now, DO wait until server exit
-	}
-
-	log.Infof("server at %s terminated", addr)
-	return serverError
-}
-
-type redirectHandler struct {
-	path string
-}
-
-func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, i.path, 302)
+	return nil, corehttp.ListenAndServe(node, apiMaddr, opts...)
 }
