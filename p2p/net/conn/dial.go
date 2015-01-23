@@ -115,6 +115,9 @@ func (d *Dialer) reuseDial(laddr, raddr ma.Multiaddr) (conn net.Conn, retry bool
 		return nil, true, reuseport.ErrReuseFailed
 	}
 
+	// half the timeout so we can retry regularly if this fails.
+	d.Dialer.Dialer.Timeout = (d.Dialer.Dialer.Timeout / 2)
+
 	// give reuse.Dialer the manet.Dialer's Dialer.
 	// (wow, Dialer should've so been an interface...)
 	rd := reuseport.Dialer{d.Dialer.Dialer}
