@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path"
 	"strings"
 
@@ -139,7 +138,7 @@ remains to be implemented.
 			bar.Callback = func(line string) {
 				terminalWidth = len(line)
 				bar.Callback = nil
-				bar.Output = os.Stderr
+				bar.Output = res.Stderr()
 				log.Infof("terminal width: %v\n", terminalWidth)
 			}
 			bar.Update()
@@ -153,12 +152,12 @@ remains to be implemented.
 			if len(output.Hash) > 0 {
 				if showProgressBar {
 					// clear progress bar line before we print "added x" output
-					fmt.Fprintf(os.Stderr, "\r%s\r", strings.Repeat(" ", terminalWidth))
+					fmt.Fprintf(res.Stderr(), "\r%s\r", strings.Repeat(" ", terminalWidth))
 				}
 				if quiet {
-					fmt.Printf("%s\n", output.Hash)
+					fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
 				} else {
-					fmt.Printf("added %s %s\n", output.Hash, output.Name)
+					fmt.Fprintf(res.Stdout(), "added %s %s\n", output.Hash, output.Name)
 				}
 
 			} else {

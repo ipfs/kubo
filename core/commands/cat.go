@@ -2,7 +2,6 @@ package commands
 
 import (
 	"io"
-	"os"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
@@ -51,7 +50,7 @@ it contains.
 		}
 
 		bar := pb.New(int(res.Length())).SetUnits(pb.U_BYTES)
-		bar.Output = os.Stderr
+		bar.Output = res.Stderr()
 		bar.Start()
 
 		reader := bar.NewProxyReader(res.Output().(io.Reader))

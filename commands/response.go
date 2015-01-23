@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 )
 
@@ -105,6 +106,10 @@ type Response interface {
 
 	// Gets a io.Reader that reads the marshalled output
 	Reader() (io.Reader, error)
+
+	// Gets Stdout and Stderr, for writing to console without using SetOutput
+	Stdout() io.Writer
+	Stderr() io.Writer
 }
 
 type response struct {
@@ -113,6 +118,8 @@ type response struct {
 	value  interface{}
 	out    io.Reader
 	length uint64
+	stdout io.Writer
+	stderr io.Writer
 }
 
 func (r *response) Request() Request {
@@ -206,7 +213,19 @@ func (r *response) Reader() (io.Reader, error) {
 	return r.out, nil
 }
 
+func (r *response) Stdout() io.Writer {
+	return r.stdout
+}
+
+func (r *response) Stderr() io.Writer {
+	return r.stderr
+}
+
 // NewResponse returns a response to match given Request
 func NewResponse(req Request) Response {
-	return &response{req: req}
+	return &response{
+		req:    req,
+		stdout: os.Stdout,
+		stderr: os.Stderr,
+	}
 }
