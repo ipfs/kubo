@@ -5,9 +5,10 @@ import (
 	"io"
 	"strings"
 
-	tail "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"
+
+	tail "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -27,7 +28,7 @@ output of a running daemon.
 
 	Subcommands: map[string]*cmds.Command{
 		"level": logLevelCmd,
-		"read":  logReadCmd,
+		"tail":  logTailCmd,
 	},
 }
 
@@ -69,14 +70,11 @@ output of a running daemon.
 	Type: MessageOutput{},
 }
 
-var logReadCmd = &cmds.Command{
+var logTailCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Read the logs",
 		ShortDescription: `
-'ipfs log read' is a utility command used to read the log output.
-
-By default, the last 50 lines are returned. For more, use '-n=<number of lines>'.
-Use '--stream' (or '-s') to stream the current output (in addition to the '-n' lines).
+'ipfs log tail' is a utility command used to read log output as it is written.
 `,
 	},
 
@@ -98,6 +96,7 @@ Use '--stream' (or '-s') to stream the current output (in addition to the '-n' l
 				fmt.Println(err.Error())
 				return
 			}
+			defer t.Stop()
 
 			for line := range t.Lines {
 				if line.Err != nil {
