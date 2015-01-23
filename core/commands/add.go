@@ -55,6 +55,10 @@ remains to be implemented.
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 	},
 	PreRun: func(req cmds.Request) error {
+		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
+			return nil
+		}
+
 		req.SetOption(progressOptionName, true)
 
 		sizeFile, ok := req.Files().(files.SizeFile)
@@ -120,7 +124,7 @@ remains to be implemented.
 		if found {
 			size = s.(int64)
 		}
-		showProgressBar := size >= progressBarMinSize
+		showProgressBar := !quiet && size >= progressBarMinSize
 
 		var bar *pb.ProgressBar
 		var terminalWidth int
