@@ -160,7 +160,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-reuseport",
-			"Rev": "a2e454f12a99b8898c41f9dcebae6c35dc3efa3a"
+			"Rev": "6924153aded2d61c89a83c8f0738ed4e8df9191f"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-sockaddr/net",
