@@ -80,6 +80,9 @@ func AddrOverNonLocalIP(a ma.Multiaddr) bool {
 // as we need to be able to connect to multiple ipfs nodes
 // in the same machine.
 func AddrUsable(a ma.Multiaddr, partial bool) bool {
+	if a == nil {
+		return false
+	}
 
 	if !AddrOverNonLocalIP(a) {
 		return false
