@@ -68,24 +68,19 @@ Set the value of the 'datastore.path' key:
 		}
 		defer r.Close()
 
-		var value string
+		var err error
+		var output *ConfigField
 		if len(args) == 2 {
-			value = args[1]
-			output, err := setConfig(r, key, value)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(output)
-
+			value := args[1]
+			output, err = setConfig(r, key, value)
 		} else {
-			output, err := getConfig(r, key)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(output)
+			output, err = getConfig(r, key)
 		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
