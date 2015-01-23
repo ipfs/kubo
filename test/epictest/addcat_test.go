@@ -115,8 +115,15 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 	defer catter.Close()
 
-	catter.Bootstrap(ctx, []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)})
-	adder.Bootstrap(ctx, []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)})
+	bs1 := []peer.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
+	bs2 := []peer.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}
+
+	if err := catter.Bootstrap(core.BootstrapConfigWithPeers(bs1)); err != nil {
+		return err
+	}
+	if err := adder.Bootstrap(core.BootstrapConfigWithPeers(bs2)); err != nil {
+		return err
+	}
 
 	keyAdded, err := coreunix.Add(adder, bytes.NewReader(data))
 	if err != nil {
