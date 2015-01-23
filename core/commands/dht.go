@@ -23,6 +23,7 @@ var DhtCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"query":     queryDhtCmd,
 		"findprovs": findProvidersDhtCmd,
+		"findpeer":  findPeerDhtCmd,
 	},
 }
 
@@ -186,6 +187,58 @@ FindProviders will return a list of peers who are able to provide the value requ
 				Channel:   outChan,
 				Marshaler: marshal,
 			}, nil
+		},
+	},
+	Type: peer.PeerInfo{},
+}
+
+var findPeerDhtCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Run a 'FindPeer' query through the DHT",
+		ShortDescription: ``,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peerID", true, true, "The peer to search for"),
+	},
+	Run: func(req cmds.Request) (interface{}, error) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		dht, ok := n.Routing.(*ipdht.IpfsDHT)
+		if !ok {
+			return nil, errors.New("Routing service was not a dht")
+		}
+
+		pid, err := peer.IDB58Decode(req.Arguments()[0])
+		if err != nil {
+			return nil, err
+		}
+
+		pi, err := dht.FindPeer(req.Context().Context, pid)
+		if err != nil {
+			return nil, err
+		}
+
+		return &pi, nil
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			pinfo, ok := res.Output().(*peer.PeerInfo)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "found peer: %s\n", pinfo.ID)
+			fmt.Fprintf(buf, "reported addresses:\n")
+			for _, addr := range pinfo.Addrs {
+				fmt.Fprintf(buf, "\t%s\n", addr)
+			}
+
+			return buf, nil
 		},
 	},
 	Type: peer.PeerInfo{},
