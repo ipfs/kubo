@@ -15,6 +15,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
+	debugerr "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var log = eventlog.Logger("conn")
@@ -50,7 +51,7 @@ func newSingleConn(ctx context.Context, local, remote peer.ID, maconn manet.Conn
 
 // close is the internal close function, called by ContextCloser.Close
 func (c *singleConn) Close() error {
-	log.Debugf("%s closing Conn with %s", c.local, c.remote)
+	log.Debug(debugerr.Errorf("%s closing Conn with %s", c.local, c.remote))
 	// close underlying connection
 	return c.msgrw.Close()
 }

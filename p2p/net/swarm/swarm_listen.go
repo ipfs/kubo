@@ -65,7 +65,6 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Swarm Listening at %s", s.ListenAddresses())
 
 	// AddListener to the peerstream Listener. this will begin accepting connections
 	// and streams!
@@ -73,6 +72,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 	if err != nil {
 		return err
 	}
+	log.Infof("Swarm Listeners at %s", s.ListenAddresses())
 
 	// go consume peerstream's listen accept errors. note, these ARE errors.
 	// they may be killing the listener, and if we get _any_ we should be

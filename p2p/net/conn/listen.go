@@ -75,6 +75,7 @@ func (l *listener) Accept() (net.Conn, error) {
 			return nil, err
 		}
 
+		log.Debugf("listener %s got connection: %s <---> %s", l, maconn.LocalMultiaddr(), maconn.RemoteMultiaddr())
 		c, err := newSingleConn(ctx, l.local, "", maconn)
 		if err != nil {
 			if catcher.IsTemporary(err) {
@@ -89,7 +90,7 @@ func (l *listener) Accept() (net.Conn, error) {
 		}
 		sc, err := newSecureConn(ctx, l.privk, c)
 		if err != nil {
-			log.Info("ignoring conn we failed to secure: %s %s", err, sc)
+			log.Infof("ignoring conn we failed to secure: %s %s", err, c)
 			continue
 		}
 		return sc, nil
