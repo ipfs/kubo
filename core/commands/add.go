@@ -104,7 +104,7 @@ remains to be implemented.
 			}
 		}()
 	},
-	PostRun: func(res cmds.Response) {
+	PostRun: func(req cmds.Request, res cmds.Response) {
 		outChan, ok := res.Output().(<-chan interface{})
 		if !ok {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
@@ -112,14 +112,14 @@ remains to be implemented.
 		}
 		res.SetOutput(nil)
 
-		quiet, _, err := res.Request().Option("quiet").Bool()
+		quiet, _, err := req.Option("quiet").Bool()
 		if err != nil {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
 			return
 		}
 
 		size := int64(0)
-		s, found := res.Request().Values()["size"]
+		s, found := req.Values()["size"]
 		if found {
 			size = s.(int64)
 		}

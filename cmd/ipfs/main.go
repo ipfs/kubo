@@ -356,7 +356,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	}
 
 	if cmd.PostRun != nil {
-		cmd.PostRun(res)
+		cmd.PostRun(req, res)
 	}
 
 	return res, nil

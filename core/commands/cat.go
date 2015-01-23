@@ -44,7 +44,7 @@ it contains.
 		reader := io.MultiReader(readers...)
 		res.SetOutput(reader)
 	},
-	PostRun: func(res cmds.Response) {
+	PostRun: func(req cmds.Request, res cmds.Response) {
 		if res.Length() < progressBarMinSize {
 			return
 		}
