@@ -82,10 +82,14 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 	// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
 	// probably because results compound
 
+	var cfg BootstrapConfig
+	cfg = DefaultBootstrapConfig
+	cfg.Queries = 3
+
 	start := rand.Intn(len(dhts)) // randomize to decrease bias.
 	for i := range dhts {
 		dht := dhts[(start+i)%len(dhts)]
-		dht.runBootstrap(ctx, 3)
+		dht.runBootstrap(ctx, cfg)
 	}
 	cancel()
 }
@@ -356,11 +360,15 @@ func TestPeriodicBootstrap(t *testing.T) {
 	signal := make(chan time.Time)
 	allSignals := []chan time.Time{}
 
+	var cfg BootstrapConfig
+	cfg = DefaultBootstrapConfig
+	cfg.Queries = 5
+
 	// kick off periodic bootstrappers with instrumented signals.
 	for _, dht := range dhts {
 		s := make(chan time.Time)
 		allSignals = append(allSignals, s)
-		dht.BootstrapOnSignal(5, s)
+		dht.BootstrapOnSignal(cfg, s)
 	}
 	go amplify(signal, allSignals)
 
