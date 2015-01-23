@@ -4,10 +4,9 @@
 package diagnostics
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
@@ -31,7 +31,10 @@ var log = util.Logger("diagnostics")
 // ProtocolDiag is the diagnostics protocol.ID
 var ProtocolDiag protocol.ID = "/ipfs/diagnostics"
 
+var ErrAlreadyRunning = errors.New("diagnostic with that ID already running")
+
 const ResponseTimeout = time.Second * 10
+const HopTimeoutDecrement = time.Second * 2
 
 // Diagnostics is a net service that manages requesting and responding to diagnostic
 // requests
@@ -148,62 +151,113 @@ func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) 
 	peers := d.getPeers()
 	log.Debugf("Sending diagnostic request to %d peers.", len(peers))
 
-	var out []*DiagInfo
-	di := d.getDiagInfo()
-	out = append(out, di)
-
 	pmes := newMessage(diagID)
 
-	respdata := make(chan []byte)
-	sends := 0
-	for p, _ := range peers {
-		log.Debugf("Sending getDiagnostic to: %s", p)
-		sends++
-		go func(p peer.ID) {
-			data, err := d.getDiagnosticFromPeer(ctx, p, pmes)
-			if err != nil {
-				log.Errorf("GetDiagnostic error: %v", err)
-				respdata <- nil
-				return
-			}
-			respdata <- data
-		}(p)
+	pmes.SetTimeoutDuration(timeout - HopTimeoutDecrement) // decrease timeout per hop
+	dpeers, err := d.getDiagnosticFromPeers(ctx, d.getPeers(), pmes)
+	if err != nil {
+		return nil, fmt.Errorf("diagnostic from peers err: %s", err)
 	}
 
-	for i := 0; i < sends; i++ {
-		data := <-respdata
-		if data == nil {
-			continue
-		}
-		out = appendDiagnostics(data, out)
+	di := d.getDiagInfo()
+	out := []*DiagInfo{di}
+	for dpi := range dpeers {
+		out = append(out, dpi)
 	}
 	return out, nil
 }
 
-func appendDiagnostics(data []byte, cur []*DiagInfo) []*DiagInfo {
-	buf := bytes.NewBuffer(data)
-	dec := json.NewDecoder(buf)
-	for {
-		di := new(DiagInfo)
-		err := dec.Decode(di)
-		if err != nil {
-			if err != io.EOF {
-				log.Errorf("error decoding DiagInfo: %v", err)
-			}
-			break
-		}
-		cur = append(cur, di)
-	}
-	return cur
-}
-
-// TODO: this method no longer needed.
-func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, mes *pb.Message) ([]byte, error) {
-	rpmes, err := d.sendRequest(ctx, p, mes)
+func decodeDiagJson(data []byte) (*DiagInfo, error) {
+	di := new(DiagInfo)
+	err := json.Unmarshal(data, di)
 	if err != nil {
 		return nil, err
 	}
-	return rpmes.GetData(), nil
+
+	return di, nil
+}
+
+func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer.ID]int, pmes *pb.Message) (<-chan *DiagInfo, error) {
+	respdata := make(chan *DiagInfo)
+	wg := sync.WaitGroup{}
+	for p, _ := range peers {
+		wg.Add(1)
+		log.Debugf("Sending diagnostic request to peer: %s", p)
+		go func(p peer.ID) {
+			defer wg.Done()
+			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
+			if err != nil {
+				log.Errorf("Error getting diagnostic from %s: %s", p, err)
+				return
+			}
+			for d := range out {
+				respdata <- d
+			}
+		}(p)
+	}
+
+	go func() {
+		wg.Wait()
+		close(respdata)
+	}()
+
+	return respdata, nil
+}
+
+func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (<-chan *DiagInfo, error) {
+	s, err := d.host.NewStream(ProtocolDiag, p)
+	if err != nil {
+		return nil, err
+	}
+
+	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(cw)
+
+	start := time.Now()
+
+	if err := w.WriteMsg(pmes); err != nil {
+		return nil, err
+	}
+
+	out := make(chan *DiagInfo)
+	go func() {
+
+		defer func() {
+			close(out)
+			s.Close()
+			rtt := time.Since(start)
+			log.Infof("diagnostic request took: %s", rtt.String())
+		}()
+
+		for {
+			rpmes := new(pb.Message)
+			if err := r.ReadMsg(rpmes); err != nil {
+				log.Errorf("Error reading diagnostic from stream: %s", err)
+				return
+			}
+			if rpmes == nil {
+				log.Error("Got no response back from diag request.")
+				return
+			}
+
+			di, err := decodeDiagJson(rpmes.GetData())
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			select {
+			case out <- di:
+			case <-ctx.Done():
+				return
+			}
+		}
+
+	}()
+
+	return out, nil
 }
 
 func newMessage(diagID string) *pb.Message {
@@ -212,89 +266,12 @@ func newMessage(diagID string) *pb.Message {
 	return pmes
 }
 
-func (d *Diagnostics) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-
-	s, err := d.host.NewStream(ProtocolDiag, p)
-	if err != nil {
-		return nil, err
-	}
-	defer s.Close()
-
-	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
-	w := ggio.NewDelimitedWriter(s)
-
-	start := time.Now()
-
-	if err := w.WriteMsg(pmes); err != nil {
-		return nil, err
-	}
-
-	rpmes := new(pb.Message)
-	if err := r.ReadMsg(rpmes); err != nil {
-		return nil, err
-	}
-	if rpmes == nil {
-		return nil, errors.New("no response to request")
-	}
-
-	rtt := time.Since(start)
-	log.Infof("diagnostic request took: %s", rtt.String())
-	return rpmes, nil
-}
-
-func (d *Diagnostics) handleDiagnostic(p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("HandleDiagnostic from %s for id = %s", p, util.Key(pmes.GetDiagID()).B58String())
-	resp := newMessage(pmes.GetDiagID())
-
-	// Make sure we havent already handled this request to prevent loops
-	d.diagLock.Lock()
-	_, found := d.diagMap[pmes.GetDiagID()]
-	if found {
-		d.diagLock.Unlock()
-		return resp, nil
-	}
-	d.diagMap[pmes.GetDiagID()] = time.Now()
-	d.diagLock.Unlock()
-
-	buf := new(bytes.Buffer)
-	di := d.getDiagInfo()
-	buf.Write(di.Marshal())
-
-	ctx, _ := context.WithTimeout(context.TODO(), ResponseTimeout)
-
-	respdata := make(chan []byte)
-	sendcount := 0
-	for p, _ := range d.getPeers() {
-		log.Debugf("Sending diagnostic request to peer: %s", p)
-		sendcount++
-		go func(p peer.ID) {
-			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
-			if err != nil {
-				log.Errorf("getDiagnostic error: %v", err)
-				respdata <- nil
-				return
-			}
-			respdata <- out
-		}(p)
-	}
-
-	for i := 0; i < sendcount; i++ {
-		out := <-respdata
-		_, err := buf.Write(out)
-		if err != nil {
-			log.Errorf("getDiagnostic write output error: %v", err)
-			continue
-		}
-	}
-
-	resp.Data = buf.Bytes()
-	return resp, nil
-}
-
 func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 
-	r := ggio.NewDelimitedReader(s, 32768) // maxsize
-	w := ggio.NewDelimitedWriter(s)
+	cr := ctxutil.NewReader(ctx, s)
+	cw := ctxutil.NewWriter(ctx, s)
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax) // maxsize
+	w := ggio.NewDelimitedWriter(cw)
 
 	// deserialize msg
 	pmes := new(pb.Message)
@@ -307,25 +284,51 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 	log.Infof("[peer: %s] Got message from [%s]\n",
 		d.self.Pretty(), s.Conn().RemotePeer())
 
-	// dispatch handler.
-	p := s.Conn().RemotePeer()
-	rpmes, err := d.handleDiagnostic(p, pmes)
+	// Make sure we havent already handled this request to prevent loops
+	if err := d.startDiag(pmes.GetDiagID()); err != nil {
+		return nil
+	}
+
+	resp := newMessage(pmes.GetDiagID())
+	resp.Data = d.getDiagInfo().Marshal()
+	if err := w.WriteMsg(resp); err != nil {
+		log.Errorf("Failed to write protobuf message over stream: %s", err)
+		return err
+	}
+
+	timeout := pmes.GetTimeoutDuration()
+	if timeout < HopTimeoutDecrement {
+		return fmt.Errorf("timeout too short: %s", timeout)
+	}
+	ctx, _ = context.WithTimeout(ctx, timeout)
+	pmes.SetTimeoutDuration(timeout - HopTimeoutDecrement)
+
+	dpeers, err := d.getDiagnosticFromPeers(ctx, d.getPeers(), pmes)
 	if err != nil {
-		log.Errorf("handleDiagnostic error: %s", err)
-		return nil
+		log.Errorf("diagnostic from peers err: %s", err)
+		return err
+	}
+	for b := range dpeers {
+		resp := newMessage(pmes.GetDiagID())
+		resp.Data = b.Marshal()
+		if err := w.WriteMsg(resp); err != nil {
+			log.Errorf("Failed to write protobuf message over stream: %s", err)
+			return err
+		}
 	}
 
-	// if nil response, return it before serializing
-	if rpmes == nil {
-		return nil
-	}
+	return nil
+}
 
-	// serialize + send response msg
-	if err := w.WriteMsg(rpmes); err != nil {
-		log.Errorf("Failed to encode protobuf message: %v", err)
-		return nil
+func (d *Diagnostics) startDiag(id string) error {
+	d.diagLock.Lock()
+	_, found := d.diagMap[id]
+	if found {
+		d.diagLock.Unlock()
+		return ErrAlreadyRunning
 	}
-
+	d.diagMap[id] = time.Now()
+	d.diagLock.Unlock()
 	return nil
 }
 

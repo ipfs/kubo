@@ -11,33 +11,36 @@ import (
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	bserv "github.com/jbenet/go-ipfs/blockservice"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+
 	diag "github.com/jbenet/go-ipfs/diagnostics"
-	exchange "github.com/jbenet/go-ipfs/exchange"
-	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
-	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	offline "github.com/jbenet/go-ipfs/exchange/offline"
-	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	namesys "github.com/jbenet/go-ipfs/namesys"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	p2phost "github.com/jbenet/go-ipfs/p2p/host"
 	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
 	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+
+	routing "github.com/jbenet/go-ipfs/routing"
+	dht "github.com/jbenet/go-ipfs/routing/dht"
+	offroute "github.com/jbenet/go-ipfs/routing/offline"
+
+	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+	bserv "github.com/jbenet/go-ipfs/blockservice"
+	exchange "github.com/jbenet/go-ipfs/exchange"
+	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
+	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
+	offline "github.com/jbenet/go-ipfs/exchange/offline"
+	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
+
+	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	namesys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
 	pin "github.com/jbenet/go-ipfs/pin"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	routing "github.com/jbenet/go-ipfs/routing"
-	dht "github.com/jbenet/go-ipfs/routing/dht"
-	offroute "github.com/jbenet/go-ipfs/routing/offline"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
-	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -75,13 +78,14 @@ type IpfsNode struct {
 	Resolver   *path.Resolver       // the path resolution system
 
 	// Online
-	PrivateKey  ic.PrivKey          // the local node's private Key
-	PeerHost    p2phost.Host        // the network host (server+client)
-	Routing     routing.IpfsRouting // the routing system. recommend ipfs-dht
-	Exchange    exchange.Interface  // the block exchange + strategy (bitswap)
-	Namesys     namesys.NameSystem  // the name system, resolves paths to hashes
-	Diagnostics *diag.Diagnostics   // the diagnostics service
-	Reprovider  *rp.Reprovider      // the value reprovider system
+	PrivateKey   ic.PrivKey          // the local node's private Key
+	PeerHost     p2phost.Host        // the network host (server+client)
+	Bootstrapper io.Closer           // the periodic bootstrapper
+	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
+	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
+	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
+	Diagnostics  *diag.Diagnostics   // the diagnostics service
+	Reprovider   *rp.Reprovider      // the value reprovider system
 
 	ctxgroup.ContextGroup
 
@@ -235,29 +239,10 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	// TODO implement an offline namesys that serves only local names.
 	n.Namesys = namesys.NewNameSystem(n.Routing)
 
-	// TODO consider moving connection supervision into the Network. We've
-	// discussed improvements to this Node constructor. One improvement
-	// would be to make the node configurable, allowing clients to inject
-	// an Exchange, Network, or Routing component and have the constructor
-	// manage the wiring. In that scenario, this dangling function is a bit
-	// awkward.
-	var bootstrapPeers []peer.PeerInfo
-	for _, bootstrap := range n.Repo.Config().Bootstrap {
-		p, err := toPeer(bootstrap)
-		if err != nil {
-			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
-			log.Errorf("%s bootstrap error: %s", n.Identity, err)
-			return err
-		}
-		bootstrapPeers = append(bootstrapPeers, p)
-	}
-
-	go superviseConnections(ctx, n.PeerHost, dhtRouting, n.Peerstore, bootstrapPeers)
-
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
-	return nil
+	return n.Bootstrap(DefaultBootstrapConfig)
 }
 
 // teardown closes owned children. If any errors occur, this function returns
@@ -266,20 +251,20 @@ func (n *IpfsNode) teardown() error {
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
 	var closers []io.Closer
-	if n.Repo != nil {
-		closers = append(closers, n.Repo)
-	}
-	if n.Blocks != nil {
-		closers = append(closers, n.Blocks)
-	}
-	if n.Routing != nil {
-		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-			closers = append(closers, dht)
+	addCloser := func(c io.Closer) {
+		if c != nil {
+			closers = append(closers, c)
 		}
 	}
-	if n.PeerHost != nil {
-		closers = append(closers, n.PeerHost)
+
+	addCloser(n.Bootstrapper)
+	addCloser(n.Repo)
+	addCloser(n.Blocks)
+	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+		addCloser(dht)
 	}
+	addCloser(n.PeerHost)
+
 	var errs []error
 	for _, closer := range closers {
 		if err := closer.Close(); err != nil {
@@ -305,17 +290,34 @@ func (n *IpfsNode) Resolve(path string) (*merkledag.Node, error) {
 	return n.Resolver.ResolvePath(path)
 }
 
-// Bootstrap is undefined when node is not in OnlineMode
-func (n *IpfsNode) Bootstrap(ctx context.Context, peers []peer.PeerInfo) error {
+func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 
 	// TODO what should return value be when in offlineMode?
+	if n.Routing == nil {
+		return nil
+	}
 
-	if n.Routing != nil {
-		if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-			return bootstrap(ctx, n.PeerHost, dht, n.Peerstore, peers)
+	if n.Bootstrapper != nil {
+		n.Bootstrapper.Close() // stop previous bootstrap process.
+	}
+
+	// if the caller did not specify a bootstrap peer function, get the
+	// freshest bootstrap peers from config. this responds to live changes.
+	if cfg.BootstrapPeers == nil {
+		cfg.BootstrapPeers = func() []peer.PeerInfo {
+			bpeers := n.Repo.Config().Bootstrap
+			ps, err := toPeerInfos(bpeers)
+			if err != nil {
+				log.Error("failed to parse bootstrap peers from config: %s", bpeers)
+				return nil
+			}
+			return ps
 		}
 	}
-	return nil
+
+	var err error
+	n.Bootstrapper, err = Bootstrap(n, cfg)
+	return err
 }
 
 func (n *IpfsNode) loadID() error {

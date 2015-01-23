@@ -30,7 +30,10 @@ func NewReprovider(rsys routing.IpfsRouting, bstore blocks.Blockstore) *Reprovid
 }
 
 func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
-	after := time.After(0)
+	// dont reprovide immediately.
+	// may have just started the daemon and shutting it down immediately.
+	// probability( up another minute | uptime ) increases with uptime.
+	after := time.After(time.Minute)
 	for {
 		select {
 		case <-ctx.Done():

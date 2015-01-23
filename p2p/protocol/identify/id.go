@@ -118,8 +118,8 @@ func (ids *IDService) ResponseHandler(s inet.Stream) {
 	r := ggio.NewDelimitedReader(s, 2048)
 	mes := pb.Identify{}
 	if err := r.ReadMsg(&mes); err != nil {
-		log.Errorf("%s error receiving message from %s %s", ID,
-			c.RemotePeer(), c.RemoteMultiaddr())
+		log.Errorf("%s error receiving message from %s %s %s", ID,
+			c.RemotePeer(), c.RemoteMultiaddr(), err)
 		return
 	}
 	ids.consumeMessage(&mes, c)

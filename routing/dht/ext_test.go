@@ -49,6 +49,10 @@ func TestGetFailures(t *testing.T) {
 	// u.POut("Timout Test\n")
 	ctx1, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	if _, err := d.GetValue(ctx1, u.Key("test")); err != nil {
+		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
+			err = merr[0]
+		}
+
 		if err != context.DeadlineExceeded {
 			t.Fatal("Got different error than we expected", err)
 		}
@@ -86,6 +90,9 @@ func TestGetFailures(t *testing.T) {
 	ctx2, _ := context.WithTimeout(context.Background(), 20*time.Second)
 	_, err = d.GetValue(ctx2, u.Key("test"))
 	if err != nil {
+		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
+			err = merr[0]
+		}
 		if err != routing.ErrNotFound {
 			t.Fatalf("Expected ErrNotFound, got: %s", err)
 		}
@@ -202,6 +209,9 @@ func TestNotFound(t *testing.T) {
 	v, err := d.GetValue(ctx, u.Key("hello"))
 	log.Debugf("get value got %v", v)
 	if err != nil {
+		if merr, ok := err.(u.MultiErr); ok && len(merr) > 0 {
+			err = merr[0]
+		}
 		switch err {
 		case routing.ErrNotFound:
 			//Success!

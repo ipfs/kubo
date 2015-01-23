@@ -75,25 +75,22 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 
 	ctx, cancel := context.WithCancel(ctx)
+	log.Debugf("bootstrapping dhts...")
 
-	rounds := 1
+	// tried async. sequential fares much better. compare:
+	// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
+	// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
+	// probably because results compound
 
-	for i := 0; i < rounds; i++ {
-		log.Debugf("bootstrapping round %d/%d\n", i, rounds)
+	var cfg BootstrapConfig
+	cfg = DefaultBootstrapConfig
+	cfg.Queries = 3
 
-		// tried async. sequential fares much better. compare:
-		// 100 async https://gist.github.com/jbenet/56d12f0578d5f34810b2
-		// 100 sync https://gist.github.com/jbenet/6c59e7c15426e48aaedd
-		// probably because results compound
-
-		start := rand.Intn(len(dhts)) // randomize to decrease bias.
-		for i := range dhts {
-			dht := dhts[(start+i)%len(dhts)]
-			log.Debugf("bootstrapping round %d/%d -- %s\n", i, rounds, dht.self)
-			dht.Bootstrap(ctx, 3)
-		}
+	start := rand.Intn(len(dhts)) // randomize to decrease bias.
+	for i := range dhts {
+		dht := dhts[(start+i)%len(dhts)]
+		dht.runBootstrap(ctx, cfg)
 	}
-
 	cancel()
 }
 
@@ -235,6 +232,53 @@ func TestProvides(t *testing.T) {
 	}
 }
 
+// if minPeers or avgPeers is 0, dont test for it.
+func waitForWellFormedTables(t *testing.T, dhts []*IpfsDHT, minPeers, avgPeers int, timeout time.Duration) bool {
+	// test "well-formed-ness" (>= minPeers peers in every routing table)
+
+	checkTables := func() bool {
+		totalPeers := 0
+		for _, dht := range dhts {
+			rtlen := dht.routingTable.Size()
+			totalPeers += rtlen
+			if minPeers > 0 && rtlen < minPeers {
+				t.Logf("routing table for %s only has %d peers (should have >%d)", dht.self, rtlen, minPeers)
+				return false
+			}
+		}
+		actualAvgPeers := totalPeers / len(dhts)
+		t.Logf("avg rt size: %d", actualAvgPeers)
+		if avgPeers > 0 && actualAvgPeers < avgPeers {
+			t.Logf("avg rt size: %d < %d", actualAvgPeers, avgPeers)
+			return false
+		}
+		return true
+	}
+
+	timeoutA := time.After(timeout)
+	for {
+		select {
+		case <-timeoutA:
+			log.Error("did not reach well-formed routing tables by %s", timeout)
+			return false // failed
+		case <-time.After(5 * time.Millisecond):
+			if checkTables() {
+				return true // succeeded
+			}
+		}
+	}
+}
+
+func printRoutingTables(dhts []*IpfsDHT) {
+	// the routing tables should be full now. let's inspect them.
+	fmt.Println("checking routing table of %d", len(dhts))
+	for _, dht := range dhts {
+		fmt.Printf("checking routing table of %s\n", dht.self)
+		dht.routingTable.Print()
+		fmt.Println("")
+	}
+}
+
 func TestBootstrap(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 	if testing.Short() {
@@ -258,38 +302,109 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	<-time.After(100 * time.Millisecond)
-	t.Logf("bootstrapping them so they find each other", nDHTs)
-	ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
-	bootstrap(t, ctxT, dhts)
+	// bootstrap a few times until we get good tables.
+	stop := make(chan struct{})
+	go func() {
+		for {
+			t.Logf("bootstrapping them so they find each other", nDHTs)
+			ctxT, _ := context.WithTimeout(ctx, 5*time.Second)
+			bootstrap(t, ctxT, dhts)
+
+			select {
+			case <-time.After(50 * time.Millisecond):
+				continue // being explicit
+			case <-stop:
+				return
+			}
+		}
+	}()
+
+	waitForWellFormedTables(t, dhts, 7, 10, 5*time.Second)
+	close(stop)
 
 	if u.Debug {
 		// the routing tables should be full now. let's inspect them.
-		<-time.After(5 * time.Second)
-		t.Logf("checking routing table of %d", nDHTs)
-		for _, dht := range dhts {
-			fmt.Printf("checking routing table of %s\n", dht.self)
-			dht.routingTable.Print()
-			fmt.Println("")
+		printRoutingTables(dhts)
+	}
+}
+
+func TestPeriodicBootstrap(t *testing.T) {
+	// t.Skip("skipping test to debug another")
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	ctx := context.Background()
+
+	nDHTs := 30
+	_, _, dhts := setupDHTS(ctx, nDHTs, t)
+	defer func() {
+		for i := 0; i < nDHTs; i++ {
+			dhts[i].Close()
+			defer dhts[i].host.Close()
+		}
+	}()
+
+	// signal amplifier
+	amplify := func(signal chan time.Time, other []chan time.Time) {
+		for t := range signal {
+			for _, s := range other {
+				s <- t
+			}
+		}
+		for _, s := range other {
+			close(s)
 		}
 	}
 
-	// test "well-formed-ness" (>= 3 peers in every routing table)
-	avgsize := 0
+	signal := make(chan time.Time)
+	allSignals := []chan time.Time{}
+
+	var cfg BootstrapConfig
+	cfg = DefaultBootstrapConfig
+	cfg.Queries = 5
+
+	// kick off periodic bootstrappers with instrumented signals.
+	for _, dht := range dhts {
+		s := make(chan time.Time)
+		allSignals = append(allSignals, s)
+		dht.BootstrapOnSignal(cfg, s)
+	}
+	go amplify(signal, allSignals)
+
+	t.Logf("dhts are not connected.", nDHTs)
 	for _, dht := range dhts {
 		rtlen := dht.routingTable.Size()
-		avgsize += rtlen
-		t.Logf("routing table for %s has %d peers", dht.self, rtlen)
-		if rtlen < 4 {
-			// currently, we dont have good bootstrapping guarantees.
-			// t.Errorf("routing table for %s only has %d peers", dht.self, rtlen)
+		if rtlen > 0 {
+			t.Errorf("routing table for %s should have 0 peers. has %d", dht.self, rtlen)
 		}
 	}
-	avgsize = avgsize / len(dhts)
-	avgsizeExpected := 6
 
-	t.Logf("avg rt size: %d", avgsize)
-	if avgsize < avgsizeExpected {
-		t.Errorf("avg rt size: %d < %d", avgsize, avgsizeExpected)
+	for i := 0; i < nDHTs; i++ {
+		connect(t, ctx, dhts[i], dhts[(i+1)%len(dhts)])
+	}
+
+	t.Logf("dhts are now connected to 1-2 others.", nDHTs)
+	for _, dht := range dhts {
+		rtlen := dht.routingTable.Size()
+		if rtlen > 2 {
+			t.Errorf("routing table for %s should have at most 2 peers. has %d", dht.self, rtlen)
+		}
+	}
+
+	if u.Debug {
+		printRoutingTables(dhts)
+	}
+
+	t.Logf("bootstrapping them so they find each other", nDHTs)
+	signal <- time.Now()
+
+	// this is async, and we dont know when it's finished with one cycle, so keep checking
+	// until the routing tables look better, or some long timeout for the failure case.
+	waitForWellFormedTables(t, dhts, 7, 10, 5*time.Second)
+
+	if u.Debug {
+		printRoutingTables(dhts)
 	}
 }
 
@@ -319,7 +434,6 @@ func TestProvidesMany(t *testing.T) {
 
 	if u.Debug {
 		// the routing tables should be full now. let's inspect them.
-		<-time.After(5 * time.Second)
 		t.Logf("checking routing table of %d", nDHTs)
 		for _, dht := range dhts {
 			fmt.Printf("checking routing table of %s\n", dht.self)

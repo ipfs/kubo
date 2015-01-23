@@ -2,6 +2,9 @@ package core
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"sync"
 	"time"
@@ -16,119 +19,213 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	procctx "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
+	periodicproc "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
 )
 
-const (
-	period                               = 30 * time.Second // how often to check connection status
-	connectiontimeout      time.Duration = period / 3       // duration to wait when attempting to connect
-	recoveryThreshold                    = 4                // attempt to bootstrap if connection count falls below this value
-	numDHTBootstrapQueries               = 15               // number of DHT queries to execute
-)
+// ErrNotEnoughBootstrapPeers signals that we do not have enough bootstrap
+// peers to bootstrap correctly.
+var ErrNotEnoughBootstrapPeers = errors.New("not enough bootstrap peers to bootstrap")
 
-func superviseConnections(parent context.Context,
-	h host.Host,
-	route *dht.IpfsDHT, // TODO depend on abstract interface for testing purposes
-	store peer.Peerstore,
-	peers []peer.PeerInfo) error {
+// BootstrapConfig specifies parameters used in an IpfsNode's network
+// bootstrapping process.
+type BootstrapConfig struct {
 
-	for {
-		ctx, _ := context.WithTimeout(parent, connectiontimeout)
-		// TODO get config from disk so |peers| always reflects the latest
-		// information
-		if err := bootstrap(ctx, h, route, store, peers); err != nil {
-			log.Error(err)
-		}
-		select {
-		case <-parent.Done():
-			return parent.Err()
-		case <-time.Tick(period):
-		}
-	}
-	return nil
+	// MinPeerThreshold governs whether to bootstrap more connections. If the
+	// node has less open connections than this number, it will open connections
+	// to the bootstrap nodes. From there, the routing system should be able
+	// to use the connections to the bootstrap nodes to connect to even more
+	// peers. Routing systems like the IpfsDHT do so in their own Bootstrap
+	// process, which issues random queries to find more peers.
+	MinPeerThreshold int
+
+	// Period governs the periodic interval at which the node will
+	// attempt to bootstrap. The bootstrap process is not very expensive, so
+	// this threshold can afford to be small (<=30s).
+	Period time.Duration
+
+	// ConnectionTimeout determines how long to wait for a bootstrap
+	// connection attempt before cancelling it.
+	ConnectionTimeout time.Duration
+
+	// BootstrapPeers is a function that returns a set of bootstrap peers
+	// for the bootstrap process to use. This makes it possible for clients
+	// to control the peers the process uses at any moment.
+	BootstrapPeers func() []peer.PeerInfo
 }
 
-func bootstrap(ctx context.Context,
-	h host.Host,
-	r *dht.IpfsDHT,
-	ps peer.Peerstore,
-	bootstrapPeers []peer.PeerInfo) error {
+// DefaultBootstrapConfig specifies default sane parameters for bootstrapping.
+var DefaultBootstrapConfig = BootstrapConfig{
+	MinPeerThreshold:  4,
+	Period:            30 * time.Second,
+	ConnectionTimeout: (30 * time.Second) / 3, // Perod / 3
+}
 
-	connectedPeers := h.Network().Peers()
-	if len(connectedPeers) >= recoveryThreshold {
-		log.Event(ctx, "bootstrapSkip", h.ID())
-		log.Debugf("%s bootstrap skipped -- connected to %d (> %d) nodes",
-			h.ID(), len(connectedPeers), recoveryThreshold)
+func BootstrapConfigWithPeers(pis []peer.PeerInfo) BootstrapConfig {
+	cfg := DefaultBootstrapConfig
+	cfg.BootstrapPeers = func() []peer.PeerInfo {
+		return pis
+	}
+	return cfg
+}
 
+// Bootstrap kicks off IpfsNode bootstrapping. This function will periodically
+// check the number of open connections and -- if there are too few -- initiate
+// connections to well-known bootstrap peers. It also kicks off subsystem
+// bootstrapping (i.e. routing).
+func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
+
+	// TODO what bootstrapping should happen if there is no DHT? i.e. we could
+	// continue connecting to our bootstrap peers, but for what purpose? for now
+	// simply exit without connecting to any of them. When we introduce another
+	// routing system that uses bootstrap peers we can change this.
+	thedht, ok := n.Routing.(*dht.IpfsDHT)
+	if !ok {
+		return ioutil.NopCloser(nil), nil
+	}
+
+	// the periodic bootstrap function -- the connection supervisor
+	periodic := func(worker goprocess.Process) {
+		ctx := procctx.WithProcessClosing(context.Background(), worker)
+		defer log.EventBegin(ctx, "periodicBootstrap", n.Identity).Done()
+
+		if err := bootstrapRound(ctx, n.PeerHost, thedht, n.Peerstore, cfg); err != nil {
+			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
+			log.Errorf("%s bootstrap error: %s", n.Identity, err)
+		}
+	}
+
+	// kick off the node's periodic bootstrapping
+	proc := periodicproc.Tick(cfg.Period, periodic)
+	proc.Go(periodic) // run one right now.
+
+	// kick off dht bootstrapping.
+	dbproc, err := thedht.Bootstrap(dht.DefaultBootstrapConfig)
+	if err != nil {
+		proc.Close()
+		return nil, err
+	}
+
+	// add dht bootstrap proc as a child, so it is closed automatically when we are.
+	proc.AddChild(dbproc)
+	return proc, nil
+}
+
+func bootstrapRound(ctx context.Context,
+	host host.Host,
+	route *dht.IpfsDHT,
+	peerstore peer.Peerstore,
+	cfg BootstrapConfig) error {
+
+	ctx, _ = context.WithTimeout(ctx, cfg.ConnectionTimeout)
+	id := host.ID()
+
+	// get bootstrap peers from config. retrieving them here makes
+	// sure we remain observant of changes to client configuration.
+	peers := cfg.BootstrapPeers()
+
+	// determine how many bootstrap connections to open
+	connected := host.Network().Peers()
+	if len(connected) >= cfg.MinPeerThreshold {
+		log.Event(ctx, "bootstrapSkip", id)
+		log.Debugf("%s core bootstrap skipped -- connected to %d (> %d) nodes",
+			id, len(connected), cfg.MinPeerThreshold)
 		return nil
 	}
-	numCxnsToCreate := recoveryThreshold - len(connectedPeers)
+	numToDial := cfg.MinPeerThreshold - len(connected)
 
-	log.Event(ctx, "bootstrapStart", h.ID())
-	log.Debugf("%s bootstrapping to %d more nodes", h.ID(), numCxnsToCreate)
-
+	// filter out bootstrap nodes we are already connected to
 	var notConnected []peer.PeerInfo
-	for _, p := range bootstrapPeers {
-		if h.Network().Connectedness(p.ID) != inet.Connected {
+	for _, p := range peers {
+		if host.Network().Connectedness(p.ID) != inet.Connected {
 			notConnected = append(notConnected, p)
 		}
 	}
 
-	// if not connected to all bootstrap peer candidates
-	if len(notConnected) > 0 {
-		var randomSubset = randomSubsetOfPeers(notConnected, numCxnsToCreate)
-		log.Debugf("%s bootstrapping to %d nodes: %s", h.ID(), numCxnsToCreate, randomSubset)
-		if err := connect(ctx, ps, r, randomSubset); err != nil {
-			log.Event(ctx, "bootstrapError", h.ID(), lgbl.Error(err))
-			log.Errorf("%s bootstrap error: %s", h.ID(), err)
-			return err
-		}
+	// if connected to all bootstrap peer candidates, exit
+	if len(notConnected) < 1 {
+		log.Debugf("%s no more bootstrap peers to create %d connections", id, numToDial)
+		return ErrNotEnoughBootstrapPeers
 	}
 
-	// we can try running dht bootstrap even if we're connected to all bootstrap peers.
-	if len(h.Network().Conns()) > 0 {
-		if err := r.Bootstrap(ctx, numDHTBootstrapQueries); err != nil {
-			// log this as Info. later on, discern better between errors.
-			log.Infof("dht bootstrap err: %s", err)
-			return nil
-		}
+	// connect to a random susbset of bootstrap candidates
+	randSubset := randomSubsetOfPeers(notConnected, numToDial)
+
+	defer log.EventBegin(ctx, "bootstrapStart", id).Done()
+	log.Debugf("%s bootstrapping to %d nodes: %s", id, numToDial, randSubset)
+	if err := bootstrapConnect(ctx, peerstore, route, randSubset); err != nil {
+		return err
 	}
 	return nil
 }
 
-func connect(ctx context.Context, ps peer.Peerstore, r *dht.IpfsDHT, peers []peer.PeerInfo) error {
+func bootstrapConnect(ctx context.Context,
+	ps peer.Peerstore,
+	route *dht.IpfsDHT,
+	peers []peer.PeerInfo) error {
 	if len(peers) < 1 {
-		return errors.New("bootstrap set empty")
+		return ErrNotEnoughBootstrapPeers
 	}
 
+	errs := make(chan error, len(peers))
 	var wg sync.WaitGroup
 	for _, p := range peers {
 
 		// performed asynchronously because when performed synchronously, if
 		// one `Connect` call hangs, subsequent calls are more likely to
 		// fail/abort due to an expiring context.
+		// Also, performed asynchronously for dial speed.
 
 		wg.Add(1)
 		go func(p peer.PeerInfo) {
 			defer wg.Done()
-			log.Event(ctx, "bootstrapDial", r.LocalPeer(), p.ID)
-			log.Debugf("%s bootstrapping to %s", r.LocalPeer(), p.ID)
+			defer log.EventBegin(ctx, "bootstrapDial", route.LocalPeer(), p.ID).Done()
+			log.Debugf("%s bootstrapping to %s", route.LocalPeer(), p.ID)
 
 			ps.AddAddresses(p.ID, p.Addrs)
-			err := r.Connect(ctx, p.ID)
+			err := route.Connect(ctx, p.ID)
 			if err != nil {
-				log.Event(ctx, "bootstrapFailed", p.ID)
-				log.Criticalf("failed to bootstrap with %v: %s", p.ID, err)
+				log.Event(ctx, "bootstrapDialFailed", p.ID)
+				log.Errorf("failed to bootstrap with %v: %s", p.ID, err)
+				errs <- err
 				return
 			}
-			log.Event(ctx, "bootstrapSuccess", p.ID)
+			log.Event(ctx, "bootstrapDialSuccess", p.ID)
 			log.Infof("bootstrapped with %v", p.ID)
 		}(p)
 	}
 	wg.Wait()
+
+	// our failure condition is when no connection attempt succeeded.
+	// So drain the errs channel, counting the results.
+	close(errs)
+	count := 0
+	var err error
+	for err = range errs {
+		if err != nil {
+			count++
+		}
+	}
+	if count == len(peers) {
+		return fmt.Errorf("failed to bootstrap. %s", err)
+	}
 	return nil
 }
 
-func toPeer(bootstrap config.BootstrapPeer) (p peer.PeerInfo, err error) {
+func toPeerInfos(bpeers []config.BootstrapPeer) ([]peer.PeerInfo, error) {
+	var peers []peer.PeerInfo
+	for _, bootstrap := range bpeers {
+		p, err := toPeerInfo(bootstrap)
+		if err != nil {
+			return nil, err
+		}
+		peers = append(peers, p)
+	}
+	return peers, nil
+}
+
+func toPeerInfo(bootstrap config.BootstrapPeer) (p peer.PeerInfo, err error) {
 	id, err := peer.IDB58Decode(bootstrap.PeerID)
 	if err != nil {
 		return

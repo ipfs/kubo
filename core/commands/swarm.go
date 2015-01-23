@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"sort"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -64,6 +65,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 			addrs[i] = fmt.Sprintf("%s/%s", addr, pid.Pretty())
 		}
 
+		sort.Sort(sort.StringSlice(addrs))
 		return &stringList{addrs}, nil
 	},
 	Marshalers: cmds.MarshalerMap{
