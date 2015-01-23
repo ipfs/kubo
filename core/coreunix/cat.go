@@ -5,11 +5,10 @@ import (
 
 	core "github.com/jbenet/go-ipfs/core"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
-func Cat(n *core.IpfsNode, k u.Key) (io.Reader, error) {
-	dagNode, err := n.Resolve(k)
+func Cat(n *core.IpfsNode, path string) (io.Reader, error) {
+	dagNode, err := n.Resolver.ResolvePath(path)
 	if err != nil {
 		return nil, err
 	}

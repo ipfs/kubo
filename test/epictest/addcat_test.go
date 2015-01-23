@@ -123,7 +123,7 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	readerCatted, err := coreunix.Cat(catter, keyAdded)
+	readerCatted, err := coreunix.Cat(catter, keyAdded.String())
 	if err != nil {
 		return err
 	}
