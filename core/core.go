@@ -36,7 +36,6 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	offroute "github.com/jbenet/go-ipfs/routing/offline"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	util "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
@@ -302,10 +301,8 @@ func (n *IpfsNode) OnlineMode() bool {
 	}
 }
 
-// TODO expose way to resolve path name
-
-func (n *IpfsNode) Resolve(k util.Key) (*merkledag.Node, error) {
-	return (&path.Resolver{n.DAG}).ResolvePath(k.String())
+func (n *IpfsNode) Resolve(path string) (*merkledag.Node, error) {
+	return n.Resolver.ResolvePath(path)
 }
 
 // Bootstrap is undefined when node is not in OnlineMode
