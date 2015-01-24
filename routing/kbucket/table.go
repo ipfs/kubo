@@ -87,6 +87,23 @@ func (rt *RoutingTable) Update(p peer.ID) peer.ID {
 	return ""
 }
 
+// Remove deletes a peer from the routing table. This is to be used
+// when we are sure a node has disconnected completely.
+func (rt *RoutingTable) Remove(p peer.ID) {
+	rt.tabLock.Lock()
+	defer rt.tabLock.Unlock()
+	peerID := ConvertPeerID(p)
+	cpl := commonPrefixLen(peerID, rt.local)
+
+	bucketID := cpl
+	if bucketID >= len(rt.Buckets) {
+		bucketID = len(rt.Buckets) - 1
+	}
+
+	bucket := rt.Buckets[bucketID]
+	bucket.remove(p)
+}
+
 func (rt *RoutingTable) nextBucket() peer.ID {
 	bucket := rt.Buckets[len(rt.Buckets)-1]
 	newBucket := bucket.Split(len(rt.Buckets)-1, rt.local)
