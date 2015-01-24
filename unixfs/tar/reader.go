@@ -51,7 +51,8 @@ func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compre
 
 	// writeToBuf will write the data to the buffer, and will signal when there
 	// is new data to read
-	go reader.writeToBuf(dagnode, path, 0)
+	_, filename := p.Split(path)
+	go reader.writeToBuf(dagnode, filename, 0)
 
 	return reader, nil
 }

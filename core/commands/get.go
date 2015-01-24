@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	p "path"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -76,7 +77,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		outPath, _, _ := req.Option("output").String()
 		if len(outPath) == 0 {
-			outPath = req.Arguments()[0]
+			_, outPath = p.Split(req.Arguments()[0])
 		}
 
 		cmplvl, err := getCompressOptions(req)
