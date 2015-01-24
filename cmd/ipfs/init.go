@@ -238,7 +238,7 @@ func identityConfig(nbits int) (config.Identity, error) {
 		return ident, debugerror.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	fmt.Printf("generating key pair...")
+	fmt.Printf("generating %v-bit RSA keypair...", nbits)
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err

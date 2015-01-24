@@ -28,6 +28,7 @@ Basic commands:
     add <path>    Add an object to ipfs
     cat <ref>     Show ipfs object data
     ls <ref>      List links from an object
+    refs <ref>    List hashes of links from an object
 
 Tool commands:
 
@@ -36,13 +37,21 @@ Tool commands:
     version       Show ipfs version information
     commands      List all available commands
     id            Show info about ipfs peers
+    pin           Pin objects to local storage
+    name          Publish or resolve IPNS names
+    log           Change the logging level
 
 Advanced Commands:
 
     daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
-    serve         Serve an interface to ipfs
     diag          Print diagnostics
+
+Network commands:
+
+    swarm         Manage connections to the p2p network
+    bootstrap     Add or remove bootstrap peers
+    ping          Measure the latency of a connection
 
 Plumbing commands:
 
