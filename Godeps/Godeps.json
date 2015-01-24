@@ -48,6 +48,10 @@
 			"Rev": "36be16571e14f67e114bb0af619e5de2c1591679"
 		},
 		{
+			"ImportPath": "github.com/ActiveState/tail",
+			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
+		},
+		{
 			"ImportPath": "github.com/braintree/manners",
 			"Comment": "0.3.1-2-g5280e25",
 			"Rev": "5280e250f2795914acbeb2bf3b55dd5a2d1fba52"
@@ -103,6 +107,11 @@
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
 			"Rev": "9feabe6854fadca1abec9cd3bd2a613fe9a34000"
+		},
+		{
+			"ImportPath": "github.com/howeyc/fsnotify",
+			"Comment": "v0.9.0-11-g6b1ef89",
+			"Rev": "6b1ef893dc11e0447abda6da20a5203481878dda"
 		},
 		{
 			"ImportPath": "github.com/inconshreveable/go-update",
@@ -203,6 +212,10 @@
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
 			"Comment": "v1.0-12-gd28785c",
 			"Rev": "d28785c2f27cd682d872df46ccd8232843629f54"
+		},
+		{
+			"ImportPath": "gopkg.in/tomb.v1",
+			"Rev": "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
 		}
 	]
 }

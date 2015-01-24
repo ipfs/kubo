@@ -1,0 +1,14 @@
+{
+    "github.com/howeyc/fsnotify": {
+        "repo": "http://github.com/howeyc/fsnotify.git",
+        "version": "441bbc86b167",
+        "type": "git-clone",
+        "alias": "github.com/howeyc/fsnotify"
+    },
+    "gopkg.in/tomb.v1": {
+        "repo": "https://github.com/go-tomb/tomb.git",
+        "version": "c131134a1947e9afd9cecfe11f4c6dff0732ae58",
+        "type": "git-clone",
+        "alias": "gopkg.in/tomb.v1"
+    }
+}
