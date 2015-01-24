@@ -54,7 +54,7 @@ test_expect_success "ipfs get -a output looks good" '
 test_expect_success "ipfs get -a archive output is valid" '
   tar -xf "$HASH".tar &&
   test_cmp $HASH data &&
-  rm $HASH.tar &&
+  rm "$HASH".tar &&
   rm $HASH
 '
 
@@ -68,10 +68,8 @@ test_expect_success "ipfs get -a -C output looks good" '
   test_cmp expected actual
 '
 
-# TODO(mappum): fix this test. On osx I get:
-#     tar: Error opening archive: (Empty error message)
 test_expect_failure "gzipped tar archive output is valid" '
-  tar -xf "$HASH".tar.gz &&
+  tar -zxf $HASH.tar.gz &&
   test_cmp $HASH data &&
   rm "$HASH".tar.gz &&
   rm $HASH
@@ -108,12 +106,8 @@ test_expect_success "ipfs get -a -C output looks good (directory)" '
   test_cmp expected actual
 '
 
-# TODO(mappum): fix this test. failing on travis:
-#   gzip: stdin: unexpected end of file
-#   tar: Child returned status 1
-#   tar: Error is not recoverable: exiting now
-test_expect_failure "gzipped tar archive output is valid (directory)" '
-  tar -xf "$HASH2".tar.gz &&
+test_expect_success "gzipped tar archive output is valid (directory)" '
+  tar -zxf "$HASH2".tar.gz &&
   test_cmp dir/a "$HASH2"/a &&
   test_cmp dir/b/c "$HASH2"/b/c &&
   rm -r $HASH2
