@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"syscall"
 	"time"
 
@@ -78,6 +79,12 @@ func main() {
 		helpFunc("ipfs", Root, invoc.path, w)
 	}
 
+	// this is a message to tell the user how to get the help text
+	printMetaHelp := func(w io.Writer) {
+		cmdPath := strings.Join(invoc.path, " ")
+		fmt.Fprintf(w, "Use 'ipfs %s --help' for information about this command\n", cmdPath)
+	}
+
 	// parse the commandline into a command invocation
 	parseErr := invoc.Parse(ctx, os.Args[1:])
 
@@ -112,7 +119,7 @@ func main() {
 		if invoc.cmd != nil {
 			// we need a newline space.
 			fmt.Fprintf(os.Stderr, "\n")
-			printHelp(false, os.Stderr)
+			printMetaHelp(os.Stderr)
 		}
 		os.Exit(1)
 	}
@@ -124,7 +131,7 @@ func main() {
 
 		// if this error was a client error, print short help too.
 		if isClientError(err) {
-			printHelp(false, os.Stderr)
+			printMetaHelp(os.Stderr)
 		}
 		os.Exit(1)
 	}
