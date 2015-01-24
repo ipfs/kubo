@@ -10,6 +10,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
 	jenkins "github.com/jbenet/go-ipfs/util/testutil/ci/jenkins"
 	travis "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
 
@@ -377,9 +378,9 @@ func TestDialBackoffClears(t *testing.T) {
 	defer s2.Close()
 	s1.dialT = time.Millisecond * 300 // lower timeout for tests.
 	s2.dialT = time.Millisecond * 300 // lower timeout for tests.
-	if travis.IsRunning() {
-		s1.dialT = time.Second
-		s2.dialT = time.Second
+	if ci.IsRunning() {
+		s1.dialT = 2 * time.Second
+		s2.dialT = 2 * time.Second
 	}
 
 	// use another address first, that accept and hang on conns
