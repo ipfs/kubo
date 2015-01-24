@@ -176,11 +176,11 @@ func (rt *RoutingTable) Size() int {
 // NOTE: This is potentially unsafe... use at your own risk
 func (rt *RoutingTable) ListPeers() []peer.ID {
 	var peers []peer.ID
+	rt.tabLock.RLock()
 	for _, buck := range rt.Buckets {
-		for e := buck.getIter(); e != nil; e = e.Next() {
-			peers = append(peers, e.Value.(peer.ID))
-		}
+		peers = append(peers, buck.Peers()...)
 	}
+	rt.tabLock.RUnlock()
 	return peers
 }
 
