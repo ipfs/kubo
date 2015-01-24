@@ -12,9 +12,12 @@ import (
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/pin"
+	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	unixfs "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = eventlog.Logger("coreunix")
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.
@@ -127,6 +130,11 @@ Loop:
 		if err != nil {
 			return nil, err
 		}
+		k, err := node.Key()
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("add %s %s", k, name)
 	}
 
 	err := addNode(n, tree)
