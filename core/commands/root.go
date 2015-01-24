@@ -41,17 +41,17 @@ Tool commands:
     name          Publish or resolve IPNS names
     log           Change the logging level
 
-Network commands:
-
-    swarm         Manage connections to the p2p network
-    bootstrap     Add or remove bootstrap peers
-    ping          Measure the latency of a connection
-
 Advanced Commands:
 
     daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
     diag          Print diagnostics
+
+Network commands:
+
+    swarm         Manage connections to the p2p network
+    bootstrap     Add or remove bootstrap peers
+    ping          Measure the latency of a connection
 
 Plumbing commands:
 
