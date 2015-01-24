@@ -19,6 +19,9 @@ import (
 	netutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
+
+	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
+	travisci "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
 )
 
 var testCaseValues = map[u.Key][]byte{}
@@ -330,6 +333,9 @@ func TestBootstrap(t *testing.T) {
 
 func TestPeriodicBootstrap(t *testing.T) {
 	// t.Skip("skipping test to debug another")
+	if ci.IsRunning() {
+		t.Skip("skipping on CI. highly timing dependent")
+	}
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -734,6 +740,9 @@ func TestConnectCollision(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	if travisci.IsRunning() {
+		t.Skip("Skipping on Travis-CI.")
+	}
 
 	runTimes := 10
 
@@ -763,7 +772,7 @@ func TestConnectCollision(t *testing.T) {
 			errs <- err
 		}()
 
-		timeout := time.After(time.Second)
+		timeout := time.After(5 * time.Second)
 		select {
 		case e := <-errs:
 			if e != nil {

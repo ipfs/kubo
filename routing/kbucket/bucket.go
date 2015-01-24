@@ -19,6 +19,17 @@ func newBucket() *Bucket {
 	return b
 }
 
+func (b *Bucket) Peers() []peer.ID {
+	b.lk.RLock()
+	defer b.lk.RUnlock()
+	ps := make([]peer.ID, 0, b.list.Len())
+	for e := b.list.Front(); e != nil; e = e.Next() {
+		id := e.Value.(peer.ID)
+		ps = append(ps, id)
+	}
+	return ps
+}
+
 func (b *Bucket) find(id peer.ID) *list.Element {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
@@ -90,8 +101,4 @@ func (b *Bucket) Split(cpl int, target ID) *Bucket {
 		e = e.Next()
 	}
 	return newbuck
-}
-
-func (b *Bucket) getIter() *list.Element {
-	return b.list.Front()
 }
