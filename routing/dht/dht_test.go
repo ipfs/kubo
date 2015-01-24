@@ -19,6 +19,7 @@ import (
 	netutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
+	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
 )
 
 var testCaseValues = map[u.Key][]byte{}
@@ -330,6 +331,9 @@ func TestBootstrap(t *testing.T) {
 
 func TestPeriodicBootstrap(t *testing.T) {
 	// t.Skip("skipping test to debug another")
+	if ci.IsRunning() {
+		t.Skip("skipping on CI. highly timing dependent")
+	}
 	if testing.Short() {
 		t.SkipNow()
 	}
