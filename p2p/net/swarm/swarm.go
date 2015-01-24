@@ -4,6 +4,7 @@ package swarm
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
@@ -38,6 +39,9 @@ type Swarm struct {
 	backf dialbackoff
 	dialT time.Duration // mainly for tests
 
+	notifmu sync.RWMutex
+	notifs  map[inet.Notifiee]ps.Notifiee
+
 	cg ctxgroup.ContextGroup
 }
 
@@ -54,11 +58,12 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm: ps.NewSwarm(PSTransport),
-		local: local,
-		peers: peers,
-		cg:    ctxgroup.WithContext(ctx),
-		dialT: DialTimeout,
+		swarm:  ps.NewSwarm(PSTransport),
+		local:  local,
+		peers:  peers,
+		cg:     ctxgroup.WithContext(ctx),
+		dialT:  DialTimeout,
+		notifs: make(map[inet.Notifiee]ps.Notifiee),
 	}
 
 	// configure Swarm
@@ -176,4 +181,52 @@ func (s *Swarm) Peers() []peer.ID {
 // LocalPeer returns the local peer swarm is associated to.
 func (s *Swarm) LocalPeer() peer.ID {
 	return s.local
+}
+
+// Notify signs up Notifiee to receive signals when events happen
+func (s *Swarm) Notify(f inet.Notifiee) {
+	// wrap with our notifiee, to translate function calls
+	n := &ps2netNotifee{net: (*Network)(s), not: f}
+
+	s.notifmu.Lock()
+	s.notifs[f] = n
+	s.notifmu.Unlock()
+
+	// register for notifications in the peer swarm.
+	s.swarm.Notify(n)
+}
+
+// StopNotify unregisters Notifiee fromr receiving signals
+func (s *Swarm) StopNotify(f inet.Notifiee) {
+	s.notifmu.Lock()
+	n, found := s.notifs[f]
+	if found {
+		delete(s.notifs, f)
+	}
+	s.notifmu.Unlock()
+
+	if found {
+		s.swarm.StopNotify(n)
+	}
+}
+
+type ps2netNotifee struct {
+	net *Network
+	not inet.Notifiee
+}
+
+func (n *ps2netNotifee) Connected(c *ps.Conn) {
+	n.not.Connected(n.net, inet.Conn((*Conn)(c)))
+}
+
+func (n *ps2netNotifee) Disconnected(c *ps.Conn) {
+	n.not.Disconnected(n.net, inet.Conn((*Conn)(c)))
+}
+
+func (n *ps2netNotifee) OpenedStream(s *ps.Stream) {
+	n.not.OpenedStream(n.net, inet.Stream((*Stream)(s)))
+}
+
+func (n *ps2netNotifee) ClosedStream(s *ps.Stream) {
+	n.not.ClosedStream(n.net, inet.Stream((*Stream)(s)))
 }

@@ -31,6 +31,9 @@ type peernet struct {
 	streamHandler inet.StreamHandler
 	connHandler   inet.ConnHandler
 
+	notifmu sync.RWMutex
+	notifs  map[inet.Notifiee]struct{}
+
 	cg ctxgroup.ContextGroup
 	sync.RWMutex
 }
@@ -58,6 +61,8 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 
 		connsByPeer: map[peer.ID]map[*conn]struct{}{},
 		connsByLink: map[*link]map[*conn]struct{}{},
+
+		notifs: make(map[inet.Notifiee]struct{}),
 	}
 
 	n.cg.SetTeardown(n.teardown)
@@ -163,6 +168,9 @@ func (pn *peernet) openConn(r peer.ID, l *link) *conn {
 	lc, rc := l.newConnPair(pn)
 	log.Debugf("%s opening connection to %s", pn.LocalPeer(), lc.RemotePeer())
 	pn.addConn(lc)
+	pn.notifyAll(func(n inet.Notifiee) {
+		n.Connected(pn, lc)
+	})
 	rc.net.remoteOpenedConn(rc)
 	return lc
 }
@@ -171,6 +179,9 @@ func (pn *peernet) remoteOpenedConn(c *conn) {
 	log.Debugf("%s accepting connection from %s", pn.LocalPeer(), c.RemotePeer())
 	pn.addConn(c)
 	pn.handleNewConn(c)
+	pn.notifyAll(func(n inet.Notifiee) {
+		n.Connected(pn, c)
+	})
 }
 
 // addConn constructs and adds a connection
@@ -201,13 +212,13 @@ func (pn *peernet) removeConn(c *conn) {
 
 	cs, found := pn.connsByLink[c.link]
 	if !found || len(cs) < 1 {
-		panic("attempting to remove a conn that doesnt exist")
+		panic(fmt.Sprintf("attempting to remove a conn that doesnt exist %p", c.link))
 	}
 	delete(cs, c)
 
 	cs, found = pn.connsByPeer[c.remote]
 	if !found {
-		panic("attempting to remove a conn that doesnt exist")
+		panic(fmt.Sprintf("attempting to remove a conn that doesnt exist %p", c.remote))
 	}
 	delete(cs, c)
 }
@@ -359,4 +370,29 @@ func (pn *peernet) SetConnHandler(h inet.ConnHandler) {
 	pn.Lock()
 	pn.connHandler = h
 	pn.Unlock()
+}
+
+// Notify signs up Notifiee to receive signals when events happen
+func (pn *peernet) Notify(f inet.Notifiee) {
+	pn.notifmu.Lock()
+	pn.notifs[f] = struct{}{}
+	pn.notifmu.Unlock()
+}
+
+// StopNotify unregisters Notifiee fromr receiving signals
+func (pn *peernet) StopNotify(f inet.Notifiee) {
+	pn.notifmu.Lock()
+	delete(pn.notifs, f)
+	pn.notifmu.Unlock()
+}
+
+// notifyAll runs the notification function on all Notifiees
+func (pn *peernet) notifyAll(notification func(f inet.Notifiee)) {
+	pn.notifmu.RLock()
+	for n := range pn.notifs {
+		// make sure we dont block
+		// and they dont block each other.
+		go notification(n)
+	}
+	pn.notifmu.RUnlock()
 }

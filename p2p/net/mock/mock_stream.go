@@ -19,8 +19,11 @@ func (s *stream) Close() error {
 		r.Close()
 	}
 	if w, ok := (s.Writer).(io.Closer); ok {
-		return w.Close()
+		w.Close()
 	}
+	s.conn.net.notifyAll(func(n inet.Notifiee) {
+		n.ClosedStream(s.conn.net, s)
+	})
 	return nil
 }
 
