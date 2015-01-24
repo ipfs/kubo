@@ -93,6 +93,10 @@
 			"Rev": "060fbf9364c89acd41bf710e9e92915a90e7a5b5"
 		},
 		{
+			"ImportPath": "github.com/fd/go-nat",
+			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
 		},
@@ -118,8 +122,16 @@
 			"Rev": "6b1ef893dc11e0447abda6da20a5203481878dda"
 		},
 		{
+			"ImportPath": "github.com/huin/goupnp",
+			"Rev": "223008361153d7d434c1f0ac990cd3fcae6931f5"
+		},
+		{
 			"ImportPath": "github.com/inconshreveable/go-update",
 			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
+		},
+		{
+			"ImportPath": "github.com/jackpal/go-nat-pmp",
+			"Rev": "a45aa3d54aef73b504e15eb71bea0e5565b5e6e1"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",
