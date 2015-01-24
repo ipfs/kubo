@@ -209,6 +209,11 @@
 			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
 		},
 		{
+			"ImportPath": "gopkg.in/fsnotify.v1",
+			"Comment": "v1.1.0",
+			"Rev": "f582d920d11386e8ae15227bb5933a8f9b4c3dec"
+		},
+		{
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
 			"Comment": "v1.0-12-gd28785c",
 			"Rev": "d28785c2f27cd682d872df46ccd8232843629f54"
