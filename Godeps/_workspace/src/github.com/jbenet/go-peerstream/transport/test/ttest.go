@@ -350,6 +350,8 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 		for _, a := range swarms {
 			for _, b := range swarms {
 				wg.Add(1)
+				a := a // race
+				b := b // race
 				go rateLimit(func() {
 					defer wg.Done()
 					openConnsAndRW(a, b)
@@ -368,6 +370,10 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 
 	for err := range errs {
 		t.Error(err)
+	}
+
+	for _, s := range swarms {
+		s.Close()
 	}
 
 }

@@ -154,3 +154,13 @@ func (n *Network) SetConnHandler(h inet.ConnHandler) {
 func (n *Network) String() string {
 	return fmt.Sprintf("<Network %s>", n.LocalPeer())
 }
+
+// Notify signs up Notifiee to receive signals when events happen
+func (n *Network) Notify(f inet.Notifiee) {
+	n.Swarm().Notify(f)
+}
+
+// StopNotify unregisters Notifiee fromr receiving signals
+func (n *Network) StopNotify(f inet.Notifiee) {
+	n.Swarm().StopNotify(f)
+}

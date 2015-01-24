@@ -21,6 +21,9 @@ func NewFromIpfsHost(host host.Host, r routing.IpfsRouting) BitSwapNetwork {
 		routing: r,
 	}
 	host.SetStreamHandler(ProtocolBitswap, bitswapNetwork.handleNewStream)
+	host.Network().Notify((*netNotifiee)(&bitswapNetwork))
+	// TODO: StopNotify.
+
 	return &bitswapNetwork
 }
 
@@ -139,3 +142,20 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 	log.Debugf("bitswap net handleNewStream from %s", s.Conn().RemotePeer())
 	bsnet.receiver.ReceiveMessage(ctx, p, received)
 }
+
+type netNotifiee impl
+
+func (nn *netNotifiee) impl() *impl {
+	return (*impl)(nn)
+}
+
+func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
+	nn.impl().receiver.PeerConnected(v.RemotePeer())
+}
+
+func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
+	nn.impl().receiver.PeerDisconnected(v.RemotePeer())
+}
+
+func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}

@@ -65,8 +65,16 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.datastore = dstore
 	dht.self = h.ID()
 	dht.peerstore = h.Peerstore()
-	dht.ContextGroup = ctxgroup.WithContext(ctx)
 	dht.host = h
+
+	// register for network notifs.
+	dht.host.Network().Notify((*netNotifiee)(dht))
+
+	dht.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, func() error {
+		// remove ourselves from network notifs.
+		dht.host.Network().StopNotify((*netNotifiee)(dht))
+		return nil
+	})
 
 	// sanity check. this should **never** happen
 	if len(dht.peerstore.Addresses(dht.self)) < 1 {

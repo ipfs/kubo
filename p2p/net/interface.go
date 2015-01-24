@@ -111,6 +111,10 @@ type Dialer interface {
 
 	// ConnsToPeer returns the connections in this Netowrk for given peer.
 	ConnsToPeer(p peer.ID) []Conn
+
+	// Notify/StopNotify register and unregister a notifiee for signals
+	Notify(Notifiee)
+	StopNotify(Notifiee)
 }
 
 // Connectedness signals the capacity for a connection with a given node.
@@ -131,3 +135,16 @@ const (
 	// (should signal "made effort, failed")
 	CannotConnect
 )
+
+// Notifiee is an interface for an object wishing to receive
+// notifications from a Network.
+type Notifiee interface {
+	Connected(Network, Conn)      // called when a connection opened
+	Disconnected(Network, Conn)   // called when a connection closed
+	OpenedStream(Network, Stream) // called when a stream opened
+	ClosedStream(Network, Stream) // called when a stream closed
+
+	// TODO
+	// PeerConnected(Network, peer.ID)    // called when a peer connected
+	// PeerDisconnected(Network, peer.ID) // called when a peer disconnected
+}

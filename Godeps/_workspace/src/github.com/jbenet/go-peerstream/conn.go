@@ -122,7 +122,11 @@ func (c *Conn) Close() error {
 
 	// close underlying connection
 	c.swarm.removeConn(c)
-	return c.pstConn.Close()
+	err := c.pstConn.Close()
+	c.swarm.notifyAll(func(n Notifiee) {
+		n.Disconnected(c)
+	})
+	return err
 }
 
 // ConnsWithGroup narrows down a set of connections to those in a given group.
@@ -198,6 +202,9 @@ func (s *Swarm) addConn(netConn net.Conn, isServer bool) (*Conn, error) {
 		s.StreamHandler()(stream) // call our handler
 	})
 
+	s.notifyAll(func(n Notifiee) {
+		n.Connected(c)
+	})
 	return c, nil
 }
 
@@ -228,6 +235,10 @@ func (s *Swarm) setupStream(pstStream pst.Stream, c *Conn) *Stream {
 	c.streams[stream] = struct{}{}
 	s.streamLock.Unlock()
 	c.streamLock.Unlock()
+
+	s.notifyAll(func(n Notifiee) {
+		n.OpenedStream(stream)
+	})
 	return stream
 }
 
@@ -241,7 +252,11 @@ func (s *Swarm) removeStream(stream *Stream) error {
 	s.streamLock.Unlock()
 	stream.conn.streamLock.Unlock()
 
-	return stream.pstStream.Close()
+	err := stream.pstStream.Close()
+	s.notifyAll(func(n Notifiee) {
+		n.ClosedStream(stream)
+	})
+	return err
 }
 
 func (s *Swarm) removeConn(conn *Conn) {

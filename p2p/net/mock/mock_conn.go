@@ -37,6 +37,9 @@ func (c *conn) Close() error {
 		s.Close()
 	}
 	c.net.removeConn(c)
+	c.net.notifyAll(func(n inet.Notifiee) {
+		n.Disconnected(c.net, c)
+	})
 	return nil
 }
 
@@ -73,11 +76,17 @@ func (c *conn) allStreams() []inet.Stream {
 func (c *conn) remoteOpenedStream(s *stream) {
 	c.addStream(s)
 	c.net.handleNewStream(s)
+	c.net.notifyAll(func(n inet.Notifiee) {
+		n.OpenedStream(c.net, s)
+	})
 }
 
 func (c *conn) openStream() *stream {
 	sl, sr := c.link.newStreamPair()
 	c.addStream(sl)
+	c.net.notifyAll(func(n inet.Notifiee) {
+		n.OpenedStream(c.net, sl)
+	})
 	c.rconn.remoteOpenedStream(sr)
 	return sl
 }
