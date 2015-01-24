@@ -20,7 +20,6 @@ import (
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
-	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
@@ -280,17 +279,6 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 		if err := updates.CliCheckForUpdates(cfg, req.Context().ConfigRoot); err != nil {
 			return err
 		}
-	}
-
-	// When the upcoming command may use the config and repo, we know it's safe
-	// for the log config hook to touch the config/repo
-	if repo.IsInitialized(req.Context().ConfigRoot) {
-		log.Debug("Calling hook: Configure Event Logger")
-		cfg, err := req.Context().GetConfig()
-		if err != nil {
-			return err
-		}
-		repo.ConfigureEventLogger(cfg.Logs)
 	}
 
 	return nil

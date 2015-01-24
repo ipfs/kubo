@@ -154,7 +154,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	if gatewayMaddr != nil {
 		go func() {
-			err := corehttp.ListenAndServe(node, gatewayMaddr, corehttp.GatewayOption)
+			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), corehttp.GatewayOption)
 			if err != nil {
 				log.Error(err)
 			}
@@ -166,8 +166,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		corehttp.WebUIOption,
 		corehttp.GatewayOption,
 	}
-	err = corehttp.ListenAndServe(node, apiMaddr, opts...)
-	if err != nil {
+	if err := corehttp.ListenAndServe(node, apiMaddr.String(), opts...); err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}

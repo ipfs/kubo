@@ -49,7 +49,7 @@ func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
 }
 
 func (rp *Reprovider) Reprovide(ctx context.Context) error {
-	keychan, err := rp.bstore.AllKeysChan(ctx, 0, 1<<16)
+	keychan, err := rp.bstore.AllKeysChan(ctx)
 	if err != nil {
 		return debugerror.Errorf("Failed to get key chan from blockstore: %s", err)
 	}

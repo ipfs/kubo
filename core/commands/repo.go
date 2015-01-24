@@ -6,7 +6,7 @@ import (
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	corerepo "github.com/jbenet/go-ipfs/core/repo"
+	corerepo "github.com/jbenet/go-ipfs/core/corerepo"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -43,7 +43,7 @@ order to reclaim hard disk space.
 			return
 		}
 
-		gcOutChan, err := corerepo.GarbageCollectBlockstore(n, req.Context().Context)
+		gcOutChan, err := corerepo.GarbageCollectAsync(n, req.Context().Context)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -19,7 +19,17 @@ const (
 
 type ServeOption func(*core.IpfsNode, *http.ServeMux) error
 
-func ListenAndServe(n *core.IpfsNode, addr ma.Multiaddr, options ...ServeOption) error {
+// ListenAndServe runs an HTTP server listening at |listeningMultiAddr| with
+// the given serve options. The address must be provided in multiaddr format.
+//
+// TODO intelligently parse address strings in other formats so long as they
+// unambiguously map to a valid multiaddr. e.g. for convenience, ":8080" should
+// map to "/ip4/0.0.0.0/tcp/8080".
+func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...ServeOption) error {
+	addr, err := ma.NewMultiaddr(listeningMultiAddr)
+	if err != nil {
+		return err
+	}
 	mux := http.NewServeMux()
 	for _, option := range options {
 		if err := option(n, mux); err != nil {

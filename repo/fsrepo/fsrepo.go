@@ -13,9 +13,9 @@ import (
 	config "github.com/jbenet/go-ipfs/repo/config"
 	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
 	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
-	dir "github.com/jbenet/go-ipfs/repo/fsrepo/dir"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
+	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -54,6 +54,7 @@ type FSRepo struct {
 	// TODO test
 	configComponent    component.ConfigComponent
 	datastoreComponent component.DatastoreComponent
+	eventlogComponent  component.EventlogComponent
 }
 
 type componentBuilder struct {
@@ -161,14 +162,6 @@ func (r *FSRepo) Open() error {
 		if err := b.OpenHandler(r); err != nil {
 			return err
 		}
-	}
-
-	logpath, err := config.LogsPath("")
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	if err := dir.Writable(logpath); err != nil {
-		return debugerror.Errorf("logs: %s", err)
 	}
 
 	return r.transitionToOpened()
@@ -349,6 +342,21 @@ func componentBuilders() []componentBuilder {
 					return err
 				}
 				r.datastoreComponent = c
+				return nil
+			},
+		},
+
+		// EventlogComponent
+		componentBuilder{
+			Init:          component.InitEventlogComponent,
+			IsInitialized: component.EventlogComponentIsInitialized,
+			OpenHandler: func(r *FSRepo) error {
+				c := component.EventlogComponent{}
+				c.SetPath(r.path)
+				if err := c.Open(); err != nil {
+					return err
+				}
+				r.eventlogComponent = c
 				return nil
 			},
 		},

@@ -14,9 +14,27 @@ type KeyRemoved struct {
 	Key u.Key
 }
 
-func GarbageCollectBlockstore(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
+func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // in case error occurs during operation
+	keychan, err := n.Blockstore.AllKeysChan(ctx)
+	if err != nil {
+		return err
+	}
+	for k := range keychan { // rely on AllKeysChan to close chan
+		if !n.Pinning.IsPinned(k) {
+			err := n.Blockstore.DeleteBlock(k)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
-	keychan, err := n.Blockstore.AllKeysChan(ctx, 0, 1<<16)
+func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
+
+	keychan, err := n.Blockstore.AllKeysChan(ctx)
 	if err != nil {
 		return nil, err
 	}

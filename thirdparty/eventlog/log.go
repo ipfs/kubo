@@ -78,7 +78,7 @@ type eventLogger struct {
 
 func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ...Loggable) DoneCloser {
 	start := time.Now()
-	el.Event(ctx, fmt.Sprintln(event, "Begin"), metadata...)
+	el.Event(ctx, fmt.Sprintf("%sBegin", event), metadata...)
 	return doneCloserFunc(func() {
 		el.Event(ctx, event, append(metadata, LoggableMap(map[string]interface{}{
 			"duration": time.Now().Sub(start),

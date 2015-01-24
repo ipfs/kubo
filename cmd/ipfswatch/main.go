@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
@@ -31,9 +30,15 @@ func main() {
 	// 1. --repo flag
 	// 2. IPFS_PATH environment variable
 	// 3. default repo path
-	ipfsPath := config.DefaultPathRoot
+	var ipfsPath string
 	if *repoPath != "" {
 		ipfsPath = *repoPath
+	} else {
+		var err error
+		ipfsPath, err = fsrepo.BestKnownPath()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if err := run(ipfsPath, *watchPath); err != nil {
@@ -44,7 +49,7 @@ func main() {
 func run(ipfsPath, watchPath string) error {
 
 	proc := process.WithParent(process.Background())
-	log.Printf("running IPFSWatch on %s using repo at %s...", watchPath, ipfsPath)
+	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
 	ipfsPath, err := homedir.Expand(ipfsPath)
 	if err != nil {
@@ -73,17 +78,14 @@ func run(ipfsPath, watchPath string) error {
 	defer node.Close()
 
 	if *http {
-		maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5001")
-		if err != nil {
-			return err
-		}
+		addr := "/ip4/127.0.0.1/tcp/5001"
 		var opts = []corehttp.ServeOption{
 			corehttp.GatewayOption,
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}
 		proc.Go(func(p process.Process) {
-			if err := corehttp.ListenAndServe(node, maddr, opts...); err != nil {
+			if err := corehttp.ListenAndServe(node, addr, opts...); err != nil {
 				return
 			}
 		})
