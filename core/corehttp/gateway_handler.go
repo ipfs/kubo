@@ -82,7 +82,6 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[5:]
-	log := log.Prefix("serving %s", path)
 
 	nd, err := i.ResolvePath(path)
 	if err != nil {

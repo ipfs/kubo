@@ -24,8 +24,6 @@ func NewChanQueue(ctx context.Context, pq PeerQueue) *ChanQueue {
 }
 
 func (cq *ChanQueue) process(ctx context.Context) {
-	log := log.Prefix("<ChanQueue %p>", cq)
-
 	// construct the channels here to be able to use them bidirectionally
 	enqChan := make(chan peer.ID)
 	deqChan := make(chan peer.ID)
