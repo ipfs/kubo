@@ -236,7 +236,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 			}, nil
 		},
 	},
-	Type: peer.PeerInfo{},
+	Type: notif.QueryEvent{},
 }
 
 var findPeerDhtCmd = &cmds.Command{
