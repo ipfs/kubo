@@ -16,7 +16,7 @@ type KeyRemoved struct {
 
 func GarbageCollectBlockstore(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
 
-	keychan, err := n.Blockstore.AllKeysChan(ctx, 0, 1<<16)
+	keychan, err := n.Blockstore.AllKeysChan(ctx)
 	if err != nil {
 		return nil, err
 	}

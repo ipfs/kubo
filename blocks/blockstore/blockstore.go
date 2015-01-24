@@ -32,8 +32,11 @@ type Blockstore interface {
 	Get(u.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
 
-	AllKeys(ctx context.Context, offset int, limit int) ([]u.Key, error)
-	AllKeysChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error)
+	AllKeys(ctx context.Context) ([]u.Key, error)
+	AllKeysChan(ctx context.Context) (<-chan u.Key, error)
+
+	AllKeysRange(ctx context.Context, offset int, limit int) ([]u.Key, error)
+	AllKeysRangeChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error)
 }
 
 func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
@@ -83,14 +86,22 @@ func (s *blockstore) DeleteBlock(k u.Key) error {
 	return s.datastore.Delete(k.DsKey())
 }
 
-// AllKeys runs a query for keys from the blockstore.
+func (bs *blockstore) AllKeys(ctx context.Context) ([]u.Key, error) {
+	return bs.AllKeysRange(ctx, 0, 0)
+}
+
+func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
+	return bs.AllKeysRangeChan(ctx, 0, 0)
+}
+
+// AllKeysRange runs a query for keys from the blockstore.
 // this is very simplistic, in the future, take dsq.Query as a param?
 // if offset and limit are 0, they are ignored.
 //
-// AllKeys respects context
-func (bs *blockstore) AllKeys(ctx context.Context, offset int, limit int) ([]u.Key, error) {
+// AllKeysRange respects context
+func (bs *blockstore) AllKeysRange(ctx context.Context, offset int, limit int) ([]u.Key, error) {
 
-	ch, err := bs.AllKeysChan(ctx, offset, limit)
+	ch, err := bs.AllKeysRangeChan(ctx, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -102,12 +113,12 @@ func (bs *blockstore) AllKeys(ctx context.Context, offset int, limit int) ([]u.K
 	return keys, nil
 }
 
-// AllKeys runs a query for keys from the blockstore.
+// AllKeysRangeChan runs a query for keys from the blockstore.
 // this is very simplistic, in the future, take dsq.Query as a param?
 // if offset and limit are 0, they are ignored.
 //
-// AllKeys respects context
-func (bs *blockstore) AllKeysChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error) {
+// AllKeysRangeChan respects context
+func (bs *blockstore) AllKeysRangeChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true, Offset: offset, Limit: limit}

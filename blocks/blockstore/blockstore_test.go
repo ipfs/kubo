@@ -67,7 +67,7 @@ func TestAllKeysSimple(t *testing.T) {
 	bs, keys := newBlockStoreWithKeys(t, nil, 100)
 
 	ctx := context.Background()
-	keys2, err := bs.AllKeys(ctx, 0, 0)
+	keys2, err := bs.AllKeys(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestAllKeysOffsetAndLimit(t *testing.T) {
 	bs, _ := newBlockStoreWithKeys(t, nil, N)
 
 	ctx := context.Background()
-	keys3, err := bs.AllKeys(ctx, N/3, N/3)
+	keys3, err := bs.AllKeysRange(ctx, N/3, N/3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestAllKeysRespectsContext(t *testing.T) {
 
 	getKeys := func(ctx context.Context) {
 		started <- struct{}{}
-		_, err := bs.AllKeys(ctx, 0, 0) // once without cancelling
+		_, err := bs.AllKeys(ctx) // once without cancelling
 		if err != nil {
 			errors <- err
 		}
