@@ -339,6 +339,24 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	return "", nil
 }
 
+// Connected/Disconnected warns bitswap about peer connections
+func (bs *bitswap) PeerConnected(p peer.ID) {
+	// TODO: add to clientWorker??
+
+	peers := make(chan peer.ID)
+	err := bs.sendWantlistToPeers(context.TODO(), peers)
+	if err != nil {
+		log.Errorf("error sending wantlist: %s", err)
+	}
+	peers <- p
+	close(peers)
+}
+
+// Connected/Disconnected warns bitswap about peer connections
+func (bs *bitswap) PeerDisconnected(peer.ID) {
+	// TODO: release resources.
+}
+
 func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	if len(bkeys) < 1 {
 		return

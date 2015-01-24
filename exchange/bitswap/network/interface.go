@@ -40,6 +40,10 @@ type Receiver interface {
 		destination peer.ID, outgoing bsmsg.BitSwapMessage)
 
 	ReceiveError(error)
+
+	// Connected/Disconnected warns bitswap about peer connections
+	PeerConnected(peer.ID)
+	PeerDisconnected(peer.ID)
 }
 
 type Routing interface {
