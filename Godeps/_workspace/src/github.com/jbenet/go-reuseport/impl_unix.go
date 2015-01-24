@@ -163,24 +163,12 @@ func dial(dialer net.Dialer, netw, addr string) (c net.Conn, err error) {
 
 	if err = file.Close(); err != nil {
 		syscall.Close(fd)
+		c.Close()
 		return nil, err
 	}
 
 	// c = wrapConnWithRemoteAddr(c, netAddr)
 	return c, err
-}
-
-// there's a rare case where dial returns successfully but for some reason the
-// RemoteAddr is not yet set. So, since we know what raddr should be, we just
-// wrap it. This is not ideal in that sometimes getpeername() may return a
-// different addr. But until this is fixed, best way to do it.
-//  * https://gist.github.com/jbenet/5c191d698fe9ec58c49d
-//  * https://github.com/golang/go/issues/9661#issuecomment-71043147
-func wrapConnWithRemoteAddr(c net.Conn, raddr net.Addr) net.Conn {
-	if c.RemoteAddr() == nil {
-		return &conn{Conn: c, raddr: raddr}
-	}
-	return c // it's fine, no need to wrap.
 }
 
 func listen(netw, addr string) (fd int, err error) {
@@ -256,6 +244,7 @@ func listenStream(netw, addr string) (l net.Listener, err error) {
 
 	if err = file.Close(); err != nil {
 		syscall.Close(fd)
+		l.Close()
 		return nil, err
 	}
 
@@ -280,6 +269,7 @@ func listenPacket(netw, addr string) (p net.PacketConn, err error) {
 
 	if err = file.Close(); err != nil {
 		syscall.Close(fd)
+		p.Close()
 		return nil, err
 	}
 
@@ -327,6 +317,7 @@ func connect(fd int, ra syscall.Sockaddr, deadline time.Time) error {
 	if err != nil {
 		return err
 	}
+	defer poller.Close()
 
 	for {
 		if err = poller.WaitWrite(deadline); err != nil {

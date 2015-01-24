@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"testing"
@@ -19,6 +20,7 @@ func echo(c net.Conn) {
 }
 
 func packetEcho(c net.PacketConn) {
+	defer c.Close()
 	buf := make([]byte, 65536)
 	for {
 		n, addr, err := c.ReadFrom(buf)
@@ -501,8 +503,8 @@ func TestDialRespectsTimeout(t *testing.T) {
 		go func() {
 			c, err := d.Dial(network, raddr)
 			if err == nil {
-				errs <- errors.New("should've not connected")
 				c.Close()
+				errs <- errors.New("should've not connected")
 				return
 			}
 			close(errs) // success!
@@ -534,12 +536,35 @@ func TestUnixNotSupported(t *testing.T) {
 		addr := tcase[1]
 		t.Log("testing", network, addr)
 
-		_, err := Listen(network, addr)
+		l, err := Listen(network, addr)
 		if err == nil {
+			l.Close()
 			t.Fatal("unix supported")
 			continue
 		}
 	}
+}
+
+func TestOpenFDs(t *testing.T) {
+	// this is a totally ad-hoc limit. test harnesses may add fds.
+	// but if this is really much higher than 20, there's obviously leaks.
+	limit := 20
+	start := time.Now()
+	for countOpenFiles(t) > limit {
+		<-time.After(time.Second)
+		t.Log("open fds:", countOpenFiles(t))
+		if time.Now().Sub(start) > (time.Second * 15) {
+			t.Error("fd leak!")
+		}
+	}
+}
+
+func countOpenFiles(t *testing.T) int {
+	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return bytes.Count(out, []byte("\n"))
 }
 
 func getPort(a net.Addr) string {
