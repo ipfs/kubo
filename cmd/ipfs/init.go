@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"path"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -14,7 +13,6 @@ import (
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	u "github.com/jbenet/go-ipfs/util"
@@ -110,9 +108,6 @@ func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, erro
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
 		return nil, err
 	}
-	if err := repo.ConfigureEventLogger(conf.Logs); err != nil {
-		return nil, err
-	}
 	err = addTheWelcomeFile(repoRoot)
 	if err != nil {
 		return nil, err
@@ -196,11 +191,6 @@ func initConfig(nBitsForKeypair int) (*config.Config, error) {
 		return nil, err
 	}
 
-	logConfig, err := initLogs()
-	if err != nil {
-		return nil, err
-	}
-
 	bootstrapPeers, err := corecmds.DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -220,7 +210,6 @@ func initConfig(nBitsForKeypair int) (*config.Config, error) {
 
 		Bootstrap: bootstrapPeers,
 		Datastore: *ds,
-		Logs:      *logConfig,
 		Identity:  identity,
 
 		// setup the node mount points.
@@ -267,16 +256,4 @@ func identityConfig(nbits int) (config.Identity, error) {
 	ident.PeerID = id.Pretty()
 	fmt.Printf("peer identity: %s\n", ident.PeerID)
 	return ident, nil
-}
-
-// initLogs initializes the event logger.
-func initLogs() (*config.Logs, error) {
-	logpath, err := config.LogsPath("")
-	if err != nil {
-		return nil, err
-	}
-	conf := config.Logs{
-		Filename: path.Join(logpath, "events.log"),
-	}
-	return &conf, nil
 }
