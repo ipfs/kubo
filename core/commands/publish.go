@@ -46,21 +46,23 @@ Publish a <ref> to another public key:
 		cmds.StringArg("name", false, false, "The IPNS name to publish to. Defaults to your node's peerID"),
 		cmds.StringArg("ipfs-path", true, false, "IPFS path of the obejct to be published at <name>").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		log.Debug("Begin Publish")
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		args := req.Arguments()
 
 		if n.PeerHost == nil {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
 		}
 
 		if n.Identity == "" {
-			return nil, errors.New("Identity not loaded!")
+			res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
+			return
 		}
 
 		// name := ""
@@ -70,14 +72,19 @@ Publish a <ref> to another public key:
 		case 2:
 			// name = args[0]
 			ref = args[1]
-			return nil, errors.New("keychains not yet implemented")
+			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
 		case 1:
 			// name = n.Identity.ID.String()
 			ref = args[0]
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey
-		return publish(n, n.PrivateKey, ref)
+		output, err := publish(n, n.PrivateKey, ref)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

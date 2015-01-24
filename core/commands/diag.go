@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strings"
 	"text/template"
@@ -63,50 +64,65 @@ connected peers and latencies between them.
 		cmds.StringOption("vis", "output vis. one of: "+strings.Join(visFmts, ", ")),
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if !n.OnlineMode() {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
 		}
 
 		vis, _, err := req.Option("vis").String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		timeoutS, _, err := req.Option("timeout").String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		timeout := DefaultDiagnosticTimeout
 		if timeoutS != "" {
 			t, err := time.ParseDuration(timeoutS)
 			if err != nil {
-				return nil, cmds.ClientError("error parsing timeout")
+				res.SetError(errors.New("error parsing timeout"), cmds.ErrNormal)
+				return
 			}
 			timeout = t
 		}
 
 		info, err := n.Diagnostics.GetDiagnostic(timeout)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		switch vis {
 		case visD3:
-			return bytes.NewReader(diag.GetGraphJson(info)), nil
+			res.SetOutput(bytes.NewReader(diag.GetGraphJson(info)))
 		case visDot:
 			var buf bytes.Buffer
 			w := diag.DotWriter{W: &buf}
 			err := w.WriteGraph(info)
-			return io.Reader(&buf), err
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(io.Reader(&buf))
 		}
 
-		return stdDiagOutputMarshal(standardDiagOutput(info))
+		output, err := stdDiagOutputMarshal(standardDiagOutput(info))
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 }
 

@@ -22,12 +22,19 @@ var UpdateCmd = &cmds.Command{
 		ShortDescription: "ipfs update is a utility command used to check for updates and apply them.",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
-		return updateApply(n)
+
+		output, err := updateApply(n)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Type: UpdateOutput{},
 	Subcommands: map[string]*cmds.Command{
@@ -55,12 +62,19 @@ var UpdateCheckCmd = &cmds.Command{
 		ShortDescription: "'ipfs update check' checks if any updates are available for IPFS.\nNothing will be downloaded or installed.",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
-		return updateCheck(n)
+
+		output, err := updateCheck(n)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Type: UpdateOutput{},
 	Marshalers: cmds.MarshalerMap{
@@ -84,12 +98,19 @@ var UpdateLogCmd = &cmds.Command{
 		ShortDescription: "This command is not yet implemented.",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
-		return updateLog(n)
+
+		output, err := updateLog(n)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 }
 

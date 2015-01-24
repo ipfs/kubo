@@ -74,21 +74,24 @@ trip latency information.
 			}, nil
 		},
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// Must be online!
 		if !n.OnlineMode() {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
 		}
 
 		addr, peerID, err := ParsePeerParam(req.Arguments()[0])
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if addr != nil {
@@ -99,14 +102,15 @@ trip latency information.
 		numPings := 10
 		val, found, err := req.Option("count").Int()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if found {
 			numPings = val
 		}
 
 		outChan := pingPeer(ctx, n, peerID, numPings)
-		return outChan, nil
+		res.SetOutput(outChan)
 	},
 	Type: PingResult{},
 }

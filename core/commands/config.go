@@ -57,24 +57,30 @@ Set the value of the 'datastore.path' key:
 		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
 		cmds.StringArg("value", false, false, "The value to set the config entry to"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
 		key := args[0]
 
 		r := fsrepo.At(req.Context().ConfigRoot)
 		if err := r.Open(); err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		defer r.Close()
 
-		var value string
+		var err error
+		var output *ConfigField
 		if len(args) == 2 {
-			value = args[1]
-			return setConfig(r, key, value)
-
+			value := args[1]
+			output, err = setConfig(r, key, value)
 		} else {
-			return getConfig(r, key)
+			output, err = getConfig(r, key)
 		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -117,13 +123,19 @@ included in the output of this command.
 `,
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return showConfig(filename)
+		output, err := showConfig(filename)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 }
 
@@ -136,19 +148,23 @@ variable set to your preferred text editor.
 `,
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		filename, err := config.Filename(req.Context().ConfigRoot)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return nil, editConfig(filename)
+		err = editConfig(filename)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+		}
 	},
 }
 
 var configReplaceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Replaces the config with <file>",
+		Tagline: "Replaces the config with `file>",
 		ShortDescription: `
 Make sure to back up the config file first if neccessary, this operation
 can't be undone.
@@ -158,20 +174,26 @@ can't be undone.
 	Arguments: []cmds.Argument{
 		cmds.FileArg("file", true, false, "The file to use as the new config"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		r := fsrepo.At(req.Context().ConfigRoot)
 		if err := r.Open(); err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		defer r.Close()
 
 		file, err := req.Files().NextFile()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		defer file.Close()
 
-		return nil, replaceConfig(r, file)
+		err = replaceConfig(r, file)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	},
 }
 

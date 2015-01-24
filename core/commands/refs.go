@@ -53,36 +53,42 @@ Note: list all refs recursively with -r.
 		cmds.BoolOption("unique", "u", "Omit duplicate refs from output"),
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		unique, _, err := req.Option("unique").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		recursive, _, err := req.Option("recursive").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		edges, _, err := req.Option("edges").Bool()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		format, _, err := req.Option("format").String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		objs, err := objectsForPaths(n, req.Arguments())
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		piper, pipew := io.Pipe()
@@ -110,7 +116,7 @@ Note: list all refs recursively with -r.
 			}
 		}()
 
-		return eptr, nil
+		res.SetOutput(eptr)
 	},
 }
 
@@ -122,17 +128,19 @@ Displays the hashes of all local objects.
 `,
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context().Context
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// todo: make async
 		allKeys, err := n.Blockstore.AllKeysChan(ctx, 0, 0)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		piper, pipew := io.Pipe()
@@ -151,7 +159,7 @@ Displays the hashes of all local objects.
 			}
 		}()
 
-		return eptr, nil
+		res.SetOutput(eptr)
 	},
 }
 

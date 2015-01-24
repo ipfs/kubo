@@ -3,6 +3,8 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"strconv"
 
@@ -77,6 +79,8 @@ type Request interface {
 	Context() *Context
 	SetContext(Context)
 	Command() *Command
+	Values() map[string]interface{}
+	Stdin() io.Reader
 
 	ConvertOptions() error
 }
@@ -89,6 +93,8 @@ type request struct {
 	cmd        *Command
 	ctx        Context
 	optionDefs map[string]Option
+	values     map[string]interface{}
+	stdin      io.Reader
 }
 
 // Path returns the command path of this request
@@ -208,6 +214,14 @@ var converters = map[reflect.Kind]converter{
 	},
 }
 
+func (r *request) Values() map[string]interface{} {
+	return r.values
+}
+
+func (r *request) Stdin() io.Reader {
+	return r.stdin
+}
+
 func (r *request) ConvertOptions() error {
 	for k, v := range r.options {
 		opt, ok := r.optionDefs[k]
@@ -275,7 +289,8 @@ func NewRequest(path []string, opts optMap, args []string, file files.File, cmd 
 	}
 
 	ctx := Context{Context: context.TODO()}
-	req := &request{path, opts, args, file, cmd, ctx, optDefs}
+	values := make(map[string]interface{})
+	req := &request{path, opts, args, file, cmd, ctx, optDefs, values, os.Stdin}
 	err := req.ConvertOptions()
 	if err != nil {
 		return nil, err

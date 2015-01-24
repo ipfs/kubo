@@ -71,14 +71,20 @@ output is the raw data of the object.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		key := req.Arguments()[0]
-		return objectData(n, key)
+		output, err := objectData(n, key)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 }
 
@@ -95,14 +101,20 @@ multihash.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		key := req.Arguments()[0]
-		return objectLinks(n, key)
+		output, err := objectLinks(n, key)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -137,17 +149,19 @@ This command outputs data in the following encodings:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		key := req.Arguments()[0]
 
 		object, err := objectGet(n, key)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		node := &Node{
@@ -163,7 +177,7 @@ This command outputs data in the following encodings:
 			}
 		}
 
-		return node, nil
+		res.SetOutput(node)
 	},
 	Type: Node{},
 	Marshalers: cmds.MarshalerMap{
@@ -201,25 +215,28 @@ var objectStatCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		key := req.Arguments()[0]
 
 		object, err := objectGet(n, key)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		ns, err := object.Stat()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
-		return ns, nil
+		res.SetOutput(ns)
 	},
 	Type: dag.NodeStat{},
 	Marshalers: cmds.MarshalerMap{
@@ -263,15 +280,17 @@ Data should be in the format specified by <encoding>.
 		cmds.FileArg("data", true, false, "Data to be stored as a DAG object"),
 		cmds.StringArg("encoding", true, false, "Encoding type of <data>, either \"protobuf\" or \"json\""),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		input, err := req.Files().NextFile()
 		if err != nil && err != io.EOF {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		encoding := req.Arguments()[0]
@@ -282,10 +301,11 @@ Data should be in the format specified by <encoding>.
 			if err == ErrUnknownObjectEnc {
 				errType = cmds.ErrClient
 			}
-			return nil, cmds.Error{err.Error(), errType}
+			res.SetError(err, errType)
+			return
 		}
 
-		return output, nil
+		res.SetOutput(output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

@@ -36,26 +36,28 @@ order to reclaim hard disk space.
 	Options: []cmds.Option{
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		gcOutChan, err := corerepo.GarbageCollectBlockstore(n, req.Context().Context)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
 		go func() {
 			defer close(outChan)
 			for k := range gcOutChan {
 				outChan <- k
 			}
 		}()
-
-		return outChan, nil
 	},
 	Type: corerepo.KeyRemoved{},
 	Marshalers: cmds.MarshalerMap{

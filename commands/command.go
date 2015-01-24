@@ -14,7 +14,7 @@ var log = u.Logger("command")
 
 // Function is the type of function that Commands use.
 // It reads from the Request, and writes results to the Response.
-type Function func(Request) (interface{}, error)
+type Function func(Request, Response)
 
 // Marshaler is a function that takes in a Response, and returns an io.Reader
 // (or an error on failure)
@@ -40,18 +40,14 @@ type HelpText struct {
 	Subcommands     string // overrides SUBCOMMANDS section
 }
 
-// TODO: check Argument definitions when creating a Command
-//   (might need to use a Command constructor)
-//   * make sure any variadic args are at the end
-//   * make sure there aren't duplicate names
-//   * make sure optional arguments aren't followed by required arguments
-
 // Command is a runnable command, with input arguments and options (flags).
 // It can also have Subcommands, to group units of work into sets.
 type Command struct {
 	Options    []Option
 	Arguments  []Argument
+	PreRun     func(req Request) error
 	Run        Function
+	PostRun    Function
 	Marshalers map[EncodingType]Marshaler
 	Helptext   HelpText
 
@@ -99,21 +95,12 @@ func (c *Command) Call(req Request) Response {
 		return res
 	}
 
-	output, err := cmd.Run(req)
-	if err != nil {
-		// if returned error is a commands.Error, use its error code
-		// otherwise, just default the code to ErrNormal
-		switch e := err.(type) {
-		case *Error:
-			res.SetError(e, e.Code)
-		case Error:
-			res.SetError(e, e.Code)
-		default:
-			res.SetError(err, ErrNormal)
-		}
+	cmd.Run(req, res)
+	if res.Error() != nil {
 		return res
 	}
 
+	output := res.Output()
 	isChan := false
 	actualType := reflect.TypeOf(output)
 	if actualType != nil {
@@ -144,7 +131,6 @@ func (c *Command) Call(req Request) Response {
 		}
 	}
 
-	res.SetOutput(output)
 	return res
 }
 

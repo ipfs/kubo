@@ -3,6 +3,7 @@ package files
 import (
 	"errors"
 	"io"
+	"os"
 )
 
 var (
@@ -28,4 +29,23 @@ type File interface {
 	// It will return (nil, io.EOF) if no more files are available.
 	// If the file is a regular file (not a directory), NextFile will return a non-nil error.
 	NextFile() (File, error)
+}
+
+type StatFile interface {
+	File
+
+	Stat() os.FileInfo
+}
+
+type PeekFile interface {
+	SizeFile
+
+	Peek(n int) File
+	Length() int
+}
+
+type SizeFile interface {
+	File
+
+	Size() (int64, error)
 }

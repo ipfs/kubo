@@ -22,9 +22,9 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			ShortDescription: `Lists all available commands (and subcommands) and exits.`,
 		},
 
-		Run: func(req cmds.Request) (interface{}, error) {
+		Run: func(req cmds.Request, res cmds.Response) {
 			root := cmd2outputCmd("ipfs", root)
-			return &root, nil
+			res.SetOutput(&root)
 		},
 		Marshalers: cmds.MarshalerMap{
 			cmds.Text: func(res cmds.Response) (io.Reader, error) {

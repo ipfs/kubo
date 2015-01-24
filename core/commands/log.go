@@ -47,7 +47,7 @@ output of a running daemon.
 		cmds.StringArg("subsystem", true, false, fmt.Sprintf("the subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
 		cmds.StringArg("level", true, false, "one of: debug, info, notice, warning, error, critical"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 
 		args := req.Arguments()
 		subsystem, level := args[0], args[1]
@@ -57,12 +57,13 @@ output of a running daemon.
 		}
 
 		if err := u.SetLogLevel(subsystem, level); err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		s := fmt.Sprintf("Changed log level of '%s' to '%s'", subsystem, level)
 		log.Info(s)
-		return &MessageOutput{s}, nil
+		res.SetOutput(&MessageOutput{s})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: MessageTextMarshaler,
@@ -78,7 +79,7 @@ var logTailCmd = &cmds.Command{
 `,
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		path := fmt.Sprintf("%s/logs/events.log", req.Context().ConfigRoot)
 
 		outChan := make(chan interface{})
@@ -108,7 +109,7 @@ var logTailCmd = &cmds.Command{
 			}
 		}()
 
-		return (<-chan interface{})(outChan), nil
+		res.SetOutput((<-chan interface{})(outChan))
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {

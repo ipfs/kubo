@@ -13,8 +13,8 @@ var MountCmd = &cmds.Command{
 		ShortDescription: "Not yet implemented on Windows. :(",
 	},
 
-	Run: func(req cmds.Request) (interface{}, error) {
-		return errors.New("Mount isn't compatible with Windows yet"), nil
+	Run: func(req cmds.Request, res cmds.Response) {
+		res.SetError(errors.New("Mount isn't compatible with Windows yet"), cmds.ErrNormal)
 	},
 }
 

@@ -39,22 +39,29 @@ var initCmd = &cmds.Command{
 		// name of the file?
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 
 		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		nBitsForKeypair, bitsOptFound, err := req.Option("b").Int()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !bitsOptFound {
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		return doInit(req.Context().ConfigRoot, force, nBitsForKeypair)
+		output, err := doInit(req.Context().ConfigRoot, force, nBitsForKeypair)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(output)
 	},
 }
 

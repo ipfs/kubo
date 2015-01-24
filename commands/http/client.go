@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -137,8 +138,17 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	var err error
 	res := cmds.NewResponse(req)
 
-	contentType := httpRes.Header["Content-Type"][0]
+	contentType := httpRes.Header.Get(contentTypeHeader)
 	contentType = strings.Split(contentType, ";")[0]
+
+	lengthHeader := httpRes.Header.Get(contentLengthHeader)
+	if len(lengthHeader) > 0 {
+		length, err := strconv.ParseUint(lengthHeader, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		res.SetLength(length)
+	}
 
 	if len(httpRes.Header.Get(streamHeader)) > 0 {
 		// if output is a stream, we can just use the body reader

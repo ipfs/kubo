@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 )
 
@@ -95,19 +96,30 @@ type Response interface {
 	SetOutput(interface{})
 	Output() interface{}
 
+	// Sets/Returns the length of the output
+	SetLength(uint64)
+	Length() uint64
+
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaler (Codec).
 	Marshal() (io.Reader, error)
 
 	// Gets a io.Reader that reads the marshalled output
 	Reader() (io.Reader, error)
+
+	// Gets Stdout and Stderr, for writing to console without using SetOutput
+	Stdout() io.Writer
+	Stderr() io.Writer
 }
 
 type response struct {
-	req   Request
-	err   *Error
-	value interface{}
-	out   io.Reader
+	req    Request
+	err    *Error
+	value  interface{}
+	out    io.Reader
+	length uint64
+	stdout io.Writer
+	stderr io.Writer
 }
 
 func (r *response) Request() Request {
@@ -120,6 +132,14 @@ func (r *response) Output() interface{} {
 
 func (r *response) SetOutput(v interface{}) {
 	r.value = v
+}
+
+func (r *response) Length() uint64 {
+	return r.length
+}
+
+func (r *response) SetLength(l uint64) {
+	r.length = l
 }
 
 func (r *response) Error() *Error {
@@ -193,7 +213,19 @@ func (r *response) Reader() (io.Reader, error) {
 	return r.out, nil
 }
 
+func (r *response) Stdout() io.Writer {
+	return r.stdout
+}
+
+func (r *response) Stderr() io.Writer {
+	return r.stderr
+}
+
 // NewResponse returns a response to match given Request
 func NewResponse(req Request) Response {
-	return &response{req: req}
+	return &response{
+		req:    req,
+		stdout: os.Stdout,
+		stderr: os.Stderr,
+	}
 }

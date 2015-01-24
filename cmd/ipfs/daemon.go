@@ -47,13 +47,14 @@ the daemon.
 	Run:         daemonFunc,
 }
 
-func daemonFunc(req cmds.Request) (interface{}, error) {
+func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _, err := req.Option(initOptionKwd).Bool()
 	if err != nil {
-		return nil, err
+		res.SetError(err, cmds.ErrNormal)
+		return
 	}
 	if initialize {
 
@@ -64,7 +65,8 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		if !util.FileExists(req.Context().ConfigRoot) {
 			err := initWithDefaults(req.Context().ConfigRoot)
 			if err != nil {
-				return nil, debugerror.Wrap(err)
+				res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
+				return
 			}
 		}
 	}
@@ -77,14 +79,16 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	ctx := req.Context()
 	cfg, err := ctx.GetConfig()
 	if err != nil {
-		return nil, err
+		res.SetError(err, cmds.ErrNormal)
+		return
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo := fsrepo.At(req.Context().ConfigRoot)
 	if err := repo.Open(); err != nil {
-		return nil, debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?")
+		res.SetError(debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
+		return
 	}
 	defer repo.Close()
 
@@ -93,13 +97,15 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	ctx.Online = true
 	node, err := ctx.GetNode()
 	if err != nil {
-		return nil, err
+		res.SetError(err, cmds.ErrNormal)
+		return
 	}
 
 	// verify api address is valid multiaddr
 	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
-		return nil, err
+		res.SetError(err, cmds.ErrNormal)
+		return
 	}
 
 	var gatewayMaddr ma.Multiaddr
@@ -115,12 +121,14 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 	// mount if the user provided the --mount flag
 	mount, _, err := req.Option(mountKwd).Bool()
 	if err != nil {
-		return nil, err
+		res.SetError(err, cmds.ErrNormal)
+		return
 	}
 	if mount {
 		fsdir, found, err := req.Option(ipfsMountKwd).String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			fsdir = cfg.Mounts.IPFS
@@ -128,7 +136,8 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 
 		nsdir, found, err := req.Option(ipnsMountKwd).String()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		if !found {
 			nsdir = cfg.Mounts.IPNS
@@ -136,7 +145,8 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 
 		err = commands.Mount(node, fsdir, nsdir)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 		fmt.Printf("IPFS mounted at: %s\n", fsdir)
 		fmt.Printf("IPNS mounted at: %s\n", nsdir)
@@ -156,5 +166,9 @@ func daemonFunc(req cmds.Request) (interface{}, error) {
 		corehttp.WebUIOption,
 		corehttp.GatewayOption,
 	}
-	return nil, corehttp.ListenAndServe(node, apiMaddr, opts...)
+	err = corehttp.ListenAndServe(node, apiMaddr, opts...)
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
 }

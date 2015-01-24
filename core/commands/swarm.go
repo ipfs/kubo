@@ -45,16 +45,18 @@ var swarmPeersCmd = &cmds.Command{
 ipfs swarm peers lists the set of peers this node is connected to.
 `,
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 
 		log.Debug("ipfs swarm peers")
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		if n.PeerHost == nil {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
 		}
 
 		conns := n.PeerHost.Network().Conns()
@@ -66,7 +68,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		}
 
 		sort.Sort(sort.StringSlice(addrs))
-		return &stringList{addrs}, nil
+		res.SetOutput(&stringList{addrs})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,
@@ -87,24 +89,27 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 	Arguments: []cmds.Argument{
 		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := context.TODO()
 
 		log.Debug("ipfs swarm connect")
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		addrs := req.Arguments()
 
 		if n.PeerHost == nil {
-			return nil, errNotOnline
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
 		}
 
 		peers, err := peersWithAddresses(n.Peerstore, addrs)
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		output := make([]string, len(peers))
@@ -119,7 +124,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 			}
 		}
 
-		return &stringList{output}, nil
+		res.SetOutput(&stringList{output})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: stringListMarshaler,

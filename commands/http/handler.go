@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -90,6 +91,11 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		mime := mimeTypes[enc]
 		w.Header().Set(contentTypeHeader, mime)
+	}
+
+	// set the Content-Length from the response length
+	if res.Length() > 0 {
+		w.Header().Set(contentLengthHeader, strconv.FormatUint(res.Length(), 10))
 	}
 
 	// if response contains an error, write an HTTP error status code
