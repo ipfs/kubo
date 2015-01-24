@@ -48,7 +48,7 @@ test_expect_success ".go-ipfs/ has been created" '
   test -d ".go-ipfs" &&
   test -f ".go-ipfs/config" &&
   test -d ".go-ipfs/datastore" ||
-  fsh ls .go-ipfs
+  test_fsh ls .go-ipfs
 '
 
 test_expect_success "daemon is still running" '

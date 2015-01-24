@@ -16,7 +16,7 @@ test_expect_success "'ipfs add --help' succeeds" '
 
 test_expect_success "'ipfs add --help' output looks good" '
 	egrep "ipfs add.*<path>" actual >/dev/null ||
-	fsh cat actual
+	test_fsh cat actual
 '
 
 test_expect_success "'ipfs cat --help' succeeds" '
@@ -25,7 +25,7 @@ test_expect_success "'ipfs cat --help' succeeds" '
 
 test_expect_success "'ipfs cat --help' output looks good" '
 	egrep "ipfs cat.*<ipfs-path>" actual >/dev/null ||
-	fsh cat actual
+	test_fsh cat actual
 '
 
 test_expect_success "ipfs add succeeds" '

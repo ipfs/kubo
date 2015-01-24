@@ -52,12 +52,12 @@ test_expect_success ".go-ipfs/ has been created" '
   test -d ".go-ipfs" &&
   test -f ".go-ipfs/config" &&
   test -d ".go-ipfs/datastore" ||
-  fsh ls -al .go-ipfs
+  test_fsh ls -al .go-ipfs
 '
 ```
 
 The `|| ...` is a diagnostic run when the preceding command fails.
-`bin/fsh` is a trivial script that echoes the args, runs the cmd,
+test_fsh is a shell function that echoes the args, runs the cmd,
 and then also fails, making sure the test case fails. (wouldnt want
 the diagnostic accidentally returning true and making it _seem_ like
 the test case succeeded!).
