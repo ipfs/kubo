@@ -342,6 +342,13 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *bitswap) PeerConnected(p peer.ID) {
 	// TODO: add to clientWorker??
+	peers := make(chan peer.ID, 1)
+	peers <- p
+	close(peers)
+	err := bs.sendWantlistToPeers(context.TODO(), peers)
+	if err != nil {
+		log.Errorf("error sending wantlist: %s", err)
+	}
 }
 
 // Connected/Disconnected warns bitswap about peer connections
