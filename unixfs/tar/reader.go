@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"io"
 	p "path"
+	"strings"
 
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
@@ -27,6 +28,10 @@ type Reader struct {
 }
 
 func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compression int) (*Reader, error) {
+	if strings.HasPrefix(path, "/ipfs/") {
+		path = path[6:]
+	}
+
 	reader := &Reader{
 		signalChan: make(chan struct{}),
 		dag:        dag,
