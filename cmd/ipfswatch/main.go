@@ -30,9 +30,15 @@ func main() {
 	// 1. --repo flag
 	// 2. IPFS_PATH environment variable
 	// 3. default repo path
-	ipfsPath := config.DefaultPathRoot
+	var ipfsPath string
 	if *repoPath != "" {
 		ipfsPath = *repoPath
+	} else {
+		var err error
+		ipfsPath, err = fsrepo.BestKnownPath()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if err := run(ipfsPath, *watchPath); err != nil {
@@ -43,7 +49,7 @@ func main() {
 func run(ipfsPath, watchPath string) error {
 
 	proc := process.WithParent(process.Background())
-	log.Printf("running IPFSWatch on %s using repo at %s...", watchPath, ipfsPath)
+	log.Printf("running IPFSWatch on '%s' using repo at '%s'...", watchPath, ipfsPath)
 
 	ipfsPath, err := homedir.Expand(ipfsPath)
 	if err != nil {
