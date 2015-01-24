@@ -166,8 +166,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		corehttp.WebUIOption,
 		corehttp.GatewayOption,
 	}
-	err = corehttp.ListenAndServe(node, apiMaddr.String(), opts...)
-	if err != nil {
+	if err := corehttp.ListenAndServe(node, apiMaddr.String(), opts...); err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
