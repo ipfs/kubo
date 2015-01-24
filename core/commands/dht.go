@@ -41,15 +41,17 @@ var queryDhtCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Write extra information"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		dht, ok := n.Routing.(*ipdht.IpfsDHT)
 		if !ok {
-			return nil, errors.New("Routing service was not a dht")
+			res.SetError(ErrNotDHT, cmds.ErrNormal)
+			return
 		}
 
 		events := make(chan *notif.QueryEvent)
@@ -68,13 +70,14 @@ var queryDhtCmd = &cmds.Command{
 		}()
 
 		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
 		go func() {
 			defer close(outChan)
 			for e := range events {
 				outChan <- e
 			}
 		}()
-		return outChan, nil
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -141,20 +144,24 @@ FindProviders will return a list of peers who are able to provide the value requ
 	Options: []cmds.Option{
 		cmds.BoolOption("verbose", "v", "Write extra information"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		dht, ok := n.Routing.(*ipdht.IpfsDHT)
 		if !ok {
-			return nil, ErrNotDHT
+			res.SetError(ErrNotDHT, cmds.ErrNormal)
+			return
 		}
 
 		numProviders := 20
 
 		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
 
@@ -176,7 +183,6 @@ FindProviders will return a list of peers who are able to provide the value requ
 				})
 			}
 		}()
-		return outChan, nil
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -242,23 +248,28 @@ var findPeerDhtCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peerID", true, true, "The peer to search for"),
 	},
-	Run: func(req cmds.Request) (interface{}, error) {
+	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		dht, ok := n.Routing.(*ipdht.IpfsDHT)
 		if !ok {
-			return nil, ErrNotDHT
+			res.SetError(ErrNotDHT, cmds.ErrNormal)
+			return
 		}
 
 		pid, err := peer.IDB58Decode(req.Arguments()[0])
 		if err != nil {
-			return nil, err
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
 
@@ -285,8 +296,6 @@ var findPeerDhtCmd = &cmds.Command{
 				Responses: []*peer.PeerInfo{&pi},
 			})
 		}()
-
-		return outChan, nil
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
