@@ -7,6 +7,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
+	notif "github.com/jbenet/go-ipfs/notifications"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	"github.com/jbenet/go-ipfs/routing"
@@ -48,7 +49,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		return err
 	}
 
-	pchan, err := dht.getClosestPeers(ctx, key)
+	pchan, err := dht.GetClosestPeers(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	// add self locally
 	dht.providers.AddProvider(key, dht.self)
 
-	peers, err := dht.getClosestPeers(ctx, key)
+	peers, err := dht.GetClosestPeers(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -162,79 +163,6 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerIn
 		providers = append(providers, p)
 	}
 	return providers, nil
-}
-
-// Kademlia 'node lookup' operation. Returns a channel of the K closest peers
-// to the given key
-func (dht *IpfsDHT) getClosestPeers(ctx context.Context, key u.Key) (<-chan peer.ID, error) {
-	e := log.EventBegin(ctx, "getClosestPeers", &key)
-	tablepeers := dht.routingTable.ListPeers()
-	if len(tablepeers) == 0 {
-		return nil, errors.Wrap(kb.ErrLookupFailure)
-	}
-
-	out := make(chan peer.ID, KValue)
-	peerset := pset.NewLimited(KValue)
-
-	for _, p := range tablepeers {
-		select {
-		case out <- p:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-		peerset.Add(p)
-	}
-
-	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
-		closer, err := dht.closerPeersSingle(ctx, key, p)
-		if err != nil {
-			log.Errorf("error getting closer peers: %s", err)
-			return nil, err
-		}
-
-		var filtered []peer.PeerInfo
-		for _, p := range closer {
-			if kb.Closer(p, dht.self, key) && peerset.TryAdd(p) {
-				select {
-				case out <- p:
-				case <-ctx.Done():
-					return nil, ctx.Err()
-				}
-				filtered = append(filtered, dht.peerstore.PeerInfo(p))
-			}
-		}
-
-		return &dhtQueryResult{closerPeers: filtered}, nil
-	})
-
-	go func() {
-		defer close(out)
-		defer e.Done()
-		// run it!
-		_, err := query.Run(ctx, tablepeers)
-		if err != nil {
-			log.Debugf("closestPeers query run error: %s", err)
-		}
-	}()
-
-	return out, nil
-}
-
-func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key u.Key, p peer.ID) ([]peer.ID, error) {
-	pmes, err := dht.findPeerSingle(ctx, p, peer.ID(key))
-	if err != nil {
-		return nil, err
-	}
-
-	var out []peer.ID
-	for _, pbp := range pmes.GetCloserPeers() {
-		pid := peer.ID(pbp.GetId())
-		if pid != dht.self { // dont add self
-			dht.peerstore.AddAddresses(pid, pbp.Addresses())
-			out = append(out, pid)
-		}
-	}
-	return out, nil
 }
 
 // FindProvidersAsync is the same thing as FindProviders, but returns a channel.
@@ -315,6 +243,10 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	_, err := query.Run(ctx, peers)
 	if err != nil {
 		log.Errorf("Query error: %s", err)
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:  notif.QueryError,
+			Extra: err.Error(),
+		})
 	}
 }
 
@@ -342,6 +274,10 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 
 	// setup the Query
 	query := dht.newQuery(u.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type: notif.SendingQuery,
+			ID:   p,
+		})
 
 		pmes, err := dht.findPeerSingle(ctx, p, id)
 		if err != nil {
@@ -360,6 +296,11 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 				}, nil
 			}
 		}
+
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:      notif.PeerResponse,
+			Responses: pointerizePeerInfos(clpeerInfos),
+		})
 
 		return &dhtQueryResult{closerPeers: clpeerInfos}, nil
 	})
