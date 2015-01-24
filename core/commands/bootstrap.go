@@ -24,6 +24,10 @@ var DefaultBootstrapAddresses = []string{
 	"/ip4/104.236.179.241/tcp/4001/QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69RrZm", // pluto (to be pluto.i.ipfs.io)
 	"/ip4/162.243.248.213/tcp/4001/QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm", // uranus (to be uranus.i.ipfs.io)
 	"/ip4/128.199.219.111/tcp/4001/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu", // saturn (to be saturn.i.ipfs.io)
+	"/ip4/104.236.76.40/tcp/4001/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",   // venus (to be venus.i.ipfs.io)
+	"/ip4/178.62.158.247/tcp/4001/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",  // earth (to be earth.i.ipfs.io)
+	"/ip4/178.62.61.185/tcp/4001/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3",   // mercury (to be mercury.i.ipfs.io)
+	"/ip4/104.236.151.122/tcp/4001/QmSoLju6m7xTh3DuokvT3886QRYqxAzb1kShaanJgW36yx", // jupiter (to be jupiter.i.ipfs.io)
 }
 
 type BootstrapOutput struct {
