@@ -185,7 +185,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "c37725a4a97d6ad772818b071ceef82789562142"
+			"Rev": "c5455a611a9e0cebac87e7ae421c3273c3224000"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",

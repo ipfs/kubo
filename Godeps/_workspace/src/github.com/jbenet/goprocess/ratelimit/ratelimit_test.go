@@ -46,7 +46,7 @@ func TestRateLimitLimitedGoBlocks(t *testing.T) {
 	t.Log("should be done spawning.")
 	select {
 	case <-doneSpawning:
-	case <-time.After(time.Millisecond): // for scheduler
+	case <-time.After(100 * time.Millisecond): // for scheduler
 		t.Error("still blocked...")
 	}
 
@@ -84,7 +84,7 @@ func TestRateLimitGoDoesntBlock(t *testing.T) {
 	select {
 	case <-doneSpawning:
 		t.Log("did not block")
-	case <-time.After(time.Millisecond): // for scheduler
+	case <-time.After(100 * time.Millisecond): // for scheduler
 		t.Error("process.Go blocked. it should not.")
 	}
 
