@@ -39,6 +39,10 @@ type Swarm struct {
 	streamHandler StreamHandler // receives Streams initiated remotely
 	selectConn    SelectConn    // default SelectConn function
 
+	// notification listeners
+	notifiees    map[Notifiee]struct{}
+	notifieeLock sync.RWMutex
+
 	closed chan struct{}
 }
 
@@ -48,6 +52,7 @@ func NewSwarm(t pst.Transport) *Swarm {
 		streams:       make(map[*Stream]struct{}),
 		conns:         make(map[*Conn]struct{}),
 		listeners:     make(map[*Listener]struct{}),
+		notifiees:     make(map[Notifiee]struct{}),
 		selectConn:    SelectRandomConn,
 		streamHandler: NoOpStreamHandler,
 		connHandler:   NoOpConnHandler,
@@ -360,4 +365,38 @@ func (s *Swarm) connGarbageCollect() {
 			}
 		}
 	}
+}
+
+// Notify signs up Notifiee to receive signals when events happen
+func (s *Swarm) Notify(n Notifiee) {
+	s.notifieeLock.Lock()
+	s.notifiees[n] = struct{}{}
+	s.notifieeLock.Unlock()
+}
+
+// StopNotify unregisters Notifiee fromr receiving signals
+func (s *Swarm) StopNotify(n Notifiee) {
+	s.notifieeLock.Lock()
+	delete(s.notifiees, n)
+	s.notifieeLock.Unlock()
+}
+
+// notifyAll runs the notification function on all Notifiees
+func (s *Swarm) notifyAll(notification func(n Notifiee)) {
+	s.notifieeLock.RLock()
+	for n := range s.notifiees {
+		// make sure we dont block
+		// and they dont block each other.
+		go notification(n)
+	}
+	s.notifieeLock.RUnlock()
+}
+
+// Notifiee is an interface for an object wishing to receive
+// notifications from a Swarm
+type Notifiee interface {
+	Connected(*Conn)      // called when a connection opened
+	Disconnected(*Conn)   // called when a connection closed
+	OpenedStream(*Stream) // called when a stream opened
+	ClosedStream(*Stream) // called when a stream closed
 }
