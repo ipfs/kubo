@@ -8,40 +8,30 @@ import (
 	"syscall"
 )
 
-type sortFIByName []os.FileInfo
+type sortFIByName []string
 
 func (es sortFIByName) Len() int           { return len(es) }
 func (es sortFIByName) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es sortFIByName) Less(i, j int) bool { return es[i].Name() < es[j].Name() }
+func (es sortFIByName) Less(i, j int) bool { return es[i] < es[j] }
 
 // serialFile implements File, and reads from a path on the OS filesystem.
 // No more than one file will be opened at a time (directories will advance
 // to the next file when NextFile() is called).
 type serialFile struct {
 	path    string
-	files   []os.FileInfo
+	files   []string
 	current *os.File
 }
 
 func NewSerialFile(path string, file *os.File) (File, error) {
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	return newSerialFile(path, file, stat)
-}
-
-func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
-	// for non-directories, return a ReaderFile
-	if !stat.IsDir() {
+	// try to list the content of the directory, and if it fails with no entries
+	// found, assume it is not a directory and return a ReaderFile. if we can,
+	// we should try to test that the error is ENOENT or ENOTDIR.
+	// See getdents(2)
+	contents, err := file.Readdirnames(0)
+	if err != nil && len(contents) == 0 {
 		return &ReaderFile{path, file}, nil
-	}
-
-	// for directories, stat all of the contents first, so we know what files to
-	// open when NextFile() is called
-	contents, err := file.Readdir(0)
-	if err != nil {
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -76,11 +66,10 @@ func (f *serialFile) NextFile() (File, error) {
 		return nil, io.EOF
 	}
 
-	stat := f.files[0]
+	// open the next file
+	filePath := fp.Join(f.path, f.files[0])
 	f.files = f.files[1:]
 
-	// open the next file
-	filePath := fp.Join(f.path, stat.Name())
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -90,7 +79,7 @@ func (f *serialFile) NextFile() (File, error) {
 	// recursively call the constructor on the next file
 	// if it's a regular file, we will open it as a ReaderFile
 	// if it's a directory, files in it will be opened serially
-	return newSerialFile(filePath, file, stat)
+	return NewSerialFile(filePath, file)
 }
 
 func (f *serialFile) FileName() string {
