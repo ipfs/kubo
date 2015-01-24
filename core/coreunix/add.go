@@ -29,7 +29,9 @@ func Add(n *core.IpfsNode, r io.Reader) (u.Key, error) {
 	if err != nil {
 		return "", err
 	}
-	// TODO(btc): is it necessary to flush the pinner?
+	if err := n.Pinning.Flush(); err != nil {
+		return "", err
+	}
 	return dagNode.Key()
 }
 
