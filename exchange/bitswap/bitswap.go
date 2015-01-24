@@ -173,10 +173,6 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 		panic("Cant send wantlist to nil peerchan")
 	}
 
-	log := log.Prefix("bitswap(%s).sendWantlistMsgToPeers(%d)", bs.self, len(m.Wantlist()))
-	log.Debugf("begin")
-	defer log.Debugf("end")
-
 	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
@@ -216,10 +212,6 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 		return
 	}
 
-	log := log.Prefix("bitswap(%s).sendWantlistToProviders ", bs.self)
-	log.Debugf("begin")
-	defer log.Debugf("end")
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -232,9 +224,6 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 		wg.Add(1)
 		go func(k u.Key) {
 			defer wg.Done()
-
-			log := log.Prefix("(entry: %s) ", k)
-			log.Debug("asking dht for providers")
 
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
@@ -257,7 +246,6 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 }
 
 func (bs *bitswap) taskWorker(ctx context.Context) {
-	log := log.Prefix("bitswap(%s).taskWorker", bs.self)
 	for {
 		select {
 		case <-ctx.Done():

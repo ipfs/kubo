@@ -73,10 +73,6 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
-	log := dht.log().Prefix("GetValue(%s)", key)
-	log.Debugf("start")
-	defer log.Debugf("end")
-
 	// If we have it local, dont bother doing an RPC!
 	val, err := dht.getLocal(key)
 	if err == nil {
@@ -128,8 +124,6 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 
 // Provide makes this node announce that it can provide a value for the given key
 func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
-	log := dht.log().Prefix("Provide(%s)", key)
-
 	defer log.EventBegin(ctx, "provide", &key).Done()
 
 	// add self locally
@@ -176,8 +170,6 @@ func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int
 }
 
 func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.PeerInfo) {
-	log := dht.log().Prefix("FindProviders(%s)", key)
-
 	defer log.EventBegin(ctx, "findProvidersAsync", &key).Done()
 	defer close(peerOut)
 
@@ -201,10 +193,6 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 
 	// setup the Query
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
-		log := log.Prefix("Query(%s)", p)
-		log.Debugf("begin")
-		defer log.Debugf("end")
-
 		pmes, err := dht.findProvidersSingle(ctx, p, key)
 		if err != nil {
 			return nil, err

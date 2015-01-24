@@ -163,10 +163,6 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	log := log.Prefix("bitswap.Engine.MessageReceived(%s)", p)
-	log.Debugf("enter. %d entries %d blocks", len(m.Wantlist()), len(m.Blocks()))
-	defer log.Debugf("exit")
-
 	if len(m.Wantlist()) == 0 && len(m.Blocks()) == 0 {
 		log.Info("superfluous message")
 	}

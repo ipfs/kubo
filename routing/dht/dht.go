@@ -97,7 +97,7 @@ func (dht *IpfsDHT) LocalPeer() peer.ID {
 
 // log returns the dht's logger
 func (dht *IpfsDHT) log() eventlog.EventLogger {
-	return log.Prefix("dht(%s)", dht.self)
+	return log // TODO rm
 }
 
 // Connect to a new peer at the given address, ping and add to the routing table

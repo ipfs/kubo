@@ -179,7 +179,6 @@ func (db *dialbackoff) Clear(p peer.ID) {
 // This allows us to use various transport protocols, do NAT traversal/relay,
 // etc. to achive connection.
 func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
-	log := log.Prefix("swarm %s dialing %s", s.local, p)
 	if p == s.local {
 		return nil, errors.New("Attempted connection to self!")
 	}

@@ -39,28 +39,23 @@ func (bsnet *impl) SendMessage(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) error {
 
-	log := log.Prefix("bitswap net SendMessage to %s", p)
-
 	// ensure we're connected
 	//TODO(jbenet) move this into host.NewStream?
 	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
 		return err
 	}
 
-	log.Debug("opening stream")
 	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	log.Debug("sending")
 	if err := outgoing.ToNet(s); err != nil {
 		log.Errorf("error: %s", err)
 		return err
 	}
 
-	log.Debug("sent")
 	return err
 }
 
@@ -69,35 +64,29 @@ func (bsnet *impl) SendRequest(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
-	log := log.Prefix("bitswap net SendRequest to %s", p)
-
 	// ensure we're connected
 	//TODO(jbenet) move this into host.NewStream?
 	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
 		return nil, err
 	}
 
-	log.Debug("opening stream")
 	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
 	if err != nil {
 		return nil, err
 	}
 	defer s.Close()
 
-	log.Debug("sending")
 	if err := outgoing.ToNet(s); err != nil {
 		log.Errorf("error: %s", err)
 		return nil, err
 	}
 
-	log.Debug("sent, now receiveing")
 	incoming, err := bsmsg.FromNet(s)
 	if err != nil {
 		log.Errorf("error: %s", err)
 		return incoming, err
 	}
 
-	log.Debug("received")
 	return incoming, nil
 }
 

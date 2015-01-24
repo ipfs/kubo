@@ -84,7 +84,6 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 }
 
 func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
-	log := log.Prefix("dht(%s).Query(%s).Run(%d)", r.query.dht.self, r.query.key, len(peers))
 	r.log = log
 	log.Debug("enter")
 	defer log.Debug("end")
@@ -169,10 +168,6 @@ func (r *dhtQueryRunner) addPeerToQuery(ctx context.Context, next peer.ID) {
 }
 
 func (r *dhtQueryRunner) spawnWorkers(parent ctxgroup.ContextGroup) {
-	log := r.log.Prefix("spawnWorkers")
-	log.Debugf("begin")
-	defer log.Debugf("end")
-
 	for {
 
 		select {
@@ -198,10 +193,6 @@ func (r *dhtQueryRunner) spawnWorkers(parent ctxgroup.ContextGroup) {
 }
 
 func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
-	log := r.log.Prefix("queryPeer(%s)", p)
-	log.Debugf("spawned")
-	defer log.Debugf("finished")
-
 	// make sure we rate limit concurrency.
 	select {
 	case <-r.rateLimit:

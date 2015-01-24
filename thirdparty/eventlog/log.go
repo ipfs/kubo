@@ -6,19 +6,34 @@ import (
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
-	prelog "github.com/jbenet/go-ipfs/util/prefixlog"
+	"github.com/jbenet/go-ipfs/util" // TODO remove IPFS dependency
 )
+
+// StandardLogger provides API compatibility with standard printf loggers
+// eg. go-logging
+type StandardLogger interface {
+	Critical(args ...interface{})
+	Criticalf(format string, args ...interface{})
+	Debug(args ...interface{})
+	Debugf(format string, args ...interface{})
+	Error(args ...interface{})
+	Errorf(format string, args ...interface{})
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Info(args ...interface{})
+	Infof(format string, args ...interface{})
+	Notice(args ...interface{})
+	Noticef(format string, args ...interface{})
+	Panic(args ...interface{})
+	Panicf(format string, args ...interface{})
+	Warning(args ...interface{})
+	Warningf(format string, args ...interface{})
+}
 
 // EventLogger extends the StandardLogger interface to allow for log items
 // containing structured metadata
 type EventLogger interface {
-	prelog.StandardLogger
-
-	// Prefix is like PrefixLogger.Prefix. We override it here
-	// because the type changes (we return EventLogger).
-	// It's what happens when you wrap interfaces.
-	Prefix(fmt string, args ...interface{}) EventLogger
+	StandardLogger
 
 	// Event merges structured data from the provided inputs into a single
 	// machine-readable log event.
@@ -50,20 +65,15 @@ func Logger(system string) EventLogger {
 
 	// TODO if we would like to adjust log levels at run-time. Store this event
 	// logger in a map (just like the util.Logger impl)
-	return &eventLogger{system: system, PrefixLogger: prelog.Logger(system)}
+	return &eventLogger{system: system, StandardLogger: util.Logger(system)}
 }
 
 // eventLogger implements the EventLogger and wraps a go-logging Logger
 type eventLogger struct {
-	prelog.PrefixLogger
+	StandardLogger
 
 	system string
 	// TODO add log-level
-}
-
-func (el *eventLogger) Prefix(fmt string, args ...interface{}) EventLogger {
-	l := el.PrefixLogger.Prefix(fmt, args...)
-	return &eventLogger{system: el.system, PrefixLogger: l}
 }
 
 func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ...Loggable) DoneCloser {
