@@ -6,7 +6,7 @@ import (
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	corerepo "github.com/jbenet/go-ipfs/core/repo"
+	corerepo "github.com/jbenet/go-ipfs/core/corerepo"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
