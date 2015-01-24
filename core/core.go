@@ -18,6 +18,7 @@ import (
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	p2phost "github.com/jbenet/go-ipfs/p2p/host"
 	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
+	inat "github.com/jbenet/go-ipfs/p2p/nat"
 	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -389,15 +390,13 @@ func loadPrivateKey(cfg *config.Identity, id peer.ID) (ic.PrivKey, error) {
 }
 
 func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
-
-	var err error
-	listen := make([]ma.Multiaddr, len(cfg.Addresses.Swarm))
-	for i, addr := range cfg.Addresses.Swarm {
-
-		listen[i], err = ma.NewMultiaddr(addr)
+	var listen []ma.Multiaddr
+	for _, addr := range cfg.Addresses.Swarm {
+		maddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
-			return nil, fmt.Errorf("Failure to parse config.Addresses.Swarm[%d]: %s", i, cfg.Addresses.Swarm)
+			return nil, fmt.Errorf("Failure to parse config.Addresses.Swarm: %s", cfg.Addresses.Swarm)
 		}
+		listen = append(listen, maddr)
 	}
 
 	return listen, nil
@@ -413,7 +412,7 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 	// make sure we error out if our config does not have addresses we can use
 	log.Debugf("Config.Addresses.Swarm:%s", listenAddrs)
 	filteredAddrs := addrutil.FilterUsableAddrs(listenAddrs)
-	log.Debugf("Config.Addresses.Swarm:%s (filtered)", listenAddrs)
+	log.Debugf("Config.Addresses.Swarm:%s (filtered)", filteredAddrs)
 	if len(filteredAddrs) < 1 {
 		return nil, debugerror.Errorf("addresses in config not usable: %s", listenAddrs)
 	}
@@ -431,7 +430,14 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 	if err != nil {
 		return nil, debugerror.Wrap(err)
 	}
-	log.Info("Swarm listening at: %s", addrs)
+	log.Infof("Swarm listening at: %s", addrs)
+
+	mapAddrs := inat.MapAddrs(filteredAddrs)
+	if len(mapAddrs) > 0 {
+		log.Infof("NAT mapping addrs: %s", mapAddrs)
+		addrs = append(addrs, mapAddrs...)
+	}
+
 	ps.AddAddresses(id, addrs)
 	return peerhost, nil
 }
