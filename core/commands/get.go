@@ -43,9 +43,12 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.BoolOption("compress", "C", "Compress the output with GZIP compression"),
 		cmds.IntOption("compression-level", "l", "The level of compression (an int between 1 and 9)"),
 	},
-	PreRun: getCheckOptions,
+	PreRun: func(req cmds.Request) error {
+		_, err := getCompressOptions(req)
+		return err
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		err := getCheckOptions(req)
+		cmplvl, err := getCompressOptions(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrClient)
 			return
@@ -57,18 +60,6 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		cmprs, _, _ := req.Option("compress").Bool()
-		cmplvl, cmplvlFound, _ := req.Option("compression-level").Int()
-		switch {
-		case !cmprs:
-			cmplvl = gzip.NoCompression
-		case cmprs && !cmplvlFound:
-			cmplvl = gzip.DefaultCompression
-		case cmprs && cmplvlFound && (cmplvl < 1 || cmplvl > 9):
-			res.SetError(ErrInvalidCompressionLevel, cmds.ErrClient)
-			return
-		}
-
 		reader, err := get(node, req.Arguments()[0], cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -77,6 +68,9 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		res.SetOutput(reader)
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
+		if res.Output() == nil {
+			return
+		}
 		outReader := res.Output().(io.Reader)
 		res.SetOutput(nil)
 
@@ -85,17 +79,17 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			outPath = req.Arguments()[0]
 		}
 
-		cmprs, _, _ := req.Option("compress").Bool()
-		cmplvl, _, _ := req.Option("compression-level").Int()
-		if !cmprs {
-			cmprs = cmplvl > 0
+		cmplvl, err := getCompressOptions(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrClient)
+			return
 		}
 
 		if archive, _, _ := req.Option("archive").Bool(); archive {
 			if !strings.HasSuffix(outPath, ".tar") {
 				outPath += ".tar"
 			}
-			if cmprs {
+			if cmplvl != gzip.NoCompression {
 				outPath += ".gz"
 			}
 			fmt.Printf("Saving archive to %s\n", outPath)
@@ -131,7 +125,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		// wrap the reader with the progress bar proxy reader
 		// if the output is compressed, also wrap it in a gzip.Reader
 		var reader io.Reader
-		if cmprs {
+		if cmplvl != gzip.NoCompression {
 			gzipReader, err := gzip.NewReader(outReader)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
@@ -147,19 +141,25 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		defer bar.Finish()
 
 		extractor := &tar.Extractor{outPath}
-		err := extractor.Extract(reader)
+		err = extractor.Extract(reader)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 		}
 	},
 }
 
-func getCheckOptions(req cmds.Request) error {
-	cmplvl, found, _ := req.Option("compression-level").Int()
-	if found && (cmplvl < 1 || cmplvl > 9) {
-		return ErrInvalidCompressionLevel
+func getCompressOptions(req cmds.Request) (int, error) {
+	cmprs, _, _ := req.Option("compress").Bool()
+	cmplvl, cmplvlFound, _ := req.Option("compression-level").Int()
+	switch {
+	case !cmprs:
+		return gzip.NoCompression, nil
+	case cmprs && !cmplvlFound:
+		return gzip.DefaultCompression, nil
+	case cmprs && cmplvlFound && (cmplvl < 1 || cmplvl > 9):
+		return gzip.NoCompression, ErrInvalidCompressionLevel
 	}
-	return nil
+	return gzip.NoCompression, nil
 }
 
 func get(node *core.IpfsNode, path string, compression int) (io.Reader, error) {
