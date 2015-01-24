@@ -18,15 +18,3 @@ func ResolveAddr(network, address string) (net.Addr, error) {
 		return net.ResolveUnixAddr(network, address)
 	}
 }
-
-// conn is a struct that stores a raddr to get around:
-//  * https://github.com/golang/go/issues/9661#issuecomment-71043147
-//  * https://gist.github.com/jbenet/5c191d698fe9ec58c49d
-type conn struct {
-	net.Conn
-	raddr net.Addr
-}
-
-func (c *conn) RemoteAddr() net.Addr {
-	return c.raddr
-}
