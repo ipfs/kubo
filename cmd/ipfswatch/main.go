@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
@@ -73,17 +72,14 @@ func run(ipfsPath, watchPath string) error {
 	defer node.Close()
 
 	if *http {
-		maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/5001")
-		if err != nil {
-			return err
-		}
+		addr := "/ip4/127.0.0.1/tcp/5001"
 		var opts = []corehttp.ServeOption{
 			corehttp.GatewayOption,
 			corehttp.WebUIOption,
 			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
 		}
 		proc.Go(func(p process.Process) {
-			if err := corehttp.ListenAndServe(node, maddr, opts...); err != nil {
+			if err := corehttp.ListenAndServe(node, addr, opts...); err != nil {
 				return
 			}
 		})
