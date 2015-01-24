@@ -79,6 +79,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 			i.emitError(err)
 			return
 		}
+		i.flush()
 
 		for _, link := range dagnode.Links {
 			childNode, err := link.GetNode(i.dag)
@@ -102,6 +103,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 		i.emitError(err)
 		return
 	}
+	i.flush()
 
 	reader, err := uio.NewDagReader(dagnode, i.dag)
 	if err != nil {
@@ -150,6 +152,11 @@ func (i *Reader) signal() {
 	i.signalChan <- struct{}{}
 }
 
+func (i *Reader) flush() {
+	i.signal()
+	<-i.signalChan
+}
+
 func (i *Reader) emitError(err error) {
 	i.err = err
 	i.signal()
@@ -157,10 +164,6 @@ func (i *Reader) emitError(err error) {
 
 func (i *Reader) close() {
 	i.closed = true
-	i.flush()
-}
-
-func (i *Reader) flush() {
 	defer i.signal()
 	err := i.writer.Close()
 	if err != nil {
@@ -185,9 +188,7 @@ func (i *Reader) syncCopy(reader io.Reader) error {
 			if err != nil {
 				return err
 			}
-			i.signal()
-			// wait for Read to finish reading
-			<-i.signalChan
+			i.flush()
 		}
 		if err == io.EOF {
 			break
