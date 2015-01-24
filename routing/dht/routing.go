@@ -7,6 +7,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
+	notif "github.com/jbenet/go-ipfs/notifications"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	"github.com/jbenet/go-ipfs/routing"
@@ -242,6 +243,10 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	_, err := query.Run(ctx, peers)
 	if err != nil {
 		log.Errorf("Query error: %s", err)
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:  notif.QueryError,
+			Extra: err.Error(),
+		})
 	}
 }
 
@@ -269,6 +274,10 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 
 	// setup the Query
 	query := dht.newQuery(u.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type: notif.SendingQuery,
+			ID:   p,
+		})
 
 		pmes, err := dht.findPeerSingle(ctx, p, id)
 		if err != nil {
@@ -287,6 +296,11 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 				}, nil
 			}
 		}
+
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:      notif.PeerResponse,
+			Responses: pointerizePeerInfos(clpeerInfos),
+		})
 
 		return &dhtQueryResult{closerPeers: clpeerInfos}, nil
 	})

@@ -16,6 +16,7 @@ const (
 	PeerResponse
 	FinalPeer
 	QueryError
+	Provider
 )
 
 type QueryEvent struct {

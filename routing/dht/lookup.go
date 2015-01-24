@@ -60,7 +60,6 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key) (<-chan peer
 			if kb.Closer(clp, dht.self, key) && peerset.TryAdd(clp) {
 				select {
 				case out <- clp:
-					log.Error("Sending out peer: %s", clp.Pretty())
 				case <-ctx.Done():
 					return nil, ctx.Err()
 				}
