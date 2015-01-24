@@ -82,8 +82,8 @@ func (p *process) Go(f ProcessFunc) Process {
 	child.WaitFor(waitFor) // prevent child from closing
 	go func() {
 		f(child)
-		waitFor.Close() // allow child to close.
-		child.Close()   // close to tear down.
+		waitFor.Close()            // allow child to close.
+		child.CloseAfterChildren() // close to tear down.
 	}()
 	return child
 }
