@@ -13,9 +13,9 @@ import (
 	config "github.com/jbenet/go-ipfs/repo/config"
 	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
 	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
-	dir "github.com/jbenet/go-ipfs/repo/fsrepo/dir"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
+	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 

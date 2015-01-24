@@ -11,7 +11,7 @@ import (
 	ldbopts "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
-	dir "github.com/jbenet/go-ipfs/repo/fsrepo/dir"
+	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
 	util "github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
