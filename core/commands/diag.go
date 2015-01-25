@@ -106,6 +106,7 @@ connected peers and latencies between them.
 		switch vis {
 		case visD3:
 			res.SetOutput(bytes.NewReader(diag.GetGraphJson(info)))
+			return
 		case visDot:
 			var buf bytes.Buffer
 			w := diag.DotWriter{W: &buf}
@@ -115,6 +116,7 @@ connected peers and latencies between them.
 				return
 			}
 			res.SetOutput(io.Reader(&buf))
+			return
 		}
 
 		output, err := stdDiagOutputMarshal(standardDiagOutput(info))
