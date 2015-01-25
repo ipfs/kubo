@@ -209,7 +209,16 @@ FindProviders will return a list of peers who are able to provide the value requ
 						fmt.Fprintf(buf, "* closest peer %s\n", obj.ID)
 					}
 				case notif.Provider:
-					fmt.Fprintf(buf, "%s\n", obj.ID.Pretty())
+					prov := obj.Responses[0]
+					if verbose {
+						fmt.Fprintf(buf, "provider: ")
+					}
+					fmt.Fprintf(buf, "%s\n", prov.ID.Pretty())
+					if verbose {
+						for _, a := range prov.Addrs {
+							fmt.Fprintf(buf, "\t%s\n", a)
+						}
+					}
 				case notif.PeerResponse:
 					if verbose {
 						fmt.Fprintf(buf, "* %s says use ", obj.ID)
