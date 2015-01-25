@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -162,7 +163,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 
 	t.Log("finished setup.")
 
-	dagr, err := uio.NewDagReader(root, dagservs[0])
+	dagr, err := uio.NewDagReader(context.TODO(), root, dagservs[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +196,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 			}
 			fmt.Println("Got first node back.")
 
-			read, err := uio.NewDagReader(first, dagservs[i])
+			read, err := uio.NewDagReader(context.TODO(), first, dagservs[i])
 			if err != nil {
 				t.Fatal(err)
 			}

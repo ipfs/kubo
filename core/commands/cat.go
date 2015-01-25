@@ -73,7 +73,7 @@ func cat(node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
 		}
 		length += nodeLength
 
-		read, err := uio.NewDagReader(dagnode, node.DAG)
+		read, err := uio.NewDagReader(node.Context(), dagnode, node.DAG)
 		if err != nil {
 			return nil, 0, err
 		}

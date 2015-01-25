@@ -2,7 +2,6 @@
 package merkledag
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -27,6 +26,7 @@ type DAGService interface {
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
 	GetDAG(context.Context, *Node) <-chan *Node
+	GetNodes(context.Context, []u.Key) <-chan *Node
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -155,11 +155,10 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 
 // FindLinks searches this nodes links for the given key,
 // returns the indexes of any links pointing to it
-func FindLinks(n *Node, k u.Key, start int) []int {
+func FindLinks(links []u.Key, k u.Key, start int) []int {
 	var out []int
-	keybytes := []byte(k)
-	for i, lnk := range n.Links[start:] {
-		if bytes.Equal([]byte(lnk.Hash), keybytes) {
+	for i, lnk_k := range links[start:] {
+		if k == lnk_k {
 			out = append(out, i+start)
 		}
 	}
@@ -170,40 +169,54 @@ func FindLinks(n *Node, k u.Key, start int) []int {
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
 func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
+	var keys []u.Key
+	for _, lnk := range root.Links {
+		keys = append(keys, u.Key(lnk.Hash))
+	}
+
+	return ds.GetNodes(ctx, keys)
+}
+
+func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) <-chan *Node {
 	sig := make(chan *Node)
 	go func() {
 		defer close(sig)
-
-		var keys []u.Key
-		for _, lnk := range root.Links {
-			keys = append(keys, u.Key(lnk.Hash))
-		}
 		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
-		nodes := make([]*Node, len(root.Links))
+		nodes := make([]*Node, len(keys))
 		next := 0
-		for blk := range blkchan {
-			nd, err := Decoded(blk.Data)
-			if err != nil {
-				// NB: can occur in normal situations, with improperly formatted
-				// input data
-				log.Error("Got back bad block!")
-				break
-			}
-			is := FindLinks(root, blk.Key(), next)
-			for _, i := range is {
-				nodes[i] = nd
-			}
+		for {
+			select {
+			case blk, ok := <-blkchan:
+				if !ok {
+					if next < len(nodes) {
+						log.Errorf("Did not receive correct number of nodes!")
+					}
+					return
+				}
+				nd, err := Decoded(blk.Data)
+				if err != nil {
+					// NB: can occur in normal situations, with improperly formatted
+					// input data
+					log.Error("Got back bad block!")
+					break
+				}
+				is := FindLinks(keys, blk.Key(), next)
+				for _, i := range is {
+					nodes[i] = nd
+				}
 
-			for ; next < len(nodes) && nodes[next] != nil; next++ {
-				sig <- nodes[next]
+				for ; next < len(nodes) && nodes[next] != nil; next++ {
+					select {
+					case sig <- nodes[next]:
+					case <-ctx.Done():
+						return
+					}
+				}
+			case <-ctx.Done():
+				return
 			}
-		}
-		if next < len(nodes) {
-			// TODO: bubble errors back up.
-			log.Errorf("Did not receive correct number of nodes!")
 		}
 	}()
-
 	return sig
 }

@@ -3,6 +3,7 @@ package http
 import (
 	"io"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
@@ -36,5 +37,5 @@ func (i *ipfsHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 }
 
 func (i *ipfsHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
-	return uio.NewDagReader(nd, i.node.DAG)
+	return uio.NewDagReader(context.TODO(), nd, i.node.DAG)
 }

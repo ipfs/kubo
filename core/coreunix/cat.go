@@ -12,5 +12,5 @@ func Cat(n *core.IpfsNode, path string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return uio.NewDagReader(dagNode, n.DAG)
+	return uio.NewDagReader(n.ContextGroup.Context(), dagNode, n.DAG)
 }

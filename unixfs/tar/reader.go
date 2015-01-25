@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"io"
 	gopath "path"
 	"strings"
@@ -114,7 +115,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 	}
 	i.flush()
 
-	reader, err := uio.NewDagReader(dagnode, i.dag)
+	reader, err := uio.NewDagReader(context.TODO(), dagnode, i.dag)
 	if err != nil {
 		i.emitError(err)
 		return
