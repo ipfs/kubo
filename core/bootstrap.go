@@ -92,7 +92,7 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 
 		if err := bootstrapRound(ctx, n.PeerHost, thedht, n.Peerstore, cfg); err != nil {
 			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
-			log.Errorf("%s bootstrap error: %s", n.Identity, err)
+			log.Debugf("%s bootstrap error: %s", n.Identity, err)
 		}
 	}
 
@@ -187,7 +187,7 @@ func bootstrapConnect(ctx context.Context,
 			err := route.Connect(ctx, p.ID)
 			if err != nil {
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
-				log.Errorf("failed to bootstrap with %v: %s", p.ID, err)
+				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
 				return
 			}

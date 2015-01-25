@@ -34,7 +34,7 @@ test_expect_success "ipfs peer id looks good" '
 '
 
 test_expect_success "ipfs init output looks good" '
-	STARTHASH="QmYpv2VEsxzTTXRYX3PjDg961cnJE3kY1YDXLycHGQ3zZB" &&
+	STARTHASH="QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ" &&
 	echo "initializing ipfs node at $IPFS_PATH" >expected &&
 	echo "generating 4096-bit RSA keypair...done" >>expected &&
 	echo "peer identity: $PEERID" >>expected &&
