@@ -193,6 +193,10 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 
 	// setup the Query
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type: notif.SendingQuery,
+			ID:   p,
+		})
 		pmes, err := dht.findProvidersSingle(ctx, p, key)
 		if err != nil {
 			return nil, err
@@ -224,6 +228,12 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 		closer := pmes.GetCloserPeers()
 		clpeers := pb.PBPeersToPeerInfos(closer)
 		log.Debugf("got closer peers: %d %s", len(clpeers), clpeers)
+
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:      notif.PeerResponse,
+			ID:        p,
+			Responses: pointerizePeerInfos(clpeers),
+		})
 		return &dhtQueryResult{closerPeers: clpeers}, nil
 	})
 
