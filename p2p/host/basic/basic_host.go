@@ -19,12 +19,24 @@ import (
 
 var log = eventlog.Logger("p2p/host/basic")
 
+// Option is a type used to pass in options to the host.
 type Option int
 
 const (
+	// NATPortMap makes the host attempt to open port-mapping in NAT devices
+	// for all its listeners. Pass in this option in the constructor to
+	// asynchronously a) find a gateway, b) open port mappings, c) republish
+	// port mappings periodically. The NATed addresses are included in the
+	// Host's Addrs() list.
 	NATPortMap Option = iota
 )
 
+// BasicHost is the basic implementation of the host.Host interface. This
+// particular host implementation:
+//  * uses a protocol muxer to mux per-protocol streams
+//  * uses an identity service to send + receive node information
+//  * uses a relay service to allow hosts to relay conns for each other
+//  * uses a nat service to establish NAT port mappings
 type BasicHost struct {
 	network inet.Network
 	mux     *protocol.Mux
