@@ -141,17 +141,13 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c inet.Conn) {
 	// "public" address, at least in relation to us.
 	mes.ObservedAddr = c.RemoteMultiaddr().Bytes()
 
-	// set listen addrs
-	laddrs, err := ids.Host.Network().InterfaceListenAddresses()
-	if err != nil {
-		log.Error(err)
-	} else {
-		mes.ListenAddrs = make([][]byte, len(laddrs))
-		for i, addr := range laddrs {
-			mes.ListenAddrs[i] = addr.Bytes()
-		}
-		log.Debugf("%s sent listen addrs to %s: %s", c.LocalPeer(), c.RemotePeer(), laddrs)
+	// set listen addrs, get our latest addrs from Host.
+	laddrs := ids.Host.Addrs()
+	mes.ListenAddrs = make([][]byte, len(laddrs))
+	for i, addr := range laddrs {
+		mes.ListenAddrs[i] = addr.Bytes()
 	}
+	log.Debugf("%s sent listen addrs to %s: %s", c.LocalPeer(), c.RemotePeer(), laddrs)
 
 	// set protocol versions
 	s := IpfsVersion.String()
