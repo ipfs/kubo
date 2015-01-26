@@ -3,12 +3,18 @@ package peer
 import (
 	"errors"
 	"sync"
+	"time"
 
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+)
+
+const (
+	// AddressTTL is the expiration time of addresses.
+	AddressTTL = time.Hour
 )
 
 // Peerstore provides a threadsafe store of Peer related
@@ -44,15 +50,28 @@ type AddressBook interface {
 	SetAddresses(ID, []ma.Multiaddr) // Sets given addrs for ID (clears previously stored)
 }
 
-type addressMap map[string]ma.Multiaddr
+type expiringAddr struct {
+	Addr ma.Multiaddr
+	TTL  time.Time
+}
+
+func (e *expiringAddr) Expired() bool {
+	return time.Now().After(e.TTL)
+}
+
+type addressMap map[string]expiringAddr
 
 type addressbook struct {
 	addrs map[ID]addressMap
+	ttl   time.Duration // initial ttl
 	sync.RWMutex
 }
 
 func newAddressbook() *addressbook {
-	return &addressbook{addrs: map[ID]addressMap{}}
+	return &addressbook{
+		addrs: map[ID]addressMap{},
+		ttl:   AddressTTL,
+	}
 }
 
 func (ab *addressbook) Peers() []ID {
@@ -74,11 +93,21 @@ func (ab *addressbook) Addresses(p ID) []ma.Multiaddr {
 		return nil
 	}
 
-	maddrs2 := make([]ma.Multiaddr, 0, len(maddrs))
-	for _, m := range maddrs {
-		maddrs2 = append(maddrs2, m)
+	good := make([]ma.Multiaddr, 0, len(maddrs))
+	var expired []string
+	for s, m := range maddrs {
+		if m.Expired() {
+			expired = append(expired, s)
+		} else {
+			good = append(good, m.Addr)
+		}
 	}
-	return maddrs2
+
+	// clean up the expired ones.
+	for _, s := range expired {
+		delete(ab.addrs[p], s)
+	}
+	return good
 }
 
 func (ab *addressbook) AddAddress(p ID, m ma.Multiaddr) {
@@ -94,8 +123,14 @@ func (ab *addressbook) AddAddresses(p ID, ms []ma.Multiaddr) {
 		amap = addressMap{}
 		ab.addrs[p] = amap
 	}
+
+	ttl := time.Now().Add(ab.ttl)
 	for _, m := range ms {
-		amap[m.String()] = m
+		// re-set all of them for new ttl.
+		amap[m.String()] = expiringAddr{
+			Addr: m,
+			TTL:  ttl,
+		}
 	}
 }
 
@@ -104,8 +139,9 @@ func (ab *addressbook) SetAddresses(p ID, ms []ma.Multiaddr) {
 	defer ab.Unlock()
 
 	amap := addressMap{}
+	ttl := time.Now().Add(ab.ttl)
 	for _, m := range ms {
-		amap[m.String()] = m
+		amap[m.String()] = expiringAddr{Addr: m, TTL: ttl}
 	}
 	ab.addrs[p] = amap // clear what was there before
 }
