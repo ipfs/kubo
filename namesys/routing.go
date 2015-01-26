@@ -38,9 +38,8 @@ func (r *routingResolver) CanResolve(name string) bool {
 
 // Resolve implements Resolver. Uses the IPFS routing system to resolve SFS-like
 // names.
-func (r *routingResolver) Resolve(name string) (string, error) {
+func (r *routingResolver) Resolve(ctx context.Context, name string) (u.Key, error) {
 	log.Debugf("RoutingResolve: '%s'", name)
-	ctx := context.TODO()
 	hash, err := mh.FromB58String(name)
 	if err != nil {
 		log.Warning("RoutingResolve: bad input hash: [%s]\n", name)
@@ -88,5 +87,5 @@ func (r *routingResolver) Resolve(name string) (string, error) {
 	}
 
 	// ok sig checks out. this is a valid name.
-	return string(entry.GetValue()), nil
+	return u.Key(entry.GetValue()), nil
 }

@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	nsys "github.com/jbenet/go-ipfs/namesys"
@@ -54,11 +56,15 @@ Publish a <ref> to another public key:
 			return
 		}
 
-		args := req.Arguments()
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+		if !n.OnlineMode() {
+			err := n.SetupOfflineRouting()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
+
+		args := req.Arguments()
 
 		if n.Identity == "" {
 			res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
@@ -98,7 +104,8 @@ Publish a <ref> to another public key:
 
 func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error) {
 	pub := nsys.NewRoutingPublisher(n.Routing)
-	err := pub.Publish(k, ref)
+	val := b58.Decode(ref)
+	err := pub.Publish(n.Context(), k, u.Key(val))
 	if err != nil {
 		return nil, err
 	}

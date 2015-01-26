@@ -1,8 +1,10 @@
 package namesys
 
 import (
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	routing "github.com/jbenet/go-ipfs/routing"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // ipnsNameSystem implements IPNS naming.
@@ -32,10 +34,10 @@ func NewNameSystem(r routing.IpfsRouting) NameSystem {
 }
 
 // Resolve implements Resolver
-func (ns *ipns) Resolve(name string) (string, error) {
+func (ns *ipns) Resolve(ctx context.Context, name string) (u.Key, error) {
 	for _, r := range ns.resolvers {
 		if r.CanResolve(name) {
-			return r.Resolve(name)
+			return r.Resolve(ctx, name)
 		}
 	}
 	return "", ErrResolveFailed
@@ -52,6 +54,6 @@ func (ns *ipns) CanResolve(name string) bool {
 }
 
 // Publish implements Publisher
-func (ns *ipns) Publish(name ci.PrivKey, value string) error {
-	return ns.publisher.Publish(name, value)
+func (ns *ipns) Publish(ctx context.Context, name ci.PrivKey, value u.Key) error {
+	return ns.publisher.Publish(ctx, name, value)
 }

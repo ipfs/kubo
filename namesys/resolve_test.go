@@ -1,6 +1,7 @@
 package namesys
 
 import (
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"testing"
 
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
@@ -19,13 +20,13 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = publisher.Publish(privk, "Hello")
+	err = publisher.Publish(context.Background(), privk, "Hello")
 	if err == nil {
 		t.Fatal("should have errored out when publishing a non-multihash val")
 	}
 
-	h := u.Key(u.Hash([]byte("Hello"))).Pretty()
-	err = publisher.Publish(privk, h)
+	h := u.Key(u.Hash([]byte("Hello")))
+	err = publisher.Publish(context.Background(), privk, h)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +37,7 @@ func TestRoutingResolve(t *testing.T) {
 	}
 
 	pkhash := u.Hash(pubkb)
-	res, err := resolver.Resolve(u.Key(pkhash).Pretty())
+	res, err := resolver.Resolve(context.Background(), u.Key(pkhash).Pretty())
 	if err != nil {
 		t.Fatal(err)
 	}

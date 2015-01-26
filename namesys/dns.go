@@ -3,9 +3,12 @@ package namesys
 import (
 	"net"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	isd "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-is-domain"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // DNSResolver implements a Resolver on DNS domains
@@ -22,7 +25,7 @@ func (r *DNSResolver) CanResolve(name string) bool {
 // Resolve implements Resolver
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) Resolve(name string) (string, error) {
+func (r *DNSResolver) Resolve(ctx context.Context, name string) (u.Key, error) {
 	log.Info("DNSResolver resolving %v", name)
 	txt, err := net.LookupTXT(name)
 	if err != nil {
@@ -39,7 +42,7 @@ func (r *DNSResolver) Resolve(name string) (string, error) {
 		if err != nil {
 			continue
 		}
-		return t, nil
+		return u.Key(chk), nil
 	}
 
 	return "", ErrResolveFailed

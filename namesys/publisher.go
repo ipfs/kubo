@@ -37,17 +37,16 @@ func NewRoutingPublisher(route routing.IpfsRouting) Publisher {
 
 // Publish implements Publisher. Accepts a keypair and a value,
 // and publishes it out to the routing system
-func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
+func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) error {
 	log.Debugf("namesys: Publish %s", value)
 
 	// validate `value` is a ref (multihash)
-	_, err := mh.FromB58String(value)
+	_, err := mh.FromB58String(value.Pretty())
 	if err != nil {
 		log.Errorf("hash cast failed: %s", value)
 		return fmt.Errorf("publish value must be str multihash. %v", err)
 	}
 
-	ctx := context.TODO()
 	data, err := createRoutingEntryData(k, value)
 	if err != nil {
 		log.Error("entry creation failed.")
@@ -65,7 +64,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 
 	log.Debugf("Storing pubkey at: %s", namekey)
 	// Store associated public key
-	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*4))
+	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
 	err = p.routing.PutValue(timectx, namekey, pkbytes)
 	if err != nil {
 		return err
@@ -75,7 +74,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
 	// Store ipns entry at "/ipns/"+b58(h(pubkey))
-	timectx, _ = context.WithDeadline(ctx, time.Now().Add(time.Second*4))
+	timectx, _ = context.WithDeadline(ctx, time.Now().Add(time.Second*10))
 	err = p.routing.PutValue(timectx, ipnskey, data)
 	if err != nil {
 		return err
@@ -84,7 +83,7 @@ func (p *ipnsPublisher) Publish(k ci.PrivKey, value string) error {
 	return nil
 }
 
-func createRoutingEntryData(pk ci.PrivKey, val string) ([]byte, error) {
+func createRoutingEntryData(pk ci.PrivKey, val u.Key) ([]byte, error) {
 	entry := new(pb.IpnsEntry)
 
 	entry.Value = []byte(val)

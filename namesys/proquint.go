@@ -3,7 +3,9 @@ package namesys
 import (
 	"errors"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proquint "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/bren2010/proquint"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 type ProquintResolver struct{}
@@ -15,10 +17,10 @@ func (r *ProquintResolver) CanResolve(name string) bool {
 }
 
 // Resolve implements Resolver. Decodes the proquint string.
-func (r *ProquintResolver) Resolve(name string) (string, error) {
+func (r *ProquintResolver) Resolve(ctx context.Context, name string) (u.Key, error) {
 	ok := r.CanResolve(name)
 	if !ok {
 		return "", errors.New("not a valid proquint string")
 	}
-	return string(proquint.Decode(name)), nil
+	return u.Key(proquint.Decode(name)), nil
 }
