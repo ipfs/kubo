@@ -38,7 +38,7 @@ var (
 // point to an empty directory.
 func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	emptyDir := &mdag.Node{Data: ft.FolderPBData()}
-	k, err := n.DAG.Add(emptyDir)
+	nodek, err := n.DAG.Add(emptyDir)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	}
 
 	pub := nsys.NewRoutingPublisher(n.Routing)
-	err = pub.Publish(key, k.B58String())
+	err = pub.Publish(n.Context(), key, nodek)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 
 		go nd.repub.Run()
 
-		pointsTo, err := n.Namesys.Resolve(name)
+		pointsTo, err := n.Namesys.Resolve(n.Context(), name)
 		if err != nil {
 			log.Warning("Could not resolve value for local ipns entry, providing empty dir")
 			nd.Nd = &mdag.Node{Data: ft.FolderPBData()}
@@ -124,12 +124,12 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 			continue
 		}
 
-		if !u.IsValidHash(pointsTo) {
+		if !u.IsValidHash(pointsTo.B58String()) {
 			log.Criticalf("Got back bad data from namesys resolve! [%s]", pointsTo)
 			return nil, nil
 		}
 
-		node, err := n.Resolver.ResolvePath(pointsTo)
+		node, err := n.Resolver.ResolvePath(pointsTo.B58String())
 		if err != nil {
 			log.Warning("Failed to resolve value from ipns entry in ipfs")
 			continue
@@ -186,13 +186,13 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	}
 
 	log.Debugf("ipns: Falling back to resolution for [%s].", name)
-	resolved, err := s.Ipfs.Namesys.Resolve(name)
+	resolved, err := s.Ipfs.Namesys.Resolve(s.Ipfs.Context(), name)
 	if err != nil {
 		log.Warningf("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
 	}
 
-	return &Link{s.IpfsRoot + "/" + resolved}, nil
+	return &Link{s.IpfsRoot + "/" + resolved.B58String()}, nil
 }
 
 // ReadDir reads a particular directory. Disallowed for root.
@@ -461,7 +461,7 @@ func (n *Node) republishRoot() error {
 	}
 	log.Debug("Publishing changes!")
 
-	err = n.Ipfs.Namesys.Publish(root.key, ndkey.Pretty())
+	err = n.Ipfs.Namesys.Publish(n.Ipfs.Context(), root.key, ndkey)
 	if err != nil {
 		log.Errorf("ipns: Publish Failed: %s", err)
 		return err

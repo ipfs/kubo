@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 var resolveCmd = &cmds.Command{
@@ -48,12 +49,15 @@ Resolve te value of another name:
 			return
 		}
 
-		var name string
-
-		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
-			return
+		if !n.OnlineMode() {
+			err := n.SetupOfflineRouting()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
+
+		var name string
 
 		if len(req.Arguments()) == 0 {
 			if n.Identity == "" {
@@ -66,7 +70,7 @@ Resolve te value of another name:
 			name = req.Arguments()[0]
 		}
 
-		output, err := n.Namesys.Resolve(name)
+		output, err := n.Namesys.Resolve(n.Context(), name)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -78,8 +82,8 @@ Resolve te value of another name:
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output := res.Output().(string)
-			return strings.NewReader(output), nil
+			output := res.Output().(u.Key)
+			return strings.NewReader(output.B58String()), nil
 		},
 	},
 }

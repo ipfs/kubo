@@ -3,6 +3,7 @@ package ipns
 import (
 	"bytes"
 	"crypto/rand"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -252,7 +253,7 @@ func TestFastRepublish(t *testing.T) {
 	writeFileData(t, dataA, fname) // random
 	<-time.After(shortRepublishTimeout * 2)
 	log.Debug("resolving first hash")
-	resolvedHash, err := node.Namesys.Resolve(pubkeyHash)
+	resolvedHash, err := node.Namesys.Resolve(context.Background(), pubkeyHash)
 	if err != nil {
 		t.Fatal("resolve err:", pubkeyHash, err)
 	}
@@ -271,7 +272,7 @@ func TestFastRepublish(t *testing.T) {
 	}(shortRepublishTimeout)
 
 	hasPublished := func() bool {
-		res, err := node.Namesys.Resolve(pubkeyHash)
+		res, err := node.Namesys.Resolve(context.Background(), pubkeyHash)
 		if err != nil {
 			t.Fatalf("resolve err: %v", err)
 		}

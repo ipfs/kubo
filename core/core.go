@@ -367,6 +367,9 @@ func (n *IpfsNode) SetupOfflineRouting() error {
 	}
 
 	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
+
+	n.Namesys = namesys.NewNameSystem(n.Routing)
+
 	return nil
 }
 

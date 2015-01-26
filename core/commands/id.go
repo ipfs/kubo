@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -44,6 +45,9 @@ if no peer is specified, prints out local peers info.
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("peerid", false, false, "peer.ID of node to look up").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("f", "format", "optional output format"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.Context().GetNode()
@@ -101,11 +105,25 @@ if no peer is specified, prints out local peers info.
 				return nil, u.ErrCast()
 			}
 
-			marshaled, err := json.MarshalIndent(val, "", "\t")
+			format, found, err := res.Request().Option("format").String()
 			if err != nil {
 				return nil, err
 			}
-			return bytes.NewReader(marshaled), nil
+			if found {
+				output := format
+				output = strings.Replace(output, "<id>", val.ID, -1)
+				output = strings.Replace(output, "<aver>", val.AgentVersion, -1)
+				output = strings.Replace(output, "<pver>", val.ProtocolVersion, -1)
+				output = strings.Replace(output, "<pubkey>", val.PublicKey, -1)
+				return strings.NewReader(output), nil
+			} else {
+
+				marshaled, err := json.MarshalIndent(val, "", "\t")
+				if err != nil {
+					return nil, err
+				}
+				return bytes.NewReader(marshaled), nil
+			}
 		},
 	},
 	Type: IdOutput{},
