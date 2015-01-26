@@ -176,8 +176,9 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 		lmaddrs = append(lmaddrs, maddr)
 	}
 
-	// update our peerstore with the addresses.
-	ids.Host.Peerstore().AddAddresses(p, lmaddrs)
+	// update our peerstore with the addresses. here, we SET the addresses, clearing old ones.
+	// We are receiving from the peer itself. this is current address ground truth.
+	ids.Host.Peerstore().SetAddresses(p, lmaddrs)
 	log.Debugf("%s received listen addrs for %s: %s", c.LocalPeer(), c.RemotePeer(), lmaddrs)
 
 	// get protocol versions
