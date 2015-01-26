@@ -14,7 +14,7 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-[Install Go 1.3+](http://golang.org/doc/install). Then simply:
+[Install Go 1.4+](http://golang.org/doc/install). Then simply:
 
 ```
 go get -u github.com/jbenet/go-ipfs/cmd/ipfs
