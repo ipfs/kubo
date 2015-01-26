@@ -263,6 +263,50 @@ func TestSeekToBegin(t *testing.T) {
 	}
 }
 
+func TestSeekToAlmostBegin(t *testing.T) {
+	nbytes := int64(10 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := io.CopyN(ioutil.Discard, rs, 1024*4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 4096 {
+		t.Fatal("Copy didnt copy enough bytes")
+	}
+
+	seeked, err := rs.Seek(1, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seeked != 1 {
+		t.Fatal("Failed to seek to almost beginning")
+	}
+
+	out, err := ioutil.ReadAll(rs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should[1:])
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSeekingConsistency(t *testing.T) {
 	nbytes := int64(128 * 1024)
 	should := make([]byte, nbytes)
