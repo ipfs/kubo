@@ -38,9 +38,10 @@ type Peerstore interface {
 
 // AddressBook tracks the addresses of Peers
 type AddressBook interface {
-	Addresses(ID) []ma.Multiaddr
-	AddAddress(ID, ma.Multiaddr)
-	AddAddresses(ID, []ma.Multiaddr)
+	Addresses(ID) []ma.Multiaddr     // returns addresses for ID
+	AddAddress(ID, ma.Multiaddr)     // Adds given addr for ID
+	AddAddresses(ID, []ma.Multiaddr) // Adds given addrs for ID
+	SetAddresses(ID, []ma.Multiaddr) // Sets given addrs for ID (clears previously stored)
 }
 
 type addressMap map[string]ma.Multiaddr
@@ -81,27 +82,32 @@ func (ab *addressbook) Addresses(p ID) []ma.Multiaddr {
 }
 
 func (ab *addressbook) AddAddress(p ID, m ma.Multiaddr) {
-	ab.Lock()
-	defer ab.Unlock()
-
-	_, found := ab.addrs[p]
-	if !found {
-		ab.addrs[p] = addressMap{}
-	}
-	ab.addrs[p][m.String()] = m
+	ab.AddAddresses(p, []ma.Multiaddr{m})
 }
 
 func (ab *addressbook) AddAddresses(p ID, ms []ma.Multiaddr) {
 	ab.Lock()
 	defer ab.Unlock()
 
-	for _, m := range ms {
-		_, found := ab.addrs[p]
-		if !found {
-			ab.addrs[p] = addressMap{}
-		}
-		ab.addrs[p][m.String()] = m
+	amap, found := ab.addrs[p]
+	if !found {
+		amap = addressMap{}
+		ab.addrs[p] = amap
 	}
+	for _, m := range ms {
+		amap[m.String()] = m
+	}
+}
+
+func (ab *addressbook) SetAddresses(p ID, ms []ma.Multiaddr) {
+	ab.Lock()
+	defer ab.Unlock()
+
+	amap := addressMap{}
+	for _, m := range ms {
+		amap[m.String()] = m
+	}
+	ab.addrs[p] = amap // clear what was there before
 }
 
 // KeyBook tracks the Public keys of Peers.
