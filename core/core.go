@@ -432,10 +432,14 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 	}
 	log.Infof("Swarm listening at: %s", addrs)
 
-	mapAddrs := inat.MapAddrs(filteredAddrs)
-	if len(mapAddrs) > 0 {
-		log.Infof("NAT mapping addrs: %s", mapAddrs)
-		addrs = append(addrs, mapAddrs...)
+	nat := inat.DiscoverGateway()
+	if nat != nil {
+		nat.PortMapAddrs(filteredAddrs)
+		mapAddrs := nat.ExternalAddrs()
+		if len(mapAddrs) > 0 {
+			log.Infof("NAT mapping addrs: %s", mapAddrs)
+			addrs = append(addrs, mapAddrs...)
+		}
 	}
 
 	ps.AddAddresses(id, addrs)
