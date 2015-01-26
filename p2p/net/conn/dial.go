@@ -152,7 +152,7 @@ func reuseErrShouldRetry(err error) bool {
 
 	// if it's a network timeout error, it's a legitimate failure.
 	if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-		return true
+		return false
 	}
 
 	errno, ok := err.(syscall.Errno)
