@@ -29,9 +29,9 @@ var log = eventlog.Logger("nat")
 // Port mappings are renewed every (MappingDuration / 3)
 const MappingDuration = time.Second * 60
 
-// DiscoverGateway looks for a NAT device in the network and
+// DiscoverNAT looks for a NAT device in the network and
 // returns an object that can manage port mappings.
-func DiscoverGateway() *NAT {
+func DiscoverNAT() *NAT {
 	nat, err := nat.DiscoverGateway()
 	if err != nil {
 		log.Debug("DiscoverGateway error:", err)
@@ -70,6 +70,12 @@ func newNAT(realNAT nat.NAT) *NAT {
 // Close shuts down all port mappings. NAT can no longer be used.
 func (nat *NAT) Close() error {
 	return nat.proc.Close()
+}
+
+// Process returns the nat's life-cycle manager, for making it listen
+// to close signals.
+func (nat *NAT) Process() goprocess.Process {
+	return nat.proc
 }
 
 // Notifier is an object that assists NAT in notifying listeners.

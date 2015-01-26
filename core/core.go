@@ -18,7 +18,6 @@ import (
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	p2phost "github.com/jbenet/go-ipfs/p2p/host"
 	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
-	inat "github.com/jbenet/go-ipfs/p2p/nat"
 	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -422,7 +421,7 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 		return nil, debugerror.Wrap(err)
 	}
 
-	peerhost := p2pbhost.New(network)
+	peerhost := p2pbhost.New(network, p2pbhost.NATPortMap)
 	// explicitly set these as our listen addrs.
 	// (why not do it inside inet.NewNetwork? because this way we can
 	// listen on addresses without necessarily advertising those publicly.)
@@ -431,16 +430,6 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 		return nil, debugerror.Wrap(err)
 	}
 	log.Infof("Swarm listening at: %s", addrs)
-
-	nat := inat.DiscoverGateway()
-	if nat != nil {
-		nat.PortMapAddrs(filteredAddrs)
-		mapAddrs := nat.ExternalAddrs()
-		if len(mapAddrs) > 0 {
-			log.Infof("NAT mapping addrs: %s", mapAddrs)
-			addrs = append(addrs, mapAddrs...)
-		}
-	}
 
 	ps.AddAddresses(id, addrs)
 	return peerhost, nil
