@@ -20,6 +20,11 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const (
+	IpfsPathPrefix = "/ipfs/"
+	IpnsPathPrefix = "/ipns/"
+)
+
 type gateway interface {
 	ResolvePath(string) (*dag.Node, error)
 	NewDagFromReader(io.Reader) (*dag.Node, error)
@@ -68,8 +73,8 @@ func (i *gatewayHandler) loadTemplate() error {
 func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
 	p = path.Clean(p)
 
-	if strings.HasPrefix(p, "/ipns/") {
-		elements := strings.Split(p[6:], "/")
+	if strings.HasPrefix(p, IpnsPathPrefix) {
+		elements := strings.Split(p[len(IpnsPathPrefix):], "/")
 		hash := elements[0]
 		k, err := i.node.Namesys.Resolve(ctx, hash)
 		if err != nil {
@@ -79,8 +84,8 @@ func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, 
 		elements[0] = k.Pretty()
 		p = path.Join(elements...)
 	}
-	if !strings.HasPrefix(p, "/ipfs/") {
-		p = path.Join("/ipfs/", p)
+	if !strings.HasPrefix(p, IpfsPathPrefix) {
+		p = path.Join(IpfsPathPrefix, p)
 	}
 
 	node, err := i.node.Resolver.ResolvePath(p)
