@@ -56,6 +56,26 @@ var diagNetCmd = &cmds.Command{
 Sends out a message to each node in the network recursively
 requesting a listing of data about them including number of
 connected peers and latencies between them.
+
+The given timeout will be stepped down for each peer the
+request is sent to, to ensure that all peers return in an
+order that will result in the most responses to the initiator.
+The default timeout is 20 seconds.
+
+The 'vis' option may be used to change the output format.
+Currently, two alternate formats are supported, d3, and json.
+The d3 format will output a json object ready to be consumed by
+the chord network viewer, available at the following hash:
+
+    QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38
+
+To view your diag output, 'ipfs add' the d3 vis output, and
+open the following link:
+
+	http://gateway.ipfs.io/ipfs/QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38/chord#<your hash>
+
+The json option for vis output can also be used for other
+programs that want to consume diagnostic output.
 `,
 	},
 
