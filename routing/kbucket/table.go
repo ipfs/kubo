@@ -135,7 +135,7 @@ func (rt *RoutingTable) NearestPeer(id ID) peer.ID {
 		return peers[0]
 	}
 
-	log.Errorf("NearestPeer: Returning nil, table size = %d", rt.Size())
+	log.Debugf("NearestPeer: Returning nil, table size = %d", rt.Size())
 	return ""
 }
 

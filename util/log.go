@@ -56,7 +56,7 @@ func SetupLogging() {
 		var err error
 		lvl, err = logging.LogLevel(logenv)
 		if err != nil {
-			log.Errorf("logging.LogLevel() Error: %q", err)
+			log.Debugf("logging.LogLevel() Error: %q", err)
 			lvl = logging.ERROR // reset to ERROR, could be undefined now(?)
 		}
 	}

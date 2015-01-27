@@ -147,7 +147,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
 		n := &mdag.Node{Data: ft.WrapData(sb)}
 		_, err := dm.dagserv.Add(n)
 		if err != nil {
-			log.Errorf("Failed adding node to DAG service: %s", err)
+			log.Warningf("Failed adding node to DAG service: %s", err)
 			return 0, err
 		}
 		lnk, err := mdag.MakeLink(n)

@@ -45,7 +45,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 
 	rec, err := record.MakePutRecord(sk, key, value)
 	if err != nil {
-		log.Error("Creation of record failed!")
+		log.Debug("Creation of record failed!")
 		return err
 	}
 
@@ -61,7 +61,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 			defer wg.Done()
 			err := dht.putValueToPeer(ctx, p, key, rec)
 			if err != nil {
-				log.Errorf("failed putting value to peer: %s", err)
+				log.Debugf("failed putting value to peer: %s", err)
 			}
 		}(p)
 	}
@@ -142,7 +142,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 			log.Debugf("putProvider(%s, %s)", key, p)
 			err := dht.putProvider(ctx, p, string(key))
 			if err != nil {
-				log.Error(err)
+				log.Debug(err)
 			}
 		}(p)
 	}
@@ -214,7 +214,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 				select {
 				case peerOut <- prov:
 				case <-ctx.Done():
-					log.Error("Context timed out sending more providers")
+					log.Debug("Context timed out sending more providers")
 					return nil, ctx.Err()
 				}
 			}
@@ -240,7 +240,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, co
 	peers := dht.routingTable.ListPeers()
 	_, err := query.Run(ctx, peers)
 	if err != nil {
-		log.Errorf("Query error: %s", err)
+		log.Debugf("Query error: %s", err)
 		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 			Type:  notif.QueryError,
 			Extra: err.Error(),
@@ -265,7 +265,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 	// Sanity...
 	for _, p := range peers {
 		if p == id {
-			log.Error("Found target peer in list of closest peers...")
+			log.Debug("Found target peer in list of closest peers...")
 			return dht.peerstore.PeerInfo(p), nil
 		}
 	}
@@ -370,7 +370,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 	// this does no error checking
 	go func() {
 		if _, err := query.Run(ctx, peers); err != nil {
-			log.Error(err)
+			log.Debug(err)
 		}
 
 		// close the peerchan channel when done.

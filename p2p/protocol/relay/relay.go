@@ -46,7 +46,7 @@ func NewRelayService(h host.Host, sh inet.StreamHandler) *RelayService {
 // requestHandler is the function called by clients
 func (rs *RelayService) requestHandler(s inet.Stream) {
 	if err := rs.handleStream(s); err != nil {
-		log.Error("RelayService error:", err)
+		log.Debugf("RelayService error:", err)
 	}
 }
 
