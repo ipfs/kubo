@@ -171,7 +171,7 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 
 		// left represents the number of bytes remaining to seek to (from beginning)
 		left := offset
-		if int64(len(pb.Data)) > offset {
+		if int64(len(pb.Data)) >= offset {
 			// Close current buf to close potential child dagreader
 			dr.buf.Close()
 			dr.buf = NewRSNCFromBytes(pb.GetData()[offset:])
