@@ -49,6 +49,7 @@ the daemon.
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
 
+	fmt.Println("Initializing daemon...")
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _, err := req.Option(initOptionKwd).Bool()

@@ -43,7 +43,7 @@ test_expect_success "'ipfs pin rm' succeeds" '
 
 test_expect_success "file no longer pinned" '
 	# we expect the welcome file to show up here
-	echo QmYpv2VEsxzTTXRYX3PjDg961cnJE3kY1YDXLycHGQ3zZB > expected2
+	echo QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ > expected2
 	ipfs pin ls -type=recursive > actual2
 	test_cmp expected2 actual2
 '
@@ -84,8 +84,8 @@ test_expect_success "'ipfs repo gc' removes file" '
 '
 
 test_expect_success "'ipfs refs local' no longer shows file" '
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > expected8
-	echo QmYpv2VEsxzTTXRYX3PjDg961cnJE3kY1YDXLycHGQ3zZB >> expected8
+	echo QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ > expected8
+	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected8
 	ipfs refs local > actual8
 	test_cmp expected8 actual8
 '
@@ -123,7 +123,7 @@ test_expect_success "'ipfs pin ls -type=direct' is correct" '
 
 test_expect_success "'ipfs pin ls -type=recursive' is correct" '
 	echo $MBLOCKHASH > rp_expected
-	echo QmYpv2VEsxzTTXRYX3PjDg961cnJE3kY1YDXLycHGQ3zZB >> rp_expected
+	echo QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ >> rp_expected
 	cat rp_expected | sort > rp_exp_sorted
 	ipfs pin ls -type=recursive | sort > rp_actual
 	test_cmp rp_exp_sorted rp_actual

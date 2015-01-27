@@ -115,14 +115,14 @@ connected peers and latencies between them.
 				return
 			}
 			res.SetOutput(io.Reader(&buf))
+		default:
+			output, err := stdDiagOutputMarshal(standardDiagOutput(info))
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(output)
 		}
-
-		output, err := stdDiagOutputMarshal(standardDiagOutput(info))
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(output)
 	},
 }
 

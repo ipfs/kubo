@@ -308,7 +308,7 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 			bpeers := n.Repo.Config().Bootstrap
 			ps, err := toPeerInfos(bpeers)
 			if err != nil {
-				log.Error("failed to parse bootstrap peers from config: %s", bpeers)
+				log.Warningf("failed to parse bootstrap peers from config: %s", bpeers)
 				return nil
 			}
 			return ps
