@@ -7,6 +7,7 @@ import (
 	"io"
 	p "path"
 	"strings"
+	"time"
 
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
@@ -79,6 +80,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 			Name:     path,
 			Typeflag: tar.TypeDir,
 			Mode:     0777,
+			ModTime:  time.Now(),
 			// TODO: set mode, dates, etc. when added to unixFS
 		})
 		if err != nil {
@@ -103,6 +105,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 		Size:     int64(pb.GetFilesize()),
 		Typeflag: tar.TypeReg,
 		Mode:     0644,
+		ModTime:  time.Now(),
 		// TODO: set mode, dates, etc. when added to unixFS
 	})
 	if err != nil {
