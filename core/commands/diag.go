@@ -57,25 +57,30 @@ Sends out a message to each node in the network recursively
 requesting a listing of data about them including number of
 connected peers and latencies between them.
 
-The given timeout will be stepped down for each peer the
-request is sent to, to ensure that all peers return in an
-order that will result in the most responses to the initiator.
+The given timeout will be decremented 2s at every network hop, 
+ensuring peers try to return their diagnostics before the initiator's 
+timeout. If the timeout is too small, some peers may not be reached.
+30s and 60s are reasonable timeout values, though network vary.
 The default timeout is 20 seconds.
 
 The 'vis' option may be used to change the output format.
-Currently, two alternate formats are supported, d3, and json.
+four formats are supported:
+ * plain text - easy to read
+ * d3 - json ready to be fed into d3view
+ * dot - graphviz format
+
 The d3 format will output a json object ready to be consumed by
 the chord network viewer, available at the following hash:
 
-    QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38
+    /ipfs/QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38
 
 To view your diag output, 'ipfs add' the d3 vis output, and
 open the following link:
 
 	http://gateway.ipfs.io/ipfs/QmbesKpGyQGd5jtJFUGEB1ByPjNFpukhnKZDnkfxUiKn38/chord#<your hash>
 
-The json option for vis output can also be used for other
-programs that want to consume diagnostic output.
+The dot format can be fed into graphviz and other programs
+that consume the dot format to generate graphs of the network.
 `,
 	},
 
