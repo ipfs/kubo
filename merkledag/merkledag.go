@@ -228,6 +228,10 @@ type nodePromise struct {
 	ctx   context.Context
 }
 
+// NodeGetter provides a promise like interface for a dag Node
+// the first call to Get will block until the Node is received
+// from its internal channels, subsequent calls will return the
+// cached node.
 type NodeGetter interface {
 	Get() (*Node, error)
 }
