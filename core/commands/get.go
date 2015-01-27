@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -76,7 +77,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		outPath, _, _ := req.Option("output").String()
 		if len(outPath) == 0 {
-			outPath = req.Arguments()[0]
+			_, outPath = path.Split(req.Arguments()[0])
+			outPath = path.Clean(outPath)
 		}
 
 		cmplvl, err := getCompressOptions(req)
@@ -162,6 +164,6 @@ func getCompressOptions(req cmds.Request) (int, error) {
 	return gzip.NoCompression, nil
 }
 
-func get(node *core.IpfsNode, path string, compression int) (io.Reader, error) {
-	return utar.NewReader(path, node.DAG, node.Resolver, compression)
+func get(node *core.IpfsNode, p string, compression int) (io.Reader, error) {
+	return utar.NewReader(p, node.DAG, node.Resolver, compression)
 }

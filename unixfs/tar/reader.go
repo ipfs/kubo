@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	p "path"
+	gopath "path"
+	"strings"
+	"time"
 
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
@@ -27,6 +29,10 @@ type Reader struct {
 }
 
 func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compression int) (*Reader, error) {
+	if strings.HasPrefix(path, "/ipfs/") {
+		path = path[6:]
+	}
+
 	reader := &Reader{
 		signalChan: make(chan struct{}),
 		dag:        dag,
@@ -51,7 +57,8 @@ func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compre
 
 	// writeToBuf will write the data to the buffer, and will signal when there
 	// is new data to read
-	go reader.writeToBuf(dagnode, path, 0)
+	_, filename := gopath.Split(path)
+	go reader.writeToBuf(dagnode, filename, 0)
 
 	return reader, nil
 }
@@ -73,6 +80,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 			Name:     path,
 			Typeflag: tar.TypeDir,
 			Mode:     0777,
+			ModTime:  time.Now(),
 			// TODO: set mode, dates, etc. when added to unixFS
 		})
 		if err != nil {
@@ -87,7 +95,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 				i.emitError(err)
 				return
 			}
-			i.writeToBuf(childNode, p.Join(path, link.Name), depth+1)
+			i.writeToBuf(childNode, gopath.Join(path, link.Name), depth+1)
 		}
 		return
 	}
@@ -97,6 +105,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 		Size:     int64(pb.GetFilesize()),
 		Typeflag: tar.TypeReg,
 		Mode:     0644,
+		ModTime:  time.Now(),
 		// TODO: set mode, dates, etc. when added to unixFS
 	})
 	if err != nil {

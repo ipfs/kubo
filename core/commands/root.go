@@ -27,6 +27,7 @@ Basic commands:
     init          Initialize ipfs local configuration
     add <path>    Add an object to ipfs
     cat <ref>     Show ipfs object data
+    get <ref>     Download ipfs objects
     ls <ref>      List links from an object
     refs <ref>    List hashes of links from an object
 

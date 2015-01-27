@@ -99,7 +99,16 @@ var logTailCmd = &cmds.Command{
 			}
 			defer t.Stop()
 
+			done := req.Context().Context.Done()
+
 			for line := range t.Lines {
+				// return when context closes
+				select {
+				case <-done:
+					return
+				default:
+				}
+
 				if line.Err != nil {
 					fmt.Println(err.Error())
 					return
