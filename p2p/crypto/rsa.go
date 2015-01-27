@@ -57,10 +57,10 @@ func (pk *RsaPublicKey) Hash() ([]byte, error) {
 	return KeyHash(pk)
 }
 
-func (sk *RsaPrivateKey) GenSecret() []byte {
+func (sk *RsaPrivateKey) GenSecret() ([]byte, error) {
 	buf := make([]byte, 16)
-	rand.Read(buf)
-	return buf
+	_, err := rand.Read(buf)
+	return buf, err
 }
 
 func (sk *RsaPrivateKey) Sign(message []byte) ([]byte, error) {

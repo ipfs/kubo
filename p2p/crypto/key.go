@@ -23,6 +23,7 @@ import (
 
 	pb "github.com/jbenet/go-ipfs/p2p/crypto/internal/pb"
 	u "github.com/jbenet/go-ipfs/util"
+	ed "github.com/mildred/ed25519/src"
 )
 
 var log = u.Logger("crypto")
@@ -30,7 +31,8 @@ var log = u.Logger("crypto")
 var ErrBadKeyType = errors.New("invalid or unsupported key type")
 
 const (
-	RSA = iota
+	RSA     = iota
+	Ed25519 = iota
 )
 
 // Key represents a crypto key that can be compared to another key
@@ -57,7 +59,7 @@ type PrivKey interface {
 	GetPublic() PubKey
 
 	// Generate a secret string of bytes
-	GenSecret() []byte
+	GenSecret() ([]byte, error)
 
 	Decrypt(b []byte) ([]byte, error)
 }
@@ -89,6 +91,15 @@ func GenerateKeyPairWithReader(typ, bits int, src io.Reader) (PrivKey, PubKey, e
 		}
 		pk := &priv.PublicKey
 		return &RsaPrivateKey{sk: priv}, &RsaPublicKey{pk}, nil
+	case Ed25519:
+		var seed ed.Scalar
+		_, err := src.Read(seed[:])
+		if err != nil {
+			return nil, nil, err
+		}
+		var key Ed25519PrivateKey
+		key.pk, key.sk = ed.CreateKeypair(seed)
+		return &key, &Ed25519PublicKey{k: key.pk}, nil
 	default:
 		return nil, nil, ErrBadKeyType
 	}
@@ -240,6 +251,8 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 	switch pmes.GetType() {
 	case pb.KeyType_RSA:
 		return UnmarshalRsaPublicKey(pmes.GetData())
+	case pb.KeyType_Ed25519:
+		return UnmarshalEd25519PublicKey(pmes.GetData())
 	default:
 		return nil, ErrBadKeyType
 	}
@@ -248,15 +261,29 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 // MarshalPublicKey converts a public key object into a protobuf serialized
 // public key
 func MarshalPublicKey(k PubKey) ([]byte, error) {
-	b, err := MarshalRsaPublicKey(k.(*RsaPublicKey))
-	if err != nil {
-		return nil, err
+	if rsakey, ok := k.(*RsaPublicKey); ok {
+		b, err := MarshalRsaPublicKey(rsakey)
+		if err != nil {
+			return nil, err
+		}
+		pmes := new(pb.PublicKey)
+		typ := pb.KeyType_RSA // for now only type.
+		pmes.Type = &typ
+		pmes.Data = b
+		return proto.Marshal(pmes)
+	} else if edkey, ok := k.(*Ed25519PublicKey); ok {
+		b, err := MarshalEd25519PublicKey(edkey)
+		if err != nil {
+			return nil, err
+		}
+		pmes := new(pb.PublicKey)
+		typ := pb.KeyType_Ed25519 // for now only type.
+		pmes.Type = &typ
+		pmes.Data = b
+		return proto.Marshal(pmes)
+	} else {
+		return nil, errors.New("Unknown key type for marshalling")
 	}
-	pmes := new(pb.PublicKey)
-	typ := pb.KeyType_RSA // for now only type.
-	pmes.Type = &typ
-	pmes.Data = b
-	return proto.Marshal(pmes)
 }
 
 // UnmarshalPrivateKey converts a protobuf serialized private key into its
@@ -271,6 +298,8 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 	switch pmes.GetType() {
 	case pb.KeyType_RSA:
 		return UnmarshalRsaPrivateKey(pmes.GetData())
+	case pb.KeyType_Ed25519:
+		return UnmarshalEd25519PrivateKey(pmes.GetData())
 	default:
 		return nil, ErrBadKeyType
 	}
@@ -278,12 +307,23 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 
 // MarshalPrivateKey converts a key object into its protobuf serialized form.
 func MarshalPrivateKey(k PrivKey) ([]byte, error) {
-	b := MarshalRsaPrivateKey(k.(*RsaPrivateKey))
-	pmes := new(pb.PrivateKey)
-	typ := pb.KeyType_RSA // for now only type.
-	pmes.Type = &typ
-	pmes.Data = b
-	return proto.Marshal(pmes)
+	if rsakey, ok := k.(*RsaPrivateKey); ok {
+		b := MarshalRsaPrivateKey(rsakey)
+		pmes := new(pb.PrivateKey)
+		typ := pb.KeyType_RSA // for now only type.
+		pmes.Type = &typ
+		pmes.Data = b
+		return proto.Marshal(pmes)
+	} else if edkey, ok := k.(*Ed25519PrivateKey); ok {
+		b := MarshalEd25519PrivateKey(edkey)
+		pmes := new(pb.PrivateKey)
+		typ := pb.KeyType_Ed25519 // for now only type.
+		pmes.Type = &typ
+		pmes.Data = b
+		return proto.Marshal(pmes)
+	} else {
+		return nil, errors.New("Unknown key type for marshalling")
+	}
 }
 
 // ConfigDecodeKey decodes from b64 (for config file), and unmarshals.

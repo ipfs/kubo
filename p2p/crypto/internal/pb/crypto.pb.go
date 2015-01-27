@@ -14,7 +14,7 @@ It has these top-level messages:
 */
 package crypto_pb
 
-import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import proto "code.google.com/p/gogoprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,14 +24,17 @@ var _ = math.Inf
 type KeyType int32
 
 const (
-	KeyType_RSA KeyType = 0
+	KeyType_RSA     KeyType = 0
+	KeyType_Ed25519 KeyType = 1
 )
 
 var KeyType_name = map[int32]string{
 	0: "RSA",
+	1: "Ed25519",
 }
 var KeyType_value = map[string]int32{
-	"RSA": 0,
+	"RSA":     0,
+	"Ed25519": 1,
 }
 
 func (x KeyType) Enum() *KeyType {
