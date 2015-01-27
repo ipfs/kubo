@@ -85,8 +85,8 @@ func (ab *addressbook) Peers() []ID {
 }
 
 func (ab *addressbook) Addresses(p ID) []ma.Multiaddr {
-	ab.RLock()
-	defer ab.RUnlock()
+	ab.Lock()
+	defer ab.Unlock()
 
 	maddrs, found := ab.addrs[p]
 	if !found {
