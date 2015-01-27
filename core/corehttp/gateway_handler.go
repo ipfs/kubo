@@ -3,9 +3,9 @@ package corehttp
 import (
 	"html/template"
 	"io"
-	"mime"
 	"net/http"
-	"strings"
+	"path"
+	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -23,7 +23,7 @@ type gateway interface {
 	ResolvePath(string) (*dag.Node, error)
 	NewDagFromReader(io.Reader) (*dag.Node, error)
 	AddNodeToDAG(nd *dag.Node) (u.Key, error)
-	NewDagReader(nd *dag.Node) (io.Reader, error)
+	NewDagReader(nd *dag.Node) (io.ReadSeeker, error)
 }
 
 // shortcut for templating
@@ -63,8 +63,8 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *gatewayHandler) ResolvePath(path string) (*dag.Node, error) {
-	return i.node.Resolver.ResolvePath(path)
+func (i *gatewayHandler) ResolvePath(p string) (*dag.Node, error) {
+	return i.node.Resolver.ResolvePath(p)
 }
 
 func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
@@ -76,14 +76,14 @@ func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 	return i.node.DAG.Add(nd)
 }
 
-func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
+func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.ReadSeeker, error) {
 	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path[5:]
+	urlPath := r.URL.Path[5:]
 
-	nd, err := i.ResolvePath(path)
+	nd, err := i.ResolvePath(urlPath)
 	if err != nil {
 		if err == routing.ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -98,18 +98,12 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	extensionIndex := strings.LastIndex(path, ".")
-	if extensionIndex != -1 {
-		extension := path[extensionIndex:]
-		mimeType := mime.TypeByExtension(extension)
-		if len(mimeType) > 0 {
-			w.Header().Add("Content-Type", mimeType)
-		}
-	}
-
 	dr, err := i.NewDagReader(nd)
 	if err == nil {
-		io.Copy(w, dr)
+		_, name := path.Split(urlPath)
+		// set modtime to a really long time ago, since files are immutable and should stay cached
+		modtime := time.Unix(1, 0)
+		http.ServeContent(w, r, name, modtime, dr)
 		return
 	}
 
@@ -120,9 +114,9 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Debug("listing directory")
-	if path[len(path)-1:] != "/" {
+	if urlPath[len(urlPath)-1:] != "/" {
 		log.Debug("missing trailing slash, redirect")
-		http.Redirect(w, r, "/ipfs/"+path+"/", 307)
+		http.Redirect(w, r, "/ipfs/"+urlPath+"/", 307)
 		return
 	}
 
@@ -135,7 +129,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Debug("found index")
 			foundIndex = true
 			// return index page instead.
-			nd, err := i.ResolvePath(path + "/index.html")
+			nd, err := i.ResolvePath(urlPath + "/index.html")
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -155,7 +149,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if !foundIndex {
 		// template and return directory listing
-		hndlr := webHandler{"listing": dirListing, "path": path}
+		hndlr := webHandler{"listing": dirListing, "path": urlPath}
 		if err := i.dirList.Execute(w, hndlr); err != nil {
 			internalWebError(w, err)
 			return
