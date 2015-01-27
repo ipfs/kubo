@@ -153,9 +153,18 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	}
 
+	var rootRedirect corehttp.ServeOption
+	if len(cfg.Gateway.RootRedirect) > 0 {
+		rootRedirect = corehttp.RedirectOption("", cfg.Gateway.RootRedirect)
+	}
+
 	if gatewayMaddr != nil {
 		go func() {
-			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), corehttp.GatewayOption)
+			var opts = []corehttp.ServeOption{corehttp.GatewayOption}
+			if rootRedirect != nil {
+				opts = append(opts, rootRedirect)
+			}
+			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), opts...)
 			if err != nil {
 				log.Error(err)
 			}
@@ -166,6 +175,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		corehttp.CommandsOption(*req.Context()),
 		corehttp.WebUIOption,
 		corehttp.GatewayOption,
+	}
+	if rootRedirect != nil {
+		opts = append(opts, rootRedirect)
 	}
 	if err := corehttp.ListenAndServe(node, apiMaddr.String(), opts...); err != nil {
 		res.SetError(err, cmds.ErrNormal)
