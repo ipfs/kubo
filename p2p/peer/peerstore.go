@@ -62,9 +62,10 @@ func (e *expiringAddr) Expired() bool {
 type addressMap map[string]expiringAddr
 
 type addressbook struct {
+	sync.RWMutex // guards all fields
+
 	addrs map[ID]addressMap
 	ttl   time.Duration // initial ttl
-	sync.RWMutex
 }
 
 func newAddressbook() *addressbook {
