@@ -151,7 +151,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) erro
 	// // only share WAN-friendly addresses ??
 	// pi.Addrs = addrutil.WANShareableAddrs(pi.Addrs)
 	if len(pi.Addrs) < 1 {
-		log.Errorf("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, u.Key(key), pi.Addrs)
+		log.Infof("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, u.Key(key), pi.Addrs)
 		return fmt.Errorf("no known addresses for self. cannot put provider.")
 	}
 
@@ -185,7 +185,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 		// make sure record is valid.
 		err = dht.verifyRecordOnline(ctx, record)
 		if err != nil {
-			log.Error("Received invalid record!")
+			log.Info("Received invalid record! (discarded)")
 			return nil, nil, err
 		}
 		return record.GetValue(), nil, nil
@@ -235,7 +235,7 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 	if u.Debug {
 		err = dht.verifyRecordLocally(rec)
 		if err != nil {
-			log.Errorf("local record verify failed: %s", err)
+			log.Debugf("local record verify failed: %s (discarded)", err)
 			return nil, err
 		}
 	}
@@ -248,7 +248,7 @@ func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
 func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
 	sk := dht.peerstore.PrivKey(dht.self)
 	if sk == nil {
-		log.Errorf("%s dht cannot get own private key!", dht.self)
+		log.Warningf("%s dht cannot get own private key!", dht.self)
 		return nil, fmt.Errorf("cannot get private key to sign record!")
 	}
 	return sk, nil
@@ -323,7 +323,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 	// == to self? thats bad
 	for _, p := range closer {
 		if p == dht.self {
-			log.Error("Attempted to return self! this shouldnt happen...")
+			log.Debug("Attempted to return self! this shouldnt happen...")
 			return nil
 		}
 	}
@@ -370,7 +370,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 				ctx, _ := context.WithTimeout(dht.Context(), time.Second*5)
 				_, err := dht.Ping(ctx, p)
 				if err != nil {
-					log.Errorf("Ping error: %s", err)
+					log.Debugf("Ping error: %s", err)
 				}
 			}
 		case <-dht.Closing():

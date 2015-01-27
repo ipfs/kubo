@@ -31,7 +31,7 @@ func (s *Swarm) InterfaceListenAddresses() ([]ma.Multiaddr, error) {
 func checkNATWarning(s *Swarm, observed ma.Multiaddr, expected ma.Multiaddr) {
 	listen, err := s.InterfaceListenAddresses()
 	if err != nil {
-		log.Errorf("Error retrieving swarm.InterfaceListenAddresses: %s", err)
+		log.Debugf("Error retrieving swarm.InterfaceListenAddresses: %s", err)
 		return
 	}
 

@@ -73,7 +73,7 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 
 	s, err := c.NewStream()
 	if err != nil {
-		log.Error("error opening initial stream for %s", ID)
+		log.Debugf("error opening initial stream for %s", ID)
 		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer())
 	} else {
 
@@ -91,7 +91,7 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 	ids.currmu.Unlock()
 
 	if !found {
-		log.Errorf("IdentifyConn failed to find channel (programmer error) for %s", c)
+		log.Debugf("IdentifyConn failed to find channel (programmer error) for %s", c)
 		return
 	}
 

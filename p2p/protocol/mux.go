@@ -109,7 +109,6 @@ func (m *Mux) HandleSync(s inet.Stream) {
 	name, handler, err := m.readHeader(s)
 	if err != nil {
 		err = fmt.Errorf("protocol mux error: %s", err)
-		log.Error(err)
 		log.Event(ctx, "muxError", lgbl.Error(err))
 		s.Close()
 		return

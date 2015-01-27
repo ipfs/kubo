@@ -34,11 +34,11 @@ func (v Validator) VerifyRecord(r *pb.Record, pk ci.PubKey) error {
 	blob := RecordBlobForSig(r)
 	ok, err := pk.Verify(blob, r.GetSignature())
 	if err != nil {
-		log.Error("Signature verify failed.")
+		log.Info("Signature verify failed. (ignored)")
 		return err
 	}
 	if !ok {
-		log.Error("dht found a forged record! (ignored)")
+		log.Info("dht found a forged record! (ignored)")
 		return ErrBadRecord
 	}
 
@@ -51,7 +51,7 @@ func (v Validator) VerifyRecord(r *pb.Record, pk ci.PubKey) error {
 
 	fnc, ok := v[parts[1]]
 	if !ok {
-		log.Errorf("Unrecognized key prefix: %s", parts[1])
+		log.Infof("Unrecognized key prefix: %s", parts[1])
 		return ErrInvalidRecordType
 	}
 

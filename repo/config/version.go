@@ -104,7 +104,7 @@ func (s AutoUpdateSetting) String() string {
 func (v *Version) checkPeriodDuration() time.Duration {
 	d, err := strconv.Atoi(v.CheckPeriod)
 	if err != nil {
-		log.Error("config.Version.CheckPeriod parse error. Using default.")
+		log.Warning("config.Version.CheckPeriod parse error. Using default.")
 		return defaultCheckPeriod
 	}
 	return time.Duration(d)

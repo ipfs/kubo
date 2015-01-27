@@ -51,7 +51,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key) (<-chan peer
 
 		closer, err := dht.closerPeersSingle(ctx, key, p)
 		if err != nil {
-			log.Errorf("error getting closer peers: %s", err)
+			log.Debugf("error getting closer peers: %s", err)
 			return nil, err
 		}
 

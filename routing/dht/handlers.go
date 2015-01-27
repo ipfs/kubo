@@ -78,7 +78,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		rec := new(pb.Record)
 		err := proto.Unmarshal(byts, rec)
 		if err != nil {
-			log.Error("Failed to unmarshal dht record from datastore")
+			log.Debug("Failed to unmarshal dht record from datastore")
 			return nil, err
 		}
 
@@ -119,7 +119,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	dskey := u.Key(pmes.GetKey()).DsKey()
 
 	if err := dht.verifyRecordLocally(pmes.GetRecord()); err != nil {
-		log.Errorf("Bad dht record in PUT from: %s. %s", u.Key(pmes.GetRecord().GetAuthor()), err)
+		log.Debugf("Bad dht record in PUT from: %s. %s", u.Key(pmes.GetRecord().GetAuthor()), err)
 		return nil, err
 	}
 
@@ -181,7 +181,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	// check if we have this value, to add ourselves as provider.
 	has, err := dht.datastore.Has(key.DsKey())
 	if err != nil && err != ds.ErrNotFound {
-		log.Errorf("unexpected datastore error: %v\n", err)
+		log.Debugf("unexpected datastore error: %v\n", err)
 		has = false
 	}
 
@@ -226,12 +226,12 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		if pi.ID != p {
 			// we should ignore this provider reccord! not from originator.
 			// (we chould sign them and check signature later...)
-			log.Errorf("handleAddProvider received provider %s from %s. Ignore.", pi.ID, p)
+			log.Debugf("handleAddProvider received provider %s from %s. Ignore.", pi.ID, p)
 			continue
 		}
 
 		if len(pi.Addrs) < 1 {
-			log.Errorf("%s got no valid addresses for provider %s. Ignore.", dht.self, p)
+			log.Debugf("%s got no valid addresses for provider %s. Ignore.", dht.self, p)
 			continue
 		}
 

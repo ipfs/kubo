@@ -158,7 +158,7 @@ func ShouldAutoUpdate(setting config.AutoUpdateSetting, newVer string) bool {
 
 	nv, err := semver.NewVersion(newVer)
 	if err != nil {
-		log.Errorf("could not parse version string: %s", err)
+		log.Infof("could not parse version string: %s", err)
 		return false
 	}
 
@@ -229,7 +229,7 @@ func CliCheckForUpdates(cfg *config.Config, repoPath string) error {
 
 	// if another, unexpected error occurred, note it.
 	if err != nil {
-		log.Errorf("Error while checking for update: %v", err)
+		log.Debugf("Error while checking for update: %v", err)
 		return nil
 	}
 
@@ -242,7 +242,7 @@ func CliCheckForUpdates(cfg *config.Config, repoPath string) error {
 			log.Noticef("Applying update %s", u.Version)
 
 			if err = Apply(u); err != nil {
-				log.Error(err.Error())
+				log.Debug(err)
 				return nil
 			}
 

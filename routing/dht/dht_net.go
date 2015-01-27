@@ -31,7 +31,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	// receive msg
 	pmes := new(pb.Message)
 	if err := r.ReadMsg(pmes); err != nil {
-		log.Errorf("Error unmarshaling data: %s", err)
+		log.Debugf("Error unmarshaling data: %s", err)
 		return
 	}
 
@@ -41,14 +41,14 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	// get handler for this msg type.
 	handler := dht.handlerForMsgType(pmes.GetType())
 	if handler == nil {
-		log.Error("got back nil handler from handlerForMsgType")
+		log.Debug("got back nil handler from handlerForMsgType")
 		return
 	}
 
 	// dispatch handler.
 	rpmes, err := handler(ctx, mPeer, pmes)
 	if err != nil {
-		log.Errorf("handle message error: %s", err)
+		log.Debugf("handle message error: %s", err)
 		return
 	}
 
@@ -60,7 +60,7 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 
 	// send out response msg
 	if err := w.WriteMsg(rpmes); err != nil {
-		log.Errorf("send response error: %s", err)
+		log.Debugf("send response error: %s", err)
 		return
 	}
 

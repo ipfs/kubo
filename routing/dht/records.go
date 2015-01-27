@@ -46,7 +46,7 @@ func (dht *IpfsDHT) getPublicKeyOnline(ctx context.Context, p peer.ID) (ci.PubKe
 
 	pk, err = ci.UnmarshalPublicKey(val)
 	if err != nil {
-		log.Errorf("Failed to unmarshal public key: %s", err)
+		log.Debugf("Failed to unmarshal public key: %s", err)
 		return nil, err
 	}
 	return pk, nil

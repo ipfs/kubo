@@ -262,7 +262,7 @@ func waitForWellFormedTables(t *testing.T, dhts []*IpfsDHT, minPeers, avgPeers i
 	for {
 		select {
 		case <-timeoutA:
-			log.Error("did not reach well-formed routing tables by %s", timeout)
+			log.Errorf("did not reach well-formed routing tables by %s", timeout)
 			return false // failed
 		case <-time.After(5 * time.Millisecond):
 			if checkTables() {

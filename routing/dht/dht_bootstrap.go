@@ -76,7 +76,7 @@ func (dht *IpfsDHT) BootstrapOnSignal(cfg BootstrapConfig, signal <-chan time.Ti
 
 		ctx := dht.Context()
 		if err := dht.runBootstrap(ctx, cfg); err != nil {
-			log.Error(err)
+			log.Warning(err)
 			// A bootstrapping error is important to notice but not fatal.
 		}
 	})
@@ -117,7 +117,7 @@ func (dht *IpfsDHT) runBootstrap(ctx context.Context, cfg BootstrapConfig) error
 			// woah, actually found a peer with that ID? this shouldn't happen normally
 			// (as the ID we use is not a real ID). this is an odd error worth logging.
 			err := fmt.Errorf("Bootstrap peer error: Actually FOUND peer. (%s, %s)", id, p)
-			log.Errorf("%s", err)
+			log.Warningf("%s", err)
 			merr = append(merr, err)
 		}
 	}
