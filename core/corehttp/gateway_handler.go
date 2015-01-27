@@ -144,6 +144,11 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	foundIndex := false
 	for _, link := range nd.Links {
 		if link.Name == "index.html" {
+			if urlPath[len(urlPath)-1] != '/' {
+				http.Redirect(w, r, urlPath+"/", 302)
+				return
+			}
+
 			log.Debug("found index")
 			foundIndex = true
 			// return index page instead.
