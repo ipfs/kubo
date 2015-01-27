@@ -66,9 +66,12 @@ func (i *gatewayHandler) loadTemplate() error {
 }
 
 func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+	p = path.Clean(p)
+
 	if strings.HasPrefix(p, "/ipns/") {
-		elements := strings.Split(path.Clean(p[6:]), "/")
-		k, err := i.node.Namesys.Resolve(ctx, elements[0])
+		elements := strings.Split(p[6:], "/")
+		hash := elements[0]
+		k, err := i.node.Namesys.Resolve(ctx, hash)
 		if err != nil {
 			return nil, "", err
 		}
@@ -169,16 +172,15 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		di := directoryItem{link.Size, link.Name, path.Join(p, link.Name)}
+		di := directoryItem{link.Size, link.Name, path.Join(urlPath, link.Name)}
 		dirListing = append(dirListing, di)
 	}
 
 	if !foundIndex {
 		// template and return directory listing
 		hndlr := webHandler{
-			"listing":    dirListing,
-			"path":       urlPath,
-			"actualPath": p,
+			"listing": dirListing,
+			"path":    urlPath,
 		}
 		if err := i.dirList.Execute(w, hndlr); err != nil {
 			internalWebError(w, err)
