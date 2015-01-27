@@ -50,6 +50,10 @@ func Init(nBitsForKeypair int) (*Config, error) {
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
 		Version: VersionDefaultValue(),
+
+		Gateway: Gateway{
+			RootRedirect: "",
+		},
 	}
 
 	return conf, nil
