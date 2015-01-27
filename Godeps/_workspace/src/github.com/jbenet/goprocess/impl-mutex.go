@@ -35,6 +35,10 @@ func newProcess(tf TeardownFunc) *process {
 }
 
 func (p *process) WaitFor(q Process) {
+	if q == nil {
+		panic("waiting for nil process")
+	}
+
 	p.Lock()
 
 	select {
@@ -48,6 +52,10 @@ func (p *process) WaitFor(q Process) {
 }
 
 func (p *process) AddChildNoWait(child Process) {
+	if child == nil {
+		panic("adding nil child process")
+	}
+
 	p.Lock()
 
 	select {
@@ -61,6 +69,10 @@ func (p *process) AddChildNoWait(child Process) {
 }
 
 func (p *process) AddChild(child Process) {
+	if child == nil {
+		panic("adding nil child process")
+	}
+
 	p.Lock()
 
 	select {

@@ -1,10 +1,15 @@
 package basichost
 
 import (
+	"sync"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
+	inat "github.com/jbenet/go-ipfs/p2p/nat"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
@@ -14,19 +19,46 @@ import (
 
 var log = eventlog.Logger("p2p/host/basic")
 
+// Option is a type used to pass in options to the host.
+type Option int
+
+const (
+	// NATPortMap makes the host attempt to open port-mapping in NAT devices
+	// for all its listeners. Pass in this option in the constructor to
+	// asynchronously a) find a gateway, b) open port mappings, c) republish
+	// port mappings periodically. The NATed addresses are included in the
+	// Host's Addrs() list.
+	NATPortMap Option = iota
+)
+
+// BasicHost is the basic implementation of the host.Host interface. This
+// particular host implementation:
+//  * uses a protocol muxer to mux per-protocol streams
+//  * uses an identity service to send + receive node information
+//  * uses a relay service to allow hosts to relay conns for each other
+//  * uses a nat service to establish NAT port mappings
 type BasicHost struct {
 	network inet.Network
 	mux     *protocol.Mux
 	ids     *identify.IDService
 	relay   *relay.RelayService
+
+	natmu sync.Mutex
+	nat   *inat.NAT
+
+	proc goprocess.Process
 }
 
 // New constructs and sets up a new *BasicHost with given Network
-func New(net inet.Network) *BasicHost {
+func New(net inet.Network, opts ...Option) *BasicHost {
 	h := &BasicHost{
 		network: net,
 		mux:     protocol.NewMux(),
 	}
+
+	h.proc = goprocess.WithTeardown(func() error {
+		return h.Network().Close()
+	})
 
 	// setup host services
 	h.ids = identify.NewIDService(h)
@@ -35,7 +67,46 @@ func New(net inet.Network) *BasicHost {
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
 
+	for _, o := range opts {
+		switch o {
+		case NATPortMap:
+			h.setupNATPortMap()
+		}
+	}
+
 	return h
+}
+
+func (h *BasicHost) setupNATPortMap() {
+	// do this asynchronously to avoid blocking daemon startup
+
+	h.proc.Go(func(worker goprocess.Process) {
+		nat := inat.DiscoverNAT()
+		if nat == nil { // no nat, or failed to get it.
+			return
+		}
+
+		select {
+		case <-worker.Closing():
+			nat.Close()
+			return
+		default:
+		}
+
+		// wire up the nat to close when proc closes.
+		h.proc.AddChild(nat.Process())
+
+		h.natmu.Lock()
+		h.nat = nat
+		h.natmu.Unlock()
+
+		addrs := h.Network().ListenAddresses()
+		nat.PortMapAddrs(addrs)
+		mapAddrs := nat.ExternalAddrs()
+		if len(mapAddrs) > 0 {
+			log.Infof("NAT mapping addrs: %s", mapAddrs)
+		}
+	})
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
@@ -143,7 +214,23 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 	return nil
 }
 
+func (h *BasicHost) Addrs() []ma.Multiaddr {
+	addrs, err := h.Network().InterfaceListenAddresses()
+	if err != nil {
+		log.Debug("error retrieving network interface addrs")
+	}
+
+	h.natmu.Lock()
+	nat := h.nat
+	h.natmu.Unlock()
+	if nat != nil {
+		addrs = append(addrs, nat.ExternalAddrs()...)
+	}
+
+	return addrs
+}
+
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
-	return h.Network().Close()
+	return h.proc.Close()
 }

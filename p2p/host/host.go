@@ -2,6 +2,7 @@ package host
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -22,6 +23,9 @@ type Host interface {
 
 	// Peerstore returns the Host's repository of Peer Addresses and Keys.
 	Peerstore() peer.Peerstore
+
+	// Returns the listen addresses of the Host
+	Addrs() []ma.Multiaddr
 
 	// Networks returns the Network interface of the Host
 	Network() inet.Network
