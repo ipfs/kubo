@@ -41,6 +41,12 @@ var IDCmd = &cmds.Command{
 		ShortDescription: `
 Prints out information about the specified peer,
 if no peer is specified, prints out local peers info.
+
+ipfs id supports the format option for output with the following keys:
+<id> : the peers id
+<aver>: agent version
+<pver>: protocol version
+<pubkey>: public key
 `,
 	},
 	Arguments: []cmds.Argument{
