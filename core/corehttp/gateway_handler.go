@@ -24,7 +24,7 @@ type gateway interface {
 	ResolvePath(string) (*dag.Node, error)
 	NewDagFromReader(io.Reader) (*dag.Node, error)
 	AddNodeToDAG(nd *dag.Node) (u.Key, error)
-	NewDagReader(nd *dag.Node) (io.ReadSeeker, error)
+	NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error)
 }
 
 // shortcut for templating
@@ -96,7 +96,7 @@ func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 	return i.node.DAG.Add(nd)
 }
 
-func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.ReadSeeker, error) {
+func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) {
 	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
@@ -125,6 +125,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	dr, err := i.NewDagReader(nd)
 	if err == nil {
+		defer dr.Close()
 		_, name := path.Split(urlPath)
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime := time.Unix(1, 0)
@@ -162,6 +163,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				internalWebError(w, err)
 				return
 			}
+			defer dr.Close()
 			// write to request
 			io.Copy(w, dr)
 			break
