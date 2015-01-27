@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	p "path"
+	gopath "path"
 	"strings"
 	"time"
 
@@ -57,7 +57,7 @@ func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compre
 
 	// writeToBuf will write the data to the buffer, and will signal when there
 	// is new data to read
-	_, filename := p.Split(path)
+	_, filename := gopath.Split(path)
 	go reader.writeToBuf(dagnode, filename, 0)
 
 	return reader, nil
@@ -95,7 +95,7 @@ func (i *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 				i.emitError(err)
 				return
 			}
-			i.writeToBuf(childNode, p.Join(path, link.Name), depth+1)
+			i.writeToBuf(childNode, gopath.Join(path, link.Name), depth+1)
 		}
 		return
 	}
