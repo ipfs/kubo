@@ -54,7 +54,7 @@ func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
 		t.Fatal(err)
 	}
 
-	r, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	r, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestBuilderConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := uio.NewDagReader(context.TODO(), nd, dagserv)
+	r, err := uio.NewDagReader(context.Background(), nd, dagserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestIndirectBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reader, err := uio.NewDagReader(context.TODO(), dag, dnp.ds)
+	reader, err := uio.NewDagReader(context.Background(), dag, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestSeekingBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestSeekToBegin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestSeekToAlmostBegin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +320,7 @@ func TestSeekingStress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +365,7 @@ func TestSeekingConsistency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
