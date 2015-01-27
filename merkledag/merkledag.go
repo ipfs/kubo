@@ -2,7 +2,6 @@
 package merkledag
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -26,7 +25,8 @@ type DAGService interface {
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
-	GetDAG(context.Context, *Node) <-chan *Node
+	GetDAG(context.Context, *Node) []NodeGetter
+	GetNodes(context.Context, []u.Key) []NodeGetter
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -155,11 +155,10 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 
 // FindLinks searches this nodes links for the given key,
 // returns the indexes of any links pointing to it
-func FindLinks(n *Node, k u.Key, start int) []int {
+func FindLinks(links []u.Key, k u.Key, start int) []int {
 	var out []int
-	keybytes := []byte(k)
-	for i, lnk := range n.Links[start:] {
-		if bytes.Equal([]byte(lnk.Hash), keybytes) {
+	for i, lnk_k := range links[start:] {
+		if k == lnk_k {
 			out = append(out, i+start)
 		}
 	}
@@ -169,41 +168,84 @@ func FindLinks(n *Node, k u.Key, start int) []int {
 // GetDAG will fill out all of the links of the given Node.
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
-func (ds *dagService) GetDAG(ctx context.Context, root *Node) <-chan *Node {
-	sig := make(chan *Node)
-	go func() {
-		defer close(sig)
+func (ds *dagService) GetDAG(ctx context.Context, root *Node) []NodeGetter {
+	var keys []u.Key
+	for _, lnk := range root.Links {
+		keys = append(keys, u.Key(lnk.Hash))
+	}
 
-		var keys []u.Key
-		for _, lnk := range root.Links {
-			keys = append(keys, u.Key(lnk.Hash))
-		}
+	return ds.GetNodes(ctx, keys)
+}
+
+// GetNodes returns an array of 'NodeGetter' promises, with each corresponding
+// to the key with the same index as the passed in keys
+func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
+	promises := make([]NodeGetter, len(keys))
+	sendChans := make([]chan<- *Node, len(keys))
+	for i, _ := range keys {
+		promises[i], sendChans[i] = newNodePromise(ctx)
+	}
+
+	go func() {
 		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
-		nodes := make([]*Node, len(root.Links))
-		next := 0
-		for blk := range blkchan {
-			nd, err := Decoded(blk.Data)
-			if err != nil {
-				// NB: can occur in normal situations, with improperly formatted
-				// input data
-				log.Error("Got back bad block!")
-				break
-			}
-			is := FindLinks(root, blk.Key(), next)
-			for _, i := range is {
-				nodes[i] = nd
-			}
+		for {
+			select {
+			case blk, ok := <-blkchan:
+				if !ok {
+					return
+				}
 
-			for ; next < len(nodes) && nodes[next] != nil; next++ {
-				sig <- nodes[next]
+				nd, err := Decoded(blk.Data)
+				if err != nil {
+					// NB: can happen with improperly formatted input data
+					log.Error("Got back bad block!")
+					return
+				}
+				is := FindLinks(keys, blk.Key(), 0)
+				for _, i := range is {
+					sendChans[i] <- nd
+				}
+			case <-ctx.Done():
+				return
 			}
-		}
-		if next < len(nodes) {
-			// TODO: bubble errors back up.
-			log.Errorf("Did not receive correct number of nodes!")
 		}
 	}()
+	return promises
+}
 
-	return sig
+func newNodePromise(ctx context.Context) (NodeGetter, chan<- *Node) {
+	ch := make(chan *Node, 1)
+	return &nodePromise{
+		recv: ch,
+		ctx:  ctx,
+	}, ch
+}
+
+type nodePromise struct {
+	cache *Node
+	recv  <-chan *Node
+	ctx   context.Context
+}
+
+// NodeGetter provides a promise like interface for a dag Node
+// the first call to Get will block until the Node is received
+// from its internal channels, subsequent calls will return the
+// cached node.
+type NodeGetter interface {
+	Get() (*Node, error)
+}
+
+func (np *nodePromise) Get() (*Node, error) {
+	if np.cache != nil {
+		return np.cache, nil
+	}
+
+	select {
+	case blk := <-np.recv:
+		np.cache = blk
+	case <-np.ctx.Done():
+		return nil, np.ctx.Err()
+	}
+	return np.cache, nil
 }

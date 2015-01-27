@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	mrand "math/rand"
+	"os"
 	"testing"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -51,7 +54,7 @@ func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
 		t.Fatal(err)
 	}
 
-	r, err := uio.NewDagReader(nd, dnp.ds)
+	r, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +80,7 @@ func TestBuilderConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := uio.NewDagReader(nd, dagserv)
+	r, err := uio.NewDagReader(context.Background(), nd, dagserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +168,7 @@ func TestIndirectBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reader, err := uio.NewDagReader(dag, dnp.ds)
+	reader, err := uio.NewDagReader(context.Background(), dag, dnp.ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,5 +180,218 @@ func TestIndirectBlocks(t *testing.T) {
 
 	if !bytes.Equal(out, buf) {
 		t.Fatal("Not equal!")
+	}
+}
+
+func TestSeekingBasic(t *testing.T) {
+	nbytes := int64(10 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	start := int64(4000)
+	n, err := rs.Seek(start, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != start {
+		t.Fatal("Failed to seek to correct offset")
+	}
+
+	out, err := ioutil.ReadAll(rs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should[start:])
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSeekToBegin(t *testing.T) {
+	nbytes := int64(10 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := io.CopyN(ioutil.Discard, rs, 1024*4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 4096 {
+		t.Fatal("Copy didnt copy enough bytes")
+	}
+
+	seeked, err := rs.Seek(0, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seeked != 0 {
+		t.Fatal("Failed to seek to beginning")
+	}
+
+	out, err := ioutil.ReadAll(rs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSeekToAlmostBegin(t *testing.T) {
+	nbytes := int64(10 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := io.CopyN(ioutil.Discard, rs, 1024*4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 4096 {
+		t.Fatal("Copy didnt copy enough bytes")
+	}
+
+	seeked, err := rs.Seek(1, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seeked != 1 {
+		t.Fatal("Failed to seek to almost beginning")
+	}
+
+	out, err := ioutil.ReadAll(rs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should[1:])
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSeekingStress(t *testing.T) {
+	nbytes := int64(1024 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{1000})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testbuf := make([]byte, nbytes)
+	for i := 0; i < 50; i++ {
+		offset := mrand.Intn(int(nbytes))
+		l := int(nbytes) - offset
+		n, err := rs.Seek(int64(offset), os.SEEK_SET)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != int64(offset) {
+			t.Fatal("Seek failed to move to correct position")
+		}
+
+		nread, err := rs.Read(testbuf[:l])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if nread != l {
+			t.Fatal("Failed to read enough bytes")
+		}
+
+		err = arrComp(testbuf[:l], should[offset:offset+l])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+}
+
+func TestSeekingConsistency(t *testing.T) {
+	nbytes := int64(128 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out := make([]byte, nbytes)
+
+	for coff := nbytes - 4096; coff >= 0; coff -= 4096 {
+		t.Log(coff)
+		n, err := rs.Seek(coff, os.SEEK_SET)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != coff {
+			t.Fatal("wasnt able to seek to the right position")
+		}
+		nread, err := rs.Read(out[coff : coff+4096])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if nread != 4096 {
+			t.Fatal("didnt read the correct number of bytes")
+		}
+	}
+
+	err = arrComp(out, should)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

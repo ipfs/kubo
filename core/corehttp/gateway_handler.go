@@ -77,7 +77,7 @@ func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 }
 
 func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
-	return uio.NewDagReader(nd, i.node.DAG)
+	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

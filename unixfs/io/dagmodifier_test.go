@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	bs "github.com/jbenet/go-ipfs/blockservice"
@@ -38,7 +39,7 @@ func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Nod
 		t.Fatal(err)
 	}
 
-	dr, err := NewDagReader(node, dserv)
+	dr, err := NewDagReader(context.Background(), node, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +76,7 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 		t.Fatal(err)
 	}
 
-	rd, err := NewDagReader(nd, dm.dagserv)
+	rd, err := NewDagReader(context.Background(), nd, dm.dagserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +174,7 @@ func TestMultiWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	read, err := NewDagReader(nd, dserv)
+	read, err := NewDagReader(context.Background(), nd, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +216,7 @@ func TestMultiWriteCoal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	read, err := NewDagReader(nd, dserv)
+	read, err := NewDagReader(context.Background(), nd, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}

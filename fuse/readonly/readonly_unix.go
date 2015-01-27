@@ -10,6 +10,7 @@ import (
 
 	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	core "github.com/jbenet/go-ipfs/core"
@@ -145,7 +146,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 // ReadAll reads the object data as file data
 func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
 	log.Debug("Read node.")
-	r, err := uio.NewDagReader(s.Nd, s.Ipfs.DAG)
+	r, err := uio.NewDagReader(context.TODO(), s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return nil, err
 	}
