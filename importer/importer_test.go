@@ -308,6 +308,58 @@ func TestSeekToAlmostBegin(t *testing.T) {
 	}
 }
 
+func TestSeekEnd(t *testing.T) {
+	nbytes := int64(50 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	seeked, err := rs.Seek(0, os.SEEK_END)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seeked != nbytes {
+		t.Fatal("Failed to seek to end")
+	}
+}
+
+func TestSeekEndSingleBlockFile(t *testing.T) {
+	nbytes := int64(100)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{5000})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.Background(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	seeked, err := rs.Seek(0, os.SEEK_END)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seeked != nbytes {
+		t.Fatal("Failed to seek to end")
+	}
+}
+
 func TestSeekingStress(t *testing.T) {
 	nbytes := int64(1024 * 1024)
 	should := make([]byte, nbytes)
