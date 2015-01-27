@@ -99,14 +99,16 @@ func (n *Notifier) StopNotify(e Notifiee) {
 //    })
 //  }
 //
+// Note well: each notification is launched in its own goroutine, so they
+// can be processed concurrently, and so that whatever the notification does
+// it _never_ blocks out the client. This is so that consumers _cannot_ add
+// hooks into your object that block you accidentally.
 func (n *Notifier) NotifyAll(notify func(Notifiee)) {
 	n.mu.Lock()
 	if n.nots != nil { // so that zero-value is ready to be used.
 		for notifiee := range n.nots {
-			// we spin out a goroutine so that whatever the notification does
-			// it _never_ blocks out the client. This is so that consumers
-			// _cannot_ add hooks into your object that block you accidentally.
 			go notify(notifiee)
+			// TODO find a good way to rate limit this without blocking notifier.
 		}
 	}
 	n.mu.Unlock()
