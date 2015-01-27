@@ -177,6 +177,8 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) []NodeGetter {
 	return ds.GetNodes(ctx, keys)
 }
 
+// GetNodes returns an array of 'NodeGetter' promises, with each corresponding
+// to the key with the same index as the passed in keys
 func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 	promises := make([]NodeGetter, len(keys))
 	sendChans := make([]chan<- *Node, len(keys))

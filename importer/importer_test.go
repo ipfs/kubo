@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	mrand "math/rand"
 	"os"
 	"testing"
 
@@ -305,6 +306,51 @@ func TestSeekToAlmostBegin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSeekingStress(t *testing.T) {
+	nbytes := int64(1024 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(should)
+	dnp := getDagservAndPinner(t)
+	nd, err := BuildDagFromReader(read, dnp.ds, dnp.mp, &chunk.SizeSplitter{1000})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := uio.NewDagReader(context.TODO(), nd, dnp.ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testbuf := make([]byte, nbytes)
+	for i := 0; i < 50; i++ {
+		offset := mrand.Intn(int(nbytes))
+		l := int(nbytes) - offset
+		n, err := rs.Seek(int64(offset), os.SEEK_SET)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != int64(offset) {
+			t.Fatal("Seek failed to move to correct position")
+		}
+
+		nread, err := rs.Read(testbuf[:l])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if nread != l {
+			t.Fatal("Failed to read enough bytes")
+		}
+
+		err = arrComp(testbuf[:l], should[offset:offset+l])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 }
 
 func TestSeekingConsistency(t *testing.T) {

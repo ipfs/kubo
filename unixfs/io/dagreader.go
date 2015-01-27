@@ -18,19 +18,31 @@ var ErrIsDir = errors.New("this dag node is a directory")
 
 // DagReader provides a way to easily read the data contained in a dag.
 type DagReader struct {
-	serv         mdag.DAGService
-	node         *mdag.Node
-	pbdata       *ftpb.Data
-	buf          ReadSeekCloser
-	promises     []mdag.NodeGetter
+	serv mdag.DAGService
+
+	// the node being read
+	node *mdag.Node
+
+	// cached protobuf structure from node.Data
+	pbdata *ftpb.Data
+
+	// the current data buffer to be read from
+	// will either be a bytes.Reader or a child DagReader
+	buf ReadSeekCloser
+
+	// NodeGetters for each of 'nodes' child links
+	promises []mdag.NodeGetter
+
+	// the index of the child link currently being read from
 	linkPosition int
-	offset       int64
+
+	// current offset for the read head within the 'file'
+	offset int64
 
 	// Our context
 	ctx context.Context
 
-	// Context for children
-	fctx   context.Context
+	// context cancel for children
 	cancel func()
 }
 
@@ -145,6 +157,8 @@ func (dr *DagReader) Close() error {
 	return nil
 }
 
+// Seek implements io.Seeker, and will seek to a given offset in the file
+// interface matches standard unix seek
 func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case os.SEEK_SET:
@@ -152,18 +166,26 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 			return -1, errors.New("Invalid offset")
 		}
 
+		// Grab cached protobuf object (solely to make code look cleaner)
 		pb := dr.pbdata
+
+		// left represents the number of bytes remaining to seek to (from beginning)
 		left := offset
 		if int64(len(pb.Data)) > offset {
+			// Close current buf to close potential child dagreader
 			dr.buf.Close()
 			dr.buf = NewRSNCFromBytes(pb.GetData()[offset:])
+
+			// start reading links from the beginning
 			dr.linkPosition = 0
 			dr.offset = offset
 			return offset, nil
 		} else {
+			// skip past root block data
 			left -= int64(len(pb.Data))
 		}
 
+		// iterate through links and find where we need to be
 		for i := 0; i < len(pb.Blocksizes); i++ {
 			if pb.Blocksizes[i] > uint64(left) {
 				dr.linkPosition = i
@@ -173,15 +195,19 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 			}
 		}
 
+		// start sub-block request
 		err := dr.precalcNextBuf()
 		if err != nil {
 			return 0, err
 		}
 
+		// set proper offset within child readseeker
 		n, err := dr.buf.Seek(left, os.SEEK_SET)
 		if err != nil {
 			return -1, err
 		}
+
+		// sanity
 		left -= n
 		if left != 0 {
 			return -1, errors.New("failed to seek properly")
@@ -201,6 +227,7 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
+// readSeekNopCloser wraps a bytes.Reader to implement ReadSeekCloser
 type readSeekNopCloser struct {
 	*bytes.Reader
 }
