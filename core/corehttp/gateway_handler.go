@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -33,6 +34,7 @@ type webHandler map[string]interface{}
 type directoryItem struct {
 	Size uint64
 	Name string
+	Path string
 }
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
@@ -63,8 +65,26 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *gatewayHandler) ResolvePath(p string) (*dag.Node, error) {
-	return i.node.Resolver.ResolvePath(p)
+func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+	if strings.HasPrefix(p, "/ipns/") {
+		elements := strings.Split(path.Clean(p[6:]), "/")
+		k, err := i.node.Namesys.Resolve(ctx, elements[0])
+		if err != nil {
+			return nil, "", err
+		}
+
+		elements[0] = k.Pretty()
+		p = path.Join(elements...)
+	}
+	if !strings.HasPrefix(p, "/ipfs/") {
+		p = path.Join("/ipfs/", p)
+	}
+
+	node, err := i.node.Resolver.ResolvePath(p)
+	if err != nil {
+		return nil, "", err
+	}
+	return node, p, err
 }
 
 func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
@@ -81,9 +101,12 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.ReadSeeker, error) {
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	urlPath := r.URL.Path[5:]
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
 
-	nd, err := i.ResolvePath(urlPath)
+	urlPath := r.URL.Path
+
+	nd, p, err := i.ResolvePath(ctx, urlPath)
 	if err != nil {
 		if err == routing.ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -97,6 +120,8 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+
+	w.Header().Set("X-IPFS-Path", p)
 
 	dr, err := i.NewDagReader(nd)
 	if err == nil {
@@ -113,13 +138,6 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debug("listing directory")
-	if urlPath[len(urlPath)-1:] != "/" {
-		log.Debug("missing trailing slash, redirect")
-		http.Redirect(w, r, "/ipfs/"+urlPath+"/", 307)
-		return
-	}
-
 	// storage for directory listing
 	var dirListing []directoryItem
 	// loop through files
@@ -129,7 +147,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Debug("found index")
 			foundIndex = true
 			// return index page instead.
-			nd, err := i.ResolvePath(urlPath + "/index.html")
+			nd, _, err := i.ResolvePath(ctx, urlPath+"/index.html")
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -144,12 +162,17 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		dirListing = append(dirListing, directoryItem{link.Size, link.Name})
+		di := directoryItem{link.Size, link.Name, path.Join(p, link.Name)}
+		dirListing = append(dirListing, di)
 	}
 
 	if !foundIndex {
 		// template and return directory listing
-		hndlr := webHandler{"listing": dirListing, "path": urlPath}
+		hndlr := webHandler{
+			"listing":    dirListing,
+			"path":       urlPath,
+			"actualPath": p,
+		}
 		if err := i.dirList.Execute(w, hndlr); err != nil {
 			internalWebError(w, err)
 			return
@@ -198,8 +221,8 @@ var listingTemplate = `
 	<h2>Index of {{ .path }}</h2>
 	<ul>
 	<li><a href="./..">..</a></li>
-  {{ range $item := .listing }}
-	<li><a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>
+  {{ range .listing }}
+	<li><a href="{{ .Path }}">{{ .Name }}</a> - {{ .Size }} bytes</li>
 	{{ end }}
 	</ul>
 	</body>
