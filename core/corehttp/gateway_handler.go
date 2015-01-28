@@ -135,23 +135,26 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Etag", etag)
 	w.Header().Set("X-IPFS-Path", p)
-	w.Header().Set("Cache-Control", "public, max-age=29030400")
 
 	dr, err := i.NewDagReader(nd)
+	if err != nil && err != uio.ErrIsDir {
+		// not a directory and still an error
+		internalWebError(w, err)
+		return
+	}
+
+	// set these headers _after_ the error, for we may just not have it
+	// and dont want the client to cache a 500 response...
+	w.Header().Set("Etag", etag)
+	w.Header().Set("Cache-Control", "public, max-age=29030400")
+
 	if err == nil {
 		defer dr.Close()
 		_, name := path.Split(urlPath)
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime := time.Unix(1, 0)
 		http.ServeContent(w, r, name, modtime, dr)
-		return
-	}
-
-	if err != uio.ErrIsDir {
-		// not a directory and still an error
-		internalWebError(w, err)
 		return
 	}
 
