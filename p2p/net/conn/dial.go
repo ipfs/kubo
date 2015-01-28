@@ -11,6 +11,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	reuseport "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -26,9 +27,14 @@ func (d *Dialer) String() string {
 // Ensures raddr is part of peer.Addresses()
 // Example: d.DialAddr(ctx, peer.Addresses()[0], peer)
 func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (Conn, error) {
+	logdial := lgbl.Dial("conn", d.LocalPeer, remote, nil, raddr)
+	logdial["encrypted"] = (d.PrivateKey != nil) // log wether this will be an encrypted dial or not.
+	defer log.EventBegin(ctx, "connDial", logdial).Done()
 
 	maconn, err := d.rawConnDial(ctx, raddr, remote)
 	if err != nil {
+		logdial["dial"] = "failure"
+		logdial["error"] = err
 		return nil, err
 	}
 
@@ -51,6 +57,7 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 			connOut = c
 			return
 		}
+
 		c2, err := newSecureConn(ctx, d.PrivateKey, c)
 		if err != nil {
 			errOut = err
@@ -64,12 +71,20 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 	select {
 	case <-ctx.Done():
 		maconn.Close()
+		logdial["error"] = ctx.Err()
 		return nil, ctx.Err()
 	case <-done:
 		// whew, finished.
 	}
 
-	return connOut, errOut
+	if errOut != nil {
+		logdial["error"] = errOut
+		logdial["dial"] = "failure"
+		return nil, errOut
+	}
+
+	logdial["dial"] = "success"
+	return connOut, nil
 }
 
 // rawConnDial dials the underlying net.Conn + manet.Conns
@@ -82,12 +97,14 @@ func (d *Dialer) rawConnDial(ctx context.Context, raddr ma.Multiaddr, remote pee
 	}
 
 	if strings.HasPrefix(raddr.String(), "/ip4/0.0.0.0") {
+		log.Event(ctx, "connDialZeroAddr", lgbl.Dial("conn", d.LocalPeer, remote, nil, raddr))
 		return nil, debugerror.Errorf("Attempted to connect to zero address: %s", raddr)
 	}
 
 	// get local addr to use.
 	laddr := pickLocalAddr(d.LocalAddrs, raddr)
-	log.Debugf("%s dialing %s -- %s --> %s", d.LocalPeer, remote, laddr, raddr)
+	logdial := lgbl.Dial("conn", d.LocalPeer, remote, laddr, raddr)
+	defer log.EventBegin(ctx, "connDialRawConn", logdial).Done()
 
 	// make a copy of the manet.Dialer, we may need to change its timeout.
 	madialer := d.Dialer
@@ -99,19 +116,27 @@ func (d *Dialer) rawConnDial(ctx context.Context, raddr ma.Multiaddr, remote pee
 
 		// dial using reuseport.Dialer, because we're probably reusing addrs.
 		// this is optimistic, as the reuseDial may fail to bind the port.
+		rpev := log.EventBegin(ctx, "connDialReusePort", logdial)
 		if nconn, retry, reuseErr := reuseDial(madialer.Dialer, laddr, raddr); reuseErr == nil {
 			// if it worked, wrap the raw net.Conn with our manet.Conn
-			log.Debugf("%s reuse worked! %s %s %s", d.LocalPeer, laddr, nconn.RemoteAddr(), nconn)
+			logdial["reuseport"] = "success"
+			rpev.Done()
 			return manet.WrapNetConn(nconn)
 		} else if !retry {
 			// reuseDial is sure this is a legitimate dial failure, not a reuseport failure.
+			logdial["reuseport"] = "failure"
+			logdial["error"] = reuseErr
+			rpev.Done()
 			return nil, reuseErr
 		} else {
 			// this is a failure to reuse port. log it.
-			log.Debugf("%s port reuse failed: %s --> %s -- %s", d.LocalPeer, laddr, raddr, reuseErr)
+			logdial["reuseport"] = "retry"
+			logdial["error"] = reuseErr
+			rpev.Done()
 		}
 	}
 
+	defer log.EventBegin(ctx, "connDialManet", logdial).Done()
 	return madialer.Dial(raddr)
 }
 

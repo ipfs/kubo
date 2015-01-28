@@ -9,7 +9,11 @@ package loggables
 import (
 	"net"
 
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	log "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
 // NetConn returns an eventlog.Metadata with the conn addresses
@@ -25,4 +29,43 @@ func Error(e error) log.Loggable {
 	return log.Metadata{
 		"error": e.Error(),
 	}
+}
+
+// Dial metadata is metadata for dial events
+func Dial(sys string, lid, rid peer.ID, laddr, raddr ma.Multiaddr) DeferredMap {
+	m := DeferredMap{}
+	m["subsystem"] = sys
+	if lid != "" {
+		m["localPeer"] = func() interface{} { return lid.Pretty() }
+	}
+	if laddr != nil {
+		m["localAddr"] = func() interface{} { return laddr.String() }
+	}
+	if rid != "" {
+		m["remotePeer"] = func() interface{} { return rid.Pretty() }
+	}
+	if raddr != nil {
+		m["remoteAddr"] = func() interface{} { return raddr.String() }
+	}
+	return m
+}
+
+// DeferredMap is a Loggable which may contained deffered values.
+type DeferredMap map[string]interface{}
+
+// Loggable describes objects that can be marshalled into Metadata for logging
+func (m DeferredMap) Loggable() map[string]interface{} {
+	m2 := map[string]interface{}{}
+	for k, v := range m {
+
+		if vf, ok := v.(func() interface{}); ok {
+			// if it's a DeferredVal, call it.
+			m2[k] = vf()
+
+		} else {
+			// else use the value as is.
+			m2[k] = v
+		}
+	}
+	return m2
 }

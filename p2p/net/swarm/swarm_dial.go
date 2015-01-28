@@ -28,8 +28,16 @@ import (
 //                                         any may fail          if no addr at end
 //                                                             retry dialAttempt x
 
+var (
+	ErrDialBackoff = errors.New("dial backoff")
+	ErrDialFailed  = errors.New("dial attempt failed")
+	ErrDialToSelf  = errors.New("dial to self attempted")
+)
+
 // dialAttempts governs how many times a goroutine will try to dial a given peer.
-const dialAttempts = 3
+// Note: this is down to one, as we have _too many dials_ atm. To add back in,
+// add loop back in Dial(.)
+const dialAttempts = 1
 
 // DialTimeout is the amount of time each dial attempt has. We can think about making
 // this larger down the road, or putting more granular timeouts (i.e. within each
@@ -179,75 +187,97 @@ func (db *dialbackoff) Clear(p peer.ID) {
 // This allows us to use various transport protocols, do NAT traversal/relay,
 // etc. to achive connection.
 func (s *Swarm) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
+	var logdial = lgbl.Dial("swarm", s.LocalPeer(), p, nil, nil)
 	if p == s.local {
-		return nil, errors.New("Attempted connection to self!")
+		log.Event(ctx, "swarmDialSelf", logdial)
+		return nil, ErrDialToSelf
 	}
 
-	// this loop is here because dials take time, and we should not be dialing
-	// the same peer concurrently (silly waste). Additonally, it's structured
-	// to check s.ConnectionsToPeer(p) _first_, and _between_ attempts because we
-	// may have received an incoming connection! if so, we no longer must dial.
-	//
-	// During the dial attempts, we may be doing the dialing. if not, we wait.
-	var err error
-	var conn *Conn
-	for i := 0; i < dialAttempts; i++ {
-		// check if we already have an open connection first
-		cs := s.ConnectionsToPeer(p)
-		for _, conn = range cs {
-			if conn != nil { // dump out the first one we find. (TODO pick better)
-				return conn, nil
-			}
+	return s.gatedDialAttempt(ctx, p)
+}
+
+func (s *Swarm) bestConnectionToPeer(p peer.ID) *Conn {
+	cs := s.ConnectionsToPeer(p)
+	for _, conn := range cs {
+		if conn != nil { // dump out the first one we find. (TODO pick better)
+			return conn
 		}
+	}
+	return nil
+}
 
-		// check if there's an ongoing dial to this peer
-		if ok, wait := s.dsync.Lock(p); !ok {
+// gatedDialAttempt is an attempt to dial a node. It is gated by the swarm's
+// dial synchronization systems: dialsync and dialbackoff.
+func (s *Swarm) gatedDialAttempt(ctx context.Context, p peer.ID) (*Conn, error) {
+	var logdial = lgbl.Dial("swarm", s.LocalPeer(), p, nil, nil)
+	defer log.EventBegin(ctx, "swarmDialAttemptSync", logdial).Done()
 
-			if s.backf.Backoff(p) {
-				log.Debugf("backoff")
-				return nil, fmt.Errorf("%s failed to dial %s, backing off.", s.local, p)
-			}
+	// check if we already have an open connection first
+	conn := s.bestConnectionToPeer(p)
+	if conn != nil {
+		return conn, nil
+	}
 
-			log.Debugf("waiting for ongoing dial")
-			select {
-			case <-wait: // wait for that dial to finish.
-				continue // and see if it worked (loop), OR we got an incoming dial.
-			case <-ctx.Done(): // or we may have to bail...
-				return nil, ctx.Err()
-			}
-		}
-
+	// check if there's an ongoing dial to this peer
+	if ok, wait := s.dsync.Lock(p); ok {
 		// ok, we have been charged to dial! let's do it.
 		// if it succeeds, dial will add the conn to the swarm itself.
-		log.Debugf("dial start")
+
+		defer log.EventBegin(ctx, "swarmDialAttemptStart", logdial).Done()
 		ctxT, _ := context.WithTimeout(ctx, s.dialT)
-		conn, err = s.dial(ctxT, p)
+		conn, err := s.dial(ctxT, p)
 		s.dsync.Unlock(p)
 		log.Debugf("dial end %s", conn)
 		if err != nil {
+			log.Event(ctx, "swarmDialBackoffAdd", logdial)
 			s.backf.AddBackoff(p) // let others know to backoff
 
-			continue // ok, we failed. try again. (if loop is done, our error is output)
+			return nil, ErrDialFailed // ok, we failed. try again. (if loop is done, our error is output)
 		}
+		log.Event(ctx, "swarmDialBackoffClear", logdial)
 		s.backf.Clear(p) // okay, no longer need to backoff
 		return conn, nil
+
+	} else {
+		// we did not dial. we must wait for someone else to dial.
+
+		// check whether we should backoff first...
+		if s.backf.Backoff(p) {
+			log.Event(ctx, "swarmDialBackoff", logdial)
+			return nil, ErrDialBackoff
+		}
+
+		defer log.EventBegin(ctx, "swarmDialWait", logdial).Done()
+		select {
+		case <-wait: // wait for that other dial to finish.
+
+			// see if it worked, OR we got an incoming dial in the meantime...
+			conn := s.bestConnectionToPeer(p)
+			if conn != nil {
+				return conn, nil
+			}
+			return nil, ErrDialFailed
+		case <-ctx.Done(): // or we may have to bail...
+			return nil, ctx.Err()
+		}
 	}
-	if err == nil {
-		err = fmt.Errorf("%s failed to dial %s after %d attempts", s.local, p, dialAttempts)
-	}
-	return nil, err
 }
 
 // dial is the actual swarm's dial logic, gated by Dial.
 func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
+	var logdial = lgbl.Dial("swarm", s.LocalPeer(), p, nil, nil)
 	if p == s.local {
-		return nil, errors.New("Attempted connection to self!")
+		log.Event(ctx, "swarmDialDoDialSelf", logdial)
+		return nil, ErrDialToSelf
 	}
+	defer log.EventBegin(ctx, "swarmDialDo", logdial).Done()
+	logdial["dial"] = "failure" // start off with failure. set to "success" at the end.
 
 	sk := s.peers.PrivKey(s.local)
+	logdial["encrypted"] = (sk != nil) // log wether this will be an encrypted dial or not.
 	if sk == nil {
-		// may be fine for sk to be nil, just log a warning.
-		log.Warning("Dial not given PrivateKey, so WILL NOT SECURE conn.")
+		// fine for sk to be nil, just log.
+		log.Debug("Dial not given PrivateKey, so WILL NOT SECURE conn.")
 	}
 
 	// get our own addrs. try dialing out from our listener addresses (reusing ports)
@@ -269,7 +299,9 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addresses(s.local))
 	log.Debugf("%s swarm dialing %s -- remote:%s local:%s", s.local, p, remoteAddrs, s.ListenAddresses())
 	if len(remoteAddrs) == 0 {
-		return nil, errors.New("peer has no addresses")
+		err := errors.New("peer has no addresses")
+		logdial["error"] = err
+		return nil, err
 	}
 
 	// open connection to peer
@@ -287,19 +319,21 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	// try to get a connection to any addr
 	connC, err := s.dialAddrs(ctx, d, p, remoteAddrs)
 	if err != nil {
+		logdial["error"] = err
 		return nil, err
 	}
+	logdial["netconn"] = lgbl.NetConn(connC)
 
 	// ok try to setup the new connection.
+	defer log.EventBegin(ctx, "swarmDialDoSetup", logdial, lgbl.NetConn(connC)).Done()
 	swarmC, err := dialConnSetup(ctx, s, connC)
 	if err != nil {
-		log.Debug("Dial newConnSetup failed. disconnecting.")
-		log.Event(ctx, "dialFailureDisconnect", lgbl.NetConn(connC), lgbl.Error(err))
+		logdial["error"] = err
 		connC.Close() // close the connection. didn't work out :(
 		return nil, err
 	}
 
-	log.Event(ctx, "dial", p)
+	logdial["dial"] = "success"
 	return swarmC, nil
 }
 
@@ -398,8 +432,6 @@ func dialConnSetup(ctx context.Context, s *Swarm, connC conn.Conn) (*Conn, error
 	// ok try to setup the new connection. (newConnSetup will add to group)
 	swarmC, err := s.newConnSetup(ctx, psC)
 	if err != nil {
-		log.Debug("Dial newConnSetup failed. disconnecting.")
-		log.Event(ctx, "dialFailureDisconnect", lgbl.NetConn(connC), lgbl.Error(err))
 		psC.Close() // we need to make sure psC is Closed.
 		return nil, err
 	}
