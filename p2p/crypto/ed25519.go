@@ -6,17 +6,13 @@ import (
 	ed "github.com/mildred/ed25519/src"
 )
 
-type edPubKey [32]byte
-type edPrivKey [64]byte
-type edSeed [32]byte
+type Ed25519PublicKey struct {
+	k ed.PublicKey
+}
 
 type Ed25519PrivateKey struct {
 	sk ed.PrivateKey
 	pk ed.PublicKey
-}
-
-type Ed25519PublicKey struct {
-	k ed.PublicKey
 }
 
 func (pk *Ed25519PublicKey) Verify(data, sig []byte) (bool, error) {
@@ -38,22 +34,7 @@ func (pk *Ed25519PublicKey) Equals(k Key) bool {
 }
 
 func (pk *Ed25519PublicKey) Hash() ([]byte, error) {
-	return pk.k[:], nil
-}
-
-func (pk *Ed25519PublicKey) Encrypt(data []byte) ([]byte, error) {
-	var empty []byte
-	return empty, errors.New("Cannot encrypt not knowing a private key")
-}
-
-func (pk *Ed25519PrivateKey) Decrypt(b []byte) ([]byte, error) {
-	var empty []byte
-	return empty, errors.New("Cannot decrypt not knowing the public key of the other side")
-}
-
-func (sk *Ed25519PrivateKey) GenSecret() ([]byte, error) {
-	buf, err := ed.CreateSeed()
-	return buf[:], err
+	return KeyHash(pk)
 }
 
 func (sk *Ed25519PrivateKey) Sign(message []byte) ([]byte, error) {
