@@ -29,7 +29,7 @@ type FuseSystem struct {
 //  // Outputs:
 //  // OSXFUSE, , 2.7.2
 //
-func LocalFuseSystems() (*Systems, error) {
+func LocalFuseSystems() (Systems, error) {
 	return getLocalFuseSystems() // implemented by each platform
 }
 

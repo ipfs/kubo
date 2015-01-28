@@ -23,6 +23,12 @@ const mountTimeout = time.Second
 // fuseNoDirectory used to check the returning fuse error
 const fuseNoDirectory = "fusermount: failed to access mountpoint"
 
+// platformFuseChecks can get overridden by arch-specific files
+// to run fuse checks (like checking the OSXFUSE version)
+var platformFuseChecks = func(*core.IpfsNode) error {
+	return nil
+}
+
 var MountCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only)",
@@ -161,7 +167,7 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 		node.Mounts.Ipns.Unmount()
 	}
 
-	if err := platformFuseChecks(); err != nil {
+	if err := platformFuseChecks(node); err != nil {
 		return err
 	}
 
@@ -170,10 +176,6 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 		return err
 	}
 
-	return nil
-}
-
-var platformFuseChecks = func() error {
 	return nil
 }
 
