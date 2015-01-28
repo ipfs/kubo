@@ -32,19 +32,41 @@ func Error(e error) log.Loggable {
 }
 
 // Dial metadata is metadata for dial events
-func Dial(sys string, lid, rid peer.ID, laddr, raddr ma.Multiaddr) log.LoggableMap {
-	m := log.Metadata{"subsystem": sys}
+func Dial(sys string, lid, rid peer.ID, laddr, raddr ma.Multiaddr) DeferredMap {
+	m := DeferredMap{}
+	m["subsystem"] = sys
 	if lid != "" {
-		m["localPeer"] = lid.Pretty()
+		m["localPeer"] = func() interface{} { return lid.Pretty() }
+		_ = m["localPeer"].(func() interface{})
 	}
 	if laddr != nil {
-		m["localAddr"] = laddr.String()
+		m["localAddr"] = func() interface{} { return laddr.String() }
 	}
 	if rid != "" {
-		m["remotePeer"] = rid.Pretty()
+		m["remotePeer"] = func() interface{} { return rid.Pretty() }
 	}
 	if raddr != nil {
-		m["remoteAddr"] = raddr.String()
+		m["remoteAddr"] = func() interface{} { return raddr.String() }
 	}
-	return log.LoggableMap(m)
+	return m
+}
+
+// DeferredMap is a Loggable which may contained deffered values.
+type DeferredMap map[string]interface{}
+
+// Loggable describes objects that can be marshalled into Metadata for logging
+func (m DeferredMap) Loggable() map[string]interface{} {
+	m2 := map[string]interface{}{}
+	for k, v := range m {
+
+		if vf, ok := v.(func() interface{}); ok {
+			// if it's a DeferredVal, call it.
+			m2[k] = vf()
+
+		} else {
+			// else use the value as is.
+			m2[k] = v
+		}
+	}
+	return m2
 }

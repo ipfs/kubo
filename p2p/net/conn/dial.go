@@ -28,6 +28,7 @@ func (d *Dialer) String() string {
 // Example: d.DialAddr(ctx, peer.Addresses()[0], peer)
 func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (Conn, error) {
 	logdial := lgbl.Dial("conn", d.LocalPeer, remote, nil, raddr)
+	logdial["encrypted"] = (d.PrivateKey != nil) // log wether this will be an encrypted dial or not.
 	defer log.EventBegin(ctx, "connDial", logdial).Done()
 
 	maconn, err := d.rawConnDial(ctx, raddr, remote)
@@ -53,12 +54,10 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 
 		if d.PrivateKey == nil {
 			log.Warning("dialer %s dialing INSECURELY %s at %s!", d, remote, raddr)
-			log.Event(ctx, "connDialInsecure", logdial)
 			connOut = c
 			return
 		}
 
-		defer log.EventBegin(ctx, "connDialEncrypt", logdial).Done()
 		c2, err := newSecureConn(ctx, d.PrivateKey, c)
 		if err != nil {
 			logdial["error"] = err
