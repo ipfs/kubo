@@ -60,7 +60,6 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 
 		c2, err := newSecureConn(ctx, d.PrivateKey, c)
 		if err != nil {
-			logdial["error"] = err
 			errOut = err
 			c.Close()
 			return

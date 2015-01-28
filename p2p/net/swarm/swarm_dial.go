@@ -266,17 +266,18 @@ func (s *Swarm) gatedDialAttempt(ctx context.Context, p peer.ID) (*Conn, error) 
 // dial is the actual swarm's dial logic, gated by Dial.
 func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	var logdial = lgbl.Dial("swarm", s.LocalPeer(), p, nil, nil)
-	defer log.EventBegin(ctx, "swarmDialDo", logdial).Done()
 	if p == s.local {
 		log.Event(ctx, "swarmDialDoDialSelf", logdial)
 		return nil, ErrDialToSelf
 	}
+	defer log.EventBegin(ctx, "swarmDialDo", logdial).Done()
+	logdial["dial"] = "failure" // start off with failure. set to "success" at the end.
 
 	sk := s.peers.PrivKey(s.local)
+	logdial["encrypted"] = (sk != nil) // log wether this will be an encrypted dial or not.
 	if sk == nil {
-		// may be fine for sk to be nil, just log.
+		// fine for sk to be nil, just log.
 		log.Debug("Dial not given PrivateKey, so WILL NOT SECURE conn.")
-		log.Event(ctx, "swarmDialDoInsecure", logdial)
 	}
 
 	// get our own addrs. try dialing out from our listener addresses (reusing ports)
@@ -298,7 +299,9 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addresses(s.local))
 	log.Debugf("%s swarm dialing %s -- remote:%s local:%s", s.local, p, remoteAddrs, s.ListenAddresses())
 	if len(remoteAddrs) == 0 {
-		return nil, errors.New("peer has no addresses")
+		err := errors.New("peer has no addresses")
+		logdial["error"] = err
+		return nil, err
 	}
 
 	// open connection to peer
@@ -316,20 +319,21 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	// try to get a connection to any addr
 	connC, err := s.dialAddrs(ctx, d, p, remoteAddrs)
 	if err != nil {
+		logdial["error"] = err
 		return nil, err
 	}
+	logdial["netconn"] = lgbl.NetConn(connC)
 
 	// ok try to setup the new connection.
 	defer log.EventBegin(ctx, "swarmDialDoSetup", logdial, lgbl.NetConn(connC)).Done()
 	swarmC, err := dialConnSetup(ctx, s, connC)
 	if err != nil {
-		log.Debug("Dial newConnSetup failed. disconnecting.")
-		log.Event(ctx, "swarmDialDoSetupFailed", logdial, lgbl.NetConn(connC), lgbl.Error(err))
+		logdial["error"] = err
 		connC.Close() // close the connection. didn't work out :(
 		return nil, err
 	}
 
-	log.Event(ctx, "swarmDialDoSuccess", logdial, lgbl.NetConn(connC))
+	logdial["dial"] = "success"
 	return swarmC, nil
 }
 
@@ -428,8 +432,6 @@ func dialConnSetup(ctx context.Context, s *Swarm, connC conn.Conn) (*Conn, error
 	// ok try to setup the new connection. (newConnSetup will add to group)
 	swarmC, err := s.newConnSetup(ctx, psC)
 	if err != nil {
-		log.Debug("Dial newConnSetup failed. disconnecting.")
-		log.Event(ctx, "dialFailureDisconnect", lgbl.NetConn(connC), lgbl.Error(err))
 		psC.Close() // we need to make sure psC is Closed.
 		return nil, err
 	}

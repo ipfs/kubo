@@ -37,7 +37,6 @@ func Dial(sys string, lid, rid peer.ID, laddr, raddr ma.Multiaddr) DeferredMap {
 	m["subsystem"] = sys
 	if lid != "" {
 		m["localPeer"] = func() interface{} { return lid.Pretty() }
-		_ = m["localPeer"].(func() interface{})
 	}
 	if laddr != nil {
 		m["localAddr"] = func() interface{} { return laddr.String() }
