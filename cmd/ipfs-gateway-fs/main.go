@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	writable               = flag.Bool("writable", false, "enable writing objects (with POST, PUT and DELETE)")
 	refreshAssetsInterval  = flag.Duration("refresh-assets-interval", 30*time.Second, "refresh assets")
 	garbageCollectInterval = flag.Duration("gc-interval", 24*time.Hour, "frequency of repo garbage collection")
 	assetsPath             = flag.String("assets-path", "", "if provided, periodically adds contents of path to IPFS")
@@ -93,7 +94,7 @@ func run() error {
 	}
 
 	opts := []corehttp.ServeOption{
-		corehttp.GatewayOption,
+		corehttp.GatewayOption(*writable),
 	}
 	if err := corehttp.ListenAndServe(node, *host, opts...); err != nil {
 		return err

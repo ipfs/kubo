@@ -48,13 +48,15 @@ type directoryItem struct {
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node    *core.IpfsNode
-	dirList *template.Template
+	node     *core.IpfsNode
+	dirList  *template.Template
+	writable bool
 }
 
-func newGatewayHandler(node *core.IpfsNode) (*gatewayHandler, error) {
+func newGatewayHandler(node *core.IpfsNode, writable bool) (*gatewayHandler, error) {
 	i := &gatewayHandler{
-		node: node,
+		node:     node,
+		writable: writable,
 	}
 	err := i.loadTemplate()
 	if err != nil {
@@ -116,17 +118,17 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) 
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+	if i.writable && r.Method == "POST" {
 		i.postHandler(w, r)
 		return
 	}
 
-	if r.Method == "PUT" {
+	if i.writable && r.Method == "PUT" {
 		i.putHandler(w, r)
 		return
 	}
 
-	if r.Method == "DELETE" {
+	if i.writable && r.Method == "DELETE" {
 		i.deleteHandler(w, r)
 		return
 	}
@@ -136,8 +138,14 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errmsg := "Method " + r.Method + " not allowed: " + "bad request for " + r.URL.Path
-	w.WriteHeader(http.StatusBadRequest)
+	errmsg := "Method " + r.Method + " not allowed: "
+	if !i.writable {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		errmsg = errmsg + "read only access"
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+		errmsg = errmsg + "bad request for " + r.URL.Path
+	}
 	w.Write([]byte(errmsg))
 	log.Error(errmsg)
 }
