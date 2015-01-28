@@ -277,6 +277,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, maybeRouter 
 // teardown closes owned children. If any errors occur, this function returns
 // the first error.
 func (n *IpfsNode) teardown() error {
+	log.Debug("core is shutting down...")
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
 	closers := []io.Closer{
