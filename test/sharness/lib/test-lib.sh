@@ -88,7 +88,8 @@ test_launch_ipfs_daemon() {
 
 	test_expect_success FUSE "'ipfs daemon' output looks good" '
 		IPFS_PID=$! &&
-		echo "API server listening on /ip4/127.0.0.1/tcp/5001" >expected &&
+		echo "Initializing daemon..." >expected &&
+		echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected &&
 		test_cmp_repeat_10_sec expected actual ||
 		fsh cat daemon_err
 	'
