@@ -129,8 +129,14 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	etag := path.Base(p)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	w.Header().Set("Etag", etag)
 	w.Header().Set("X-IPFS-Path", p)
-	w.Header().Set("Etag", path.Base(p))
 	w.Header().Set("Cache-Control", "public, max-age=29030400")
 
 	dr, err := i.NewDagReader(nd)
