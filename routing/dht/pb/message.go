@@ -10,6 +10,11 @@ import (
 
 var log = eventlog.Logger("dht.pb")
 
+type PeerRoutingInfo struct {
+	peer.PeerInfo
+	inet.Connectedness
+}
+
 // NewMessage constructs a new dht message with given type, key, and level
 func NewMessage(typ Message_MessageType, key string, level int) *Message {
 	m := &Message{
@@ -18,6 +23,20 @@ func NewMessage(typ Message_MessageType, key string, level int) *Message {
 	}
 	m.SetClusterLevel(level)
 	return m
+}
+
+func peerRoutingInfoToPBPeer(p PeerRoutingInfo) *Message_Peer {
+	pbp := new(Message_Peer)
+
+	pbp.Addrs = make([][]byte, len(p.Addrs))
+	for i, maddr := range p.Addrs {
+		pbp.Addrs[i] = maddr.Bytes() // Bytes, not String. Compressed.
+	}
+	s := string(p.ID)
+	pbp.Id = &s
+	c := ConnectionType(p.Connectedness)
+	pbp.Connection = &c
+	return pbp
 }
 
 func peerInfoToPBPeer(p peer.PeerInfo) *Message_Peer {
@@ -61,6 +80,14 @@ func PeerInfosToPBPeers(n inet.Network, peers []peer.PeerInfo) []*Message_Peer {
 		pbp.Connection = &c
 	}
 	return pbps
+}
+
+func PeerRoutingInfosToPBPeers(peers []PeerRoutingInfo) []*Message_Peer {
+	pbpeers := make([]*Message_Peer, len(peers))
+	for i, p := range peers {
+		pbpeers[i] = peerRoutingInfoToPBPeer(p)
+	}
+	return pbpeers
 }
 
 // PBPeersToPeerInfos converts given []*Message_Peer into []peer.PeerInfo
