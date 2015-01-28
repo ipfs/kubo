@@ -203,7 +203,7 @@ func standardWithRouting(r repo.Repo, online bool, maybeRouter routing.IpfsRouti
 		}
 
 		if online {
-			if err := n.StartOnlineServices(ctx, maybeRouter); err != nil {
+			if err := n.startOnlineServices(ctx, maybeRouter); err != nil {
 				return nil, err
 			}
 		} else {
@@ -215,7 +215,7 @@ func standardWithRouting(r repo.Repo, online bool, maybeRouter routing.IpfsRouti
 	}
 }
 
-func (n *IpfsNode) StartOnlineServices(ctx context.Context, maybeRouter routing.IpfsRouting) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, maybeRouter routing.IpfsRouting) error {
 
 	if n.PeerHost != nil { // already online.
 		return debugerror.New("node already online")
