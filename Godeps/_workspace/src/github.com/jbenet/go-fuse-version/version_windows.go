@@ -5,6 +5,6 @@ import (
 	"runtime"
 )
 
-func getLocalFuseSystems() (*Systems, error) {
+func getLocalFuseSystems() (Systems, error) {
 	return nil, fmt.Errorf(notImplYet, runtime.GOARCH)
 }

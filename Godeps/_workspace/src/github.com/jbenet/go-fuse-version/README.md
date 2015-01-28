@@ -32,14 +32,14 @@ func main() {
 }
 ```
 
-## fuseprint
+## fuse-print
 
-If you dont use Go, you can also install the example as the silly util fuseprint:
+If you dont use Go, you can also install the example as the silly util `fuse-version`:
 
 ```
-> go get github.com/jbenet/go-fuse-version/fuseprint
-> go install github.com/jbenet/go-fuse-version/fuseprint
-> fuseprint
+> go get github.com/jbenet/go-fuse-version/fuse-version
+> go install github.com/jbenet/go-fuse-version/fuse-version
+> fuse-version
 FuseVersion, AgentVersion, Agent
 27, 2.7.2, OSXFUSE
 ```

@@ -9,10 +9,10 @@ package fuseversion
 import "C"
 import "fmt"
 
-func getLocalFuseSystems() (*Systems, error) {
-	sys := Systems{}
+func getLocalFuseSystems() (Systems, error) {
+	sys := make(Systems)
 	sys["OSXFUSE"] = getOSXFUSE()
-	return &sys, nil
+	return sys, nil
 }
 
 func getOSXFUSE() FuseSystem {
