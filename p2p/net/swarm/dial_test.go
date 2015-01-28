@@ -164,8 +164,8 @@ func TestDialBackoff(t *testing.T) {
 	defer s1.Close()
 	defer s2.Close()
 
-	s1.dialT = time.Millisecond * 500 // lower timeout for tests.
-	s2.dialT = time.Millisecond * 500 // lower timeout for tests.
+	s1.dialT = time.Second // lower timeout for tests.
+	s2.dialT = time.Second // lower timeout for tests.
 
 	s2addrs, err := s2.InterfaceListenAddresses()
 	if err != nil {
@@ -229,8 +229,8 @@ func TestDialBackoff(t *testing.T) {
 
 		// when all dials should be done by:
 		dialTimeout1x := time.After(s1.dialT)
-		dialTimeout1Ax := time.After(s1.dialT * dialAttempts)
-		dialTimeout10Ax := time.After(s1.dialT * dialAttempts * 10)
+		// dialTimeout1Ax := time.After(s1.dialT * 2)       // dialAttempts)
+		dialTimeout10Ax := time.After(s1.dialT * 2 * 10) // dialAttempts * 10)
 
 		// 2) all dials should hang
 		select {
@@ -265,7 +265,7 @@ func TestDialBackoff(t *testing.T) {
 		}
 
 		// 4) s1->s3 should not (and should place s3 on backoff)
-		// N-1 should finish before dialTimeout1Ax
+		// N-1 should finish before dialTimeout1x * 2
 		for i := 0; i < N; i++ {
 			select {
 			case <-s2done:
@@ -274,11 +274,11 @@ func TestDialBackoff(t *testing.T) {
 				if r {
 					t.Error("s3 should not succeed")
 				}
-			case <-dialTimeout1Ax:
+			case <-(dialTimeout1x):
 				if i < (N - 1) {
 					t.Fatal("s3 took too long")
 				}
-				t.Log("dialTimeout1Ax hit for last peer")
+				t.Log("dialTimeout1x * 1.3 hit for last peer")
 			case <-dialTimeout10Ax:
 				t.Fatal("s3 took too long")
 			}
@@ -313,8 +313,8 @@ func TestDialBackoff(t *testing.T) {
 
 		// when all dials should be done by:
 		dialTimeout1x := time.After(s1.dialT)
-		dialTimeout1Ax := time.After(s1.dialT * dialAttempts)
-		dialTimeout10Ax := time.After(s1.dialT * dialAttempts * 10)
+		// dialTimeout1Ax := time.After(s1.dialT * 2)       // dialAttempts)
+		dialTimeout10Ax := time.After(s1.dialT * 2 * 10) // dialAttempts * 10)
 
 		// 7) s3 dials should all return immediately (except 1)
 		for i := 0; i < N-1; i++ {
@@ -338,7 +338,7 @@ func TestDialBackoff(t *testing.T) {
 					t.Error("s2 should succeed")
 				}
 			// case <-s3done:
-			case <-dialTimeout1Ax:
+			case <-(dialTimeout1x):
 				t.Fatal("s3 took too long")
 			}
 		}
