@@ -82,11 +82,11 @@ test_init_ipfs() {
 
 test_launch_ipfs_daemon() {
 
-	test_expect_success FUSE "'ipfs daemon' succeeds" '
+	test_expect_success "'ipfs daemon' succeeds" '
 		ipfs daemon >actual 2>daemon_err &
 	'
 
-	test_expect_success FUSE "'ipfs daemon' output looks good" '
+	test_expect_success "'ipfs daemon' output looks good" '
 		IPFS_PID=$! &&
 		echo "Initializing daemon..." >expected &&
 		echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected &&
@@ -132,11 +132,11 @@ test_kill_repeat_10_sec() {
 
 test_kill_ipfs_daemon() {
 
-	test_expect_success FUSE "'ipfs daemon' is still running" '
+	test_expect_success "'ipfs daemon' is still running" '
 		kill -0 $IPFS_PID
 	'
 
-	test_expect_success FUSE "'ipfs daemon' can be killed" '
+	test_expect_success "'ipfs daemon' can be killed" '
 		test_kill_repeat_10_sec $IPFS_PID
 	'
 }
