@@ -14,7 +14,7 @@ test_launch_ipfs_daemon
 test_expect_success "'ipfs add afile' succeeds" '
 	echo "some text" >afile
 	HASH=`ipfs add -q afile`
-	echo -n $HASH >hashfile
+	printf "$HASH" >hashfile
 '
 
 test_expect_success "added file was pinned" '
@@ -26,7 +26,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 '
 
 test_expect_success "'ipfs repo gc' looks good (empty)" '
-	echo -n "" >empty
+	printf "" >empty
 	test_cmp empty gc_out_actual
 '
 
