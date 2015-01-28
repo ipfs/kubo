@@ -2,13 +2,13 @@ package proxy
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	host "github.com/jbenet/go-ipfs/p2p/host"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 var log = eventlog.Logger("proxy")
@@ -19,21 +19,32 @@ type Proxy interface {
 }
 
 type standard struct {
-	Host   host.Host
-	Remote peer.ID
+	Host    host.Host
+	Remotes []peer.ID
 }
 
-func Standard(h host.Host, remote peer.ID) Proxy {
-	return &standard{h, remote}
+func Standard(h host.Host, remotes []peer.ID) Proxy {
+	return &standard{h, remotes}
 }
 
 const ProtocolGCR = "/ipfs/grandcentral"
 
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
-	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: px.Remote}); err != nil {
+	var err error
+	for _, remote := range px.Remotes {
+		if err = px.sendMessage(ctx, m, remote); err != nil { // careful don't re-declare err!
+			continue
+		}
+		return nil // success
+	}
+	return err // NB: returns the last error
+}
+
+func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote peer.ID) error {
+	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		return err
 	}
-	s, err := px.Host.NewStream(ProtocolGCR, px.Remote)
+	s, err := px.Host.NewStream(ProtocolGCR, remote)
 	if err != nil {
 		return err
 	}
@@ -46,10 +57,23 @@ func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 }
 
 func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error) {
-	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: px.Remote}); err != nil {
+	var err error
+	for _, remote := range px.Remotes {
+		var reply *dhtpb.Message
+		reply, err = px.sendRequest(ctx, m, remote) // careful don't redeclare err!
+		if err != nil {
+			continue
+		}
+		return reply, nil // success
+	}
+	return nil, err // NB: returns the last error
+}
+
+func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (*dhtpb.Message, error) {
+	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		return nil, err
 	}
-	s, err := px.Host.NewStream(ProtocolGCR, px.Remote)
+	s, err := px.Host.NewStream(ProtocolGCR, remote)
 	if err != nil {
 		return nil, err
 	}
@@ -70,4 +94,3 @@ func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 	}
 	return &reply, nil
 }
-
