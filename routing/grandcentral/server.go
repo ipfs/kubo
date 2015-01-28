@@ -4,7 +4,6 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	proxy "github.com/jbenet/go-ipfs/routing/grandcentral/proxy"
@@ -16,14 +15,13 @@ import (
 type Server struct {
 	local           peer.ID
 	datastore       datastore.ThreadSafeDatastore
-	dialer          inet.Network
 	peerstore       peer.Peerstore
 	*proxy.Loopback // so server can be injected into client
 }
 
 // NewServer creates a new GrandCentral routing Server
-func NewServer(ds datastore.ThreadSafeDatastore, d inet.Network, ps peer.Peerstore, local peer.ID) (*Server, error) {
-	s := &Server{local, ds, d, ps, nil}
+func NewServer(ds datastore.ThreadSafeDatastore, ps peer.Peerstore, local peer.ID) (*Server, error) {
+	s := &Server{local, ds, ps, nil}
 	s.Loopback = &proxy.Loopback{
 		Handler: s,
 		Local:   local,
