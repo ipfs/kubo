@@ -70,7 +70,11 @@ func GrandCentralClient(remotes ...peer.PeerInfo) core.RoutingOption {
 		// TODO right now, I think this has a hidden dependency on the
 		// bootstrap peers provided to the core.Node. Careful...
 
-		proxy := gcproxy.Standard(node.PeerHost, remotes[0].ID) // TODO support more than one
+		var ids []peer.ID
+		for _, info := range remotes {
+			ids = append(ids, info.ID)
+		}
+		proxy := gcproxy.Standard(node.PeerHost, ids)
 		return grandcentral.NewClient(proxy, node.Peerstore, node.Identity)
 	}
 }
