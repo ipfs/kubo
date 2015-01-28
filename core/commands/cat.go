@@ -5,6 +5,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	path "github.com/jbenet/go-ipfs/path"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
@@ -61,8 +62,8 @@ it contains.
 func cat(node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
-	for _, path := range paths {
-		dagnode, err := node.Resolver.ResolvePath(path)
+	for _, fpath := range paths {
+		dagnode, err := node.Resolver.ResolvePath(path.Path(fpath))
 		if err != nil {
 			return nil, 0, err
 		}

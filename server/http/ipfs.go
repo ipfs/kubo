@@ -8,6 +8,7 @@ import (
 	"github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -23,8 +24,8 @@ type ipfsHandler struct {
 	node *core.IpfsNode
 }
 
-func (i *ipfsHandler) ResolvePath(path string) (*dag.Node, error) {
-	return i.node.Resolver.ResolvePath(path)
+func (i *ipfsHandler) ResolvePath(fpath string) (*dag.Node, error) {
+	return i.node.Resolver.ResolvePath(path.Path(fpath))
 }
 
 func (i *ipfsHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {

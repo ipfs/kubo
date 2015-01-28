@@ -7,6 +7,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 )
 
 type Link struct {
@@ -47,8 +48,8 @@ it contains, with the following format:
 		paths := req.Arguments()
 
 		dagnodes := make([]*merkledag.Node, 0)
-		for _, path := range paths {
-			dagnode, err := node.Resolver.ResolvePath(path)
+		for _, fpath := range paths {
+			dagnode, err := node.Resolver.ResolvePath(path.Path(fpath))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return

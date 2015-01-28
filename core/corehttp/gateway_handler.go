@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"path"
+	gopath "path"
 	"strings"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 	"github.com/jbenet/go-ipfs/routing"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
@@ -71,7 +72,7 @@ func (i *gatewayHandler) loadTemplate() error {
 }
 
 func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
-	p = path.Clean(p)
+	p = gopath.Clean(p)
 
 	if strings.HasPrefix(p, IpnsPathPrefix) {
 		elements := strings.Split(p[len(IpnsPathPrefix):], "/")
@@ -82,13 +83,13 @@ func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, 
 		}
 
 		elements[0] = k.Pretty()
-		p = path.Join(elements...)
+		p = gopath.Join(elements...)
 	}
 	if !strings.HasPrefix(p, IpfsPathPrefix) {
-		p = path.Join(IpfsPathPrefix, p)
+		p = gopath.Join(IpfsPathPrefix, p)
 	}
 
-	node, err := i.node.Resolver.ResolvePath(p)
+	node, err := i.node.Resolver.ResolvePath(path.Path(p))
 	if err != nil {
 		return nil, "", err
 	}
@@ -129,7 +130,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	etag := path.Base(p)
+	etag := gopath.Base(p)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -151,7 +152,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil {
 		defer dr.Close()
-		_, name := path.Split(urlPath)
+		_, name := gopath.Split(urlPath)
 		// set modtime to a really long time ago, since files are immutable and should stay cached
 		modtime := time.Unix(1, 0)
 		http.ServeContent(w, r, name, modtime, dr)
@@ -188,7 +189,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		di := directoryItem{link.Size, link.Name, path.Join(urlPath, link.Name)}
+		di := directoryItem{link.Size, link.Name, gopath.Join(urlPath, link.Name)}
 		dirListing = append(dirListing, di)
 	}
 
