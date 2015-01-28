@@ -13,9 +13,9 @@ import (
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-var log = eventlog.Logger("proxy")
-
 const ProtocolGCR = "/ipfs/grandcentral"
+
+var log = eventlog.Logger("grandcentral/proxy")
 
 type Proxy interface {
 	HandleStream(inet.Stream)
@@ -48,8 +48,15 @@ func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	return err // NB: returns the last error
 }
 
-func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote peer.ID) error {
-	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote peer.ID) (err error) {
+	e := log.EventBegin(ctx, "sendRoutingMessage", px.Host.ID(), remote, m)
+	defer func() {
+		if err != nil {
+			e.SetError(err)
+		}
+		e.Done()
+	}()
+	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		return err
 	}
 	s, err := px.Host.NewStream(ProtocolGCR, remote)
@@ -78,8 +85,15 @@ func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 	return nil, err // NB: returns the last error
 }
 
-func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (*dhtpb.Message, error) {
-	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (_ *dhtpb.Message, err error) {
+	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, m)
+	defer func() {
+		if err != nil {
+			e.SetError(err)
+		}
+		e.Done()
+	}()
+	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		return nil, err
 	}
 	s, err := px.Host.NewStream(ProtocolGCR, remote)
@@ -89,12 +103,12 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 	defer s.Close()
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
-	if err := w.WriteMsg(m); err != nil {
+	if err = w.WriteMsg(m); err != nil {
 		return nil, err
 	}
 
 	var reply dhtpb.Message
-	if err := r.ReadMsg(&reply); err != nil {
+	if err = r.ReadMsg(&reply); err != nil {
 		return nil, err
 	}
 	// need ctx expiration?

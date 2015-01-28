@@ -42,6 +42,8 @@ func (s *Server) HandleRequest(ctx context.Context, p peer.ID, req *dhtpb.Messag
 func (s *Server) handleMessage(
 	ctx context.Context, p peer.ID, req *dhtpb.Message) (peer.ID, *dhtpb.Message) {
 
+	log.EventBegin(ctx, "routingMessageReceived", req, p, s.local).Done() // TODO may need to differentiate between local and remote
+
 	//  FIXME threw everything into this switch statement to get things going.
 	//  Once each operation is well-defined, extract pluggable backend so any
 	//  database may be used.
@@ -131,6 +133,7 @@ func putRoutingRecord(ds datastore.Datastore, k util.Key, value *dhtpb.Record) e
 }
 
 func putRoutingProviders(ds datastore.Datastore, k util.Key, providers []*dhtpb.Message_Peer) error {
+	log.Event(context.Background(), "putRoutingProviders", &k)
 	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 	if v, err := ds.Get(pkey); err == nil {
 		if msg, ok := v.([]byte); ok {
@@ -166,6 +169,7 @@ func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.
 }
 
 func getRoutingProviders(local peer.ID, ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_Peer, error) {
+	log.Event(context.Background(), "getProviders", local, &k)
 	var providers []*dhtpb.Message_Peer
 	exists, err := ds.Has(k.DsKey()) // TODO store values in a local datastore?
 	if err == nil && exists {

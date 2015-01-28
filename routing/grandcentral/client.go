@@ -36,6 +36,7 @@ func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*
 }
 
 func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+	defer log.EventBegin(ctx, "findProviders", &k).Done()
 	ch := make(chan peer.PeerInfo)
 	go func() {
 		defer close(ch)
@@ -58,6 +59,7 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 }
 
 func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
+	defer log.EventBegin(ctx, "putValue", &k).Done()
 	r, err := makeRecord(c.peerstore, c.local, k, v)
 	if err != nil {
 		return err
@@ -68,6 +70,7 @@ func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
 }
 
 func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
+	defer log.EventBegin(ctx, "getValue", &k).Done()
 	msg := pb.NewMessage(pb.Message_GET_VALUE, string(k), 0)
 	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
 	if err != nil {
@@ -77,6 +80,7 @@ func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
 }
 
 func (c *Client) Provide(ctx context.Context, k u.Key) error {
+	defer log.EventBegin(ctx, "provide", &k).Done()
 	msg := pb.NewMessage(pb.Message_ADD_PROVIDER, string(k), 0)
 	// FIXME how is connectedness defined for the local node
 	pri := []pb.PeerRoutingInfo{
@@ -92,6 +96,7 @@ func (c *Client) Provide(ctx context.Context, k u.Key) error {
 }
 
 func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {
+	defer log.EventBegin(ctx, "findPeer", id).Done()
 	request := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	response, err := c.proxy.SendRequest(ctx, request) // hide remote
 	if err != nil {
@@ -121,6 +126,7 @@ func makeRecord(ps peer.Peerstore, p peer.ID, k u.Key, v []byte) (*pb.Record, er
 }
 
 func (c *Client) Ping(ctx context.Context, id peer.ID) (time.Duration, error) {
+	defer log.EventBegin(ctx, "ping", id).Done()
 	return time.Nanosecond, errors.New("grandcentral routing does not support the ping method")
 }
 
