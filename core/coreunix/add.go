@@ -130,11 +130,6 @@ Loop:
 		if err != nil {
 			return nil, err
 		}
-		k, err := node.Key()
-		if err != nil {
-			return nil, err
-		}
-		log.Debugf("add %s %s", k, name)
 	}
 
 	err := addNode(n, tree)
