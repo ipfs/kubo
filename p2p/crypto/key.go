@@ -57,11 +57,6 @@ type PrivKey interface {
 
 	// Return a public key paired with this private key
 	GetPublic() PubKey
-
-	// Generate a secret string of bytes
-	GenSecret() ([]byte, error)
-
-	Decrypt(b []byte) ([]byte, error)
 }
 
 type PubKey interface {
@@ -69,9 +64,6 @@ type PubKey interface {
 
 	// Verify that 'sig' is the signed hash of 'data'
 	Verify(data []byte, sig []byte) (bool, error)
-
-	// Encrypt data in a way that can be decrypted by a paired private key
-	Encrypt(data []byte) ([]byte, error)
 }
 
 // Given a public key, generates the shared key.

@@ -1,6 +1,7 @@
 package crypto_test
 
 import (
+	"crypto/rand"
 	. "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	"bytes"
@@ -22,7 +23,8 @@ func TestRsaKeys(t *testing.T) {
 func testKeySignature(t *testing.T, sk PrivKey) {
 	pk := sk.GetPublic()
 
-	text := sk.GenSecret()
+	text := make([]byte, 16)
+	rand.Read(text)
 	sig, err := sk.Sign(text)
 	if err != nil {
 		t.Fatal(err)
