@@ -6,7 +6,6 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
@@ -23,14 +22,12 @@ var ErrTODO = errors.New("TODO")
 type Client struct {
 	peerstore peer.Peerstore
 	proxy     proxy.Proxy
-	dialer    inet.Network
 	local     peer.ID
 }
 
 // TODO take in datastore/cache
-func NewClient(d inet.Network, px proxy.Proxy, ps peer.Peerstore, local peer.ID) (*Client, error) {
+func NewClient(px proxy.Proxy, ps peer.Peerstore, local peer.ID) (*Client, error) {
 	return &Client{
-		dialer:    d,
 		proxy:     px,
 		local:     local,
 		peerstore: ps,
