@@ -75,7 +75,7 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+func (i *gatewayHandler) resolveNamePath(ctx context.Context, p string) (string, error) {
 	p = gopath.Clean(p)
 
 	if strings.HasPrefix(p, IpnsPathPrefix) {
@@ -83,7 +83,7 @@ func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, 
 		hash := elements[0]
 		k, err := i.node.Namesys.Resolve(ctx, hash)
 		if err != nil {
-			return nil, "", err
+			return "", err
 		}
 
 		elements[0] = k.Pretty()
@@ -91,6 +91,14 @@ func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, 
 	}
 	if !strings.HasPrefix(p, IpfsPathPrefix) {
 		p = gopath.Join(IpfsPathPrefix, p)
+	}
+	return p, nil
+}
+
+func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+	p, err := i.resolveNamePath(ctx, p)
+	if err != nil {
+		return nil, "", err
 	}
 
 	node, err := i.node.Resolver.ResolvePath(path.Path(p))
@@ -298,7 +306,17 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h, components, err := path.SplitAbsPath(path.Path(urlPath))
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
+
+	ipfspath, err := i.resolveNamePath(ctx, urlPath)
+	if err != nil {
+		// FIXME HTTP error code
+		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		return
+	}
+
+	h, components, err := path.SplitAbsPath(path.Path(ipfspath))
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
@@ -358,7 +376,17 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
-	h, components, err := path.SplitAbsPath(path.Path(urlPath))
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
+
+	ipfspath, err := i.resolveNamePath(ctx, urlPath)
+	if err != nil {
+		// FIXME HTTP error code
+		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		return
+	}
+
+	h, components, err := path.SplitAbsPath(path.Path(ipfspath))
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
