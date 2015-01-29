@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -112,7 +115,14 @@ func (d *Diagnostics) getPeers() map[peer.ID]int {
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
 	di := new(DiagInfo)
-	di.CodeVersion = "github.com/jbenet/go-ipfs"
+
+	hash, err := GetCommitHash()
+	if err != nil {
+		log.Errorf("Couldnt get code version: %s", err)
+		di.CodeVersion = "N/A"
+	} else {
+		di.CodeVersion = hash
+	}
 	di.ID = d.self.Pretty()
 	di.LifeSpan = time.Since(d.birth)
 	di.Keys = nil // Currently no way to query datastore
@@ -335,4 +345,17 @@ func (d *Diagnostics) startDiag(id string) error {
 func (d *Diagnostics) handleNewStream(s inet.Stream) {
 	d.HandleMessage(context.Background(), s)
 	s.Close()
+}
+
+func GetCommitHash() (string, error) {
+	gopath := os.Getenv("GOPATH")
+	ipfs := gopath + "/src/github.com/jbenet/go-ipfs"
+
+	cmd := exec.Command("git", "show", "--pretty=%H")
+	cmd.Dir = ipfs
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(string(out), " \n\t"), nil
 }
