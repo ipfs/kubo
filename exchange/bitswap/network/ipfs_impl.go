@@ -108,7 +108,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 	// the short term.
 	connectedPeers := bsnet.host.Network().Peers()
 	out := make(chan peer.ID, len(connectedPeers)) // just enough buffer for these connectedPeers
-	for _, id := range bsnet.host.Network().Peers() {
+	for _, id := range connectedPeers {
 		out <- id
 	}
 
