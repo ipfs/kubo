@@ -102,6 +102,17 @@ func newUnixfsNode() *unixfsNode {
 	}
 }
 
+func unixfsNodeFromDagNode(nd *dag.Node) (*unixfsNode, error) {
+	un := new(unixfsNode)
+	un.node = nd
+	ufmt, err := ft.BytesToMultiblock(nd.Data)
+	if err != nil {
+		return nil, err
+	}
+	un.ufmt = ufmt
+	return un, nil
+}
+
 func (n *unixfsNode) numChildren() int {
 	return n.ufmt.NumChildren()
 }
@@ -303,6 +314,38 @@ func (db *dagBuilderHelper) fillNodeWithData(node *unixfsNode) error {
 	}
 
 	node.setData(data)
+	return nil
+}
+
+func (db *dagBuilderHelper) fillStreamNodeRec(node *unixfsNode, depth int) error {
+	if depth < 0 {
+		return errors.New("attempt to fillNode at depth < 0")
+	}
+
+	// Base case
+	if depth <= 0 { // catch accidental -1's in case error above is removed.
+		return db.fillNodeWithData(node)
+	}
+
+	// Store data in the link nodes to lower latency reads
+	err := db.fillNodeWithData(node)
+	if err != nil {
+		return err
+	}
+
+	// while we have room AND we're not done
+	for node.numChildren() < db.maxlinks && !db.done() {
+		child := newUnixfsNode()
+
+		if err := db.fillStreamNodeRec(child, depth-1); err != nil {
+			return err
+		}
+
+		if err := node.addChild(child, db); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

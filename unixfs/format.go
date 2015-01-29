@@ -104,6 +104,22 @@ type MultiBlock struct {
 	subtotal   uint64
 }
 
+func BytesToMultiblock(b []byte) (*MultiBlock, error) {
+	pbn := new(pb.Data)
+	err := proto.Unmarshal(b, pbn)
+	if err != nil {
+		return nil, err
+	}
+
+	mb := new(MultiBlock)
+	mb.Data = pbn.Data
+	mb.blocksizes = pbn.Blocksizes
+	for _, s := range mb.blocksizes {
+		mb.subtotal += s
+	}
+	return mb, nil
+}
+
 func (mb *MultiBlock) AddBlockSize(s uint64) {
 	mb.subtotal += s
 	mb.blocksizes = append(mb.blocksizes, s)
@@ -117,6 +133,10 @@ func (mb *MultiBlock) GetBytes() ([]byte, error) {
 	pbn.Blocksizes = mb.blocksizes
 	pbn.Data = mb.Data
 	return proto.Marshal(pbn)
+}
+
+func (mb *MultiBlock) GetBlocksizes() []uint64 {
+	return mb.GetBlocksizes()
 }
 
 func (mb *MultiBlock) FileSize() uint64 {

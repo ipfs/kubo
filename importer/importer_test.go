@@ -96,6 +96,32 @@ func TestBuilderConsistency(t *testing.T) {
 	}
 }
 
+func TestFastBuilderConsistency(t *testing.T) {
+	nbytes := 2000000
+	buf := new(bytes.Buffer)
+	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
+	should := dup(buf.Bytes())
+	dagserv := merkledag.Mock(t)
+	nd, err := BuildDagFromReader(buf, dagserv, nil, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := uio.NewDagReader(context.Background(), nd, dagserv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func arrComp(a, b []byte) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))
