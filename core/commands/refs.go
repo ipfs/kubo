@@ -11,6 +11,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	"github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -166,7 +167,7 @@ Displays the hashes of all local objects.
 func objectsForPaths(n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
 	objects := make([]*dag.Node, len(paths))
 	for i, p := range paths {
-		o, err := n.Resolver.ResolvePath(p)
+		o, err := n.Resolver.ResolvePath(path.Path(p))
 		if err != nil {
 			return nil, err
 		}

@@ -14,6 +14,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
@@ -78,8 +79,8 @@ output is the raw data of the object.
 			return
 		}
 
-		key := req.Arguments()[0]
-		output, err := objectData(n, key)
+		fpath := path.Path(req.Arguments()[0])
+		output, err := objectData(n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -108,8 +109,8 @@ multihash.
 			return
 		}
 
-		key := req.Arguments()[0]
-		output, err := objectLinks(n, key)
+		fpath := path.Path(req.Arguments()[0])
+		output, err := objectLinks(n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -156,9 +157,9 @@ This command outputs data in the following encodings:
 			return
 		}
 
-		key := req.Arguments()[0]
+		fpath := path.Path(req.Arguments()[0])
 
-		object, err := objectGet(n, key)
+		object, err := objectGet(n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -222,9 +223,9 @@ var objectStatCmd = &cmds.Command{
 			return
 		}
 
-		key := req.Arguments()[0]
+		fpath := path.Path(req.Arguments()[0])
 
-		object, err := objectGet(n, key)
+		object, err := objectGet(n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -317,37 +318,37 @@ Data should be in the format specified by <encoding>.
 }
 
 // objectData takes a key string and writes out the raw bytes of that node (if there is one)
-func objectData(n *core.IpfsNode, key string) (io.Reader, error) {
-	dagnode, err := n.Resolver.ResolvePath(key)
+func objectData(n *core.IpfsNode, fpath path.Path) (io.Reader, error) {
+	dagnode, err := n.Resolver.ResolvePath(fpath)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("objectData: found dagnode %q (# of bytes: %d - # links: %d)", key, len(dagnode.Data), len(dagnode.Links))
+	log.Debugf("objectData: found dagnode %s (# of bytes: %d - # links: %d)", fpath, len(dagnode.Data), len(dagnode.Links))
 
 	return bytes.NewReader(dagnode.Data), nil
 }
 
 // objectLinks takes a key string and lists the links it points to
-func objectLinks(n *core.IpfsNode, key string) (*Object, error) {
-	dagnode, err := n.Resolver.ResolvePath(key)
+func objectLinks(n *core.IpfsNode, fpath path.Path) (*Object, error) {
+	dagnode, err := n.Resolver.ResolvePath(fpath)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("objectLinks: found dagnode %q (# of bytes: %d - # links: %d)", key, len(dagnode.Data), len(dagnode.Links))
+	log.Debugf("objectLinks: found dagnode %s (# of bytes: %d - # links: %d)", fpath, len(dagnode.Data), len(dagnode.Links))
 
 	return getOutput(dagnode)
 }
 
 // objectGet takes a key string from args and a format option and serializes the dagnode to that format
-func objectGet(n *core.IpfsNode, key string) (*dag.Node, error) {
-	dagnode, err := n.Resolver.ResolvePath(key)
+func objectGet(n *core.IpfsNode, fpath path.Path) (*dag.Node, error) {
+	dagnode, err := n.Resolver.ResolvePath(fpath)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("objectGet: found dagnode %q (# of bytes: %d - # links: %d)", key, len(dagnode.Data), len(dagnode.Links))
+	log.Debugf("objectGet: found dagnode %s (# of bytes: %d - # links: %d)", fpath, len(dagnode.Data), len(dagnode.Links))
 
 	return dagnode, nil
 }

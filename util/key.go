@@ -120,6 +120,10 @@ func IsValidHash(s string) bool {
 	if out == nil || len(out) == 0 {
 		return false
 	}
+	_, err := mh.Cast(out)
+	if err != nil {
+		return false
+	}
 	return true
 }
 

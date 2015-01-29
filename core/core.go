@@ -286,8 +286,8 @@ func (n *IpfsNode) OnlineMode() bool {
 	}
 }
 
-func (n *IpfsNode) Resolve(path string) (*merkledag.Node, error) {
-	return n.Resolver.ResolvePath(path)
+func (n *IpfsNode) Resolve(fpath string) (*merkledag.Node, error) {
+	return n.Resolver.ResolvePath(path.Path(fpath))
 }
 
 func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {

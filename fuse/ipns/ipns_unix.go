@@ -19,6 +19,7 @@ import (
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	path "github.com/jbenet/go-ipfs/path"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
@@ -129,7 +130,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 			return nil, nil
 		}
 
-		node, err := n.Resolver.ResolvePath(pointsTo.B58String())
+		node, err := n.Resolver.ResolvePath(path.Path(pointsTo.B58String()))
 		if err != nil {
 			log.Warning("Failed to resolve value from ipns entry in ipfs")
 			continue

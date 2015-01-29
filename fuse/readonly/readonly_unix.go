@@ -15,6 +15,7 @@ import (
 
 	core "github.com/jbenet/go-ipfs/core"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
@@ -56,7 +57,7 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 		return nil, fuse.ENOENT
 	}
 
-	nd, err := s.Ipfs.Resolver.ResolvePath(name)
+	nd, err := s.Ipfs.Resolver.ResolvePath(path.Path(name))
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT

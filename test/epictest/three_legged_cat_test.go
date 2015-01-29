@@ -12,6 +12,7 @@ import (
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	"github.com/jbenet/go-ipfs/p2p/peer"
+	path "github.com/jbenet/go-ipfs/path"
 	"github.com/jbenet/go-ipfs/thirdparty/unit"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -110,7 +111,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	readerCatted, err := coreunix.Cat(catter, keyAdded.String())
+	readerCatted, err := coreunix.Cat(catter, path.Path(keyAdded.String()))
 	if err != nil {
 		return err
 	}

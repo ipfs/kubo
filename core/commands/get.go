@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	gopath "path"
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	path "github.com/jbenet/go-ipfs/path"
 	tar "github.com/jbenet/go-ipfs/thirdparty/tar"
 	utar "github.com/jbenet/go-ipfs/unixfs/tar"
 
@@ -77,8 +78,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		outPath, _, _ := req.Option("output").String()
 		if len(outPath) == 0 {
-			_, outPath = path.Split(req.Arguments()[0])
-			outPath = path.Clean(outPath)
+			_, outPath = gopath.Split(req.Arguments()[0])
+			outPath = gopath.Clean(outPath)
 		}
 
 		cmplvl, err := getCompressOptions(req)
@@ -165,5 +166,5 @@ func getCompressOptions(req cmds.Request) (int, error) {
 }
 
 func get(node *core.IpfsNode, p string, compression int) (io.Reader, error) {
-	return utar.NewReader(p, node.DAG, node.Resolver, compression)
+	return utar.NewReader(path.Path(p), node.DAG, node.Resolver, compression)
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"io"
 	gopath "path"
-	"strings"
 	"time"
 
 	mdag "github.com/jbenet/go-ipfs/merkledag"
@@ -29,10 +28,7 @@ type Reader struct {
 	err        error
 }
 
-func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compression int) (*Reader, error) {
-	if strings.HasPrefix(path, "/ipfs/") {
-		path = path[6:]
-	}
+func NewReader(path path.Path, dag mdag.DAGService, resolver *path.Resolver, compression int) (*Reader, error) {
 
 	reader := &Reader{
 		signalChan: make(chan struct{}),
@@ -58,7 +54,7 @@ func NewReader(path string, dag mdag.DAGService, resolver *path.Resolver, compre
 
 	// writeToBuf will write the data to the buffer, and will signal when there
 	// is new data to read
-	_, filename := gopath.Split(path)
+	_, filename := gopath.Split(path.String())
 	go reader.writeToBuf(dagnode, filename, 0)
 
 	return reader, nil

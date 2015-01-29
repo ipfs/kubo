@@ -5,14 +5,15 @@ import (
 
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/merkledag"
+	path "github.com/jbenet/go-ipfs/path"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
 func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 
 	dagnodes := make([]*merkledag.Node, 0)
-	for _, path := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path)
+	for _, fpath := range paths {
+		dagnode, err := n.Resolver.ResolvePath(path.Path(fpath))
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
@@ -44,8 +45,8 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 
 	dagnodes := make([]*merkledag.Node, 0)
-	for _, path := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path)
+	for _, fpath := range paths {
+		dagnode, err := n.Resolver.ResolvePath(path.Path(fpath))
 		if err != nil {
 			return nil, err
 		}
