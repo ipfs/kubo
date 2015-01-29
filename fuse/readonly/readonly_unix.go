@@ -5,7 +5,7 @@
 package readonly
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 
 	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
@@ -16,12 +16,13 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
-	u "github.com/jbenet/go-ipfs/util"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
-var log = u.Logger("ipfs")
+var log = eventlog.Logger("fuse/ipfs")
 
 // FileSystem is the readonly Ipfs Fuse Filesystem.
 type FileSystem struct {
@@ -144,14 +145,51 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 	return nil, fuse.ENOENT
 }
 
-// ReadAll reads the object data as file data
-func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-	log.Debug("Read node.")
-	r, err := uio.NewDagReader(context.TODO(), s.Nd, s.Ipfs.DAG)
+func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+	// intr will be closed by fuse if the request is cancelled. turn this into a context.
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel() // make sure all operations we started close.
+
+	// we wait on intr and cancel our context if it closes.
+	go func() {
+		select {
+		case <-intr: // closed by fuse
+			cancel() // cancel our context
+		case <-ctx.Done():
+		}
+	}()
+
+	k, err := s.Nd.Key()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	// this is a terrible function... 'ReadAll'?
-	// what if i have a 6TB file? GG RAM.
-	return ioutil.ReadAll(r)
+
+	// setup our logging event
+	lm := make(lgbl.DeferredMap)
+	lm["key"] = func() interface{} { return k.Pretty() }
+	lm["req_offset"] = req.Offset
+	lm["req_size"] = req.Size
+	defer log.EventBegin(ctx, "fuseRead", lm).Done()
+
+	r, err := uio.NewDagReader(ctx, s.Nd, s.Ipfs.DAG)
+	if err != nil {
+		return err
+	}
+	o, err := r.Seek(req.Offset, os.SEEK_SET)
+	lm["req_offset"] = o
+	if err != nil {
+		return err
+	}
+	n, err := io.ReadFull(r, resp.Data[:req.Size])
+	resp.Data = resp.Data[:n]
+	lm["req_size"] = n
+	return err // may be non-nil / not succeeded
 }
+
+// // ReadAll reads the object data as file data
+// func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
+// 	// this is a terrible function... 'ReadAll'?
+// 	// what if i have a 6TB file? GG RAM.
+// 	return ioutil.ReadAll(r)
+// }
+// GG RAM alright... -jbenet
