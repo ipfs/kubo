@@ -36,23 +36,6 @@ func TestClose(t *testing.T) {
 	bitswap.Exchange.GetBlock(context.Background(), block.Key())
 }
 
-func TestGetBlockTimeout(t *testing.T) {
-
-	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
-	g := NewTestSessionGenerator(net)
-	defer g.Close()
-
-	self := g.Next()
-
-	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	block := blocks.NewBlock([]byte("block"))
-	_, err := self.Exchange.GetBlock(ctx, block.Key())
-
-	if err != context.DeadlineExceeded {
-		t.Fatal("Expected DeadlineExceeded error")
-	}
-}
-
 func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 
 	rs := mockrouting.NewServer()
