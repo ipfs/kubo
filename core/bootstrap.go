@@ -85,6 +85,9 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 		return ioutil.NopCloser(nil), nil
 	}
 
+	// make a signal to wait for one bootstrap round to complete.
+	doneWithRound := make(chan struct{})
+
 	// the periodic bootstrap function -- the connection supervisor
 	periodic := func(worker goprocess.Process) {
 		ctx := procctx.WithProcessClosing(context.Background(), worker)
@@ -94,6 +97,8 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
 			log.Debugf("%s bootstrap error: %s", n.Identity, err)
 		}
+
+		<-doneWithRound
 	}
 
 	// kick off the node's periodic bootstrapping
@@ -109,6 +114,8 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 
 	// add dht bootstrap proc as a child, so it is closed automatically when we are.
 	proc.AddChild(dbproc)
+	doneWithRound <- struct{}{}
+	close(doneWithRound) // it no longer blocks periodic
 	return proc, nil
 }
 

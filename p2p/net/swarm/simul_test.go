@@ -6,6 +6,7 @@ import (
 	"time"
 
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -45,10 +46,14 @@ func TestSimultOpen(t *testing.T) {
 
 func TestSimultOpenMany(t *testing.T) {
 	// t.Skip("very very slow")
-	t.Parallel()
 
 	addrs := 20
-	SubtestSwarm(t, addrs, 10)
+	rounds := 10
+	if ci.IsRunning() {
+		addrs = 10
+		rounds = 5
+	}
+	SubtestSwarm(t, addrs, rounds)
 }
 
 func TestSimultOpenFewStress(t *testing.T) {
