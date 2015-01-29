@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"math/rand"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	host "github.com/jbenet/go-ipfs/p2p/host"
@@ -36,7 +38,8 @@ func (p *standard) HandleStream(s inet.Stream) {
 
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	var err error
-	for _, remote := range px.Remotes {
+	for _, i := range rand.Perm(len(px.Remotes)) {
+		remote := px.Remotes[i]
 		if err = px.sendMessage(ctx, m, remote); err != nil { // careful don't re-declare err!
 			continue
 		}
@@ -63,7 +66,8 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 
 func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error) {
 	var err error
-	for _, remote := range px.Remotes {
+	for _, i := range rand.Perm(len(px.Remotes)) {
+		remote := px.Remotes[i]
 		var reply *dhtpb.Message
 		reply, err = px.sendRequest(ctx, m, remote) // careful don't redeclare err!
 		if err != nil {
