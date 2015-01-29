@@ -3,9 +3,10 @@ package corehttp
 import (
 	"html/template"
 	"io"
-	"mime"
 	"net/http"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -19,11 +20,16 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+const (
+	IpfsPathPrefix = "/ipfs/"
+	IpnsPathPrefix = "/ipns/"
+)
+
 type gateway interface {
 	ResolvePath(string) (*dag.Node, error)
 	NewDagFromReader(io.Reader) (*dag.Node, error)
 	AddNodeToDAG(nd *dag.Node) (u.Key, error)
-	NewDagReader(nd *dag.Node) (io.Reader, error)
+	NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error)
 }
 
 // shortcut for templating
@@ -33,6 +39,7 @@ type webHandler map[string]interface{}
 type directoryItem struct {
 	Size uint64
 	Name string
+	Path string
 }
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
@@ -63,8 +70,29 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *gatewayHandler) ResolvePath(path string) (*dag.Node, error) {
-	return i.node.Resolver.ResolvePath(path)
+func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+	p = path.Clean(p)
+
+	if strings.HasPrefix(p, IpnsPathPrefix) {
+		elements := strings.Split(p[len(IpnsPathPrefix):], "/")
+		hash := elements[0]
+		k, err := i.node.Namesys.Resolve(ctx, hash)
+		if err != nil {
+			return nil, "", err
+		}
+
+		elements[0] = k.Pretty()
+		p = path.Join(elements...)
+	}
+	if !strings.HasPrefix(p, IpfsPathPrefix) {
+		p = path.Join(IpfsPathPrefix, p)
+	}
+
+	node, err := i.node.Resolver.ResolvePath(p)
+	if err != nil {
+		return nil, "", err
+	}
+	return node, p, err
 }
 
 func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
@@ -76,14 +104,17 @@ func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 	return i.node.DAG.Add(nd)
 }
 
-func (i *gatewayHandler) NewDagReader(nd *dag.Node) (io.Reader, error) {
+func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) {
 	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path[5:]
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
 
-	nd, err := i.ResolvePath(path)
+	urlPath := r.URL.Path
+
+	nd, p, err := i.ResolvePath(ctx, urlPath)
 	if err != nil {
 		if err == routing.ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -98,31 +129,32 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	extensionIndex := strings.LastIndex(path, ".")
-	if extensionIndex != -1 {
-		extension := path[extensionIndex:]
-		mimeType := mime.TypeByExtension(extension)
-		if len(mimeType) > 0 {
-			w.Header().Add("Content-Type", mimeType)
-		}
-	}
-
-	dr, err := i.NewDagReader(nd)
-	if err == nil {
-		io.Copy(w, dr)
+	etag := path.Base(p)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	if err != uio.ErrIsDir {
+	w.Header().Set("X-IPFS-Path", p)
+
+	dr, err := i.NewDagReader(nd)
+	if err != nil && err != uio.ErrIsDir {
 		// not a directory and still an error
 		internalWebError(w, err)
 		return
 	}
 
-	log.Debug("listing directory")
-	if path[len(path)-1:] != "/" {
-		log.Debug("missing trailing slash, redirect")
-		http.Redirect(w, r, "/ipfs/"+path+"/", 307)
+	// set these headers _after_ the error, for we may just not have it
+	// and dont want the client to cache a 500 response...
+	w.Header().Set("Etag", etag)
+	w.Header().Set("Cache-Control", "public, max-age=29030400")
+
+	if err == nil {
+		defer dr.Close()
+		_, name := path.Split(urlPath)
+		// set modtime to a really long time ago, since files are immutable and should stay cached
+		modtime := time.Unix(1, 0)
+		http.ServeContent(w, r, name, modtime, dr)
 		return
 	}
 
@@ -132,10 +164,15 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	foundIndex := false
 	for _, link := range nd.Links {
 		if link.Name == "index.html" {
+			if urlPath[len(urlPath)-1] != '/' {
+				http.Redirect(w, r, urlPath+"/", 302)
+				return
+			}
+
 			log.Debug("found index")
 			foundIndex = true
 			// return index page instead.
-			nd, err := i.ResolvePath(path + "/index.html")
+			nd, _, err := i.ResolvePath(ctx, urlPath+"/index.html")
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -145,17 +182,22 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				internalWebError(w, err)
 				return
 			}
+			defer dr.Close()
 			// write to request
 			io.Copy(w, dr)
 			break
 		}
 
-		dirListing = append(dirListing, directoryItem{link.Size, link.Name})
+		di := directoryItem{link.Size, link.Name, path.Join(urlPath, link.Name)}
+		dirListing = append(dirListing, di)
 	}
 
 	if !foundIndex {
 		// template and return directory listing
-		hndlr := webHandler{"listing": dirListing, "path": path}
+		hndlr := webHandler{
+			"listing": dirListing,
+			"path":    urlPath,
+		}
 		if err := i.dirList.Execute(w, hndlr); err != nil {
 			internalWebError(w, err)
 			return
@@ -204,8 +246,8 @@ var listingTemplate = `
 	<h2>Index of {{ .path }}</h2>
 	<ul>
 	<li><a href="./..">..</a></li>
-  {{ range $item := .listing }}
-	<li><a href="./{{ $item.Name }}">{{ $item.Name }}</a> - {{ $item.Size }} bytes</li>
+  {{ range .listing }}
+	<li><a href="{{ .Path }}">{{ .Name }}</a> - {{ .Size }} bytes</li>
 	{{ end }}
 	</ul>
 	</body>

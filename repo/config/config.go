@@ -23,6 +23,7 @@ type Config struct {
 	Version   Version         // local node's version management
 	Bootstrap []BootstrapPeer // local nodes's bootstrap peers
 	Tour      Tour            // local node's tour position
+	Gateway   Gateway         // local node's gateway server options
 }
 
 const (

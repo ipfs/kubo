@@ -12,5 +12,6 @@ func GatewayOption(n *core.IpfsNode, mux *http.ServeMux) error {
 		return err
 	}
 	mux.Handle("/ipfs/", gateway)
+	mux.Handle("/ipns/", gateway)
 	return nil
 }
