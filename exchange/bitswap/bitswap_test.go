@@ -244,6 +244,7 @@ func TestSendToWantingPeer(t *testing.T) {
 func TestBasicBitswap(t *testing.T) {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	sg := NewTestSessionGenerator(net)
+	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
 	t.Log("Test a few nodes trying to get one file with a lot of blocks")
