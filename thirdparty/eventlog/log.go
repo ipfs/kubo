@@ -120,6 +120,13 @@ func (eip EventInProgress) Append(l Loggable) {
 	eip.loggables = append(eip.loggables, l)
 }
 
+// SetError includes the provided error
+func (eip EventInProgress) SetError(err error) {
+	eip.loggables = append(eip.loggables, LoggableMap{
+		"error": err.Error(),
+	})
+}
+
 // Done creates a new Event entry that includes the duration and appended
 // loggables.
 func (eip EventInProgress) Done() {
