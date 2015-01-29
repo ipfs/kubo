@@ -5,6 +5,7 @@ import (
 	"io"
 	"math"
 	"testing"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	core "github.com/jbenet/go-ipfs/core"
@@ -16,12 +17,44 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-func TestThreeLeggedCat(t *testing.T) {
+func TestThreeLeggedCat1KBInstantaneous(t *testing.T) {
 	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
+	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestThreeLeggedCatDegenerateSlowBlockstore(t *testing.T) {
+	SkipUnlessEpic(t)
+	conf := testutil.LatencyConfig{BlockstoreLatency: 50 * time.Millisecond}
+	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestThreeLeggedCatDegenerateSlowNetwork(t *testing.T) {
+	SkipUnlessEpic(t)
+	conf := testutil.LatencyConfig{NetworkLatency: 400 * time.Millisecond}
+	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestThreeLeggedCatDegenerateSlowRouting(t *testing.T) {
+	SkipUnlessEpic(t)
+	conf := testutil.LatencyConfig{RoutingLatency: 400 * time.Millisecond}
+	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
+	SkipUnlessEpic(t)
+	conf := testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
 	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
 		t.Fatal(err)
 	}
@@ -47,6 +80,11 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if len(peers) < numPeers {
 		return errors.New("test initialization error")
 	}
+	bootstrap, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[2], mn.Host(peers[2]), conf)))
+	if err != nil {
+		return err
+	}
+	defer bootstrap.Close()
 	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf)))
 	if err != nil {
 		return err
@@ -57,11 +95,6 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 	defer catter.Close()
-	bootstrap, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[2], mn.Host(peers[2]), conf)))
-	if err != nil {
-		return err
-	}
-	defer bootstrap.Close()
 
 	bis := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
 	bcfg := core.BootstrapConfigWithPeers([]peer.PeerInfo{bis})
