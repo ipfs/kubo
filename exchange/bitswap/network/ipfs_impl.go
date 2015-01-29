@@ -99,7 +99,19 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 
 // FindProvidersAsync returns a channel of providers for the given key
 func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
-	out := make(chan peer.ID)
+
+	// Since routing queries are expensive, give bitswap the peers to which we
+	// have open connections. Note that this may cause issues if bitswap starts
+	// precisely tracking which peers provide certain keys. This optimization
+	// would be misleading. In the long run, this may not be the most
+	// appropriate place for this optimization, but it won't cause any harm in
+	// the short term.
+	connectedPeers := bsnet.host.Network().Peers()
+	out := make(chan peer.ID, len(connectedPeers)) // just enough buffer for these connectedPeers
+	for _, id := range bsnet.host.Network().Peers() {
+		out <- id
+	}
+
 	go func() {
 		defer close(out)
 		providers := bsnet.routing.FindProvidersAsync(ctx, k, max)
