@@ -34,7 +34,7 @@ func (lb *Loopback) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 	return lb.Handler.HandleRequest(ctx, lb.Local, m), nil
 }
 
-func (lb *Loopback) handleNewStream(s inet.Stream) {
+func (lb *Loopback) HandleStream(s inet.Stream) {
 	defer s.Close()
 	pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	var incoming dhtpb.Message
