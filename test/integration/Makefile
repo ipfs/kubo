@@ -4,8 +4,8 @@
 IPFS_ROOT = ../..
 IMAGE = jbenet/go-ipfs-bench
 CONTAINER = go-ipfs-bench
-PACKAGE = epictest
-PACKAGE_DIR = test/epictest
+PACKAGE = integrationtest
+PACKAGE_DIR = test/integration
 BUILD_DIR = ./build/bench
 CONTAINER_WORKING_DIR = /go
 CPU_PROF_NAME = cpu.out
