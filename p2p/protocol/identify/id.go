@@ -180,8 +180,8 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 	log.Debugf("%s received listen addrs for %s: %s", c.LocalPeer(), c.RemotePeer(), lmaddrs)
 
 	// get protocol versions
-	pv := *mes.ProtocolVersion
-	av := *mes.AgentVersion
+	pv := mes.GetProtocolVersion()
+	av := mes.GetAgentVersion()
 	ids.Host.Peerstore().Put(p, "ProtocolVersion", pv)
 	ids.Host.Peerstore().Put(p, "AgentVersion", av)
 }
