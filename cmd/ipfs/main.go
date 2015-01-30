@@ -479,6 +479,8 @@ func (i *cmdInvocation) setupInterruptHandler() {
 		for count := 0; ; count++ {
 			<-sig
 
+			// TODO cancel the command context instead
+
 			n, err := ctx.GetNode()
 			if err != nil {
 				log.Error(err)
