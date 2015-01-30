@@ -49,12 +49,9 @@ type Swarm struct {
 func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
 
-	if len(listenAddrs) > 0 {
-		filtered := addrutil.FilterUsableAddrs(listenAddrs)
-		if len(filtered) < 1 {
-			return nil, fmt.Errorf("swarm cannot use any addr in: %s", listenAddrs)
-		}
-		listenAddrs = filtered
+	listenAddrs, err := filterAddrs(listenAddrs)
+	if err != nil {
+		return nil, err
 	}
 
 	s := &Swarm{
@@ -75,6 +72,28 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 
 func (s *Swarm) teardown() error {
 	return s.swarm.Close()
+}
+
+// CtxGroup returns the Context Group of the swarm
+func filterAddrs(listenAddrs []ma.Multiaddr) ([]ma.Multiaddr, error) {
+	if len(listenAddrs) > 0 {
+		filtered := addrutil.FilterUsableAddrs(listenAddrs)
+		if len(filtered) < 1 {
+			return nil, fmt.Errorf("swarm cannot use any addr in: %s", listenAddrs)
+		}
+		listenAddrs = filtered
+	}
+	return listenAddrs, nil
+}
+
+// CtxGroup returns the Context Group of the swarm
+func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
+	addrs, err := filterAddrs(addrs)
+	if err != nil {
+		return err
+	}
+
+	return s.listen(addrs)
 }
 
 // CtxGroup returns the Context Group of the swarm
