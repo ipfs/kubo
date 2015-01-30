@@ -69,6 +69,9 @@ type Network interface {
 	// If there is no connection to p, attempts to create one.
 	NewStream(peer.ID) (Stream, error)
 
+	// Listen tells the network to start listening on given multiaddrs.
+	Listen(...ma.Multiaddr) error
+
 	// ListenAddresses returns a list of addresses at which this network listens.
 	ListenAddresses() []ma.Multiaddr
 

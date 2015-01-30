@@ -102,6 +102,11 @@ func (n *Network) Close() error {
 	return n.Swarm().cg.Close()
 }
 
+// Listen tells the network to start listening on given multiaddrs.
+func (n *Network) Listen(addrs ...ma.Multiaddr) error {
+	return n.Swarm().Listen(addrs...)
+}
+
 // ListenAddresses returns a list of addresses at which this network listens.
 func (n *Network) ListenAddresses() []ma.Multiaddr {
 	return n.Swarm().ListenAddresses()
