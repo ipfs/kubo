@@ -29,6 +29,9 @@ func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.Routing
 		if node.Peerstore == nil {
 			return nil, errPeerstoreMissing
 		}
+		if node.PeerHost == nil {
+			return nil, errHostMissing
+		}
 		if node.Identity == "" {
 			return nil, errIdentityMissing
 		}
@@ -41,7 +44,7 @@ func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.Routing
 			Local:   node.Identity,
 		}
 		node.PeerHost.SetStreamHandler(gcproxy.ProtocolGCR, proxy.HandleStream)
-		return grandcentral.NewClient(proxy, node.Peerstore, node.Identity)
+		return grandcentral.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
 	}
 }
 
@@ -77,6 +80,6 @@ func GrandCentralClient(remotes ...peer.PeerInfo) core.RoutingOption {
 		}
 		proxy := gcproxy.Standard(node.PeerHost, ids)
 		node.PeerHost.SetStreamHandler(gcproxy.ProtocolGCR, proxy.HandleStream)
-		return grandcentral.NewClient(proxy, node.Peerstore, node.Identity)
+		return grandcentral.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
 	}
 }
