@@ -42,10 +42,12 @@ test_expect_success "'ipfs pin rm' succeeds" '
 '
 
 test_expect_success "file no longer pinned" '
-	# we expect the welcome file to show up here
-	echo QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ >expected2
-	ipfs pin ls -type=recursive >actual2
-	test_cmp expected2 actual2
+	# we expect the welcome files to show up here
+	echo QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >expected2
+	ipfs refs -r QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>expected2
+	cat expected2 | sort >expected_sorted2
+	ipfs pin ls -type=recursive | sort >actual2
+	test_cmp expected_sorted2 actual2
 '
 
 test_expect_success "recursively pin afile" '
@@ -84,10 +86,12 @@ test_expect_success "'ipfs repo gc' removes file" '
 '
 
 test_expect_success "'ipfs refs local' no longer shows file" '
-	echo QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ >expected8
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>expected8
-	ipfs refs local >actual8
-	test_cmp expected8 actual8
+	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >expected8
+	echo QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>expected8
+	ipfs refs -r QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>expected8
+	cat expected8 | sort >expected_sorted8
+	ipfs refs local | sort >actual8
+	test_cmp expected_sorted8 actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
@@ -96,9 +100,11 @@ test_expect_success "adding multiblock random file succeeds" '
 '
 
 test_expect_success "'ipfs pin ls -type=indirect' is correct" '
-	ipfs refs "$MBLOCKHASH" | sort >refsout
+	ipfs refs "$MBLOCKHASH" >refsout
+	ipfs refs -r "QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT" >>refsout
+	cat refsout | sort >refsout_sorted
 	ipfs pin ls -type=indirect | sort >indirectpins
-	test_cmp refsout indirectpins
+	test_cmp refsout_sorted indirectpins
 '
 
 test_expect_success "pin something directly" '
@@ -123,7 +129,8 @@ test_expect_success "'ipfs pin ls -type=direct' is correct" '
 
 test_expect_success "'ipfs pin ls -type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected
-	echo QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ >>rp_expected
+	echo QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>rp_expected
+	ipfs refs -r "QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT" >>rp_expected
 	cat rp_expected | sort >rp_exp_sorted
 	ipfs pin ls -type=recursive | sort >rp_actual
 	test_cmp rp_exp_sorted rp_actual

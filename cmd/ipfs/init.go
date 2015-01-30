@@ -66,20 +66,6 @@ Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
 
-var welcomeMsg = `Hello and Welcome to IPFS!
-
-██╗██████╗ ███████╗███████╗
-██║██╔══██╗██╔════╝██╔════╝
-██║██████╔╝█████╗  ███████╗
-██║██╔═══╝ ██╔══╝  ╚════██║
-██║██║     ██║     ███████║
-╚═╝╚═╝     ╚═╝     ╚══════╝
-
-If you're seeing this, you have successfully installed
-IPFS and are now interfacing with the ipfs merkledag!
-
-`
-
 func initWithDefaults(repoRoot string) error {
 	_, err := doInit(repoRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
@@ -130,49 +116,27 @@ func addDefaultAssets(repoRoot string) error {
 
 	dirb := uio.NewDirectory(nd.DAG)
 
-	contact := bytes.NewBufferString(assets.Init_doc_contact)
-	contact_key, err := coreunix.Add(nd, contact)
-	if err != nil {
-		return err
-	}
-	err = dirb.AddChild("contact", contact_key)
-	if err != nil {
-		return err
-	}
-
-	help := bytes.NewBufferString(assets.Init_doc_help)
-	help_key, err := coreunix.Add(nd, help)
-	if err != nil {
-		return err
-	}
-	err = dirb.AddChild("help", help_key)
-	if err != nil {
-		return err
-	}
-
-	readme := bytes.NewBufferString(assets.Init_doc_readme)
-	readme_key, err := coreunix.Add(nd, readme)
-	if err != nil {
-		return err
-	}
-	err = dirb.AddChild("readme", readme_key)
-	if err != nil {
-		return err
-	}
-
-	secnotes := bytes.NewBufferString(assets.Init_doc_security_notes)
-	secnotes_key, err := coreunix.Add(nd, secnotes)
-	if err != nil {
-		return err
-	}
-	err = dirb.AddChild("security-notes", secnotes_key)
-	if err != nil {
-		return err
+	// add every file in the assets pkg
+	for fname, file := range assets.Init_dir {
+		buf := bytes.NewBufferString(file)
+		k, err := coreunix.Add(nd, buf)
+		if err != nil {
+			return err
+		}
+		if err := dirb.AddChild(fnmae, k); err != nil {
+			return err
+		}
 	}
 
 	dir := dirb.GetNode()
 	dkey, err := nd.DAG.Add(dir)
 	if err != nil {
+		return err
+	}
+	if err := nd.Pinning.Pin(dir, true); err != nil {
+		return err
+	}
+	if err := nd.Pinning.Flush(); err != nil {
 		return err
 	}
 
