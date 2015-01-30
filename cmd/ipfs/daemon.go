@@ -6,6 +6,7 @@ import (
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	cmds "github.com/jbenet/go-ipfs/commands"
+	"github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
@@ -100,11 +101,14 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// OK!!! Now we're ready to construct the node.
 	// make sure we construct an online node.
-	ctx.Online = true
-	node, err := ctx.GetNode()
+	node, err := core.NewIPFSNode(ctx.Context, core.Online(repo))
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
+	}
+	defer node.Close()
+	req.Context().ConstructNode = func() (*core.IpfsNode, error) {
+		return node, nil
 	}
 
 	// verify api address is valid multiaddr
