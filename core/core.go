@@ -263,16 +263,18 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context) error {
 func (n *IpfsNode) teardown() error {
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
-	var closers []io.Closer
-	addCloser := func(c io.Closer) {
+	closers := []io.Closer{
+		n.Blocks,
+		n.Exchange,
+		n.Repo,
+	}
+	addCloser := func(c io.Closer) { // use when field may be nil
 		if c != nil {
 			closers = append(closers, c)
 		}
 	}
 
 	addCloser(n.Bootstrapper)
-	addCloser(n.Repo)
-	addCloser(n.Blocks)
 	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
 		addCloser(dht)
 	}
