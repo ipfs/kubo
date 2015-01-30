@@ -3,7 +3,6 @@ package component
 import (
 	"errors"
 	"path"
-	"path/filepath"
 	"sync"
 
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -39,9 +38,6 @@ func init() {
 func InitDatastoreComponent(dspath string, conf *config.Config) error {
 	// The actual datastore contents are initialized lazily when Opened.
 	// During Init, we merely check that the directory is writeable.
-	if !filepath.IsAbs(dspath) {
-		return debugerror.New("datastore filepath must be absolute") // during initialization (this isn't persisted)
-	}
 	p := path.Join(dspath, DefaultDataStoreDirectory)
 	if err := dir.Writable(p); err != nil {
 		return debugerror.Errorf("datastore: %s", err)
