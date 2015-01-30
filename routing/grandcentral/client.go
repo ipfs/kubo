@@ -80,9 +80,16 @@ func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
 
 func (c *Client) Provide(ctx context.Context, k u.Key) error {
 	msg := pb.NewMessage(pb.Message_ADD_PROVIDER, string(k), 0)
-	// TODO wrap this to hide the dialer and the local/remote peers
-	msg.ProviderPeers = pb.PeerInfosToPBPeers(c.dialer, []peer.PeerInfo{peer.PeerInfo{ID: c.local}}) // FIXME how is connectedness defined for the local node
-	return c.proxy.SendMessage(ctx, msg)                                                             // TODO wrap to hide remote
+	// FIXME how is connectedness defined for the local node
+	pri := []pb.PeerRoutingInfo{
+		pb.PeerRoutingInfo{
+			PeerInfo: peer.PeerInfo{
+				ID: c.local,
+			},
+		},
+	}
+	msg.ProviderPeers = pb.PeerRoutingInfosToPBPeers(pri)
+	return c.proxy.SendMessage(ctx, msg) // TODO wrap to hide remote
 }
 
 func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {

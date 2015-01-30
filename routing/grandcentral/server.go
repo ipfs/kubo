@@ -84,7 +84,13 @@ func (s *Server) handleMessage(
 
 	case dhtpb.Message_FIND_NODE:
 		p := s.peerstore.PeerInfo(peer.ID(req.GetKey()))
-		response.CloserPeers = dhtpb.PeerInfosToPBPeers(s.dialer, []peer.PeerInfo{p})
+		pri := []dhtpb.PeerRoutingInfo{
+			dhtpb.PeerRoutingInfo{
+				PeerInfo: p,
+				// Connectedness: TODO
+			},
+		}
+		response.CloserPeers = dhtpb.PeerRoutingInfosToPBPeers(pri)
 		return p.ID, response
 
 	case dhtpb.Message_ADD_PROVIDER:
@@ -116,7 +122,13 @@ func (s *Server) handleMessage(
 		dskey := util.Key(req.GetKey()).DsKey()
 		exists, err := s.datastore.Has(dskey)
 		if err == nil && exists {
-			response.ProviderPeers = append(response.ProviderPeers, dhtpb.PeerInfosToPBPeers(s.dialer, []peer.PeerInfo{peer.PeerInfo{ID: s.local}})...)
+			pri := []dhtpb.PeerRoutingInfo{
+				dhtpb.PeerRoutingInfo{
+					// Connectedness: TODO how is connectedness defined for the local node
+					PeerInfo: peer.PeerInfo{ID: s.local},
+				},
+			}
+			response.ProviderPeers = append(response.ProviderPeers, dhtpb.PeerRoutingInfosToPBPeers(pri)...)
 		}
 		// FIXME(btc) is this how we want to persist this data?
 		pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", req.GetKey()})
