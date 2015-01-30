@@ -4,7 +4,7 @@ package ipns
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,6 +13,7 @@ import (
 	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
 	core "github.com/jbenet/go-ipfs/core"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
@@ -24,11 +25,12 @@ import (
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 const IpnsReadonly = true
 
-var log = u.Logger("ipns")
+var log = eventlog.Logger("fuse/ipns")
 
 var (
 	shortRepublishTimeout = time.Millisecond * 5
@@ -336,21 +338,46 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 	return nil, fuse.ENOENT
 }
 
-// ReadAll reads the object data as file data
-func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-	log.Debugf("ipns: ReadAll [%s]", s.name)
-	r, err := uio.NewDagReader(context.TODO(), s.Nd, s.Ipfs.DAG)
+func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+	// intr will be closed by fuse if the request is cancelled. turn this into a context.
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel() // make sure all operations we started close.
+
+	// we wait on intr and cancel our context if it closes.
+	go func() {
+		select {
+		case <-intr: // closed by fuse
+			cancel() // cancel our context
+		case <-ctx.Done():
+		}
+	}()
+
+	k, err := s.Nd.Key()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	// this is a terrible function... 'ReadAll'?
-	// what if i have a 6TB file? GG RAM.
-	b, err := ioutil.ReadAll(r)
+
+	// setup our logging event
+	lm := make(lgbl.DeferredMap)
+	lm["fs"] = "ipns"
+	lm["key"] = func() interface{} { return k.Pretty() }
+	lm["req_offset"] = req.Offset
+	lm["req_size"] = req.Size
+	defer log.EventBegin(ctx, "fuseRead", lm).Done()
+
+	r, err := uio.NewDagReader(ctx, s.Nd, s.Ipfs.DAG)
 	if err != nil {
-		log.Errorf("[%s] Readall error: %s", s.name, err)
-		return nil, err
+		return err
 	}
-	return b, nil
+	o, err := r.Seek(req.Offset, os.SEEK_SET)
+	lm["res_offset"] = o
+	if err != nil {
+		return err
+	}
+	n, err := io.ReadFull(r, resp.Data[:req.Size])
+	resp.Data = resp.Data[:n]
+	lm["res_size"] = n
+	return err // may be non-nil / not succeeded
 }
 
 func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
