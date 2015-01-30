@@ -97,7 +97,6 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
 		return
 	}
-	defer repo.Close()
 
 	// OK!!! Now we're ready to construct the node.
 	// make sure we construct an online node.
