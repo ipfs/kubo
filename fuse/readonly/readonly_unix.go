@@ -166,6 +166,7 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 
 	// setup our logging event
 	lm := make(lgbl.DeferredMap)
+	lm["fs"] = "ipfs"
 	lm["key"] = func() interface{} { return k.Pretty() }
 	lm["req_offset"] = req.Offset
 	lm["req_size"] = req.Size
@@ -176,12 +177,12 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 		return err
 	}
 	o, err := r.Seek(req.Offset, os.SEEK_SET)
-	lm["req_offset"] = o
+	lm["res_offset"] = o
 	if err != nil {
 		return err
 	}
 	n, err := io.ReadFull(r, resp.Data[:req.Size])
 	resp.Data = resp.Data[:n]
-	lm["req_size"] = n
+	lm["res_size"] = n
 	return err // may be non-nil / not succeeded
 }
