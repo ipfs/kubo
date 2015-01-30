@@ -185,11 +185,3 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 	lm["req_size"] = n
 	return err // may be non-nil / not succeeded
 }
-
-// // ReadAll reads the object data as file data
-// func (s *Node) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
-// 	// this is a terrible function... 'ReadAll'?
-// 	// what if i have a 6TB file? GG RAM.
-// 	return ioutil.ReadAll(r)
-// }
-// GG RAM alright... -jbenet
