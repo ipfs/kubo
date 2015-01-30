@@ -11,10 +11,11 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+
 	message "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks"
+	blockstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

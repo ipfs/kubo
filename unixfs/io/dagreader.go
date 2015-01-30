@@ -9,7 +9,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
+	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 )

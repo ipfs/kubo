@@ -8,12 +8,12 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	"github.com/jbenet/go-ipfs/blocks/blockstore"
-	bs "github.com/jbenet/go-ipfs/blockservice"
 	"github.com/jbenet/go-ipfs/exchange/offline"
 	imp "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
+	bs "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
+	"github.com/jbenet/go-ipfs/struct/blocks/blockstore"
+	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 

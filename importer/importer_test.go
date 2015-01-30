@@ -13,12 +13,13 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	bserv "github.com/jbenet/go-ipfs/blockservice"
+
+	pin "github.com/jbenet/go-ipfs/core/corerepo/pin"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	pin "github.com/jbenet/go-ipfs/pin"
+	bserv "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
+	bstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
+	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )

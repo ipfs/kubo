@@ -15,8 +15,8 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
-	dag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	dag "github.com/jbenet/go-ipfs/struct/merkledag"
 )
 
 var log = eventlog.Logger("core/cmds/object")

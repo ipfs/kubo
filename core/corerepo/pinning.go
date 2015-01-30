@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	"github.com/jbenet/go-ipfs/struct/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

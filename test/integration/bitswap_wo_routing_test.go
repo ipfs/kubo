@@ -6,9 +6,9 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	"github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/core"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
+	"github.com/jbenet/go-ipfs/struct/blocks"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
+	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

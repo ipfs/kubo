@@ -8,9 +8,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/jbenet/go-ipfs/core/corerepo/pin"
 	"github.com/jbenet/go-ipfs/importer/chunk"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/pin"
+	dag "github.com/jbenet/go-ipfs/struct/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	"github.com/jbenet/go-ipfs/util"
 )

@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	blocks "github.com/jbenet/go-ipfs/blocks"
+
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )

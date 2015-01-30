@@ -4,9 +4,10 @@ package offline
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	"github.com/jbenet/go-ipfs/blocks/blockstore"
+
 	exchange "github.com/jbenet/go-ipfs/exchange"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks"
+	"github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

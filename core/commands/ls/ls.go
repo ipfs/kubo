@@ -7,8 +7,8 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
 )
 
 type LsOutput struct {

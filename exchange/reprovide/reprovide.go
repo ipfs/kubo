@@ -6,8 +6,8 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	backoff "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cenkalti/backoff"
 
-	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
 	routing "github.com/jbenet/go-ipfs/routing"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )

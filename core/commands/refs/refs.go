@@ -10,8 +10,8 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
-	dag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	dag "github.com/jbenet/go-ipfs/struct/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

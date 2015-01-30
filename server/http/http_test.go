@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	dag "github.com/jbenet/go-ipfs/merkledag"
+	dag "github.com/jbenet/go-ipfs/struct/merkledag"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

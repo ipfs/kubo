@@ -1,7 +1,7 @@
 package io
 
 import (
-	mdag "github.com/jbenet/go-ipfs/merkledag"
+	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
 	format "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )

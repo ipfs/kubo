@@ -8,11 +8,11 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	p2ptestutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks"
+	blocksutil "github.com/jbenet/go-ipfs/struct/blocks/blocksutil"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	u "github.com/jbenet/go-ipfs/util"
 )

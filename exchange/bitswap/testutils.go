@@ -6,11 +6,12 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
+
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	p2ptestutil "github.com/jbenet/go-ipfs/p2p/test/util"
+	blockstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"

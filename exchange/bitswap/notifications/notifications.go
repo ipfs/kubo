@@ -4,7 +4,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	pubsub "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/pubsub"
 
-	blocks "github.com/jbenet/go-ipfs/blocks"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
