@@ -57,6 +57,9 @@ Set the value of the 'datastore.path' key:
 		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")"),
 		cmds.StringArg("value", false, false, "The value to set the config entry to"),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("bool", "Set a boolean value"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
 		key := args[0]
@@ -72,7 +75,11 @@ Set the value of the 'datastore.path' key:
 		var output *ConfigField
 		if len(args) == 2 {
 			value := args[1]
-			output, err = setConfig(r, key, value)
+			if isbool, _, _ := req.Option("bool").Bool(); isbool {
+				output, err = setConfig(r, key, value == "true")
+			} else {
+				output, err = setConfig(r, key, value)
+			}
 		} else {
 			output, err = getConfig(r, key)
 		}
@@ -208,7 +215,7 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 	}, nil
 }
 
-func setConfig(r repo.Repo, key, value string) (*ConfigField, error) {
+func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
 	err := r.SetConfigKey(key, value)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set config value: %s", err)
