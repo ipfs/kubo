@@ -33,7 +33,9 @@ func Standard(h host.Host, remotes []peer.ID) Proxy {
 }
 
 func (p *standard) HandleStream(s inet.Stream) {
-	panic("client received a GCR message")
+	// TODO(brian): Should clients be able to satisfy requests?
+	log.Error("grandcentral client received (dropped) a routing message from", s.Conn().RemotePeer())
+	s.Close()
 }
 
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
