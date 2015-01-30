@@ -6,6 +6,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
@@ -18,17 +19,19 @@ import (
 var log = eventlog.Logger("grandcentral")
 
 type Client struct {
+	peerhost  host.Host
 	peerstore peer.Peerstore
 	proxy     proxy.Proxy
 	local     peer.ID
 }
 
 // TODO take in datastore/cache
-func NewClient(px proxy.Proxy, ps peer.Peerstore, local peer.ID) (*Client, error) {
+func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*Client, error) {
 	return &Client{
 		proxy:     px,
 		local:     local,
 		peerstore: ps,
+		peerhost:  h,
 	}, nil
 }
 
@@ -79,7 +82,8 @@ func (c *Client) Provide(ctx context.Context, k u.Key) error {
 	pri := []pb.PeerRoutingInfo{
 		pb.PeerRoutingInfo{
 			PeerInfo: peer.PeerInfo{
-				ID: c.local,
+				ID:    c.local,
+				Addrs: c.peerhost.Addrs(),
 			},
 		},
 	}
