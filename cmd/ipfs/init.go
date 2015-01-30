@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	assets "github.com/jbenet/go-ipfs/assets"
@@ -13,7 +14,6 @@ import (
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -52,12 +52,15 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		output, err := doInit(req.Context().ConfigRoot, force, nBitsForKeypair)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		res.SetOutput(output)
+		rpipe, wpipe := io.Pipe()
+		go func() {
+			defer wpipe.Close()
+			if err := doInit(wpipe, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}()
+		res.SetOutput(rpipe)
 	},
 }
 
@@ -66,42 +69,45 @@ Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
 
-func initWithDefaults(repoRoot string) error {
-	_, err := doInit(repoRoot, false, nBitsForKeypairDefault)
+func initWithDefaults(out io.Writer, repoRoot string) error {
+	err := doInit(out, repoRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
 }
 
-func doInit(repoRoot string, force bool, nBitsForKeypair int) (interface{}, error) {
-	u.POut("initializing ipfs node at %s\n", repoRoot)
+func writef(out io.Writer, format string, ifs ...interface{}) error {
+	_, err := out.Write([]byte(fmt.Sprintf(format, ifs...)))
+	return err
+}
+
+func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
+	if err := writef(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
+		return err
+	}
 
 	if fsrepo.IsInitialized(repoRoot) && !force {
-		return nil, errRepoExists
+		return errRepoExists
 	}
-	conf, err := config.Init(nBitsForKeypair)
+	conf, err := config.Init(out, nBitsForKeypair)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if fsrepo.IsInitialized(repoRoot) {
 		if err := fsrepo.Remove(repoRoot); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := addDefaultAssets(repoRoot); err != nil {
-		return nil, err
+	if err := addDefaultAssets(out, repoRoot); err != nil {
+		return err
 	}
 
-	err = initializeIpnsKeyspace(repoRoot)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return initializeIpnsKeyspace(repoRoot)
 }
 
-func addDefaultAssets(repoRoot string) error {
+func addDefaultAssets(out io.Writer, repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	r := fsrepo.At(repoRoot)
@@ -123,7 +129,7 @@ func addDefaultAssets(repoRoot string) error {
 		if err != nil {
 			return err
 		}
-		if err := dirb.AddChild(fnmae, k); err != nil {
+		if err := dirb.AddChild(fname, k); err != nil {
 			return err
 		}
 	}
@@ -140,8 +146,8 @@ func addDefaultAssets(repoRoot string) error {
 		return err
 	}
 
-	fmt.Printf("More documentation in %s\n", dkey)
-	return nil
+	writef(out, "to get started, enter:\n")
+	return writef(out, "\n\tipfs cat /ipfs/%s/readme\n\n", dkey)
 }
 
 func initializeIpnsKeyspace(repoRoot string) error {
