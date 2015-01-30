@@ -10,6 +10,7 @@ import (
 	cat "github.com/jbenet/go-ipfs/core/commands/cat"
 	corecommands "github.com/jbenet/go-ipfs/core/commands/commands"
 	config "github.com/jbenet/go-ipfs/core/commands/config"
+	dag "github.com/jbenet/go-ipfs/core/commands/dag"
 	dht "github.com/jbenet/go-ipfs/core/commands/dht"
 	diag "github.com/jbenet/go-ipfs/core/commands/diag"
 	get "github.com/jbenet/go-ipfs/core/commands/get"
@@ -18,7 +19,6 @@ import (
 	ls "github.com/jbenet/go-ipfs/core/commands/ls"
 	mount "github.com/jbenet/go-ipfs/core/commands/mount"
 	name "github.com/jbenet/go-ipfs/core/commands/name"
-	object "github.com/jbenet/go-ipfs/core/commands/object"
 	pin "github.com/jbenet/go-ipfs/core/commands/pin"
 	ping "github.com/jbenet/go-ipfs/core/commands/ping"
 	refs "github.com/jbenet/go-ipfs/core/commands/refs"
@@ -66,16 +66,17 @@ Network commands:
     ping          Measure the latency of a connection
     diag          Print diagnostics
 
-Plumbing commands:
+Data structure commands:
 
-    block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
+    block         Manipulate raw data blocks in the datastore
+    dag           Manipulate raw merkle dag nodes
+    file          Manipulate unixfs files (wip)
 
 Tool commands:
 
     log           Change the logging level
     config        Manage configuration
-    update        Download and apply go-ipfs updates
+    update        Download and apply go-ipfs updates (wip)
     version       Show ipfs version information
     commands      List all available commands
 
@@ -109,7 +110,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"ls":        ls.LsCmd,
 	"mount":     mount.MountCmd,
 	"name":      name.NameCmd,
-	"object":    object.ObjectCmd,
+	"dag":       dag.DagCmd,
 	"pin":       pin.PinCmd,
 	"ping":      ping.PingCmd,
 	"refs":      refs.RefsCmd,
