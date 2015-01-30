@@ -25,39 +25,39 @@ ipfs [<flags>] <command> [<arg>] ...
 Basic commands:
 
     init          Initialize ipfs local configuration
-    add <path>    Add an object to ipfs
-    cat <ref>     Show ipfs object data
-    get <ref>     Download ipfs objects
-    ls <ref>      List links from an object
+    add  <path>   Add an object to ipfs
+    cat  <ref>    Show ipfs object data
+    ls   <ref>    List links from an object
     refs <ref>    List hashes of links from an object
+    get  <ref>    Download ipfs objects
 
-Tool commands:
+Node commands:
 
-    config        Manage configuration
-    update        Download and apply go-ipfs updates
-    version       Show ipfs version information
-    commands      List all available commands
     id            Show info about ipfs peers
     pin           Pin objects to local storage
     name          Publish or resolve IPNS names
-    log           Change the logging level
-
-Advanced Commands:
-
     daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
-    diag          Print diagnostics
 
 Network commands:
 
-    swarm         Manage connections to the p2p network
     bootstrap     Add or remove bootstrap peers
+    swarm         Manage connections to the p2p network
     ping          Measure the latency of a connection
+    diag          Print diagnostics
 
 Plumbing commands:
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
+
+Tool commands:
+
+    log           Change the logging level
+    config        Manage configuration
+    update        Download and apply go-ipfs updates
+    version       Show ipfs version information
+    commands      List all available commands
 
 Use 'ipfs <command> --help' to learn more about each command.
 `,
