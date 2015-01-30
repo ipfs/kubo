@@ -219,6 +219,7 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	i.req.Context().Context = ctx
 
 	repoPath, err := getRepoPath(i.req)
 	if err != nil {
