@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -144,10 +145,7 @@ func Offline(r repo.Repo) ConfigOption {
 	return Standard(r, false)
 }
 
-func OnlineWithRouting(r repo.Repo, router routing.IpfsRouting) ConfigOption {
-	if router == nil {
-		panic("router required")
-	}
+func OnlineWithRouting(r repo.Repo, router RoutingOption) ConfigOption {
 	return standardWithRouting(r, true, router)
 }
 
@@ -157,11 +155,11 @@ func Online(r repo.Repo) ConfigOption {
 
 // DEPRECATED: use Online, Offline functions
 func Standard(r repo.Repo, online bool) ConfigOption {
-	return standardWithRouting(r, online, nil)
+	return standardWithRouting(r, online, DHTOption)
 }
 
 // TODO refactor so maybeRouter isn't special-cased in this way
-func standardWithRouting(r repo.Repo, online bool, maybeRouter routing.IpfsRouting) ConfigOption {
+func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption) ConfigOption {
 	return func(ctx context.Context) (n *IpfsNode, err error) {
 		// FIXME perform node construction in the main constructor so it isn't
 		// necessary to perform this teardown in this scope.
@@ -203,7 +201,7 @@ func standardWithRouting(r repo.Repo, online bool, maybeRouter routing.IpfsRouti
 		}
 
 		if online {
-			if err := n.startOnlineServices(ctx, maybeRouter); err != nil {
+			if err := n.startOnlineServices(ctx, routingOption); err != nil {
 				return nil, err
 			}
 		} else {
@@ -215,7 +213,7 @@ func standardWithRouting(r repo.Repo, online bool, maybeRouter routing.IpfsRouti
 	}
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, maybeRouter routing.IpfsRouting) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption) error {
 
 	if n.PeerHost != nil { // already online.
 		return debugerror.New("node already online")
@@ -232,7 +230,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, maybeRouter routing.
 	}
 	n.PeerHost = peerhost
 
-	if err := n.startOnlineServicesWithHost(ctx, maybeRouter); err != nil {
+	if err := n.startOnlineServicesWithHost(ctx, routingOption); err != nil {
 		return err
 	}
 
@@ -249,20 +247,16 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, maybeRouter routing.
 
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
-func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, maybeRouter routing.IpfsRouting) error {
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOption RoutingOption) error {
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
 	// setup routing service
-	if maybeRouter != nil {
-		n.Routing = maybeRouter
-	} else {
-		dhtRouting, err := constructDHTRouting(ctx, n.PeerHost, n.Repo.Datastore())
-		if err != nil {
-			return debugerror.Wrap(err)
-		}
-		n.Routing = dhtRouting
+	r, err := routingOption(ctx, n)
+	if err != nil {
+		return debugerror.Wrap(err)
 	}
+	n.Routing = r
 
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
@@ -488,4 +482,16 @@ func constructDHTRouting(ctx context.Context, host p2phost.Host, ds datastore.Th
 	dhtRouting := dht.NewDHT(ctx, host, ds)
 	dhtRouting.Validator[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 	return dhtRouting, nil
+}
+
+type RoutingOption func(context.Context, *IpfsNode) (routing.IpfsRouting, error)
+
+var DHTOption RoutingOption = func(ctx context.Context, n *IpfsNode) (routing.IpfsRouting, error) {
+	if n.PeerHost == nil {
+		return nil, errors.New("dht requires a peerhost")
+	}
+	if n.Repo == nil {
+		return nil, errors.New("dht requires a datastore. (node has no Repo)")
+	}
+	return constructDHTRouting(ctx, n.PeerHost, n.Repo.Datastore())
 }
