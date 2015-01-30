@@ -17,8 +17,6 @@ import (
 
 var log = eventlog.Logger("grandcentral")
 
-var ErrTODO = errors.New("TODO")
-
 type Client struct {
 	peerstore peer.Peerstore
 	proxy     proxy.Proxy
