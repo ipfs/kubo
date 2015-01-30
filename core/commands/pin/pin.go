@@ -6,6 +6,7 @@ import (
 	"io"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	corerepo "github.com/jbenet/go-ipfs/core/corerepo"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -205,10 +206,10 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
 			keys = append(keys, n.Pinning.RecursiveKeys()...)
 		}
 
-		res.SetOutput(&KeyList{Keys: keys})
+		res.SetOutput(&ccutil.KeyList{Keys: keys})
 	},
-	Type: KeyList{},
+	Type: ccutil.KeyList{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: KeyListTextMarshaler,
+		cmds.Text: ccutil.KeyListTextMarshaler,
 	},
 }

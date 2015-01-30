@@ -6,10 +6,14 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 
 	tail "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail"
 )
+
+var log = eventlog.Logger("core/cmds/log")
 
 // Golang os.Args overrides * and replaces the character argument with
 // an array which includes every file in the user's CWD. As a
@@ -63,12 +67,12 @@ output of a running daemon.
 
 		s := fmt.Sprintf("Changed log level of '%s' to '%s'", subsystem, level)
 		log.Info(s)
-		res.SetOutput(&MessageOutput{s})
+		res.SetOutput(&ccutil.MessageOutput{s})
 	},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: MessageTextMarshaler,
+		cmds.Text: ccutil.MessageTextMarshaler,
 	},
-	Type: MessageOutput{},
+	Type: ccutil.MessageOutput{},
 }
 
 var logTailCmd = &cmds.Command{
@@ -114,7 +118,7 @@ var logTailCmd = &cmds.Command{
 					return
 				}
 				// TODO: unpack the line text into a struct and output that
-				outChan <- &MessageOutput{line.Text}
+				outChan <- &ccutil.MessageOutput{line.Text}
 			}
 		}()
 
@@ -130,11 +134,11 @@ var logTailCmd = &cmds.Command{
 			return &cmds.ChannelMarshaler{
 				Channel: outChan,
 				Marshaler: func(v interface{}) (io.Reader, error) {
-					output := v.(*MessageOutput)
+					output := v.(*ccutil.MessageOutput)
 					return strings.NewReader(output.Message + "\n"), nil
 				},
 			}, nil
 		},
 	},
-	Type: MessageOutput{},
+	Type: ccutil.MessageOutput{},
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	diag "github.com/jbenet/go-ipfs/diagnostics"
 )
 
@@ -57,8 +58,8 @@ Sends out a message to each node in the network recursively
 requesting a listing of data about them including number of
 connected peers and latencies between them.
 
-The given timeout will be decremented 2s at every network hop, 
-ensuring peers try to return their diagnostics before the initiator's 
+The given timeout will be decremented 2s at every network hop,
+ensuring peers try to return their diagnostics before the initiator's
 timeout. If the timeout is too small, some peers may not be reached.
 30s and 60s are reasonable timeout values, though network vary.
 The default timeout is 20 seconds.
@@ -97,7 +98,7 @@ that consume the dot format to generate graphs of the network.
 		}
 
 		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 

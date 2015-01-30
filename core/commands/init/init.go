@@ -1,4 +1,4 @@
-package main
+package init
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ import (
 
 const nBitsForKeypairDefault = 4096
 
-var initCmd = &cmds.Command{
+var InitCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Initializes IPFS config file",
 		ShortDescription: "Initializes IPFS configuration files and generates a new keypair.",
@@ -70,7 +70,7 @@ Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
 
-func initWithDefaults(out io.Writer, repoRoot string) error {
+func WithDefaults(out io.Writer, repoRoot string) error {
 	err := doInit(out, repoRoot, false, nBitsForKeypairDefault)
 	return debugerror.Wrap(err)
 }

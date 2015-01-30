@@ -1,4 +1,4 @@
-package main
+package tour
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	tour "github.com/jbenet/go-ipfs/tour"
 )
 
-var tourCmd = &cmds.Command{
+var TourCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "An introduction to IPFS",
 		ShortDescription: `

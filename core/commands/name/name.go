@@ -1,6 +1,12 @@
 package commands
 
-import cmds "github.com/jbenet/go-ipfs/commands"
+import (
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+
+	cmds "github.com/jbenet/go-ipfs/commands"
+)
+
+var log = eventlog.Logger("core/cmds/name")
 
 type IpnsEntry struct {
 	Name  string

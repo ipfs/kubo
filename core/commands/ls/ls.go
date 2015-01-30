@@ -6,22 +6,13 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 )
 
-type Link struct {
-	Name, Hash string
-	Size       uint64
-}
-
-type Object struct {
-	Hash  string
-	Links []Link
-}
-
 type LsOutput struct {
-	Objects []Object
+	Objects []ccutil.Object
 }
 
 var LsCmd = &cmds.Command{
@@ -57,14 +48,14 @@ it contains, with the following format:
 			dagnodes = append(dagnodes, dagnode)
 		}
 
-		output := make([]Object, len(req.Arguments()))
+		output := make([]ccutil.Object, len(req.Arguments()))
 		for i, dagnode := range dagnodes {
-			output[i] = Object{
+			output[i] = ccutil.Object{
 				Hash:  paths[i],
-				Links: make([]Link, len(dagnode.Links)),
+				Links: make([]ccutil.Link, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				output[i].Links[j] = Link{
+				output[i].Links[j] = ccutil.Link{
 					Name: link.Name,
 					Hash: link.Hash.B58String(),
 					Size: link.Size,
@@ -83,7 +74,7 @@ it contains, with the following format:
 				if len(output) > 1 {
 					s += fmt.Sprintf("%s:\n", object.Hash)
 				}
-				s += marshalLinks(object.Links)
+				s += ccutil.MarshalLinks(object.Links)
 				if len(output) > 1 {
 					s += "\n"
 				}
@@ -93,11 +84,4 @@ it contains, with the following format:
 		},
 	},
 	Type: LsOutput{},
-}
-
-func marshalLinks(links []Link) (s string) {
-	for _, link := range links {
-		s += fmt.Sprintf("%s %v %s\n", link.Hash, link.Size, link.Name)
-	}
-	return s
 }

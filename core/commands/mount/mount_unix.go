@@ -8,13 +8,18 @@ import (
 	"strings"
 	"time"
 
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
 	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
 	config "github.com/jbenet/go-ipfs/repo/config"
 )
+
+var log = eventlog.Logger("core/cmds/mount")
 
 // amount of time to wait for mount errors
 // TODO is this non-deterministic?
@@ -111,7 +116,7 @@ baz
 
 		// error if we aren't running node in online mode
 		if !node.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 

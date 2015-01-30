@@ -1,14 +1,34 @@
 package commands
 
 import (
-	"io"
-	"strings"
-
 	cmds "github.com/jbenet/go-ipfs/commands"
-	u "github.com/jbenet/go-ipfs/util"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+
+	add "github.com/jbenet/go-ipfs/core/commands/add"
+	block "github.com/jbenet/go-ipfs/core/commands/block"
+	bootstrap "github.com/jbenet/go-ipfs/core/commands/bootstrap"
+	cat "github.com/jbenet/go-ipfs/core/commands/cat"
+	corecommands "github.com/jbenet/go-ipfs/core/commands/commands"
+	config "github.com/jbenet/go-ipfs/core/commands/config"
+	dht "github.com/jbenet/go-ipfs/core/commands/dht"
+	diag "github.com/jbenet/go-ipfs/core/commands/diag"
+	get "github.com/jbenet/go-ipfs/core/commands/get"
+	id "github.com/jbenet/go-ipfs/core/commands/id"
+	cmdlog "github.com/jbenet/go-ipfs/core/commands/log"
+	ls "github.com/jbenet/go-ipfs/core/commands/ls"
+	mount "github.com/jbenet/go-ipfs/core/commands/mount"
+	name "github.com/jbenet/go-ipfs/core/commands/name"
+	object "github.com/jbenet/go-ipfs/core/commands/object"
+	pin "github.com/jbenet/go-ipfs/core/commands/pin"
+	ping "github.com/jbenet/go-ipfs/core/commands/ping"
+	refs "github.com/jbenet/go-ipfs/core/commands/refs"
+	repo "github.com/jbenet/go-ipfs/core/commands/repo"
+	swarm "github.com/jbenet/go-ipfs/core/commands/swarm"
+	update "github.com/jbenet/go-ipfs/core/commands/update"
+	version "github.com/jbenet/go-ipfs/core/commands/version"
 )
 
-var log = u.Logger("core/commands")
+var log = eventlog.Logger("core/cmds")
 
 type TestOutput struct {
 	Foo string
@@ -72,41 +92,33 @@ Use 'ipfs <command> --help' to learn more about each command.
 }
 
 // commandsDaemonCmd is the "ipfs commands" command for daemon
-var CommandsDaemonCmd = CommandsCmd(Root)
+var CommandsDaemonCmd = corecommands.CommandsCmd(Root)
 
 var rootSubcommands = map[string]*cmds.Command{
-	"add":       AddCmd,
-	"block":     BlockCmd,
-	"bootstrap": BootstrapCmd,
-	"cat":       CatCmd,
+	"add":       add.AddCmd,
+	"block":     block.BlockCmd,
+	"bootstrap": bootstrap.BootstrapCmd,
+	"cat":       cat.CatCmd,
 	"commands":  CommandsDaemonCmd,
-	"config":    ConfigCmd,
-	"dht":       DhtCmd,
-	"diag":      DiagCmd,
-	"get":       GetCmd,
-	"id":        IDCmd,
-	"log":       LogCmd,
-	"ls":        LsCmd,
-	"mount":     MountCmd,
-	"name":      NameCmd,
-	"object":    ObjectCmd,
-	"pin":       PinCmd,
-	"ping":      PingCmd,
-	"refs":      RefsCmd,
-	"repo":      RepoCmd,
-	"swarm":     SwarmCmd,
-	"update":    UpdateCmd,
-	"version":   VersionCmd,
+	"config":    config.ConfigCmd,
+	"dht":       dht.DhtCmd,
+	"diag":      diag.DiagCmd,
+	"get":       get.GetCmd,
+	"id":        id.IDCmd,
+	"log":       cmdlog.LogCmd,
+	"ls":        ls.LsCmd,
+	"mount":     mount.MountCmd,
+	"name":      name.NameCmd,
+	"object":    object.ObjectCmd,
+	"pin":       pin.PinCmd,
+	"ping":      ping.PingCmd,
+	"refs":      refs.RefsCmd,
+	"repo":      repo.RepoCmd,
+	"swarm":     swarm.SwarmCmd,
+	"update":    update.UpdateCmd,
+	"version":   version.VersionCmd,
 }
 
 func init() {
 	Root.Subcommands = rootSubcommands
-}
-
-type MessageOutput struct {
-	Message string
-}
-
-func MessageTextMarshaler(res cmds.Response) (io.Reader, error) {
-	return strings.NewReader(res.Output().(*MessageOutput).Message), nil
 }

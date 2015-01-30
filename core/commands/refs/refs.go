@@ -1,34 +1,21 @@
 package commands
 
 import (
-	"bytes"
 	"io"
 	"strings"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
+	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-// KeyList is a general type for outputting lists of keys
-type KeyList struct {
-	Keys []u.Key
-}
-
-// KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
-func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
-	output := res.Output().(*KeyList)
-	var buf bytes.Buffer
-	for _, key := range output.Keys {
-		buf.WriteString(key.B58String() + "\n")
-	}
-	return &buf, nil
-}
+var log = eventlog.Logger("core/cmds/refs")
 
 var RefsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

@@ -10,12 +10,16 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
+
+var log = eventlog.Logger("core/cmds/ping")
 
 const kPingTimeout = 10 * time.Second
 
@@ -84,7 +88,7 @@ trip latency information.
 
 		// Must be online!
 		if !n.OnlineMode() {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 

@@ -9,12 +9,16 @@ import (
 	"strings"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+
 	"github.com/jbenet/go-ipfs/blocks"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
+
+var log = eventlog.Logger("core/cmds/block")
 
 type BlockStat struct {
 	Key  string

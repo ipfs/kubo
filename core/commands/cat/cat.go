@@ -5,14 +5,13 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	path "github.com/jbenet/go-ipfs/path"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
-
-const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
 
 var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -45,7 +44,7 @@ it contains.
 		res.SetOutput(reader)
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
-		if res.Length() < progressBarMinSize {
+		if res.Length() < ccutil.ProgressBarMinSize {
 			return
 		}
 

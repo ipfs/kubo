@@ -12,7 +12,11 @@ import (
 	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
+
+var log = eventlog.Logger("core/cmds/refs")
 
 type stringList struct {
 	Strings []string
@@ -62,7 +66,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		}
 
 		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -99,7 +103,7 @@ ipfs swarm addrs lists all addresses this node is aware of.
 		}
 
 		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -168,7 +172,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		addrs := req.Arguments()
 
 		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 
@@ -221,7 +225,7 @@ ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQA
 		addrs := req.Arguments()
 
 		if n.PeerHost == nil {
-			res.SetError(errNotOnline, cmds.ErrClient)
+			res.SetError(ccutil.ErrNotOnline, cmds.ErrClient)
 			return
 		}
 

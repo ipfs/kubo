@@ -10,12 +10,16 @@ import (
 	"strings"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
+	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 )
+
+var log = eventlog.Logger("core/cmds/object")
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
 var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbytes")
@@ -23,7 +27,7 @@ var ErrObjectTooLarge = errors.New("input object was too large. limit is 512kbyt
 const inputLimit = 512 * 1024
 
 type Node struct {
-	Links []Link
+	Links []ccutil.Link
 	Data  []byte
 }
 
@@ -119,12 +123,12 @@ multihash.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			object := res.Output().(*Object)
-			marshalled := marshalLinks(object.Links)
+			object := res.Output().(*ccutil.Object)
+			marshalled := ccutil.MarshalLinks(object.Links)
 			return strings.NewReader(marshalled), nil
 		},
 	},
-	Type: Object{},
+	Type: ccutil.Object{},
 }
 
 var objectGetCmd = &cmds.Command{
@@ -166,12 +170,12 @@ This command outputs data in the following encodings:
 		}
 
 		node := &Node{
-			Links: make([]Link, len(object.Links)),
+			Links: make([]ccutil.Link, len(object.Links)),
 			Data:  object.Data,
 		}
 
 		for i, link := range object.Links {
-			node.Links[i] = Link{
+			node.Links[i] = ccutil.Link{
 				Hash: link.Hash.B58String(),
 				Name: link.Name,
 				Size: link.Size,
@@ -310,11 +314,11 @@ Data should be in the format specified by <encoding>.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			object := res.Output().(*Object)
+			object := res.Output().(*ccutil.Object)
 			return strings.NewReader("added " + object.Hash), nil
 		},
 	},
-	Type: Object{},
+	Type: ccutil.Object{},
 }
 
 // objectData takes a key string and writes out the raw bytes of that node (if there is one)
@@ -330,7 +334,7 @@ func objectData(n *core.IpfsNode, fpath path.Path) (io.Reader, error) {
 }
 
 // objectLinks takes a key string and lists the links it points to
-func objectLinks(n *core.IpfsNode, fpath path.Path) (*Object, error) {
+func objectLinks(n *core.IpfsNode, fpath path.Path) (*ccutil.Object, error) {
 	dagnode, err := n.Resolver.ResolvePath(fpath)
 	if err != nil {
 		return nil, err
@@ -338,7 +342,7 @@ func objectLinks(n *core.IpfsNode, fpath path.Path) (*Object, error) {
 
 	log.Debugf("objectLinks: found dagnode %s (# of bytes: %d - # links: %d)", fpath, len(dagnode.Data), len(dagnode.Links))
 
-	return getOutput(dagnode)
+	return ccutil.NodeOutput(dagnode)
 }
 
 // objectGet takes a key string from args and a format option and serializes the dagnode to that format
@@ -354,7 +358,7 @@ func objectGet(n *core.IpfsNode, fpath path.Path) (*dag.Node, error) {
 }
 
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
-func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, error) {
+func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*ccutil.Object, error) {
 	var (
 		dagnode *dag.Node
 		data    []byte
@@ -394,12 +398,11 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 		return nil, err
 	}
 
-	err = addNode(n, dagnode)
-	if err != nil {
+	if err := ccutil.AddNode(n, dagnode); err != nil {
 		return nil, err
 	}
 
-	return getOutput(dagnode)
+	return ccutil.NodeOutput(dagnode)
 }
 
 // ErrUnknownObjectEnc is returned if a invalid encoding is supplied
@@ -421,28 +424,6 @@ func getObjectEnc(o interface{}) objectEncoding {
 	}
 
 	return objectEncoding(v)
-}
-
-func getOutput(dagnode *dag.Node) (*Object, error) {
-	key, err := dagnode.Key()
-	if err != nil {
-		return nil, err
-	}
-
-	output := &Object{
-		Hash:  key.Pretty(),
-		Links: make([]Link, len(dagnode.Links)),
-	}
-
-	for i, link := range dagnode.Links {
-		output.Links[i] = Link{
-			Name: link.Name,
-			Hash: link.Hash.B58String(),
-			Size: link.Size,
-		}
-	}
-
-	return output, nil
 }
 
 // converts the Node object into a real dag.Node

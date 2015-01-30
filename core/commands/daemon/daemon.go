@@ -1,18 +1,24 @@
-package main
+package daemon
 
 import (
 	"fmt"
 	"os"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+
 	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	commands "github.com/jbenet/go-ipfs/core/commands"
-	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
+
+	core "github.com/jbenet/go-ipfs/core"
+	cmdinit "github.com/jbenet/go-ipfs/core/commands/init"
+	cmdmount "github.com/jbenet/go-ipfs/core/commands/mount"
+	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
+	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 )
+
+var log = eventlog.Logger("core/cmds/refs")
 
 const (
 	initOptionKwd = "init"
@@ -24,7 +30,7 @@ const (
 	// swarmAddrKwd  = "address-swarm"
 )
 
-var daemonCmd = &cmds.Command{
+var DaemonCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Run a network-connected IPFS node",
 		ShortDescription: `
@@ -70,7 +76,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		// `IsInitialized` where the quality of the signal can be improved over
 		// time, and many call-sites can benefit.
 		if !util.FileExists(req.Context().ConfigRoot) {
-			err := initWithDefaults(os.Stdout, req.Context().ConfigRoot)
+			err := cmdinit.WithDefaults(os.Stdout, req.Context().ConfigRoot)
 			if err != nil {
 				res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
 				return
@@ -152,7 +158,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			nsdir = cfg.Mounts.IPNS
 		}
 
-		err = commands.Mount(node, fsdir, nsdir)
+		err = cmdmount.Mount(node, fsdir, nsdir)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
