@@ -40,6 +40,7 @@ func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.Routing
 			Handler: server,
 			Local:   node.Identity,
 		}
+		node.PeerHost.SetStreamHandler(gcproxy.ProtocolGCR, proxy.HandleStream)
 		return grandcentral.NewClient(proxy, node.Peerstore, node.Identity)
 	}
 }
@@ -75,6 +76,7 @@ func GrandCentralClient(remotes ...peer.PeerInfo) core.RoutingOption {
 			ids = append(ids, info.ID)
 		}
 		proxy := gcproxy.Standard(node.PeerHost, ids)
+		node.PeerHost.SetStreamHandler(gcproxy.ProtocolGCR, proxy.HandleStream)
 		return grandcentral.NewClient(proxy, node.Peerstore, node.Identity)
 	}
 }

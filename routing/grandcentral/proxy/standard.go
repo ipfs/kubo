@@ -13,7 +13,10 @@ import (
 
 var log = eventlog.Logger("proxy")
 
+const ProtocolGCR = "/ipfs/grandcentral"
+
 type Proxy interface {
+	HandleStream(inet.Stream)
 	SendMessage(ctx context.Context, m *dhtpb.Message) error
 	SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error)
 }
@@ -27,7 +30,9 @@ func Standard(h host.Host, remotes []peer.ID) Proxy {
 	return &standard{h, remotes}
 }
 
-const ProtocolGCR = "/ipfs/grandcentral"
+func (p *standard) HandleStream(s inet.Stream) {
+	panic("client received a GCR message")
+}
 
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	var err error
