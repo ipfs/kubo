@@ -21,6 +21,7 @@ var (
 	garbageCollectInterval = flag.Duration("gc-interval", 24*time.Hour, "frequency of repo garbage collection")
 	assetsPath             = flag.String("assets-path", "", "if provided, periodically adds contents of path to IPFS")
 	host                   = flag.String("host", "/ip4/0.0.0.0/tcp/8080", "override the HTTP host listening address")
+	performGC              = flag.Bool("gc", false, "perform garbage collection")
 	nBitsForKeypair        = flag.Int("b", 1024, "number of bits for keypair (if repo is uninitialized)")
 )
 
@@ -63,13 +64,15 @@ func run() error {
 	}
 	defer node.Close()
 
-	go func() {
-		for _ = range time.Tick(*garbageCollectInterval) {
-			if err := corerepo.GarbageCollect(node, ctx); err != nil {
-				log.Println("failed to run garbage collection", err)
+	if *performGC {
+		go func() {
+			for _ = range time.Tick(*garbageCollectInterval) {
+				if err := corerepo.GarbageCollect(node, ctx); err != nil {
+					log.Println("failed to run garbage collection", err)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	if *assetsPath != "" {
 		fi, err := os.Stat(*assetsPath)
@@ -95,7 +98,5 @@ func run() error {
 	if err := corehttp.ListenAndServe(node, *host, opts...); err != nil {
 		return err
 	}
-
-	// TODO serve files
 	return nil
 }
