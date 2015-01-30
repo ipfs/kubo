@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"errors"
+	"fmt"
 
 	ed "github.com/mildred/ed25519/src"
 )
@@ -64,7 +65,7 @@ func (sk *Ed25519PrivateKey) Hash() ([]byte, error) {
 
 func UnmarshalEd25519PrivateKey(b []byte) (*Ed25519PrivateKey, error) {
 	if len(b) != ed.PrivateKeySize+ed.PublicKeySize {
-		return nil, errors.New("Cannot unmarshall Ed2551 private key of incorrect size")
+		return nil, errors.New("Cannot unmarshall Ed2551 private key of incorrect size ")
 	}
 	var priv Ed25519PrivateKey
 	copy(priv.sk[:], b[:ed.PrivateKeySize])
@@ -79,7 +80,7 @@ func MarshalEd25519PrivateKey(k *Ed25519PrivateKey) []byte {
 
 func UnmarshalEd25519PublicKey(b []byte) (*Ed25519PublicKey, error) {
 	if len(b) != ed.PublicKeySize {
-		return nil, errors.New("Cannot unmarshall Ed2551 public key of incorrect size")
+		return nil, fmt.Errorf("Cannot unmarshall Ed2551 public key of incorrect size %d", len(b))
 	}
 	var pub Ed25519PublicKey
 	copy(b, pub.k[:])
