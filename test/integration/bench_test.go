@@ -1,4 +1,4 @@
-package epictest
+package integrationtest
 
 import (
 	"testing"
