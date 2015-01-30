@@ -23,7 +23,7 @@ func TestThreeLeggedCat1KBInstantaneous(t *testing.T) {
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
