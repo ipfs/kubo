@@ -61,6 +61,10 @@
 			"Rev": "5958552242606512f714d2e93513b380f43f9991"
 		},
 		{
+			"ImportPath": "github.com/briantigerchow/inflect",
+			"Rev": "cef1f9cc2234281dc58ea10be7e9aad5e282ecab"
+		},
+		{
 			"ImportPath": "github.com/camlistore/lock",
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
 		},

@@ -85,10 +85,7 @@ func newQueryRunner(ctx context.Context, q *dhtQuery) *dhtQueryRunner {
 
 func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 	r.log = log
-	log.Debug("enter")
-	defer log.Debug("end")
 
-	log.Debugf("Run query with %d peers.", len(peers))
 	if len(peers) == 0 {
 		log.Warning("Running query with no peers!")
 		return nil, nil
@@ -107,7 +104,6 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 	// go do this thing.
 	// do it as a child func to make sure Run exits
 	// ONLY AFTER spawn workers has exited.
-	log.Debugf("go spawn workers")
 	r.cg.AddChildFunc(r.spawnWorkers)
 
 	// so workers are working.
@@ -117,7 +113,6 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 
 	select {
 	case <-r.peersRemaining.Done():
-		log.Debug("all peers ended")
 		r.cg.Close()
 		r.RLock()
 		defer r.RUnlock()
@@ -139,11 +134,9 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 	}
 
 	if r.result != nil && r.result.success {
-		log.Debug("success: %s", r.result)
 		return r.result, nil
 	}
 
-	log.Debug("failure: %s", err)
 	return nil, err
 }
 
@@ -155,11 +148,9 @@ func (r *dhtQueryRunner) addPeerToQuery(ctx context.Context, next peer.ID) {
 	}
 
 	if !r.peersSeen.TryAdd(next) {
-		r.log.Debugf("addPeerToQuery skip seen %s", next)
 		return
 	}
 
-	r.log.Debugf("addPeerToQuery adding %s", next)
 	r.peersRemaining.Increment(1)
 	select {
 	case r.peersToQuery.EnqChan <- next:
@@ -181,7 +172,6 @@ func (r *dhtQueryRunner) spawnWorkers(parent ctxgroup.ContextGroup) {
 			if !more {
 				return // channel closed.
 			}
-			log.Debugf("spawning worker for: %v", p)
 
 			// do it as a child func to make sure Run exits
 			// ONLY AFTER spawn workers has exited.
@@ -202,17 +192,16 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 	}
 
 	// ok let's do this!
-	log.Debugf("running")
 
 	// make sure we do this when we exit
 	defer func() {
 		// signal we're done proccessing peer p
-		log.Debugf("completed")
 		r.peersRemaining.Decrement(1)
 		r.rateLimit <- struct{}{}
 	}()
 
 	// make sure we're connected to the peer.
+	// FIXME abstract away into the network layer
 	if conns := r.query.dht.host.Network().ConnsToPeer(p); len(conns) == 0 {
 		log.Infof("not connected. dialing.")
 		// while we dial, we do not take up a rate limit. this is to allow
@@ -239,9 +228,7 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 	}
 
 	// finally, run the query against this peer
-	log.Debugf("query running")
 	res, err := r.query.qfunc(cg.Context(), p)
-	log.Debugf("query finished")
 
 	if err != nil {
 		log.Debugf("ERROR worker for: %v %v", p, err)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	inflect "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/briantigerchow/inflect"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -169,20 +170,14 @@ func (bs *bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 }
 
 func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
-	if peers == nil {
-		panic("Cant send wantlist to nil peerchan")
-	}
-
 	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
 		log.Event(ctx, "PeerToQuery", peerToQuery)
 
 		if !set.TryAdd(peerToQuery) { //Do once per peer
-			log.Debugf("%s skipped (already sent)", peerToQuery)
 			continue
 		}
-		log.Debugf("%s sending", peerToQuery)
 
 		wg.Add(1)
 		go func(p peer.ID) {
@@ -205,12 +200,7 @@ func (bs *bitswap) sendWantlistToPeers(ctx context.Context, peers <-chan peer.ID
 	return bs.sendWantlistMsgToPeers(ctx, message, peers)
 }
 
-func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
-	entries := bs.wantlist.Entries()
-	if len(entries) == 0 {
-		log.Debug("No entries in wantlist, skipping send routine.")
-		return
-	}
+func (bs *bitswap) sendWantlistToProviders(ctx context.Context, entries []wantlist.Entry) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -228,7 +218,6 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context) {
 			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				log.Debugf("dht returned provider %s. send wantlist", prov)
 				sendToPeers <- prov
 			}
 		}(e.Key)
@@ -249,7 +238,6 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debugf("exiting")
 			return
 		case nextEnvelope := <-bs.engine.Outbox():
 			select {
@@ -275,8 +263,16 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 
 	for {
 		select {
+		case <-time.Tick(10 * time.Second):
+			n := bs.wantlist.Len()
+			if n > 0 {
+				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
+			}
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
-			bs.sendWantlistToProviders(ctx)
+			entries := bs.wantlist.Entries()
+			if len(entries) > 0 {
+				bs.sendWantlistToProviders(ctx, entries)
+			}
 			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case keys := <-bs.batchRequests:
 			if len(keys) == 0 {
@@ -304,7 +300,6 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
 	peer.ID, bsmsg.BitSwapMessage) {
-	log.Debugf("ReceiveMessage from %s", p)
 
 	if p == "" {
 		log.Error("Received message from nil peer!")
