@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
-	"path"
+	gopath "path"
 
 	"github.com/jbenet/go-ipfs/commands/files"
 	core "github.com/jbenet/go-ipfs/core"
@@ -14,14 +14,13 @@ import (
 	"github.com/jbenet/go-ipfs/pin"
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	unixfs "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
 )
 
 var log = eventlog.Logger("coreunix")
 
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.
-func Add(n *core.IpfsNode, r io.Reader) (u.Key, error) {
+func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	// TODO more attractive function signature importer.BuildDagFromReader
 	dagNode, err := importer.BuildDagFromReader(
 		r,
@@ -35,7 +34,12 @@ func Add(n *core.IpfsNode, r io.Reader) (u.Key, error) {
 	if err := n.Pinning.Flush(); err != nil {
 		return "", err
 	}
-	return dagNode.Key()
+	k, err := dagNode.Key()
+	if err != nil {
+		return "", err
+	}
+
+	return k.String(), nil
 }
 
 // AddR recursively adds files in |path|.
@@ -124,7 +128,7 @@ Loop:
 			return nil, err
 		}
 
-		_, name := path.Split(file.FileName())
+		_, name := gopath.Split(file.FileName())
 
 		err = tree.AddNodeLink(name, node)
 		if err != nil {

@@ -8,7 +8,8 @@ import (
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 )
 
-func Cat(n *core.IpfsNode, p path.Path) (io.Reader, error) {
+func Cat(n *core.IpfsNode, pstr string) (io.Reader, error) {
+	p := path.FromString(pstr)
 	dagNode, err := n.Resolver.ResolvePath(p)
 	if err != nil {
 		return nil, err
