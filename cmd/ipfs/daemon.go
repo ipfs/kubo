@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -48,8 +48,10 @@ the daemon.
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
+	var out bytes.Buffer
+	res.SetOutput(&out)
+	writef(&out, "Initializing daemon...\n")
 
-	fmt.Println("Initializing daemon...")
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _, err := req.Option(initOptionKwd).Bool()
@@ -57,6 +59,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
+
 	if initialize {
 
 		// now, FileExists is our best method of detecting whether IPFS is
@@ -64,7 +67,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		// `IsInitialized` where the quality of the signal can be improved over
 		// time, and many call-sites can benefit.
 		if !util.FileExists(req.Context().ConfigRoot) {
-			err := initWithDefaults(req.Context().ConfigRoot)
+			err := initWithDefaults(&out, req.Context().ConfigRoot)
 			if err != nil {
 				res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
 				return
@@ -149,8 +152,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		fmt.Printf("IPFS mounted at: %s\n", fsdir)
-		fmt.Printf("IPNS mounted at: %s\n", nsdir)
+		writef(&out, "IPFS mounted at: %s\n", fsdir)
+		writef(&out, "IPNS mounted at: %s\n", nsdir)
 	}
 
 	var rootRedirect corehttp.ServeOption
