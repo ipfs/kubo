@@ -6,6 +6,7 @@ import (
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	util "github.com/jbenet/go-ipfs/util"
 )
 
 var log = eventlog.Logger("dht.pb")
@@ -142,6 +143,7 @@ func (m *Message) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"message": map[string]string{
 			"type": m.Type.String(),
+			"key":  util.Key(m.GetKey()).Pretty(),
 		},
 	}
 }
