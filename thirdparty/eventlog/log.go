@@ -49,7 +49,7 @@ type EventLogger interface {
 	// the metadata is logged.
 	Event(ctx context.Context, event string, m ...Loggable)
 
-	EventBegin(ctx context.Context, event string, m ...Loggable) EventInProgress
+	EventBegin(ctx context.Context, event string, m ...Loggable) *EventInProgress
 }
 
 // Logger retrieves an event logger by name
@@ -68,11 +68,11 @@ type eventLogger struct {
 	// TODO add log-level
 }
 
-func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ...Loggable) EventInProgress {
+func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ...Loggable) *EventInProgress {
 	start := time.Now()
 	el.Event(ctx, fmt.Sprintf("%sBegin", event), metadata...)
 
-	eip := EventInProgress{}
+	eip := &EventInProgress{}
 	eip.doneFunc = func(additional []Loggable) {
 
 		metadata = append(metadata, additional...)                      // anything added during the operation
@@ -116,12 +116,12 @@ type EventInProgress struct {
 }
 
 // Append adds loggables to be included in the call to Done
-func (eip EventInProgress) Append(l Loggable) {
+func (eip *EventInProgress) Append(l Loggable) {
 	eip.loggables = append(eip.loggables, l)
 }
 
 // SetError includes the provided error
-func (eip EventInProgress) SetError(err error) {
+func (eip *EventInProgress) SetError(err error) {
 	eip.loggables = append(eip.loggables, LoggableMap{
 		"error": err.Error(),
 	})
@@ -129,12 +129,12 @@ func (eip EventInProgress) SetError(err error) {
 
 // Done creates a new Event entry that includes the duration and appended
 // loggables.
-func (eip EventInProgress) Done() {
+func (eip *EventInProgress) Done() {
 	eip.doneFunc(eip.loggables) // create final event with extra data
 }
 
 // Close is an alias for done
-func (eip EventInProgress) Close() error {
+func (eip *EventInProgress) Close() error {
 	eip.Done()
 	return nil
 }
