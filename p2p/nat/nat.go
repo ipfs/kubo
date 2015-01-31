@@ -55,15 +55,16 @@ type NAT struct {
 	proc goprocess.Process // manages nat mappings lifecycle
 
 	mappingmu sync.RWMutex // guards mappings
-	mappings  []*mapping
+	mappings  map[*mapping]struct{}
 
 	Notifier
 }
 
 func newNAT(realNAT nat.NAT) *NAT {
 	return &NAT{
-		nat:  realNAT,
-		proc: goprocess.WithParent(goprocess.Background()),
+		nat:      realNAT,
+		proc:     goprocess.WithParent(goprocess.Background()),
+		mappings: make(map[*mapping]struct{}),
 	}
 }
 
@@ -143,6 +144,9 @@ type Mapping interface {
 	// ExternalAddr returns the external facing address. If the mapping is not
 	// established, addr will be nil, and and ErrNoMapping will be returned.
 	ExternalAddr() (addr ma.Multiaddr, err error)
+
+	// Close closes the port mapping
+	Close() error
 }
 
 // keeps republishing
@@ -230,9 +234,9 @@ func (m *mapping) Close() error {
 // Mappings returns a slice of all NAT mappings
 func (nat *NAT) Mappings() []Mapping {
 	nat.mappingmu.Lock()
-	maps2 := make([]Mapping, len(nat.mappings))
-	for i, m := range nat.mappings {
-		maps2[i] = m
+	maps2 := make([]Mapping, 0, len(nat.mappings))
+	for m := range nat.mappings {
+		maps2 = append(maps2, m)
 	}
 	nat.mappingmu.Unlock()
 	return maps2
@@ -243,7 +247,13 @@ func (nat *NAT) addMapping(m *mapping) {
 	nat.proc.AddChild(m.proc)
 
 	nat.mappingmu.Lock()
-	nat.mappings = append(nat.mappings, m)
+	nat.mappings[m] = struct{}{}
+	nat.mappingmu.Unlock()
+}
+
+func (nat *NAT) rmMapping(m *mapping) {
+	nat.mappingmu.Lock()
+	delete(nat.mappings, m)
 	nat.mappingmu.Unlock()
 }
 
@@ -286,10 +296,16 @@ func (nat *NAT) NewMapping(maddr ma.Multiaddr) (Mapping, error) {
 		intport: intport,
 		intaddr: maddr,
 	}
-	m.proc = periodic.Every(MappingDuration/3, func(worker goprocess.Process) {
-		nat.establishMapping(m)
+	m.proc = goprocess.WithTeardown(func() error {
+		nat.rmMapping(m)
+		return nil
 	})
 	nat.addMapping(m)
+
+	m.proc.AddChild(periodic.Every(MappingDuration/3, func(worker goprocess.Process) {
+		nat.establishMapping(m)
+	}))
+
 	// do it once synchronously, so first mapping is done right away, and before exiting,
 	// allowing users -- in the optimistic case -- to use results right after.
 	nat.establishMapping(m)
