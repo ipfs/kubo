@@ -9,6 +9,10 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+type ResolvedKey struct {
+	Key u.Key
+}
+
 var resolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Gets the value currently published at an IPNS name",
@@ -78,12 +82,16 @@ Resolve te value of another name:
 
 		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
 
-		res.SetOutput(output)
+		res.SetOutput(&ResolvedKey{output})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output := res.Output().(u.Key)
-			return strings.NewReader(output.B58String()), nil
+			output, ok := res.Output().(*ResolvedKey)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+			return strings.NewReader(output.Key.B58String()), nil
 		},
 	},
+	Type: ResolvedKey{},
 }
