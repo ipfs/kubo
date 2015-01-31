@@ -382,7 +382,7 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	for i := 0; i < len(remoteAddrs); i++ {
 		select {
 		case err = <-errs:
-			log.Info(err)
+			log.Debug(err)
 		case connC := <-conns:
 			// take the first + return asap
 			close(foundConn)

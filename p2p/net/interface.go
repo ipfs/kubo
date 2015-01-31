@@ -142,10 +142,12 @@ const (
 // Notifiee is an interface for an object wishing to receive
 // notifications from a Network.
 type Notifiee interface {
-	Connected(Network, Conn)      // called when a connection opened
-	Disconnected(Network, Conn)   // called when a connection closed
-	OpenedStream(Network, Stream) // called when a stream opened
-	ClosedStream(Network, Stream) // called when a stream closed
+	Listen(Network, ma.Multiaddr)      // called when network starts listening on an addr
+	ListenClose(Network, ma.Multiaddr) // called when network starts listening on an addr
+	Connected(Network, Conn)           // called when a connection opened
+	Disconnected(Network, Conn)        // called when a connection closed
+	OpenedStream(Network, Stream)      // called when a stream opened
+	ClosedStream(Network, Stream)      // called when a stream closed
 
 	// TODO
 	// PeerConnected(Network, peer.ID)    // called when a peer connected
