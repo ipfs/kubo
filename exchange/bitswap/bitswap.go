@@ -276,6 +276,7 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 				if !ok {
 					continue
 				}
+				log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
 				bs.send(ctx, envelope.Peer, envelope.Message)
 			}
 		}
