@@ -202,7 +202,6 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
-		log.Event(ctx, "PeerToQuery", peerToQuery)
 
 		if !set.TryAdd(peerToQuery) { //Do once per peer
 			continue
