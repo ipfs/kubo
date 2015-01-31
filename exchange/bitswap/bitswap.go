@@ -409,6 +409,7 @@ func (bs *bitswap) ReceiveError(err error) {
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
+	defer log.EventBegin(ctx, "sendMessage", p, m).Done()
 	if err := bs.network.SendMessage(ctx, p, m); err != nil {
 		return errors.Wrap(err)
 	}
