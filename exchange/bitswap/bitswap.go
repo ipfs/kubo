@@ -265,6 +265,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
 	peer.ID, bsmsg.BitSwapMessage) {
+	defer log.EventBegin(ctx, "receiveMessage", p, incoming).Done()
 
 	if p == "" {
 		log.Error("Received message from nil peer!")
