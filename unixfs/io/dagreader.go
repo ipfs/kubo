@@ -54,7 +54,7 @@ type ReadSeekCloser interface {
 
 // NewDagReader creates a new reader object that reads the data represented by the given
 // node, using the passed in DAGService for data retreival
-func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (ReadSeekCloser, error) {
+func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*DagReader, error) {
 	pb := new(ftpb.Data)
 	err := proto.Unmarshal(n.Data, pb)
 	if err != nil {
@@ -65,6 +65,8 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (Read
 	case ftpb.Data_Directory:
 		// Dont allow reading directories
 		return nil, ErrIsDir
+	case ftpb.Data_Raw:
+		fallthrough
 	case ftpb.Data_File:
 		fctx, cancel := context.WithCancel(ctx)
 		promises := serv.GetDAG(fctx, n)
@@ -77,9 +79,6 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (Read
 			cancel:   cancel,
 			pbdata:   pb,
 		}, nil
-	case ftpb.Data_Raw:
-		// Raw block will just be a single level, return a byte buffer
-		return NewRSNCFromBytes(pb.GetData()), nil
 	default:
 		return nil, ft.ErrUnrecognizedType
 	}
@@ -121,6 +120,11 @@ func (dr *DagReader) precalcNextBuf() error {
 	default:
 		return ft.ErrUnrecognizedType
 	}
+}
+
+// Size return the total length of the data from the DAG structured file.
+func (dr *DagReader) Size() int64 {
+	return int64(dr.pbdata.GetFilesize())
 }
 
 // Read reads data from the DAG structured file
