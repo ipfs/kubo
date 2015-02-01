@@ -238,28 +238,40 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {
 }
 
 func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
-	added := make([]config.BootstrapPeer, 0, len(peers))
+	addedMap := map[string]struct{}{}
+	addedList := make([]config.BootstrapPeer, 0, len(peers))
 
+	// re-add cfg bootstrap peers to rm dupes
+	bpeers := cfg.Bootstrap
+	cfg.Bootstrap = nil
+
+	// add new peers
 	for _, peer := range peers {
-		duplicate := false
-		for _, peer2 := range cfg.Bootstrap {
-			if peer.Equal(peer2) {
-				duplicate = true
-				break
-			}
+		s := peer.String()
+		if _, found := addedMap[s]; found {
+			continue
 		}
 
-		if !duplicate {
-			cfg.Bootstrap = append(cfg.Bootstrap, peer.String())
-			added = append(added, peer)
+		cfg.Bootstrap = append(cfg.Bootstrap, s)
+		addedList = append(addedList, peer)
+		addedMap[s] = struct{}{}
+	}
+
+	// add back original peers. in this order so that we output them.
+	for _, s := range bpeers {
+		if _, found := addedMap[s]; found {
+			continue
 		}
+
+		cfg.Bootstrap = append(cfg.Bootstrap, s)
+		addedMap[s] = struct{}{}
 	}
 
 	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
 	}
 
-	return added, nil
+	return addedList, nil
 }
 
 func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
