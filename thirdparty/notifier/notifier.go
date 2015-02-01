@@ -5,6 +5,9 @@ package notifier
 
 import (
 	"sync"
+
+	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	ratelimit "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 )
 
 // Notifiee is a generic interface. Clients implement
@@ -31,6 +34,18 @@ type Notifiee interface{}
 type Notifier struct {
 	mu   sync.RWMutex // guards notifiees
 	nots map[Notifiee]struct{}
+	lim  *ratelimit.RateLimiter
+}
+
+// RateLimited returns a rate limited Notifier. only limit goroutines
+// will be spawned. If limit is zero, no rate limiting happens. This
+// is the same as `Notifier{}`.
+func RateLimited(limit int) Notifier {
+	n := Notifier{}
+	if limit > 0 {
+		n.lim = ratelimit.NewRateLimiter(process.Background(), limit)
+	}
+	return n
 }
 
 // Notify signs up Notifiee e for notifications. This function
@@ -107,8 +122,15 @@ func (n *Notifier) NotifyAll(notify func(Notifiee)) {
 	n.mu.Lock()
 	if n.nots != nil { // so that zero-value is ready to be used.
 		for notifiee := range n.nots {
-			go notify(notifiee)
-			// TODO find a good way to rate limit this without blocking notifier.
+
+			if n.lim == nil { // no rate limit
+				go notify(notifiee)
+			} else {
+				notifiee := notifiee // rebind for data races
+				n.lim.LimitedGo(func(worker process.Process) {
+					notify(notifiee)
+				})
+			}
 		}
 	}
 	n.mu.Unlock()
