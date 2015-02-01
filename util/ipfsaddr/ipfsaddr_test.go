@@ -115,3 +115,23 @@ func TestMultiaddrMatches(t *testing.T) {
 		}
 	}
 }
+
+func TestTransport(t *testing.T) {
+	for _, g := range good {
+		a, err := ParseString(g)
+		if err != nil {
+			t.Error("failed to parse", g, err)
+			continue
+		}
+
+		m := newMultiaddr(t, g)
+		split := ma.Split(m)
+		m = ma.Join(split[:len(split)-1]...)
+		if a.Multiaddr().Equal(m) {
+			t.Error("should not be equal", a.Multiaddr(), m)
+		}
+		if !Transport(a).Equal(m) {
+			t.Error("should be equal", Transport(a), m)
+		}
+	}
+}

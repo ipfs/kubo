@@ -18,6 +18,7 @@ var ErrInvalidAddr = errors.New("invalid ipfs address")
 type IPFSAddr interface {
 	ID() peer.ID
 	Multiaddr() ma.Multiaddr
+	Transport() ma.Multiaddr
 	String() string
 	Equal(b interface{}) bool
 }
@@ -33,6 +34,10 @@ func (a ipfsAddr) ID() peer.ID {
 
 func (a ipfsAddr) Multiaddr() ma.Multiaddr {
 	return a.ma
+}
+
+func (a ipfsAddr) Transport() ma.Multiaddr {
+	return Transport(a)
 }
 
 func (a ipfsAddr) String() string {
@@ -97,4 +102,11 @@ func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
 	}
 
 	return ipfsAddr{ma: m, id: id}, nil
+}
+
+func Transport(iaddr IPFSAddr) (maddr ma.Multiaddr) {
+	maddr = iaddr.Multiaddr()
+	split := ma.Split(maddr)
+	maddr = ma.Join(split[:len(split)-1]...)
+	return
 }
