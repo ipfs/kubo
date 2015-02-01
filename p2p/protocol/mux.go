@@ -27,7 +27,6 @@ type Mux struct {
 
 	lock     sync.RWMutex
 	handlers streamHandlerMap
-	// defaultHandler handles unknown protocols. Callers modify at your own risk.
 	defaultHandler inet.StreamHandler
 }
 
