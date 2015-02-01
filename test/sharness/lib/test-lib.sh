@@ -118,14 +118,14 @@ test_init_ipfs() {
 
 test_config_ipfs_gateway_readonly() {
 	test_expect_success "prepare config -- gateway readonly" '
-	  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/5002
+	  ipfs config "Addresses.Gateway" "/ip4/0.0.0.0/tcp/5002"
 	'
 }
 
 test_config_ipfs_gateway_writable() {
 	test_expect_success "prepare config -- gateway writable" '
-	  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/5002 &&
-	  ipfs config -bool Gateway.Writable true
+	  ipfs config "Addresses.Gateway" "/ip4/0.0.0.0/tcp/5002" &&
+	  ipfs config -bool "Gateway.Writable" true
 	'
 }
 
@@ -146,22 +146,23 @@ test_launch_ipfs_daemon() {
 	# and we make sure there are no errors
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
-		test_wait_output_n_lines_60_sec actual_daemon $NLINES &&
-		printf "" >empty && test_cmp daemon_err empty ||
+		test_wait_output_n_lines_60_sec actual_daemon $NLINES ||
 		fsh cat actual_daemon || fsh cat daemon_err
 	'
 
 	test_expect_success "'ipfs daemon' output includes API address" '
 		cat actual_daemon | grep "API server listening on $ADDR_API" ||
 		fsh cat actual_daemon ||
-		fsh "cat actual_daemon | grep \"API server listening on $ADDR_API\""
+		fsh "cat actual_daemon | grep \"API server listening on $ADDR_API\"" ||
+		fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
 			cat actual_daemon | grep "Gateway server listening on $ADDR_GWAY" ||
 			fsh cat actual_daemon ||
-			fsh "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\""
+			fsh "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\"" ||
+			fsh cat daemon_err
 		'
 	fi
 }

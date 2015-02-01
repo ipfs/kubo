@@ -4,7 +4,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-test_description="Test HTTP gateway"
+test_description="Test HTTP Gateway"
 
 . lib/test-lib.sh
 
