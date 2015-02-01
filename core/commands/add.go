@@ -10,6 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	files "github.com/jbenet/go-ipfs/commands/files"
 	core "github.com/jbenet/go-ipfs/core"
+	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	importer "github.com/jbenet/go-ipfs/importer"
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -26,7 +27,10 @@ var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 // how many bytes of progress to wait before sending a progress update message
 const progressReaderIncrement = 1024 * 256
 
-const progressOptionName = "progress"
+const (
+	progressOptionName = "progress"
+	wrapOptionName     = "wrap-with-directory"
+)
 
 type AddedObject struct {
 	Name  string
@@ -52,6 +56,7 @@ remains to be implemented.
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
+		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
@@ -84,6 +89,7 @@ remains to be implemented.
 		}
 
 		progress, _, _ := req.Option(progressOptionName).Bool()
+		wrap, _, _ := req.Option(wrapOptionName).Bool()
 
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
@@ -97,7 +103,7 @@ remains to be implemented.
 					return
 				}
 
-				_, err = addFile(n, file, outChan, progress)
+				_, err = addFile(n, file, outChan, progress, wrap)
 				if err != nil {
 					return
 				}
@@ -225,7 +231,7 @@ func addNode(n *core.IpfsNode, node *dag.Node) error {
 	return nil
 }
 
-func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool) (*dag.Node, error) {
 	if file.IsDirectory() {
 		return addDir(n, file, out, progress)
 	}
@@ -235,6 +241,18 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 	var reader io.Reader = file
 	if progress {
 		reader = &progressReader{file: file, out: out}
+	}
+
+	if wrap {
+		p, dagnode, err := coreunix.AddWrapped(n, reader, path.Base(file.FileName()))
+		if err != nil {
+			return nil, err
+		}
+		out <- &AddedObject{
+			Hash: p,
+			Name: file.FileName(),
+		}
+		return dagnode, nil
 	}
 
 	dns, err := add(n, []io.Reader{reader})
@@ -263,7 +281,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 			break
 		}
 
-		node, err := addFile(n, file, out, progress)
+		node, err := addFile(n, file, out, progress, false)
 		if err != nil {
 			return nil, err
 		}
