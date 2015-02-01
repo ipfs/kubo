@@ -17,7 +17,7 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-func TestThreeLeggedCat1KBInstantaneous(t *testing.T) {
+func TestThreeLeggedCatTransfer(t *testing.T) {
 	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
