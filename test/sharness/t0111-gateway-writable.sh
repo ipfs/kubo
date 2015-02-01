@@ -6,7 +6,6 @@
 
 test_description="Test HTTP Gateway"
 
-exec 3>&1 4>&2
 . lib/test-lib.sh
 
 test_init_ipfs
