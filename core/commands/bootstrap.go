@@ -14,7 +14,7 @@ import (
 )
 
 type BootstrapOutput struct {
-	Peers []config.BootstrapPeer
+	Peers []string
 }
 
 var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multiaddr>/<peerID>')"
@@ -91,18 +91,18 @@ in the bootstrap list).
 			inputPeers = append(inputPeers, defltPeers...)
 		}
 
+		if len(inputPeers) == 0 {
+			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
+			return
+		}
+
 		added, err := bootstrapAdd(r, cfg, inputPeers)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		if len(inputPeers) == 0 {
-			res.SetError(errors.New("no bootstrap peers to add"), cmds.ErrClient)
-			return
-		}
-
-		res.SetOutput(&BootstrapOutput{added})
+		res.SetOutput(&BootstrapOutput{config.BootstrapPeerStrings(added)})
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
@@ -168,7 +168,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return
 		}
 
-		res.SetOutput(&BootstrapOutput{removed})
+		res.SetOutput(&BootstrapOutput{config.BootstrapPeerStrings(removed)})
 	},
 	Type: BootstrapOutput{},
 	Marshalers: cmds.MarshalerMap{
@@ -192,18 +192,20 @@ var bootstrapListCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		cfg, err := req.Context().GetConfig()
-		if err != nil {
+		r := fsrepo.At(req.Context().ConfigRoot)
+		if err := r.Open(); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		defer r.Close()
+		cfg := r.Config()
 
 		peers, err := cfg.BootstrapPeers()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		res.SetOutput(&BootstrapOutput{peers})
+		res.SetOutput(&BootstrapOutput{config.BootstrapPeerStrings(peers)})
 		return
 	},
 	Type: BootstrapOutput{},
@@ -223,11 +225,10 @@ func bootstrapMarshaler(res cmds.Response) (io.Reader, error) {
 	return &buf, err
 }
 
-func bootstrapWritePeers(w io.Writer, prefix string, peers []config.BootstrapPeer) error {
+func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {
 
-	pstrs := config.BootstrapPeerStrings(peers)
-	sort.Stable(sort.StringSlice(pstrs))
-	for _, peer := range pstrs {
+	sort.Stable(sort.StringSlice(peers))
+	for _, peer := range peers {
 		_, err := w.Write([]byte(peer + "\n"))
 		if err != nil {
 			return err
