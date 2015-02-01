@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 // test data structures
@@ -203,5 +204,88 @@ func TestThreadsafe(t *testing.T) {
 
 	if m1.String() != m2.String() || m2.String() != m3.String() {
 		t.Error("counts disagree")
+	}
+}
+
+type highwatermark struct {
+	mu    sync.Mutex
+	mark  int
+	limit int
+	errs  chan error
+}
+
+func (m *highwatermark) incr() {
+	m.mu.Lock()
+	m.mark++
+	// fmt.Println("incr", m.mark)
+	if m.mark > m.limit {
+		m.errs <- fmt.Errorf("went over limit: %d/%d", m.mark, m.limit)
+	}
+	m.mu.Unlock()
+}
+
+func (m *highwatermark) decr() {
+	m.mu.Lock()
+	m.mark--
+	// fmt.Println("decr", m.mark)
+	if m.mark < 0 {
+		m.errs <- fmt.Errorf("went under zero: %d/%d", m.mark, m.limit)
+	}
+	m.mu.Unlock()
+}
+
+func TestLimited(t *testing.T) {
+	timeout := 10 * time.Second // huge timeout.
+	limit := 9
+
+	hwm := highwatermark{limit: limit, errs: make(chan error, 100)}
+	n := RateLimited(limit) // will stop after 3 rounds
+	n.Notify(1)
+	n.Notify(2)
+	n.Notify(3)
+
+	entr := make(chan struct{})
+	exit := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 10; i++ {
+			// fmt.Printf("round: %d\n", i)
+			n.NotifyAll(func(e Notifiee) {
+				hwm.incr()
+				entr <- struct{}{}
+				<-exit // wait
+				hwm.decr()
+			})
+		}
+		done <- struct{}{}
+	}()
+
+	for i := 0; i < 30; {
+		select {
+		case <-entr:
+			continue // let as many enter as possible
+		case <-time.After(1 * time.Millisecond):
+		}
+
+		// let one exit
+		select {
+		case <-entr:
+			continue // in case of timing issues.
+		case exit <- struct{}{}:
+		case <-time.After(timeout):
+			t.Error("got stuck")
+		}
+		i++
+	}
+
+	select {
+	case <-done: // two parts done
+	case <-time.After(timeout):
+		t.Error("did not finish")
+	}
+
+	close(hwm.errs)
+	for err := range hwm.errs {
+		t.Error(err)
 	}
 }

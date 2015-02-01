@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"os"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -51,9 +51,8 @@ the daemon.
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
-	var out bytes.Buffer
-	res.SetOutput(&out)
-	writef(&out, "Initializing daemon...\n")
+	// let the user know we're going.
+	fmt.Printf("Initializing daemon...\n")
 
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
@@ -70,7 +69,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		// `IsInitialized` where the quality of the signal can be improved over
 		// time, and many call-sites can benefit.
 		if !util.FileExists(req.Context().ConfigRoot) {
-			err := initWithDefaults(&out, req.Context().ConfigRoot)
+			err := initWithDefaults(os.Stdout, req.Context().ConfigRoot)
 			if err != nil {
 				res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
 				return
@@ -155,8 +154,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		writef(&out, "IPFS mounted at: %s\n", fsdir)
-		writef(&out, "IPNS mounted at: %s\n", nsdir)
+		fmt.Printf("IPFS mounted at: %s\n", fsdir)
+		fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	}
 
 	var rootRedirect corehttp.ServeOption
@@ -173,10 +172,6 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		writable = cfg.Gateway.Writable
 	}
 
-	if writable {
-		fmt.Printf("IPNS gateway mounted read-write\n")
-	}
-
 	if gatewayMaddr != nil {
 		go func() {
 			var opts = []corehttp.ServeOption{corehttp.GatewayOption(writable)}
@@ -184,6 +179,9 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 				opts = append(opts, rootRedirect)
 			}
 			fmt.Printf("Gateway server listening on %s\n", gatewayMaddr)
+			if writable {
+				fmt.Printf("Gateway server is writable\n")
+			}
 			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), opts...)
 			if err != nil {
 				log.Error(err)

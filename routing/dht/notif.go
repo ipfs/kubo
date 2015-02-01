@@ -18,6 +18,7 @@ func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
 	select {
 	case <-dht.Closing():
 		return
+	default:
 	}
 	dht.Update(dht.Context(), v.RemotePeer())
 }
@@ -27,6 +28,7 @@ func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
 	select {
 	case <-dht.Closing():
 		return
+	default:
 	}
 	dht.routingTable.Remove(v.RemotePeer())
 }
