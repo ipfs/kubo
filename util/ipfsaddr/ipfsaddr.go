@@ -7,7 +7,10 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
+
+var log = eventlog.Logger("ipfsaddr")
 
 // ErrInvalidAddr signals an address is not a valid ipfs address.
 var ErrInvalidAddr = errors.New("invalid ipfs address")
@@ -62,13 +65,14 @@ func ParseString(str string) (a IPFSAddr, err error) {
 
 // ParseMultiaddr parses a multiaddr into an IPFSAddr
 func ParseMultiaddr(m ma.Multiaddr) (a IPFSAddr, err error) {
-	// // never panic.
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		a = nil
-	// 		err = ErrInvalidAddr
-	// 	}
-	// }()
+	// never panic.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Debug("recovered from panic: ", r)
+			a = nil
+			err = ErrInvalidAddr
+		}
+	}()
 
 	if m == nil {
 		return nil, ErrInvalidAddr
