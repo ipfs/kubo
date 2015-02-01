@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 )
 
 func TestNotifications(t *testing.T) {
@@ -169,6 +170,8 @@ func TestNotifications(t *testing.T) {
 }
 
 type netNotifiee struct {
+	listen       chan ma.Multiaddr
+	listenClose  chan ma.Multiaddr
 	connected    chan inet.Conn
 	disconnected chan inet.Conn
 	openedStream chan inet.Stream
@@ -177,6 +180,8 @@ type netNotifiee struct {
 
 func newNetNotifiee() *netNotifiee {
 	return &netNotifiee{
+		listen:       make(chan ma.Multiaddr),
+		listenClose:  make(chan ma.Multiaddr),
 		connected:    make(chan inet.Conn),
 		disconnected: make(chan inet.Conn),
 		openedStream: make(chan inet.Stream),
@@ -184,6 +189,12 @@ func newNetNotifiee() *netNotifiee {
 	}
 }
 
+func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr) {
+	nn.listen <- a
+}
+func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {
+	nn.listenClose <- a
+}
 func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
 	nn.connected <- v
 }

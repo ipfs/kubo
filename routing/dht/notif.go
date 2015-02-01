@@ -1,6 +1,8 @@
 package dht
 
 import (
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 )
 
@@ -31,3 +33,5 @@ func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
 
 func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
 func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr)      {}
+func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {}

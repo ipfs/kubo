@@ -202,6 +202,15 @@ func (s *Swarm) LocalPeer() peer.ID {
 	return s.local
 }
 
+// notifyAll sends a signal to all Notifiees
+func (s *Swarm) notifyAll(notify func(inet.Notifiee)) {
+	s.notifmu.RLock()
+	for f := range s.notifs {
+		go notify(f)
+	}
+	s.notifmu.RUnlock()
+}
+
 // Notify signs up Notifiee to receive signals when events happen
 func (s *Swarm) Notify(f inet.Notifiee) {
 	// wrap with our notifiee, to translate function calls

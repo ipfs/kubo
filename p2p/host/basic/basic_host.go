@@ -1,15 +1,12 @@
 package basichost
 
 import (
-	"sync"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	inat "github.com/jbenet/go-ipfs/p2p/nat"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
@@ -42,9 +39,7 @@ type BasicHost struct {
 	mux     *protocol.Mux
 	ids     *identify.IDService
 	relay   *relay.RelayService
-
-	natmu sync.Mutex
-	nat   *inat.NAT
+	natmgr  *natManager
 
 	proc goprocess.Process
 }
@@ -57,6 +52,10 @@ func New(net inet.Network, opts ...Option) *BasicHost {
 	}
 
 	h.proc = goprocess.WithTeardown(func() error {
+		if h.natmgr != nil {
+			h.natmgr.Close()
+		}
+
 		return h.Network().Close()
 	})
 
@@ -70,43 +69,11 @@ func New(net inet.Network, opts ...Option) *BasicHost {
 	for _, o := range opts {
 		switch o {
 		case NATPortMap:
-			h.setupNATPortMap()
+			h.natmgr = newNatManager(h)
 		}
 	}
 
 	return h
-}
-
-func (h *BasicHost) setupNATPortMap() {
-	// do this asynchronously to avoid blocking daemon startup
-
-	h.proc.Go(func(worker goprocess.Process) {
-		nat := inat.DiscoverNAT()
-		if nat == nil { // no nat, or failed to get it.
-			return
-		}
-
-		select {
-		case <-worker.Closing():
-			nat.Close()
-			return
-		default:
-		}
-
-		// wire up the nat to close when proc closes.
-		h.proc.AddChild(nat.Process())
-
-		h.natmu.Lock()
-		h.nat = nat
-		h.natmu.Unlock()
-
-		addrs := h.Network().ListenAddresses()
-		nat.PortMapAddrs(addrs)
-		mapAddrs := nat.ExternalAddrs()
-		if len(mapAddrs) > 0 {
-			log.Infof("NAT mapping addrs: %s", mapAddrs)
-		}
-	})
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
@@ -214,17 +181,19 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 	return nil
 }
 
+// Addrs returns all the addresses of BasicHost at this moment in time.
+// It's ok to not include addresses if they're not available to be used now.
 func (h *BasicHost) Addrs() []ma.Multiaddr {
 	addrs, err := h.Network().InterfaceListenAddresses()
 	if err != nil {
 		log.Debug("error retrieving network interface addrs")
 	}
 
-	h.natmu.Lock()
-	nat := h.nat
-	h.natmu.Unlock()
-	if nat != nil {
-		addrs = append(addrs, nat.ExternalAddrs()...)
+	if h.natmgr != nil { // natmgr is nil if we do not use nat option.
+		nat := h.natmgr.NAT()
+		if nat != nil { // nat is nil if not ready, or no nat is available.
+			addrs = append(addrs, nat.ExternalAddrs()...)
+		}
 	}
 
 	return addrs

@@ -76,11 +76,6 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 		return nil
 	})
 
-	// sanity check. this should **never** happen
-	if len(dht.peerstore.Addresses(dht.self)) < 1 {
-		panic("attempt to initialize dht without addresses for self")
-	}
-
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 	dht.providers = NewProviderManager(dht.Context(), dht.self)
 	dht.AddChildGroup(dht.providers)

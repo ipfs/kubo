@@ -214,12 +214,30 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 		return err
 	}
 
-	peerhost, err := constructPeerHost(ctx, n.Repo.Config(), n.Identity, n.Peerstore)
+	peerhost, err := constructPeerHost(ctx, n.Identity, n.Peerstore)
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
 	n.PeerHost = peerhost
 
+	if err := n.startOnlineServicesWithHost(ctx); err != nil {
+		return err
+	}
+
+	// Ok, now we're ready to listen.
+	if err := startListening(ctx, n.PeerHost, n.Repo.Config()); err != nil {
+		return debugerror.Wrap(err)
+	}
+
+	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
+	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
+
+	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+// startOnlineServicesWithHost  is the set of services which need to be
+// initialized with the host and _before_ we start listening.
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context) error {
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
 
@@ -236,13 +254,8 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
 
 	// setup name system
-	// TODO implement an offline namesys that serves only local names.
 	n.Namesys = namesys.NewNameSystem(n.Routing)
-
-	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
-	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
-
-	return n.Bootstrap(DefaultBootstrapConfig)
+	return nil
 }
 
 // teardown closes owned children. If any errors occur, this function returns
@@ -405,10 +418,23 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 }
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
-	listenAddrs, err := listenAddresses(cfg)
+func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {
+
+	// no addresses to begin with. we'll start later.
+	network, err := swarm.NewNetwork(ctx, nil, id, ps)
 	if err != nil {
 		return nil, debugerror.Wrap(err)
+	}
+
+	host := p2pbhost.New(network, p2pbhost.NATPortMap)
+	return host, nil
+}
+
+// startListening on the network addresses
+func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) error {
+	listenAddrs, err := listenAddresses(cfg)
+	if err != nil {
+		return debugerror.Wrap(err)
 	}
 
 	// make sure we error out if our config does not have addresses we can use
@@ -416,26 +442,25 @@ func constructPeerHost(ctx context.Context, cfg *config.Config, id peer.ID, ps p
 	filteredAddrs := addrutil.FilterUsableAddrs(listenAddrs)
 	log.Debugf("Config.Addresses.Swarm:%s (filtered)", filteredAddrs)
 	if len(filteredAddrs) < 1 {
-		return nil, debugerror.Errorf("addresses in config not usable: %s", listenAddrs)
+		return debugerror.Errorf("addresses in config not usable: %s", listenAddrs)
 	}
 
-	network, err := swarm.NewNetwork(ctx, filteredAddrs, id, ps)
-	if err != nil {
-		return nil, debugerror.Wrap(err)
+	// Actually start listening:
+	if err := host.Network().Listen(filteredAddrs...); err != nil {
+		return err
 	}
 
-	peerhost := p2pbhost.New(network, p2pbhost.NATPortMap)
 	// explicitly set these as our listen addrs.
 	// (why not do it inside inet.NewNetwork? because this way we can
 	// listen on addresses without necessarily advertising those publicly.)
-	addrs, err := peerhost.Network().InterfaceListenAddresses()
+	addrs, err := host.Network().InterfaceListenAddresses()
 	if err != nil {
-		return nil, debugerror.Wrap(err)
+		return debugerror.Wrap(err)
 	}
 	log.Infof("Swarm listening at: %s", addrs)
 
-	ps.AddAddresses(id, addrs)
-	return peerhost, nil
+	host.Peerstore().AddAddresses(host.ID(), addrs)
+	return nil
 }
 
 func constructDHTRouting(ctx context.Context, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {

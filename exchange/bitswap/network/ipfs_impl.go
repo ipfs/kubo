@@ -2,6 +2,7 @@ package network
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	host "github.com/jbenet/go-ipfs/p2p/host"
@@ -171,3 +172,5 @@ func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
 
 func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
 func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr)      {}
+func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {}

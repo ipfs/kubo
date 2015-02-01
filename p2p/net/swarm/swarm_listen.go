@@ -3,6 +3,7 @@ package swarm
 import (
 	"fmt"
 
+	inet "github.com/jbenet/go-ipfs/p2p/net"
 	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
@@ -60,7 +61,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 		// may be fine for sk to be nil, just log a warning.
 		log.Warning("Listener not given PrivateKey, so WILL NOT SECURE conns.")
 	}
-	log.Infof("Swarm Listening at %s", maddr)
+	log.Debugf("Swarm Listening at %s", maddr)
 	list, err := conn.Listen(s.cg.Context(), maddr, s.local, sk)
 	if err != nil {
 		return err
@@ -72,20 +73,31 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Swarm Listeners at %s", s.ListenAddresses())
+	log.Debugf("Swarm Listeners at %s", s.ListenAddresses())
+
+	// signal to our notifiees on successful conn.
+	s.notifyAll(func(n inet.Notifiee) {
+		n.Listen((*Network)(s), maddr)
+	})
 
 	// go consume peerstream's listen accept errors. note, these ARE errors.
 	// they may be killing the listener, and if we get _any_ we should be
 	// fixing this in our conn.Listener (to ignore them or handle them
 	// differently.)
 	go func(ctx context.Context, sl *ps.Listener) {
+
+		// signal to our notifiees closing
+		defer s.notifyAll(func(n inet.Notifiee) {
+			n.ListenClose((*Network)(s), maddr)
+		})
+
 		for {
 			select {
 			case err, more := <-sl.AcceptErrors():
 				if !more {
 					return
 				}
-				log.Info(err)
+				log.Debugf("swarm listener accept error: %s", err)
 			case <-ctx.Done():
 				return
 			}
