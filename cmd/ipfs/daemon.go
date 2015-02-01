@@ -183,6 +183,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			if rootRedirect != nil {
 				opts = append(opts, rootRedirect)
 			}
+			fmt.Printf("Gateway server listening on %s\n", gatewayMaddr)
 			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), opts...)
 			if err != nil {
 				log.Error(err)
@@ -198,6 +199,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	if rootRedirect != nil {
 		opts = append(opts, rootRedirect)
 	}
+	fmt.Printf("API server listening on %s\n", apiMaddr)
 	if err := corehttp.ListenAndServe(node, apiMaddr.String(), opts...); err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return

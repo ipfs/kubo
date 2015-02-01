@@ -26,7 +26,7 @@ aggregate:
 	@echo "*** $@ ***"
 	lib/test-aggregate-results.sh
 
-deps: $(SHARNESS) $(BINS)
+deps: $(SHARNESS) $(BINS) curl
 
 $(SHARNESS):
 	@echo "*** installing $@ ***"
@@ -37,3 +37,9 @@ bin/%: $(IPFS_ROOT)/**/*.go
 	cd .. && make $@
 
 .PHONY: all clean $(T) aggregate
+
+# will fail if curl is not installed.
+# TODO: get rid of this and install curl with git or ipfs.
+install_curl_pls = "curl is required to run tests. please install it"
+curl:
+	@which curl >/dev/null || (echo "$(install_curl_pls)" && false)

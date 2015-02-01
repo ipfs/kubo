@@ -34,11 +34,12 @@ test_expect_success "ipfs peer id looks good" '
 
 # note this is almost the same as t0020-init.sh "ipfs init output looks good"
 test_expect_success "ipfs daemon output looks good" '
-  STARTHASH="QmTTFXiXoixwT53tcGPu419udsHEHYu6AHrQC8HAKdJYaZ" &&
+  STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
   echo "initializing ipfs node at $IPFS_PATH" >expected &&
-  echo "generating key pair...done" >>expected &&
+  echo "generating 4096-bit RSA keypair...done" >>expected &&
   echo "peer identity: $PEERID" >>expected &&
-  echo "\nto get started, enter: ipfs cat $STARTHASH" >>expected &&
+  echo "to get started, enter:" >>expected &&
+  printf "\\n\\t$STARTFILE\\n\\n" >>expected &&
   echo "daemon listening on /ip4/127.0.0.1/tcp/5001" >>expected &&
   test_cmp_repeat_10_sec expected actual_init
 '

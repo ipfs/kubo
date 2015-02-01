@@ -9,7 +9,15 @@ test_description="Test HTTP gateway"
 . lib/test-lib.sh
 
 test_init_ipfs
+test_config_ipfs_gateway_readonly
 test_launch_ipfs_daemon
+
+# TODO check both 5001 and 5002.
+# 5001 should have a readable gateway (part of the API)
+# 5002 should have a readable gateway (using ipfs config Addresses.Gateway)
+# but ideally we should only write the tests once. so maybe we need to
+# define a function to test a gateway, and do so for each port.
+# for now we check 5001 here as 5002 will be checked in gateway-writable.
 
 test_expect_success "GET IPFS path succeeds" '
   echo "Hello Worlds!" > expected &&
