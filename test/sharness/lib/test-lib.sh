@@ -64,6 +64,16 @@ test_wait_output_n_lines_60_sec() {
 	test_cmp "expected_waitn" "actual_waitn"
 }
 
+test_wait_open_tcp_port_10_sec() {
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		if [ $(ss -lt "sport == :$1" | wc -l) -gt 1 ]; then
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
+}
+
 test_init_ipfs() {
 
 	test_expect_success "ipfs init succeeds" '

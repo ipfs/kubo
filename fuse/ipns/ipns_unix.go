@@ -292,13 +292,13 @@ func (s *Node) Attr() fuse.Attr {
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	log.Debugf("ipns: node[%s] Lookup '%s'", s.name, name)
-	nd, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
+	nodes, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
 	}
 
-	return s.makeChild(name, nd), nil
+	return s.makeChild(name, nodes[len(nodes)-1]), nil
 }
 
 func (n *Node) makeChild(name string, node *mdag.Node) *Node {
@@ -650,12 +650,11 @@ func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fus
 // Updates the child of this node, specified by name to the given newnode
 func (n *Node) update(name string, newnode *mdag.Node) error {
 	log.Debugf("update '%s' in '%s'", name, n.name)
-	nnode := n.Nd.Copy()
-	err := nnode.RemoveNodeLink(name)
+
+	nnode, err := n.Nd.UpdateNodeLink(name, newnode)
 	if err != nil {
 		return err
 	}
-	nnode.AddNodeLink(name, newnode)
 
 	if n.parent != nil {
 		err := n.parent.update(n.name, nnode)

@@ -134,6 +134,16 @@ func (n *Node) Copy() *Node {
 	return nnode
 }
 
+// UpdateNodeLink return a copy of the node with the link name set to point to
+// that. If a link of the same name existed, it is removed.
+func (n *Node) UpdateNodeLink(name string, that *Node) (*Node, error) {
+	newnode := n.Copy()
+	err := newnode.RemoveNodeLink(name)
+	err = nil // ignore error
+	err = newnode.AddNodeLink(name, that)
+	return newnode, err
+}
+
 // Size returns the total size of the data addressed by node,
 // including the total sizes of references.
 func (n *Node) Size() (uint64, error) {

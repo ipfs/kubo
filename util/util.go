@@ -144,3 +144,19 @@ func (m MultiErr) Error() string {
 	}
 	return s
 }
+
+func Partition(subject string, sep string) (string, string, string) {
+	if i := strings.Index(subject, sep); i != -1 {
+		return subject[:i], subject[i : i+len(sep)], subject[i+len(sep):]
+	} else {
+		return subject, "", ""
+	}
+}
+
+func RPartition(subject string, sep string) (string, string, string) {
+	if i := strings.LastIndex(subject, sep); i != -1 {
+		return subject[:i], subject[i : i+len(sep)], subject[i+len(sep):]
+	} else {
+		return subject, "", ""
+	}
+}

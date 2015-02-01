@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
 	"github.com/jbenet/go-ipfs/routing"
+	ufs "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -46,13 +48,15 @@ type directoryItem struct {
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node    *core.IpfsNode
-	dirList *template.Template
+	node     *core.IpfsNode
+	dirList  *template.Template
+	writable bool
 }
 
-func newGatewayHandler(node *core.IpfsNode) (*gatewayHandler, error) {
+func newGatewayHandler(node *core.IpfsNode, writable bool) (*gatewayHandler, error) {
 	i := &gatewayHandler{
-		node: node,
+		node:     node,
+		writable: writable,
 	}
 	err := i.loadTemplate()
 	if err != nil {
@@ -71,7 +75,7 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+func (i *gatewayHandler) resolveNamePath(ctx context.Context, p string) (string, error) {
 	p = gopath.Clean(p)
 
 	if strings.HasPrefix(p, IpnsPathPrefix) {
@@ -79,7 +83,7 @@ func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, 
 		hash := elements[0]
 		k, err := i.node.Namesys.Resolve(ctx, hash)
 		if err != nil {
-			return nil, "", err
+			return "", err
 		}
 
 		elements[0] = k.Pretty()
@@ -87,6 +91,14 @@ func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, 
 	}
 	if !strings.HasPrefix(p, IpfsPathPrefix) {
 		p = gopath.Join(IpfsPathPrefix, p)
+	}
+	return p, nil
+}
+
+func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
+	p, err := i.resolveNamePath(ctx, p)
+	if err != nil {
+		return nil, "", err
 	}
 
 	node, err := i.node.Resolver.ResolvePath(path.Path(p))
@@ -101,6 +113,10 @@ func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
 		r, i.node.DAG, i.node.Pinning.GetManual(), chunk.DefaultSplitter)
 }
 
+func NewDagEmptyDir() *dag.Node {
+	return &dag.Node{Data: ufs.FolderPBData()}
+}
+
 func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
 	return i.node.DAG.Add(nd)
 }
@@ -110,6 +126,39 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) 
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if i.writable && r.Method == "POST" {
+		i.postHandler(w, r)
+		return
+	}
+
+	if i.writable && r.Method == "PUT" {
+		i.putHandler(w, r)
+		return
+	}
+
+	if i.writable && r.Method == "DELETE" {
+		i.deleteHandler(w, r)
+		return
+	}
+
+	if r.Method == "GET" {
+		i.getHandler(w, r)
+		return
+	}
+
+	errmsg := "Method " + r.Method + " not allowed: "
+	if !i.writable {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		errmsg = errmsg + "read only access"
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+		errmsg = errmsg + "bad request for " + r.URL.Path
+	}
+	w.Write([]byte(errmsg))
+	log.Error(errmsg)
+}
+
+func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
@@ -209,23 +258,200 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 	nd, err := i.NewDagFromReader(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Error(err)
-		w.Write([]byte(err.Error()))
+		internalWebError(w, err)
 		return
 	}
 
 	k, err := i.AddNodeToDAG(nd)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Error(err)
-		w.Write([]byte(err.Error()))
+		internalWebError(w, err)
 		return
 	}
 
-	//TODO: return json representation of list instead
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(mh.Multihash(k).B58String()))
+	h := mh.Multihash(k).B58String()
+	w.Header().Set("IPFS-Hash", h)
+	http.Redirect(w, r, IpfsPathPrefix+h, http.StatusCreated)
+}
+
+func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
+	newnode := NewDagEmptyDir()
+
+	key, err := i.node.DAG.Add(newnode)
+	if err != nil {
+		webError(w, "Could not recursively add new node", err, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("IPFS-Hash", key.String())
+	http.Redirect(w, r, IpfsPathPrefix+key.String()+"/", http.StatusCreated)
+}
+
+func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	urlPath := r.URL.Path
+	pathext := urlPath[5:]
+	var err error
+	if urlPath == IpfsPathPrefix + "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn/" {
+		i.putEmptyDirHandler(w, r)
+		return
+	}
+
+	var newnode *dag.Node
+	if pathext[len(pathext)-1] == '/' {
+		newnode = NewDagEmptyDir()
+	} else {
+		newnode, err = i.NewDagFromReader(r.Body)
+		if err != nil {
+			webError(w, "Could not create DAG from request", err, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
+
+	ipfspath, err := i.resolveNamePath(ctx, urlPath)
+	if err != nil {
+		// FIXME HTTP error code
+		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		return
+	}
+
+	h, components, err := path.SplitAbsPath(path.Path(ipfspath))
+	if err != nil {
+		webError(w, "Could not split path", err, http.StatusInternalServerError)
+		return
+	}
+
+	if len(components) < 1 {
+		err = fmt.Errorf("Cannot override existing object")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		log.Error("%s", err)
+		return
+	}
+
+	rootnd, err := i.node.Resolver.DAG.Get(u.Key(h))
+	if err != nil {
+		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
+		return
+	}
+
+	// resolving path components into merkledag nodes. if a component does not
+	// resolve, create empty directories (which will be linked and populated below.)
+	path_nodes, err := i.node.Resolver.ResolveLinks(rootnd, components[:len(components)-1])
+	if _, ok := err.(path.ErrNoLink); ok {
+		// Create empty directories, links will be made further down the code
+		for len(path_nodes) < len(components) {
+			path_nodes = append(path_nodes, NewDagEmptyDir())
+		}
+	} else if err != nil {
+		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
+		return
+	}
+
+	for i := len(path_nodes) - 1; i >= 0; i-- {
+		newnode, err = path_nodes[i].UpdateNodeLink(components[i], newnode)
+		if err != nil {
+			webError(w, "Could not update node links", err, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err = i.node.DAG.AddRecursive(newnode)
+	if err != nil {
+		webError(w, "Could not add recursively new node", err, http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect to new path
+	key, err := newnode.Key()
+	if err != nil {
+		webError(w, "Could not get key of new node", err, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("IPFS-Hash", key.String())
+	http.Redirect(w, r, IpfsPathPrefix+key.String()+"/"+strings.Join(components, "/"), http.StatusCreated)
+}
+
+func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	urlPath := r.URL.Path
+	ctx, cancel := context.WithCancel(i.node.Context())
+	defer cancel()
+
+	ipfspath, err := i.resolveNamePath(ctx, urlPath)
+	if err != nil {
+		// FIXME HTTP error code
+		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
+		return
+	}
+
+	h, components, err := path.SplitAbsPath(path.Path(ipfspath))
+	if err != nil {
+		webError(w, "Could not split path", err, http.StatusInternalServerError)
+		return
+	}
+
+	rootnd, err := i.node.Resolver.DAG.Get(u.Key(h))
+	if err != nil {
+		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
+		return
+	}
+
+	path_nodes, err := i.node.Resolver.ResolveLinks(rootnd, components[:len(components)-1])
+	if err != nil {
+		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
+		return
+	}
+
+	err = path_nodes[len(path_nodes)-1].RemoveNodeLink(components[len(components)-1])
+	if err != nil {
+		webError(w, "Could not delete link", err, http.StatusBadRequest)
+		return
+	}
+
+	newnode := path_nodes[len(path_nodes)-1]
+	for i := len(path_nodes) - 2; i >= 0; i-- {
+		newnode, err = path_nodes[i].UpdateNodeLink(components[i], newnode)
+		if err != nil {
+			webError(w, "Could not update node links", err, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err = i.node.DAG.AddRecursive(newnode)
+	if err != nil {
+		webError(w, "Could not add recursively new node", err, http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect to new path
+	key, err := newnode.Key()
+	if err != nil {
+		webError(w, "Could not get key of new node", err, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("IPFS-Hash", key.String())
+	http.Redirect(w, r, IpfsPathPrefix+key.String()+"/"+strings.Join(components[:len(components)-1], "/"), http.StatusCreated)
+}
+
+func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
+	if _, ok := err.(path.ErrNoLink); ok {
+		webErrorWithCode(w, message, err, http.StatusNotFound)
+	} else if err == routing.ErrNotFound {
+		webErrorWithCode(w, message, err, http.StatusNotFound)
+	} else if err == context.DeadlineExceeded {
+		webErrorWithCode(w, message, err, http.StatusRequestTimeout)
+	} else {
+		webErrorWithCode(w, message, err, defaultCode)
+	}
+}
+
+func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
+	w.WriteHeader(code)
+	log.Errorf("%s: %s", message, err)
+	w.Write([]byte(message + ": " + err.Error()))
 }
 
 // return a 500 error and log
