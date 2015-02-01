@@ -120,7 +120,8 @@ func (w *Worker) start(c Config) {
 	// reads from |workerChan| until process closes
 	w.process.Go(func(proc process.Process) {
 		ctx := childContext(proc) // shut down in-progress HasBlock when time to die
-		limiter := ratelimit.NewRateLimiter(proc, c.NumWorkers)
+		limiter := ratelimit.NewRateLimiter(process.Background(), c.NumWorkers)
+		defer limiter.Close()
 		for {
 			select {
 			case <-proc.Closing():
