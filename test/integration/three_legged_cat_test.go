@@ -55,7 +55,7 @@ func TestThreeLeggedCatDegenerateSlowRouting(t *testing.T) {
 func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
