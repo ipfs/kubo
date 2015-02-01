@@ -220,27 +220,8 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	}
 	n.PeerHost = peerhost
 
-	// this block is the set of services which need to be initialized with the host
-	// and _before_ we start listening.
-	{
-		// setup diagnostics service
-		n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
-
-		// setup routing service
-		dhtRouting, err := constructDHTRouting(ctx, n.PeerHost, n.Repo.Datastore())
-		if err != nil {
-			return debugerror.Wrap(err)
-		}
-		n.Routing = dhtRouting
-
-		// setup exchange service
-		const alwaysSendToPeer = true // use YesManStrategy
-		bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
-		n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
-
-		// setup name system
-		// TODO implement an offline namesys that serves only local names.
-		n.Namesys = namesys.NewNameSystem(n.Routing)
+	if err := n.startOnlineServicesWithHost(ctx); err != nil {
+		return err
 	}
 
 	// Ok, now we're ready to listen.
@@ -252,6 +233,29 @@ func (n *IpfsNode) StartOnlineServices(ctx context.Context) error {
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+// startOnlineServicesWithHost  is the set of services which need to be
+// initialized with the host and _before_ we start listening.
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context) error {
+	// setup diagnostics service
+	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
+
+	// setup routing service
+	dhtRouting, err := constructDHTRouting(ctx, n.PeerHost, n.Repo.Datastore())
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.Routing = dhtRouting
+
+	// setup exchange service
+	const alwaysSendToPeer = true // use YesManStrategy
+	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
+	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
+
+	// setup name system
+	n.Namesys = namesys.NewNameSystem(n.Routing)
+	return nil
 }
 
 // teardown closes owned children. If any errors occur, this function returns
