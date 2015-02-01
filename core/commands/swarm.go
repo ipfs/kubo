@@ -22,8 +22,9 @@ var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "swarm inspection tool",
 		Synopsis: `
-ipfs swarm peers             - List peers with open connections
-ipfs swarm connect <address> - Open connection to a given peer
+ipfs swarm peers                - List peers with open connections
+ipfs swarm connect <address>    - Open connection to a given address
+ipfs swarm disconnect <address> - Close connection to a given address
 `,
 		ShortDescription: `
 ipfs swarm is a tool to manipulate the network swarm. The swarm is the
@@ -32,8 +33,9 @@ ipfs peers in the internet.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"peers":   swarmPeersCmd,
-		"connect": swarmConnectCmd,
+		"peers":      swarmPeersCmd,
+		"connect":    swarmConnectCmd,
+		"disconnect": swarmDisconnectCmd,
 	},
 }
 
@@ -122,6 +124,73 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			}
 		}
 
+		res.SetOutput(&stringList{output})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
+}
+
+var swarmDisconnectCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Close connection to a given address",
+		ShortDescription: `
+'ipfs swarm disconnect' closes a connection to a peer address. The address format
+is an ipfs multiaddr:
+
+ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		addrs := req.Arguments()
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		iaddrs, err := parseAddresses(addrs)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		output := make([]string, len(iaddrs))
+		for i, addr := range iaddrs {
+			taddr := addr.Transport()
+			output[i] = "disconnect " + addr.ID().Pretty()
+
+			found := false
+			conns := n.PeerHost.Network().ConnsToPeer(addr.ID())
+			for _, conn := range conns {
+				if !conn.RemoteMultiaddr().Equal(taddr) {
+					log.Error("it's not", conn.RemoteMultiaddr(), taddr)
+					continue
+				}
+
+				if err := conn.Close(); err != nil {
+					output[i] += " failure: " + err.Error()
+				} else {
+					output[i] += " success"
+				}
+				found = true
+				break
+			}
+
+			if !found {
+				output[i] += " failure: conn not found"
+			}
+		}
 		res.SetOutput(&stringList{output})
 	},
 	Marshalers: cmds.MarshalerMap{
