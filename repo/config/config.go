@@ -16,14 +16,14 @@ var log = u.Logger("config")
 
 // Config is used to load IPFS config files.
 type Config struct {
-	Identity  Identity        // local node's peer identity
-	Datastore Datastore       // local node's storage
-	Addresses Addresses       // local node's addresses
-	Mounts    Mounts          // local node's mount points
-	Version   Version         // local node's version management
-	Bootstrap []BootstrapPeer // local nodes's bootstrap peers
-	Tour      Tour            // local node's tour position
-	Gateway   Gateway         // local node's gateway server options
+	Identity  Identity  // local node's peer identity
+	Datastore Datastore // local node's storage
+	Addresses Addresses // local node's addresses
+	Mounts    Mounts    // local node's mount points
+	Version   Version   // local node's version management
+	Bootstrap []string  // local nodes's bootstrap peer addresses
+	Tour      Tour      // local node's tour position
+	Gateway   Gateway   // local node's gateway server options
 }
 
 const (

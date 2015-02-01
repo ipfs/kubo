@@ -318,10 +318,9 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 	// freshest bootstrap peers from config. this responds to live changes.
 	if cfg.BootstrapPeers == nil {
 		cfg.BootstrapPeers = func() []peer.PeerInfo {
-			bpeers := n.Repo.Config().Bootstrap
-			ps, err := toPeerInfos(bpeers)
+			ps, err := n.loadBootstrapPeers()
 			if err != nil {
-				log.Warningf("failed to parse bootstrap peers from config: %s", bpeers)
+				log.Warningf("failed to parse bootstrap peers from config: %s", n.Repo.Config().Bootstrap)
 				return nil
 			}
 			return ps
@@ -368,6 +367,14 @@ func (n *IpfsNode) loadPrivateKey() error {
 	n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
 	n.Peerstore.AddPubKey(n.Identity, sk.GetPublic())
 	return nil
+}
+
+func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
+	parsed, err := n.Repo.Config().BootstrapPeers()
+	if err != nil {
+		return nil, err
+	}
+	return toPeerInfos(parsed), nil
 }
 
 // SetupOfflineRouting loads the local nodes private key and

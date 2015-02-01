@@ -18,6 +18,8 @@ import (
 type Map map[u.Key]Conn
 
 type PeerConn interface {
+	io.Closer
+
 	// LocalPeer (this side) ID, PrivateKey, and Address
 	LocalPeer() peer.ID
 	LocalPrivateKey() ic.PrivKey
@@ -45,7 +47,6 @@ type Conn interface {
 
 	msgio.Reader
 	msgio.Writer
-	io.Closer
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"

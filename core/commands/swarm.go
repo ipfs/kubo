@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"path"
 	"sort"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 type stringList struct {
@@ -23,8 +22,9 @@ var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "swarm inspection tool",
 		Synopsis: `
-ipfs swarm peers             - List peers with open connections
-ipfs swarm connect <address> - Open connection to a given peer
+ipfs swarm peers                - List peers with open connections
+ipfs swarm connect <address>    - Open connection to a given address
+ipfs swarm disconnect <address> - Close connection to a given address
 `,
 		ShortDescription: `
 ipfs swarm is a tool to manipulate the network swarm. The swarm is the
@@ -33,8 +33,9 @@ ipfs peers in the internet.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"peers":   swarmPeersCmd,
-		"connect": swarmConnectCmd,
+		"peers":      swarmPeersCmd,
+		"connect":    swarmConnectCmd,
+		"disconnect": swarmDisconnectCmd,
 	},
 }
 
@@ -64,7 +65,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		for i, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
-			addrs[i] = fmt.Sprintf("%s/%s", addr, pid.Pretty())
+			addrs[i] = fmt.Sprintf("%s/ipfs/%s", addr, pid.Pretty())
 		}
 
 		sort.Sort(sort.StringSlice(addrs))
@@ -78,12 +79,12 @@ ipfs swarm peers lists the set of peers this node is connected to.
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Open connection to a given peer",
+		Tagline: "Open connection to a given address",
 		ShortDescription: `
 'ipfs swarm connect' opens a connection to a peer address. The address format
 is an ipfs multiaddr:
 
-ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -92,7 +93,6 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := context.TODO()
 
-		log.Debug("ipfs swarm connect")
 		n, err := req.Context().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -132,6 +132,73 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/QmaCpDMGvV2BGHeYERUEnRQAwe3N8Szb
 	Type: stringList{},
 }
 
+var swarmDisconnectCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Close connection to a given address",
+		ShortDescription: `
+'ipfs swarm disconnect' closes a connection to a peer address. The address format
+is an ipfs multiaddr:
+
+ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		addrs := req.Arguments()
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		iaddrs, err := parseAddresses(addrs)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		output := make([]string, len(iaddrs))
+		for i, addr := range iaddrs {
+			taddr := addr.Transport()
+			output[i] = "disconnect " + addr.ID().Pretty()
+
+			found := false
+			conns := n.PeerHost.Network().ConnsToPeer(addr.ID())
+			for _, conn := range conns {
+				if !conn.RemoteMultiaddr().Equal(taddr) {
+					log.Error("it's not", conn.RemoteMultiaddr(), taddr)
+					continue
+				}
+
+				if err := conn.Close(); err != nil {
+					output[i] += " failure: " + err.Error()
+				} else {
+					output[i] += " success"
+				}
+				found = true
+				break
+			}
+
+			if !found {
+				output[i] += " failure: conn not found"
+			}
+		}
+		res.SetOutput(&stringList{output})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
+}
+
 func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 	list, ok := res.Output().(*stringList)
 	if !ok {
@@ -146,37 +213,30 @@ func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 	return &buf, nil
 }
 
-// splitAddresses is a function that takes in a slice of string peer addresses
+// parseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func splitAddresses(addrs []string) (maddrs []ma.Multiaddr, pids []peer.ID, err error) {
-
-	maddrs = make([]ma.Multiaddr, len(addrs))
-	pids = make([]peer.ID, len(addrs))
-	for i, addr := range addrs {
-		a, err := ma.NewMultiaddr(path.Dir(addr))
+func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
+	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
+	for i, saddr := range addrs {
+		iaddrs[i], err = iaddr.ParseString(saddr)
 		if err != nil {
-			return nil, nil, cmds.ClientError("invalid peer address: " + err.Error())
+			return nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}
-		id, err := peer.IDB58Decode(path.Base(addr))
-		if err != nil {
-			return nil, nil, err
-		}
-		pids[i] = id
-		maddrs[i] = a
 	}
 	return
 }
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(ps peer.Peerstore, addrs []string) ([]peer.ID, error) {
-	maddrs, pids, err := splitAddresses(addrs)
+func peersWithAddresses(ps peer.Peerstore, addrs []string) (pids []peer.ID, err error) {
+	iaddrs, err := parseAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
 
-	for i, p := range pids {
-		ps.AddAddress(p, maddrs[i])
+	for _, iaddr := range iaddrs {
+		pids = append(pids, iaddr.ID())
+		ps.AddAddress(iaddr.ID(), iaddr.Multiaddr())
 	}
 	return pids, nil
 }

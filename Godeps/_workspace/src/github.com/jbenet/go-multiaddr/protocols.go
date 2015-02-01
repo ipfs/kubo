@@ -9,7 +9,7 @@ import (
 // Protocol is a Multiaddr protocol description structure.
 type Protocol struct {
 	Code  int
-	Size  int
+	Size  int // a size of -1 indicates a length-prefixed variable size
 	Name  string
 	VCode []byte
 }
@@ -19,14 +19,22 @@ type Protocol struct {
 // 2. ensuring errors in the csv don't screw up code.
 // 3. changing a number has to happen in two places.
 const (
-	P_IP4  = 4
-	P_TCP  = 6
-	P_UDP  = 17
-	P_DCCP = 33
-	P_IP6  = 41
-	P_SCTP = 132
-	P_UTP  = 301
-	P_UDT  = 302
+	P_IP4   = 4
+	P_TCP   = 6
+	P_UDP   = 17
+	P_DCCP  = 33
+	P_IP6   = 41
+	P_SCTP  = 132
+	P_UTP   = 301
+	P_UDT   = 302
+	P_IPFS  = 421
+	P_HTTP  = 480
+	P_HTTPS = 443
+)
+
+// These are special sizes
+const (
+	LengthPrefixedVarSize = -1
 )
 
 // Protocols is the list of multiaddr protocols supported by this module.
@@ -40,8 +48,9 @@ var Protocols = []Protocol{
 	Protocol{P_SCTP, 16, "sctp", CodeToVarint(P_SCTP)},
 	Protocol{P_UTP, 0, "utp", CodeToVarint(P_UTP)},
 	Protocol{P_UDT, 0, "udt", CodeToVarint(P_UDT)},
-	// {480, 0, "http"},
-	// {443, 0, "https"},
+	Protocol{P_HTTP, 0, "http", CodeToVarint(P_HTTP)},
+	Protocol{P_HTTPS, 0, "https", CodeToVarint(P_HTTPS)},
+	Protocol{P_IPFS, LengthPrefixedVarSize, "ipfs", CodeToVarint(P_IPFS)},
 }
 
 // ProtocolWithName returns the Protocol description with given string name.

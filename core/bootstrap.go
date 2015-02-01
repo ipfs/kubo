@@ -220,32 +220,25 @@ func bootstrapConnect(ctx context.Context,
 	return nil
 }
 
-func toPeerInfos(bpeers []config.BootstrapPeer) ([]peer.PeerInfo, error) {
+func toPeerInfos(bpeers []config.BootstrapPeer) []peer.PeerInfo {
 	var peers []peer.PeerInfo
 	for _, bootstrap := range bpeers {
-		p, err := toPeerInfo(bootstrap)
-		if err != nil {
-			return nil, err
-		}
-		peers = append(peers, p)
+		peers = append(peers, toPeerInfo(bootstrap))
 	}
-	return peers, nil
+	return peers
 }
 
-func toPeerInfo(bootstrap config.BootstrapPeer) (p peer.PeerInfo, err error) {
-	id, err := peer.IDB58Decode(bootstrap.PeerID)
-	if err != nil {
-		return
+func toPeerInfo(bp config.BootstrapPeer) peer.PeerInfo {
+	// for now, we drop the "ipfs addr" part of the multiaddr. the rest
+	// of the codebase currently uses addresses without the peerid part.
+	m := bp.Multiaddr()
+	s := ma.Split(m)
+	m = ma.Join(s[:len(s)-1]...)
+
+	return peer.PeerInfo{
+		ID:    bp.ID(),
+		Addrs: []ma.Multiaddr{m},
 	}
-	maddr, err := ma.NewMultiaddr(bootstrap.Address)
-	if err != nil {
-		return
-	}
-	p = peer.PeerInfo{
-		ID:    id,
-		Addrs: []ma.Multiaddr{maddr},
-	}
-	return
 }
 
 func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {
