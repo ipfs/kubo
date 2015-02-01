@@ -45,8 +45,15 @@ test_cmp() {
 
 # Please put go-ipfs specific shell functions below
 
+# grab + output options
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
+
+if test "$TEST_VERBOSE" = 1; then
+	echo '# TEST_VERBOSE='"$TEST_VERBOSE"
+	echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
+	echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
+fi
 
 test_cmp_repeat_10_sec() {
 	for i in 1 2 3 4 5 6 7 8 9 10
