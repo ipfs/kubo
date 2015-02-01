@@ -23,6 +23,11 @@ if test `which ipfs` != $(pwd)/bin/ipfs; then
 	exit 1
 fi
 
+
+# source the common hashes first.
+. lib/test-lib-hashes.sh
+
+
 SHARNESS_LIB="lib/sharness/sharness.sh"
 
 . "$SHARNESS_LIB" || {
@@ -52,6 +57,15 @@ test_cmp_repeat_10_sec() {
 	test_cmp "$1" "$2"
 }
 
+test_run_repeat_10_sec() {
+	for i in 1 2 3 4 5 6 7 8 9 10
+	do
+		(test_eval_ "$1") && return
+		sleep 1
+	done
+	return 1 # failed
+}
+
 test_wait_output_n_lines_60_sec() {
 	echo "$2" >expected_waitn
 	for i in 1 2 3 4 5 6 7 8 9 10
@@ -66,7 +80,11 @@ test_wait_output_n_lines_60_sec() {
 
 test_wait_open_tcp_port_10_sec() {
 	for i in 1 2 3 4 5 6 7 8 9 10; do
-		if [ $(ss -lt "sport == :$1" | wc -l) -gt 1 ]; then
+		# this is not a perfect check, but it's portable.
+		# cant count on ss. not installed everywhere.
+		# cant count on netstat using : or . as port delim. differ across platforms.
+		echo $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0
+		if [ $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0 ]; then
 			return 0
 		fi
 		sleep 1
@@ -90,19 +108,49 @@ test_init_ipfs() {
 
 }
 
+test_config_ipfs_gateway_readonly() {
+	test_expect_success "prepare config -- gateway readonly" '
+	  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/5002
+	'
+}
+
+test_config_ipfs_gateway_writable() {
+	test_expect_success "prepare config -- gateway writable" '
+	  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/5002 &&
+	  ipfs config -bool Gateway.Writable true
+	'
+}
+
 test_launch_ipfs_daemon() {
 
 	test_expect_success "'ipfs daemon' succeeds" '
 		ipfs daemon >actual_daemon 2>daemon_err &
 	'
 
-	test_expect_success "'ipfs daemon' output looks good" '
+	# we say the daemon is ready when the API server is ready.
+	# and we make sure there are no errors
+	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
-		echo "API server listening on /ip4/127.0.0.1/tcp/5001" >expected_daemon &&
-		test_cmp_repeat_10_sec expected_daemon actual_daemon ||
-		fsh cat daemon_err
+		test_run_repeat_10_sec "cat actual_daemon | grep \"API server listening on\"" &&
+		printf "" >empty && test_cmp daemon_err empty ||
+		fsh cat actual_daemon || fsh cat daemon_err
 	'
 
+	ADDR_API="/ip4/127.0.0.1/tcp/5001"
+	test_expect_success "'ipfs daemon' output includes API address" '
+		cat actual_daemon | grep "API server listening on $ADDR_API" ||
+		fsh cat actual_daemon ||
+		fsh "cat actual_daemon | grep \"API server listening on $ADDR_API\""
+	'
+
+	ADDR_GWAY=`ipfs config Addresses.Gateway`
+	if test "$ADDR_GWAY" != ""; then
+		test_expect_success "'ipfs daemon' output includes Gateway address" '
+			cat actual_daemon | grep "Gateway server listening on $ADDR_GWAY" ||
+			fsh cat actual_daemon ||
+			fsh "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\""
+		'
+	fi
 }
 
 test_mount_ipfs() {

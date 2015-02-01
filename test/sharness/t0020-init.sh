@@ -10,7 +10,8 @@ test_description="Test init command"
 
 test_expect_success "ipfs init succeeds" '
 	export IPFS_PATH="$(pwd)/.go-ipfs" &&
-	ipfs init >actual_init
+	BITS="2048" &&
+	ipfs init --bits="$BITS" >actual_init
 '
 
 test_expect_success ".go-ipfs/ has been created" '
@@ -34,10 +35,9 @@ test_expect_success "ipfs peer id looks good" '
 '
 
 test_expect_success "ipfs init output looks good" '
-	STARTHASH="QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT" &&
-	STARTFILE="ipfs cat /ipfs/$STARTHASH/readme"
+	STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
 	echo "initializing ipfs node at $IPFS_PATH" >expected &&
-	echo "generating 4096-bit RSA keypair...done" >>expected &&
+	echo "generating $BITS-bit RSA keypair...done" >>expected &&
 	echo "peer identity: $PEERID" >>expected &&
 	echo "to get started, enter:" >>expected &&
 	printf "\\n\\t$STARTFILE\\n\\n" >>expected &&

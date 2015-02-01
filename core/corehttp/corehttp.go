@@ -1,7 +1,6 @@
 package corehttp
 
 import (
-	"fmt"
 	"net/http"
 
 	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
@@ -36,10 +35,10 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 			return err
 		}
 	}
-	return listenAndServe("API", n, addr, mux)
+	return listenAndServe(n, addr, mux)
 }
 
-func listenAndServe(name string, node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
+func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return err
@@ -52,7 +51,6 @@ func listenAndServe(name string, node *core.IpfsNode, addr ma.Multiaddr, mux *ht
 	serverExited := make(chan struct{})
 
 	go func() {
-		fmt.Printf("%s server listening on %s\n", name, addr)
 		serverError = server.ListenAndServe(host, mux)
 		close(serverExited)
 	}()

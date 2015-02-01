@@ -43,8 +43,8 @@ test_expect_success "'ipfs pin rm' succeeds" '
 
 test_expect_success "file no longer pinned" '
 	# we expect the welcome files to show up here
-	echo QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >expected2 &&
-	ipfs refs -r QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>expected2 &&
+	echo "$HASH_WELCOME_DOCS" >expected2 &&
+	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
 	cat expected2 | sort >expected_sorted2 &&
 	ipfs pin ls -type=recursive | sort >actual2 &&
 	test_cmp expected_sorted2 actual2
@@ -87,8 +87,8 @@ test_expect_success "'ipfs repo gc' removes file" '
 
 test_expect_success "'ipfs refs local' no longer shows file" '
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >expected8 &&
-	echo QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>expected8 &&
-	ipfs refs -r QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>expected8 &&
+	echo "$HASH_WELCOME_DOCS" >>expected8 &&
+	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected8 &&
 	cat expected8 | sort >expected_sorted8 &&
 	ipfs refs local | sort >actual8 &&
 	test_cmp expected_sorted8 actual8
@@ -101,7 +101,7 @@ test_expect_success "adding multiblock random file succeeds" '
 
 test_expect_success "'ipfs pin ls -type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
-	ipfs refs -r "QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT" >>refsout &&
+	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
 	cat refsout | sort >refsout_sorted &&
 	ipfs pin ls -type=indirect | sort >indirectpins &&
 	test_cmp refsout_sorted indirectpins
@@ -129,8 +129,8 @@ test_expect_success "'ipfs pin ls -type=direct' is correct" '
 
 test_expect_success "'ipfs pin ls -type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
-	echo QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT >>rp_expected &&
-	ipfs refs -r "QmPXME1oRtoT627YKaDPDQ3PwA8tdP9rWuAAweLzqSwAWT" >>rp_expected &&
+	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
+	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
 	cat rp_expected | sort >rp_exp_sorted &&
 	ipfs pin ls -type=recursive | sort >rp_actual &&
 	test_cmp rp_exp_sorted rp_actual
