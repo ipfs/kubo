@@ -8,6 +8,7 @@ import (
 	path "github.com/jbenet/go-ipfs/path"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
@@ -32,9 +33,7 @@ it contains.
 			return
 		}
 
-		readers := make([]io.Reader, 0, len(req.Arguments()))
-
-		readers, length, err := cat(node, req.Arguments())
+		readers, length, err := cat(req.Context().Context, node, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -59,7 +58,7 @@ it contains.
 	},
 }
 
-func cat(node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	for _, fpath := range paths {
@@ -68,7 +67,7 @@ func cat(node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
 			return nil, 0, err
 		}
 
-		read, err := uio.NewDagReader(node.Context(), dagnode, node.DAG)
+		read, err := uio.NewDagReader(ctx, dagnode, node.DAG)
 		if err != nil {
 			return nil, 0, err
 		}
