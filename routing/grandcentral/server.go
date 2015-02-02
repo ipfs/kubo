@@ -44,10 +44,6 @@ func (s *Server) handleMessage(
 
 	log.EventBegin(ctx, "routingMessageReceived", req, p, s.local).Done() // TODO may need to differentiate between local and remote
 
-	//  FIXME threw everything into this switch statement to get things going.
-	//  Once each operation is well-defined, extract pluggable backend so any
-	//  database may be used.
-
 	var response = dhtpb.NewMessage(req.GetType(), req.GetKey(), req.GetClusterLevel())
 	switch req.GetType() {
 
