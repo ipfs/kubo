@@ -131,4 +131,8 @@ func (c *Client) Ping(ctx context.Context, id peer.ID) (time.Duration, error) {
 	return time.Nanosecond, errors.New("supernode routing does not support the ping method")
 }
 
+func (c *Client) Bootstrap(ctx context.Context) error {
+	return c.proxy.Bootstrap(ctx)
+}
+
 var _ routing.IpfsRouting = &Client{}

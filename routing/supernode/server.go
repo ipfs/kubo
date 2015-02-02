@@ -32,6 +32,10 @@ func NewServer(ds datastore.ThreadSafeDatastore, ps peer.Peerstore, local peer.I
 	return s, nil
 }
 
+func (_ *Server) Bootstrap(ctx context.Context) error {
+	return nil
+}
+
 // HandleLocalRequest implements the proxy.RequestHandler interface. This is
 // where requests are received from the outside world.
 func (s *Server) HandleRequest(ctx context.Context, p peer.ID, req *dhtpb.Message) *dhtpb.Message {
