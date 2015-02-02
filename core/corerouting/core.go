@@ -5,11 +5,13 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	supernode "github.com/jbenet/go-ipfs/routing/supernode"
 	gcproxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
+	ipfsaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
 )
 
 // NB: DHT option is included in the core to avoid 1) because it's a sane
@@ -51,7 +53,7 @@ func SupernodeServer(recordSource datastore.ThreadSafeDatastore) core.RoutingOpt
 }
 
 // TODO doc
-func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
+func SupernodeClient(remotes ...ipfsaddr.IPFSAddr) core.RoutingOption {
 	return func(ctx context.Context, node *core.IpfsNode) (routing.IpfsRouting, error) {
 		if len(remotes) < 1 {
 			return nil, errServersMissing
@@ -66,7 +68,15 @@ func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
 			return nil, errors.New("need peerstore")
 		}
 
-		proxy := gcproxy.Standard(node.PeerHost, remotes)
+		var remoteInfos []peer.PeerInfo
+		for _, remote := range remotes {
+			remoteInfos = append(remoteInfos, peer.PeerInfo{
+				ID:    remote.ID(),
+				Addrs: []ma.Multiaddr{},
+			})
+		}
+
+		proxy := gcproxy.Standard(node.PeerHost, remoteInfos)
 		node.PeerHost.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
 		return supernode.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
 	}
