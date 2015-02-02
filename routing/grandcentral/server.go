@@ -131,16 +131,25 @@ func putRoutingRecord(ds datastore.Datastore, k util.Key, value *dhtpb.Record) e
 	return nil
 }
 
-func putRoutingProviders(ds datastore.Datastore, k util.Key, providers []*dhtpb.Message_Peer) error {
+func putRoutingProviders(ds datastore.Datastore, k util.Key, newRecords []*dhtpb.Message_Peer) error {
 	log.Event(context.Background(), "putRoutingProviders", &k)
 	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
-	old, err := getRoutingProviders(ds, k)
+	oldRecords, err := getRoutingProviders(ds, k)
 	if err != nil {
 		return err
 	}
-	providers = append(providers, old...)
+	mergedRecords := make(map[string]*dhtpb.Message_Peer)
+	for _, provider := range oldRecords {
+		mergedRecords[provider.GetId()] = provider // add original records
+	}
+	for _, provider := range newRecords {
+		mergedRecords[provider.GetId()] = provider // overwrite old record if new exists
+	}
 	var protomsg dhtpb.Message
-	protomsg.ProviderPeers = providers
+	protomsg.ProviderPeers = make([]*dhtpb.Message_Peer, 0, len(mergedRecords))
+	for _, provider := range mergedRecords {
+		protomsg.ProviderPeers = append(protomsg.ProviderPeers, provider)
+	}
 	data, err := proto.Marshal(&protomsg)
 	if err != nil {
 		return err
