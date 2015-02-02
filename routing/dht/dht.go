@@ -142,16 +142,20 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) error {
 
 	// add self as the provider
-	pi := dht.peerstore.PeerInfo(dht.self)
+	pi := peer.PeerInfo{
+		ID:    dht.self,
+		Addrs: dht.host.Addrs(),
+	}
+
 	// // only share WAN-friendly addresses ??
 	// pi.Addrs = addrutil.WANShareableAddrs(pi.Addrs)
 	if len(pi.Addrs) < 1 {
-		log.Infof("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, u.Key(key), pi.Addrs)
+		// log.Infof("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, u.Key(key), pi.Addrs)
 		return fmt.Errorf("no known addresses for self. cannot put provider.")
 	}
 
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
-	pmes.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), []peer.PeerInfo{pi})
+	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]peer.PeerInfo{pi})
 	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
