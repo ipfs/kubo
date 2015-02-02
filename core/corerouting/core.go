@@ -66,18 +66,7 @@ func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
 			return nil, errors.New("need peerstore")
 		}
 
-		// TODO move to bootstrap method
-		for _, info := range remotes {
-			if err := node.PeerHost.Connect(ctx, info); err != nil {
-				return nil, err // TODO
-			}
-		}
-
-		var ids []peer.ID
-		for _, info := range remotes {
-			ids = append(ids, info.ID)
-		}
-		proxy := gcproxy.Standard(node.PeerHost, ids)
+		proxy := gcproxy.Standard(node.PeerHost, remotes)
 		node.PeerHost.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
 		return supernode.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
 	}

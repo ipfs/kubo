@@ -18,6 +18,7 @@ const ProtocolSNR = "/ipfs/supernoderouting"
 var log = eventlog.Logger("supernode/proxy")
 
 type Proxy interface {
+	Bootstrap(context.Context) error
 	HandleStream(inet.Stream)
 	SendMessage(ctx context.Context, m *dhtpb.Message) error
 	SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error)
@@ -25,11 +26,20 @@ type Proxy interface {
 
 type standard struct {
 	Host    host.Host
-	Remotes []peer.ID
+	Remotes []peer.PeerInfo
 }
 
-func Standard(h host.Host, remotes []peer.ID) Proxy {
+func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
 	return &standard{h, remotes}
+}
+
+func (px *standard) Bootstrap(ctx context.Context) error {
+		for _, info := range px.Remotes {
+			if err := px.Host.Connect(ctx, info); err != nil {
+				return err // TODO
+			}
+		}
+	return nil
 }
 
 func (p *standard) HandleStream(s inet.Stream) {
@@ -44,7 +54,7 @@ func (p *standard) HandleStream(s inet.Stream) {
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	var err error
 	for _, i := range rand.Perm(len(px.Remotes)) {
-		remote := px.Remotes[i]
+		remote := px.Remotes[i].ID
 		if err = px.sendMessage(ctx, m, remote); err != nil { // careful don't re-declare err!
 			continue
 		}
@@ -82,7 +92,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error) {
 	var err error
 	for _, i := range rand.Perm(len(px.Remotes)) {
-		remote := px.Remotes[i]
+		remote := px.Remotes[i].ID
 		var reply *dhtpb.Message
 		reply, err = px.sendRequest(ctx, m, remote) // careful don't redeclare err!
 		if err != nil {
