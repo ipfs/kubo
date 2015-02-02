@@ -153,8 +153,7 @@ func putRoutingProviders(ds datastore.Datastore, k util.Key, newRecords []*dhtpb
 	if err != nil {
 		return err
 	}
-	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
-	return ds.Put(pkey, data)
+	return ds.Put(providerKey(k), data)
 }
 
 func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.Message_Peer) {
@@ -175,8 +174,7 @@ func getRoutingProviders(ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_P
 	e := log.EventBegin(context.Background(), "getProviders", &k)
 	defer e.Done()
 	var providers []*dhtpb.Message_Peer
-	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()}) // TODO key fmt
-	if v, err := ds.Get(pkey); err == nil {
+	if v, err := ds.Get(providerKey(k)); err == nil {
 		if data, ok := v.([]byte); ok {
 			var msg dhtpb.Message
 			if err := proto.Unmarshal(data, &msg); err != nil {
@@ -186,4 +184,8 @@ func getRoutingProviders(ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_P
 		}
 	}
 	return providers, nil
+}
+
+func providerKey(k util.Key) datastore.Key {
+	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 }
