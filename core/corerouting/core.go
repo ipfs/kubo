@@ -23,7 +23,9 @@ var (
 	errServersMissing   = errors.New("grandcentral client requires at least 1 server peer")
 )
 
-// TODO doc
+// GrandCentralServer returns a configuration for a routing server that stores
+// routing records to the provided datastore. Only routing records are store in
+// the datastore.
 func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.RoutingOption {
 	return func(ctx context.Context, node *core.IpfsNode) (routing.IpfsRouting, error) {
 		if node.Peerstore == nil {
