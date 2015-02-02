@@ -402,3 +402,11 @@ func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) 
 func (bs *bitswap) Close() error {
 	return bs.process.Close()
 }
+
+func (bs *bitswap) GetWantlist() []u.Key {
+	var out []u.Key
+	for _, e := range bs.wantlist.Entries() {
+		out = append(out, e.Key)
+	}
+	return out
+}

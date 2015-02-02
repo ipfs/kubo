@@ -66,3 +66,8 @@ func (e *offlineExchange) GetBlocks(ctx context.Context, ks []u.Key) (<-chan *bl
 	}()
 	return out, nil
 }
+
+// implement Exchange
+func (e *offlineExchange) GetWantlist() []u.Key {
+	return nil
+}
