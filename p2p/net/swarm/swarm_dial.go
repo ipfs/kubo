@@ -3,6 +3,7 @@ package swarm
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -384,13 +385,16 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	go func() {
 		// rate limiting just in case. at most 10 addrs at once.
 		limiter := ratelimit.NewRateLimiter(procctx.WithContext(ctx), 10)
-		for _, addr := range remoteAddrs {
+
+		// permute addrs so we try different sets first each time.
+		for _, i := range rand.Perm(len(remoteAddrs)) {
 			select {
 			case <-foundConn: // if one of them succeeded already
 				break
 			default:
 			}
-			workerAddr := addr // shadow variable to avoid race
+
+			workerAddr := remoteAddrs[i] // shadow variable to avoid race
 			limiter.Go(func(worker process.Process) {
 				dialSingleAddr(workerAddr)
 			})
