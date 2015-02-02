@@ -134,16 +134,11 @@ func putRoutingRecord(ds datastore.Datastore, k util.Key, value *dhtpb.Record) e
 func putRoutingProviders(ds datastore.Datastore, k util.Key, providers []*dhtpb.Message_Peer) error {
 	log.Event(context.Background(), "putRoutingProviders", &k)
 	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
-	if v, err := ds.Get(pkey); err == nil {
-		if msg, ok := v.([]byte); ok {
-			var protomsg dhtpb.Message
-			if err := proto.Unmarshal(msg, &protomsg); err != nil {
-				log.Error("failed to unmarshal routing provider record. programmer error")
-			} else {
-				providers = append(providers, protomsg.ProviderPeers...)
-			}
-		}
+	old, err := getRoutingProviders(ds, k)
+	if err != nil {
+		return err
 	}
+	providers = append(providers, old...)
 	var protomsg dhtpb.Message
 	protomsg.ProviderPeers = providers
 	data, err := proto.Marshal(&protomsg)
