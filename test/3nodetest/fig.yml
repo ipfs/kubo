@@ -6,6 +6,7 @@ data:
 
 bootstrap:
     build: ./bootstrap
+    command: daemon --debug --init
     expose:
         - "4011"
         - "4012/udp"

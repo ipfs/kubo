@@ -1,10 +1,14 @@
 ipfs bootstrap add /ip4/$BOOTSTRAP_PORT_4011_TCP_ADDR/tcp/$BOOTSTRAP_PORT_4011_TCP_PORT/ipfs/QmNXuBh8HFsWq68Fid8dMbGNQTh7eG6hV9rr1fQyfmfomE
 ipfs bootstrap # list bootstrap nodes for debugging
 
-
 echo "3nodetest> starting client daemon"
-ipfs daemon &
+
+ipfs daemon --debug &
 sleep 3
+
+# switch dirs so ipfs client profiling data doesn't overwrite the ipfs daemon
+# profiling data
+cd /tmp
 
 while [ ! -f /data/idtiny ]
 do

@@ -27,6 +27,10 @@ fig up --no-color | tee build/fig.log
 echo "make save_logs"
 make save_logs
 
+# save the ipfs logs for inspection
+echo "make save_profiling_data"
+make save_profiling_data
+
 # fig up won't report the error using an error code, so we grep the
 # fig.log file to find out whether the call succeeded
 echo 'tail build/fig.log | grep "exited with code 0"'

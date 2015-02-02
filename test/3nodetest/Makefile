@@ -10,6 +10,9 @@ setup: docker_ipfs_image data/filetiny data/filerand
 save_logs:
 	sh bin/save_logs.sh
 
+save_profiling_data:
+	sh bin/save_profiling_data.sh
+
 data/filetiny: Makefile
 	cp Makefile ./data/filetiny # simple
 
@@ -33,3 +36,4 @@ clean:
 	rm -f data/filetiny
 	rm -f data/filerand
 	rm -rf build/*
+	docker rmi $(docker images | grep "^<none>" | awk "{print \$3}") -f || true
