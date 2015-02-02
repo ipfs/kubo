@@ -30,7 +30,7 @@ test_expect_success "HTTP POST file gives Hash" '
 test_expect_success "We can HTTP GET file just created" '
   FILEPATH=$(grep Location curl.out | cut -d" " -f3- | tr -d "\r")
   curl -so outfile http://localhost:5002$FILEPATH &&
-  diff -u infile outfile
+  test_cmp infile outfile
 '
 
 test_expect_success "HTTP PUT empty directory" '
@@ -62,7 +62,7 @@ test_expect_success "We can HTTP GET file just created" '
   [ "$FILEPATH" = "${FILEPATH%/test.txt}/test.txt" ] &&
   echo "GET http://localhost:5002$FILEPATH" &&
   curl -so outfile http://localhost:5002$FILEPATH &&
-  diff -u infile outfile
+  test_cmp infile outfile
 '
 
 test_expect_success "HTTP PUT file to append to existing hierarchy" '
@@ -81,10 +81,10 @@ test_expect_failure "We can HTTP GET file just created" '
   [ "$FILEPATH" = "${FILEPATH%/test/test.txt}/test/test.txt" ] &&
   echo "GET http://localhost:5002$FILEPATH" &&
   curl -so outfile2 "http://localhost:5002$FILEPATH" &&
-  diff -u infile2 outfile2 &&
+  test_cmp infile2 outfile2 &&
   echo "GET http://localhost:5002${FILEPATH%/test/test.txt}/test.txt" &&
   curl -so outfile "http://localhost:5002${FILEPATH%/test/test.txt}/test.txt" &&
-  diff -u infile outfile
+  test_cmp infile outfile
 '
 
 test_kill_ipfs_daemon
