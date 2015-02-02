@@ -133,7 +133,6 @@ func putRoutingRecord(ds datastore.Datastore, k util.Key, value *dhtpb.Record) e
 
 func putRoutingProviders(ds datastore.Datastore, k util.Key, newRecords []*dhtpb.Message_Peer) error {
 	log.Event(context.Background(), "putRoutingProviders", &k)
-	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 	oldRecords, err := getRoutingProviders(ds, k)
 	if err != nil {
 		return err
@@ -154,6 +153,7 @@ func putRoutingProviders(ds datastore.Datastore, k util.Key, newRecords []*dhtpb
 	if err != nil {
 		return err
 	}
+	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 	return ds.Put(pkey, data)
 }
 
