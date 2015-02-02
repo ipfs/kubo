@@ -73,9 +73,6 @@ func GrandCentralClient(remotes ...peer.PeerInfo) core.RoutingOption {
 			}
 		}
 
-		// TODO right now, I think this has a hidden dependency on the
-		// bootstrap peers provided to the core.Node. Careful...
-
 		var ids []peer.ID
 		for _, info := range remotes {
 			ids = append(ids, info.ID)
