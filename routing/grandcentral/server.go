@@ -84,7 +84,7 @@ func (s *Server) handleMessage(
 		return "", nil
 
 	case dhtpb.Message_GET_PROVIDERS:
-		providers, err := getRoutingProviders(s.local, s.routingBackend, util.Key(req.GetKey()))
+		providers, err := getRoutingProviders(s.routingBackend, util.Key(req.GetKey()))
 		if err != nil {
 			return "", nil
 		}
@@ -167,7 +167,7 @@ func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.
 	}
 }
 
-func getRoutingProviders(local peer.ID, ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_Peer, error) {
+func getRoutingProviders(ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_Peer, error) {
 	e := log.EventBegin(context.Background(), "getProviders", &k)
 	defer e.Done()
 	var providers []*dhtpb.Message_Peer
