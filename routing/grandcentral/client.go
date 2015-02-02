@@ -36,6 +36,7 @@ func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*
 }
 
 func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("findProviders"))
 	defer log.EventBegin(ctx, "findProviders", &k).Done()
 	ch := make(chan peer.PeerInfo)
 	go func() {

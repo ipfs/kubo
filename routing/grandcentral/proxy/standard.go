@@ -87,35 +87,38 @@ func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 	return nil, err // NB: returns the last error
 }
 
-func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (_ *dhtpb.Message, err error) {
-	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, m)
-	defer func() {
-		if err != nil {
-			e.SetError(err)
-		}
-		e.Done()
-	}()
-	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote peer.ID) (*dhtpb.Message, error) {
+	e := log.EventBegin(ctx, "sendRoutingRequest", px.Host.ID(), remote, eventlog.Pair("request", m))
+	defer e.Done()
+	if err := px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
+		e.SetError(err)
 		return nil, err
 	}
 	s, err := px.Host.NewStream(ProtocolGCR, remote)
 	if err != nil {
+		e.SetError(err)
 		return nil, err
 	}
 	defer s.Close()
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 	if err = w.WriteMsg(m); err != nil {
+		e.SetError(err)
 		return nil, err
 	}
 
-	var reply dhtpb.Message
-	if err = r.ReadMsg(&reply); err != nil {
+	response := &dhtpb.Message{}
+	if err = r.ReadMsg(response); err != nil {
+		e.SetError(err)
 		return nil, err
 	}
 	// need ctx expiration?
-	if &reply == nil {
-		return nil, errors.New("no response to request")
+	if response == nil {
+		err := errors.New("no response to request")
+		e.SetError(err)
+		return nil, err
 	}
-	return &reply, nil
+	e.Append(eventlog.Pair("response", response))
+	e.Append(eventlog.Pair("uuid", eventlog.Uuid("foo")))
+	return response, nil
 }
