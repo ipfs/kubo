@@ -70,6 +70,15 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 		fallthrough
 	case ftpb.Data_File:
 		return newDataFileReader(ctx, n, pb, serv), nil
+	case ftpb.Data_Metadata:
+		if len(n.Links) == 0 {
+			return nil, errors.New("incorrectly formatted metadata object")
+		}
+		child, err := n.Links[0].GetNode(serv)
+		if err != nil {
+			return nil, err
+		}
+		return NewDagReader(ctx, child, serv)
 	default:
 		return nil, ft.ErrUnrecognizedType
 	}
@@ -118,6 +127,8 @@ func (dr *DagReader) precalcNextBuf() error {
 	case ftpb.Data_Raw:
 		dr.buf = NewRSNCFromBytes(pb.GetData())
 		return nil
+	case ftpb.Data_Metadata:
+		return errors.New("Shouldnt have had metadata object inside file")
 	default:
 		return ft.ErrUnrecognizedType
 	}

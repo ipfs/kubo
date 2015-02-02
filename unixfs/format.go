@@ -126,3 +126,48 @@ func (mb *MultiBlock) FileSize() uint64 {
 func (mb *MultiBlock) NumChildren() int {
 	return len(mb.blocksizes)
 }
+
+type Metadata struct {
+	MimeType string
+	Size     uint64
+}
+
+func MetadataFromBytes(b []byte) (*Metadata, error) {
+	pbd := new(pb.Data)
+	err := proto.Unmarshal(b, pbd)
+	if err != nil {
+		return nil, err
+	}
+	if pbd.GetType() != pb.Data_Metadata {
+		return nil, errors.New("incorrect node type")
+	}
+
+	pbm := new(pb.Metadata)
+	err = proto.Unmarshal(pbd.Data, pbm)
+	if err != nil {
+		return nil, err
+	}
+	md := new(Metadata)
+	md.MimeType = pbm.GetMimeType()
+	return md, nil
+}
+
+func (m *Metadata) Bytes() ([]byte, error) {
+	pbm := new(pb.Metadata)
+	pbm.MimeType = &m.MimeType
+	return proto.Marshal(pbm)
+}
+
+func BytesForMetadata(m *Metadata) ([]byte, error) {
+	pbd := new(pb.Data)
+	pbd.Filesize = proto.Uint64(m.Size)
+	typ := pb.Data_Metadata
+	pbd.Type = &typ
+	mdd, err := m.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	pbd.Data = mdd
+	return proto.Marshal(pbd)
+}

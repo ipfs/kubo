@@ -5,10 +5,15 @@ message Data {
 		Raw = 0;
 		Directory = 1;
 		File = 2;
+		Metadata = 3;
 	}
 
 	required DataType Type = 1;
 	optional bytes Data = 2;
 	optional uint64 filesize = 3;
 	repeated uint64 blocksizes = 4;
+}
+
+message Metadata {
+	required string MimeType = 1;
 }
