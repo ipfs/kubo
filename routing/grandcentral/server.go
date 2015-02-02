@@ -16,7 +16,7 @@ import (
 // Server handles routing queries using a database backend
 type Server struct {
 	local           peer.ID
-	datastore       datastore.ThreadSafeDatastore
+	routingBackend  datastore.ThreadSafeDatastore
 	peerstore       peer.Peerstore
 	*proxy.Loopback // so server can be injected into client
 }
@@ -52,7 +52,7 @@ func (s *Server) handleMessage(
 	switch req.GetType() {
 
 	case dhtpb.Message_GET_VALUE:
-		rawRecord, err := getRoutingRecord(s.datastore, util.Key(req.GetKey()))
+		rawRecord, err := getRoutingRecord(s.routingBackend, util.Key(req.GetKey()))
 		if err != nil {
 			return "", nil
 		}
@@ -62,7 +62,7 @@ func (s *Server) handleMessage(
 
 	case dhtpb.Message_PUT_VALUE:
 		// TODO before merging: verifyRecord(req.GetRecord())
-		putRoutingRecord(s.datastore, util.Key(req.GetKey()), req.GetRecord())
+		putRoutingRecord(s.routingBackend, util.Key(req.GetKey()), req.GetRecord())
 		return p, req // TODO before merging: verify that we should return record
 
 	case dhtpb.Message_FIND_NODE:
@@ -79,13 +79,13 @@ func (s *Server) handleMessage(
 	case dhtpb.Message_ADD_PROVIDER:
 		storeProvidersToPeerstore(s.peerstore, p, req.GetProviderPeers())
 
-		if err := putRoutingProviders(s.datastore, util.Key(req.GetKey()), req.GetProviderPeers()); err != nil {
+		if err := putRoutingProviders(s.routingBackend, util.Key(req.GetKey()), req.GetProviderPeers()); err != nil {
 			return "", nil
 		}
 		return "", nil
 
 	case dhtpb.Message_GET_PROVIDERS:
-		providers, err := getRoutingProviders(s.local, s.datastore, util.Key(req.GetKey()))
+		providers, err := getRoutingProviders(s.local, s.routingBackend, util.Key(req.GetKey()))
 		if err != nil {
 			return "", nil
 		}
