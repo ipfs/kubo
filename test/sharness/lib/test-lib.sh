@@ -100,6 +100,30 @@ test_wait_open_tcp_port_10_sec() {
 	return 1
 }
 
+
+# test_config_set helps us make sure _we really did set_ a config value.
+# it sets it and then tests it. This became elaborate because ipfs config
+# was setting really weird things and am not sure why.
+test_config_set() {
+
+	# grab flags (like -bool in "ipfs config -bool")
+	test_cfg_flags="" # unset in case.
+	test "$#" = 3 && { test_cfg_flags=$1; shift; }
+
+	test_cfg_key=$1
+	test_cfg_val=$2
+
+	# when verbose, tell the user what config values are being set
+	test_cfg_cmd="ipfs config $test_cfg_flags \"$test_cfg_key\" \"$test_cfg_val\""
+	test "$TEST_VERBOSE" = 1 && echo "$test_cfg_cmd"
+
+	# ok try setting the config key/val pair.
+	ipfs config $test_cfg_flags "$test_cfg_key" "$test_cfg_val"
+	echo "$test_cfg_val" >cfg_set_expected
+	ipfs config "$test_cfg_key" >cfg_set_actual
+	test_cmp cfg_set_expected cfg_set_actual
+}
+
 test_init_ipfs() {
 
 	test_expect_success "ipfs init succeeds" '
@@ -107,33 +131,45 @@ test_init_ipfs() {
 		ipfs init -b=1024 > /dev/null
 	'
 
-	test_expect_success "prepare config" '
+	test_expect_success "prepare config -- mounting and bootstrap rm" '
 		mkdir mountdir ipfs ipns &&
-		ipfs config Mounts.IPFS "$(pwd)/ipfs" &&
-		ipfs config Mounts.IPNS "$(pwd)/ipns" &&
-		ipfs bootstrap rm --all
+		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
+		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
+		ipfs bootstrap rm --all ||
+		fsh cat "\"$IPFS_PATH/config\""
 	'
 
 }
 
 test_config_ipfs_gateway_readonly() {
-	test_expect_success "prepare config -- gateway readonly" '
-	  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/5002
+	if test "$1" == ""; then
+		echo "must call with an address, for example:"
+		echo 'test_config_ipfs_gateway_readonly "/ip4/0.0.0.0/tcp/5002"'
+		return 1 # todo: find a better way to exit here.
+	fi
+
+	GWAY_ADDR=$1
+	test_expect_success "prepare config -- gateway address" '
+		test_config_set "Addresses.Gateway" "$GWAY_ADDR"
 	'
 }
 
 test_config_ipfs_gateway_writable() {
+
+	test_config_ipfs_gateway_readonly $1
+
 	test_expect_success "prepare config -- gateway writable" '
-	  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/5002 &&
-	  ipfs config -bool Gateway.Writable true
+		test_config_set -bool Gateway.Writable true ||
+		fsh cat "\"$IPFS_PATH/config\""
 	'
 }
 
 test_launch_ipfs_daemon() {
 
 	ADDR_API="/ip4/127.0.0.1/tcp/5001"
-	ADDR_GWAY=`ipfs config Addresses.Gateway`
 	NLINES="2"
+
+	# ADDR_GWAY will be set if the test_config_ipfs_gateway_* funcs were called.
 	if test "$ADDR_GWAY" != ""; then
 		NLINES="3"
 	fi
@@ -146,22 +182,23 @@ test_launch_ipfs_daemon() {
 	# and we make sure there are no errors
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
-		test_wait_output_n_lines_60_sec actual_daemon $NLINES &&
-		printf "" >empty && test_cmp daemon_err empty ||
+		test_wait_output_n_lines_60_sec actual_daemon $NLINES ||
 		fsh cat actual_daemon || fsh cat daemon_err
 	'
 
 	test_expect_success "'ipfs daemon' output includes API address" '
 		cat actual_daemon | grep "API server listening on $ADDR_API" ||
 		fsh cat actual_daemon ||
-		fsh "cat actual_daemon | grep \"API server listening on $ADDR_API\""
+		fsh "cat actual_daemon | grep \"API server listening on $ADDR_API\"" ||
+		fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
 			cat actual_daemon | grep "Gateway server listening on $ADDR_GWAY" ||
 			fsh cat actual_daemon ||
-			fsh "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\""
+			fsh "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\"" ||
+			fsh cat daemon_err
 		'
 	fi
 }

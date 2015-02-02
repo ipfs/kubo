@@ -4,12 +4,12 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-test_description="Test HTTP Gateway"
+test_description="Test HTTP Gateway (Writable)"
 
 . lib/test-lib.sh
 
 test_init_ipfs
-test_config_ipfs_gateway_writable
+test_config_ipfs_gateway_writable "/ip4/0.0.0.0/tcp/5002"
 test_launch_ipfs_daemon
 
 test_expect_success "ipfs daemon listening to TCP port 5002" '

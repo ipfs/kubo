@@ -68,17 +68,12 @@ func cat(node *core.IpfsNode, paths []string) ([]io.Reader, uint64, error) {
 			return nil, 0, err
 		}
 
-		nodeLength, err := dagnode.Size()
-		if err != nil {
-			return nil, 0, err
-		}
-		length += nodeLength
-
 		read, err := uio.NewDagReader(node.Context(), dagnode, node.DAG)
 		if err != nil {
 			return nil, 0, err
 		}
 		readers = append(readers, read)
+		length += uint64(read.Size())
 	}
 	return readers, length, nil
 }
