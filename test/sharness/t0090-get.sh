@@ -27,8 +27,7 @@ test_expect_success "ipfs get succeeds" '
 '
 
 test_expect_success "ipfs get output looks good" '
-  echo "Saving file(s) to "$HASH"
-" >expected &&
+  printf "%s\n\n" "Saving file(s) to $HASH" >expected &&
   test_cmp expected actual
 '
 
@@ -46,8 +45,7 @@ test_expect_success "ipfs get -a succeeds" '
 '
 
 test_expect_success "ipfs get -a output looks good" '
-  echo "Saving archive to $HASH.tar
-" >expected &&
+  printf "%s\n\n" "Saving archive to $HASH.tar" >expected &&
   test_cmp expected actual
 '
 
@@ -63,8 +61,7 @@ test_expect_success "ipfs get -a -C succeeds" '
 '
 
 test_expect_success "ipfs get -a -C output looks good" '
-  echo "Saving archive to $HASH.tar.gz
-" >expected &&
+  printf "%s\n\n" "Saving archive to $HASH.tar.gz" >expected &&
   test_cmp expected actual
 '
 
@@ -86,8 +83,7 @@ test_expect_success "ipfs get succeeds (directory)" '
 '
 
 test_expect_success "ipfs get output looks good (directory)" '
-  echo "Saving file(s) to $HASH2
-" >expected &&
+  printf "%s\n\n" "Saving file(s) to $HASH2" >expected &&
   test_cmp expected actual
 '
 
@@ -102,8 +98,7 @@ test_expect_success "ipfs get -a -C succeeds (directory)" '
 '
 
 test_expect_success "ipfs get -a -C output looks good (directory)" '
-  echo "Saving archive to $HASH2.tar.gz
-" >expected &&
+  printf "%s\n\n" "Saving archive to $HASH2.tar.gz" >expected &&
   test_cmp expected actual
 '
 
