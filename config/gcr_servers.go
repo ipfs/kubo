@@ -9,8 +9,8 @@ type GCR struct {
 }
 
 var DefaultGCRServers = []string{
-	"/ip4/104.236.70.34/tcp/4001/QmaWJw5mcWkCThPtC7hVq28e3WbwLHnWF8HbMNJrRDybE4",
-	"/ip4/128.199.72.111/tcp/4001/Qmd2cSiZUt7vhiuTmqBB7XWbkuFR8KMLiEuQssjyNXyaZT",
+	"/ip4/104.236.70.34/tcp/4001/ipfs/QmaWJw5mcWkCThPtC7hVq28e3WbwLHnWF8HbMNJrRDybE4",
+	"/ip4/128.199.72.111/tcp/4001/ipfs/Qmd2cSiZUt7vhiuTmqBB7XWbkuFR8KMLiEuQssjyNXyaZT",
 }
 
 func initGCR() (*GCR, error) {
