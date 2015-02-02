@@ -24,6 +24,7 @@ type Config struct {
 	Bootstrap []string  // local nodes's bootstrap peer addresses
 	Tour      Tour      // local node's tour position
 	Gateway   Gateway   // local node's gateway server options
+	GCR       GCR       // local node's routing servers (if GCR enabled)
 	Log       Log
 }
 
