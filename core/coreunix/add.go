@@ -3,6 +3,7 @@ package coreunix
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"os"
 	gopath "path"
 
@@ -62,6 +63,24 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 	return k.String(), nil
+}
+
+// AddWrapped adds data from a reader, and wraps it with a directory object
+// to preserve the filename.
+// Returns the path of the added file ("<dir hash>/filename"), the DAG node of
+// the directory, and and error if any.
+func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkledag.Node, error) {
+	file := files.NewReaderFile(filename, ioutil.NopCloser(r), nil)
+	dir := files.NewSliceFile("", []files.File{file})
+	dagnode, err := addDir(n, dir)
+	if err != nil {
+		return "", nil, err
+	}
+	k, err := dagnode.Key()
+	if err != nil {
+		return "", nil, err
+	}
+	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
 func add(n *core.IpfsNode, readers []io.Reader) ([]*merkledag.Node, error) {
