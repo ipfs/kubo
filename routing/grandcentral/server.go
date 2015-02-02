@@ -169,7 +169,8 @@ func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.
 }
 
 func getRoutingProviders(local peer.ID, ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_Peer, error) {
-	log.Event(context.Background(), "getProviders", local, &k)
+	e := log.EventBegin(context.Background(), "getProviders", &k)
+	defer e.Done()
 	var providers []*dhtpb.Message_Peer
 	exists, err := ds.Has(k.DsKey()) // TODO store values in a local datastore?
 	if err == nil && exists {
