@@ -26,3 +26,9 @@ func Deferred(key string, f func() string) Loggable {
 	}
 	return LoggableF(function)
 }
+
+func Pair(key string, l Loggable) Loggable {
+	return LoggableMap{
+		key: l,
+	}
+}

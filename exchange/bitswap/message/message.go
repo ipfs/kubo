@@ -39,6 +39,8 @@ type BitSwapMessage interface {
 
 	AddBlock(*blocks.Block)
 	Exportable
+
+	Loggable() map[string]interface{}
 }
 
 type Exportable interface {
@@ -169,4 +171,15 @@ func (m *impl) ToNet(w io.Writer) error {
 		return err
 	}
 	return nil
+}
+
+func (m *impl) Loggable() map[string]interface{} {
+	var blocks []string
+	for _, v := range m.blocks {
+		blocks = append(blocks, v.Key().Pretty())
+	}
+	return map[string]interface{}{
+		"blocks": blocks,
+		"wants":  m.Wantlist(),
+	}
 }

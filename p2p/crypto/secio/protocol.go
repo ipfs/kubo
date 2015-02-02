@@ -46,6 +46,14 @@ type secureSession struct {
 	sharedSecret []byte
 }
 
+func (s *secureSession) Loggable() map[string]interface{} {
+	m := make(map[string]interface{})
+	m["localPeer"] = s.localPeer.Pretty()
+	m["remotePeer"] = s.remotePeer.Pretty()
+	m["established"] = (s.secure != nil)
+	return m
+}
+
 func newSecureSession(local peer.ID, key ci.PrivKey) (*secureSession, error) {
 	s := &secureSession{localPeer: local, localKey: key}
 
@@ -80,7 +88,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return err
 	}
 
-	defer log.EventBegin(ctx, "secureHandshake", s.localPeer).Done()
+	defer log.EventBegin(ctx, "secureHandshake", s).Done()
 
 	s.local.permanentPubKey = s.localKey.GetPublic()
 	myPubKeyBytes, err := s.local.permanentPubKey.Bytes()
@@ -292,6 +300,5 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	}
 
 	// Whew! ok, that's all folks.
-	log.Event(ctx, "secureHandshakeFinish", s.localPeer, s.remotePeer)
 	return nil
 }

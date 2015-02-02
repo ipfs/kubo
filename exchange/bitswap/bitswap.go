@@ -202,7 +202,6 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 	set := pset.New()
 	wg := sync.WaitGroup{}
 	for peerToQuery := range peers {
-		log.Event(ctx, "PeerToQuery", peerToQuery)
 
 		if !set.TryAdd(peerToQuery) { //Do once per peer
 			continue
@@ -263,75 +262,10 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 	}
 }
 
-func (bs *bitswap) taskWorker(ctx context.Context) {
-	defer log.Info("bitswap task worker shutting down...")
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case nextEnvelope := <-bs.engine.Outbox():
-			select {
-			case <-ctx.Done():
-				return
-			case envelope, ok := <-nextEnvelope:
-				if !ok {
-					continue
-				}
-				bs.send(ctx, envelope.Peer, envelope.Message)
-			}
-		}
-	}
-}
-
-// TODO ensure only one active request per key
-func (bs *bitswap) clientWorker(parent context.Context) {
-
-	defer log.Info("bitswap client worker shutting down...")
-
-	ctx, cancel := context.WithCancel(parent)
-
-	broadcastSignal := time.After(rebroadcastDelay.Get())
-	defer cancel()
-
-	for {
-		select {
-		case <-time.Tick(10 * time.Second):
-			n := bs.wantlist.Len()
-			if n > 0 {
-				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
-			}
-		case <-broadcastSignal: // resend unfulfilled wantlist keys
-			entries := bs.wantlist.Entries()
-			if len(entries) > 0 {
-				bs.sendWantlistToProviders(ctx, entries)
-			}
-			broadcastSignal = time.After(rebroadcastDelay.Get())
-		case keys := <-bs.batchRequests:
-			if len(keys) == 0 {
-				log.Warning("Received batch request for zero blocks")
-				continue
-			}
-			for i, k := range keys {
-				bs.wantlist.Add(k, kMaxPriority-i)
-			}
-			// NB: Optimization. Assumes that providers of key[0] are likely to
-			// be able to provide for all keys. This currently holds true in most
-			// every situation. Later, this assumption may not hold as true.
-			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
-			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
-			err := bs.sendWantlistToPeers(ctx, providers)
-			if err != nil {
-				log.Errorf("error sending wantlist: %s", err)
-			}
-		case <-parent.Done():
-			return
-		}
-	}
-}
-
 // TODO(brian): handle errors
 func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
 	peer.ID, bsmsg.BitSwapMessage) {
+	defer log.EventBegin(ctx, "receiveMessage", p, incoming).Done()
 
 	if p == "" {
 		log.Error("Received message from nil peer!")
@@ -409,6 +343,7 @@ func (bs *bitswap) ReceiveError(err error) {
 // send strives to ensure that accounting is always performed when a message is
 // sent
 func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
+	defer log.EventBegin(ctx, "sendMessage", p, m).Done()
 	if err := bs.network.SendMessage(ctx, p, m); err != nil {
 		return errors.Wrap(err)
 	}
@@ -417,4 +352,71 @@ func (bs *bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) 
 
 func (bs *bitswap) Close() error {
 	return bs.process.Close()
+}
+
+func (bs *bitswap) taskWorker(ctx context.Context) {
+	defer log.Info("bitswap task worker shutting down...")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case nextEnvelope := <-bs.engine.Outbox():
+			select {
+			case <-ctx.Done():
+				return
+			case envelope, ok := <-nextEnvelope:
+				if !ok {
+					continue
+				}
+				log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
+				bs.send(ctx, envelope.Peer, envelope.Message)
+			}
+		}
+	}
+}
+
+// TODO ensure only one active request per key
+func (bs *bitswap) clientWorker(parent context.Context) {
+
+	defer log.Info("bitswap client worker shutting down...")
+
+	ctx, cancel := context.WithCancel(parent)
+
+	broadcastSignal := time.After(rebroadcastDelay.Get())
+	defer cancel()
+
+	for {
+		select {
+		case <-time.Tick(10 * time.Second):
+			n := bs.wantlist.Len()
+			if n > 0 {
+				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
+			}
+		case <-broadcastSignal: // resend unfulfilled wantlist keys
+			entries := bs.wantlist.Entries()
+			if len(entries) > 0 {
+				bs.sendWantlistToProviders(ctx, entries)
+			}
+			broadcastSignal = time.After(rebroadcastDelay.Get())
+		case keys := <-bs.batchRequests:
+			if len(keys) == 0 {
+				log.Warning("Received batch request for zero blocks")
+				continue
+			}
+			for i, k := range keys {
+				bs.wantlist.Add(k, kMaxPriority-i)
+			}
+			// NB: Optimization. Assumes that providers of key[0] are likely to
+			// be able to provide for all keys. This currently holds true in most
+			// every situation. Later, this assumption may not hold as true.
+			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
+			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
+			err := bs.sendWantlistToPeers(ctx, providers)
+			if err != nil {
+				log.Errorf("error sending wantlist: %s", err)
+			}
+		case <-parent.Done():
+			return
+		}
+	}
 }

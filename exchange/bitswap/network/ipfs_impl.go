@@ -110,6 +110,9 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 	connectedPeers := bsnet.host.Network().Peers()
 	out := make(chan peer.ID, len(connectedPeers)) // just enough buffer for these connectedPeers
 	for _, id := range connectedPeers {
+		if id == bsnet.host.ID() {
+			continue // ignore self as provider
+		}
 		out <- id
 	}
 
@@ -117,9 +120,10 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 		defer close(out)
 		providers := bsnet.routing.FindProvidersAsync(ctx, k, max)
 		for info := range providers {
-			if info.ID != bsnet.host.ID() { // dont add addrs for ourselves.
-				bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
+			if info.ID == bsnet.host.ID() {
+				continue // ignore self as provider
 			}
+			bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
 			select {
 			case <-ctx.Done():
 				return

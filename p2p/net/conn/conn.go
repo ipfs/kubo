@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
-	debugerr "github.com/jbenet/go-ipfs/util/debugerror"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 var log = eventlog.Logger("conn")
@@ -33,16 +34,19 @@ type singleConn struct {
 	remote peer.ID
 	maconn manet.Conn
 	msgrw  msgio.ReadWriteCloser
+	event  io.Closer
 }
 
 // newConn constructs a new connection
 func newSingleConn(ctx context.Context, local, remote peer.ID, maconn manet.Conn) (Conn, error) {
+	ml := lgbl.Dial("conn", local, remote, maconn.LocalMultiaddr(), maconn.RemoteMultiaddr())
 
 	conn := &singleConn{
 		local:  local,
 		remote: remote,
 		maconn: maconn,
 		msgrw:  msgio.NewReadWriter(maconn),
+		event:  log.EventBegin(ctx, "connLifetime", ml),
 	}
 
 	log.Debugf("newSingleConn %p: %v to %v", conn, local, remote)
@@ -51,7 +55,13 @@ func newSingleConn(ctx context.Context, local, remote peer.ID, maconn manet.Conn
 
 // close is the internal close function, called by ContextCloser.Close
 func (c *singleConn) Close() error {
-	log.Debug(debugerr.Errorf("%s closing Conn with %s", c.local, c.remote))
+	defer func() {
+		if c.event != nil {
+			c.event.Close()
+			c.event = nil
+		}
+	}()
+
 	// close underlying connection
 	return c.msgrw.Close()
 }
