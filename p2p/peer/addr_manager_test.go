@@ -1,16 +1,14 @@
-package addr
+package peer
 
 import (
 	"testing"
 	"time"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 
-func IDS(t *testing.T, ids string) peer.ID {
-	id, err := peer.IDB58Decode(ids)
+func IDS(t *testing.T, ids string) ID {
+	id, err := IDB58Decode(ids)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +69,7 @@ func TestAddresses(t *testing.T) {
 	ma55 := MA(t, "/ip4/5.2.3.3/tcp/5555")
 
 	ttl := time.Hour
-	m := Manager{}
+	m := AddrManager{}
 	m.AddAddr(id1, ma11, ttl)
 
 	m.AddAddrs(id2, []ma.Multiaddr{ma21, ma22}, ttl)
@@ -109,7 +107,7 @@ func TestAddressesExpire(t *testing.T) {
 	ma24 := MA(t, "/ip4/4.2.3.3/tcp/4444")
 	ma25 := MA(t, "/ip4/5.2.3.3/tcp/5555")
 
-	m := Manager{}
+	m := AddrManager{}
 	m.AddAddr(id1, ma11, time.Hour)
 	m.AddAddr(id1, ma12, time.Hour)
 	m.AddAddr(id1, ma13, time.Hour)
@@ -164,7 +162,7 @@ func TestClearWorks(t *testing.T) {
 	ma24 := MA(t, "/ip4/4.2.3.3/tcp/4444")
 	ma25 := MA(t, "/ip4/5.2.3.3/tcp/5555")
 
-	m := Manager{}
+	m := AddrManager{}
 	m.AddAddr(id1, ma11, time.Hour)
 	m.AddAddr(id1, ma12, time.Hour)
 	m.AddAddr(id1, ma13, time.Hour)

@@ -55,7 +55,7 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 	for i := 0; i < n; i++ {
 		dhts[i] = setupDHT(ctx, t)
 		peers[i] = dhts[i].self
-		addrs[i] = dhts[i].peerstore.Addresses(dhts[i].self)[0]
+		addrs[i] = dhts[i].peerstore.Addrs(dhts[i].self)[0]
 	}
 
 	return addrs, peers, dhts
@@ -64,12 +64,12 @@ func setupDHTS(ctx context.Context, n int, t *testing.T) ([]ma.Multiaddr, []peer
 func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 
 	idB := b.self
-	addrB := b.peerstore.Addresses(idB)
+	addrB := b.peerstore.Addrs(idB)
 	if len(addrB) == 0 {
 		t.Fatal("peers setup incorrectly: no local address")
 	}
 
-	a.peerstore.AddAddresses(idB, addrB)
+	a.peerstore.AddAddrs(idB, addrB, peer.TempAddrTTL)
 	if err := a.Connect(ctx, idB); err != nil {
 		t.Fatal(err)
 	}
@@ -754,20 +754,20 @@ func TestConnectCollision(t *testing.T) {
 		dhtA := setupDHT(ctx, t)
 		dhtB := setupDHT(ctx, t)
 
-		addrA := dhtA.peerstore.Addresses(dhtA.self)[0]
-		addrB := dhtB.peerstore.Addresses(dhtB.self)[0]
+		addrA := dhtA.peerstore.Addrs(dhtA.self)[0]
+		addrB := dhtB.peerstore.Addrs(dhtB.self)[0]
 
 		peerA := dhtA.self
 		peerB := dhtB.self
 
 		errs := make(chan error)
 		go func() {
-			dhtA.peerstore.AddAddress(peerB, addrB)
+			dhtA.peerstore.AddAddr(peerB, addrB, peer.TempAddrTTL)
 			err := dhtA.Connect(ctx, peerB)
 			errs <- err
 		}()
 		go func() {
-			dhtB.peerstore.AddAddress(peerA, addrA)
+			dhtB.peerstore.AddAddr(peerA, addrA, peer.TempAddrTTL)
 			err := dhtB.Connect(ctx, peerA)
 			errs <- err
 		}()

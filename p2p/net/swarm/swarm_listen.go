@@ -53,7 +53,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 	// 	return err
 	// }
 	// for _, a := range resolved {
-	// 	s.peers.AddAddress(s.local, a)
+	// 	s.peers.AddAddr(s.local, a)
 	// }
 
 	sk := s.peers.PrivKey(s.local)

@@ -144,7 +144,7 @@ func (h *BasicHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
 func (h *BasicHost) Connect(ctx context.Context, pi peer.PeerInfo) error {
 
 	// absorb addresses into peerstore
-	h.Peerstore().AddPeerInfo(pi)
+	h.Peerstore().AddAddrs(pi.ID, pi.Addrs, peer.TempAddrTTL)
 
 	cs := h.Network().ConnsToPeer(pi.ID)
 	if len(cs) > 0 {
@@ -187,6 +187,10 @@ func (h *BasicHost) Addrs() []ma.Multiaddr {
 	addrs, err := h.Network().InterfaceListenAddresses()
 	if err != nil {
 		log.Debug("error retrieving network interface addrs")
+	}
+
+	if h.ids != nil { // add external observed addresses
+		addrs = append(addrs, h.ids.OwnObservedAddrs()...)
 	}
 
 	if h.natmgr != nil { // natmgr is nil if we do not use nat option.

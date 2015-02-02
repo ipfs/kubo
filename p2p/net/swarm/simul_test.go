@@ -25,7 +25,7 @@ func TestSimultOpen(t *testing.T) {
 		connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
 			// copy for other peer
 			log.Debugf("TestSimultOpen: connecting: %s --> %s (%s)", s.local, dst, addr)
-			s.peers.AddAddress(dst, addr)
+			s.peers.AddAddr(dst, addr, peer.PermanentAddrTTL)
 			if _, err := s.Dial(ctx, dst); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}

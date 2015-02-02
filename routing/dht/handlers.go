@@ -238,7 +238,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		log.Infof("received provider %s for %s (addrs: %s)", p, key, pi.Addrs)
 		if pi.ID != dht.self { // dont add own addrs.
 			// add the received addresses to our peerstore.
-			dht.peerstore.AddPeerInfo(pi)
+			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
 		}
 		dht.providers.AddProvider(key, p)
 	}

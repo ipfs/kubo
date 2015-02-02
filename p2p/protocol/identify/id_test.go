@@ -38,7 +38,7 @@ func subtestIDService(t *testing.T, postDialWait time.Duration) {
 
 	// the IDService should be opened automatically, by the network.
 	// what we should see now is that both peers know about each others listen addresses.
-	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addresses(h2p)) // has them
+	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // has them
 	testHasProtocolVersions(t, h1, h2p)
 
 	// now, this wait we do have to do. it's the wait for the Listening side
@@ -50,12 +50,12 @@ func subtestIDService(t *testing.T, postDialWait time.Duration) {
 	<-h2.IDService().IdentifyWait(c[0])
 
 	// and the protocol versions.
-	testKnowsAddrs(t, h2, h1p, h1.Peerstore().Addresses(h1p)) // has them
+	testKnowsAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p)) // has them
 	testHasProtocolVersions(t, h2, h1p)
 }
 
 func testKnowsAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiaddr) {
-	actual := h.Peerstore().Addresses(p)
+	actual := h.Peerstore().Addrs(p)
 
 	if len(actual) != len(expected) {
 		t.Error("dont have the same addresses")

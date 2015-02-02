@@ -49,7 +49,7 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 
 	// create our own entirely, so that peers knowledge doesn't get shared
 	ps := peer.NewPeerstore()
-	ps.AddAddress(p, a)
+	ps.AddAddr(p, a, peer.PermanentAddrTTL)
 	ps.AddPrivKey(p, k)
 	ps.AddPubKey(p, k.GetPublic())
 
@@ -307,13 +307,13 @@ func (pn *peernet) BandwidthTotals() (in uint64, out uint64) {
 
 // Listen tells the network to start listening on given multiaddrs.
 func (pn *peernet) Listen(addrs ...ma.Multiaddr) error {
-	pn.Peerstore().AddAddresses(pn.LocalPeer(), addrs)
+	pn.Peerstore().AddAddrs(pn.LocalPeer(), addrs, peer.PermanentAddrTTL)
 	return nil
 }
 
 // ListenAddresses returns a list of addresses at which this network listens.
 func (pn *peernet) ListenAddresses() []ma.Multiaddr {
-	return pn.Peerstore().Addresses(pn.LocalPeer())
+	return pn.Peerstore().Addrs(pn.LocalPeer())
 }
 
 // InterfaceListenAddresses returns a list of addresses at which this network

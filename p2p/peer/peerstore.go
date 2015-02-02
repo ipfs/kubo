@@ -20,8 +20,8 @@ const (
 // Peerstore provides a threadsafe store of Peer related
 // information.
 type Peerstore interface {
+	AddrBook
 	KeyBook
-	AddressBook
 	Metrics
 
 	// Peers returns a list of all peer.IDs in this Peerstore
@@ -32,9 +32,6 @@ type Peerstore interface {
 	// that peer, useful to other services.
 	PeerInfo(ID) PeerInfo
 
-	// AddPeerInfo absorbs the information listed in given PeerInfo.
-	AddPeerInfo(PeerInfo)
-
 	// Get/Put is a simple registry for other peer-related key/value pairs.
 	// if we find something we use often, it should become its own set of
 	// methods. this is a last resort.
@@ -42,109 +39,30 @@ type Peerstore interface {
 	Put(id ID, key string, val interface{}) error
 }
 
-// AddressBook tracks the addresses of Peers
-type AddressBook interface {
-	Addresses(ID) []ma.Multiaddr     // returns addresses for ID
-	AddAddress(ID, ma.Multiaddr)     // Adds given addr for ID
-	AddAddresses(ID, []ma.Multiaddr) // Adds given addrs for ID
-	SetAddresses(ID, []ma.Multiaddr) // Sets given addrs for ID (clears previously stored)
-}
+// AddrBook is an interface that fits the new AddrManager. I'm patching
+// it up in here to avoid changing a ton of the codebase.
+type AddrBook interface {
 
-type expiringAddr struct {
-	Addr ma.Multiaddr
-	TTL  time.Time
-}
+	// AddAddr calls AddAddrs(p, []ma.Multiaddr{addr}, ttl)
+	AddAddr(p ID, addr ma.Multiaddr, ttl time.Duration)
 
-func (e *expiringAddr) Expired() bool {
-	return time.Now().After(e.TTL)
-}
+	// AddAddrs gives AddrManager addresses to use, with a given ttl
+	// (time-to-live), after which the address is no longer valid.
+	// If the manager has a longer TTL, the operation is a no-op for that address
+	AddAddrs(p ID, addrs []ma.Multiaddr, ttl time.Duration)
 
-type addressMap map[string]expiringAddr
+	// SetAddr calls mgr.SetAddrs(p, addr, ttl)
+	SetAddr(p ID, addr ma.Multiaddr, ttl time.Duration)
 
-type addressbook struct {
-	sync.RWMutex // guards all fields
+	// SetAddrs sets the ttl on addresses. This clears any TTL there previously.
+	// This is used when we receive the best estimate of the validity of an address.
+	SetAddrs(p ID, addrs []ma.Multiaddr, ttl time.Duration)
 
-	addrs map[ID]addressMap
-	ttl   time.Duration // initial ttl
-}
+	// Addresses returns all known (and valid) addresses for a given
+	Addrs(p ID) []ma.Multiaddr
 
-func newAddressbook() *addressbook {
-	return &addressbook{
-		addrs: map[ID]addressMap{},
-		ttl:   AddressTTL,
-	}
-}
-
-func (ab *addressbook) Peers() []ID {
-	ab.RLock()
-	ps := make([]ID, 0, len(ab.addrs))
-	for p := range ab.addrs {
-		ps = append(ps, p)
-	}
-	ab.RUnlock()
-	return ps
-}
-
-func (ab *addressbook) Addresses(p ID) []ma.Multiaddr {
-	ab.Lock()
-	defer ab.Unlock()
-
-	maddrs, found := ab.addrs[p]
-	if !found {
-		return nil
-	}
-
-	good := make([]ma.Multiaddr, 0, len(maddrs))
-	var expired []string
-	for s, m := range maddrs {
-		if m.Expired() {
-			expired = append(expired, s)
-		} else {
-			good = append(good, m.Addr)
-		}
-	}
-
-	// clean up the expired ones.
-	for _, s := range expired {
-		delete(ab.addrs[p], s)
-	}
-	return good
-}
-
-func (ab *addressbook) AddAddress(p ID, m ma.Multiaddr) {
-	ab.AddAddresses(p, []ma.Multiaddr{m})
-}
-
-func (ab *addressbook) AddAddresses(p ID, ms []ma.Multiaddr) {
-	ab.Lock()
-	defer ab.Unlock()
-
-	amap, found := ab.addrs[p]
-	if !found {
-		amap = addressMap{}
-		ab.addrs[p] = amap
-	}
-
-	ttl := time.Now().Add(ab.ttl)
-	for _, m := range ms {
-		// re-set all of them for new ttl.
-		amap[m.String()] = expiringAddr{
-			Addr: m,
-			TTL:  ttl,
-		}
-	}
-}
-
-func (ab *addressbook) SetAddresses(p ID, ms []ma.Multiaddr) {
-	ab.Lock()
-	defer ab.Unlock()
-
-	amap := addressMap{}
-	ttl := time.Now().Add(ab.ttl)
-	for _, m := range ms {
-		amap[m.String()] = expiringAddr{Addr: m, TTL: ttl}
-	}
-	ab.addrs[p] = amap // clear what was there before
+	// ClearAddresses removes all previously stored addresses
+	ClearAddrs(p ID)
 }
 
 // KeyBook tracks the Public keys of Peers.
@@ -231,8 +149,8 @@ func (kb *keybook) AddPrivKey(p ID, sk ic.PrivKey) error {
 
 type peerstore struct {
 	keybook
-	addressbook
 	metrics
+	AddrManager
 
 	// store other data, like versions
 	ds ds.ThreadSafeDatastore
@@ -242,8 +160,8 @@ type peerstore struct {
 func NewPeerstore() Peerstore {
 	return &peerstore{
 		keybook:     *newKeybook(),
-		addressbook: *newAddressbook(),
 		metrics:     *(NewMetrics()).(*metrics),
+		AddrManager: AddrManager{},
 		ds:          dssync.MutexWrap(ds.NewMapDatastore()),
 	}
 }
@@ -263,7 +181,7 @@ func (ps *peerstore) Peers() []ID {
 	for _, p := range ps.keybook.Peers() {
 		set[p] = struct{}{}
 	}
-	for _, p := range ps.addressbook.Peers() {
+	for _, p := range ps.AddrManager.Peers() {
 		set[p] = struct{}{}
 	}
 
@@ -277,12 +195,8 @@ func (ps *peerstore) Peers() []ID {
 func (ps *peerstore) PeerInfo(p ID) PeerInfo {
 	return PeerInfo{
 		ID:    p,
-		Addrs: ps.addressbook.Addresses(p),
+		Addrs: ps.AddrManager.Addrs(p),
 	}
-}
-
-func (ps *peerstore) AddPeerInfo(pi PeerInfo) {
-	ps.AddAddresses(pi.ID, pi.Addrs)
 }
 
 func PeerInfos(ps Peerstore, peers []ID) []PeerInfo {

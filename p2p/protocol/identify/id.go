@@ -11,6 +11,7 @@ import (
 
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	pb "github.com/jbenet/go-ipfs/p2p/protocol/identify/pb"
 	config "github.com/jbenet/go-ipfs/repo/config"
@@ -49,6 +50,10 @@ type IDService struct {
 	// for wait purposes
 	currid map[inet.Conn]chan struct{}
 	currmu sync.RWMutex
+
+	// our own observed addresses.
+	// TODO: instead of expiring, remove these when we disconnect
+	addrs peer.AddrManager
 }
 
 func NewIDService(h host.Host) *IDService {
@@ -58,6 +63,11 @@ func NewIDService(h host.Host) *IDService {
 	}
 	h.SetStreamHandler(ID, s.RequestHandler)
 	return s
+}
+
+// OwnObservedAddrs returns the addresses peers have reported we've dialed from
+func (ids *IDService) OwnObservedAddrs() []ma.Multiaddr {
+	return ids.addrs.Addrs(ids.Host.ID())
 }
 
 func (ids *IDService) IdentifyConn(c inet.Conn) {
@@ -176,7 +186,7 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 
 	// update our peerstore with the addresses. here, we SET the addresses, clearing old ones.
 	// We are receiving from the peer itself. this is current address ground truth.
-	ids.Host.Peerstore().SetAddresses(p, lmaddrs)
+	ids.Host.Peerstore().SetAddrs(p, lmaddrs, peer.ConnectedAddrTTL)
 	log.Debugf("%s received listen addrs for %s: %s", c.LocalPeer(), c.RemotePeer(), lmaddrs)
 
 	// get protocol versions
@@ -235,7 +245,7 @@ func (ids *IDService) consumeObservedAddress(observed []byte, c inet.Conn) {
 
 	// ok! we have the observed version of one of our ListenAddresses!
 	log.Debugf("added own observed listen addr: %s --> %s", c.LocalMultiaddr(), maddr)
-	ids.Host.Peerstore().AddAddress(ids.Host.ID(), maddr)
+	ids.addrs.AddAddr(ids.Host.ID(), maddr, peer.OwnObservedAddrTTL)
 }
 
 func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
@@ -246,3 +256,28 @@ func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
 	}
 	return false
 }
+
+// netNotifiee defines methods to be used with the IpfsDHT
+type netNotifiee IDService
+
+func (nn *netNotifiee) IDService() *IDService {
+	return (*IDService)(nn)
+}
+
+func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
+	// TODO: deprecate the setConnHandler hook, and kick off
+	// identification here.
+}
+
+func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
+	// undo the setting of addresses to peer.ConnectedAddrTTL we did
+	ids := nn.IDService()
+	ps := ids.Host.Peerstore()
+	addrs := ps.Addrs(v.RemotePeer())
+	ps.SetAddrs(v.RemotePeer(), addrs, peer.RecentlyConnectedAddrTTL)
+}
+
+func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr)      {}
+func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {}

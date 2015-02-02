@@ -22,14 +22,14 @@ func GenSwarmNetwork(t *testing.T, ctx context.Context) *swarm.Network {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ps.AddAddresses(p.ID, n.ListenAddresses())
+	ps.AddAddrs(p.ID, n.ListenAddresses(), peer.PermanentAddrTTL)
 	return n
 }
 
 func DivulgeAddresses(a, b inet.Network) {
 	id := a.LocalPeer()
-	addrs := a.Peerstore().Addresses(id)
-	b.Peerstore().AddAddresses(id, addrs)
+	addrs := a.Peerstore().Addrs(id)
+	b.Peerstore().AddAddrs(id, addrs, peer.PermanentAddrTTL)
 }
 
 func GenHostSwarm(t *testing.T, ctx context.Context) *bhost.BasicHost {

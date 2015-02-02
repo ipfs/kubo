@@ -1,16 +1,38 @@
-// package addr provides useful address utilities for p2p
-// applications. It buys into the multi-transport addressing
-// scheme Multiaddr, and uses it to build its own p2p addressing.
-// All Addrs must have an associated peer.ID.
-package addr
+package peer
 
 import (
 	"sync"
 	"time"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+)
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+const (
+
+	// TempAddrTTL is the ttl used for a short lived address
+	TempAddrTTL = time.Second * 10
+
+	// ProviderAddrTTL is the TTL of an address we've received from a provider.
+	// This is also a temporary address, but lasts longer. After this expires,
+	// the records we return will require an extra lookup.
+	ProviderAddrTTL = time.Minute * 10
+
+	// RecentlyConnectedAddrTTL is used when we recently connected to a peer.
+	// It means that we are reasonably certain of the peer's address.
+	RecentlyConnectedAddrTTL = time.Minute * 10
+
+	// OwnObservedAddrTTL is used for our own external addresses observed by peers.
+	OwnObservedAddrTTL = time.Minute * 20
+
+	// PermanentAddrTTL is the ttl for a "permanent address" (e.g. bootstrap nodes)
+	// if we haven't shipped you an update to ipfs in 356 days
+	// we probably arent running the same bootstrap nodes...
+	PermanentAddrTTL = time.Hour * 24 * 356
+
+	// ConnectedAddrTTL is the ttl used for the addresses of a peer to whom
+	// we're connected directly. This is basically permanent, as we will
+	// clear them + re-add under a TempAddrTTL after disconnecting.
+	ConnectedAddrTTL = PermanentAddrTTL
 )
 
 type expiringAddr struct {
@@ -24,30 +46,44 @@ func (e *expiringAddr) ExpiredBy(t time.Time) bool {
 
 type addrSet map[string]expiringAddr
 
-// Manager manages addresses.
+// AddrManager manages addresses.
 // The zero-value is ready to be used.
-type Manager struct {
+type AddrManager struct {
 	addrmu sync.Mutex // guards addrs
-	addrs  map[peer.ID]addrSet
+	addrs  map[ID]addrSet
 }
 
-// ensures the Manager is initialized.
+// ensures the AddrManager is initialized.
 // So we can use the zero value.
-func (mgr *Manager) init() {
+func (mgr *AddrManager) init() {
 	if mgr.addrs == nil {
-		mgr.addrs = make(map[peer.ID]addrSet)
+		mgr.addrs = make(map[ID]addrSet)
 	}
 }
 
+func (mgr *AddrManager) Peers() []ID {
+	mgr.addrmu.Lock()
+	defer mgr.addrmu.Unlock()
+	if mgr.addrs == nil {
+		return nil
+	}
+
+	pids := make([]ID, 0, len(mgr.addrs))
+	for pid := range mgr.addrs {
+		pids = append(pids, pid)
+	}
+	return pids
+}
+
 // AddAddr calls AddAddrs(p, []ma.Multiaddr{addr}, ttl)
-func (mgr *Manager) AddAddr(p peer.ID, addr ma.Multiaddr, ttl time.Duration) {
+func (mgr *AddrManager) AddAddr(p ID, addr ma.Multiaddr, ttl time.Duration) {
 	mgr.AddAddrs(p, []ma.Multiaddr{addr}, ttl)
 }
 
-// AddAddrs gives Manager addresses to use, with a given ttl
+// AddAddrs gives AddrManager addresses to use, with a given ttl
 // (time-to-live), after which the address is no longer valid.
 // If the manager has a longer TTL, the operation is a no-op for that address
-func (mgr *Manager) AddAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration) {
+func (mgr *AddrManager) AddAddrs(p ID, addrs []ma.Multiaddr, ttl time.Duration) {
 	mgr.addrmu.Lock()
 	defer mgr.addrmu.Unlock()
 
@@ -77,13 +113,13 @@ func (mgr *Manager) AddAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration)
 }
 
 // SetAddr calls mgr.SetAddrs(p, addr, ttl)
-func (mgr *Manager) SetAddr(p peer.ID, addr ma.Multiaddr, ttl time.Duration) {
+func (mgr *AddrManager) SetAddr(p ID, addr ma.Multiaddr, ttl time.Duration) {
 	mgr.SetAddrs(p, []ma.Multiaddr{addr}, ttl)
 }
 
 // SetAddrs sets the ttl on addresses. This clears any TTL there previously.
 // This is used when we receive the best estimate of the validity of an address.
-func (mgr *Manager) SetAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration) {
+func (mgr *AddrManager) SetAddrs(p ID, addrs []ma.Multiaddr, ttl time.Duration) {
 	mgr.addrmu.Lock()
 	defer mgr.addrmu.Unlock()
 
@@ -109,8 +145,8 @@ func (mgr *Manager) SetAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration)
 	}
 }
 
-// Addresses returns all known (and valid) addresses for a given peer.
-func (mgr *Manager) Addrs(p peer.ID) []ma.Multiaddr {
+// Addresses returns all known (and valid) addresses for a given
+func (mgr *AddrManager) Addrs(p ID) []ma.Multiaddr {
 	mgr.addrmu.Lock()
 	defer mgr.addrmu.Unlock()
 
@@ -143,7 +179,7 @@ func (mgr *Manager) Addrs(p peer.ID) []ma.Multiaddr {
 }
 
 // ClearAddresses removes all previously stored addresses
-func (mgr *Manager) ClearAddrs(p peer.ID) {
+func (mgr *AddrManager) ClearAddrs(p ID) {
 	mgr.addrmu.Lock()
 	defer mgr.addrmu.Unlock()
 	mgr.init()

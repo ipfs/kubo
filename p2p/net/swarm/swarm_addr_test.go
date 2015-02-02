@@ -110,7 +110,7 @@ func TestDialBadAddrs(t *testing.T) {
 
 	test := func(a ma.Multiaddr) {
 		p := testutil.RandPeerIDFatal(t)
-		s.peers.AddAddress(p, a)
+		s.peers.AddAddr(p, a, peer.PermanentAddrTTL)
 		if _, err := s.Dial(ctx, p); err == nil {
 			t.Error("swarm should not dial: %s", m)
 		}

@@ -48,7 +48,7 @@ func TestSimultDials(t *testing.T) {
 		connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
 			// copy for other peer
 			log.Debugf("TestSimultOpen: connecting: %s --> %s (%s)", s.local, dst, addr)
-			s.peers.AddAddress(dst, addr)
+			s.peers.AddAddr(dst, addr, peer.TempAddrTTL)
 			if _, err := s.Dial(ctx, dst); err != nil {
 				t.Fatal("error swarm dialing to peer", err)
 			}
@@ -125,7 +125,7 @@ func TestDialWait(t *testing.T) {
 	s2p, s2addr, s2l := newSilentPeer(t)
 	go acceptAndHang(s2l)
 	defer s2l.Close()
-	s1.peers.AddAddress(s2p, s2addr)
+	s1.peers.AddAddr(s2p, s2addr, peer.PermanentAddrTTL)
 
 	before := time.Now()
 	if c, err := s1.Dial(ctx, s2p); err == nil {
@@ -171,13 +171,13 @@ func TestDialBackoff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s1.peers.AddAddresses(s2.local, s2addrs)
+	s1.peers.AddAddrs(s2.local, s2addrs, peer.PermanentAddrTTL)
 
 	// dial to a non-existent peer.
 	s3p, s3addr, s3l := newSilentPeer(t)
 	go acceptAndHang(s3l)
 	defer s3l.Close()
-	s1.peers.AddAddress(s3p, s3addr)
+	s1.peers.AddAddr(s3p, s3addr, peer.PermanentAddrTTL)
 
 	// in this test we will:
 	//   1) dial 10x to each node.
@@ -389,7 +389,7 @@ func TestDialBackoffClears(t *testing.T) {
 	defer s2l.Close()
 
 	// phase 1 -- dial to non-operational addresses
-	s1.peers.AddAddress(s2.local, s2bad)
+	s1.peers.AddAddr(s2.local, s2bad, peer.PermanentAddrTTL)
 
 	before := time.Now()
 	if c, err := s1.Dial(ctx, s2.local); err == nil {
@@ -419,7 +419,7 @@ func TestDialBackoffClears(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s1.peers.AddAddresses(s2.local, ifaceAddrs1)
+	s1.peers.AddAddrs(s2.local, ifaceAddrs1, peer.PermanentAddrTTL)
 
 	before = time.Now()
 	if c, err := s1.Dial(ctx, s2.local); err != nil {

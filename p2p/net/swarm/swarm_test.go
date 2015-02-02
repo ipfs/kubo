@@ -75,7 +75,7 @@ func connectSwarms(t *testing.T, ctx context.Context, swarms []*Swarm) {
 	var wg sync.WaitGroup
 	connect := func(s *Swarm, dst peer.ID, addr ma.Multiaddr) {
 		// TODO: make a DialAddr func.
-		s.peers.AddAddress(dst, addr)
+		s.peers.AddAddr(dst, addr, peer.PermanentAddrTTL)
 		if _, err := s.Dial(ctx, dst); err != nil {
 			t.Fatal("error swarm dialing to peer", err)
 		}

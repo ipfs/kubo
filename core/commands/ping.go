@@ -95,7 +95,7 @@ trip latency information.
 		}
 
 		if addr != nil {
-			n.Peerstore.AddAddress(peerID, addr)
+			n.Peerstore.AddAddr(peerID, addr, peer.TempAddrTTL) // temporary
 		}
 
 		// Set up number of pings
@@ -120,7 +120,7 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 	go func() {
 		defer close(outChan)
 
-		if len(n.Peerstore.Addresses(pid)) == 0 {
+		if len(n.Peerstore.Addrs(pid)) == 0 {
 			// Make sure we can find the node in question
 			outChan <- &PingResult{
 				Text: fmt.Sprintf("Looking up peer %s", pid.Pretty()),
@@ -132,7 +132,7 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 				outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
 				return
 			}
-			n.Peerstore.AddPeerInfo(p)
+			n.Peerstore.AddAddrs(p.ID, p.Addrs, peer.TempAddrTTL)
 		}
 
 		outChan <- &PingResult{Text: fmt.Sprintf("PING %s.", pid.Pretty())}

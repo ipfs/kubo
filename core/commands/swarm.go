@@ -236,7 +236,7 @@ func peersWithAddresses(ps peer.Peerstore, addrs []string) (pids []peer.ID, err 
 
 	for _, iaddr := range iaddrs {
 		pids = append(pids, iaddr.ID())
-		ps.AddAddress(iaddr.ID(), iaddr.Multiaddr())
+		ps.AddAddr(iaddr.ID(), iaddr.Multiaddr(), peer.TempAddrTTL)
 	}
 	return pids, nil
 }
