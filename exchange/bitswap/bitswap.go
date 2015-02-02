@@ -18,6 +18,7 @@ import (
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
 	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
+	filter "github.com/jbenet/go-ipfs/exchange/freqfilter"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	"github.com/jbenet/go-ipfs/thirdparty/delay"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
@@ -71,6 +72,13 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan []u.Key, sizeBatchRequestChan),
 	}
+
+	filt := filter.NewBasicFilter(100, 8, func(k u.Key) {
+		bs.wantlist.Add(k, 1)
+	})
+
+	bs.filter = filt
+
 	network.SetDelegate(bs)
 	go bs.clientWorker(ctx)
 	go bs.taskWorker(ctx)
@@ -104,6 +112,8 @@ type bitswap struct {
 
 	// cancelFunc signals cancellation to the bitswap event loop
 	cancelFunc func()
+
+	filter filter.FrequencyFilter
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
@@ -332,6 +342,12 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 	// TODO: consider changing this function to not return anything
 	return "", nil
+}
+
+func (bs *bitswap) keysWanted(keys []bsmsg.Entry) {
+	for _, k := range keys {
+		bs.filter.AddKey(k.Key)
+	}
 }
 
 // Connected/Disconnected warns bitswap about peer connections
