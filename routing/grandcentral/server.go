@@ -168,17 +168,6 @@ func getRoutingProviders(local peer.ID, ds datastore.Datastore, k util.Key) ([]*
 	e := log.EventBegin(context.Background(), "getProviders", &k)
 	defer e.Done()
 	var providers []*dhtpb.Message_Peer
-	exists, err := ds.Has(k.DsKey()) // TODO store values in a local datastore?
-	if err == nil && exists {
-		pri := []dhtpb.PeerRoutingInfo{
-			dhtpb.PeerRoutingInfo{
-				// Connectedness: TODO how is connectedness defined for the local node
-				PeerInfo: peer.PeerInfo{ID: local},
-			},
-		}
-		providers = append(providers, dhtpb.PeerRoutingInfosToPBPeers(pri)...)
-	}
-
 	pkey := datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()}) // TODO key fmt
 	if v, err := ds.Get(pkey); err == nil {
 		if data, ok := v.([]byte); ok {
