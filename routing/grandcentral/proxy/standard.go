@@ -38,6 +38,9 @@ func (p *standard) HandleStream(s inet.Stream) {
 	s.Close()
 }
 
+// SendMessage sends message to each remote sequentially (randomized order),
+// stopping after the first successful response. If all fail, returns the last
+// error.
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	var err error
 	for _, i := range rand.Perm(len(px.Remotes)) {
@@ -73,6 +76,9 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	return nil
 }
 
+// SendRequest sends the request to each remote sequentially (randomized order),
+// stopping after the first successful response. If all fail, returns the last
+// error.
 func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error) {
 	var err error
 	for _, i := range rand.Perm(len(px.Remotes)) {
