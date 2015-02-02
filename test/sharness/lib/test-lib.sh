@@ -142,16 +142,18 @@ test_init_ipfs() {
 }
 
 test_config_ipfs_gateway_readonly() {
-	if test "$1" == ""; then
-		echo "must call with an address, for example:"
-		echo 'test_config_ipfs_gateway_readonly "/ip4/0.0.0.0/tcp/5002"'
-		return 1 # todo: find a better way to exit here.
-	fi
-
 	GWAY_ADDR=$1
 	test_expect_success "prepare config -- gateway address" '
+		test "$GWAY_ADDR" != "" &&
 		test_config_set "Addresses.Gateway" "$GWAY_ADDR"
 	'
+
+	# tell the user what's going on if they messed up the call.
+	if test "$#" = 0; then
+		echo "#			Error: must call with an address, for example:"
+		echo '#			test_config_ipfs_gateway_readonly "/ip4/0.0.0.0/tcp/5002"'
+		echo '#'
+	fi
 }
 
 test_config_ipfs_gateway_writable() {
