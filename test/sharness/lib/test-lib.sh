@@ -142,10 +142,10 @@ test_init_ipfs() {
 }
 
 test_config_ipfs_gateway_readonly() {
-	GWAY_ADDR=$1
+	ADDR_GWAY=$1
 	test_expect_success "prepare config -- gateway address" '
-		test "$GWAY_ADDR" != "" &&
-		test_config_set "Addresses.Gateway" "$GWAY_ADDR"
+		test "$ADDR_GWAY" != "" &&
+		test_config_set "Addresses.Gateway" "$ADDR_GWAY"
 	'
 
 	# tell the user what's going on if they messed up the call.
@@ -168,38 +168,22 @@ test_config_ipfs_gateway_writable() {
 
 test_launch_ipfs_daemon() {
 
-	ADDR_API="/ip4/127.0.0.1/tcp/5001"
-	NLINES="2"
-
-	# ADDR_GWAY will be set if the test_config_ipfs_gateway_* funcs were called.
-	if test "$ADDR_GWAY" != ""; then
-		NLINES="3"
-	fi
-
 	test_expect_success "'ipfs daemon' succeeds" '
 		ipfs daemon >actual_daemon 2>daemon_err &
 	'
 
 	# we say the daemon is ready when the API server is ready.
-	# and we make sure there are no errors
+	ADDR_API="/ip4/127.0.0.1/tcp/5001"
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
-		test_wait_output_n_lines_60_sec actual_daemon $NLINES ||
+		test_wait_output_n_lines_60_sec actual_daemon 2 &&
+		test_run_repeat_10_sec "cat actual_daemon | grep \"API server listening on $ADDR_API\"" ||
 		fsh cat actual_daemon || fsh cat daemon_err
-	'
-
-	test_expect_success "'ipfs daemon' output includes API address" '
-		cat actual_daemon | grep "API server listening on $ADDR_API" ||
-		fsh cat actual_daemon ||
-		fsh "cat actual_daemon | grep \"API server listening on $ADDR_API\"" ||
-		fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
-			cat actual_daemon | grep "Gateway server listening on $ADDR_GWAY" ||
-			fsh cat actual_daemon ||
-			fsh "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\"" ||
+			test_run_repeat_10_sec "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\"" ||
 			fsh cat daemon_err
 		'
 	fi
