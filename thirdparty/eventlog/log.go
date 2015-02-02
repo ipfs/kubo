@@ -2,7 +2,6 @@ package eventlog
 
 import (
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -50,14 +49,7 @@ type EventLogger interface {
 	// the metadata is logged.
 	Event(ctx context.Context, event string, m ...Loggable)
 
-	EventBegin(ctx context.Context, event string, m ...Loggable) DoneCloser
-}
-
-type DoneCloser interface {
-	// Done ends the event
-	Done()
-	// io.Closer is a convenience-alias for Done
-	io.Closer
+	EventBegin(ctx context.Context, event string, m ...Loggable) EventInProgress
 }
 
 // Logger retrieves an event logger by name
@@ -76,14 +68,21 @@ type eventLogger struct {
 	// TODO add log-level
 }
 
-func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ...Loggable) DoneCloser {
+func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ...Loggable) EventInProgress {
 	start := time.Now()
 	el.Event(ctx, fmt.Sprintf("%sBegin", event), metadata...)
-	return doneCloserFunc(func() {
-		el.Event(ctx, event, append(metadata, LoggableMap(map[string]interface{}{
+
+	eip := EventInProgress{}
+	eip.doneFunc = func(additional []Loggable) {
+
+		metadata = append(metadata, additional...)                      // anything added during the operation
+		metadata = append(metadata, LoggableMap(map[string]interface{}{ // finally, duration of event
 			"duration": time.Now().Sub(start),
-		}))...)
-	})
+		}))
+
+		el.Event(ctx, event, metadata...)
+	}
+	return eip
 }
 
 func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Loggable) {
@@ -111,13 +110,31 @@ func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Logg
 	e.Log() // TODO replace this when leveled-logs have been implemented
 }
 
-type doneCloserFunc func()
-
-func (f doneCloserFunc) Done() {
-	f()
+type EventInProgress struct {
+	loggables []Loggable
+	doneFunc  func([]Loggable)
 }
 
-func (f doneCloserFunc) Close() error {
-	f.Done()
+// Append adds loggables to be included in the call to Done
+func (eip EventInProgress) Append(l Loggable) {
+	eip.loggables = append(eip.loggables, l)
+}
+
+// SetError includes the provided error
+func (eip EventInProgress) SetError(err error) {
+	eip.loggables = append(eip.loggables, LoggableMap{
+		"error": err.Error(),
+	})
+}
+
+// Done creates a new Event entry that includes the duration and appended
+// loggables.
+func (eip EventInProgress) Done() {
+	eip.doneFunc(eip.loggables) // create final event with extra data
+}
+
+// Close is an alias for done
+func (eip EventInProgress) Close() error {
+	eip.Done()
 	return nil
 }

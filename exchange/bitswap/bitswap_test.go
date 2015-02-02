@@ -22,8 +22,6 @@ import (
 const kNetworkDelay = 0 * time.Millisecond
 
 func TestClose(t *testing.T) {
-	// TODO
-	t.Skip("TODO Bitswap's Close implementation is a WIP")
 	vnet := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
 	sesgen := NewTestSessionGenerator(vnet)
 	defer sesgen.Close()

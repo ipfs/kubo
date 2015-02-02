@@ -66,38 +66,49 @@ func run() error {
 	defer node.Close()
 
 	if *performGC {
-		go func() {
-			for _ = range time.Tick(*garbageCollectInterval) {
-				if err := corerepo.GarbageCollect(node, ctx); err != nil {
-					log.Println("failed to run garbage collection", err)
-				}
-			}
-		}()
+		if err := runGarbageCollectorWorker(ctx, node); err != nil {
+			return err
+		}
 	}
 
 	if *assetsPath != "" {
-		fi, err := os.Stat(*assetsPath)
-		if err != nil {
+		if err := runFileServerWorker(ctx, node); err != nil {
 			return err
 		}
-		if !fi.IsDir() {
-			return errors.New("asset path must be a directory")
-		}
-		go func() {
-			for _ = range time.Tick(*refreshAssetsInterval) {
-				_, err := coreunix.AddR(node, *assetsPath)
-				if err != nil {
-					log.Println(err)
-				}
-			}
-		}()
 	}
 
 	opts := []corehttp.ServeOption{
 		corehttp.GatewayOption(*writable),
 	}
-	if err := corehttp.ListenAndServe(node, *host, opts...); err != nil {
+	return corehttp.ListenAndServe(node, *host, opts...)
+}
+
+func runGarbageCollectorWorker(ctx context.Context, node *core.IpfsNode) error {
+	go func() {
+		for _ = range time.Tick(*garbageCollectInterval) {
+			if err := corerepo.GarbageCollect(node, ctx); err != nil {
+				log.Println("failed to run garbage collection", err)
+			}
+		}
+	}()
+	return nil
+}
+
+func runFileServerWorker(ctx context.Context, node *core.IpfsNode) error {
+	fi, err := os.Stat(*assetsPath)
+	if err != nil {
 		return err
 	}
+	if !fi.IsDir() {
+		return errors.New("asset path must be a directory")
+	}
+	go func() {
+		for _ = range time.Tick(*refreshAssetsInterval) {
+			_, err := coreunix.AddR(node, *assetsPath)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}()
 	return nil
 }

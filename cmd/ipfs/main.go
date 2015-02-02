@@ -219,16 +219,17 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	i.req.Context().Context = ctx
 
-	configPath, err := getConfigRoot(i.req)
+	repoPath, err := getRepoPath(i.req)
 	if err != nil {
 		return err
 	}
-	log.Debugf("config path is %s", configPath)
+	log.Debugf("config path is %s", repoPath)
 
 	// this sets up the function that will initialize the config lazily.
 	cmdctx := i.req.Context()
-	cmdctx.ConfigRoot = configPath
+	cmdctx.ConfigRoot = repoPath
 	cmdctx.LoadConfig = loadConfig
 	// this sets up the function that will initialize the node
 	// this is so that we can construct the node lazily.
@@ -415,20 +416,20 @@ func isClientError(err error) bool {
 	return false
 }
 
-func getConfigRoot(req cmds.Request) (string, error) {
-	configOpt, found, err := req.Option("config").String()
+func getRepoPath(req cmds.Request) (string, error) {
+	repoOpt, found, err := req.Option("config").String()
 	if err != nil {
 		return "", err
 	}
-	if found && configOpt != "" {
-		return configOpt, nil
+	if found && repoOpt != "" {
+		return repoOpt, nil
 	}
 
-	configPath, err := config.PathRoot()
+	repoPath, err := fsrepo.BestKnownPath()
 	if err != nil {
 		return "", err
 	}
-	return configPath, nil
+	return repoPath, nil
 }
 
 func loadConfig(path string) (*config.Config, error) {
@@ -478,6 +479,8 @@ func (i *cmdInvocation) setupInterruptHandler() {
 		// loop because we may be
 		for count := 0; ; count++ {
 			<-sig
+
+			// TODO cancel the command context instead
 
 			n, err := ctx.GetNode()
 			if err != nil {

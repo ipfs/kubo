@@ -24,11 +24,10 @@ type streamHandlerMap map[ID]inet.StreamHandler
 // It contains the handlers for each protocol accepted.
 // It dispatches handlers for streams opened by remote peers.
 type Mux struct {
-	// defaultHandler handles unknown protocols. Callers modify at your own risk.
-	defaultHandler inet.StreamHandler
 
 	lock     sync.RWMutex
 	handlers streamHandlerMap
+	defaultHandler inet.StreamHandler
 }
 
 func NewMux() *Mux {
@@ -59,8 +58,8 @@ func (m *Mux) readHeader(s io.Reader) (ID, inet.StreamHandler, error) {
 
 	// log.Debug("readHeader got:", p)
 	m.lock.RLock()
+	defer m.lock.RUnlock()
 	h, found := m.handlers[p]
-	m.lock.RUnlock()
 
 	switch {
 	case !found && m.defaultHandler != nil:

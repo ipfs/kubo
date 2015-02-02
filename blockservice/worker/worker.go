@@ -6,11 +6,11 @@ import (
 	"errors"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	ratelimit "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	exchange "github.com/jbenet/go-ipfs/exchange"
+	waitable "github.com/jbenet/go-ipfs/thirdparty/waitable"
 	util "github.com/jbenet/go-ipfs/util"
 )
 
@@ -119,7 +119,7 @@ func (w *Worker) start(c Config) {
 
 	// reads from |workerChan| until process closes
 	w.process.Go(func(proc process.Process) {
-		ctx := childContext(proc) // shut down in-progress HasBlock when time to die
+		ctx := waitable.Context(proc) // shut down in-progress HasBlock when time to die
 		limiter := ratelimit.NewRateLimiter(process.Background(), c.NumWorkers)
 		defer limiter.Close()
 		for {
@@ -180,19 +180,4 @@ func (s *BlockList) Pop() *blocks.Block {
 
 func (s *BlockList) Len() int {
 	return s.list.Len()
-}
-
-// TODO extract
-type waitable interface {
-	Closing() <-chan struct{}
-}
-
-// TODO extract
-func childContext(w waitable) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-w.Closing()
-		cancel()
-	}()
-	return ctx
 }

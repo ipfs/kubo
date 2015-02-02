@@ -17,13 +17,13 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-func TestThreeLeggedCat1KBInstantaneous(t *testing.T) {
+func TestThreeLeggedCatTransfer(t *testing.T) {
 	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -55,7 +55,7 @@ func TestThreeLeggedCatDegenerateSlowRouting(t *testing.T) {
 func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -80,17 +80,17 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if len(peers) < numPeers {
 		return errors.New("test initialization error")
 	}
-	bootstrap, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[2], mn.Host(peers[2]), conf)))
+	bootstrap, err := core.NewIPFSNode(ctx, MocknetTestRepo(peers[2], mn.Host(peers[2]), conf))
 	if err != nil {
 		return err
 	}
 	defer bootstrap.Close()
-	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf)))
+	adder, err := core.NewIPFSNode(ctx, MocknetTestRepo(peers[0], mn.Host(peers[0]), conf))
 	if err != nil {
 		return err
 	}
 	defer adder.Close()
-	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
+	catter, err := core.NewIPFSNode(ctx, MocknetTestRepo(peers[1], mn.Host(peers[1]), conf))
 	if err != nil {
 		return err
 	}
