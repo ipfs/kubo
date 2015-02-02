@@ -42,7 +42,7 @@ func (s *Server) HandleRequest(ctx context.Context, p peer.ID, req *dhtpb.Messag
 func (s *Server) handleMessage(
 	ctx context.Context, p peer.ID, req *dhtpb.Message) (peer.ID, *dhtpb.Message) {
 
-	log.EventBegin(ctx, "routingMessageReceived", req, p, s.local).Done() // TODO may need to differentiate between local and remote
+	defer log.EventBegin(ctx, "routingMessageReceived", req, p, s.local).Done() // TODO may need to differentiate between local and remote
 
 	var response = dhtpb.NewMessage(req.GetType(), req.GetKey(), req.GetClusterLevel())
 	switch req.GetType() {
