@@ -171,7 +171,7 @@ test_expect_success "ipfs add -w succeeds" '
 
 test_expect_success "ipfs add -w output looks good" '
 	HASH="QmVJfrqd4ogGZME6LWkkikAGddYgh9dBs2U14DHZZUBk7W" &&
-	echo "added "$HASH/hello.txt" mountdir/hello.txt" >expected &&
+	echo "added $HASH/hello.txt mountdir/hello.txt" >expected &&
 	test_cmp expected actual
 '
 
