@@ -9,7 +9,7 @@ test_description="Test HTTP Gateway"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_config_ipfs_gateway_readonly
+test_config_ipfs_gateway_readonly "/ip4/0.0.0.0/tcp/5002"
 test_launch_ipfs_daemon
 
 # TODO check both 5001 and 5002.
