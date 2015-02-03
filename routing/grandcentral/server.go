@@ -52,7 +52,6 @@ func (s *Server) handleMessage(
 			return "", nil
 		}
 		response.Record = rawRecord
-		// TODO before merging: if we know any providers for the requested value, return those.
 		return p, response
 
 	case dhtpb.Message_PUT_VALUE:
