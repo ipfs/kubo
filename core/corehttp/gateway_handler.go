@@ -193,6 +193,12 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-IPFS-Path", p)
 
+	// Suborigin header, sandboxes apps from each other in the browser (even
+	// though they are served from the same gateway domain). NOTE: This is not
+	// yet widely supported by browsers.
+	pathRoot := strings.SplitN(urlPath, "/", 4)[2]
+	w.Header().Set("Suborigin", pathRoot)
+
 	dr, err := i.NewDagReader(nd)
 	if err != nil && err != uio.ErrIsDir {
 		// not a directory and still an error
