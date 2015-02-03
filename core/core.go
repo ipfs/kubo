@@ -67,8 +67,9 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning pin.Pinner // the pinning manager
-	Mounts  Mounts     // current mount state, if any.
+	Pinning    pin.Pinner // the pinning manager
+	Mounts     Mounts     // current mount state, if any.
+	PrivateKey ic.PrivKey // the local node's private Key
 
 	// Services
 	Peerstore  peer.Peerstore       // storage for other Peer instances
@@ -78,7 +79,6 @@ type IpfsNode struct {
 	Resolver   *path.Resolver       // the path resolution system
 
 	// Online
-	PrivateKey   ic.PrivKey          // the local node's private Key
 	PeerHost     p2phost.Host        // the network host (server+client)
 	Bootstrapper io.Closer           // the periodic bootstrapper
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
@@ -222,7 +222,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, maybeRouter routing.
 	}
 
 	// load private key
-	if err := n.loadPrivateKey(); err != nil {
+	if err := n.LoadPrivateKey(); err != nil {
 		return err
 	}
 
@@ -368,7 +368,7 @@ func (n *IpfsNode) loadID() error {
 	return nil
 }
 
-func (n *IpfsNode) loadPrivateKey() error {
+func (n *IpfsNode) LoadPrivateKey() error {
 	if n.Identity == "" || n.Peerstore == nil {
 		return debugerror.New("loaded private key out of order.")
 	}
@@ -400,7 +400,7 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.PeerInfo, error) {
 // uses it to instantiate a routing system in offline mode.
 // This is primarily used for offline ipns modifications.
 func (n *IpfsNode) SetupOfflineRouting() error {
-	err := n.loadPrivateKey()
+	err := n.LoadPrivateKey()
 	if err != nil {
 		return err
 	}

@@ -301,7 +301,7 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	ila, _ := s.InterfaceListenAddresses()
 	remoteAddrs = addrutil.Subtract(remoteAddrs, ila)
 	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addrs(s.local))
-	log.Debugf("%s swarm dialing %s -- remote:%s local:%s", s.local, p, remoteAddrs, s.ListenAddresses())
+	log.Debugf("%s swarm dialing %s -- local:%s remote:%s", s.local, p, s.ListenAddresses(), remoteAddrs)
 	if len(remoteAddrs) == 0 {
 		err := errors.New("peer has no addresses")
 		logdial["error"] = err
