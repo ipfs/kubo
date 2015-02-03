@@ -4,6 +4,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 )
 
 const (
@@ -67,7 +68,12 @@ func (f *MultipartFile) NextFile() (File, error) {
 }
 
 func (f *MultipartFile) FileName() string {
-	return f.Part.FileName()
+	filename, err := url.QueryUnescape(f.Part.FileName())
+	if err != nil {
+		// if there is a unescape error, just treat the name as unescaped
+		return f.Part.FileName()
+	}
+	return filename
 }
 
 func (f *MultipartFile) Read(p []byte) (int, error) {

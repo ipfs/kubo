@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/textproto"
+	"net/url"
 	"sync"
 
 	files "github.com/jbenet/go-ipfs/commands/files"
@@ -74,11 +75,12 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 
 			// write the boundary and headers
 			header := make(textproto.MIMEHeader)
+			filename := url.QueryEscape(file.FileName())
 			if mfr.form {
-				contentDisposition := fmt.Sprintf("form-data; name=\"file\"; filename=\"%s\"", file.FileName())
+				contentDisposition := fmt.Sprintf("form-data; name=\"file\"; filename=\"%s\"", filename)
 				header.Set("Content-Disposition", contentDisposition)
 			} else {
-				header.Set("Content-Disposition", fmt.Sprintf("file; filename=\"%s\"", file.FileName()))
+				header.Set("Content-Disposition", fmt.Sprintf("file; filename=\"%s\"", filename))
 			}
 
 			if file.IsDirectory() {
