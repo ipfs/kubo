@@ -66,7 +66,7 @@ func (dsc *DatastoreComponent) SetPath(p string) {
 func (dsc *DatastoreComponent) Datastore() datastore.ThreadSafeDatastore { return dsc.ds }
 
 // Open returns an error if the config file is not present.
-func (dsc *DatastoreComponent) Open() error {
+func (dsc *DatastoreComponent) Open(*config.Config) error {
 
 	dsLock.Lock()
 	defer dsLock.Unlock()

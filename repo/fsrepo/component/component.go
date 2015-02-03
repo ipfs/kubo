@@ -7,7 +7,7 @@ import (
 )
 
 type Component interface {
-	Open() error
+	Open(*config.Config) error
 	io.Closer
 	SetPath(string)
 }

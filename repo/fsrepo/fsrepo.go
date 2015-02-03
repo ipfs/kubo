@@ -316,14 +316,15 @@ func (r *FSRepo) components() []component.Component {
 func componentBuilders() []componentBuilder {
 	return []componentBuilder{
 
-		// ConfigComponent
+		// ConfigComponent must be initialized first because other components
+		// depend on it.
 		componentBuilder{
 			Init:          component.InitConfigComponent,
 			IsInitialized: component.ConfigComponentIsInitialized,
 			OpenHandler: func(r *FSRepo) error {
 				c := component.ConfigComponent{}
 				c.SetPath(r.path)
-				if err := c.Open(); err != nil {
+				if err := c.Open(nil); err != nil {
 					return err
 				}
 				r.configComponent = c
@@ -338,7 +339,7 @@ func componentBuilders() []componentBuilder {
 			OpenHandler: func(r *FSRepo) error {
 				c := component.DatastoreComponent{}
 				c.SetPath(r.path)
-				if err := c.Open(); err != nil {
+				if err := c.Open(r.configComponent.Config()); err != nil {
 					return err
 				}
 				r.datastoreComponent = c
@@ -353,7 +354,7 @@ func componentBuilders() []componentBuilder {
 			OpenHandler: func(r *FSRepo) error {
 				c := component.EventlogComponent{}
 				c.SetPath(r.path)
-				if err := c.Open(); err != nil {
+				if err := c.Open(r.configComponent.Config()); err != nil {
 					return err
 				}
 				r.eventlogComponent = c
