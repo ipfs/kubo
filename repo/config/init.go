@@ -35,7 +35,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 				"/ip4/0.0.0.0/tcp/4001",
 				// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
 			},
-			API: "/ip4/127.0.0.1/tcp/5001",
+			API:     "/ip4/127.0.0.1/tcp/5001",
+			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
 
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
