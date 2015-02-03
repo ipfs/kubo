@@ -11,14 +11,13 @@ import (
 )
 
 func TestNotifications(t *testing.T) {
-	t.Parallel()
 
 	mn, err := FullMeshLinked(context.Background(), 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	timeout := 5 * time.Second
+	timeout := 10 * time.Second
 
 	// signup notifs
 	nets := mn.Nets()
