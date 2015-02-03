@@ -4,6 +4,7 @@ package dht
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -44,13 +45,18 @@ var DefaultBootstrapConfig = BootstrapConfig{
 	Timeout: time.Duration(20 * time.Second),
 }
 
+func (dht *IpfsDHT) Bootstrap(context.Context) error {
+	// Bootstrap satisfies the routing interface
+	return errors.New("TODO: perform DHT bootstrap")
+}
+
 // Bootstrap ensures the dht routing table remains healthy as peers come and go.
 // it builds up a list of peers by requesting random peer IDs. The Bootstrap
 // process will run a number of queries each time, and run every time signal fires.
 // These parameters are configurable.
 //
 // Bootstrap returns a process, so the user can stop it.
-func (dht *IpfsDHT) Bootstrap(config BootstrapConfig) (goprocess.Process, error) {
+func (dht *IpfsDHT) BootstrapWithConfig(config BootstrapConfig) (goprocess.Process, error) {
 	sig := time.Tick(config.Period)
 	return dht.BootstrapOnSignal(config, sig)
 }
