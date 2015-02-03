@@ -14,8 +14,10 @@ import (
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	"github.com/jbenet/go-ipfs/p2p/peer"
+	identify "github.com/jbenet/go-ipfs/p2p/protocol/identify"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -63,7 +65,7 @@ ipfs id supports the format option for output with the following keys:
 		}
 
 		if len(req.Arguments()) == 0 {
-			output, err := printPeer(node.Peerstore, node.Identity)
+			output, err := printSelf(node)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -166,5 +168,34 @@ func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {
 		}
 	}
 
+	return info, nil
+}
+
+// printing self is special cased as we get values differently.
+func printSelf(node *core.IpfsNode) (interface{}, error) {
+	info := new(IdOutput)
+	info.ID = node.Identity.Pretty()
+
+	if node.PrivateKey == nil {
+		if err := node.LoadPrivateKey(); err != nil {
+			return nil, err
+		}
+	}
+
+	pk := node.PrivateKey.GetPublic()
+	pkb, err := ic.MarshalPublicKey(pk)
+	if err != nil {
+		return nil, err
+	}
+	info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
+
+	if node.PeerHost != nil {
+		for _, a := range node.PeerHost.Addrs() {
+			s := a.String() + "/ipfs/" + info.ID
+			info.Addresses = append(info.Addresses, s)
+		}
+	}
+	info.ProtocolVersion = identify.IpfsVersion
+	info.AgentVersion = identify.ClientVersion
 	return info, nil
 }
