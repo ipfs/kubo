@@ -12,11 +12,11 @@ import (
 
 var log = eventlog.Logger("core/server")
 
-const (
-// TODO rename
-)
-
-type ServeOption func(*core.IpfsNode, *http.ServeMux) error
+// ServeOption registers any HTTP handlers it provides on the given mux.
+// It returns the mux to expose to future options, which may be a new mux if it
+// is interested in mediating requests to future options, or the same mux
+// initially passed in if not.
+type ServeOption func(*core.IpfsNode, *http.ServeMux) (*http.ServeMux, error)
 
 // ListenAndServe runs an HTTP server listening at |listeningMultiAddr| with
 // the given serve options. The address must be provided in multiaddr format.
@@ -29,13 +29,15 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	if err != nil {
 		return err
 	}
-	mux := http.NewServeMux()
+	topMux := http.NewServeMux()
+	mux := topMux
 	for _, option := range options {
-		if err := option(n, mux); err != nil {
+		mux, err = option(n, mux)
+		if err != nil {
 			return err
 		}
 	}
-	return listenAndServe(n, addr, mux)
+	return listenAndServe(n, addr, topMux)
 }
 
 func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
