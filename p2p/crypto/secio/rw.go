@@ -192,7 +192,7 @@ func (r *etmReader) macCheckThenDecrypt(m []byte) (int, error) {
 
 	// check mac. if failed, return error.
 	if !hmac.Equal(macd, expected) {
-		log.Error("MAC Invalid:", expected, "!=", macd)
+		log.Debug("MAC Invalid:", expected, "!=", macd)
 		return 0, ErrMACInvalid
 	}
 

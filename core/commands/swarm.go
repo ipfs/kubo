@@ -18,11 +18,16 @@ type stringList struct {
 	Strings []string
 }
 
+type addrMap struct {
+	Addrs map[string][]string
+}
+
 var SwarmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "swarm inspection tool",
 		Synopsis: `
 ipfs swarm peers                - List peers with open connections
+ipfs swarm addrs                - List known addresses. Useful to debug.
 ipfs swarm connect <address>    - Open connection to a given address
 ipfs swarm disconnect <address> - Close connection to a given address
 `,
@@ -34,6 +39,7 @@ ipfs peers in the internet.
 	},
 	Subcommands: map[string]*cmds.Command{
 		"peers":      swarmPeersCmd,
+		"addrs":      swarmAddrsCmd,
 		"connect":    swarmConnectCmd,
 		"disconnect": swarmDisconnectCmd,
 	},
@@ -75,6 +81,66 @@ ipfs swarm peers lists the set of peers this node is connected to.
 		cmds.Text: stringListMarshaler,
 	},
 	Type: stringList{},
+}
+
+var swarmAddrsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List known addresses. Useful to debug.",
+		ShortDescription: `
+ipfs swarm addrs lists all addresses this node is aware of.
+`,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		addrs := make(map[string][]string)
+		ps := n.PeerHost.Network().Peerstore()
+		for _, p := range ps.Peers() {
+			s := p.Pretty()
+			for _, a := range ps.Addrs(p) {
+				addrs[s] = append(addrs[s], a.String())
+			}
+			sort.Sort(sort.StringSlice(addrs[s]))
+		}
+
+		res.SetOutput(&addrMap{Addrs: addrs})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			m, ok := res.Output().(*addrMap)
+			if !ok {
+				return nil, errors.New("failed to cast map[string]string")
+			}
+
+			// sort the ids first
+			ids := make([]string, 0, len(m.Addrs))
+			for p := range m.Addrs {
+				ids = append(ids, p)
+			}
+			sort.Sort(sort.StringSlice(ids))
+
+			var buf bytes.Buffer
+			for _, p := range ids {
+				paddrs := m.Addrs[p]
+				buf.WriteString(fmt.Sprintf("%s (%d)\n", p, len(paddrs)))
+				for _, addr := range paddrs {
+					buf.WriteString("\t" + addr + "\n")
+				}
+			}
+			return &buf, nil
+		},
+	},
+	Type: addrMap{},
 }
 
 var swarmConnectCmd = &cmds.Command{
@@ -236,7 +302,7 @@ func peersWithAddresses(ps peer.Peerstore, addrs []string) (pids []peer.ID, err 
 
 	for _, iaddr := range iaddrs {
 		pids = append(pids, iaddr.ID())
-		ps.AddAddress(iaddr.ID(), iaddr.Multiaddr())
+		ps.AddAddr(iaddr.ID(), iaddr.Multiaddr(), peer.TempAddrTTL)
 	}
 	return pids, nil
 }

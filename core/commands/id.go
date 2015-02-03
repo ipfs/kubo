@@ -151,18 +151,18 @@ func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {
 		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
 	}
 
-	for _, a := range ps.Addresses(p) {
+	for _, a := range ps.Addrs(p) {
 		info.Addresses = append(info.Addresses, a.String())
 	}
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = vs
+			info.ProtocolVersion = vs
 		}
 	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
+			info.AgentVersion = vs
 		}
 	}
 

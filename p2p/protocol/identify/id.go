@@ -1,7 +1,7 @@
 package identify
 
 import (
-	"fmt"
+	"strings"
 	"sync"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
@@ -11,10 +11,12 @@ import (
 
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	pb "github.com/jbenet/go-ipfs/p2p/protocol/identify/pb"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 var log = eventlog.Logger("net/identify")
@@ -23,16 +25,9 @@ var log = eventlog.Logger("net/identify")
 const ID protocol.ID = "/ipfs/identify"
 
 // IpfsVersion holds the current protocol version for a client running this code
-var IpfsVersion *semver.Version
-var ClientVersion = "go-ipfs/" + config.CurrentVersionNumber
-
-func init() {
-	var err error
-	IpfsVersion, err = semver.NewVersion("0.0.1")
-	if err != nil {
-		panic(fmt.Errorf("invalid protocol version: %v", err))
-	}
-}
+// TODO(jbenet): fix the versioning mess.
+const IpfsVersion = "ipfs/0.1.0"
+const ClientVersion = "go-ipfs/" + config.CurrentVersionNumber
 
 // IDService is a structure that implements ProtocolIdentify.
 // It is a trivial service that gives the other peer some
@@ -49,6 +44,10 @@ type IDService struct {
 	// for wait purposes
 	currid map[inet.Conn]chan struct{}
 	currmu sync.RWMutex
+
+	// our own observed addresses.
+	// TODO: instead of expiring, remove these when we disconnect
+	addrs peer.AddrManager
 }
 
 func NewIDService(h host.Host) *IDService {
@@ -58,6 +57,11 @@ func NewIDService(h host.Host) *IDService {
 	}
 	h.SetStreamHandler(ID, s.RequestHandler)
 	return s
+}
+
+// OwnObservedAddrs returns the addresses peers have reported we've dialed from
+func (ids *IDService) OwnObservedAddrs() []ma.Multiaddr {
+	return ids.addrs.Addrs(ids.Host.ID())
 }
 
 func (ids *IDService) IdentifyConn(c inet.Conn) {
@@ -148,9 +152,10 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c inet.Conn) {
 	log.Debugf("%s sent listen addrs to %s: %s", c.LocalPeer(), c.RemotePeer(), laddrs)
 
 	// set protocol versions
-	s := IpfsVersion.String()
-	mes.ProtocolVersion = &s
-	mes.AgentVersion = &ClientVersion
+	pv := IpfsVersion
+	av := ClientVersion
+	mes.ProtocolVersion = &pv
+	mes.AgentVersion = &av
 }
 
 func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
@@ -176,12 +181,22 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 
 	// update our peerstore with the addresses. here, we SET the addresses, clearing old ones.
 	// We are receiving from the peer itself. this is current address ground truth.
-	ids.Host.Peerstore().SetAddresses(p, lmaddrs)
+	ids.Host.Peerstore().SetAddrs(p, lmaddrs, peer.ConnectedAddrTTL)
 	log.Debugf("%s received listen addrs for %s: %s", c.LocalPeer(), c.RemotePeer(), lmaddrs)
 
 	// get protocol versions
 	pv := mes.GetProtocolVersion()
 	av := mes.GetAgentVersion()
+
+	// version check. if we shouldn't talk, bail.
+	// TODO: at this point, we've already exchanged information.
+	// move this into a first handshake before the connection can open streams.
+	if !protocolVersionsAreCompatible(pv, IpfsVersion) {
+		logProtocolMismatchDisconnect(c, pv, av)
+		c.Close()
+		return
+	}
+
 	ids.Host.Peerstore().Put(p, "ProtocolVersion", pv)
 	ids.Host.Peerstore().Put(p, "AgentVersion", av)
 }
@@ -235,7 +250,7 @@ func (ids *IDService) consumeObservedAddress(observed []byte, c inet.Conn) {
 
 	// ok! we have the observed version of one of our ListenAddresses!
 	log.Debugf("added own observed listen addr: %s --> %s", c.LocalMultiaddr(), maddr)
-	ids.Host.Peerstore().AddAddress(ids.Host.ID(), maddr)
+	ids.addrs.AddAddr(ids.Host.ID(), maddr, peer.OwnObservedAddrTTL)
 }
 
 func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
@@ -245,4 +260,64 @@ func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
 		}
 	}
 	return false
+}
+
+// protocolVersionsAreCompatible checks that the two implementations
+// can talk to each other. It will use semver, but for now while
+// we're in tight development, we will return false for minor version
+// changes too.
+func protocolVersionsAreCompatible(v1, v2 string) bool {
+	if strings.HasPrefix(v1, "ipfs/") {
+		v1 = v1[5:]
+	}
+	if strings.HasPrefix(v2, "ipfs/") {
+		v2 = v2[5:]
+	}
+
+	v1s, err := semver.NewVersion(v1)
+	if err != nil {
+		return false
+	}
+
+	v2s, err := semver.NewVersion(v2)
+	if err != nil {
+		return false
+	}
+
+	return v1s.Major == v2s.Major && v1s.Minor == v2s.Minor
+}
+
+// netNotifiee defines methods to be used with the IpfsDHT
+type netNotifiee IDService
+
+func (nn *netNotifiee) IDService() *IDService {
+	return (*IDService)(nn)
+}
+
+func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
+	// TODO: deprecate the setConnHandler hook, and kick off
+	// identification here.
+}
+
+func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
+	// undo the setting of addresses to peer.ConnectedAddrTTL we did
+	ids := nn.IDService()
+	ps := ids.Host.Peerstore()
+	addrs := ps.Addrs(v.RemotePeer())
+	ps.SetAddrs(v.RemotePeer(), addrs, peer.RecentlyConnectedAddrTTL)
+}
+
+func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}
+func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr)      {}
+func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {}
+
+func logProtocolMismatchDisconnect(c inet.Conn, protocol, agent string) {
+	lm := make(lgbl.DeferredMap)
+	lm["remotePeer"] = func() interface{} { return c.RemotePeer().Pretty() }
+	lm["remoteAddr"] = func() interface{} { return c.RemoteMultiaddr().String() }
+	lm["protocolVersion"] = protocol
+	lm["agentVersion"] = agent
+	log.Event(context.TODO(), "IdentifyProtocolMismatch", lm)
+	log.Debug("IdentifyProtocolMismatch %s %s %s (disconnected)", c.RemotePeer(), protocol, agent)
 }

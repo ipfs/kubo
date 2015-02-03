@@ -96,7 +96,7 @@ func (s *Server) handleMessage(
 			}
 			for _, maddr := range provider.Addresses() {
 				// FIXME do we actually want to store to peerstore
-				s.peerstore.AddAddress(p, maddr)
+				s.peerstore.AddAddr(p, maddr, peer.TempAddrTTL)
 			}
 		}
 		var providers []dhtpb.Message_Peer

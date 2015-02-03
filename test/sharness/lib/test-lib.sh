@@ -64,11 +64,14 @@ test_cmp_repeat_10_sec() {
 	test_cmp "$1" "$2"
 }
 
-test_run_repeat_10_sec() {
-	for i in 1 2 3 4 5 6 7 8 9 10
+test_run_repeat_60_sec() {
+	for i in 1 2 3 4 5 6
 	do
-		(test_eval_ "$1") && return
-		sleep 1
+		for i in 1 2 3 4 5 6 7 8 9 10
+		do
+			(test_eval_ "$1") && return
+			sleep 1
+		done
 	done
 	return 1 # failed
 }
@@ -177,13 +180,13 @@ test_launch_ipfs_daemon() {
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
 		test_wait_output_n_lines_60_sec actual_daemon 2 &&
-		test_run_repeat_10_sec "grep \"API server listening on $ADDR_API\" actual_daemon" ||
+		test_run_repeat_60_sec "grep \"API server listening on $ADDR_API\" actual_daemon" ||
 		fsh cat actual_daemon || fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
-			test_run_repeat_10_sec "grep \"Gateway server listening on $ADDR_GWAY\" actual_daemon" ||
+			test_run_repeat_60_sec "grep \"Gateway server listening on $ADDR_GWAY\" actual_daemon" ||
 			fsh cat daemon_err
 		'
 	fi

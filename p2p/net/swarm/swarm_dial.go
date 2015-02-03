@@ -3,6 +3,7 @@ package swarm
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -15,6 +16,9 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	procctx "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
+	ratelimit "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 )
 
 // Diagram of dial sync:
@@ -289,14 +293,14 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	}
 
 	// get remote peer addrs
-	remoteAddrs := s.peers.Addresses(p)
+	remoteAddrs := s.peers.Addrs(p)
 	// make sure we can use the addresses.
 	remoteAddrs = addrutil.FilterUsableAddrs(remoteAddrs)
 	// drop out any addrs that would just dial ourselves. use ListenAddresses
 	// as that is a more authoritative view than localAddrs.
 	ila, _ := s.InterfaceListenAddresses()
 	remoteAddrs = addrutil.Subtract(remoteAddrs, ila)
-	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addresses(s.local))
+	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addrs(s.local))
 	log.Debugf("%s swarm dialing %s -- remote:%s local:%s", s.local, p, remoteAddrs, s.ListenAddresses())
 	if len(remoteAddrs) == 0 {
 		err := errors.New("peer has no addresses")
@@ -353,43 +357,63 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	conns := make(chan conn.Conn, len(remoteAddrs))
 	errs := make(chan error, len(remoteAddrs))
 
-	//TODO: rate limiting just in case?
-	for _, addr := range remoteAddrs {
-		go func(addr ma.Multiaddr) {
-			connC, err := s.dialAddr(ctx, d, p, addr)
+	// dialSingleAddr is used in the rate-limited async thing below.
+	dialSingleAddr := func(addr ma.Multiaddr) {
+		connC, err := s.dialAddr(ctx, d, p, addr)
 
-			// check parent still wants our results
+		// check parent still wants our results
+		select {
+		case <-foundConn:
+			if connC != nil {
+				connC.Close()
+			}
+			return
+		default:
+		}
+
+		if err != nil {
+			errs <- err
+		} else if connC == nil {
+			errs <- fmt.Errorf("failed to dial %s %s", p, addr)
+		} else {
+			conns <- connC
+		}
+	}
+
+	// this whole thing is in a goroutine so we can use foundConn
+	// to end early.
+	go func() {
+		// rate limiting just in case. at most 10 addrs at once.
+		limiter := ratelimit.NewRateLimiter(procctx.WithContext(ctx), 10)
+
+		// permute addrs so we try different sets first each time.
+		for _, i := range rand.Perm(len(remoteAddrs)) {
 			select {
-			case <-foundConn:
-				if connC != nil {
-					connC.Close()
-				}
-				return
+			case <-foundConn: // if one of them succeeded already
+				break
 			default:
 			}
 
-			if err != nil {
-				errs <- err
-			} else if connC == nil {
-				errs <- fmt.Errorf("failed to dial %s %s", p, addr)
-			} else {
-				conns <- connC
-			}
-		}(addr)
-	}
+			workerAddr := remoteAddrs[i] // shadow variable to avoid race
+			limiter.Go(func(worker process.Process) {
+				dialSingleAddr(workerAddr)
+			})
+		}
+	}()
 
-	err := fmt.Errorf("failed to dial %s", p)
+	// wair fot the results.
+	exitErr := fmt.Errorf("failed to dial %s", p)
 	for i := 0; i < len(remoteAddrs); i++ {
 		select {
-		case err = <-errs:
-			log.Debug(err)
+		case exitErr = <-errs: //
+			log.Debug(exitErr)
 		case connC := <-conns:
 			// take the first + return asap
 			close(foundConn)
 			return connC, nil
 		}
 	}
-	return nil, err
+	return nil, exitErr
 }
 
 func (s *Swarm) dialAddr(ctx context.Context, d *conn.Dialer, p peer.ID, addr ma.Multiaddr) (conn.Conn, error) {

@@ -476,16 +476,12 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 		return err
 	}
 
-	// explicitly set these as our listen addrs.
-	// (why not do it inside inet.NewNetwork? because this way we can
-	// listen on addresses without necessarily advertising those publicly.)
+	// list out our addresses
 	addrs, err := host.Network().InterfaceListenAddresses()
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
 	log.Infof("Swarm listening at: %s", addrs)
-
-	host.Peerstore().AddAddresses(host.ID(), addrs)
 	return nil
 }
 

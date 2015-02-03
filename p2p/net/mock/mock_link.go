@@ -33,8 +33,8 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 		c.local = ln.peer
 		c.remote = rn.peer
 
-		c.localAddr = ln.ps.Addresses(ln.peer)[0]
-		c.remoteAddr = rn.ps.Addresses(rn.peer)[0]
+		c.localAddr = ln.ps.Addrs(ln.peer)[0]
+		c.remoteAddr = rn.ps.Addrs(rn.peer)[0]
 
 		c.localPrivKey = ln.ps.PrivKey(ln.peer)
 		c.remotePubKey = rn.ps.PubKey(rn.peer)

@@ -253,7 +253,7 @@ func (r *dhtQueryRunner) queryPeer(cg ctxgroup.ContextGroup, p peer.ID) {
 			}
 
 			// add their addresses to the dialer's peerstore
-			r.query.dht.peerstore.AddPeerInfo(next)
+			r.query.dht.peerstore.AddAddrs(next.ID, next.Addrs, peer.TempAddrTTL)
 			r.addPeerToQuery(cg.Context(), next.ID)
 			log.Debugf("PEERS CLOSER -- worker for: %v added %v (%v)", p, next.ID, next.Addrs)
 		}

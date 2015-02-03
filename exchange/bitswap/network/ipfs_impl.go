@@ -38,18 +38,24 @@ type impl struct {
 	receiver Receiver
 }
 
+func (bsnet *impl) newStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
+
+	// first, make sure we're connected.
+	// if this fails, we cannot connect to given peer.
+	//TODO(jbenet) move this into host.NewStream?
+	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
+		return nil, err
+	}
+
+	return bsnet.host.NewStream(ProtocolBitswap, p)
+}
+
 func (bsnet *impl) SendMessage(
 	ctx context.Context,
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) error {
 
-	// ensure we're connected
-	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
-		return err
-	}
-
-	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
+	s, err := bsnet.newStreamToPeer(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -68,13 +74,7 @@ func (bsnet *impl) SendRequest(
 	p peer.ID,
 	outgoing bsmsg.BitSwapMessage) (bsmsg.BitSwapMessage, error) {
 
-	// ensure we're connected
-	//TODO(jbenet) move this into host.NewStream?
-	if err := bsnet.host.Connect(ctx, peer.PeerInfo{ID: p}); err != nil {
-		return nil, err
-	}
-
-	s, err := bsnet.host.NewStream(ProtocolBitswap, p)
+	s, err := bsnet.newStreamToPeer(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 			if info.ID == bsnet.host.ID() {
 				continue // ignore self as provider
 			}
-			bsnet.host.Peerstore().AddAddresses(info.ID, info.Addrs)
+			bsnet.host.Peerstore().AddAddrs(info.ID, info.Addrs, peer.TempAddrTTL)
 			select {
 			case <-ctx.Done():
 				return

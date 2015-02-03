@@ -190,7 +190,7 @@ func bootstrapConnect(ctx context.Context,
 			defer log.EventBegin(ctx, "bootstrapDial", route.LocalPeer(), p.ID).Done()
 			log.Debugf("%s bootstrapping to %s", route.LocalPeer(), p.ID)
 
-			ps.AddAddresses(p.ID, p.Addrs)
+			ps.AddAddrs(p.ID, p.Addrs, peer.PermanentAddrTTL)
 			err := route.Connect(ctx, p.ID)
 			if err != nil {
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
