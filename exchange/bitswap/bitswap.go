@@ -211,7 +211,7 @@ func (bs *bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMe
 		go func(p peer.ID) {
 			defer wg.Done()
 			if err := bs.send(ctx, p, m); err != nil {
-				log.Error(err) // TODO remove if too verbose
+				log.Debug(err) // TODO remove if too verbose
 			}
 		}(peerToQuery)
 	}
@@ -258,7 +258,7 @@ func (bs *bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 
 	err := bs.sendWantlistToPeers(ctx, sendToPeers)
 	if err != nil {
-		log.Errorf("sendWantlistToPeers error: %s", err)
+		log.Debugf("sendWantlistToPeers error: %s", err)
 	}
 }
 
@@ -268,12 +268,12 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	defer log.EventBegin(ctx, "receiveMessage", p, incoming).Done()
 
 	if p == "" {
-		log.Error("Received message from nil peer!")
+		log.Debug("Received message from nil peer!")
 		// TODO propagate the error upward
 		return "", nil
 	}
 	if incoming == nil {
-		log.Error("Got nil bitswap message!")
+		log.Debug("Got nil bitswap message!")
 		// TODO propagate the error upward
 		return "", nil
 	}
@@ -287,7 +287,7 @@ func (bs *bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	for _, block := range incoming.Blocks() {
 		hasBlockCtx, _ := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
-			log.Error(err)
+			log.Debug(err)
 		}
 	}
 	var keys []u.Key
@@ -308,7 +308,7 @@ func (bs *bitswap) PeerConnected(p peer.ID) {
 	close(peers)
 	err := bs.sendWantlistToPeers(context.TODO(), peers)
 	if err != nil {
-		log.Errorf("error sending wantlist: %s", err)
+		log.Debugf("error sending wantlist: %s", err)
 	}
 }
 
@@ -329,13 +329,13 @@ func (bs *bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	for _, p := range bs.engine.Peers() {
 		err := bs.send(ctx, p, message)
 		if err != nil {
-			log.Errorf("Error sending message: %s", err)
+			log.Debugf("Error sending message: %s", err)
 		}
 	}
 }
 
 func (bs *bitswap) ReceiveError(err error) {
-	log.Errorf("Bitswap ReceiveError: %s", err)
+	log.Debugf("Bitswap ReceiveError: %s", err)
 	// TODO log the network error
 	// TODO bubble the network error up to the parent context/error logger
 }
@@ -413,7 +413,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
 			err := bs.sendWantlistToPeers(ctx, providers)
 			if err != nil {
-				log.Errorf("error sending wantlist: %s", err)
+				log.Debugf("error sending wantlist: %s", err)
 			}
 		case <-parent.Done():
 			return

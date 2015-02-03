@@ -66,9 +66,9 @@ a problem.
 			// our request handler. can do stuff here. we
 			// simulate something taking time by waiting
 			// on requestHandled
-			log.Error("request worker handling...")
+			log.Debug("request worker handling...")
 			<-requestHandled
-			log.Error("request worker done!")
+			log.Debug("request worker done!")
 			receiverRatelimit <- struct{}{} // release
 		}()
 	}

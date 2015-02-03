@@ -22,7 +22,7 @@ func NewDBWrapperSet(d ds.Datastore, bset BlockSet) BlockSet {
 func (d *datastoreBlockSet) AddBlock(k util.Key) {
 	err := d.dstore.Put(k.DsKey(), []byte{})
 	if err != nil {
-		log.Errorf("blockset put error: %s", err)
+		log.Debugf("blockset put error: %s", err)
 	}
 
 	d.bset.AddBlock(k)

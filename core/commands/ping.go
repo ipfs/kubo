@@ -150,7 +150,7 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 			ctx, _ := context.WithTimeout(ctx, kPingTimeout)
 			took, err := n.Routing.Ping(ctx, pid)
 			if err != nil {
-				log.Errorf("Ping error: %s", err)
+				log.Debugf("Ping error: %s", err)
 				outChan <- &PingResult{Text: fmt.Sprintf("Ping error: %s", err)}
 				break
 			}

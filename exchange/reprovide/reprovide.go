@@ -41,7 +41,7 @@ func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
 		case <-after:
 			err := rp.Reprovide(ctx)
 			if err != nil {
-				log.Error(err)
+				log.Debug(err)
 			}
 			after = time.After(tick)
 		}
@@ -57,7 +57,7 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 		op := func() error {
 			err := rp.rsys.Provide(ctx, k)
 			if err != nil {
-				log.Warningf("Failed to provide key: %s", err)
+				log.Debugf("Failed to provide key: %s", err)
 			}
 			return err
 		}
@@ -66,7 +66,7 @@ func (rp *Reprovider) Reprovide(ctx context.Context) error {
 		// eventually work contexts into it. low priority.
 		err := backoff.Retry(op, backoff.NewExponentialBackOff())
 		if err != nil {
-			log.Errorf("Providing failed after number of retries: %s", err)
+			log.Debugf("Providing failed after number of retries: %s", err)
 			return err
 		}
 	}

@@ -107,7 +107,7 @@ func (m *mount) unmount() error {
 	if err == nil {
 		return nil
 	}
-	log.Error("fuse unmount err: %s", err)
+	log.Debug("fuse unmount err: %s", err)
 
 	// try closing the fuseConn
 	err = m.fuseConn.Close()
@@ -115,7 +115,7 @@ func (m *mount) unmount() error {
 		return nil
 	}
 	if err != nil {
-		log.Error("fuse conn error: %s", err)
+		log.Debug("fuse conn error: %s", err)
 	}
 
 	// try mount.ForceUnmountManyTimes

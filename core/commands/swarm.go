@@ -240,7 +240,7 @@ ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQA
 			conns := n.PeerHost.Network().ConnsToPeer(addr.ID())
 			for _, conn := range conns {
 				if !conn.RemoteMultiaddr().Equal(taddr) {
-					log.Error("it's not", conn.RemoteMultiaddr(), taddr)
+					log.Debug("it's not", conn.RemoteMultiaddr(), taddr)
 					continue
 				}
 

@@ -62,7 +62,7 @@ func (bsnet *impl) SendMessage(
 	defer s.Close()
 
 	if err := outgoing.ToNet(s); err != nil {
-		log.Errorf("error: %s", err)
+		log.Debugf("error: %s", err)
 		return err
 	}
 
@@ -81,13 +81,13 @@ func (bsnet *impl) SendRequest(
 	defer s.Close()
 
 	if err := outgoing.ToNet(s); err != nil {
-		log.Errorf("error: %s", err)
+		log.Debugf("error: %s", err)
 		return nil, err
 	}
 
 	incoming, err := bsmsg.FromNet(s)
 	if err != nil {
-		log.Errorf("error: %s", err)
+		log.Debugf("error: %s", err)
 		return incoming, err
 	}
 
@@ -150,7 +150,7 @@ func (bsnet *impl) handleNewStream(s inet.Stream) {
 	received, err := bsmsg.FromNet(s)
 	if err != nil {
 		go bsnet.receiver.ReceiveError(err)
-		log.Errorf("bitswap net handleNewStream from %s error: %s", s.Conn().RemotePeer(), err)
+		log.Debugf("bitswap net handleNewStream from %s error: %s", s.Conn().RemotePeer(), err)
 		return
 	}
 

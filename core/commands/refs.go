@@ -110,7 +110,6 @@ Note: list all refs recursively with -r.
 
 			for _, o := range objs {
 				if _, err := rw.WriteRefs(o); err != nil {
-					log.Error(err)
 					eptr.SetError(err)
 					return
 				}
@@ -153,7 +152,6 @@ Displays the hashes of all local objects.
 			for k := range allKeys {
 				s := k.Pretty() + "\n"
 				if _, err := pipew.Write([]byte(s)); err != nil {
-					log.Error(err)
 					eptr.SetError(err)
 					return
 				}

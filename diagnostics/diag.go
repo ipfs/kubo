@@ -187,7 +187,7 @@ func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer
 			defer wg.Done()
 			out, err := d.getDiagnosticFromPeer(ctx, p, pmes)
 			if err != nil {
-				log.Errorf("Error getting diagnostic from %s: %s", p, err)
+				log.Debugf("Error getting diagnostic from %s: %s", p, err)
 				return
 			}
 			for d := range out {
@@ -234,17 +234,17 @@ func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes
 		for {
 			rpmes := new(pb.Message)
 			if err := r.ReadMsg(rpmes); err != nil {
-				log.Errorf("Error reading diagnostic from stream: %s", err)
+				log.Debugf("Error reading diagnostic from stream: %s", err)
 				return
 			}
 			if rpmes == nil {
-				log.Error("Got no response back from diag request.")
+				log.Debug("Got no response back from diag request.")
 				return
 			}
 
 			di, err := decodeDiagJson(rpmes.GetData())
 			if err != nil {
-				log.Error(err)
+				log.Debug(err)
 				return
 			}
 
@@ -276,7 +276,7 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 	// deserialize msg
 	pmes := new(pb.Message)
 	if err := r.ReadMsg(pmes); err != nil {
-		log.Errorf("Failed to decode protobuf message: %v", err)
+		log.Debugf("Failed to decode protobuf message: %v", err)
 		return nil
 	}
 
@@ -292,7 +292,7 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 	resp := newMessage(pmes.GetDiagID())
 	resp.Data = d.getDiagInfo().Marshal()
 	if err := w.WriteMsg(resp); err != nil {
-		log.Errorf("Failed to write protobuf message over stream: %s", err)
+		log.Debugf("Failed to write protobuf message over stream: %s", err)
 		return err
 	}
 
@@ -305,14 +305,14 @@ func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 
 	dpeers, err := d.getDiagnosticFromPeers(ctx, d.getPeers(), pmes)
 	if err != nil {
-		log.Errorf("diagnostic from peers err: %s", err)
+		log.Debugf("diagnostic from peers err: %s", err)
 		return err
 	}
 	for b := range dpeers {
 		resp := newMessage(pmes.GetDiagID())
 		resp.Data = b.Marshal()
 		if err := w.WriteMsg(resp); err != nil {
-			log.Errorf("Failed to write protobuf message over stream: %s", err)
+			log.Debugf("Failed to write protobuf message over stream: %s", err)
 			return err
 		}
 	}

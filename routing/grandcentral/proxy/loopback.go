@@ -2,9 +2,9 @@ package proxy
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -39,7 +39,7 @@ func (lb *Loopback) handleNewStream(s inet.Stream) {
 	pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	var incoming dhtpb.Message
 	if err := pbr.ReadMsg(&incoming); err != nil {
-		log.Error(errors.Wrap(err))
+		log.Debug(errors.Wrap(err))
 		return
 	}
 	ctx := context.TODO()
