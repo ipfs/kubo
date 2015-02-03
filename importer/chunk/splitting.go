@@ -38,7 +38,7 @@ func (ss *SizeSplitter) Split(r io.Reader) chan []byte {
 				return
 			}
 			if err != nil {
-				log.Errorf("Block split error: %s", err)
+				log.Debugf("Block split error: %s", err)
 				return
 			}
 		}

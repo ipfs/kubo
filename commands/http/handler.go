@@ -129,7 +129,7 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// w.WriteHeader(200)
 		err = copyChunks(applicationJson, w, out)
 		if err != nil {
-			log.Error(err)
+			log.Debug(err)
 		}
 		return
 	}

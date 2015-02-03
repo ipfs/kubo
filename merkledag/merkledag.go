@@ -136,7 +136,7 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 
 			nd, err := lnk.GetNode(serv)
 			if err != nil {
-				log.Error(err)
+				log.Debug(err)
 				return
 			}
 
@@ -199,7 +199,7 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 				nd, err := Decoded(blk.Data)
 				if err != nil {
 					// NB: can happen with improperly formatted input data
-					log.Error("Got back bad block!")
+					log.Debug("Got back bad block!")
 					return
 				}
 				is := FindLinks(keys, blk.Key(), 0)

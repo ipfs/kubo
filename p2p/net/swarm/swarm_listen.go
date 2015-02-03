@@ -33,7 +33,7 @@ func (s *Swarm) listen(addrs []ma.Multiaddr) error {
 				retErr.Errors = make([]error, len(addrs))
 			}
 			retErr.Errors[i] = err
-			log.Errorf("Failed to listen on: %s - %s", addr, err)
+			log.Debugf("Failed to listen on: %s - %s", addr, err)
 		}
 	}
 
@@ -122,7 +122,7 @@ func (s *Swarm) connHandler(c *ps.Conn) *Conn {
 
 	sc, err := s.newConnSetup(ctx, c)
 	if err != nil {
-		log.Error(err)
+		log.Debug(err)
 		log.Event(ctx, "newConnHandlerDisconnect", lgbl.NetConn(c.NetConn()), lgbl.Error(err))
 		c.Close() // boom. close it.
 		return nil

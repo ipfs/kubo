@@ -22,25 +22,25 @@ func EchoStreamHandler(stream inet.Stream) {
 
 		// pull out the ipfs conn
 		c := stream.Conn()
-		log.Debugf("%s ponging to %s", c.LocalPeer(), c.RemotePeer())
+		log.Infof("%s ponging to %s", c.LocalPeer(), c.RemotePeer())
 
 		buf := make([]byte, 4)
 
 		for {
 			if _, err := stream.Read(buf); err != nil {
 				if err != io.EOF {
-					log.Error("ping receive error:", err)
+					log.Info("ping receive error:", err)
 				}
 				return
 			}
 
 			if !bytes.Equal(buf, []byte("ping")) {
-				log.Errorf("ping receive error: ping != %s %v", buf, buf)
+				log.Infof("ping receive error: ping != %s %v", buf, buf)
 				return
 			}
 
 			if _, err := stream.Write([]byte("pong")); err != nil {
-				log.Error("pond send error:", err)
+				log.Info("pond send error:", err)
 				return
 			}
 		}

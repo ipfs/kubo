@@ -43,19 +43,16 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	// validate `value` is a ref (multihash)
 	_, err := mh.FromB58String(value.Pretty())
 	if err != nil {
-		log.Errorf("hash cast failed: %s", value)
 		return fmt.Errorf("publish value must be str multihash. %v", err)
 	}
 
 	data, err := createRoutingEntryData(k, value)
 	if err != nil {
-		log.Error("entry creation failed.")
 		return err
 	}
 	pubkey := k.GetPublic()
 	pkbytes, err := pubkey.Bytes()
 	if err != nil {
-		log.Error("pubkey getbytes failed.")
 		return err
 	}
 
@@ -120,7 +117,7 @@ func ValidateIpnsRecord(k u.Key, val []byte) error {
 	case pb.IpnsEntry_EOL:
 		t, err := u.ParseRFC3339(string(entry.GetValidity()))
 		if err != nil {
-			log.Error("Failed parsing time for ipns record EOL")
+			log.Debug("Failed parsing time for ipns record EOL")
 			return err
 		}
 		if time.Now().After(t) {

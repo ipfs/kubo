@@ -262,7 +262,7 @@ func waitForWellFormedTables(t *testing.T, dhts []*IpfsDHT, minPeers, avgPeers i
 	for {
 		select {
 		case <-timeoutA:
-			log.Errorf("did not reach well-formed routing tables by %s", timeout)
+			log.Debugf("did not reach well-formed routing tables by %s", timeout)
 			return false // failed
 		case <-time.After(5 * time.Millisecond):
 			if checkTables() {
@@ -322,7 +322,7 @@ func TestBootstrap(t *testing.T) {
 		}
 	}()
 
-	waitForWellFormedTables(t, dhts, 7, 10, 5*time.Second)
+	waitForWellFormedTables(t, dhts, 7, 10, 20*time.Second)
 	close(stop)
 
 	if u.Debug {
@@ -407,7 +407,7 @@ func TestPeriodicBootstrap(t *testing.T) {
 
 	// this is async, and we dont know when it's finished with one cycle, so keep checking
 	// until the routing tables look better, or some long timeout for the failure case.
-	waitForWellFormedTables(t, dhts, 7, 10, 5*time.Second)
+	waitForWellFormedTables(t, dhts, 7, 10, 20*time.Second)
 
 	if u.Debug {
 		printRoutingTables(dhts)

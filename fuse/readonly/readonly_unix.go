@@ -110,7 +110,7 @@ func (s *Node) Attr() fuse.Attr {
 		}
 
 	default:
-		log.Error("Invalid data type.")
+		log.Debug("Invalid data type.")
 		return fuse.Attr{}
 	}
 }

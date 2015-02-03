@@ -44,13 +44,13 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 		request := pb.NewMessage(pb.Message_GET_PROVIDERS, string(k), 0)
 		response, err := c.proxy.SendRequest(ctx, request)
 		if err != nil {
-			log.Error(errors.Wrap(err))
+			log.Debug(errors.Wrap(err))
 			return
 		}
 		for _, p := range pb.PBPeersToPeerInfos(response.GetProviderPeers()) {
 			select {
 			case <-ctx.Done():
-				log.Error(errors.Wrap(ctx.Err()))
+				log.Debug(errors.Wrap(ctx.Err()))
 				return
 			case ch <- p:
 			}

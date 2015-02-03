@@ -72,8 +72,8 @@ func compareDottedInts(i, o string) bool {
 		ivis, err1 := strconv.Atoi(vis)
 		ivos, err2 := strconv.Atoi(vos)
 		if err1 != nil || err2 != nil {
-			log.Error(err1)
-			log.Error(err2)
+			log.Debug(err1)
+			log.Debug(err2)
 			panic("tour ID LessThan: not an int")
 		}
 

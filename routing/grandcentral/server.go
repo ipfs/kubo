@@ -53,16 +53,16 @@ func (s *Server) handleMessage(
 		dskey := util.Key(req.GetKey()).DsKey()
 		val, err := s.datastore.Get(dskey)
 		if err != nil {
-			log.Error(errors.Wrap(err))
+			log.Debug(errors.Wrap(err))
 			return "", nil
 		}
 		rawRecord, ok := val.([]byte)
 		if !ok {
-			log.Errorf("datastore had non byte-slice value for %v", dskey)
+			log.Debugf("datastore had non byte-slice value for %v", dskey)
 			return "", nil
 		}
 		if err := proto.Unmarshal(rawRecord, response.Record); err != nil {
-			log.Error("failed to unmarshal dht record from datastore")
+			log.Debug("failed to unmarshal dht record from datastore")
 			return "", nil
 		}
 		// TODO before merging: if we know any providers for the requested value, return those.
@@ -72,12 +72,12 @@ func (s *Server) handleMessage(
 		// TODO before merging: verifyRecord(req.GetRecord())
 		data, err := proto.Marshal(req.GetRecord())
 		if err != nil {
-			log.Error(err)
+			log.Debug(err)
 			return "", nil
 		}
 		dskey := util.Key(req.GetKey()).DsKey()
 		if err := s.datastore.Put(dskey, data); err != nil {
-			log.Error(err)
+			log.Debug(err)
 			return "", nil
 		}
 		return p, req // TODO before merging: verify that we should return record
@@ -91,7 +91,7 @@ func (s *Server) handleMessage(
 		for _, provider := range req.GetProviderPeers() {
 			providerID := peer.ID(provider.GetId())
 			if providerID != p {
-				log.Errorf("provider message came from third-party %s", p)
+				log.Debugf("provider message came from third-party %s", p)
 				continue
 			}
 			for _, maddr := range provider.Addresses() {
@@ -107,7 +107,7 @@ func (s *Server) handleMessage(
 			}
 		}
 		if err := s.datastore.Put(pkey, providers); err != nil {
-			log.Error(err)
+			log.Debug(err)
 			return "", nil
 		}
 		return "", nil

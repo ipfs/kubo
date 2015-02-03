@@ -483,20 +483,20 @@ func (i *cmdInvocation) setupInterruptHandler() {
 			n, err := ctx.GetNode()
 			if err != nil {
 				log.Error(err)
-				log.Critical("Received interrupt signal, terminating...")
+				fmt.Println("Received interrupt signal, terminating...")
 				os.Exit(-1)
 			}
 
 			switch count {
 			case 0:
-				log.Critical("Received interrupt signal, shutting down...")
+				fmt.Println("Received interrupt signal, shutting down...")
 				go func() {
 					n.Close()
 					log.Info("Gracefully shut down.")
 				}()
 
 			default:
-				log.Critical("Received another interrupt before graceful shutdown, terminating...")
+				fmt.Println("Received another interrupt before graceful shutdown, terminating...")
 				os.Exit(-1)
 			}
 		}

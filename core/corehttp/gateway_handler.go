@@ -155,7 +155,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		errmsg = errmsg + "bad request for " + r.URL.Path
 	}
 	w.Write([]byte(errmsg))
-	log.Error(errmsg)
+	log.Debug(errmsg)
 }
 
 func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +174,6 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		}
 
-		log.Error(err)
 		w.Write([]byte(err.Error()))
 		return
 	}
@@ -290,7 +289,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 	pathext := urlPath[5:]
 	var err error
-	if urlPath == IpfsPathPrefix + "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn/" {
+	if urlPath == IpfsPathPrefix+"QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn/" {
 		i.putEmptyDirHandler(w, r)
 		return
 	}
@@ -326,7 +325,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("Cannot override existing object")
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
-		log.Error("%s", err)
+		log.Debug("%s", err)
 		return
 	}
 
@@ -450,7 +449,7 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	w.WriteHeader(code)
-	log.Errorf("%s: %s", message, err)
+	log.Debugf("%s: %s", message, err)
 	w.Write([]byte(message + ": " + err.Error()))
 }
 
@@ -458,7 +457,7 @@ func webErrorWithCode(w http.ResponseWriter, message string, err error, code int
 func internalWebError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte(err.Error()))
-	log.Error("%s", err)
+	log.Debug("%s", err)
 }
 
 // Directory listing template

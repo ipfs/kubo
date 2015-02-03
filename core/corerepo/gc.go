@@ -51,7 +51,7 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemo
 				if !n.Pinning.IsPinned(k) {
 					err := n.Blockstore.DeleteBlock(k)
 					if err != nil {
-						log.Errorf("Error removing key from blockstore: %s", err)
+						log.Debugf("Error removing key from blockstore: %s", err)
 						continue
 					}
 					select {
