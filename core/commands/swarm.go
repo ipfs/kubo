@@ -12,6 +12,7 @@ import (
 	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 type stringList struct {
@@ -172,17 +173,17 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			return
 		}
 
-		peers, err := peersWithAddresses(n.Peerstore, addrs)
+		pis, err := peersWithAddresses(addrs)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		output := make([]string, len(peers))
-		for i, p := range peers {
-			output[i] = "connect " + p.Pretty()
+		output := make([]string, len(pis))
+		for i, pi := range pis {
+			output[i] = "connect " + pi.ID.Pretty()
 
-			err := n.PeerHost.Connect(ctx, peer.PeerInfo{ID: p})
+			err := n.PeerHost.Connect(ctx, pi)
 			if err != nil {
 				output[i] += " failure: " + err.Error()
 			} else {
@@ -294,15 +295,17 @@ func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(ps peer.Peerstore, addrs []string) (pids []peer.ID, err error) {
+func peersWithAddresses(addrs []string) (pis []peer.PeerInfo, err error) {
 	iaddrs, err := parseAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, iaddr := range iaddrs {
-		pids = append(pids, iaddr.ID())
-		ps.AddAddr(iaddr.ID(), iaddr.Multiaddr(), peer.TempAddrTTL)
+		pis = append(pis, peer.PeerInfo{
+			ID:    iaddr.ID(),
+			Addrs: []ma.Multiaddr{iaddr.Transport()},
+		})
 	}
-	return pids, nil
+	return pis, nil
 }
