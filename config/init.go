@@ -83,12 +83,12 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
 		return ident, errors.New("Bitsize less than 1024 is considered unsafe.")
 	}
 
-	out.Write([]byte(fmt.Sprintf("generating %v-bit RSA keypair...", nbits)))
+	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}
-	out.Write([]byte(fmt.Sprintf("done\n")))
+	fmt.Fprintf(out, "done\n")
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
@@ -103,6 +103,6 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	fmt.Printf("peer identity: %s\n", ident.PeerID)
+	fmt.Fprintf(out, "peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }
