@@ -157,12 +157,12 @@ func printPeer(ps peer.Peerstore, p peer.ID) (interface{}, error) {
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.AgentVersion = vs
+			info.ProtocolVersion = vs
 		}
 	}
 	if v, err := ps.Get(p, "AgentVersion"); err == nil {
 		if vs, ok := v.(string); ok {
-			info.ProtocolVersion = vs
+			info.AgentVersion = vs
 		}
 	}
 
