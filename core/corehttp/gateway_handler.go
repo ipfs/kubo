@@ -48,15 +48,15 @@ type directoryItem struct {
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node     *core.IpfsNode
-	dirList  *template.Template
-	config   GatewayConfig
+	node    *core.IpfsNode
+	dirList *template.Template
+	config  GatewayConfig
 }
 
 func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
 	i := &gatewayHandler{
-		node:     node,
-		config:   conf,
+		node:   node,
+		config: conf,
 	}
 	err := i.loadTemplate()
 	if err != nil {
