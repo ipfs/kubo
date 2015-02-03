@@ -38,7 +38,6 @@ func (s *Server) HandleRequest(ctx context.Context, p peer.ID, req *dhtpb.Messag
 	return response
 }
 
-// TODO extract backend. backend can be implemented with whatever database we desire
 func (s *Server) handleMessage(
 	ctx context.Context, p peer.ID, req *dhtpb.Message) (peer.ID, *dhtpb.Message) {
 
