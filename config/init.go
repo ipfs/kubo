@@ -41,6 +41,9 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		Datastore: *ds,
 		Identity:  identity,
+		Log: Log{
+			MaxSizeMB: 500,
+		},
 
 		// setup the node mount points.
 		Mounts: Mounts{
@@ -54,7 +57,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 
 		Gateway: Gateway{
 			RootRedirect: "",
-			Writable: false,
+			Writable:     false,
 		},
 	}
 
