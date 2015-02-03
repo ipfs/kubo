@@ -50,13 +50,13 @@ type directoryItem struct {
 type gatewayHandler struct {
 	node     *core.IpfsNode
 	dirList  *template.Template
-	writable bool
+	config   GatewayConfig
 }
 
-func newGatewayHandler(node *core.IpfsNode, writable bool) (*gatewayHandler, error) {
+func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
 	i := &gatewayHandler{
 		node:     node,
-		writable: writable,
+		config:   conf,
 	}
 	err := i.loadTemplate()
 	if err != nil {
@@ -125,18 +125,20 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) 
 	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
+// TODO(btc): break this apart into separate handlers using a more expressive
+// muxer
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if i.writable && r.Method == "POST" {
+	if i.config.Writable && r.Method == "POST" {
 		i.postHandler(w, r)
 		return
 	}
 
-	if i.writable && r.Method == "PUT" {
+	if i.config.Writable && r.Method == "PUT" {
 		i.putHandler(w, r)
 		return
 	}
 
-	if i.writable && r.Method == "DELETE" {
+	if i.config.Writable && r.Method == "DELETE" {
 		i.deleteHandler(w, r)
 		return
 	}
@@ -147,7 +149,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errmsg := "Method " + r.Method + " not allowed: "
-	if !i.writable {
+	if !i.config.Writable {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		errmsg = errmsg + "read only access"
 	} else {
@@ -163,6 +165,11 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	urlPath := r.URL.Path
+
+	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	nd, p, err := i.ResolvePath(ctx, urlPath)
 	if err != nil {
