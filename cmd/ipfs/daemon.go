@@ -178,7 +178,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	if gatewayMaddr != nil {
 		go func() {
-			var opts = []corehttp.ServeOption{corehttp.GatewayOption(writable)}
+			var opts = []corehttp.ServeOption{
+				corehttp.IPNSHostnameOption(),
+				corehttp.GatewayOption(writable),
+			}
 			if rootRedirect != nil {
 				opts = append(opts, rootRedirect)
 			}
