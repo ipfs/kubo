@@ -37,8 +37,10 @@ func InitConfigComponent(path string, conf *config.Config) error {
 	return nil
 }
 
-// Open returns an error if the config file is not present.
-func (c *ConfigComponent) Open() error {
+// Open returns an error if the config file is not present. This component is
+// always called with a nil config parameter. Other components rely on the
+// config, to keep the interface uniform, it is special-cased.
+func (c *ConfigComponent) Open(_ *config.Config) error {
 	configFilename, err := config.Filename(c.path)
 	if err != nil {
 		return err

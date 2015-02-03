@@ -22,8 +22,8 @@ func TestOpenMoreThanOnceInSameProcess(t *testing.T) {
 	path := testRepoPath(t)
 	dsc1 := DatastoreComponent{path: path}
 	dsc2 := DatastoreComponent{path: path}
-	assert.Nil(dsc1.Open(), t, "first repo should open successfully")
-	assert.Nil(dsc2.Open(), t, "second repo should open successfully")
+	assert.Nil(dsc1.Open(nil), t, "first repo should open successfully")
+	assert.Nil(dsc2.Open(nil), t, "second repo should open successfully")
 
 	assert.Nil(dsc1.Close(), t)
 	assert.Nil(dsc2.Close(), t)
