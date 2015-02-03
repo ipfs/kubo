@@ -16,6 +16,7 @@ import (
 	pb "github.com/jbenet/go-ipfs/p2p/protocol/identify/pb"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 )
 
 var log = eventlog.Logger("net/identify")
@@ -191,6 +192,7 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 	// TODO: at this point, we've already exchanged information.
 	// move this into a first handshake before the connection can open streams.
 	if !protocolVersionsAreCompatible(pv, IpfsVersion) {
+		logProtocolMismatchDisconnect(c, pv, av)
 		c.Close()
 		return
 	}
@@ -309,3 +311,13 @@ func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
 func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}
 func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr)      {}
 func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {}
+
+func logProtocolMismatchDisconnect(c inet.Conn, protocol, agent string) {
+	lm := make(lgbl.DeferredMap)
+	lm["remotePeer"] = func() interface{} { return c.RemotePeer().Pretty() }
+	lm["remoteAddr"] = func() interface{} { return c.RemoteMultiaddr().String() }
+	lm["protocolVersion"] = protocol
+	lm["agentVersion"] = agent
+	log.Event(context.TODO(), "IdentifyProtocolMismatch", lm)
+	log.Debug("IdentifyProtocolMismatch %s %s %s (disconnected)", c.RemotePeer(), protocol, agent)
+}
