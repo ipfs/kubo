@@ -177,13 +177,13 @@ test_launch_ipfs_daemon() {
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
 		test_wait_output_n_lines_60_sec actual_daemon 2 &&
-		test_run_repeat_10_sec "cat actual_daemon | grep \"API server listening on $ADDR_API\"" ||
+		test_run_repeat_10_sec "grep \"API server listening on $ADDR_API\" actual_daemon" ||
 		fsh cat actual_daemon || fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
-			test_run_repeat_10_sec "cat actual_daemon | grep \"Gateway server listening on $ADDR_GWAY\"" ||
+			test_run_repeat_10_sec "grep \"Gateway server listening on $ADDR_GWAY\" actual_daemon" ||
 			fsh cat daemon_err
 		'
 	fi
