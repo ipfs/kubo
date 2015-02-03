@@ -106,7 +106,7 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 	proc.Go(periodic) // run one right now.
 
 	// kick off dht bootstrapping.
-	dbproc, err := thedht.Bootstrap(dht.DefaultBootstrapConfig)
+	dbproc, err := thedht.BootstrapWithConfig(dht.DefaultBootstrapConfig)
 	if err != nil {
 		proc.Close()
 		return nil, err
