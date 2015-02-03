@@ -17,10 +17,10 @@ import (
 
 	core "github.com/jbenet/go-ipfs/core"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
 	nsys "github.com/jbenet/go-ipfs/namesys"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	path "github.com/jbenet/go-ipfs/path"
+	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"

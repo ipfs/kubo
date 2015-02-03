@@ -6,8 +6,8 @@ import (
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	blocks "github.com/jbenet/go-ipfs/blocks"
 	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
+	blocks "github.com/jbenet/go-ipfs/struct/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

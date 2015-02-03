@@ -14,8 +14,8 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
 	core "github.com/jbenet/go-ipfs/core"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"

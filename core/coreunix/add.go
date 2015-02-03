@@ -9,10 +9,10 @@ import (
 
 	"github.com/jbenet/go-ipfs/commands/files"
 	core "github.com/jbenet/go-ipfs/core"
+	"github.com/jbenet/go-ipfs/core/corerepo/pin"
 	importer "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/pin"
+	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	unixfs "github.com/jbenet/go-ipfs/unixfs"
 )

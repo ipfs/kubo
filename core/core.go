@@ -26,21 +26,21 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	offroute "github.com/jbenet/go-ipfs/routing/offline"
 
-	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	bserv "github.com/jbenet/go-ipfs/blockservice"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
+	bserv "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
+	bstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 
+	pin "github.com/jbenet/go-ipfs/core/corerepo/pin"
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
-	pin "github.com/jbenet/go-ipfs/pin"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
+	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
 )
 
 const IpnsValidatorTag = "ipns"

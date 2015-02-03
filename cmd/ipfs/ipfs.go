@@ -5,6 +5,15 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	commands "github.com/jbenet/go-ipfs/core/commands"
+
+	cmdcommands "github.com/jbenet/go-ipfs/core/commands/commands"
+	daemon "github.com/jbenet/go-ipfs/core/commands/daemon"
+	diag "github.com/jbenet/go-ipfs/core/commands/diag"
+	cmdinit "github.com/jbenet/go-ipfs/core/commands/init"
+	cmdlog "github.com/jbenet/go-ipfs/core/commands/log"
+	tour "github.com/jbenet/go-ipfs/core/commands/tour"
+	update "github.com/jbenet/go-ipfs/core/commands/update"
+	version "github.com/jbenet/go-ipfs/core/commands/version"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.
@@ -16,14 +25,14 @@ var Root = &cmds.Command{
 }
 
 // commandsClientCmd is the "ipfs commands" command for local cli
-var commandsClientCmd = commands.CommandsCmd(Root)
+var commandsClientCmd = cmdcommands.CommandsCmd(Root)
 
 // Commands in localCommands should always be run locally (even if daemon is running).
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
 var localCommands = map[string]*cmds.Command{
-	"daemon":   daemonCmd,
-	"init":     initCmd,
-	"tour":     tourCmd,
+	"daemon":   daemon.DaemonCmd,
+	"init":     cmdinit.InitCmd,
+	"tour":     tour.TourCmd,
 	"commands": commandsClientCmd,
 }
 var localMap = make(map[*cmds.Command]bool)
@@ -97,17 +106,17 @@ func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo 
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd: cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+	cmdinit.InitCmd: cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
 
 	// daemonCmd allows user to initialize the config. Thus, it may be called
 	// without using the config as input
-	daemonCmd:                  cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	daemon.DaemonCmd:           cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
 	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
 	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
-	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
-	commands.VersionCmd:        cmdDetails{doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
-	commands.UpdateCmd:         cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
-	commands.UpdateCheckCmd:    cmdDetails{preemptsAutoUpdate: true},
-	commands.UpdateLogCmd:      cmdDetails{preemptsAutoUpdate: true},
-	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
+	diag.DiagCmd:               cmdDetails{cannotRunOnClient: true},
+	version.VersionCmd:         cmdDetails{doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
+	update.UpdateCmd:           cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
+	update.UpdateCheckCmd:      cmdDetails{preemptsAutoUpdate: true},
+	update.UpdateLogCmd:        cmdDetails{preemptsAutoUpdate: true},
+	cmdlog.LogCmd:              cmdDetails{cannotRunOnClient: true},
 }

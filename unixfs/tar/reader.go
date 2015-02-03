@@ -9,8 +9,8 @@ import (
 	gopath "path"
 	"time"
 
-	mdag "github.com/jbenet/go-ipfs/merkledag"
 	path "github.com/jbenet/go-ipfs/path"
+	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	upb "github.com/jbenet/go-ipfs/unixfs/pb"
 
