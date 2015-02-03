@@ -57,7 +57,7 @@ func (s *Server) handleMessage(
 	case dhtpb.Message_PUT_VALUE:
 		// TODO before merging: verifyRecord(req.GetRecord())
 		putRoutingRecord(s.routingBackend, util.Key(req.GetKey()), req.GetRecord())
-		return p, req // TODO before merging: verify that we should return record
+		return p, req
 
 	case dhtpb.Message_FIND_NODE:
 		p := s.peerstore.PeerInfo(peer.ID(req.GetKey()))
