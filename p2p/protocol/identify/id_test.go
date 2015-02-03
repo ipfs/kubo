@@ -79,7 +79,7 @@ func testHasProtocolVersions(t *testing.T, h host.Host, p peer.ID) {
 		t.Error("no protocol version")
 		return
 	}
-	if v.(string) != identify.IpfsVersion.String() {
+	if v.(string) != identify.IpfsVersion {
 		t.Error("protocol mismatch", err)
 	}
 	v, err = h.Peerstore().Get(p, "AgentVersion")
