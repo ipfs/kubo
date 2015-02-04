@@ -38,9 +38,9 @@ var TextFormatter = func() {
 
 type LogRotatorConfig struct {
 	Filename   string
-	MaxSizeMB  uint64
-	MaxBackups uint64
-	MaxAgeDays uint64
+	MaxSizeMB  int
+	MaxBackups int
+	MaxAgeDays int
 }
 
 func Output(w io.Writer) Option {
