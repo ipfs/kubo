@@ -65,21 +65,9 @@ func BenchmarkBalancedReadSmallBlock(b *testing.B) {
 	nbytes := int64(10000000)
 	nd, ds := getBalancedDag(b, nbytes, 4096)
 
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		read, err := uio.NewDagReader(context.TODO(), nd, ds)
-		if err != nil {
-			b.Fatal(err)
-		}
-		n, err := io.Copy(ioutil.Discard, read)
-		if err != nil {
-			b.Fatal(err)
-		}
-		if n != nbytes {
-			b.Fatal("Failed to read correct amount")
-		}
-	}
 	b.SetBytes(nbytes)
+	b.StartTimer()
+	runReadBench(b, nd, ds)
 }
 
 func BenchmarkTrickleReadSmallBlock(b *testing.B) {
@@ -87,22 +75,9 @@ func BenchmarkTrickleReadSmallBlock(b *testing.B) {
 	nbytes := int64(10000000)
 	nd, ds := getTrickleDag(b, nbytes, 4096)
 
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		read, err := uio.NewDagReader(context.TODO(), nd, ds)
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		n, err := io.Copy(ioutil.Discard, read)
-		if err != nil {
-			b.Fatal(err)
-		}
-		if n != nbytes {
-			b.Fatal("Failed to read correct amount")
-		}
-	}
 	b.SetBytes(nbytes)
+	b.StartTimer()
+	runReadBench(b, nd, ds)
 }
 
 func BenchmarkBalancedReadFull(b *testing.B) {
@@ -110,21 +85,9 @@ func BenchmarkBalancedReadFull(b *testing.B) {
 	nbytes := int64(10000000)
 	nd, ds := getBalancedDag(b, nbytes, chunk.DefaultBlockSize)
 
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		read, err := uio.NewDagReader(context.TODO(), nd, ds)
-		if err != nil {
-			b.Fatal(err)
-		}
-		n, err := io.Copy(ioutil.Discard, read)
-		if err != nil {
-			b.Fatal(err)
-		}
-		if n != nbytes {
-			b.Fatal("Failed to read correct amount")
-		}
-	}
 	b.SetBytes(nbytes)
+	b.StartTimer()
+	runReadBench(b, nd, ds)
 }
 
 func BenchmarkTrickleReadFull(b *testing.B) {
@@ -132,20 +95,23 @@ func BenchmarkTrickleReadFull(b *testing.B) {
 	nbytes := int64(10000000)
 	nd, ds := getTrickleDag(b, nbytes, chunk.DefaultBlockSize)
 
+	b.SetBytes(nbytes)
 	b.StartTimer()
+	runReadBench(b, nd, ds)
+}
+
+func runReadBench(b *testing.B, nd *dag.Node, ds dag.DAGService) {
 	for i := 0; i < b.N; i++ {
-		read, err := uio.NewDagReader(context.TODO(), nd, ds)
+		ctx, cancel := context.WithCancel(context.TODO())
+		read, err := uio.NewDagReader(ctx, nd, ds)
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		n, err := io.Copy(ioutil.Discard, read)
-		if err != nil {
+		_, err = read.WriteTo(ioutil.Discard)
+		if err != nil && err != io.EOF {
 			b.Fatal(err)
 		}
-		if n != nbytes {
-			b.Fatal("Failed to read correct amount")
-		}
+		cancel()
 	}
-	b.SetBytes(nbytes)
 }
