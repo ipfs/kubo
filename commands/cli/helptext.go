@@ -8,9 +8,9 @@ import (
 	"strings"
 	"text/template"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
 	isatty "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mattn/go-isatty"
 	c "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/colorstring"
+	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 const (
@@ -124,7 +124,7 @@ func init() {
 			"USAGE":        c.DefaultColors["light_yellow"],
 			"ARGUSAGE":     c.DefaultColors["light_cyan"],
 			"ARGUSAGETEXT": c.DefaultColors["light_red"],
-			"DESCRIPTION":  c.DefaultColors["white"],
+			"DESCRIPTION":  c.DefaultColors["default"],
 			"requiredArg":  c.DefaultColors["light_red"],
 			"optionalArg":  c.DefaultColors["light_green"],
 			"variadicArg":  c.DefaultColors["light_green"],
