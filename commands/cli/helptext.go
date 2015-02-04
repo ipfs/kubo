@@ -105,16 +105,22 @@ const shortHelpFormat = `USAGE:
 {{end}}
 `
 
-var usageTemplate *template.Template
-var longHelpTemplate *template.Template
-var shortHelpTemplate *template.Template
+var (
+	usageTemplate     *template.Template
+	longHelpTemplate  *template.Template
+	shortHelpTemplate *template.Template
+)
+
 var colorScheme c.Colorize
-var requiredArg string
-var subcommandPrefix string
-var optionalArg string
-var variadicArg string
-var optionFlag string
-var optionType string
+
+var (
+	requiredArg      = "[requiredArg]<%v>[DEFAULT]"
+	optionalArg      = "[optionalArg]<%v>[DEFAULT]"
+	variadicArg      = "[variadicArg]%v[DEFAULT]..."
+	optionFlag       = "[optionFlag]-%v[DEFAULT]"
+	optionType       = "[optionType]%v[DEFAULT]"
+	subcommandPrefix = "[USAGE]%v[DEFAULT]"
+)
 
 func init() {
 	colorScheme = c.Colorize{
@@ -135,12 +141,12 @@ func init() {
 		Disable: !isatty.IsTerminal(os.Stdout.Fd()),
 	}
 
-	requiredArg = colorScheme.Color("[requiredArg]<%v>[DEFAULT]")
-	optionalArg = colorScheme.Color("[optionalArg]<%v>[DEFAULT]")
-	variadicArg = colorScheme.Color("[variadicArg]%v[DEFAULT]...")
-	optionFlag = colorScheme.Color("[optionFlag]-%v[DEFAULT]")
-	optionType = colorScheme.Color("[optionType]%v[DEFAULT]")
-	subcommandPrefix = colorScheme.Color("[USAGE]%v[DEFAULT]")
+	requiredArg = colorScheme.Color(requiredArg)
+	optionalArg = colorScheme.Color(optionalArg)
+	variadicArg = colorScheme.Color(variadicArg)
+	optionFlag = colorScheme.Color(optionFlag)
+	optionType = colorScheme.Color(optionType)
+	subcommandPrefix = colorScheme.Color(subcommandPrefix)
 
 	usageTemplate = template.Must(template.New("usage").Parse(colorScheme.Color(usageFormat)))
 	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(colorScheme.Color(longHelpFormat)))
