@@ -10,6 +10,7 @@ import (
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
+	core "github.com/jbenet/go-ipfs/core"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	importer "github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
@@ -19,7 +20,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func getDagservAndPinner(t *testing.T) merkledag.DAGService {
+func getDagserv(t *testing.T) merkledag.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
 	blockserv, err := bserv.New(bs, offline.Exchange(bs))
@@ -31,7 +32,7 @@ func getDagservAndPinner(t *testing.T) merkledag.DAGService {
 
 func TestMetadata(t *testing.T) {
 	// Make some random node
-	ds := getDagservAndPinner(t)
+	ds := getDagserv(t)
 	data := make([]byte, 1000)
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)
@@ -48,12 +49,15 @@ func TestMetadata(t *testing.T) {
 	m := new(ft.Metadata)
 	m.MimeType = "THIS IS A TEST"
 
-	mdk, err := AddMetadataTo(k, m, ds)
+	// Such effort, many compromise
+	ipfsnode := &core.IpfsNode{DAG: ds}
+
+	mdk, err := AddMetadataTo(ipfsnode, k.B58String(), m)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rec, err := Metadata(mdk, ds)
+	rec, err := Metadata(ipfsnode, mdk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +65,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatalf("something went wrong in conversion: '%s' != '%s'", rec.MimeType, m.MimeType)
 	}
 
-	retnode, err := ds.Get(mdk)
+	retnode, err := ds.Get(u.B58KeyDecode(mdk))
 	if err != nil {
 		t.Fatal(err)
 	}

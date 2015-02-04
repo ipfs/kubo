@@ -7,8 +7,9 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func AddMetadataTo(key u.Key, m *ft.Metadata, n *core.IpfsNode) (u.Key, error) {
-	nd, err := n.DAG.Get(key)
+func AddMetadataTo(n *core.IpfsNode, key string, m *ft.Metadata) (string, error) {
+	ukey := u.B58KeyDecode(key)
+	nd, err := n.DAG.Get(ukey)
 	if err != nil {
 		return "", err
 	}
@@ -25,11 +26,17 @@ func AddMetadataTo(key u.Key, m *ft.Metadata, n *core.IpfsNode) (u.Key, error) {
 		return "", err
 	}
 
-	return n.DAG.Add(mdnode)
+	nk, err := n.DAG.Add(mdnode)
+	if err != nil {
+		return "", err
+	}
+
+	return nk.B58String(), nil
 }
 
-func Metadata(key u.Key, n *core.IpfsNode) (*ft.Metadata, error) {
-	nd, err := n.DAG.Get(key)
+func Metadata(n *core.IpfsNode, key string) (*ft.Metadata, error) {
+	ukey := u.B58KeyDecode(key)
+	nd, err := n.DAG.Get(ukey)
 	if err != nil {
 		return nil, err
 	}
