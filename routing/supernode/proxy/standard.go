@@ -13,9 +13,9 @@ import (
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-const ProtocolGCR = "/ipfs/grandcentral"
+const ProtocolSNR = "/ipfs/supernoderouting"
 
-var log = eventlog.Logger("grandcentral/proxy")
+var log = eventlog.Logger("supernode/proxy")
 
 type Proxy interface {
 	HandleStream(inet.Stream)
@@ -34,7 +34,7 @@ func Standard(h host.Host, remotes []peer.ID) Proxy {
 
 func (p *standard) HandleStream(s inet.Stream) {
 	// TODO(brian): Should clients be able to satisfy requests?
-	log.Error("grandcentral client received (dropped) a routing message from", s.Conn().RemotePeer())
+	log.Error("supernode client received (dropped) a routing message from", s.Conn().RemotePeer())
 	s.Close()
 }
 
@@ -64,7 +64,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	if err = px.Host.Connect(ctx, peer.PeerInfo{ID: remote}); err != nil {
 		return err
 	}
-	s, err := px.Host.NewStream(ProtocolGCR, remote)
+	s, err := px.Host.NewStream(ProtocolSNR, remote)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 		e.SetError(err)
 		return nil, err
 	}
-	s, err := px.Host.NewStream(ProtocolGCR, remote)
+	s, err := px.Host.NewStream(ProtocolSNR, remote)
 	if err != nil {
 		e.SetError(err)
 		return nil, err

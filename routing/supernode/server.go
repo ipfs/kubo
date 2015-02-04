@@ -1,4 +1,4 @@
-package grandcentral
+package supernode
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	proxy "github.com/jbenet/go-ipfs/routing/grandcentral/proxy"
+	proxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
 	util "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
@@ -21,7 +21,7 @@ type Server struct {
 	*proxy.Loopback // so server can be injected into client
 }
 
-// NewServer creates a new GrandCentral routing Server
+// NewServer creates a new Supernode routing Server
 func NewServer(ds datastore.ThreadSafeDatastore, ps peer.Peerstore, local peer.ID) (*Server, error) {
 	s := &Server{local, ds, ps, nil}
 	s.Loopback = &proxy.Loopback{
