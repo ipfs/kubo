@@ -71,10 +71,17 @@ func (s *Server) handleMessage(
 		return p.ID, response
 
 	case dhtpb.Message_ADD_PROVIDER:
-		storeProvidersToPeerstore(s.peerstore, p, req.GetProviderPeers())
-
-		if err := putRoutingProviders(s.routingBackend, util.Key(req.GetKey()), req.GetProviderPeers()); err != nil {
-			return "", nil
+		for _, provider := range req.GetProviderPeers() {
+			providerID := peer.ID(provider.GetId())
+			if providerID == p {
+				store := []*dhtpb.Message_Peer{provider}
+				storeProvidersToPeerstore(s.peerstore, p, store)
+				if err := putRoutingProviders(s.routingBackend, util.Key(req.GetKey()), store); err != nil {
+					return "", nil
+				}
+			} else {
+				log.Event(ctx, "addProviderBadRequest", p, req)
+			}
 		}
 		return "", nil
 
