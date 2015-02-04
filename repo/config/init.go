@@ -42,7 +42,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Datastore: *ds,
 		Identity:  identity,
 		Log: Log{
-			MaxSizeMB: 500,
+			MaxSizeMB:  250,
+			MaxBackups: 1,
 		},
 
 		// setup the node mount points.
