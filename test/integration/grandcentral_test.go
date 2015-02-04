@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	"github.com/jbenet/go-ipfs/thirdparty/iter"
 	"github.com/jbenet/go-ipfs/thirdparty/unit"
+	"github.com/jbenet/go-ipfs/util"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
@@ -131,4 +133,52 @@ func InitializeSupernodeNetwork(
 		}
 	}
 	return servers, clients, nil
+}
+
+func TestSupernodePutRecordGetRecord(t *testing.T) {
+	// create 8 supernode-routing bootstrap nodes
+	// create 2 supernode-routing clients both bootstrapped to the bootstrap nodes
+	// let the bootstrap nodes share a single datastore
+	// add a large file on one node then cat the file from the other
+	conf := testutil.LatencyConfig{
+		NetworkLatency:    0,
+		RoutingLatency:    0,
+		BlockstoreLatency: 0,
+	}
+	if err := RunSupernodePutRecordGetRecord(conf); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func RunSupernodePutRecordGetRecord(conf testutil.LatencyConfig) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	servers, clients, err := InitializeSupernodeNetwork(ctx, 2, 2, conf)
+	if err != nil {
+		return err
+	}
+	for _, n := range append(servers, clients...) {
+		defer n.Close()
+	}
+
+	putter := clients[0]
+	getter := clients[1]
+
+	k := util.Key("key")
+	note := []byte("a note from putter")
+
+	if err := putter.Routing.PutValue(ctx, k, note); err != nil {
+		return fmt.Errorf("failed to put value: %s", err)
+	}
+
+	received, err := getter.Routing.GetValue(ctx, k)
+	if err != nil {
+		return fmt.Errorf("failed to get value: %s", err)
+	}
+
+	if 0 != bytes.Compare(note, received) {
+		return errors.New("record doesn't match")
+	}
+	return nil
 }
