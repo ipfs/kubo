@@ -71,9 +71,6 @@ func (s *Server) handleMessage(
 		return p.ID, response
 
 	case dhtpb.Message_ADD_PROVIDER:
-		// FIXME(btc): do we want to store these locally? I think the
-		// storeProvidersToPeerstore behavior is straight from the DHT message
-		// handler.
 		storeProvidersToPeerstore(s.peerstore, p, req.GetProviderPeers())
 
 		if err := putRoutingProviders(s.routingBackend, util.Key(req.GetKey()), req.GetProviderPeers()); err != nil {
