@@ -50,6 +50,7 @@ type ReadSeekCloser interface {
 	io.Reader
 	io.Seeker
 	io.Closer
+	io.WriterTo
 }
 
 // NewDagReader creates a new reader object that reads the data represented by the given
@@ -68,19 +69,23 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 	case ftpb.Data_Raw:
 		fallthrough
 	case ftpb.Data_File:
-		fctx, cancel := context.WithCancel(ctx)
-		promises := serv.GetDAG(fctx, n)
-		return &DagReader{
-			node:     n,
-			serv:     serv,
-			buf:      NewRSNCFromBytes(pb.GetData()),
-			promises: promises,
-			ctx:      fctx,
-			cancel:   cancel,
-			pbdata:   pb,
-		}, nil
+		return newDataFileReader(ctx, n, pb, serv), nil
 	default:
 		return nil, ft.ErrUnrecognizedType
+	}
+}
+
+func newDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv mdag.DAGService) *DagReader {
+	fctx, cancel := context.WithCancel(ctx)
+	promises := serv.GetDAG(fctx, n)
+	return &DagReader{
+		node:     n,
+		serv:     serv,
+		buf:      NewRSNCFromBytes(pb.GetData()),
+		promises: promises,
+		ctx:      fctx,
+		cancel:   cancel,
+		pbdata:   pb,
 	}
 }
 
@@ -108,11 +113,7 @@ func (dr *DagReader) precalcNextBuf() error {
 		// A directory should not exist within a file
 		return ft.ErrInvalidDirLocation
 	case ftpb.Data_File:
-		subr, err := NewDagReader(dr.ctx, nxt, dr.serv)
-		if err != nil {
-			return err
-		}
-		dr.buf = subr
+		dr.buf = newDataFileReader(dr.ctx, nxt, pb, dr.serv)
 		return nil
 	case ftpb.Data_Raw:
 		dr.buf = NewRSNCFromBytes(pb.GetData())
@@ -156,6 +157,31 @@ func (dr *DagReader) Read(b []byte) (int, error) {
 	}
 }
 
+func (dr *DagReader) WriteTo(w io.Writer) (int64, error) {
+	// If no cached buffer, load one
+	total := int64(0)
+	for {
+		// Attempt to write bytes from cached buffer
+		n, err := dr.buf.WriteTo(w)
+		total += n
+		dr.offset += n
+		if err != nil {
+			if err != io.EOF {
+				return total, err
+			}
+		}
+
+		// Otherwise, load up the next block
+		err = dr.precalcNextBuf()
+		if err != nil {
+			if err == io.EOF {
+				return total, nil
+			}
+			return total, err
+		}
+	}
+}
+
 func (dr *DagReader) Close() error {
 	dr.cancel()
 	return nil
@@ -163,6 +189,8 @@ func (dr *DagReader) Close() error {
 
 // Seek implements io.Seeker, and will seek to a given offset in the file
 // interface matches standard unix seek
+// TODO: check if we can do relative seeks, to reduce the amount of dagreader
+// recreations that need to happen.
 func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case os.SEEK_SET:

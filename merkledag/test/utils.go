@@ -1,4 +1,4 @@
-package merkledag
+package mdutils
 
 import (
 	"testing"
@@ -8,13 +8,14 @@ import (
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	bsrv "github.com/jbenet/go-ipfs/blockservice"
 	"github.com/jbenet/go-ipfs/exchange/offline"
+	dag "github.com/jbenet/go-ipfs/merkledag"
 )
 
-func Mock(t testing.TB) DAGService {
+func Mock(t testing.TB) dag.DAGService {
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
 	bserv, err := bsrv.New(bstore, offline.Exchange(bstore))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return NewDAGService(bserv)
+	return dag.NewDAGService(bserv)
 }
