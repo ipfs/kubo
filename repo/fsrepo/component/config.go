@@ -93,13 +93,11 @@ func (c *ConfigComponent) SetConfigKey(key string, value interface{}) error {
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
 		return err
 	}
-	if err := serialize.WriteConfigFile(filename, mapconf); err != nil {
-		return err
-	}
-	// in order to get the updated values, read updated config from the
-	// file-system.
 	conf, err := config.FromMap(mapconf)
 	if err != nil {
+		return err
+	}
+	if err := serialize.WriteConfigFile(filename, mapconf); err != nil {
 		return err
 	}
 	return c.setConfigUnsynced(conf) // TODO roll this into this method
