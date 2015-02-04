@@ -1,13 +1,14 @@
 package coreunix
 
 import (
+	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func AddMetadataTo(key u.Key, m *ft.Metadata, dserv dag.DAGService) (u.Key, error) {
-	nd, err := dserv.Get(key)
+func AddMetadataTo(key u.Key, m *ft.Metadata, n *core.IpfsNode) (u.Key, error) {
+	nd, err := n.DAG.Get(key)
 	if err != nil {
 		return "", err
 	}
@@ -24,11 +25,11 @@ func AddMetadataTo(key u.Key, m *ft.Metadata, dserv dag.DAGService) (u.Key, erro
 		return "", err
 	}
 
-	return dserv.Add(mdnode)
+	return n.DAG.Add(mdnode)
 }
 
-func Metadata(key u.Key, dserv dag.DAGService) (*ft.Metadata, error) {
-	nd, err := dserv.Get(key)
+func Metadata(key u.Key, n *core.IpfsNode) (*ft.Metadata, error) {
+	nd, err := n.DAG.Get(key)
 	if err != nil {
 		return nil, err
 	}
