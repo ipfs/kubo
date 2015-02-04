@@ -81,6 +81,14 @@
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
 		},
 		{
+			"ImportPath": "github.com/crowdmob/goamz/aws",
+			"Rev": "82345796204222aa56be89cf930c316b1297f906"
+		},
+		{
+			"ImportPath": "github.com/crowdmob/goamz/s3",
+			"Rev": "82345796204222aa56be89cf930c316b1297f906"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "b198514c204f20799b91c93b6ffd8b26be04c2c9"
 		},
