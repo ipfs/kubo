@@ -14,20 +14,20 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-func getBalancedDag(t testing.TB, size int64) (*dag.Node, dag.DAGService) {
+func getBalancedDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGService) {
 	ds := mdtest.Mock(t)
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := BuildDagFromReader(r, ds, nil, chunk.DefaultSplitter)
+	nd, err := BuildDagFromReader(r, ds, nil, &chunk.SizeSplitter{blksize})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return nd, ds
 }
 
-func getTrickleDag(t testing.TB, size int64) (*dag.Node, dag.DAGService) {
+func getTrickleDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGService) {
 	ds := mdtest.Mock(t)
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := BuildTrickleDagFromReader(r, ds, nil, chunk.DefaultSplitter)
+	nd, err := BuildTrickleDagFromReader(r, ds, nil, &chunk.SizeSplitter{blksize})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,42 +60,92 @@ func TestBalancedDag(t *testing.T) {
 	}
 }
 
-func BenchmarkBalancedRead(b *testing.B) {
+func BenchmarkBalancedReadSmallBlock(b *testing.B) {
 	b.StopTimer()
-	nd, ds := getBalancedDag(b, int64(b.N))
-
-	read, err := uio.NewDagReader(context.TODO(), nd, ds)
-	if err != nil {
-		b.Fatal(err)
-	}
+	nbytes := int64(10000000)
+	nd, ds := getBalancedDag(b, nbytes, 4096)
 
 	b.StartTimer()
-	b.SetBytes(int64(b.N))
-	n, err := io.Copy(ioutil.Discard, read)
-	if err != nil {
-		b.Fatal(err)
+	for i := 0; i < b.N; i++ {
+		read, err := uio.NewDagReader(context.TODO(), nd, ds)
+		if err != nil {
+			b.Fatal(err)
+		}
+		n, err := io.Copy(ioutil.Discard, read)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if n != nbytes {
+			b.Fatal("Failed to read correct amount")
+		}
 	}
-	if n != int64(b.N) {
-		b.Fatal("Failed to read correct amount")
-	}
+	b.SetBytes(nbytes)
 }
 
-func BenchmarkTrickleRead(b *testing.B) {
+func BenchmarkTrickleReadSmallBlock(b *testing.B) {
 	b.StopTimer()
-	nd, ds := getTrickleDag(b, int64(b.N))
-
-	read, err := uio.NewDagReader(context.TODO(), nd, ds)
-	if err != nil {
-		b.Fatal(err)
-	}
+	nbytes := int64(10000000)
+	nd, ds := getTrickleDag(b, nbytes, 4096)
 
 	b.StartTimer()
-	b.SetBytes(int64(b.N))
-	n, err := io.Copy(new(bytes.Buffer), read)
-	if err != nil {
-		b.Fatal(err)
+	for i := 0; i < b.N; i++ {
+		read, err := uio.NewDagReader(context.TODO(), nd, ds)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		n, err := io.Copy(ioutil.Discard, read)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if n != nbytes {
+			b.Fatal("Failed to read correct amount")
+		}
 	}
-	if n != int64(b.N) {
-		b.Fatal("Failed to read correct amount")
+	b.SetBytes(nbytes)
+}
+
+func BenchmarkBalancedReadFull(b *testing.B) {
+	b.StopTimer()
+	nbytes := int64(10000000)
+	nd, ds := getBalancedDag(b, nbytes, chunk.DefaultBlockSize)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		read, err := uio.NewDagReader(context.TODO(), nd, ds)
+		if err != nil {
+			b.Fatal(err)
+		}
+		n, err := io.Copy(ioutil.Discard, read)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if n != nbytes {
+			b.Fatal("Failed to read correct amount")
+		}
 	}
+	b.SetBytes(nbytes)
+}
+
+func BenchmarkTrickleReadFull(b *testing.B) {
+	b.StopTimer()
+	nbytes := int64(10000000)
+	nd, ds := getTrickleDag(b, nbytes, chunk.DefaultBlockSize)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		read, err := uio.NewDagReader(context.TODO(), nd, ds)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		n, err := io.Copy(ioutil.Discard, read)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if n != nbytes {
+			b.Fatal("Failed to read correct amount")
+		}
+	}
+	b.SetBytes(nbytes)
 }
