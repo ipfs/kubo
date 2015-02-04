@@ -1,6 +1,8 @@
 package component
 
 import (
+	"strconv"
+
 	common "github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
@@ -85,6 +87,12 @@ func (c *ConfigComponent) SetConfigKey(key string, value interface{}) error {
 	filename, err := config.Filename(c.path)
 	if err != nil {
 		return err
+	}
+	switch v := value.(type) {
+	case string:
+		if i, err := strconv.Atoi(v); err == nil {
+			value = i
+		}
 	}
 	var mapconf map[string]interface{}
 	if err := serialize.ReadConfigFile(filename, &mapconf); err != nil {
