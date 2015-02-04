@@ -22,7 +22,7 @@ var Root = &cmds.Command{
 ipfs [<flags>] <command> [<arg>] ...
 `,
 		ShortDescription: `
-Basic commands:
+BASIC COMMANDS
 
     init          Initialize ipfs local configuration
     add <path>    Add an object to ipfs
@@ -31,33 +31,34 @@ Basic commands:
     ls <ref>      List links from an object
     refs <ref>    List hashes of links from an object
 
-Tool commands:
-
-    config        Manage configuration
-    update        Download and apply go-ipfs updates
-    version       Show ipfs version information
-    commands      List all available commands
-    id            Show info about ipfs peers
-    pin           Pin objects to local storage
-    name          Publish or resolve IPNS names
-    log           Change the logging level
-
-Advanced Commands:
-
-    daemon        Start a long-running daemon process
-    mount         Mount an ipfs read-only mountpoint
-    diag          Print diagnostics
-
-Network commands:
-
-    swarm         Manage connections to the p2p network
-    bootstrap     Add or remove bootstrap peers
-    ping          Measure the latency of a connection
-
-Plumbing commands:
+DATA STRUCTURE COMMANDS
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
+
+ADVANCED COMMANDS
+
+    daemon        Start a long-running daemon process
+    mount         Mount an ipfs read-only mountpoint
+    name          Publish or resolve IPNS names
+    pin           Pin objects to local storage
+    gc            Garbage collect unpinned objects
+
+NETWORK COMMANDS
+
+    id            Show info about ipfs peers
+    bootstrap     Add or remove bootstrap peers
+    swarm         Manage connections to the p2p network
+    dht           Query the dht for values or peers
+    ping          Measure the latency of a connection
+    diag          Print diagnostics
+
+TOOL COMMANDS
+
+    config        Manage configuration
+    version       Show ipfs version information
+    update        Download and apply go-ipfs updates
+    commands      List all available commands
 
 Use 'ipfs <command> --help' to learn more about each command.
 `,
