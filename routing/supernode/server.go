@@ -8,6 +8,7 @@ import (
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	proxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
 	util "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
@@ -55,7 +56,12 @@ func (s *Server) handleMessage(
 		return p, response
 
 	case dhtpb.Message_PUT_VALUE:
-		// TODO before merging: verifyRecord(req.GetRecord())
+		// FIXME: verify complains that the peer's ID is not present in the
+		// peerstore. Mocknet problem?
+		// if err := verify(s.peerstore, req.GetRecord()); err != nil {
+		// 	log.Event(ctx, "validationFailed", req, p)
+		// 	return "", nil
+		// }
 		putRoutingRecord(s.routingBackend, util.Key(req.GetKey()), req.GetRecord())
 		return p, req
 
@@ -190,4 +196,18 @@ func getRoutingProviders(ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_P
 
 func providerKey(k util.Key) datastore.Key {
 	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
+}
+
+func verify(ps peer.Peerstore, r *dhtpb.Record) error {
+	v := make(record.Validator)
+	v["pk"] = record.ValidatePublicKeyRecord
+	p := peer.ID(r.GetAuthor())
+	pk := ps.PubKey(p)
+	if pk == nil {
+		return fmt.Errorf("do not have public key for %s", p)
+	}
+	if err := v.VerifyRecord(r, pk); err != nil {
+		return err
+	}
+	return nil
 }
