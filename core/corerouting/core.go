@@ -8,8 +8,8 @@ import (
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
-	grandcentral "github.com/jbenet/go-ipfs/routing/grandcentral"
-	gcproxy "github.com/jbenet/go-ipfs/routing/grandcentral/proxy"
+	supernode "github.com/jbenet/go-ipfs/routing/supernode"
+	gcproxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
 )
 
 // NB: DHT option is included in the core to avoid 1) because it's a sane
@@ -17,16 +17,16 @@ import (
 // the core if it's going to be the default)
 
 var (
-	errHostMissing      = errors.New("grandcentral client requires a Host component")
-	errIdentityMissing  = errors.New("grandcentral server requires a peer ID identity")
-	errPeerstoreMissing = errors.New("grandcentral server requires a peerstore")
-	errServersMissing   = errors.New("grandcentral client requires at least 1 server peer")
+	errHostMissing      = errors.New("supernode routing client requires a Host component")
+	errIdentityMissing  = errors.New("supernode routing server requires a peer ID identity")
+	errPeerstoreMissing = errors.New("supernode routing server requires a peerstore")
+	errServersMissing   = errors.New("supernode routing client requires at least 1 server peer")
 )
 
-// GrandCentralServer returns a configuration for a routing server that stores
+// SupernodeServer returns a configuration for a routing server that stores
 // routing records to the provided datastore. Only routing records are store in
 // the datastore.
-func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.RoutingOption {
+func SupernodeServer(recordSource datastore.ThreadSafeDatastore) core.RoutingOption {
 	return func(ctx context.Context, node *core.IpfsNode) (routing.IpfsRouting, error) {
 		if node.Peerstore == nil {
 			return nil, errPeerstoreMissing
@@ -37,7 +37,7 @@ func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.Routing
 		if node.Identity == "" {
 			return nil, errIdentityMissing
 		}
-		server, err := grandcentral.NewServer(recordSource, node.Peerstore, node.Identity)
+		server, err := supernode.NewServer(recordSource, node.Peerstore, node.Identity)
 		if err != nil {
 			return nil, err
 		}
@@ -45,13 +45,13 @@ func GrandCentralServer(recordSource datastore.ThreadSafeDatastore) core.Routing
 			Handler: server,
 			Local:   node.Identity,
 		}
-		node.PeerHost.SetStreamHandler(gcproxy.ProtocolGCR, proxy.HandleStream)
-		return grandcentral.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
+		node.PeerHost.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
+		return supernode.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
 	}
 }
 
 // TODO doc
-func GrandCentralClient(remotes ...peer.PeerInfo) core.RoutingOption {
+func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
 	return func(ctx context.Context, node *core.IpfsNode) (routing.IpfsRouting, error) {
 		if len(remotes) < 1 {
 			return nil, errServersMissing
@@ -78,7 +78,7 @@ func GrandCentralClient(remotes ...peer.PeerInfo) core.RoutingOption {
 			ids = append(ids, info.ID)
 		}
 		proxy := gcproxy.Standard(node.PeerHost, ids)
-		node.PeerHost.SetStreamHandler(gcproxy.ProtocolGCR, proxy.HandleStream)
-		return grandcentral.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
+		node.PeerHost.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
+		return supernode.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
 	}
 }

@@ -21,9 +21,9 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
-func TestGrandcentralBootstrappedAddCat(t *testing.T) {
-	// create 8 grandcentral bootstrap nodes
-	// create 2 grandcentral clients both bootstrapped to the bootstrap nodes
+func TestSupernodeBootstrappedAddCat(t *testing.T) {
+	// create 8 supernode-routing bootstrap nodes
+	// create 2 supernode-routing clients both bootstrapped to the bootstrap nodes
 	// let the bootstrap nodes share a single datastore
 	// add a large file on one node then cat the file from the other
 	conf := testutil.LatencyConfig{
@@ -31,16 +31,16 @@ func TestGrandcentralBootstrappedAddCat(t *testing.T) {
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
-	if err := RunGrandcentralBootstrappedAddCat(RandomBytes(100*unit.MB), conf); err != nil {
+	if err := RunSupernodeBootstrappedAddCat(RandomBytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func RunGrandcentralBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) error {
+func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	servers, clients, err := InitializeGrandCentralNetwork(ctx, 8, 2, conf)
+	servers, clients, err := InitializeSupernodeNetwork(ctx, 8, 2, conf)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func RunGrandcentralBootstrappedAddCat(data []byte, conf testutil.LatencyConfig)
 	return nil
 }
 
-func InitializeGrandCentralNetwork(
+func InitializeSupernodeNetwork(
 	ctx context.Context,
 	numServers, numClients int,
 	conf testutil.LatencyConfig) ([]*core.IpfsNode, []*core.IpfsNode, error) {
@@ -100,7 +100,7 @@ func InitializeGrandCentralNetwork(
 	for i := range iter.N(numServers) {
 		p := serverPeers[i]
 		bootstrap, err := core.NewIPFSNode(ctx, MocknetTestRepo(p, mn.Host(p), conf,
-			corerouting.GrandCentralServer(routingDatastore)))
+			corerouting.SupernodeServer(routingDatastore)))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -117,7 +117,7 @@ func InitializeGrandCentralNetwork(
 	for i := range iter.N(numClients) {
 		p := clientPeers[i]
 		n, err := core.NewIPFSNode(ctx, MocknetTestRepo(p, mn.Host(p), conf,
-			corerouting.GrandCentralClient(bootstrapInfos...)))
+			corerouting.SupernodeClient(bootstrapInfos...)))
 		if err != nil {
 			return nil, nil, err
 		}

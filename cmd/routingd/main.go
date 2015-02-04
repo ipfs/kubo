@@ -12,7 +12,7 @@ import (
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	core "github.com/jbenet/go-ipfs/core"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
-	"github.com/jbenet/go-ipfs/core/corerouting"
+	corerouting "github.com/jbenet/go-ipfs/core/corerouting"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	s3datastore "github.com/jbenet/go-ipfs/thirdparty/s3-datastore"
@@ -65,7 +65,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.GrandCentralServer(enhanced)))
+	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.SupernodeServer(enhanced)))
 	if err != nil {
 		return err
 	}

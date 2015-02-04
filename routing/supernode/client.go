@@ -1,4 +1,4 @@
-package grandcentral
+package supernode
 
 import (
 	"bytes"
@@ -10,13 +10,13 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	proxy "github.com/jbenet/go-ipfs/routing/grandcentral/proxy"
+	proxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-var log = eventlog.Logger("grandcentral")
+var log = eventlog.Logger("supernode")
 
 type Client struct {
 	peerhost  host.Host
@@ -128,7 +128,7 @@ func makeRecord(ps peer.Peerstore, p peer.ID, k u.Key, v []byte) (*pb.Record, er
 
 func (c *Client) Ping(ctx context.Context, id peer.ID) (time.Duration, error) {
 	defer log.EventBegin(ctx, "ping", id).Done()
-	return time.Nanosecond, errors.New("grandcentral routing does not support the ping method")
+	return time.Nanosecond, errors.New("supernode routing does not support the ping method")
 }
 
 var _ routing.IpfsRouting = &Client{}
