@@ -10,10 +10,11 @@ It is generated from these files:
 
 It has these top-level messages:
 	Data
+	Metadata
 */
 package unixfs_pb
 
-import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import proto "code.google.com/p/gogoprotobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -26,17 +27,20 @@ const (
 	Data_Raw       Data_DataType = 0
 	Data_Directory Data_DataType = 1
 	Data_File      Data_DataType = 2
+	Data_Metadata  Data_DataType = 3
 )
 
 var Data_DataType_name = map[int32]string{
 	0: "Raw",
 	1: "Directory",
 	2: "File",
+	3: "Metadata",
 }
 var Data_DataType_value = map[string]int32{
 	"Raw":       0,
 	"Directory": 1,
 	"File":      2,
+	"Metadata":  3,
 }
 
 func (x Data_DataType) Enum() *Data_DataType {
@@ -94,6 +98,22 @@ func (m *Data) GetBlocksizes() []uint64 {
 		return m.Blocksizes
 	}
 	return nil
+}
+
+type Metadata struct {
+	MimeType         *string `protobuf:"bytes,1,req" json:"MimeType,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *Metadata) Reset()         { *m = Metadata{} }
+func (m *Metadata) String() string { return proto.CompactTextString(m) }
+func (*Metadata) ProtoMessage()    {}
+
+func (m *Metadata) GetMimeType() string {
+	if m != nil && m.MimeType != nil {
+		return *m.MimeType
+	}
+	return ""
 }
 
 func init() {

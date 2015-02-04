@@ -23,6 +23,10 @@ func (k Key) Pretty() string {
 	return k.B58String()
 }
 
+func (k Key) ToMultihash() mh.Multihash {
+	return mh.Multihash(k)
+}
+
 // B58String returns Key in a b58 encoded string
 func (k Key) B58String() string {
 	return B58KeyEncode(k)
