@@ -13,7 +13,7 @@ import (
 	p2ptestutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	blockstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
-	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
+	datastore2 "github.com/jbenet/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

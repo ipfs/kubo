@@ -14,7 +14,7 @@ import (
 	blockstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
+	ds2 "github.com/jbenet/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

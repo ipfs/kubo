@@ -15,7 +15,7 @@ import (
 	blockservice "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
 	"github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	mdag "github.com/jbenet/go-ipfs/struct/merkledag"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
+	ds2 "github.com/jbenet/go-ipfs/thirdparty/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 

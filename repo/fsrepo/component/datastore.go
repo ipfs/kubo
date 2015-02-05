@@ -12,7 +12,7 @@ import (
 	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
 	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
 	util "github.com/jbenet/go-ipfs/util"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
+	ds2 "github.com/jbenet/go-ipfs/thirdparty/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 

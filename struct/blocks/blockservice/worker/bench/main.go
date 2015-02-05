@@ -15,7 +15,7 @@ import (
 	blocks "github.com/jbenet/go-ipfs/struct/blocks"
 	worker "github.com/jbenet/go-ipfs/struct/blocks/blockservice/worker"
 	blockstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
-	"github.com/jbenet/go-ipfs/util/datastore2"
+	"github.com/jbenet/go-ipfs/thirdparty/datastore2"
 )
 
 const kEstRoutingDelay = time.Second
