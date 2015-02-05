@@ -122,7 +122,7 @@ var (
 	subcommandPrefix = "[USAGE]%v[DEFAULT]"
 )
 
-func init() {
+func initTemplates(useTerminalColors bool) {
 	colorScheme = c.Colorize{
 		Colors: map[string]string{
 			"HEADER":       c.DefaultColors["light_blue"],
@@ -141,6 +141,12 @@ func init() {
 		Disable: !isatty.IsTerminal(os.Stdout.Fd()),
 	}
 
+	if !useTerminalColors {
+		// if using terminal colors is explicitely forbidden,
+		// disable our colorScheme
+		colorScheme.Disable = true
+	}
+
 	requiredArg = colorScheme.Color(requiredArg)
 	optionalArg = colorScheme.Color(optionalArg)
 	variadicArg = colorScheme.Color(variadicArg)
@@ -154,7 +160,8 @@ func init() {
 }
 
 // LongHelp returns a formatted CLI helptext string, generated for the given command
-func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func LongHelp(rootName string, root *cmds.Command, req cmds.Request, path []string, out io.Writer) error {
+	initTemplates(true)
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -204,7 +211,20 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 }
 
 // ShortHelp returns a formatted CLI helptext string, generated for the given command
-func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func ShortHelp(rootName string, root *cmds.Command, req cmds.Request, path []string, out io.Writer) error {
+	terminalColors := false
+	if req != nil {
+		ctx := req.Context()
+		if ctx != nil {
+			config, err := req.Context().GetConfig()
+			if err == nil {
+				terminalColors = config.Preferences.TerminalColors
+			}
+		}
+	}
+
+	initTemplates(terminalColors)
+
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err

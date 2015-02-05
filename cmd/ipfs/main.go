@@ -66,6 +66,9 @@ func main() {
 	}
 	defer stopFunc() // to be executed as late as possible
 
+	// parse the commandline into a command invocation
+	parseErr := invoc.Parse(ctx, os.Args[1:])
+
 	// this is a local helper to print out help text.
 	// there's some considerations that this makes easier.
 	printHelp := func(long bool, w io.Writer) {
@@ -74,7 +77,7 @@ func main() {
 			helpFunc = cmdsCli.LongHelp
 		}
 
-		helpFunc("ipfs", Root, invoc.path, w)
+		helpFunc("ipfs", Root, invoc.req, invoc.path, w)
 	}
 
 	// this is a message to tell the user how to get the help text
@@ -82,9 +85,6 @@ func main() {
 		cmdPath := strings.Join(invoc.path, " ")
 		fmt.Fprintf(w, "Use 'ipfs %s --help' for information about this command\n", cmdPath)
 	}
-
-	// parse the commandline into a command invocation
-	parseErr := invoc.Parse(ctx, os.Args[1:])
 
 	// BEFORE handling the parse error, if we have enough information
 	// AND the user requested help, print it out and exit
