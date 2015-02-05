@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"flag"
 	"log"
@@ -17,13 +18,15 @@ import (
 )
 
 var (
-	writable               = flag.Bool("writable", false, "enable writing objects (with POST, PUT and DELETE)")
-	refreshAssetsInterval  = flag.Duration("refresh-assets-interval", 30*time.Second, "refresh assets")
-	garbageCollectInterval = flag.Duration("gc-interval", 24*time.Hour, "frequency of repo garbage collection")
-	assetsPath             = flag.String("assets-path", "", "if provided, periodically adds contents of path to IPFS")
-	host                   = flag.String("host", "/ip4/0.0.0.0/tcp/8080", "override the HTTP host listening address")
-	performGC              = flag.Bool("gc", false, "perform garbage collection")
-	nBitsForKeypair        = flag.Int("b", 1024, "number of bits for keypair (if repo is uninitialized)")
+	blocklistFilepath        = flag.String("blocklist", "", "keys that should not be served by the gateway")
+	writable                 = flag.Bool("writable", false, "enable writing objects (with POST, PUT and DELETE)")
+	refreshBlockListInterval = flag.Duration("refresh-blocklist-interval", 30*time.Second, "refresh blocklist")
+	refreshAssetsInterval    = flag.Duration("refresh-assets-interval", 30*time.Second, "refresh assets")
+	garbageCollectInterval   = flag.Duration("gc-interval", 24*time.Hour, "frequency of repo garbage collection")
+	assetsPath               = flag.String("assets-path", "", "if provided, periodically adds contents of path to IPFS")
+	host                     = flag.String("host", "/ip4/0.0.0.0/tcp/8080", "override the HTTP host listening address")
+	performGC                = flag.Bool("gc", false, "perform garbage collection")
+	nBitsForKeypair          = flag.Int("b", 1024, "number of bits for keypair (if repo is uninitialized)")
 )
 
 func main() {
@@ -77,8 +80,18 @@ func run() error {
 		}
 	}
 
+	blocklist := &corehttp.BlockList{}
+	gateway := corehttp.NewGateway(corehttp.GatewayConfig{
+		Writable:  *writable,
+		BlockList: blocklist,
+	})
+
+	if err := runBlockListWorker(blocklist, *blocklistFilepath); err != nil {
+		return err
+	}
+
 	opts := []corehttp.ServeOption{
-		corehttp.GatewayOption(*writable),
+		gateway.ServeOption(),
 	}
 	return corehttp.ListenAndServe(node, *host, opts...)
 }
@@ -108,6 +121,44 @@ func runFileServerWorker(ctx context.Context, node *core.IpfsNode) error {
 			if err != nil {
 				log.Println(err)
 			}
+		}
+	}()
+	return nil
+}
+
+func runBlockListWorker(blocklist *corehttp.BlockList, filepath string) error {
+	if filepath == "" {
+		return nil
+	}
+	go func() {
+		for _ = range time.Tick(*refreshBlockListInterval) {
+			log.Println("updating the blocklist...")
+			func() { // in a func to allow defer f.Close()
+				f, err := os.Open(filepath)
+				if err != nil {
+					log.Println(err)
+				}
+				defer f.Close()
+				scanner := bufio.NewScanner(f)
+				blocked := make(map[string]struct{}) // Implement using Bloom Filter hybrid if blocklist gets large
+				for scanner.Scan() {
+					t := scanner.Text()
+					blocked[t] = struct{}{}
+				}
+
+				// If an error occurred, do not change the existing decider. This
+				// is to avoid accidentally clearing the list if the deploy is
+				// botched.
+				if err := scanner.Err(); err != nil {
+					log.Println(err)
+				} else {
+					blocklist.SetDecider(func(s string) bool {
+						_, ok := blocked[s]
+						return !ok
+					})
+					log.Printf("updated the blocklist (%d entries)", len(blocked))
+				}
+			}()
 		}
 	}()
 	return nil
