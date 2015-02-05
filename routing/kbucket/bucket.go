@@ -30,18 +30,18 @@ func (b *Bucket) Peers() []peer.ID {
 	return ps
 }
 
-func (b *Bucket) find(id peer.ID) *list.Element {
+func (b *Bucket) Has(id peer.ID) bool {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
 		if e.Value.(peer.ID) == id {
-			return e
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
-func (b *Bucket) remove(id peer.ID) {
+func (b *Bucket) Remove(id peer.ID) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
@@ -51,19 +51,23 @@ func (b *Bucket) remove(id peer.ID) {
 	}
 }
 
-func (b *Bucket) moveToFront(e *list.Element) {
+func (b *Bucket) MoveToFront(id peer.ID) {
 	b.lk.Lock()
-	b.list.MoveToFront(e)
-	b.lk.Unlock()
+	defer b.lk.Unlock()
+	for e := b.list.Front(); e != nil; e = e.Next() {
+		if e.Value.(peer.ID) == id {
+			b.list.MoveToFront(e)
+		}
+	}
 }
 
-func (b *Bucket) pushFront(p peer.ID) {
+func (b *Bucket) PushFront(p peer.ID) {
 	b.lk.Lock()
 	b.list.PushFront(p)
 	b.lk.Unlock()
 }
 
-func (b *Bucket) popBack() peer.ID {
+func (b *Bucket) PopBack() peer.ID {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	last := b.list.Back()
@@ -71,7 +75,7 @@ func (b *Bucket) popBack() peer.ID {
 	return last.Value.(peer.ID)
 }
 
-func (b *Bucket) len() int {
+func (b *Bucket) Len() int {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	return b.list.Len()

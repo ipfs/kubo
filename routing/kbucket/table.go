@@ -46,7 +46,7 @@ func NewRoutingTable(bucketsize int, localID ID, latency time.Duration, m peer.M
 
 // Update adds or moves the given peer to the front of its respective bucket
 // If a peer gets removed from a bucket, it is returned
-func (rt *RoutingTable) Update(p peer.ID) peer.ID {
+func (rt *RoutingTable) Update(p peer.ID) {
 	rt.tabLock.Lock()
 	defer rt.tabLock.Unlock()
 	peerID := ConvertPeerID(p)
@@ -58,33 +58,35 @@ func (rt *RoutingTable) Update(p peer.ID) peer.ID {
 	}
 
 	bucket := rt.Buckets[bucketID]
-	e := bucket.find(p)
-	if e == nil {
-		// New peer, add to bucket
-		if rt.metrics.LatencyEWMA(p) > rt.maxLatency {
-			// Connection doesnt meet requirements, skip!
-			return ""
-		}
-		bucket.pushFront(p)
-
-		// Are we past the max bucket size?
-		if bucket.len() > rt.bucketsize {
-			// If this bucket is the rightmost bucket, and its full
-			// we need to split it and create a new bucket
-			if bucketID == len(rt.Buckets)-1 {
-				return rt.nextBucket()
-			} else {
-				// If the bucket cant split kick out least active node
-				return bucket.popBack()
-			}
-		}
-		return ""
+	if bucket.Has(p) {
+		// If the peer is already in the table, move it to the front.
+		// This signifies that it it "more active" and the less active nodes
+		// Will as a result tend towards the back of the list
+		bucket.MoveToFront(p)
+		return
 	}
-	// If the peer is already in the table, move it to the front.
-	// This signifies that it it "more active" and the less active nodes
-	// Will as a result tend towards the back of the list
-	bucket.moveToFront(e)
-	return ""
+
+	if rt.metrics.LatencyEWMA(p) > rt.maxLatency {
+		// Connection doesnt meet requirements, skip!
+		return
+	}
+
+	// New peer, add to bucket
+	bucket.PushFront(p)
+
+	// Are we past the max bucket size?
+	if bucket.Len() > rt.bucketsize {
+		// If this bucket is the rightmost bucket, and its full
+		// we need to split it and create a new bucket
+		if bucketID == len(rt.Buckets)-1 {
+			rt.nextBucket()
+			return
+		} else {
+			// If the bucket cant split kick out least active node
+			bucket.PopBack()
+			return
+		}
+	}
 }
 
 // Remove deletes a peer from the routing table. This is to be used
@@ -101,20 +103,20 @@ func (rt *RoutingTable) Remove(p peer.ID) {
 	}
 
 	bucket := rt.Buckets[bucketID]
-	bucket.remove(p)
+	bucket.Remove(p)
 }
 
 func (rt *RoutingTable) nextBucket() peer.ID {
 	bucket := rt.Buckets[len(rt.Buckets)-1]
 	newBucket := bucket.Split(len(rt.Buckets)-1, rt.local)
 	rt.Buckets = append(rt.Buckets, newBucket)
-	if newBucket.len() > rt.bucketsize {
+	if newBucket.Len() > rt.bucketsize {
 		return rt.nextBucket()
 	}
 
 	// If all elements were on left side of split...
-	if bucket.len() > rt.bucketsize {
-		return bucket.popBack()
+	if bucket.Len() > rt.bucketsize {
+		return bucket.PopBack()
 	}
 	return ""
 }
@@ -153,7 +155,7 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.ID {
 	bucket = rt.Buckets[cpl]
 
 	var peerArr peerSorterArr
-	if bucket.len() == 0 {
+	if bucket.Len() == 0 {
 		// In the case of an unusual split, one bucket may be empty.
 		// if this happens, search both surrounding buckets for nearest peer
 		if cpl > 0 {
@@ -184,7 +186,7 @@ func (rt *RoutingTable) NearestPeers(id ID, count int) []peer.ID {
 func (rt *RoutingTable) Size() int {
 	var tot int
 	for _, buck := range rt.Buckets {
-		tot += buck.len()
+		tot += buck.Len()
 	}
 	return tot
 }

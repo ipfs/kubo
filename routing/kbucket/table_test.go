@@ -17,15 +17,14 @@ func TestBucket(t *testing.T) {
 	peers := make([]peer.ID, 100)
 	for i := 0; i < 100; i++ {
 		peers[i] = tu.RandPeerIDFatal(t)
-		b.pushFront(peers[i])
+		b.PushFront(peers[i])
 	}
 
 	local := tu.RandPeerIDFatal(t)
 	localID := ConvertPeerID(local)
 
 	i := rand.Intn(len(peers))
-	e := b.find(peers[i])
-	if e == nil {
+	if !b.Has(peers[i]) {
 		t.Errorf("Failed to find peer: %v", peers[i])
 	}
 
@@ -62,10 +61,7 @@ func TestTableUpdate(t *testing.T) {
 
 	// Testing Update
 	for i := 0; i < 10000; i++ {
-		p := rt.Update(peers[rand.Intn(len(peers))])
-		if p != "" {
-			//t.Log("evicted peer.")
-		}
+		rt.Update(peers[rand.Intn(len(peers))])
 	}
 
 	for i := 0; i < 100; i++ {
