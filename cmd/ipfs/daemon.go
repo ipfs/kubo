@@ -203,16 +203,14 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 		return false
 	})
-	gatewayConfig := corehttp.GatewayConfig{
+	gateway := corehttp.NewGateway(corehttp.GatewayConfig{
 		Writable:  true,
 		BlockList: blocklist,
-	}
-	gatewayOption := corehttp.NewGateway(gatewayConfig).ServeOption()
-
+	})
 	var opts = []corehttp.ServeOption{
 		corehttp.CommandsOption(*req.Context()),
 		corehttp.WebUIOption,
-		gatewayOption,
+		gateway.ServeOption(),
 	}
 	if rootRedirect != nil {
 		opts = append(opts, rootRedirect)
