@@ -167,7 +167,8 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 
 	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden"))
 		return
 	}
 
