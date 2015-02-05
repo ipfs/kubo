@@ -5,8 +5,8 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	core "github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
+	"github.com/jbenet/go-ipfs/unixfs/importer"
+	chunk "github.com/jbenet/go-ipfs/unixfs/importer/chunk"
 	path "github.com/jbenet/go-ipfs/path"
 	dag "github.com/jbenet/go-ipfs/struct/merkledag"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"

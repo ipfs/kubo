@@ -13,8 +13,8 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	core "github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
+	"github.com/jbenet/go-ipfs/unixfs/importer"
+	chunk "github.com/jbenet/go-ipfs/unixfs/importer/chunk"
 	path "github.com/jbenet/go-ipfs/path"
 	"github.com/jbenet/go-ipfs/routing"
 	dag "github.com/jbenet/go-ipfs/struct/merkledag"

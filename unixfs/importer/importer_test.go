@@ -16,10 +16,10 @@ import (
 
 	pin "github.com/jbenet/go-ipfs/core/corerepo/pin"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	bserv "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
 	bstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
+	chunk "github.com/jbenet/go-ipfs/unixfs/importer/chunk"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
