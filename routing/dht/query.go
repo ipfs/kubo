@@ -10,7 +10,7 @@ import (
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	pset "github.com/jbenet/go-ipfs/util/peerset"
-	todoctr "github.com/jbenet/go-ipfs/util/todocounter"
+	todoctr "github.com/jbenet/go-ipfs/thirdparty/todocounter"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
