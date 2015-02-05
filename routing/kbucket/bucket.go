@@ -42,8 +42,8 @@ func (b *Bucket) find(id peer.ID) *list.Element {
 }
 
 func (b *Bucket) remove(id peer.ID) {
-	b.lk.RLock()
-	defer b.lk.RUnlock()
+	b.lk.Lock()
+	defer b.lk.Unlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
 		if e.Value.(peer.ID) == id {
 			b.list.Remove(e)
