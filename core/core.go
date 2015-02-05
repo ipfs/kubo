@@ -30,7 +30,7 @@ import (
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
-	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
+	rp "github.com/jbenet/go-ipfs/core/corerouting/reprovide"
 	bserv "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
 	bstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 
