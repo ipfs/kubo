@@ -48,12 +48,12 @@ type Decider func(string) bool
 
 type BlockList struct {
 	mu sync.RWMutex
-	d  Decider
+	Decider  Decider
 }
 
 func (b *BlockList) ShouldAllow(s string) bool {
 	b.mu.RLock()
-	d := b.d
+	d := b.Decider
 	b.mu.RUnlock()
 	if d == nil {
 		return true
@@ -61,10 +61,11 @@ func (b *BlockList) ShouldAllow(s string) bool {
 	return d(s)
 }
 
-// SetDecider atomically swaps the blocklist's decider
+// SetDecider atomically swaps the blocklist's decider. This method is
+// thread-safe.
 func (b *BlockList) SetDecider(d Decider) {
 	b.mu.Lock()
-	b.d = d
+	b.Decider = d
 	b.mu.Unlock()
 }
 
