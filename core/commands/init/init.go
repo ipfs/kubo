@@ -10,7 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
+	ipns "github.com/jbenet/go-ipfs/unixfs/fuse/ipns"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"

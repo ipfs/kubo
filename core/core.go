@@ -35,7 +35,7 @@ import (
 	bstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 
 	pin "github.com/jbenet/go-ipfs/core/corerepo/pin"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	mount "github.com/jbenet/go-ipfs/unixfs/fuse/mount"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
 	repo "github.com/jbenet/go-ipfs/repo"

@@ -13,9 +13,9 @@ import (
 	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
-	ipns "github.com/jbenet/go-ipfs/fuse/ipns"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
-	rofs "github.com/jbenet/go-ipfs/fuse/readonly"
+	ipns "github.com/jbenet/go-ipfs/unixfs/fuse/ipns"
+	mount "github.com/jbenet/go-ipfs/unixfs/fuse/mount"
+	rofs "github.com/jbenet/go-ipfs/unixfs/fuse/readonly"
 	config "github.com/jbenet/go-ipfs/repo/config"
 )
 

@@ -4,7 +4,7 @@ package ipns
 
 import (
 	core "github.com/jbenet/go-ipfs/core"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	mount "github.com/jbenet/go-ipfs/unixfs/fuse/mount"
 )
 
 // Mount mounts ipns at a given location, and returns a mount.Mount instance.

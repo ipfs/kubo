@@ -4,7 +4,7 @@ package readonly
 
 import (
 	core "github.com/jbenet/go-ipfs/core"
-	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	mount "github.com/jbenet/go-ipfs/unixfs/fuse/mount"
 )
 
 // Mount mounts ipfs at a given location, and returns a mount.Mount instance.
