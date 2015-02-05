@@ -47,7 +47,7 @@ type IDService struct {
 
 	// our own observed addresses.
 	// TODO: instead of expiring, remove these when we disconnect
-	addrs peer.AddrManager
+	observedAddrs ObservedAddrSet
 }
 
 func NewIDService(h host.Host) *IDService {
@@ -61,7 +61,7 @@ func NewIDService(h host.Host) *IDService {
 
 // OwnObservedAddrs returns the addresses peers have reported we've dialed from
 func (ids *IDService) OwnObservedAddrs() []ma.Multiaddr {
-	return ids.addrs.Addrs(ids.Host.ID())
+	return ids.observedAddrs.Addrs()
 }
 
 func (ids *IDService) IdentifyConn(c inet.Conn) {
@@ -250,7 +250,7 @@ func (ids *IDService) consumeObservedAddress(observed []byte, c inet.Conn) {
 
 	// ok! we have the observed version of one of our ListenAddresses!
 	log.Debugf("added own observed listen addr: %s --> %s", c.LocalMultiaddr(), maddr)
-	ids.addrs.AddAddr(ids.Host.ID(), maddr, peer.OwnObservedAddrTTL)
+	ids.observedAddrs.Add(maddr)
 }
 
 func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
