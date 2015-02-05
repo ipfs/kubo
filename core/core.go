@@ -14,8 +14,8 @@ import (
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 
-	diag "github.com/jbenet/go-ipfs/diagnostics"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
+	diag "github.com/jbenet/go-ipfs/p2p/diagnostics"
 	p2phost "github.com/jbenet/go-ipfs/p2p/host"
 	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
 	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
@@ -26,21 +26,21 @@ import (
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	offroute "github.com/jbenet/go-ipfs/routing/offline"
 
+	rp "github.com/jbenet/go-ipfs/core/corerouting/reprovide"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
-	rp "github.com/jbenet/go-ipfs/core/corerouting/reprovide"
 	bserv "github.com/jbenet/go-ipfs/struct/blocks/blockservice"
 	bstore "github.com/jbenet/go-ipfs/struct/blocks/blockstore"
 
 	pin "github.com/jbenet/go-ipfs/core/corerepo/pin"
-	mount "github.com/jbenet/go-ipfs/unixfs/fuse/mount"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"
+	mount "github.com/jbenet/go-ipfs/unixfs/fuse/mount"
 )
 
 const IpnsValidatorTag = "ipns"

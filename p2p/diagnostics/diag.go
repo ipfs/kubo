@@ -22,7 +22,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 
-	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
+	pb "github.com/jbenet/go-ipfs/p2p/diagnostics/internal/pb"
 	util "github.com/jbenet/go-ipfs/util"
 )
 

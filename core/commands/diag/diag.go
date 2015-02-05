@@ -10,7 +10,7 @@ import (
 
 	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
-	diag "github.com/jbenet/go-ipfs/diagnostics"
+	diag "github.com/jbenet/go-ipfs/p2p/diagnostics"
 )
 
 type DiagnosticConnection struct {
