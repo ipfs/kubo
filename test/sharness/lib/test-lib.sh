@@ -36,13 +36,6 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 	exit 1
 }
 
-# overriding testcmp to make it use fsh (to see it better in output)
-# have to do it twice so the first diff output doesnt show unless it's
-# broken.
-test_cmp() {
-	diff -q "$@" >/dev/null || fsh diff -u "$@"
-}
-
 # Please put go-ipfs specific shell functions below
 
 # grab + output options
@@ -54,6 +47,9 @@ if test "$TEST_VERBOSE" = 1; then
 	echo '# TEST_NO_FUSE='"$TEST_NO_FUSE"
 	echo '# TEST_EXPENSIVE='"$TEST_EXPENSIVE"
 fi
+
+# source our generic test lib
+. ../../ipfs-test-lib.sh
 
 test_cmp_repeat_10_sec() {
 	for i in 1 2 3 4 5 6 7 8 9 10
@@ -86,7 +82,7 @@ test_wait_output_n_lines_60_sec() {
 		done
 	done
 	actual=$(cat "$1" | wc -l | tr -d " ")
-	fsh "expected $2 lines of output. got $actual"
+	test_fsh "expected $2 lines of output. got $actual"
 }
 
 test_wait_open_tcp_port_10_sec() {
@@ -139,7 +135,7 @@ test_init_ipfs() {
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
 		ipfs bootstrap rm --all ||
-		fsh cat "\"$IPFS_PATH/config\""
+		test_fsh cat "\"$IPFS_PATH/config\""
 	'
 
 }
@@ -165,7 +161,7 @@ test_config_ipfs_gateway_writable() {
 
 	test_expect_success "prepare config -- gateway writable" '
 		test_config_set -bool Gateway.Writable true ||
-		fsh cat "\"$IPFS_PATH/config\""
+		test_fsh cat "\"$IPFS_PATH/config\""
 	'
 }
 
@@ -181,13 +177,13 @@ test_launch_ipfs_daemon() {
 		IPFS_PID=$! &&
 		test_wait_output_n_lines_60_sec actual_daemon 2 &&
 		test_run_repeat_60_sec "grep \"API server listening on $ADDR_API\" actual_daemon" ||
-		fsh cat actual_daemon || fsh cat daemon_err
+		test_fsh cat actual_daemon || test_fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
 			test_run_repeat_60_sec "grep \"Gateway server listening on $ADDR_GWAY\" actual_daemon" ||
-			fsh cat daemon_err
+			test_fsh cat daemon_err
 		'
 	fi
 }

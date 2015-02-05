@@ -17,7 +17,7 @@ test_expect_success "'ipfs get --help' succeeds" '
 
 test_expect_success "'ipfs get --help' output looks good" '
   egrep "ipfs get.*<ipfs-path>" actual >/dev/null ||
-  fsh cat actual
+  test_fsh cat actual
 '
 
 test_expect_success "ipfs get succeeds" '

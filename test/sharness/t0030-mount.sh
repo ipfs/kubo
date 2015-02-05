@@ -27,7 +27,7 @@ test_expect_failure "'ipfs mount' fails when no mount dir (issue #341)" '
 test_expect_failure "'ipfs mount' looks good when it fails (issue #341)" '
 	! grep "IPFS mounted at: $(pwd)/ipfs" actual >/dev/null &&
 	! grep "IPNS mounted at: $(pwd)/ipns" actual >/dev/null ||
-	fsh cat actual
+	test_fsh cat actual
 '
 
 # now mount properly, and keep going
