@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"sync"
 	"time"
@@ -13,7 +12,6 @@ import (
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	dht "github.com/jbenet/go-ipfs/routing/dht"
 	math2 "github.com/jbenet/go-ipfs/thirdparty/math2"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
@@ -76,15 +74,6 @@ func BootstrapConfigWithPeers(pis []peer.PeerInfo) BootstrapConfig {
 // bootstrapping (i.e. routing).
 func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 
-	// TODO what bootstrapping should happen if there is no DHT? i.e. we could
-	// continue connecting to our bootstrap peers, but for what purpose? for now
-	// simply exit without connecting to any of them. When we introduce another
-	// routing system that uses bootstrap peers we can change this.
-	thedht, ok := n.Routing.(*dht.IpfsDHT)
-	if !ok {
-		return ioutil.NopCloser(nil), nil
-	}
-
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
 
@@ -93,7 +82,7 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 		ctx := procctx.WithProcessClosing(context.Background(), worker)
 		defer log.EventBegin(ctx, "periodicBootstrap", n.Identity).Done()
 
-		if err := bootstrapRound(ctx, n.PeerHost, thedht, n.Peerstore, cfg); err != nil {
+		if err := bootstrapRound(ctx, n.PeerHost, cfg); err != nil {
 			log.Event(ctx, "bootstrapError", n.Identity, lgbl.Error(err))
 			log.Debugf("%s bootstrap error: %s", n.Identity, err)
 		}
@@ -105,25 +94,21 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 	proc := periodicproc.Tick(cfg.Period, periodic)
 	proc.Go(periodic) // run one right now.
 
-	// kick off dht bootstrapping.
-	dbproc, err := thedht.BootstrapWithConfig(dht.DefaultBootstrapConfig)
-	if err != nil {
-		proc.Close()
-		return nil, err
+	// kick off Routing.Bootstrap
+	if n.Routing != nil {
+		ctx := procctx.WithProcessClosing(context.Background(), proc)
+		if err := n.Routing.Bootstrap(ctx); err != nil {
+			proc.Close()
+			return nil, err
+		}
 	}
 
-	// add dht bootstrap proc as a child, so it is closed automatically when we are.
-	proc.AddChild(dbproc)
 	doneWithRound <- struct{}{}
 	close(doneWithRound) // it no longer blocks periodic
 	return proc, nil
 }
 
-func bootstrapRound(ctx context.Context,
-	host host.Host,
-	route *dht.IpfsDHT,
-	peerstore peer.Peerstore,
-	cfg BootstrapConfig) error {
+func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) error {
 
 	ctx, _ = context.WithTimeout(ctx, cfg.ConnectionTimeout)
 	id := host.ID()
@@ -161,16 +146,13 @@ func bootstrapRound(ctx context.Context,
 
 	defer log.EventBegin(ctx, "bootstrapStart", id).Done()
 	log.Debugf("%s bootstrapping to %d nodes: %s", id, numToDial, randSubset)
-	if err := bootstrapConnect(ctx, peerstore, route, randSubset); err != nil {
+	if err := bootstrapConnect(ctx, host, randSubset); err != nil {
 		return err
 	}
 	return nil
 }
 
-func bootstrapConnect(ctx context.Context,
-	ps peer.Peerstore,
-	route *dht.IpfsDHT,
-	peers []peer.PeerInfo) error {
+func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.PeerInfo) error {
 	if len(peers) < 1 {
 		return ErrNotEnoughBootstrapPeers
 	}
@@ -187,12 +169,11 @@ func bootstrapConnect(ctx context.Context,
 		wg.Add(1)
 		go func(p peer.PeerInfo) {
 			defer wg.Done()
-			defer log.EventBegin(ctx, "bootstrapDial", route.LocalPeer(), p.ID).Done()
-			log.Debugf("%s bootstrapping to %s", route.LocalPeer(), p.ID)
+			defer log.EventBegin(ctx, "bootstrapDial", ph.ID(), p.ID).Done()
+			log.Debugf("%s bootstrapping to %s", ph.ID(), p.ID)
 
-			ps.AddAddrs(p.ID, p.Addrs, peer.PermanentAddrTTL)
-			err := route.Connect(ctx, p.ID)
-			if err != nil {
+			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peer.PermanentAddrTTL)
+			if err := ph.Connect(ctx, p); err != nil {
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
