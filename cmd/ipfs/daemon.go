@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	cmds "github.com/jbenet/go-ipfs/commands"
@@ -192,10 +193,21 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}()
 	}
 
+	blocklist := &corehttp.BlockList{}
+	blocklist.SetDecider(func(s string) bool {
+		// only allow paths that begin with the WebUI path
+		return strings.HasPrefix(s, corehttp.WebUIPath)
+	})
+	gatewayConfig := corehttp.GatewayConfig{
+		Writable:  true,
+		BlockList: blocklist,
+	}
+	gatewayOption := corehttp.NewGateway(gatewayConfig).ServeOption()
+
 	var opts = []corehttp.ServeOption{
 		corehttp.CommandsOption(*req.Context()),
 		corehttp.WebUIOption,
-		corehttp.GatewayOption(true),
+		gatewayOption,
 	}
 	if rootRedirect != nil {
 		opts = append(opts, rootRedirect)

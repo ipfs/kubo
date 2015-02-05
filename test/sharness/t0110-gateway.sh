@@ -22,7 +22,7 @@ test_launch_ipfs_daemon
 test_expect_success "GET IPFS path succeeds" '
   echo "Hello Worlds!" > expected &&
   HASH=`ipfs add -q expected` &&
-  wget "http://127.0.0.1:5001/ipfs/$HASH" -O actual
+  wget "http://127.0.0.1:5002/ipfs/$HASH" -O actual
 '
 
 test_expect_success "GET IPFS path output looks good" '
@@ -34,11 +34,11 @@ test_expect_success "GET IPFS directory path succeeds" '
   mkdir dir &&
   echo "12345" > dir/test &&
   HASH2=`ipfs add -r -q dir | tail -n 1` &&
-  wget "http://127.0.0.1:5001/ipfs/$HASH2"
+  wget "http://127.0.0.1:5002/ipfs/$HASH2"
 '
 
 test_expect_success "GET IPFS directory file succeeds" '
-  wget "http://127.0.0.1:5001/ipfs/$HASH2/test" -O actual
+  wget "http://127.0.0.1:5002/ipfs/$HASH2/test" -O actual
 '
 
 test_expect_success "GET IPFS directory file output looks good" '
@@ -48,7 +48,7 @@ test_expect_success "GET IPFS directory file output looks good" '
 test_expect_failure "GET IPNS path succeeds" '
   ipfs name publish "$HASH" &&
   NAME=`ipfs config Identity.PeerID` &&
-  wget "http://127.0.0.1:5001/ipns/$NAME" -O actual
+  wget "http://127.0.0.1:5002/ipns/$NAME" -O actual
 '
 
 test_expect_failure "GET IPNS path output looks good" '
@@ -56,11 +56,11 @@ test_expect_failure "GET IPNS path output looks good" '
 '
 
 test_expect_success "GET invalid IPFS path errors" '
-  test_must_fail wget http://127.0.0.1:5001/ipfs/12345
+  test_must_fail wget http://127.0.0.1:5002/ipfs/12345
 '
 
 test_expect_success "GET invalid path errors" '
-  test_must_fail wget http://127.0.0.1:5001/12345
+  test_must_fail wget http://127.0.0.1:5002/12345
 '
 
 test_kill_ipfs_daemon

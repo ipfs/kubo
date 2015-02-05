@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 
@@ -54,6 +55,20 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	i.ctx.Context = ctx
 
 	log.Debug("Incoming API request: ", r.URL)
+
+	// error on external referers (to prevent CSRF attacks)
+	referer := r.Referer()
+	scheme := r.URL.Scheme
+	if len(scheme) == 0 {
+		scheme = "http"
+	}
+	host := fmt.Sprintf("%s://%s/", scheme, r.Host)
+	// empty string means the user isn't following a link (they are directly typing in the url)
+	if referer != "" && !strings.HasPrefix(referer, host) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden"))
+		return
+	}
 
 	if len(i.origin) > 0 {
 		w.Header().Set("Access-Control-Allow-Origin", i.origin)

@@ -48,15 +48,15 @@ type directoryItem struct {
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node     *core.IpfsNode
-	dirList  *template.Template
-	config   GatewayConfig
+	node    *core.IpfsNode
+	dirList *template.Template
+	config  GatewayConfig
 }
 
 func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
 	i := &gatewayHandler{
-		node:     node,
-		config:   conf,
+		node:   node,
+		config: conf,
 	}
 	err := i.loadTemplate()
 	if err != nil {
@@ -167,7 +167,8 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 
 	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden"))
 		return
 	}
 
@@ -192,6 +193,12 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("X-IPFS-Path", p)
+
+	// Suborigin header, sandboxes apps from each other in the browser (even
+	// though they are served from the same gateway domain). NOTE: This is not
+	// yet widely supported by browsers.
+	pathRoot := strings.SplitN(urlPath, "/", 4)[2]
+	w.Header().Set("Suborigin", pathRoot)
 
 	dr, err := i.NewDagReader(nd)
 	if err != nil && err != uio.ErrIsDir {

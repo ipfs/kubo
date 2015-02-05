@@ -47,7 +47,6 @@ func GatewayOption(writable bool) ServeOption {
 type Decider func(string) bool
 
 type BlockList struct {
-
 	mu sync.RWMutex
 	d  Decider
 }
