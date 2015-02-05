@@ -7,7 +7,7 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 

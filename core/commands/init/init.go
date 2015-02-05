@@ -7,7 +7,7 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	assets "github.com/jbenet/go-ipfs/assets"
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"

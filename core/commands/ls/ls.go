@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	path "github.com/jbenet/go-ipfs/path"
 	merkledag "github.com/jbenet/go-ipfs/struct/merkledag"

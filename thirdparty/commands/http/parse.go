@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	files "github.com/jbenet/go-ipfs/commands/files"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
+	files "github.com/jbenet/go-ipfs/thirdparty/commands/files"
 )
 
 // Parse parses the data in a http.Request and returns a command Request object

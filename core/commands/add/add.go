@@ -7,8 +7,8 @@ import (
 	"path"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	files "github.com/jbenet/go-ipfs/commands/files"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
+	files "github.com/jbenet/go-ipfs/thirdparty/commands/files"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	pinning "github.com/jbenet/go-ipfs/core/corerepo/pin"

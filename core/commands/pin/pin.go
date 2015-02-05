@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	corerepo "github.com/jbenet/go-ipfs/core/corerepo"
 	u "github.com/jbenet/go-ipfs/util"

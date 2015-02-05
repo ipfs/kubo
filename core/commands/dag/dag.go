@@ -12,7 +12,7 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	path "github.com/jbenet/go-ipfs/path"

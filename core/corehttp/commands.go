@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"os"
 
-	commands "github.com/jbenet/go-ipfs/commands"
-	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
+	commands "github.com/jbenet/go-ipfs/thirdparty/commands"
+	cmdsHttp "github.com/jbenet/go-ipfs/thirdparty/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
 	corecommands "github.com/jbenet/go-ipfs/core/commands"
 )

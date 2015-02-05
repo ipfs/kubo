@@ -9,7 +9,7 @@ import (
 	gopath "path"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	path "github.com/jbenet/go-ipfs/path"
 	tar "github.com/jbenet/go-ipfs/thirdparty/tar"

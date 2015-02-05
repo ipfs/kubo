@@ -6,7 +6,7 @@ import (
 	"io"
 	"sort"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"

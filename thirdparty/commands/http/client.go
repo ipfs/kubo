@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	config "github.com/jbenet/go-ipfs/repo/config"
 )
 

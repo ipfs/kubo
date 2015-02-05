@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	files "github.com/jbenet/go-ipfs/commands/files"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
+	files "github.com/jbenet/go-ipfs/thirdparty/commands/files"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

@@ -4,7 +4,7 @@ import (
 	//"fmt"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/commands"
+	"github.com/jbenet/go-ipfs/thirdparty/commands"
 )
 
 func TestOptionParsing(t *testing.T) {

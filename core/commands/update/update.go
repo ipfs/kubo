@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/updates"
 )

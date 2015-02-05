@@ -5,7 +5,7 @@ import (
 	"io"
 	"sort"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	repo "github.com/jbenet/go-ipfs/repo"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	"github.com/jbenet/go-ipfs/repo/fsrepo"

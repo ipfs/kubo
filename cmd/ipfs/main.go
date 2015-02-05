@@ -17,9 +17,9 @@ import (
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
-	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
+	cmdsCli "github.com/jbenet/go-ipfs/thirdparty/commands/cli"
+	cmdsHttp "github.com/jbenet/go-ipfs/thirdparty/commands/http"
 	core "github.com/jbenet/go-ipfs/core"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"

@@ -10,7 +10,7 @@ import (
 
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	ipns "github.com/jbenet/go-ipfs/fuse/ipns"

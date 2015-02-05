@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

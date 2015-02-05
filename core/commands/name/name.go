@@ -3,7 +3,7 @@ package commands
 import (
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 )
 
 var log = eventlog.Logger("core/cmds/name")

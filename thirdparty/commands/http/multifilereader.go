@@ -8,7 +8,7 @@ import (
 	"net/textproto"
 	"sync"
 
-	files "github.com/jbenet/go-ipfs/commands/files"
+	files "github.com/jbenet/go-ipfs/thirdparty/commands/files"
 )
 
 // MultiFileReader reads from a `commands.File` (which can be a directory of files

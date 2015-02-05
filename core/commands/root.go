@@ -1,7 +1,7 @@
 package commands
 
 import (
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
 	add "github.com/jbenet/go-ipfs/core/commands/add"

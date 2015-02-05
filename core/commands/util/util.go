@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/struct/merkledag"
 	u "github.com/jbenet/go-ipfs/util"

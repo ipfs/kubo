@@ -13,7 +13,7 @@ import (
 
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	"github.com/jbenet/go-ipfs/struct/blocks"
 	u "github.com/jbenet/go-ipfs/util"
 )

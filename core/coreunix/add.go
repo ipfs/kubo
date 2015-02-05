@@ -7,7 +7,7 @@ import (
 	"os"
 	gopath "path"
 
-	"github.com/jbenet/go-ipfs/commands/files"
+	"github.com/jbenet/go-ipfs/thirdparty/commands/files"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/corerepo/pin"
 	importer "github.com/jbenet/go-ipfs/importer"

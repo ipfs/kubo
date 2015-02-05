@@ -11,7 +11,7 @@ import (
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
-	commands "github.com/jbenet/go-ipfs/commands"
+	commands "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"

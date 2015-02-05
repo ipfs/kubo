@@ -3,7 +3,7 @@ package commands
 import (
 	"io"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	path "github.com/jbenet/go-ipfs/path"

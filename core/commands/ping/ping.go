@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	ccutil "github.com/jbenet/go-ipfs/core/commands/util"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"

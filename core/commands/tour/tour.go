@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
+	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	tour "github.com/jbenet/go-ipfs/tour"
