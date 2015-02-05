@@ -3,7 +3,7 @@ package dht
 import (
 	"sync"
 
-	notif "github.com/jbenet/go-ipfs/notifications"
+	notif "github.com/jbenet/go-ipfs/routing/common/notifications"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	queue "github.com/jbenet/go-ipfs/p2p/peer/queue"
 	"github.com/jbenet/go-ipfs/routing"

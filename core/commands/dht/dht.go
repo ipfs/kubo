@@ -8,7 +8,7 @@ import (
 	"time"
 
 	cmds "github.com/jbenet/go-ipfs/thirdparty/commands"
-	notif "github.com/jbenet/go-ipfs/notifications"
+	notif "github.com/jbenet/go-ipfs/routing/common/notifications"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	ipdht "github.com/jbenet/go-ipfs/routing/dht"
 	u "github.com/jbenet/go-ipfs/util"
