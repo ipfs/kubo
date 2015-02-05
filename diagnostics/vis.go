@@ -6,7 +6,7 @@ import (
 	"io"
 
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	rtable "github.com/jbenet/go-ipfs/routing/kbucket"
+	rtable "github.com/jbenet/go-ipfs/routing/common/kbucket"
 )
 
 type node struct {

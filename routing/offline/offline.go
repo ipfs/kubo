@@ -11,7 +11,7 @@ import (
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	record "github.com/jbenet/go-ipfs/routing/record"
+	record "github.com/jbenet/go-ipfs/routing/common/record"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 )

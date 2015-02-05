@@ -16,8 +16,8 @@ import (
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
-	record "github.com/jbenet/go-ipfs/routing/record"
+	kb "github.com/jbenet/go-ipfs/routing/common/kbucket"
+	record "github.com/jbenet/go-ipfs/routing/common/record"
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 

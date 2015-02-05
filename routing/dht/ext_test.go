@@ -11,7 +11,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	record "github.com/jbenet/go-ipfs/routing/record"
+	record "github.com/jbenet/go-ipfs/routing/common/record"
 	u "github.com/jbenet/go-ipfs/util"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"

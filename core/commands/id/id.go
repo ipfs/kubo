@@ -16,7 +16,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	"github.com/jbenet/go-ipfs/p2p/peer"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
+	kb "github.com/jbenet/go-ipfs/routing/common/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

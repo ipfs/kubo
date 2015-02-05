@@ -5,7 +5,7 @@ import (
 
 	notif "github.com/jbenet/go-ipfs/notifications"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
+	kb "github.com/jbenet/go-ipfs/routing/common/kbucket"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	pset "github.com/jbenet/go-ipfs/util/peerset"

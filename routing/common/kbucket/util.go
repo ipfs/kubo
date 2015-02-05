@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	ks "github.com/jbenet/go-ipfs/routing/keyspace"
+	ks "github.com/jbenet/go-ipfs/routing/common/keyspace"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
