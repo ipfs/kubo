@@ -385,20 +385,23 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	go func() {
 		// rate limiting just in case. at most 10 addrs at once.
 		limiter := ratelimit.NewRateLimiter(procctx.WithContext(ctx), 10)
+		limiter.Go(func(worker process.Process) {
+			// permute addrs so we try different sets first each time.
+			for _, i := range rand.Perm(len(remoteAddrs)) {
+				select {
+				case <-foundConn: // if one of them succeeded already
+					break
+				case <-worker.Closing(): // our context was cancelled
+					break
+				default:
+				}
 
-		// permute addrs so we try different sets first each time.
-		for _, i := range rand.Perm(len(remoteAddrs)) {
-			select {
-			case <-foundConn: // if one of them succeeded already
-				break
-			default:
+				workerAddr := remoteAddrs[i] // shadow variable to avoid race
+				limiter.LimitedGo(func(worker process.Process) {
+					dialSingleAddr(workerAddr)
+				})
 			}
-
-			workerAddr := remoteAddrs[i] // shadow variable to avoid race
-			limiter.Go(func(worker process.Process) {
-				dialSingleAddr(workerAddr)
-			})
-		}
+		})
 	}()
 
 	// wair fot the results.

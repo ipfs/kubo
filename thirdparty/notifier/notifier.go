@@ -120,18 +120,27 @@ func (n *Notifier) StopNotify(e Notifiee) {
 // hooks into your object that block you accidentally.
 func (n *Notifier) NotifyAll(notify func(Notifiee)) {
 	n.mu.Lock()
-	if n.nots != nil { // so that zero-value is ready to be used.
-		for notifiee := range n.nots {
+	defer n.mu.Unlock()
 
-			if n.lim == nil { // no rate limit
-				go notify(notifiee)
-			} else {
-				notifiee := notifiee // rebind for data races
-				n.lim.LimitedGo(func(worker process.Process) {
-					notify(notifiee)
-				})
-			}
-		}
+	if n.nots == nil { // so that zero-value is ready to be used.
+		return
 	}
-	n.mu.Unlock()
+
+	// no rate limiting.
+	if n.lim == nil {
+		for notifiee := range n.nots {
+			go notify(notifiee)
+		}
+		return
+	}
+
+	// with rate limiting.
+	n.lim.Go(func(worker process.Process) {
+		for notifiee := range n.nots {
+			notifiee := notifiee // rebind for loop data races
+			n.lim.LimitedGo(func(worker process.Process) {
+				notify(notifiee)
+			})
+		}
+	})
 }
