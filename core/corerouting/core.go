@@ -72,7 +72,7 @@ func SupernodeClient(remotes ...ipfsaddr.IPFSAddr) core.RoutingOption {
 		for _, remote := range remotes {
 			remoteInfos = append(remoteInfos, peer.PeerInfo{
 				ID:    remote.ID(),
-				Addrs: []ma.Multiaddr{},
+				Addrs: []ma.Multiaddr{remote.Transport()},
 			})
 		}
 
