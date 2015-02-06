@@ -48,7 +48,7 @@ func TestInitialization(t *testing.T) {
 			C: *c,
 			D: testutil.ThreadSafeCloserMapDatastore(),
 		}
-		n, err := NewIPFSNode(ctx, Standard(r, false))
+		n, err := NewIPFSNode(ctx, Offline(r))
 		if n == nil || err != nil {
 			t.Error("Should have constructed.", i, err)
 		}
@@ -59,7 +59,7 @@ func TestInitialization(t *testing.T) {
 			C: *c,
 			D: testutil.ThreadSafeCloserMapDatastore(),
 		}
-		n, err := NewIPFSNode(ctx, Standard(r, false))
+		n, err := NewIPFSNode(ctx, Offline(r))
 		if n != nil || err == nil {
 			t.Error("Should have failed to construct.", i)
 		}
