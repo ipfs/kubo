@@ -10,8 +10,11 @@ type SupernodeClientConfig struct {
 }
 
 var DefaultGCRServers = []string{
-	"/ip4/107.170.212.195/tcp/4001/ipfs/QmVy5xh7sYKyQxHG4ZatHj9cCu1H5PR1LySKeTfLdJxp1b",
-	"/ip4/107.170.215.87/tcp/4001/ipfs/QmZDYP9GBjkAmZrS5usSzPnLf41haq6jJhJDmWgnSM4zvW",
+	"/ip4/104.236.176.52/tcp/4002/ipfs/QmXdb7tWTxdFEQEFgWBqkuYSrZd3mXrC7HxkD4krGNYx2U",
+	"/ip4/104.236.179.241/tcp/4002/ipfs/QmVRqViDByUxjUMoPnjurjKvZhaEMFDtK35FJXHAM4Lkj6",
+	"/ip4/104.236.151.122/tcp/4002/ipfs/QmSZwGx8Tn8tmcM4PtDJaMeUQNRhNFdBLVGPzRiNaRJtFH",
+	"/ip4/162.243.248.213/tcp/4002/ipfs/QmbHVEEepCi7rn7VL7Exxpd2Ci9NNB6ifvqwhsrbRMgQFP",
+	"/ip4/128.199.219.111/tcp/4002/ipfs/Qmb3brdCYmKG1ycwqCbo6LUwWxTuo3FisnJV2yir7oN92R",
 }
 
 func initSNRConfig() (*SupernodeClientConfig, error) {
