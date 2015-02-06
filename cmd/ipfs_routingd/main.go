@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	aws "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
@@ -11,7 +12,6 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	core "github.com/jbenet/go-ipfs/core"
-	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	corerouting "github.com/jbenet/go-ipfs/core/corerouting"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
@@ -20,7 +20,6 @@ import (
 )
 
 var (
-	host            = flag.String("host", "/ip4/0.0.0.0/tcp/4001", "override the host listening address")
 	s3bucket        = flag.String("aws-bucket", "", "S3 bucket for routing datastore")
 	s3region        = flag.String("aws-region", aws.USWest2.Name, "S3 region")
 	nBitsForKeypair = flag.Int("b", 1024, "number of bits for keypair (if repo is uninitialized)")
@@ -76,8 +75,10 @@ func run() error {
 	}
 	defer node.Close()
 
-	opts := []corehttp.ServeOption{}
-	return corehttp.ListenAndServe(node, *host, opts...) // TODO rm
+	interrupt := make(chan os.Signal)
+	signal.Notify(interrupt, os.Kill, os.Interrupt)
+	<-interrupt
+	return nil
 }
 
 func makeS3Datastore() (*s3datastore.S3Datastore, error) {
