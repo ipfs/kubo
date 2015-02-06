@@ -34,11 +34,11 @@ func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
 }
 
 func (px *standard) Bootstrap(ctx context.Context) error {
-		for _, info := range px.Remotes {
-			if err := px.Host.Connect(ctx, info); err != nil {
-				return err // TODO
-			}
+	for _, info := range px.Remotes {
+		if err := px.Host.Connect(ctx, info); err != nil {
+			return err // TODO
 		}
+	}
 	return nil
 }
 
