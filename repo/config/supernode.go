@@ -5,7 +5,7 @@ import "github.com/jbenet/go-ipfs/util/ipfsaddr"
 // TODO replace with final servers before merge
 
 // TODO rename
-type GCR struct {
+type SupernodeClientConfig struct {
 	Servers []string
 }
 
@@ -14,14 +14,14 @@ var DefaultGCRServers = []string{
 	"/ip4/107.170.215.87/tcp/4001/ipfs/QmZDYP9GBjkAmZrS5usSzPnLf41haq6jJhJDmWgnSM4zvW",
 }
 
-func initGCR() (*GCR, error) {
+func initSNRConfig() (*SupernodeClientConfig, error) {
 	// TODO perform validation
-	return &GCR{
+	return &SupernodeClientConfig{
 		Servers: DefaultGCRServers,
 	}, nil
 }
 
-func (gcr *GCR) ServerIPFSAddrs() ([]ipfsaddr.IPFSAddr, error) {
+func (gcr *SupernodeClientConfig) ServerIPFSAddrs() ([]ipfsaddr.IPFSAddr, error) {
 	var addrs []ipfsaddr.IPFSAddr
 	for _, server := range gcr.Servers {
 		addr, err := ipfsaddr.ParseString(server)
