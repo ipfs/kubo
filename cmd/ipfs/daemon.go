@@ -195,8 +195,13 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	blocklist := &corehttp.BlockList{}
 	blocklist.SetDecider(func(s string) bool {
-		// only allow paths that begin with the WebUI path
-		return strings.HasPrefix(s, corehttp.WebUIPath)
+		// for now, only allow paths in the WebUI path
+		for _, webuipath := range corehttp.WebUIPaths {
+			if strings.HasPrefix(s, webuipath) {
+				return true
+			}
+		}
+		return false
 	})
 	gatewayConfig := corehttp.GatewayConfig{
 		Writable:  true,
