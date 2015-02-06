@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	host            = flag.String("host", "/ip4/0.0.0.0/tcp/8080", "override the HTTP host listening address")
+	host            = flag.String("host", "/ip4/0.0.0.0/tcp/4001", "override the host listening address")
 	s3bucket        = flag.String("aws-bucket", "", "S3 bucket for routing datastore")
 	s3region        = flag.String("aws-region", aws.USWest2.Name, "S3 region")
 	nBitsForKeypair = flag.Int("b", 1024, "number of bits for keypair (if repo is uninitialized)")
