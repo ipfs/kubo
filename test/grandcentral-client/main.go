@@ -94,7 +94,7 @@ func run() error {
 		addrs = append(addrs, addr)
 	}
 
-	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.GrandCentralClient(addrs...)))
+	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.SupernodeClient(addrs...)))
 	if err != nil {
 		return err
 	}
