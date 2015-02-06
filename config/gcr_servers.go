@@ -4,6 +4,7 @@ import "github.com/jbenet/go-ipfs/util/ipfsaddr"
 
 // TODO replace with final servers before merge
 
+// TODO rename
 type GCR struct {
 	Servers []string
 }
