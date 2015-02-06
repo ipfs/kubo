@@ -63,6 +63,7 @@ test_cmp_repeat_10_sec() {
 test_run_repeat_60_sec() {
 	for i in 1 2 3 4 5 6
 	do
+		date
 		for i in 1 2 3 4 5 6 7 8 9 10
 		do
 			(test_eval_ "$1") && return
