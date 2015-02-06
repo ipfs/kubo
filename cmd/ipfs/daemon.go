@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	initOptionKwd = "init"
-	gcrKwd        = "gcr"
-	mountKwd      = "mount"
-	writableKwd   = "writable"
-	ipfsMountKwd  = "mount-ipfs"
-	ipnsMountKwd  = "mount-ipns"
+	initOptionKwd             = "init"
+	routingOptionKwd          = "routing"
+	routingOptionSupernodeKwd = "supernode"
+	mountKwd                  = "mount"
+	writableKwd               = "writable"
+	ipfsMountKwd              = "mount-ipfs"
+	ipnsMountKwd              = "mount-ipns"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -41,7 +42,7 @@ the daemon.
 
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
-		cmds.BoolOption(gcrKwd, "Enables Grandcentral Routing"),
+		cmds.StringOption(routingOptionKwd, "Overrides the routing option (dht, supernode)"),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
@@ -102,13 +103,13 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	useGCR, _, err := req.Option(gcrKwd).Bool()
+	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
 	var configOption = core.Online(repo)
-	if useGCR {
+	if routingOption == routingOptionSupernodeKwd {
 		servers, err := repo.Config().GCR.ServerIPFSAddrs()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
