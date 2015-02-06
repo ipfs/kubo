@@ -34,10 +34,17 @@ func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
 }
 
 func (px *standard) Bootstrap(ctx context.Context) error {
+	var cxns []peer.PeerInfo
 	for _, info := range px.Remotes {
 		if err := px.Host.Connect(ctx, info); err != nil {
-			return err // TODO
+			continue
 		}
+		cxns = append(cxns, info)
+	}
+	if len(cxns) == 0 {
+		log.Critical("unable to bootstrap to any supernode routers")
+	} else {
+		log.Info("bootstrapped to %d supernode routers: %s", len(cxns), cxns)
 	}
 	return nil
 }
