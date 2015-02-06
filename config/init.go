@@ -26,7 +26,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
-	gcr, err := initGCR()
+	snr, err := initSNRConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		},
 
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
-		GCR:       *gcr,
+		SupernodeRouting:       *snr,
 		Datastore: *ds,
 		Identity:  identity,
 		Log: Log{
