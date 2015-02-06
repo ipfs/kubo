@@ -280,17 +280,16 @@ func (n *IpfsNode) teardown() error {
 	log.Debug("core is shutting down...")
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
-	closers := []io.Closer{
-		n.Blocks,
-		n.Exchange,
-		n.Repo,
-	}
+	var closers []io.Closer
 	addCloser := func(c io.Closer) { // use when field may be nil
 		if c != nil {
 			closers = append(closers, c)
 		}
 	}
 
+	addCloser(n.Blocks)
+	addCloser(n.Exchange)
+	addCloser(n.Repo)
 	addCloser(n.Bootstrapper)
 	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
 		addCloser(dht)
