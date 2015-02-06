@@ -320,7 +320,7 @@ func (nat *NAT) establishMapping(m *mapping) {
 	failure := func() {
 		m.setExternalPort(0) // clear mapping
 		// TODO: log.Event
-		log.Infof("failed to establish port mapping: %s", err)
+		log.Debugf("failed to establish port mapping: %s", err)
 		nat.Notifier.notifyAll(func(n Notifiee) {
 			n.MappingFailed(nat, m, oldport, err)
 		})
@@ -344,7 +344,7 @@ func (nat *NAT) establishMapping(m *mapping) {
 
 	log.Debugf("NAT Mapping: %s --> %s", m.InternalAddr(), ext)
 	if oldport != 0 && newport != oldport {
-		log.Infof("failed to renew same port mapping: ch %d -> %d", oldport, newport)
+		log.Debugf("failed to renew same port mapping: ch %d -> %d", oldport, newport)
 		nat.Notifier.notifyAll(func(n Notifiee) {
 			n.MappingChanged(nat, m, oldport, newport)
 		})

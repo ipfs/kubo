@@ -275,7 +275,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		return nil, err
 	}
 
-	log.Info("looking for running daemon...")
+	log.Debug("looking for running daemon...")
 	useDaemon, err := commandShouldRunOnDaemon(*details, req, root)
 	if err != nil {
 		return nil, err
@@ -319,7 +319,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 		}
 
 	} else {
-		log.Info("Executing command locally")
+		log.Debug("Executing command locally")
 
 		// Okay!!!!! NOW we can call the command.
 		res = root.Call(req)
