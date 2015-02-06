@@ -44,7 +44,7 @@ func (px *standard) Bootstrap(ctx context.Context) error {
 	if len(cxns) == 0 {
 		log.Critical("unable to bootstrap to any supernode routers")
 	} else {
-		log.Info("bootstrapped to %d supernode routers: %s", len(cxns), cxns)
+		log.Infof("bootstrapped to %d supernode routers: %s", len(cxns), cxns)
 	}
 	return nil
 }
