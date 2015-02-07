@@ -1,5 +1,7 @@
 # go-multihash
 
+![travis](https://travis-ci.org/jbenet/go-multihash.svg)
+
 [multihash](//github.com/jbenet/multihash) implementation in Go.
 
 ## Example

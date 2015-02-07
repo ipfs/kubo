@@ -176,8 +176,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
-			"Comment": "0.1.0-19-g8ce5cb1",
-			"Rev": "8ce5cb1b82e1b4c1bea1fdf3cd467ef49301734e"
+			"Comment": "0.1.0-33-g4e09420",
+			"Rev": "4e09420ceb2db37a5fbb149821b9e63d88d47218"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
