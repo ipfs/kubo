@@ -1,35 +1,40 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	aws "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	s3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/s3"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	core "github.com/jbenet/go-ipfs/core"
 	corerouting "github.com/jbenet/go-ipfs/core/corerouting"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
+	redisds "github.com/jbenet/go-ipfs/thirdparty/redis-datastore"
 	s3datastore "github.com/jbenet/go-ipfs/thirdparty/s3-datastore"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 )
 
 var (
-	s3bucket        = flag.String("aws-bucket", "", "S3 bucket for routing datastore")
+	ttl             = flag.Duration("ttl", 12*time.Hour, "routing datastore (also available: aws)")
+	redisHost       = flag.String("redis-host", "localhost:6379", "redis tcp host address:port")
+	redisPassword   = flag.String("redis-pass", "", "redis password if required")
+	datastoreOption = flag.String("datastore", "redis", "routing datastore (also available: aws)")
+	s3bucket        = flag.String("aws-bucket", "", "S3 bucket for aws routing datastore")
 	s3region        = flag.String("aws-region", aws.USWest2.Name, "S3 region")
 	nBitsForKeypair = flag.Int("b", 1024, "number of bits for keypair (if repo is uninitialized)")
 )
 
 func main() {
 	flag.Parse()
-	if *s3bucket == "" {
-		log.Fatal("bucket is required")
-	}
 	if err := run(); err != nil {
 		log.Println(err)
 	}
@@ -56,15 +61,39 @@ func run() error {
 	if err := repo.Open(); err != nil { // owned by node
 		return err
 	}
-	s3, err := makeS3Datastore()
-	if err != nil {
-		return err
+
+	var ds datastore.ThreadSafeDatastore
+	switch *datastoreOption {
+	case "redis":
+		redisClient, err := redis.Dial("tcp", *redisHost)
+		if err != nil {
+			return err
+		}
+		if *redisPassword != "" {
+			if err := redisClient.Cmd("AUTH", *redisPassword).Err; err != nil {
+				return err
+			}
+		}
+		redisds, err := redisds.NewExpiringDatastore(redisClient, *ttl)
+		if err != nil {
+			return err
+		}
+		ds = redisds
+	case "aws":
+		s3raw, err := makeS3Datastore()
+		if err != nil {
+			return err
+		}
+		s3, err := enhanceDatastore(s3raw)
+		if err != nil {
+			return err
+		}
+		ds = s3
+	default:
+		return errors.New("unsupported datastore type")
 	}
-	enhanced, err := enhanceDatastore(s3)
-	if err != nil {
-		return err
-	}
-	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.SupernodeServer(enhanced)))
+
+	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.SupernodeServer(ds)))
 	if err != nil {
 		return err
 	}
