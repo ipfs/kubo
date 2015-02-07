@@ -109,6 +109,11 @@
 			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
 		},
 		{
+			"ImportPath": "github.com/fzzy/radix/redis",
+			"Comment": "v0.5.1",
+			"Rev": "27a863cdffdb0998d13e1e11992b18489aeeaa25"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
 		},
