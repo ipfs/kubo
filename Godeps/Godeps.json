@@ -62,7 +62,7 @@
 		},
 		{
 			"ImportPath": "github.com/briantigerchow/inflect",
-			"Rev": "cef1f9cc2234281dc58ea10be7e9aad5e282ecab"
+			"Rev": "90ecbd79ae8c5ae28de7b1534e7ca4027b9032d7"
 		},
 		{
 			"ImportPath": "github.com/camlistore/lock",
