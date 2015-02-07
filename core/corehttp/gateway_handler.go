@@ -209,14 +209,20 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	// set these headers _after_ the error, for we may just not have it
 	// and dont want the client to cache a 500 response...
-	w.Header().Set("Etag", etag)
-	w.Header().Set("Cache-Control", "public, max-age=29030400")
+	// and only if it's /ipfs!
+	// TODO: break this out when we split /ipfs /ipns routes.
+	modtime := time.Now()
+	if strings.HasPrefix(urlPath, IpfsPathPrefix) {
+		w.Header().Set("Etag", etag)
+		w.Header().Set("Cache-Control", "public, max-age=29030400")
+
+		// set modtime to a really long time ago, since files are immutable and should stay cached
+		modtime = time.Unix(1, 0)
+	}
 
 	if err == nil {
 		defer dr.Close()
 		_, name := gopath.Split(urlPath)
-		// set modtime to a really long time ago, since files are immutable and should stay cached
-		modtime := time.Unix(1, 0)
 		http.ServeContent(w, r, name, modtime, dr)
 		return
 	}
