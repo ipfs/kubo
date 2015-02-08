@@ -7,7 +7,7 @@
 # NOTE: run with TEST_VERBOSE=1 for verbose sharness tests.
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
-BINS = bin/random bin/ipfs
+BINS = bin/random bin/multihash bin/ipfs
 SHARNESS = lib/sharness/sharness.sh
 IPFS_ROOT = ../..
 
