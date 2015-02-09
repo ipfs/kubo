@@ -93,7 +93,9 @@ func run() error {
 		return errors.New("unsupported datastore type")
 	}
 
-	node, err := core.NewIPFSNode(ctx, core.OnlineWithRouting(repo, corerouting.SupernodeServer(ds)))
+	nb := core.NewNodeBuilder()
+	nb.Online().SetRouting(corerouting.SupernodeServer(ds)).SetRepo(repo).Online()
+	node, err := nb.Build(ctx)
 	if err != nil {
 		return err
 	}

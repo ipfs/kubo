@@ -145,8 +145,8 @@ func Offline(r repo.Repo) ConfigOption {
 	return Standard(r, false)
 }
 
-func OnlineWithRouting(r repo.Repo, router RoutingOption) ConfigOption {
-	return standardWithRouting(r, true, router)
+func OnlineWithOptions(r repo.Repo, router RoutingOption, ho HostOption) ConfigOption {
+	return standardWithRouting(r, true, router, ho)
 }
 
 func Online(r repo.Repo) ConfigOption {
@@ -155,11 +155,11 @@ func Online(r repo.Repo) ConfigOption {
 
 // DEPRECATED: use Online, Offline functions
 func Standard(r repo.Repo, online bool) ConfigOption {
-	return standardWithRouting(r, online, DHTOption)
+	return standardWithRouting(r, online, DHTOption, DefaultHostOption)
 }
 
 // TODO refactor so maybeRouter isn't special-cased in this way
-func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption) ConfigOption {
+func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, hostOption HostOption) ConfigOption {
 	return func(ctx context.Context) (n *IpfsNode, err error) {
 		// FIXME perform node construction in the main constructor so it isn't
 		// necessary to perform this teardown in this scope.
@@ -201,7 +201,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption) 
 		}
 
 		if online {
-			if err := n.startOnlineServices(ctx, routingOption); err != nil {
+			if err := n.startOnlineServices(ctx, routingOption, hostOption); err != nil {
 				return nil, err
 			}
 		} else {
@@ -213,7 +213,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption) 
 	}
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption) error {
 
 	if n.PeerHost != nil { // already online.
 		return debugerror.New("node already online")
@@ -224,7 +224,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	peerhost, err := constructPeerHost(ctx, n.Identity, n.Peerstore)
+	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore)
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
@@ -274,16 +274,17 @@ func (n *IpfsNode) teardown() error {
 	log.Debug("core is shutting down...")
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
-	var closers []io.Closer
+	closers := []io.Closer{
+		n.Blocks,
+		n.Exchange,
+		n.Repo,
+	}
 	addCloser := func(c io.Closer) { // use when field may be nil
 		if c != nil {
 			closers = append(closers, c)
 		}
 	}
 
-	addCloser(n.Blocks)
-	addCloser(n.Exchange)
-	addCloser(n.Repo)
 	addCloser(n.Bootstrapper)
 	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
 		addCloser(dht)
@@ -435,6 +436,10 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 
 	return listen, nil
 }
+
+type HostOption func(ctx context.Context, id peer.ID, ps peer.Peerstore) (p2phost.Host, error)
+
+var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
 func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore) (p2phost.Host, error) {

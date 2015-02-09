@@ -103,12 +103,16 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	// Start assembling corebuilder
+	nb := core.NewNodeBuilder()
+	nb.SetRepo(repo)
+
 	routingOption, _, err := req.Option(routingOptionKwd).String()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	var configOption = core.Online(repo)
+
 	if routingOption == routingOptionSupernodeKwd {
 		servers, err := repo.Config().SupernodeRouting.ServerIPFSAddrs()
 		if err != nil {
@@ -116,12 +120,12 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			repo.Close() // because ownership hasn't been transferred to the node
 			return
 		}
-		configOption = core.OnlineWithRouting(repo, corerouting.SupernodeClient(servers...))
+		nb.SetRouting(corerouting.SupernodeClient(servers...))
 	}
 
 	// OK!!! Now we're ready to construct the node.
 	// make sure we construct an online node.
-	node, err := core.NewIPFSNode(ctx.Context, configOption)
+	node, err := nb.Build(ctx.Context)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
