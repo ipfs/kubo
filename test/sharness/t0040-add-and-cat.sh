@@ -93,8 +93,8 @@ test_expect_success "generate 5MB file using go-random" '
 '
 
 test_expect_success "sha1 of the file looks ok" '
-	echo "5620fb92eb5a49c9986b5c6844efda37e471660e  mountdir/bigfile" >sha1_expected &&
-	shasum mountdir/bigfile >sha1_actual &&
+	echo "11145620fb92eb5a49c9986b5c6844efda37e471660e" >sha1_expected &&
+	multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
 	test_cmp sha1_expected sha1_actual
 '
 
@@ -128,8 +128,8 @@ test_expect_success EXPENSIVE "generate 100MB file using go-random" '
 '
 
 test_expect_success EXPENSIVE "sha1 of the file looks ok" '
-	echo "885b197b01e0f7ff584458dc236cb9477d2e736d  mountdir/bigfile" >sha1_expected &&
-	shasum mountdir/bigfile >sha1_actual &&
+	echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
+	multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
 	test_cmp sha1_expected sha1_actual
 '
 
@@ -144,7 +144,7 @@ test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
 '
 
 test_expect_success EXPENSIVE "ipfs cat succeeds" '
-	ipfs cat $HASH | shasum >sha1_actual
+	ipfs cat $HASH | multihash -a=sha1 -e=hex >sha1_actual
 '
 
 test_expect_success EXPENSIVE "ipfs cat output looks good" '
@@ -152,13 +152,13 @@ test_expect_success EXPENSIVE "ipfs cat output looks good" '
 	test_cmp mountdir/bigfile actual
 '
 
-test_expect_success EXPENSIVE "ipfs cat output shasum looks good" '
-	echo "885b197b01e0f7ff584458dc236cb9477d2e736d  -" >sha1_expected &&
+test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
+	echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
 	test_cmp sha1_expected sha1_actual
 '
 
 test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile succeeds" '
-	cat ipfs/$HASH | shasum >sha1_actual
+	cat ipfs/$HASH | multihash -a=sha1 -e=hex >sha1_actual
 '
 
 test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile looks good" '
