@@ -224,7 +224,10 @@ func writeMsgCtx(ctx context.Context, w msgio.Writer, msg proto.Message) ([]byte
 	done := make(chan error)
 	go func(m []byte) {
 		err := w.WriteMsg(m)
-		done <- err
+		select {
+		case done <- err:
+		case <-ctx.Done():
+		}
 	}(enc)
 
 	select {
@@ -243,7 +246,10 @@ func readMsgCtx(ctx context.Context, r msgio.Reader, p proto.Message) ([]byte, e
 	go func() {
 		var err error
 		msg, err = r.ReadMsg()
-		done <- err
+		select {
+		case done <- err:
+		case <-ctx.Done():
+		}
 	}()
 
 	select {
