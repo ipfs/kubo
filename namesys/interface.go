@@ -1,3 +1,4 @@
+// package namesys implements various functionality for the ipns naming system.
 package namesys
 
 import (
