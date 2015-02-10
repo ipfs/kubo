@@ -44,7 +44,12 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 
 	// do it async to ensure we respect don contexteone
 	go func() {
-		defer func() { done <- struct{}{} }()
+		defer func() {
+			select {
+			case done <- struct{}{}:
+			case <-ctx.Done():
+			}
+		}()
 
 		c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
 		if err != nil {
