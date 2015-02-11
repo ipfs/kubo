@@ -159,6 +159,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 			return strings.NewReader(bs.Key + "\n"), nil
 		},
 	},
+	Type: BlockStat{},
 }
 
 func getBlockForKey(req cmds.Request, key string) (*blocks.Block, error) {
