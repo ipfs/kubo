@@ -99,9 +99,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	// OK!!! Now we're ready to construct the node.
-	// make sure we construct an online node.
-	node, err := core.NewIPFSNode(ctx.Context, core.Online(repo))
+	// Start assembling corebuilder
+	nb := core.NewNodeBuilder().Online()
+	nb.SetRepo(repo)
+
+	node, err := nb.Build(ctx.Context)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
