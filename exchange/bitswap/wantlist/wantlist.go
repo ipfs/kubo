@@ -1,3 +1,5 @@
+// package wantlist implements an object for bitswap that contains the keys
+// that a given peer wants.
 package wantlist
 
 import (

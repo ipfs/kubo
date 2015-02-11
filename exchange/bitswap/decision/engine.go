@@ -1,3 +1,4 @@
+// package decision implements the decision engine for the bitswap service.
 package decision
 
 import (

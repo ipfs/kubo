@@ -57,6 +57,7 @@ remains to be implemented.
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
+		cmds.BoolOption("t", "trickle", "Use trickle-dag format for dag generation"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option("quiet").Bool(); quiet {

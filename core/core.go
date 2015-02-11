@@ -1,3 +1,5 @@
+// package core implements the IpfsNode object and methods for constructing
+// and properly setting it up.
 package core
 
 import (
