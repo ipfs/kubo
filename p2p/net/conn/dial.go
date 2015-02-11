@@ -31,13 +31,6 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 	logdial["encrypted"] = (d.PrivateKey != nil) // log wether this will be an encrypted dial or not.
 	defer log.EventBegin(ctx, "connDial", logdial).Done()
 
-	maconn, err := d.rawConnDial(ctx, raddr, remote)
-	if err != nil {
-		logdial["dial"] = "failure"
-		logdial["error"] = err
-		return nil, err
-	}
-
 	var connOut Conn
 	var errOut error
 	done := make(chan struct{})
@@ -51,8 +44,15 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 			}
 		}()
 
+		maconn, err := d.rawConnDial(ctx, raddr, remote)
+		if err != nil {
+			errOut = err
+			return
+		}
+
 		c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
 		if err != nil {
+			maconn.Close()
 			errOut = err
 			return
 		}
@@ -75,8 +75,8 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 
 	select {
 	case <-ctx.Done():
-		maconn.Close()
 		logdial["error"] = ctx.Err()
+		logdial["dial"] = "failure"
 		return nil, ctx.Err()
 	case <-done:
 		// whew, finished.
