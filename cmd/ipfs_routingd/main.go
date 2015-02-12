@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -67,7 +68,7 @@ func run() error {
 	case "redis":
 		redisClient, err := redis.Dial("tcp", *redisHost)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not connect to redis: %s", err)
 		}
 		if *redisPassword != "" {
 			if err := redisClient.Cmd("AUTH", *redisPassword).Err; err != nil {
