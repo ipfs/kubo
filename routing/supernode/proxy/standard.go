@@ -1,15 +1,15 @@
 package proxy
 
 import (
-	"math/rand"
-
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	kbucket "github.com/jbenet/go-ipfs/routing/kbucket"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	"github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -25,17 +25,23 @@ type Proxy interface {
 }
 
 type standard struct {
-	Host    host.Host
-	Remotes []peer.PeerInfo
+	Host host.Host
+
+	remoteInfos []peer.PeerInfo // addr required for bootstrapping
+	remoteIDs   []peer.ID       // []ID is required for each req. here, cached for performance.
 }
 
 func Standard(h host.Host, remotes []peer.PeerInfo) Proxy {
-	return &standard{h, remotes}
+	var ids []peer.ID
+	for _, remote := range remotes {
+		ids = append(ids, remote.ID)
+	}
+	return &standard{h, remotes, ids}
 }
 
 func (px *standard) Bootstrap(ctx context.Context) error {
 	var cxns []peer.PeerInfo
-	for _, info := range px.Remotes {
+	for _, info := range px.remoteInfos {
 		if err := px.Host.Connect(ctx, info); err != nil {
 			continue
 		}
@@ -60,8 +66,7 @@ func (p *standard) HandleStream(s inet.Stream) {
 // error.
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	var err error
-	for _, i := range rand.Perm(len(px.Remotes)) {
-		remote := px.Remotes[i].ID
+	for _, remote := range sortedByKey(px.remoteIDs, m.GetKey()) {
 		if err = px.sendMessage(ctx, m, remote); err != nil { // careful don't re-declare err!
 			continue
 		}
@@ -98,8 +103,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 // error.
 func (px *standard) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.Message, error) {
 	var err error
-	for _, i := range rand.Perm(len(px.Remotes)) {
-		remote := px.Remotes[i].ID
+	for _, remote := range sortedByKey(px.remoteIDs, m.GetKey()) {
 		var reply *dhtpb.Message
 		reply, err = px.sendRequest(ctx, m, remote) // careful don't redeclare err!
 		if err != nil {
@@ -144,4 +148,9 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 	e.Append(eventlog.Pair("response", response))
 	e.Append(eventlog.Pair("uuid", eventlog.Uuid("foo")))
 	return response, nil
+}
+
+func sortedByKey(peers []peer.ID, key string) []peer.ID {
+	target := kbucket.ConvertKey(util.Key(key))
+	return kbucket.SortClosestPeers(peers, target)
 }
