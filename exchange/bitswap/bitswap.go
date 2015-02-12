@@ -151,7 +151,15 @@ func (bs *bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	}
 
 	select {
-	case block := <-promise:
+	case block, ok := <-promise:
+		if !ok {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+				return nil, errors.New("promise channel was closed")
+			}
+		}
 		return block, nil
 	case <-parent.Done():
 		return nil, parent.Err()
