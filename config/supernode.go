@@ -15,6 +15,9 @@ var DefaultGCRServers = []string{
 	"/ip4/104.236.151.122/tcp/4002/ipfs/QmSZwGx8Tn8tmcM4PtDJaMeUQNRhNFdBLVGPzRiNaRJtFH",
 	"/ip4/162.243.248.213/tcp/4002/ipfs/QmbHVEEepCi7rn7VL7Exxpd2Ci9NNB6ifvqwhsrbRMgQFP",
 	"/ip4/128.199.219.111/tcp/4002/ipfs/Qmb3brdCYmKG1ycwqCbo6LUwWxTuo3FisnJV2yir7oN92R",
+	"/ip4/104.236.76.40/tcp/4002/ipfs/QmdRBCV8Cz2dGhoKLkD3YjPwVFECmqADQkx5ZteF2c6Fy4",
+	"/ip4/178.62.158.247/tcp/4002/ipfs/QmUdiMPci7YoEUBkyFZAh2pAbjqcPr7LezyiPD2artLw3v",
+	"/ip4/178.62.61.185/tcp/4002/ipfs/QmVw6fGNqBixZE4bewRLT2VXX7fAHUHs8JyidDiJ1P7RUN",
 }
 
 func initSNRConfig() (*SupernodeClientConfig, error) {
