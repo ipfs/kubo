@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	ttl             = flag.Duration("ttl", 12*time.Hour, "routing datastore (also available: aws)")
+	ttl             = flag.Duration("ttl", 12*time.Hour, "period after which routing keys expire")
 	redisHost       = flag.String("redis-host", "localhost:6379", "redis tcp host address:port")
 	redisPassword   = flag.String("redis-pass", "", "redis password if required")
 	datastoreOption = flag.String("datastore", "redis", "routing datastore (also available: aws)")
