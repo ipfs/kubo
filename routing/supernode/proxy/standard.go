@@ -61,14 +61,24 @@ func (p *standard) HandleStream(s inet.Stream) {
 	s.Close()
 }
 
+const replicationFactor = 2
+
 // SendMessage sends message to each remote sequentially (randomized order),
 // stopping after the first successful response. If all fail, returns the last
 // error.
 func (px *standard) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	var err error
+	var numSuccesses int
 	for _, remote := range sortedByKey(px.remoteIDs, m.GetKey()) {
 		if err = px.sendMessage(ctx, m, remote); err != nil { // careful don't re-declare err!
 			continue
+		}
+		numSuccesses++
+		switch m.GetType() {
+		case dhtpb.Message_ADD_PROVIDER, dhtpb.Message_PUT_VALUE:
+			if numSuccesses < replicationFactor {
+				continue
+			}
 		}
 		return nil // success
 	}
