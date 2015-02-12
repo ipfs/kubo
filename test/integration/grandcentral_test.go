@@ -53,8 +53,8 @@ func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) er
 	adder := clients[0]
 	catter := clients[1]
 
-	log.Critical("adder is", adder.Identity)
-	log.Critical("catter is", catter.Identity)
+	log.Info("adder is", adder.Identity)
+	log.Info("catter is", catter.Identity)
 
 	keyAdded, err := coreunix.Add(adder, bytes.NewReader(data))
 	if err != nil {
