@@ -10,6 +10,8 @@ import (
 	"github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
+	"github.com/jbenet/go-ipfs/core/corerouting"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
@@ -17,6 +19,7 @@ import (
 
 const (
 	initOptionKwd = "init"
+	gcrKwd        = "gcr"
 	mountKwd      = "mount"
 	writableKwd   = "writable"
 	ipfsMountKwd  = "mount-ipfs"
@@ -39,6 +42,7 @@ the daemon.
 
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
+		cmds.BoolOption(gcrKwd, "Enables Grandcentral Routing"),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
@@ -102,6 +106,28 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// Start assembling corebuilder
 	nb := core.NewNodeBuilder().Online()
 	nb.SetRepo(repo)
+
+	useGCR, _, err := req.Option(gcrKwd).Bool()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	if useGCR {
+		servers, err := repo.Config().GCR.ServerIPFSAddrs()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			repo.Close() // because ownership hasn't been transferred to the node
+			return
+		}
+		var infos []peer.PeerInfo
+		for _, addr := range servers {
+			infos = append(infos, peer.PeerInfo{
+				ID:    addr.ID(),
+				Addrs: []ma.Multiaddr{addr.Transport()},
+			})
+		}
+		nb.SetRouting(corerouting.SupernodeClient(infos...))
+	}
 
 	node, err := nb.Build(ctx.Context)
 	if err != nil {
