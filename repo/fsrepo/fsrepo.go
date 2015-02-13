@@ -16,6 +16,7 @@ import (
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
+	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
@@ -144,6 +145,12 @@ func (r *FSRepo) Open() error {
 	// and the number of openers is incremeneted.
 	packageLock.Lock()
 	defer packageLock.Unlock()
+
+	expPath, err := u.TildeExpansion(r.path)
+	if err != nil {
+		return err
+	}
+	r.path = expPath
 
 	if r.state != unopened {
 		return debugerror.Errorf("repo is %s", r.state)
