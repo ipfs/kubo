@@ -201,7 +201,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	// Also send closer peers.
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	if closer != nil {
-		infos := peer.PeerInfos(dht.peerstore, providers)
+		infos := peer.PeerInfos(dht.peerstore, closer)
 		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
 		log.Debugf("%s have %d closer peers: %s", reqDesc, len(closer), infos)
 	}
