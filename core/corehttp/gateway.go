@@ -24,14 +24,14 @@ func NewGateway(conf GatewayConfig) *Gateway {
 }
 
 func (g *Gateway) ServeOption() ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) error {
+	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		gateway, err := newGatewayHandler(n, g.Config)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		mux.Handle("/ipfs/", gateway)
 		mux.Handle("/ipns/", gateway)
-		return nil
+		return mux, nil
 	}
 }
 
@@ -47,8 +47,8 @@ func GatewayOption(writable bool) ServeOption {
 type Decider func(string) bool
 
 type BlockList struct {
-	mu sync.RWMutex
-	Decider  Decider
+	mu      sync.RWMutex
+	Decider Decider
 }
 
 func (b *BlockList) ShouldAllow(s string) bool {

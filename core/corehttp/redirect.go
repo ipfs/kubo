@@ -8,9 +8,9 @@ import (
 
 func RedirectOption(path string, redirect string) ServeOption {
 	handler := &redirectHandler{redirect}
-	return func(n *core.IpfsNode, mux *http.ServeMux) error {
+	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle("/"+path, handler)
-		return nil
+		return mux, nil
 	}
 }
 

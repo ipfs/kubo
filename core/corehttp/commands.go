@@ -16,10 +16,10 @@ const (
 )
 
 func CommandsOption(cctx commands.Context) ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) error {
+	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		origin := os.Getenv(originEnvKey)
 		cmdHandler := cmdsHttp.NewHandler(cctx, corecommands.Root, origin)
 		mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
-		return nil
+		return mux, nil
 	}
 }

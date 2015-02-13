@@ -12,11 +12,26 @@ import (
 
 var log = eventlog.Logger("core/server")
 
-const (
-// TODO rename
-)
+// ServeOption registers any HTTP handlers it provides on the given mux.
+// It returns the mux to expose to future options, which may be a new mux if it
+// is interested in mediating requests to future options, or the same mux
+// initially passed in if not.
+type ServeOption func(*core.IpfsNode, *http.ServeMux) (*http.ServeMux, error)
 
-type ServeOption func(*core.IpfsNode, *http.ServeMux) error
+// makeHandler turns a list of ServeOptions into a http.Handler that implements
+// all of the given options, in order.
+func makeHandler(n *core.IpfsNode, options ...ServeOption) (http.Handler, error) {
+	topMux := http.NewServeMux()
+	mux := topMux
+	for _, option := range options {
+		var err error
+		mux, err = option(n, mux)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return topMux, nil
+}
 
 // ListenAndServe runs an HTTP server listening at |listeningMultiAddr| with
 // the given serve options. The address must be provided in multiaddr format.
@@ -29,16 +44,14 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	if err != nil {
 		return err
 	}
-	mux := http.NewServeMux()
-	for _, option := range options {
-		if err := option(n, mux); err != nil {
-			return err
-		}
+	handler, err := makeHandler(n, options...)
+	if err != nil {
+		return err
 	}
-	return listenAndServe(n, addr, mux)
+	return listenAndServe(n, addr, handler)
 }
 
-func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) error {
+func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler) error {
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return err
@@ -51,7 +64,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, mux *http.ServeMux) 
 	serverExited := make(chan struct{})
 
 	go func() {
-		serverError = server.ListenAndServe(host, mux)
+		serverError = server.ListenAndServe(host, handler)
 		close(serverExited)
 	}()
 
