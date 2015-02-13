@@ -154,9 +154,11 @@ func (pi *PeerInfo) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	pi.ID = pid
-	addrs := data["Addrs"].([]interface{})
-	for _, a := range addrs {
-		pi.Addrs = append(pi.Addrs, ma.StringCast(a.(string)))
+	addrs, ok := data["Addrs"].([]interface{})
+	if ok {
+		for _, a := range addrs {
+			pi.Addrs = append(pi.Addrs, ma.StringCast(a.(string)))
+		}
 	}
 	return nil
 }
