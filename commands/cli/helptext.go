@@ -3,20 +3,17 @@ package cli
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"text/template"
 
+	isatty "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mattn/go-isatty"
+	c "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/colorstring"
 	cmds "github.com/jbenet/go-ipfs/commands"
 )
 
 const (
-	requiredArg = "<%v>"
-	optionalArg = "[<%v>]"
-	variadicArg = "%v..."
-	optionFlag  = "-%v"
-	optionType  = "(%v)"
-
 	whitespace = "\r\n\t "
 
 	indentStr = "    "
@@ -71,55 +68,100 @@ func (f *helpFields) IndentAll() {
 	f.Description = indent(f.Description)
 }
 
-const usageFormat = "{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}} {{.ArgUsage}}{{end}} - {{.Tagline}}{{end}}"
+const usageFormat = "[USAGE]{{if .Usage}}{{.Usage}}{{else}}{{.Path}}{{if .ArgUsage}}[ARGUSAGE] {{.ArgUsage}}{{end}} [DEFAULT]- {{.Tagline}}{{end}}"
 
 const longHelpFormat = `
 {{.Indent}}{{template "usage" .}}
 
-{{if .Arguments}}ARGUMENTS:
+{{if .Arguments}}[HEADER]ARGUMENTS[DEFAULT]:
 
 {{.Arguments}}
 
-{{end}}{{if .Options}}OPTIONS:
+{{end}}{{if .Options}}[HEADER]OPTIONS[DEFAULT]:
 
 {{.Options}}
 
-{{end}}{{if .Subcommands}}SUBCOMMANDS:
+{{end}}{{if .Subcommands}}[HEADER]SUBCOMMANDS[DEFAULT]:
 
 {{.Subcommands}}
 
-{{.Indent}}Use '{{.Path}} <subcmd> --help' for more information about each command.
+{{.Indent}}Use [USAGE]{{.Path}} <subcmd> --help[DEFAULT] for more information about each command.
 
-{{end}}{{if .Description}}DESCRIPTION:
+{{end}}[DESCRIPTION]{{if .Description}}[HEADER]DESCRIPTION[DEFAULT]:
 
 {{.Description}}
 
-{{end}}
+{{end}}[DEFAULT]
 `
 const shortHelpFormat = `USAGE:
 
 {{.Indent}}{{template "usage" .}}
 {{if .Synopsis}}
 {{.Synopsis}}
-{{end}}{{if .Description}}
+{{end}}[DESCRIPTION]{{if .Description}}
 {{.Description}}
 {{end}}
-{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
+[DEFAULT]{{if .MoreHelp}}Use '{{.Path}} --help' for more information about this command.
 {{end}}
 `
 
-var usageTemplate *template.Template
-var longHelpTemplate *template.Template
-var shortHelpTemplate *template.Template
+var (
+	usageTemplate     *template.Template
+	longHelpTemplate  *template.Template
+	shortHelpTemplate *template.Template
+)
 
-func init() {
-	usageTemplate = template.Must(template.New("usage").Parse(usageFormat))
-	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(longHelpFormat))
-	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(shortHelpFormat))
+var colorScheme c.Colorize
+
+var (
+	requiredArg      = "[requiredArg]<%v>[DEFAULT]"
+	optionalArg      = "[optionalArg]<%v>[DEFAULT]"
+	variadicArg      = "[variadicArg]%v[DEFAULT]..."
+	optionFlag       = "[optionFlag]-%v[DEFAULT]"
+	optionType       = "[optionType]%v[DEFAULT]"
+	subcommandPrefix = "[USAGE]%v[DEFAULT]"
+)
+
+func initTemplates(useTerminalColors bool) {
+	colorScheme = c.Colorize{
+		Colors: map[string]string{
+			"HEADER":       c.DefaultColors["light_blue"],
+			"DEFAULT":      c.DefaultColors["default"],
+			"USAGE":        c.DefaultColors["light_yellow"],
+			"ARGUSAGE":     c.DefaultColors["light_cyan"],
+			"ARGUSAGETEXT": c.DefaultColors["light_red"],
+			"DESCRIPTION":  c.DefaultColors["default"],
+			"requiredArg":  c.DefaultColors["light_red"],
+			"optionalArg":  c.DefaultColors["light_green"],
+			"variadicArg":  c.DefaultColors["light_green"],
+			"optionFlag":   c.DefaultColors["light_green"],
+			"optionType":   c.DefaultColors["light_magenta"],
+		},
+		Reset:   true,
+		Disable: !isatty.IsTerminal(os.Stdout.Fd()),
+	}
+
+	if !useTerminalColors {
+		// if using terminal colors is explicitely forbidden,
+		// disable our colorScheme
+		colorScheme.Disable = true
+	}
+
+	requiredArg = colorScheme.Color(requiredArg)
+	optionalArg = colorScheme.Color(optionalArg)
+	variadicArg = colorScheme.Color(variadicArg)
+	optionFlag = colorScheme.Color(optionFlag)
+	optionType = colorScheme.Color(optionType)
+	subcommandPrefix = colorScheme.Color(subcommandPrefix)
+
+	usageTemplate = template.Must(template.New("usage").Parse(colorScheme.Color(usageFormat)))
+	longHelpTemplate = template.Must(usageTemplate.New("longHelp").Parse(colorScheme.Color(longHelpFormat)))
+	shortHelpTemplate = template.Must(usageTemplate.New("shortHelp").Parse(colorScheme.Color(shortHelpFormat)))
 }
 
 // LongHelp returns a formatted CLI helptext string, generated for the given command
-func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func LongHelp(rootName string, root *cmds.Command, req cmds.Request, path []string, out io.Writer) error {
+	initTemplates(true)
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -169,7 +211,20 @@ func LongHelp(rootName string, root *cmds.Command, path []string, out io.Writer)
 }
 
 // ShortHelp returns a formatted CLI helptext string, generated for the given command
-func ShortHelp(rootName string, root *cmds.Command, path []string, out io.Writer) error {
+func ShortHelp(rootName string, root *cmds.Command, req cmds.Request, path []string, out io.Writer) error {
+	terminalColors := false
+	if req != nil {
+		ctx := req.Context()
+		if ctx != nil {
+			config, err := req.Context().GetConfig()
+			if err == nil {
+				terminalColors = config.Preferences.TerminalColors
+			}
+		}
+	}
+
+	initTemplates(terminalColors)
+
 	cmd, err := root.Get(path)
 	if err != nil {
 		return err
@@ -209,7 +264,7 @@ func argumentText(cmd *cmds.Command) []string {
 	lines := make([]string, len(cmd.Arguments))
 
 	for i, arg := range cmd.Arguments {
-		lines[i] = argUsageText(arg)
+		lines[i] = colorScheme.Color("[ARGUSAGETEXT]" + argUsageText(arg) + "[DEFAULT]")
 	}
 	lines = align(lines)
 	for i, arg := range cmd.Arguments {
@@ -262,7 +317,7 @@ func optionText(cmd ...*cmds.Command) []string {
 
 	// add option types to output
 	for i, opt := range options {
-		lines[i] += " " + fmt.Sprintf("%v", opt.Type())
+		lines[i] += " " + fmt.Sprintf(optionType, opt.Type())
 	}
 	lines = align(lines)
 
@@ -275,7 +330,7 @@ func optionText(cmd ...*cmds.Command) []string {
 }
 
 func subcommandText(cmd *cmds.Command, rootName string, path []string) []string {
-	prefix := fmt.Sprintf("%v %v", rootName, strings.Join(path, " "))
+	prefix := fmt.Sprintf(subcommandPrefix, rootName) + " " + fmt.Sprintf(subcommandPrefix, strings.Join(path, " "))
 	if len(path) > 0 {
 		prefix += " "
 	}
@@ -288,7 +343,7 @@ func subcommandText(cmd *cmds.Command, rootName string, path []string) []string 
 		if len(usage) > 0 {
 			usage = " " + usage
 		}
-		lines[i] = prefix + name + usage
+		lines[i] = prefix + fmt.Sprintf(subcommandPrefix, name) + usage
 		subcmds[i] = sub
 		i++
 	}

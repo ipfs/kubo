@@ -55,7 +55,8 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 
 		// tracking ipfs version used to generate the init folder and adding
 		// update checker default setting.
-		Version: VersionDefaultValue(),
+		Version:     VersionDefaultValue(),
+		Preferences: PreferencesDefaultValue(),
 
 		Gateway: Gateway{
 			RootRedirect: "",
