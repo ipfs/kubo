@@ -10,6 +10,11 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 )
 
+type providerInfo struct {
+	Creation time.Time
+	Value    peer.ID
+}
+
 type ProviderManager struct {
 	providers map[u.Key][]*providerInfo
 	local     map[u.Key]struct{}

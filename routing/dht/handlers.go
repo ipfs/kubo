@@ -3,7 +3,6 @@ package dht
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -63,9 +62,6 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		return nil, err
 	}
 
-	// Note: changed the behavior here to return _as much_ info as possible
-	// (potentially all of {value, closer peers, provider})
-
 	// if we have the value, send it back
 	if err == nil {
 		log.Debugf("%s handleGetValue success!", dht.self)
@@ -85,18 +81,10 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		resp.Record = rec
 	}
 
-	// if we know any providers for the requested value, return those.
-	provs := dht.providers.GetProviders(ctx, u.Key(pmes.GetKey()))
-	provinfos := peer.PeerInfos(dht.peerstore, provs)
-	if len(provs) > 0 {
-		log.Debugf("handleGetValue returning %d provider[s]", len(provs))
-		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), provinfos)
-	}
-
 	// Find closest peer on given cluster to desired key and reply with that info
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
-	closerinfos := peer.PeerInfos(dht.peerstore, closer)
 	if closer != nil {
+		closerinfos := peer.PeerInfos(dht.peerstore, closer)
 		for _, pi := range closerinfos {
 			log.Debugf("handleGetValue returning closer peer: '%s'", pi.ID)
 			if len(pi.Addrs) < 1 {
@@ -201,17 +189,12 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	// Also send closer peers.
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	if closer != nil {
-		infos := peer.PeerInfos(dht.peerstore, providers)
+		infos := peer.PeerInfos(dht.peerstore, closer)
 		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
 		log.Debugf("%s have %d closer peers: %s", reqDesc, len(closer), infos)
 	}
 
 	return resp, nil
-}
-
-type providerInfo struct {
-	Creation time.Time
-	Value    peer.ID
 }
 
 func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
