@@ -1,14 +1,14 @@
-package core
+package corenet
 
 import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	core "github.com/jbenet/go-ipfs/core"
 	net "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	pro "github.com/jbenet/go-ipfs/p2p/protocol"
 )
 
 type ipfsListener struct {
-	nd     *IpfsNode
 	conCh  chan net.Stream
 	proto  pro.ID
 	ctx    context.Context
@@ -30,7 +30,7 @@ func (il *ipfsListener) Close() error {
 	return nil
 }
 
-func (nd *IpfsNode) Listen(protocol string) (*ipfsListener, error) {
+func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
 	ctx, cancel := context.WithCancel(nd.Context())
 
 	list := &ipfsListener{
@@ -51,6 +51,6 @@ func (nd *IpfsNode) Listen(protocol string) (*ipfsListener, error) {
 	return list, nil
 }
 
-func (nd *IpfsNode) Dial(protocol string, p peer.ID) (net.Stream, error) {
+func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
 	return nd.PeerHost.NewStream(pro.ID(protocol), p)
 }
