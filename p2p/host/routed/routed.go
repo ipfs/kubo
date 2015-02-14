@@ -100,6 +100,14 @@ func (rh *RoutedHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandl
 	rh.host.SetStreamHandler(pid, handler)
 }
 func (rh *RoutedHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
+	if len(rh.Peerstore().Addrs(p)) < 1 {
+		ctx, _ := context.WithTimeout(context.TODO(), time.Second*30)
+		pi, err := rh.route.FindPeer(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		rh.Peerstore().AddAddrs(p, pi.Addrs, peer.TempAddrTTL)
+	}
 	return rh.host.NewStream(pid, p)
 }
 func (rh *RoutedHost) Close() error {
