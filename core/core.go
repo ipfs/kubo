@@ -3,7 +3,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -11,7 +10,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
-	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
@@ -231,12 +230,12 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
-	n.PeerHost = peerhost
 
-	if err := n.startOnlineServicesWithHost(ctx, routingOption); err != nil {
+	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption); err != nil {
 		return err
 	}
 
+	// Wrap standard peer host with routing system to allow unknown peer lookups
 	n.PeerHost = rhost.Wrap(peerhost, n.Routing)
 
 	// Ok, now we're ready to listen.
@@ -252,12 +251,12 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
-func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOption RoutingOption) error {
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption) error {
 	// setup diagnostics service
-	n.Diagnostics = diag.NewDiagnostics(n.Identity, n.PeerHost)
+	n.Diagnostics = diag.NewDiagnostics(n.Identity, host)
 
 	// setup routing service
-	r, err := routingOption(ctx, n)
+	r, err := routingOption(ctx, host, n.Repo.Datastore())
 	if err != nil {
 		return debugerror.Wrap(err)
 	}
@@ -265,7 +264,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOptio
 
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
-	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
+	bitswapNetwork := bsnet.NewFromIpfsHost(host, n.Routing)
 	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
 
 	// setup name system
@@ -488,20 +487,12 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 	return nil
 }
 
-func constructDHTRouting(ctx context.Context, host p2phost.Host, ds datastore.ThreadSafeDatastore) (*dht.IpfsDHT, error) {
-	dhtRouting := dht.NewDHT(ctx, host, ds)
+func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
+	dhtRouting := dht.NewDHT(ctx, host, dstore)
 	dhtRouting.Validator[IpnsValidatorTag] = namesys.ValidateIpnsRecord
 	return dhtRouting, nil
 }
 
-type RoutingOption func(context.Context, *IpfsNode) (routing.IpfsRouting, error)
+type RoutingOption func(context.Context, p2phost.Host, ds.ThreadSafeDatastore) (routing.IpfsRouting, error)
 
-var DHTOption RoutingOption = func(ctx context.Context, n *IpfsNode) (routing.IpfsRouting, error) {
-	if n.PeerHost == nil {
-		return nil, errors.New("dht requires a peerhost")
-	}
-	if n.Repo == nil {
-		return nil, errors.New("dht requires a datastore. (node has no Repo)")
-	}
-	return constructDHTRouting(ctx, n.PeerHost, n.Repo.Datastore())
-}
+var DHTOption RoutingOption = constructDHTRouting

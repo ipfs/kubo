@@ -4,7 +4,6 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	core "github.com/jbenet/go-ipfs/core"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
@@ -14,6 +13,7 @@ import (
 	"github.com/jbenet/go-ipfs/repo"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
@@ -35,7 +35,7 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig, routin
 			PeerHost:  h,
 			Identity:  p,
 		}
-		dhtt, err := routing(ctx, n)
+		dhtt, err := routing(ctx, n.PeerHost, n.Repo.Datastore())
 		if err != nil {
 			return nil, err
 		}

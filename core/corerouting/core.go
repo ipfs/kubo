@@ -4,8 +4,9 @@ import (
 	"errors"
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	core "github.com/jbenet/go-ipfs/core"
+	"github.com/jbenet/go-ipfs/p2p/host"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	supernode "github.com/jbenet/go-ipfs/routing/supernode"
@@ -26,48 +27,30 @@ var (
 // SupernodeServer returns a configuration for a routing server that stores
 // routing records to the provided datastore. Only routing records are store in
 // the datastore.
-func SupernodeServer(recordSource datastore.ThreadSafeDatastore) core.RoutingOption {
-	return func(ctx context.Context, node *core.IpfsNode) (routing.IpfsRouting, error) {
-		if node.Peerstore == nil {
-			return nil, errPeerstoreMissing
-		}
-		if node.PeerHost == nil {
-			return nil, errHostMissing
-		}
-		if node.Identity == "" {
-			return nil, errIdentityMissing
-		}
-		server, err := supernode.NewServer(recordSource, node.Peerstore, node.Identity)
+func SupernodeServer(recordSource ds.ThreadSafeDatastore) core.RoutingOption {
+	return func(ctx context.Context, ph host.Host, dstore ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
+		server, err := supernode.NewServer(recordSource, ph.Peerstore(), ph.ID())
 		if err != nil {
 			return nil, err
 		}
 		proxy := &gcproxy.Loopback{
 			Handler: server,
-			Local:   node.Identity,
+			Local:   ph.ID(),
 		}
-		node.PeerHost.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
-		return supernode.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
+		ph.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
+		return supernode.NewClient(proxy, ph, ph.Peerstore(), ph.ID())
 	}
 }
 
 // TODO doc
 func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
-	return func(ctx context.Context, node *core.IpfsNode) (routing.IpfsRouting, error) {
+	return func(ctx context.Context, ph host.Host, dstore ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
 		if len(remotes) < 1 {
 			return nil, errServersMissing
 		}
-		if node.PeerHost == nil {
-			return nil, errHostMissing
-		}
-		if node.Identity == "" {
-			return nil, errIdentityMissing
-		}
-		if node.Peerstore == nil {
-			return nil, errors.New("need peerstore")
-		}
 
-		proxy := gcproxy.Standard(node.PeerHost, remotes)
-		node.PeerHost.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
-		return supernode.NewClient(proxy, node.PeerHost, node.Peerstore, node.Identity)
+		proxy := gcproxy.Standard(ph, remotes)
+		ph.SetStreamHandler(gcproxy.ProtocolSNR, proxy.HandleStream)
+		return supernode.NewClient(proxy, ph, ph.Peerstore(), ph.ID())
 	}
 }
