@@ -21,6 +21,7 @@ import (
 	ic "github.com/jbenet/go-ipfs/p2p/crypto"
 	p2phost "github.com/jbenet/go-ipfs/p2p/host"
 	p2pbhost "github.com/jbenet/go-ipfs/p2p/host/basic"
+	rhost "github.com/jbenet/go-ipfs/p2p/host/routed"
 	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -235,6 +236,8 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if err := n.startOnlineServicesWithHost(ctx, routingOption); err != nil {
 		return err
 	}
+
+	n.PeerHost = rhost.Wrap(peerhost, n.Routing)
 
 	// Ok, now we're ready to listen.
 	if err := startListening(ctx, n.PeerHost, n.Repo.Config()); err != nil {
