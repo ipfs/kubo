@@ -8,7 +8,7 @@ import (
 	query "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
-var _ datastore.Datastore = &S3Datastore{}
+var _ datastore.ThreadSafeDatastore = &S3Datastore{}
 
 var errTODO = errors.New("TODO")
 
@@ -43,3 +43,5 @@ func (ds *S3Datastore) Delete(key datastore.Key) (err error) {
 func (ds *S3Datastore) Query(q query.Query) (query.Results, error) {
 	return nil, errors.New("TODO implement query for s3 datastore?")
 }
+
+func (ds *S3Datastore) IsThreadSafe() {}
