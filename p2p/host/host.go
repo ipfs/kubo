@@ -46,6 +46,10 @@ type Host interface {
 	// (Threadsafe)
 	SetStreamHandler(pid protocol.ID, handler inet.StreamHandler)
 
+	// RemoveStreamHandler removes a handler on the mux that was set by
+	// SetStreamHandler
+	RemoveStreamHandler(pid protocol.ID)
+
 	// NewStream opens a new stream to given peer p, and writes a p2p/protocol
 	// header with given protocol.ID. If there is no connection to p, attempts
 	// to create one. If ProtocolID is "", writes no header.

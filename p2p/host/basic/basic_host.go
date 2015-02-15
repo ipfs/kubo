@@ -118,6 +118,10 @@ func (h *BasicHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandler
 	h.Mux().SetHandler(pid, handler)
 }
 
+func (h *BasicHost) RemoveStreamHandler(pid protocol.ID) {
+	h.Mux().RemoveHandler(pid)
+}
+
 // NewStream opens a new stream to given peer p, and writes a p2p/protocol
 // header with given protocol.ID. If there is no connection to p, attempts
 // to create one. If ProtocolID is "", writes no header.

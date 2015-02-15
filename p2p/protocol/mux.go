@@ -90,6 +90,15 @@ func (m *Mux) SetHandler(p ID, h inet.StreamHandler) {
 	m.lock.Unlock()
 }
 
+// RemoveHandler removes the protocol handler on the Network's Muxer.
+// This operation is threadsafe.
+func (m *Mux) RemoveHandler(p ID) {
+	log.Debugf("%s removing handler for protocol: %s (%d)", m, p, len(p))
+	m.lock.Lock()
+	delete(m.handlers, p)
+	m.lock.Unlock()
+}
+
 // Handle reads the next name off the Stream, and calls a handler function
 // This is done in its own goroutine, to avoid blocking the caller.
 func (m *Mux) Handle(s inet.Stream) {

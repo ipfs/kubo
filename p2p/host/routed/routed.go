@@ -84,21 +84,31 @@ func logRoutingErrDifferentPeers(ctx context.Context, wanted, got peer.ID, err e
 func (rh *RoutedHost) ID() peer.ID {
 	return rh.host.ID()
 }
+
 func (rh *RoutedHost) Peerstore() peer.Peerstore {
 	return rh.host.Peerstore()
 }
+
 func (rh *RoutedHost) Addrs() []ma.Multiaddr {
 	return rh.host.Addrs()
 }
+
 func (rh *RoutedHost) Network() inet.Network {
 	return rh.host.Network()
 }
+
 func (rh *RoutedHost) Mux() *protocol.Mux {
 	return rh.host.Mux()
 }
+
 func (rh *RoutedHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandler) {
 	rh.host.SetStreamHandler(pid, handler)
 }
+
+func (rh *RoutedHost) RemoveStreamHandler(pid protocol.ID) {
+	rh.host.RemoveStreamHandler(pid)
+}
+
 func (rh *RoutedHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
 	return rh.host.NewStream(pid, p)
 }
