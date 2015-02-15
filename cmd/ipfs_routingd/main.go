@@ -14,7 +14,6 @@ import (
 	s3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/s3"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	core "github.com/jbenet/go-ipfs/core"
 	corerouting "github.com/jbenet/go-ipfs/core/corerouting"
 	config "github.com/jbenet/go-ipfs/repo/config"
@@ -145,7 +144,7 @@ func makeS3Datastore() (*s3datastore.S3Datastore, error) {
 	}, nil
 }
 
-func enhanceDatastore(d datastore.Datastore) (datastore.ThreadSafeDatastore, error) {
+func enhanceDatastore(d datastore.ThreadSafeDatastore) (datastore.ThreadSafeDatastore, error) {
 	// TODO cache
-	return ds2.CloserWrap(syncds.MutexWrap(d)), nil
+	return ds2.CloserWrap(d), nil
 }
