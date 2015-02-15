@@ -1,6 +1,8 @@
 package corenet
 
 import (
+	"time"
+
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	net "github.com/jbenet/go-ipfs/p2p/net"
@@ -52,5 +54,10 @@ func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
 }
 
 func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
+	ctx, _ := context.WithTimeout(nd.Context(), time.Second*30)
+	err := nd.PeerHost.Connect(ctx, peer.PeerInfo{ID: p})
+	if err != nil {
+		return nil, err
+	}
 	return nd.PeerHost.NewStream(pro.ID(protocol), p)
 }
