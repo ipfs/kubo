@@ -9,7 +9,7 @@ type SupernodeClientConfig struct {
 	Servers []string
 }
 
-var DefaultGCRServers = []string{
+var DefaultSNRServers = []string{
 	"/ip4/104.236.176.52/tcp/4002/ipfs/QmXdb7tWTxdFEQEFgWBqkuYSrZd3mXrC7HxkD4krGNYx2U",
 	"/ip4/104.236.179.241/tcp/4002/ipfs/QmVRqViDByUxjUMoPnjurjKvZhaEMFDtK35FJXHAM4Lkj6",
 	"/ip4/104.236.151.122/tcp/4002/ipfs/QmSZwGx8Tn8tmcM4PtDJaMeUQNRhNFdBLVGPzRiNaRJtFH",
@@ -23,7 +23,7 @@ var DefaultGCRServers = []string{
 func initSNRConfig() (*SupernodeClientConfig, error) {
 	// TODO perform validation
 	return &SupernodeClientConfig{
-		Servers: DefaultGCRServers,
+		Servers: DefaultSNRServers,
 	}, nil
 }
 
