@@ -50,7 +50,7 @@ func main() {
 }
 
 func run() error {
-	servers := config.DefaultGCRServers
+	servers := config.DefaultSNRServers
 	fmt.Println("using gcr remotes:")
 	for _, p := range servers {
 		fmt.Println("\t", p)
