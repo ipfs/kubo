@@ -235,9 +235,6 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	// Wrap standard peer host with routing system to allow unknown peer lookups
-	n.PeerHost = rhost.Wrap(peerhost, n.Routing)
-
 	// Ok, now we're ready to listen.
 	if err := startListening(ctx, n.PeerHost, n.Repo.Config()); err != nil {
 		return debugerror.Wrap(err)
@@ -252,6 +249,9 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
 func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption) error {
+	// Wrap standard peer host with routing system to allow unknown peer lookups
+	n.PeerHost = rhost.Wrap(host, n.Routing)
+
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, host)
 
@@ -264,7 +264,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
-	bitswapNetwork := bsnet.NewFromIpfsHost(host, n.Routing)
+	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
 	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
 
 	// setup name system
