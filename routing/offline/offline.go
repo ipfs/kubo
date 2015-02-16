@@ -89,5 +89,9 @@ func (c *offlineRouting) Ping(ctx context.Context, p peer.ID) (time.Duration, er
 	return 0, ErrOffline
 }
 
+func (c *offlineRouting) Bootstrap(context.Context) (error) {
+	return nil
+}
+
 // ensure offlineRouting matches the IpfsRouting interface
 var _ routing.IpfsRouting = &offlineRouting{}

@@ -26,6 +26,11 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
+	snr, err := initSNRConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	conf := &Config{
 
 		// setup the node's default addresses.
@@ -40,6 +45,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		},
 
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
+		SupernodeRouting:       *snr,
 		Datastore: *ds,
 		Identity:  identity,
 		Log: Log{

@@ -40,4 +40,10 @@ type IpfsRouting interface {
 
 	// Ping a peer, log the time it took
 	Ping(context.Context, peer.ID) (time.Duration, error)
+
+	// Bootstrap allows callers to hint to the routing system to get into a
+	// Boostrapped state
+	Bootstrap(context.Context) error
+
+	// TODO expose io.Closer or plain-old Close error
 }

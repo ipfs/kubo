@@ -1,4 +1,4 @@
-package grandcentral
+package supernode
 
 import (
 	"bytes"
@@ -6,38 +6,38 @@ import (
 
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
+	"github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	proxy "github.com/jbenet/go-ipfs/routing/grandcentral/proxy"
+	proxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-var log = eventlog.Logger("grandcentral")
-
-var ErrTODO = errors.New("TODO")
+var log = eventlog.Logger("supernode")
 
 type Client struct {
+	peerhost  host.Host
 	peerstore peer.Peerstore
 	proxy     proxy.Proxy
-	dialer    inet.Network
 	local     peer.ID
 }
 
 // TODO take in datastore/cache
-func NewClient(d inet.Network, px proxy.Proxy, ps peer.Peerstore, local peer.ID) (*Client, error) {
+func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*Client, error) {
 	return &Client{
-		dialer:    d,
 		proxy:     px,
 		local:     local,
 		peerstore: ps,
+		peerhost:  h,
 	}, nil
 }
 
 func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("findProviders"))
+	defer log.EventBegin(ctx, "findProviders", &k).Done()
 	ch := make(chan peer.PeerInfo)
 	go func() {
 		defer close(ch)
@@ -60,6 +60,7 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 }
 
 func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
+	defer log.EventBegin(ctx, "putValue", &k).Done()
 	r, err := makeRecord(c.peerstore, c.local, k, v)
 	if err != nil {
 		return err
@@ -70,6 +71,7 @@ func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
 }
 
 func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
+	defer log.EventBegin(ctx, "getValue", &k).Done()
 	msg := pb.NewMessage(pb.Message_GET_VALUE, string(k), 0)
 	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
 	if err != nil {
@@ -79,13 +81,23 @@ func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
 }
 
 func (c *Client) Provide(ctx context.Context, k u.Key) error {
+	defer log.EventBegin(ctx, "provide", &k).Done()
 	msg := pb.NewMessage(pb.Message_ADD_PROVIDER, string(k), 0)
-	// TODO wrap this to hide the dialer and the local/remote peers
-	msg.ProviderPeers = pb.PeerInfosToPBPeers(c.dialer, []peer.PeerInfo{peer.PeerInfo{ID: c.local}}) // FIXME how is connectedness defined for the local node
-	return c.proxy.SendMessage(ctx, msg)                                                             // TODO wrap to hide remote
+	// FIXME how is connectedness defined for the local node
+	pri := []pb.PeerRoutingInfo{
+		pb.PeerRoutingInfo{
+			PeerInfo: peer.PeerInfo{
+				ID:    c.local,
+				Addrs: c.peerhost.Addrs(),
+			},
+		},
+	}
+	msg.ProviderPeers = pb.PeerRoutingInfosToPBPeers(pri)
+	return c.proxy.SendMessage(ctx, msg) // TODO wrap to hide remote
 }
 
 func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error) {
+	defer log.EventBegin(ctx, "findPeer", id).Done()
 	request := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	response, err := c.proxy.SendRequest(ctx, request) // hide remote
 	if err != nil {
@@ -115,7 +127,12 @@ func makeRecord(ps peer.Peerstore, p peer.ID, k u.Key, v []byte) (*pb.Record, er
 }
 
 func (c *Client) Ping(ctx context.Context, id peer.ID) (time.Duration, error) {
-	return time.Nanosecond, errors.New("grandcentral routing does not support the ping method")
+	defer log.EventBegin(ctx, "ping", id).Done()
+	return time.Nanosecond, errors.New("supernode routing does not support the ping method")
+}
+
+func (c *Client) Bootstrap(ctx context.Context) error {
+	return c.proxy.Bootstrap(ctx)
 }
 
 var _ routing.IpfsRouting = &Client{}

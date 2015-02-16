@@ -20,6 +20,11 @@ type Loopback struct {
 	Local   peer.ID
 }
 
+func (_ *Loopback) Bootstrap(ctx context.Context) error {
+	return nil
+}
+
+
 // SendMessage intercepts local requests, forwarding them to a local handler
 func (lb *Loopback) SendMessage(ctx context.Context, m *dhtpb.Message) error {
 	response := lb.Handler.HandleRequest(ctx, lb.Local, m)
@@ -34,7 +39,7 @@ func (lb *Loopback) SendRequest(ctx context.Context, m *dhtpb.Message) (*dhtpb.M
 	return lb.Handler.HandleRequest(ctx, lb.Local, m), nil
 }
 
-func (lb *Loopback) handleNewStream(s inet.Stream) {
+func (lb *Loopback) HandleStream(s inet.Stream) {
 	defer s.Close()
 	pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	var incoming dhtpb.Message

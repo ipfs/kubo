@@ -81,6 +81,14 @@
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
 		},
 		{
+			"ImportPath": "github.com/crowdmob/goamz/aws",
+			"Rev": "82345796204222aa56be89cf930c316b1297f906"
+		},
+		{
+			"ImportPath": "github.com/crowdmob/goamz/s3",
+			"Rev": "82345796204222aa56be89cf930c316b1297f906"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "b198514c204f20799b91c93b6ffd8b26be04c2c9"
 		},
@@ -99,6 +107,11 @@
 		{
 			"ImportPath": "github.com/fd/go-nat",
 			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
+		},
+		{
+			"ImportPath": "github.com/fzzy/radix/redis",
+			"Comment": "v0.5.1",
+			"Rev": "27a863cdffdb0998d13e1e11992b18489aeeaa25"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",

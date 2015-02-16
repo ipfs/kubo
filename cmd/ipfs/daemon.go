@@ -10,17 +10,21 @@ import (
 	"github.com/jbenet/go-ipfs/core"
 	commands "github.com/jbenet/go-ipfs/core/commands"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
+	"github.com/jbenet/go-ipfs/core/corerouting"
+	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
 )
 
 const (
-	initOptionKwd = "init"
-	mountKwd      = "mount"
-	writableKwd   = "writable"
-	ipfsMountKwd  = "mount-ipfs"
-	ipnsMountKwd  = "mount-ipns"
+	initOptionKwd             = "init"
+	routingOptionKwd          = "routing"
+	routingOptionSupernodeKwd = "supernode"
+	mountKwd                  = "mount"
+	writableKwd               = "writable"
+	ipfsMountKwd              = "mount-ipfs"
+	ipnsMountKwd              = "mount-ipns"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -39,6 +43,7 @@ the daemon.
 
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize IPFS with default settings if not already initialized"),
+		cmds.StringOption(routingOptionKwd, "Overrides the routing option (dht, supernode)"),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
@@ -102,6 +107,28 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// Start assembling corebuilder
 	nb := core.NewNodeBuilder().Online()
 	nb.SetRepo(repo)
+
+	routingOption, _, err := req.Option(routingOptionKwd).String()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	if routingOption == routingOptionSupernodeKwd {
+		servers, err := repo.Config().SupernodeRouting.ServerIPFSAddrs()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			repo.Close() // because ownership hasn't been transferred to the node
+			return
+		}
+		var infos []peer.PeerInfo
+		for _, addr := range servers {
+			infos = append(infos, peer.PeerInfo{
+				ID:    addr.ID(),
+				Addrs: []ma.Multiaddr{addr.Transport()},
+			})
+		}
+		nb.SetRouting(corerouting.SupernodeClient(infos...))
+	}
 
 	node, err := nb.Build(ctx.Context)
 	if err != nil {

@@ -34,7 +34,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 
 	var nodes []*core.IpfsNode
 	for _, p := range peers {
-		n, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(p, mn.Host(p), conf)))
+		n, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(p, mn.Host(p), conf, core.DHTOption)))
 		if err != nil {
 			t.Fatal(err)
 		}

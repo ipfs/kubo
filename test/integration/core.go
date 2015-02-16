@@ -4,6 +4,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	core "github.com/jbenet/go-ipfs/core"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
@@ -11,16 +12,14 @@ import (
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	"github.com/jbenet/go-ipfs/repo"
-	dht "github.com/jbenet/go-ipfs/routing/dht"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
 
 var log = eventlog.Logger("epictest")
 
-func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.ConfigOption {
+func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig, routing core.RoutingOption) core.ConfigOption {
 	return func(ctx context.Context) (*core.IpfsNode, error) {
 		const kWriteCacheElems = 100
 		const alwaysSendToPeer = true
@@ -30,22 +29,26 @@ func MocknetTestRepo(p peer.ID, h host.Host, conf testutil.LatencyConfig) core.C
 		}
 		ds := r.Datastore()
 
-		log.Debugf("MocknetTestRepo: %s %s %s", p, h.ID(), h)
-		dhtt := dht.NewDHT(ctx, h, ds)
+		n := &core.IpfsNode{
+			Peerstore: h.Peerstore(),
+			Repo:      r,
+			PeerHost:  h,
+			Identity:  p,
+		}
+		dhtt, err := routing(ctx, n)
+		if err != nil {
+			return nil, err
+		}
+
 		bsn := bsnet.NewFromIpfsHost(h, dhtt)
 		bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds), kWriteCacheElems)
 		if err != nil {
 			return nil, err
 		}
 		exch := bitswap.New(ctx, p, bsn, bstore, alwaysSendToPeer)
-		return &core.IpfsNode{
-			Peerstore:  h.Peerstore(),
-			Blockstore: bstore,
-			Exchange:   exch,
-			Repo:       r,
-			PeerHost:   h,
-			Routing:    dhtt,
-			Identity:   p,
-		}, nil
+		n.Blockstore = bstore
+		n.Exchange = exch
+		n.Routing = dhtt
+		return n, nil
 	}
 }

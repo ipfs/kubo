@@ -165,7 +165,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	defer e.lock.Unlock()
 
 	if len(m.Wantlist()) == 0 && len(m.Blocks()) == 0 {
-		log.Info("superfluous message")
+		log.Debug("received empty message from", p)
 	}
 
 	newWorkExists := false

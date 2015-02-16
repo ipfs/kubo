@@ -104,12 +104,12 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return errors.New("test initialization error")
 	}
 
-	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf)))
+	adder, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[0], mn.Host(peers[0]), conf, core.DHTOption)))
 	if err != nil {
 		return err
 	}
 	defer adder.Close()
-	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf)))
+	catter, err := core.NewIPFSNode(ctx, core.ConfigOption(MocknetTestRepo(peers[1], mn.Host(peers[1]), conf, core.DHTOption)))
 	if err != nil {
 		return err
 	}
