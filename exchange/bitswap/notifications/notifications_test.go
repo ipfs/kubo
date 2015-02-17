@@ -76,6 +76,30 @@ func TestSubscribeMany(t *testing.T) {
 	assertBlocksEqual(t, e2, r2)
 }
 
+// TestDuplicateSubscribe tests a scenario where a given block
+// would be requested twice at the same time.
+func TestDuplicateSubscribe(t *testing.T) {
+	e1 := blocks.NewBlock([]byte("1"))
+
+	n := New()
+	defer n.Shutdown()
+	ch1 := n.Subscribe(context.Background(), e1.Key())
+	ch2 := n.Subscribe(context.Background(), e1.Key())
+
+	n.Publish(e1)
+	r1, ok := <-ch1
+	if !ok {
+		t.Fatal("didn't receive first expected block")
+	}
+	assertBlocksEqual(t, e1, r1)
+
+	r2, ok := <-ch2
+	if !ok {
+		t.Fatal("didn't receive second expected block")
+	}
+	assertBlocksEqual(t, e1, r2)
+}
+
 func TestSubscribeIsANoopWhenCalledWithNoKeys(t *testing.T) {
 	n := New()
 	defer n.Shutdown()
