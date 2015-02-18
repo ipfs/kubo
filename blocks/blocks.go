@@ -42,3 +42,9 @@ func (b *Block) Key() u.Key {
 func (b *Block) String() string {
 	return fmt.Sprintf("[Block %s]", b.Key())
 }
+
+func (b *Block) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"block": b.Key().String(),
+	}
+}
