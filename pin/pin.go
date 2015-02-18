@@ -175,7 +175,6 @@ func (p *pinner) pinLinks(node *mdag.Node) error {
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
 	for _, ng := range p.dserv.GetDAG(ctx, node) {
 		subnode, err := ng.Get()
-		//subnode, err := l.GetNode(p.dserv)
 		if err != nil {
 			// TODO: Maybe just log and continue?
 			return err

@@ -34,6 +34,10 @@ func TestPinnerBasic(t *testing.T) {
 	p := NewPinner(dstore, dserv)
 
 	a, ak := randNode()
+	_, err = dserv.Add(a)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Pin A{}
 	err = p.Pin(a, false)
@@ -45,14 +49,26 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal("Failed to find key")
 	}
 
+	// create new node c, to be indirectly pinned through b
+	c, ck := randNode()
+	_, err = dserv.Add(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create new node b, to be parent to a and c
 	b, _ := randNode()
 	err = b.AddNodeLink("child", a)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	c, ck := randNode()
 	err = b.AddNodeLink("otherchild", c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dserv.Add(b)
 	if err != nil {
 		t.Fatal(err)
 	}
