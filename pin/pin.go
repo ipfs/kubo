@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	nsds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	"github.com/jbenet/go-ipfs/blocks/set"
@@ -170,8 +172,10 @@ func (p *pinner) pinIndirectRecurse(node *mdag.Node) error {
 }
 
 func (p *pinner) pinLinks(node *mdag.Node) error {
-	for _, l := range node.Links {
-		subnode, err := l.GetNode(p.dserv)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+	for _, ng := range p.dserv.GetDAG(ctx, node) {
+		subnode, err := ng.Get()
+		//subnode, err := l.GetNode(p.dserv)
 		if err != nil {
 			// TODO: Maybe just log and continue?
 			return err
