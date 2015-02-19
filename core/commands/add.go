@@ -112,6 +112,9 @@ remains to be implemented.
 		}()
 	},
 	PostRun: func(req cmds.Request, res cmds.Response) {
+		if res.Error() != nil {
+			return
+		}
 		outChan, ok := res.Output().(<-chan interface{})
 		if !ok {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
