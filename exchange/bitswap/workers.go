@@ -29,7 +29,7 @@ func (bs *bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// file transfers
 	for i := 0; i < provideWorkers; i++ {
 		px.Go(func(px process.Process) {
-			bs.blockReceiveWorker(ctx)
+			bs.provideWorker(ctx)
 		})
 	}
 }
@@ -55,7 +55,7 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 	}
 }
 
-func (bs *bitswap) blockReceiveWorker(ctx context.Context) {
+func (bs *bitswap) provideWorker(ctx context.Context) {
 	for {
 		select {
 		case blk, ok := <-bs.newBlocks:
