@@ -187,9 +187,12 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 	}
 
 	go func() {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
 		blkchan := ds.Blocks.GetBlocks(ctx, keys)
 
-		for {
+		for count := 0; count < len(keys); {
 			select {
 			case blk, ok := <-blkchan:
 				if !ok {
@@ -205,6 +208,7 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 				is := FindLinks(keys, blk.Key(), 0)
 				for _, i := range is {
 					sendChans[i] <- nd
+					count++
 				}
 			case <-ctx.Done():
 				return

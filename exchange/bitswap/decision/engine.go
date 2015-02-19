@@ -228,6 +228,10 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 	return nil
 }
 
+func (e *Engine) PeerDisconnected(p peer.ID) {
+	// TODO: release ledger
+}
+
 func (e *Engine) numBytesSentTo(p peer.ID) uint64 {
 	// NB not threadsafe
 	return e.findOrCreate(p).Accounting.BytesSent

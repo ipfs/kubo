@@ -249,9 +249,6 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
 func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption) error {
-	// Wrap standard peer host with routing system to allow unknown peer lookups
-	n.PeerHost = rhost.Wrap(host, n.Routing)
-
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, host)
 
@@ -261,6 +258,9 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		return debugerror.Wrap(err)
 	}
 	n.Routing = r
+
+	// Wrap standard peer host with routing system to allow unknown peer lookups
+	n.PeerHost = rhost.Wrap(host, n.Routing)
 
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
