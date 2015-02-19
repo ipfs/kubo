@@ -227,6 +227,49 @@ type RefWriter struct {
 
 // WriteRefs writes refs of the given object to the underlying writer.
 func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
+	if rw.Recursive {
+		return rw.writeRefsRecursive(n)
+	} else {
+		return rw.writeRefsSingle(n)
+	}
+}
+
+func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
+	nkey, err := n.Key()
+	if err != nil {
+		return 0, err
+	}
+
+	if rw.skip(nkey) {
+		return 0, nil
+	}
+
+	var count int
+	for i, ng := range rw.DAG.GetDAG(rw.Ctx, n) {
+		lk := u.Key(n.Links[i].Hash)
+		if rw.skip(lk) {
+			continue
+		}
+
+		if err := rw.WriteEdge(nkey, lk, n.Links[i].Name); err != nil {
+			return count, err
+		}
+
+		nd, err := ng.Get()
+		if err != nil {
+			return count, err
+		}
+
+		c, err := rw.writeRefsRecursive(nd)
+		count += c
+		if err != nil {
+			return count, err
+		}
+	}
+	return count, nil
+}
+
+func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 	nkey, err := n.Key()
 	if err != nil {
 		return 0, err
@@ -248,21 +291,6 @@ func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
 			return count, err
 		}
 		count++
-
-		if !rw.Recursive {
-			continue
-		}
-
-		child, err := l.GetNode(rw.DAG)
-		if err != nil {
-			return count, err
-		}
-
-		c, err := rw.WriteRefs(child)
-		count += c
-		if err != nil {
-			return count, err
-		}
 	}
 	return count, nil
 }
