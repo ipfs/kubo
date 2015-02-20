@@ -1,3 +1,4 @@
+//go:generate doc2go -in=init-doc/about -out=about.go -package=assets
 //go:generate doc2go -in=init-doc/readme -out=readme.go -package=assets
 //go:generate doc2go -in=init-doc/help -out=help.go -package=assets
 //go:generate doc2go -in=init-doc/contact -out=contact.go -package=assets
@@ -6,6 +7,7 @@
 package assets
 
 var Init_dir = map[string]string{
+	"about":          Init_doc_about,
 	"readme":         Init_doc_readme,
 	"help":           Init_doc_help,
 	"contact":        Init_doc_contact,
