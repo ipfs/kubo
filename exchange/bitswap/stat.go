@@ -1,14 +1,14 @@
 package bitswap
 
 import (
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
+	"sort"
 )
 
 type Stat struct {
 	ProvideBufLen int
 	Wantlist      []u.Key
-	Peers         []peer.ID
+	Peers         []string
 }
 
 func (bs *Bitswap) Stat() (*Stat, error) {
@@ -16,7 +16,10 @@ func (bs *Bitswap) Stat() (*Stat, error) {
 	st.ProvideBufLen = len(bs.newBlocks)
 	st.Wantlist = bs.GetWantlist()
 
-	st.Peers = bs.engine.Peers()
+	for _, p := range bs.engine.Peers() {
+		st.Peers = append(st.Peers, p.Pretty())
+	}
+	sort.Strings(st.Peers)
 
 	return st, nil
 }

@@ -40,7 +40,7 @@ const (
 	// kMaxPriority is the max priority as defined by the bitswap protocol
 	kMaxPriority = math.MaxInt32
 
-	hasBlockBufferSize = 256
+	HasBlockBufferSize = 256
 	provideWorkers     = 4
 )
 
@@ -88,7 +88,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
-		newBlocks:     make(chan *blocks.Block, hasBlockBufferSize),
+		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
 	}
 	network.SetDelegate(bs)
 

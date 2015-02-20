@@ -2,7 +2,7 @@ package commands
 
 import (
 	"bytes"
-	"encoding/json"
+	"fmt"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
 	u "github.com/jbenet/go-ipfs/util"
@@ -75,10 +75,15 @@ var bitswapStatCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 			buf := new(bytes.Buffer)
-			enc := json.NewEncoder(buf)
-			err := enc.Encode(out)
-			if err != nil {
-				return nil, err
+			fmt.Fprintln(buf, "bitswap status")
+			fmt.Fprintf(buf, "\tprovides buffer: %d / %d\n", out.ProvideBufLen, bitswap.HasBlockBufferSize)
+			fmt.Fprintf(buf, "\twantlist [%d keys]\n", len(out.Wantlist))
+			for _, k := range out.Wantlist {
+				fmt.Fprintf(buf, "\t\t%s\n", k.B58String())
+			}
+			fmt.Fprintf(buf, "\tpartners [%d]\n", len(out.Peers))
+			for _, p := range out.Peers {
+				fmt.Fprintf(buf, "\t\t%s\n", p)
 			}
 			return buf, nil
 		},
