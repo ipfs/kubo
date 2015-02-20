@@ -98,7 +98,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"swarm":     SwarmCmd,
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
-	"wantlist":  WantlistCmd,
+	"bitswap":   BitswapCmd,
 }
 
 func init() {
