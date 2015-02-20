@@ -91,6 +91,8 @@ func run() error {
 	}
 
 	opts := []corehttp.ServeOption{
+		corehttp.VersionOption(),
+		corehttp.IPNSHostnameOption(),
 		gateway.ServeOption(),
 	}
 	return corehttp.ListenAndServe(node, *host, opts...)
