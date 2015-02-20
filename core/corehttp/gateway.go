@@ -1,10 +1,12 @@
 package corehttp
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 
 	core "github.com/jbenet/go-ipfs/core"
+	id "github.com/jbenet/go-ipfs/p2p/protocol/identify"
 )
 
 // Gateway should be instantiated using NewGateway
@@ -41,6 +43,16 @@ func GatewayOption(writable bool) ServeOption {
 		BlockList: &BlockList{},
 	})
 	return g.ServeOption()
+}
+
+func VersionOption() ServeOption {
+	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Client Version:   %s\n", id.ClientVersion)
+			fmt.Fprintf(w, "Protocol Version: %s\n", id.IpfsVersion)
+		})
+		return mux, nil
+	}
 }
 
 // Decider decides whether to Allow string

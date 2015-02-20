@@ -208,6 +208,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	if gatewayMaddr != nil {
 		go func() {
 			var opts = []corehttp.ServeOption{
+				corehttp.VersionOption(),
 				corehttp.IPNSHostnameOption(),
 				corehttp.GatewayOption(writable),
 			}
