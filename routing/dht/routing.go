@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"math"
 	"sync"
 	"time"
 
@@ -89,7 +88,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 
 	// get closest peers in the routing table
 	rtp := dht.routingTable.ListPeers()
-	log.Debugf("peers in rt: %s", len(rtp), rtp)
+	log.Errorf("peers in rt: %s", len(rtp), rtp)
 	if len(rtp) == 0 {
 		log.Warning("No peers from routing table!")
 		return nil, errors.Wrap(kb.ErrLookupFailure)
@@ -169,7 +168,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 // FindProviders searches until the context expires.
 func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
 	var providers []peer.PeerInfo
-	for p := range dht.FindProvidersAsync(ctx, key, math.MaxInt32) {
+	for p := range dht.FindProvidersAsync(ctx, key, KValue) {
 		providers = append(providers, p)
 	}
 	return providers, nil
