@@ -4,7 +4,7 @@ MAINTAINER Brian Tiger Chow <btc@perfmode.com>
 ADD . /go/src/github.com/jbenet/go-ipfs
 RUN cd /go/src/github.com/jbenet/go-ipfs/cmd/ipfs && go install
 
-EXPOSE 4001 5001 4002/udp
+EXPOSE 4001 5001 4002/udp 8080
 
 ENTRYPOINT ["ipfs"]
 
