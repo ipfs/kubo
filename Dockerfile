@@ -1,4 +1,4 @@
-FROM golang:1.3
+FROM golang:1.4
 MAINTAINER Brian Tiger Chow <btc@perfmode.com>
 
 ADD . /go/src/github.com/jbenet/go-ipfs
