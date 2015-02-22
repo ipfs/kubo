@@ -431,10 +431,6 @@ GetValue will return the value stored in the dht at the given key.
 					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
 				}
 				switch obj.Type {
-				case notif.FinalPeer:
-					if verbose {
-						fmt.Fprintf(buf, "* closest peer %s\n", obj.ID)
-					}
 				case notif.PeerResponse:
 					if verbose {
 						fmt.Fprintf(buf, "* %s says use ", obj.ID)
