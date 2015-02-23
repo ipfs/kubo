@@ -1,6 +1,6 @@
 package util
 
-import "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+import "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 func ContextDo(ctx context.Context, f func() error) error {
 

@@ -3,8 +3,8 @@ package corerouting
 import (
 	"errors"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/p2p/host"
 	"github.com/jbenet/go-ipfs/p2p/peer"

@@ -1,9 +1,9 @@
 package core
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	"github.com/jbenet/go-ipfs/exchange/offline"

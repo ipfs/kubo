@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bserv "github.com/jbenet/go-ipfs/blockservice"
 	u "github.com/jbenet/go-ipfs/util"

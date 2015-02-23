@@ -1,8 +1,7 @@
 package network
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"

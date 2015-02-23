@@ -1,7 +1,7 @@
 package util
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // privateChanType protects the channel. Since this is a package-private type,

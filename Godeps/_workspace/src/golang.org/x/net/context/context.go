@@ -64,18 +64,21 @@ type Context interface {
 	//
 	// Done is provided for use in select statements:
 	//
-	// 	// DoSomething calls DoSomethingSlow and returns as soon as
-	// 	// it returns or ctx.Done is closed.
-	// 	func DoSomething(ctx context.Context) (Result, error) {
-	// 		c := make(chan Result, 1)
-	// 		go func() { c <- DoSomethingSlow(ctx) }()
-	// 		select {
-	// 		case res := <-c:
-	// 			return res, nil
-	// 		case <-ctx.Done():
-	// 			return nil, ctx.Err()
-	// 		}
-	// 	}
+	//  // Stream generates values with DoSomething and sends them to out
+	//  // until DoSomething returns an error or ctx.Done is closed.
+	//  func Stream(ctx context.Context, out <-chan Value) error {
+	//  	for {
+	//  		v, err := DoSomething(ctx)
+	//  		if err != nil {
+	//  			return err
+	//  		}
+	//  		select {
+	//  		case <-ctx.Done():
+	//  			return ctx.Err()
+	//  		case out <- v:
+	//  		}
+	//  	}
+	//  }
 	//
 	// See http://blog.golang.org/pipelines for more examples of how to use
 	// a Done channel for cancelation.
@@ -108,7 +111,7 @@ type Context interface {
 	// 	// Package user defines a User type that's stored in Contexts.
 	// 	package user
 	//
-	// 	import "code.google.com/p/go.net/context"
+	// 	import "golang.org/x/net/context"
 	//
 	// 	// User is the type of value stored in the Contexts.
 	// 	type User struct {...}
@@ -124,7 +127,7 @@ type Context interface {
 	//
 	// 	// NewContext returns a new Context that carries value u.
 	// 	func NewContext(ctx context.Context, u *User) context.Context {
-	// 		return context.WithValue(userKey, u)
+	// 		return context.WithValue(ctx, userKey, u)
 	// 	}
 	//
 	// 	// FromContext returns the User value stored in ctx, if any.
@@ -142,27 +145,28 @@ var Canceled = errors.New("context canceled")
 // deadline passes.
 var DeadlineExceeded = errors.New("context deadline exceeded")
 
-// An emptyCtx is never canceled, has no values, and has no deadline.
+// An emptyCtx is never canceled, has no values, and has no deadline.  It is not
+// struct{}, since vars of this type must have distinct addresses.
 type emptyCtx int
 
-func (emptyCtx) Deadline() (deadline time.Time, ok bool) {
+func (*emptyCtx) Deadline() (deadline time.Time, ok bool) {
 	return
 }
 
-func (emptyCtx) Done() <-chan struct{} {
+func (*emptyCtx) Done() <-chan struct{} {
 	return nil
 }
 
-func (emptyCtx) Err() error {
+func (*emptyCtx) Err() error {
 	return nil
 }
 
-func (emptyCtx) Value(key interface{}) interface{} {
+func (*emptyCtx) Value(key interface{}) interface{} {
 	return nil
 }
 
-func (n emptyCtx) String() string {
-	switch n {
+func (e *emptyCtx) String() string {
+	switch e {
 	case background:
 		return "context.Background"
 	case todo:
@@ -171,9 +175,9 @@ func (n emptyCtx) String() string {
 	return "unknown empty Context"
 }
 
-const (
-	background emptyCtx = 1
-	todo       emptyCtx = 2
+var (
+	background = new(emptyCtx)
+	todo       = new(emptyCtx)
 )
 
 // Background returns a non-nil, empty Context. It is never canceled, has no
@@ -201,6 +205,9 @@ type CancelFunc func()
 // WithCancel returns a copy of parent with a new Done channel. The returned
 // context's Done channel is closed when the returned cancel function is called
 // or when the parent context's Done channel is closed, whichever happens first.
+//
+// Canceling this context releases resources associated with it, so code should
+// call cancel as soon as the operations running in this Context complete.
 func WithCancel(parent Context) (ctx Context, cancel CancelFunc) {
 	c := newCancelCtx(parent)
 	propagateCancel(parent, &c)
@@ -261,6 +268,19 @@ func parentCancelCtx(parent Context) (*cancelCtx, bool) {
 	}
 }
 
+// removeChild removes a context from its parent.
+func removeChild(parent Context, child canceler) {
+	p, ok := parentCancelCtx(parent)
+	if !ok {
+		return
+	}
+	p.mu.Lock()
+	if p.children != nil {
+		delete(p.children, child)
+	}
+	p.mu.Unlock()
+}
+
 // A canceler is a context type that can be canceled directly.  The
 // implementations are *cancelCtx and *timerCtx.
 type canceler interface {
@@ -315,13 +335,7 @@ func (c *cancelCtx) cancel(removeFromParent bool, err error) {
 	c.mu.Unlock()
 
 	if removeFromParent {
-		if p, ok := parentCancelCtx(c.Context); ok {
-			p.mu.Lock()
-			if p.children != nil {
-				delete(p.children, c)
-			}
-			p.mu.Unlock()
-		}
+		removeChild(c.Context, c)
 	}
 }
 
@@ -332,9 +346,8 @@ func (c *cancelCtx) cancel(removeFromParent bool, err error) {
 // cancel function is called, or when the parent context's Done channel is
 // closed, whichever happens first.
 //
-// Canceling this context releases resources associated with the deadline
-// timer, so code should call cancel as soon as the operations running in this
-// Context complete.
+// Canceling this context releases resources associated with it, so code should
+// call cancel as soon as the operations running in this Context complete.
 func WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc) {
 	if cur, ok := parent.Deadline(); ok && cur.Before(deadline) {
 		// The current deadline is already sooner than the new one.
@@ -379,7 +392,11 @@ func (c *timerCtx) String() string {
 }
 
 func (c *timerCtx) cancel(removeFromParent bool, err error) {
-	c.cancelCtx.cancel(removeFromParent, err)
+	c.cancelCtx.cancel(false, err)
+	if removeFromParent {
+		// Remove this timerCtx from its parent cancelCtx's children.
+		removeChild(c.cancelCtx.Context, c)
+	}
 	c.mu.Lock()
 	if c.timer != nil {
 		c.timer.Stop()
@@ -390,9 +407,8 @@ func (c *timerCtx) cancel(removeFromParent bool, err error) {
 
 // WithTimeout returns WithDeadline(parent, time.Now().Add(timeout)).
 //
-// Canceling this context releases resources associated with the deadline
-// timer, so code should call cancel as soon as the operations running in this
-// Context complete:
+// Canceling this context releases resources associated with it, so code should
+// call cancel as soon as the operations running in this Context complete:
 //
 // 	func slowOperationWithTimeout(ctx context.Context) (Result, error) {
 // 		ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)

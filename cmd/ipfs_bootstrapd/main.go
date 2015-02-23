@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	corerepo "github.com/jbenet/go-ipfs/core/corerepo"

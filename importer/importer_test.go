@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	mdtest "github.com/jbenet/go-ipfs/merkledag/test"

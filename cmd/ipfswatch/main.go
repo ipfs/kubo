@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
 	commands "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"

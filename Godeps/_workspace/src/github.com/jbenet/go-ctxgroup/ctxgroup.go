@@ -3,9 +3,10 @@
 package ctxgroup
 
 import (
+	"io"
 	"sync"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // TeardownFunc is a function used to cleanup state at the end of the
@@ -68,18 +69,9 @@ type ContextGroup interface {
 	// WARNING: this is deprecated and will go away soon.
 	Children() *sync.WaitGroup
 
-	// AddChildGroup registers a dependent ContextGroup child. The child will
-	// be closed when this parent is closed, and waited upon to finish. It is
-	// the functional equivalent of the following:
-	//
-	//	parent.Children().Add(1) // add one more dependent child
-	//  go func(parent, child ContextGroup) {
-	//  	<-parent.Closing()       // wait until parent is closing
-	//  	child.Close()            // signal child to close
-	//  	parent.Children().Done() // child signals it is done
-	//	}(a, b)
-	//
-	AddChildGroup(c ContextGroup)
+	// AddChild gives ownership of a child io.Closer. The child will be closed
+	// when the context group is closed.
+	AddChild(io.Closer)
 
 	// AddChildFunc registers a dependent ChildFund. The child will receive
 	// its parent ContextGroup, and can wait on its signals. Child references
@@ -163,9 +155,9 @@ func (c *contextGroup) Children() *sync.WaitGroup {
 	return &c.children
 }
 
-func (c *contextGroup) AddChildGroup(child ContextGroup) {
+func (c *contextGroup) AddChild(child io.Closer) {
 	c.children.Add(1)
-	go func(parent, child ContextGroup) {
+	go func(parent ContextGroup, child io.Closer) {
 		<-parent.Closing()       // wait until parent is closing
 		child.Close()            // signal child to close
 		parent.Children().Done() // child signals it is done
@@ -255,7 +247,7 @@ func WithParent(p ContextGroup) ContextGroup {
 		panic("nil ContextGroup")
 	}
 	c := newContextGroup(p.Context(), nil)
-	p.AddChildGroup(c)
+	p.AddChild(c)
 	return c
 }
 

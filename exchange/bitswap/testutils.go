@@ -3,9 +3,9 @@ package bitswap
 import (
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"

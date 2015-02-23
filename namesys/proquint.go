@@ -3,8 +3,8 @@ package namesys
 import (
 	"errors"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proquint "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/bren2010/proquint"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	u "github.com/jbenet/go-ipfs/util"
 )
 

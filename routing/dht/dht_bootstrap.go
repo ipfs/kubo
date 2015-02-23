@@ -12,9 +12,9 @@ import (
 	routing "github.com/jbenet/go-ipfs/routing"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	periodicproc "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // BootstrapConfig specifies parameters used bootstrapping the DHT.

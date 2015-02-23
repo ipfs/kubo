@@ -21,10 +21,10 @@ import (
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 var log = eventlog.Logger("dht")
@@ -78,7 +78,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 	dht.providers = NewProviderManager(dht.Context(), dht.self)
-	dht.AddChildGroup(dht.providers)
+	dht.AddChild(dht.providers)
 
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()

@@ -7,9 +7,9 @@ import (
 	"math"
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/core/corerouting"
 	"github.com/jbenet/go-ipfs/core/coreunix"
