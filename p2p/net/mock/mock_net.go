@@ -69,7 +69,7 @@ func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
 	h := bhost.New(n)
 	log.Debugf("mocknet added listen addr for peer: %s -- %s", n.LocalPeer(), a)
 
-	mn.cg.AddChildGroup(n.cg)
+	mn.cg.AddChild(n.cg)
 
 	mn.Lock()
 	mn.nets[n.peer] = n

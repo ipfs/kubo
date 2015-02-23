@@ -78,7 +78,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 	dht.providers = NewProviderManager(dht.Context(), dht.self)
-	dht.AddChildGroup(dht.providers)
+	dht.AddChild(dht.providers)
 
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
