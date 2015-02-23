@@ -88,7 +88,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 
 	// get closest peers in the routing table
 	rtp := dht.routingTable.ListPeers()
-	log.Errorf("peers in rt: %s", len(rtp), rtp)
+	log.Debugf("peers in rt: %s", len(rtp), rtp)
 	if len(rtp) == 0 {
 		log.Warning("No peers from routing table!")
 		return nil, errors.Wrap(kb.ErrLookupFailure)
