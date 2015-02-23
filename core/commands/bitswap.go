@@ -33,8 +33,13 @@ Print out all blocks currently on the bitswap wantlist for the local peer`,
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+		bs, ok := nd.Exchange.(*bitswap.Bitswap)
+		if !ok {
+			res.SetError(u.ErrCast(), cmds.ErrNormal)
+			return
+		}
 
-		res.SetOutput(&KeyList{nd.Exchange.GetWantlist()})
+		res.SetOutput(&KeyList{bs.GetWantlist()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,
