@@ -17,6 +17,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	netutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	routing "github.com/jbenet/go-ipfs/routing"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
@@ -147,7 +148,7 @@ func TestValueGetSet(t *testing.T) {
 	connect(t, ctx, dhtA, dhtB)
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	dhtA.PutValue(ctxT, "/v/hello", []byte("world"))
+	dhtA.PutValue(ctxT, "/v/hello", []byte("world"), false)
 
 	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
 	val, err := dhtA.GetValue(ctxT, "/v/hello")
@@ -188,7 +189,13 @@ func TestProvides(t *testing.T) {
 
 	for k, v := range testCaseValues {
 		log.Debugf("adding local values for %s = %s", k, v)
-		err := dhts[3].putLocal(k, v)
+		sk := dhts[3].peerstore.PrivKey(dhts[3].self)
+		rec, err := record.MakePutRecord(sk, k, v, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = dhts[3].putLocal(k, rec)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -456,7 +463,12 @@ func TestProvidesMany(t *testing.T) {
 		providers[k] = dht.self
 
 		t.Logf("adding local values for %s = %s (on %s)", k, v, dht.self)
-		err := dht.putLocal(k, v)
+		rec, err := record.MakePutRecord(nil, k, v, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = dht.putLocal(k, rec)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -543,13 +555,21 @@ func TestProvidesAsync(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	err := dhts[3].putLocal(u.Key("hello"), []byte("world"))
+	k := u.Key("hello")
+	val := []byte("world")
+	sk := dhts[3].peerstore.PrivKey(dhts[3].self)
+	rec, err := record.MakePutRecord(sk, k, val, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	bits, err := dhts[3].getLocal(u.Key("hello"))
-	if err != nil && bytes.Equal(bits, []byte("world")) {
+	err = dhts[3].putLocal(k, rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bits, err := dhts[3].getLocal(k)
+	if err != nil && bytes.Equal(bits, val) {
 		t.Fatal(err)
 	}
 

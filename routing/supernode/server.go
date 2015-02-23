@@ -210,7 +210,10 @@ func verify(ps peer.Peerstore, r *dhtpb.Record) error {
 	if pk == nil {
 		return fmt.Errorf("do not have public key for %s", p)
 	}
-	if err := v.VerifyRecord(r, pk); err != nil {
+	if err := record.CheckRecordSig(r, pk); err != nil {
+		return err
+	}
+	if err := v.VerifyRecord(r); err != nil {
 		return err
 	}
 	return nil

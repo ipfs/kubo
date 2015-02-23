@@ -7,6 +7,7 @@ import (
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 )
@@ -99,14 +100,20 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 // key, we fail. we do not search the dht.
 func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
 
-	// First, validate the signature
-	p := peer.ID(r.GetAuthor())
-	pk := dht.peerstore.PubKey(p)
-	if pk == nil {
-		return fmt.Errorf("do not have public key for %s", p)
+	if len(r.Signature) > 0 {
+		// First, validate the signature
+		p := peer.ID(r.GetAuthor())
+		pk := dht.peerstore.PubKey(p)
+		if pk == nil {
+			return fmt.Errorf("do not have public key for %s", p)
+		}
+
+		if err := record.CheckRecordSig(r, pk); err != nil {
+			return err
+		}
 	}
 
-	return dht.Validator.VerifyRecord(r, pk)
+	return dht.Validator.VerifyRecord(r)
 }
 
 // verifyRecordOnline verifies a record, searching the DHT for the public key
@@ -116,12 +123,19 @@ func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
 // massive amplification attack on the dht. Use with care.
 func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *pb.Record) error {
 
-	// get the public key, search for it if necessary.
-	p := peer.ID(r.GetAuthor())
-	pk, err := dht.getPublicKeyOnline(ctx, p)
-	if err != nil {
-		return err
+	if len(r.Signature) > 0 {
+		// get the public key, search for it if necessary.
+		p := peer.ID(r.GetAuthor())
+		pk, err := dht.getPublicKeyOnline(ctx, p)
+		if err != nil {
+			return err
+		}
+
+		err = record.CheckRecordSig(r, pk)
+		if err != nil {
+			return err
+		}
 	}
 
-	return dht.Validator.VerifyRecord(r, pk)
+	return dht.Validator.VerifyRecord(r)
 }

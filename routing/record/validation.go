@@ -29,19 +29,7 @@ type Validator map[string]ValidatorFunc
 
 // VerifyRecord checks a record and ensures it is still valid.
 // It runs needed validators
-func (v Validator) VerifyRecord(r *pb.Record, pk ci.PubKey) error {
-	// First, validate the signature
-	blob := RecordBlobForSig(r)
-	ok, err := pk.Verify(blob, r.GetSignature())
-	if err != nil {
-		log.Info("Signature verify failed. (ignored)")
-		return err
-	}
-	if !ok {
-		log.Info("dht found a forged record! (ignored)")
-		return ErrBadRecord
-	}
-
+func (v Validator) VerifyRecord(r *pb.Record) error {
 	// Now, check validity func
 	parts := strings.Split(r.GetKey(), "/")
 	if len(parts) < 3 {
@@ -70,6 +58,18 @@ func ValidatePublicKeyRecord(k u.Key, val []byte) error {
 	pkh := u.Hash(val)
 	if !bytes.Equal(keyparts[2], pkh) {
 		return errors.New("public key does not match storage key")
+	}
+	return nil
+}
+
+func CheckRecordSig(r *pb.Record, pk ci.PubKey) error {
+	blob := RecordBlobForSig(r)
+	good, err := pk.Verify(blob, r.Signature)
+	if err != nil {
+		return nil
+	}
+	if !good {
+		return errors.New("invalid record signature")
 	}
 	return nil
 }

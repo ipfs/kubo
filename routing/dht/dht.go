@@ -254,16 +254,7 @@ func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
 }
 
 // putLocal stores the key value pair in the datastore
-func (dht *IpfsDHT) putLocal(key u.Key, value []byte) error {
-	sk, err := dht.getOwnPrivateKey()
-	if err != nil {
-		return err
-	}
-
-	rec, err := record.MakePutRecord(sk, key, value)
-	if err != nil {
-		return err
-	}
+func (dht *IpfsDHT) putLocal(key u.Key, rec *pb.Record) error {
 	data, err := proto.Marshal(rec)
 	if err != nil {
 		return err

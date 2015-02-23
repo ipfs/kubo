@@ -62,7 +62,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	log.Debugf("Storing pubkey at: %s", namekey)
 	// Store associated public key
 	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
-	err = p.routing.PutValue(timectx, namekey, pkbytes)
+	err = p.routing.PutValue(timectx, namekey, pkbytes, false)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
 	// Store ipns entry at "/ipns/"+b58(h(pubkey))
 	timectx, _ = context.WithDeadline(ctx, time.Now().Add(time.Second*10))
-	err = p.routing.PutValue(timectx, ipnskey, data)
+	err = p.routing.PutValue(timectx, ipnskey, data, true)
 	if err != nil {
 		return err
 	}

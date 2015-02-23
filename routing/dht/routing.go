@@ -29,21 +29,21 @@ var asyncQueryBuffer = 10
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
+func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte, sign bool) error {
 	log.Debugf("PutValue %s", key)
-	err := dht.putLocal(key, value)
-	if err != nil {
-		return err
-	}
-
 	sk, err := dht.getOwnPrivateKey()
 	if err != nil {
 		return err
 	}
 
-	rec, err := record.MakePutRecord(sk, key, value)
+	rec, err := record.MakePutRecord(sk, key, value, sign)
 	if err != nil {
 		log.Debug("Creation of record failed!")
+		return err
+	}
+
+	err = dht.putLocal(key, rec)
+	if err != nil {
 		return err
 	}
 

@@ -35,8 +35,8 @@ type offlineRouting struct {
 	sk        ci.PrivKey
 }
 
-func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte) error {
-	rec, err := record.MakePutRecord(c.sk, key, val)
+func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte, sign bool) error {
+	rec, err := record.MakePutRecord(c.sk, key, val, sign)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (c *offlineRouting) Ping(ctx context.Context, p peer.ID) (time.Duration, er
 	return 0, ErrOffline
 }
 
-func (c *offlineRouting) Bootstrap(context.Context) (error) {
+func (c *offlineRouting) Bootstrap(context.Context) error {
 	return nil
 }
 

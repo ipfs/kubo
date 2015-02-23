@@ -111,7 +111,7 @@ func TestGetFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		rec, err := record.MakePutRecord(sk, u.Key(str), []byte("blah"))
+		rec, err := record.MakePutRecord(sk, u.Key(str), []byte("blah"), true)
 		if err != nil {
 			t.Fatal(err)
 		}
