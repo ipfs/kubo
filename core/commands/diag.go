@@ -15,7 +15,7 @@ import (
 type DiagnosticConnection struct {
 	ID string
 	// TODO use milliseconds or microseconds for human readability
-	NanosecondsLatency time.Duration
+	NanosecondsLatency uint64
 	Count              int
 }
 
@@ -167,7 +167,7 @@ func standardDiagOutput(info []*diag.DiagInfo) *DiagnosticOutput {
 		for j, conn := range peer.Connections {
 			connections[j] = DiagnosticConnection{
 				ID:                 conn.ID,
-				NanosecondsLatency: time.Duration(conn.Latency.Nanoseconds()) * time.Nanosecond,
+				NanosecondsLatency: uint64(conn.Latency.Nanoseconds()),
 				Count:              conn.Count,
 			}
 		}
@@ -187,7 +187,7 @@ func printDiagnostics(out io.Writer, info *DiagnosticOutput) error {
 	diagTmpl := `
 {{ range $peer := .Peers }}
 ID {{ $peer.ID }} up {{ $peer.UptimeSeconds }} seconds connected to {{ len .Connections }}:{{ range $connection := .Connections }}
-	ID {{ $connection.ID }} connections: {{ $connection.Count }} latency: {{ $connection.NanosecondsLatency }} {{ end }}
+	ID {{ $connection.ID }} connections: {{ $connection.Count }} latency: {{ $connection.NanosecondsLatency }} ns{{ end }}
 {{end}}
 `
 
