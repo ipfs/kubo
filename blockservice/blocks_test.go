@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
@@ -13,6 +12,7 @@ import (
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	u "github.com/jbenet/go-ipfs/util"
+	"golang.org/x/net/context"
 )
 
 func TestBlocks(t *testing.T) {

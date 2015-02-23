@@ -3,13 +3,13 @@ package offline
 import (
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	"github.com/jbenet/go-ipfs/blocks/blocksutil"
 	u "github.com/jbenet/go-ipfs/util"
+	context "golang.org/x/net/context"
 )
 
 func TestBlockReturnsErr(t *testing.T) {

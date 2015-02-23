@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "golang.org/x/net/context"
 
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"

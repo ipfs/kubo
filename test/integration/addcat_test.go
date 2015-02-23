@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
 	"github.com/jbenet/go-ipfs/core"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"

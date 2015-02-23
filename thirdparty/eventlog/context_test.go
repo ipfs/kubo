@@ -3,7 +3,7 @@ package eventlog
 import (
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 )
 
 func TestContextContainsMetadata(t *testing.T) {

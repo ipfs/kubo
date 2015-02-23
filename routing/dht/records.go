@@ -3,7 +3,7 @@ package dht
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"

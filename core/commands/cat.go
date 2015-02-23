@@ -8,8 +8,8 @@ import (
 	path "github.com/jbenet/go-ipfs/path"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	context "golang.org/x/net/context"
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB

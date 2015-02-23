@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	mdag "github.com/jbenet/go-ipfs/merkledag"

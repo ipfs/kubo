@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	homedir "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	fsnotify "github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
@@ -17,6 +16,7 @@ import (
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
+	context "golang.org/x/net/context"
 )
 
 var http = flag.Bool("http", false, "expose IPFS HTTP API")

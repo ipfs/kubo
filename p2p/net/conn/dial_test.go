@@ -10,7 +10,7 @@ import (
 
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 )
 
 func echoListen(ctx context.Context, listener Listener) {

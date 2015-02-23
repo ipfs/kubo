@@ -14,7 +14,7 @@ import (
 	testutil "github.com/jbenet/go-ipfs/p2p/test/util"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 )
 
 var log = eventlog.Logger("backpressure")

@@ -12,7 +12,7 @@ import (
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 )
 
 func randPeer(t *testing.T) peer.ID {

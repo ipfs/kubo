@@ -3,7 +3,7 @@ package ipns
 import (
 	"bytes"
 	"crypto/rand"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 	"io/ioutil"
 	"os"
 	"testing"

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	u "github.com/jbenet/go-ipfs/util"

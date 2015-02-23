@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 )
 
 func TestLogErrorDoesNotBlockWhenCtxIsNotSetUpForLogging(t *testing.T) {

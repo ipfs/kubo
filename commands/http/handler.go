@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	u "github.com/jbenet/go-ipfs/util"

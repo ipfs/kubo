@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -18,6 +17,7 @@ import (
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
+	context "golang.org/x/net/context"
 )
 
 func getDagserv(t *testing.T) merkledag.DAGService {

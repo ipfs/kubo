@@ -12,7 +12,7 @@ import (
 	pset "github.com/jbenet/go-ipfs/util/peerset"
 	todoctr "github.com/jbenet/go-ipfs/util/todocounter"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 )
 

@@ -10,7 +10,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	h "github.com/jbenet/go-ipfs/importer/helpers"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
@@ -18,6 +17,7 @@ import (
 	pin "github.com/jbenet/go-ipfs/pin"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
+	"golang.org/x/net/context"
 )
 
 func buildTestDag(r io.Reader, ds merkledag.DAGService, spl chunk.BlockSplitter) (*merkledag.Node, error) {

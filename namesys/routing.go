@@ -3,8 +3,8 @@ package namesys
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"golang.org/x/net/context"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"

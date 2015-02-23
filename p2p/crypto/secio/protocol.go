@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	context "golang.org/x/net/context"
 
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	pb "github.com/jbenet/go-ipfs/p2p/crypto/secio/internal/pb"

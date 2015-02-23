@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 
 	travis "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
 )

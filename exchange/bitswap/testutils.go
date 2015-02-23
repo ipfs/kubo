@@ -3,7 +3,6 @@ package bitswap
 import (
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -14,6 +13,7 @@ import (
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	datastore2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	context "golang.org/x/net/context"
 )
 
 // WARNING: this uses RandTestBogusIdentity DO NOT USE for NON TESTS!

@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	aws "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	s3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/s3"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis"
@@ -21,6 +20,7 @@ import (
 	redisds "github.com/jbenet/go-ipfs/thirdparty/redis-datastore"
 	s3datastore "github.com/jbenet/go-ipfs/thirdparty/s3-datastore"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
+	context "golang.org/x/net/context"
 )
 
 var (

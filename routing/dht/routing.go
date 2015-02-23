@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "golang.org/x/net/context"
 
 	notif "github.com/jbenet/go-ipfs/notifications"
 	inet "github.com/jbenet/go-ipfs/p2p/net"

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	bs "github.com/jbenet/go-ipfs/blockservice"
@@ -16,6 +15,7 @@ import (
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
+	"golang.org/x/net/context"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"

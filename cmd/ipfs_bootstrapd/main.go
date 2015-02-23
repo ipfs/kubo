@@ -8,13 +8,13 @@ import (
 	"os"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
 	corerepo "github.com/jbenet/go-ipfs/core/corerepo"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
+	context "golang.org/x/net/context"
 )
 
 var (

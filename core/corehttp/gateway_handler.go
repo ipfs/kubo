@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	core "github.com/jbenet/go-ipfs/core"

@@ -17,7 +17,6 @@ import (
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
 	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
@@ -27,6 +26,7 @@ import (
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
+	context "golang.org/x/net/context"
 )
 
 // log is the command logger
