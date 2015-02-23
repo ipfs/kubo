@@ -6,9 +6,8 @@ import (
 	"io"
 	"os"
 
-	"golang.org/x/net/context"
-
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"

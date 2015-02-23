@@ -7,12 +7,12 @@ import (
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	offline "github.com/jbenet/go-ipfs/exchange/offline"
 	u "github.com/jbenet/go-ipfs/util"
-	"golang.org/x/net/context"
 )
 
 func TestBlocks(t *testing.T) {

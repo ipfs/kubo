@@ -7,8 +7,7 @@ import (
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
-	context "golang.org/x/net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 )
 

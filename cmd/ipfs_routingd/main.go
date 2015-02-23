@@ -13,6 +13,7 @@ import (
 	s3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/s3"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	corerouting "github.com/jbenet/go-ipfs/core/corerouting"
 	config "github.com/jbenet/go-ipfs/repo/config"
@@ -20,7 +21,6 @@ import (
 	redisds "github.com/jbenet/go-ipfs/thirdparty/redis-datastore"
 	s3datastore "github.com/jbenet/go-ipfs/thirdparty/s3-datastore"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
-	context "golang.org/x/net/context"
 )
 
 var (

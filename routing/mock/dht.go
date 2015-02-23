@@ -1,9 +1,9 @@
 package mockrouting
 
 import (
-	context "golang.org/x/net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
 	"github.com/jbenet/go-ipfs/util/testutil"

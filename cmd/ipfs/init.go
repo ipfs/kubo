@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	assets "github.com/jbenet/go-ipfs/assets"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
@@ -15,7 +16,6 @@ import (
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
-	context "golang.org/x/net/context"
 )
 
 const nBitsForKeypairDefault = 4096

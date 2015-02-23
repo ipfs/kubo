@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
@@ -11,7 +12,6 @@ import (
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
-	context "golang.org/x/net/context"
 )
 
 func TestSendRequestToCooperativePeer(t *testing.T) {

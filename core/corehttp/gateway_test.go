@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
 	namesys "github.com/jbenet/go-ipfs/namesys"
@@ -18,7 +19,6 @@ import (
 	config "github.com/jbenet/go-ipfs/repo/config"
 	u "github.com/jbenet/go-ipfs/util"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
-	context "golang.org/x/net/context"
 )
 
 type mockNamesys map[string]string

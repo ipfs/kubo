@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	context "golang.org/x/net/context"
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
@@ -23,7 +23,6 @@ type Loopback struct {
 func (_ *Loopback) Bootstrap(ctx context.Context) error {
 	return nil
 }
-
 
 // SendMessage intercepts local requests, forwarding them to a local handler
 func (lb *Loopback) SendMessage(ctx context.Context, m *dhtpb.Message) error {

@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/p2p/host"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
 	supernode "github.com/jbenet/go-ipfs/routing/supernode"
 	gcproxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
-	context "golang.org/x/net/context"
 )
 
 // NB: DHT option is included in the core to avoid 1) because it's a sane

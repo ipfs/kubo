@@ -1,7 +1,7 @@
 package waitable
 
 import (
-	context "golang.org/x/net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type Waitable interface {

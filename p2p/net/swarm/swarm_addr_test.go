@@ -8,7 +8,7 @@ import (
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "golang.org/x/net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func TestFilterAddrs(t *testing.T) {

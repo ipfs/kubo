@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	"github.com/jbenet/go-ipfs/util"
-	context "golang.org/x/net/context"
 )
 
 func TestDuplicates(t *testing.T) {

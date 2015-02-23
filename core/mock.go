@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	"github.com/jbenet/go-ipfs/exchange/offline"
@@ -15,7 +16,6 @@ import (
 	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
-	context "golang.org/x/net/context"
 )
 
 // TODO this is super sketch. Deprecate and initialize one that shares code

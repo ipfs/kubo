@@ -3,7 +3,7 @@ package ctxutil
 import (
 	"time"
 
-	context "golang.org/x/net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func WithDeadlineFraction(ctx context.Context, fraction float64) (context.Context, context.CancelFunc) {

@@ -8,8 +8,7 @@ import (
 	"io"
 
 	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
-	context "golang.org/x/net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	pb "github.com/jbenet/go-ipfs/p2p/crypto/secio/internal/pb"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"

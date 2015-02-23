@@ -7,10 +7,10 @@ import (
 	"strings"
 	"syscall"
 
-	context "golang.org/x/net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	reuseport "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"

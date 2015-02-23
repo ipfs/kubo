@@ -11,8 +11,8 @@ import (
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
 
-	context "golang.org/x/net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type stringList struct {

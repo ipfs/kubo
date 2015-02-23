@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/jbenet/go-ipfs/core"
-	"golang.org/x/net/context"
 )
 
 // IPNSHostnameOption rewrites an incoming request if its Host: header contains
