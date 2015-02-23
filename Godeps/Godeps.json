@@ -10,11 +10,6 @@
 			"Rev": "d62a1291477b51b24becf4def173bd843138c4b6"
 		},
 		{
-			"ImportPath": "bitbucket.org/kardianos/osext",
-			"Comment": "null-15",
-			"Rev": "44140c5fc69ecf1102c5ef451d73cd98ef59b178"
-		},
-		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
 			"Comment": "null-12",
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
@@ -139,7 +134,7 @@
 		},
 		{
 			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
+			"Rev": "68f5725818189545231c1fd8694793d45f2fc529"
 		},
 		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
@@ -210,6 +205,10 @@
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
 			"Rev": "b4efc4c8775f0250710b39bfa716276ca10f85af"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "ccfcd0245381f0c94c68f50626665eed3c6b726a"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",

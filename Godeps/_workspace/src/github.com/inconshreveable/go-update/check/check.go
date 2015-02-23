@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bitbucket.org/kardianos/osext"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/kardianos/osext"
 )
 
 type Initiative string
