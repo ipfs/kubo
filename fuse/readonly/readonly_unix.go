@@ -35,7 +35,7 @@ func NewFileSystem(ipfs *core.IpfsNode) *FileSystem {
 }
 
 // Root constructs the Root of the filesystem, a Root object.
-func (f FileSystem) Root() (fs.Node, fuse.Error) {
+func (f FileSystem) Root() (fs.Node, error) {
 	return &Root{Ipfs: f.Ipfs}, nil
 }
 
@@ -50,7 +50,7 @@ func (*Root) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (s *Root) Lookup(name string, ctx context.Context) (fs.Node, error) {
 	log.Debugf("Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
@@ -68,7 +68,7 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 }
 
 // ReadDir reads a particular directory. Disallowed for root.
-func (*Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (*Root) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Read Root.")
 	return nil, fuse.EPERM
 }
@@ -116,7 +116,7 @@ func (s *Node) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (s *Node) Lookup(name string, ctx context.Context) (fs.Node, error) {
 	log.Debugf("Lookup '%s'", name)
 	nodes, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 }
 
 // ReadDir reads the link structure as directory entries
-func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (s *Node) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Node ReadDir")
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
@@ -145,19 +145,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 	return nil, fuse.ENOENT
 }
 
-func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
-	// intr will be closed by fuse if the request is cancelled. turn this into a context.
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel() // make sure all operations we started close.
-
-	// we wait on intr and cancel our context if it closes.
-	go func() {
-		select {
-		case <-intr: // closed by fuse
-			cancel() // cancel our context
-		case <-ctx.Done():
-		}
-	}()
+func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, ctx context.Context) error {
 
 	k, err := s.Nd.Key()
 	if err != nil {

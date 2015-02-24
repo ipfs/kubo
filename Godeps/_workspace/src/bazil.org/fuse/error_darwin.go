@@ -22,7 +22,7 @@ func (getxattrError) Errno() Errno {
 // http://mail-index.netbsd.org/tech-kern/2012/04/30/msg013090.html
 // http://mail-index.netbsd.org/tech-kern/2012/04/30/msg013097.html
 // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/errno.h.html
-func translateGetxattrError(err Error) Error {
+func translateGetxattrError(err error) error {
 	ferr, ok := err.(ErrorNumber)
 	if !ok {
 		return err

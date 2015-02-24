@@ -10,6 +10,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	_ "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 var Usage = func() {
@@ -55,7 +56,7 @@ func main() {
 // FS implements the hello world file system.
 type FS struct{}
 
-func (FS) Root() (fs.Node, fuse.Error) {
+func (FS) Root() (fs.Node, error) {
 	return Dir{}, nil
 }
 
@@ -66,7 +67,7 @@ func (Dir) Attr() fuse.Attr {
 	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0555}
 }
 
-func (Dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if name == "hello" {
 		return File{}, nil
 	}
@@ -77,7 +78,7 @@ var dirDirs = []fuse.Dirent{
 	{Inode: 2, Name: "hello", Type: fuse.DT_File},
 }
 
-func (Dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return dirDirs, nil
 }
 
@@ -90,6 +91,6 @@ func (File) Attr() fuse.Attr {
 	return fuse.Attr{Inode: 2, Mode: 0444, Size: uint64(len(greeting))}
 }
 
-func (File) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
+func (File) ReadAll(ctx context.Context) ([]byte, error) {
 	return []byte(greeting), nil
 }

@@ -145,7 +145,7 @@ func CreateRoot(n *core.IpfsNode, keys []ci.PrivKey, ipfsroot string) (*Root, er
 }
 
 // Root constructs the Root of the filesystem, a Root object.
-func (f FileSystem) Root() (fs.Node, fuse.Error) {
+func (f FileSystem) Root() (fs.Node, error) {
 	return f.RootNode, nil
 }
 
@@ -167,7 +167,7 @@ func (*Root) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (s *Root) Lookup(name string, ctx context.Context) (fs.Node, error) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -196,7 +196,7 @@ func (s *Root) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 }
 
 // ReadDir reads a particular directory. Disallowed for root.
-func (r *Root) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (r *Root) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	listing := []fuse.Dirent{
 		fuse.Dirent{
 			Name: "local",
@@ -285,7 +285,7 @@ func (s *Node) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Node) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (s *Node) Lookup(name string, ctx context.Context) (fs.Node, error) {
 	nodes, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -315,7 +315,7 @@ func (n *Node) makeChild(name string, node *mdag.Node) *Node {
 }
 
 // ReadDir reads the link structure as directory entries
-func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (s *Node) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
 		n := link.Name
@@ -331,20 +331,7 @@ func (s *Node) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 	return nil, fuse.ENOENT
 }
 
-func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
-	// intr will be closed by fuse if the request is cancelled. turn this into a context.
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel() // make sure all operations we started close.
-
-	// we wait on intr and cancel our context if it closes.
-	go func() {
-		select {
-		case <-intr: // closed by fuse
-			cancel() // cancel our context
-		case <-ctx.Done():
-		}
-	}()
-
+func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, ctx context.Context) error {
 	k, err := s.Nd.Key()
 	if err != nil {
 		return err
@@ -373,7 +360,7 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 	return err // may be non-nil / not succeeded
 }
 
-func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
+func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, ctx context.Context) error {
 	// log.Debugf("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
 	if IpnsReadonly {
 		log.Debug("Attempted to write on readonly ipns filesystem.")
@@ -396,7 +383,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 	return nil
 }
 
-func (n *Node) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
+func (n *Node) Flush(req *fuse.FlushRequest, ctx context.Context) error {
 	if IpnsReadonly {
 		return nil
 	}
@@ -483,11 +470,11 @@ func (n *Node) republishRoot() error {
 	return nil
 }
 
-func (n *Node) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
+func (n *Node) Fsync(req *fuse.FsyncRequest, ctx context.Context) error {
 	return nil
 }
 
-func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (n *Node) Mkdir(req *fuse.MkdirRequest, ctx context.Context) (fs.Node, error) {
 	if IpnsReadonly {
 		return nil, fuse.EPERM
 	}
@@ -521,7 +508,7 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error)
 	return child, nil
 }
 
-func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
+func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, ctx context.Context) (fs.Handle, error) {
 	//log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
 	//TODO: check open flags and truncate if necessary
 	if req.Flags&fuse.OpenTruncate != 0 {
@@ -534,11 +521,11 @@ func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr
 	return n, nil
 }
 
-func (n *Node) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (n *Node) Mknod(req *fuse.MknodRequest, ctx context.Context) (fs.Node, error) {
 	return nil, nil
 }
 
-func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
+func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, ctx context.Context) (fs.Node, fs.Handle, error) {
 	if IpnsReadonly {
 		log.Debug("Attempted to call Create on a readonly filesystem.")
 		return nil, nil, fuse.EPERM
@@ -568,7 +555,7 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr f
 	return child, child, nil
 }
 
-func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
+func (n *Node) Remove(req *fuse.RemoveRequest, ctx context.Context) error {
 	if IpnsReadonly {
 		return fuse.EPERM
 	}
@@ -591,7 +578,7 @@ func (n *Node) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 	return nil
 }
 
-func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
+func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, ctx context.Context) error {
 	if IpnsReadonly {
 		log.Debug("Attempted to call Rename on a readonly filesystem.")
 		return fuse.EPERM

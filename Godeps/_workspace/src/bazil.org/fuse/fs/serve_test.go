@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -22,6 +23,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil/record"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fuseutil"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/syscallx"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // TO TEST:
@@ -75,11 +77,11 @@ func (f childMapFS) Attr() fuse.Attr {
 	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0777}
 }
 
-func (f childMapFS) Root() (fs.Node, fuse.Error) {
+func (f childMapFS) Root() (fs.Node, error) {
 	return f, nil
 }
 
-func (f childMapFS) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (f childMapFS) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	child, ok := f[name]
 	if !ok {
 		return nil, fuse.ENOENT
@@ -101,7 +103,7 @@ func (f fifo) Attr() fuse.Attr { return fuse.Attr{Mode: os.ModeNamedPipe | 0666}
 
 type badRootFS struct{}
 
-func (badRootFS) Root() (fs.Node, fuse.Error) {
+func (badRootFS) Root() (fs.Node, error) {
 	// pick a really distinct error, to identify it later
 	return nil, fuse.Errno(syscall.ENAMETOOLONG)
 }
@@ -131,7 +133,7 @@ func TestRootErr(t *testing.T) {
 
 type testStatFS struct{}
 
-func (f testStatFS) Root() (fs.Node, fuse.Error) {
+func (f testStatFS) Root() (fs.Node, error) {
 	return f, nil
 }
 
@@ -139,7 +141,7 @@ func (f testStatFS) Attr() fuse.Attr {
 	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0777}
 }
 
-func (f testStatFS) Statfs(req *fuse.StatfsRequest, resp *fuse.StatfsResponse, int fs.Intr) fuse.Error {
+func (f testStatFS) Statfs(ctx context.Context, req *fuse.StatfsRequest, resp *fuse.StatfsResponse) error {
 	resp.Blocks = 42
 	resp.Files = 13
 	return nil
@@ -194,7 +196,7 @@ func TestStatfs(t *testing.T) {
 
 type root struct{}
 
-func (f root) Root() (fs.Node, fuse.Error) {
+func (f root) Root() (fs.Node, error) {
 	return f, nil
 }
 
@@ -253,7 +255,7 @@ func (readAll) Attr() fuse.Attr {
 	}
 }
 
-func (readAll) ReadAll(intr fs.Intr) ([]byte, fuse.Error) {
+func (readAll) ReadAll(ctx context.Context) ([]byte, error) {
 	return []byte(hi), nil
 }
 
@@ -291,7 +293,7 @@ func (readWithHandleRead) Attr() fuse.Attr {
 	}
 }
 
-func (readWithHandleRead) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+func (readWithHandleRead) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	fuseutil.HandleRead(req, resp, []byte(hi))
 	return nil
 }
@@ -466,8 +468,8 @@ type mkdir1 struct {
 	record.Mkdirs
 }
 
-func (f *mkdir1) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
-	f.Mkdirs.Mkdir(req, intr)
+func (f *mkdir1) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
+	f.Mkdirs.Mkdir(ctx, req)
 	return &mkdir1{}, nil
 }
 
@@ -505,7 +507,7 @@ type create1 struct {
 	f create1file
 }
 
-func (f *create1) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
+func (f *create1) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	if req.Name != "foo" {
 		log.Printf("ERROR create1.Create unexpected name: %q\n", req.Name)
 		return nil, nil, fuse.EPERM
@@ -577,7 +579,7 @@ type create3 struct {
 	fooRemoved record.MarkRecorder
 }
 
-func (f *create3) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
+func (f *create3) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	if req.Name != "foo" {
 		log.Printf("ERROR create3.Create unexpected name: %q\n", req.Name)
 		return nil, nil, fuse.EPERM
@@ -586,14 +588,14 @@ func (f *create3) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, int
 	return &f.f, &f.f, nil
 }
 
-func (f *create3) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (f *create3) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if f.fooCreated.Recorded() && !f.fooRemoved.Recorded() && name == "foo" {
 		return &f.f, nil
 	}
 	return nil, fuse.ENOENT
 }
 
-func (f *create3) Remove(r *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
+func (f *create3) Remove(ctx context.Context, r *fuse.RemoveRequest) error {
 	if f.fooCreated.Recorded() && !f.fooRemoved.Recorded() &&
 		r.Name == "foo" && !r.Dir {
 		f.fooRemoved.Mark()
@@ -637,7 +639,7 @@ type symlink1link struct {
 	target string
 }
 
-func (f symlink1link) Readlink(*fuse.ReadlinkRequest, fs.Intr) (string, fuse.Error) {
+func (f symlink1link) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
 	return f.target, nil
 }
 
@@ -646,8 +648,8 @@ type symlink1 struct {
 	record.Symlinks
 }
 
-func (f *symlink1) Symlink(req *fuse.SymlinkRequest, intr fs.Intr) (fs.Node, fuse.Error) {
-	f.Symlinks.Symlink(req, intr)
+func (f *symlink1) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, error) {
+	f.Symlinks.Symlink(ctx, req)
 	return symlink1link{target: req.Target}, nil
 }
 
@@ -688,15 +690,15 @@ type link1 struct {
 	record.Links
 }
 
-func (f *link1) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (f *link1) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if name == "old" {
 		return fstestutil.File{}, nil
 	}
 	return nil, fuse.ENOENT
 }
 
-func (f *link1) Link(r *fuse.LinkRequest, old fs.Node, intr fs.Intr) (fs.Node, fuse.Error) {
-	f.Links.Link(r, old, intr)
+func (f *link1) Link(ctx context.Context, r *fuse.LinkRequest, old fs.Node) (fs.Node, error) {
+	f.Links.Link(ctx, r, old)
 	return fstestutil.File{}, nil
 }
 
@@ -732,14 +734,14 @@ type rename1 struct {
 	renamed record.Counter
 }
 
-func (f *rename1) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (f *rename1) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if name == "old" {
 		return fstestutil.File{}, nil
 	}
 	return nil, fuse.ENOENT
 }
 
-func (f *rename1) Rename(r *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
+func (f *rename1) Rename(ctx context.Context, r *fuse.RenameRequest, newDir fs.Node) error {
 	if r.OldName == "old" && r.NewName == "new" && newDir == f {
 		f.renamed.Inc()
 		return nil
@@ -776,8 +778,8 @@ type mknod1 struct {
 	record.Mknods
 }
 
-func (f *mknod1) Mknod(r *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error) {
-	f.Mknods.Mknod(r, intr)
+func (f *mknod1) Mknod(ctx context.Context, r *fuse.MknodRequest) (fs.Node, error) {
+	f.Mknods.Mknod(ctx, r)
 	return fifo{}, nil
 }
 
@@ -829,7 +831,7 @@ func (dataHandleTest) Attr() fuse.Attr {
 	}
 }
 
-func (dataHandleTest) Open(*fuse.OpenRequest, *fuse.OpenResponse, fs.Intr) (fs.Handle, fuse.Error) {
+func (dataHandleTest) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	return fs.DataHandle([]byte(hi)), nil
 }
 
@@ -868,12 +870,12 @@ func (interrupt) Attr() fuse.Attr {
 	}
 }
 
-func (it *interrupt) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+func (it *interrupt) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	select {
 	case it.hanging <- struct{}{}:
 	default:
 	}
-	<-intr
+	<-ctx.Done()
 	return fuse.EINTR
 }
 
@@ -1063,13 +1065,13 @@ func TestTruncateWithOpen(t *testing.T) {
 	t.Logf("Got request: %#v", gotr)
 }
 
-// Test readdir
+// Test readdir calling ReadDirAll
 
-type readdir struct {
+type readDirAll struct {
 	fstestutil.Dir
 }
 
-func (d *readdir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (d *readDirAll) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return []fuse.Dirent{
 		{Name: "one", Inode: 11, Type: fuse.DT_Dir},
 		{Name: "three", Inode: 13},
@@ -1077,9 +1079,9 @@ func (d *readdir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 	}, nil
 }
 
-func TestReadDir(t *testing.T) {
+func TestReadDirAll(t *testing.T) {
 	t.Parallel()
-	f := &readdir{}
+	f := &readDirAll{}
 	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
 	if err != nil {
 		t.Fatal(err)
@@ -1113,6 +1115,37 @@ func TestReadDir(t *testing.T) {
 	}
 }
 
+// Test readdir without any ReadDir methods implemented.
+
+type readDirNotImplemented struct {
+	fstestutil.Dir
+}
+
+func TestReadDirNotImplemented(t *testing.T) {
+	t.Parallel()
+	f := &readDirNotImplemented{}
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{f})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mnt.Close()
+
+	fil, err := os.Open(mnt.Dir)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer fil.Close()
+
+	// go Readdir is just Readdirnames + Lstat, there's no point in
+	// testing that here; we have no consumption API for the real
+	// dirent data
+	names, err := fil.Readdirnames(100)
+	if len(names) > 0 || err != io.EOF {
+		t.Fatalf("expected EOF got names=%v err=%v", names, err)
+	}
+}
+
 // Test Chmod.
 
 type chmod struct {
@@ -1120,12 +1153,12 @@ type chmod struct {
 	record.Setattrs
 }
 
-func (f *chmod) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, intr fs.Intr) fuse.Error {
+func (f *chmod) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
 	if !req.Valid.Mode() {
 		log.Printf("setattr not a chmod: %v", req.Valid)
 		return fuse.EIO
 	}
-	f.Setattrs.Setattr(req, resp, intr)
+	f.Setattrs.Setattr(ctx, req, resp)
 	return nil
 }
 
@@ -1156,8 +1189,8 @@ type open struct {
 	record.Opens
 }
 
-func (f *open) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
-	f.Opens.Open(req, resp, intr)
+func (f *open) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	f.Opens.Open(ctx, req, resp)
 	// pick a really distinct error, to identify it later
 	return nil, fuse.Errno(syscall.ENAMETOOLONG)
 
@@ -1265,8 +1298,8 @@ type getxattr struct {
 	record.Getxattrs
 }
 
-func (f *getxattr) Getxattr(req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse, intr fs.Intr) fuse.Error {
-	f.Getxattrs.Getxattr(req, resp, intr)
+func (f *getxattr) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
+	f.Getxattrs.Getxattr(ctx, req, resp)
 	resp.Xattr = []byte("hello, world")
 	return nil
 }
@@ -1302,7 +1335,7 @@ type getxattrTooSmall struct {
 	fstestutil.File
 }
 
-func (f *getxattrTooSmall) Getxattr(req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse, intr fs.Intr) fuse.Error {
+func (f *getxattrTooSmall) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	resp.Xattr = []byte("hello, world")
 	return nil
 }
@@ -1333,7 +1366,7 @@ type getxattrSize struct {
 	fstestutil.File
 }
 
-func (f *getxattrSize) Getxattr(req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse, intr fs.Intr) fuse.Error {
+func (f *getxattrSize) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	resp.Xattr = []byte("hello, world")
 	return nil
 }
@@ -1364,8 +1397,8 @@ type listxattr struct {
 	record.Listxattrs
 }
 
-func (f *listxattr) Listxattr(req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse, intr fs.Intr) fuse.Error {
-	f.Listxattrs.Listxattr(req, resp, intr)
+func (f *listxattr) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
+	f.Listxattrs.Listxattr(ctx, req, resp)
 	resp.Append("one", "two")
 	return nil
 }
@@ -1404,7 +1437,7 @@ type listxattrTooSmall struct {
 	fstestutil.File
 }
 
-func (f *listxattrTooSmall) Listxattr(req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse, intr fs.Intr) fuse.Error {
+func (f *listxattrTooSmall) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
 	resp.Xattr = []byte("one\x00two\x00")
 	return nil
 }
@@ -1435,7 +1468,7 @@ type listxattrSize struct {
 	fstestutil.File
 }
 
-func (f *listxattrSize) Listxattr(req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse, intr fs.Intr) fuse.Error {
+func (f *listxattrSize) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
 	resp.Xattr = []byte("one\x00two\x00")
 	return nil
 }
@@ -1551,7 +1584,7 @@ type defaultErrno struct {
 	fstestutil.Dir
 }
 
-func (f defaultErrno) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (f defaultErrno) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return nil, errors.New("bork")
 }
 
@@ -1595,7 +1628,7 @@ func (myCustomError) Error() string {
 	return "bork"
 }
 
-func (f customErrNode) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (f customErrNode) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return nil, myCustomError{
 		ErrorNumber: fuse.Errno(syscall.ENAMETOOLONG),
 	}
@@ -1638,12 +1671,12 @@ func (f *inMemoryFile) Attr() fuse.Attr {
 	}
 }
 
-func (f *inMemoryFile) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+func (f *inMemoryFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	fuseutil.HandleRead(req, resp, f.data)
 	return nil
 }
 
-func (f *inMemoryFile) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
+func (f *inMemoryFile) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
 	resp.Size = copy(f.data[req.Offset:], req.Data)
 	return nil
 }
@@ -1744,13 +1777,13 @@ type directRead struct {
 
 // explicitly not defining Attr and setting Size
 
-func (f directRead) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
+func (f directRead) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	// do not allow the kernel to use page cache
 	resp.Flags |= fuse.OpenDirectIO
 	return f, nil
 }
 
-func (directRead) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+func (directRead) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	fuseutil.HandleRead(req, resp, []byte(hi))
 	return nil
 }
