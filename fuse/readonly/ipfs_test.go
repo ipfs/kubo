@@ -6,6 +6,7 @@ import (
 	//context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
@@ -77,7 +78,7 @@ func TestIpfsBasicRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fname := mnt.Dir + "/" + k.String()
+	fname := path.Join(mnt.Dir, k.String())
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -116,8 +117,8 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirname := mnt.Dir + "/" + d1ndk.String()
-	fname := dirname + "/actual"
+	dirname := path.Join(mnt.Dir, d1ndk.String())
+	fname := path.Join(dirname, "actual")
 	rbuf, err := ioutil.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -153,7 +154,7 @@ func TestFileSizeReporting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fname := mnt.Dir + "/" + k.String()
+	fname := path.Join(mnt.Dir, k.String())
 
 	finfo, err := os.Stat(fname)
 	if err != nil {
