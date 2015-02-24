@@ -5,6 +5,7 @@
 package readonly
 
 import (
+	"bytes"
 	"io"
 	"os"
 
@@ -181,7 +182,8 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 	if err != nil {
 		return err
 	}
-	n, err := r.Read(resp.Data[:req.Size])
+	buf := bytes.NewBuffer(resp.Data)
+	n, err := io.CopyN(buf, r, int64(req.Size))
 	if err != nil && err != io.EOF {
 		return err
 	}
