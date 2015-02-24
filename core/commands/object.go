@@ -24,7 +24,7 @@ const inputLimit = 512 * 1024
 
 type Node struct {
 	Links []Link
-	Data  []byte
+	Data  string
 }
 
 var ObjectCmd = &cmds.Command{
@@ -167,7 +167,7 @@ This command outputs data in the following encodings:
 
 		node := &Node{
 			Links: make([]Link, len(object.Links)),
-			Data:  object.Data,
+			Data:  string(object.Data),
 		}
 
 		for i, link := range object.Links {
@@ -448,7 +448,7 @@ func getOutput(dagnode *dag.Node) (*Object, error) {
 // converts the Node object into a real dag.Node
 func deserializeNode(node *Node) (*dag.Node, error) {
 	dagnode := new(dag.Node)
-	dagnode.Data = node.Data
+	dagnode.Data = []byte(node.Data)
 	dagnode.Links = make([]*dag.Link, len(node.Links))
 	for i, link := range node.Links {
 		hash, err := mh.FromB58String(link.Hash)
