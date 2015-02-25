@@ -46,8 +46,8 @@ func (pk TestBogusPublicKey) Hash() ([]byte, error) {
 	return ic.KeyHash(pk)
 }
 
-func (sk TestBogusPrivateKey) GenSecret() []byte {
-	return []byte(sk)
+func (sk TestBogusPrivateKey) GenSecret() ([]byte, error) {
+	return []byte(sk), nil
 }
 
 func (sk TestBogusPrivateKey) Sign(message []byte) ([]byte, error) {

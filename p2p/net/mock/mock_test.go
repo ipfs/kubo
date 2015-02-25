@@ -26,15 +26,15 @@ func randPeer(t *testing.T) peer.ID {
 func TestNetworkSetup(t *testing.T) {
 
 	ctx := context.Background()
-	sk1, _, err := testutil.RandTestKeyPair(512)
+	sk1, _, err := testutil.RandTestRSAKeyPair(512)
 	if err != nil {
 		t.Fatal(t)
 	}
-	sk2, _, err := testutil.RandTestKeyPair(512)
+	sk2, _, err := testutil.RandTestRSAKeyPair(512)
 	if err != nil {
 		t.Fatal(t)
 	}
-	sk3, _, err := testutil.RandTestKeyPair(512)
+	sk3, _, err := testutil.RandTestRSAKeyPair(512)
 	if err != nil {
 		t.Fatal(t)
 	}
@@ -398,7 +398,7 @@ func TestAdding(t *testing.T) {
 
 	peers := []peer.ID{}
 	for i := 0; i < 3; i++ {
-		sk, _, err := testutil.RandTestKeyPair(512)
+		sk, _, err := testutil.RandTestRSAKeyPair(512)
 		if err != nil {
 			t.Fatal(err)
 		}

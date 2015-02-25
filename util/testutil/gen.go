@@ -29,12 +29,20 @@ func init() {
 	ZeroLocalTCPAddress = maddr
 }
 
-func RandTestKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
+func RandTestRSAKeyPair(bits int) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPairWithReader(ci.RSA, bits, u.NewTimeSeededRand())
 }
 
-func SeededTestKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
+func SeededTestRSAKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
 	return ci.GenerateKeyPairWithReader(ci.RSA, 512, u.NewSeededRand(seed))
+}
+
+func RandTestEd25519KeyPair() (ci.PrivKey, ci.PubKey, error) {
+	return ci.GenerateKeyPairWithReader(ci.Ed25519, 0, u.NewTimeSeededRand())
+}
+
+func SeededTestEd25519KeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
+	return ci.GenerateKeyPairWithReader(ci.Ed25519, 0, u.NewSeededRand(seed))
 }
 
 // RandPeerID generates random "valid" peer IDs. it does not NEED to generate
@@ -142,7 +150,7 @@ func RandPeerNetParams() (*PeerNetParams, error) {
 	var p PeerNetParams
 	var err error
 	p.Addr = ZeroLocalTCPAddress
-	p.PrivKey, p.PubKey, err = RandTestKeyPair(512)
+	p.PrivKey, p.PubKey, err = RandTestRSAKeyPair(512)
 	if err != nil {
 		return nil, err
 	}

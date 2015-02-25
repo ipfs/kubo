@@ -15,7 +15,7 @@ func TestRoutingResolve(t *testing.T) {
 	resolver := NewRoutingResolver(d)
 	publisher := NewRoutingPublisher(d)
 
-	privk, pubk, err := testutil.RandTestKeyPair(512)
+	privk, pubk, err := testutil.RandTestRSAKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}

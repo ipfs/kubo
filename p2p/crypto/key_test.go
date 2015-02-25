@@ -4,12 +4,24 @@ import (
 	. "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	"bytes"
+	u "github.com/jbenet/go-ipfs/util"
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 	"testing"
 )
 
 func TestRsaKeys(t *testing.T) {
-	sk, pk, err := tu.RandTestKeyPair(512)
+	sk, pk, err := tu.RandTestRSAKeyPair(512)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testKeySignature(t, sk)
+	testKeyEncoding(t, sk)
+	testKeyEquals(t, sk)
+	testKeyEquals(t, pk)
+}
+
+func TestEd25519Keys(t *testing.T) {
+	sk, pk, err := tu.RandTestEd25519KeyPair()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -21,8 +33,10 @@ func TestRsaKeys(t *testing.T) {
 
 func testKeySignature(t *testing.T, sk PrivKey) {
 	pk := sk.GetPublic()
+	rand := u.NewTimeSeededRand()
 
-	text := sk.GenSecret()
+	text := make([]byte, 16)
+	rand.Read(text)
 	sig, err := sk.Sign(text)
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +49,12 @@ func testKeySignature(t *testing.T, sk PrivKey) {
 
 	if !valid {
 		t.Fatal("Invalid signature.")
+	}
+
+	rand.Read(sig[:])
+	valid, err = pk.Verify(text, sig)
+	if valid && err == nil {
+		t.Fatal("Valid random signature.")
 	}
 }
 
@@ -93,7 +113,7 @@ func testKeyEquals(t *testing.T, k Key) {
 		t.Fatal("Key not equal to key with same bytes.")
 	}
 
-	sk, pk, err := tu.RandTestKeyPair(512)
+	sk, pk, err := tu.RandTestRSAKeyPair(512)
 	if err != nil {
 		t.Fatal(err)
 	}
