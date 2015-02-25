@@ -11,7 +11,6 @@ func RedirectOption(path string, redirect string) ServeOption {
 	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle("/"+path, handler)
 		mux.Handle("/"+path+"/", handler)
-		fmt.println("this code happened")
 		return mux, nil
 	}
 }
