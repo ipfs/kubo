@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"math"
 	"sync"
 	"time"
 
@@ -59,6 +58,11 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 		wg.Add(1)
 		go func(p peer.ID) {
 			defer wg.Done()
+			notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+				Type: notif.Value,
+				ID:   p,
+			})
+
 			err := dht.putValueToPeer(ctx, p, key, rec)
 			if err != nil {
 				log.Debugf("failed putting value to peer: %s", err)
@@ -92,6 +96,11 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 
 	// setup the Query
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type: notif.SendingQuery,
+			ID:   p,
+		})
+
 		val, peers, err := dht.getValueOrPeers(ctx, p, key)
 		if err != nil {
 			return nil, err
@@ -101,6 +110,12 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 		if val != nil {
 			res.success = true
 		}
+
+		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+			Type:      notif.PeerResponse,
+			ID:        p,
+			Responses: pointerizePeerInfos(peers),
+		})
 
 		return res, nil
 	})
@@ -153,7 +168,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 // FindProviders searches until the context expires.
 func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
 	var providers []peer.PeerInfo
-	for p := range dht.FindProvidersAsync(ctx, key, math.MaxInt32) {
+	for p := range dht.FindProvidersAsync(ctx, key, KValue) {
 		providers = append(providers, p)
 	}
 	return providers, nil

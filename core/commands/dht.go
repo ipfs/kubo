@@ -26,6 +26,8 @@ var DhtCmd = &cmds.Command{
 		"query":     queryDhtCmd,
 		"findprovs": findProvidersDhtCmd,
 		"findpeer":  findPeerDhtCmd,
+		"get":       getValueDhtCmd,
+		"put":       putValueDhtCmd,
 	},
 }
 
@@ -338,6 +340,223 @@ var findPeerDhtCmd = &cmds.Command{
 					fmt.Fprintf(buf, "* querying %s\n", obj.ID)
 				case notif.QueryError:
 					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
+				default:
+					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
+				}
+				return buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+			}, nil
+		},
+	},
+	Type: notif.QueryEvent{},
+}
+
+var getValueDhtCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Run a 'GetValue' query through the DHT",
+		ShortDescription: `
+GetValue will return the value stored in the dht at the given key.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key to find a value for"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Write extra information"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dht, ok := n.Routing.(*ipdht.IpfsDHT)
+		if !ok {
+			res.SetError(ErrNotDHT, cmds.ErrNormal)
+			return
+		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+
+		go func() {
+			defer close(outChan)
+			for e := range events {
+				outChan <- e
+			}
+		}()
+
+		go func() {
+			defer close(events)
+			val, err := dht.GetValue(ctx, u.B58KeyDecode(req.Arguments()[0]))
+			if err != nil {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.QueryError,
+					Extra: err.Error(),
+				})
+			} else {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.Value,
+					Extra: string(val),
+				})
+			}
+		}()
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			verbose, _, _ := res.Request().Option("v").Bool()
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*notif.QueryEvent)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				buf := new(bytes.Buffer)
+				if verbose {
+					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
+				}
+				switch obj.Type {
+				case notif.PeerResponse:
+					if verbose {
+						fmt.Fprintf(buf, "* %s says use ", obj.ID)
+						for _, p := range obj.Responses {
+							fmt.Fprintf(buf, "%s ", p.ID)
+						}
+						fmt.Fprintln(buf)
+					}
+				case notif.SendingQuery:
+					if verbose {
+						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
+					}
+				case notif.Value:
+					fmt.Fprintf(buf, "got value: '%s'\n", obj.Extra)
+				case notif.QueryError:
+					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
+				default:
+					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
+				}
+				return buf, nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+			}, nil
+		},
+	},
+	Type: notif.QueryEvent{},
+}
+
+var putValueDhtCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Run a 'PutValue' query through the DHT",
+		ShortDescription: `
+PutValue will store the given key value pair in the dht.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The key to store the value at"),
+		cmds.StringArg("value", true, false, "The value to store").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("verbose", "v", "Write extra information"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dht, ok := n.Routing.(*ipdht.IpfsDHT)
+		if !ok {
+			res.SetError(ErrNotDHT, cmds.ErrNormal)
+			return
+		}
+
+		outChan := make(chan interface{})
+		res.SetOutput((<-chan interface{})(outChan))
+
+		events := make(chan *notif.QueryEvent)
+		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+
+		key := u.B58KeyDecode(req.Arguments()[0])
+		data := req.Arguments()[1]
+
+		go func() {
+			defer close(outChan)
+			for e := range events {
+				outChan <- e
+			}
+		}()
+
+		go func() {
+			defer close(events)
+			err := dht.PutValue(ctx, key, []byte(data))
+			if err != nil {
+				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
+					Type:  notif.QueryError,
+					Extra: err.Error(),
+				})
+			}
+		}()
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			verbose, _, _ := res.Request().Option("v").Bool()
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*notif.QueryEvent)
+				if !ok {
+					return nil, u.ErrCast()
+				}
+
+				buf := new(bytes.Buffer)
+				if verbose {
+					fmt.Fprintf(buf, "%s: ", time.Now().Format("15:04:05.000"))
+				}
+				switch obj.Type {
+				case notif.FinalPeer:
+					if verbose {
+						fmt.Fprintf(buf, "* closest peer %s\n", obj.ID)
+					}
+				case notif.PeerResponse:
+					if verbose {
+						fmt.Fprintf(buf, "* %s says use ", obj.ID)
+						for _, p := range obj.Responses {
+							fmt.Fprintf(buf, "%s ", p.ID)
+						}
+						fmt.Fprintln(buf)
+					}
+				case notif.SendingQuery:
+					if verbose {
+						fmt.Fprintf(buf, "* querying %s\n", obj.ID)
+					}
+				case notif.QueryError:
+					fmt.Fprintf(buf, "error: %s\n", obj.Extra)
+				case notif.Value:
+					fmt.Fprintf(buf, "storing value at %s\n", obj.ID)
 				default:
 					fmt.Fprintf(buf, "unrecognized event type: %d\n", obj.Type)
 				}

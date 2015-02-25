@@ -83,7 +83,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 
 	// Find closest peer on given cluster to desired key and reply with that info
 	closer := dht.betterPeersToQuery(pmes, p, CloserPeerCount)
-	if closer != nil {
+	if len(closer) > 0 {
 		closerinfos := peer.PeerInfos(dht.peerstore, closer)
 		for _, pi := range closerinfos {
 			log.Debugf("handleGetValue returning closer peer: '%s'", pi.ID)
