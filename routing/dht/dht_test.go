@@ -41,8 +41,11 @@ func setupDHT(ctx context.Context, t *testing.T) *IpfsDHT {
 	dss := dssync.MutexWrap(ds.NewMapDatastore())
 	d := NewDHT(ctx, h, dss)
 
-	d.Validator["v"] = func(u.Key, []byte) error {
-		return nil
+	d.Validator["v"] = &record.ValidChecker{
+		Func: func(u.Key, []byte) error {
+			return nil
+		},
+		Sign: false,
 	}
 	return d
 }
@@ -139,8 +142,11 @@ func TestValueGetSet(t *testing.T) {
 	defer dhtA.host.Close()
 	defer dhtB.host.Close()
 
-	vf := func(u.Key, []byte) error {
-		return nil
+	vf := &record.ValidChecker{
+		Func: func(u.Key, []byte) error {
+			return nil
+		},
+		Sign: false,
 	}
 	dhtA.Validator["v"] = vf
 	dhtB.Validator["v"] = vf
@@ -148,7 +154,7 @@ func TestValueGetSet(t *testing.T) {
 	connect(t, ctx, dhtA, dhtB)
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	dhtA.PutValue(ctxT, "/v/hello", []byte("world"), false)
+	dhtA.PutValue(ctxT, "/v/hello", []byte("world"))
 
 	ctxT, _ = context.WithTimeout(ctx, time.Second*2)
 	val, err := dhtA.GetValue(ctxT, "/v/hello")

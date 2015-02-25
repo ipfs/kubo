@@ -84,7 +84,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.birth = time.Now()
 
 	dht.Validator = make(record.Validator)
-	dht.Validator["pk"] = record.ValidatePublicKeyRecord
+	dht.Validator["pk"] = record.PublicKeyValidator
 
 	if doPinging {
 		dht.Children().Add(1)

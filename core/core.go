@@ -488,7 +488,7 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 
 func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
 	dhtRouting := dht.NewDHT(ctx, host, dstore)
-	dhtRouting.Validator[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	dhtRouting.Validator[IpnsValidatorTag] = namesys.IpnsRecordValidator
 	return dhtRouting, nil
 }
 

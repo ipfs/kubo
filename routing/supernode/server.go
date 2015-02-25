@@ -204,7 +204,7 @@ func providerKey(k util.Key) datastore.Key {
 
 func verify(ps peer.Peerstore, r *dhtpb.Record) error {
 	v := make(record.Validator)
-	v["pk"] = record.ValidatePublicKeyRecord
+	v["pk"] = record.PublicKeyValidator
 	p := peer.ID(r.GetAuthor())
 	pk := ps.PubKey(p)
 	if pk == nil {

@@ -13,6 +13,7 @@ import (
 	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	routing "github.com/jbenet/go-ipfs/routing"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -62,7 +63,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	log.Debugf("Storing pubkey at: %s", namekey)
 	// Store associated public key
 	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
-	err = p.routing.PutValue(timectx, namekey, pkbytes, false)
+	err = p.routing.PutValue(timectx, namekey, pkbytes)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
 	// Store ipns entry at "/ipns/"+b58(h(pubkey))
 	timectx, _ = context.WithDeadline(ctx, time.Now().Add(time.Second*10))
-	err = p.routing.PutValue(timectx, ipnskey, data, true)
+	err = p.routing.PutValue(timectx, ipnskey, data)
 	if err != nil {
 		return err
 	}
@@ -103,6 +104,11 @@ func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
 		[]byte(fmt.Sprint(e.GetValidityType())),
 	},
 		[]byte{})
+}
+
+var IpnsRecordValidator = &record.ValidChecker{
+	Func: ValidateIpnsRecord,
+	Sign: true,
 }
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the

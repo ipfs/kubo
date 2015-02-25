@@ -59,7 +59,7 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 	return ch
 }
 
-func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte, sign bool) error {
+func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
 	defer log.EventBegin(ctx, "putValue", &k).Done()
 	r, err := makeRecord(c.peerstore, c.local, k, v)
 	if err != nil {

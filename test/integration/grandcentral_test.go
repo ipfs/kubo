@@ -168,7 +168,7 @@ func RunSupernodePutRecordGetRecord(conf testutil.LatencyConfig) error {
 	k := util.Key("key")
 	note := []byte("a note from putter")
 
-	if err := putter.Routing.PutValue(ctx, k, note, false); err != nil {
+	if err := putter.Routing.PutValue(ctx, k, note); err != nil {
 		return fmt.Errorf("failed to put value: %s", err)
 	}
 

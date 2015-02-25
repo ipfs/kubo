@@ -22,7 +22,7 @@ type client struct {
 }
 
 // FIXME(brian): is this method meant to simulate putting a value into the network?
-func (c *client) PutValue(ctx context.Context, key u.Key, val []byte, sign bool) error {
+func (c *client) PutValue(ctx context.Context, key u.Key, val []byte) error {
 	log.Debugf("PutValue: %s", key)
 	return c.datastore.Put(key.DsKey(), val)
 }

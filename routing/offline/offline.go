@@ -35,8 +35,8 @@ type offlineRouting struct {
 	sk        ci.PrivKey
 }
 
-func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte, sign bool) error {
-	rec, err := record.MakePutRecord(c.sk, key, val, sign)
+func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte) error {
+	rec, err := record.MakePutRecord(c.sk, key, val, false)
 	if err != nil {
 		return err
 	}

@@ -29,9 +29,14 @@ var asyncQueryBuffer = 10
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte, sign bool) error {
+func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
 	log.Debugf("PutValue %s", key)
 	sk, err := dht.getOwnPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	sign, err := dht.Validator.IsSigned(key)
 	if err != nil {
 		return err
 	}

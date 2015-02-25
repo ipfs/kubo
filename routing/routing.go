@@ -21,7 +21,7 @@ type IpfsRouting interface {
 	// Basic Put/Get
 
 	// PutValue adds value corresponding to given Key.
-	PutValue(context.Context, u.Key, []byte, bool) error
+	PutValue(context.Context, u.Key, []byte) error
 
 	// GetValue searches for the value corresponding to given Key.
 	GetValue(context.Context, u.Key) ([]byte, error)
