@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/jbenet/go-ipfs/util" // TODO remove IPFS dependency
 )
 

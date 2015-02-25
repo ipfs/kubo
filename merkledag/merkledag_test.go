@@ -8,9 +8,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	blockservice "github.com/jbenet/go-ipfs/blockservice"
 	bserv "github.com/jbenet/go-ipfs/blockservice"

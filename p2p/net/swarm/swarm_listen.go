@@ -8,9 +8,9 @@ import (
 	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	multierr "github.com/jbenet/go-ipfs/thirdparty/multierr"
 )
 

@@ -5,8 +5,7 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	testutil "github.com/jbenet/go-ipfs/p2p/test/util"
 )
