@@ -122,7 +122,7 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 		return
 	}
 
-	if expected != actual {
+	if expected != *actual {
 		t.Error("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
 	} else {
 		fmt.Printf("n.Stat correct: %s\n", actual)
