@@ -28,7 +28,8 @@ func (dht *IpfsDHT) getPublicKeyOnline(ctx context.Context, p peer.ID) (ci.PubKe
 	}
 
 	// ok, try the node itself. if they're overwhelmed or slow we can move on.
-	ctxT, _ := ctxutil.WithDeadlineFraction(ctx, 0.3)
+	ctxT, cancelFunc := ctxutil.WithDeadlineFraction(ctx, 0.3)
+	defer cancelFunc()
 	if pk, err := dht.getPublicKeyFromNode(ctx, p); err == nil {
 		return pk, nil
 	}
