@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"

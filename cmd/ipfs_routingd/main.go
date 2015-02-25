@@ -9,11 +9,11 @@ import (
 	"os/signal"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	aws "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	s3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/s3"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	corerouting "github.com/jbenet/go-ipfs/core/corerouting"
 	config "github.com/jbenet/go-ipfs/repo/config"

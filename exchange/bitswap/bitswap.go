@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	exchange "github.com/jbenet/go-ipfs/exchange"

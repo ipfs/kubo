@@ -6,7 +6,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func TestProviderManager(t *testing.T) {

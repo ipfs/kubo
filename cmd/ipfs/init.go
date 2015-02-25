@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	assets "github.com/jbenet/go-ipfs/assets"
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"

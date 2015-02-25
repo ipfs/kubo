@@ -1,8 +1,7 @@
 package dht
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	notif "github.com/jbenet/go-ipfs/notifications"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	kb "github.com/jbenet/go-ipfs/routing/kbucket"

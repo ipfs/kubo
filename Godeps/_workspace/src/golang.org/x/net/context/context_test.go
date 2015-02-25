@@ -365,7 +365,7 @@ func TestAllocs(t *testing.T) {
 				c := WithValue(bg, k1, nil)
 				c.Value(k1)
 			},
-			limit:      1,
+			limit:      3,
 			gccgoLimit: 3,
 		},
 		{
@@ -550,4 +550,26 @@ func testLayers(t *testing.T, seed int64, testTimeout bool) {
 		}
 		checkValues("after cancel")
 	}
+}
+
+func TestCancelRemoves(t *testing.T) {
+	checkChildren := func(when string, ctx Context, want int) {
+		if got := len(ctx.(*cancelCtx).children); got != want {
+			t.Errorf("%s: context has %d children, want %d", when, got, want)
+		}
+	}
+
+	ctx, _ := WithCancel(Background())
+	checkChildren("after creation", ctx, 0)
+	_, cancel := WithCancel(ctx)
+	checkChildren("with WithCancel child ", ctx, 1)
+	cancel()
+	checkChildren("after cancelling WithCancel child", ctx, 0)
+
+	ctx, _ = WithCancel(Background())
+	checkChildren("after creation", ctx, 0)
+	_, cancel = WithTimeout(ctx, 60*time.Minute)
+	checkChildren("with WithTimeout child ", ctx, 1)
+	cancel()
+	checkChildren("after cancelling WithTimeout child", ctx, 0)
 }

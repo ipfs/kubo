@@ -3,7 +3,7 @@ package http
 import (
 	"io"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/importer"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
