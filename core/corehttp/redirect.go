@@ -3,7 +3,6 @@ package corehttp
 import (
 	"net/http"
 
-	"fmt"
 	core "github.com/jbenet/go-ipfs/core"
 )
 
@@ -12,7 +11,6 @@ func RedirectOption(path string, redirect string) ServeOption {
 	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle("/"+path, handler)
 		mux.Handle("/"+path+"/", handler)
-		fmt.print("/" + path + "/")
 		return mux, nil
 	}
 }
