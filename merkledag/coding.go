@@ -92,7 +92,10 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 
 // Decoded decodes raw data and returns a new Node instance.
 func Decoded(encoded []byte) (*Node, error) {
-	n := &Node{}
+	n := new(Node)
 	err := n.Unmarshal(encoded)
-	return n, err
+	if err != nil {
+		return nil, fmt.Errorf("incorrectly formatted merkledag node: %s", err)
+	}
+	return n, nil
 }
