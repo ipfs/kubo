@@ -36,6 +36,7 @@ const (
 // Key represents a crypto key that can be compared to another key
 type Key interface {
 	// Bytes returns a serialized, storeable representation of this key
+	// marshalled using protocol buffers
 	Bytes() ([]byte, error)
 
 	// Hash returns the hash of this key
@@ -246,15 +247,7 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 // MarshalPublicKey converts a public key object into a protobuf serialized
 // public key
 func MarshalPublicKey(k PubKey) ([]byte, error) {
-	b, err := MarshalRsaPublicKey(k.(*RsaPublicKey))
-	if err != nil {
-		return nil, err
-	}
-	pmes := new(pb.PublicKey)
-	typ := pb.KeyType_RSA // for now only type.
-	pmes.Type = &typ
-	pmes.Data = b
-	return proto.Marshal(pmes)
+	return k.Bytes()
 }
 
 // UnmarshalPrivateKey converts a protobuf serialized private key into its
@@ -276,12 +269,7 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 
 // MarshalPrivateKey converts a key object into its protobuf serialized form.
 func MarshalPrivateKey(k PrivKey) ([]byte, error) {
-	b := MarshalRsaPrivateKey(k.(*RsaPrivateKey))
-	pmes := new(pb.PrivateKey)
-	typ := pb.KeyType_RSA // for now only type.
-	pmes.Type = &typ
-	pmes.Data = b
-	return proto.Marshal(pmes)
+	return k.Bytes()
 }
 
 // ConfigDecodeKey decodes from b64 (for config file), and unmarshals.
