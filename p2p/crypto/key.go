@@ -31,6 +31,7 @@ var ErrBadKeyType = errors.New("invalid or unsupported key type")
 
 const (
 	RSA = iota
+	Ed25519
 )
 
 // Key represents a crypto key that can be compared to another key
@@ -88,6 +89,8 @@ func GenerateKeyPairWithReader(typ, bits int, src io.Reader) (PrivKey, PubKey, e
 		}
 		pk := &priv.PublicKey
 		return &RsaPrivateKey{sk: priv}, &RsaPublicKey{pk}, nil
+	case Ed25519:
+		return generateEd25519KeyPair(src)
 	default:
 		return nil, nil, ErrBadKeyType
 	}
@@ -239,6 +242,8 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 	switch pmes.GetType() {
 	case pb.KeyType_RSA:
 		return UnmarshalRsaPublicKey(pmes.GetData())
+	case pb.KeyType_Ed25519:
+		return UnmarshalEd25519PublicKey(pmes.GetData())
 	default:
 		return nil, ErrBadKeyType
 	}
@@ -262,6 +267,8 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 	switch pmes.GetType() {
 	case pb.KeyType_RSA:
 		return UnmarshalRsaPrivateKey(pmes.GetData())
+	case pb.KeyType_Ed25519:
+		return UnmarshalEd25519PrivateKey(pmes.GetData())
 	default:
 		return nil, ErrBadKeyType
 	}

@@ -2,6 +2,7 @@ package crypto.pb;
 
 enum KeyType {
 	RSA = 0;
+	Ed25519 = 1;
 }
 
 message PublicKey {

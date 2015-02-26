@@ -4,6 +4,7 @@ import (
 	. "github.com/jbenet/go-ipfs/p2p/crypto"
 
 	"bytes"
+	u "github.com/jbenet/go-ipfs/util"
 	tu "github.com/jbenet/go-ipfs/util/testutil"
 	"testing"
 )
@@ -13,6 +14,18 @@ func TestRsaKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	testKey(t, sk, pk)
+}
+
+func TestEd25519Keys(t *testing.T) {
+	sk, pk, err := GenerateKeyPairWithReader(Ed25519, 0, u.NewTimeSeededRand())
+	if err != nil {
+		t.Fatal(err)
+	}
+	testKey(t, sk, pk)
+}
+
+func testKey(t *testing.T, sk PrivKey, pk PubKey) {
 	testKeySignature(t, sk)
 	testKeyEncoding(t, sk)
 	testKeyEquals(t, sk)
