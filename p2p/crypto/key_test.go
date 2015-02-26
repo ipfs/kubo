@@ -22,7 +22,11 @@ func TestRsaKeys(t *testing.T) {
 func testKeySignature(t *testing.T, sk PrivKey) {
 	pk := sk.GetPublic()
 
-	text := sk.GenSecret()
+	text, err := GenSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	sig, err := sk.Sign(text)
 	if err != nil {
 		t.Fatal(err)
