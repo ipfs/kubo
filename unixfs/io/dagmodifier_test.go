@@ -17,7 +17,6 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -95,8 +94,12 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 
 func TestDagModifierBasic(t *testing.T) {
 	t.Skip("DAGModifier needs to be fixed to work with indirect blocks.")
-	logging.SetLevel(logging.CRITICAL, "blockservice")
-	logging.SetLevel(logging.CRITICAL, "merkledag")
+	if err := u.SetLogLevel("blockservice", "critical"); err != nil {
+		t.Fatalf("testlog prepare failed: %s", err)
+	}
+	if err := u.SetLogLevel("merkledag", "critical"); err != nil {
+		t.Fatalf("testlog prepare failed: %s", err)
+	}
 	dserv := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000)
 
