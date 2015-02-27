@@ -368,14 +368,19 @@ func (bs *bitswap) wantNewBlocks(ctx context.Context, bkeys []u.Key) {
 	for i, k := range bkeys {
 		message.AddEntry(k, kMaxPriority-i)
 	}
+
+	wg := sync.WaitGroup{}
 	for _, p := range bs.engine.Peers() {
+		wg.Add(1)
 		go func(p peer.ID) {
+			defer wg.Done()
 			err := bs.send(ctx, p, message)
 			if err != nil {
 				log.Debugf("Error sending message: %s", err)
 			}
 		}(p)
 	}
+	wg.Wait()
 }
 
 func (bs *bitswap) ReceiveError(err error) {

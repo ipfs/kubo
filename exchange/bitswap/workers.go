@@ -90,7 +90,11 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 				bs.wantlist.Add(k, kMaxPriority-i)
 			}
 
-			bs.wantNewBlocks(req.ctx, keys)
+			done := make(chan struct{})
+			go func() {
+				bs.wantNewBlocks(req.ctx, keys)
+				close(done)
+			}()
 
 			// NB: Optimization. Assumes that providers of key[0] are likely to
 			// be able to provide for all keys. This currently holds true in most
@@ -101,6 +105,10 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 			if err != nil {
 				log.Debugf("error sending wantlist: %s", err)
 			}
+
+			// Wait for wantNewBlocks to finish
+			<-done
+
 		case <-parent.Done():
 			return
 		}
