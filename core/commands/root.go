@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
-	u "github.com/jbenet/go-ipfs/util"
+	evlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 )
 
-var log = u.Logger("core/commands")
+var log = evlog.Logger("core/commands")
 
 type TestOutput struct {
 	Foo string
@@ -98,6 +98,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"swarm":     SwarmCmd,
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
+	"bitswap":   BitswapCmd,
 }
 
 func init() {

@@ -8,7 +8,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-func (bs *bitswap) startWorkers(px process.Process, ctx context.Context) {
+func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
 	px.Go(func(px process.Process) {
 		bs.clientWorker(ctx)
@@ -34,7 +34,7 @@ func (bs *bitswap) startWorkers(px process.Process, ctx context.Context) {
 	}
 }
 
-func (bs *bitswap) taskWorker(ctx context.Context) {
+func (bs *Bitswap) taskWorker(ctx context.Context) {
 	defer log.Info("bitswap task worker shutting down...")
 	for {
 		select {
@@ -55,7 +55,7 @@ func (bs *bitswap) taskWorker(ctx context.Context) {
 	}
 }
 
-func (bs *bitswap) provideWorker(ctx context.Context) {
+func (bs *Bitswap) provideWorker(ctx context.Context) {
 	for {
 		select {
 		case blk, ok := <-bs.newBlocks:
@@ -75,7 +75,7 @@ func (bs *bitswap) provideWorker(ctx context.Context) {
 }
 
 // TODO ensure only one active request per key
-func (bs *bitswap) clientWorker(parent context.Context) {
+func (bs *Bitswap) clientWorker(parent context.Context) {
 	defer log.Info("bitswap client worker shutting down...")
 
 	for {
@@ -115,7 +115,7 @@ func (bs *bitswap) clientWorker(parent context.Context) {
 	}
 }
 
-func (bs *bitswap) rebroadcastWorker(parent context.Context) {
+func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
