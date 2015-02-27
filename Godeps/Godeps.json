@@ -55,6 +55,15 @@
 			"Rev": "cef1f9cc2234281dc58ea10be7e9aad5e282ecab"
 		},
 		{
+			"ImportPath": "github.com/briantigerchow/logrus",
+			"Comment": "v0.6.0-5-gf92b795",
+			"Rev": "f92b7950b372b1db80bd3527e4d40e42555fe6c2"
+		},
+		{
+			"ImportPath": "github.com/briantigerchow/pubsub",
+			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
+		},
+		{
 			"ImportPath": "github.com/camlistore/lock",
 			"Rev": "ae27720f340952636b826119b58130b9c1a847a0"
 		},
@@ -213,15 +222,6 @@
 		{
 			"ImportPath": "github.com/kr/binarydist",
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
-		},
-		{
-			"ImportPath": "github.com/maybebtc/logrus",
-			"Comment": "v0.6.0-5-gf92b795",
-			"Rev": "f92b7950b372b1db80bd3527e4d40e42555fe6c2"
-		},
-		{
-			"ImportPath": "github.com/maybebtc/pubsub",
-			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
