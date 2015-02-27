@@ -7,7 +7,7 @@ import (
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	u "github.com/jbenet/go-ipfs/util"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type providerInfo struct {
@@ -99,10 +99,14 @@ func (pm *ProviderManager) run() {
 	}
 }
 
-func (pm *ProviderManager) AddProvider(k u.Key, val peer.ID) {
-	pm.newprovs <- &addProv{
+func (pm *ProviderManager) AddProvider(ctx context.Context, k u.Key, val peer.ID) {
+	prov := &addProv{
 		k:   k,
 		val: val,
+	}
+	select {
+	case pm.newprovs <- prov:
+	case <-ctx.Done():
 	}
 }
 

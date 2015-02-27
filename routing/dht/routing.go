@@ -4,8 +4,7 @@ import (
 	"sync"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	notif "github.com/jbenet/go-ipfs/notifications"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
@@ -32,19 +31,24 @@ var asyncQueryBuffer = 10
 // This is the top level "Store" operation of the DHT
 func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
 	log.Debugf("PutValue %s", key)
-	err := dht.putLocal(key, value)
-	if err != nil {
-		return err
-	}
-
 	sk, err := dht.getOwnPrivateKey()
 	if err != nil {
 		return err
 	}
 
-	rec, err := record.MakePutRecord(sk, key, value)
+	sign, err := dht.Validator.IsSigned(key)
+	if err != nil {
+		return err
+	}
+
+	rec, err := record.MakePutRecord(sk, key, value, sign)
 	if err != nil {
 		log.Debug("Creation of record failed!")
+		return err
+	}
+
+	err = dht.putLocal(key, rec)
+	if err != nil {
 		return err
 	}
 
@@ -142,7 +146,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	defer log.EventBegin(ctx, "provide", &key).Done()
 
 	// add self locally
-	dht.providers.AddProvider(key, dht.self)
+	dht.providers.AddProvider(ctx, key, dht.self)
 
 	peers, err := dht.GetClosestPeers(ctx, key)
 	if err != nil {

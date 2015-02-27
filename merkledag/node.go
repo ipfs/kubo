@@ -160,18 +160,18 @@ func (n *Node) Size() (uint64, error) {
 }
 
 // Stat returns statistics on the node.
-func (n *Node) Stat() (NodeStat, error) {
+func (n *Node) Stat() (*NodeStat, error) {
 	enc, err := n.Encoded(false)
 	if err != nil {
-		return NodeStat{}, err
+		return nil, err
 	}
 
 	cumSize, err := n.Size()
 	if err != nil {
-		return NodeStat{}, err
+		return nil, err
 	}
 
-	return NodeStat{
+	return &NodeStat{
 		NumLinks:       len(n.Links),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data), // includes framing.

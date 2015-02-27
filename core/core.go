@@ -7,12 +7,11 @@ import (
 	"io"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
 
@@ -489,7 +488,7 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 
 func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
 	dhtRouting := dht.NewDHT(ctx, host, dstore)
-	dhtRouting.Validator[IpnsValidatorTag] = namesys.ValidateIpnsRecord
+	dhtRouting.Validator[IpnsValidatorTag] = namesys.IpnsRecordValidator
 	return dhtRouting, nil
 }
 

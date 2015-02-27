@@ -3,10 +3,9 @@ package namesys
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	routing "github.com/jbenet/go-ipfs/routing"

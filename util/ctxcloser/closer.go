@@ -3,7 +3,7 @@ package ctxcloser
 import (
 	"sync"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // CloseFunc is a function used to close a ContextCloser

@@ -3,9 +3,9 @@ package supernode
 import (
 	"fmt"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
 	record "github.com/jbenet/go-ipfs/routing/record"
@@ -204,13 +204,16 @@ func providerKey(k util.Key) datastore.Key {
 
 func verify(ps peer.Peerstore, r *dhtpb.Record) error {
 	v := make(record.Validator)
-	v["pk"] = record.ValidatePublicKeyRecord
+	v["pk"] = record.PublicKeyValidator
 	p := peer.ID(r.GetAuthor())
 	pk := ps.PubKey(p)
 	if pk == nil {
 		return fmt.Errorf("do not have public key for %s", p)
 	}
-	if err := v.VerifyRecord(r, pk); err != nil {
+	if err := record.CheckRecordSig(r, pk); err != nil {
+		return err
+	}
+	if err := v.VerifyRecord(r); err != nil {
 		return err
 	}
 	return nil

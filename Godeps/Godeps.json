@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-ipfs",
-	"GoVersion": "go1.4",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
@@ -8,11 +8,6 @@
 		{
 			"ImportPath": "bazil.org/fuse",
 			"Rev": "d62a1291477b51b24becf4def173bd843138c4b6"
-		},
-		{
-			"ImportPath": "bitbucket.org/kardianos/osext",
-			"Comment": "null-15",
-			"Rev": "44140c5fc69ecf1102c5ef451d73cd98ef59b178"
 		},
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
@@ -28,11 +23,6 @@
 			"ImportPath": "code.google.com/p/go.crypto/sha3",
 			"Comment": "null-236",
 			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
-		},
-		{
-			"ImportPath": "code.google.com/p/go.net/context",
-			"Comment": "null-144",
-			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
 		},
 		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/io",
@@ -144,7 +134,7 @@
 		},
 		{
 			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "221d034a558b4c21b0624b2a450c076913854a57"
+			"Rev": "68f5725818189545231c1fd8694793d45f2fc529"
 		},
 		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",
@@ -156,7 +146,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-ctxgroup",
-			"Rev": "6b9437e8517175306e30ffec241c523752a38303"
+			"Rev": "c14598396fa31465dc558b176c7976606f95a49d"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
@@ -214,7 +204,11 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "060ad098994e6adac22f0bd889eb756d4f5ad35b"
+			"Rev": "b4efc4c8775f0250710b39bfa716276ca10f85af"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "ccfcd0245381f0c94c68f50626665eed3c6b726a"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",
@@ -240,6 +234,10 @@
 		{
 			"ImportPath": "github.com/syndtr/gosnappy/snappy",
 			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "b6fdb7d8a4ccefede406f8fe0f017fb58265054c"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",

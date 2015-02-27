@@ -11,8 +11,8 @@ import (
 
 	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
 
 	core "github.com/jbenet/go-ipfs/core"

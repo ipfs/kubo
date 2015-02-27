@@ -14,7 +14,7 @@ import (
 var log = eventlog.Logger("routing/record")
 
 // MakePutRecord creates and signs a dht record for the given key/value pair
-func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte) (*pb.Record, error) {
+func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte, sign bool) (*pb.Record, error) {
 	record := new(pb.Record)
 
 	record.Key = proto.String(string(key))
@@ -26,14 +26,16 @@ func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte) (*pb.Record, error) {
 	}
 
 	record.Author = proto.String(string(pkh))
-	blob := RecordBlobForSig(record)
+	if sign {
+		blob := RecordBlobForSig(record)
 
-	sig, err := sk.Sign(blob)
-	if err != nil {
-		return nil, err
+		sig, err := sk.Sign(blob)
+		if err != nil {
+			return nil, err
+		}
+
+		record.Signature = sig
 	}
-
-	record.Signature = sig
 	return record, nil
 }
 

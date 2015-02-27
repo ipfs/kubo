@@ -25,23 +25,16 @@ var ErrInvalidRecordType = errors.New("invalid record keytype")
 // Validator is an object that helps ensure routing records are valid.
 // It is a collection of validator functions, each of which implements
 // its own notion of validity.
-type Validator map[string]ValidatorFunc
+type Validator map[string]*ValidChecker
+
+type ValidChecker struct {
+	Func ValidatorFunc
+	Sign bool
+}
 
 // VerifyRecord checks a record and ensures it is still valid.
 // It runs needed validators
-func (v Validator) VerifyRecord(r *pb.Record, pk ci.PubKey) error {
-	// First, validate the signature
-	blob := RecordBlobForSig(r)
-	ok, err := pk.Verify(blob, r.GetSignature())
-	if err != nil {
-		log.Info("Signature verify failed. (ignored)")
-		return err
-	}
-	if !ok {
-		log.Info("dht found a forged record! (ignored)")
-		return ErrBadRecord
-	}
-
+func (v Validator) VerifyRecord(r *pb.Record) error {
 	// Now, check validity func
 	parts := strings.Split(r.GetKey(), "/")
 	if len(parts) < 3 {
@@ -49,13 +42,30 @@ func (v Validator) VerifyRecord(r *pb.Record, pk ci.PubKey) error {
 		return nil
 	}
 
-	fnc, ok := v[parts[1]]
+	val, ok := v[parts[1]]
 	if !ok {
 		log.Infof("Unrecognized key prefix: %s", parts[1])
 		return ErrInvalidRecordType
 	}
 
-	return fnc(u.Key(r.GetKey()), r.GetValue())
+	return val.Func(u.Key(r.GetKey()), r.GetValue())
+}
+
+func (v Validator) IsSigned(k u.Key) (bool, error) {
+	// Now, check validity func
+	parts := strings.Split(string(k), "/")
+	if len(parts) < 3 {
+		log.Infof("Record key does not have validator: %s", k)
+		return false, nil
+	}
+
+	val, ok := v[parts[1]]
+	if !ok {
+		log.Infof("Unrecognized key prefix: %s", parts[1])
+		return false, ErrInvalidRecordType
+	}
+
+	return val.Sign, nil
 }
 
 // ValidatePublicKeyRecord implements ValidatorFunc and
@@ -70,6 +80,23 @@ func ValidatePublicKeyRecord(k u.Key, val []byte) error {
 	pkh := u.Hash(val)
 	if !bytes.Equal(keyparts[2], pkh) {
 		return errors.New("public key does not match storage key")
+	}
+	return nil
+}
+
+var PublicKeyValidator = &ValidChecker{
+	Func: ValidatePublicKeyRecord,
+	Sign: false,
+}
+
+func CheckRecordSig(r *pb.Record, pk ci.PubKey) error {
+	blob := RecordBlobForSig(r)
+	good, err := pk.Verify(blob, r.Signature)
+	if err != nil {
+		return nil
+	}
+	if !good {
+		return errors.New("invalid record signature")
 	}
 	return nil
 }

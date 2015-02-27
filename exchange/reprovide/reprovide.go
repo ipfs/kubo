@@ -3,9 +3,8 @@ package reprovide
 import (
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	backoff "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cenkalti/backoff"
-
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
 	routing "github.com/jbenet/go-ipfs/routing"
 	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	"github.com/jbenet/go-ipfs/p2p/peer"
 	routing "github.com/jbenet/go-ipfs/routing"
@@ -36,7 +36,7 @@ type offlineRouting struct {
 }
 
 func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte) error {
-	rec, err := record.MakePutRecord(c.sk, key, val)
+	rec, err := record.MakePutRecord(c.sk, key, val, false)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (c *offlineRouting) Ping(ctx context.Context, p peer.ID) (time.Duration, er
 	return 0, ErrOffline
 }
 
-func (c *offlineRouting) Bootstrap(context.Context) (error) {
+func (c *offlineRouting) Bootstrap(context.Context) error {
 	return nil
 }
 

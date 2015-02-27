@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	routing "github.com/jbenet/go-ipfs/routing"
+	record "github.com/jbenet/go-ipfs/routing/record"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -103,6 +104,11 @@ func ipnsEntryDataForSig(e *pb.IpnsEntry) []byte {
 		[]byte(fmt.Sprint(e.GetValidityType())),
 	},
 		[]byte{})
+}
+
+var IpnsRecordValidator = &record.ValidChecker{
+	Func: ValidateIpnsRecord,
+	Sign: true,
 }
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the

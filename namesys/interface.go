@@ -4,7 +4,7 @@ package namesys
 import (
 	"errors"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
 	u "github.com/jbenet/go-ipfs/util"
 )

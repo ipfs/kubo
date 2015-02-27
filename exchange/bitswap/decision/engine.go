@@ -4,7 +4,7 @@ package decision
 import (
 	"sync"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
 	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"

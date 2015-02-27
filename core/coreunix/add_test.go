@@ -5,7 +5,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/jbenet/go-ipfs/core"
 	"github.com/jbenet/go-ipfs/repo"
 	"github.com/jbenet/go-ipfs/repo/config"

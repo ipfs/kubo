@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	h "github.com/jbenet/go-ipfs/importer/helpers"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
