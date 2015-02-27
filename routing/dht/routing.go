@@ -141,7 +141,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 	defer log.EventBegin(ctx, "provide", &key).Done()
 
 	// add self locally
-	dht.providers.AddProvider(key, dht.self)
+	dht.providers.AddProvider(ctx, key, dht.self)
 
 	peers, err := dht.GetClosestPeers(ctx, key)
 	if err != nil {

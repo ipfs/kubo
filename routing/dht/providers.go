@@ -99,10 +99,14 @@ func (pm *ProviderManager) run() {
 	}
 }
 
-func (pm *ProviderManager) AddProvider(k u.Key, val peer.ID) {
-	pm.newprovs <- &addProv{
+func (pm *ProviderManager) AddProvider(ctx context.Context, k u.Key, val peer.ID) {
+	prov := &addProv{
 		k:   k,
 		val: val,
+	}
+	select {
+	case pm.newprovs <- prov:
+	case <-ctx.Done():
 	}
 }
 
