@@ -1,21 +1,34 @@
 # Contributing
 
-* Send questions to [golang-dev@googlegroups.com](mailto:golang-dev@googlegroups.com). 
-
-### Issues
+## Issues
 
 * Request features and report bugs using the [GitHub Issue Tracker](https://github.com/go-fsnotify/fsnotify/issues).
-* Please indicate the platform you are running on.
+* Please indicate the platform you are using fsnotify on.
+* A code example to reproduce the problem is appreciated.
 
-### Pull Requests
+## Pull Requests
+
+### Contributor License Agreement
 
 fsnotify is derived from code in the [golang.org/x/exp](https://godoc.org/golang.org/x/exp) package and it may be included [in the standard library](https://github.com/go-fsnotify/fsnotify/issues/1) in the future. Therefore fsnotify carries the same [LICENSE](https://github.com/go-fsnotify/fsnotify/blob/master/LICENSE) as Go. Contributors retain their copyright, so you need to fill out a short form before we can accept your contribution: [Google Individual Contributor License Agreement](https://developers.google.com/open-source/cla/individual).
 
 Please indicate that you have signed the CLA in your pull request.
 
-To hack on fsnotify, please use [the workflow outlined by Katrina Owen](https://blog.splice.com/contributing-open-source-git-repositories-go/), in short:
+### How fsnotify is Developed
 
-1. Install as usual (`go get -u github.com/go-fsnotify/fsnotify`)
+* Development is done on feature branches.
+* Tests are run on BSD, Linux, OS X and Windows.
+* Pull requests are reviewed and [applied to master][am] using [hub][].
+  * Maintainers may modify or squash commits rather than asking contributors to.
+* To issue a new release, the maintainers will:
+  * Update the CHANGELOG
+  * Tag a version, which will become available through gopkg.in.
+ 
+### How to Fork
+
+For smooth sailing, always use the original import path. Installing with `go get` makes this easy. 
+
+1. Install from GitHub (`go get -u github.com/go-fsnotify/fsnotify`)
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Ensure everything works and the tests pass (see below)
 4. Commit your changes (`git commit -am 'Add some feature'`)
@@ -27,15 +40,7 @@ Contribute upstream:
 3. Push to the branch (`git push fork my-new-feature`)
 4. Create a new Pull Request on GitHub
 
-If other team members need your patch before it is merged:
-
-1. Install as usual (`go get -u github.com/go-fsnotify/fsnotify`)
-2. Add your remote (`git remote add fork git@github.com:mycompany/repo.git`)
-3. Pull your revisions (`git fetch fork; git checkout -b my-new-feature fork/my-new-feature`)
-
-Notice: For smooth sailing, always use the original import path. Installing with `go get` makes this easy.
-
-Note: The maintainers will update the CHANGELOG on your behalf. Please don't modify it in your pull request.
+This workflow is [thoroughly explained by Katrina Owen](https://blog.splice.com/contributing-open-source-git-repositories-go/).
 
 ### Testing
 
@@ -62,11 +67,11 @@ Help maintaining fsnotify is welcome. To be a maintainer:
 * Submit a pull request and sign the CLA as above.
 * You must be able to run the test suite on Mac, Windows, Linux and BSD.
 
-To keep master clean, the fsnotify project uses the "apply mail" workflow outlined in Nathaniel Talbott's post ["Merge pull request" Considered Harmful](http://blog.spreedly.com/2014/06/24/merge-pull-request-considered-harmful/#.VGa5yZPF_Zs).
-
-This requires installing [hub](https://github.com/github/hub). Both version 1 and 2 support `hub am -3`.
+To keep master clean, the fsnotify project uses the "apply mail" workflow outlined in Nathaniel Talbott's post ["Merge pull request" Considered Harmful][am]. This requires installing [hub][].
 
 All code changes should be internal pull requests.
 
-Releases are tagged using [Semantic Versioning](http://semver.org/), which makes them available through gopkg.in.
+Releases are tagged using [Semantic Versioning](http://semver.org/).
 
+[hub]: https://github.com/github/hub
+[am]: http://blog.spreedly.com/2014/06/24/merge-pull-request-considered-harmful/#.VGa5yZPF_Zs
