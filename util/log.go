@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"os"
 
 	logging "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
@@ -32,11 +31,6 @@ const (
 
 // loggers is the set of loggers in the system
 var loggers = map[string]*logging.Logger{}
-
-// POut is a shorthand printing function to output to Stdout.
-func POut(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stdout, format, a...)
-}
 
 // SetupLogging will initialize the logger backend and set the flags.
 func SetupLogging() {
