@@ -1,22 +1,27 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
-	"github.com/Sirupsen/logrus/hooks/airbrake"
-	"github.com/tobi/airbrake-go"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 )
 
 var log = logrus.New()
 
 func init() {
+	log.Formatter = new(logrus.JSONFormatter)
 	log.Formatter = new(logrus.TextFormatter) // default
-	log.Hooks.Add(new(logrus_airbrake.AirbrakeHook))
 }
 
 func main() {
-	airbrake.Endpoint = "https://exceptions.whatever.com/notifier_api/v2/notices.xml"
-	airbrake.ApiKey = "whatever"
-	airbrake.Environment = "production"
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"omg":    true,
+				"err":    err,
+				"number": 100,
+			}).Fatal("The ice breaks!")
+		}
+	}()
 
 	log.WithFields(logrus.Fields{
 		"animal": "walrus",
@@ -29,7 +34,7 @@ func main() {
 	}).Warn("The group's number increased tremendously!")
 
 	log.WithFields(logrus.Fields{
-		"omg":    true,
-		"number": 100,
-	}).Fatal("The ice breaks!")
+		"animal": "orca",
+		"size":   9009,
+	}).Panic("It's over 9000!")
 }

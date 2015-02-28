@@ -2,7 +2,7 @@ package logrus_syslog
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"log/syslog"
 	"os"
 )
@@ -29,18 +29,18 @@ func (hook *SyslogHook) Fire(entry *logrus.Entry) error {
 		return err
 	}
 
-	switch entry.Data["level"] {
-	case "panic":
+	switch entry.Level {
+	case logrus.PanicLevel:
 		return hook.Writer.Crit(line)
-	case "fatal":
+	case logrus.FatalLevel:
 		return hook.Writer.Crit(line)
-	case "error":
+	case logrus.ErrorLevel:
 		return hook.Writer.Err(line)
-	case "warn":
+	case logrus.WarnLevel:
 		return hook.Writer.Warning(line)
-	case "info":
+	case logrus.InfoLevel:
 		return hook.Writer.Info(line)
-	case "debug":
+	case logrus.DebugLevel:
 		return hook.Writer.Debug(line)
 	default:
 		return nil
