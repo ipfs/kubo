@@ -53,21 +53,20 @@ test_expect_success "HTTP PUT file to construct a hierarchy" '
   echo "PUT http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" &&
   curl -svX PUT --data-binary @infile "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" 2>curl.out &&
   grep "HTTP/1.1 201 Created" curl.out &&
-  grep Location curl.out
+  LOCATION=$(grep Location curl.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test.txt")
 '
 
 test_expect_success "We can HTTP GET file just created" '
-  FILEPATH=$(grep Location curl.out | cut -d" " -f3- | tr -d "\r") &&
-  echo "$FILEPATH" = "${FILEPATH%/test.txt}/test.txt" &&
-  [ "$FILEPATH" = "${FILEPATH%/test.txt}/test.txt" ] &&
-  echo "GET http://localhost:5002$FILEPATH" &&
-  curl -so outfile http://localhost:5002$FILEPATH &&
+  URL="http://localhost:5002/ipfs/$HASH/test.txt" &&
+  echo "GET $URL" &&
+  curl -so outfile "$URL" &&
   test_cmp infile outfile
 '
 
 test_expect_success "HTTP PUT file to append to existing hierarchy" '
   echo "$RANDOM" >infile2 &&
-  URL="http://localhost:5002${FILEPATH%/test.txt}/test/test.txt" &&
+  URL="http://localhost:5002/ipfs/$HASH/test/test.txt" &&
   echo "PUT $URL" &&
   curl -svX PUT --data-binary @infile2 "$URL" 2>curl.out &&
   grep "HTTP/1.1 201 Created" curl.out &&
