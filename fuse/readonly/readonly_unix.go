@@ -67,8 +67,8 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
 }
 
-// ReadDir reads a particular directory. Disallowed for root.
-func (*Root) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+// ReadDirAll reads a particular directory. Disallowed for root.
+func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Read Root.")
 	return nil, fuse.EPERM
 }
@@ -127,8 +127,8 @@ func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return &Node{Ipfs: s.Ipfs, Nd: nodes[len(nodes)-1]}, nil
 }
 
-// ReadDir reads the link structure as directory entries
-func (s *Node) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+// ReadDirAll reads the link structure as directory entries
+func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Node ReadDir")
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
@@ -180,10 +180,19 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 }
 
 // to check that out Node implements all the interfaces we want
+type roRoot interface {
+	fs.Node
+	fs.HandleReadDirAller
+	fs.NodeStringLookuper
+}
+
+var _ roRoot = (*Root)(nil)
+
 type roNode interface {
+	fs.HandleReadDirAller
+	fs.HandleReader
 	fs.Node
 	fs.NodeStringLookuper
-	fs.HandleReader
 }
 
 var _ roNode = (*Node)(nil)

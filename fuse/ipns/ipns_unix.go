@@ -167,7 +167,7 @@ func (*Root) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Root) Lookup(name string, ctx context.Context) (fs.Node, error) {
+func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
 		// Just quiet some log noise on OS X.
@@ -195,8 +195,8 @@ func (s *Root) Lookup(name string, ctx context.Context) (fs.Node, error) {
 	return &Link{s.IpfsRoot + "/" + resolved.B58String()}, nil
 }
 
-// ReadDir reads a particular directory. Disallowed for root.
-func (r *Root) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+// ReadDirAll reads a particular directory. Disallowed for root.
+func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	listing := []fuse.Dirent{
 		fuse.Dirent{
 			Name: "local",
@@ -285,7 +285,7 @@ func (s *Node) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Node) Lookup(name string, ctx context.Context) (fs.Node, error) {
+func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	nodes, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
@@ -314,8 +314,8 @@ func (n *Node) makeChild(name string, node *mdag.Node) *Node {
 	return child
 }
 
-// ReadDir reads the link structure as directory entries
-func (s *Node) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+// ReadDirAll reads the link structure as directory entries
+func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	entries := make([]fuse.Dirent, len(s.Nd.Links))
 	for i, link := range s.Nd.Links {
 		n := link.Name
@@ -331,7 +331,7 @@ func (s *Node) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	return nil, fuse.ENOENT
 }
 
-func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, ctx context.Context) error {
+func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	k, err := s.Nd.Key()
 	if err != nil {
 		return err
@@ -627,17 +627,28 @@ func (n *Node) update(name string, newnode *mdag.Node) error {
 }
 
 // to check that out Node implements all the interfaces we want
-type ipnsNode interface {
+type ipnsRoot interface {
 	fs.Node
-	fs.HandleWriter
+	fs.HandleReadDirAller
+	fs.NodeStringLookuper
+}
+
+var _ ipnsRoot = (*Root)(nil)
+
+type ipnsNode interface {
 	fs.HandleFlusher
+	fs.HandleReadDirAller
+	fs.HandleReader
+	fs.HandleWriter
+	fs.Node
+	fs.NodeCreater
 	fs.NodeFsyncer
 	fs.NodeMkdirer
-	fs.NodeOpener
 	fs.NodeMknoder
-	fs.NodeCreater
+	fs.NodeOpener
 	fs.NodeRemover
 	fs.NodeRenamer
+	fs.NodeStringLookuper
 }
 
 var _ ipnsNode = (*Node)(nil)
