@@ -34,8 +34,9 @@ test_expect_success "We can HTTP GET file just created" '
 '
 
 test_expect_success "HTTP PUT empty directory" '
-  echo "PUT http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" &&
-  curl -svX PUT "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" 2>curl.out &&
+  URL="http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" &&
+  echo "PUT $URL" &&
+  curl -svX PUT "$URL" 2>curl.out &&
   cat curl.out &&
   grep "Ipfs-Hash: $HASH_EMPTY_DIR" curl.out &&
   grep "Location: /ipfs/$HASH_EMPTY_DIR/" curl.out &&
@@ -43,15 +44,16 @@ test_expect_success "HTTP PUT empty directory" '
 '
 
 test_expect_success "HTTP GET empty directory" '
-  echo "GET http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" &&
-  curl -so outfile "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" 2>curl.out &&
+  echo "GET $URL" &&
+  curl -so outfile "$URL" 2>curl.out &&
   grep "Index of /ipfs/$HASH_EMPTY_DIR/" outfile
 '
 
 test_expect_success "HTTP PUT file to construct a hierarchy" '
   echo "$RANDOM" >infile &&
-  echo "PUT http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" &&
-  curl -svX PUT --data-binary @infile "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" 2>curl.out &&
+  URL="http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile "$URL" 2>curl.out &&
   grep "HTTP/1.1 201 Created" curl.out &&
   LOCATION=$(grep Location curl.out) &&
   HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test.txt")
