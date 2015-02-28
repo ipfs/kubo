@@ -15,16 +15,6 @@
 			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
 		},
 		{
-			"ImportPath": "code.google.com/p/go.crypto/blowfish",
-			"Comment": "null-236",
-			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
-		},
-		{
-			"ImportPath": "code.google.com/p/go.crypto/sha3",
-			"Comment": "null-236",
-			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
-		},
-		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/io",
 			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
 		},
@@ -188,8 +178,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
-			"Comment": "0.1.0-33-g4e09420",
-			"Rev": "4e09420ceb2db37a5fbb149821b9e63d88d47218"
+			"Comment": "0.1.0-36-g87e53a9",
+			"Rev": "87e53a9d2875a18a7863b351d22f912545e6b3a3"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
@@ -234,6 +224,14 @@
 		{
 			"ImportPath": "github.com/syndtr/gosnappy/snappy",
 			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",

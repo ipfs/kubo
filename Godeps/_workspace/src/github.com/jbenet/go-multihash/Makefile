@@ -7,5 +7,5 @@ go_test: go_deps
 	go test -race -cpu=5 -v ./...
 
 go_deps:
-	go get code.google.com/p/go.crypto/sha3
+	go get golang.org/x/crypto/sha3
 	go get github.com/jbenet/go-base58

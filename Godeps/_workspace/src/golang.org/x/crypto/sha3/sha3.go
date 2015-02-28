@@ -4,10 +4,6 @@
 
 package sha3
 
-import (
-	"encoding/binary"
-)
-
 // spongeDirection indicates the direction bytes are flowing through the sponge.
 type spongeDirection int
 
@@ -30,25 +26,25 @@ type state struct {
 	buf  []byte     // points into storage
 	rate int        // the number of bytes of state to use
 
-	// dsbyte contains the "domain separation" value and the first bit of
-	// the padding. In sections 6.1 and 6.2 of [1], the SHA-3 and SHAKE
-	// functions are defined with bits appended to the message: SHA-3
-	// functions have 01 and SHAKE functions have 1111. Because of the way
-	// that bits are numbered from the LSB upwards, that ends up as
-	// 00000010b and 00001111b, respectively. Then the padding rule from
-	// section 5.1 is applied to pad to a multiple of the rate, which
-	// involves adding a 1 bit, zero or more zero bits and then a final one
-	// bit. The first one bit from the padding is merged into the dsbyte
-	// value giving 00000110b (0x06) and 00011111b (0x1f), respectively.
-	//
-	// [1] http://csrc.nist.gov/publications/drafts/fips-202/fips_202_draft.pdf,
+	// dsbyte contains the "domain separation" bits and the first bit of
+	// the padding. Sections 6.1 and 6.2 of [1] separate the outputs of the
+	// SHA-3 and SHAKE functions by appending bitstrings to the message.
+	// Using a little-endian bit-ordering convention, these are "01" for SHA-3
+	// and "1111" for SHAKE, or 00000010b and 00001111b, respectively. Then the
+	// padding rule from section 5.1 is applied to pad the message to a multiple
+	// of the rate, which involves adding a "1" bit, zero or more "0" bits, and
+	// a final "1" bit. We merge the first "1" bit from the padding into dsbyte,
+	// giving 00000110b (0x06) and 00011111b (0x1f).
+	// [1] http://csrc.nist.gov/publications/drafts/fips-202/fips_202_draft.pdf
+	//     "Draft FIPS 202: SHA-3 Standard: Permutation-Based Hash and
+	//      Extendable-Output Functions (May 2014)"
 	dsbyte  byte
 	storage [maxRate]byte
 
 	// Specific to SHA-3 and SHAKE.
 	fixedOutput bool            // whether this is a fixed-ouput-length instance
 	outputLen   int             // the default output size in bytes
-	state       spongeDirection // current direction of the sponge
+	state       spongeDirection // whether the sponge is absorbing or squeezing
 }
 
 // BlockSize returns the rate of sponge underlying this hash function.
@@ -79,35 +75,6 @@ func (d *state) clone() *state {
 	return &ret
 }
 
-// xorIn xors a buffer into the state, byte-swapping to
-// little-endian as necessary; it returns the number of bytes
-// copied, including any zeros appended to the bytestring.
-func (d *state) xorIn(buf []byte) {
-	n := len(buf) / 8
-
-	for i := 0; i < n; i++ {
-		a := binary.LittleEndian.Uint64(buf)
-		d.a[i] ^= a
-		buf = buf[8:]
-	}
-	if len(buf) != 0 {
-		// XOR in the last partial ulint64.
-		a := uint64(0)
-		for i, v := range buf {
-			a |= uint64(v) << uint64(8*i)
-		}
-		d.a[n] ^= a
-	}
-}
-
-// copyOut copies ulint64s to a byte buffer.
-func (d *state) copyOut(b []byte) {
-	for i := 0; len(b) >= 8; i++ {
-		binary.LittleEndian.PutUint64(b, d.a[i])
-		b = b[8:]
-	}
-}
-
 // permute applies the KeccakF-1600 permutation. It handles
 // any input-output buffering.
 func (d *state) permute() {
@@ -115,7 +82,7 @@ func (d *state) permute() {
 	case spongeAbsorbing:
 		// If we're absorbing, we need to xor the input into the state
 		// before applying the permutation.
-		d.xorIn(d.buf)
+		xorIn(d, d.buf)
 		d.buf = d.storage[:0]
 		keccakF1600(&d.a)
 	case spongeSqueezing:
@@ -123,7 +90,7 @@ func (d *state) permute() {
 		// copying more output.
 		keccakF1600(&d.a)
 		d.buf = d.storage[:d.rate]
-		d.copyOut(d.buf)
+		copyOut(d, d.buf)
 	}
 }
 
@@ -151,7 +118,7 @@ func (d *state) padAndPermute(dsbyte byte) {
 	d.permute()
 	d.state = spongeSqueezing
 	d.buf = d.storage[:d.rate]
-	d.copyOut(d.buf)
+	copyOut(d, d.buf)
 }
 
 // Write absorbs more data into the hash's state. It produces an error
@@ -168,7 +135,7 @@ func (d *state) Write(p []byte) (written int, err error) {
 	for len(p) > 0 {
 		if len(d.buf) == 0 && len(p) >= d.rate {
 			// The fast path; absorb a full "rate" bytes of input and apply the permutation.
-			d.xorIn(p[:d.rate])
+			xorIn(d, p[:d.rate])
 			p = p[d.rate:]
 			keccakF1600(&d.a)
 		} else {

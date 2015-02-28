@@ -12,7 +12,8 @@
 // Guidance
 //
 // If you aren't sure what function you need, use SHAKE256 with at least 64
-// bytes of output.
+// bytes of output. The SHAKE instances are faster than the SHA3 instances;
+// the latter have to allocate memory to conform to the hash.Hash interface.
 //
 // If you need a secret-key MAC (message authentication code), prepend the
 // secret key to the input, hash with SHAKE256 and read at least 32 bytes of
@@ -21,45 +22,42 @@
 //
 // Security strengths
 //
-// The SHA3-x functions have a security strength against preimage attacks of x
-// bits. Since they only produce x bits of output, their collision-resistance
-// is only x/2 bits.
+// The SHA3-x (x equals 224, 256, 384, or 512) functions have a security
+// strength against preimage attacks of x bits. Since they only produce "x"
+// bits of output, their collision-resistance is only "x/2" bits.
 //
-// The SHAKE-x functions have a generic security strength of x bits against
-// all attacks, provided that at least 2x bits of their output is used.
-// Requesting more than 2x bits of output does not increase the collision-
-// resistance of the SHAKE functions.
+// The SHAKE-256 and -128 functions have a generic security strength of 256 and
+// 128 bits against all attacks, provided that at least 2x bits of their output
+// is used.  Requesting more than 64 or 32 bytes of output, respectively, does
+// not increase the collision-resistance of the SHAKE functions.
 //
 //
 // The sponge construction
 //
-// A sponge builds a pseudo-random function from a pseudo-random permutation,
-// by applying the permutation to a state of "rate + capacity" bytes, but
-// hiding "capacity" of the bytes.
+// A sponge builds a pseudo-random function from a public pseudo-random
+// permutation, by applying the permutation to a state of "rate + capacity"
+// bytes, but hiding "capacity" of the bytes.
 //
 // A sponge starts out with a zero state. To hash an input using a sponge, up
 // to "rate" bytes of the input are XORed into the sponge's state. The sponge
-// has thus been "filled up" and the permutation is applied. This process is
+// is then "full" and the permutation is applied to "empty" it. This process is
 // repeated until all the input has been "absorbed". The input is then padded.
-// The digest is "squeezed" from the sponge by the same method, except that
-// output is copied out.
+// The digest is "squeezed" from the sponge in the same way, except that output
+// output is copied out instead of input being XORed in.
 //
 // A sponge is parameterized by its generic security strength, which is equal
 // to half its capacity; capacity + rate is equal to the permutation's width.
-//
 // Since the KeccakF-1600 permutation is 1600 bits (200 bytes) wide, this means
-// that security_strength == (1600 - bitrate) / 2.
+// that the security strength of a sponge instance is equal to (1600 - bitrate) / 2.
 //
 //
-// Recommendations, detailed
+// Recommendations
 //
 // The SHAKE functions are recommended for most new uses. They can produce
 // output of arbitrary length. SHAKE256, with an output length of at least
-// 64 bytes, provides 256-bit security against all attacks.
-//
-// The Keccak team recommends SHAKE256 for most applications upgrading from
-// SHA2-512. (NIST chose a much stronger, but much slower, sponge instance
-// for SHA3-512.)
+// 64 bytes, provides 256-bit security against all attacks.  The Keccak team
+// recommends it for most applications upgrading from SHA2-512. (NIST chose a
+// much stronger, but much slower, sponge instance for SHA3-512.)
 //
 // The SHA-3 functions are "drop-in" replacements for the SHA-2 functions.
 // They produce output of the same length, with the same security strengths
