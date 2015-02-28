@@ -50,7 +50,7 @@ func (*Root) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Root) Lookup(name string, ctx context.Context) (fs.Node, error) {
+func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	log.Debugf("Root Lookup: '%s'", name)
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
@@ -116,7 +116,7 @@ func (s *Node) Attr() fuse.Attr {
 }
 
 // Lookup performs a lookup under this node.
-func (s *Node) Lookup(name string, ctx context.Context) (fs.Node, error) {
+func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	log.Debugf("Lookup '%s'", name)
 	nodes, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
 	if err != nil {
@@ -145,7 +145,7 @@ func (s *Node) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	return nil, fuse.ENOENT
 }
 
-func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, ctx context.Context) error {
+func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 
 	k, err := s.Nd.Key()
 	if err != nil {
@@ -178,3 +178,12 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, ctx context.
 	lm["res_size"] = n
 	return nil // may be non-nil / not succeeded
 }
+
+// to check that out Node implements all the interfaces we want
+type roNode interface {
+	fs.Node
+	fs.NodeStringLookuper
+	fs.HandleReader
+}
+
+var _ roNode = (*Node)(nil)

@@ -360,7 +360,7 @@ func (s *Node) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, ctx context.
 	return err // may be non-nil / not succeeded
 }
 
-func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, ctx context.Context) error {
+func (n *Node) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
 	// log.Debugf("ipns: Node Write [%s]: flags = %s, offset = %d, size = %d", n.name, req.Flags.String(), req.Offset, len(req.Data))
 	if IpnsReadonly {
 		log.Debug("Attempted to write on readonly ipns filesystem.")
@@ -383,7 +383,7 @@ func (n *Node) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, ctx conte
 	return nil
 }
 
-func (n *Node) Flush(req *fuse.FlushRequest, ctx context.Context) error {
+func (n *Node) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	if IpnsReadonly {
 		return nil
 	}
@@ -470,11 +470,11 @@ func (n *Node) republishRoot() error {
 	return nil
 }
 
-func (n *Node) Fsync(req *fuse.FsyncRequest, ctx context.Context) error {
+func (n *Node) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return nil
 }
 
-func (n *Node) Mkdir(req *fuse.MkdirRequest, ctx context.Context) (fs.Node, error) {
+func (n *Node) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	if IpnsReadonly {
 		return nil, fuse.EPERM
 	}
@@ -508,7 +508,7 @@ func (n *Node) Mkdir(req *fuse.MkdirRequest, ctx context.Context) (fs.Node, erro
 	return child, nil
 }
 
-func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, ctx context.Context) (fs.Handle, error) {
+func (n *Node) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	//log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
 	//TODO: check open flags and truncate if necessary
 	if req.Flags&fuse.OpenTruncate != 0 {
@@ -521,11 +521,11 @@ func (n *Node) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, ctx context.
 	return n, nil
 }
 
-func (n *Node) Mknod(req *fuse.MknodRequest, ctx context.Context) (fs.Node, error) {
+func (n *Node) Mknod(ctx context.Context, req *fuse.MknodRequest) (fs.Node, error) {
 	return nil, nil
 }
 
-func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, ctx context.Context) (fs.Node, fs.Handle, error) {
+func (n *Node) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	if IpnsReadonly {
 		log.Debug("Attempted to call Create on a readonly filesystem.")
 		return nil, nil, fuse.EPERM
@@ -555,7 +555,7 @@ func (n *Node) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, ctx co
 	return child, child, nil
 }
 
-func (n *Node) Remove(req *fuse.RemoveRequest, ctx context.Context) error {
+func (n *Node) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	if IpnsReadonly {
 		return fuse.EPERM
 	}
@@ -578,7 +578,7 @@ func (n *Node) Remove(req *fuse.RemoveRequest, ctx context.Context) error {
 	return nil
 }
 
-func (n *Node) Rename(req *fuse.RenameRequest, newDir fs.Node, ctx context.Context) error {
+func (n *Node) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
 	if IpnsReadonly {
 		log.Debug("Attempted to call Rename on a readonly filesystem.")
 		return fuse.EPERM
@@ -625,3 +625,19 @@ func (n *Node) update(name string, newnode *mdag.Node) error {
 	n.Nd = nnode
 	return nil
 }
+
+// to check that out Node implements all the interfaces we want
+type ipnsNode interface {
+	fs.Node
+	fs.HandleWriter
+	fs.HandleFlusher
+	fs.NodeFsyncer
+	fs.NodeMkdirer
+	fs.NodeOpener
+	fs.NodeMknoder
+	fs.NodeCreater
+	fs.NodeRemover
+	fs.NodeRenamer
+}
+
+var _ ipnsNode = (*Node)(nil)
