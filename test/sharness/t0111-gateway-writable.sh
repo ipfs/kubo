@@ -23,13 +23,16 @@ test_expect_success "HTTP gateway gives access to sample file" '
 
 test_expect_success "HTTP POST file gives Hash" '
   echo "$RANDOM" >infile &&
-  curl -svX POST --data-binary @infile http://localhost:5002/ipfs/ 2>curl.out &&
-  grep "HTTP/1.1 201 Created" curl.out
+  URL="http://localhost:5002/ipfs/" &&
+  curl -svX POST --data-binary @infile "$URL" 2>curl.out &&
+  grep "HTTP/1.1 201 Created" curl.out &&
+  LOCATION=$(grep Location curl.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)\s")
 '
 
 test_expect_success "We can HTTP GET file just created" '
-  FILEPATH=$(grep Location curl.out | cut -d" " -f3- | tr -d "\r")
-  curl -so outfile http://localhost:5002$FILEPATH &&
+  URL="http://localhost:5002/ipfs/$HASH" &&
+  curl -so outfile "$URL" &&
   test_cmp infile outfile
 '
 
