@@ -11,7 +11,7 @@ test_description="Test ls command"
 test_init_ipfs
 
 test_expect_success "'ipfs add -r testData' succeeds" '
-	mkdir -p testData/{d1,d2} && \
+	mkdir testData testData/d1 testData/d2 && \
 	echo "test" > testData/f1 && \
 	echo "data" > testData/f2 && \
 	echo "hello" > testData/d1/a && \
