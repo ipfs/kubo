@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+	"text/tabwriter"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
@@ -120,8 +121,11 @@ multihash.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			object := res.Output().(*Object)
-			marshalled := marshalLinks(object.Links)
-			return strings.NewReader(marshalled), nil
+			var buf bytes.Buffer
+			w := tabwriter.NewWriter(&buf, 1, 2, 1, ' ', 0)
+			marshalLinks(w, object.Links)
+			w.Flush()
+			return &buf, nil
 		},
 	},
 	Type: Object{},
@@ -246,7 +250,7 @@ var objectStatCmd = &cmds.Command{
 
 			var buf bytes.Buffer
 			w := func(s string, n int) {
-				buf.Write([]byte(fmt.Sprintf("%s: %d\n", s, n)))
+				fmt.Fprintf(&buf, "%s: %d\n", s, n)
 			}
 			w("NumLinks", ns.NumLinks)
 			w("BlockSize", ns.BlockSize)
