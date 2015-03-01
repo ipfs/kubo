@@ -9,16 +9,15 @@ test_description="Test ls command"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
 
 test_expect_success "'ipfs add -r testData' succeeds" '
-	mkdir -p testData/{d1,d2}
-	echo "test" > testData/f1
-	echo "data" > testData/f2
-	echo "hello" > testData/d1/a
-	random 128 42 > testData/d1/128
-	echo "world" > testData/d2/a
-	random 1024 42 > testData/d2/1024
+	mkdir -p testData/{d1,d2} && \
+	echo "test" > testData/f1 && \
+	echo "data" > testData/f2 && \
+	echo "hello" > testData/d1/a && \
+	random 128 42 > testData/d1/128 && \
+	echo "world" > testData/d2/a && \
+	random 1024 42 > testData/d2/1024 && \
 	ipfs add -r testData > actual_add
 '
 
@@ -63,7 +62,5 @@ QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14   a
 EOF
 	test $(diff actual_ls expected_ls | wc -l) -eq 0
 '
-
-test_kill_ipfs_daemon
 
 test_done
