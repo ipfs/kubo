@@ -14,7 +14,7 @@ type SimpleFS struct {
 
 var _ = fs.FS(SimpleFS{})
 
-func (f SimpleFS) Root() (fs.Node, fuse.Error) {
+func (f SimpleFS) Root() (fs.Node, error) {
 	return f.Node, nil
 }
 

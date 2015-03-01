@@ -6,6 +6,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // Writes gathers data from FUSE Write calls.
@@ -15,7 +16,7 @@ type Writes struct {
 
 var _ = fs.HandleWriter(&Writes{})
 
-func (w *Writes) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
+func (w *Writes) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
 	n, err := w.buf.Write(req.Data)
 	resp.Size = n
 	if err != nil {
@@ -62,7 +63,7 @@ type Flushes struct {
 
 var _ = fs.HandleFlusher(&Flushes{})
 
-func (r *Flushes) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
+func (r *Flushes) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	r.rec.Mark()
 	return nil
 }
@@ -120,7 +121,7 @@ type Setattrs struct {
 
 var _ = fs.NodeSetattrer(&Setattrs{})
 
-func (r *Setattrs) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, intr fs.Intr) fuse.Error {
+func (r *Setattrs) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil
@@ -141,7 +142,7 @@ type Fsyncs struct {
 
 var _ = fs.NodeFsyncer(&Fsyncs{})
 
-func (r *Fsyncs) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
+func (r *Fsyncs) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil
@@ -164,7 +165,7 @@ var _ = fs.NodeMkdirer(&Mkdirs{})
 
 // Mkdir records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Mkdirs) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (r *Mkdirs) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil, fuse.EIO
@@ -189,7 +190,7 @@ var _ = fs.NodeSymlinker(&Symlinks{})
 
 // Symlink records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Symlinks) Symlink(req *fuse.SymlinkRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (r *Symlinks) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, error) {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil, fuse.EIO
@@ -214,7 +215,7 @@ var _ = fs.NodeLinker(&Links{})
 
 // Link records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Links) Link(req *fuse.LinkRequest, old fs.Node, intr fs.Intr) (fs.Node, fuse.Error) {
+func (r *Links) Link(ctx context.Context, req *fuse.LinkRequest, old fs.Node) (fs.Node, error) {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil, fuse.EIO
@@ -239,7 +240,7 @@ var _ = fs.NodeMknoder(&Mknods{})
 
 // Mknod records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Mknods) Mknod(req *fuse.MknodRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (r *Mknods) Mknod(ctx context.Context, req *fuse.MknodRequest) (fs.Node, error) {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil, fuse.EIO
@@ -264,7 +265,7 @@ var _ = fs.NodeOpener(&Opens{})
 
 // Open records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Opens) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
+func (r *Opens) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil, fuse.EIO
@@ -289,7 +290,7 @@ var _ = fs.NodeGetxattrer(&Getxattrs{})
 
 // Getxattr records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Getxattrs) Getxattr(req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse, intr fs.Intr) fuse.Error {
+func (r *Getxattrs) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return fuse.ENODATA
@@ -314,7 +315,7 @@ var _ = fs.NodeListxattrer(&Listxattrs{})
 
 // Listxattr records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Listxattrs) Listxattr(req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse, intr fs.Intr) fuse.Error {
+func (r *Listxattrs) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return fuse.ENODATA
@@ -339,7 +340,7 @@ var _ = fs.NodeSetxattrer(&Setxattrs{})
 
 // Setxattr records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Setxattrs) Setxattr(req *fuse.SetxattrRequest, intr fs.Intr) fuse.Error {
+func (r *Setxattrs) Setxattr(ctx context.Context, req *fuse.SetxattrRequest) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil
@@ -364,7 +365,7 @@ var _ = fs.NodeRemovexattrer(&Removexattrs{})
 
 // Removexattr records the request and returns an error. Most callers should
 // wrap this call in a function that returns a more useful result.
-func (r *Removexattrs) Removexattr(req *fuse.RemovexattrRequest, intr fs.Intr) fuse.Error {
+func (r *Removexattrs) Removexattr(ctx context.Context, req *fuse.RemovexattrRequest) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
 	return nil

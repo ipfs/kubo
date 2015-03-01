@@ -2,6 +2,6 @@
 
 package fuse
 
-func translateGetxattrError(err Error) Error {
+func translateGetxattrError(err error) error {
 	return err
 }

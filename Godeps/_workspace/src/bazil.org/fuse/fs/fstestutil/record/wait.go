@@ -6,6 +6,7 @@ import (
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type nothing struct{}
@@ -27,7 +28,7 @@ func (r *ReleaseWaiter) init() {
 	})
 }
 
-func (r *ReleaseWaiter) Release(req *fuse.ReleaseRequest, intr fs.Intr) fuse.Error {
+func (r *ReleaseWaiter) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 	r.init()
 	close(r.seen)
 	return nil
