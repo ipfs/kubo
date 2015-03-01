@@ -78,6 +78,11 @@ func (db *DagBuilderHelper) Next() []byte {
 	return d
 }
 
+// GetDagServ returns the dagservice object this Helper is using
+func (db *DagBuilderHelper) GetDagServ() dag.DAGService {
+	return db.dserv
+}
+
 // FillNodeLayer will add datanodes as children to the give node until
 // at most db.indirSize ndoes are added
 //
@@ -110,7 +115,7 @@ func (db *DagBuilderHelper) FillNodeWithData(node *UnixfsNode) error {
 		return ErrSizeLimitExceeded
 	}
 
-	node.setData(data)
+	node.SetData(data)
 	return nil
 }
 

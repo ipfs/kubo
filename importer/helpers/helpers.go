@@ -48,6 +48,18 @@ func NewUnixfsNode() *UnixfsNode {
 	}
 }
 
+func NewUnixfsNodeFromDag(nd *dag.Node) (*UnixfsNode, error) {
+	mb, err := ft.MultiblockFromBytes(nd.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UnixfsNode{
+		node: nd,
+		ufmt: mb,
+	}, nil
+}
+
 func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
@@ -83,7 +95,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	return nil
 }
 
-func (n *UnixfsNode) setData(data []byte) {
+func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 

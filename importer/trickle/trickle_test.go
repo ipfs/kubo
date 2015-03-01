@@ -441,3 +441,45 @@ func TestSeekingConsistency(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAppend(t *testing.T) {
+	nbytes := int64(128 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	// Reader for half the bytes
+	read := bytes.NewReader(should[:64*1024])
+	ds := mdtest.Mock(t)
+	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dbp := &h.DagBuilderParams{
+		Dagserv:  ds,
+		Maxlinks: 4,
+	}
+
+	spl := &chunk.SizeSplitter{500}
+	blks := spl.Split(bytes.NewReader(should[64*1024:]))
+
+	nnode, err := TrickleAppend(nd, dbp.New(blks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(fread)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
