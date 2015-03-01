@@ -46,10 +46,6 @@
 			"Rev": "5958552242606512f714d2e93513b380f43f9991"
 		},
 		{
-			"ImportPath": "github.com/briantigerchow/inflect",
-			"Rev": "cef1f9cc2234281dc58ea10be7e9aad5e282ecab"
-		},
-		{
 			"ImportPath": "github.com/briantigerchow/pubsub",
 			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
 		},
@@ -64,6 +60,10 @@
 		{
 			"ImportPath": "github.com/cheggaaa/pb",
 			"Rev": "e8c7cc515bfde3e267957a3b110080ceed51354e"
+		},
+		{
+			"ImportPath": "github.com/chuckpreslar/inflect",
+			"Rev": "423e3ac59c611e2d549527ab8c15fb99335d30ba"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
