@@ -9,7 +9,7 @@ package fsnotify_test
 import (
 	"log"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/fsnotify.v1"
+	"github.com/go-fsnotify/fsnotify"
 )
 
 func ExampleNewWatcher() {

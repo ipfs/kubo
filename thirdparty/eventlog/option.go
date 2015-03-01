@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/logrus"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
 

@@ -1,7 +1,7 @@
 package notifications
 
 import (
-	pubsub "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/maybebtc/pubsub"
+	pubsub "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/briantigerchow/pubsub"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	u "github.com/jbenet/go-ipfs/util"

@@ -72,15 +72,19 @@ func (w *Watcher) Close() error {
 	w.isClosed = true
 	w.mu.Unlock()
 
-	// Send "quit" message to the reader goroutine:
-	w.done <- true
-
 	w.mu.Lock()
 	ws := w.watches
 	w.mu.Unlock()
+
+	var err error
 	for name := range ws {
-		w.Remove(name)
+		if e := w.Remove(name); e != nil && err == nil {
+			err = e
+		}
 	}
+
+	// Send "quit" message to the reader goroutine:
+	w.done <- true
 
 	return nil
 }

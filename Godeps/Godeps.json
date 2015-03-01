@@ -11,18 +11,8 @@
 		},
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-12",
-			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
-		},
-		{
-			"ImportPath": "code.google.com/p/go.crypto/blowfish",
-			"Comment": "null-236",
-			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
-		},
-		{
-			"ImportPath": "code.google.com/p/go.crypto/sha3",
-			"Comment": "null-236",
-			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
+			"Comment": "null-15",
+			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
 		},
 		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/io",
@@ -42,6 +32,11 @@
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.6.5",
+			"Rev": "c0f7e35ed2e48f188c37581b4b743cf7383f85c6"
+		},
+		{
 			"ImportPath": "github.com/braintree/manners",
 			"Comment": "0.3.1-2-g5280e25",
 			"Rev": "5280e250f2795914acbeb2bf3b55dd5a2d1fba52"
@@ -51,8 +46,8 @@
 			"Rev": "5958552242606512f714d2e93513b380f43f9991"
 		},
 		{
-			"ImportPath": "github.com/briantigerchow/inflect",
-			"Rev": "cef1f9cc2234281dc58ea10be7e9aad5e282ecab"
+			"ImportPath": "github.com/briantigerchow/pubsub",
+			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
 		},
 		{
 			"ImportPath": "github.com/camlistore/lock",
@@ -65,6 +60,10 @@
 		{
 			"ImportPath": "github.com/cheggaaa/pb",
 			"Rev": "e8c7cc515bfde3e267957a3b110080ceed51354e"
+		},
+		{
+			"ImportPath": "github.com/chuckpreslar/inflect",
+			"Rev": "423e3ac59c611e2d549527ab8c15fb99335d30ba"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
@@ -179,8 +178,8 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
-			"Comment": "0.1.0-33-g4e09420",
-			"Rev": "4e09420ceb2db37a5fbb149821b9e63d88d47218"
+			"Comment": "0.1.0-36-g87e53a9",
+			"Rev": "87e53a9d2875a18a7863b351d22f912545e6b3a3"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
@@ -215,15 +214,6 @@
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
-			"ImportPath": "github.com/maybebtc/logrus",
-			"Comment": "v0.6.0-5-gf92b795",
-			"Rev": "f92b7950b372b1db80bd3527e4d40e42555fe6c2"
-		},
-		{
-			"ImportPath": "github.com/maybebtc/pubsub",
-			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
-		},
-		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
 		},
@@ -236,13 +226,21 @@
 			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
 		},
 		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+		},
+		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "b6fdb7d8a4ccefede406f8fe0f017fb58265054c"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
-			"Comment": "v1.1.0",
-			"Rev": "f582d920d11386e8ae15227bb5933a8f9b4c3dec"
+			"Comment": "v1.2.0",
+			"Rev": "96c060f6a6b7e0d6f75fddd10efeaca3e5d1bcb0"
 		},
 		{
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",

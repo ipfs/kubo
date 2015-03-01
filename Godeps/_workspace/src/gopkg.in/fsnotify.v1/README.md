@@ -8,14 +8,14 @@ Cross platform: Windows, Linux, BSD and OS X.
 
 |Adapter   |OS        |Status    |
 |----------|----------|----------|
-|inotify   |Linux, Android\*|Supported|
-|kqueue    |BSD, OS X, iOS\*|Supported|
-|ReadDirectoryChangesW|Windows|Supported|
+|inotify   |Linux, Android\*|Supported [![Build Status](https://travis-ci.org/go-fsnotify/fsnotify.svg?branch=master)](https://travis-ci.org/go-fsnotify/fsnotify)|
+|kqueue    |BSD, OS X, iOS\*|Supported [![Circle CI](https://circleci.com/gh/go-fsnotify/fsnotify.svg?style=svg)](https://circleci.com/gh/go-fsnotify/fsnotify)|
+|ReadDirectoryChangesW|Windows|Supported [![Build status](https://ci.appveyor.com/api/projects/status/ivwjubaih4r0udeh/branch/master?svg=true)](https://ci.appveyor.com/project/NathanYoungman/fsnotify/branch/master)|
 |FSEvents  |OS X          |[Planned](https://github.com/go-fsnotify/fsnotify/issues/11)|
 |FEN       |Solaris 11    |[Planned](https://github.com/go-fsnotify/fsnotify/issues/12)|
 |fanotify  |Linux 2.6.37+ | |
+|USN Journals |Windows    |[Maybe](https://github.com/go-fsnotify/fsnotify/issues/53)|
 |Polling   |*All*         |[Maybe](https://github.com/go-fsnotify/fsnotify/issues/9)|
-|          |Plan 9        | |
 
 \* Android and iOS are untested.
 
@@ -41,8 +41,7 @@ import "gopkg.in/fsnotify.v1"
 
 Further API changes are [planned](https://github.com/go-fsnotify/fsnotify/milestones), but a new major revision will be tagged, so you can depend on the v1 API.
 
-**master** may have untagged changes. Use it to test the very latest code,
-but don't expect it to remain API-compatible:
+**Master** may have unreleased changes. Use it to test the very latest code or when [contributing][], but don't expect it to remain API-compatible:
 
 ```go
 import "github.com/go-fsnotify/fsnotify"
@@ -50,13 +49,11 @@ import "github.com/go-fsnotify/fsnotify"
 
 ## Contributing
 
-* Send questions to [golang-dev@googlegroups.com](mailto:golang-dev@googlegroups.com). 
-* Request features and report bugs using the [GitHub Issue Tracker](https://github.com/go-fsnotify/fsnotify/issues). Please indicate the platform you are running on.
-
-fsnotify is derived from code in the [golang.org/x/exp](https://godoc.org/golang.org/x/exp) package and it may be included [in the standard library](https://github.com/go-fsnotify/fsnotify/issues/1) in the future. Therefore fsnotify carries the same [LICENSE](https://github.com/go-fsnotify/fsnotify/blob/master/LICENSE) as Go. Contributors retain their copyright, so you need to fill out a short form before we can accept your contribution: [Google Individual Contributor License Agreement](https://developers.google.com/open-source/cla/individual).
-
-Please read [CONTRIBUTING](https://github.com/go-fsnotify/fsnotify/blob/master/CONTRIBUTING.md) before opening a pull request.
+Please refer to [CONTRIBUTING][] before opening an issue or pull request.
 
 ## Example
 
 See [example_test.go](https://github.com/go-fsnotify/fsnotify/blob/master/example_test.go).
+
+
+[contributing]: https://github.com/go-fsnotify/fsnotify/blob/master/CONTRIBUTING.md

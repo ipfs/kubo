@@ -14,7 +14,7 @@ install:
 	cd cmd/ipfs && go install
 
 build:
-	cd cmd/ipfs && go build
+	cd cmd/ipfs && go build -i
 
 ##############################################################
 # tests targets
