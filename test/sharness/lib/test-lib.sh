@@ -136,6 +136,7 @@ test_init_ipfs() {
 	# Using RANDOM like this is clearly wrong-- it samples with replacement
 	# and it doesnt even check the port is unused. this is a trivial stop gap
 	# until the proper solution is implemented.
+	RANDOM=$$
 	PORT_API=$((RANDOM % 3000 + 5100))
 	ADDR_API="/ip4/127.0.0.1/tcp/$PORT_API"
 
