@@ -354,7 +354,9 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	if err != nil {
 		return err
 	}
-	n, err := io.ReadFull(r, resp.Data[:req.Size])
+
+	buf := resp.Data[:min(req.Size, int(r.Size()))]
+	n, err := io.ReadFull(r, buf)
 	resp.Data = resp.Data[:n]
 	lm["res_size"] = n
 	return err // may be non-nil / not succeeded
@@ -652,3 +654,10 @@ type ipnsNode interface {
 }
 
 var _ ipnsNode = (*Node)(nil)
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

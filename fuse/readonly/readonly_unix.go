@@ -5,7 +5,6 @@
 package readonly
 
 import (
-	"bytes"
 	"io"
 	"os"
 
@@ -169,8 +168,9 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	if err != nil {
 		return err
 	}
-	buf := bytes.NewBuffer(resp.Data)
-	n, err := io.CopyN(buf, r, int64(req.Size))
+
+	buf := resp.Data[:min(req.Size, int(r.Size()))]
+	n, err := io.ReadFull(r, buf)
 	if err != nil && err != io.EOF {
 		return err
 	}
@@ -196,3 +196,10 @@ type roNode interface {
 }
 
 var _ roNode = (*Node)(nil)
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
