@@ -1,4 +1,4 @@
-package io
+package mod
 
 import (
 	"fmt"
@@ -14,6 +14,7 @@ import (
 	"github.com/jbenet/go-ipfs/importer/chunk"
 	mdag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -38,7 +39,7 @@ func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Nod
 		t.Fatal(err)
 	}
 
-	dr, err := NewDagReader(context.Background(), node, dserv)
+	dr, err := uio.NewDagReader(context.Background(), node, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +76,7 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 		t.Fatal(err)
 	}
 
-	rd, err := NewDagReader(context.Background(), nd, dm.dagserv)
+	rd, err := uio.NewDagReader(context.Background(), nd, dm.dagserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,17 +94,12 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 }
 
 func TestDagModifierBasic(t *testing.T) {
-	t.Skip("DAGModifier needs to be fixed to work with indirect blocks.")
-	if err := u.SetLogLevel("blockservice", "critical"); err != nil {
-		t.Fatalf("testlog prepare failed: %s", err)
-	}
-	if err := u.SetLogLevel("merkledag", "critical"); err != nil {
-		t.Fatalf("testlog prepare failed: %s", err)
-	}
 	dserv := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, nil, &chunk.SizeSplitter{Size: 512})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +114,7 @@ func TestDagModifierBasic(t *testing.T) {
 	// Within bounds of existing file
 	beg = 1000
 	length = 4000
-	t.Log("Testing mod within bounds of existing file.")
+	t.Log("Testing mod within bounds of existing multiblock file.")
 	b = testModWrite(t, beg, length, b, dagmod)
 
 	// Extend bounds
@@ -131,6 +127,7 @@ func TestDagModifierBasic(t *testing.T) {
 	// "Append"
 	beg = uint64(len(b))
 	length = 3000
+	t.Log("Testing pure append")
 	b = testModWrite(t, beg, length, b, dagmod)
 
 	// Verify reported length
@@ -151,11 +148,13 @@ func TestDagModifierBasic(t *testing.T) {
 }
 
 func TestMultiWrite(t *testing.T) {
-	t.Skip("DAGModifier needs to be fixed to work with indirect blocks.")
 	dserv := getMockDagServ(t)
 	_, n := getNode(t, dserv, 0)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{Size: 512})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, nil, &chunk.SizeSplitter{Size: 512})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +176,7 @@ func TestMultiWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	read, err := NewDagReader(context.Background(), nd, dserv)
+	read, err := uio.NewDagReader(context.Background(), nd, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,34 +191,104 @@ func TestMultiWrite(t *testing.T) {
 	}
 }
 
-func TestMultiWriteCoal(t *testing.T) {
-	t.Skip("Skipping test until DagModifier is fixed")
+func TestWriteNewFile(t *testing.T) {
 	dserv := getMockDagServ(t)
 	_, n := getNode(t, dserv, 0)
 
-	dagmod, err := NewDagModifier(n, dserv, &chunk.SizeSplitter{Size: 512})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, nil, &chunk.SizeSplitter{Size: 512})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	data := make([]byte, 4000)
+	towrite := make([]byte, 2000)
+	u.NewTimeSeededRand().Read(towrite)
+
+	nw, err := dagmod.Write(towrite)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nw != len(towrite) {
+		t.Fatal("Wrote wrong amount")
+	}
+
+	nd, err := dagmod.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	read, err := uio.NewDagReader(ctx, nd, dserv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := ioutil.ReadAll(read)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := arrComp(data, towrite); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMultiWriteCoal(t *testing.T) {
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, nil, &chunk.SizeSplitter{Size: 512})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := make([]byte, 1000)
 	u.NewTimeSeededRand().Read(data)
 
 	for i := 0; i < len(data); i++ {
 		n, err := dagmod.WriteAt(data[:i+1], 0)
 		if err != nil {
+			fmt.Println("FAIL AT ", i)
 			t.Fatal(err)
 		}
 		if n != i+1 {
 			t.Fatal("Somehow wrote the wrong number of bytes! (n != 1)")
 		}
+
+		// TEMP
+		nn, err := dagmod.GetNode()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		r, err := uio.NewDagReader(ctx, nn, dserv)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		out, err := ioutil.ReadAll(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := arrComp(out, data[:i+1]); err != nil {
+			fmt.Println("A ", len(out))
+			fmt.Println(out)
+			fmt.Println(data[:i+1])
+			t.Fatal(err)
+		}
+		//
 	}
 	nd, err := dagmod.GetNode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	read, err := NewDagReader(context.Background(), nd, dserv)
+	read, err := uio.NewDagReader(context.Background(), nd, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,4 +313,32 @@ func arrComp(a, b []byte) error {
 		}
 	}
 	return nil
+}
+
+func printDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
+	pbd, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < indent; i++ {
+		fmt.Print(" ")
+	}
+	fmt.Printf("{size = %d, type = %s, children = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
+	if len(nd.Links) > 0 {
+		fmt.Println()
+	}
+	for _, lnk := range nd.Links {
+		child, err := lnk.GetNode(ds)
+		if err != nil {
+			panic(err)
+		}
+		printDag(child, ds, indent+1)
+	}
+	if len(nd.Links) > 0 {
+		for i := 0; i < indent; i++ {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Println("}")
 }
