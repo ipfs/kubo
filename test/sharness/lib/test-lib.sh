@@ -136,8 +136,11 @@ test_init_ipfs() {
 	# Using RANDOM like this is clearly wrong-- it samples with replacement
 	# and it doesnt even check the port is unused. this is a trivial stop gap
 	# until the proper solution is implemented.
-	apiport=$((RANDOM % 3000 + 5100))
-	ADDR_API="/ip4/127.0.0.1/tcp/$apiport"
+	PORT_API=$((RANDOM % 3000 + 5100))
+	ADDR_API="/ip4/127.0.0.1/tcp/$PORT_API"
+
+	PORT_GWAY=$((RANDOM % 3000 + 8100))
+	ADDR_GWAY="/ip4/127.0.0.1/tcp/$PORT_GWAY"
 
 	# we set the Addresses.API config variable.
 	# the cli client knows to use it, so only need to set.
@@ -153,6 +156,7 @@ test_init_ipfs() {
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
 		test_config_set Addresses.API "$ADDR_API" &&
+		test_config_set Addresses.Gateway "$ADDR_GWAY" &&
 		ipfs bootstrap rm --all ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
