@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -18,7 +19,9 @@ func (l *Link) Attr() fuse.Attr {
 	}
 }
 
-func (l *Link) Readlink(req *fuse.ReadlinkRequest, ctx context.Context) (string, error) {
+func (l *Link) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
 	log.Debugf("ReadLink: %s", l.Target)
 	return l.Target, nil
 }
+
+var _ fs.NodeReadlinker = (*Link)(nil)
