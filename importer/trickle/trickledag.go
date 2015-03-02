@@ -1,10 +1,8 @@
 package trickle
 
 import (
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	h "github.com/jbenet/go-ipfs/importer/helpers"
 	dag "github.com/jbenet/go-ipfs/merkledag"
-	ft "github.com/jbenet/go-ipfs/unixfs"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -68,7 +66,7 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (*dag.Node, error) {
 	}
 
 	// Get depth of this 'tree'
-	n, j := trickleDepthInfo(base)
+	n, j := trickleDepthInfo(base, db.Maxlinks())
 	if n == 0 {
 		// If direct blocks not filled...
 		err := db.FillNodeLayer(ufsn)
@@ -76,49 +74,50 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (*dag.Node, error) {
 			return nil, err
 		}
 		n++
-	}
 
-	// Recursive step, grab last child
-	last := len(base.Links) - 1
-	lastChild, err := base.Links[last].GetNode(db.GetDagServ())
-	if err != nil {
-		return nil, err
-	}
-
-	// Fill out last child (may not be full tree)
-	nchild, err := trickleAppendRec(lastChild, db, n-1)
-	if err != nil {
-		return nil, err
-	}
-
-	// Update node link
-	size, err := ft.DataSize(nchild.Data)
-	if err != nil {
-		return nil, err
-	}
-	ckey, err := nchild.Key()
-	if err != nil {
-		return nil, err
-	}
-	base.Links[last].Size = size
-	base.Links[last].Hash = mh.Multihash(ckey)
-	//
-
-	// Partially filled depth layer
-	if j != 0 {
-		for ; j < layerRepeat && !db.Done(); j++ {
-			next := h.NewUnixfsNode()
-			err := fillTrickleRec(db, next, n)
-			if err != nil {
-				return nil, err
-			}
-
-			err = ufsn.AddChild(next, db)
-			if err != nil {
-				return nil, err
-			}
+		if db.Done() {
+			return ufsn.GetDagNode()
 		}
-		n++
+	}
+
+	if len(base.Links) > db.Maxlinks() {
+		// Recursive step, grab last child
+		last := len(base.Links) - 1
+		lastChild, err := base.Links[last].GetNode(db.GetDagServ())
+		if err != nil {
+			return nil, err
+		}
+
+		// Fill out last child (may not be full tree)
+		nchild, err := trickleAppendRec(lastChild, db, n)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update node link
+		ufsn.RemoveChild(last)
+		err = ufsn.AddChild(nchild, db)
+		if err != nil {
+			return nil, err
+		}
+
+		// Partially filled depth layer
+		if j != 0 {
+			for ; j < layerRepeat && !db.Done(); j++ {
+				next := h.NewUnixfsNode()
+				err := fillTrickleRec(db, next, n)
+				if err != nil {
+					return nil, err
+				}
+
+				err = ufsn.AddChild(next, db)
+				if err != nil {
+					return nil, err
+				}
+			}
+			n++
+		}
+
 	}
 
 	// Now, continue filling out tree like normal
@@ -140,18 +139,19 @@ func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (*dag.Node, error) {
 	return ufsn.GetDagNode()
 }
 
-func trickleAppendRec(base *dag.Node, db *h.DagBuilderHelper, depth int) (*dag.Node, error) {
-	if depth == 0 {
-		return base, nil
-	}
+func trickleAppendRec(base *dag.Node, db *h.DagBuilderHelper, depth int) (*h.UnixfsNode, error) {
 	// Convert to unixfs node for working with easily
 	ufsn, err := h.NewUnixfsNodeFromDag(base)
 	if err != nil {
 		return nil, err
 	}
 
+	if depth == 0 || db.Done() {
+		return ufsn, nil
+	}
+
 	// Get depth of this 'tree'
-	n, j := trickleDepthInfo(base)
+	n, j := trickleDepthInfo(base, db.Maxlinks())
 	if n == 0 {
 		// If direct blocks not filled...
 		err := db.FillNodeLayer(ufsn)
@@ -161,52 +161,50 @@ func trickleAppendRec(base *dag.Node, db *h.DagBuilderHelper, depth int) (*dag.N
 		n++
 	}
 
-	// If at depth, no need to continue
+	// If at correct depth, no need to continue
 	if n == depth {
-		return base, nil
+		return ufsn, nil
 	}
 
-	// Recursive step, grab last child
-	last := len(base.Links) - 1
-	lastChild, err := base.Links[last].GetNode(db.GetDagServ())
-	if err != nil {
-		return nil, err
-	}
-
-	// Fill out last child (may not be full tree)
-	nchild, err := trickleAppendRec(lastChild, db, depth-1)
-	if err != nil {
-		return nil, err
-	}
-
-	// Update node link
-	size, err := ft.DataSize(nchild.Data)
-	if err != nil {
-		return nil, err
-	}
-	ckey, err := nchild.Key()
-	if err != nil {
-		return nil, err
-	}
-	base.Links[last].Size = size
-	base.Links[last].Hash = mh.Multihash(ckey)
-	//
-
-	// Partially filled depth layer
-	if j != 0 {
-		for ; j < layerRepeat && !db.Done(); j++ {
-			next := h.NewUnixfsNode()
-			err := fillTrickleRec(db, next, n)
-			if err != nil {
-				return nil, err
-			}
-
-			err = ufsn.AddChild(next, db)
-			if err != nil {
-				return nil, err
-			}
+	if len(base.Links) > db.Maxlinks() {
+		// Recursive step, grab last child
+		last := len(base.Links) - 1
+		lastChild, err := base.Links[last].GetNode(db.GetDagServ())
+		if err != nil {
+			return nil, err
 		}
-		n++
+
+		// Fill out last child (may not be full tree)
+		nchild, err := trickleAppendRec(lastChild, db, depth-1)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update changed child in parent node
+		ufsn.RemoveChild(last)
+		err = ufsn.AddChild(nchild, db)
+		if err != nil {
+			return nil, err
+		}
+
+		// Partially filled depth layer
+		if j != 0 {
+			for ; j < layerRepeat && !db.Done(); j++ {
+				next := h.NewUnixfsNode()
+				err := fillTrickleRec(db, next, n)
+				if err != nil {
+					return nil, err
+				}
+
+				err = ufsn.AddChild(next, db)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			// Increase depth, since we have filled out this layer
+			n++
+		}
 	}
 
 	// Now, continue filling out tree like normal
@@ -225,14 +223,14 @@ func trickleAppendRec(base *dag.Node, db *h.DagBuilderHelper, depth int) (*dag.N
 		}
 	}
 
-	return base, nil
+	return ufsn, nil
 }
 
-func trickleDepthInfo(node *dag.Node) (int, int) {
+func trickleDepthInfo(node *dag.Node, maxlinks int) (int, int) {
 	n := len(node.Links)
-	if n < h.DefaultLinksPerBlock {
+	if n < maxlinks {
 		return 0, 0
 	}
 
-	return ((n - h.DefaultLinksPerBlock) / layerRepeat) + 1, (n - h.DefaultLinksPerBlock) % layerRepeat
+	return ((n - maxlinks) / layerRepeat) + 1, (n - maxlinks) % layerRepeat
 }

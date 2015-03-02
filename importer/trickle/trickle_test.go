@@ -16,6 +16,7 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	mdtest "github.com/jbenet/go-ipfs/merkledag/test"
 	pin "github.com/jbenet/go-ipfs/pin"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -457,7 +458,7 @@ func TestAppend(t *testing.T) {
 
 	dbp := &h.DagBuilderParams{
 		Dagserv:  ds,
-		Maxlinks: 4,
+		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
 	spl := &chunk.SizeSplitter{500}
@@ -482,4 +483,80 @@ func TestAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestMultipleAppends(t *testing.T) {
+	ds := mdtest.Mock(t)
+
+	// TODO: fix small size appends and make this number bigger
+	nbytes := int64(1000)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	// Reader for half the bytes
+	read := bytes.NewReader(nil)
+	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dbp := &h.DagBuilderParams{
+		Dagserv:  ds,
+		Maxlinks: 4,
+	}
+
+	spl := &chunk.SizeSplitter{500}
+
+	for i := 0; i < len(should); i++ {
+		blks := spl.Split(bytes.NewReader(should[i : i+1]))
+
+		nnode, err := TrickleAppend(nd, dbp.New(blks))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		out, err := ioutil.ReadAll(fread)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = arrComp(out, should[:i+1])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+}
+
+func printDag(nd *merkledag.Node, ds merkledag.DAGService, indent int) {
+	pbd, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < indent; i++ {
+		fmt.Print(" ")
+	}
+	fmt.Printf("{size = %d, type = %s, nc = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
+	if len(nd.Links) > 0 {
+		fmt.Println()
+	}
+	for _, lnk := range nd.Links {
+		child, err := lnk.GetNode(ds)
+		if err != nil {
+			panic(err)
+		}
+		printDag(child, ds, indent+1)
+	}
+	if len(nd.Links) > 0 {
+		for i := 0; i < indent; i++ {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Println("}")
 }

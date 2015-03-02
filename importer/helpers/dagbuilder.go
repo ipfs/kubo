@@ -91,7 +91,7 @@ func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 
 	// while we have room AND we're not done
 	for node.NumChildren() < db.maxlinks && !db.Done() {
-		child := NewUnixfsNode()
+		child := NewUnixfsBlock()
 
 		if err := db.FillNodeWithData(child); err != nil {
 			return err

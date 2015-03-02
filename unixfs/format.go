@@ -9,6 +9,13 @@ import (
 	pb "github.com/jbenet/go-ipfs/unixfs/pb"
 )
 
+const (
+	TRaw       = pb.Data_Raw
+	TFile      = pb.Data_File
+	TDirectory = pb.Data_Directory
+	TMetadata  = pb.Data_Metadata
+)
+
 var ErrMalformedFileFormat = errors.New("malformed data in file format")
 var ErrInvalidDirLocation = errors.New("found directory node in unexpected place")
 var ErrUnrecognizedType = errors.New("unrecognized node type")
@@ -98,46 +105,52 @@ func DataSize(data []byte) (uint64, error) {
 	}
 }
 
-type MultiBlock struct {
+type FSNode struct {
 	Data       []byte
 	blocksizes []uint64
 	subtotal   uint64
+	Type       pb.Data_DataType
 }
 
-func MultiblockFromBytes(b []byte) (*MultiBlock, error) {
+func FSNodeFromBytes(b []byte) (*FSNode, error) {
 	pbn := new(pb.Data)
 	err := proto.Unmarshal(b, pbn)
 	if err != nil {
 		return nil, err
 	}
 
-	mb := new(MultiBlock)
+	mb := new(FSNode)
 	mb.Data = pbn.Data
 	mb.blocksizes = pbn.Blocksizes
 	mb.subtotal = pbn.GetFilesize() - uint64(len(mb.Data))
+	mb.Type = pbn.GetType()
 	return mb, nil
 }
 
-func (mb *MultiBlock) AddBlockSize(s uint64) {
+func (mb *FSNode) AddBlockSize(s uint64) {
 	mb.subtotal += s
 	mb.blocksizes = append(mb.blocksizes, s)
 }
 
-func (mb *MultiBlock) GetBytes() ([]byte, error) {
+func (mb *FSNode) RemoveBlockSize(i int) {
+	mb.subtotal -= mb.blocksizes[i]
+	mb.blocksizes = append(mb.blocksizes[:i], mb.blocksizes[i+1:]...)
+}
+
+func (mb *FSNode) GetBytes() ([]byte, error) {
 	pbn := new(pb.Data)
-	t := pb.Data_File
-	pbn.Type = &t
+	pbn.Type = &mb.Type
 	pbn.Filesize = proto.Uint64(uint64(len(mb.Data)) + mb.subtotal)
 	pbn.Blocksizes = mb.blocksizes
 	pbn.Data = mb.Data
 	return proto.Marshal(pbn)
 }
 
-func (mb *MultiBlock) FileSize() uint64 {
+func (mb *FSNode) FileSize() uint64 {
 	return uint64(len(mb.Data)) + mb.subtotal
 }
 
-func (mb *MultiBlock) NumChildren() int {
+func (mb *FSNode) NumChildren() int {
 	return len(mb.blocksizes)
 }
 
