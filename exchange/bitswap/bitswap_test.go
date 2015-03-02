@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	detectrace "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	blocksutil "github.com/jbenet/go-ipfs/blocks/blocksutil"
 	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
@@ -93,9 +95,15 @@ func TestLargeSwarm(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
 	numInstances := 500
 	numBlocks := 2
+	if detectrace.WithRace() {
+		// when running with the race detector, 500 instances launches
+		// well over 8k goroutines. This hits a race detector limit.
+		numInstances = 100
+	} else {
+		t.Parallel()
+	}
 	PerformDistributionTest(t, numInstances, numBlocks)
 }
 
