@@ -125,6 +125,24 @@ test_config_set() {
 
 test_init_ipfs() {
 
+	# we have a problem where initializing daemons with the same api port
+	# often fails-- it hangs indefinitely. The proper solution is to make
+	# ipfs pick an unused port for the api on startup, and then use that.
+	# Unfortunately, ipfs doesnt yet know how to do this-- the api port
+	# must be specified. Until ipfs learns how to do this, we must use
+	# specific port numbers, which may still fail but less frequently
+	# if we at least use different ones.
+
+	# Using RANDOM like this is clearly wrong-- it samples with replacement
+	# and it doesnt even check the port is unused. this is a trivial stop gap
+	# until the proper solution is implemented.
+	apiport=$((RANDOM % 3000 + 5100))
+	ADDR_API="/ip4/127.0.0.1/tcp/$apiport"
+
+	# we set the Addresses.API config variable.
+	# the cli client knows to use it, so only need to set.
+	# todo: in the future, use env?
+
 	test_expect_success "ipfs init succeeds" '
 		export IPFS_PATH="$(pwd)/.go-ipfs" &&
 		ipfs init -b=1024 > /dev/null
@@ -134,6 +152,7 @@ test_init_ipfs() {
 		mkdir mountdir ipfs ipns &&
 		test_config_set Mounts.IPFS "$(pwd)/ipfs" &&
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
+		test_config_set Addresses.API "$ADDR_API" &&
 		ipfs bootstrap rm --all ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
@@ -172,7 +191,6 @@ test_launch_ipfs_daemon() {
 	'
 
 	# we say the daemon is ready when the API server is ready.
-	ADDR_API="/ip4/127.0.0.1/tcp/5001"
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
 		pollEndpoint -ep=/version -host=$ADDR_API -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
