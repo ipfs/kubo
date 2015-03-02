@@ -15,6 +15,7 @@ import (
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	util "github.com/jbenet/go-ipfs/util"
 	"github.com/jbenet/go-ipfs/util/debugerror"
+	config "github.com/jbenet/go-ipfs/repo/config"
 )
 
 const (
@@ -25,7 +26,8 @@ const (
 	writableKwd               = "writable"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
-	// apiAddrKwd    = "address-api"
+	apiAddrKwd                = "address-api"
+	gatewayAddrKwd            = "address-gateway"
 	// swarmAddrKwd  = "address-swarm"
 )
 
@@ -48,9 +50,10 @@ the daemon.
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
+		cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
+		cmds.StringOption(gatewayAddrKwd, "Address for the daemon HTTP gateway (overrides config)"),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
-		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
 		// cmds.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
@@ -69,6 +72,17 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	apiAddr, _, err := req.Option(apiAddrKwd).String()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+	gatewayAddr, _, err := req.Option(gatewayAddrKwd).String()
+	if err != nil {
+		res.SetError(err, cmds.ErrNormal)
+		return
+	}
+
 	if initialize {
 
 		// now, FileExists is our best method of detecting whether IPFS is
@@ -76,7 +90,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		// `IsInitialized` where the quality of the signal can be improved over
 		// time, and many call-sites can benefit.
 		if !util.FileExists(req.Context().ConfigRoot) {
-			err := initWithDefaults(os.Stdout, req.Context().ConfigRoot)
+			addresses := config.Addresses{
+				API:     apiAddr,
+				Gateway: gatewayAddr,
+			}
+			err := initWithDefaults(os.Stdout, req.Context().ConfigRoot, addresses)
 			if err != nil {
 				res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
 				return
@@ -140,11 +158,21 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return node, nil
 	}
 
+	// if address-api has been provided on the command line, use it
+	if apiAddr != "" {
+		cfg.Addresses.API = apiAddr
+	}
+
 	// verify api address is valid multiaddr
 	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
+	}
+
+	// if address-gateway has been provided on the command line, use it
+	if gatewayAddr != "" {
+		cfg.Addresses.Gateway = gatewayAddr
 	}
 
 	var gatewayMaddr ma.Multiaddr

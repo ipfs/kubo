@@ -10,7 +10,7 @@ import (
 	errors "github.com/jbenet/go-ipfs/util/debugerror"
 )
 
-func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
+func Init(out io.Writer, nBitsForKeypair int, addresses Addresses) (*Config, error) {
 	ds, err := datastoreConfig()
 	if err != nil {
 		return nil, err
@@ -31,18 +31,24 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		return nil, err
 	}
 
+	if addresses.Swarm == nil {
+		addresses.Swarm = []string{
+			"/ip4/0.0.0.0/tcp/4001",
+			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
+		}
+	}
+	if addresses.API == "" {
+		addresses.API = "/ip4/127.0.0.1/tcp/5001"
+	}
+	if addresses.Gateway == "" {
+		addresses.Gateway = "/ip4/127.0.0.1/tcp/8080"
+	}
+
 	conf := &Config{
 
 		// setup the node's default addresses.
 		// Note: two swarm listen addrs, one tcp, one utp.
-		Addresses: Addresses{
-			Swarm: []string{
-				"/ip4/0.0.0.0/tcp/4001",
-				// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-			},
-			API:     "/ip4/127.0.0.1/tcp/5001",
-			Gateway: "/ip4/127.0.0.1/tcp/8080",
-		},
+		Addresses: addresses,
 
 		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
 		SupernodeRouting:       *snr,
