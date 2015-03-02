@@ -23,19 +23,23 @@ test_expect_success "HTTP gateway gives access to sample file" '
 
 test_expect_success "HTTP POST file gives Hash" '
   echo "$RANDOM" >infile &&
-  curl -svX POST --data-binary @infile http://localhost:5002/ipfs/ 2>curl.out &&
-  grep "HTTP/1.1 201 Created" curl.out
+  URL="http://localhost:5002/ipfs/" &&
+  curl -svX POST --data-binary @infile "$URL" 2>curl.out &&
+  grep "HTTP/1.1 201 Created" curl.out &&
+  LOCATION=$(grep Location curl.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)\s")
 '
 
 test_expect_success "We can HTTP GET file just created" '
-  FILEPATH=$(grep Location curl.out | cut -d" " -f3- | tr -d "\r")
-  curl -so outfile http://localhost:5002$FILEPATH &&
+  URL="http://localhost:5002/ipfs/$HASH" &&
+  curl -so outfile "$URL" &&
   test_cmp infile outfile
 '
 
 test_expect_success "HTTP PUT empty directory" '
-  echo "PUT http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" &&
-  curl -svX PUT "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" 2>curl.out &&
+  URL="http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" &&
+  echo "PUT $URL" &&
+  curl -svX PUT "$URL" 2>curl.out &&
   cat curl.out &&
   grep "Ipfs-Hash: $HASH_EMPTY_DIR" curl.out &&
   grep "Location: /ipfs/$HASH_EMPTY_DIR/" curl.out &&
@@ -43,47 +47,46 @@ test_expect_success "HTTP PUT empty directory" '
 '
 
 test_expect_success "HTTP GET empty directory" '
-  echo "GET http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" &&
-  curl -so outfile "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/" 2>curl.out &&
+  echo "GET $URL" &&
+  curl -so outfile "$URL" 2>curl.out &&
   grep "Index of /ipfs/$HASH_EMPTY_DIR/" outfile
 '
 
 test_expect_success "HTTP PUT file to construct a hierarchy" '
-  echo "$RANDOM" >infile
-  echo "PUT http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" &&
-  curl -svX PUT --data-binary @infile "http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" 2>curl.out &&
+  echo "$RANDOM" >infile &&
+  URL="http://localhost:5002/ipfs/$HASH_EMPTY_DIR/test.txt" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile "$URL" 2>curl.out &&
   grep "HTTP/1.1 201 Created" curl.out &&
-  grep Location curl.out
+  LOCATION=$(grep Location curl.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test.txt")
 '
 
 test_expect_success "We can HTTP GET file just created" '
-  FILEPATH=$(grep Location curl.out | cut -d" " -f3- | tr -d "\r") &&
-  echo "$FILEPATH" = "${FILEPATH%/test.txt}/test.txt" &&
-  [ "$FILEPATH" = "${FILEPATH%/test.txt}/test.txt" ] &&
-  echo "GET http://localhost:5002$FILEPATH" &&
-  curl -so outfile http://localhost:5002$FILEPATH &&
+  URL="http://localhost:5002/ipfs/$HASH/test.txt" &&
+  echo "GET $URL" &&
+  curl -so outfile "$URL" &&
   test_cmp infile outfile
 '
 
 test_expect_success "HTTP PUT file to append to existing hierarchy" '
   echo "$RANDOM" >infile2 &&
-  echo "PUT http://localhost:5002${FILEPATH%/test.txt}/test/test.txt" &&
-  curl -svX PUT --data-binary @infile2 "http://localhost:5002${FILEPATH%/test.txt}/test/test.txt 2>curl.out" &&
+  URL="http://localhost:5002/ipfs/$HASH/test/test.txt" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile2 "$URL" 2>curl.out &&
   grep "HTTP/1.1 201 Created" curl.out &&
-  grep Location curl.out
+  LOCATION=$(grep Location curl.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt")
 '
 
-# TODO: this seems not to be working.
-# $FILEPATH is set to: /ipfs/QmcpPkdv1K5Rk1bT9Y4rx4FamT7ujry2C61HMzZEAuAnms/test.txt
-# $FILEPATH should be set to /ipfs/<some hash>/test/test.txt
-test_expect_failure "We can HTTP GET file just created" '
-  FILEPATH=$(grep Location curl.out | cut -d" " -f3- | tr -d "\r");
-  [ "$FILEPATH" = "${FILEPATH%/test/test.txt}/test/test.txt" ] &&
-  echo "GET http://localhost:5002$FILEPATH" &&
-  curl -so outfile2 "http://localhost:5002$FILEPATH" &&
+test_expect_success "We can HTTP GET file just created" '
+  URL="http://localhost:5002/ipfs/$HASH/test/test.txt" &&
+  echo "GET $URL" &&
+  curl -so outfile2 "$URL" &&
   test_cmp infile2 outfile2 &&
-  echo "GET http://localhost:5002${FILEPATH%/test/test.txt}/test.txt" &&
-  curl -so outfile "http://localhost:5002${FILEPATH%/test/test.txt}/test.txt" &&
+  URL="http://localhost:5002/ipfs/$HASH/test.txt" &&
+  echo "GET $URL" &&
+  curl -so outfile "$URL" &&
   test_cmp infile outfile
 '
 
