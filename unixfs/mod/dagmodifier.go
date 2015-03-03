@@ -62,14 +62,14 @@ func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, 
 
 // WriteAt will modify a dag file in place
 // NOTE: it currently assumes only a single level of indirection
-func (dm *DagModifier) WriteAt(b []byte, offset uint64) (int, error) {
+func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 	// TODO: this is currently VERY inneficient
-	if offset != dm.curWrOff {
+	if uint64(offset) != dm.curWrOff {
 		err := dm.Flush()
 		if err != nil {
 			return 0, err
 		}
-		dm.writeStart = offset
+		dm.writeStart = uint64(offset)
 	}
 
 	return dm.Write(b)
@@ -271,4 +271,31 @@ func (dm *DagModifier) GetNode() (*mdag.Node, error) {
 		return nil, err
 	}
 	return dm.curNode.Copy(), nil
+}
+
+func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
+	err := dm.Flush()
+	if err != nil {
+		return 0, err
+	}
+
+	switch whence {
+	case os.SEEK_CUR:
+		dm.curWrOff += uint64(offset)
+		dm.writeStart = dm.curWrOff
+	case os.SEEK_SET:
+		dm.curWrOff = uint64(offset)
+		dm.writeStart = uint64(offset)
+	case os.SEEK_END:
+		return 0, errors.New("SEEK_END currently not implemented")
+	default:
+		return 0, errors.New("unrecognized whence")
+	}
+
+	_, err = dm.read.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(dm.curWrOff), nil
 }

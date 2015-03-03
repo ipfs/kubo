@@ -60,6 +60,18 @@ func (fs *Filesystem) Open(tpath string, mode int) (File, error) {
 	return r.Open(pathelem[1:], mode)
 }
 
+func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
+	r, ok := fs.roots[name]
+	if ok {
+		return r, nil
+	}
+	return nil, ErrNoSuch
+}
+
+type FSNode interface {
+	GetNode() (*dag.Node, error)
+}
+
 // KeyRoot represents the root of a filesystem tree pointed to by a given keypair
 type KeyRoot struct {
 	key ci.PrivKey
@@ -71,7 +83,7 @@ type KeyRoot struct {
 	corenode *core.IpfsNode
 
 	// val represents the node pointed to by this key. It can either be a File or a Directory
-	val interface{}
+	val FSNode
 }
 
 func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {

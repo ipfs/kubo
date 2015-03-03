@@ -173,3 +173,128 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 
 	return nil, ErrNoSuch
 }
+
+func (d *Directory) Child(name string) (FSNode, error) {
+	dir, err := d.childDir(name)
+	if err == nil {
+		return dir, nil
+	}
+	fi, err := d.childFile(name)
+	if err == nil {
+		return fi, nil
+	}
+
+	return nil, ErrNoSuch
+}
+
+func (d *Directory) List() []string {
+	var out []string
+	for _, lnk := range d.node.Links {
+		out = append(out, lnk.Name)
+	}
+	return out
+}
+
+func (d *Directory) Mkdir(name string) error {
+	_, err := d.childDir(name)
+	if err == nil {
+		return errors.New("directory by that name already exists")
+	}
+	_, err = d.childFile(name)
+	if err == nil {
+		return errors.New("file by that name already exists")
+	}
+
+	ndir := &dag.Node{Data: ft.FolderPBData()}
+	err = d.node.AddNodeLinkClean(name, ndir)
+	if err != nil {
+		return err
+	}
+
+	return d.parent.closeChildDir(d.name)
+}
+
+func (d *Directory) Unlink(name string) error {
+	delete(d.childDirs, name)
+	delete(d.files, name)
+
+	err := d.node.RemoveNodeLink(name)
+	if err != nil {
+		return err
+	}
+
+	return d.parent.closeChildDir(name)
+}
+
+func (d *Directory) RenameEntry(oldname, newname string) error {
+	dir, err := d.childDir(oldname)
+	if err == nil {
+		dir.name = newname
+
+		err := d.node.RemoveNodeLink(oldname)
+		if err != nil {
+			return err
+		}
+		err = d.node.AddNodeLinkClean(newname, dir.node)
+		if err != nil {
+			return err
+		}
+
+		delete(d.childDirs, oldname)
+		d.childDirs[newname] = dir
+		return d.parent.closeChildDir(d.name)
+	}
+
+	fi, err := d.childFile(oldname)
+	if err == nil {
+		fi.name = newname
+
+		err := d.node.RemoveNodeLink(oldname)
+		if err != nil {
+			return err
+		}
+		err = d.node.AddNodeLinkClean(newname, fi.node)
+		if err != nil {
+			return err
+		}
+
+		delete(d.childDirs, oldname)
+		d.files[newname] = fi
+		return d.parent.closeChildDir(d.name)
+	}
+	return ErrNoSuch
+}
+
+func (d *Directory) AddChild(name string, nd *dag.Node) error {
+	pbn, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.Child(name)
+	if err == nil {
+		return errors.New("directory already has entry by that name")
+	}
+	err = d.node.AddNodeLinkClean(name, nd)
+	if err != nil {
+		return err
+	}
+
+	switch pbn.GetType() {
+	case ft.TDirectory:
+		d.childDirs[name] = NewDirectory(name, nd, d, d.dserv)
+	case ft.TFile, ft.TMetadata, ft.TRaw:
+		nfi, err := NewFile(name, nd, d, d.dserv)
+		if err != nil {
+			return err
+		}
+		d.files[name] = nfi
+	default:
+		panic("invalid unixfs node")
+	}
+	return d.parent.closeChildDir(name)
+}
+
+func (d *Directory) GetNode() (*dag.Node, error) {
+	return d.node, nil
+}

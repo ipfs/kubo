@@ -15,6 +15,11 @@ import (
 
 type File interface {
 	io.ReadWriteCloser
+	io.WriterAt
+	Seek(int64, int) (int64, error)
+	Size() int64
+	Flush() error
+	GetNode() (*dag.Node, error)
 }
 
 type file struct {
@@ -74,6 +79,10 @@ func (fi *file) Close() error {
 	return nil
 }
 
+func (fi *file) Flush() error {
+	return fi.mod.Flush()
+}
+
 func (fi *file) withMode(mode int) File {
 	if mode == os.O_RDONLY {
 		return &readOnlyFile{fi}
@@ -81,18 +90,26 @@ func (fi *file) withMode(mode int) File {
 	return fi
 }
 
+func (fi *file) Seek(offset int64, whence int) (int64, error) {
+	return fi.mod.Seek(offset, whence)
+}
+
+func (fi *file) WriteAt(b []byte, at int64) (int, error) {
+	return fi.mod.WriteAt(b, at)
+}
+
+func (fi *file) Size() int64 {
+	return int64(fi.mod.Size())
+}
+
+func (fi *file) GetNode() (*dag.Node, error) {
+	return fi.mod.GetNode()
+}
+
 type readOnlyFile struct {
-	base *file
+	*file
 }
 
 func (ro *readOnlyFile) Write([]byte) (int, error) {
 	return 0, errors.New("permission denied: file readonly")
-}
-
-func (ro *readOnlyFile) Read(b []byte) (int, error) {
-	return ro.base.Read(b)
-}
-
-func (ro *readOnlyFile) Close() error {
-	return ro.base.Close()
 }

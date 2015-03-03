@@ -62,7 +62,7 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 	}
 	copy(orig[beg:], newdata)
 
-	nmod, err := dm.WriteAt(newdata, uint64(beg))
+	nmod, err := dm.WriteAt(newdata, int64(beg))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestMultiWrite(t *testing.T) {
 	u.NewTimeSeededRand().Read(data)
 
 	for i := 0; i < len(data); i++ {
-		n, err := dagmod.WriteAt(data[i:i+1], uint64(i))
+		n, err := dagmod.WriteAt(data[i:i+1], int64(i))
 		if err != nil {
 			t.Fatal(err)
 		}
