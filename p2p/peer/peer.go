@@ -39,10 +39,11 @@ func (id ID) Loggable() map[string]interface{} {
 func (id ID) String() string {
 	pid := id.Pretty()
 	maxRunes := 6
-	if len(pid) < maxRunes {
-		maxRunes = len(pid)
+	skip := 2 //Added to skip past Qm which is identical for all SHA256 nodes	
+	if len(pid) < maxRunes + skip {
+		maxRunes = len(pid) - skip
 	}
-	return fmt.Sprintf("<peer.ID %s>", pid[:maxRunes])
+	return fmt.Sprintf("<peer.ID %s>", pid[skip:maxRunes + skip])
 }
 
 // MatchesPrivateKey tests whether this ID was derived from sk
