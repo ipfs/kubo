@@ -1,9 +1,10 @@
 
-BINS = bin/random bin/multihash bin/ipfs
+BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint
 IPFS_ROOT = ../
 IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 MULTIHASH_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-multihash
+POLLENDPOINT_SRC= ../cmd/pollEndpoint
 
 all: deps
 
@@ -22,6 +23,9 @@ bin/multihash: $(MULTIHASH_SRC)/**/*.go
 
 bin/ipfs: $(IPFS_ROOT)/**/*.go
 	go build -o bin/ipfs $(IPFS_CMD)
+
+bin/pollEndpoint:  $(POLLENDPOINT_SRC)/*.go
+	go build -o bin/pollEndpoint $(POLLENDPOINT_SRC)
 
 test: test_expensive
 

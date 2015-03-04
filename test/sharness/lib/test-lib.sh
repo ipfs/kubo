@@ -175,14 +175,13 @@ test_launch_ipfs_daemon() {
 	ADDR_API="/ip4/127.0.0.1/tcp/5001"
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
-		test_wait_output_n_lines_60_sec actual_daemon 2 &&
-		test_run_repeat_60_sec "grep \"API server listening on $ADDR_API\" actual_daemon" ||
+		pollEndpoint -ep=/version -host=$ADDR_API -v -tout=1s -tries=60 2>poll_err > poll_apiout ||
 		test_fsh cat actual_daemon || test_fsh cat daemon_err
 	'
 
 	if test "$ADDR_GWAY" != ""; then
 		test_expect_success "'ipfs daemon' output includes Gateway address" '
-			test_run_repeat_60_sec "grep \"Gateway server listening on $ADDR_GWAY\" actual_daemon" ||
+			pollEndpoint -ep=/version -host=$ADDR_GWAY -v -tout=1s -tries=60 2>poll_err > poll_gwout ||
 			test_fsh cat daemon_err
 		'
 	fi
