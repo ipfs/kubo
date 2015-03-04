@@ -66,23 +66,19 @@ test_expect_success "GET invalid path errors" '
   test_must_fail wget http://127.0.0.1:$port/12345
 '
 
-
 test_expect_success "GET /webui returns code expected" '
-  echo "HTTP/1.1 302 Found" | head -c 18 > expected &&
-  echo "HTTP/1.1 301 Moved Permanently" | head -c 18 > also_ok &&
-  curl -I http://127.0.0.1:$apiport/webui | head -c 18 > actual1 &&
-  (test_cmp expected actual1 || test_cmp actual1 also_ok) &&
-  rm actual1
+  curl -I http://127.0.0.1:$apiport/webui >actual &&
+  RESP=$(head -1 actual) &&
+  (expr "$RESP" : "HTTP/1.1 302 Found\s" ||
+   expr "$RESP" : "HTTP/1.1 301 Moved Permanently\s")
 '
 
 test_expect_success "GET /webui/ returns code expected" '
-  curl -I http://127.0.0.1:$apiport/webui/ | head -c 18 > actual2 &&
-  (test_cmp expected actual2 || test_cmp actual2 also_ok) &&
-  rm expected &&
-  rm also_ok &&
-  rm actual2
+  curl -I http://127.0.0.1:$apiport/webui/ > actual &&
+  RESP=$(head -1 actual) &&
+  (expr "$RESP" : "HTTP/1.1 302 Found\s" ||
+   expr "$RESP" : "HTTP/1.1 301 Moved Permanently\s")
 '
-
 
 test_kill_ipfs_daemon
 
