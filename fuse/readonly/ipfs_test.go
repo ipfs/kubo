@@ -1,3 +1,5 @@
+// +build !nofuse
+
 package readonly
 
 import (
