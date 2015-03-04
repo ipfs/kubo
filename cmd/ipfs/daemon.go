@@ -244,6 +244,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		corehttp.CommandsOption(*req.Context()),
 		corehttp.WebUIOption,
 		gateway.ServeOption(),
+		corehttp.VersionOption(),
 	}
 	if rootRedirect != nil {
 		opts = append(opts, rootRedirect)
