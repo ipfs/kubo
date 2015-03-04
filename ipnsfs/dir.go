@@ -33,7 +33,6 @@ func NewDirectory(name string, node *dag.Node, parent childCloser, dserv dag.DAG
 }
 
 func (d *Directory) Open(tpath []string, mode int) (File, error) {
-	log.Error("DIR OPEN:", tpath)
 	if len(tpath) == 0 {
 		return nil, ErrIsDirectory
 	}
@@ -78,25 +77,21 @@ func (d *Directory) closeChildFile(name string) error {
 
 	nnode, err := fi.mod.GetNode()
 	if err != nil {
-		log.Error("GET NODE")
 		return err
 	}
 
 	_, err = d.dserv.Add(nnode)
 	if err != nil {
-		log.Error("ADD")
 		return err
 	}
 
 	err = d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
-		log.Error("REMOVE")
 		return err
 	}
 
 	err = d.node.AddNodeLink(name, nnode)
 	if err != nil {
-		log.Error("RE ADD")
 		return err
 	}
 
@@ -181,6 +176,8 @@ func (d *Directory) Child(name string) (FSNode, error) {
 	}
 	fi, err := d.childFile(name)
 	if err == nil {
+		k, _ := fi.node.Key()
+		log.Warning("Child found: ", k)
 		return fi, nil
 	}
 
@@ -195,23 +192,28 @@ func (d *Directory) List() []string {
 	return out
 }
 
-func (d *Directory) Mkdir(name string) error {
+func (d *Directory) Mkdir(name string) (*Directory, error) {
 	_, err := d.childDir(name)
 	if err == nil {
-		return errors.New("directory by that name already exists")
+		return nil, errors.New("directory by that name already exists")
 	}
 	_, err = d.childFile(name)
 	if err == nil {
-		return errors.New("file by that name already exists")
+		return nil, errors.New("file by that name already exists")
 	}
 
 	ndir := &dag.Node{Data: ft.FolderPBData()}
 	err = d.node.AddNodeLinkClean(name, ndir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return d.parent.closeChildDir(d.name)
+	err = d.parent.closeChildDir(d.name)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.childDir(name)
 }
 
 func (d *Directory) Unlink(name string) error {

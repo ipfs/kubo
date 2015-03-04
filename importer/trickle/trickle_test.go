@@ -530,7 +530,52 @@ func TestMultipleAppends(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
 
+func TestAppendSingleBytesToEmpty(t *testing.T) {
+	ds := mdtest.Mock(t)
+
+	data := []byte("AB")
+
+	nd := new(merkledag.Node)
+	nd.Data = ft.FilePBData(nil, 0)
+
+	dbp := &h.DagBuilderParams{
+		Dagserv:  ds,
+		Maxlinks: 4,
+	}
+
+	spl := &chunk.SizeSplitter{500}
+
+	blks := spl.Split(bytes.NewReader(data[:1]))
+
+	nnode, err := TrickleAppend(nd, dbp.New(blks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	blks = spl.Split(bytes.NewReader(data[1:]))
+
+	nnode, err = TrickleAppend(nnode, dbp.New(blks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(fread)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(out, data)
+	err = arrComp(out, data)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func printDag(nd *merkledag.Node, ds merkledag.DAGService, indent int) {

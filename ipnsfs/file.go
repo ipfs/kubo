@@ -17,9 +17,10 @@ type File interface {
 	io.ReadWriteCloser
 	io.WriterAt
 	Seek(int64, int) (int64, error)
-	Size() int64
+	Size() (int64, error)
 	Flush() error
 	GetNode() (*dag.Node, error)
+	Truncate(int64) error
 }
 
 type file struct {
@@ -71,11 +72,6 @@ func (fi *file) Close() error {
 		return err
 	}
 
-	// Release potentially held resources
-	fi.mod = nil
-	fi.dserv = nil
-	fi.node = nil
-	fi.parent = nil
 	return nil
 }
 
@@ -98,12 +94,16 @@ func (fi *file) WriteAt(b []byte, at int64) (int, error) {
 	return fi.mod.WriteAt(b, at)
 }
 
-func (fi *file) Size() int64 {
-	return int64(fi.mod.Size())
+func (fi *file) Size() (int64, error) {
+	return fi.mod.Size()
 }
 
 func (fi *file) GetNode() (*dag.Node, error) {
 	return fi.mod.GetNode()
+}
+
+func (fi *file) Truncate(size int64) error {
+	return fi.mod.Truncate(size)
 }
 
 type readOnlyFile struct {

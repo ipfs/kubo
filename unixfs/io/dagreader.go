@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"io/ioutil"
 	"os"
 
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -279,3 +280,12 @@ func NewRSNCFromBytes(b []byte) ReadSeekCloser {
 }
 
 func (r *readSeekNopCloser) Close() error { return nil }
+
+func ReadAll(ctx context.Context, nd *mdag.Node, dserv mdag.DAGService) ([]byte, error) {
+	read, err := NewDagReader(ctx, nd, dserv)
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(read)
+}

@@ -33,7 +33,6 @@ type DagModifier struct {
 	curNode *mdag.Node
 	mp      pin.ManualPinner
 
-	pbdata   *ftpb.Data
 	splitter chunk.BlockSplitter
 	ctx      context.Context
 
@@ -45,15 +44,9 @@ type DagModifier struct {
 }
 
 func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*DagModifier, error) {
-	pbd, err := ft.FromBytes(from.Data)
-	if err != nil {
-		return nil, err
-	}
-
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
-		pbdata:   pbd,
 		splitter: spl,
 		ctx:      ctx,
 		mp:       mp,
@@ -96,17 +89,26 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-func (dm *DagModifier) Size() uint64 {
-	if dm == nil {
-		return 0
+func (dm *DagModifier) Size() (int64, error) {
+	err := dm.Flush()
+	if err != nil {
+		return 0, err
 	}
-	return dm.pbdata.GetFilesize()
+
+	pbn, err := ft.FromBytes(dm.curNode.Data)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(pbn.GetFilesize()), nil
 }
 
 func (dm *DagModifier) Flush() error {
 	if dm.wrBuf == nil {
 		return nil
 	}
+	buflen := dm.wrBuf.Len()
+
 	k, _, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
 	if err != nil {
 		return err
@@ -133,6 +135,8 @@ func (dm *DagModifier) Flush() error {
 
 		dm.curNode = nd
 	}
+
+	dm.writeStart += uint64(buflen)
 
 	dm.wrBuf = nil
 	return nil
@@ -292,10 +296,94 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 		return 0, errors.New("unrecognized whence")
 	}
 
-	_, err = dm.read.Seek(offset, whence)
-	if err != nil {
-		return 0, err
+	if dm.read != nil {
+		_, err = dm.read.Seek(offset, whence)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return int64(dm.curWrOff), nil
+}
+
+func (dm *DagModifier) Truncate(size int64) error {
+	err := dm.Flush()
+	if err != nil {
+		return err
+	}
+
+	realSize, err := dm.Size()
+	if err != nil {
+		return err
+	}
+
+	if size > int64(realSize) {
+		return errors.New("Cannot extend file through truncate")
+	}
+
+	nnode, err := dagTruncate(dm.curNode, uint64(size), dm.dagserv)
+	if err != nil {
+		return err
+	}
+
+	_, err = dm.dagserv.Add(nnode)
+	if err != nil {
+		return err
+	}
+
+	dm.curNode = nnode
+	return nil
+}
+
+func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
+	if len(nd.Links) == 0 {
+		nd.Data = nd.Data[:size]
+		return nd, nil
+	}
+
+	var cur uint64
+	end := 0
+	var modified *mdag.Node
+	ndata := new(ft.FSNode)
+	for i, lnk := range nd.Links {
+		child, err := lnk.GetNode(ds)
+		if err != nil {
+			return nil, err
+		}
+
+		childsize, err := ft.DataSize(child.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		if size < cur+childsize {
+			nchild, err := dagTruncate(child, size-cur, ds)
+			if err != nil {
+				return nil, err
+			}
+
+			// TODO: sanity check size of truncated block
+			ndata.AddBlockSize(size - cur)
+
+			modified = nchild
+			end = i
+			break
+		}
+		ndata.AddBlockSize(size)
+	}
+
+	nd.Links = nd.Links[:end]
+	err := nd.AddNodeLinkClean("", modified)
+	if err != nil {
+		return nil, err
+	}
+
+	d, err := ndata.GetBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	nd.Data = d
+
+	return nd, nil
 }

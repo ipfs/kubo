@@ -103,7 +103,6 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 
 	pointsTo, err := nd.Namesys.Resolve(ctx, name)
 	if err != nil {
-		log.Error("Resolve failed:", err)
 		err = InitializeKeyspace(nd, k)
 		if err != nil {
 			return nil, err
@@ -115,7 +114,6 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 		}
 	}
 
-	log.Error("get ", pointsTo)
 	mnode, err := nd.DAG.Get(pointsTo)
 	if err != nil {
 		return nil, err
@@ -169,6 +167,10 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	}
 
 	return nil
+}
+
+func (kr *KeyRoot) GetValue() FSNode {
+	return kr.val
 }
 
 func (kr *KeyRoot) Open(tpath []string, mode int) (File, error) {

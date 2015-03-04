@@ -17,11 +17,13 @@ import (
 
 	core "github.com/jbenet/go-ipfs/core"
 	nsfs "github.com/jbenet/go-ipfs/ipnsfs"
+	dag "github.com/jbenet/go-ipfs/merkledag"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-const IpnsReadonly = true
+var DAGSERV dag.DAGService
 
 var log = eventlog.Logger("fuse/ipns")
 
@@ -39,6 +41,7 @@ type FileSystem struct {
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
 func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath string) (*FileSystem, error) {
 	root, err := CreateRoot(ipfs, []ci.PrivKey{sk}, ipfspath)
+	DAGSERV = ipfs.DAG
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +50,7 @@ func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath string) (*FileSy
 
 // Root constructs the Root of the filesystem, a Root object.
 func (f FileSystem) Root() (fs.Node, error) {
+	log.Debug("Filesystem, get root")
 	return f.RootNode, nil
 }
 
@@ -57,7 +61,8 @@ type Root struct {
 
 	// Used for symlinking into ipfs
 	IpfsRoot  string
-	LocalDirs map[string]interface{}
+	LocalDirs map[string]fs.Node
+	Roots     map[string]*nsfs.KeyRoot
 
 	fs        *nsfs.Filesystem
 	LocalLink *Link
@@ -68,7 +73,8 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath string) (*Root,
 	if err != nil {
 		return nil, err
 	}
-	ldirs := make(map[string]interface{})
+	ldirs := make(map[string]fs.Node)
+	roots := make(map[string]*nsfs.KeyRoot)
 	for _, k := range keys {
 		pkh, err := k.GetPublic().Hash()
 		if err != nil {
@@ -80,18 +86,31 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath string) (*Root,
 			return nil, err
 		}
 
-		ldirs[u.Key(pkh).B58String()] = root
+		roots[name] = root
+
+		switch val := root.GetValue().(type) {
+		case *nsfs.Directory:
+			ldirs[name] = &Directory{val}
+		case nsfs.File:
+			ldirs[name] = &File{val}
+		default:
+			return nil, errors.New("unrecognized type")
+		}
 	}
+
 	return &Root{
 		fs:        fi,
 		IpfsRoot:  ipfspath,
 		Keys:      keys,
 		LocalDirs: ldirs,
+		LocalLink: &Link{ipfs.Identity.Pretty()},
+		Roots:     roots,
 	}, nil
 }
 
 // Attr returns file attributes.
 func (*Root) Attr() fuse.Attr {
+	log.Debug("Root Attr")
 	return fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
 }
 
@@ -118,7 +137,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		case *File:
 			return nd, nil
 		default:
-			panic("invalid type")
+			return nil, fuse.EIO
 		}
 	}
 
@@ -133,6 +152,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 // ReadDirAll reads a particular directory. Will show locally available keys
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+	log.Debug("Root ReadDirAll")
 	listing := []fuse.Dirent{
 		fuse.Dirent{
 			Name: "local",
@@ -197,19 +217,26 @@ func (s *Node) loadData() error {
 
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr() fuse.Attr {
+	log.Debug("Directory Attr")
 	return fuse.Attr{Mode: os.ModeDir | 0555}
 }
 
 // Attr returns the attributes of a given node.
 func (fi *File) Attr() fuse.Attr {
+	log.Debug("File Attr")
+	size, err := fi.fi.Size()
+	if err != nil {
+		log.Critical("Failed to get file size: %s", err)
+	}
 	return fuse.Attr{
 		Mode: os.FileMode(0666),
-		Size: uint64(fi.fi.Size()),
+		Size: uint64(size),
 	}
 }
 
 // Lookup performs a lookup under this node.
 func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
+
 	child, err := s.dir.Child(name)
 	if err != nil {
 		// todo: make this error more versatile.
@@ -218,38 +245,17 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	switch child := child.(type) {
 	case *nsfs.Directory:
-		_ = child
-		panic("NYI")
+		return &Directory{child}, nil
 	case nsfs.File:
-		panic("NYI")
+		return &File{child}, nil
 	default:
 		panic("system has proven to be insane")
 	}
 }
 
-/*
-func (n *Node) makeChild(name string, node *mdag.Node) *Node {
-	child := &Node{
-		Ipfs:   n.Ipfs,
-		Nd:     node,
-		name:   name,
-		nsRoot: n.nsRoot,
-		parent: n,
-	}
-
-	// Always ensure that each child knows where the root is
-	if n.nsRoot == nil {
-		child.nsRoot = n
-	} else {
-		child.nsRoot = n.nsRoot
-	}
-
-	return child
-}
-*/
-
 // ReadDirAll reads the link structure as directory entries
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+	log.Debug("Directory ReadDirAll")
 	var entries []fuse.Dirent
 	for _, name := range dir.dir.List() {
 		entries = append(entries, fuse.Dirent{Name: name, Type: fuse.DT_File})
@@ -267,9 +273,13 @@ func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Read
 		return err
 	}
 
-	size := fi.fi.Size()
-	buf := resp.Data[:min(req.Size, int(size))]
-	n, err := io.ReadFull(fi.fi, buf)
+	fisize, err := fi.fi.Size()
+	if err != nil {
+		return err
+	}
+
+	readsize := min(req.Size, int(fisize))
+	n, err := io.ReadFull(fi.fi, resp.Data[:readsize])
 	resp.Data = resp.Data[:n]
 	return err // may be non-nil / not succeeded
 }
@@ -280,6 +290,7 @@ func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wr
 		return err
 	}
 	resp.Size = wrote
+
 	return nil
 }
 
@@ -296,23 +307,31 @@ func (n *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 }
 
 func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	panic("NYI")
+	child, err := dir.dir.Mkdir(req.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Directory{child}, nil
 }
 
 func (fi *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	panic("NYI")
-	/*
-		//log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
-		//TODO: check open flags and truncate if necessary
-		if req.Flags&fuse.OpenTruncate != 0 {
-			log.Warning("Need to truncate file!")
-			n.cached = nil
-			n.Nd = &mdag.Node{Data: ft.FilePBData(nil, 0)}
-		} else if req.Flags&fuse.OpenAppend != 0 {
-			log.Warning("Need to append to file!")
+	//log.Debug("[%s] Received open request! flags = %s", n.name, req.Flags.String())
+	//TODO: check open flags and truncate if necessary
+	if req.Flags&fuse.OpenTruncate != 0 {
+		log.Warning("Need to truncate file!")
+		err := fi.fi.Truncate(0)
+		if err != nil {
+			return nil, err
 		}
-		return n, nil
-	*/
+	} else if req.Flags&fuse.OpenAppend != 0 {
+		log.Warning("Need to append to file!")
+	}
+	return fi, nil
+}
+
+func (fi *File) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
+	return fi.fi.Close()
 }
 
 /*
@@ -322,32 +341,25 @@ func (n *Node) Mknod(ctx context.Context, req *fuse.MknodRequest) (fs.Node, erro
 */
 
 func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
-	panic("NYI")
+	// New 'empty' file
+	nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+	err := dir.dir.AddChild(req.Name, nd)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	/*
-		// New 'empty' file
-		nd := &mdag.Node{Data: ft.FilePBData(nil, 0)}
-		child := n.makeChild(req.Name, nd)
+	child, err := dir.dir.Child(req.Name)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		nnode := n.Nd.Copy()
+	fi, ok := child.(nsfs.File)
+	if !ok {
+		return nil, nil, errors.New("child creation failed")
+	}
 
-		err := nnode.AddNodeLink(req.Name, nd)
-		if err != nil {
-			return nil, nil, err
-		}
-		if n.parent != nil {
-			err := n.parent.update(n.name, nnode)
-			if err != nil {
-				log.Criticalf("Error updating node: %s", err)
-				// Can we panic, please?
-				return nil, nil, err
-			}
-		}
-		n.Nd = nnode
-		n.wasChanged()
-
-		return child, child, nil
-	*/
+	nodechild := &File{fi}
+	return nodechild, nodechild, nil
 }
 
 func (dir *Directory) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
@@ -421,6 +433,7 @@ type ipnsFile interface {
 	fs.HandleFlusher
 	fs.HandleReader
 	fs.HandleWriter
+	fs.HandleReleaser
 	fs.Node
 	fs.NodeFsyncer
 	fs.NodeOpener
