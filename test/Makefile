@@ -24,7 +24,7 @@ bin/multihash: $(MULTIHASH_SRC)/**/*.go
 bin/ipfs: $(IPFS_ROOT)/**/*.go
 	go build -o bin/ipfs $(IPFS_CMD)
 
-bin/pollEndpoint:  $(POLLENDPOINT_SRC)/*.go
+bin/pollEndpoint: $(POLLENDPOINT_SRC)/*.go
 	go build -o bin/pollEndpoint $(POLLENDPOINT_SRC)
 
 test: test_expensive
