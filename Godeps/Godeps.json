@@ -152,6 +152,10 @@
 			"Rev": "35738aceb35505bd3c77c2a618fb1947ca3f72da"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-detect-race",
+			"Rev": "3463798d9574bd0b7eca275dccc530804ff5216f"
+		},
+		{
 			"ImportPath": "github.com/jbenet/go-fuse-version",
 			"Rev": "b733dfc0597e1f6780510ee7afad8b6e3c7af3eb"
 		},

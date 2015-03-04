@@ -9,10 +9,11 @@ test_description="Test HTTP Gateway"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_config_ipfs_gateway_readonly "/ip4/0.0.0.0/tcp/5002"
+test_config_ipfs_gateway_readonly $ADDR_GWAY
 test_launch_ipfs_daemon
 
-webui_hash="QmXdu7HWdV6CUaUabd9q2ZeA4iHZLVyDRj3Gi4dsJsWjbr"
+port=$PORT_GWAY
+apiport=$PORT_API
 
 # TODO check both 5001 and 5002.
 # 5001 should have a readable gateway (part of the API)
@@ -24,7 +25,7 @@ webui_hash="QmXdu7HWdV6CUaUabd9q2ZeA4iHZLVyDRj3Gi4dsJsWjbr"
 test_expect_success "GET IPFS path succeeds" '
   echo "Hello Worlds!" > expected &&
   HASH=`ipfs add -q expected` &&
-  wget "http://127.0.0.1:5002/ipfs/$HASH" -O actual
+  wget "http://127.0.0.1:$port/ipfs/$HASH" -O actual
 '
 
 test_expect_success "GET IPFS path output looks good" '
@@ -36,11 +37,11 @@ test_expect_success "GET IPFS directory path succeeds" '
   mkdir dir &&
   echo "12345" > dir/test &&
   HASH2=`ipfs add -r -q dir | tail -n 1` &&
-  wget "http://127.0.0.1:5002/ipfs/$HASH2"
+  wget "http://127.0.0.1:$port/ipfs/$HASH2"
 '
 
 test_expect_success "GET IPFS directory file succeeds" '
-  wget "http://127.0.0.1:5002/ipfs/$HASH2/test" -O actual
+  wget "http://127.0.0.1:$port/ipfs/$HASH2/test" -O actual
 '
 
 test_expect_success "GET IPFS directory file output looks good" '
@@ -50,7 +51,7 @@ test_expect_success "GET IPFS directory file output looks good" '
 test_expect_failure "GET IPNS path succeeds" '
   ipfs name publish "$HASH" &&
   NAME=`ipfs config Identity.PeerID` &&
-  wget "http://127.0.0.1:5002/ipns/$NAME" -O actual
+  wget "http://127.0.0.1:$port/ipns/$NAME" -O actual
 '
 
 test_expect_failure "GET IPNS path output looks good" '
@@ -58,24 +59,24 @@ test_expect_failure "GET IPNS path output looks good" '
 '
 
 test_expect_success "GET invalid IPFS path errors" '
-  test_must_fail wget http://127.0.0.1:5002/ipfs/12345
+  test_must_fail wget http://127.0.0.1:$port/ipfs/12345
 '
 
 test_expect_success "GET invalid path errors" '
-  test_must_fail wget http://127.0.0.1:5002/12345
+  test_must_fail wget http://127.0.0.1:$port/12345
 '
 
 
 test_expect_success "GET /webui returns code expected" '
   echo "HTTP/1.1 302 Found" | head -c 18 > expected &&
   echo "HTTP/1.1 301 Moved Permanently" | head -c 18 > also_ok &&
-  curl -I http://127.0.0.1:5001/webui | head -c 18 > actual1 &&
+  curl -I http://127.0.0.1:$apiport/webui | head -c 18 > actual1 &&
   (test_cmp expected actual1 || test_cmp actual1 also_ok) &&
   rm actual1
 '
 
 test_expect_success "GET /webui/ returns code expected" '
-  curl -I http://127.0.0.1:5001/webui/ | head -c 18 > actual2 &&
+  curl -I http://127.0.0.1:$apiport/webui/ | head -c 18 > actual2 &&
   (test_cmp expected actual2 || test_cmp actual2 also_ok) &&
   rm expected &&
   rm also_ok &&

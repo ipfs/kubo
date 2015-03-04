@@ -40,7 +40,7 @@ test_expect_success "ipfs add output looks good" '
 '
 
 test_expect_success "ipfs cat succeeds" '
-	ipfs cat $HASH >actual
+	ipfs cat "$HASH" >actual
 '
 
 test_expect_success "ipfs cat output looks good" '
@@ -49,7 +49,7 @@ test_expect_success "ipfs cat output looks good" '
 '
 
 test_expect_success FUSE "cat ipfs/stuff succeeds" '
-	cat ipfs/$HASH >actual
+	cat "ipfs/$HASH" >actual
 '
 
 test_expect_success FUSE "cat ipfs/stuff looks good" '
@@ -108,7 +108,7 @@ test_expect_success "'ipfs add bigfile' output looks good" '
 	test_cmp expected actual
 '
 test_expect_success "'ipfs cat' succeeds" '
-	ipfs cat $HASH >actual
+	ipfs cat "$HASH" >actual
 '
 
 test_expect_success "'ipfs cat' output looks good" '
@@ -116,7 +116,7 @@ test_expect_success "'ipfs cat' output looks good" '
 '
 
 test_expect_success FUSE "cat ipfs/bigfile succeeds" '
-	cat ipfs/$HASH >actual
+	cat "ipfs/$HASH" >actual
 '
 
 test_expect_success FUSE "cat ipfs/bigfile looks good" '
@@ -144,11 +144,11 @@ test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
 '
 
 test_expect_success EXPENSIVE "ipfs cat succeeds" '
-	ipfs cat $HASH | multihash -a=sha1 -e=hex >sha1_actual
+	ipfs cat "$HASH" | multihash -a=sha1 -e=hex >sha1_actual
 '
 
 test_expect_success EXPENSIVE "ipfs cat output looks good" '
-	ipfs cat $HASH >actual &&
+	ipfs cat "$HASH" >actual &&
 	test_cmp mountdir/bigfile actual
 '
 
@@ -158,7 +158,7 @@ test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
 '
 
 test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile succeeds" '
-	cat ipfs/$HASH | multihash -a=sha1 -e=hex >sha1_actual
+	cat "ipfs/$HASH" | multihash -a=sha1 -e=hex >sha1_actual
 '
 
 test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile looks good" '

@@ -215,9 +215,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			if rootRedirect != nil {
 				opts = append(opts, rootRedirect)
 			}
-			fmt.Printf("Gateway server listening on %s\n", gatewayMaddr)
 			if writable {
-				fmt.Printf("Gateway server is writable\n")
+				fmt.Printf("Gateway (writable) server listening on %s\n", gatewayMaddr)
+			} else {
+				fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
 			}
 			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), opts...)
 			if err != nil {
