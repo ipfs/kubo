@@ -4,7 +4,7 @@ IPFS_ROOT = ../
 IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 MULTIHASH_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-multihash
-POLLENDPOINT_SRC= ../cmd/pollEndpoint
+POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
 
 all: deps
 
