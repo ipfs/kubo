@@ -237,7 +237,6 @@ func (fi *File) Attr() fuse.Attr {
 
 // Lookup performs a lookup under this node.
 func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
-
 	child, err := s.dir.Child(name)
 	if err != nil {
 		// todo: make this error more versatile.
@@ -256,7 +255,6 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 // ReadDirAll reads the link structure as directory entries
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	log.Debug("Directory ReadDirAll")
 	var entries []fuse.Dirent
 	for _, name := range dir.dir.List() {
 		entries = append(entries, fuse.Dirent{Name: name, Type: fuse.DT_File})
@@ -279,7 +277,7 @@ func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Read
 		return err
 	}
 
-	readsize := min(req.Size, int(fisize))
+	readsize := min(req.Size, int(fisize-req.Offset))
 	n, err := io.ReadFull(fi.fi, resp.Data[:readsize])
 	resp.Data = resp.Data[:n]
 	return err // may be non-nil / not succeeded

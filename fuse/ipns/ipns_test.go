@@ -29,6 +29,13 @@ func randBytes(size int) []byte {
 	return b
 }
 
+func mkdir(t *testing.T, path string) {
+	err := os.Mkdir(path, os.ModeDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func writeFile(t *testing.T, size int, path string) []byte {
 	return writeFileData(t, randBytes(size), path)
 }
@@ -54,6 +61,31 @@ func writeFileData(t *testing.T, data []byte, path string) []byte {
 	}
 
 	return data
+}
+
+func verifyFile(t *testing.T, path string, data []byte) {
+	t.Logf("verify %s", path)
+	fi, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fi.Close()
+
+	out, err := ioutil.ReadAll(fi)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(out, data) {
+		t.Fatal("Data not equal")
+	}
+}
+
+func checkExists(t *testing.T, path string) {
+	_, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func closeMount(mnt *fstest.Mount) {
@@ -148,6 +180,46 @@ func TestFilePersistence(t *testing.T) {
 	if !bytes.Equal(rbuf, data) {
 		t.Fatalf("File data changed between mounts! sizes differ: %d != %d", len(data), len(rbuf))
 	}
+}
+
+func TestDeeperDirs(t *testing.T) {
+	fuse.Debug = func(msg interface{}) {
+		//log.Info(msg)
+	}
+	node, mnt := setupIpnsTest(t, nil)
+
+	t.Log("make a top level dir")
+	dir1 := "/local/test1"
+	mkdir(t, mnt.Dir+dir1)
+
+	checkExists(t, mnt.Dir+dir1)
+
+	t.Log("write a file in it")
+	data1 := writeFile(t, 4000, mnt.Dir+dir1+"/file1")
+
+	verifyFile(t, mnt.Dir+dir1+"/file1", data1)
+
+	t.Log("sub directory")
+	mkdir(t, mnt.Dir+dir1+"/dir2")
+
+	checkExists(t, mnt.Dir+dir1+"/dir2")
+
+	t.Log("file in that subdirectory")
+	data2 := writeFile(t, 5000, mnt.Dir+dir1+"/dir2/file2")
+
+	verifyFile(t, mnt.Dir+dir1+"/dir2/file2", data2)
+
+	mnt.Close()
+	t.Log("closing mount, then restarting")
+
+	_, mnt = setupIpnsTest(t, node)
+
+	checkExists(t, mnt.Dir+dir1)
+
+	verifyFile(t, mnt.Dir+dir1+"/file1", data1)
+
+	verifyFile(t, mnt.Dir+dir1+"/dir2/file2", data2)
+	mnt.Close()
 }
 
 // Test to make sure the filesystem reports file sizes correctly

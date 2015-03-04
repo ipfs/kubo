@@ -89,7 +89,7 @@ func (d *Directory) closeChild(name string) error {
 		return err
 	}
 
-	err = d.node.AddNodeLink(name, nd)
+	err = d.node.AddNodeLinkClean(name, nd)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,12 @@ func (d *Directory) childFile(name string) (*file, error) {
 			case ufspb.Data_Directory:
 				return nil, ErrIsDirectory
 			case ufspb.Data_File:
-				return NewFile(name, nd, d, d.dserv)
+				nfi, err := NewFile(name, nd, d, d.dserv)
+				if err != nil {
+					return nil, err
+				}
+				d.files[name] = nfi
+				return nfi, nil
 			case ufspb.Data_Metadata:
 				panic("NOT YET IMPLEMENTED")
 			default:
@@ -149,7 +154,9 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 
 			switch i.GetType() {
 			case ufspb.Data_Directory:
-				return NewDirectory(name, nd, d, d.dserv), nil
+				ndir := NewDirectory(name, nd, d, d.dserv)
+				d.childDirs[name] = ndir
+				return ndir, nil
 			case ufspb.Data_File:
 				return nil, fmt.Errorf("%s is not a directory", name)
 			case ufspb.Data_Metadata:
@@ -171,8 +178,6 @@ func (d *Directory) Child(name string) (FSNode, error) {
 	}
 	fi, err := d.childFile(name)
 	if err == nil {
-		k, _ := fi.node.Key()
-		log.Warning("Child found: ", k)
 		return fi, nil
 	}
 
@@ -272,6 +277,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	if err == nil {
 		return errors.New("directory already has entry by that name")
 	}
+
 	err = d.node.AddNodeLinkClean(name, nd)
 	if err != nil {
 		return err
@@ -289,7 +295,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	default:
 		panic("invalid unixfs node")
 	}
-	return d.parent.closeChild(name)
+	return d.parent.closeChild(d.name)
 }
 
 func (d *Directory) GetNode() (*dag.Node, error) {
