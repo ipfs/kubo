@@ -198,27 +198,13 @@ func (kr *KeyRoot) Open(tpath []string, mode int) (File, error) {
 	}
 }
 
-func (kr *KeyRoot) closeChildDir(name string) error {
-	dir, ok := kr.val.(*Directory)
+func (kr *KeyRoot) closeChild(name string) error {
+	child, ok := kr.val.(FSNode)
 	if !ok {
-		return errors.New("child of key root not a directory")
+		return errors.New("child of key root not valid type")
 	}
 
-	k, err := kr.corenode.DAG.Add(dir.node)
-	if err != nil {
-		return err
-	}
-
-	return kr.corenode.Namesys.Publish(kr.corenode.Context(), kr.key, k)
-}
-
-func (kr *KeyRoot) closeChildFile(name string) error {
-	fi, ok := kr.val.(*file)
-	if !ok {
-		return errors.New("child of key root not a file")
-	}
-
-	nd, err := fi.mod.GetNode()
+	nd, err := child.GetNode()
 	if err != nil {
 		return err
 	}

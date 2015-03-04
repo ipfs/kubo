@@ -65,22 +65,21 @@ func (d *Directory) Open(tpath []string, mode int) (File, error) {
 
 // consider combining into a single method...
 type childCloser interface {
-	closeChildFile(string) error
-	closeChildDir(string) error
+	closeChild(string) error
 }
 
-func (d *Directory) closeChildFile(name string) error {
-	fi, ok := d.files[name]
-	if !ok {
-		return errors.New("no open child file by given name")
-	}
-
-	nnode, err := fi.mod.GetNode()
+func (d *Directory) closeChild(name string) error {
+	child, err := d.Child(name)
 	if err != nil {
 		return err
 	}
 
-	_, err = d.dserv.Add(nnode)
+	nd, err := child.GetNode()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.dserv.Add(nd)
 	if err != nil {
 		return err
 	}
@@ -90,16 +89,12 @@ func (d *Directory) closeChildFile(name string) error {
 		return err
 	}
 
-	err = d.node.AddNodeLink(name, nnode)
+	err = d.node.AddNodeLink(name, nd)
 	if err != nil {
 		return err
 	}
 
-	return d.parent.closeChildDir(d.name)
-}
-
-func (d *Directory) closeChildDir(name string) error {
-	panic("NYI")
+	return d.parent.closeChild(d.name)
 }
 
 func (d *Directory) childFile(name string) (*file, error) {
@@ -208,7 +203,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		return nil, err
 	}
 
-	err = d.parent.closeChildDir(d.name)
+	err = d.parent.closeChild(d.name)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +220,7 @@ func (d *Directory) Unlink(name string) error {
 		return err
 	}
 
-	return d.parent.closeChildDir(name)
+	return d.parent.closeChild(d.name)
 }
 
 func (d *Directory) RenameEntry(oldname, newname string) error {
@@ -244,7 +239,7 @@ func (d *Directory) RenameEntry(oldname, newname string) error {
 
 		delete(d.childDirs, oldname)
 		d.childDirs[newname] = dir
-		return d.parent.closeChildDir(d.name)
+		return d.parent.closeChild(d.name)
 	}
 
 	fi, err := d.childFile(oldname)
@@ -262,7 +257,7 @@ func (d *Directory) RenameEntry(oldname, newname string) error {
 
 		delete(d.childDirs, oldname)
 		d.files[newname] = fi
-		return d.parent.closeChildDir(d.name)
+		return d.parent.closeChild(d.name)
 	}
 	return ErrNoSuch
 }
@@ -294,7 +289,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	default:
 		panic("invalid unixfs node")
 	}
-	return d.parent.closeChildDir(name)
+	return d.parent.closeChild(name)
 }
 
 func (d *Directory) GetNode() (*dag.Node, error) {

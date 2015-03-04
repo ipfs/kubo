@@ -67,7 +67,7 @@ func (fi *file) Close() error {
 		return err
 	}
 
-	err = fi.parent.closeChildFile(fi.name)
+	err = fi.parent.closeChild(fi.name)
 	if err != nil {
 		return err
 	}
