@@ -3,11 +3,10 @@ package main
 
 import (
 	"flag"
-	"net"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
-	"syscall"
 	"time"
 
 	log "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
@@ -33,7 +32,7 @@ func main() {
 	}
 	p := addr.Protocols()
 	if len(p) < 2 {
-		log.WithField("addr", addr).Fatal("need to protocolls in host flag.")
+		log.WithField("addr", addr).Fatal("need two protocols in host flag (/ip/tcp)")
 	}
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
@@ -60,47 +59,35 @@ func main() {
 	}).Debug("starting")
 
 	for *tries > 0 {
-
 		f := log.Fields{"tries": *tries}
 
-		resp, err := http.Get(u.String())
-
+		err := checkOK(http.Get(u.String()))
 		if err == nil {
-			resp.Body.Close()
-
-			if resp.StatusCode == http.StatusOK {
-				f["took"] = time.Since(start)
-				log.WithFields(f).Println("status ok - endpoint reachable")
-				os.Exit(0)
-			}
-
-			f["status"] = resp.Status
-			log.WithFields(f).Warn("response not okay")
-
-		} else if urlErr, ok := err.(*url.Error); ok { // expected error from http.Get()
-			f["urlErr"] = urlErr
-
-			if urlErr.Op != "Get" || urlErr.URL != *endpoint {
-				f["op"] = urlErr.Op
-				f["url"] = urlErr.URL
-				log.WithFields(f).Error("way to funky buisness..!")
-			}
-
-			if opErr, ok := urlErr.Err.(*net.OpError); ok {
-				f["opErr"] = opErr
-				f["connRefused"] = opErr.Err == syscall.ECONNREFUSED
-				f["temporary"] = opErr.Temporary()
-				log.WithFields(f).Println("net.OpError")
-			}
-		} else { // unexpected error from http.Get()
-			f["err"] = err
-			log.WithFields(f).Error("unknown error")
+			f["took"] = time.Since(start)
+			log.WithFields(f).Println("status ok - endpoint reachable")
+			os.Exit(0)
 		}
-
+		f["error"] = err
+		log.WithFields(f).Debug("get failed")
 		time.Sleep(*timeout)
 		*tries--
 	}
 
 	log.Println("failed.")
 	os.Exit(1)
+}
+
+func checkOK(resp *http.Response, err error) error {
+	if err == nil { // request worked
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+		return fmt.Errorf("Response not OK. %d %s", resp.StatusCode, resp.Status)
+	} else if urlErr, ok := err.(*url.Error); ok { // expected error from http.Get()
+		if urlErr.Op != "Get" || urlErr.URL != *endpoint {
+			return fmt.Errorf("wrong url or endpoint error from http.Get() %#v", urlErr)
+		}
+	}
+	return err
 }
