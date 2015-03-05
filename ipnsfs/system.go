@@ -125,7 +125,7 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 	root.node = mnode
 
 	root.repub = NewRepublisher(root, time.Millisecond*300, time.Second*3)
-	go root.repub.Run()
+	go root.repub.Run(nd.Context())
 
 	pbn, err := ft.FromBytes(mnode.Data)
 	if err != nil {
@@ -256,25 +256,28 @@ func (np *Republisher) Touch() {
 	}
 }
 
-func (np *Republisher) Run() {
-	for _ = range np.Publish {
-		quick := time.After(np.TimeoutShort)
-		longer := time.After(np.TimeoutLong)
-
-	wait:
+func (np *Republisher) Run(ctx context.Context) {
+	for {
 		select {
-		case <-quick:
-		case <-longer:
 		case <-np.Publish:
-			quick = time.After(np.TimeoutShort)
-			goto wait
-		}
+			quick := time.After(np.TimeoutShort)
+			longer := time.After(np.TimeoutLong)
 
-		log.Info("Publishing Changes!")
-		err := np.root.Publish()
-		if err != nil {
-			log.Critical("republishRoot error: %s", err)
-		}
+		wait:
+			select {
+			case <-quick:
+			case <-longer:
+			case <-np.Publish:
+				quick = time.After(np.TimeoutShort)
+				goto wait
+			}
 
+			log.Info("Publishing Changes!")
+			err := np.root.Publish()
+			if err != nil {
+				log.Critical("republishRoot error: %s", err)
+			}
+
+		}
 	}
 }
