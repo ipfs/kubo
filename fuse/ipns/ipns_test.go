@@ -5,8 +5,10 @@ package ipns
 import (
 	"bytes"
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
@@ -64,7 +66,6 @@ func writeFileData(t *testing.T, data []byte, path string) []byte {
 }
 
 func verifyFile(t *testing.T, path string, data []byte) {
-	t.Logf("verify %s", path)
 	fi, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)
@@ -302,6 +303,40 @@ func TestAppendFile(t *testing.T) {
 	}
 	if !bytes.Equal(rbuf, data) {
 		t.Fatal("Data inconsistent!")
+	}
+}
+
+func TestConcurrentWrites(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	_, mnt := setupIpnsTest(t, nil)
+	defer mnt.Close()
+
+	nactors := 4
+	filesPerActor := 400
+	fileSize := 2000
+
+	data := make([][][]byte, nactors)
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < nactors; i++ {
+		data[i] = make([][]byte, filesPerActor)
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			for j := 0; j < filesPerActor; j++ {
+				out := writeFile(t, fileSize, mnt.Dir+fmt.Sprintf("/local/%dFILE%d", n, j))
+				data[n][j] = out
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < nactors; i++ {
+		for j := 0; j < filesPerActor; j++ {
+			verifyFile(t, mnt.Dir+fmt.Sprintf("/local/%dFILE%d", i, j), data[i][j])
+		}
 	}
 }
 
