@@ -19,8 +19,8 @@ type File interface {
 	Seek(int64, int) (int64, error)
 	Size() (int64, error)
 	Flush() error
-	GetNode() (*dag.Node, error)
 	Truncate(int64) error
+	FSNode
 }
 
 type file struct {
@@ -105,6 +105,10 @@ func (fi *file) GetNode() (*dag.Node, error) {
 
 func (fi *file) Truncate(size int64) error {
 	return fi.mod.Truncate(size)
+}
+
+func (fi *file) Type() NodeType {
+	return TFile
 }
 
 type readOnlyFile struct {

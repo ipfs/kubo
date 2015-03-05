@@ -105,6 +105,10 @@ func (d *Directory) closeChild(name string) error {
 	return d.parent.closeChild(d.name)
 }
 
+func (d *Directory) Type() NodeType {
+	return TDir
+}
+
 func (d *Directory) childFile(name string) (*file, error) {
 	fi, ok := d.files[name]
 	if ok {

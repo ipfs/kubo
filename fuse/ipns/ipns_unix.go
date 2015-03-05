@@ -280,7 +280,22 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var entries []fuse.Dirent
 	for _, name := range dir.dir.List() {
-		entries = append(entries, fuse.Dirent{Name: name, Type: fuse.DT_File})
+		dirent := fuse.Dirent{Name: name}
+
+		// TODO: make dir.dir.List() return dirinfos
+		child, err := dir.dir.Child(name)
+		if err != nil {
+			return nil, err
+		}
+
+		switch child.Type() {
+		case nsfs.TDir:
+			dirent.Type = fuse.DT_Dir
+		case nsfs.TFile:
+			dirent.Type = fuse.DT_File
+		}
+
+		entries = append(entries, dirent)
 	}
 
 	if len(entries) > 0 {

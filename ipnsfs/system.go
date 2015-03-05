@@ -86,8 +86,16 @@ func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
 	return nil, ErrNoSuch
 }
 
+type NodeType int
+
+const (
+	TFile NodeType = iota
+	TDir
+)
+
 type FSNode interface {
 	GetNode() (*dag.Node, error)
+	Type() NodeType
 }
 
 // KeyRoot represents the root of a filesystem tree pointed to by a given keypair
