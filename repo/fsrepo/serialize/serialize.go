@@ -35,7 +35,7 @@ func WriteConfigFile(filename string, cfg interface{}) error {
 		return err
 	}
 
-	f, err := atomicfile.New(filename, 0775)
+	f, err := atomicfile.New(filename, 0660)
 	if err != nil {
 		return err
 	}

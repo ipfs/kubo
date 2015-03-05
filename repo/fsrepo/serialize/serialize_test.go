@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"os"
 	"testing"
 
 	config "github.com/jbenet/go-ipfs/repo/config"
@@ -22,5 +23,12 @@ func TestConfig(t *testing.T) {
 	}
 	if cfgWritten.Datastore.Path != cfgRead.Datastore.Path {
 		t.Fail()
+	}
+	st, err := os.Stat(filename)
+	if err != nil {
+		t.Fatalf("cannot stat config file: %v", err)
+	}
+	if g := st.Mode().Perm(); g&0117 != 0 {
+		t.Errorf("config file should not be executable or accessible to world: %v", g)
 	}
 }
