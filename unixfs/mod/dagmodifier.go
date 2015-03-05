@@ -277,6 +277,10 @@ func (dm *DagModifier) GetNode() (*mdag.Node, error) {
 	return dm.curNode.Copy(), nil
 }
 
+func (dm *DagModifier) HasChanges() bool {
+	return dm.wrBuf != nil
+}
+
 func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 	err := dm.Flush()
 	if err != nil {

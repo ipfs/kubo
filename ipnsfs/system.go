@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -84,6 +85,8 @@ type KeyRoot struct {
 
 	// val represents the node pointed to by this key. It can either be a File or a Directory
 	val FSNode
+
+	repub *Republisher
 }
 
 func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
@@ -120,6 +123,9 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 	}
 
 	root.node = mnode
+
+	root.repub = NewRepublisher(root, time.Millisecond*300, time.Second*3)
+	go root.repub.Run()
 
 	pbn, err := ft.FromBytes(mnode.Data)
 	if err != nil {
@@ -198,7 +204,15 @@ func (kr *KeyRoot) Open(tpath []string, mode int) (File, error) {
 	}
 }
 
+// closeChild implements the childCloser interface, and signals to the publisher that
+// there are changes ready to be published
 func (kr *KeyRoot) closeChild(name string) error {
+	kr.repub.Touch()
+	return nil
+}
+
+// Publish publishes the ipns entry associated with this key
+func (kr *KeyRoot) Publish() error {
 	child, ok := kr.val.(FSNode)
 	if !ok {
 		return errors.New("child of key root not valid type")
@@ -214,5 +228,53 @@ func (kr *KeyRoot) closeChild(name string) error {
 		return err
 	}
 
+	fmt.Println("Publishing!")
 	return kr.corenode.Namesys.Publish(kr.corenode.Context(), kr.key, k)
+}
+
+// Republisher manages when to publish the ipns entry associated with a given key
+type Republisher struct {
+	TimeoutLong  time.Duration
+	TimeoutShort time.Duration
+	Publish      chan struct{}
+	root         *KeyRoot
+}
+
+func NewRepublisher(root *KeyRoot, tshort, tlong time.Duration) *Republisher {
+	return &Republisher{
+		TimeoutShort: tshort,
+		TimeoutLong:  tlong,
+		Publish:      make(chan struct{}, 1),
+		root:         root,
+	}
+}
+
+func (np *Republisher) Touch() {
+	select {
+	case np.Publish <- struct{}{}:
+	default:
+	}
+}
+
+func (np *Republisher) Run() {
+	for _ = range np.Publish {
+		quick := time.After(np.TimeoutShort)
+		longer := time.After(np.TimeoutLong)
+
+	wait:
+		select {
+		case <-quick:
+		case <-longer:
+		case <-np.Publish:
+			quick = time.After(np.TimeoutShort)
+			goto wait
+		}
+
+		log.Info("Publishing Changes!")
+		err := np.root.Publish()
+		if err != nil {
+			log.Critical("republishRoot error: %s", err)
+		}
+
+	}
 }

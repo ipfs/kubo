@@ -62,14 +62,16 @@ func (fi *file) Read(b []byte) (int, error) {
 }
 
 func (fi *file) Close() error {
-	err := fi.mod.Flush()
-	if err != nil {
-		return err
-	}
+	if fi.mod.HasChanges() {
+		err := fi.mod.Flush()
+		if err != nil {
+			return err
+		}
 
-	err = fi.parent.closeChild(fi.name)
-	if err != nil {
-		return err
+		err = fi.parent.closeChild(fi.name)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

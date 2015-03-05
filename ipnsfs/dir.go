@@ -19,8 +19,10 @@ type Directory struct {
 
 	node *dag.Node
 	name string
-	ref  int
 	lock sync.Mutex
+
+	ref     int
+	refLock sync.Mutex
 }
 
 func NewDirectory(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) *Directory {
@@ -323,4 +325,16 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 func (d *Directory) GetNode() (*dag.Node, error) {
 	return d.node, nil
+}
+
+func (d *Directory) Upref() {
+	d.refLock.Lock()
+	d.ref++
+	d.refLock.Unlock()
+}
+
+func (d *Directory) Deref() {
+	d.refLock.Lock()
+	d.ref--
+	d.refLock.Unlock()
 }
