@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -38,6 +39,13 @@ func (id ID) Loggable() map[string]interface{} {
 // codebase is known to be correct.
 func (id ID) String() string {
 	pid := id.Pretty()
+
+	//All sha256 nodes start with Qm
+	//We can skip the Qm to make the peer.ID more useful
+	if strings.HasPrefix(pid, "Qm") {
+		pid = pid[2:]
+	}
+
 	maxRunes := 6
 	if len(pid) < maxRunes {
 		maxRunes = len(pid)
