@@ -205,6 +205,9 @@ func (dr *DagReader) Close() error {
 func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case os.SEEK_SET:
+		if offset == dr.offset {
+			return offset, nil
+		}
 		if offset < 0 {
 			return -1, errors.New("Invalid offset")
 		}

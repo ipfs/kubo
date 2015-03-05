@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/jbenet/go-ipfs/core"
 	dag "github.com/jbenet/go-ipfs/merkledag"
+	namesys "github.com/jbenet/go-ipfs/namesys"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	pin "github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 
@@ -24,31 +25,37 @@ var ErrNoSuch = errors.New("no such file or directory")
 
 // Filesystem is the writeable fuse filesystem structure
 type Filesystem struct {
-	nd    *core.IpfsNode
-	roots map[string]*KeyRoot
+	dserv dag.DAGService
 
-	// A journal (TO BE IMPLEMENTED)
-	journal interface{}
+	nsys namesys.NameSystem
+
+	pins pin.Pinner
+
+	roots map[string]*KeyRoot
 }
 
-func NewFilesystem(nd *core.IpfsNode, keys ...ci.PrivKey) (*Filesystem, error) {
+func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSystem, pins pin.Pinner, keys ...ci.PrivKey) (*Filesystem, error) {
 	roots := make(map[string]*KeyRoot)
+	fs := &Filesystem{
+		roots: roots,
+		nsys:  nsys,
+		dserv: ds,
+		pins:  pins,
+	}
 	for _, k := range keys {
 		pkh, err := k.GetPublic().Hash()
 		if err != nil {
 			return nil, err
 		}
 
-		root, err := NewKeyRoot(nd, k)
+		root, err := fs.NewKeyRoot(ctx, k)
 		if err != nil {
 			return nil, err
 		}
 		roots[u.Key(pkh).Pretty()] = root
 	}
-	return &Filesystem{
-		nd:    nd,
-		roots: roots,
-	}, nil
+
+	return fs, nil
 }
 
 func (fs *Filesystem) Open(tpath string, mode int) (File, error) {
@@ -59,6 +66,16 @@ func (fs *Filesystem) Open(tpath string, mode int) (File, error) {
 	}
 
 	return r.Open(pathelem[1:], mode)
+}
+
+func (fs *Filesystem) Close() error {
+	for _, r := range fs.roots {
+		err := r.Publish(context.TODO())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
@@ -80,8 +97,8 @@ type KeyRoot struct {
 	// node is the merkledag node pointed to by this keypair
 	node *dag.Node
 
-	//
-	corenode *core.IpfsNode
+	// A pointer to the filesystem to access components
+	fs *Filesystem
 
 	// val represents the node pointed to by this key. It can either be a File or a Directory
 	val FSNode
@@ -89,7 +106,7 @@ type KeyRoot struct {
 	repub *Republisher
 }
 
-func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
+func (fs *Filesystem) NewKeyRoot(ctx context.Context, k ci.PrivKey) (*KeyRoot, error) {
 	hash, err := k.GetPublic().Hash()
 	if err != nil {
 		return nil, err
@@ -99,25 +116,25 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 
 	root := new(KeyRoot)
 	root.key = k
-	root.corenode = nd
+	root.fs = fs
 
-	ctx, cancel := context.WithCancel(nd.Context())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pointsTo, err := nd.Namesys.Resolve(ctx, name)
+	pointsTo, err := fs.nsys.Resolve(ctx, name)
 	if err != nil {
-		err = InitializeKeyspace(nd, k)
+		err = fs.InitializeKeyspace(ctx, k)
 		if err != nil {
 			return nil, err
 		}
 
-		pointsTo, err = nd.Namesys.Resolve(ctx, name)
+		pointsTo, err = fs.nsys.Resolve(ctx, name)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	mnode, err := nd.DAG.Get(pointsTo)
+	mnode, err := fs.dserv.Get(pointsTo)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +142,7 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 	root.node = mnode
 
 	root.repub = NewRepublisher(root, time.Millisecond*300, time.Second*3)
-	go root.repub.Run(nd.Context())
+	go root.repub.Run(ctx)
 
 	pbn, err := ft.FromBytes(mnode.Data)
 	if err != nil {
@@ -135,9 +152,9 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 
 	switch pbn.GetType() {
 	case ft.TDirectory:
-		root.val = NewDirectory(pointsTo.B58String(), mnode, root, nd.DAG)
+		root.val = NewDirectory(pointsTo.B58String(), mnode, root, fs)
 	case ft.TFile, ft.TMetadata, ft.TRaw:
-		fi, err := NewFile(pointsTo.B58String(), mnode, root, nd.DAG)
+		fi, err := NewFile(pointsTo.B58String(), mnode, root, fs)
 		if err != nil {
 			return nil, err
 		}
@@ -150,24 +167,25 @@ func NewKeyRoot(nd *core.IpfsNode, k ci.PrivKey) (*KeyRoot, error) {
 
 // InitializeKeyspace sets the ipns record for the given key to
 // point to an empty directory.
-func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
+// TODO: this doesnt feel like it belongs here
+func (fs *Filesystem) InitializeKeyspace(ctx context.Context, key ci.PrivKey) error {
 	emptyDir := &dag.Node{Data: ft.FolderPBData()}
-	nodek, err := n.DAG.Add(emptyDir)
+	nodek, err := fs.dserv.Add(emptyDir)
 	if err != nil {
 		return err
 	}
 
-	err = n.Pinning.Pin(emptyDir, false)
+	err = fs.pins.Pin(emptyDir, false)
 	if err != nil {
 		return err
 	}
 
-	err = n.Pinning.Flush()
+	err = fs.pins.Flush()
 	if err != nil {
 		return err
 	}
 
-	err = n.Namesys.Publish(n.Context(), key, nodek)
+	err = fs.nsys.Publish(ctx, key, nodek)
 	if err != nil {
 		return err
 	}
@@ -212,7 +230,7 @@ func (kr *KeyRoot) closeChild(name string) error {
 }
 
 // Publish publishes the ipns entry associated with this key
-func (kr *KeyRoot) Publish() error {
+func (kr *KeyRoot) Publish(ctx context.Context) error {
 	child, ok := kr.val.(FSNode)
 	if !ok {
 		return errors.New("child of key root not valid type")
@@ -223,13 +241,13 @@ func (kr *KeyRoot) Publish() error {
 		return err
 	}
 
-	k, err := kr.corenode.DAG.Add(nd)
+	k, err := kr.fs.dserv.Add(nd)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Publishing!")
-	return kr.corenode.Namesys.Publish(kr.corenode.Context(), kr.key, k)
+	return kr.fs.nsys.Publish(ctx, kr.key, k)
 }
 
 // Republisher manages when to publish the ipns entry associated with a given key
@@ -267,17 +285,21 @@ func (np *Republisher) Run(ctx context.Context) {
 			select {
 			case <-quick:
 			case <-longer:
+			case <-ctx.Done():
+				return
 			case <-np.Publish:
 				quick = time.After(np.TimeoutShort)
 				goto wait
 			}
 
 			log.Info("Publishing Changes!")
-			err := np.root.Publish()
+			err := np.root.Publish(ctx)
 			if err != nil {
 				log.Critical("republishRoot error: %s", err)
 			}
 
+		case <-ctx.Done():
+			return
 		}
 	}
 }

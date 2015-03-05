@@ -25,11 +25,10 @@ type File interface {
 
 type file struct {
 	parent childCloser
-	dserv  dag.DAGService
 	node   *dag.Node
+	fs     *Filesystem
 
-	name     string
-	openMode int
+	name string
 
 	refLk sync.Mutex
 	ref   int
@@ -38,15 +37,15 @@ type file struct {
 	mod *mod.DagModifier
 }
 
-func NewFile(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) (*file, error) {
-	dmod, err := mod.NewDagModifier(context.TODO(), node, dserv, nil, chunk.DefaultSplitter)
+func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*file, error) {
+	dmod, err := mod.NewDagModifier(context.TODO(), node, fs.dserv, fs.pins.GetManual(), chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
 
 	return &file{
+		fs:     fs,
 		parent: parent,
-		dserv:  dserv,
 		node:   node,
 		name:   name,
 		mod:    dmod,

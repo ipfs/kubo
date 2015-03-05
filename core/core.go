@@ -37,6 +37,7 @@ import (
 	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
 
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	ipnsfs "github.com/jbenet/go-ipfs/ipnsfs"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
@@ -88,6 +89,8 @@ type IpfsNode struct {
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
 	Diagnostics  *diag.Diagnostics   // the diagnostics service
 	Reprovider   *rp.Reprovider      // the value reprovider system
+
+	IpnsFs *ipnsfs.Filesystem
 
 	ctxgroup.ContextGroup
 
@@ -268,6 +271,13 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 
 	// setup name system
 	n.Namesys = namesys.NewNameSystem(n.Routing)
+
+	// Setup the mutable ipns filesystem structure
+	fs, err := ipnsfs.NewFilesystem(n.Context(), n.DAG, n.Namesys, n.Pinning, n.PrivateKey)
+	if err != nil {
+		return debugerror.Wrap(err)
+	}
+	n.IpnsFs = fs
 	return nil
 }
 
@@ -286,6 +296,10 @@ func (n *IpfsNode) teardown() error {
 		if c != nil {
 			closers = append(closers, c)
 		}
+	}
+
+	if n.IpnsFs != nil {
+		addCloser(n.IpnsFs)
 	}
 
 	addCloser(n.Bootstrapper)

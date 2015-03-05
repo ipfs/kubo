@@ -12,7 +12,7 @@ import (
 )
 
 type Directory struct {
-	dserv     dag.DAGService
+	fs        *Filesystem
 	parent    childCloser
 	childDirs map[string]*Directory
 	files     map[string]*file
@@ -25,9 +25,9 @@ type Directory struct {
 	refLock sync.Mutex
 }
 
-func NewDirectory(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) *Directory {
+func NewDirectory(name string, node *dag.Node, parent childCloser, fs *Filesystem) *Directory {
 	return &Directory{
-		dserv:     dserv,
+		fs:        fs,
 		name:      name,
 		node:      node,
 		parent:    parent,
@@ -49,7 +49,7 @@ func (d *Directory) Open(tpath []string, mode int) (File, error) {
 		if mode|os.O_CREATE != 0 {
 			fnode := new(dag.Node)
 			fnode.Data = ft.FilePBData(nil, 0)
-			nfi, err := NewFile(tpath[0], fnode, d, d.dserv)
+			nfi, err := NewFile(tpath[0], fnode, d, d.fs)
 			if err != nil {
 				return nil, err
 			}
@@ -83,7 +83,7 @@ func (d *Directory) closeChild(name string) error {
 		return err
 	}
 
-	_, err = d.dserv.Add(nd)
+	_, err = d.fs.dserv.Add(nd)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (d *Directory) childFile(name string) (*file, error) {
 	// search dag
 	for _, lnk := range d.node.Links {
 		if lnk.Name == name {
-			nd, err := lnk.GetNode(d.dserv)
+			nd, err := lnk.GetNode(d.fs.dserv)
 			if err != nil {
 				return nil, err
 			}
@@ -127,7 +127,7 @@ func (d *Directory) childFile(name string) (*file, error) {
 			case ufspb.Data_Directory:
 				return nil, ErrIsDirectory
 			case ufspb.Data_File:
-				nfi, err := NewFile(name, nd, d, d.dserv)
+				nfi, err := NewFile(name, nd, d, d.fs)
 				if err != nil {
 					return nil, err
 				}
@@ -151,7 +151,7 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 
 	for _, lnk := range d.node.Links {
 		if lnk.Name == name {
-			nd, err := lnk.GetNode(d.dserv)
+			nd, err := lnk.GetNode(d.fs.dserv)
 			if err != nil {
 				return nil, err
 			}
@@ -162,7 +162,7 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 
 			switch i.GetType() {
 			case ufspb.Data_Directory:
-				ndir := NewDirectory(name, nd, d, d.dserv)
+				ndir := NewDirectory(name, nd, d, d.fs)
 				d.childDirs[name] = ndir
 				return ndir, nil
 			case ufspb.Data_File:
@@ -310,9 +310,9 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	switch pbn.GetType() {
 	case ft.TDirectory:
-		d.childDirs[name] = NewDirectory(name, nd, d, d.dserv)
+		d.childDirs[name] = NewDirectory(name, nd, d, d.fs)
 	case ft.TFile, ft.TMetadata, ft.TRaw:
-		nfi, err := NewFile(name, nd, d, d.dserv)
+		nfi, err := NewFile(name, nd, d, d.fs)
 		if err != nil {
 			return err
 		}
