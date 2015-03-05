@@ -141,6 +141,16 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 		node.Pinning = pin.NewPinner(node.Repo.Datastore(), node.DAG)
 	}
 	node.Resolver = &path.Resolver{DAG: node.DAG}
+
+	if node.OnlineMode() {
+		// Setup the mutable ipns filesystem structure
+		fs, err := ipnsfs.NewFilesystem(ctx, node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
+		if err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+		node.IpnsFs = fs
+	}
+
 	success = true
 	return node, nil
 }
@@ -272,12 +282,6 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	// setup name system
 	n.Namesys = namesys.NewNameSystem(n.Routing)
 
-	// Setup the mutable ipns filesystem structure
-	fs, err := ipnsfs.NewFilesystem(n.Context(), n.DAG, n.Namesys, n.Pinning, n.PrivateKey)
-	if err != nil {
-		return debugerror.Wrap(err)
-	}
-	n.IpnsFs = fs
 	return nil
 }
 
@@ -288,7 +292,6 @@ func (n *IpfsNode) teardown() error {
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
 	closers := []io.Closer{
-		n.Blocks,
 		n.Exchange,
 		n.Repo,
 	}
@@ -298,6 +301,9 @@ func (n *IpfsNode) teardown() error {
 		}
 	}
 
+	if n.Blocks != nil {
+		addCloser(n.Blocks)
+	}
 	if n.IpnsFs != nil {
 		addCloser(n.IpnsFs)
 	}
