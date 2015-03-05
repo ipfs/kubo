@@ -332,7 +332,7 @@ func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wr
 }
 
 func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
-	return fi.fi.Flush()
+	return fi.fi.Close()
 }
 
 func (n *Directory) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
@@ -341,6 +341,13 @@ func (n *Directory) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 
 func (fi *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	return fi.fi.Flush()
+}
+
+func (fi *File) Forget() {
+	err := fi.fi.Flush()
+	if err != nil {
+		log.Debug("Forget file error: ", err)
+	}
 }
 
 func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {

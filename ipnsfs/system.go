@@ -114,7 +114,7 @@ type KeyRoot struct {
 	repub *Republisher
 }
 
-func (fs *Filesystem) NewKeyRoot(ctx context.Context, k ci.PrivKey) (*KeyRoot, error) {
+func (fs *Filesystem) NewKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot, error) {
 	hash, err := k.GetPublic().Hash()
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (fs *Filesystem) NewKeyRoot(ctx context.Context, k ci.PrivKey) (*KeyRoot, e
 	root.key = k
 	root.fs = fs
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
 	pointsTo, err := fs.nsys.Resolve(ctx, name)
@@ -150,7 +150,7 @@ func (fs *Filesystem) NewKeyRoot(ctx context.Context, k ci.PrivKey) (*KeyRoot, e
 	root.node = mnode
 
 	root.repub = NewRepublisher(root, time.Millisecond*300, time.Second*3)
-	go root.repub.Run(ctx)
+	go root.repub.Run(parent)
 
 	pbn, err := ft.FromBytes(mnode.Data)
 	if err != nil {
