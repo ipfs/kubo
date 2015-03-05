@@ -34,6 +34,8 @@ type file struct {
 	ref   int
 	wref  bool
 
+	hasChanges bool
+
 	mod *mod.DagModifier
 }
 
@@ -53,6 +55,7 @@ func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*
 }
 
 func (fi *file) Write(b []byte) (int, error) {
+	fi.hasChanges = true
 	return fi.mod.Write(b)
 }
 
@@ -61,7 +64,7 @@ func (fi *file) Read(b []byte) (int, error) {
 }
 
 func (fi *file) Close() error {
-	if fi.mod.HasChanges() {
+	if fi.hasChanges {
 		err := fi.mod.Flush()
 		if err != nil {
 			return err
@@ -71,6 +74,8 @@ func (fi *file) Close() error {
 		if err != nil {
 			return err
 		}
+
+		fi.hasChanges = false
 	}
 
 	return nil
@@ -92,6 +97,7 @@ func (fi *file) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (fi *file) WriteAt(b []byte, at int64) (int, error) {
+	fi.hasChanges = true
 	return fi.mod.WriteAt(b, at)
 }
 
@@ -104,6 +110,7 @@ func (fi *file) GetNode() (*dag.Node, error) {
 }
 
 func (fi *file) Truncate(size int64) error {
+	fi.hasChanges = true
 	return fi.mod.Truncate(size)
 }
 
