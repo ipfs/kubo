@@ -9,7 +9,6 @@ import (
 	"os"
 	"testing"
 
-	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 
 	core "github.com/jbenet/go-ipfs/core"
@@ -155,9 +154,6 @@ func TestIpnsBasicIO(t *testing.T) {
 
 // Test to make sure file changes persist over mounts of ipns
 func TestFilePersistence(t *testing.T) {
-	fuse.Debug = func(msg interface{}) {
-		log.Info(msg)
-	}
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -183,9 +179,6 @@ func TestFilePersistence(t *testing.T) {
 }
 
 func TestDeeperDirs(t *testing.T) {
-	fuse.Debug = func(msg interface{}) {
-		//log.Info(msg)
-	}
 	node, mnt := setupIpnsTest(t, nil)
 
 	t.Log("make a top level dir")

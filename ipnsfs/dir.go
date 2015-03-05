@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	ft "github.com/jbenet/go-ipfs/unixfs"
@@ -19,6 +20,7 @@ type Directory struct {
 	node *dag.Node
 	name string
 	ref  int
+	lock sync.Mutex
 }
 
 func NewDirectory(name string, node *dag.Node, parent childCloser, dserv dag.DAGService) *Directory {
@@ -84,15 +86,19 @@ func (d *Directory) closeChild(name string) error {
 		return err
 	}
 
+	d.lock.Lock()
 	err = d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
+		d.lock.Unlock()
 		return err
 	}
 
 	err = d.node.AddNodeLinkClean(name, nd)
 	if err != nil {
+		d.lock.Unlock()
 		return err
 	}
+	d.lock.Unlock()
 
 	return d.parent.closeChild(d.name)
 }
@@ -172,6 +178,8 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 }
 
 func (d *Directory) Child(name string) (FSNode, error) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	dir, err := d.childDir(name)
 	if err == nil {
 		return dir, nil
@@ -185,6 +193,9 @@ func (d *Directory) Child(name string) (FSNode, error) {
 }
 
 func (d *Directory) List() []string {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	var out []string
 	for _, lnk := range d.node.Links {
 		out = append(out, lnk.Name)
@@ -193,37 +204,49 @@ func (d *Directory) List() []string {
 }
 
 func (d *Directory) Mkdir(name string) (*Directory, error) {
+	d.lock.Lock()
+
 	_, err := d.childDir(name)
 	if err == nil {
+		d.lock.Unlock()
 		return nil, errors.New("directory by that name already exists")
 	}
 	_, err = d.childFile(name)
 	if err == nil {
+		d.lock.Unlock()
 		return nil, errors.New("file by that name already exists")
 	}
 
 	ndir := &dag.Node{Data: ft.FolderPBData()}
 	err = d.node.AddNodeLinkClean(name, ndir)
 	if err != nil {
+		d.lock.Unlock()
 		return nil, err
 	}
+	d.lock.Unlock()
 
 	err = d.parent.closeChild(d.name)
 	if err != nil {
 		return nil, err
 	}
 
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	return d.childDir(name)
 }
 
 func (d *Directory) Unlink(name string) error {
+	d.lock.Lock()
 	delete(d.childDirs, name)
 	delete(d.files, name)
 
 	err := d.node.RemoveNodeLink(name)
 	if err != nil {
+		d.lock.Unlock()
 		return err
 	}
+	d.lock.Unlock()
 
 	return d.parent.closeChild(d.name)
 }
