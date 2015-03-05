@@ -16,6 +16,9 @@ install:
 build:
 	cd cmd/ipfs && go build -i
 
+nofuse:
+	cd cmd/ipfs && go install -tags nofuse
+
 ##############################################################
 # tests targets
 

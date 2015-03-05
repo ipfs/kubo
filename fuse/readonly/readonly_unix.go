@@ -1,4 +1,4 @@
-// +build linux darwin freebsd
+// +build (linux darwin freebsd) and !nofuse
 
 // package fuse/readonly implements a fuse filesystem to access files
 // stored inside of ipfs.
