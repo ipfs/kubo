@@ -83,17 +83,7 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 	defer close(bs.provideKeys)
 	var toprovide []u.Key
 	var nextKey u.Key
-
-	select {
-	case blk, ok := <-bs.newBlocks:
-		if !ok {
-			log.Debug("newBlocks channel closed")
-			return
-		}
-		nextKey = blk.Key()
-	case <-ctx.Done():
-		return
-	}
+	var keysOut chan u.Key
 
 	for {
 		select {
@@ -102,21 +92,18 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 				log.Debug("newBlocks channel closed")
 				return
 			}
-			toprovide = append(toprovide, blk.Key())
-		case bs.provideKeys <- nextKey:
+			if keysOut == nil {
+				nextKey = blk.Key()
+				keysOut = bs.provideKeys
+			} else {
+				toprovide = append(toprovide, blk.Key())
+			}
+		case keysOut <- nextKey:
 			if len(toprovide) > 0 {
 				nextKey = toprovide[0]
 				toprovide = toprovide[1:]
 			} else {
-				select {
-				case blk, ok := <-bs.newBlocks:
-					if !ok {
-						return
-					}
-					nextKey = blk.Key()
-				case <-ctx.Done():
-					return
-				}
+				keysOut = nil
 			}
 		case <-ctx.Done():
 			return
