@@ -1,4 +1,5 @@
-// +build (linux darwin freebsd) and !nofuse
+// +build linux darwin freebsd
+// +build !nofuse
 
 package commands
 
