@@ -6,6 +6,7 @@ import (
 	inflect "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect"
 	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
@@ -22,6 +23,10 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to manage periodically resending our wantlist out to peers
 	px.Go(func(px process.Process) {
 		bs.rebroadcastWorker(ctx)
+	})
+
+	px.Go(func(px process.Process) {
+		bs.provideCollector(ctx)
 	})
 
 	// Spawn up multiple workers to handle incoming blocks
@@ -58,15 +63,47 @@ func (bs *Bitswap) taskWorker(ctx context.Context) {
 func (bs *Bitswap) provideWorker(ctx context.Context) {
 	for {
 		select {
+		case k, ok := <-bs.provideKeys:
+			if !ok {
+				log.Debug("provideKeys channel closed")
+				return
+			}
+			ctx, _ := context.WithTimeout(ctx, provideTimeout)
+			err := bs.network.Provide(ctx, k)
+			if err != nil {
+				log.Error(err)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (bs *Bitswap) provideCollector(ctx context.Context) {
+	defer close(bs.provideKeys)
+	var toProvide []u.Key
+	var nextKey u.Key
+	var keysOut chan u.Key
+
+	for {
+		select {
 		case blk, ok := <-bs.newBlocks:
 			if !ok {
 				log.Debug("newBlocks channel closed")
 				return
 			}
-			ctx, _ := context.WithTimeout(ctx, provideTimeout)
-			err := bs.network.Provide(ctx, blk.Key())
-			if err != nil {
-				log.Error(err)
+			if keysOut == nil {
+				nextKey = blk.Key()
+				keysOut = bs.provideKeys
+			} else {
+				toProvide = append(toProvide, blk.Key())
+			}
+		case keysOut <- nextKey:
+			if len(toProvide) > 0 {
+				nextKey = toProvide[0]
+				toProvide = toProvide[1:]
+			} else {
+				keysOut = nil
 			}
 		case <-ctx.Done():
 			return

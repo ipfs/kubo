@@ -89,6 +89,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		batchRequests: make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
+		provideKeys:   make(chan u.Key),
 	}
 	network.SetDelegate(bs)
 
@@ -124,6 +125,8 @@ type Bitswap struct {
 	process process.Process
 
 	newBlocks chan *blocks.Block
+
+	provideKeys chan u.Key
 }
 
 type blockRequest struct {
