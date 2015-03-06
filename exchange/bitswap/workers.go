@@ -81,7 +81,7 @@ func (bs *Bitswap) provideWorker(ctx context.Context) {
 
 func (bs *Bitswap) provideCollector(ctx context.Context) {
 	defer close(bs.provideKeys)
-	var toprovide []u.Key
+	var toProvide []u.Key
 	var nextKey u.Key
 	var keysOut chan u.Key
 
@@ -96,12 +96,12 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 				nextKey = blk.Key()
 				keysOut = bs.provideKeys
 			} else {
-				toprovide = append(toprovide, blk.Key())
+				toProvide = append(toProvide, blk.Key())
 			}
 		case keysOut <- nextKey:
-			if len(toprovide) > 0 {
-				nextKey = toprovide[0]
-				toprovide = toprovide[1:]
+			if len(toProvide) > 0 {
+				nextKey = toProvide[0]
+				toProvide = toProvide[1:]
 			} else {
 				keysOut = nil
 			}
