@@ -10,6 +10,7 @@ import (
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
 	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
+	namesys "github.com/jbenet/go-ipfs/namesys"
 	config "github.com/jbenet/go-ipfs/repo/config"
 	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
@@ -171,5 +172,5 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	return nd.IpnsFs.InitializeKeyspace(ctx, nd.PrivateKey)
+	return namesys.InitializeKeyspace(ctx, nd.DAG, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }

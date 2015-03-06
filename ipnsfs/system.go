@@ -131,7 +131,7 @@ func (fs *Filesystem) NewKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 
 	pointsTo, err := fs.nsys.Resolve(ctx, name)
 	if err != nil {
-		err = fs.InitializeKeyspace(ctx, k)
+		err = namesys.InitializeKeyspace(ctx, fs.dserv, fs.nsys, fs.pins, k)
 		if err != nil {
 			return nil, err
 		}
@@ -173,34 +173,6 @@ func (fs *Filesystem) NewKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 	return root, nil
 }
 
-// InitializeKeyspace sets the ipns record for the given key to
-// point to an empty directory.
-// TODO: this doesnt feel like it belongs here
-func (fs *Filesystem) InitializeKeyspace(ctx context.Context, key ci.PrivKey) error {
-	emptyDir := &dag.Node{Data: ft.FolderPBData()}
-	nodek, err := fs.dserv.Add(emptyDir)
-	if err != nil {
-		return err
-	}
-
-	err = fs.pins.Pin(emptyDir, false)
-	if err != nil {
-		return err
-	}
-
-	err = fs.pins.Flush()
-	if err != nil {
-		return err
-	}
-
-	err = fs.nsys.Publish(ctx, key, nodek)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (kr *KeyRoot) GetValue() FSNode {
 	return kr.val
 }
@@ -232,7 +204,7 @@ func (kr *KeyRoot) Open(tpath []string, mode int) (File, error) {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *KeyRoot) closeChild(name string) error {
+func (kr *KeyRoot) closeChild(name string, nd *dag.Node) error {
 	kr.repub.Touch()
 	return nil
 }

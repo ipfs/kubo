@@ -351,6 +351,45 @@ func TestMultiWriteCoal(t *testing.T) {
 	}
 }
 
+func TestLargeWriteChunks(t *testing.T) {
+	dserv := getMockDagServ(t)
+	_, n := getNode(t, dserv, 0)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, nil, &chunk.SizeSplitter{Size: 512})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wrsize := 1000
+	datasize := 10000000
+	data := make([]byte, datasize)
+
+	u.NewTimeSeededRand().Read(data)
+
+	for i := 0; i < datasize/wrsize; i++ {
+		n, err := dagmod.WriteAt(data[i*wrsize:(i+1)*wrsize], int64(i*wrsize))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != wrsize {
+			t.Fatal("failed to write buffer")
+		}
+	}
+
+	out, err := ioutil.ReadAll(dagmod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = arrComp(out, data); err != nil {
+		t.Fatal(err)
+	}
+
+}
+
 func arrComp(a, b []byte) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("Arrays differ in length. %d != %d", len(a), len(b))

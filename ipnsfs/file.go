@@ -25,17 +25,13 @@ type File interface {
 
 type file struct {
 	parent childCloser
-	node   *dag.Node
 	fs     *Filesystem
 
-	name string
-
-	refLk sync.Mutex
-	ref   int
-	wref  bool
-
+	name       string
 	hasChanges bool
 
+	// TODO: determine whether or not locking here is actually required...
+	lk  sync.Mutex
 	mod *mod.DagModifier
 }
 
@@ -48,29 +44,39 @@ func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*
 	return &file{
 		fs:     fs,
 		parent: parent,
-		node:   node,
 		name:   name,
 		mod:    dmod,
 	}, nil
 }
 
 func (fi *file) Write(b []byte) (int, error) {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Write(b)
 }
 
 func (fi *file) Read(b []byte) (int, error) {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	return fi.mod.Read(b)
 }
 
 func (fi *file) Close() error {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	if fi.hasChanges {
 		err := fi.mod.Flush()
 		if err != nil {
 			return err
 		}
 
-		err = fi.parent.closeChild(fi.name)
+		nd, err := fi.mod.GetNode()
+		if err != nil {
+			return err
+		}
+
+		err = fi.parent.closeChild(fi.name, nd)
 		if err != nil {
 			return err
 		}
@@ -82,6 +88,8 @@ func (fi *file) Close() error {
 }
 
 func (fi *file) Flush() error {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	return fi.mod.Flush()
 }
 
@@ -93,23 +101,33 @@ func (fi *file) withMode(mode int) File {
 }
 
 func (fi *file) Seek(offset int64, whence int) (int64, error) {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	return fi.mod.Seek(offset, whence)
 }
 
 func (fi *file) WriteAt(b []byte, at int64) (int, error) {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	fi.hasChanges = true
 	return fi.mod.WriteAt(b, at)
 }
 
 func (fi *file) Size() (int64, error) {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	return fi.mod.Size()
 }
 
 func (fi *file) GetNode() (*dag.Node, error) {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	return fi.mod.GetNode()
 }
 
 func (fi *file) Truncate(size int64) error {
+	fi.lk.Lock()
+	defer fi.lk.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Truncate(size)
 }

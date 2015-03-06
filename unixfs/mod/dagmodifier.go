@@ -58,7 +58,18 @@ func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, 
 func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 	// TODO: this is currently VERY inneficient
 	if uint64(offset) != dm.curWrOff {
-		err := dm.Flush()
+		size, err := dm.Size()
+		if err != nil {
+			return 0, err
+		}
+		if offset > size {
+			err := dm.expandSparse(offset - size)
+			if err != nil {
+				return 0, err
+			}
+		}
+
+		err = dm.Flush()
 		if err != nil {
 			return 0, err
 		}
@@ -66,6 +77,31 @@ func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 	}
 
 	return dm.Write(b)
+}
+
+type zeroReader struct{}
+
+func (zr zeroReader) Read(b []byte) (int, error) {
+	for i, _ := range b {
+		b[i] = 0
+	}
+	return len(b), nil
+}
+
+func (dm *DagModifier) expandSparse(size int64) error {
+	spl := chunk.SizeSplitter{4096}
+	r := io.LimitReader(zeroReader{}, size)
+	blks := spl.Split(r)
+	nnode, err := dm.appendData(dm.curNode, blks)
+	if err != nil {
+		return err
+	}
+	_, err = dm.dagserv.Add(nnode)
+	if err != nil {
+		return err
+	}
+	dm.curNode = nnode
+	return nil
 }
 
 func (dm *DagModifier) Write(b []byte) (int, error) {
@@ -90,6 +126,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 }
 
 func (dm *DagModifier) Size() (int64, error) {
+	// TODO: compute size without flushing, should be easy
 	err := dm.Flush()
 	if err != nil {
 		return 0, err
@@ -149,8 +186,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	}
 
 	if len(node.Links) == 0 && (f.GetType() == ftpb.Data_Raw || f.GetType() == ftpb.Data_File) {
-		// A data block! lets write to it
-
 		n, err := data.Read(f.Data[offset:])
 		if err != nil && err != io.EOF {
 			return "", 0, false, err

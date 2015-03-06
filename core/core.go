@@ -142,8 +142,8 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 	}
 	node.Resolver = &path.Resolver{DAG: node.DAG}
 
+	// Setup the mutable ipns filesystem structure
 	if node.OnlineMode() {
-		// Setup the mutable ipns filesystem structure
 		fs, err := ipnsfs.NewFilesystem(ctx, node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
 		if err != nil {
 			return nil, debugerror.Wrap(err)
