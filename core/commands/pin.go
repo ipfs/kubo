@@ -160,11 +160,12 @@ Returns a list of hashes of objects being pinned. Objects that are indirectly
 or recursively pinned are not included in the list.
 
 Use --type=<type> to specify the type of pinned keys to list. Valid values are:
-    * "direct"
-    * "indirect"
-    * "recursive"
+    * "direct": pin that specific object.
+    * "recursive": pin that specific object, and indirectly pin all its decendants
+    * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
-(Defaults to "direct")
+
+Defaults to "direct".
 `,
 	},
 
