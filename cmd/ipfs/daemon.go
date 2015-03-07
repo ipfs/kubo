@@ -38,7 +38,14 @@ over the network. Most applications that use IPFS will do so by
 communicating with a daemon over the HTTP API. While the daemon is
 running, calls to 'ipfs' commands will be sent over the network to
 the daemon.
-`,
+
+The daemon will start listening on ports on the network, which are
+documented in (and can be modified through) 'ipfs config Addresses'.
+For example, to change the 'Gateway' port:
+
+    ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8082
+
+Make sure to restart the daemon after.`,
 	},
 
 	Options: []cmds.Option{
