@@ -52,7 +52,7 @@ func TestGetFailures(t *testing.T) {
 			err = merr[0]
 		}
 
-		if err != context.DeadlineExceeded {
+		if err != context.DeadlineExceeded && err != context.Canceled {
 			t.Fatal("Got different error than we expected", err)
 		}
 	} else {
