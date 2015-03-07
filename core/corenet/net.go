@@ -54,7 +54,8 @@ func Listen(nd *core.IpfsNode, protocol string) (*ipfsListener, error) {
 }
 
 func Dial(nd *core.IpfsNode, p peer.ID, protocol string) (net.Stream, error) {
-	ctx, _ := context.WithTimeout(nd.Context(), time.Second*30)
+	ctx, cancel := context.WithTimeout(nd.Context(), time.Second*30)
+	defer cancel()
 	err := nd.PeerHost.Connect(ctx, peer.PeerInfo{ID: p})
 	if err != nil {
 		return nil, err

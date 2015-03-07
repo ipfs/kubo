@@ -60,9 +60,11 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	nameb := u.Hash(pkbytes)
 	namekey := u.Key("/pk/" + string(nameb))
 
+	timectx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
+	defer cancel()
+
 	log.Debugf("Storing pubkey at: %s", namekey)
 	// Store associated public key
-	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
 	err = p.routing.PutValue(timectx, namekey, pkbytes)
 	if err != nil {
 		return err

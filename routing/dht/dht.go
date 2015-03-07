@@ -357,11 +357,12 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 			rand.Read(id)
 			peers := dht.routingTable.NearestPeers(kb.ConvertKey(u.Key(id)), 5)
 			for _, p := range peers {
-				ctx, _ := context.WithTimeout(dht.Context(), time.Second*5)
+				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*5)
 				_, err := dht.Ping(ctx, p)
 				if err != nil {
 					log.Debugf("Ping error: %s", err)
 				}
+				cancel()
 			}
 		case <-dht.Closing():
 			return

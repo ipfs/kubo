@@ -86,7 +86,8 @@ func (r *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 		}
 		r.flush()
 
-		ctx, _ := context.WithTimeout(context.TODO(), time.Second*60)
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*60)
+		defer cancel()
 
 		for i, ng := range r.dag.GetDAG(ctx, dagnode) {
 			childNode, err := ng.Get()

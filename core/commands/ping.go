@@ -126,7 +126,8 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 				Text: fmt.Sprintf("Looking up peer %s", pid.Pretty()),
 			}
 
-			ctx, _ := context.WithTimeout(ctx, kPingTimeout)
+			ctx, cancel := context.WithTimeout(ctx, kPingTimeout)
+			defer cancel()
 			p, err := n.Routing.FindPeer(ctx, pid)
 			if err != nil {
 				outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
@@ -147,7 +148,8 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 			default:
 			}
 
-			ctx, _ := context.WithTimeout(ctx, kPingTimeout)
+			ctx, cancel := context.WithTimeout(ctx, kPingTimeout)
+			defer cancel()
 			took, err := n.Routing.Ping(ctx, pid)
 			if err != nil {
 				log.Debugf("Ping error: %s", err)

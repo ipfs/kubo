@@ -269,7 +269,8 @@ func (bs *Bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 		go func(k u.Key) {
 			defer wg.Done()
 
-			child, _ := context.WithTimeout(ctx, providerRequestTimeout)
+			child, cancel := context.WithTimeout(ctx, providerRequestTimeout)
+			defer cancel()
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
 				sendToPeers <- prov
@@ -311,10 +312,11 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	// Should only track *useful* messages in ledger
 
 	for _, block := range incoming.Blocks() {
-		hasBlockCtx, _ := context.WithTimeout(ctx, hasBlockTimeout)
+		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
 			log.Debug(err)
 		}
+		cancel()
 	}
 
 	var keys []u.Key

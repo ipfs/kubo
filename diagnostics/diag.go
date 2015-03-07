@@ -14,12 +14,12 @@ import (
 
 	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	host "github.com/jbenet/go-ipfs/p2p/host"
 	inet "github.com/jbenet/go-ipfs/p2p/net"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
+	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
 
 	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
 	util "github.com/jbenet/go-ipfs/util"
@@ -138,7 +138,8 @@ func newID() string {
 // GetDiagnostic runs a diagnostics request across the entire network
 func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) {
 	log.Debug("Getting diagnostic.")
-	ctx, _ := context.WithTimeout(context.TODO(), timeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
 
 	diagID := newID()
 	d.diagLock.Lock()
