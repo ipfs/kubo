@@ -45,7 +45,20 @@ For example, to change the 'Gateway' port:
 
     ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8082
 
-Make sure to restart the daemon after.`,
+The API address can be changed the same way:
+
+   ipfs config Addresses.API /ip4/127.0.0.1/tcp/5002
+
+Make sure to restart the daemon after changing addresses.
+
+By default, the gateway is only accessible locally. To expose it to other computers
+in the network, use 0.0.0.0 as the ip address:
+
+   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+
+Be careful if you expose the API. It is a security risk, as anyone could use control 
+your node remotely. If you need to control the node remotely, make sure to protect
+the port as you would other services or database (firewall, authenticated proxy, etc).`,
 	},
 
 	Options: []cmds.Option{
