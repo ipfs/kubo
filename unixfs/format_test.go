@@ -7,15 +7,16 @@ import (
 	pb "github.com/jbenet/go-ipfs/unixfs/pb"
 )
 
-func TestMultiBlock(t *testing.T) {
-	mbf := new(MultiBlock)
+func TestFSNode(t *testing.T) {
+	fsn := new(FSNode)
+	fsn.Type = TFile
 	for i := 0; i < 15; i++ {
-		mbf.AddBlockSize(100)
+		fsn.AddBlockSize(100)
 	}
 
-	mbf.Data = make([]byte, 128)
+	fsn.Data = make([]byte, 128)
 
-	b, err := mbf.GetBytes()
+	b, err := fsn.GetBytes()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,6 +9,13 @@ import (
 	pb "github.com/jbenet/go-ipfs/unixfs/pb"
 )
 
+const (
+	TRaw       = pb.Data_Raw
+	TFile      = pb.Data_File
+	TDirectory = pb.Data_Directory
+	TMetadata  = pb.Data_Metadata
+)
+
 var ErrMalformedFileFormat = errors.New("malformed data in file format")
 var ErrInvalidDirLocation = errors.New("found directory node in unexpected place")
 var ErrUnrecognizedType = errors.New("unrecognized node type")
@@ -98,33 +105,60 @@ func DataSize(data []byte) (uint64, error) {
 	}
 }
 
-type MultiBlock struct {
-	Data       []byte
+type FSNode struct {
+	Data []byte
+
+	// total data size for each child
 	blocksizes []uint64
-	subtotal   uint64
+
+	// running sum of blocksizes
+	subtotal uint64
+
+	// node type of this node
+	Type pb.Data_DataType
 }
 
-func (mb *MultiBlock) AddBlockSize(s uint64) {
-	mb.subtotal += s
-	mb.blocksizes = append(mb.blocksizes, s)
-}
-
-func (mb *MultiBlock) GetBytes() ([]byte, error) {
+func FSNodeFromBytes(b []byte) (*FSNode, error) {
 	pbn := new(pb.Data)
-	t := pb.Data_File
-	pbn.Type = &t
-	pbn.Filesize = proto.Uint64(uint64(len(mb.Data)) + mb.subtotal)
-	pbn.Blocksizes = mb.blocksizes
-	pbn.Data = mb.Data
+	err := proto.Unmarshal(b, pbn)
+	if err != nil {
+		return nil, err
+	}
+
+	n := new(FSNode)
+	n.Data = pbn.Data
+	n.blocksizes = pbn.Blocksizes
+	n.subtotal = pbn.GetFilesize() - uint64(len(n.Data))
+	n.Type = pbn.GetType()
+	return n, nil
+}
+
+// AddBlockSize adds the size of the next child block of this node
+func (n *FSNode) AddBlockSize(s uint64) {
+	n.subtotal += s
+	n.blocksizes = append(n.blocksizes, s)
+}
+
+func (n *FSNode) RemoveBlockSize(i int) {
+	n.subtotal -= n.blocksizes[i]
+	n.blocksizes = append(n.blocksizes[:i], n.blocksizes[i+1:]...)
+}
+
+func (n *FSNode) GetBytes() ([]byte, error) {
+	pbn := new(pb.Data)
+	pbn.Type = &n.Type
+	pbn.Filesize = proto.Uint64(uint64(len(n.Data)) + n.subtotal)
+	pbn.Blocksizes = n.blocksizes
+	pbn.Data = n.Data
 	return proto.Marshal(pbn)
 }
 
-func (mb *MultiBlock) FileSize() uint64 {
-	return uint64(len(mb.Data)) + mb.subtotal
+func (n *FSNode) FileSize() uint64 {
+	return uint64(len(n.Data)) + n.subtotal
 }
 
-func (mb *MultiBlock) NumChildren() int {
-	return len(mb.blocksizes)
+func (n *FSNode) NumChildren() int {
+	return len(n.blocksizes)
 }
 
 type Metadata struct {

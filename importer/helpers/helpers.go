@@ -38,18 +38,49 @@ var ErrSizeLimitExceeded = fmt.Errorf("object size limit exceeded")
 // of unixfs DAG trees
 type UnixfsNode struct {
 	node *dag.Node
-	ufmt *ft.MultiBlock
+	ufmt *ft.FSNode
 }
 
+// NewUnixfsNode creates a new Unixfs node to represent a file
 func NewUnixfsNode() *UnixfsNode {
 	return &UnixfsNode{
 		node: new(dag.Node),
-		ufmt: new(ft.MultiBlock),
+		ufmt: &ft.FSNode{Type: ft.TFile},
 	}
+}
+
+// NewUnixfsBlock creates a new Unixfs node to represent a raw data block
+func NewUnixfsBlock() *UnixfsNode {
+	return &UnixfsNode{
+		node: new(dag.Node),
+		ufmt: &ft.FSNode{Type: ft.TRaw},
+	}
+}
+
+// NewUnixfsNodeFromDag reconstructs a Unixfs node from a given dag node
+func NewUnixfsNodeFromDag(nd *dag.Node) (*UnixfsNode, error) {
+	mb, err := ft.FSNodeFromBytes(nd.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UnixfsNode{
+		node: nd,
+		ufmt: mb,
+	}, nil
 }
 
 func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
+}
+
+func (n *UnixfsNode) GetChild(i int, ds dag.DAGService) (*UnixfsNode, error) {
+	nd, err := n.node.Links[i].GetNode(ds)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewUnixfsNodeFromDag(nd)
 }
 
 // addChild will add the given UnixfsNode as a child of the receiver.
@@ -83,7 +114,13 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	return nil
 }
 
-func (n *UnixfsNode) setData(data []byte) {
+// Removes the child node at the given index
+func (n *UnixfsNode) RemoveChild(index int) {
+	n.ufmt.RemoveBlockSize(index)
+	n.node.Links = append(n.node.Links[:index], n.node.Links[index+1:]...)
+}
+
+func (n *UnixfsNode) SetData(data []byte) {
 	n.ufmt.Data = data
 }
 
