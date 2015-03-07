@@ -7,10 +7,8 @@ import (
 	"errors"
 	"io"
 	"strings"
-	"time"
 
 	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/jbenet/go-ipfs/commands"
 	core "github.com/jbenet/go-ipfs/core"
@@ -81,14 +79,13 @@ ipfs id supports the format option for output with the following keys:
 			return
 		}
 
-		ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
 		// TODO handle offline mode with polymorphism instead of conditionals
 		if !node.OnlineMode() {
 			res.SetError(errors.New(offlineIdErrorMessage), cmds.ErrClient)
 			return
 		}
 
-		p, err := node.Routing.FindPeer(ctx, id)
+		p, err := node.Routing.FindPeer(req.Context().Context, id)
 		if err == kb.ErrLookupFailure {
 			res.SetError(errors.New(offlineIdErrorMessage), cmds.ErrClient)
 			return
