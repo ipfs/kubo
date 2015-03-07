@@ -37,6 +37,7 @@ import (
 	rp "github.com/jbenet/go-ipfs/exchange/reprovide"
 
 	mount "github.com/jbenet/go-ipfs/fuse/mount"
+	ipnsfs "github.com/jbenet/go-ipfs/ipnsfs"
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	namesys "github.com/jbenet/go-ipfs/namesys"
 	path "github.com/jbenet/go-ipfs/path"
@@ -89,6 +90,8 @@ type IpfsNode struct {
 	Diagnostics  *diag.Diagnostics   // the diagnostics service
 	Reprovider   *rp.Reprovider      // the value reprovider system
 
+	IpnsFs *ipnsfs.Filesystem
+
 	ctxgroup.ContextGroup
 
 	mode mode
@@ -138,6 +141,16 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 		node.Pinning = pin.NewPinner(node.Repo.Datastore(), node.DAG)
 	}
 	node.Resolver = &path.Resolver{DAG: node.DAG}
+
+	// Setup the mutable ipns filesystem structure
+	if node.OnlineMode() {
+		fs, err := ipnsfs.NewFilesystem(ctx, node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
+		if err != nil {
+			return nil, debugerror.Wrap(err)
+		}
+		node.IpnsFs = fs
+	}
+
 	success = true
 	return node, nil
 }
@@ -268,6 +281,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 
 	// setup name system
 	n.Namesys = namesys.NewNameSystem(n.Routing)
+
 	return nil
 }
 
@@ -278,7 +292,6 @@ func (n *IpfsNode) teardown() error {
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
 	closers := []io.Closer{
-		n.Blocks,
 		n.Exchange,
 		n.Repo,
 	}
@@ -286,6 +299,13 @@ func (n *IpfsNode) teardown() error {
 		if c != nil {
 			closers = append(closers, c)
 		}
+	}
+
+	if n.Blocks != nil {
+		addCloser(n.Blocks)
+	}
+	if n.IpnsFs != nil {
+		addCloser(n.IpnsFs)
 	}
 
 	addCloser(n.Bootstrapper)

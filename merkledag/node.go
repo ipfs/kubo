@@ -87,6 +87,7 @@ func (l *Link) GetNode(serv DAGService) (*Node, error) {
 
 // AddNodeLink adds a link to another node.
 func (n *Node) AddNodeLink(name string, that *Node) error {
+	n.encoded = nil
 	lnk, err := MakeLink(that)
 	if err != nil {
 		return err
@@ -101,6 +102,7 @@ func (n *Node) AddNodeLink(name string, that *Node) error {
 // AddNodeLink adds a link to another node. without keeping a reference to
 // the child node
 func (n *Node) AddNodeLinkClean(name string, that *Node) error {
+	n.encoded = nil
 	lnk, err := MakeLink(that)
 	if err != nil {
 		return err
@@ -113,6 +115,7 @@ func (n *Node) AddNodeLinkClean(name string, that *Node) error {
 
 // Remove a link on this node by the given name
 func (n *Node) RemoveNodeLink(name string) error {
+	n.encoded = nil
 	for i, l := range n.Links {
 		if l.Name == name {
 			n.Links = append(n.Links[:i], n.Links[i+1:]...)

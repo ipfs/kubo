@@ -82,7 +82,7 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 		var err error
 		n.encoded, err = n.Marshal()
 		if err != nil {
-			return []byte{}, err
+			return nil, err
 		}
 		n.cached = u.Hash(n.encoded)
 	}
