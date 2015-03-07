@@ -52,6 +52,12 @@ type queryFunc func(context.Context, peer.ID) (*dhtQueryResult, error)
 
 // Run runs the query at hand. pass in a list of peers to use first.
 func (q *dhtQuery) Run(ctx context.Context, peers []peer.ID) (*dhtQueryResult, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -102,6 +108,15 @@ func (r *dhtQueryRunner) Run(peers []peer.ID) (*dhtQueryResult, error) {
 	// add all the peers we got first.
 	for _, p := range peers {
 		r.addPeerToQuery(r.cg.Context(), p)
+	}
+
+	// may be closed already. this caused an odd race (where we attempt to
+	// add a child to an already closed ctxgroup). this is a temp workaround
+	// as we'll switch to using a proc here soon.
+	select {
+	case <-r.cg.Closed():
+		return nil, r.cg.Context().Err()
+	default:
 	}
 
 	// go do this thing.
