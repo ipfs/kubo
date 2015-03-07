@@ -244,6 +244,20 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 		return nil
 	}
 
+	// Verify this is a branch node
+	pbn, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		return err
+	}
+
+	if pbn.GetType() != ft.TFile {
+		return errors.New("expected file as branch node")
+	}
+
+	if len(pbn.Data) > 0 {
+		return errors.New("branch node should not have data")
+	}
+
 	for i := 0; i < len(nd.Links); i++ {
 		child, err := nd.Links[i].GetNode(ds)
 		if err != nil {

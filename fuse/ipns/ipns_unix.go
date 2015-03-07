@@ -24,6 +24,7 @@ import (
 	path "github.com/jbenet/go-ipfs/path"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	mod "github.com/jbenet/go-ipfs/unixfs/mod"
 	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
 	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
@@ -211,7 +212,7 @@ type Node struct {
 
 	Ipfs   *core.IpfsNode
 	Nd     *mdag.Node
-	dagMod *uio.DagModifier
+	dagMod *mod.DagModifier
 	cached *ftpb.Data
 }
 
@@ -238,7 +239,11 @@ func (s *Node) Attr() fuse.Attr {
 			size = 0
 		}
 		if size == 0 {
-			size = s.dagMod.Size()
+			dmsize, err := s.dagMod.Size()
+			if err != nil {
+				log.Error(err)
+			}
+			size = uint64(dmsize)
 		}
 
 		mode := os.FileMode(0666)
@@ -344,13 +349,13 @@ func (n *Node) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 
 	if n.dagMod == nil {
 		// Create a DagModifier to allow us to change the existing dag node
-		dmod, err := uio.NewDagModifier(n.Nd, n.Ipfs.DAG, chunk.DefaultSplitter)
+		dmod, err := mod.NewDagModifier(ctx, n.Nd, n.Ipfs.DAG, n.Ipfs.Pinning.GetManual(), chunk.DefaultSplitter)
 		if err != nil {
 			return err
 		}
 		n.dagMod = dmod
 	}
-	wrote, err := n.dagMod.WriteAt(req.Data, uint64(req.Offset))
+	wrote, err := n.dagMod.WriteAt(req.Data, int64(req.Offset))
 	if err != nil {
 		return err
 	}
