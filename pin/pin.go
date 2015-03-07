@@ -172,7 +172,9 @@ func (p *pinner) pinIndirectRecurse(node *mdag.Node) error {
 }
 
 func (p *pinner) pinLinks(node *mdag.Node) error {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+
 	for _, ng := range p.dserv.GetDAG(ctx, node) {
 		subnode, err := ng.Get()
 		if err != nil {

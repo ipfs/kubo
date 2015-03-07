@@ -227,8 +227,9 @@ func (s *Swarm) gatedDialAttempt(ctx context.Context, p peer.ID) (*Conn, error) 
 		// if it succeeds, dial will add the conn to the swarm itself.
 
 		defer log.EventBegin(ctx, "swarmDialAttemptStart", logdial).Done()
-		ctxT, _ := context.WithTimeout(ctx, s.dialT)
+		ctxT, cancel := context.WithTimeout(ctx, s.dialT)
 		conn, err := s.dial(ctxT, p)
+		cancel()
 		s.dsync.Unlock(p)
 		log.Debugf("dial end %s", conn)
 		if err != nil {

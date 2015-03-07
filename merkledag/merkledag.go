@@ -88,7 +88,8 @@ func (n *dagService) Get(k u.Key) (*Node, error) {
 		return nil, fmt.Errorf("dagService is nil")
 	}
 
-	ctx, _ := context.WithTimeout(context.TODO(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	defer cancel()
 	// we shouldn't use an arbitrary timeout here.
 	// since Get doesnt take in a context yet, we give a large upper bound.
 	// think of an http request. we want it to go on as long as the client requests it.

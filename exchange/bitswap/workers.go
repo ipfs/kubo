@@ -68,11 +68,12 @@ func (bs *Bitswap) provideWorker(ctx context.Context) {
 				log.Debug("provideKeys channel closed")
 				return
 			}
-			ctx, _ := context.WithTimeout(ctx, provideTimeout)
+			ctx, cancel := context.WithTimeout(ctx, provideTimeout)
 			err := bs.network.Provide(ctx, k)
 			if err != nil {
 				log.Error(err)
 			}
+			cancel()
 		case <-ctx.Done():
 			return
 		}
@@ -136,12 +137,13 @@ func (bs *Bitswap) clientWorker(parent context.Context) {
 			// NB: Optimization. Assumes that providers of key[0] are likely to
 			// be able to provide for all keys. This currently holds true in most
 			// every situation. Later, this assumption may not hold as true.
-			child, _ := context.WithTimeout(req.ctx, providerRequestTimeout)
+			child, cancel := context.WithTimeout(req.ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
 			err := bs.sendWantlistToPeers(req.ctx, providers)
 			if err != nil {
 				log.Debugf("error sending wantlist: %s", err)
 			}
+			cancel()
 
 			// Wait for wantNewBlocks to finish
 			<-done
