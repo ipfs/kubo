@@ -35,11 +35,11 @@ var ObjectCmd = &cmds.Command{
 'ipfs object' is a plumbing command used to manipulate DAG objects
 directly.`,
 		Synopsis: `
-ipfs object get <key>             - Get the DAG node named by <key>
-ipfs object put <data> <encoding> - Stores input, outputs its key
-ipfs object data <key>            - Outputs raw bytes in an object
-ipfs object links <key>           - Outputs links pointed to by object
-ipfs object stat <key>            - Outputs statistics of object
+ipfs object get <key>   - Get the DAG node named by <key>
+ipfs object put <data>  - Stores input, outputs its key
+ipfs object data <key>  - Outputs raw bytes in an object
+ipfs object links <key> - Outputs links pointed to by object
+ipfs object stat <key>  - Outputs statistics of object
 `,
 	},
 
@@ -274,16 +274,18 @@ It reads from stdin, and the output is a base58 encoded multihash.
 'ipfs object put' is a plumbing command for storing DAG nodes.
 It reads from stdin, and the output is a base58 encoded multihash.
 
-Data should be in the format specified by <encoding>.
-<encoding> may be one of the following:
+Data should be in the format specified by the --inputenc flag.
+--inputenc may be one of the following:
 	* "protobuf"
-	* "json"
+	* "json" (default)
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "Data to be stored as a DAG object"),
-		cmds.StringArg("encoding", true, false, "Encoding type of <data>, either \"protobuf\" or \"json\""),
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
@@ -298,9 +300,16 @@ Data should be in the format specified by <encoding>.
 			return
 		}
 
-		encoding := req.Arguments()[0]
+		inputenc, found, err := req.Option("inputenc").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if !found {
+			inputenc = "json"
+		}
 
-		output, err := objectPut(n, input, encoding)
+		output, err := objectPut(n, input, inputenc)
 		if err != nil {
 			errType := cmds.ErrNormal
 			if err == ErrUnknownObjectEnc {
