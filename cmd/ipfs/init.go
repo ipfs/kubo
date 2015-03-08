@@ -28,7 +28,6 @@ var initCmd = &cmds.Command{
 
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
-		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 
 		// TODO need to decide whether to expose the override as a file or a
@@ -49,6 +48,7 @@ var initCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
 		if !bitsOptFound {
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
@@ -75,28 +75,26 @@ func initWithDefaults(out io.Writer, repoRoot string) error {
 	return debugerror.Wrap(err)
 }
 
-func writef(out io.Writer, format string, ifs ...interface{}) error {
-	_, err := out.Write([]byte(fmt.Sprintf(format, ifs...)))
-	return err
-}
-
 func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
-	if err := writef(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
+	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
 
 	if fsrepo.IsInitialized(repoRoot) && !force {
 		return errRepoExists
 	}
+
 	conf, err := config.Init(out, nBitsForKeypair)
 	if err != nil {
 		return err
 	}
+
 	if fsrepo.IsInitialized(repoRoot) {
 		if err := fsrepo.Remove(repoRoot); err != nil {
 			return err
 		}
 	}
+
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
 		return err
 	}
@@ -111,10 +109,12 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 func addDefaultAssets(out io.Writer, repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	r := fsrepo.At(repoRoot)
 	if err := r.Open(); err != nil { // NB: repo is owned by the node
 		return err
 	}
+
 	nd, err := core.NewIPFSNode(ctx, core.Offline(r))
 	if err != nil {
 		return err
@@ -130,6 +130,7 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		if err != nil {
 			return err
 		}
+
 		k := u.B58KeyDecode(s)
 		if err := dirb.AddChild(fname, k); err != nil {
 			return err
@@ -141,15 +142,21 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	if err != nil {
 		return err
 	}
+
 	if err := nd.Pinning.Pin(dir, true); err != nil {
 		return err
 	}
+
 	if err := nd.Pinning.Flush(); err != nil {
 		return err
 	}
 
-	writef(out, "to get started, enter:\n")
-	return writef(out, "\n\tipfs cat /ipfs/%s/readme\n\n", dkey)
+	if _, err = fmt.Fprintf(out, "to get started, enter:\n"); err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "\n\tipfs cat /ipfs/%s/readme\n\n", dkey)
+	return err
 }
 
 func initializeIpnsKeyspace(repoRoot string) error {
