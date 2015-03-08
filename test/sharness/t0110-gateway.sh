@@ -23,9 +23,9 @@ apiport=$PORT_API
 # for now we check 5001 here as 5002 will be checked in gateway-writable.
 
 test_expect_success "GET IPFS path succeeds" '
-  echo "Hello Worlds!" > expected &&
-  HASH=`ipfs add -q expected` &&
-  wget "http://127.0.0.1:$port/ipfs/$HASH" -O actual
+  echo "Hello Worlds!" >expected &&
+  HASH=$(ipfs add -q expected) &&
+  curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 
 test_expect_success "GET IPFS path output looks good" '
@@ -35,13 +35,14 @@ test_expect_success "GET IPFS path output looks good" '
 
 test_expect_success "GET IPFS directory path succeeds" '
   mkdir dir &&
-  echo "12345" > dir/test &&
-  HASH2=`ipfs add -r -q dir | tail -n 1` &&
-  wget "http://127.0.0.1:$port/ipfs/$HASH2"
+  echo "12345" >dir/test &&
+  ipfs add -r -q dir >actual &&
+  HASH2=$(tail -n 1 actual) &&
+  curl -sf "http://127.0.0.1:$port/ipfs/$HASH2"
 '
 
 test_expect_success "GET IPFS directory file succeeds" '
-  wget "http://127.0.0.1:$port/ipfs/$HASH2/test" -O actual
+  curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH2/test"
 '
 
 test_expect_success "GET IPFS directory file output looks good" '
@@ -50,8 +51,8 @@ test_expect_success "GET IPFS directory file output looks good" '
 
 test_expect_failure "GET IPNS path succeeds" '
   ipfs name publish "$HASH" &&
-  NAME=`ipfs config Identity.PeerID` &&
-  wget "http://127.0.0.1:$port/ipns/$NAME" -O actual
+  NAME=$(ipfs config Identity.PeerID) &&
+  curl -sfo actual "http://127.0.0.1:$port/ipns/$NAME"
 '
 
 test_expect_failure "GET IPNS path output looks good" '
@@ -59,11 +60,11 @@ test_expect_failure "GET IPNS path output looks good" '
 '
 
 test_expect_success "GET invalid IPFS path errors" '
-  test_must_fail wget http://127.0.0.1:$port/ipfs/12345
+  test_must_fail curl -sf "http://127.0.0.1:$port/ipfs/12345"
 '
 
 test_expect_success "GET invalid path errors" '
-  test_must_fail wget http://127.0.0.1:$port/12345
+  test_must_fail curl -sf "http://127.0.0.1:$port/12345"
 '
 
 test_expect_success "GET /webui returns code expected" '
