@@ -227,21 +227,40 @@ func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 func (bs *Bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
 	set := pset.New()
 	wg := sync.WaitGroup{}
-	for peerToQuery := range peers {
 
-		if !set.TryAdd(peerToQuery) { //Do once per peer
-			continue
-		}
-
-		wg.Add(1)
-		go func(p peer.ID) {
-			defer wg.Done()
-			if err := bs.send(ctx, p, m); err != nil {
-				log.Debug(err) // TODO remove if too verbose
+loop:
+	for {
+		select {
+		case peerToQuery, ok := <-peers:
+			if !ok {
+				break loop
 			}
-		}(peerToQuery)
+
+			if !set.TryAdd(peerToQuery) { //Do once per peer
+				continue
+			}
+
+			wg.Add(1)
+			go func(p peer.ID) {
+				defer wg.Done()
+				if err := bs.send(ctx, p, m); err != nil {
+					log.Debug(err) // TODO remove if too verbose
+				}
+			}(peerToQuery)
+		case <-ctx.Done():
+			return nil
+		}
 	}
-	wg.Wait()
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+	}
 	return nil
 }
 
@@ -385,7 +404,15 @@ func (bs *Bitswap) wantNewBlocks(ctx context.Context, bkeys []u.Key) {
 			}
 		}(p)
 	}
-	wg.Wait()
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+	}
 }
 
 func (bs *Bitswap) ReceiveError(err error) {
