@@ -20,6 +20,10 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
+var ErrSeekFail = errors.New("failed to seek properly")
+var ErrSeekEndNotImpl = errors.New("SEEK_END currently not implemented")
+var ErrUnrecognizedWhence = errors.New("unrecognized whence")
+
 // 2MB
 var writebufferSize = 1 << 21
 
@@ -199,6 +203,8 @@ func (dm *DagModifier) Flush() error {
 }
 
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
+// returns the new key of the passed in node and whether or not all the data in the reader
+// has been consumed.
 func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (u.Key, bool, error) {
 	f, err := ft.FromBytes(node.Data)
 	if err != nil {
@@ -291,7 +297,7 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 		}
 
 		if i != int64(dm.curWrOff) {
-			return 0, errors.New("failed to seek properly")
+			return 0, ErrSeekFail
 		}
 
 		dm.read = dr
@@ -300,28 +306,6 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 	n, err := dm.read.Read(b)
 	dm.curWrOff += uint64(n)
 	return n, err
-}
-
-// splitBytes uses a splitterFunc to turn a large array of bytes
-// into many smaller arrays of bytes
-func (dm *DagModifier) splitBytes(in io.Reader) ([]u.Key, error) {
-	var out []u.Key
-	blks := dm.splitter.Split(in)
-	for blk := range blks {
-		nd := help.NewUnixfsNode()
-		nd.SetData(blk)
-		dagnd, err := nd.GetDagNode()
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := dm.dagserv.Add(dagnd)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, k)
-	}
-	return out, nil
 }
 
 // GetNode gets the modified DAG Node
@@ -352,9 +336,9 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 		dm.curWrOff = uint64(offset)
 		dm.writeStart = uint64(offset)
 	case os.SEEK_END:
-		return 0, errors.New("SEEK_END currently not implemented")
+		return 0, ErrSeekEndNotImpl
 	default:
-		return 0, errors.New("unrecognized whence")
+		return 0, ErrUnrecognizedWhence
 	}
 
 	if dm.read != nil {
@@ -425,6 +409,7 @@ func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, er
 			return nil, err
 		}
 
+		// found the child we want to cut
 		if size < cur+childsize {
 			nchild, err := dagTruncate(child, size-cur, ds)
 			if err != nil {
