@@ -18,6 +18,16 @@ type UpdateOutput struct {
 
 var UpdateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
+		Tagline: "Downloads and installs updates for IPFS (disabled)",
+		ShortDescription: `ipfs update is disabled until we can deploy the binaries to you over ipfs itself.
+
+		please use 'go get -u github.com/jbenet/go-ipfs/cmd/ipfs' until then.`,
+	},
+}
+
+// TODO: unexported until we can deploy the binaries over ipfs
+var updateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
 		Tagline:          "Downloads and installs updates for IPFS",
 		ShortDescription: "ipfs update is a utility command used to check for updates and apply them.",
 	},
