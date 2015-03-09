@@ -132,6 +132,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// our global interrupt handler may try to stop the daemon
+	// before the daemon is ready to be stopped; this dirty
+	// workaround is for the daemon only; other commands are always
+	// ready to be stopped
+	if invoc.cmd != daemonCmd {
+		close(invoc.req.Context().ContextIsReadyToBeClosed)
+	}
+
 	// ok, finally, run the command invocation.
 	output, err := invoc.Run(ctx)
 	if err != nil {
@@ -473,6 +481,9 @@ func (i *cmdInvocation) setupInterruptHandler() {
 	sig := allInterruptSignals()
 
 	go func() {
+		// wait till the context is ready to be closed
+		<-ctx.ContextIsReadyToBeClosed
+
 		// first time, try to shut down.
 
 		// loop because we may be

@@ -267,6 +267,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		gateway.ServeOption(),
 		corehttp.VersionOption(),
 	}
+
+	// our global interrupt handler can now try to stop the daemon
+	close(req.Context().ContextIsReadyToBeClosed)
+
 	if rootRedirect != nil {
 		opts = append(opts, rootRedirect)
 	}
