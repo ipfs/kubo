@@ -125,7 +125,7 @@ func run() error {
 
 func ensureRepoInitialized(path string) error {
 	if !fsrepo.IsInitialized(path) {
-		conf, err := config.Init(ioutil.Discard, *nBitsForKeypair)
+		conf, err := config.Init(ioutil.Discard, *nBitsForKeypair, config.Addresses{})
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func runFileAddingWorker(n *core.IpfsNode) error {
 }
 
 func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
-	conf, err := config.Init(ioutil.Discard, *nBitsForKeypair)
+	conf, err := config.Init(ioutil.Discard, *nBitsForKeypair, config.Addresses{})
 	if err != nil {
 		return err
 	}

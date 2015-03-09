@@ -56,7 +56,7 @@ var initCmd = &cmds.Command{
 		rpipe, wpipe := io.Pipe()
 		go func() {
 			defer wpipe.Close()
-			if err := doInit(wpipe, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
+			if err := doInit(wpipe, req.Context().ConfigRoot, force, nBitsForKeypair, config.Addresses{}); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
@@ -70,8 +70,8 @@ Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
 
-func initWithDefaults(out io.Writer, repoRoot string) error {
-	err := doInit(out, repoRoot, false, nBitsForKeypairDefault)
+func initWithDefaults(out io.Writer, repoRoot string, addresses config.Addresses) error {
+	err := doInit(out, repoRoot, false, nBitsForKeypairDefault, addresses)
 	return debugerror.Wrap(err)
 }
 
@@ -80,7 +80,7 @@ func writef(out io.Writer, format string, ifs ...interface{}) error {
 	return err
 }
 
-func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
+func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int, addresses config.Addresses) error {
 	if err := writef(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 	if fsrepo.IsInitialized(repoRoot) && !force {
 		return errRepoExists
 	}
-	conf, err := config.Init(out, nBitsForKeypair)
+	conf, err := config.Init(out, nBitsForKeypair, addresses)
 	if err != nil {
 		return err
 	}
