@@ -23,7 +23,7 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-func getMockDagServ(t *testing.T) mdag.DAGService {
+func getMockDagServ(t testing.TB) mdag.DAGService {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
@@ -34,7 +34,7 @@ func getMockDagServ(t *testing.T) mdag.DAGService {
 	return mdag.NewDAGService(bserv)
 }
 
-func getNode(t *testing.T, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
+func getNode(t testing.TB, dserv mdag.DAGService, size int64) ([]byte, *mdag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	node, err := imp.BuildTrickleDagFromReader(in, dserv, nil, &chunk.SizeSplitter{500})
 	if err != nil {
@@ -420,6 +420,35 @@ func TestDagTruncate(t *testing.T) {
 
 	if err = arrComp(out, b[:12345]); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func BenchmarkDagmodWrite(b *testing.B) {
+	b.StopTimer()
+	dserv := getMockDagServ(b)
+	_, n := getNode(b, dserv, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	wrsize := 4096
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, nil, &chunk.SizeSplitter{Size: 512})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	buf := make([]byte, b.N*wrsize)
+	u.NewTimeSeededRand().Read(buf)
+	b.StartTimer()
+	b.SetBytes(int64(wrsize))
+	for i := 0; i < b.N; i++ {
+		n, err := dagmod.Write(buf[i*wrsize : (i+1)*wrsize])
+		if err != nil {
+			b.Fatal(err)
+		}
+		if n != wrsize {
+			b.Fatal("Wrote bad size")
+		}
 	}
 }
 
