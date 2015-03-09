@@ -42,7 +42,7 @@ ADVANCED COMMANDS
     mount         Mount an ipfs read-only mountpoint
     name          Publish or resolve IPNS names
     pin           Pin objects to local storage
-    gc            Garbage collect unpinned objects
+    repo gc       Garbage collect unpinned objects
 
 NETWORK COMMANDS
 
