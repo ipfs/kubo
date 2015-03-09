@@ -17,7 +17,6 @@ import (
 	pin "github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -56,9 +55,10 @@ func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, 
 }
 
 // WriteAt will modify a dag file in place
-// NOTE: it currently assumes only a single level of indirection
 func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 	// TODO: this is currently VERY inneficient
+	// each write that happens at an offset other than the current one causes a
+	// flush to disk, and dag rewrite
 	if uint64(offset) != dm.curWrOff {
 		size, err := dm.Size()
 		if err != nil {
@@ -91,6 +91,8 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// expandSparse grows the file with zero blocks of 4096
+// A small blocksize is chosen to aid in deduplication
 func (dm *DagModifier) expandSparse(size int64) error {
 	spl := chunk.SizeSplitter{4096}
 	r := io.LimitReader(zeroReader{}, size)
@@ -107,6 +109,7 @@ func (dm *DagModifier) expandSparse(size int64) error {
 	return nil
 }
 
+// Write continues writing to the dag at the current offset
 func (dm *DagModifier) Write(b []byte) (int, error) {
 	if dm.read != nil {
 		dm.read = nil
@@ -114,6 +117,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 	if dm.wrBuf == nil {
 		dm.wrBuf = new(bytes.Buffer)
 	}
+
 	n, err := dm.wrBuf.Write(b)
 	if err != nil {
 		return n, err
@@ -143,7 +147,9 @@ func (dm *DagModifier) Size() (int64, error) {
 	return int64(pbn.GetFilesize()), nil
 }
 
+// Flush writes changes to this dag to disk
 func (dm *DagModifier) Flush() error {
+	// No buffer? Nothing to do
 	if dm.wrBuf == nil {
 		return nil
 	}
@@ -154,9 +160,11 @@ func (dm *DagModifier) Flush() error {
 		dm.readCancel()
 	}
 
+	// Number of bytes we're going to write
 	buflen := dm.wrBuf.Len()
 
-	k, _, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
+	// overwrite existing dag nodes
+	k, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
 	if err != nil {
 		return err
 	}
@@ -168,6 +176,7 @@ func (dm *DagModifier) Flush() error {
 
 	dm.curNode = nd
 
+	// need to write past end of current dag
 	if !done {
 		blks := dm.splitter.Split(dm.wrBuf)
 		nd, err = dm.appendData(dm.curNode, blks)
@@ -189,28 +198,30 @@ func (dm *DagModifier) Flush() error {
 	return nil
 }
 
-func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (u.Key, int, bool, error) {
+// modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
+func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (u.Key, bool, error) {
 	f, err := ft.FromBytes(node.Data)
 	if err != nil {
-		return "", 0, false, err
+		return "", false, err
 	}
 
-	if len(node.Links) == 0 && (f.GetType() == ftpb.Data_Raw || f.GetType() == ftpb.Data_File) {
+	// If we've reached a leaf node.
+	if len(node.Links) == 0 {
 		n, err := data.Read(f.Data[offset:])
 		if err != nil && err != io.EOF {
-			return "", 0, false, err
+			return "", false, err
 		}
 
 		// Update newly written node..
 		b, err := proto.Marshal(f)
 		if err != nil {
-			return "", 0, false, err
+			return "", false, err
 		}
 
 		nd := &mdag.Node{Data: b}
 		k, err := dm.dagserv.Add(nd)
 		if err != nil {
-			return "", 0, false, err
+			return "", false, err
 		}
 
 		// Hey look! we're done!
@@ -219,23 +230,21 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			done = true
 		}
 
-		return k, n, done, nil
+		return k, done, nil
 	}
 
 	var cur uint64
 	var done bool
-	var totread int
 	for i, bs := range f.GetBlocksizes() {
 		if cur+bs > offset {
 			child, err := node.Links[i].GetNode(dm.dagserv)
 			if err != nil {
-				return "", 0, false, err
+				return "", false, err
 			}
-			k, nread, sdone, err := dm.modifyDag(child, offset-cur, data)
+			k, sdone, err := dm.modifyDag(child, offset-cur, data)
 			if err != nil {
-				return "", 0, false, err
+				return "", false, err
 			}
-			totread += nread
 
 			offset += bs
 			node.Links[i].Hash = mh.Multihash(k)
@@ -249,9 +258,10 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	}
 
 	k, err := dm.dagserv.Add(node)
-	return k, totread, done, err
+	return k, done, err
 }
 
+// appendData appends the blocks from the given chan to the end of this dag
 func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
@@ -262,6 +272,7 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.No
 	return trickle.TrickleAppend(node, dbp.New(blks))
 }
 
+// Read data from this dag starting at the current offset
 func (dm *DagModifier) Read(b []byte) (int, error) {
 	err := dm.Flush()
 	if err != nil {
@@ -322,6 +333,7 @@ func (dm *DagModifier) GetNode() (*mdag.Node, error) {
 	return dm.curNode.Copy(), nil
 }
 
+// HasChanges returned whether or not there are unflushed changes to this dag
 func (dm *DagModifier) HasChanges() bool {
 	return dm.wrBuf != nil
 }
@@ -366,8 +378,9 @@ func (dm *DagModifier) Truncate(size int64) error {
 		return err
 	}
 
+	// Truncate can also be used to expand the file
 	if size > int64(realSize) {
-		return errors.New("Cannot extend file through truncate")
+		return dm.expandSparse(int64(size) - realSize)
 	}
 
 	nnode, err := dagTruncate(dm.curNode, uint64(size), dm.dagserv)
@@ -384,6 +397,7 @@ func (dm *DagModifier) Truncate(size int64) error {
 	return nil
 }
 
+// dagTruncate truncates the given node to 'size' and returns the modified Node
 func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, error) {
 	if len(nd.Links) == 0 {
 		// TODO: this can likely be done without marshaling and remarshaling
