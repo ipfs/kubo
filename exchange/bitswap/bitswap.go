@@ -260,6 +260,9 @@ loop:
 	select {
 	case <-done:
 	case <-ctx.Done():
+		// NB: we may be abandoning goroutines here before they complete
+		// this shouldnt be an issue because they will complete soon anyways
+		// we just don't want their being slow to impact bitswap transfer speeds
 	}
 	return nil
 }
@@ -412,6 +415,9 @@ func (bs *Bitswap) wantNewBlocks(ctx context.Context, bkeys []u.Key) {
 	select {
 	case <-done:
 	case <-ctx.Done():
+		// NB: we may be abandoning goroutines here before they complete
+		// this shouldnt be an issue because they will complete soon anyways
+		// we just don't want their being slow to impact bitswap transfer speeds
 	}
 }
 
