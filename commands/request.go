@@ -15,7 +15,7 @@ import (
 	u "github.com/jbenet/go-ipfs/util"
 )
 
-type optMap map[string]interface{}
+type OptMap map[string]interface{}
 
 type Context struct {
 	// this Context is temporary. Will be replaced soon, as we get
@@ -68,9 +68,9 @@ func (c *Context) NodeWithoutConstructing() *core.IpfsNode {
 type Request interface {
 	Path() []string
 	Option(name string) *OptionValue
-	Options() optMap
+	Options() OptMap
 	SetOption(name string, val interface{})
-	SetOptions(opts map[string]interface{}) error
+	SetOptions(opts OptMap) error
 	Arguments() []string
 	SetArguments([]string)
 	Files() files.File
@@ -86,7 +86,7 @@ type Request interface {
 
 type request struct {
 	path       []string
-	options    optMap
+	options    OptMap
 	arguments  []string
 	files      files.File
 	cmd        *Command
@@ -122,8 +122,8 @@ func (r *request) Option(name string) *OptionValue {
 }
 
 // Options returns a copy of the option map
-func (r *request) Options() optMap {
-	output := make(optMap)
+func (r *request) Options() OptMap {
+	output := make(OptMap)
 	for k, v := range r.options {
 		output[k] = v
 	}
@@ -151,7 +151,7 @@ func (r *request) SetOption(name string, val interface{}) {
 }
 
 // SetOptions sets the option values, unsetting any values that were previously set
-func (r *request) SetOptions(opts map[string]interface{}) error {
+func (r *request) SetOptions(opts OptMap) error {
 	r.options = opts
 	return r.ConvertOptions()
 }
@@ -273,12 +273,12 @@ func NewEmptyRequest() (Request, error) {
 
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
-func NewRequest(path []string, opts optMap, args []string, file files.File, cmd *Command, optDefs map[string]Option) (Request, error) {
+func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd *Command, optDefs map[string]Option) (Request, error) {
 	if path == nil {
 		path = make([]string, 0)
 	}
 	if opts == nil {
-		opts = make(map[string]interface{})
+		opts = make(OptMap)
 	}
 	if args == nil {
 		args = make([]string, 0)
