@@ -16,6 +16,7 @@ import (
 	merkledag "github.com/jbenet/go-ipfs/merkledag"
 	mdtest "github.com/jbenet/go-ipfs/merkledag/test"
 	pin "github.com/jbenet/go-ipfs/pin"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	uio "github.com/jbenet/go-ipfs/unixfs/io"
 	u "github.com/jbenet/go-ipfs/util"
 )
@@ -29,7 +30,12 @@ func buildTestDag(r io.Reader, ds merkledag.DAGService, spl chunk.BlockSplitter)
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return TrickleLayout(dbp.New(blkch))
+	nd, err := TrickleLayout(dbp.New(blkch))
+	if err != nil {
+		return nil, err
+	}
+
+	return nd, VerifyTrickleDagStructure(nd, ds, dbp.Maxlinks, layerRepeat)
 }
 
 //Test where calls to read are smaller than the chunk size
@@ -440,4 +446,177 @@ func TestSeekingConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestAppend(t *testing.T) {
+	nbytes := int64(128 * 1024)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	// Reader for half the bytes
+	read := bytes.NewReader(should[:nbytes/2])
+	ds := mdtest.Mock(t)
+	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dbp := &h.DagBuilderParams{
+		Dagserv:  ds,
+		Maxlinks: h.DefaultLinksPerBlock,
+	}
+
+	spl := &chunk.SizeSplitter{500}
+	blks := spl.Split(bytes.NewReader(should[nbytes/2:]))
+
+	nnode, err := TrickleAppend(nd, dbp.New(blks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = VerifyTrickleDagStructure(nnode, ds, dbp.Maxlinks, layerRepeat)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(fread)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = arrComp(out, should)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// This test appends one byte at a time to an empty file
+func TestMultipleAppends(t *testing.T) {
+	ds := mdtest.Mock(t)
+
+	// TODO: fix small size appends and make this number bigger
+	nbytes := int64(1000)
+	should := make([]byte, nbytes)
+	u.NewTimeSeededRand().Read(should)
+
+	read := bytes.NewReader(nil)
+	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dbp := &h.DagBuilderParams{
+		Dagserv:  ds,
+		Maxlinks: 4,
+	}
+
+	spl := &chunk.SizeSplitter{500}
+
+	for i := 0; i < len(should); i++ {
+		blks := spl.Split(bytes.NewReader(should[i : i+1]))
+
+		nnode, err := TrickleAppend(nd, dbp.New(blks))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = VerifyTrickleDagStructure(nnode, ds, dbp.Maxlinks, layerRepeat)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		out, err := ioutil.ReadAll(fread)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = arrComp(out, should[:i+1])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestAppendSingleBytesToEmpty(t *testing.T) {
+	ds := mdtest.Mock(t)
+
+	data := []byte("AB")
+
+	nd := new(merkledag.Node)
+	nd.Data = ft.FilePBData(nil, 0)
+
+	dbp := &h.DagBuilderParams{
+		Dagserv:  ds,
+		Maxlinks: 4,
+	}
+
+	spl := &chunk.SizeSplitter{500}
+
+	blks := spl.Split(bytes.NewReader(data[:1]))
+
+	nnode, err := TrickleAppend(nd, dbp.New(blks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	blks = spl.Split(bytes.NewReader(data[1:]))
+
+	nnode, err = TrickleAppend(nnode, dbp.New(blks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fread, err := uio.NewDagReader(context.TODO(), nnode, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ioutil.ReadAll(fread)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(out, data)
+	err = arrComp(out, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func printDag(nd *merkledag.Node, ds merkledag.DAGService, indent int) {
+	pbd, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < indent; i++ {
+		fmt.Print(" ")
+	}
+	fmt.Printf("{size = %d, type = %s, nc = %d", pbd.GetFilesize(), pbd.GetType().String(), len(pbd.GetBlocksizes()))
+	if len(nd.Links) > 0 {
+		fmt.Println()
+	}
+	for _, lnk := range nd.Links {
+		child, err := lnk.GetNode(ds)
+		if err != nil {
+			panic(err)
+		}
+		printDag(child, ds, indent+1)
+	}
+	if len(nd.Links) > 0 {
+		for i := 0; i < indent; i++ {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Println("}")
 }
