@@ -379,6 +379,9 @@ func objectGet(n *core.IpfsNode, fpath path.Path) (*dag.Node, error) {
 	return dagnode, nil
 }
 
+// ErrEmptyNode is returned when the input to 'ipfs object put' contains no data
+var ErrEmptyNode = errors.New("no data or links in this node")
+
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
 func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, error) {
 	var (
@@ -402,6 +405,12 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 		err = json.Unmarshal(data, node)
 		if err != nil {
 			return nil, err
+		}
+
+		// check that we have data in the Node to add
+		// otherwise we will add the empty object without raising an error
+		if node.Data == "" && len(node.Links) == 0 {
+			return nil, ErrEmptyNode
 		}
 
 		dagnode, err = deserializeNode(node)
