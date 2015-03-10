@@ -134,7 +134,7 @@ func appendFillLastChild(ufsn *h.UnixfsNode, depth int, layerFill int, db *h.Dag
 	}
 
 	// Update changed child in parent node
-	ufsn.RemoveChild(last)
+	ufsn.RemoveChild(last, db)
 	err = ufsn.AddChild(nchild, db)
 	if err != nil {
 		return err

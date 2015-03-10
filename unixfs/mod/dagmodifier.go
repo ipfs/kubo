@@ -172,13 +172,19 @@ func (dm *DagModifier) Flush() error {
 	// Number of bytes we're going to write
 	buflen := dm.wrBuf.Len()
 
-	// overwrite existing dag nodes
-	k, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
+	// Grab key for unpinning after mod operation
+	curk, err := dm.curNode.Key()
 	if err != nil {
 		return err
 	}
 
-	nd, err := dm.dagserv.Get(k)
+	// overwrite existing dag nodes
+	thisk, done, err := dm.modifyDag(dm.curNode, dm.writeStart, dm.wrBuf)
+	if err != nil {
+		return err
+	}
+
+	nd, err := dm.dagserv.Get(thisk)
 	if err != nil {
 		return err
 	}
@@ -193,12 +199,20 @@ func (dm *DagModifier) Flush() error {
 			return err
 		}
 
-		_, err := dm.dagserv.Add(nd)
+		thisk, err = dm.dagserv.Add(nd)
 		if err != nil {
 			return err
 		}
 
 		dm.curNode = nd
+	}
+
+	// Finalize correct pinning, and flush pinner
+	dm.mp.PinWithMode(thisk, pin.Recursive)
+	dm.mp.RemovePinWithMode(curk, pin.Recursive)
+	err = dm.mp.Flush()
+	if err != nil {
+		return err
 	}
 
 	dm.writeStart += uint64(buflen)
@@ -237,7 +251,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 
 		// Hey look! we're done!
 		var done bool
-		if n < len(f.Data) {
+		if n < len(f.Data[offset:]) {
 			done = true
 		}
 
@@ -249,6 +263,10 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	for i, bs := range f.GetBlocksizes() {
 		// We found the correct child to write into
 		if cur+bs > offset {
+			// Unpin block
+			ckey := u.Key(node.Links[i].Hash)
+			dm.mp.RemovePinWithMode(ckey, pin.Indirect)
+
 			child, err := node.Links[i].GetNode(dm.dagserv)
 			if err != nil {
 				return "", false, err
@@ -258,14 +276,24 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 				return "", false, err
 			}
 
+			// pin the new node
+			dm.mp.PinWithMode(k, pin.Indirect)
+
 			offset += bs
 			node.Links[i].Hash = mh.Multihash(k)
+
+			// Recache serialized node
+			_, err = node.Encoded(true)
+			if err != nil {
+				return "", false, err
+			}
 
 			if sdone {
 				// No more bytes to write!
 				done = true
 				break
 			}
+			offset = cur + bs
 		}
 		cur += bs
 	}
@@ -293,7 +321,8 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 	}
 
 	if dm.read == nil {
-		dr, err := uio.NewDagReader(dm.ctx, dm.curNode, dm.dagserv)
+		ctx, cancel := context.WithCancel(dm.ctx)
+		dr, err := uio.NewDagReader(ctx, dm.curNode, dm.dagserv)
 		if err != nil {
 			return 0, err
 		}
@@ -307,6 +336,7 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 			return 0, ErrSeekFail
 		}
 
+		dm.readCancel = cancel
 		dm.read = dr
 	}
 
@@ -450,6 +480,12 @@ func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, er
 	}
 
 	nd.Data = d
+
+	// invalidate cache and recompute serialized data
+	_, err = nd.Encoded(true)
+	if err != nil {
+		return nil, err
+	}
 
 	return nd, nil
 }

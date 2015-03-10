@@ -7,6 +7,7 @@ import (
 	dag "github.com/jbenet/go-ipfs/merkledag"
 	"github.com/jbenet/go-ipfs/pin"
 	ft "github.com/jbenet/go-ipfs/unixfs"
+	u "github.com/jbenet/go-ipfs/util"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -115,7 +116,11 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 }
 
 // Removes the child node at the given index
-func (n *UnixfsNode) RemoveChild(index int) {
+func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
+	k := u.Key(n.node.Links[index].Hash)
+	if dbh.mp != nil {
+		dbh.mp.RemovePinWithMode(k, pin.Indirect)
+	}
 	n.ufmt.RemoveBlockSize(index)
 	n.node.Links = append(n.node.Links[:index], n.node.Links[index+1:]...)
 }
