@@ -82,5 +82,16 @@ test_expect_success "'ipfs object put' from stdin (pb) output looks good" '
 	test_cmp expected_putStdinOut actual_putPbStdinOut
 '
 
+test_expect_success "'ipfs object put broken.json' should fail" '
+  test_expect_code 1 ipfs object put ../t0051-object-data/brokenPut.json 2>actual_putBrokenErr >actual_putBroken
+'
+
+test_expect_success "'ipfs object put broken.hjson' output looks good" '
+  touch expected_putBroken &&
+  printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
+  test_cmp expected_putBroken actual_putBroken &&
+  test_cmp expected_putBrokenErr actual_putBrokenErr
+'
+
 
 test_done
