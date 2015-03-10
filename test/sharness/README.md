@@ -16,7 +16,6 @@ The usual ipfs env flags also apply:
 IPFS_LOGGING=debug TEST_VERBOSE=1 make
 ```
 
-
 ## Running just one test
 
 You can run only one test script by launching it like a regular shell
@@ -24,6 +23,16 @@ script:
 
 ```
 $ ./t0010-basic-commands.sh
+```
+
+## Debugging one test
+
+You can use the `-v` option to make it verbose and the `-i` option to
+make it stop as soon as one test fails.
+For example:
+
+```
+$ ./t0010-basic-commands.sh -v -i
 ```
 
 ## Sharness
@@ -40,6 +49,17 @@ send pull requests there.
 
 ## Writing Tests
 
+Please have a look at existing tests and try to follow their example.
+
+When possible and not too inefficient, that means most of the time,
+an ipfs command should not be on the left side of a pipe, because if
+the ipfs command fails (exit non zero), the pipe will mask this failure.
+For example after `false | true`, `echo $?` prints 0 (despite `false`
+failing).
+
+It should be possible to put most of the code inside `test_expect_success`,
+or sometimes `test_expect_failure`, blocks, and to chain all the commands
+inside those blocks with `&&`, or `||` for diagnostic commands.
 
 ### Diagnostics
 
