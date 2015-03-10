@@ -13,19 +13,19 @@ import (
 	unixfspb "github.com/jbenet/go-ipfs/unixfs/pb"
 )
 
-type Link struct {
+type LsLink struct {
 	Name, Hash string
 	Size       uint64
-	IsDir      bool
+	Type       unixfspb.Data_DataType
 }
 
-type Object struct {
+type LsObject struct {
 	Hash  string
-	Links []Link
+	Links []LsLink
 }
 
 type LsOutput struct {
-	Objects []Object
+	Objects []LsObject
 }
 
 var LsCmd = &cmds.Command{
@@ -61,11 +61,11 @@ it contains, with the following format:
 			dagnodes = append(dagnodes, dagnode)
 		}
 
-		output := make([]Object, len(req.Arguments()))
+		output := make([]LsObject, len(req.Arguments()))
 		for i, dagnode := range dagnodes {
-			output[i] = Object{
+			output[i] = LsObject{
 				Hash:  paths[i],
-				Links: make([]Link, len(dagnode.Links)),
+				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
 				link.Node, err = link.GetNode(node.DAG)
@@ -78,11 +78,11 @@ it contains, with the following format:
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
-				output[i].Links[j] = Link{
-					Name:  link.Name,
-					Hash:  link.Hash.B58String(),
-					Size:  link.Size,
-					IsDir: d.GetType() == unixfspb.Data_Directory,
+				output[i].Links[j] = LsLink{
+					Name: link.Name,
+					Hash: link.Hash.B58String(),
+					Size: link.Size,
+					Type: d.GetType(),
 				}
 			}
 		}
@@ -98,7 +98,13 @@ it contains, with the following format:
 				if len(output) > 1 {
 					fmt.Fprintf(w, "%s:\n", object.Hash)
 				}
-				marshalLinks(w, object.Links)
+				fmt.Fprintln(w, "Hash\tSize\tName\t")
+				for _, link := range object.Links {
+					if link.Type == unixfspb.Data_Directory {
+						link.Name += "/"
+					}
+					fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
+				}
 				if len(output) > 1 {
 					fmt.Fprintln(w)
 				}
@@ -109,14 +115,4 @@ it contains, with the following format:
 		},
 	},
 	Type: LsOutput{},
-}
-
-func marshalLinks(w io.Writer, links []Link) {
-	fmt.Fprintln(w, "Hash\tSize\tName\t")
-	for _, link := range links {
-		if link.IsDir {
-			link.Name += "/"
-		}
-		fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
-	}
 }

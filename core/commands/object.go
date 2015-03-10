@@ -28,6 +28,16 @@ type Node struct {
 	Data  string
 }
 
+type Link struct {
+	Name, Hash string
+	Size       uint64
+}
+
+type Object struct {
+	Hash  string
+	Links []Link
+}
+
 var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with ipfs objects",
@@ -123,7 +133,10 @@ multihash.
 			object := res.Output().(*Object)
 			var buf bytes.Buffer
 			w := tabwriter.NewWriter(&buf, 1, 2, 1, ' ', 0)
-			marshalLinks(w, object.Links)
+			fmt.Fprintln(w, "Hash\tSize\tName\t")
+			for _, link := range object.Links {
+				fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
+			}
 			w.Flush()
 			return &buf, nil
 		},
