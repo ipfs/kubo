@@ -137,15 +137,15 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 }
 
 func (dm *DagModifier) Size() (int64, error) {
-	// TODO: compute size without flushing, should be easy
-	err := dm.Flush()
+	pbn, err := ft.FromBytes(dm.curNode.Data)
 	if err != nil {
 		return 0, err
 	}
 
-	pbn, err := ft.FromBytes(dm.curNode.Data)
-	if err != nil {
-		return 0, err
+	if dm.wrBuf != nil {
+		if uint64(dm.wrBuf.Len())+dm.writeStart > pbn.GetFilesize() {
+			return int64(dm.wrBuf.Len()) + int64(dm.writeStart), nil
+		}
 	}
 
 	return int64(pbn.GetFilesize()), nil

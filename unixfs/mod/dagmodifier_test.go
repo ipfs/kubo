@@ -177,6 +177,15 @@ func TestMultiWrite(t *testing.T) {
 		if n != 1 {
 			t.Fatal("Somehow wrote the wrong number of bytes! (n != 1)")
 		}
+
+		size, err := dagmod.Size()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if size != int64(i+1) {
+			t.Fatal("Size was reported incorrectly")
+		}
 	}
 	nd, err := dagmod.GetNode()
 	if err != nil {
@@ -305,6 +314,7 @@ func TestMultiWriteCoal(t *testing.T) {
 	u.NewTimeSeededRand().Read(data)
 
 	for i := 0; i < len(data); i++ {
+		log.Error(i)
 		n, err := dagmod.WriteAt(data[:i+1], 0)
 		if err != nil {
 			fmt.Println("FAIL AT ", i)
@@ -314,29 +324,6 @@ func TestMultiWriteCoal(t *testing.T) {
 			t.Fatal("Somehow wrote the wrong number of bytes! (n != 1)")
 		}
 
-		// TEMP
-		nn, err := dagmod.GetNode()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		r, err := uio.NewDagReader(ctx, nn, dserv)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		out, err := ioutil.ReadAll(r)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if err := arrComp(out, data[:i+1]); err != nil {
-			fmt.Println("A ", len(out))
-			fmt.Println(out)
-			fmt.Println(data[:i+1])
-			t.Fatal(err)
-		}
-		//
 	}
 	nd, err := dagmod.GetNode()
 	if err != nil {
