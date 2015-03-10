@@ -314,7 +314,6 @@ func TestMultiWriteCoal(t *testing.T) {
 	u.NewTimeSeededRand().Read(data)
 
 	for i := 0; i < len(data); i++ {
-		log.Error(i)
 		n, err := dagmod.WriteAt(data[:i+1], 0)
 		if err != nil {
 			fmt.Println("FAIL AT ", i)

@@ -63,7 +63,12 @@ func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 	// TODO: this is currently VERY inneficient
 	// each write that happens at an offset other than the current one causes a
 	// flush to disk, and dag rewrite
-	if uint64(offset) != dm.curWrOff {
+	if offset == int64(dm.writeStart) && dm.wrBuf != nil {
+		// If we would overwrite the previous write
+		if len(b) >= dm.wrBuf.Len() {
+			dm.wrBuf.Reset()
+		}
+	} else if uint64(offset) != dm.curWrOff {
 		size, err := dm.Size()
 		if err != nil {
 			return 0, err
@@ -242,6 +247,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	var cur uint64
 	var done bool
 	for i, bs := range f.GetBlocksizes() {
+		// We found the correct child to write into
 		if cur+bs > offset {
 			child, err := node.Links[i].GetNode(dm.dagserv)
 			if err != nil {
@@ -256,6 +262,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			node.Links[i].Hash = mh.Multihash(k)
 
 			if sdone {
+				// No more bytes to write!
 				done = true
 				break
 			}
