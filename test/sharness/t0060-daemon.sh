@@ -4,24 +4,25 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-echo "currently skipping 'Test daemon command', until we find a better way to wait."
-exit 0
-
 test_description="Test daemon command"
 
 . lib/test-lib.sh
 
-# NOTE: this should remove bootstrap peers (needs a flag)
-test_expect_success "ipfs daemon --init launches" '
-  export IPFS_PATH="$(pwd)/.go-ipfs" &&
-  ipfs daemon --init 2>&1 >actual_init &
+# this needs to be in a different test than "ipfs daemon --init" below
+test_expect_success "setup IPFS_PATH" '
+  IPFS_PATH="$(pwd)/.go-ipfs"
 '
 
-# this is because we have no way of knowing the daemon is done except look at
-# output. but we can't yet compare it because we dont have the peer ID (config)
+# NOTE: this should remove bootstrap peers (needs a flag)
+test_expect_success "ipfs daemon --init launches" '
+  ipfs daemon --init >actual_daemon 2>daemon_err &
+'
+
+# this is like "'ipfs daemon' is ready" in test_launch_ipfs_daemon(), see test-lib.sh
 test_expect_success "initialization ended" '
   IPFS_PID=$! &&
-  test_wait_output_n_lines_60_sec actual_init 6
+  pollEndpoint -ep=/version -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
+  test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
 '
 
 # this is lifted straight from t0020-init.sh
@@ -32,16 +33,25 @@ test_expect_success "ipfs peer id looks good" '
   test_cmp_repeat_10_sec expected actual
 '
 
-# note this is almost the same as t0020-init.sh "ipfs init output looks good"
-test_expect_success "ipfs daemon output looks good" '
+# This is like t0020-init.sh "ipfs init output looks good"
+#
+# Unfortunately the line:
+#
+#   API server listening on /ip4/127.0.0.1/tcp/5001
+#
+# sometimes doesn't show up, so we cannot use test_expect_success yet.
+#
+test_expect_failure "ipfs daemon output looks good" '
   STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
-  echo "initializing ipfs node at $IPFS_PATH" >expected &&
+  echo "Initializing daemon..." >expected &&
+  echo "initializing ipfs node at $IPFS_PATH" >>expected &&
   echo "generating 4096-bit RSA keypair...done" >>expected &&
   echo "peer identity: $PEERID" >>expected &&
   echo "to get started, enter:" >>expected &&
   printf "\\n\\t$STARTFILE\\n\\n" >>expected &&
-  echo "daemon listening on /ip4/127.0.0.1/tcp/5001" >>expected &&
-  test_cmp_repeat_10_sec expected actual_init
+  echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected &&
+  echo "Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080" >>expected &&
+  test_cmp_repeat_10_sec expected actual_daemon
 '
 
 test_expect_success ".go-ipfs/ has been created" '
