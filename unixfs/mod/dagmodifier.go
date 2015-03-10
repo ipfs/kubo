@@ -416,7 +416,6 @@ func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, er
 				return nil, err
 			}
 
-			// TODO: sanity check size of truncated block
 			ndata.AddBlockSize(size - cur)
 
 			modified = nchild
