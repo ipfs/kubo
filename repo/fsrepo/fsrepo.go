@@ -417,12 +417,12 @@ func IsInitialized(path string) bool {
 
 // isInitializedUnsynced reports whether the repo is initialized. Caller must
 // hold the packageLock.
-func isInitializedUnsynced(path string) bool {
-	if !configIsInitialized(path) {
+func isInitializedUnsynced(repoPath string) bool {
+	if !configIsInitialized(repoPath) {
 		return false
 	}
 	for _, b := range componentBuilders() {
-		if !b.IsInitialized(path) {
+		if !b.IsInitialized(repoPath) {
 			return false
 		}
 	}
