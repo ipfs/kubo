@@ -18,6 +18,7 @@ import (
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
+	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	util "github.com/jbenet/go-ipfs/util"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
@@ -58,7 +59,6 @@ type FSRepo struct {
 
 	// TODO test
 	datastoreComponent component.DatastoreComponent
-	eventlogComponent  component.EventlogComponent
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -146,6 +146,11 @@ func Init(repoPath string, conf *config.Config) error {
 			return err
 		}
 	}
+
+	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -191,6 +196,18 @@ func (r *FSRepo) openConfig() error {
 	return nil
 }
 
+func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
+	eventlog.Configure(eventlog.LevelInfo)
+	eventlog.Configure(eventlog.LdJSONFormatter)
+	rotateConf := eventlog.LogRotatorConfig{
+		Filename:   path.Join(repoPath, "logs", "events.log"),
+		MaxSizeMB:  c.Log.MaxSizeMB,
+		MaxBackups: c.Log.MaxBackups,
+		MaxAgeDays: c.Log.MaxAgeDays,
+	}
+	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
+}
+
 // Open returns an error if the repo is not initialized.
 func (r *FSRepo) Open() error {
 
@@ -229,6 +246,9 @@ func (r *FSRepo) Open() error {
 		}
 	}
 
+	// log.Debugf("writing eventlogs to ...", c.path)
+	configureEventLoggerAtRepoPath(r.config, r.path)
+
 	return r.transitionToOpened()
 }
 
@@ -246,6 +266,15 @@ func (r *FSRepo) Close() error {
 			return err
 		}
 	}
+
+	// This code existed in the previous versions, but
+	// EventlogComponent.Close was never called. Preserving here
+	// pending further discussion.
+	//
+	// TODO It isn't part of the current contract, but callers may like for us
+	// to disable logging once the component is closed.
+	// eventlog.Configure(eventlog.Output(os.Stderr))
+
 	return r.transitionToClosed()
 }
 
@@ -455,21 +484,6 @@ func componentBuilders() []componentBuilder {
 					return err
 				}
 				r.datastoreComponent = c
-				return nil
-			},
-		},
-
-		// EventlogComponent
-		componentBuilder{
-			Init:          component.InitEventlogComponent,
-			IsInitialized: component.EventlogComponentIsInitialized,
-			OpenHandler: func(r *FSRepo) error {
-				c := component.EventlogComponent{}
-				c.SetPath(r.path)
-				if err := c.Open(r.config); err != nil {
-					return err
-				}
-				r.eventlogComponent = c
 				return nil
 			},
 		},
