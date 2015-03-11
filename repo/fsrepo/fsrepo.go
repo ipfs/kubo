@@ -10,10 +10,11 @@ import (
 	"sync"
 
 	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	levelds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
+	ldbopts "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	repo "github.com/jbenet/go-ipfs/repo"
 	"github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	component "github.com/jbenet/go-ipfs/repo/fsrepo/component"
 	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
@@ -21,7 +22,12 @@ import (
 	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
 	u "github.com/jbenet/go-ipfs/util"
 	util "github.com/jbenet/go-ipfs/util"
+	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+)
+
+const (
+	defaultDataStoreDirectory = "datastore"
 )
 
 var (
@@ -40,11 +46,19 @@ var (
 	// If an operation is used when repo is Open and the operation does not
 	// change the repo's state, the package lock does not need to be acquired.
 	openersCounter *counter.Openers
+
+	// protects dsOpenersCounter and datastores
+	dsLock           sync.Mutex
+	dsOpenersCounter *counter.Openers
+	datastores       map[string]ds2.ThreadSafeDatastoreCloser
 )
 
 func init() {
 	openersCounter = counter.NewOpenersCounter()
 	lockfiles = make(map[string]io.Closer)
+
+	dsOpenersCounter = counter.NewOpenersCounter()
+	datastores = make(map[string]ds2.ThreadSafeDatastoreCloser)
 }
 
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
@@ -56,18 +70,11 @@ type FSRepo struct {
 	path string
 	// config is set on Open, guarded by packageLock
 	config *config.Config
-
-	// TODO test
-	datastoreComponent component.DatastoreComponent
+	// ds is set on Open
+	ds ds2.ThreadSafeDatastoreCloser
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
-
-type componentBuilder struct {
-	Init          component.Initializer
-	IsInitialized component.InitializationChecker
-	OpenHandler   func(*FSRepo) error
-}
 
 // At returns a handle to an FSRepo at the provided |path|.
 func At(repoPath string) *FSRepo {
@@ -141,10 +148,11 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	for _, b := range componentBuilders() {
-		if err := b.Init(repoPath, conf); err != nil {
-			return err
-		}
+	// The actual datastore contents are initialized lazily when Opened.
+	// During Init, we merely check that the directory is writeable.
+	p := path.Join(repoPath, defaultDataStoreDirectory)
+	if err := dir.Writable(p); err != nil {
+		return debugerror.Errorf("datastore: %s", err)
 	}
 
 	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
@@ -196,6 +204,37 @@ func (r *FSRepo) openConfig() error {
 	return nil
 }
 
+// openDatastore returns an error if the config file is not present.
+func (r *FSRepo) openDatastore() error {
+	dsLock.Lock()
+	defer dsLock.Unlock()
+
+	dsPath := path.Join(r.path, defaultDataStoreDirectory)
+
+	// if no other goroutines have the datastore Open, initialize it and assign
+	// it to the package-scoped map for the goroutines that follow.
+	if dsOpenersCounter.NumOpeners(dsPath) == 0 {
+		ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
+			Compression: ldbopts.NoCompression,
+		})
+		if err != nil {
+			return debugerror.New("unable to open leveldb datastore")
+		}
+		datastores[dsPath] = ds
+	}
+
+	// get the datastore from the package-scoped map and record self as an
+	// opener.
+	ds, dsIsPresent := datastores[dsPath]
+	if !dsIsPresent {
+		// This indicates a programmer error has occurred.
+		return errors.New("datastore should be available, but it isn't")
+	}
+	r.ds = ds
+	dsOpenersCounter.AddOpener(dsPath) // only after success
+	return nil
+}
+
 func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 	eventlog.Configure(eventlog.LevelInfo)
 	eventlog.Configure(eventlog.LdJSONFormatter)
@@ -240,16 +279,32 @@ func (r *FSRepo) Open() error {
 		return err
 	}
 
-	for _, b := range componentBuilders() {
-		if err := b.OpenHandler(r); err != nil {
-			return err
-		}
+	if err := r.openDatastore(); err != nil {
+		return err
 	}
 
 	// log.Debugf("writing eventlogs to ...", c.path)
 	configureEventLoggerAtRepoPath(r.config, r.path)
 
 	return r.transitionToOpened()
+}
+
+func (r *FSRepo) closeDatastore() error {
+	dsLock.Lock()
+	defer dsLock.Unlock()
+
+	dsPath := path.Join(r.path, defaultDataStoreDirectory)
+
+	// decrement the Opener count. if this goroutine is the last, also close
+	// the underlying datastore (and remove its reference from the map)
+
+	dsOpenersCounter.RemoveOpener(dsPath)
+
+	if dsOpenersCounter.NumOpeners(dsPath) == 0 {
+		delete(datastores, dsPath) // remove the reference
+		return r.ds.Close()
+	}
+	return nil
 }
 
 // Close closes the FSRepo, releasing held resources.
@@ -261,10 +316,8 @@ func (r *FSRepo) Close() error {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
 
-	for _, closer := range r.components() {
-		if err := closer.Close(); err != nil {
-			return err
-		}
+	if err := r.closeDatastore(); err != nil {
+		return err
 	}
 
 	// This code existed in the previous versions, but
@@ -395,7 +448,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 // is undefined.
 func (r *FSRepo) Datastore() ds.ThreadSafeDatastore {
 	packageLock.Lock()
-	d := r.datastoreComponent.Datastore()
+	d := r.ds
 	packageLock.Unlock()
 	return d
 }
@@ -421,10 +474,8 @@ func isInitializedUnsynced(repoPath string) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
-	for _, b := range componentBuilders() {
-		if !b.IsInitialized(repoPath) {
-			return false
-		}
+	if !util.FileExists(path.Join(repoPath, defaultDataStoreDirectory)) {
+		return false
 	}
 	return true
 }
@@ -461,31 +512,4 @@ func (r *FSRepo) transitionToClosed() error {
 		delete(lockfiles, r.path)
 	}
 	return nil
-}
-
-// components returns the FSRepo's constituent components
-func (r *FSRepo) components() []component.Component {
-	return []component.Component{
-		&r.datastoreComponent,
-	}
-}
-
-func componentBuilders() []componentBuilder {
-	return []componentBuilder{
-
-		// DatastoreComponent
-		componentBuilder{
-			Init:          component.InitDatastoreComponent,
-			IsInitialized: component.DatastoreComponentIsInitialized,
-			OpenHandler: func(r *FSRepo) error {
-				c := component.DatastoreComponent{}
-				c.SetPath(r.path)
-				if err := c.Open(r.config); err != nil {
-					return err
-				}
-				r.datastoreComponent = c
-				return nil
-			},
-		},
-	}
 }
