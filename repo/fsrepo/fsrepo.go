@@ -126,23 +126,23 @@ func initConfig(path string, conf *config.Config) error {
 
 // Init initializes a new FSRepo at the given path with the provided config.
 // TODO add support for custom datastores.
-func Init(path string, conf *config.Config) error {
+func Init(repoPath string, conf *config.Config) error {
 
 	// packageLock must be held to ensure that the repo is not initialized more
 	// than once.
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if isInitializedUnsynced(path) {
+	if isInitializedUnsynced(repoPath) {
 		return nil
 	}
 
-	if err := initConfig(path, conf); err != nil {
+	if err := initConfig(repoPath, conf); err != nil {
 		return err
 	}
 
 	for _, b := range componentBuilders() {
-		if err := b.Init(path, conf); err != nil {
+		if err := b.Init(repoPath, conf); err != nil {
 			return err
 		}
 	}
