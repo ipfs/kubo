@@ -58,6 +58,8 @@ type FSRepo struct {
 	eventlogComponent  component.EventlogComponent
 }
 
+var _ repo.Repo = (*FSRepo)(nil)
+
 type componentBuilder struct {
 	Init          component.Initializer
 	IsInitialized component.InitializationChecker
