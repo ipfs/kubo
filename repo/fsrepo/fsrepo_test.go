@@ -135,6 +135,7 @@ func TestOpenMoreThanOnceInSameProcess(t *testing.T) {
 	r2 := At(path)
 	assert.Nil(r1.Open(), t, "first repo should open successfully")
 	assert.Nil(r2.Open(), t, "second repo should open successfully")
+	assert.True(r1.ds == r2.ds, t, "repos should share the datastore")
 
 	assert.Nil(r1.Close(), t)
 	assert.Nil(r2.Close(), t)
