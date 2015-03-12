@@ -62,40 +62,6 @@ func ExpandPathnames(paths []string) ([]string, error) {
 	return out, nil
 }
 
-// byteChanReader wraps a byte chan in a reader
-type byteChanReader struct {
-	in  chan []byte
-	buf []byte
-}
-
-func NewByteChanReader(in chan []byte) io.Reader {
-	return &byteChanReader{in: in}
-}
-
-func (bcr *byteChanReader) Read(output []byte) (int, error) {
-	remain := output
-	remainLen := len(output)
-	outputLen := 0
-	more := false
-	next := bcr.buf
-
-	for {
-		n := copy(remain, next)
-		remainLen -= n
-		outputLen += n
-		if remainLen == 0 {
-			bcr.buf = next[n:]
-			return outputLen, nil
-		}
-
-		remain = remain[n:]
-		next, more = <-bcr.in
-		if !more {
-			return outputLen, io.EOF
-		}
-	}
-}
-
 type randGen struct {
 	rand.Rand
 }
