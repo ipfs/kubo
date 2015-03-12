@@ -78,23 +78,6 @@ func TestAllKeysSimple(t *testing.T) {
 	expectMatches(t, keys, keys2)
 }
 
-func TestAllKeysOffsetAndLimit(t *testing.T) {
-	N := 30
-	bs, _ := newBlockStoreWithKeys(t, nil, N)
-
-	ctx := context.Background()
-	keys3, err := bs.AllKeysRange(ctx, N/3, N/3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, k3 := range keys3 {
-		t.Log("found ", k3.Pretty())
-	}
-	if len(keys3) != N/3 {
-		t.Errorf("keys3 should be: %d != %d", N/3, len(keys3))
-	}
-}
-
 func TestAllKeysRespectsContext(t *testing.T) {
 	N := 100
 

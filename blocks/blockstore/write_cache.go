@@ -46,17 +46,9 @@ func (w *writecache) Put(b *blocks.Block) error {
 }
 
 func (w *writecache) AllKeys(ctx context.Context) ([]u.Key, error) {
-	return w.blockstore.AllKeysRange(ctx, 0, 0)
+	return w.blockstore.AllKeys(ctx)
 }
 
 func (w *writecache) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
-	return w.blockstore.AllKeysRangeChan(ctx, 0, 0)
-}
-
-func (w *writecache) AllKeysRange(ctx context.Context, offset int, limit int) ([]u.Key, error) {
-	return w.blockstore.AllKeysRange(ctx, offset, limit)
-}
-
-func (w *writecache) AllKeysRangeChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error) {
-	return w.blockstore.AllKeysRangeChan(ctx, offset, limit)
+	return w.blockstore.AllKeysChan(ctx)
 }
