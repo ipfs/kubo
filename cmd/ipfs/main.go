@@ -132,6 +132,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// our global interrupt handler may try to stop the daemon
+	// before the daemon is ready to be stopped; this dirty
+	// workaround is for the daemon only; other commands are always
+	// ready to be stopped
+	if invoc.cmd != daemonCmd {
+		close(invoc.req.Context().InitDone)
+	}
+
 	// ok, finally, run the command invocation.
 	output, err := invoc.Run(ctx)
 	if err != nil {
@@ -478,6 +486,14 @@ func (i *cmdInvocation) setupInterruptHandler() {
 		// loop because we may be
 		for count := 0; ; count++ {
 			<-sig
+
+			// if we're still initializing, cannot use `ctx.GetNode()`
+			select {
+			default: // initialization not done
+				fmt.Println("Received interrupt signal, shutting down...")
+				os.Exit(-1)
+			case <-ctx.InitDone:
+			}
 
 			// TODO cancel the command context instead
 
