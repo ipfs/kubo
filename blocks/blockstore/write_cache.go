@@ -45,10 +45,6 @@ func (w *writecache) Put(b *blocks.Block) error {
 	return w.blockstore.Put(b)
 }
 
-func (w *writecache) AllKeys(ctx context.Context) ([]u.Key, error) {
-	return w.blockstore.AllKeys(ctx)
-}
-
 func (w *writecache) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
 	return w.blockstore.AllKeysChan(ctx)
 }

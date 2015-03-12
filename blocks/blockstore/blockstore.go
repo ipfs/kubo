@@ -31,7 +31,6 @@ type Blockstore interface {
 	Get(u.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
 
-	AllKeys(ctx context.Context) ([]u.Key, error)
 	AllKeysChan(ctx context.Context) (<-chan u.Key, error)
 }
 
@@ -80,24 +79,6 @@ func (bs *blockstore) Has(k u.Key) (bool, error) {
 
 func (s *blockstore) DeleteBlock(k u.Key) error {
 	return s.datastore.Delete(k.DsKey())
-}
-
-// AllKeys runs a query for keys from the blockstore.
-// this is very simplistic, in the future, take dsq.Query as a param?
-//
-// AllKeys respects context
-func (bs *blockstore) AllKeys(ctx context.Context) ([]u.Key, error) {
-
-	ch, err := bs.AllKeysChan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var keys []u.Key
-	for k := range ch {
-		keys = append(keys, k)
-	}
-	return keys, nil
 }
 
 // AllKeysChan runs a query for keys from the blockstore.
