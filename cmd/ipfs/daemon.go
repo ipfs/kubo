@@ -269,7 +269,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	// our global interrupt handler can now try to stop the daemon
-	close(req.Context().ContextIsReadyToBeClosed)
+	close(req.Context().InitDone)
 
 	if rootRedirect != nil {
 		opts = append(opts, rootRedirect)

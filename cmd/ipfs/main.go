@@ -137,7 +137,7 @@ func main() {
 	// workaround is for the daemon only; other commands are always
 	// ready to be stopped
 	if invoc.cmd != daemonCmd {
-		close(invoc.req.Context().ContextIsReadyToBeClosed)
+		close(invoc.req.Context().InitDone)
 	}
 
 	// ok, finally, run the command invocation.
@@ -482,7 +482,7 @@ func (i *cmdInvocation) setupInterruptHandler() {
 
 	go func() {
 		// wait till the context is ready to be closed
-		<-ctx.ContextIsReadyToBeClosed
+		<-ctx.InitDone
 
 		// first time, try to shut down.
 
