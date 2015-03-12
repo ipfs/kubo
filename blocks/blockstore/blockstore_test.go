@@ -63,36 +63,29 @@ func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []u
 	return bs, keys
 }
 
+func collect(ch <-chan u.Key) []u.Key {
+	var keys []u.Key
+	for k := range ch {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func TestAllKeysSimple(t *testing.T) {
 	bs, keys := newBlockStoreWithKeys(t, nil, 100)
 
 	ctx := context.Background()
-	keys2, err := bs.AllKeys(ctx)
+	ch, err := bs.AllKeysChan(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+	keys2 := collect(ch)
+
 	// for _, k2 := range keys2 {
 	// 	t.Log("found ", k2.Pretty())
 	// }
 
 	expectMatches(t, keys, keys2)
-}
-
-func TestAllKeysOffsetAndLimit(t *testing.T) {
-	N := 30
-	bs, _ := newBlockStoreWithKeys(t, nil, N)
-
-	ctx := context.Background()
-	keys3, err := bs.AllKeysRange(ctx, N/3, N/3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, k3 := range keys3 {
-		t.Log("found ", k3.Pretty())
-	}
-	if len(keys3) != N/3 {
-		t.Errorf("keys3 should be: %d != %d", N/3, len(keys3))
-	}
 }
 
 func TestAllKeysRespectsContext(t *testing.T) {
@@ -107,10 +100,11 @@ func TestAllKeysRespectsContext(t *testing.T) {
 
 	getKeys := func(ctx context.Context) {
 		started <- struct{}{}
-		_, err := bs.AllKeys(ctx) // once without cancelling
+		ch, err := bs.AllKeysChan(ctx) // once without cancelling
 		if err != nil {
 			errors <- err
 		}
+		_ = collect(ch)
 		done <- struct{}{}
 		errors <- nil // a nil one to signal break
 	}

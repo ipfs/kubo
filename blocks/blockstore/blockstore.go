@@ -31,11 +31,7 @@ type Blockstore interface {
 	Get(u.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
 
-	AllKeys(ctx context.Context) ([]u.Key, error)
 	AllKeysChan(ctx context.Context) (<-chan u.Key, error)
-
-	AllKeysRange(ctx context.Context, offset int, limit int) ([]u.Key, error)
-	AllKeysRangeChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error)
 }
 
 func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
@@ -85,42 +81,14 @@ func (s *blockstore) DeleteBlock(k u.Key) error {
 	return s.datastore.Delete(k.DsKey())
 }
 
-func (bs *blockstore) AllKeys(ctx context.Context) ([]u.Key, error) {
-	return bs.AllKeysRange(ctx, 0, 0)
-}
-
+// AllKeysChan runs a query for keys from the blockstore.
+// this is very simplistic, in the future, take dsq.Query as a param?
+//
+// AllKeysChan respects context
 func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
-	return bs.AllKeysRangeChan(ctx, 0, 0)
-}
-
-// AllKeysRange runs a query for keys from the blockstore.
-// this is very simplistic, in the future, take dsq.Query as a param?
-// if offset and limit are 0, they are ignored.
-//
-// AllKeysRange respects context
-func (bs *blockstore) AllKeysRange(ctx context.Context, offset int, limit int) ([]u.Key, error) {
-
-	ch, err := bs.AllKeysRangeChan(ctx, offset, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	var keys []u.Key
-	for k := range ch {
-		keys = append(keys, k)
-	}
-	return keys, nil
-}
-
-// AllKeysRangeChan runs a query for keys from the blockstore.
-// this is very simplistic, in the future, take dsq.Query as a param?
-// if offset and limit are 0, they are ignored.
-//
-// AllKeysRangeChan respects context
-func (bs *blockstore) AllKeysRangeChan(ctx context.Context, offset int, limit int) (<-chan u.Key, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
-	q := dsq.Query{KeysOnly: true, Offset: offset, Limit: limit}
+	q := dsq.Query{KeysOnly: true}
 	res, err := bs.datastore.Query(q)
 	if err != nil {
 		return nil, err
