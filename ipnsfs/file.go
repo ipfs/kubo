@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"sync"
 
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -30,13 +29,11 @@ type file struct {
 	name       string
 	hasChanges bool
 
-	// TODO: determine whether or not locking here is actually required...
-	lk  sync.Mutex
 	mod *mod.DagModifier
 }
 
 func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*file, error) {
-	dmod, err := mod.NewDagModifier(context.TODO(), node, fs.dserv, fs.pins.GetManual(), chunk.DefaultSplitter)
+	dmod, err := mod.NewDagModifier(context.Background(), node, fs.dserv, fs.pins.GetManual(), chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
@@ -50,21 +47,15 @@ func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*
 }
 
 func (fi *file) Write(b []byte) (int, error) {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Write(b)
 }
 
 func (fi *file) Read(b []byte) (int, error) {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	return fi.mod.Read(b)
 }
 
 func (fi *file) Close() error {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	if fi.hasChanges {
 		err := fi.mod.Flush()
 		if err != nil {
@@ -88,8 +79,6 @@ func (fi *file) Close() error {
 }
 
 func (fi *file) Flush() error {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	return fi.mod.Flush()
 }
 
@@ -101,33 +90,23 @@ func (fi *file) withMode(mode int) File {
 }
 
 func (fi *file) Seek(offset int64, whence int) (int64, error) {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	return fi.mod.Seek(offset, whence)
 }
 
 func (fi *file) WriteAt(b []byte, at int64) (int, error) {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	fi.hasChanges = true
 	return fi.mod.WriteAt(b, at)
 }
 
 func (fi *file) Size() (int64, error) {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	return fi.mod.Size()
 }
 
 func (fi *file) GetNode() (*dag.Node, error) {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	return fi.mod.GetNode()
 }
 
 func (fi *file) Truncate(size int64) error {
-	fi.lk.Lock()
-	defer fi.lk.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Truncate(size)
 }
