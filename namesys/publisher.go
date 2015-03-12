@@ -10,10 +10,13 @@ import (
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	dag "github.com/jbenet/go-ipfs/merkledag"
 	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
 	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	pin "github.com/jbenet/go-ipfs/pin"
 	routing "github.com/jbenet/go-ipfs/routing"
 	record "github.com/jbenet/go-ipfs/routing/record"
+	ft "github.com/jbenet/go-ipfs/unixfs"
 	u "github.com/jbenet/go-ipfs/util"
 )
 
@@ -60,11 +63,9 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	nameb := u.Hash(pkbytes)
 	namekey := u.Key("/pk/" + string(nameb))
 
-	timectx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
-	defer cancel()
-
 	log.Debugf("Storing pubkey at: %s", namekey)
 	// Store associated public key
+	timectx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*10))
 	err = p.routing.PutValue(timectx, namekey, pkbytes)
 	if err != nil {
 		return err
@@ -134,5 +135,33 @@ func ValidateIpnsRecord(k u.Key, val []byte) error {
 	default:
 		return ErrUnrecognizedValidity
 	}
+	return nil
+}
+
+// InitializeKeyspace sets the ipns record for the given key to
+// point to an empty directory.
+// TODO: this doesnt feel like it belongs here
+func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
+	emptyDir := &dag.Node{Data: ft.FolderPBData()}
+	nodek, err := ds.Add(emptyDir)
+	if err != nil {
+		return err
+	}
+
+	err = pins.Pin(emptyDir, false)
+	if err != nil {
+		return err
+	}
+
+	err = pins.Flush()
+	if err != nil {
+		return err
+	}
+
+	err = pub.Publish(ctx, key, nodek)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

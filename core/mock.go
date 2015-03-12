@@ -13,8 +13,9 @@ import (
 	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
 	peer "github.com/jbenet/go-ipfs/p2p/peer"
 	path "github.com/jbenet/go-ipfs/path"
+	pin "github.com/jbenet/go-ipfs/pin"
 	"github.com/jbenet/go-ipfs/repo"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
+	offrt "github.com/jbenet/go-ipfs/routing/offline"
 	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
 	testutil "github.com/jbenet/go-ipfs/util/testutil"
 )
@@ -54,7 +55,7 @@ func NewMockNode() (*IpfsNode, error) {
 	}
 
 	// Routing
-	nd.Routing = mockrouting.NewServer().Client(ident)
+	nd.Routing = offrt.NewOfflineRouter(nd.Repo.Datastore(), nd.PrivateKey)
 
 	// Bitswap
 	bstore := blockstore.NewBlockstore(nd.Repo.Datastore())
@@ -64,6 +65,8 @@ func NewMockNode() (*IpfsNode, error) {
 	}
 
 	nd.DAG = mdag.NewDAGService(bserv)
+
+	nd.Pinning = pin.NewPinner(nd.Repo.Datastore(), nd.DAG)
 
 	// Namespace resolver
 	nd.Namesys = nsys.NewNameSystem(nd.Routing)
