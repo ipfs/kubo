@@ -481,14 +481,19 @@ func (i *cmdInvocation) setupInterruptHandler() {
 	sig := allInterruptSignals()
 
 	go func() {
-		// wait till the context is ready to be closed
-		<-ctx.InitDone
-
 		// first time, try to shut down.
 
 		// loop because we may be
 		for count := 0; ; count++ {
 			<-sig
+
+			// if we're still initializing, cannot use `ctx.GetNode()`
+			select {
+			default: // initialization not done
+				fmt.Println("Received interrupt signal, shutting down...")
+				os.Exit(-1)
+			case <-ctx.InitDone:
+			}
 
 			// TODO cancel the command context instead
 
