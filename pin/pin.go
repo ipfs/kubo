@@ -47,6 +47,7 @@ type Pinner interface {
 // may not be successful
 type ManualPinner interface {
 	PinWithMode(util.Key, PinMode)
+	RemovePinWithMode(util.Key, PinMode)
 	Pinner
 }
 
@@ -196,6 +197,20 @@ func (p *pinner) IsPinned(key util.Key) bool {
 	return p.recursePin.HasKey(key) ||
 		p.directPin.HasKey(key) ||
 		p.indirPin.HasKey(key)
+}
+
+func (p *pinner) RemovePinWithMode(key util.Key, mode PinMode) {
+	switch mode {
+	case Direct:
+		p.directPin.RemoveBlock(key)
+	case Indirect:
+		p.indirPin.Decrement(key)
+	case Recursive:
+		p.recursePin.RemoveBlock(key)
+	default:
+		// programmer error, panic OK
+		panic("unrecognized pin type")
+	}
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore

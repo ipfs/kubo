@@ -3,6 +3,7 @@ package io
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -113,7 +114,7 @@ func (dr *DagReader) precalcNextBuf() error {
 	pb := new(ftpb.Data)
 	err = proto.Unmarshal(nxt.Data, pb)
 	if err != nil {
-		return err
+		return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 	}
 
 	switch pb.GetType() {

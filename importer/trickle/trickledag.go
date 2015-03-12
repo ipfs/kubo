@@ -134,7 +134,7 @@ func appendFillLastChild(ufsn *h.UnixfsNode, depth int, layerFill int, db *h.Dag
 	}
 
 	// Update changed child in parent node
-	ufsn.RemoveChild(last)
+	ufsn.RemoveChild(last, db)
 	err = ufsn.AddChild(nchild, db)
 	if err != nil {
 		return err
@@ -242,6 +242,20 @@ func verifyTDagRec(nd *dag.Node, depth, direct, layerRepeat int, ds dag.DAGServi
 			return errors.New("Expected raw block")
 		}
 		return nil
+	}
+
+	// Verify this is a branch node
+	pbn, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		return err
+	}
+
+	if pbn.GetType() != ft.TFile {
+		return errors.New("expected file as branch node")
+	}
+
+	if len(pbn.Data) > 0 {
+		return errors.New("branch node should not have data")
 	}
 
 	for i := 0; i < len(nd.Links); i++ {
