@@ -11,6 +11,9 @@ import (
 	ufspb "github.com/jbenet/go-ipfs/unixfs/pb"
 )
 
+var ErrNotYetImplemented = errors.New("not yet implemented")
+var ErrInvalidChild = errors.New("invalid child node")
+
 type Directory struct {
 	fs        *Filesystem
 	parent    childCloser
@@ -128,9 +131,9 @@ func (d *Directory) childFile(name string) (*file, error) {
 				d.files[name] = nfi
 				return nfi, nil
 			case ufspb.Data_Metadata:
-				panic("NOT YET IMPLEMENTED")
+				return nil, ErrNotYetImplemented
 			default:
-				panic("NO!")
+				return nil, ErrInvalidChild
 			}
 		}
 	}
@@ -162,9 +165,9 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 			case ufspb.Data_File:
 				return nil, fmt.Errorf("%s is not a directory", name)
 			case ufspb.Data_Metadata:
-				panic("NOT YET IMPLEMENTED")
+				return nil, ErrNotYetImplemented
 			default:
-				panic("NO!")
+				return nil, ErrInvalidChild
 			}
 		}
 
@@ -247,7 +250,9 @@ func (d *Directory) Unlink(name string) error {
 	return d.parent.closeChild(d.name, d.node)
 }
 
+// RenameEntry renames the child by 'oldname' of this directory to 'newname'
 func (d *Directory) RenameEntry(oldname, newname string) error {
+	// Is the child a directory?
 	dir, err := d.childDir(oldname)
 	if err == nil {
 		dir.name = newname
@@ -266,6 +271,7 @@ func (d *Directory) RenameEntry(oldname, newname string) error {
 		return d.parent.closeChild(d.name, d.node)
 	}
 
+	// Is the child a file?
 	fi, err := d.childFile(oldname)
 	if err == nil {
 		fi.name = newname
@@ -292,6 +298,7 @@ func (d *Directory) RenameEntry(oldname, newname string) error {
 	return ErrNoSuch
 }
 
+// AddChild adds the node 'nd' under this directory giving it the name 'name'
 func (d *Directory) AddChild(name string, nd *dag.Node) error {
 	pbn, err := ft.FromBytes(nd.Data)
 	if err != nil {
@@ -318,7 +325,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 		}
 		d.files[name] = nfi
 	default:
-		panic("invalid unixfs node")
+		return ErrInvalidChild
 	}
 	return d.parent.closeChild(d.name, d.node)
 }

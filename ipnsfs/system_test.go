@@ -21,6 +21,8 @@ func testFS(t *testing.T, nd *core.IpfsNode) *Filesystem {
 	return fs
 }
 
+// Test some basic operations
+// testing in fuse/ipns is sufficient to prove this code works properly
 func TestBasic(t *testing.T) {
 	mock, err := core.NewMockNode()
 	if err != nil {
