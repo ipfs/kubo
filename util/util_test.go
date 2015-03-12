@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"math/rand"
 	"testing"
 
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -25,43 +24,6 @@ func TestKey(t *testing.T) {
 
 	if k1 != k2 {
 		t.Error("Keys not equal.")
-	}
-}
-
-func TestByteChanReader(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-
-	var data bytes.Buffer
-	var data2 bytes.Buffer
-	dch := make(chan []byte, 8)
-	randr := NewTimeSeededRand()
-
-	go func() {
-		defer close(dch)
-		for i := 0; i < rand.Intn(100)+100; i++ {
-			chunk := make([]byte, rand.Intn(100000)+10)
-			randr.Read(chunk)
-			data.Write(chunk)
-			dch <- chunk
-		}
-	}()
-
-	read := NewByteChanReader(dch)
-
-	// read in random, weird sizes to exercise saving buffer.
-	for {
-		buf := make([]byte, rand.Intn(10)*10)
-		n, err := read.Read(buf)
-		data2.Write(buf[:n])
-		if err != nil {
-			break
-		}
-	}
-
-	if !bytes.Equal(data2.Bytes(), data.Bytes()) {
-		t.Fatal("Reader failed to stream correct bytes")
 	}
 }
 
