@@ -80,20 +80,15 @@ func open(repoPath string) (repo.Repo, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	r := &FSRepo{
-		path:  path.Clean(repoPath),
-		state: unopened, // explicitly set for clarity
-	}
-
-	expPath, err := u.TildeExpansion(r.path)
+	expPath, err := u.TildeExpansion(path.Clean(repoPath))
 	if err != nil {
 		return nil, err
 	}
-	r.path = expPath
 
-	if r.state != unopened {
-		return nil, debugerror.Errorf("repo is %s", r.state)
+	r := &FSRepo{
+		path: expPath,
 	}
+
 	if !isInitializedUnsynced(r.path) {
 		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
