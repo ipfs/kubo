@@ -64,14 +64,13 @@ Set the value of the 'datastore.path' key:
 		args := req.Arguments()
 		key := args[0]
 
-		r := fsrepo.At(req.Context().ConfigRoot)
-		if err := r.Open(); err != nil {
+		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 		defer r.Close()
 
-		var err error
 		var output *ConfigField
 		if len(args) == 2 {
 			value := args[1]
@@ -182,8 +181,8 @@ can't be undone.
 		cmds.FileArg("file", true, false, "The file to use as the new config"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		r := fsrepo.At(req.Context().ConfigRoot)
-		if err := r.Open(); err != nil {
+		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}

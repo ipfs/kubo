@@ -66,8 +66,8 @@ func run() error {
 	repoPath := gopath.Join(cwd, ".go-ipfs")
 	if err := ensureRepoInitialized(repoPath); err != nil {
 	}
-	repo := fsrepo.At(repoPath)
-	if err := repo.Open(); err != nil { // owned by node
+	repo, err := fsrepo.Open(repoPath)
+	if err != nil { // owned by node
 		return err
 	}
 	cfg := repo.Config()

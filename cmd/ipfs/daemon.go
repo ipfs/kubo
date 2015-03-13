@@ -118,8 +118,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo := fsrepo.At(req.Context().ConfigRoot)
-	if err := repo.Open(); err != nil {
+	repo, err := fsrepo.Open(req.Context().ConfigRoot)
+	if err != nil {
 		res.SetError(debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
 		return
 	}

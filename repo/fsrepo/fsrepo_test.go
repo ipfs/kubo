@@ -33,19 +33,6 @@ func TestRemove(t *testing.T) {
 	assert.Nil(Remove(path), t, "can remove a repository")
 }
 
-func TestCannotBeReopened(t *testing.T) {
-	t.Parallel()
-	path := testRepoPath("", t)
-	assert.Nil(Init(path, &config.Config{}), t)
-	r := At(path)
-	assert.Nil(r.Open(), t)
-	assert.Nil(r.Close(), t)
-	assert.Err(r.Open(), t, "shouldn't be possible to re-open the repo")
-
-	// mutable state is the enemy. Take Close() as an opportunity to reduce
-	// entropy. Callers ought to start fresh with a new handle by calling `At`.
-}
-
 func TestCanManageReposIndependently(t *testing.T) {
 	t.Parallel()
 	pathA := testRepoPath("a", t)
@@ -60,10 +47,10 @@ func TestCanManageReposIndependently(t *testing.T) {
 	assert.True(IsInitialized(pathB), t, "b should be initialized")
 
 	t.Log("open the two repos")
-	repoA := At(pathA)
-	repoB := At(pathB)
-	assert.Nil(repoA.Open(), t, "a")
-	assert.Nil(repoB.Open(), t, "b")
+	repoA, err := Open(pathA)
+	assert.Nil(err, t, "a")
+	repoB, err := Open(pathB)
+	assert.Nil(err, t, "b")
 
 	t.Log("close and remove b while a is open")
 	assert.Nil(repoB.Close(), t, "close b")
@@ -80,15 +67,15 @@ func TestDatastoreGetNotAllowedAfterClose(t *testing.T) {
 
 	assert.True(!IsInitialized(path), t, "should NOT be initialized")
 	assert.Nil(Init(path, &config.Config{}), t, "should initialize successfully")
-	r := At(path)
-	assert.Nil(r.Open(), t, "should open successfully")
+	r, err := Open(path)
+	assert.Nil(err, t, "should open successfully")
 
 	k := "key"
 	data := []byte(k)
 	assert.Nil(r.Datastore().Put(datastore.NewKey(k), data), t, "Put should be successful")
 
 	assert.Nil(r.Close(), t)
-	_, err := r.Datastore().Get(datastore.NewKey(k))
+	_, err = r.Datastore().Get(datastore.NewKey(k))
 	assert.Err(err, t, "after closer, Get should be fail")
 }
 
@@ -97,16 +84,16 @@ func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 	path := testRepoPath("test", t)
 
 	assert.Nil(Init(path, &config.Config{}), t)
-	r1 := At(path)
-	assert.Nil(r1.Open(), t)
+	r1, err := Open(path)
+	assert.Nil(err, t)
 
 	k := "key"
 	expected := []byte(k)
 	assert.Nil(r1.Datastore().Put(datastore.NewKey(k), expected), t, "using first repo, Put should be successful")
 	assert.Nil(r1.Close(), t)
 
-	r2 := At(path)
-	assert.Nil(r2.Open(), t)
+	r2, err := Open(path)
+	assert.Nil(err, t)
 	v, err := r2.Datastore().Get(datastore.NewKey(k))
 	assert.Nil(err, t, "using second repo, Get should be successful")
 	actual, ok := v.([]byte)
@@ -120,10 +107,10 @@ func TestOpenMoreThanOnceInSameProcess(t *testing.T) {
 	path := testRepoPath("", t)
 	assert.Nil(Init(path, &config.Config{}), t)
 
-	r1 := At(path)
-	r2 := At(path)
-	assert.Nil(r1.Open(), t, "first repo should open successfully")
-	assert.Nil(r2.Open(), t, "second repo should open successfully")
+	r1, err := Open(path)
+	assert.Nil(err, t, "first repo should open successfully")
+	r2, err := Open(path)
+	assert.Nil(err, t, "second repo should open successfully")
 	assert.True(r1.ds == r2.ds, t, "repos should share the datastore")
 
 	assert.Nil(r1.Close(), t)

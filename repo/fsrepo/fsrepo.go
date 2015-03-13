@@ -75,13 +75,51 @@ type FSRepo struct {
 
 var _ repo.Repo = (*FSRepo)(nil)
 
-// At returns a handle to an FSRepo at the provided |path|.
-func At(repoPath string) *FSRepo {
-	// This method must not have side-effects.
-	return &FSRepo{
+// Open the FSRepo at path. Returns an error if the repo is not
+// initialized.
+func Open(repoPath string) (*FSRepo, error) {
+	packageLock.Lock()
+	defer packageLock.Unlock()
+
+	r := &FSRepo{
 		path:  path.Clean(repoPath),
 		state: unopened, // explicitly set for clarity
 	}
+
+	expPath, err := u.TildeExpansion(r.path)
+	if err != nil {
+		return nil, err
+	}
+	r.path = expPath
+
+	if r.state != unopened {
+		return nil, debugerror.Errorf("repo is %s", r.state)
+	}
+	if !isInitializedUnsynced(r.path) {
+		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+	}
+	// check repo path, then check all constituent parts.
+	// TODO acquire repo lock
+	// TODO if err := initCheckDir(logpath); err != nil { // }
+	if err := dir.Writable(r.path); err != nil {
+		return nil, err
+	}
+
+	if err := r.openConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := r.openDatastore(); err != nil {
+		return nil, err
+	}
+
+	// log.Debugf("writing eventlogs to ...", c.path)
+	configureEventLoggerAtRepoPath(r.config, r.path)
+
+	if err := r.transitionToOpened(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // ConfigAt returns an error if the FSRepo at the given path is not
@@ -234,45 +272,6 @@ func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 		MaxAgeDays: c.Log.MaxAgeDays,
 	}
 	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
-}
-
-// Open returns an error if the repo is not initialized.
-func (r *FSRepo) Open() error {
-
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	expPath, err := u.TildeExpansion(r.path)
-	if err != nil {
-		return err
-	}
-	r.path = expPath
-
-	if r.state != unopened {
-		return debugerror.Errorf("repo is %s", r.state)
-	}
-	if !isInitializedUnsynced(r.path) {
-		return debugerror.New("ipfs not initialized, please run 'ipfs init'")
-	}
-	// check repo path, then check all constituent parts.
-	// TODO acquire repo lock
-	// TODO if err := initCheckDir(logpath); err != nil { // }
-	if err := dir.Writable(r.path); err != nil {
-		return err
-	}
-
-	if err := r.openConfig(); err != nil {
-		return err
-	}
-
-	if err := r.openDatastore(); err != nil {
-		return err
-	}
-
-	// log.Debugf("writing eventlogs to ...", c.path)
-	configureEventLoggerAtRepoPath(r.config, r.path)
-
-	return r.transitionToOpened()
 }
 
 func (r *FSRepo) closeDatastore() error {

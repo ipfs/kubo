@@ -65,8 +65,8 @@ func run(ipfsPath, watchPath string) error {
 		return err
 	}
 
-	r := fsrepo.At(ipfsPath)
-	if err := r.Open(); err != nil {
+	r, err := fsrepo.Open(ipfsPath)
+	if err != nil {
 		// TODO handle case: daemon running
 		// TODO handle case: repo doesn't exist or isn't initialized
 		return err
