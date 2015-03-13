@@ -172,12 +172,11 @@ func Remove(repoPath string) error {
 func LockedByOtherProcess(repoPath string) bool {
 	repoPath = path.Clean(repoPath)
 
-	// packageLock must be held to check the number of openers.
-	packageLock.Lock()
-	defer packageLock.Unlock()
+	// TODO replace this with the "api" file
+	// https://github.com/ipfs/specs/tree/master/repo/fs-repo
 
 	// NB: the lock is only held when repos are Open
-	return lockfile.Locked(repoPath) && openersCounter.NumOpeners(repoPath) == 0
+	return lockfile.Locked(repoPath)
 }
 
 // openConfig returns an error if the config file is not present.
