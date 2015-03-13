@@ -14,7 +14,6 @@ import (
 	repo "github.com/jbenet/go-ipfs/repo"
 	"github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
@@ -33,14 +32,7 @@ var (
 
 	// packageLock must be held to while performing any operation that modifies an
 	// FSRepo's state field. This includes Init, Open, Close, and Remove.
-	packageLock sync.Mutex // protects openersCounter
-	// openersCounter ensures that the Init is atomic.
-	//
-	// packageLock also protects numOpenedRepos
-	//
-	// If an operation is used when repo is Open and the operation does not
-	// change the repo's state, the package lock does not need to be acquired.
-	openersCounter *counter.Openers
+	packageLock sync.Mutex
 
 	// onlyOne keeps track of open FSRepo instances.
 	//
@@ -56,10 +48,6 @@ var (
 	// full IpfsNode, but accessing the Repo directly.
 	onlyOne repo.OnlyOne
 )
-
-func init() {
-	openersCounter = counter.NewOpenersCounter()
-}
 
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
 // callers.
@@ -444,27 +432,20 @@ func isInitializedUnsynced(repoPath string) bool {
 // the package mutex.
 func (r *FSRepo) transitionToOpened() error {
 	r.state = opened
-	if countBefore := openersCounter.NumOpeners(r.path); countBefore == 0 { // #first
-		closer, err := lockfile.Lock(r.path)
-		if err != nil {
-			return err
-		}
-		r.lockfile = closer
+	closer, err := lockfile.Lock(r.path)
+	if err != nil {
+		return err
 	}
-	return openersCounter.AddOpener(r.path)
+	r.lockfile = closer
+	return nil
 }
 
 // transitionToClosed manages the state transition to |closed|. Caller must
 // hold the package mutex.
 func (r *FSRepo) transitionToClosed() error {
 	r.state = closed
-	if err := openersCounter.RemoveOpener(r.path); err != nil {
+	if err := r.lockfile.Close(); err != nil {
 		return err
-	}
-	if countAfter := openersCounter.NumOpeners(r.path); countAfter == 0 {
-		if err := r.lockfile.Close(); err != nil {
-			return err
-		}
 	}
 	return nil
 }
