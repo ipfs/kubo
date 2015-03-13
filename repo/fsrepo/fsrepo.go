@@ -1,7 +1,6 @@
 package fsrepo
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,10 +33,7 @@ var (
 
 	// packageLock must be held to while performing any operation that modifies an
 	// FSRepo's state field. This includes Init, Open, Close, and Remove.
-	packageLock sync.Mutex // protects openersCounter and lockfiles
-	// lockfiles holds references to the Closers that ensure that repos are
-	// only accessed by one process at a time.
-	lockfiles map[string]io.Closer
+	packageLock sync.Mutex // protects openersCounter
 	// openersCounter ensures that the Init is atomic.
 	//
 	// packageLock also protects numOpenedRepos
@@ -63,7 +59,6 @@ var (
 
 func init() {
 	openersCounter = counter.NewOpenersCounter()
-	lockfiles = make(map[string]io.Closer)
 }
 
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
@@ -73,6 +68,9 @@ type FSRepo struct {
 	state state
 	// path is the file-system path
 	path string
+	// lockfile is the file system lock to prevent others from opening
+	// the same fsrepo path concurrently
+	lockfile io.Closer
 	// config is set on Open, guarded by packageLock
 	config *config.Config
 	// ds is set on Open
@@ -451,7 +449,7 @@ func (r *FSRepo) transitionToOpened() error {
 		if err != nil {
 			return err
 		}
-		lockfiles[r.path] = closer
+		r.lockfile = closer
 	}
 	return openersCounter.AddOpener(r.path)
 }
@@ -464,14 +462,9 @@ func (r *FSRepo) transitionToClosed() error {
 		return err
 	}
 	if countAfter := openersCounter.NumOpeners(r.path); countAfter == 0 {
-		closer, ok := lockfiles[r.path]
-		if !ok {
-			return errors.New("package error: lockfile is not held")
-		}
-		if err := closer.Close(); err != nil {
+		if err := r.lockfile.Close(); err != nil {
 			return err
 		}
-		delete(lockfiles, r.path)
 	}
 	return nil
 }
