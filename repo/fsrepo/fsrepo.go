@@ -1,7 +1,6 @@
 package fsrepo
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -52,15 +51,14 @@ var (
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
 // callers.
 type FSRepo struct {
-	// state is the FSRepo's state (unopened, opened, closed)
-	state state
+	// has Close been called already
+	closed bool
 	// path is the file-system path
 	path string
 	// lockfile is the file system lock to prevent others from opening
 	// the same fsrepo path concurrently
 	lockfile io.Closer
-	// config is set on Open, guarded by packageLock
-	config *config.Config
+	config   *config.Config
 	// ds is set on Open
 	ds ds2.ThreadSafeDatastoreCloser
 }
@@ -110,9 +108,11 @@ func open(repoPath string) (repo.Repo, error) {
 	// log.Debugf("writing eventlogs to ...", c.path)
 	configureEventLoggerAtRepoPath(r.config, r.path)
 
-	if err := r.transitionToOpened(); err != nil {
+	closer, err := lockfile.Lock(r.path)
+	if err != nil {
 		return nil, err
 	}
+	r.lockfile = closer
 	return r, nil
 }
 
@@ -255,8 +255,8 @@ func (r *FSRepo) Close() error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		return debugerror.Errorf("repo is %s", r.state)
+	if r.closed {
+		return debugerror.New("repo is closed")
 	}
 
 	if err := r.ds.Close(); err != nil {
@@ -271,7 +271,11 @@ func (r *FSRepo) Close() error {
 	// to disable logging once the component is closed.
 	// eventlog.Configure(eventlog.Output(os.Stderr))
 
-	return r.transitionToClosed()
+	r.closed = true
+	if err := r.lockfile.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Config returns the FSRepo's config. This method must not be called if the
@@ -288,8 +292,8 @@ func (r *FSRepo) Config() *config.Config {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		panic(fmt.Sprintln("repo is", r.state))
+	if r.closed {
+		panic("repo is closed")
 	}
 	return r.config
 }
@@ -336,8 +340,8 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		return nil, debugerror.Errorf("repo is %s", r.state)
+	if r.closed {
+		return nil, debugerror.New("repo is closed")
 	}
 
 	filename, err := config.Filename(r.path)
@@ -356,8 +360,8 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		return debugerror.Errorf("repo is %s", r.state)
+	if r.closed {
+		return debugerror.New("repo is closed")
 	}
 
 	filename, err := config.Filename(r.path)
@@ -421,26 +425,4 @@ func isInitializedUnsynced(repoPath string) bool {
 		return false
 	}
 	return true
-}
-
-// transitionToOpened manages the state transition to |opened|. Caller must hold
-// the package mutex.
-func (r *FSRepo) transitionToOpened() error {
-	r.state = opened
-	closer, err := lockfile.Lock(r.path)
-	if err != nil {
-		return err
-	}
-	r.lockfile = closer
-	return nil
-}
-
-// transitionToClosed manages the state transition to |closed|. Caller must
-// hold the package mutex.
-func (r *FSRepo) transitionToClosed() error {
-	r.state = closed
-	if err := r.lockfile.Close(); err != nil {
-		return err
-	}
-	return nil
 }
