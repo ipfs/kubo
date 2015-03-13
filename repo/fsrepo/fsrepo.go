@@ -38,8 +38,7 @@ var (
 	// lockfiles holds references to the Closers that ensure that repos are
 	// only accessed by one process at a time.
 	lockfiles map[string]io.Closer
-	// openersCounter prevents the fsrepo from being removed while there exist open
-	// FSRepo handles. It also ensures that the Init is atomic.
+	// openersCounter ensures that the Init is atomic.
 	//
 	// packageLock also protects numOpenedRepos
 	//
@@ -165,15 +164,6 @@ func Init(repoPath string, conf *config.Config) error {
 // Remove recursively removes the FSRepo at |path|.
 func Remove(repoPath string) error {
 	repoPath = path.Clean(repoPath)
-
-	// packageLock must be held to ensure that the repo is not removed while
-	// being accessed by others.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	if openersCounter.NumOpeners(repoPath) != 0 {
-		return errors.New("repo in use")
-	}
 	return os.RemoveAll(repoPath)
 }
 
@@ -250,9 +240,6 @@ func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 // Open returns an error if the repo is not initialized.
 func (r *FSRepo) Open() error {
 
-	// packageLock must be held to make sure that the repo is not destroyed by
-	// another caller. It must not be released until initialization is complete
-	// and the number of openers is incremeneted.
 	packageLock.Lock()
 	defer packageLock.Unlock()
 

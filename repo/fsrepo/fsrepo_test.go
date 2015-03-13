@@ -30,18 +30,7 @@ func TestInitIdempotence(t *testing.T) {
 func TestRemove(t *testing.T) {
 	t.Parallel()
 	path := testRepoPath("foo", t)
-	assert.Nil(Remove(path), t, "should be able to remove after closed")
-}
-
-func TestCannotRemoveIfOpen(t *testing.T) {
-	t.Parallel()
-	path := testRepoPath("TestCannotRemoveIfOpen", t)
-	assert.Nil(Init(path, &config.Config{}), t, "should initialize successfully")
-	r := At(path)
-	assert.Nil(r.Open(), t)
-	assert.Err(Remove(path), t, "should not be able to remove while open")
-	assert.Nil(r.Close(), t)
-	assert.Nil(Remove(path), t, "should be able to remove after closed")
+	assert.Nil(Remove(path), t, "can remove a repository")
 }
 
 func TestCannotBeReopened(t *testing.T) {
