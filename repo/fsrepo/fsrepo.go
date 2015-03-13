@@ -46,11 +46,6 @@ var (
 	// change the repo's state, the package lock does not need to be acquired.
 	openersCounter *counter.Openers
 
-	// protects dsOpenersCounter and datastores
-	dsLock           sync.Mutex
-	dsOpenersCounter *counter.Openers
-	datastores       map[string]ds2.ThreadSafeDatastoreCloser
-
 	// onlyOne keeps track of open FSRepo instances.
 	//
 	// TODO: once command Context / Repo integration is cleaned up,
@@ -69,9 +64,6 @@ var (
 func init() {
 	openersCounter = counter.NewOpenersCounter()
 	lockfiles = make(map[string]io.Closer)
-
-	dsOpenersCounter = counter.NewOpenersCounter()
-	datastores = make(map[string]ds2.ThreadSafeDatastoreCloser)
 }
 
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
@@ -254,32 +246,14 @@ func (r *FSRepo) openConfig() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	dsLock.Lock()
-	defer dsLock.Unlock()
-
 	dsPath := path.Join(r.path, defaultDataStoreDirectory)
-
-	// if no other goroutines have the datastore Open, initialize it and assign
-	// it to the package-scoped map for the goroutines that follow.
-	if dsOpenersCounter.NumOpeners(dsPath) == 0 {
-		ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
-			Compression: ldbopts.NoCompression,
-		})
-		if err != nil {
-			return debugerror.New("unable to open leveldb datastore")
-		}
-		datastores[dsPath] = ds
-	}
-
-	// get the datastore from the package-scoped map and record self as an
-	// opener.
-	ds, dsIsPresent := datastores[dsPath]
-	if !dsIsPresent {
-		// This indicates a programmer error has occurred.
-		return errors.New("datastore should be available, but it isn't")
+	ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
+		Compression: ldbopts.NoCompression,
+	})
+	if err != nil {
+		return debugerror.New("unable to open leveldb datastore")
 	}
 	r.ds = ds
-	dsOpenersCounter.AddOpener(dsPath) // only after success
 	return nil
 }
 
@@ -295,24 +269,6 @@ func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
 }
 
-func (r *FSRepo) closeDatastore() error {
-	dsLock.Lock()
-	defer dsLock.Unlock()
-
-	dsPath := path.Join(r.path, defaultDataStoreDirectory)
-
-	// decrement the Opener count. if this goroutine is the last, also close
-	// the underlying datastore (and remove its reference from the map)
-
-	dsOpenersCounter.RemoveOpener(dsPath)
-
-	if dsOpenersCounter.NumOpeners(dsPath) == 0 {
-		delete(datastores, dsPath) // remove the reference
-		return r.ds.Close()
-	}
-	return nil
-}
-
 // Close closes the FSRepo, releasing held resources.
 func (r *FSRepo) Close() error {
 	packageLock.Lock()
@@ -322,7 +278,7 @@ func (r *FSRepo) Close() error {
 		return debugerror.Errorf("repo is %s", r.state)
 	}
 
-	if err := r.closeDatastore(); err != nil {
+	if err := r.ds.Close(); err != nil {
 		return err
 	}
 
