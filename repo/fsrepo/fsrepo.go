@@ -87,6 +87,18 @@ func open(repoPath string) (repo.Repo, error) {
 		path: expPath,
 	}
 
+	r.lockfile, err = lockfile.Lock(r.path)
+	if err != nil {
+		return nil, err
+	}
+	keepLocked := false
+	defer func() {
+		// unlock on error, leave it locked on success
+		if !keepLocked {
+			r.lockfile.Close()
+		}
+	}()
+
 	if !isInitializedUnsynced(r.path) {
 		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
 	}
@@ -108,11 +120,7 @@ func open(repoPath string) (repo.Repo, error) {
 	// log.Debugf("writing eventlogs to ...", c.path)
 	configureEventLoggerAtRepoPath(r.config, r.path)
 
-	closer, err := lockfile.Lock(r.path)
-	if err != nil {
-		return nil, err
-	}
-	r.lockfile = closer
+	keepLocked = true
 	return r, nil
 }
 
