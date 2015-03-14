@@ -50,6 +50,20 @@ var (
 	dsLock           sync.Mutex
 	dsOpenersCounter *counter.Openers
 	datastores       map[string]ds2.ThreadSafeDatastoreCloser
+
+	// onlyOne keeps track of open FSRepo instances.
+	//
+	// TODO: once command Context / Repo integration is cleaned up,
+	// this can be removed. Right now, this makes ConfigCmd.Run
+	// function try to open the repo twice:
+	//
+	//     $ ipfs daemon &
+	//     $ ipfs config foo
+	//
+	// The reason for the above is that in standalone mode without the
+	// daemon, `ipfs config` tries to save work by not building the
+	// full IpfsNode, but accessing the Repo directly.
+	onlyOne repo.OnlyOne
 )
 
 func init() {
@@ -77,7 +91,14 @@ var _ repo.Repo = (*FSRepo)(nil)
 
 // Open the FSRepo at path. Returns an error if the repo is not
 // initialized.
-func Open(repoPath string) (*FSRepo, error) {
+func Open(repoPath string) (repo.Repo, error) {
+	fn := func() (repo.Repo, error) {
+		return open(repoPath)
+	}
+	return onlyOne.Open(repoPath, fn)
+}
+
+func open(repoPath string) (repo.Repo, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
