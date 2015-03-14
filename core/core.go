@@ -295,24 +295,25 @@ func (n *IpfsNode) teardown() error {
 		n.Exchange,
 		n.Repo,
 	}
-	addCloser := func(c io.Closer) { // use when field may be nil
-		if c != nil {
-			closers = append(closers, c)
-		}
-	}
 
 	if n.Blocks != nil {
-		addCloser(n.Blocks)
+		closers = append(closers, n.Blocks)
 	}
 	if n.IpnsFs != nil {
-		addCloser(n.IpnsFs)
+		closers = append(closers, n.IpnsFs)
 	}
 
-	addCloser(n.Bootstrapper)
-	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-		addCloser(dht)
+	if n.Bootstrapper != nil {
+		closers = append(closers, n.Bootstrapper)
 	}
-	addCloser(n.PeerHost)
+
+	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
+		closers = append(closers, dht)
+	}
+
+	if n.PeerHost != nil {
+		closers = append(closers, n.PeerHost)
+	}
 
 	var errs []error
 	for _, closer := range closers {
