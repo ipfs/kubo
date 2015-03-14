@@ -1,9 +1,7 @@
 package ipnsfs
 
 import (
-	"errors"
-	"io"
-	"os"
+	"sync"
 
 	chunk "github.com/jbenet/go-ipfs/importer/chunk"
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -12,33 +10,24 @@ import (
 	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-type File interface {
-	io.ReadWriteCloser
-	io.WriterAt
-	Seek(int64, int) (int64, error)
-	Size() (int64, error)
-	Flush() error
-	Truncate(int64) error
-	FSNode
-}
-
-type file struct {
+type File struct {
 	parent childCloser
 	fs     *Filesystem
 
 	name       string
 	hasChanges bool
 
-	mod *mod.DagModifier
+	mod  *mod.DagModifier
+	lock sync.Mutex
 }
 
-func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*file, error) {
+func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*File, error) {
 	dmod, err := mod.NewDagModifier(context.Background(), node, fs.dserv, fs.pins.GetManual(), chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
 
-	return &file{
+	return &File{
 		fs:     fs,
 		parent: parent,
 		name:   name,
@@ -46,16 +35,20 @@ func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*
 	}, nil
 }
 
-func (fi *file) Write(b []byte) (int, error) {
+func (fi *File) Write(b []byte) (int, error) {
 	fi.hasChanges = true
 	return fi.mod.Write(b)
 }
 
-func (fi *file) Read(b []byte) (int, error) {
+func (fi *File) Read(b []byte) (int, error) {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	return fi.mod.Read(b)
 }
 
-func (fi *file) Close() error {
+func (fi *File) Close() error {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	if fi.hasChanges {
 		err := fi.mod.Flush()
 		if err != nil {
@@ -67,7 +60,9 @@ func (fi *file) Close() error {
 			return err
 		}
 
+		fi.lock.Unlock()
 		err = fi.parent.closeChild(fi.name, nd)
+		fi.lock.Lock()
 		if err != nil {
 			return err
 		}
@@ -78,47 +73,52 @@ func (fi *file) Close() error {
 	return nil
 }
 
-func (fi *file) Flush() error {
+func (fi *File) Flush() error {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	return fi.mod.Flush()
 }
 
-func (fi *file) withMode(mode int) File {
-	if mode == os.O_RDONLY {
-		return &readOnlyFile{fi}
-	}
-	return fi
-}
-
-func (fi *file) Seek(offset int64, whence int) (int64, error) {
+func (fi *File) Seek(offset int64, whence int) (int64, error) {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	return fi.mod.Seek(offset, whence)
 }
 
-func (fi *file) WriteAt(b []byte, at int64) (int, error) {
+func (fi *File) WriteAt(b []byte, at int64) (int, error) {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	fi.hasChanges = true
 	return fi.mod.WriteAt(b, at)
 }
 
-func (fi *file) Size() (int64, error) {
+func (fi *File) Size() (int64, error) {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	return fi.mod.Size()
 }
 
-func (fi *file) GetNode() (*dag.Node, error) {
+func (fi *File) GetNode() (*dag.Node, error) {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	return fi.mod.GetNode()
 }
 
-func (fi *file) Truncate(size int64) error {
+func (fi *File) Truncate(size int64) error {
+	fi.lock.Lock()
+	defer fi.lock.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Truncate(size)
 }
 
-func (fi *file) Type() NodeType {
+func (fi *File) Type() NodeType {
 	return TFile
 }
 
-type readOnlyFile struct {
-	*file
+func (fi *File) Lock() {
+	fi.lock.Lock()
 }
 
-func (ro *readOnlyFile) Write([]byte) (int, error) {
-	return 0, errors.New("permission denied: file readonly")
+func (fi *File) Unlock() {
+	fi.lock.Unlock()
 }

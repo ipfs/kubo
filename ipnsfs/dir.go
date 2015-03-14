@@ -15,17 +15,16 @@ var ErrNotYetImplemented = errors.New("not yet implemented")
 var ErrInvalidChild = errors.New("invalid child node")
 
 type Directory struct {
-	fs        *Filesystem
-	parent    childCloser
+	fs     *Filesystem
+	parent childCloser
+
 	childDirs map[string]*Directory
-	files     map[string]*file
+	files     map[string]*File
 
-	node *dag.Node
-	name string
 	lock sync.Mutex
+	node *dag.Node
 
-	ref     int
-	refLock sync.Mutex
+	name string
 }
 
 func NewDirectory(name string, node *dag.Node, parent childCloser, fs *Filesystem) *Directory {
@@ -35,18 +34,19 @@ func NewDirectory(name string, node *dag.Node, parent childCloser, fs *Filesyste
 		node:      node,
 		parent:    parent,
 		childDirs: make(map[string]*Directory),
-		files:     make(map[string]*file),
+		files:     make(map[string]*File),
 	}
 }
 
-func (d *Directory) Open(tpath []string, mode int) (File, error) {
+// Open opens a file at the given path 'tpath'
+func (d *Directory) Open(tpath []string, mode int) (*File, error) {
 	if len(tpath) == 0 {
 		return nil, ErrIsDirectory
 	}
 	if len(tpath) == 1 {
 		fi, err := d.childFile(tpath[0])
 		if err == nil {
-			return fi.withMode(mode), nil
+			return fi, nil
 		}
 
 		if mode|os.O_CREATE != 0 {
@@ -57,7 +57,7 @@ func (d *Directory) Open(tpath []string, mode int) (File, error) {
 				return nil, err
 			}
 			d.files[tpath[0]] = nfi
-			return nfi.withMode(mode), nil
+			return nfi, nil
 		}
 
 		return nil, ErrNoSuch
@@ -102,7 +102,7 @@ func (d *Directory) Type() NodeType {
 	return TDir
 }
 
-func (d *Directory) childFile(name string) (*file, error) {
+func (d *Directory) childFile(name string) (*File, error) {
 	fi, ok := d.files[name]
 	if ok {
 		return fi, nil
@@ -334,14 +334,10 @@ func (d *Directory) GetNode() (*dag.Node, error) {
 	return d.node, nil
 }
 
-func (d *Directory) Upref() {
-	d.refLock.Lock()
-	d.ref++
-	d.refLock.Unlock()
+func (d *Directory) Lock() {
+	d.lock.Lock()
 }
 
-func (d *Directory) Deref() {
-	d.refLock.Lock()
-	d.ref--
-	d.refLock.Unlock()
+func (d *Directory) Unlock() {
+	d.lock.Unlock()
 }

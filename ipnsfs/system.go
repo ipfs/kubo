@@ -58,7 +58,7 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSyst
 	return fs, nil
 }
 
-func (fs *Filesystem) Open(tpath string, mode int) (File, error) {
+func (fs *Filesystem) Open(tpath string, mode int) (*File, error) {
 	pathelem := strings.Split(tpath, "/")
 	r, ok := fs.roots[pathelem[0]]
 	if !ok {
@@ -96,6 +96,8 @@ const (
 type FSNode interface {
 	GetNode() (*dag.Node, error)
 	Type() NodeType
+	Lock()
+	Unlock()
 }
 
 // KeyRoot represents the root of a filesystem tree pointed to by a given keypair
@@ -177,7 +179,7 @@ func (kr *KeyRoot) GetValue() FSNode {
 	return kr.val
 }
 
-func (kr *KeyRoot) Open(tpath []string, mode int) (File, error) {
+func (kr *KeyRoot) Open(tpath []string, mode int) (*File, error) {
 	if kr.val == nil {
 		// No entry here... what should we do?
 		panic("nyi")
@@ -195,7 +197,7 @@ func (kr *KeyRoot) Open(tpath []string, mode int) (File, error) {
 	switch t := kr.val.(type) {
 	case *Directory:
 		return nil, ErrIsDirectory
-	case File:
+	case *File:
 		return t, nil
 	default:
 		panic("unrecognized type, should not happen")
@@ -221,10 +223,14 @@ func (kr *KeyRoot) Publish(ctx context.Context) error {
 		return err
 	}
 
+	child.Lock()
 	k, err := kr.fs.dserv.Add(nd)
 	if err != nil {
+		child.Unlock()
 		return err
 	}
+	child.Unlock()
+	// Dont want to hold the lock while we publish
 
 	fmt.Println("Publishing!")
 	return kr.fs.nsys.Publish(ctx, kr.key, k)
