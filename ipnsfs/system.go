@@ -3,6 +3,7 @@ package ipnsfs
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -20,8 +21,6 @@ import (
 var log = eventlog.Logger("ipnsfs")
 
 var ErrIsDirectory = errors.New("error: is a directory")
-
-var ErrNoSuch = errors.New("no such file or directory")
 
 // Filesystem is the writeable fuse filesystem structure
 type Filesystem struct {
@@ -62,7 +61,7 @@ func (fs *Filesystem) Open(tpath string, mode int) (*File, error) {
 	pathelem := strings.Split(tpath, "/")
 	r, ok := fs.roots[pathelem[0]]
 	if !ok {
-		return nil, ErrNoSuch
+		return nil, os.ErrNotExist
 	}
 
 	return r.Open(pathelem[1:], mode)
@@ -83,7 +82,7 @@ func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
 	if ok {
 		return r, nil
 	}
-	return nil, ErrNoSuch
+	return nil, os.ErrNotExist
 }
 
 type NodeType int

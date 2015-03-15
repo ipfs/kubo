@@ -36,19 +36,21 @@ func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*
 }
 
 func (fi *File) Write(b []byte) (int, error) {
+	fi.Lock()
+	defer fi.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Write(b)
 }
 
 func (fi *File) Read(b []byte) (int, error) {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	return fi.mod.Read(b)
 }
 
 func (fi *File) Close() error {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	if fi.hasChanges {
 		err := fi.mod.Flush()
 		if err != nil {
@@ -60,9 +62,9 @@ func (fi *File) Close() error {
 			return err
 		}
 
-		fi.lock.Unlock()
+		fi.Unlock()
 		err = fi.parent.closeChild(fi.name, nd)
-		fi.lock.Lock()
+		fi.Lock()
 		if err != nil {
 			return err
 		}
@@ -74,39 +76,39 @@ func (fi *File) Close() error {
 }
 
 func (fi *File) Flush() error {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	return fi.mod.Flush()
 }
 
 func (fi *File) Seek(offset int64, whence int) (int64, error) {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	return fi.mod.Seek(offset, whence)
 }
 
 func (fi *File) WriteAt(b []byte, at int64) (int, error) {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	fi.hasChanges = true
 	return fi.mod.WriteAt(b, at)
 }
 
 func (fi *File) Size() (int64, error) {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	return fi.mod.Size()
 }
 
 func (fi *File) GetNode() (*dag.Node, error) {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	return fi.mod.GetNode()
 }
 
 func (fi *File) Truncate(size int64) error {
-	fi.lock.Lock()
-	defer fi.lock.Unlock()
+	fi.Lock()
+	defer fi.Unlock()
 	fi.hasChanges = true
 	return fi.mod.Truncate(size)
 }

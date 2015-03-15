@@ -60,7 +60,7 @@ func (d *Directory) Open(tpath []string, mode int) (*File, error) {
 			return nfi, nil
 		}
 
-		return nil, ErrNoSuch
+		return nil, os.ErrNotExist
 	}
 
 	dir, err := d.childDir(tpath[0])
@@ -99,86 +99,92 @@ func (d *Directory) Type() NodeType {
 	return TDir
 }
 
+// childFile returns a file under this directory by the given name if it exists
 func (d *Directory) childFile(name string) (*File, error) {
 	fi, ok := d.files[name]
 	if ok {
 		return fi, nil
 	}
 
-	// search dag
-	for _, lnk := range d.node.Links {
-		if lnk.Name == name {
-			nd, err := lnk.GetNode(d.fs.dserv)
-			if err != nil {
-				return nil, err
-			}
-			i, err := ft.FromBytes(nd.Data)
-			if err != nil {
-				return nil, err
-			}
-
-			switch i.GetType() {
-			case ufspb.Data_Directory:
-				return nil, ErrIsDirectory
-			case ufspb.Data_File:
-				nfi, err := NewFile(name, nd, d, d.fs)
-				if err != nil {
-					return nil, err
-				}
-				d.files[name] = nfi
-				return nfi, nil
-			case ufspb.Data_Metadata:
-				return nil, ErrNotYetImplemented
-			default:
-				return nil, ErrInvalidChild
-			}
-		}
+	nd, err := d.childFromDag(name)
+	if err != nil {
+		return nil, err
 	}
-	return nil, ErrNoSuch
+	i, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	switch i.GetType() {
+	case ufspb.Data_Directory:
+		return nil, ErrIsDirectory
+	case ufspb.Data_File:
+		nfi, err := NewFile(name, nd, d, d.fs)
+		if err != nil {
+			return nil, err
+		}
+		d.files[name] = nfi
+		return nfi, nil
+	case ufspb.Data_Metadata:
+		return nil, ErrNotYetImplemented
+	default:
+		return nil, ErrInvalidChild
+	}
 }
 
+// childDir returns a directory under this directory by the given name if it
+// exists.
 func (d *Directory) childDir(name string) (*Directory, error) {
 	dir, ok := d.childDirs[name]
 	if ok {
 		return dir, nil
 	}
 
-	for _, lnk := range d.node.Links {
-		if lnk.Name == name {
-			nd, err := lnk.GetNode(d.fs.dserv)
-			if err != nil {
-				return nil, err
-			}
-			i, err := ft.FromBytes(nd.Data)
-			if err != nil {
-				return nil, err
-			}
-
-			switch i.GetType() {
-			case ufspb.Data_Directory:
-				ndir := NewDirectory(name, nd, d, d.fs)
-				d.childDirs[name] = ndir
-				return ndir, nil
-			case ufspb.Data_File:
-				return nil, fmt.Errorf("%s is not a directory", name)
-			case ufspb.Data_Metadata:
-				return nil, ErrNotYetImplemented
-			default:
-				return nil, ErrInvalidChild
-			}
-		}
-
+	nd, err := d.childFromDag(name)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, ErrNoSuch
+	i, err := ft.FromBytes(nd.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	switch i.GetType() {
+	case ufspb.Data_Directory:
+		ndir := NewDirectory(name, nd, d, d.fs)
+		d.childDirs[name] = ndir
+		return ndir, nil
+	case ufspb.Data_File:
+		return nil, fmt.Errorf("%s is not a directory", name)
+	case ufspb.Data_Metadata:
+		return nil, ErrNotYetImplemented
+	default:
+		return nil, ErrInvalidChild
+	}
 }
 
+// childFromDag searches through this directories dag node for a child link
+// with the given name
+func (d *Directory) childFromDag(name string) (*dag.Node, error) {
+	for _, lnk := range d.node.Links {
+		if lnk.Name == name {
+			return lnk.GetNode(d.fs.dserv)
+		}
+	}
+
+	return nil, os.ErrNotExist
+}
+
+// Child returns the child of this directory by the given name
 func (d *Directory) Child(name string) (FSNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	return d.childUnsync(name)
 }
 
+// childUnsync returns the child under this directory by the given name
+// without locking, useful for operations which already hold a lock
 func (d *Directory) childUnsync(name string) (FSNode, error) {
 	dir, err := d.childDir(name)
 	if err == nil {
@@ -189,7 +195,7 @@ func (d *Directory) childUnsync(name string) (FSNode, error) {
 		return fi, nil
 	}
 
-	return nil, ErrNoSuch
+	return nil, os.ErrNotExist
 }
 
 func (d *Directory) List() []string {
@@ -243,56 +249,6 @@ func (d *Directory) Unlink(name string) error {
 	}
 
 	return d.parent.closeChild(d.name, d.node)
-}
-
-// RenameEntry renames the child by 'oldname' of this directory to 'newname'
-func (d *Directory) RenameEntry(oldname, newname string) error {
-	d.Lock()
-	defer d.Unlock()
-	// Is the child a directory?
-	dir, err := d.childDir(oldname)
-	if err == nil {
-		dir.name = newname
-
-		err := d.node.RemoveNodeLink(oldname)
-		if err != nil {
-			return err
-		}
-		err = d.node.AddNodeLinkClean(newname, dir.node)
-		if err != nil {
-			return err
-		}
-
-		delete(d.childDirs, oldname)
-		d.childDirs[newname] = dir
-		return d.parent.closeChild(d.name, d.node)
-	}
-
-	// Is the child a file?
-	fi, err := d.childFile(oldname)
-	if err == nil {
-		fi.name = newname
-
-		err := d.node.RemoveNodeLink(oldname)
-		if err != nil {
-			return err
-		}
-
-		nd, err := fi.GetNode()
-		if err != nil {
-			return err
-		}
-
-		err = d.node.AddNodeLinkClean(newname, nd)
-		if err != nil {
-			return err
-		}
-
-		delete(d.childDirs, oldname)
-		d.files[newname] = fi
-		return d.parent.closeChild(d.name, d.node)
-	}
-	return ErrNoSuch
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
