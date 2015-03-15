@@ -30,16 +30,16 @@ test_expect_success "'ipfs object get' output looks good" '
 '
 
 test_expect_success "'ipfs object stat' succeeds" '
-  ipfs object stat $HASH >actual_stat
+	ipfs object stat $HASH >actual_stat
 '
 
 test_expect_success "'ipfs object get' output looks good" '
-echo "NumLinks: 0" >> expected_stat &&
-echo "BlockSize: 18" >> expected_stat &&
-echo "LinksSize: 2" >> expected_stat &&
-echo "DataSize: 16" >> expected_stat &&
-echo "CumulativeSize: 18" >> expected_stat &&
-  test_cmp expected_stat actual_stat
+	echo "NumLinks: 0" > expected_stat &&
+	echo "BlockSize: 18" >> expected_stat &&
+	echo "LinksSize: 2" >> expected_stat &&
+	echo "DataSize: 16" >> expected_stat &&
+	echo "CumulativeSize: 18" >> expected_stat &&
+	test_cmp expected_stat actual_stat
 '
 
 test_expect_success "'ipfs object put file.json' succeeds" '
@@ -83,14 +83,14 @@ test_expect_success "'ipfs object put' from stdin (pb) output looks good" '
 '
 
 test_expect_success "'ipfs object put broken.json' should fail" '
-  test_expect_code 1 ipfs object put ../t0051-object-data/brokenPut.json 2>actual_putBrokenErr >actual_putBroken
+	test_expect_code 1 ipfs object put ../t0051-object-data/brokenPut.json 2>actual_putBrokenErr >actual_putBroken
 '
 
 test_expect_success "'ipfs object put broken.hjson' output looks good" '
-  touch expected_putBroken &&
-  printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
-  test_cmp expected_putBroken actual_putBroken &&
-  test_cmp expected_putBrokenErr actual_putBrokenErr
+	touch expected_putBroken &&
+	printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
+	test_cmp expected_putBroken actual_putBroken &&
+	test_cmp expected_putBrokenErr actual_putBrokenErr
 '
 
 
