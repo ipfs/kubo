@@ -70,7 +70,6 @@ func (d *Directory) Open(tpath []string, mode int) (*File, error) {
 	return dir.Open(tpath[1:], mode)
 }
 
-// consider combining into a single method...
 type childCloser interface {
 	closeChild(string, *dag.Node) error
 }
@@ -82,18 +81,16 @@ func (d *Directory) closeChild(name string, nd *dag.Node) error {
 	}
 
 	d.lock.Lock()
+	defer d.lock.Unlock()
 	err = d.node.RemoveNodeLink(name)
 	if err != nil && err != dag.ErrNotFound {
-		d.lock.Unlock()
 		return err
 	}
 
 	err = d.node.AddNodeLinkClean(name, nd)
 	if err != nil {
-		d.lock.Unlock()
 		return err
 	}
-	d.lock.Unlock()
 
 	return d.parent.closeChild(d.name, d.node)
 }
@@ -179,6 +176,10 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 func (d *Directory) Child(name string) (FSNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
+	return d.childUnsync(name)
+}
+
+func (d *Directory) childUnsync(name string) (FSNode, error) {
 	dir, err := d.childDir(name)
 	if err == nil {
 		return dir, nil
@@ -204,54 +205,50 @@ func (d *Directory) List() []string {
 
 func (d *Directory) Mkdir(name string) (*Directory, error) {
 	d.lock.Lock()
+	defer d.lock.Unlock()
 
 	_, err := d.childDir(name)
 	if err == nil {
-		d.lock.Unlock()
-		return nil, errors.New("directory by that name already exists")
+		return nil, os.ErrExist
 	}
 	_, err = d.childFile(name)
 	if err == nil {
-		d.lock.Unlock()
-		return nil, errors.New("file by that name already exists")
+		return nil, os.ErrExist
 	}
 
 	ndir := &dag.Node{Data: ft.FolderPBData()}
 	err = d.node.AddNodeLinkClean(name, ndir)
 	if err != nil {
-		d.lock.Unlock()
 		return nil, err
 	}
-	d.lock.Unlock()
 
 	err = d.parent.closeChild(d.name, d.node)
 	if err != nil {
 		return nil, err
 	}
 
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	return d.childDir(name)
 }
 
 func (d *Directory) Unlink(name string) error {
 	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	delete(d.childDirs, name)
 	delete(d.files, name)
 
 	err := d.node.RemoveNodeLink(name)
 	if err != nil {
-		d.lock.Unlock()
 		return err
 	}
-	d.lock.Unlock()
 
 	return d.parent.closeChild(d.name, d.node)
 }
 
 // RenameEntry renames the child by 'oldname' of this directory to 'newname'
 func (d *Directory) RenameEntry(oldname, newname string) error {
+	d.Lock()
+	defer d.Unlock()
 	// Is the child a directory?
 	dir, err := d.childDir(oldname)
 	if err == nil {
@@ -300,12 +297,14 @@ func (d *Directory) RenameEntry(oldname, newname string) error {
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
 func (d *Directory) AddChild(name string, nd *dag.Node) error {
+	d.Lock()
+	defer d.Unlock()
 	pbn, err := ft.FromBytes(nd.Data)
 	if err != nil {
 		return err
 	}
 
-	_, err = d.Child(name)
+	_, err = d.childUnsync(name)
 	if err == nil {
 		return errors.New("directory already has entry by that name")
 	}
