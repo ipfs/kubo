@@ -1,3 +1,13 @@
+// package ipnsfs implements an in memory model of a mutable ipns filesystem,
+// to be used by the fuse filesystem.
+//
+// It consists of four main structs:
+// 1) The Filesystem
+//        The filesystem serves as a container and entry point for the ipns filesystem
+// 2) KeyRoots
+//        KeyRoots represent the root of the keyspace controlled by a given keypair
+// 3) Directories
+// 4) Files
 package ipnsfs
 
 import (
@@ -5,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	dag "github.com/jbenet/go-ipfs/merkledag"
@@ -33,6 +44,7 @@ type Filesystem struct {
 	roots map[string]*KeyRoot
 }
 
+// NewFilesystem instantiates an ipns filesystem using the given parameters and locally owned keys
 func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSystem, pins pin.Pinner, keys ...ci.PrivKey) (*Filesystem, error) {
 	roots := make(map[string]*KeyRoot)
 	fs := &Filesystem{
@@ -47,7 +59,7 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSyst
 			return nil, err
 		}
 
-		root, err := fs.NewKeyRoot(ctx, k)
+		root, err := fs.newKeyRoot(ctx, k)
 		if err != nil {
 			return nil, err
 		}
@@ -57,6 +69,7 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSyst
 	return fs, nil
 }
 
+// Open opens a file at the given path
 func (fs *Filesystem) Open(tpath string, mode int) (*File, error) {
 	pathelem := strings.Split(tpath, "/")
 	r, ok := fs.roots[pathelem[0]]
@@ -68,21 +81,33 @@ func (fs *Filesystem) Open(tpath string, mode int) (*File, error) {
 }
 
 func (fs *Filesystem) Close() error {
+	wg := sync.WaitGroup{}
 	for _, r := range fs.roots {
-		err := r.Publish(context.TODO())
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(r *KeyRoot) {
+			defer wg.Done()
+			err := r.Publish(context.TODO())
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		}(r)
 	}
+	wg.Wait()
 	return nil
 }
 
+// GetRoot returns the KeyRoot of the given name
 func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
 	r, ok := fs.roots[name]
 	if ok {
 		return r, nil
 	}
 	return nil, os.ErrNotExist
+}
+
+type childCloser interface {
+	closeChild(string, *dag.Node) error
 }
 
 type NodeType int
@@ -92,6 +117,7 @@ const (
 	TDir
 )
 
+// FSNode represents any node (directory, root, or file) in the ipns filesystem
 type FSNode interface {
 	GetNode() (*dag.Node, error)
 	Type() NodeType
@@ -115,7 +141,9 @@ type KeyRoot struct {
 	repub *Republisher
 }
 
-func (fs *Filesystem) NewKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot, error) {
+// newKeyRoot creates a new KeyRoot for the given key, and starts up a republisher routine
+// for it
+func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot, error) {
 	hash, err := k.GetPublic().Hash()
 	if err != nil {
 		return nil, err
@@ -180,14 +208,14 @@ func (kr *KeyRoot) GetValue() FSNode {
 
 func (kr *KeyRoot) Open(tpath []string, mode int) (*File, error) {
 	if kr.val == nil {
-		// No entry here... what should we do?
-		panic("nyi")
+		// No entry here. KeyRoot was created incorrectly
+		panic("nil keyroot.val, improperly constructed keyroot")
 	}
 	if len(tpath) > 0 {
 		// Make sure our root is a directory
 		dir, ok := kr.val.(*Directory)
 		if !ok {
-			return nil, fmt.Errorf("no such file or directory: %s", tpath[0])
+			return nil, os.ErrNotExist
 		}
 
 		return dir.Open(tpath, mode)
@@ -222,6 +250,7 @@ func (kr *KeyRoot) Publish(ctx context.Context) error {
 		return err
 	}
 
+	// Holding this lock so our child doesnt change out from under us
 	child.Lock()
 	k, err := kr.fs.dserv.Add(nd)
 	if err != nil {
@@ -230,6 +259,8 @@ func (kr *KeyRoot) Publish(ctx context.Context) error {
 	}
 	child.Unlock()
 	// Dont want to hold the lock while we publish
+	// otherwise we are holding the lock through a costly
+	// network operation
 
 	fmt.Println("Publishing!")
 	return kr.fs.nsys.Publish(ctx, kr.key, k)
@@ -243,6 +274,8 @@ type Republisher struct {
 	root         *KeyRoot
 }
 
+// NewRepublisher creates a new Republisher object to republish the given keyroot
+// using the given short and long time intervals
 func NewRepublisher(root *KeyRoot, tshort, tlong time.Duration) *Republisher {
 	return &Republisher{
 		TimeoutShort: tshort,
@@ -252,6 +285,9 @@ func NewRepublisher(root *KeyRoot, tshort, tlong time.Duration) *Republisher {
 	}
 }
 
+// Touch signals that an update has occurred since the last publish.
+// Multiple consecutive touches may extend the time period before
+// the next Publish occurs in order to more efficiently batch updates
 func (np *Republisher) Touch() {
 	select {
 	case np.Publish <- struct{}{}:
@@ -259,6 +295,7 @@ func (np *Republisher) Touch() {
 	}
 }
 
+// Run is the main republisher loop
 func (np *Republisher) Run(ctx context.Context) {
 	for {
 		select {
@@ -268,13 +305,13 @@ func (np *Republisher) Run(ctx context.Context) {
 
 		wait:
 			select {
-			case <-quick:
-			case <-longer:
 			case <-ctx.Done():
 				return
 			case <-np.Publish:
 				quick = time.After(np.TimeoutShort)
 				goto wait
+			case <-quick:
+			case <-longer:
 			}
 
 			log.Info("Publishing Changes!")

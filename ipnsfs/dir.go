@@ -70,10 +70,8 @@ func (d *Directory) Open(tpath []string, mode int) (*File, error) {
 	return dir.Open(tpath[1:], mode)
 }
 
-type childCloser interface {
-	closeChild(string, *dag.Node) error
-}
-
+// closeChild updates the child by the given name to the dag node 'nd'
+// and changes its own dag node, then propogates the changes upward
 func (d *Directory) closeChild(name string, nd *dag.Node) error {
 	_, err := d.fs.dserv.Add(nd)
 	if err != nil {

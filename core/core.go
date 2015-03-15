@@ -296,11 +296,14 @@ func (n *IpfsNode) teardown() error {
 		n.Repo,
 	}
 
-	if n.Blocks != nil {
-		closers = append(closers, n.Blocks)
-	}
+	// Filesystem needs to be closed before network, dht, and blockservice
+	// so it can use them as its shutting down
 	if n.IpnsFs != nil {
 		closers = append(closers, n.IpnsFs)
+	}
+
+	if n.Blocks != nil {
+		closers = append(closers, n.Blocks)
 	}
 
 	if n.Bootstrapper != nil {

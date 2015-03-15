@@ -21,6 +21,7 @@ type File struct {
 	lock sync.Mutex
 }
 
+// NewFile returns a NewFile object with the given parameters
 func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*File, error) {
 	dmod, err := mod.NewDagModifier(context.Background(), node, fs.dserv, fs.pins.GetManual(), chunk.DefaultSplitter)
 	if err != nil {
@@ -35,6 +36,7 @@ func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*
 	}, nil
 }
 
+// Write writes the given data to the file at its current offset
 func (fi *File) Write(b []byte) (int, error) {
 	fi.Lock()
 	defer fi.Unlock()
@@ -42,12 +44,15 @@ func (fi *File) Write(b []byte) (int, error) {
 	return fi.mod.Write(b)
 }
 
+// Read reads into the given buffer from the current offset
 func (fi *File) Read(b []byte) (int, error) {
 	fi.Lock()
 	defer fi.Unlock()
 	return fi.mod.Read(b)
 }
 
+// Close flushes, then propogates the modified dag node up the directory structure
+// and signals a republish to occur
 func (fi *File) Close() error {
 	fi.Lock()
 	defer fi.Unlock()
@@ -75,18 +80,21 @@ func (fi *File) Close() error {
 	return nil
 }
 
+// Flush flushes the changes in the file to disk
 func (fi *File) Flush() error {
 	fi.Lock()
 	defer fi.Unlock()
 	return fi.mod.Flush()
 }
 
+// Seek implements io.Seeker
 func (fi *File) Seek(offset int64, whence int) (int64, error) {
 	fi.Lock()
 	defer fi.Unlock()
 	return fi.mod.Seek(offset, whence)
 }
 
+// Write At writes the given bytes at the offset 'at'
 func (fi *File) WriteAt(b []byte, at int64) (int, error) {
 	fi.Lock()
 	defer fi.Unlock()
@@ -94,18 +102,21 @@ func (fi *File) WriteAt(b []byte, at int64) (int, error) {
 	return fi.mod.WriteAt(b, at)
 }
 
+// Size returns the size of this file
 func (fi *File) Size() (int64, error) {
 	fi.Lock()
 	defer fi.Unlock()
 	return fi.mod.Size()
 }
 
+// GetNode returns the dag node associated with this file
 func (fi *File) GetNode() (*dag.Node, error) {
 	fi.Lock()
 	defer fi.Unlock()
 	return fi.mod.GetNode()
 }
 
+// Truncate truncates the file to size
 func (fi *File) Truncate(size int64) error {
 	fi.Lock()
 	defer fi.Unlock()
@@ -113,14 +124,17 @@ func (fi *File) Truncate(size int64) error {
 	return fi.mod.Truncate(size)
 }
 
+// Type returns the type FSNode this is
 func (fi *File) Type() NodeType {
 	return TFile
 }
 
+// Lock the file
 func (fi *File) Lock() {
 	fi.lock.Lock()
 }
 
+// Unlock the file
 func (fi *File) Unlock() {
 	fi.lock.Unlock()
 }
