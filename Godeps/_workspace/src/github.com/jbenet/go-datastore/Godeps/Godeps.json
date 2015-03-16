@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/jbenet/go-datastore",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.4",
 	"Packages": [
 		"./..."
 	],
@@ -20,7 +20,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "b4b4178efcf2404ce9db72438c9c49db2fb399d8"
+			"Rev": "5b02f8d275a2dd882fb06f8bbdf74347795ff3b1"
 		},
 		{
 			"ImportPath": "github.com/mattbaird/elastigo/api",
