@@ -60,7 +60,9 @@ type FSRepo struct {
 	// the same fsrepo path concurrently
 	lockfile io.Closer
 	config   *config.Config
-	ds ds2.ThreadSafeDatastoreCloser
+	ds       ds.ThreadSafeDatastore
+	// tracked separately for use in Close; do not use directly.
+	leveldbDS levelds.Datastore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -236,13 +238,15 @@ func (r *FSRepo) openConfig() error {
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
-	ds, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
+	var err error
+	// save leveldb reference so it can be neatly closed afterward
+	r.leveldbDS, err = levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
 		return errors.New("unable to open leveldb datastore")
 	}
-	r.ds = ds
+	r.ds = r.leveldbDS
 	return nil
 }
 
@@ -267,7 +271,7 @@ func (r *FSRepo) Close() error {
 		return errors.New("repo is closed")
 	}
 
-	if err := r.ds.Close(); err != nil {
+	if err := r.leveldbDS.Close(); err != nil {
 		return err
 	}
 
