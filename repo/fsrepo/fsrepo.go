@@ -59,7 +59,6 @@ type FSRepo struct {
 	// the same fsrepo path concurrently
 	lockfile io.Closer
 	config   *config.Config
-	// ds is set on Open
 	ds ds2.ThreadSafeDatastoreCloser
 }
 
