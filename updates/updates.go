@@ -212,8 +212,8 @@ func CliCheckForUpdates(cfg *config.Config, repoPath string) error {
 	// if we checked successfully.
 	if err == ErrNoUpdateAvailable {
 		log.Noticef("No update available, checked on %s", time.Now())
-		r := fsrepo.At(repoPath)
-		if err := r.Open(); err != nil {
+		r, err := fsrepo.Open(repoPath)
+		if err != nil {
 			return err
 		}
 		if err := recordUpdateCheck(cfg); err != nil {

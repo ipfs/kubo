@@ -66,8 +66,8 @@ in the bootstrap list).
 			return
 		}
 
-		r := fsrepo.At(req.Context().ConfigRoot)
-		if err := r.Open(); err != nil {
+		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -143,8 +143,8 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return
 		}
 
-		r := fsrepo.At(req.Context().ConfigRoot)
-		if err := r.Open(); err != nil {
+		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -192,8 +192,8 @@ var bootstrapListCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		r := fsrepo.At(req.Context().ConfigRoot)
-		if err := r.Open(); err != nil {
+		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}

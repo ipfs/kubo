@@ -110,8 +110,8 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	r := fsrepo.At(repoRoot)
-	if err := r.Open(); err != nil { // NB: repo is owned by the node
+	r, err := fsrepo.Open(repoRoot)
+	if err != nil { // NB: repo is owned by the node
 		return err
 	}
 
@@ -163,8 +163,8 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	r := fsrepo.At(repoRoot)
-	if err := r.Open(); err != nil { // NB: repo is owned by the node
+	r, err := fsrepo.Open(repoRoot)
+	if err != nil { // NB: repo is owned by the node
 		return err
 	}
 

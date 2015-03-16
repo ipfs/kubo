@@ -1,8 +1,6 @@
 package fsrepo
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -15,7 +13,6 @@ import (
 	repo "github.com/jbenet/go-ipfs/repo"
 	"github.com/jbenet/go-ipfs/repo/common"
 	config "github.com/jbenet/go-ipfs/repo/config"
-	counter "github.com/jbenet/go-ipfs/repo/fsrepo/counter"
 	lockfile "github.com/jbenet/go-ipfs/repo/fsrepo/lock"
 	serialize "github.com/jbenet/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/jbenet/go-ipfs/thirdparty/dir"
@@ -34,55 +31,97 @@ var (
 
 	// packageLock must be held to while performing any operation that modifies an
 	// FSRepo's state field. This includes Init, Open, Close, and Remove.
-	packageLock sync.Mutex // protects openersCounter and lockfiles
-	// lockfiles holds references to the Closers that ensure that repos are
-	// only accessed by one process at a time.
-	lockfiles map[string]io.Closer
-	// openersCounter prevents the fsrepo from being removed while there exist open
-	// FSRepo handles. It also ensures that the Init is atomic.
-	//
-	// packageLock also protects numOpenedRepos
-	//
-	// If an operation is used when repo is Open and the operation does not
-	// change the repo's state, the package lock does not need to be acquired.
-	openersCounter *counter.Openers
+	packageLock sync.Mutex
 
-	// protects dsOpenersCounter and datastores
-	dsLock           sync.Mutex
-	dsOpenersCounter *counter.Openers
-	datastores       map[string]ds2.ThreadSafeDatastoreCloser
+	// onlyOne keeps track of open FSRepo instances.
+	//
+	// TODO: once command Context / Repo integration is cleaned up,
+	// this can be removed. Right now, this makes ConfigCmd.Run
+	// function try to open the repo twice:
+	//
+	//     $ ipfs daemon &
+	//     $ ipfs config foo
+	//
+	// The reason for the above is that in standalone mode without the
+	// daemon, `ipfs config` tries to save work by not building the
+	// full IpfsNode, but accessing the Repo directly.
+	onlyOne repo.OnlyOne
 )
-
-func init() {
-	openersCounter = counter.NewOpenersCounter()
-	lockfiles = make(map[string]io.Closer)
-
-	dsOpenersCounter = counter.NewOpenersCounter()
-	datastores = make(map[string]ds2.ThreadSafeDatastoreCloser)
-}
 
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
 // callers.
 type FSRepo struct {
-	// state is the FSRepo's state (unopened, opened, closed)
-	state state
+	// has Close been called already
+	closed bool
 	// path is the file-system path
 	path string
-	// config is set on Open, guarded by packageLock
-	config *config.Config
+	// lockfile is the file system lock to prevent others from opening
+	// the same fsrepo path concurrently
+	lockfile io.Closer
+	config   *config.Config
 	// ds is set on Open
 	ds ds2.ThreadSafeDatastoreCloser
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
 
-// At returns a handle to an FSRepo at the provided |path|.
-func At(repoPath string) *FSRepo {
-	// This method must not have side-effects.
-	return &FSRepo{
-		path:  path.Clean(repoPath),
-		state: unopened, // explicitly set for clarity
+// Open the FSRepo at path. Returns an error if the repo is not
+// initialized.
+func Open(repoPath string) (repo.Repo, error) {
+	fn := func() (repo.Repo, error) {
+		return open(repoPath)
 	}
+	return onlyOne.Open(repoPath, fn)
+}
+
+func open(repoPath string) (repo.Repo, error) {
+	packageLock.Lock()
+	defer packageLock.Unlock()
+
+	expPath, err := u.TildeExpansion(path.Clean(repoPath))
+	if err != nil {
+		return nil, err
+	}
+
+	r := &FSRepo{
+		path: expPath,
+	}
+
+	r.lockfile, err = lockfile.Lock(r.path)
+	if err != nil {
+		return nil, err
+	}
+	keepLocked := false
+	defer func() {
+		// unlock on error, leave it locked on success
+		if !keepLocked {
+			r.lockfile.Close()
+		}
+	}()
+
+	if !isInitializedUnsynced(r.path) {
+		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+	}
+	// check repo path, then check all constituent parts.
+	// TODO acquire repo lock
+	// TODO if err := initCheckDir(logpath); err != nil { // }
+	if err := dir.Writable(r.path); err != nil {
+		return nil, err
+	}
+
+	if err := r.openConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := r.openDatastore(); err != nil {
+		return nil, err
+	}
+
+	// log.Debugf("writing eventlogs to ...", c.path)
+	configureEventLoggerAtRepoPath(r.config, r.path)
+
+	keepLocked = true
+	return r, nil
 }
 
 // ConfigAt returns an error if the FSRepo at the given path is not
@@ -165,15 +204,6 @@ func Init(repoPath string, conf *config.Config) error {
 // Remove recursively removes the FSRepo at |path|.
 func Remove(repoPath string) error {
 	repoPath = path.Clean(repoPath)
-
-	// packageLock must be held to ensure that the repo is not removed while
-	// being accessed by others.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	if openersCounter.NumOpeners(repoPath) != 0 {
-		return errors.New("repo in use")
-	}
 	return os.RemoveAll(repoPath)
 }
 
@@ -182,12 +212,11 @@ func Remove(repoPath string) error {
 func LockedByOtherProcess(repoPath string) bool {
 	repoPath = path.Clean(repoPath)
 
-	// packageLock must be held to check the number of openers.
-	packageLock.Lock()
-	defer packageLock.Unlock()
+	// TODO replace this with the "api" file
+	// https://github.com/ipfs/specs/tree/master/repo/fs-repo
 
 	// NB: the lock is only held when repos are Open
-	return lockfile.Locked(repoPath) && openersCounter.NumOpeners(repoPath) == 0
+	return lockfile.Locked(repoPath)
 }
 
 // openConfig returns an error if the config file is not present.
@@ -206,32 +235,14 @@ func (r *FSRepo) openConfig() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	dsLock.Lock()
-	defer dsLock.Unlock()
-
 	dsPath := path.Join(r.path, defaultDataStoreDirectory)
-
-	// if no other goroutines have the datastore Open, initialize it and assign
-	// it to the package-scoped map for the goroutines that follow.
-	if dsOpenersCounter.NumOpeners(dsPath) == 0 {
-		ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
-			Compression: ldbopts.NoCompression,
-		})
-		if err != nil {
-			return debugerror.New("unable to open leveldb datastore")
-		}
-		datastores[dsPath] = ds
-	}
-
-	// get the datastore from the package-scoped map and record self as an
-	// opener.
-	ds, dsIsPresent := datastores[dsPath]
-	if !dsIsPresent {
-		// This indicates a programmer error has occurred.
-		return errors.New("datastore should be available, but it isn't")
+	ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
+		Compression: ldbopts.NoCompression,
+	})
+	if err != nil {
+		return debugerror.New("unable to open leveldb datastore")
 	}
 	r.ds = ds
-	dsOpenersCounter.AddOpener(dsPath) // only after success
 	return nil
 }
 
@@ -247,76 +258,16 @@ func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
 }
 
-// Open returns an error if the repo is not initialized.
-func (r *FSRepo) Open() error {
-
-	// packageLock must be held to make sure that the repo is not destroyed by
-	// another caller. It must not be released until initialization is complete
-	// and the number of openers is incremeneted.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	expPath, err := u.TildeExpansion(r.path)
-	if err != nil {
-		return err
-	}
-	r.path = expPath
-
-	if r.state != unopened {
-		return debugerror.Errorf("repo is %s", r.state)
-	}
-	if !isInitializedUnsynced(r.path) {
-		return debugerror.New("ipfs not initialized, please run 'ipfs init'")
-	}
-	// check repo path, then check all constituent parts.
-	// TODO acquire repo lock
-	// TODO if err := initCheckDir(logpath); err != nil { // }
-	if err := dir.Writable(r.path); err != nil {
-		return err
-	}
-
-	if err := r.openConfig(); err != nil {
-		return err
-	}
-
-	if err := r.openDatastore(); err != nil {
-		return err
-	}
-
-	// log.Debugf("writing eventlogs to ...", c.path)
-	configureEventLoggerAtRepoPath(r.config, r.path)
-
-	return r.transitionToOpened()
-}
-
-func (r *FSRepo) closeDatastore() error {
-	dsLock.Lock()
-	defer dsLock.Unlock()
-
-	dsPath := path.Join(r.path, defaultDataStoreDirectory)
-
-	// decrement the Opener count. if this goroutine is the last, also close
-	// the underlying datastore (and remove its reference from the map)
-
-	dsOpenersCounter.RemoveOpener(dsPath)
-
-	if dsOpenersCounter.NumOpeners(dsPath) == 0 {
-		delete(datastores, dsPath) // remove the reference
-		return r.ds.Close()
-	}
-	return nil
-}
-
 // Close closes the FSRepo, releasing held resources.
 func (r *FSRepo) Close() error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		return debugerror.Errorf("repo is %s", r.state)
+	if r.closed {
+		return debugerror.New("repo is closed")
 	}
 
-	if err := r.closeDatastore(); err != nil {
+	if err := r.ds.Close(); err != nil {
 		return err
 	}
 
@@ -328,7 +279,11 @@ func (r *FSRepo) Close() error {
 	// to disable logging once the component is closed.
 	// eventlog.Configure(eventlog.Output(os.Stderr))
 
-	return r.transitionToClosed()
+	r.closed = true
+	if err := r.lockfile.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Config returns the FSRepo's config. This method must not be called if the
@@ -345,8 +300,8 @@ func (r *FSRepo) Config() *config.Config {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		panic(fmt.Sprintln("repo is", r.state))
+	if r.closed {
+		panic("repo is closed")
 	}
 	return r.config
 }
@@ -393,8 +348,8 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		return nil, debugerror.Errorf("repo is %s", r.state)
+	if r.closed {
+		return nil, debugerror.New("repo is closed")
 	}
 
 	filename, err := config.Filename(r.path)
@@ -413,8 +368,8 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	if r.state != opened {
-		return debugerror.Errorf("repo is %s", r.state)
+	if r.closed {
+		return debugerror.New("repo is closed")
 	}
 
 	filename, err := config.Filename(r.path)
@@ -478,38 +433,4 @@ func isInitializedUnsynced(repoPath string) bool {
 		return false
 	}
 	return true
-}
-
-// transitionToOpened manages the state transition to |opened|. Caller must hold
-// the package mutex.
-func (r *FSRepo) transitionToOpened() error {
-	r.state = opened
-	if countBefore := openersCounter.NumOpeners(r.path); countBefore == 0 { // #first
-		closer, err := lockfile.Lock(r.path)
-		if err != nil {
-			return err
-		}
-		lockfiles[r.path] = closer
-	}
-	return openersCounter.AddOpener(r.path)
-}
-
-// transitionToClosed manages the state transition to |closed|. Caller must
-// hold the package mutex.
-func (r *FSRepo) transitionToClosed() error {
-	r.state = closed
-	if err := openersCounter.RemoveOpener(r.path); err != nil {
-		return err
-	}
-	if countAfter := openersCounter.NumOpeners(r.path); countAfter == 0 {
-		closer, ok := lockfiles[r.path]
-		if !ok {
-			return errors.New("package error: lockfile is not held")
-		}
-		if err := closer.Close(); err != nil {
-			return err
-		}
-		delete(lockfiles, r.path)
-	}
-	return nil
 }

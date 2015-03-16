@@ -57,8 +57,8 @@ func run() error {
 			return err
 		}
 	}
-	repo := fsrepo.At(repoPath)
-	if err := repo.Open(); err != nil { // owned by node
+	repo, err := fsrepo.Open(repoPath)
+	if err != nil { // owned by node
 		return err
 	}
 
