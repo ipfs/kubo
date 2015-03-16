@@ -8,7 +8,9 @@ import (
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	levelds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	ldbopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -19,11 +21,13 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
+	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const (
 	leveldbDirectory = "datastore"
+	flatfsDirectory  = "blocks"
 )
 
 var (
@@ -194,6 +198,11 @@ func Init(repoPath string, conf *config.Config) error {
 		return debugerror.Errorf("datastore: %s", err)
 	}
 
+	flatfsPath := path.Join(repoPath, flatfsDirectory)
+	if err := dir.Writable(flatfsPath); err != nil {
+		return debugerror.Errorf("datastore: %s", err)
+	}
+
 	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
 		return err
 	}
@@ -244,7 +253,32 @@ func (r *FSRepo) openDatastore() error {
 	if err != nil {
 		return debugerror.New("unable to open leveldb datastore")
 	}
-	r.ds = r.leveldbDS
+
+	// 4TB of 256kB objects ~=17M objects, splitting that 256-way
+	// leads to ~66k objects per dir, splitting 256*256-way leads to
+	// only 256.
+	//
+	// The keys seen by the block store have predictable prefixes,
+	// including "/" from datastore.Key and 2 bytes from multihash. To
+	// reach a uniform 256-way split, we need approximately 4 bytes of
+	// prefix.
+	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4)
+	if err != nil {
+		return debugerror.New("unable to open flatfs datastore")
+	}
+
+	mountDS := mount.New([]mount.Mount{
+		{Prefix: ds.NewKey("/blocks"), Datastore: blocksDS},
+		{Prefix: ds.NewKey("/"), Datastore: r.leveldbDS},
+	})
+	// Make sure it's ok to claim the virtual datastore from mount as
+	// threadsafe. There's no clean way to make mount itself provide
+	// this information without copy-pasting the code into two
+	// variants. This is the same dilemma as the `[].byte` attempt at
+	// introducing const types to Go.
+	var _ ds.ThreadSafeDatastore = blocksDS
+	var _ ds.ThreadSafeDatastore = r.leveldbDS
+	r.ds = ds2.ClaimThreadSafe{mountDS}
 	return nil
 }
 
