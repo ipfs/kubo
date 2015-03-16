@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	defaultDataStoreDirectory = "datastore"
+	leveldbDirectory = "datastore"
 )
 
 var (
@@ -189,8 +189,8 @@ func Init(repoPath string, conf *config.Config) error {
 
 	// The actual datastore contents are initialized lazily when Opened.
 	// During Init, we merely check that the directory is writeable.
-	p := path.Join(repoPath, defaultDataStoreDirectory)
-	if err := dir.Writable(p); err != nil {
+	leveldbPath := path.Join(repoPath, leveldbDirectory)
+	if err := dir.Writable(leveldbPath); err != nil {
 		return debugerror.Errorf("datastore: %s", err)
 	}
 
@@ -235,8 +235,8 @@ func (r *FSRepo) openConfig() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	dsPath := path.Join(r.path, defaultDataStoreDirectory)
-	ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
+	leveldbPath := path.Join(r.path, leveldbDirectory)
+	ds, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
@@ -429,7 +429,7 @@ func isInitializedUnsynced(repoPath string) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
-	if !util.FileExists(path.Join(repoPath, defaultDataStoreDirectory)) {
+	if !util.FileExists(path.Join(repoPath, leveldbDirectory)) {
 		return false
 	}
 	return true
