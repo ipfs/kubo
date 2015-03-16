@@ -174,15 +174,7 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	nd, p, err := i.ResolvePath(ctx, urlPath)
 	if err != nil {
-		if err == routing.ErrNotFound {
-			w.WriteHeader(http.StatusNotFound)
-		} else if err == context.DeadlineExceeded {
-			w.WriteHeader(http.StatusRequestTimeout)
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		w.Write([]byte(err.Error()))
+		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
 	}
 
