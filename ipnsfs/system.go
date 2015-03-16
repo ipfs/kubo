@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -67,17 +66,6 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSyst
 	}
 
 	return fs, nil
-}
-
-// Open opens a file at the given path
-func (fs *Filesystem) Open(tpath string, mode int) (*File, error) {
-	pathelem := strings.Split(tpath, "/")
-	r, ok := fs.roots[pathelem[0]]
-	if !ok {
-		return nil, os.ErrNotExist
-	}
-
-	return r.Open(pathelem[1:], mode)
 }
 
 func (fs *Filesystem) Close() error {
@@ -204,31 +192,6 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 
 func (kr *KeyRoot) GetValue() FSNode {
 	return kr.val
-}
-
-func (kr *KeyRoot) Open(tpath []string, mode int) (*File, error) {
-	if kr.val == nil {
-		// No entry here. KeyRoot was created incorrectly
-		panic("nil keyroot.val, improperly constructed keyroot")
-	}
-	if len(tpath) > 0 {
-		// Make sure our root is a directory
-		dir, ok := kr.val.(*Directory)
-		if !ok {
-			return nil, os.ErrNotExist
-		}
-
-		return dir.Open(tpath, mode)
-	}
-
-	switch t := kr.val.(type) {
-	case *Directory:
-		return nil, ErrIsDirectory
-	case *File:
-		return t, nil
-	default:
-		panic("unrecognized type, should not happen")
-	}
 }
 
 // closeChild implements the childCloser interface, and signals to the publisher that

@@ -38,38 +38,6 @@ func NewDirectory(name string, node *dag.Node, parent childCloser, fs *Filesyste
 	}
 }
 
-// Open opens a file at the given path 'tpath'
-func (d *Directory) Open(tpath []string, mode int) (*File, error) {
-	if len(tpath) == 0 {
-		return nil, ErrIsDirectory
-	}
-	if len(tpath) == 1 {
-		fi, err := d.childFile(tpath[0])
-		if err == nil {
-			return fi, nil
-		}
-
-		if mode|os.O_CREATE != 0 {
-			fnode := new(dag.Node)
-			fnode.Data = ft.FilePBData(nil, 0)
-			nfi, err := NewFile(tpath[0], fnode, d, d.fs)
-			if err != nil {
-				return nil, err
-			}
-			d.files[tpath[0]] = nfi
-			return nfi, nil
-		}
-
-		return nil, os.ErrNotExist
-	}
-
-	dir, err := d.childDir(tpath[0])
-	if err != nil {
-		return nil, err
-	}
-	return dir.Open(tpath[1:], mode)
-}
-
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node, then propogates the changes upward
 func (d *Directory) closeChild(name string, nd *dag.Node) error {
