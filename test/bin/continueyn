@@ -5,9 +5,9 @@
 # if not a terminal, exit 0 (yes!)
 test -t 1 || exit 0
 
-read -p "continue? [y/N] "
+read -p "continue? [y/N] " REPLY
 echo
-if [[ $REPLY =~ ^[Yy] ]]; then
-    exit 0
-fi
-exit 1
+case "$REPLY" in
+    [Yy]*) exit 0 ;;
+    *) exit 1 ;;
+esac
