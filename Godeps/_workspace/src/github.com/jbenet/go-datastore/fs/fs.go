@@ -1,3 +1,20 @@
+// Package fs is a simple Datastore implementation that stores keys
+// are directories and files, mirroring the key. That is, the key
+// "/foo/bar" is stored as file "PATH/foo/bar/.dsobject".
+//
+// This means key some segments will not work. For example, the
+// following keys will result in unwanted behavior:
+//
+//     - "/foo/./bar"
+//     - "/foo/../bar"
+//     - "/foo\x00bar"
+//
+// Keys that only differ in case may be confused with each other on
+// case insensitive file systems, for example in OS X.
+//
+// This package is intended for exploratory use, where the user would
+// examine the file system manually, and should only be used with
+// human-friendly, trusted keys. You have been warned.
 package fs
 
 import (
@@ -13,7 +30,7 @@ import (
 
 var ObjectKeySuffix = ".dsobject"
 
-// Datastore uses a standard Go map for internal storage.
+// Datastore uses a uses a file per key to store values.
 type Datastore struct {
 	path string
 }
