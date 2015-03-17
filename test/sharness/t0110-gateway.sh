@@ -68,11 +68,11 @@ test_expect_success "GET invalid path errors" '
 '
 
 test_expect_success "GET /webui returns code expected" '
-  test_curl_resp_http_code "http://127.0.0.1:$apiport/webui" "HTTP/1.1 302 Found\s" "HTTP/1.1 301 Moved Permanently\s"
+  test_curl_resp_http_code "http://127.0.0.1:$apiport/webui" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"
 '
 
 test_expect_success "GET /webui/ returns code expected" '
-  test_curl_resp_http_code "http://127.0.0.1:$apiport/webui/" "HTTP/1.1 302 Found\s" "HTTP/1.1 301 Moved Permanently\s"
+  test_curl_resp_http_code "http://127.0.0.1:$apiport/webui/" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"
 '
 
 test_kill_ipfs_daemon
