@@ -200,6 +200,8 @@ func (p *pinner) IsPinned(key util.Key) bool {
 }
 
 func (p *pinner) RemovePinWithMode(key util.Key, mode PinMode) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	switch mode {
 	case Direct:
 		p.directPin.RemoveBlock(key)
@@ -265,8 +267,8 @@ func (p *pinner) RecursiveKeys() []util.Key {
 
 // Flush encodes and writes pinner keysets to the datastore
 func (p *pinner) Flush() error {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
 	err := storeSet(p.dstore, directPinDatastoreKey, p.directPin.GetKeys())
 	if err != nil {
@@ -311,6 +313,8 @@ func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
 // PinWithMode is a method on ManualPinners, allowing the user to have fine
 // grained control over pin counts
 func (p *pinner) PinWithMode(k util.Key, mode PinMode) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	switch mode {
 	case Recursive:
 		p.recursePin.AddBlock(k)
