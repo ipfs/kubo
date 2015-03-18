@@ -1,5 +1,15 @@
+
+ifeq ($(TEST_NO_FUSE),1)
+go_test=go test -tags nofuse
+else
+go_test=go test
+endif
+
+
 all:
-	# no-op
+	# no-op. try:
+	#   make install
+	#   make test
 
 godep:
 	go get github.com/tools/godep
@@ -32,13 +42,13 @@ test_3node:
 	cd test/3nodetest && make
 
 test_go_short:
-	go test -test.short ./...
+	$(go_test) -test.short ./...
 
 test_go_expensive:
-	go test ./...
+	$(go_test) ./...
 
 test_go_race:
-	go test ./... -race
+	$(go_test) ./... -race
 
 test_sharness_short:
 	cd test/sharness/ && make

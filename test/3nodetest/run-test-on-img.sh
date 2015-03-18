@@ -25,11 +25,11 @@ fig up --no-color | tee build/fig.log
 
 # save the ipfs logs for inspection
 echo "make save_logs"
-make save_logs
+make save_logs || true # don't fail
 
 # save the ipfs logs for inspection
 echo "make save_profiling_data"
-make save_profiling_data
+make save_profiling_data || true # don't fail
 
 # fig up won't report the error using an error code, so we grep the
 # fig.log file to find out whether the call succeeded
