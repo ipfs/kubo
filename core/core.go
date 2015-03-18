@@ -26,6 +26,7 @@ import (
 
 	routing "github.com/jbenet/go-ipfs/routing"
 	dht "github.com/jbenet/go-ipfs/routing/dht"
+	kb "github.com/jbenet/go-ipfs/routing/kbucket"
 	offroute "github.com/jbenet/go-ipfs/routing/offline"
 
 	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
@@ -145,7 +146,7 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 	// Setup the mutable ipns filesystem structure
 	if node.OnlineMode() {
 		fs, err := ipnsfs.NewFilesystem(ctx, node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
-		if err != nil {
+		if err != nil && err != kb.ErrLookupFailure {
 			return nil, debugerror.Wrap(err)
 		}
 		node.IpnsFs = fs
