@@ -460,6 +460,44 @@ func TestCloseAfterChildren(t *testing.T) {
 	testStrs(t, Q, "a", "d")
 }
 
+func TestGoClosing(t *testing.T) {
+
+	var ready = make(chan struct{})
+	a := WithParent(Background())
+	a.Go(func(p Process) {
+
+		// this should be fine.
+		a.Go(func(p Process) {
+			ready <- struct{}{}
+		})
+
+		// set a to close. should not fully close until after this func returns.
+		go a.Close()
+
+		// wait until a is marked as closing
+		<-a.Closing()
+
+		// this should also be fine.
+		a.Go(func(p Process) {
+
+			select {
+			case <-p.Closing():
+				// p should be marked as closing
+			default:
+				t.Error("not marked closing when it should be.")
+			}
+
+			ready <- struct{}{}
+		})
+
+		ready <- struct{}{}
+	})
+
+	<-ready
+	<-ready
+	<-ready
+}
+
 func TestBackground(t *testing.T) {
 	// test it hangs indefinitely:
 	b := Background()
