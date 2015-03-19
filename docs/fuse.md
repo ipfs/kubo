@@ -14,6 +14,8 @@ sudo chown <username> /ipfs
 sudo chown <username> /ipns
 ```
 
+Depending on whether you are using OSX or Linux, follow the proceeding instructions.
+
 ## Mac OSX -- OSXFUSE
 
 It has been discovered that versions of `osxfuse` prior to `2.7.0` will cause a kernel panic. For everyone's sake, please upgrade (latest at time of writing is `2.7.4`). The installer can be found at https://osxfuse.github.io/. There is also a homebrew formula (`brew install osxfuse`) but users report best results installing from the official OSXFUSE installer package.
@@ -40,7 +42,32 @@ Then change permissions on the fuse config:
 sudo chown <username>:<groupname> /etc/fuse.conf
 ```
 
-(note `<groupname>` should probably be `fuse`)
+You may also have to change `/dev/fuse`:
+
+```sh
+sudo chown <username>:<groupname> /dev/fuse
+```
+
+Note: `<groupname>` will usually be `fuse`. Typically, you add the authorized users to the `fuse` group:
+
+```sh
+usermod -a -G fuse <username>
+```
+
+## Mounting IPFS
+
+Once FUSE and the mountpoints have been created, issue the following command:
+
+```sh
+ipfs daemon --mount
+```
+
+If you wish to allow other users to use the mount points, use the following:
+
+```sh
+ipfs config Mounts.AllowOther --bool true
+ipfs daemon --mount
+```
 
 ## Troubleshooting
 
