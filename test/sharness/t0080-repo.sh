@@ -48,6 +48,7 @@ test_expect_success "file no longer pinned" '
 	# we expect the welcome files to show up here
 	echo "$HASH_WELCOME_DOCS" >expected2 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
+	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
 	sort expected2 >expected_sorted2 &&
 	ipfs pin ls -type=recursive >actual2 &&
 	sort actual2 >actual_sorted2 &&
@@ -127,7 +128,6 @@ test_expect_success "pin something directly" '
 
 test_expect_success "'ipfs pin ls -type=direct' is correct" '
 	echo "$DIRECTPIN" >directpinexpected &&
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>directpinexpected &&
 	sort directpinexpected >dp_exp_sorted &&
 	ipfs pin ls -type=direct >directpinout &&
 	sort directpinout >dp_out_sorted &&
@@ -137,6 +137,7 @@ test_expect_success "'ipfs pin ls -type=direct' is correct" '
 test_expect_success "'ipfs pin ls -type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
+	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
 	sort rp_expected >rp_exp_sorted &&
 	ipfs pin ls -type=recursive >rp_actual &&

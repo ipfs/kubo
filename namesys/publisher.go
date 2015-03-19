@@ -148,7 +148,9 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	err = pins.Pin(emptyDir, false)
+	// pin recursively because this might already be pinned
+	// and doing a direct pin would throw an error in that case
+	err = pins.Pin(emptyDir, true)
 	if err != nil {
 		return err
 	}

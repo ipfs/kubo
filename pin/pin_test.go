@@ -152,3 +152,41 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal("could not find recursively pinned node")
 	}
 }
+
+func TestDuplicateSemantics(t *testing.T) {
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dserv := mdag.NewDAGService(bserv)
+
+	// TODO does pinner need to share datastore with blockservice?
+	p := NewPinner(dstore, dserv)
+
+	a, _ := randNode()
+	_, err = dserv.Add(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// pin is recursively
+	err = p.Pin(a, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// pinning directly should fail
+	err = p.Pin(a, false)
+	if err == nil {
+		t.Fatal("expected direct pin to fail")
+	}
+
+	// pinning recursively again should succeed
+	err = p.Pin(a, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
