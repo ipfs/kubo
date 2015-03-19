@@ -20,11 +20,11 @@ test_launch_ipfs_daemon
 
 # run this mount failure before mounting properly.
 
-test_expect_failure "'ipfs mount' fails when no mount dir (issue #341)" '
+test_expect_success "'ipfs mount' fails when no mount dir (issue #341)" '
 	test_must_fail ipfs mount -f=not_ipfs -n=not_ipns >actual
 '
 
-test_expect_failure "'ipfs mount' looks good when it fails (issue #341)" '
+test_expect_success "'ipfs mount' looks bad when it fails (issue #341)" '
 	! grep "IPFS mounted at: $(pwd)/ipfs" actual >/dev/null &&
 	! grep "IPNS mounted at: $(pwd)/ipns" actual >/dev/null ||
 	test_fsh cat actual
