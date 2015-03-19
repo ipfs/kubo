@@ -69,4 +69,11 @@ test_expect_success "'ipfs daemon' can be killed" '
   test_kill_repeat_10_sec $IPFS_PID
 '
 
+test_expect_failure "'ipfs daemon' should be able to run with a pipe attached to stdin (issue #861)" '
+  yes | ipfs daemon --init >daemon_out 2>daemon_err &
+  pollEndpoint -ep=/version -v -tout=1s -tries=10 >poll_apiout 2>poll_apierr &&
+  test_kill_repeat_10_sec $! ||
+  test_fsh cat daemon_out || test_fsh cat daemon_err || test_fsh cat poll_apiout || test_fsh cat poll_apierr
+'
+
 test_done
