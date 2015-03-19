@@ -35,13 +35,12 @@ var DefaultBootstrapConfig = BootstrapConfig{
 	// of our implementation's robustness, we should lower this down to 8 or 4.
 	Queries: 1,
 
-	// For now, this is set to 10 seconds, which is an aggressive period. We are
+	// For now, this is set to 1 minute, which is a medium period. We are
 	// We are currently more interested in ensuring we have a properly formed
-	// DHT than making sure our dht minimizes traffic. Once we are more certain
-	// implementation's robustness, we should lower this down to 30s or 1m.
-	Period: time.Duration(20 * time.Second),
+	// DHT than making sure our dht minimizes traffic.
+	Period: time.Duration(5 * time.Minute),
 
-	Timeout: time.Duration(20 * time.Second),
+	Timeout: time.Duration(10 * time.Second),
 }
 
 // Bootstrap ensures the dht routing table remains healthy as peers come and go.
