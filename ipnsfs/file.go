@@ -57,7 +57,7 @@ func (fi *File) Close() error {
 	fi.Lock()
 	defer fi.Unlock()
 	if fi.hasChanges {
-		err := fi.mod.Flush()
+		err := fi.mod.Sync()
 		if err != nil {
 			return err
 		}
@@ -80,11 +80,11 @@ func (fi *File) Close() error {
 	return nil
 }
 
-// Flush flushes the changes in the file to disk
-func (fi *File) Flush() error {
+// Sync flushes the changes in the file to disk
+func (fi *File) Sync() error {
 	fi.Lock()
 	defer fi.Unlock()
-	return fi.mod.Flush()
+	return fi.mod.Sync()
 }
 
 // Seek implements io.Seeker

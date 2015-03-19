@@ -74,13 +74,23 @@ func verifyFile(t *testing.T, path string, data []byte) {
 	}
 	defer fi.Close()
 
-	out, err := ioutil.ReadAll(fi)
-	if err != nil {
-		t.Fatal(err)
-	}
+	buf := make([]byte, 1024)
+	offset := 0
+	for {
+		n, err := fi.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if !bytes.Equal(out, data) {
-		t.Fatal("Data not equal")
+		if !bytes.Equal(buf[:n], data[offset:offset+n]) {
+			t.Fatal("Data not equal")
+		}
+
+		if n < len(buf) {
+			break
+		}
+
+		offset += n
 	}
 }
 
@@ -130,16 +140,23 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 }
 
 func TestIpnsLocalLink(t *testing.T) {
-	_, mnt := setupIpnsTest(t, nil)
+	nd, mnt := setupIpnsTest(t, nil)
 	defer mnt.Close()
 	name := mnt.Dir + "/local"
 
-	finfo, err := os.Stat(name)
+	_, err := os.Stat(name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(finfo.Name())
+	linksto, err := os.Readlink(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if linksto != nd.Identity.Pretty() {
+		t.Fatal("Link invalid")
+	}
 }
 
 // Test writing a file and reading it back
@@ -189,7 +206,7 @@ func TestFilePersistence(t *testing.T) {
 	}
 }
 
-func TestDeeperDirs(t *testing.T) {
+func TestMultipleDirs(t *testing.T) {
 	node, mnt := setupIpnsTest(t, nil)
 
 	t.Log("make a top level dir")

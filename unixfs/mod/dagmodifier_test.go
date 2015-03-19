@@ -246,7 +246,7 @@ func TestMultiWriteAndFlush(t *testing.T) {
 		if n != 1 {
 			t.Fatal("Somehow wrote the wrong number of bytes! (n != 1)")
 		}
-		err = dagmod.Flush()
+		err = dagmod.Sync()
 		if err != nil {
 			t.Fatal(err)
 		}

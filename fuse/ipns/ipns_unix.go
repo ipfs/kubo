@@ -239,7 +239,9 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	case *nsfs.File:
 		return &File{fi: child}, nil
 	default:
-		panic("system has proven to be insane")
+		// NB: if this happens, we do not want to continue, unpredictable behaviour
+		// may occur.
+		panic("invalid type found under directory. programmer error.")
 	}
 }
 
@@ -272,42 +274,83 @@ func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	_, err := fi.fi.Seek(req.Offset, os.SEEK_SET)
-	if err != nil {
+	errs := make(chan error, 1)
+	go func() {
+		_, err := fi.fi.Seek(req.Offset, os.SEEK_SET)
+		if err != nil {
+			errs <- err
+			return
+		}
+
+		fisize, err := fi.fi.Size()
+		if err != nil {
+			errs <- err
+			return
+		}
+
+		readsize := min(req.Size, int(fisize-req.Offset))
+		n, err := io.ReadFull(fi.fi, resp.Data[:readsize])
+		resp.Data = resp.Data[:n]
+		errs <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-errs:
 		return err
 	}
-
-	fisize, err := fi.fi.Size()
-	if err != nil {
-		return err
-	}
-
-	readsize := min(req.Size, int(fisize-req.Offset))
-	n, err := io.ReadFull(fi.fi, resp.Data[:readsize])
-	resp.Data = resp.Data[:n]
-	return err // may be non-nil / not succeeded
 }
 
 func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
-	wrote, err := fi.fi.WriteAt(req.Data, req.Offset)
-	if err != nil {
-		return err
-	}
-	resp.Size = wrote
+	errs := make(chan error, 1)
+	go func() {
+		wrote, err := fi.fi.WriteAt(req.Data, req.Offset)
+		if err != nil {
+			errs <- err
+		}
+		resp.Size = wrote
+		errs <- nil
+	}()
 
-	return nil
+	select {
+	case err := <-errs:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
-	return fi.fi.Close()
+	errs := make(chan error, 1)
+	go func() {
+		errs <- fi.fi.Close()
+	}()
+	select {
+	case err := <-errs:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
+// Fsync flushes the content in the file to disk, but does not
+// update the dag tree internally
 func (fi *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-	return fi.fi.Flush()
+	errs := make(chan error, 1)
+	go func() {
+		errs <- fi.fi.Sync()
+	}()
+	select {
+	case err := <-errs:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (fi *File) Forget() {
-	err := fi.fi.Flush()
+	err := fi.fi.Sync()
 	if err != nil {
 		log.Debug("Forget file error: ", err)
 	}

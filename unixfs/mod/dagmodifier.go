@@ -80,7 +80,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 			}
 		}
 
-		err = dm.Flush()
+		err = dm.Sync()
 		if err != nil {
 			return 0, err
 		}
@@ -133,7 +133,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 	}
 	dm.curWrOff += uint64(n)
 	if dm.wrBuf.Len() > writebufferSize {
-		err := dm.Flush()
+		err := dm.Sync()
 		if err != nil {
 			return n, err
 		}
@@ -156,8 +156,8 @@ func (dm *DagModifier) Size() (int64, error) {
 	return int64(pbn.GetFilesize()), nil
 }
 
-// Flush writes changes to this dag to disk
-func (dm *DagModifier) Flush() error {
+// Sync writes changes to this dag to disk
+func (dm *DagModifier) Sync() error {
 	// No buffer? Nothing to do
 	if dm.wrBuf == nil {
 		return nil
@@ -315,7 +315,7 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.No
 
 // Read data from this dag starting at the current offset
 func (dm *DagModifier) Read(b []byte) (int, error) {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return 0, err
 	}
@@ -347,7 +347,7 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 
 // GetNode gets the modified DAG Node
 func (dm *DagModifier) GetNode() (*mdag.Node, error) {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +360,7 @@ func (dm *DagModifier) HasChanges() bool {
 }
 
 func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return 0, err
 	}
@@ -389,7 +389,7 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (dm *DagModifier) Truncate(size int64) error {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return err
 	}
