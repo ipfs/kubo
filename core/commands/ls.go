@@ -42,9 +42,18 @@ it contains, with the following format:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("headers", "", "Print table headers (Hash, Name, Size)"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.Context().GetNode()
 		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		// get options early -> exit early in case of error
+		if _, _, err := req.Option("headers").Bool(); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -91,21 +100,25 @@ it contains, with the following format:
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output := res.Output().(*LsOutput).Objects
+
+			headers, _, _ := res.Request().Option("headers").Bool()
+			output := res.Output().(*LsOutput)
 			var buf bytes.Buffer
 			w := tabwriter.NewWriter(&buf, 1, 2, 1, ' ', 0)
-			for _, object := range output {
-				if len(output) > 1 {
+			for _, object := range output.Objects {
+				if len(output.Objects) > 1 {
 					fmt.Fprintf(w, "%s:\n", object.Hash)
 				}
-				fmt.Fprintln(w, "Hash\tSize\tName\t")
+				if headers {
+					fmt.Fprintln(w, "Hash\tSize\tName\t")
+				}
 				for _, link := range object.Links {
 					if link.Type == unixfspb.Data_Directory {
 						link.Name += "/"
 					}
 					fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
 				}
-				if len(output) > 1 {
+				if len(output.Objects) > 1 {
 					fmt.Fprintln(w)
 				}
 			}
