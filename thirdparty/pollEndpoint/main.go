@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -79,15 +80,15 @@ func main() {
 
 func checkOK(resp *http.Response, err error) error {
 	if err == nil { // request worked
-		resp.Body.Close()
+		defer resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			return nil
 		}
-		return fmt.Errorf("Response not OK. %d %s", resp.StatusCode, resp.Status)
-	} else if urlErr, ok := err.(*url.Error); ok { // expected error from http.Get()
-		if urlErr.Op != "Get" || urlErr.URL != *endpoint {
-			return fmt.Errorf("wrong url or endpoint error from http.Get() %#v", urlErr)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pollEndpoint: ioutil.ReadAll() Error: %s", err)
 		}
+		return fmt.Errorf("Response not OK. %d %s %q", resp.StatusCode, resp.Status, string(body))
 	}
 	return err
 }
