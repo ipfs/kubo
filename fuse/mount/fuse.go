@@ -53,8 +53,9 @@ func (m *mount) mount() error {
 	go func() {
 		err := fs.Serve(m.fuseConn, m.filesys)
 		log.Debugf("Mounting %s -- fs.Serve returned (%s)", err)
-		errs <- err
-		close(errs)
+		if err != nil {
+			errs <- err
+		}
 	}()
 
 	// wait for the mount process to be done, or timed out.
