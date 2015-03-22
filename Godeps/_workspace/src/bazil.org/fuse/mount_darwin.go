@@ -89,7 +89,7 @@ func callMount(dir string, conf *MountConfig, f *os.File, ready chan<- struct{},
 		return err
 	}
 	go func() {
-		err = cmd.Wait()
+		err := cmd.Wait()
 		if err != nil {
 			if buf.Len() > 0 {
 				output := buf.Bytes()
