@@ -276,3 +276,22 @@ test_curl_resp_http_code() {
 	cat curl_output
 	return 1
 }
+
+test_must_be_empty() {
+	if test -s "$1"
+	then
+		echo "'$1' is not empty, it contains:"
+		cat "$1"
+		return 1
+	fi
+}
+
+test_should_contain() {
+	test "$#" = 2 || error "bug in the test script: not 2 parameters to test_should_contain"
+	if ! grep -q "$1" "$2"
+	then
+		echo "'$2' does not contain '$1', it contains:"
+		cat "$2"
+		return 1
+	fi
+}
