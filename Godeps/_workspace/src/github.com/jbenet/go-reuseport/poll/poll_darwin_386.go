@@ -1,5 +1,3 @@
-// +build darwin,amd64 freebsd dragonfly netbsd openbsd
-
 package poll
 
 import (
@@ -21,7 +19,7 @@ func New(fd int) (p *Poller, err error) {
 	}
 
 	p.event = syscall.Kevent_t{
-		Ident:  uint64(fd),
+		Ident:  uint32(fd),
 		Filter: syscall.EVFILT_WRITE,
 		Flags:  syscall.EV_ADD | syscall.EV_ENABLE | syscall.EV_ONESHOT,
 		Fflags: 0,
