@@ -100,12 +100,13 @@ func newDataFileReader(ctx context.Context, n *mdag.Node, pb *ftpb.Data, serv md
 
 // precalcNextBuf follows the next link in line and loads it from the DAGService,
 // setting the next buffer to read from
-func (dr *DagReader) precalcNextBuf() error {
+func (dr *DagReader) precalcNextBuf(ctx context.Context) error {
 	dr.buf.Close() // Just to make sure
 	if dr.linkPosition >= len(dr.promises) {
 		return io.EOF
 	}
-	nxt, err := dr.promises[dr.linkPosition].Get()
+
+	nxt, err := dr.promises[dr.linkPosition].Get(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,6 +142,11 @@ func (dr *DagReader) Size() int64 {
 
 // Read reads data from the DAG structured file
 func (dr *DagReader) Read(b []byte) (int, error) {
+	return dr.CtxReadFull(dr.ctx, b)
+}
+
+// CtxReadFull reads data from the DAG structured file
+func (dr *DagReader) CtxReadFull(ctx context.Context, b []byte) (int, error) {
 	// If no cached buffer, load one
 	total := 0
 	for {
@@ -161,7 +167,7 @@ func (dr *DagReader) Read(b []byte) (int, error) {
 		}
 
 		// Otherwise, load up the next block
-		err = dr.precalcNextBuf()
+		err = dr.precalcNextBuf(ctx)
 		if err != nil {
 			return total, err
 		}
@@ -183,7 +189,7 @@ func (dr *DagReader) WriteTo(w io.Writer) (int64, error) {
 		}
 
 		// Otherwise, load up the next block
-		err = dr.precalcNextBuf()
+		err = dr.precalcNextBuf(dr.ctx)
 		if err != nil {
 			if err == io.EOF {
 				return total, nil
@@ -239,7 +245,7 @@ func (dr *DagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 
 		// start sub-block request
-		err := dr.precalcNextBuf()
+		err := dr.precalcNextBuf(dr.ctx)
 		if err != nil {
 			return 0, err
 		}

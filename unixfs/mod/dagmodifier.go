@@ -315,32 +315,53 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.No
 
 // Read data from this dag starting at the current offset
 func (dm *DagModifier) Read(b []byte) (int, error) {
-	err := dm.Sync()
+	err := dm.readPrep()
 	if err != nil {
 		return 0, err
+	}
+
+	n, err := dm.read.Read(b)
+	dm.curWrOff += uint64(n)
+	return n, err
+}
+
+func (dm *DagModifier) readPrep() error {
+	err := dm.Sync()
+	if err != nil {
+		return err
 	}
 
 	if dm.read == nil {
 		ctx, cancel := context.WithCancel(dm.ctx)
 		dr, err := uio.NewDagReader(ctx, dm.curNode, dm.dagserv)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		i, err := dr.Seek(int64(dm.curWrOff), os.SEEK_SET)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		if i != int64(dm.curWrOff) {
-			return 0, ErrSeekFail
+			return ErrSeekFail
 		}
 
 		dm.readCancel = cancel
 		dm.read = dr
 	}
 
-	n, err := dm.read.Read(b)
+	return nil
+}
+
+// Read data from this dag starting at the current offset
+func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
+	err := dm.readPrep()
+	if err != nil {
+		return 0, err
+	}
+
+	n, err := dm.read.CtxReadFull(ctx, b)
 	dm.curWrOff += uint64(n)
 	return n, err
 }

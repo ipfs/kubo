@@ -6,7 +6,6 @@ package ipns
 
 import (
 	"errors"
-	"io"
 	"os"
 
 	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
@@ -274,32 +273,26 @@ func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	errs := make(chan error, 1)
-	go func() {
-		_, err := fi.fi.Seek(req.Offset, os.SEEK_SET)
-		if err != nil {
-			errs <- err
-			return
-		}
+	_, err := fi.fi.Seek(req.Offset, os.SEEK_SET)
+	if err != nil {
+		return err
+	}
 
-		fisize, err := fi.fi.Size()
-		if err != nil {
-			errs <- err
-			return
-		}
-
-		readsize := min(req.Size, int(fisize-req.Offset))
-		n, err := io.ReadFull(fi.fi, resp.Data[:readsize])
-		resp.Data = resp.Data[:n]
-		errs <- err
-	}()
+	fisize, err := fi.fi.Size()
+	if err != nil {
+		return err
+	}
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case err := <-errs:
-		return err
+	default:
 	}
+
+	readsize := min(req.Size, int(fisize-req.Offset))
+	n, err := fi.fi.CtxReadFull(ctx, resp.Data[:readsize])
+	resp.Data = resp.Data[:n]
+	return err
 }
 
 func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {

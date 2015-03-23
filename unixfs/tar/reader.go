@@ -90,7 +90,7 @@ func (r *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 		defer cancel()
 
 		for i, ng := range r.dag.GetDAG(ctx, dagnode) {
-			childNode, err := ng.Get()
+			childNode, err := ng.Get(ctx)
 			if err != nil {
 				r.emitError(err)
 				return

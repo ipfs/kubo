@@ -51,6 +51,13 @@ func (fi *File) Read(b []byte) (int, error) {
 	return fi.mod.Read(b)
 }
 
+// Read reads into the given buffer from the current offset
+func (fi *File) CtxReadFull(ctx context.Context, b []byte) (int, error) {
+	fi.Lock()
+	defer fi.Unlock()
+	return fi.mod.CtxReadFull(ctx, b)
+}
+
 // Close flushes, then propogates the modified dag node up the directory structure
 // and signals a republish to occur
 func (fi *File) Close() error {

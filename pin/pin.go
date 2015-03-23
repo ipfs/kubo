@@ -177,7 +177,7 @@ func (p *pinner) pinLinks(node *mdag.Node) error {
 	defer cancel()
 
 	for _, ng := range p.dserv.GetDAG(ctx, node) {
-		subnode, err := ng.Get()
+		subnode, err := ng.Get(ctx)
 		if err != nil {
 			// TODO: Maybe just log and continue?
 			return err

@@ -257,10 +257,10 @@ type nodePromise struct {
 // from its internal channels, subsequent calls will return the
 // cached node.
 type NodeGetter interface {
-	Get() (*Node, error)
+	Get(context.Context) (*Node, error)
 }
 
-func (np *nodePromise) Get() (*Node, error) {
+func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 	if np.cache != nil {
 		return np.cache, nil
 	}
@@ -270,6 +270,8 @@ func (np *nodePromise) Get() (*Node, error) {
 		np.cache = blk
 	case <-np.ctx.Done():
 		return nil, np.ctx.Err()
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 	return np.cache, nil
 }
