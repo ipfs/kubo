@@ -20,9 +20,15 @@ test_launch_ipfs_daemon
 
 # run this mount failure before mounting properly.
 
-test_expect_success "'ipfs mount' fails when no mount dir (issue #341)" '
-	test_must_fail eval "ipfs mount -f=not_ipfs -n=not_ipns >output 2>output.err" &&
-	test_must_be_empty output &&
+test_expect_success "'ipfs mount' fails when there is no mount dir" '
+	test_must_fail eval "ipfs mount -f=not_ipfs -n=not_ipns >output 2>output.err"
+'
+
+test_expect_success "'ipfs mount' stdout is empty" '
+	test_must_be_empty output
+'
+
+test_expect_success "'ipfs mount' stderr looks good" '
 	test_should_contain "not_ipns\|not_ipfs" output.err
 '
 
