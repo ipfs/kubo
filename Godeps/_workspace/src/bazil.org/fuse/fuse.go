@@ -47,11 +47,17 @@
 //
 //	Op(ctx context.Context, req *OpRequest, resp *OpResponse) Error
 //
-// where Op is the name of a FUSE operation.  Op reads request parameters
-// from req and writes results to resp.  An operation whose only result is
-// the error result omits the resp parameter.  Multiple goroutines may call
-// service methods simultaneously; the methods being called are responsible
-// for appropriate synchronization.
+// where Op is the name of a FUSE operation. Op reads request
+// parameters from req and writes results to resp. An operation whose
+// only result is the error result omits the resp parameter.
+//
+// Multiple goroutines may call service methods simultaneously; the
+// methods being called are responsible for appropriate
+// synchronization.
+//
+// The operation must not hold on to the request or response,
+// including any []byte fields such as WriteRequest.Data or
+// SetxattrRequest.Xattr.
 //
 // Errors
 //
@@ -79,9 +85,12 @@
 //
 // Authentication
 //
-// All requests types embed a Header, meaning that the method can inspect
-// req.Pid, req.Uid, and req.Gid as necessary to implement permission checking.
-// Alternately, XXX.
+// All requests types embed a Header, meaning that the method can
+// inspect req.Pid, req.Uid, and req.Gid as necessary to implement
+// permission checking. The kernel FUSE layer normally prevents other
+// users from accessing the FUSE file system (to change this, see
+// AllowOther, AllowRoot), but does not enforce access modes (to
+// change this, see DefaultPermissions).
 //
 // Mount Options
 //
@@ -89,8 +98,6 @@
 // passing MountOption values to Mount.
 //
 package fuse
-
-// BUG(rsc): The mount code for FreeBSD has not been written yet.
 
 import (
 	"bytes"
@@ -241,7 +248,6 @@ const (
 	// See also fs.Intr.
 	EINTR = Errno(syscall.EINTR)
 
-	ENODATA = Errno(syscall.ENODATA)
 	ERANGE  = Errno(syscall.ERANGE)
 	ENOTSUP = Errno(syscall.ENOTSUP)
 	EEXIST  = Errno(syscall.EEXIST)
@@ -252,14 +258,13 @@ const (
 const DefaultErrno = EIO
 
 var errnoNames = map[Errno]string{
-	ENOSYS:  "ENOSYS",
-	ESTALE:  "ESTALE",
-	ENOENT:  "ENOENT",
-	EIO:     "EIO",
-	EPERM:   "EPERM",
-	EINTR:   "EINTR",
-	ENODATA: "ENODATA",
-	EEXIST:  "EEXIST",
+	ENOSYS: "ENOSYS",
+	ESTALE: "ESTALE",
+	ENOENT: "ENOENT",
+	EIO:    "EIO",
+	EPERM:  "EPERM",
+	EINTR:  "EINTR",
+	EEXIST: "EEXIST",
 }
 
 // Errno implements Error and ErrorNumber using a syscall.Errno.
@@ -1115,9 +1120,6 @@ func (a *Attr) attr() (out attr) {
 		out.Mode |= syscall.S_ISGID
 	}
 	out.Nlink = a.Nlink
-	if out.Nlink < 1 {
-		out.Nlink = 1
-	}
 	out.Uid = a.Uid
 	out.Gid = a.Gid
 	out.Rdev = a.Rdev
@@ -1195,11 +1197,6 @@ func (r *GetxattrRequest) Respond(resp *GetxattrResponse) {
 	}
 }
 
-func (r *GetxattrRequest) RespondError(err error) {
-	err = translateGetxattrError(err)
-	r.Header.RespondError(err)
-}
-
 // A GetxattrResponse is the response to a GetxattrRequest.
 type GetxattrResponse struct {
 	Xattr []byte
@@ -1271,11 +1268,6 @@ func (r *RemovexattrRequest) Respond() {
 	r.respond(out, unsafe.Sizeof(*out))
 }
 
-func (r *RemovexattrRequest) RespondError(err error) {
-	err = translateGetxattrError(err)
-	r.Header.RespondError(err)
-}
-
 // A SetxattrRequest asks to set an extended attribute associated with a file.
 type SetxattrRequest struct {
 	Header `json:"-"`
@@ -1319,11 +1311,6 @@ func (r *SetxattrRequest) String() string {
 func (r *SetxattrRequest) Respond() {
 	out := &outHeader{Unique: uint64(r.ID)}
 	r.respond(out, unsafe.Sizeof(*out))
-}
-
-func (r *SetxattrRequest) RespondError(err error) {
-	err = translateGetxattrError(err)
-	r.Header.RespondError(err)
 }
 
 // A LookupRequest asks to look up the given name in the directory named by r.Node.

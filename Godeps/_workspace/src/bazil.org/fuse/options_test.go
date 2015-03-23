@@ -1,11 +1,15 @@
 package fuse_test
 
 import (
+	"os"
 	"runtime"
+	"syscall"
 	"testing"
 
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func init() {
@@ -13,6 +17,9 @@ func init() {
 }
 
 func TestMountOptionFSName(t *testing.T) {
+	if runtime.GOOS == "freebsd" {
+		t.Skip("FreeBSD does not support FSName")
+	}
 	t.Parallel()
 	const name = "FuseTestMarker"
 	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.Dir{}},
@@ -33,6 +40,9 @@ func TestMountOptionFSName(t *testing.T) {
 }
 
 func testMountOptionFSNameEvil(t *testing.T, evil string) {
+	if runtime.GOOS == "freebsd" {
+		t.Skip("FreeBSD does not support FSName")
+	}
 	t.Parallel()
 	var name = "FuseTest" + evil + "Marker"
 	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.Dir{}},
@@ -87,6 +97,9 @@ func TestMountOptionSubtype(t *testing.T) {
 	if runtime.GOOS == "darwin" {
 		t.Skip("OS X does not support Subtype")
 	}
+	if runtime.GOOS == "freebsd" {
+		t.Skip("FreeBSD does not support Subtype")
+	}
 	t.Parallel()
 	const name = "FuseTestMarker"
 	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.Dir{}},
@@ -137,5 +150,77 @@ func TestMountOptionAllowRootThenAllowOther(t *testing.T) {
 	}
 	if g, e := err, fuse.ErrCannotCombineAllowOtherAndAllowRoot; g != e {
 		t.Fatalf("wrong error: %v != %v", g, e)
+	}
+}
+
+type unwritableFile struct{}
+
+func (f unwritableFile) Attr() fuse.Attr { return fuse.Attr{Mode: 0000} }
+
+func TestMountOptionDefaultPermissions(t *testing.T) {
+	if runtime.GOOS == "freebsd" {
+		t.Skip("FreeBSD does not support DefaultPermissions")
+	}
+	t.Parallel()
+	mnt, err := fstestutil.MountedT(t,
+		fstestutil.SimpleFS{
+			fstestutil.ChildMap{"child": unwritableFile{}},
+		},
+		fuse.DefaultPermissions(),
+	)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mnt.Close()
+
+	// This will be prevented by kernel-level access checking when
+	// DefaultPermissions is used.
+	f, err := os.OpenFile(mnt.Dir+"/child", os.O_WRONLY, 0000)
+	if err == nil {
+		f.Close()
+		t.Fatal("expected an error")
+	}
+	if !os.IsPermission(err) {
+		t.Fatalf("expected a permission error, got %T: %v", err, err)
+	}
+}
+
+type createrDir struct {
+	fstestutil.Dir
+}
+
+var _ fs.NodeCreater = createrDir{}
+
+func (createrDir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
+	// pick a really distinct error, to identify it later
+	return nil, nil, fuse.Errno(syscall.ENAMETOOLONG)
+}
+
+func TestMountOptionReadOnly(t *testing.T) {
+	t.Parallel()
+	mnt, err := fstestutil.MountedT(t,
+		fstestutil.SimpleFS{createrDir{}},
+		fuse.ReadOnly(),
+	)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mnt.Close()
+
+	// This will be prevented by kernel-level access checking when
+	// ReadOnly is used.
+	f, err := os.Create(mnt.Dir + "/child")
+	if err == nil {
+		f.Close()
+		t.Fatal("expected an error")
+	}
+	perr, ok := err.(*os.PathError)
+	if !ok {
+		t.Fatalf("expected PathError, got %T: %v", err, err)
+	}
+	if perr.Err != syscall.EROFS {
+		t.Fatalf("expected EROFS, got %T: %v", err, err)
 	}
 }

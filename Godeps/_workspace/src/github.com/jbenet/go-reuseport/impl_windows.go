@@ -1,13 +1,19 @@
 package reuseport
 
-import (
-	"net"
-)
+import "net"
 
 // TODO. for now, just pass it over to net.Listen/net.Dial
 
 func listen(network, address string) (net.Listener, error) {
 	return net.Listen(network, address)
+}
+
+func listenPacket(netw, laddr string) (net.PacketConn, error) {
+	return net.ListenPacket(netw, laddr)
+}
+
+func listenStream(netw, addr string) (net.Listener, error) {
+	return listen(netw, addr)
 }
 
 func dial(dialer net.Dialer, network, address string) (net.Conn, error) {

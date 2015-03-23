@@ -3,21 +3,17 @@ package main
 import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/airbrake"
-	"github.com/tobi/airbrake-go"
 )
 
 var log = logrus.New()
 
 func init() {
-	log.Formatter = new(logrus.TextFormatter) // default
-	log.Hooks.Add(new(logrus_airbrake.AirbrakeHook))
+	log.Formatter = // default
+	new(logrus.TextFormatter)
+	log.Hooks.Add(airbrake.NewHook("https://example.com", "xyz", "development"))
 }
 
 func main() {
-	airbrake.Endpoint = "https://exceptions.whatever.com/notifier_api/v2/notices.xml"
-	airbrake.ApiKey = "whatever"
-	airbrake.Environment = "production"
-
 	log.WithFields(logrus.Fields{
 		"animal": "walrus",
 		"size":   10,

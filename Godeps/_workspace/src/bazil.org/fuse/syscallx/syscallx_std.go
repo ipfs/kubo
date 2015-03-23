@@ -3,24 +3,24 @@
 package syscallx
 
 // This file just contains wrappers for platforms that already have
-// the right stuff in stdlib.
+// the right stuff in golang.org/x/sys/unix.
 
 import (
-	"syscall"
+	"golang.org/x/sys/unix"
 )
 
 func Getxattr(path string, attr string, dest []byte) (sz int, err error) {
-	return syscall.Getxattr(path, attr, dest)
+	return unix.Getxattr(path, attr, dest)
 }
 
 func Listxattr(path string, dest []byte) (sz int, err error) {
-	return syscall.Listxattr(path, dest)
+	return unix.Listxattr(path, dest)
 }
 
 func Setxattr(path string, attr string, data []byte, flags int) (err error) {
-	return syscall.Setxattr(path, attr, data, flags)
+	return unix.Setxattr(path, attr, data, flags)
 }
 
 func Removexattr(path string, attr string) (err error) {
-	return syscall.Removexattr(path, attr)
+	return unix.Removexattr(path, attr)
 }

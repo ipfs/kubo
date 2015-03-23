@@ -27,8 +27,7 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/util"
 )
 
-// DB is a LevelDB database.
-type DB struct {
+type DB struct { // DB is a LevelDB database.
 	// Need 64-bit alignment.
 	seq uint64
 
@@ -347,12 +346,14 @@ func recoverTable(s *session, o *opt.Options) error {
 			return err
 		}
 		iter := tr.NewIterator(nil, nil)
-		iter.(iterator.ErrorCallbackSetter).SetErrorCallback(func(err error) {
-			if errors.IsCorrupted(err) {
-				s.logf("table@recovery block corruption @%d %q", file.Num(), err)
-				tcorruptedBlock++
-			}
-		})
+		if itererr, ok := iter.(iterator.ErrorCallbackSetter); ok {
+			itererr.SetErrorCallback(func(err error) {
+				if errors.IsCorrupted(err) {
+					s.logf("table@recovery block corruption @%d %q", file.Num(), err)
+					tcorruptedBlock++
+				}
+			})
+		}
 
 		// Scan the table.
 		for iter.Next() {
@@ -823,8 +824,8 @@ func (db *DB) GetProperty(name string) (value string, err error) {
 	case p == "blockpool":
 		value = fmt.Sprintf("%v", db.s.tops.bpool)
 	case p == "cachedblock":
-		if bc := db.s.o.GetBlockCache(); bc != nil {
-			value = fmt.Sprintf("%d", bc.Size())
+		if db.s.tops.bcache != nil {
+			value = fmt.Sprintf("%d", db.s.tops.bcache.Size())
 		} else {
 			value = "<nil>"
 		}

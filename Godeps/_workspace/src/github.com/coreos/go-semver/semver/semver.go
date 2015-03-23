@@ -58,6 +58,13 @@ func NewVersion(version string) (*Version, error) {
 	return &v, nil
 }
 
+func Must(v *Version, err error) *Version {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func (v *Version) String() string {
 	var buffer bytes.Buffer
 

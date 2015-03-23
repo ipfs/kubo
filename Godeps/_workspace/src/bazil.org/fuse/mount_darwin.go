@@ -59,7 +59,7 @@ func callMount(dir string, conf *MountConfig, f *os.File, ready chan<- struct{},
 		if strings.Contains(k, ",") || strings.Contains(v, ",") {
 			// Silly limitation but the mount helper does not
 			// understand any escaping. See TestMountOptionCommaError.
-			return fmt.Errorf("mount options cannot contain commas on OS X: %q=%q", k, v)
+			return fmt.Errorf("mount options cannot contain commas on darwin: %q=%q", k, v)
 		}
 	}
 	cmd := exec.Command(
@@ -89,7 +89,7 @@ func callMount(dir string, conf *MountConfig, f *os.File, ready chan<- struct{},
 		return err
 	}
 	go func() {
-		err = cmd.Wait()
+		err := cmd.Wait()
 		if err != nil {
 			if buf.Len() > 0 {
 				output := buf.Bytes()
