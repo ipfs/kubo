@@ -51,13 +51,20 @@ func (fi *File) Read(b []byte) (int, error) {
 	return fi.mod.Read(b)
 }
 
+// Read reads into the given buffer from the current offset
+func (fi *File) CtxReadFull(ctx context.Context, b []byte) (int, error) {
+	fi.Lock()
+	defer fi.Unlock()
+	return fi.mod.CtxReadFull(ctx, b)
+}
+
 // Close flushes, then propogates the modified dag node up the directory structure
 // and signals a republish to occur
 func (fi *File) Close() error {
 	fi.Lock()
 	defer fi.Unlock()
 	if fi.hasChanges {
-		err := fi.mod.Flush()
+		err := fi.mod.Sync()
 		if err != nil {
 			return err
 		}
@@ -80,11 +87,11 @@ func (fi *File) Close() error {
 	return nil
 }
 
-// Flush flushes the changes in the file to disk
-func (fi *File) Flush() error {
+// Sync flushes the changes in the file to disk
+func (fi *File) Sync() error {
 	fi.Lock()
 	defer fi.Unlock()
-	return fi.mod.Flush()
+	return fi.mod.Sync()
 }
 
 // Seek implements io.Seeker

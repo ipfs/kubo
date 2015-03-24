@@ -80,7 +80,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 			}
 		}
 
-		err = dm.Flush()
+		err = dm.Sync()
 		if err != nil {
 			return 0, err
 		}
@@ -133,7 +133,7 @@ func (dm *DagModifier) Write(b []byte) (int, error) {
 	}
 	dm.curWrOff += uint64(n)
 	if dm.wrBuf.Len() > writebufferSize {
-		err := dm.Flush()
+		err := dm.Sync()
 		if err != nil {
 			return n, err
 		}
@@ -156,8 +156,8 @@ func (dm *DagModifier) Size() (int64, error) {
 	return int64(pbn.GetFilesize()), nil
 }
 
-// Flush writes changes to this dag to disk
-func (dm *DagModifier) Flush() error {
+// Sync writes changes to this dag to disk
+func (dm *DagModifier) Sync() error {
 	// No buffer? Nothing to do
 	if dm.wrBuf == nil {
 		return nil
@@ -315,29 +315,9 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.No
 
 // Read data from this dag starting at the current offset
 func (dm *DagModifier) Read(b []byte) (int, error) {
-	err := dm.Flush()
+	err := dm.readPrep()
 	if err != nil {
 		return 0, err
-	}
-
-	if dm.read == nil {
-		ctx, cancel := context.WithCancel(dm.ctx)
-		dr, err := uio.NewDagReader(ctx, dm.curNode, dm.dagserv)
-		if err != nil {
-			return 0, err
-		}
-
-		i, err := dr.Seek(int64(dm.curWrOff), os.SEEK_SET)
-		if err != nil {
-			return 0, err
-		}
-
-		if i != int64(dm.curWrOff) {
-			return 0, ErrSeekFail
-		}
-
-		dm.readCancel = cancel
-		dm.read = dr
 	}
 
 	n, err := dm.read.Read(b)
@@ -345,9 +325,50 @@ func (dm *DagModifier) Read(b []byte) (int, error) {
 	return n, err
 }
 
+func (dm *DagModifier) readPrep() error {
+	err := dm.Sync()
+	if err != nil {
+		return err
+	}
+
+	if dm.read == nil {
+		ctx, cancel := context.WithCancel(dm.ctx)
+		dr, err := uio.NewDagReader(ctx, dm.curNode, dm.dagserv)
+		if err != nil {
+			return err
+		}
+
+		i, err := dr.Seek(int64(dm.curWrOff), os.SEEK_SET)
+		if err != nil {
+			return err
+		}
+
+		if i != int64(dm.curWrOff) {
+			return ErrSeekFail
+		}
+
+		dm.readCancel = cancel
+		dm.read = dr
+	}
+
+	return nil
+}
+
+// Read data from this dag starting at the current offset
+func (dm *DagModifier) CtxReadFull(ctx context.Context, b []byte) (int, error) {
+	err := dm.readPrep()
+	if err != nil {
+		return 0, err
+	}
+
+	n, err := dm.read.CtxReadFull(ctx, b)
+	dm.curWrOff += uint64(n)
+	return n, err
+}
+
 // GetNode gets the modified DAG Node
 func (dm *DagModifier) GetNode() (*mdag.Node, error) {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +381,7 @@ func (dm *DagModifier) HasChanges() bool {
 }
 
 func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return 0, err
 	}
@@ -389,7 +410,7 @@ func (dm *DagModifier) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (dm *DagModifier) Truncate(size int64) error {
-	err := dm.Flush()
+	err := dm.Sync()
 	if err != nil {
 		return err
 	}
