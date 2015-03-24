@@ -296,22 +296,13 @@ func (fi *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Read
 }
 
 func (fi *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
-	errs := make(chan error, 1)
-	go func() {
-		wrote, err := fi.fi.WriteAt(req.Data, req.Offset)
-		if err != nil {
-			errs <- err
-		}
-		resp.Size = wrote
-		errs <- nil
-	}()
-
-	select {
-	case err := <-errs:
+	// TODO: at some point, ensure that WriteAt here respects the context
+	wrote, err := fi.fi.WriteAt(req.Data, req.Offset)
+	if err != nil {
 		return err
-	case <-ctx.Done():
-		return ctx.Err()
 	}
+	resp.Size = wrote
+	return nil
 }
 
 func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
