@@ -12,12 +12,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/gosnappy/snappy"
-
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/gosnappy/snappy"
 )
 
 func sharedPrefixLen(a, b []byte) int {

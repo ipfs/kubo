@@ -3,7 +3,6 @@ package logrus
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -15,12 +14,12 @@ const (
 	green   = 32
 	yellow  = 33
 	blue    = 34
+	gray    = 37
 )
 
 var (
 	baseTimestamp time.Time
 	isTerminal    bool
-	noQuoteNeeded *regexp.Regexp
 )
 
 func init() {
@@ -46,15 +45,22 @@ type TextFormatter struct {
 	// Enable logging the full timestamp when a TTY is attached instead of just
 	// the time passed since beginning of execution.
 	FullTimestamp bool
+
+	// The fields are sorted by default for a consistent output. For applications
+	// that log extremely frequently and don't use the JSON formatter this may not
+	// be desired.
+	DisableSorting bool
 }
 
 func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
-
 	var keys []string = make([]string, 0, len(entry.Data))
 	for k := range entry.Data {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+
+	if !f.DisableSorting {
+		sort.Strings(keys)
+	}
 
 	b := &bytes.Buffer{}
 
@@ -82,6 +88,8 @@ func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
 func (f *TextFormatter) printColored(b *bytes.Buffer, entry *Entry, keys []string) {
 	var levelColor int
 	switch entry.Level {
+	case DebugLevel:
+		levelColor = gray
 	case WarnLevel:
 		levelColor = yellow
 	case ErrorLevel, FatalLevel, PanicLevel:
@@ -107,7 +115,7 @@ func needsQuoting(text string) bool {
 	for _, ch := range text {
 		if !((ch >= 'a' && ch <= 'z') ||
 			(ch >= 'A' && ch <= 'Z') ||
-			(ch >= '0' && ch < '9') ||
+			(ch >= '0' && ch <= '9') ||
 			ch == '-' || ch == '.') {
 			return false
 		}

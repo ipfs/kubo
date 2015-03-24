@@ -20,8 +20,7 @@ func (w *Writes) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.W
 	n, err := w.buf.Write(req.Data)
 	resp.Size = n
 	if err != nil {
-		// TODO hiding error
-		return fuse.EIO
+		return err
 	}
 	return nil
 }
@@ -293,7 +292,7 @@ var _ = fs.NodeGetxattrer(&Getxattrs{})
 func (r *Getxattrs) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
-	return fuse.ENODATA
+	return fuse.ErrNoXattr
 }
 
 // RecordedGetxattr returns information about the Getxattr request.
@@ -318,7 +317,7 @@ var _ = fs.NodeListxattrer(&Listxattrs{})
 func (r *Listxattrs) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
 	tmp := *req
 	r.rec.RecordRequest(&tmp)
-	return fuse.ENODATA
+	return fuse.ErrNoXattr
 }
 
 // RecordedListxattr returns information about the Listxattr request.

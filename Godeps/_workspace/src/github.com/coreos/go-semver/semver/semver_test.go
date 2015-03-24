@@ -1,7 +1,9 @@
 package semver
 
 import (
+	"errors"
 	"math/rand"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -183,5 +185,39 @@ func TestBumpPatch(t *testing.T) {
 	version.BumpPatch()
 	if version.PreRelease != "" && version.PreRelease != "" {
 		t.Fatalf("bumping major on 1.0.0+build.1-alpha.1 resulted in %v", version)
+	}
+}
+
+func TestMust(t *testing.T) {
+	tests := []struct {
+		versionStr string
+
+		version *Version
+		recov   interface{}
+	}{
+		{
+			versionStr: "1.0.0",
+			version:    &Version{Major: 1},
+		},
+		{
+			versionStr: "version number",
+			recov:      errors.New("version number is not in dotted-tri format"),
+		},
+	}
+
+	for _, tt := range tests {
+		func() {
+			defer func() {
+				recov := recover()
+				if !reflect.DeepEqual(tt.recov, recov) {
+					t.Fatalf("incorrect panic for %q: want %v, got %v", tt.versionStr, tt.recov, recov)
+				}
+			}()
+
+			version := Must(NewVersion(tt.versionStr))
+			if !reflect.DeepEqual(tt.version, version) {
+				t.Fatalf("incorrect version for %q: want %+v, got %+v", tt.versionStr, tt.version, version)
+			}
+		}()
 	}
 }

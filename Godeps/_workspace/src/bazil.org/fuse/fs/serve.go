@@ -101,6 +101,15 @@ type NodeGetattrer interface {
 
 type NodeSetattrer interface {
 	// Setattr sets the standard metadata for the receiver.
+	//
+	// Note, this is also used to communicate changes in the size of
+	// the file. Not implementing Setattr causes writes to be unable
+	// to grow the file (except with OpenDirectIO, which bypasses that
+	// mechanism).
+	//
+	// req.Valid is a bitmask of what fields are actually being set.
+	// For example, the method should not change the mode of the file
+	// unless req.Valid.Mode() is true.
 	Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error
 }
 
@@ -203,9 +212,7 @@ type NodeGetxattrer interface {
 	// Getxattr gets an extended attribute by the given name from the
 	// node.
 	//
-	// If there is no xattr by that name, returns fuse.ENODATA. This
-	// will be translated to the platform-specific correct error code
-	// by the framework.
+	// If there is no xattr by that name, returns fuse.ErrNoXattr.
 	Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error
 }
 
@@ -223,9 +230,7 @@ type NodeSetxattrer interface {
 type NodeRemovexattrer interface {
 	// Removexattr removes an extended attribute for the name.
 	//
-	// If there is no xattr by that name, returns fuse.ENODATA. This
-	// will be translated to the platform-specific correct error code
-	// by the framework.
+	// If there is no xattr by that name, returns fuse.ErrNoXattr.
 	Removexattr(ctx context.Context, req *fuse.RemovexattrRequest) error
 }
 
@@ -279,10 +284,29 @@ type HandleReadDirAller interface {
 }
 
 type HandleReader interface {
+	// Read requests to read data from the handle.
+	//
+	// There is a page cache in the kernel that normally submits only
+	// page-aligned reads spanning one or more pages. However, you
+	// should not rely on this. To see individual requests as
+	// submitted by the file system clients, set OpenDirectIO.
+	//
+	// Note that reads beyond the size of the file as reported by Attr
+	// are not even attempted (except in OpenDirectIO mode).
 	Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error
 }
 
 type HandleWriter interface {
+	// Write requests to write data into the handle.
+	//
+	// There is a writeback page cache in the kernel that normally submits
+	// only page-aligned writes spanning one or more pages. However,
+	// you should not rely on this. To see individual requests as
+	// submitted by the file system clients, set OpenDirectIO.
+	//
+	// Note that file size changes are communicated through Setattr.
+	// Writes beyond the size of the file as reported by Attr are not
+	// even attempted (except in OpenDirectIO mode).
 	Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error
 }
 

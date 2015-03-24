@@ -3,14 +3,11 @@ package fs_test
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
@@ -38,55 +35,6 @@ import (
 
 func init() {
 	fstestutil.DebugByDefault()
-}
-
-var childMode bool
-
-func init() {
-	flag.BoolVar(&childMode, "fuse.internal.childmode", false, "internal use only")
-}
-
-// childCmd prepares a test function to be run in a subprocess, with
-// childMode set to true. Caller must still call Run or Start.
-//
-// Re-using the test executable as the subprocess is useful because
-// now test executables can e.g. be cross-compiled, transferred
-// between hosts, and run in settings where the whole Go development
-// environment is not installed.
-func childCmd(testName string) (*exec.Cmd, error) {
-	// caller may set cwd, so we can't rely on relative paths
-	executable, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		return nil, err
-	}
-	testName = regexp.QuoteMeta(testName)
-	cmd := exec.Command(executable, "-test.run=^"+testName+"$", "-fuse.internal.childmode")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd, nil
-}
-
-// childMapFS is an FS with one fixed child named "child".
-type childMapFS map[string]fs.Node
-
-var _ = fs.FS(childMapFS{})
-var _ = fs.Node(childMapFS{})
-var _ = fs.NodeStringLookuper(childMapFS{})
-
-func (f childMapFS) Attr() fuse.Attr {
-	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0777}
-}
-
-func (f childMapFS) Root() (fs.Node, error) {
-	return f, nil
-}
-
-func (f childMapFS) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	child, ok := f[name]
-	if !ok {
-		return nil, fuse.ENOENT
-	}
-	return child, nil
 }
 
 // symlink can be embedded in a struct to make it look like a symlink.
@@ -271,7 +219,7 @@ func testReadAll(t *testing.T, path string) {
 
 func TestReadAll(t *testing.T) {
 	t.Parallel()
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": readAll{}})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": readAll{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +248,7 @@ func (readWithHandleRead) Read(ctx context.Context, req *fuse.ReadRequest, resp 
 
 func TestReadAllWithHandleRead(t *testing.T) {
 	t.Parallel()
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": readWithHandleRead{}})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": readWithHandleRead{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +267,7 @@ type release struct {
 func TestRelease(t *testing.T) {
 	t.Parallel()
 	r := &release{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": r})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": r}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +294,7 @@ type write struct {
 func TestWrite(t *testing.T) {
 	t.Parallel()
 	w := &write{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": w})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": w}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,7 +341,7 @@ type writeLarge struct {
 func TestWriteLarge(t *testing.T) {
 	t.Parallel()
 	w := &write{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": w})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": w}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +388,7 @@ type writeTruncateFlush struct {
 func TestWriteTruncateFlush(t *testing.T) {
 	t.Parallel()
 	w := &writeTruncateFlush{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": w})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": w}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -838,7 +786,7 @@ func (dataHandleTest) Open(ctx context.Context, req *fuse.OpenRequest, resp *fus
 func TestDataHandle(t *testing.T) {
 	t.Parallel()
 	f := &dataHandleTest{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -883,7 +831,7 @@ func TestInterrupt(t *testing.T) {
 	t.Parallel()
 	f := &interrupt{}
 	f.hanging = make(chan struct{}, 1)
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -947,7 +895,7 @@ type truncate struct {
 func testTruncate(t *testing.T, toSize int64) {
 	t.Parallel()
 	f := &truncate{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -988,7 +936,7 @@ type ftruncate struct {
 func testFtruncate(t *testing.T, toSize int64) {
 	t.Parallel()
 	f := &ftruncate{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1038,7 +986,7 @@ type truncateWithOpen struct {
 func TestTruncateWithOpen(t *testing.T) {
 	t.Parallel()
 	f := &truncateWithOpen{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1165,7 +1113,7 @@ func (f *chmod) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fus
 func TestChmod(t *testing.T) {
 	t.Parallel()
 	f := &chmod{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1199,7 +1147,7 @@ func (f *open) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 func TestOpen(t *testing.T) {
 	t.Parallel()
 	f := &open{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1307,7 +1255,7 @@ func (f *getxattr) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp
 func TestGetxattr(t *testing.T) {
 	t.Parallel()
 	f := &getxattr{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1343,7 +1291,7 @@ func (f *getxattrTooSmall) Getxattr(ctx context.Context, req *fuse.GetxattrReque
 func TestGetxattrTooSmall(t *testing.T) {
 	t.Parallel()
 	f := &getxattrTooSmall{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1374,7 +1322,7 @@ func (f *getxattrSize) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, 
 func TestGetxattrSize(t *testing.T) {
 	t.Parallel()
 	f := &getxattrSize{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1406,7 +1354,7 @@ func (f *listxattr) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, r
 func TestListxattr(t *testing.T) {
 	t.Parallel()
 	f := &listxattr{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1445,7 +1393,7 @@ func (f *listxattrTooSmall) Listxattr(ctx context.Context, req *fuse.ListxattrRe
 func TestListxattrTooSmall(t *testing.T) {
 	t.Parallel()
 	f := &listxattrTooSmall{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1476,7 +1424,7 @@ func (f *listxattrSize) Listxattr(ctx context.Context, req *fuse.ListxattrReques
 func TestListxattrSize(t *testing.T) {
 	t.Parallel()
 	f := &listxattrSize{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1507,7 +1455,7 @@ func testSetxattr(t *testing.T, size int) {
 
 	t.Parallel()
 	f := &setxattr{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1560,7 +1508,7 @@ type removexattr struct {
 func TestRemovexattr(t *testing.T) {
 	t.Parallel()
 	f := &removexattr{}
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": f})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": f}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1681,6 +1629,54 @@ func (f *inMemoryFile) Write(ctx context.Context, req *fuse.WriteRequest, resp *
 	return nil
 }
 
+const mmapSize = 16 * 4096
+
+var mmapWrites = map[int]byte{
+	10:              'a',
+	4096:            'b',
+	4097:            'c',
+	mmapSize - 4096: 'd',
+	mmapSize - 1:    'z',
+}
+
+func helperMmap() {
+	f, err := os.Create("child")
+	if err != nil {
+		log.Fatalf("Create: %v", err)
+	}
+	defer f.Close()
+
+	data, err := syscall.Mmap(int(f.Fd()), 0, mmapSize, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	if err != nil {
+		log.Fatalf("Mmap: %v", err)
+	}
+
+	for i, b := range mmapWrites {
+		data[i] = b
+	}
+
+	if err := syscallx.Msync(data, syscall.MS_SYNC); err != nil {
+		log.Fatalf("Msync: %v", err)
+	}
+
+	if err := syscall.Munmap(data); err != nil {
+		log.Fatalf("Munmap: %v", err)
+	}
+
+	if err := f.Sync(); err != nil {
+		log.Fatalf("Fsync = %v", err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf("Close: %v", err)
+	}
+}
+
+func init() {
+	childHelpers["mmap"] = helperMmap
+}
+
 type mmap struct {
 	inMemoryFile
 	// We don't actually care about whether the fsync happened or not;
@@ -1690,65 +1686,21 @@ type mmap struct {
 }
 
 func TestMmap(t *testing.T) {
-	const size = 16 * 4096
-	writes := map[int]byte{
-		10:          'a',
-		4096:        'b',
-		4097:        'c',
-		size - 4096: 'd',
-		size - 1:    'z',
+
+	w := &mmap{}
+	w.data = make([]byte, mmapSize)
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": w}})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer mnt.Close()
 
 	// Run the mmap-using parts of the test in a subprocess, to avoid
 	// an intentional page fault hanging the whole process (because it
 	// would need to be served by the same process, and there might
 	// not be a thread free to do that). Merely bumping GOMAXPROCS is
 	// not enough to prevent the hangs reliably.
-	if childMode {
-		f, err := os.Create("child")
-		if err != nil {
-			t.Fatalf("Create: %v", err)
-		}
-		defer f.Close()
-
-		data, err := syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-		if err != nil {
-			t.Fatalf("Mmap: %v", err)
-		}
-
-		for i, b := range writes {
-			data[i] = b
-		}
-
-		if err := syscallx.Msync(data, syscall.MS_SYNC); err != nil {
-			t.Fatalf("Msync: %v", err)
-		}
-
-		if err := syscall.Munmap(data); err != nil {
-			t.Fatalf("Munmap: %v", err)
-		}
-
-		if err := f.Sync(); err != nil {
-			t.Fatalf("Fsync = %v", err)
-		}
-
-		err = f.Close()
-		if err != nil {
-			t.Fatalf("Close: %v", err)
-		}
-
-		return
-	}
-
-	w := &mmap{}
-	w.data = make([]byte, size)
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": w})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer mnt.Close()
-
-	child, err := childCmd("TestMmap")
+	child, err := childCmd("mmap")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1758,12 +1710,12 @@ func TestMmap(t *testing.T) {
 	}
 
 	got := w.data
-	if g, e := len(got), size; g != e {
+	if g, e := len(got), mmapSize; g != e {
 		t.Fatalf("bad write length: %d != %d", g, e)
 	}
 	for i, g := range got {
 		// default '\x00' for writes[i] is good here
-		if e := writes[i]; g != e {
+		if e := mmapWrites[i]; g != e {
 			t.Errorf("wrong byte at offset %d: %q != %q", i, g, e)
 		}
 	}
@@ -1790,11 +1742,58 @@ func (directRead) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Re
 
 func TestDirectRead(t *testing.T) {
 	t.Parallel()
-	mnt, err := fstestutil.MountedT(t, childMapFS{"child": directRead{}})
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": directRead{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer mnt.Close()
 
 	testReadAll(t, mnt.Dir+"/child")
+}
+
+// Test direct Write.
+
+type directWrite struct {
+	fstestutil.File
+	record.Writes
+}
+
+// explicitly not defining Attr / Setattr and managing Size
+
+func (f *directWrite) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	// do not allow the kernel to use page cache
+	resp.Flags |= fuse.OpenDirectIO
+	return f, nil
+}
+
+func TestDirectWrite(t *testing.T) {
+	t.Parallel()
+	w := &directWrite{}
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": w}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mnt.Close()
+
+	f, err := os.OpenFile(mnt.Dir+"/child", os.O_RDWR, 0666)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	defer f.Close()
+	n, err := f.Write([]byte(hi))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if n != len(hi) {
+		t.Fatalf("short write; n=%d; hi=%d", n, len(hi))
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	if got := string(w.RecordedWriteData()); got != hi {
+		t.Errorf("write = %q, want %q", got, hi)
+	}
 }

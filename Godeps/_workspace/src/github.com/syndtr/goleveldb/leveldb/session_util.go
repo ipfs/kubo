@@ -14,10 +14,8 @@ import (
 	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/storage"
 )
 
-// Logging.
-
 type dropper struct {
-	s    *session
+	s    *session // Logging.
 	file storage.File
 }
 

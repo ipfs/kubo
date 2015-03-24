@@ -7,7 +7,7 @@
 	"Deps": [
 		{
 			"ImportPath": "bazil.org/fuse",
-			"Rev": "489e985dcb429718328be2bb055adb685c4ae1e3"
+			"Rev": "79d103f5608724e3ccee0a10daccc5e4aff03591"
 		},
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
@@ -33,8 +33,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.6.5",
-			"Rev": "c0f7e35ed2e48f188c37581b4b743cf7383f85c6"
+			"Comment": "v0.7.1",
+			"Rev": "3fc34d061b9c78a70db853c7cb6b0576b6d4f32d"
 		},
 		{
 			"ImportPath": "github.com/braintree/manners",
@@ -67,7 +67,7 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
-			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
+			"Rev": "568e959cd89871e61434c1143528d9162da89ef2"
 		},
 		{
 			"ImportPath": "github.com/crowdmob/goamz/aws",
@@ -103,14 +103,6 @@
 			"Rev": "27a863cdffdb0998d13e1e11992b18489aeeaa25"
 		},
 		{
-			"ImportPath": "github.com/gorilla/context",
-			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
-		},
-		{
-			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "4b8fbc56f3b2400a7c7ea3dba9b3539787c486b6"
-		},
-		{
 			"ImportPath": "github.com/h2so5/utp",
 			"Rev": "654d875bb65e96729678180215cf080fe2810371"
 		},
@@ -141,7 +133,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-base58",
-			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
+			"Rev": "6237cf65f3a6f7111cd8a42be3590df99a66bc7d"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-ctxgroup",
@@ -195,7 +187,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-reuseport",
-			"Rev": "096958438ae3683c9f3c8ae0f7139b5ce600e6a8"
+			"Rev": "c71a70ef82a7acb87ad77704de1be7b9cd776a55"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-sockaddr/net",
@@ -211,7 +203,7 @@
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",
-			"Rev": "ccfcd0245381f0c94c68f50626665eed3c6b726a"
+			"Rev": "efacde03154693404c65e7aa7d461ac9014acd0c"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",
@@ -223,23 +215,23 @@
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "871eee0a7546bb7d1b2795142e29c4534abc49b3"
+			"Rev": "87e4e645d80ae9c537e8f2dee52b28036a5dd75e"
 		},
 		{
 			"ImportPath": "github.com/syndtr/gosnappy/snappy",
-			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
+			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/blowfish",
-			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+			"Rev": "b7d6bf2c61544745a02f83dec90393985fc3a065"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/sha3",
-			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+			"Rev": "b7d6bf2c61544745a02f83dec90393985fc3a065"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "b6fdb7d8a4ccefede406f8fe0f017fb58265054c"
+			"Rev": "7dbad50ab5b31073856416cdcfeb2796d682f844"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
