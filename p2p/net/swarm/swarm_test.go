@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	errors "github.com/ipfs/go-ipfs/util/debugerror"
@@ -58,7 +59,7 @@ func makeSwarms(ctx context.Context, t *testing.T, num int) []*Swarm {
 		peerstore.AddPrivKey(localnp.ID, localnp.PrivKey)
 
 		addrs := []ma.Multiaddr{localnp.Addr}
-		swarm, err := NewSwarm(ctx, addrs, localnp.ID, peerstore)
+		swarm, err := NewSwarm(ctx, addrs, localnp.ID, peerstore, metrics.NewBandwidthCounter())
 		if err != nil {
 			t.Fatal(err)
 		}

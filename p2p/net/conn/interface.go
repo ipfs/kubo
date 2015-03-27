@@ -66,6 +66,9 @@ type Dialer struct {
 	// PrivateKey used to initialize a secure connection.
 	// Warning: if PrivateKey is nil, connection will not be secured.
 	PrivateKey ic.PrivKey
+
+	// Wrapper to wrap the raw connection (optional)
+	Wrapper func(manet.Conn) manet.Conn
 }
 
 // Listener is an object that can accept connections. It matches net.Listener

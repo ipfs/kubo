@@ -12,6 +12,7 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
+	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -358,8 +359,12 @@ func makePonger(st string) func(inet.Stream) {
 }
 
 func TestStreamsStress(t *testing.T) {
+	nnodes := 100
+	if detectrace.WithRace() {
+		nnodes = 50
+	}
 
-	mn, err := FullMeshConnected(context.Background(), 100)
+	mn, err := FullMeshConnected(context.Background(), nnodes)
 	if err != nil {
 		t.Fatal(err)
 	}

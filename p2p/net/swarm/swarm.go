@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -42,12 +43,13 @@ type Swarm struct {
 	notifmu sync.RWMutex
 	notifs  map[inet.Notifiee]ps.Notifiee
 
-	cg ctxgroup.ContextGroup
+	cg  ctxgroup.ContextGroup
+	bwc metrics.Reporter
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
 func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
-	local peer.ID, peers peer.Peerstore) (*Swarm, error) {
+	local peer.ID, peers peer.Peerstore, bwc metrics.Reporter) (*Swarm, error) {
 
 	listenAddrs, err := filterAddrs(listenAddrs)
 	if err != nil {
@@ -61,6 +63,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		cg:     ctxgroup.WithContext(ctx),
 		dialT:  DialTimeout,
 		notifs: make(map[inet.Notifiee]ps.Notifiee),
+		bwc:    bwc,
 	}
 
 	// configure Swarm

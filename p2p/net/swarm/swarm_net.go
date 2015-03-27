@@ -5,6 +5,7 @@ import (
 
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
+	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 
 	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
@@ -19,9 +20,9 @@ type Network Swarm
 
 // NewNetwork constructs a new network and starts listening on given addresses.
 func NewNetwork(ctx context.Context, listen []ma.Multiaddr, local peer.ID,
-	peers peer.Peerstore) (*Network, error) {
+	peers peer.Peerstore, bwc metrics.Reporter) (*Network, error) {
 
-	s, err := NewSwarm(ctx, listen, local, peers)
+	s, err := NewSwarm(ctx, listen, local, peers, bwc)
 	if err != nil {
 		return nil, err
 	}

@@ -3,12 +3,14 @@ package swarm
 import (
 	"fmt"
 
+	mconn "github.com/ipfs/go-ipfs/metrics/conn"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	multierr "github.com/ipfs/go-ipfs/thirdparty/multierr"
@@ -65,6 +67,12 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 	list, err := conn.Listen(s.cg.Context(), maddr, s.local, sk)
 	if err != nil {
 		return err
+	}
+
+	if cw, ok := list.(conn.ListenerConnWrapper); ok {
+		cw.SetConnWrapper(func(c manet.Conn) manet.Conn {
+			return mconn.WrapConn(s.bwc, c)
+		})
 	}
 
 	// AddListener to the peerstream Listener. this will begin accepting connections

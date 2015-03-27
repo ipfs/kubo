@@ -4,6 +4,8 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	metrics "github.com/ipfs/go-ipfs/metrics"
+	mstream "github.com/ipfs/go-ipfs/metrics/stream"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
 	inet "github.com/ipfs/go-ipfs/p2p/net"
@@ -41,13 +43,16 @@ type BasicHost struct {
 	natmgr  *natManager
 
 	proc goprocess.Process
+
+	bwc metrics.Reporter
 }
 
 // New constructs and sets up a new *BasicHost with given Network
-func New(net inet.Network, opts ...Option) *BasicHost {
+func New(net inet.Network, opts ...interface{}) *BasicHost {
 	h := &BasicHost{
 		network: net,
 		mux:     protocol.NewMux(),
+		bwc:     metrics.NewBandwidthCounter(),
 	}
 
 	h.proc = goprocess.WithTeardown(func() error {
@@ -62,15 +67,20 @@ func New(net inet.Network, opts ...Option) *BasicHost {
 	h.ids = identify.NewIDService(h)
 	h.relay = relay.NewRelayService(h, h.Mux().HandleSync)
 
-	net.SetConnHandler(h.newConnHandler)
-	net.SetStreamHandler(h.newStreamHandler)
-
 	for _, o := range opts {
-		switch o {
-		case NATPortMap:
-			h.natmgr = newNatManager(h)
+		switch o := o.(type) {
+		case Option:
+			switch o {
+			case NATPortMap:
+				h.natmgr = newNatManager(h)
+			}
+		case metrics.Reporter:
+			h.bwc = o
 		}
 	}
+
+	net.SetConnHandler(h.newConnHandler)
+	net.SetStreamHandler(h.newStreamHandler)
 
 	return h
 }
@@ -81,8 +91,17 @@ func (h *BasicHost) newConnHandler(c inet.Conn) {
 }
 
 // newStreamHandler is the remote-opened stream handler for inet.Network
+// TODO: this feels a bit wonky
 func (h *BasicHost) newStreamHandler(s inet.Stream) {
-	h.Mux().Handle(s)
+	protoID, handle, err := h.Mux().ReadHeader(s)
+	if err != nil {
+		log.Error("protocol mux failed: %s", err)
+		return
+	}
+
+	logStream := mstream.WrapStream(s, protoID, h.bwc)
+
+	go handle(logStream)
 }
 
 // ID returns the (local) peer.ID associated with this Host
@@ -131,12 +150,14 @@ func (h *BasicHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
 		return nil, err
 	}
 
-	if err := protocol.WriteHeader(s, pid); err != nil {
-		s.Close()
+	logStream := mstream.WrapStream(s, pid, h.bwc)
+
+	if err := protocol.WriteHeader(logStream, pid); err != nil {
+		logStream.Close()
 		return nil, err
 	}
 
-	return s, nil
+	return logStream, nil
 }
 
 // Connect ensures there is a connection between this host and the peer with
@@ -209,4 +230,8 @@ func (h *BasicHost) Addrs() []ma.Multiaddr {
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
 	return h.proc.Close()
+}
+
+func (h *BasicHost) GetBandwidthReporter() metrics.Reporter {
+	return h.bwc
 }

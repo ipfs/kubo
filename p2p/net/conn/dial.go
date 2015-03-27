@@ -50,6 +50,10 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 			return
 		}
 
+		if d.Wrapper != nil {
+			maconn = d.Wrapper(maconn)
+		}
+
 		c, err := newSingleConn(ctx, d.LocalPeer, remote, maconn)
 		if err != nil {
 			maconn.Close()

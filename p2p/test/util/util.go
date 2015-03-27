@@ -3,6 +3,7 @@ package testutil
 import (
 	"testing"
 
+	metrics "github.com/ipfs/go-ipfs/metrics"
 	bhost "github.com/ipfs/go-ipfs/p2p/host/basic"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
@@ -18,7 +19,7 @@ func GenSwarmNetwork(t *testing.T, ctx context.Context) *swarm.Network {
 	ps := peer.NewPeerstore()
 	ps.AddPubKey(p.ID, p.PubKey)
 	ps.AddPrivKey(p.ID, p.PrivKey)
-	n, err := swarm.NewNetwork(ctx, []ma.Multiaddr{p.Addr}, p.ID, ps)
+	n, err := swarm.NewNetwork(ctx, []ma.Multiaddr{p.Addr}, p.ID, ps, metrics.NewBandwidthCounter())
 	if err != nil {
 		t.Fatal(err)
 	}

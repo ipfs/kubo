@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	mconn "github.com/ipfs/go-ipfs/metrics/conn"
 	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -318,6 +319,9 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 		LocalPeer:  s.local,
 		LocalAddrs: localAddrs,
 		PrivateKey: sk,
+		Wrapper: func(c manet.Conn) manet.Conn {
+			return mconn.WrapConn(s.bwc, c)
+		},
 	}
 
 	// try to get a connection to any addr

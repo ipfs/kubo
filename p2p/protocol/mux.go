@@ -45,9 +45,9 @@ func (m *Mux) Protocols() []ID {
 	return l
 }
 
-// readHeader reads the stream and returns the next Handler function
+// ReadHeader reads the stream and returns the next Handler function
 // according to the muxer encoding.
-func (m *Mux) readHeader(s io.Reader) (ID, inet.StreamHandler, error) {
+func (m *Mux) ReadHeader(s io.Reader) (ID, inet.StreamHandler, error) {
 	p, err := ReadHeader(s)
 	if err != nil {
 		return "", nil, err
@@ -110,7 +110,7 @@ func (m *Mux) Handle(s inet.Stream) {
 func (m *Mux) HandleSync(s inet.Stream) {
 	ctx := context.Background()
 
-	name, handler, err := m.readHeader(s)
+	name, handler, err := m.ReadHeader(s)
 	if err != nil {
 		err = fmt.Errorf("protocol mux error: %s", err)
 		log.Event(ctx, "muxError", lgbl.Error(err))
