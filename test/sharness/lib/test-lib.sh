@@ -148,7 +148,7 @@ test_init_ipfs() {
 	# todo: in the future, use env?
 
 	test_expect_success "ipfs init succeeds" '
-		export IPFS_PATH="$(pwd)/.go-ipfs" &&
+		export IPFS_PATH="$(pwd)/.ipfs" &&
 		ipfs init -b=1024 > /dev/null
 	'
 

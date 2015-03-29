@@ -68,11 +68,11 @@ This means cating certain files, or running diagnostic commands.
 For example:
 
 ```
-test_expect_success ".go-ipfs/ has been created" '
-  test -d ".go-ipfs" &&
-  test -f ".go-ipfs/config" &&
-  test -d ".go-ipfs/datastore" ||
-  test_fsh ls -al .go-ipfs
+test_expect_success ".ipfs/ has been created" '
+  test -d ".ipfs" &&
+  test -f ".ipfs/config" &&
+  test -d ".ipfs/datastore" ||
+  test_fsh ls -al .ipfs
 '
 ```
 

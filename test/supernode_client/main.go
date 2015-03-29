@@ -63,7 +63,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	repoPath := gopath.Join(cwd, ".go-ipfs")
+	repoPath := gopath.Join(cwd, config.DefaultPathName)
 	if err := ensureRepoInitialized(repoPath); err != nil {
 	}
 	repo, err := fsrepo.Open(repoPath)
