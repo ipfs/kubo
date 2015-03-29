@@ -9,16 +9,16 @@ test_description="Test init command"
 . lib/test-lib.sh
 
 test_expect_success "ipfs init succeeds" '
-	export IPFS_PATH="$(pwd)/.go-ipfs" &&
+	export IPFS_PATH="$(pwd)/.ipfs" &&
 	BITS="2048" &&
 	ipfs init --bits="$BITS" >actual_init
 '
 
-test_expect_success ".go-ipfs/ has been created" '
-	test -d ".go-ipfs" &&
-	test -f ".go-ipfs/config" &&
-	test -d ".go-ipfs/datastore" ||
-	test_fsh ls -al .go-ipfs
+test_expect_success ".ipfs/ has been created" '
+	test -d ".ipfs" &&
+	test -f ".ipfs/config" &&
+	test -d ".ipfs/datastore" ||
+	test_fsh ls -al .ipfs
 '
 
 test_expect_success "ipfs config succeeds" '

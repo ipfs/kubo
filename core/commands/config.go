@@ -49,7 +49,7 @@ Get the value of the 'datastore.path' key:
 
 Set the value of the 'datastore.path' key:
 
-  ipfs config datastore.path ~/.go-ipfs/datastore
+  ipfs config datastore.path ~/.ipfs/datastore
 `,
 	},
 

@@ -53,7 +53,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			defer os.RemoveAll(tmpDir)
 
 			env := append(
-				[]string{fmt.Sprintf("%s=%s", config.EnvDir, path.Join(tmpDir, ".go-ipfs"))}, // first in order to override
+				[]string{fmt.Sprintf("%s=%s", config.EnvDir, path.Join(tmpDir, config.DefaultPathName))}, // first in order to override
 				os.Environ()...,
 			)
 			setupCmd := func(cmd *exec.Cmd) {
