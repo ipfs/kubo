@@ -61,6 +61,29 @@ test_expect_success ".go-ipfs/ has been created" '
   test_fsh ls .go-ipfs
 '
 
+# begin same as in t0010
+
+test_expect_success "ipfs version succeeds" '
+	ipfs version >version.txt
+'
+
+test_expect_success "ipfs version output looks good" '
+	cat version.txt | egrep "^ipfs version [0-9]+\.[0-9]+\.[0-9]" >/dev/null ||
+	test_fsh cat version.txt
+'
+
+test_expect_success "ipfs help succeeds" '
+	ipfs help >help.txt
+'
+
+test_expect_success "ipfs help output looks good" '
+	cat help.txt | egrep -i "^Usage:" >/dev/null &&
+	cat help.txt | egrep "ipfs .* <command>" >/dev/null ||
+	test_fsh cat help.txt
+'
+
+# end same as in t0010
+
 test_expect_success "daemon is still running" '
   kill -0 $IPFS_PID
 '
