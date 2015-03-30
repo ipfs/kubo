@@ -6,6 +6,7 @@ import (
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -45,4 +46,8 @@ type IpfsRouting interface {
 	Bootstrap(context.Context) error
 
 	// TODO expose io.Closer or plain-old Close error
+}
+
+type PubKeyFetcher interface {
+	GetPublicKey(context.Context, peer.ID) (ci.PubKey, error)
 }
