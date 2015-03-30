@@ -92,19 +92,27 @@ func (s *Node) Attr() fuse.Attr {
 	}
 	switch s.cached.GetType() {
 	case ftpb.Data_Directory:
-		return fuse.Attr{Mode: os.ModeDir | 0555}
+		return fuse.Attr{
+			Mode: os.ModeDir | 0555,
+			Uid:  uint32(os.Getuid()),
+			Gid:  uint32(os.Getgid()),
+		}
 	case ftpb.Data_File:
 		size := s.cached.GetFilesize()
 		return fuse.Attr{
 			Mode:   0444,
 			Size:   uint64(size),
 			Blocks: uint64(len(s.Nd.Links)),
+			Uid:    uint32(os.Getuid()),
+			Gid:    uint32(os.Getgid()),
 		}
 	case ftpb.Data_Raw:
 		return fuse.Attr{
 			Mode:   0444,
 			Size:   uint64(len(s.cached.GetData())),
 			Blocks: uint64(len(s.Nd.Links)),
+			Uid:    uint32(os.Getuid()),
+			Gid:    uint32(os.Getgid()),
 		}
 
 	default:

@@ -207,7 +207,11 @@ type File struct {
 // Attr returns the attributes of a given node.
 func (d *Directory) Attr() fuse.Attr {
 	log.Debug("Directory Attr")
-	return fuse.Attr{Mode: os.ModeDir | 0555}
+	return fuse.Attr{
+		Mode: os.ModeDir | 0555,
+		Uid:  uint32(os.Getuid()),
+		Gid:  uint32(os.Getgid()),
+	}
 }
 
 // Attr returns the attributes of a given node.
@@ -221,6 +225,8 @@ func (fi *File) Attr() fuse.Attr {
 	return fuse.Attr{
 		Mode: os.FileMode(0666),
 		Size: uint64(size),
+		Uid:  uint32(os.Getuid()),
+		Gid:  uint32(os.Getgid()),
 	}
 }
 
