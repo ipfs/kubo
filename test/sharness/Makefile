@@ -10,6 +10,8 @@ T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint
 SHARNESS = lib/sharness/sharness.sh
 IPFS_ROOT = ../..
+HELPER_SOURCES = $(wildcard src/*.go)
+HELPER_BINARIES = $(patsubst src/%.go,bin/%,$(HELPER_SOURCES))
 
 all: clean deps $(T) aggregate
 
@@ -17,6 +19,7 @@ clean:
 	@echo "*** $@ ***"
 	-rm -rf test-results
 	-rm -rf bin/ipfs
+	-rm -rf $(HELPER_BINARIES)
 
 $(T):
 	@echo "*** $@ ***"
@@ -26,7 +29,7 @@ aggregate:
 	@echo "*** $@ ***"
 	lib/test-aggregate-results.sh
 
-deps: $(SHARNESS) $(BINS) curl
+deps: $(SHARNESS) $(BINS) $(HELPER_BINARIES) curl
 
 $(SHARNESS):
 	@echo "*** installing $@ ***"
@@ -35,6 +38,10 @@ $(SHARNESS):
 bin/%: $(IPFS_ROOT)/**/*.go
 	@echo "*** installing $@ ***"
 	cd .. && make $@
+
+$(HELPER_BINARIES): bin/%: src/%.go
+	@echo "*** installing $@ ***"
+	go build -o $@ $^
 
 .PHONY: all clean $(T) aggregate
 
