@@ -3,8 +3,8 @@
 package watch
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail/util"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/gopkg.in/tomb.v1"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail/util"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/gopkg.in/tomb.v1"
 	"os"
 	"time"
 )

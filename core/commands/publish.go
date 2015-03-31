@@ -6,13 +6,13 @@ import (
 	"io"
 	"strings"
 
-	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	core "github.com/jbenet/go-ipfs/core"
-	nsys "github.com/jbenet/go-ipfs/namesys"
-	crypto "github.com/jbenet/go-ipfs/p2p/crypto"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	core "github.com/ipfs/go-ipfs/core"
+	nsys "github.com/ipfs/go-ipfs/namesys"
+	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")

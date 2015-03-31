@@ -3,13 +3,13 @@ package pin
 import (
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	"github.com/jbenet/go-ipfs/blocks/blockstore"
-	bs "github.com/jbenet/go-ipfs/blockservice"
-	"github.com/jbenet/go-ipfs/exchange/offline"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/util"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	bs "github.com/ipfs/go-ipfs/blockservice"
+	"github.com/ipfs/go-ipfs/exchange/offline"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 func randNode() (*mdag.Node, util.Key) {

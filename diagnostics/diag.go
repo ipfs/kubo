@@ -12,17 +12,17 @@ import (
 
 	"crypto/rand"
 
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
+	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 
-	pb "github.com/jbenet/go-ipfs/diagnostics/internal/pb"
-	util "github.com/jbenet/go-ipfs/util"
+	pb "github.com/ipfs/go-ipfs/diagnostics/internal/pb"
+	util "github.com/ipfs/go-ipfs/util"
 )
 
 var log = util.Logger("diagnostics")
@@ -111,7 +111,7 @@ func (d *Diagnostics) getPeers() map[peer.ID]int {
 
 func (d *Diagnostics) getDiagInfo() *DiagInfo {
 	di := new(DiagInfo)
-	di.CodeVersion = "github.com/jbenet/go-ipfs"
+	di.CodeVersion = "github.com/ipfs/go-ipfs"
 	di.ID = d.self.Pretty()
 	di.LifeSpan = time.Since(d.birth)
 	di.Keys = nil // Currently no way to query datastore

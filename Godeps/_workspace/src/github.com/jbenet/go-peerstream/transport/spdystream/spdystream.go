@@ -4,7 +4,7 @@ import (
 	"net"
 	"net/http"
 
-	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 	ss "github.com/jbenet/spdystream"
 )
 

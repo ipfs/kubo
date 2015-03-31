@@ -1,7 +1,7 @@
 package fuseutil
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 )
 
 // HandleRead handles a read request assuming that data is the entire file content.

@@ -2,9 +2,9 @@ package trickle
 
 import (
 	"errors"
-	h "github.com/jbenet/go-ipfs/importer/helpers"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	ft "github.com/jbenet/go-ipfs/unixfs"
+	h "github.com/ipfs/go-ipfs/importer/helpers"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
 // layerRepeat specifies how many times to append a child tree of a

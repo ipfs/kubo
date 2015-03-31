@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/atomicfile"
-	"github.com/jbenet/go-ipfs/repo/config"
-	"github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/atomicfile"
+	"github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 var log = util.Logger("fsrepo")

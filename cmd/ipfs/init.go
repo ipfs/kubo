@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"io"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	assets "github.com/jbenet/go-ipfs/assets"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	core "github.com/jbenet/go-ipfs/core"
-	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	namesys "github.com/jbenet/go-ipfs/namesys"
-	config "github.com/jbenet/go-ipfs/repo/config"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
-	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	assets "github.com/ipfs/go-ipfs/assets"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	core "github.com/ipfs/go-ipfs/core"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	u "github.com/ipfs/go-ipfs/util"
+	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const nBitsForKeypairDefault = 4096

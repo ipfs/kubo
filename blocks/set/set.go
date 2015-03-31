@@ -2,8 +2,8 @@
 package set
 
 import (
-	"github.com/jbenet/go-ipfs/blocks/bloom"
-	"github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/blocks/bloom"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 var log = util.Logger("blockset")

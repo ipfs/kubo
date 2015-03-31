@@ -1,15 +1,15 @@
 package network
 
 import (
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	util "github.com/jbenet/go-ipfs/util"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	routing "github.com/ipfs/go-ipfs/routing"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	util "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("bitswap_network")

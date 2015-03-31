@@ -1,9 +1,9 @@
 package config
 
 import (
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 
-	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
+	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
 )
 
 // DefaultBootstrapAddresses are the hardcoded bootstrap addresses

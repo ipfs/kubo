@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-	routing "github.com/jbenet/go-ipfs/routing"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
+	routing "github.com/ipfs/go-ipfs/routing"
 )
 
 var log = eventlog.Logger("p2p/host/routed")

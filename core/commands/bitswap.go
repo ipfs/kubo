@@ -3,9 +3,9 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
+	u "github.com/ipfs/go-ipfs/util"
 	"io"
 )
 

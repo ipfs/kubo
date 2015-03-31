@@ -1,11 +1,11 @@
 package network
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-	u "github.com/jbenet/go-ipfs/util"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var ProtocolBitswap protocol.ID = "/ipfs/bitswap"

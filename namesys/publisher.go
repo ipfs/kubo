@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	pb "github.com/jbenet/go-ipfs/namesys/internal/pb"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	pin "github.com/jbenet/go-ipfs/pin"
-	routing "github.com/jbenet/go-ipfs/routing"
-	record "github.com/jbenet/go-ipfs/routing/record"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	pin "github.com/ipfs/go-ipfs/pin"
+	routing "github.com/ipfs/go-ipfs/routing"
+	record "github.com/ipfs/go-ipfs/routing/record"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // ErrExpiredRecord should be returned when an ipns record is

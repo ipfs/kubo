@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"time"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/p2p/host"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	proxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/p2p/host"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	routing "github.com/ipfs/go-ipfs/routing"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 var log = eventlog.Logger("supernode")

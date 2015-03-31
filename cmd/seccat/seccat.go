@@ -18,10 +18,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	secio "github.com/jbenet/go-ipfs/p2p/crypto/secio"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	u "github.com/jbenet/go-ipfs/util"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	secio "github.com/ipfs/go-ipfs/p2p/crypto/secio"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var verbose = false

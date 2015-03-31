@@ -3,8 +3,8 @@ package notifications
 import (
 	"encoding/json"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 const RoutingQueryKey = "RoutingQueryEvent"

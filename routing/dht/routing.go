@@ -4,17 +4,17 @@ import (
 	"sync"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	notif "github.com/jbenet/go-ipfs/notifications"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	"github.com/jbenet/go-ipfs/routing"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	kb "github.com/jbenet/go-ipfs/routing/kbucket"
-	record "github.com/jbenet/go-ipfs/routing/record"
-	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	pset "github.com/jbenet/go-ipfs/util/peerset"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	notif "github.com/ipfs/go-ipfs/notifications"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	"github.com/ipfs/go-ipfs/routing"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	kb "github.com/ipfs/go-ipfs/routing/kbucket"
+	record "github.com/ipfs/go-ipfs/routing/record"
+	u "github.com/ipfs/go-ipfs/util"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
+	pset "github.com/ipfs/go-ipfs/util/peerset"
 )
 
 // asyncQueryBuffer is the size of buffered channels in async queries. This

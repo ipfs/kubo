@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	random "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/core"
-	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
-	"github.com/jbenet/go-ipfs/p2p/peer"
-	"github.com/jbenet/go-ipfs/thirdparty/unit"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	random "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-random"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/core"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
+	"github.com/ipfs/go-ipfs/p2p/peer"
+	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 const kSeed = 1

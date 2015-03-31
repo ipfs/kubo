@@ -12,16 +12,16 @@ import (
 	"sync"
 	"testing"
 
-	fstest "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
+	fstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
 
-	core "github.com/jbenet/go-ipfs/core"
-	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	importer "github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
-	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
+	core "github.com/ipfs/go-ipfs/core"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	importer "github.com/ipfs/go-ipfs/importer"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	u "github.com/ipfs/go-ipfs/util"
+	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {

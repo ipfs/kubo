@@ -7,15 +7,15 @@ import (
 	"strings"
 	"syscall"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-	reuseport "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	reuseport "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
-	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // String returns the string rep of d.

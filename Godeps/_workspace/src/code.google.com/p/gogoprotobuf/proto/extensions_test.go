@@ -35,7 +35,7 @@ import (
 	"testing"
 
 	pb "./testdata"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
 )
 
 func TestGetExtensionsWithMissingExtensions(t *testing.T) {

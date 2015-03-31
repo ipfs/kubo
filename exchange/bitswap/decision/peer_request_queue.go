@@ -4,10 +4,10 @@ import (
 	"sync"
 	"time"
 
-	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	pq "github.com/jbenet/go-ipfs/thirdparty/pq"
-	u "github.com/jbenet/go-ipfs/util"
+	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 type peerRequestQueue interface {

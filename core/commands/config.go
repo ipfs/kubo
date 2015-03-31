@@ -10,11 +10,11 @@ import (
 	"os"
 	"os/exec"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	repo "github.com/jbenet/go-ipfs/repo"
-	config "github.com/jbenet/go-ipfs/repo/config"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	repo "github.com/ipfs/go-ipfs/repo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 type ConfigField struct {

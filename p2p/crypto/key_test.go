@@ -1,10 +1,10 @@
 package crypto_test
 
 import (
-	. "github.com/jbenet/go-ipfs/p2p/crypto"
+	. "github.com/ipfs/go-ipfs/p2p/crypto"
 
 	"bytes"
-	tu "github.com/jbenet/go-ipfs/util/testutil"
+	tu "github.com/ipfs/go-ipfs/util/testutil"
 	"testing"
 )
 

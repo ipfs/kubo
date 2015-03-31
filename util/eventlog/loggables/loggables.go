@@ -9,11 +9,11 @@ package loggables
 import (
 	"net"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	log "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	log "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 // NetConn returns an eventlog.Metadata with the conn addresses

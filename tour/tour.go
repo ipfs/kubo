@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	u "github.com/jbenet/go-ipfs/util"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = u.Logger("tour")

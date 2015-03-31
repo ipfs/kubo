@@ -2,7 +2,7 @@
 package languages
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect/types"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect/types"
 )
 
 // Defines irregular words, uncountables words, and pluralization/singularization rules for the English language.

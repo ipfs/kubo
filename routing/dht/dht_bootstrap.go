@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
-	u "github.com/jbenet/go-ipfs/util"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	routing "github.com/ipfs/go-ipfs/routing"
+	u "github.com/ipfs/go-ipfs/util"
 
-	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	periodicproc "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	periodicproc "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // BootstrapConfig specifies parameters used bootstrapping the DHT.

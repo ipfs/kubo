@@ -1,10 +1,10 @@
 package datastore2
 
 import (
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dsq "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 
-	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
+	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 )
 
 func WithDelay(ds ds.Datastore, delay delay.D) ds.Datastore {

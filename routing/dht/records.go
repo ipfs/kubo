@@ -3,13 +3,13 @@ package dht
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	record "github.com/jbenet/go-ipfs/routing/record"
-	u "github.com/jbenet/go-ipfs/util"
-	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	record "github.com/ipfs/go-ipfs/routing/record"
+	u "github.com/ipfs/go-ipfs/util"
+	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 )
 
 // KeyForPublicKey returns the key used to retrieve public keys

@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/repo/config"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
 type VersionOutput struct {

@@ -17,15 +17,15 @@ import (
 	"sync"
 	"time"
 
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	namesys "github.com/jbenet/go-ipfs/namesys"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	pin "github.com/jbenet/go-ipfs/pin"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	pin "github.com/ipfs/go-ipfs/pin"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("ipnsfs")

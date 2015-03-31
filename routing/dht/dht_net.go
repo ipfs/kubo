@@ -4,13 +4,13 @@ import (
 	"errors"
 	"time"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	ctxutil "github.com/jbenet/go-ipfs/util/ctx"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // handleNewStream implements the inet.StreamHandler

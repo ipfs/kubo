@@ -8,11 +8,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/blocks"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	u "github.com/jbenet/go-ipfs/util"
+	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/blocks"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 type BlockStat struct {

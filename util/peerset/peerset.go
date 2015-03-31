@@ -1,7 +1,7 @@
 package peerset
 
 import (
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	"sync"
 )
 

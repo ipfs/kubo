@@ -2,7 +2,7 @@ package kbucket
 
 import (
 	"container/list"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	"sort"
 )
 

@@ -1,23 +1,23 @@
 # ipfs implementation in go.
-[![GoDoc](https://godoc.org/github.com/jbenet/go-ipfs?status.svg)](https://godoc.org/github.com/jbenet/go-ipfs) [![Build Status](https://travis-ci.org/jbenet/go-ipfs.svg?branch=master)](https://travis-ci.org/jbenet/go-ipfs)
+[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs) [![Build Status](https://travis-ci.org/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs)
 
 Ipfs is a global, versioned, peer-to-peer filesystem. It combines good ideas from
 Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm,
 exchanging git objects. IPFS provides an interface as simple as the HTTP web, but
 with permanence built in. You can also mount the world at /ipfs.
 
-For more info see: https://github.com/jbenet/ipfs
+For more info see: https://github.com/ipfs/ipfs
 
 Please put all issues regarding IPFS _design_ in the
-[ipfs repo issues](https://github.com/jbenet/ipfs/issues).
-Please put all issues regarding go IPFS _implementation_ in [this repo](https://github.com/jbenet/go-ipfs/issues).
+[ipfs repo issues](https://github.com/ipfs/ipfs/issues).
+Please put all issues regarding go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
 
 ## Install
 
 [Install Go 1.4+](http://golang.org/doc/install). Then simply:
 
 ```
-go get -u github.com/jbenet/go-ipfs/cmd/ipfs
+go get -u github.com/ipfs/go-ipfs/cmd/ipfs
 ```
 
 NOTES:
@@ -30,7 +30,7 @@ all dependencies.
 dependencies as well.
 * *WARNING: older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!*
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
-  (See https://github.com/jbenet/go-ipfs/issues/177)
+  (See https://github.com/ipfs/go-ipfs/issues/177)
 * For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder
 * Shell command completion is available by running `source misc/completion/ipfs-completion.bash`.
 
@@ -96,7 +96,7 @@ else) your ipfs config directory (~/.go-ipfs by default) and rerunning `ipfs ini
 This will reinitialize the config file to its defaults and clear out the local
 datastore of any bad entries.
 
-For any other problems, check the [issues list](http://github.com/jbenet/go-ipfs/issues)
+For any other problems, check the [issues list](http://github.com/ipfs/go-ipfs/issues)
 and if you dont see your problem there, either come talk to us on irc (freenode #ipfs) or
 file an issue of your own!
 
@@ -105,15 +105,15 @@ file an issue of your own!
 
 go-ipfs is MIT licensed open source software. We welcome contributions big and
 small! Please make sure to check the
-[issues](https://github.com/jbenet/go-ipfs/issues). Search the closed ones
+[issues](https://github.com/ipfs/go-ipfs/issues). Search the closed ones
 before reporting things, and help us with the open ones.
 
 Guidelines:
 
 - see the [dev pseudo-roadmap](dev.md)
-- please adhere to the protocol described in [the main ipfs repo](https://github.com/jbenet/ipfs) and [paper](http://static.benet.ai/t/ipfs.pdf).
+- please adhere to the protocol described in [the main ipfs repo](https://github.com/ipfs/ipfs) and [paper](http://static.benet.ai/t/ipfs.pdf).
 - please make branches + pull-request, even if working on the main repository
-- ask questions or talk about things in [Issues](https://github.com/jbenet/go-ipfs/issues) or #ipfs on freenode.
+- ask questions or talk about things in [Issues](https://github.com/ipfs/go-ipfs/issues) or #ipfs on freenode.
 - ensure you are able to contribute (no legal issues please-- we'll probably setup a CLA)
 - run `go fmt` before pushing any code
 - run `golint` and `go vet` too -- some things (like protobuf files) are expected to fail.
@@ -122,7 +122,7 @@ Guidelines:
 
 ## Todo
 
-IPFS is nearing an alpha release. Things left to be done are all marked as [Issues](https://github.com/jbenet/go-ipfs/issues)
+IPFS is nearing an alpha release. Things left to be done are all marked as [Issues](https://github.com/ipfs/go-ipfs/issues)
 
 ## Development Dependencies
 

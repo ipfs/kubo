@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
-	nat "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fd/go-nat"
-	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	periodic "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	notifier "github.com/jbenet/go-ipfs/thirdparty/notifier"
+	nat "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/fd/go-nat"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	periodic "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	notifier "github.com/ipfs/go-ipfs/thirdparty/notifier"
 )
 
 var (
@@ -80,7 +80,7 @@ func (nat *NAT) Process() goprocess.Process {
 }
 
 // Notifier is an object that assists NAT in notifying listeners.
-// It is implemented using github.com/jbenet/go-ipfs/thirdparty/notifier
+// It is implemented using github.com/ipfs/go-ipfs/thirdparty/notifier
 type Notifier struct {
 	n notifier.Notifier
 }

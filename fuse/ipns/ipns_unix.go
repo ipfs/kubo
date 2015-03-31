@@ -8,17 +8,17 @@ import (
 	"errors"
 	"os"
 
-	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	core "github.com/jbenet/go-ipfs/core"
-	nsfs "github.com/jbenet/go-ipfs/ipnsfs"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
+	core "github.com/ipfs/go-ipfs/core"
+	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("fuse/ipns")

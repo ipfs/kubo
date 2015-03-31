@@ -3,7 +3,7 @@ package eventlog
 import (
 	"strings"
 
-	"github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 // StandardLogger provides API compatibility with standard printf loggers

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/updates"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/updates"
 )
 
 type UpdateOutput struct {
@@ -21,7 +21,7 @@ var UpdateCmd = &cmds.Command{
 		Tagline: "Downloads and installs updates for IPFS (disabled)",
 		ShortDescription: `ipfs update is disabled until we can deploy the binaries to you over ipfs itself.
 
-		please use 'go get -u github.com/jbenet/go-ipfs/cmd/ipfs' until then.`,
+		please use 'go get -u github.com/ipfs/go-ipfs/cmd/ipfs' until then.`,
 	},
 }
 
