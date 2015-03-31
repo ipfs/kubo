@@ -1,6 +1,8 @@
 package dht
 
 import (
+	"bytes"
+	"sort"
 	"sync"
 	"time"
 
@@ -77,10 +79,23 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 	return nil
 }
 
+// ValReceipt represents a dht value record that has been received from a given peer
+// it is used to track peers with expired records in order to correct them.
+type ValReceipt struct {
+	From peer.ID
+	Val  *pb.Record
+}
+
+// valCollect is the number of dht records to collect before returning a value
+// to the caller of GetValue, lower values improve latency and higher values
+// improve accuracy
+const valCollect = 3
+
 // GetValue searches for the value corresponding to given Key.
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
 func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
+	log.Error("Get: ", key)
 	// If we have it local, dont bother doing an RPC!
 	val, err := dht.getLocal(key)
 	if err == nil {
@@ -98,6 +113,10 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 		return nil, errors.Wrap(kb.ErrLookupFailure)
 	}
 
+	// used to collect values retrieved from various peers
+	var vals []ValReceipt
+	var valsLock sync.Mutex
+
 	// setup the Query
 	query := dht.newQuery(key, func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
 		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -110,9 +129,17 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 			return nil, err
 		}
 
-		res := &dhtQueryResult{value: val, closerPeers: peers}
+		res := &dhtQueryResult{closerPeers: peers}
 		if val != nil {
-			res.success = true
+			valsLock.Lock()
+			if len(vals) < valCollect {
+				vals = append(vals, ValReceipt{From: p, Val: val})
+			}
+			if len(vals) >= valCollect {
+				log.Error("Have enough vals... EXIT!")
+				res.success = true
+			}
+			valsLock.Unlock()
 		}
 
 		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -125,17 +152,40 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	})
 
 	// run it!
-	result, err := query.Run(ctx, rtp)
-	if err != nil {
+	_, err = query.Run(ctx, rtp)
+	if err != nil && len(vals) == 0 {
 		return nil, err
 	}
 
-	log.Debugf("GetValue %v %v", key, result.value)
-	if result.value == nil {
+	// process values retreived
+	best := dht.mostValid(vals)
+	for _, v := range vals {
+		go func(v ValReceipt) {
+			if !bytes.Equal(v.Val.GetSignature(), best.GetSignature()) {
+				err := dht.putValueToPeer(ctx, v.From, key, best)
+				if err != nil {
+					log.Error("Error correcting DHT entry: ", err)
+				}
+			}
+		}(v)
+	}
+
+	log.Debugf("GetValue %v %v", key, best.Value)
+	if best.Value == nil {
 		return nil, routing.ErrNotFound
 	}
 
-	return result.value, nil
+	return best.Value, nil
+}
+
+func (dht *IpfsDHT) mostValid(vals []ValReceipt) *pb.Record {
+	recs := make([]*pb.Record, 0, len(vals))
+	for _, v := range vals {
+		recs = append(recs, v.Val)
+	}
+	rs := record.RecordSorter(recs)
+	sort.Sort(rs)
+	return recs[len(recs)-1]
 }
 
 // Value provider layer of indirection.

@@ -2,6 +2,7 @@ package record
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
@@ -36,6 +37,8 @@ func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte, sign bool) (*pb.Recor
 
 		record.Signature = sig
 	}
+
+	record.Timestamp = proto.Int64(time.Now().UnixNano())
 	return record, nil
 }
 

@@ -36,19 +36,31 @@ type ValidChecker struct {
 // It runs needed validators
 func (v Validator) VerifyRecord(r *pb.Record) error {
 	// Now, check validity func
-	parts := strings.Split(r.GetKey(), "/")
-	if len(parts) < 3 {
+	valType := getValidityType(r.GetKey())
+	if valType == "" {
 		log.Infof("Record key does not have validator: %s", u.Key(r.GetKey()))
 		return nil
 	}
 
-	val, ok := v[parts[1]]
+	val, ok := v[valType]
 	if !ok {
-		log.Infof("Unrecognized key prefix: %s", parts[1])
+		log.Infof("Unrecognized key prefix: %s", valType)
 		return ErrInvalidRecordType
 	}
 
 	return val.Func(u.Key(r.GetKey()), r.GetValue())
+}
+
+func MoreValid(a, b *pb.Record) (bool, error) {
+	return a.GetTimestamp() > b.GetTimestamp(), nil
+}
+
+func getValidityType(key string) string {
+	parts := strings.Split(key, "/")
+	if len(parts) < 3 {
+		return ""
+	}
+	return parts[1]
 }
 
 func (v Validator) IsSigned(k u.Key) (bool, error) {
@@ -99,4 +111,19 @@ func CheckRecordSig(r *pb.Record, pk ci.PubKey) error {
 		return errors.New("invalid record signature")
 	}
 	return nil
+}
+
+type RecordSorter []*pb.Record
+
+func (rs RecordSorter) Less(i, j int) bool {
+	mv, _ := MoreValid(rs[j], rs[i])
+	return mv
+}
+
+func (rs RecordSorter) Swap(i, j int) {
+	rs[i], rs[j] = rs[j], rs[i]
+}
+
+func (rs RecordSorter) Len() int {
+	return len(rs)
 }

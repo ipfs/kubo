@@ -2,6 +2,7 @@ package dht
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -9,8 +10,17 @@ import (
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
+	u "github.com/ipfs/go-ipfs/util"
 	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 )
+
+var ErrInvalidTimestamp = fmt.Errorf("records from the future are invalid")
+
+// KeyForPublicKey returns the key used to retrieve public keys
+// from the dht.
+func KeyForPublicKey(id peer.ID) u.Key {
+	return u.Key("/pk/" + string(id))
+}
 
 func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
 	log.Debugf("getPublicKey for: %s", p)
@@ -99,6 +109,10 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 // key, we fail. we do not search the dht.
 func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
 
+	if !verifyTimestamp(r) {
+		return ErrInvalidTimestamp
+	}
+
 	if len(r.Signature) > 0 {
 		// First, validate the signature
 		p := peer.ID(r.GetAuthor())
@@ -122,6 +136,10 @@ func (dht *IpfsDHT) verifyRecordLocally(r *pb.Record) error {
 // massive amplification attack on the dht. Use with care.
 func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *pb.Record) error {
 
+	if !verifyTimestamp(r) {
+		return ErrInvalidTimestamp
+	}
+
 	if len(r.Signature) > 0 {
 		// get the public key, search for it if necessary.
 		p := peer.ID(r.GetAuthor())
@@ -130,11 +148,15 @@ func (dht *IpfsDHT) verifyRecordOnline(ctx context.Context, r *pb.Record) error 
 			return err
 		}
 
-		err = record.CheckRecordSig(r, pk)
-		if err != nil {
+		if err := record.CheckRecordSig(r, pk); err != nil {
 			return err
 		}
 	}
 
 	return dht.Validator.VerifyRecord(r)
+}
+
+// If the timestamp is more than a minute in the future, throw it out
+func verifyTimestamp(r *pb.Record) bool {
+	return r.GetTimestamp() < time.Now().Add(time.Minute).UnixNano()
 }
