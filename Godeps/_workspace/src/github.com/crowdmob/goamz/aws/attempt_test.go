@@ -1,7 +1,7 @@
 package aws_test
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"gopkg.in/check.v1"
 	"time"
 )

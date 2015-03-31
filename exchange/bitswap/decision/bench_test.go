@@ -4,10 +4,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	"github.com/jbenet/go-ipfs/p2p/peer"
-	"github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/testutil"
+	"github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	"github.com/ipfs/go-ipfs/p2p/peer"
+	"github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/testutil"
 )
 
 // FWIW: At the time of this commit, including a timestamp in task increases

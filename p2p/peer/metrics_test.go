@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func TestLatencyEWMAFun(t *testing.T) {

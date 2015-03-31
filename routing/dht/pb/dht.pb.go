@@ -14,7 +14,7 @@ It has these top-level messages:
 */
 package dht_pb
 
-import proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
 import json "encoding/json"
 import math "math"
 

@@ -3,7 +3,7 @@ package mocknet
 import (
 	"io"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
 )
 
 // stream implements inet.Stream

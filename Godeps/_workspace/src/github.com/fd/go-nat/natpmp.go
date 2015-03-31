@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jackpal/go-nat-pmp"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jackpal/go-nat-pmp"
 )
 
 var (

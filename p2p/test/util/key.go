@@ -5,14 +5,14 @@ import (
 	"io"
 	"testing"
 
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
-	ic "github.com/jbenet/go-ipfs/p2p/crypto"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 var log = eventlog.Logger("boguskey")

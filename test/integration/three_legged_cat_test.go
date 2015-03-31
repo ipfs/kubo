@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	core "github.com/jbenet/go-ipfs/core"
-	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	mocknet "github.com/jbenet/go-ipfs/p2p/net/mock"
-	"github.com/jbenet/go-ipfs/p2p/peer"
-	"github.com/jbenet/go-ipfs/thirdparty/unit"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	core "github.com/ipfs/go-ipfs/core"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
+	"github.com/ipfs/go-ipfs/p2p/peer"
+	"github.com/ipfs/go-ipfs/thirdparty/unit"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func TestThreeLeggedCatTransfer(t *testing.T) {

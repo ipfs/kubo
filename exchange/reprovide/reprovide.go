@@ -3,12 +3,12 @@ package reprovide
 import (
 	"time"
 
-	backoff "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cenkalti/backoff"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	blocks "github.com/jbenet/go-ipfs/blocks/blockstore"
-	routing "github.com/jbenet/go-ipfs/routing"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	debugerror "github.com/jbenet/go-ipfs/util/debugerror"
+	backoff "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cenkalti/backoff"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
+	routing "github.com/ipfs/go-ipfs/routing"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 var log = eventlog.Logger("reprovider")

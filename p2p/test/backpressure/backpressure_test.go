@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-	testutil "github.com/jbenet/go-ipfs/p2p/test/util"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
+	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 var log = eventlog.Logger("backpressure")

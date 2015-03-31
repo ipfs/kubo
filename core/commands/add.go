@@ -7,18 +7,18 @@ import (
 	"path"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	files "github.com/jbenet/go-ipfs/commands/files"
-	core "github.com/jbenet/go-ipfs/core"
-	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	importer "github.com/jbenet/go-ipfs/importer"
-	"github.com/jbenet/go-ipfs/importer/chunk"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	pinning "github.com/jbenet/go-ipfs/pin"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	files "github.com/ipfs/go-ipfs/commands/files"
+	core "github.com/ipfs/go-ipfs/core"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	importer "github.com/ipfs/go-ipfs/importer"
+	"github.com/ipfs/go-ipfs/importer/chunk"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	pinning "github.com/ipfs/go-ipfs/pin"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
 // Error indicating the max depth has been exceded.

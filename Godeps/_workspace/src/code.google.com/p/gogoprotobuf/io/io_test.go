@@ -30,7 +30,7 @@ package io_test
 
 import (
 	"bytes"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	"code.google.com/p/gogoprotobuf/test"
 	"encoding/binary"
 	goio "io"

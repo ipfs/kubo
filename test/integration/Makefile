@@ -23,7 +23,7 @@ build_image:
 	cd $(IPFS_ROOT) && docker build -t $(IMAGE) .
 
 run_profiler:
-	docker run --name $(CONTAINER) -it --entrypoint go $(IMAGE) test ./src/github.com/jbenet/go-ipfs/$(PACKAGE_DIR) --cpuprofile=$(CPU_PROF_NAME) $(EXTRA_TEST_ARGS)
+	docker run --name $(CONTAINER) -it --entrypoint go $(IMAGE) test ./src/github.com/ipfs/go-ipfs/$(PACKAGE_DIR) --cpuprofile=$(CPU_PROF_NAME) $(EXTRA_TEST_ARGS)
 
 
 clean:

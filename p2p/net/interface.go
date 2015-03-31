@@ -3,12 +3,12 @@ package net
 import (
 	"io"
 
-	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // MessageSizeMax is a soft (recommended) maximum for network messages.

@@ -1,9 +1,9 @@
 package io
 
 import (
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	format "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	format "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 type directoryBuilder struct {

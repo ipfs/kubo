@@ -7,11 +7,11 @@ import (
 	"io"
 	"os"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
 var ErrIsDir = errors.New("this dag node is a directory")

@@ -6,13 +6,13 @@ import (
 	"io"
 	"sort"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	iaddr "github.com/jbenet/go-ipfs/util/ipfsaddr"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
+	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type stringList struct {

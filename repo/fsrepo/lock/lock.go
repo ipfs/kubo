@@ -4,9 +4,9 @@ import (
 	"io"
 	"path"
 
-	lock "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
-	"github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	lock "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
+	"github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // LockFile is the filename of the daemon lock, relative to config dir

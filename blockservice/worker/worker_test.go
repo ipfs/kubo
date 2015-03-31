@@ -1,7 +1,7 @@
 package worker
 
 import (
-	blocks "github.com/jbenet/go-ipfs/blocks"
+	blocks "github.com/ipfs/go-ipfs/blocks"
 	"testing"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	tec "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
+	tec "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
 )
 
 type Listener struct {

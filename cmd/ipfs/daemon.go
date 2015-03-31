@@ -5,16 +5,16 @@ import (
 	"os"
 	"strings"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
-	commands "github.com/jbenet/go-ipfs/core/commands"
-	corehttp "github.com/jbenet/go-ipfs/core/corehttp"
-	"github.com/jbenet/go-ipfs/core/corerouting"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
-	util "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core"
+	commands "github.com/ipfs/go-ipfs/core/commands"
+	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
+	"github.com/ipfs/go-ipfs/core/corerouting"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	util "github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const (

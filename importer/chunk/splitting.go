@@ -4,7 +4,7 @@ package chunk
 import (
 	"io"
 
-	"github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 var log = util.Logger("chunk")

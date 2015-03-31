@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	nsds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/blocks/set"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/util"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	nsds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/blocks/set"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 var log = util.Logger("pin")

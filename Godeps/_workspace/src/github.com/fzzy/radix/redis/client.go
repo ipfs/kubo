@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis/resp"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis/resp"
 )
 
 const (

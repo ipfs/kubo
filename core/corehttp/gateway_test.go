@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	core "github.com/jbenet/go-ipfs/core"
-	coreunix "github.com/jbenet/go-ipfs/core/coreunix"
-	namesys "github.com/jbenet/go-ipfs/namesys"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	repo "github.com/jbenet/go-ipfs/repo"
-	config "github.com/jbenet/go-ipfs/repo/config"
-	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	core "github.com/ipfs/go-ipfs/core"
+	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	repo "github.com/ipfs/go-ipfs/repo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	u "github.com/ipfs/go-ipfs/util"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 type mockNamesys map[string]string

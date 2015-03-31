@@ -5,11 +5,11 @@ import (
 	"path"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/repo"
-	"github.com/jbenet/go-ipfs/repo/config"
-	"github.com/jbenet/go-ipfs/util/testutil"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func TestAddRecursive(t *testing.T) {

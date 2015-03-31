@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"sync"
 
-	core "github.com/jbenet/go-ipfs/core"
-	id "github.com/jbenet/go-ipfs/p2p/protocol/identify"
+	core "github.com/ipfs/go-ipfs/core"
+	id "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 )
 
 // Gateway should be instantiated using NewGateway

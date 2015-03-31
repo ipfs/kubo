@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/dcps/internetgateway1"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/dcps/internetgateway1"
 )
 
 func main() {

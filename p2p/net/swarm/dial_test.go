@@ -6,17 +6,17 @@ import (
 	"testing"
 	"time"
 
-	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
-	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
-	jenkins "github.com/jbenet/go-ipfs/util/testutil/ci/jenkins"
-	travis "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
+	jenkins "github.com/ipfs/go-ipfs/util/testutil/ci/jenkins"
+	travis "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func acceptAndHang(l net.Listener) {

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
 // fd is a (file) descriptor, unix style

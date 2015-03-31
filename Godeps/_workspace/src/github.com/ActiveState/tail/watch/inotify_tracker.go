@@ -3,7 +3,7 @@
 package watch
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/howeyc/fsnotify"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/howeyc/fsnotify"
 	"log"
 	"sync"
 )

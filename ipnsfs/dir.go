@@ -6,9 +6,9 @@ import (
 	"os"
 	"sync"
 
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	ufspb "github.com/jbenet/go-ipfs/unixfs/pb"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
