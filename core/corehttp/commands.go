@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"os"
 
-	commands "github.com/jbenet/go-ipfs/commands"
-	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
-	core "github.com/jbenet/go-ipfs/core"
-	corecommands "github.com/jbenet/go-ipfs/core/commands"
+	commands "github.com/ipfs/go-ipfs/commands"
+	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
+	core "github.com/ipfs/go-ipfs/core"
+	corecommands "github.com/ipfs/go-ipfs/core/commands"
 )
 
 const (

@@ -4,7 +4,7 @@ package traverse
 import (
 	"errors"
 
-	mdag "github.com/jbenet/go-ipfs/merkledag"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
 )
 
 // Order is an identifier for traversal algorithm orders

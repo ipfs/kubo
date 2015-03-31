@@ -3,13 +3,13 @@ package basichost
 import (
 	"sync"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	inat "github.com/jbenet/go-ipfs/p2p/nat"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
+	inat "github.com/ipfs/go-ipfs/p2p/nat"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
 // natManager takes care of adding + removing port mappings to the nat.

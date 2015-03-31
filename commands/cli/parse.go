@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	files "github.com/jbenet/go-ipfs/commands/files"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	files "github.com/ipfs/go-ipfs/commands/files"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // ErrInvalidSubcmd signals when the parse error is not found

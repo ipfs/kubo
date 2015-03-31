@@ -3,7 +3,7 @@ package datastore2
 import (
 	"io"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 type ThreadSafeDatastoreCloser interface {

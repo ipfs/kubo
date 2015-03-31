@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/pin"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs/pin"
 )
 
 // DagBuilderHelper wraps together a bunch of objects needed to

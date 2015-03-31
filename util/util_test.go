@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 func TestKey(t *testing.T) {

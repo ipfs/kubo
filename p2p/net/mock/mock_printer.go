@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 // separate object so our interfaces are separate :)

@@ -4,8 +4,8 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	evlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	evlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
 var log = evlog.Logger("core/commands")

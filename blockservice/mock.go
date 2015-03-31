@@ -3,10 +3,10 @@ package blockservice
 import (
 	"testing"
 
-	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
-	tn "github.com/jbenet/go-ipfs/exchange/bitswap/testnet"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
-	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
+	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
+	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
+	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
+	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 )
 
 // Mocks returns |n| connected mock Blockservices

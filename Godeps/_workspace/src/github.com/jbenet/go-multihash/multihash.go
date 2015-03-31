@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
+	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 )
 
 // errors

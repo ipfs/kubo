@@ -1,11 +1,11 @@
 package corerepo
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/core"
-	u "github.com/jbenet/go-ipfs/util"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/core"
+	u "github.com/ipfs/go-ipfs/util"
 
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("corerepo")

@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	poll "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport/poll"
-	sockaddrnet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-sockaddr/net"
+	poll "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport/poll"
+	sockaddrnet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-sockaddr/net"
 )
 
 const (

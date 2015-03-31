@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	corerepo "github.com/jbenet/go-ipfs/core/corerepo"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var PinCmd = &cmds.Command{

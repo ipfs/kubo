@@ -7,11 +7,11 @@ import (
 	pathpkg "path"
 	"strings"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 )
 
 // A Tree implements a basic read-only directory tree for FUSE.

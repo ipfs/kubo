@@ -5,8 +5,8 @@ package unixfs
 import (
 	"errors"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	pb "github.com/jbenet/go-ipfs/unixfs/pb"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	pb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
 const (

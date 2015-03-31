@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"sync"
 
-	files "github.com/jbenet/go-ipfs/commands/files"
+	files "github.com/ipfs/go-ipfs/commands/files"
 )
 
 // MultiFileReader reads from a `commands.File` (which can be a directory of files

@@ -7,14 +7,14 @@ import (
 	"os"
 	gopath "path"
 
-	"github.com/jbenet/go-ipfs/commands/files"
-	core "github.com/jbenet/go-ipfs/core"
-	importer "github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/pin"
-	"github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	unixfs "github.com/jbenet/go-ipfs/unixfs"
+	"github.com/ipfs/go-ipfs/commands/files"
+	core "github.com/ipfs/go-ipfs/core"
+	importer "github.com/ipfs/go-ipfs/importer"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	unixfs "github.com/ipfs/go-ipfs/unixfs"
 )
 
 var log = eventlog.Logger("coreunix")

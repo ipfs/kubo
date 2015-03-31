@@ -3,10 +3,10 @@ package namesys
 import (
 	"testing"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
-	u "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
+	u "github.com/ipfs/go-ipfs/util"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func TestRoutingResolve(t *testing.T) {

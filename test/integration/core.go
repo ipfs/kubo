@@ -1,20 +1,20 @@
 package integrationtest
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	syncds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	core "github.com/jbenet/go-ipfs/core"
-	bitswap "github.com/jbenet/go-ipfs/exchange/bitswap"
-	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	"github.com/jbenet/go-ipfs/repo"
-	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	ds2 "github.com/jbenet/go-ipfs/util/datastore2"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	core "github.com/ipfs/go-ipfs/core"
+	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
+	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	"github.com/ipfs/go-ipfs/repo"
+	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 var log = eventlog.Logger("epictest")

@@ -3,8 +3,8 @@ package repo
 import (
 	"errors"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	"github.com/jbenet/go-ipfs/repo/config"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/go-ipfs/repo/config"
 )
 
 var errTODO = errors.New("TODO")

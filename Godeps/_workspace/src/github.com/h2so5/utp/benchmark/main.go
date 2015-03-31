@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/davecheney/profile"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/h2so5/utp"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-humanize"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/h2so5/utp"
 )
 
 type RandReader struct{}

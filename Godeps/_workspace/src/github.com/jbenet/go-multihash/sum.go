@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	sha3 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/crypto/sha3"
+	sha3 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/crypto/sha3"
 )
 
 var ErrSumNotSupported = errors.New("Function not implemented. Complain to lib maintainer.")

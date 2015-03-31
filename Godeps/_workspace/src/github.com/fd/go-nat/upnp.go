@@ -4,9 +4,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/dcps/internetgateway1"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/dcps/internetgateway2"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/dcps/internetgateway1"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/dcps/internetgateway2"
 )
 
 var (

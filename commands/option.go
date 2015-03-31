@@ -3,7 +3,7 @@ package commands
 import (
 	"reflect"
 
-	"github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 // Types of Command options

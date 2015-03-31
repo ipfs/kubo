@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	u "github.com/jbenet/go-ipfs/util"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // ValidatorFunc is a function that is called to validate a given

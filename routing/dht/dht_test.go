@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	netutil "github.com/jbenet/go-ipfs/p2p/test/util"
-	routing "github.com/jbenet/go-ipfs/routing"
-	record "github.com/jbenet/go-ipfs/routing/record"
-	u "github.com/jbenet/go-ipfs/util"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	netutil "github.com/ipfs/go-ipfs/p2p/test/util"
+	routing "github.com/ipfs/go-ipfs/routing"
+	record "github.com/ipfs/go-ipfs/routing/record"
+	u "github.com/ipfs/go-ipfs/util"
 
-	ci "github.com/jbenet/go-ipfs/util/testutil/ci"
-	travisci "github.com/jbenet/go-ipfs/util/testutil/ci/travis"
+	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
+	travisci "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 )
 
 var testCaseValues = map[u.Key][]byte{}

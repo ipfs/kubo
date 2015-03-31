@@ -4,12 +4,12 @@ package decision
 import (
 	"sync"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	bstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
 // TODO consider taking responsibility for other types of requests. For

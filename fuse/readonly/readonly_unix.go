@@ -7,17 +7,17 @@ import (
 	"io"
 	"os"
 
-	fuse "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
-	fs "github.com/jbenet/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	core "github.com/jbenet/go-ipfs/core"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	path "github.com/jbenet/go-ipfs/path"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
-	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
+	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
+	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	core "github.com/ipfs/go-ipfs/core"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
+	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
 var log = eventlog.Logger("fuse/ipfs")

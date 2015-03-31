@@ -8,11 +8,11 @@ import (
 	"reflect"
 	"strconv"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/jbenet/go-ipfs/commands/files"
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/repo/config"
-	u "github.com/jbenet/go-ipfs/util"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/repo/config"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 type OptMap map[string]interface{}

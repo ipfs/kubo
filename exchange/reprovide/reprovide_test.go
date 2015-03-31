@@ -3,15 +3,15 @@ package reprovide_test
 import (
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	dssync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	mock "github.com/jbenet/go-ipfs/routing/mock"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	mock "github.com/ipfs/go-ipfs/routing/mock"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
-	. "github.com/jbenet/go-ipfs/exchange/reprovide"
+	. "github.com/ipfs/go-ipfs/exchange/reprovide"
 )
 
 func TestReprovide(t *testing.T) {

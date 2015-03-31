@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	bserv "github.com/jbenet/go-ipfs/blockservice"
-	u "github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = u.Logger("merkledag")
