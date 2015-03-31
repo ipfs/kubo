@@ -7,16 +7,16 @@ import (
 	"sync"
 	"time"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
-	psy "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 var log = eventlog.Logger("swarm2")

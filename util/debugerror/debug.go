@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/stackerr"
-	"github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/stackerr"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 func Errorf(format string, a ...interface{}) error {

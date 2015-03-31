@@ -1,10 +1,10 @@
 FROM golang:1.4
 MAINTAINER Brian Tiger Chow <btc@perfmode.com>
 
-ADD . /go/src/github.com/jbenet/go-ipfs
-RUN cd /go/src/github.com/jbenet/go-ipfs/cmd/ipfs && go install
+ADD . /go/src/github.com/ipfs/go-ipfs
+RUN cd /go/src/github.com/ipfs/go-ipfs/cmd/ipfs && go install
 
-RUN cp /go/src/github.com/jbenet/go-ipfs/bin/container_daemon /usr/local/bin/start_ipfs && \
+RUN cp /go/src/github.com/ipfs/go-ipfs/bin/container_daemon /usr/local/bin/start_ipfs && \
     chmod 755 /usr/local/bin/start_ipfs
 
 EXPOSE 4001 5001 8080

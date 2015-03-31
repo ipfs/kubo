@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {

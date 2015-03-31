@@ -9,18 +9,18 @@ import (
 	"strings"
 	"time"
 
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	core "github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/importer"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	path "github.com/jbenet/go-ipfs/path"
-	"github.com/jbenet/go-ipfs/routing"
-	ufs "github.com/jbenet/go-ipfs/unixfs"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
+	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/importer"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/routing"
+	ufs "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 const (

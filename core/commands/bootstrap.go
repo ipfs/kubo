@@ -5,12 +5,12 @@ import (
 	"io"
 	"sort"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	repo "github.com/jbenet/go-ipfs/repo"
-	config "github.com/jbenet/go-ipfs/repo/config"
-	"github.com/jbenet/go-ipfs/repo/fsrepo"
-	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	repo "github.com/ipfs/go-ipfs/repo"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	u "github.com/ipfs/go-ipfs/util"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 type BootstrapOutput struct {

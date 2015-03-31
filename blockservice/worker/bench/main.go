@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	ds_sync "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	worker "github.com/jbenet/go-ipfs/blockservice/worker"
-	"github.com/jbenet/go-ipfs/exchange/offline"
-	"github.com/jbenet/go-ipfs/thirdparty/delay"
-	"github.com/jbenet/go-ipfs/util/datastore2"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	worker "github.com/ipfs/go-ipfs/blockservice/worker"
+	"github.com/ipfs/go-ipfs/exchange/offline"
+	"github.com/ipfs/go-ipfs/thirdparty/delay"
+	"github.com/ipfs/go-ipfs/util/datastore2"
 )
 
 const kEstRoutingDelay = time.Second

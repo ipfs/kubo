@@ -5,7 +5,7 @@ import (
 	"net"
 
 	// utp "github.com/jbenet/go-multiaddr-net/Godeps/_workspace/src/github.com/h2so5/utp"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 // Conn is the equivalent of a net.Conn object. It is the

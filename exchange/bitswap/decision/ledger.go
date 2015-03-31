@@ -3,9 +3,9 @@ package decision
 import (
 	"time"
 
-	wl "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	u "github.com/jbenet/go-ipfs/util"
+	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // keySet is just a convenient alias for maps of keys, where we only care

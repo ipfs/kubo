@@ -3,15 +3,15 @@ package bitswap
 import (
 	"errors"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
-	delay "github.com/jbenet/go-ipfs/thirdparty/delay"
-	util "github.com/jbenet/go-ipfs/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	routing "github.com/ipfs/go-ipfs/routing"
+	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
+	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
+	util "github.com/ipfs/go-ipfs/util"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func VirtualNetwork(rs mockrouting.Server, d delay.D) Network {

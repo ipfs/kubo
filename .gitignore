@@ -9,3 +9,5 @@
 *.orig
 *~
 .go-ipfs
+
+/test/bin

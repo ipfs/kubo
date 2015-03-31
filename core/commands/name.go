@@ -1,6 +1,6 @@
 package commands
 
-import cmds "github.com/jbenet/go-ipfs/commands"
+import cmds "github.com/ipfs/go-ipfs/commands"
 
 type IpnsEntry struct {
 	Name  string

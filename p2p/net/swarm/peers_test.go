@@ -3,10 +3,10 @@ package swarm
 import (
 	"testing"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func TestPeers(t *testing.T) {

@@ -6,13 +6,13 @@ import (
 	"os"
 	"time"
 
-	config "github.com/jbenet/go-ipfs/repo/config"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
-	u "github.com/jbenet/go-ipfs/util"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	u "github.com/ipfs/go-ipfs/util"
 
-	semver "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
-	update "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
-	check "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
+	semver "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+	update "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update"
+	check "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
 )
 
 const (

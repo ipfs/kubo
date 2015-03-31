@@ -4,7 +4,7 @@ import (
 	"net"
 
 	muxado "github.com/inconshreveable/muxado"
-	pst "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 )
 
 // stream implements pst.Stream using a ss.Stream

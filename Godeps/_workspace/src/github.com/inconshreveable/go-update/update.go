@@ -126,9 +126,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/download"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/kardianos/osext"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/kr/binarydist"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/inconshreveable/go-update/download"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/kardianos/osext"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/kr/binarydist"
 )
 
 // The type of a binary patch, if any. Only bsdiff is supported

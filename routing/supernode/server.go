@@ -3,15 +3,15 @@ package supernode
 import (
 	"fmt"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	datastore "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	record "github.com/jbenet/go-ipfs/routing/record"
-	proxy "github.com/jbenet/go-ipfs/routing/supernode/proxy"
-	util "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	record "github.com/ipfs/go-ipfs/routing/record"
+	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
+	util "github.com/ipfs/go-ipfs/util"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // Server handles routing queries using a database backend

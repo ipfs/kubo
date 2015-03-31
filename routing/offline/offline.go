@@ -4,16 +4,16 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	"github.com/jbenet/go-ipfs/p2p/peer"
-	routing "github.com/jbenet/go-ipfs/routing"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	record "github.com/jbenet/go-ipfs/routing/record"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	"github.com/ipfs/go-ipfs/p2p/peer"
+	routing "github.com/ipfs/go-ipfs/routing"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	record "github.com/ipfs/go-ipfs/routing/record"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("offlinerouting")

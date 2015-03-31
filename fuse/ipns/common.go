@@ -1,11 +1,11 @@
 package ipns
 
 import (
-	"github.com/jbenet/go-ipfs/core"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	nsys "github.com/jbenet/go-ipfs/namesys"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	ft "github.com/jbenet/go-ipfs/unixfs"
+	"github.com/ipfs/go-ipfs/core"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	nsys "github.com/ipfs/go-ipfs/namesys"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to

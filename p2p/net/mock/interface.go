@@ -10,12 +10,12 @@ import (
 	"io"
 	"time"
 
-	ic "github.com/jbenet/go-ipfs/p2p/crypto"
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 type Mocknet interface {

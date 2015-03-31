@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	testutil "github.com/jbenet/go-ipfs/p2p/test/util"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
 )
 
 // TestConnectednessCorrect starts a few networks, connects a few

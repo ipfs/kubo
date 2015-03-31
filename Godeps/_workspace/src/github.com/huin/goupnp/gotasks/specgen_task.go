@@ -18,8 +18,8 @@ import (
 	"text/template"
 
 	"github.com/huin/goutil/codegen"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/scpd"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/scpd"
 	"github.com/jingweno/gotask/tasking"
 )
 

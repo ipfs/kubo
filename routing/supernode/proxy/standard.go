@@ -1,16 +1,16 @@
 package proxy
 
 import (
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	kbucket "github.com/jbenet/go-ipfs/routing/kbucket"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	"github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	"github.com/ipfs/go-ipfs/util"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"

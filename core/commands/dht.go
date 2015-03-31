@@ -7,11 +7,11 @@ import (
 	"io"
 	"time"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	notif "github.com/jbenet/go-ipfs/notifications"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	ipdht "github.com/jbenet/go-ipfs/routing/dht"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	notif "github.com/ipfs/go-ipfs/notifications"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	ipdht "github.com/ipfs/go-ipfs/routing/dht"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")

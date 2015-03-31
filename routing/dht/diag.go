@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 type connDiagInfo struct {
@@ -31,7 +31,7 @@ func (di *diagInfo) Marshal() []byte {
 
 func (dht *IpfsDHT) getDiagInfo() *diagInfo {
 	di := new(diagInfo)
-	di.CodeVersion = "github.com/jbenet/go-ipfs"
+	di.CodeVersion = "github.com/ipfs/go-ipfs"
 	di.ID = dht.self
 	di.LifeSpan = time.Since(dht.birth)
 	di.Keys = nil // Currently no way to query datastore

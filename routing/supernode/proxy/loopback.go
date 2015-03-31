@@ -1,12 +1,12 @@
 package proxy
 
 import (
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	dhtpb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // RequestHandler handles routing requests locally

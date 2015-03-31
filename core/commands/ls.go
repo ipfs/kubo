@@ -6,11 +6,11 @@ import (
 	"io"
 	"text/tabwriter"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	path "github.com/jbenet/go-ipfs/path"
-	"github.com/jbenet/go-ipfs/unixfs"
-	unixfspb "github.com/jbenet/go-ipfs/unixfs/pb"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/unixfs"
+	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
 type LsLink struct {

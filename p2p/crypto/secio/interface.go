@@ -4,11 +4,11 @@ package secio
 import (
 	"io"
 
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 
-	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
+	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 // SessionGenerator constructs secure communication sessions for a peer.

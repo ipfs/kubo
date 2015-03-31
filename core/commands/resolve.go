@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	u "github.com/jbenet/go-ipfs/util"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 type ResolvedKey struct {

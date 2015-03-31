@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"io"
 
-	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	pb "github.com/jbenet/go-ipfs/p2p/crypto/secio/internal/pb"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
+	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	pb "github.com/ipfs/go-ipfs/p2p/crypto/secio/internal/pb"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("secio")

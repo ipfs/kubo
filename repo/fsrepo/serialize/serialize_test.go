@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	config "github.com/jbenet/go-ipfs/repo/config"
+	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
 func TestConfig(t *testing.T) {

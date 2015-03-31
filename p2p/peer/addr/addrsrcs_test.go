@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 func newAddrOrFatal(t *testing.T, s string) ma.Multiaddr {

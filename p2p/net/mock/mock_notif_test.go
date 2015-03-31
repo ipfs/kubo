@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
 )
 
 func TestNotifications(t *testing.T) {

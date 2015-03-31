@@ -8,7 +8,7 @@ package tail
 import (
 	"./watch"
 	_ "fmt"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail/ratelimiter"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail/ratelimiter"
 	"io/ioutil"
 	"os"
 	"strings"

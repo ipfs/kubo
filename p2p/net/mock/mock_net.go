@@ -5,17 +5,17 @@ import (
 	"sort"
 	"sync"
 
-	ic "github.com/jbenet/go-ipfs/p2p/crypto"
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	bhost "github.com/jbenet/go-ipfs/p2p/host/basic"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	p2putil "github.com/jbenet/go-ipfs/p2p/test/util"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	bhost "github.com/ipfs/go-ipfs/p2p/host/basic"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	p2putil "github.com/ipfs/go-ipfs/p2p/test/util"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
-	ctxgroup "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // mocknet implements mocknet.Mocknet

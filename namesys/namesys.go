@@ -1,10 +1,10 @@
 package namesys
 
 import (
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	routing "github.com/jbenet/go-ipfs/routing"
-	u "github.com/jbenet/go-ipfs/util"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	routing "github.com/ipfs/go-ipfs/routing"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // ipnsNameSystem implements IPNS naming.

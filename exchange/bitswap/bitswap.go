@@ -7,22 +7,22 @@ import (
 	"sync"
 	"time"
 
-	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	blockstore "github.com/jbenet/go-ipfs/blocks/blockstore"
-	exchange "github.com/jbenet/go-ipfs/exchange"
-	decision "github.com/jbenet/go-ipfs/exchange/bitswap/decision"
-	bsmsg "github.com/jbenet/go-ipfs/exchange/bitswap/message"
-	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	notifications "github.com/jbenet/go-ipfs/exchange/bitswap/notifications"
-	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	"github.com/jbenet/go-ipfs/thirdparty/delay"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
-	pset "github.com/jbenet/go-ipfs/util/peerset" // TODO move this to peerstore
+	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	exchange "github.com/ipfs/go-ipfs/exchange"
+	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
+	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
+	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	notifications "github.com/ipfs/go-ipfs/exchange/bitswap/notifications"
+	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	"github.com/ipfs/go-ipfs/thirdparty/delay"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
+	pset "github.com/ipfs/go-ipfs/util/peerset" // TODO move this to peerstore
 )
 
 var log = eventlog.Logger("bitswap")
