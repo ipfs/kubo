@@ -31,6 +31,7 @@ type DiagnosticPeer struct {
 	BandwidthBytesIn  uint64
 	BandwidthBytesOut uint64
 	Connections       []DiagnosticConnection
+	CodeVersion       string
 }
 
 type DiagnosticOutput struct {
@@ -178,6 +179,7 @@ func standardDiagOutput(info []*diag.DiagInfo) *DiagnosticOutput {
 			BandwidthBytesIn:  peer.BwIn,
 			BandwidthBytesOut: peer.BwOut,
 			Connections:       connections,
+			CodeVersion:       peer.CodeVersion,
 		}
 	}
 	return &DiagnosticOutput{output}
@@ -186,7 +188,7 @@ func standardDiagOutput(info []*diag.DiagInfo) *DiagnosticOutput {
 func printDiagnostics(out io.Writer, info *DiagnosticOutput) error {
 	diagTmpl := `
 {{ range $peer := .Peers }}
-ID {{ $peer.ID }} up {{ $peer.UptimeSeconds }} seconds connected to {{ len .Connections }}:{{ range $connection := .Connections }}
+ID {{ $peer.ID }} up {{ $peer.UptimeSeconds }} seconds. [ version: {{ $peer.CodeVersion }} ] connected to {{ len .Connections }}:{{ range $connection := .Connections }}
 	ID {{ $connection.ID }} connections: {{ $connection.Count }} latency: {{ $connection.NanosecondsLatency }} ns{{ end }}
 {{end}}
 `
