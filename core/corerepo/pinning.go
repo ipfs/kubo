@@ -3,10 +3,10 @@ package corerepo
 import (
 	"fmt"
 
-	"github.com/jbenet/go-ipfs/core"
-	"github.com/jbenet/go-ipfs/merkledag"
-	path "github.com/jbenet/go-ipfs/path"
-	u "github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/merkledag"
+	path "github.com/ipfs/go-ipfs/path"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {

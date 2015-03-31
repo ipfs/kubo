@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/repo/config"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
-	tour "github.com/jbenet/go-ipfs/tour"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	tour "github.com/ipfs/go-ipfs/tour"
 )
 
 var tourCmd = &cmds.Command{

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/tour"
+	"github.com/ipfs/go-ipfs/tour"
 )
 
 func TestParseTourTemplate(t *testing.T) {

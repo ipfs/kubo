@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	host "github.com/jbenet/go-ipfs/p2p/host"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	swarm "github.com/jbenet/go-ipfs/p2p/net/swarm"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-	testutil "github.com/jbenet/go-ipfs/p2p/test/util"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	host "github.com/ipfs/go-ipfs/p2p/host"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
+	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
+	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 func init() {

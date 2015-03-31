@@ -4,14 +4,14 @@ import (
 	"net"
 	"time"
 
-	msgio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	ic "github.com/jbenet/go-ipfs/p2p/crypto"
-	secio "github.com/jbenet/go-ipfs/p2p/crypto/secio"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	errors "github.com/jbenet/go-ipfs/util/debugerror"
+	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	secio "github.com/ipfs/go-ipfs/p2p/crypto/secio"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.

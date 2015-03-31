@@ -3,9 +3,9 @@ package coreunix
 import (
 	"io"
 
-	core "github.com/jbenet/go-ipfs/core"
-	path "github.com/jbenet/go-ipfs/path"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	core "github.com/ipfs/go-ipfs/core"
+	path "github.com/ipfs/go-ipfs/path"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 )
 
 func Cat(n *core.IpfsNode, pstr string) (io.Reader, error) {

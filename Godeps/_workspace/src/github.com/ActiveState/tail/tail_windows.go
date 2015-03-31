@@ -3,7 +3,7 @@
 package tail
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail/winfile"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail/winfile"
 	"os"
 )
 

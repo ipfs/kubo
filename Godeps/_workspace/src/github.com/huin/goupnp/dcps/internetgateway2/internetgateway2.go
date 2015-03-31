@@ -11,8 +11,8 @@ package internetgateway2
 import (
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/soap"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/soap"
 )
 
 // Hack to avoid Go complaining if time isn't used.

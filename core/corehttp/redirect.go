@@ -3,7 +3,7 @@ package corehttp
 import (
 	"net/http"
 
-	core "github.com/jbenet/go-ipfs/core"
+	core "github.com/ipfs/go-ipfs/core"
 )
 
 func RedirectOption(path string, redirect string) ServeOption {

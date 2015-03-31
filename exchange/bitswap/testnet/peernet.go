@@ -1,13 +1,13 @@
 package bitswap
 
 import (
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	bsnet "github.com/jbenet/go-ipfs/exchange/bitswap/network"
-	mockpeernet "github.com/jbenet/go-ipfs/p2p/net/mock"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	mockrouting "github.com/jbenet/go-ipfs/routing/mock"
-	testutil "github.com/jbenet/go-ipfs/util/testutil"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	mockpeernet "github.com/ipfs/go-ipfs/p2p/net/mock"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
+	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
 type peernet struct {

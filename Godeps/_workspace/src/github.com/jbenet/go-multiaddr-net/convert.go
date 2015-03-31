@@ -5,8 +5,8 @@ import (
 	"net"
 	"strings"
 
-	utp "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/h2so5/utp"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	utp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/h2so5/utp"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
 
 var errIncorrectNetAddr = fmt.Errorf("incorrect network addr conversion")

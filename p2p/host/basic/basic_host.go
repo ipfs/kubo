@@ -1,16 +1,16 @@
 package basichost
 
 import (
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	goprocess "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	protocol "github.com/jbenet/go-ipfs/p2p/protocol"
-	identify "github.com/jbenet/go-ipfs/p2p/protocol/identify"
-	relay "github.com/jbenet/go-ipfs/p2p/protocol/relay"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
+	identify "github.com/ipfs/go-ipfs/p2p/protocol/identify"
+	relay "github.com/ipfs/go-ipfs/p2p/protocol/relay"
 )
 
 var log = eventlog.Logger("p2p/host/basic")

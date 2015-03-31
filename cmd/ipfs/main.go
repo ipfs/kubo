@@ -14,19 +14,19 @@ import (
 	"syscall"
 	"time"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	cmds "github.com/jbenet/go-ipfs/commands"
-	cmdsCli "github.com/jbenet/go-ipfs/commands/cli"
-	cmdsHttp "github.com/jbenet/go-ipfs/commands/http"
-	core "github.com/jbenet/go-ipfs/core"
-	config "github.com/jbenet/go-ipfs/repo/config"
-	fsrepo "github.com/jbenet/go-ipfs/repo/fsrepo"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
-	"github.com/jbenet/go-ipfs/util/debugerror"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	cmdsCli "github.com/ipfs/go-ipfs/commands/cli"
+	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
+	core "github.com/ipfs/go-ipfs/core"
+	config "github.com/ipfs/go-ipfs/repo/config"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // log is the command logger

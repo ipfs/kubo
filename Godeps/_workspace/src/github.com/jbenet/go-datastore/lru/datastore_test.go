@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"testing"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	lru "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/lru"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	lru "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/lru"
 	. "gopkg.in/check.v1"
 )
 

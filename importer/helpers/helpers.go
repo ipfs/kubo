@@ -3,11 +3,11 @@ package helpers
 import (
 	"fmt"
 
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	"github.com/jbenet/go-ipfs/pin"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	u "github.com/jbenet/go-ipfs/util"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	dag "github.com/ipfs/go-ipfs/merkledag"
+	"github.com/ipfs/go-ipfs/pin"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.

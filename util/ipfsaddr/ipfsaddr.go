@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strings"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("ipfsaddr")

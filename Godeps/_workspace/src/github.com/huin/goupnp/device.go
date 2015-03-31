@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/scpd"
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/soap"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/scpd"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/soap"
 )
 
 const (

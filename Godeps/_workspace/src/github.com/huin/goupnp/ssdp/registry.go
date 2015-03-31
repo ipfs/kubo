@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/httpu"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/httpu"
 )
 
 const (

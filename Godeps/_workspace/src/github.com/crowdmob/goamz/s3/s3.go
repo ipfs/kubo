@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 )
 
 const debug = false

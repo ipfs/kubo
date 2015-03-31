@@ -3,15 +3,15 @@ package swarm
 import (
 	"fmt"
 
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	conn "github.com/jbenet/go-ipfs/p2p/net/conn"
-	addrutil "github.com/jbenet/go-ipfs/p2p/net/swarm/addr"
-	lgbl "github.com/jbenet/go-ipfs/util/eventlog/loggables"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
+	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
+	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	ps "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	multierr "github.com/jbenet/go-ipfs/thirdparty/multierr"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	multierr "github.com/ipfs/go-ipfs/thirdparty/multierr"
 )
 
 // Open listeners for each network the swarm should listen on

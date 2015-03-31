@@ -3,12 +3,12 @@ package record
 import (
 	"bytes"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	ci "github.com/jbenet/go-ipfs/p2p/crypto"
-	pb "github.com/jbenet/go-ipfs/routing/dht/pb"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
-	u "github.com/jbenet/go-ipfs/util"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("routing/record")

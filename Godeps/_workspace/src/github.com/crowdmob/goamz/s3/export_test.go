@@ -1,7 +1,7 @@
 package s3
 
 import (
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 )
 
 var originalStrategy = attempts

@@ -19,10 +19,10 @@ import (
 	"crypto/sha512"
 	"hash"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 
-	pb "github.com/jbenet/go-ipfs/p2p/crypto/internal/pb"
-	u "github.com/jbenet/go-ipfs/util"
+	pb "github.com/ipfs/go-ipfs/p2p/crypto/internal/pb"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = u.Logger("crypto")

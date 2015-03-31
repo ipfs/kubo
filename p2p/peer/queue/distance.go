@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"sync"
 
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	ks "github.com/jbenet/go-ipfs/routing/keyspace"
-	u "github.com/jbenet/go-ipfs/util"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	ks "github.com/ipfs/go-ipfs/routing/keyspace"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // peerMetric tracks a peer and its distance to something else.

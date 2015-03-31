@@ -3,8 +3,8 @@ package commands
 import (
 	"errors"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	"github.com/jbenet/go-ipfs/core"
+	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core"
 )
 
 var MountCmd = &cmds.Command{

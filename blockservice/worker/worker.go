@@ -6,12 +6,12 @@ import (
 	"errors"
 	"time"
 
-	process "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
-	ratelimit "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	exchange "github.com/jbenet/go-ipfs/exchange"
-	waitable "github.com/jbenet/go-ipfs/thirdparty/waitable"
-	util "github.com/jbenet/go-ipfs/util"
+	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	ratelimit "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	exchange "github.com/ipfs/go-ipfs/exchange"
+	waitable "github.com/ipfs/go-ipfs/thirdparty/waitable"
+	util "github.com/ipfs/go-ipfs/util"
 )
 
 var log = util.Logger("blockservice")

@@ -3,11 +3,11 @@ package corehttp
 import (
 	"net/http"
 
-	manners "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
-	ma "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-	core "github.com/jbenet/go-ipfs/core"
-	eventlog "github.com/jbenet/go-ipfs/thirdparty/eventlog"
+	manners "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	core "github.com/ipfs/go-ipfs/core"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
 var log = eventlog.Logger("core/server")

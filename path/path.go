@@ -4,7 +4,7 @@ import (
 	"path"
 	"strings"
 
-	u "github.com/jbenet/go-ipfs/util"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // TODO: debate making this a private struct wrapped in a public interface

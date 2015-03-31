@@ -6,18 +6,18 @@ import (
 	"io"
 	"os"
 
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	help "github.com/jbenet/go-ipfs/importer/helpers"
-	trickle "github.com/jbenet/go-ipfs/importer/trickle"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	pin "github.com/jbenet/go-ipfs/pin"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	help "github.com/ipfs/go-ipfs/importer/helpers"
+	trickle "github.com/ipfs/go-ipfs/importer/trickle"
+	mdag "github.com/ipfs/go-ipfs/merkledag"
+	pin "github.com/ipfs/go-ipfs/pin"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var ErrSeekFail = errors.New("failed to seek properly")

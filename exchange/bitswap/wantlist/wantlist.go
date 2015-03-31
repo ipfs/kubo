@@ -3,7 +3,7 @@
 package wantlist
 
 import (
-	u "github.com/jbenet/go-ipfs/util"
+	u "github.com/ipfs/go-ipfs/util"
 	"sort"
 	"sync"
 )

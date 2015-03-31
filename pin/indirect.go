@@ -1,9 +1,9 @@
 package pin
 
 import (
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	"github.com/jbenet/go-ipfs/blocks/set"
-	"github.com/jbenet/go-ipfs/util"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/go-ipfs/blocks/set"
+	"github.com/ipfs/go-ipfs/util"
 )
 
 type indirectPin struct {

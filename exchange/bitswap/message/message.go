@@ -3,14 +3,14 @@ package message
 import (
 	"io"
 
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	pb "github.com/jbenet/go-ipfs/exchange/bitswap/message/internal/pb"
-	wantlist "github.com/jbenet/go-ipfs/exchange/bitswap/wantlist"
-	inet "github.com/jbenet/go-ipfs/p2p/net"
-	u "github.com/jbenet/go-ipfs/util"
+	blocks "github.com/ipfs/go-ipfs/blocks"
+	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/internal/pb"
+	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
+	inet "github.com/ipfs/go-ipfs/p2p/net"
+	u "github.com/ipfs/go-ipfs/util"
 
-	ggio "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 )
 
 // TODO move message.go into the bitswap package

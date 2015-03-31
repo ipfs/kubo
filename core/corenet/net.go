@@ -3,11 +3,11 @@ package corenet
 import (
 	"time"
 
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	core "github.com/jbenet/go-ipfs/core"
-	net "github.com/jbenet/go-ipfs/p2p/net"
-	peer "github.com/jbenet/go-ipfs/p2p/peer"
-	pro "github.com/jbenet/go-ipfs/p2p/protocol"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	core "github.com/ipfs/go-ipfs/core"
+	net "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	pro "github.com/ipfs/go-ipfs/p2p/protocol"
 )
 
 type ipfsListener struct {

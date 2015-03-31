@@ -10,14 +10,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jbenet/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	chunk "github.com/jbenet/go-ipfs/importer/chunk"
-	h "github.com/jbenet/go-ipfs/importer/helpers"
-	merkledag "github.com/jbenet/go-ipfs/merkledag"
-	mdtest "github.com/jbenet/go-ipfs/merkledag/test"
-	pin "github.com/jbenet/go-ipfs/pin"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	u "github.com/jbenet/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	h "github.com/ipfs/go-ipfs/importer/helpers"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
+	pin "github.com/ipfs/go-ipfs/pin"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 func buildTestDag(r io.Reader, ds merkledag.DAGService, spl chunk.BlockSplitter) (*merkledag.Node, error) {
