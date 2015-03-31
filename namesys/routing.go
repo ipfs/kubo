@@ -7,8 +7,6 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -65,31 +63,9 @@ func (r *routingResolver) Resolve(ctx context.Context, name string) (u.Key, erro
 	}
 
 	// name should be a public key retrievable from ipfs
-	// /ipfs/<name>
-	var pubkey ci.PubKey
-	if dht, ok := r.routing.(routing.PubKeyFetcher); ok {
-		// If we have a DHT as our routing system, use optimized fetcher
-		pk, err := dht.GetPublicKey(ctx, peer.ID(hash))
-		if err != nil {
-			log.Warning("RoutingResolve PubKey Get failed.")
-			return "", err
-		}
-		pubkey = pk
-	} else {
-		key := u.Key("/pk/" + string(hash))
-		pkval, err := r.routing.GetValue(ctx, key)
-		if err != nil {
-			log.Warning("RoutingResolve PubKey Get failed.")
-			return "", err
-		}
-
-		// get PublicKey from node.Data
-		pk, err := ci.UnmarshalPublicKey(pkval)
-		if err != nil {
-			return "", err
-		}
-
-		pubkey = pk
+	pubkey, err := routing.GetPublicKey(r.routing, ctx, hash)
+	if err != nil {
+		return "", err
 	}
 
 	hsh, _ := pubkey.Hash()

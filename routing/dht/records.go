@@ -6,17 +6,11 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	u "github.com/ipfs/go-ipfs/util"
 	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 )
-
-// KeyForPublicKey returns the key used to retrieve public keys
-// from the dht.
-func KeyForPublicKey(id peer.ID) u.Key {
-	return u.Key("/pk/" + string(id))
-}
 
 func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
 	log.Debugf("getPublicKey for: %s", p)
@@ -40,7 +34,7 @@ func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, err
 
 	// last ditch effort: let's try the dht.
 	log.Debugf("pk for %s not in peerstore, and peer failed. trying dht.", p)
-	pkkey := KeyForPublicKey(p)
+	pkkey := routing.KeyForPublicKey(p)
 
 	val, err := dht.GetValue(ctxT, pkkey)
 	if err != nil {
@@ -65,7 +59,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 		return pk, nil
 	}
 
-	pkkey := KeyForPublicKey(p)
+	pkkey := routing.KeyForPublicKey(p)
 	pmes, err := dht.getValueSingle(ctx, p, pkkey)
 	if err != nil {
 		return nil, err
