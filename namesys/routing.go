@@ -7,7 +7,6 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
-	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	routing "github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -64,25 +63,17 @@ func (r *routingResolver) Resolve(ctx context.Context, name string) (u.Key, erro
 	}
 
 	// name should be a public key retrievable from ipfs
-	// /ipfs/<name>
-	key := u.Key("/pk/" + string(hash))
-	pkval, err := r.routing.GetValue(ctx, key)
+	pubkey, err := routing.GetPublicKey(r.routing, ctx, hash)
 	if err != nil {
-		log.Warning("RoutingResolve PubKey Get failed.")
 		return "", err
 	}
 
-	// get PublicKey from node.Data
-	pk, err := ci.UnmarshalPublicKey(pkval)
-	if err != nil {
-		return "", err
-	}
-	hsh, _ := pk.Hash()
+	hsh, _ := pubkey.Hash()
 	log.Debugf("pk hash = %s", u.Key(hsh))
 
 	// check sig with pk
-	if ok, err := pk.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pk)
+	if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
+		return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
 	}
 
 	// ok sig checks out. this is a valid name.

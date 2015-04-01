@@ -6,6 +6,7 @@ import (
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -45,4 +46,30 @@ type IpfsRouting interface {
 	Bootstrap(context.Context) error
 
 	// TODO expose io.Closer or plain-old Close error
+}
+
+type PubKeyFetcher interface {
+	GetPublicKey(context.Context, peer.ID) (ci.PubKey, error)
+}
+
+// KeyForPublicKey returns the key used to retrieve public keys
+// from the dht.
+func KeyForPublicKey(id peer.ID) u.Key {
+	return u.Key("/pk/" + string(id))
+}
+
+func GetPublicKey(r IpfsRouting, ctx context.Context, pkhash []byte) (ci.PubKey, error) {
+	if dht, ok := r.(PubKeyFetcher); ok {
+		// If we have a DHT as our routing system, use optimized fetcher
+		return dht.GetPublicKey(ctx, peer.ID(pkhash))
+	} else {
+		key := u.Key("/pk/" + string(pkhash))
+		pkval, err := r.GetValue(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+
+		// get PublicKey from node.Data
+		return ci.UnmarshalPublicKey(pkval)
+	}
 }
