@@ -9,6 +9,7 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	mstream "github.com/ipfs/go-ipfs/metrics/stream"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -80,6 +81,8 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 		log.Debugf("error opening initial stream for %s", ID)
 		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer())
 	} else {
+		bwc := ids.Host.GetBandwidthReporter()
+		s = mstream.WrapStream(s, ID, bwc)
 
 		// ok give the response to our handler.
 		if err := protocol.WriteHeader(s, ID); err != nil {
@@ -105,6 +108,9 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 func (ids *IDService) RequestHandler(s inet.Stream) {
 	defer s.Close()
 	c := s.Conn()
+
+	bwc := ids.Host.GetBandwidthReporter()
+	s = mstream.WrapStream(s, ID, bwc)
 
 	w := ggio.NewDelimitedWriter(s)
 	mes := pb.Identify{}

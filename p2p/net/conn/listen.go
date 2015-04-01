@@ -16,12 +16,17 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
+// ConnWrapper is any function that wraps a raw multiaddr connection
+type ConnWrapper func(manet.Conn) manet.Conn
+
 // listener is an object that can accept connections. It implements Listener
 type listener struct {
 	manet.Listener
 
 	local peer.ID    // LocalPeer is the identity of the local Peer
 	privk ic.PrivKey // private key to use to initialize secure conns
+
+	wrapper ConnWrapper
 
 	cg ctxgroup.ContextGroup
 }
@@ -76,6 +81,11 @@ func (l *listener) Accept() (net.Conn, error) {
 		}
 
 		log.Debugf("listener %s got connection: %s <---> %s", l, maconn.LocalMultiaddr(), maconn.RemoteMultiaddr())
+		// If we have a wrapper func, wrap this conn
+		if l.wrapper != nil {
+			maconn = l.wrapper(maconn)
+		}
+
 		c, err := newSingleConn(ctx, l.local, "", maconn)
 		if err != nil {
 			if catcher.IsTemporary(err) {
@@ -141,6 +151,16 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 	log.Debugf("Conn Listener on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)
 	return l, nil
+}
+
+type ListenerConnWrapper interface {
+	SetConnWrapper(ConnWrapper)
+}
+
+// SetConnWrapper assigns a maconn ConnWrapper to wrap all incoming
+// connections with. MUST be set _before_ calling `Accept()`
+func (l *listener) SetConnWrapper(cw ConnWrapper) {
+	l.wrapper = cw
 }
 
 func manetListen(addr ma.Multiaddr) (manet.Listener, error) {

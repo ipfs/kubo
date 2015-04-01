@@ -9,6 +9,7 @@ import (
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 
+	metrics "github.com/ipfs/go-ipfs/metrics"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -114,4 +115,8 @@ func (rh *RoutedHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error)
 func (rh *RoutedHost) Close() error {
 	// no need to close IpfsRouting. we dont own it.
 	return rh.host.Close()
+}
+
+func (rh *RoutedHost) GetBandwidthReporter() metrics.Reporter {
+	return rh.host.GetBandwidthReporter()
 }
