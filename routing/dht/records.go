@@ -31,6 +31,10 @@ func (dht *IpfsDHT) getPublicKeyOnline(ctx context.Context, p peer.ID) (ci.PubKe
 	ctxT, cancelFunc := ctxutil.WithDeadlineFraction(ctx, 0.3)
 	defer cancelFunc()
 	if pk, err := dht.getPublicKeyFromNode(ctx, p); err == nil {
+		err := dht.peerstore.AddPubKey(p, pk)
+		if err != nil {
+			return pk, err
+		}
 		return pk, nil
 	}
 
@@ -38,7 +42,7 @@ func (dht *IpfsDHT) getPublicKeyOnline(ctx context.Context, p peer.ID) (ci.PubKe
 	log.Debugf("pk for %s not in peerstore, and peer failed. trying dht.", p)
 	pkkey := KeyForPublicKey(p)
 
-	// ok, try the node itself. if they're overwhelmed or slow we can move on.
+	// ok, now try the dht. Anyone who has previously fetched the key should have it
 	val, err := dht.GetValue(ctxT, pkkey)
 	if err != nil {
 		log.Warning("Failed to find requested public key.")
@@ -50,7 +54,8 @@ func (dht *IpfsDHT) getPublicKeyOnline(ctx context.Context, p peer.ID) (ci.PubKe
 		log.Debugf("Failed to unmarshal public key: %s", err)
 		return nil, err
 	}
-	return pk, nil
+
+	return pk, dht.peerstore.AddPubKey(p, pk)
 }
 
 func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.PubKey, error) {

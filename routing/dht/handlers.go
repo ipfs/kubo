@@ -226,5 +226,5 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 		dht.providers.AddProvider(ctx, key, p)
 	}
 
-	return pmes, nil // send back same msg as confirmation.
+	return nil, nil
 }
