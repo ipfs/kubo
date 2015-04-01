@@ -10,6 +10,8 @@ import (
 
 // Mount mounts ipfs at a given location, and returns a mount.Mount instance.
 func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
+	cfg := ipfs.Repo.Config()
+	allow_other := cfg.Mounts.FuseAllowOther
 	fsys := NewFileSystem(ipfs)
-	return mount.NewMount(ipfs, fsys, mountpoint)
+	return mount.NewMount(ipfs, fsys, mountpoint, allow_other)
 }
