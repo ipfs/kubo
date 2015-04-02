@@ -10,6 +10,7 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	u "github.com/ipfs/go-ipfs/util"
+	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
 // The number of closer peers to send on requests.
@@ -157,9 +158,13 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 }
 
 func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	defer log.EventBegin(ctx, "handleGetProviders", p).Done()
+	lm := make(lgbl.DeferredMap)
+	lm["peer"] = func() interface{} { return p.Pretty() }
+	defer log.EventBegin(ctx, "handleGetProviders", lm).Done()
+
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 	key := u.Key(pmes.GetKey())
+	lm["key"] = func() interface{} { return key.Pretty() }
 
 	// debug logging niceness.
 	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, key)
@@ -198,8 +203,12 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 }
 
 func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	defer log.EventBegin(ctx, "handleAddProvider", p).Done()
+	lm := make(lgbl.DeferredMap)
+	lm["peer"] = func() interface{} { return p.Pretty() }
+
+	defer log.EventBegin(ctx, "handleAddProvider", lm).Done()
 	key := u.Key(pmes.GetKey())
+	lm["key"] = func() interface{} { return key.Pretty() }
 
 	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)
 
