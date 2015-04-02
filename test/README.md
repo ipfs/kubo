@@ -3,8 +3,8 @@
 
 Module     |     Online Test |    Offline Test |
 -----------|-----------------|-----------------|
-object     |                 |           t0051
-ls         |                 |           t0045
+object     |           t0051 |           t0051
+ls         |           t0045 |           t0045
 cat        |           t0040 |
 dht        |                 |
 bitswap    |                 |
@@ -13,7 +13,7 @@ daemon     |           t0030 |             N/A
 init       |             N/A |           t0020
 add        |           t0040 |
 config     |           t0021 |           t0021
-version    |                 |           t0010
+version    |           t0060 |           t0010
 ping       |                 |
 diag       |                 |
 mount      |           t0030 |
