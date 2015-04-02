@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
-	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -76,6 +75,15 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	if err := a.Connect(ctx, idB); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func connectDHTS(t *testing.T, ctx context.Context, dhts []*IpfsDHT, start, end, target int) []peer.ID {
+	var ret []peer.ID
+	for a := start; a < end; a++ {
+		connect(t, ctx, dhts[a], dhts[target])
+		ret = append(ret, dhts[a].self)
+	}
+	return ret
 }
 
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
@@ -681,83 +689,79 @@ func TestFindPeer(t *testing.T) {
 }
 
 func TestFindPeersConnectedToPeer(t *testing.T) {
-	t.Skip("not quite correct (see note)")
-
 	if testing.Short() {
 		t.SkipNow()
 	}
 
 	ctx := context.Background()
-
-	_, peers, dhts := setupDHTS(ctx, 4, t)
+	dhtCount := 50
+	_, peers, dhts := setupDHTS(ctx, dhtCount, t)
 	defer func() {
-		for i := 0; i < 4; i++ {
+		for i := 0; i < dhtCount; i++ {
 			dhts[i].Close()
 			dhts[i].host.Close()
 		}
 	}()
 
-	// topology:
-	// 0-1, 1-2, 1-3, 2-3
-	connect(t, ctx, dhts[0], dhts[1])
-	connect(t, ctx, dhts[1], dhts[2])
-	connect(t, ctx, dhts[1], dhts[3])
-	connect(t, ctx, dhts[2], dhts[3])
-
-	// fmt.Println("0 is", peers[0])
-	// fmt.Println("1 is", peers[1])
-	// fmt.Println("2 is", peers[2])
-	// fmt.Println("3 is", peers[3])
+	// Topology
+	// 0-1, [2:49]-1
+	srcInd := 0
+	tgtInd := 1
+	shouldFind := connectDHTS(t, ctx, dhts, 2, 49, tgtInd)
+	connect(t, ctx, dhts[srcInd], dhts[tgtInd])
 
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2])
+	pchan, err := dhts[srcInd].FindPeersConnectedToPeer(ctxT, peers[tgtInd])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// shouldFind := []peer.ID{peers[1], peers[3]}
-	found := []peer.PeerInfo{}
-	for nextp := range pchan {
-		found = append(found, nextp)
+	testSame := func(id peer.ID) {
+		if id == peers[srcInd] {
+			t.Errorf("should not contain id of requesting peer %s", id)
+		}
+		if id == peers[tgtInd] {
+			t.Errorf("should not contain id of target peer %s", id)
+		}
 	}
 
-	// fmt.Printf("querying 0 (%s) FindPeersConnectedToPeer 2 (%s)\n", peers[0], peers[2])
-	// fmt.Println("should find 1, 3", shouldFind)
-	// fmt.Println("found", found)
+	found := []peer.ID{}
+	for nextp := range pchan {
+		id := nextp.ID
+		found = append(found, id)
+		testSame(id)
+	}
 
-	// testPeerListsMatch(t, shouldFind, found)
-
-	log.Warning("TestFindPeersConnectedToPeer is not quite correct")
 	if len(found) == 0 {
 		t.Fatal("didn't find any peers.")
 	}
+
+	matchErr := testPeerListsMatch(t, shouldFind, found)
+	if matchErr {
+		fmt.Println("Should find: ", shouldFind)
+		fmt.Println("Found: ", found)
+	}
 }
 
-func testPeerListsMatch(t *testing.T, p1, p2 []peer.ID) {
-
+func testPeerListsMatch(t *testing.T, p1, p2 []peer.ID) bool {
+	err := false
 	if len(p1) != len(p2) {
-		t.Fatal("did not find as many peers as should have", p1, p2)
+		t.Errorf("size mismatch. expected: %d found: %d", len(p1), len(p2))
+		err = true
 	}
 
-	ids1 := make([]string, len(p1))
-	ids2 := make([]string, len(p2))
-
-	for i, p := range p1 {
-		ids1[i] = string(p)
+	ids2 := make(map[string]interface{})
+	for _, p := range p2 {
+		ids2[p.String()] = struct{}{}
 	}
 
-	for i, p := range p2 {
-		ids2[i] = string(p)
-	}
-
-	sort.Sort(sort.StringSlice(ids1))
-	sort.Sort(sort.StringSlice(ids2))
-
-	for i := range ids1 {
-		if ids1[i] != ids2[i] {
-			t.Fatal("Didnt find expected peer", ids1[i], ids2)
+	for _, id := range p1 {
+		if _, ok := ids2[id.String()]; !ok {
+			t.Errorf("did not find expected peer %s\n", id)
+			err = true
 		}
 	}
+	return err
 }
 
 func TestConnectCollision(t *testing.T) {

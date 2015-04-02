@@ -360,8 +360,8 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 		for _, pbp := range closer {
 			pi := pb.PBPeerToPeerInfo(pbp)
 
-			// skip peers already seen
-			if _, found := peersSeen[pi.ID]; found {
+			// skip peers already seen or this peer
+			if _, found := peersSeen[pi.ID]; found || pi.ID == dht.self {
 				continue
 			}
 			peersSeen[pi.ID] = struct{}{}

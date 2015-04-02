@@ -132,9 +132,10 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 	resp := pb.NewMessage(pmes.GetType(), "", pmes.GetClusterLevel())
 	var closest []peer.ID
 
-	// if looking for self... special case where we send it on CloserPeers.
+	// if looking for self... special case where we are looking for connected peers.
+	// Used for FindPeersConnectedToPeer
 	if peer.ID(pmes.GetKey()) == dht.self {
-		closest = []peer.ID{dht.self}
+		closest = dht.peerstore.Peers()
 	} else {
 		closest = dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	}
