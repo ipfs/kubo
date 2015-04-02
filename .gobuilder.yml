@@ -1,0 +1,3 @@
+---
+triggers:
+  - github.com/Luzifer/gobuilder/cmd/starter

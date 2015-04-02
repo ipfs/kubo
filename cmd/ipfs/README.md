@@ -1,38 +1,30 @@
-# go-ipfs/cmd/ipfs
+# [go-ipfs/cmd/ipfs](http://github.com/ipfs/go-ipfs/tree/master/cmd/ipfs)
 
-This is the ipfs commandline tool. For now, it's the main entry point to using IPFS. Use it.
+![](https://raw.githubusercontent.com/ipfs/logo/master/ipfs-logo-text-256-ice.png)
+
+This is the ipfs commandline tool. For now, it's the main entry point to using IPFS.
+
+
+## Install from source
 
 ```
-> go build
-> go install
-> ipfs
-ipfs - global versioned p2p merkledag file system
+go install
+ipfs
+```
 
-Basic commands:
+## Install from [gobuilder.me](https://gobuilder.me/)
 
-    init          Initialize ipfs local configuration
-    add <path>    Add an object to ipfs
-    cat <ref>     Show ipfs object data
-    ls <ref>      List links from an object
+If you're viewing this in [gobuilder](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs), chose the binary that suits you best at the end of this page. Download it, unzip it, and move the binary into place.
 
-Tool commands:
+## Usage
 
-    config        Manage configuration
-    update        Download and apply go-ipfs updates
-    version       Show ipfs version information
-    commands      List all available commands
+```sh
+# initialize an ipfs node
+ipfs init
 
-Advanced Commands:
+# list some commands
+ipfs
 
-    mount         Mount an ipfs read-only mountpoint
-    serve         Serve an interface to ipfs
-    diag          Print diagnostics
-
-Plumbing commands:
-
-    block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
-
-
-Use "ipfs help <command>" for more information about a command.
+# get help
+ipfs <subcmd> --help
 ```

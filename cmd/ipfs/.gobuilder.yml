@@ -1,0 +1,5 @@
+---
+artifacts:
+  - dist/README.md
+  - dist/LICENSE
+  - dist/install.sh
