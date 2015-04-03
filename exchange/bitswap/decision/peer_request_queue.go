@@ -21,8 +21,9 @@ type peerRequestQueue interface {
 
 func newPRQ() peerRequestQueue {
 	return &prq{
-		taskMap:   make(map[string]*peerRequestTask),
-		taskQueue: pq.New(wrapCmp(V1)),
+		taskMap:  make(map[string]*peerRequestTask),
+		partners: make(map[peer.ID]*activePartner),
+		pQueue:   pq.New(partnerCompare),
 	}
 }
 
@@ -32,42 +33,73 @@ var _ peerRequestQueue = &prq{}
 // to help decide how to sort tasks (on add) and how to select
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
 type prq struct {
-	lock      sync.Mutex
-	taskQueue pq.PQ
-	taskMap   map[string]*peerRequestTask
+	lock     sync.Mutex
+	pQueue   pq.PQ
+	taskMap  map[string]*peerRequestTask
+	partners map[peer.ID]*activePartner
 }
 
 // Push currently adds a new peerRequestTask to the end of the list
 func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
+	partner, ok := tl.partners[to]
+	if !ok {
+		partner = &activePartner{taskQueue: pq.New(wrapCmp(V1))}
+		tl.pQueue.Push(partner)
+		tl.partners[to] = partner
+	}
+
 	if task, ok := tl.taskMap[taskKey(to, entry.Key)]; ok {
 		task.Entry.Priority = entry.Priority
-		tl.taskQueue.Update(task.index)
+		partner.taskQueue.Update(task.index)
 		return
 	}
+
 	task := &peerRequestTask{
 		Entry:   entry,
 		Target:  to,
 		created: time.Now(),
+		Done: func() {
+			partner.TaskDone()
+			tl.lock.Lock()
+			tl.pQueue.Update(partner.Index())
+			tl.lock.Unlock()
+		},
 	}
-	tl.taskQueue.Push(task)
+
+	partner.taskQueue.Push(task)
 	tl.taskMap[task.Key()] = task
+	partner.requests++
+	tl.pQueue.Update(partner.Index())
 }
 
 // Pop 'pops' the next task to be performed. Returns nil if no task exists.
 func (tl *prq) Pop() *peerRequestTask {
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
+	if tl.pQueue.Len() == 0 {
+		return nil
+	}
+	pElem := tl.pQueue.Pop()
+	if pElem == nil {
+		return nil
+	}
+
+	partner := pElem.(*activePartner)
+
 	var out *peerRequestTask
-	for tl.taskQueue.Len() > 0 {
-		out = tl.taskQueue.Pop().(*peerRequestTask)
+	for partner.taskQueue.Len() > 0 {
+		out = partner.taskQueue.Pop().(*peerRequestTask)
 		delete(tl.taskMap, out.Key())
 		if out.trash {
 			continue // discarding tasks that have been removed
 		}
 		break // and return |out|
 	}
+	partner.StartTask()
+	partner.requests--
+	tl.pQueue.Push(partner)
 	return out
 }
 
@@ -80,13 +112,16 @@ func (tl *prq) Remove(k u.Key, p peer.ID) {
 		// simply mark it as trash, so it'll be dropped when popped off the
 		// queue.
 		t.trash = true
+		tl.partners[p].requests--
 	}
 	tl.lock.Unlock()
 }
 
 type peerRequestTask struct {
 	Entry  wantlist.Entry
-	Target peer.ID // required
+	Target peer.ID
+
+	Done func()
 
 	// trash in a book-keeping field
 	trash bool
@@ -131,4 +166,56 @@ func wrapCmp(f func(a, b *peerRequestTask) bool) func(a, b pq.Elem) bool {
 	return func(a, b pq.Elem) bool {
 		return f(a.(*peerRequestTask), b.(*peerRequestTask))
 	}
+}
+
+type activePartner struct {
+	lk sync.Mutex
+
+	// Active is the number of blocks this peer is currently being sent
+	active int
+
+	// requests is the number of blocks this peer is currently requesting
+	requests int
+
+	index int
+
+	// priority queue of
+	taskQueue pq.PQ
+}
+
+func partnerCompare(a, b pq.Elem) bool {
+	pa := a.(*activePartner)
+	pb := b.(*activePartner)
+
+	// having no blocks in their wantlist means lowest priority
+	if pa.requests == 0 {
+		return false
+	}
+	if pb.requests == 0 {
+		return true
+	}
+	return pa.active < pb.active
+}
+
+func (p *activePartner) StartTask() {
+	p.lk.Lock()
+	p.active++
+	p.lk.Unlock()
+}
+
+func (p *activePartner) TaskDone() {
+	p.lk.Lock()
+	p.active--
+	if p.active < 0 {
+		panic("more tasks finished than started!")
+	}
+	p.lk.Unlock()
+}
+
+func (p *activePartner) Index() int {
+	return p.index
+}
+
+func (p *activePartner) SetIndex(i int) {
+	p.index = i
 }
