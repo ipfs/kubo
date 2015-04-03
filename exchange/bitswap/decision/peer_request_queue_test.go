@@ -105,10 +105,15 @@ func TestPeerRepeats(t *testing.T) {
 
 	// Now, if one of the tasks gets finished, the next task off the queue should
 	// be for the same peer
-	tasks[0].Done()
+	for blockI := 0; blockI < 4; blockI++ {
+		for i := 0; i < 4; i++ {
+			// its okay to mark the same task done multiple times here (JUST FOR TESTING)
+			tasks[i].Done()
 
-	ntask := prq.Pop()
-	if ntask.Target != tasks[0].Target {
-		t.Fatal("Expected task from peer with lowest active count")
+			ntask := prq.Pop()
+			if ntask.Target != tasks[i].Target {
+				t.Fatal("Expected task from peer with lowest active count")
+			}
+		}
 	}
 }

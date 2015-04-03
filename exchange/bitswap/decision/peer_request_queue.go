@@ -173,11 +173,11 @@ func wrapCmp(f func(a, b *peerRequestTask) bool) func(a, b pq.Elem) bool {
 }
 
 type activePartner struct {
-	lk sync.Mutex
 
 	// Active is the number of blocks this peer is currently being sent
 	// active must be locked around as it will be updated externally
-	active int
+	activelk sync.Mutex
+	active   int
 
 	// requests is the number of blocks this peer is currently requesting
 	// request need not be locked around as it will only be modified under
@@ -197,6 +197,7 @@ func partnerCompare(a, b pq.Elem) bool {
 	pb := b.(*activePartner)
 
 	// having no blocks in their wantlist means lowest priority
+	// having both of these checks ensures stability of the sort
 	if pa.requests == 0 {
 		return false
 	}
@@ -208,19 +209,19 @@ func partnerCompare(a, b pq.Elem) bool {
 
 // StartTask signals that a task was started for this partner
 func (p *activePartner) StartTask() {
-	p.lk.Lock()
+	p.activelk.Lock()
 	p.active++
-	p.lk.Unlock()
+	p.activelk.Unlock()
 }
 
 // TaskDone signals that a task was completed for this partner
 func (p *activePartner) TaskDone() {
-	p.lk.Lock()
+	p.activelk.Lock()
 	p.active--
 	if p.active < 0 {
 		panic("more tasks finished than started!")
 	}
-	p.lk.Unlock()
+	p.activelk.Unlock()
 }
 
 // Index implements pq.Elem
