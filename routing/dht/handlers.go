@@ -135,7 +135,7 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 	// if looking for self... special case where we are looking for connected peers.
 	// Used for FindPeersConnectedToPeer
 	if peer.ID(pmes.GetKey()) == dht.self {
-		closest = dht.peerstore.Peers()
+		closest = dht.routingTable.ListPeers()
 	} else {
 		closest = dht.betterPeersToQuery(pmes, p, CloserPeerCount)
 	}
