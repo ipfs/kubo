@@ -55,9 +55,6 @@ type Envelope struct {
 	Peer peer.ID
 	// Message is the payload
 	Message bsmsg.BitSwapMessage
-
-	// A callback to notify the decision queue that the task is complete
-	Sent func()
 }
 
 type Engine struct {
@@ -143,7 +140,6 @@ func (e *Engine) nextEnvelope(ctx context.Context) (*Envelope, error) {
 		return &Envelope{
 			Peer:    nextTask.Target,
 			Message: m,
-			Sent:    nextTask.Done,
 		}, nil
 	}
 }
