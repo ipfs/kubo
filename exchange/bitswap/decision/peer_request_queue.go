@@ -89,14 +89,15 @@ func (tl *prq) Pop() *peerRequestTask {
 		out = partner.taskQueue.Pop().(*peerRequestTask)
 		delete(tl.taskMap, out.Key())
 		if out.trash {
+			out = nil
 			continue // discarding tasks that have been removed
 		}
+
+		partner.StartTask()
+		partner.requests--
 		break // and return |out|
 	}
 
-	// start the new task, and push the partner back onto the queue
-	partner.StartTask()
-	partner.requests--
 	tl.pQueue.Push(partner)
 	return out
 }
