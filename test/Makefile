@@ -6,6 +6,9 @@ RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 MULTIHASH_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-multihash
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
 
+# User might want to override those on the command line
+GOFLAGS =
+
 all: deps
 
 deps: bins
@@ -15,17 +18,21 @@ clean:
 
 bins: $(BINS)
 
-bin/random: $(RANDOM_SRC)/**/*.go
-	go build -o bin/random $(RANDOM_SRC)/random
+bin/random: $(RANDOM_SRC)/**/*.go IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/random $(RANDOM_SRC)/random
 
-bin/multihash: $(MULTIHASH_SRC)/**/*.go
-	go build -o bin/multihash $(MULTIHASH_SRC)/multihash
+bin/multihash: $(MULTIHASH_SRC)/**/*.go IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/multihash $(MULTIHASH_SRC)/multihash
 
-bin/ipfs: $(IPFS_ROOT)/**/*.go
-	go build -o bin/ipfs $(IPFS_CMD)
+bin/ipfs: $(IPFS_ROOT)/**/*.go IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/ipfs $(IPFS_CMD)
 
-bin/pollEndpoint: $(POLLENDPOINT_SRC)/*.go
-	go build -o bin/pollEndpoint $(POLLENDPOINT_SRC)
+bin/pollEndpoint: $(POLLENDPOINT_SRC)/*.go IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/pollEndpoint $(POLLENDPOINT_SRC)
 
 test: test_expensive
 
@@ -38,4 +45,11 @@ test_cheap:
 	cd sharness && make
 	cd 3nodetest && make
 
-.PHONY: all clean
+IPFS-BUILD-OPTIONS: FORCE
+	@VARS='$(GOFLAGS)'; \
+	    if test x"$$VARS" != x"`cat $@ 2>/dev/null`" ; then \
+		echo "*** new Go flags ***"; \
+		echo "$$VARS" >$@; \
+            fi
+
+.PHONY: all clean FORCE
