@@ -2,7 +2,9 @@ package helpers
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
@@ -76,7 +78,10 @@ func (n *UnixfsNode) NumChildren() int {
 }
 
 func (n *UnixfsNode) GetChild(i int, ds dag.DAGService) (*UnixfsNode, error) {
-	nd, err := n.node.Links[i].GetNode(ds)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	defer cancel()
+
+	nd, err := n.node.Links[i].GetNode(ctx, ds)
 	if err != nil {
 		return nil, err
 	}

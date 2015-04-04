@@ -74,7 +74,7 @@ func NewDagReader(ctx context.Context, n *mdag.Node, serv mdag.DAGService) (*Dag
 		if len(n.Links) == 0 {
 			return nil, errors.New("incorrectly formatted metadata object")
 		}
-		child, err := n.Links[0].GetNode(serv)
+		child, err := n.Links[0].GetNode(ctx, serv)
 		if err != nil {
 			return nil, err
 		}

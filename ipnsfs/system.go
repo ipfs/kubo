@@ -159,7 +159,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 		}
 	}
 
-	mnode, err := fs.dserv.Get(pointsTo)
+	mnode, err := fs.dserv.Get(ctx, pointsTo)
 	if err != nil {
 		return nil, err
 	}

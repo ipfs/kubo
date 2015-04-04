@@ -4,7 +4,6 @@ package merkledag
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
@@ -19,7 +18,7 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 type DAGService interface {
 	Add(*Node) (u.Key, error)
 	AddRecursive(*Node) error
-	Get(u.Key) (*Node, error)
+	Get(context.Context, u.Key) (*Node, error)
 	Remove(*Node) error
 
 	// GetDAG returns, in order, all the single leve child
@@ -83,16 +82,10 @@ func (n *dagService) AddRecursive(nd *Node) error {
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(k u.Key) (*Node, error) {
+func (n *dagService) Get(ctx context.Context, k u.Key) (*Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
-
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
-	defer cancel()
-	// we shouldn't use an arbitrary timeout here.
-	// since Get doesnt take in a context yet, we give a large upper bound.
-	// think of an http request. we want it to go on as long as the client requests it.
 
 	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
@@ -134,7 +127,7 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 				return
 			}
 
-			nd, err := lnk.GetNode(serv)
+			nd, err := lnk.GetNode(ctx, serv)
 			if err != nil {
 				log.Debug(err)
 				return

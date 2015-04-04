@@ -1,0 +1,30 @@
+#!/bin/sh
+
+die() {
+  echo "$@"
+  exit 1
+}
+
+if [ "$#" -eq 0 ]; then
+  echo "usage: $0 <object>"
+  echo "show ipfs pin information for object"
+  exit 1
+fi
+
+path=$1
+
+echo "$path" | grep "/" >/dev/null
+if [ "$?" -eq 0 ]; then
+  die "error: paths not supported. please resolve to hash first."
+fi
+
+ipfs pin ls --type=recursive | grep "$path" >/dev/null
+[ "$?" -eq 0 ] && echo "$path pinned recursively"
+
+ipfs pin ls --type=indirect | grep "$path" >/dev/null
+[ "$?" -eq 0 ] && echo "$path pinned indirectly"
+
+ipfs pin ls --type=direct | grep "$path" >/dev/null
+[ "$?" -eq 0 ] && echo "$path pinned directly"
+
+exit 0

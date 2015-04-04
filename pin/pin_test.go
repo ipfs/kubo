@@ -2,6 +2,9 @@ package pin
 
 import (
 	"testing"
+	"time"
+
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
@@ -21,6 +24,8 @@ func randNode() (*mdag.Node, util.Key) {
 }
 
 func TestPinnerBasic(t *testing.T) {
+	ctx := context.Background()
+
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv, err := bs.New(bstore, offline.Exchange(bstore))
@@ -40,7 +45,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Pin A{}
-	err = p.Pin(a, false)
+	err = p.Pin(ctx, a, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +79,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// recursively pin B{A,C}
-	err = p.Pin(b, true)
+	err = p.Pin(ctx, b, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +107,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Add D{A,C,E}
-	err = p.Pin(d, true)
+	err = p.Pin(ctx, d, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +122,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Test recursive unpin
-	err = p.Unpin(dk, true)
+	err = p.Unpin(ctx, dk, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,6 +159,7 @@ func TestPinnerBasic(t *testing.T) {
 }
 
 func TestDuplicateSemantics(t *testing.T) {
+	ctx := context.Background()
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
 	bserv, err := bs.New(bstore, offline.Exchange(bstore))
@@ -173,19 +179,59 @@ func TestDuplicateSemantics(t *testing.T) {
 	}
 
 	// pin is recursively
-	err = p.Pin(a, true)
+	err = p.Pin(ctx, a, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// pinning directly should fail
-	err = p.Pin(a, false)
+	err = p.Pin(ctx, a, false)
 	if err == nil {
 		t.Fatal("expected direct pin to fail")
 	}
 
 	// pinning recursively again should succeed
-	err = p.Pin(a, true)
+	err = p.Pin(ctx, a, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPinRecursiveFail(t *testing.T) {
+	ctx := context.Background()
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dserv := mdag.NewDAGService(bserv)
+
+	p := NewPinner(dstore, dserv)
+
+	a, _ := randNode()
+	b, _ := randNode()
+	err = a.AddNodeLinkClean("child", b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Note: this isnt a time based test, we expect the pin to fail
+	mctx, _ := context.WithTimeout(ctx, time.Millisecond)
+	err = p.Pin(mctx, a, true)
+	if err == nil {
+		t.Fatal("should have failed to pin here")
+	}
+
+	_, err = dserv.Add(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// this one is time based... but shouldnt cause any issues
+	mctx, _ = context.WithTimeout(ctx, time.Second)
+	err = p.Pin(mctx, a, true)
 	if err != nil {
 		t.Fatal(err)
 	}

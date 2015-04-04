@@ -295,3 +295,9 @@ test_should_contain() {
 		return 1
 	fi
 }
+
+test_str_contains() {
+	find=$1
+	shift
+	echo "$@" | grep "$find" >/dev/null
+}

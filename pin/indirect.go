@@ -28,9 +28,11 @@ func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
 	refcnt := make(map[util.Key]int)
 	var keys []util.Key
 	for encK, v := range rcStore {
-		k := util.B58KeyDecode(encK)
-		keys = append(keys, k)
-		refcnt[k] = v
+		if v > 0 {
+			k := util.B58KeyDecode(encK)
+			keys = append(keys, k)
+			refcnt[k] = v
+		}
 	}
 	// log.Debugf("indirPin keys: %#v", keys)
 
@@ -59,6 +61,7 @@ func (i *indirectPin) Decrement(k util.Key) {
 	i.refCounts[k] = c
 	if c <= 0 {
 		i.blockset.RemoveBlock(k)
+		delete(i.refCounts, k)
 	}
 }
 
@@ -68,4 +71,8 @@ func (i *indirectPin) HasKey(k util.Key) bool {
 
 func (i *indirectPin) Set() set.BlockSet {
 	return i.blockset
+}
+
+func (i *indirectPin) GetRefs() map[util.Key]int {
+	return i.refCounts
 }

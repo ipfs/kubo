@@ -190,7 +190,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			first, err := dagservs[i].Get(k)
+			first, err := dagservs[i].Get(context.Background(), k)
 			if err != nil {
 				t.Fatal(err)
 			}

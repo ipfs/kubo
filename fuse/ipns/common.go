@@ -1,6 +1,10 @@
 package ipns
 
 import (
+	"time"
+
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	"github.com/ipfs/go-ipfs/core"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	nsys "github.com/ipfs/go-ipfs/namesys"
@@ -17,7 +21,10 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
-	err = n.Pinning.Pin(emptyDir, false)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	defer cancel()
+
+	err = n.Pinning.Pin(ctx, emptyDir, false)
 	if err != nil {
 		return err
 	}

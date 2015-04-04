@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	gopath "path"
+	"time"
+
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
@@ -108,7 +111,9 @@ func addNode(n *core.IpfsNode, node *merkledag.Node) error {
 	if err != nil {
 		return err
 	}
-	err = n.Pinning.Pin(node, true) // ensure we keep it
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	defer cancel()
+	err = n.Pinning.Pin(ctx, node, true) // ensure we keep it
 	if err != nil {
 		return err
 	}

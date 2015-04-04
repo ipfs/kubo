@@ -1,6 +1,10 @@
 package io
 
 import (
+	"time"
+
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
@@ -20,7 +24,10 @@ func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
 }
 
 func (d *directoryBuilder) AddChild(name string, k u.Key) error {
-	cnode, err := d.dserv.Get(k)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	defer cancel()
+
+	cnode, err := d.dserv.Get(ctx, k)
 	if err != nil {
 		return err
 	}

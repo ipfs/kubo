@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -184,7 +185,7 @@ func (dm *DagModifier) Sync() error {
 		return err
 	}
 
-	nd, err := dm.dagserv.Get(thisk)
+	nd, err := dm.dagserv.Get(dm.ctx, thisk)
 	if err != nil {
 		return err
 	}
@@ -267,7 +268,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			ckey := u.Key(node.Links[i].Hash)
 			dm.mp.RemovePinWithMode(ckey, pin.Indirect)
 
-			child, err := node.Links[i].GetNode(dm.dagserv)
+			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
 				return "", false, err
 			}
@@ -457,7 +458,10 @@ func dagTruncate(nd *mdag.Node, size uint64, ds mdag.DAGService) (*mdag.Node, er
 	var modified *mdag.Node
 	ndata := new(ft.FSNode)
 	for i, lnk := range nd.Links {
-		child, err := lnk.GetNode(ds)
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+		defer cancel()
+
+		child, err := lnk.GetNode(ctx, ds)
 		if err != nil {
 			return nil, err
 		}

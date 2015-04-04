@@ -140,8 +140,9 @@ test_expect_success "'ipfs pin ls -type=all' is correct" '
 	cat directpinout >allpins &&
 	cat rp_actual >>allpins &&
 	cat indirectpins >>allpins &&
+	cat allpins | sort | uniq >> allpins_uniq &&
 	ipfs pin ls -type=all >actual_allpins &&
-	test_sort_cmp allpins actual_allpins
+	test_sort_cmp allpins_uniq actual_allpins
 '
 
 test_kill_ipfs_daemon
