@@ -45,6 +45,11 @@ test_cheap:
 	cd sharness && make
 	cd 3nodetest && make
 
+test_race:
+	cd sharness && make GOFLAGS=-race TEST_EXPENSIVE=1
+	cd 3nodetest && make GOFLAGS=-race
+	cd dependencies && make GOFLAGS=-race
+
 IPFS-BUILD-OPTIONS: FORCE
 	@VARS='$(GOFLAGS)'; \
 	    if test x"$$VARS" != x"`cat $@ 2>/dev/null`" ; then \
