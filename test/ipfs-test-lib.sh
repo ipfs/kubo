@@ -16,3 +16,9 @@ test_cmp() {
 	diff -q "$@" >/dev/null || test_fsh diff -u "$@"
 }
 
+# Same as test_cmp above, but we sort files before comparing them.
+test_sort_cmp() {
+	sort "$1" >"$1_sorted" &&
+	sort "$2" >"$2_sorted" &&
+	test_cmp "$1_sorted" "$2_sorted"
+}

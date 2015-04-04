@@ -49,10 +49,8 @@ test_expect_success "file no longer pinned" '
 	echo "$HASH_WELCOME_DOCS" >expected2 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
-	sort expected2 >expected_sorted2 &&
 	ipfs pin ls -type=recursive >actual2 &&
-	sort actual2 >actual_sorted2 &&
-	test_cmp expected_sorted2 actual_sorted2
+	test_sort_cmp expected2 actual2
 '
 
 test_expect_success "recursively pin afile" '
@@ -95,10 +93,8 @@ test_expect_failure "'ipfs refs local' no longer shows file" '
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >expected8 &&
 	echo "$HASH_WELCOME_DOCS" >>expected8 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected8 &&
-	sort expected8 >expected_sorted8 &&
 	ipfs refs local >actual8 &&
-	sort actual8 >actual_sorted8 &&
-	test_cmp expected_sorted8 actual_sorted8
+	test_sort_cmp expected8 actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
@@ -109,10 +105,8 @@ test_expect_success "adding multiblock random file succeeds" '
 test_expect_success "'ipfs pin ls -type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
-	sort refsout >refsout_sorted &&
 	ipfs pin ls -type=indirect >indirectpins &&
-	sort indirectpins >indirectpins_sorted &&
-	test_cmp refsout_sorted indirectpins_sorted
+	test_sort_cmp refsout indirectpins
 '
 
 test_expect_success "pin something directly" '
@@ -129,10 +123,8 @@ test_expect_success "pin something directly" '
 
 test_expect_success "'ipfs pin ls -type=direct' is correct" '
 	echo "$DIRECTPIN" >directpinexpected &&
-	sort directpinexpected >dp_exp_sorted &&
 	ipfs pin ls -type=direct >directpinout &&
-	sort directpinout >dp_out_sorted &&
-	test_cmp dp_exp_sorted dp_out_sorted
+	test_sort_cmp directpinexpected directpinout
 '
 
 test_expect_success "'ipfs pin ls -type=recursive' is correct" '
@@ -140,20 +132,16 @@ test_expect_success "'ipfs pin ls -type=recursive' is correct" '
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
-	sort rp_expected >rp_exp_sorted &&
 	ipfs pin ls -type=recursive >rp_actual &&
-	sort rp_actual >rp_act_sorted &&
-	test_cmp rp_exp_sorted rp_act_sorted
+	test_sort_cmp rp_expected rp_actual
 '
 
 test_expect_success "'ipfs pin ls -type=all' is correct" '
 	cat directpinout >allpins &&
 	cat rp_actual >>allpins &&
 	cat indirectpins >>allpins &&
-	sort allpins >allpins_sorted &&
 	ipfs pin ls -type=all >actual_allpins &&
-	sort actual_allpins >actual_allpins_sorted &&
-	test_cmp allpins_sorted actual_allpins_sorted
+	test_sort_cmp allpins actual_allpins
 '
 
 test_kill_ipfs_daemon
