@@ -60,6 +60,10 @@ var queryDhtCmd = &cmds.Command{
 		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
 
 		closestPeers, err := dht.GetClosestPeers(ctx, u.Key(req.Arguments()[0]))
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 
 		go func() {
 			defer close(events)
