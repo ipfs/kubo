@@ -16,6 +16,7 @@ do
     sleep 1
 done
 echo "3nodetest> client found file with hash:" $(cat /data/idtiny)
+sleep 2
 
 ipfs cat $(cat /data/idtiny) > filetiny
 
