@@ -44,7 +44,36 @@ sudo chown <username>:<groupname> /etc/fuse.conf
 
 ## Troubleshooting
 
-If the mount command crashes and your mountpoint gets stuck:
+### Getting `Permission denied` or `fusermount: user has no write access to mountpoint` error in Linux
+
+Verify that the config file can be read by your user:
+```sh
+sudo ls -l /etc/fuse.conf
+-rw-r----- 1 root fuse 216 Jan  2  2013 /etc/fuse.conf
+```
+In most distributions group named `fuse` will be created during installation. You can check with:
+
+```sh
+sudo grep -q fuse /etc/group && echo fuse_group_present || echo fuse_group_missing
+```
+
+If group is present, just add your regular user to the `fuse` group:
+```sh
+sudo usermod -G fuse -a <username>
+```
+
+If not, create `fuse` group (add your regular user to it) and set necessary permissions, for example:
+```sh
+sudo chgrp fuse /etc/fuse.conf
+sudo chmod g+r  /etc/fuse.conf
+sudo chgrp fuse /ipfs /ipns
+sudo chmod g+rw /ipfs /ipns
+```
+
+Note that the use of `fuse` group is optional and may depend on your operating system.
+It is okay to use a different group as long as proper permissions are set for user running `ipfs mount` command.
+
+### Mount command crashes and mountpoint gets stuck
 
 ```
 sudo umount /ipfs
