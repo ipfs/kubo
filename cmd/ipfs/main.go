@@ -40,6 +40,7 @@ const (
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
 	errorFormat        = "ERROR: %v\n\n"
+	shutdownMessage    = "Received interrupt signal, shutting down..."
 )
 
 type cmdInvocation struct {
@@ -490,7 +491,7 @@ func (i *cmdInvocation) setupInterruptHandler() {
 			// if we're still initializing, cannot use `ctx.GetNode()`
 			select {
 			default: // initialization not done
-				fmt.Println("Received interrupt signal, shutting down...")
+				fmt.Println(shutdownMessage)
 				os.Exit(-1)
 			case <-ctx.InitDone:
 			}
@@ -500,13 +501,13 @@ func (i *cmdInvocation) setupInterruptHandler() {
 			n, err := ctx.GetNode()
 			if err != nil {
 				log.Error(err)
-				fmt.Println("Received interrupt signal, terminating...")
+				fmt.Println(shutdownMessage)
 				os.Exit(-1)
 			}
 
 			switch count {
 			case 0:
-				fmt.Println("Received interrupt signal, shutting down...")
+				fmt.Println(shutdownMessage)
 				go func() {
 					n.Close()
 					log.Info("Gracefully shut down.")
