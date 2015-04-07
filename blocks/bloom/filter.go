@@ -2,13 +2,11 @@
 package bloom
 
 import (
+	"encoding/binary"
 	"errors"
-	"fmt"
+	// Non crypto hash, because speed
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mtchavez/jenkins"
 	"hash"
-	"hash/adler32"
-	"hash/crc32"
-	"hash/fnv"
-	"math/big"
 )
 
 type Filter interface {
@@ -17,59 +15,64 @@ type Filter interface {
 	Merge(Filter) (Filter, error)
 }
 
-func BasicFilter() Filter {
-	// Non crypto hashes, because speed
-	return NewFilter(2048, adler32.New(), fnv.New32(), crc32.NewIEEE())
-}
-
-func NewFilter(size int, hashes ...hash.Hash) Filter {
+func NewFilter(size int) Filter {
 	return &filter{
+		hash:   jenkins.New(),
 		filter: make([]byte, size),
-		hashes: hashes,
+		k:      3,
 	}
 }
 
 type filter struct {
 	filter []byte
-	hashes []hash.Hash
+	hash   hash.Hash32
+	k      int
 }
 
-func (f *filter) Add(k []byte) {
-	for _, h := range f.hashes {
-		i := bytesMod(h.Sum(k), int64(len(f.filter)*8))
-		f.setBit(i)
+func BasicFilter() Filter {
+	return NewFilter(2048)
+}
+
+func (f *filter) Add(bytes []byte) {
+	for _, bit := range f.getBitIndicies(bytes) {
+		f.setBit(bit)
 	}
 }
 
-func (f *filter) Find(k []byte) bool {
-	for _, h := range f.hashes {
-		i := bytesMod(h.Sum(k), int64(len(f.filter)*8))
-		if !f.getBit(i) {
+func (f *filter) getBitIndicies(bytes []byte) []uint32 {
+	indicies := make([]uint32, f.k)
+
+	f.hash.Write(bytes)
+	b := make([]byte, 4)
+
+	for i := 0; i < f.k; i++ {
+		res := f.hash.Sum32()
+		indicies[i] = res % (uint32(len(f.filter)) * 8)
+
+		binary.LittleEndian.PutUint32(b, res)
+		f.hash.Write(b)
+	}
+
+	f.hash.Reset()
+
+	return indicies
+}
+
+func (f *filter) Find(bytes []byte) bool {
+	for _, bit := range f.getBitIndicies(bytes) {
+		if !f.getBit(bit) {
 			return false
 		}
 	}
 	return true
 }
 
-func (f *filter) setBit(i int64) {
-	fmt.Printf("setting bit %d\n", i)
+func (f *filter) setBit(i uint32) {
 	f.filter[i/8] |= (1 << byte(i%8))
 }
 
-func (f *filter) getBit(i int64) bool {
-	fmt.Printf("getting bit %d\n", i)
+func (f *filter) getBit(i uint32) bool {
 	return f.filter[i/8]&(1<<byte(i%8)) != 0
-}
-
-func bytesMod(b []byte, modulo int64) int64 {
-	i := big.NewInt(0)
-	i = i.SetBytes(b)
-
-	bigmod := big.NewInt(int64(modulo))
-	result := big.NewInt(0)
-	result.Mod(i, bigmod)
-
-	return result.Int64()
 }
 
 func (f *filter) Merge(o Filter) (Filter, error) {
@@ -82,12 +85,15 @@ func (f *filter) Merge(o Filter) (Filter, error) {
 		return nil, errors.New("filter lengths must match!")
 	}
 
+	if casfil.k != f.k {
+		return nil, errors.New("filter k-values must match!")
+	}
+
 	nfilt := new(filter)
-
-	// this bit is sketchy, need a way of comparing hash functions
-	nfilt.hashes = f.hashes
-
+	nfilt.hash = f.hash
 	nfilt.filter = make([]byte, len(f.filter))
+	nfilt.k = f.k
+
 	for i, v := range f.filter {
 		nfilt.filter[i] = v | casfil.filter[i]
 	}
