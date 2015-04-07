@@ -18,19 +18,21 @@ clean:
 
 bins: $(BINS)
 
-bin/random: $(RANDOM_SRC)/**/*.go IPFS-BUILD-OPTIONS
+find_go_files = $(shell find $(1) -name "*.go")
+
+bin/random: $(call find_go_files, $(RANDOM_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/random $(RANDOM_SRC)/random
 
-bin/multihash: $(MULTIHASH_SRC)/**/*.go IPFS-BUILD-OPTIONS
+bin/multihash: $(call find_go_files, $(MULTIHASH_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/multihash $(MULTIHASH_SRC)/multihash
 
-bin/ipfs: $(IPFS_ROOT)/**/*.go IPFS-BUILD-OPTIONS
+bin/ipfs: $(call find_go_files, $(IPFS_ROOT)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/ipfs $(IPFS_CMD)
 
-bin/pollEndpoint: $(POLLENDPOINT_SRC)/*.go IPFS-BUILD-OPTIONS
+bin/pollEndpoint: $(call find_go_files, $(POLLENDPOINT_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/pollEndpoint $(POLLENDPOINT_SRC)
 
