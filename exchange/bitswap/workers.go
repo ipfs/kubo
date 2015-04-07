@@ -51,6 +51,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context) {
 				}
 				log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
 				bs.send(ctx, envelope.Peer, envelope.Message)
+				envelope.Sent()
 			case <-ctx.Done():
 				return
 			}

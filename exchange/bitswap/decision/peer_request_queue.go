@@ -21,53 +21,84 @@ type peerRequestQueue interface {
 
 func newPRQ() peerRequestQueue {
 	return &prq{
-		taskMap:   make(map[string]*peerRequestTask),
-		taskQueue: pq.New(wrapCmp(V1)),
+		taskMap:  make(map[string]*peerRequestTask),
+		partners: make(map[peer.ID]*activePartner),
+		pQueue:   pq.New(partnerCompare),
 	}
 }
 
+// verify interface implementation
 var _ peerRequestQueue = &prq{}
 
 // TODO: at some point, the strategy needs to plug in here
 // to help decide how to sort tasks (on add) and how to select
 // tasks (on getnext). For now, we are assuming a dumb/nice strategy.
 type prq struct {
-	lock      sync.Mutex
-	taskQueue pq.PQ
-	taskMap   map[string]*peerRequestTask
+	lock     sync.Mutex
+	pQueue   pq.PQ
+	taskMap  map[string]*peerRequestTask
+	partners map[peer.ID]*activePartner
 }
 
 // Push currently adds a new peerRequestTask to the end of the list
 func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
+	partner, ok := tl.partners[to]
+	if !ok {
+		partner = &activePartner{taskQueue: pq.New(wrapCmp(V1))}
+		tl.pQueue.Push(partner)
+		tl.partners[to] = partner
+	}
+
 	if task, ok := tl.taskMap[taskKey(to, entry.Key)]; ok {
 		task.Entry.Priority = entry.Priority
-		tl.taskQueue.Update(task.index)
+		partner.taskQueue.Update(task.index)
 		return
 	}
+
 	task := &peerRequestTask{
 		Entry:   entry,
 		Target:  to,
 		created: time.Now(),
+		Done: func() {
+			partner.TaskDone()
+			tl.lock.Lock()
+			tl.pQueue.Update(partner.Index())
+			tl.lock.Unlock()
+		},
 	}
-	tl.taskQueue.Push(task)
+
+	partner.taskQueue.Push(task)
 	tl.taskMap[task.Key()] = task
+	partner.requests++
+	tl.pQueue.Update(partner.Index())
 }
 
 // Pop 'pops' the next task to be performed. Returns nil if no task exists.
 func (tl *prq) Pop() *peerRequestTask {
 	tl.lock.Lock()
 	defer tl.lock.Unlock()
+	if tl.pQueue.Len() == 0 {
+		return nil
+	}
+	partner := tl.pQueue.Pop().(*activePartner)
+
 	var out *peerRequestTask
-	for tl.taskQueue.Len() > 0 {
-		out = tl.taskQueue.Pop().(*peerRequestTask)
+	for partner.taskQueue.Len() > 0 {
+		out = partner.taskQueue.Pop().(*peerRequestTask)
 		delete(tl.taskMap, out.Key())
 		if out.trash {
+			out = nil
 			continue // discarding tasks that have been removed
 		}
+
+		partner.StartTask()
+		partner.requests--
 		break // and return |out|
 	}
+
+	tl.pQueue.Push(partner)
 	return out
 }
 
@@ -80,13 +111,19 @@ func (tl *prq) Remove(k u.Key, p peer.ID) {
 		// simply mark it as trash, so it'll be dropped when popped off the
 		// queue.
 		t.trash = true
+
+		// having canceled a block, we now account for that in the given partner
+		tl.partners[p].requests--
 	}
 	tl.lock.Unlock()
 }
 
 type peerRequestTask struct {
 	Entry  wantlist.Entry
-	Target peer.ID // required
+	Target peer.ID
+
+	// A callback to signal that this task has been completed
+	Done func()
 
 	// trash in a book-keeping field
 	trash bool
@@ -100,10 +137,12 @@ func (t *peerRequestTask) Key() string {
 	return taskKey(t.Target, t.Entry.Key)
 }
 
+// Index implements pq.Elem
 func (t *peerRequestTask) Index() int {
 	return t.index
 }
 
+// SetIndex implements pq.Elem
 func (t *peerRequestTask) SetIndex(i int) {
 	t.index = i
 }
@@ -131,4 +170,66 @@ func wrapCmp(f func(a, b *peerRequestTask) bool) func(a, b pq.Elem) bool {
 	return func(a, b pq.Elem) bool {
 		return f(a.(*peerRequestTask), b.(*peerRequestTask))
 	}
+}
+
+type activePartner struct {
+
+	// Active is the number of blocks this peer is currently being sent
+	// active must be locked around as it will be updated externally
+	activelk sync.Mutex
+	active   int
+
+	// requests is the number of blocks this peer is currently requesting
+	// request need not be locked around as it will only be modified under
+	// the peerRequestQueue's locks
+	requests int
+
+	// for the PQ interface
+	index int
+
+	// priority queue of tasks belonging to this peer
+	taskQueue pq.PQ
+}
+
+// partnerCompare implements pq.ElemComparator
+func partnerCompare(a, b pq.Elem) bool {
+	pa := a.(*activePartner)
+	pb := b.(*activePartner)
+
+	// having no blocks in their wantlist means lowest priority
+	// having both of these checks ensures stability of the sort
+	if pa.requests == 0 {
+		return false
+	}
+	if pb.requests == 0 {
+		return true
+	}
+	return pa.active < pb.active
+}
+
+// StartTask signals that a task was started for this partner
+func (p *activePartner) StartTask() {
+	p.activelk.Lock()
+	p.active++
+	p.activelk.Unlock()
+}
+
+// TaskDone signals that a task was completed for this partner
+func (p *activePartner) TaskDone() {
+	p.activelk.Lock()
+	p.active--
+	if p.active < 0 {
+		panic("more tasks finished than started!")
+	}
+	p.activelk.Unlock()
+}
+
+// Index implements pq.Elem
+func (p *activePartner) Index() int {
+	return p.index
+}
+
+// SetIndex implements pq.Elem
+func (p *activePartner) SetIndex(i int) {
+	p.index = i
 }

@@ -47,10 +47,73 @@ func TestPushPop(t *testing.T) {
 		prq.Remove(util.Key(consonant), partner)
 	}
 
-	for _, expected := range vowels {
-		received := prq.Pop().Entry.Key
-		if received != util.Key(expected) {
-			t.Fatal("received", string(received), "expected", string(expected))
+	var out []string
+	for {
+		received := prq.Pop()
+		if received == nil {
+			break
+		}
+
+		out = append(out, string(received.Entry.Key))
+	}
+
+	// Entries popped should already be in correct order
+	for i, expected := range vowels {
+		if out[i] != expected {
+			t.Fatal("received", out[i], "expected", expected)
+		}
+	}
+}
+
+// This test checks that peers wont starve out other peers
+func TestPeerRepeats(t *testing.T) {
+	prq := newPRQ()
+	a := testutil.RandPeerIDFatal(t)
+	b := testutil.RandPeerIDFatal(t)
+	c := testutil.RandPeerIDFatal(t)
+	d := testutil.RandPeerIDFatal(t)
+
+	// Have each push some blocks
+
+	for i := 0; i < 5; i++ {
+		prq.Push(wantlist.Entry{Key: util.Key(i)}, a)
+		prq.Push(wantlist.Entry{Key: util.Key(i)}, b)
+		prq.Push(wantlist.Entry{Key: util.Key(i)}, c)
+		prq.Push(wantlist.Entry{Key: util.Key(i)}, d)
+	}
+
+	// now, pop off four entries, there should be one from each
+	var targets []string
+	var tasks []*peerRequestTask
+	for i := 0; i < 4; i++ {
+		t := prq.Pop()
+		targets = append(targets, t.Target.Pretty())
+		tasks = append(tasks, t)
+	}
+
+	expected := []string{a.Pretty(), b.Pretty(), c.Pretty(), d.Pretty()}
+	sort.Strings(expected)
+	sort.Strings(targets)
+
+	t.Log(targets)
+	t.Log(expected)
+	for i, s := range targets {
+		if expected[i] != s {
+			t.Fatal("unexpected peer", s, expected[i])
+		}
+	}
+
+	// Now, if one of the tasks gets finished, the next task off the queue should
+	// be for the same peer
+	for blockI := 0; blockI < 4; blockI++ {
+		for i := 0; i < 4; i++ {
+			// its okay to mark the same task done multiple times here (JUST FOR TESTING)
+			tasks[i].Done()
+
+			ntask := prq.Pop()
+			if ntask.Target != tasks[i].Target {
+				t.Fatal("Expected task from peer with lowest active count")
+			}
 		}
 	}
 }
