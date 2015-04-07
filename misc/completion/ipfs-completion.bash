@@ -328,7 +328,7 @@ _ipfs()
     
     case "${COMP_CWORD}" in
         1)  
-            local opts="add block bootstrap cat commands config daemon dht diag id \
+            local opts="add block bootstrap cat commands config daemon dht diag get id \
                         init log ls mount name object pin ping refs repo swarm tour \
                         update version"
             COMPREPLY=( $(compgen -W "${opts}" -- ${word}) );;
