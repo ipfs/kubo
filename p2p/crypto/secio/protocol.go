@@ -248,6 +248,8 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		k1, k2 = k2, k1 // swap
 	default:
 		log.Error("WOAH: same keys (AND same nonce: 1/(2^128) chance!).")
+		log.Errorf("k1: %v, k2: %v, insecure: %v, insecureM %v", k1, k2, s.insecure, s.insecureM)
+
 		// this shouldn't happen. must determine order another way.
 		// use the same keys but, make sure to copy underlying data!
 		copy(k2.IV, k1.IV)
