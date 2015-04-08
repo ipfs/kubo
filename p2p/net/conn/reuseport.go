@@ -18,7 +18,7 @@ func init() {
 	v := strings.ToLower(os.Getenv(envReuseport))
 	if v == "false" || v == "f" || v == "0" {
 		envReuseportVal = false
-		log.Infof("REUSEPORT disabled (IPFS_REUSEPORT=%s)", v)
+		log.Info("REUSEPORT disabled (IPFS_REUSEPORT=%s)", v)
 	}
 }
 
