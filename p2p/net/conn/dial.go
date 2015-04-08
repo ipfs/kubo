@@ -118,7 +118,7 @@ func (d *Dialer) rawConnDial(ctx context.Context, raddr ma.Multiaddr, remote pee
 	// make a copy of the manet.Dialer, we may need to change its timeout.
 	madialer := d.Dialer
 
-	if laddr != nil && reuseport.Available() {
+	if laddr != nil && reuseportIsAvailable() {
 		// we're perhaps going to dial twice. half the timeout, so we can afford to.
 		// otherwise our context would expire right after the first dial.
 		madialer.Dialer.Timeout = (madialer.Dialer.Timeout / 2)
