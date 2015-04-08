@@ -14,18 +14,21 @@ IPFS_ROOT = ../..
 # User might want to override those on the command line
 GOFLAGS =
 
-all: clean deps $(T) aggregate
+all: aggregate
 
-clean:
+clean: clean-test-results
 	@echo "*** $@ ***"
-	-rm -rf test-results
 	-rm -rf bin/ipfs
 
-$(T):
+clean-test-results:
+	@echo "*** $@ ***"
+	-rm -rf test-results
+
+$(T): clean-test-results deps
 	@echo "*** $@ ***"
 	./$@
 
-aggregate:
+aggregate: clean-test-results $(T)
 	@echo "*** $@ ***"
 	lib/test-aggregate-results.sh
 
