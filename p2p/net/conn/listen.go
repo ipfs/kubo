@@ -169,7 +169,7 @@ func manetListen(addr ma.Multiaddr) (manet.Listener, error) {
 		return nil, err
 	}
 
-	if reuseport.Available() {
+	if reuseportIsAvailable() {
 		nl, err := reuseport.Listen(network, naddr)
 		if err == nil {
 			// hey, it worked!
