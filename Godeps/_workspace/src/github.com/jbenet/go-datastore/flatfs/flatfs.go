@@ -47,7 +47,7 @@ func New(path string, prefixLen int) (*Datastore, error) {
 var padding = strings.Repeat("_", maxPrefixLen*hex.EncodedLen(1))
 
 func (fs *Datastore) encode(key datastore.Key) (dir, file string) {
-	safe := hex.EncodeToString(key.Bytes())
+	safe := hex.EncodeToString(key.Bytes()[1:])
 	prefix := (safe + padding)[:fs.hexPrefixLen]
 	dir = path.Join(fs.path, prefix)
 	file = path.Join(dir, safe+extension)
@@ -210,30 +210,39 @@ func (fs *Datastore) Query(q query.Query) (query.Results, error) {
 		return nil, err
 	}
 	for _, fi := range prefixes {
-		if !fi.IsDir() || fi.Name()[0] == '.' {
-			continue
-		}
-		child, err := os.Open(path.Join(fs.path, fi.Name()))
+		var err error
+		res, err = fs.enumerateKeys(fi, res)
 		if err != nil {
 			return nil, err
-		}
-		defer child.Close()
-		objs, err := child.Readdir(0)
-		if err != nil {
-			return nil, err
-		}
-		for _, fi := range objs {
-			if !fi.Mode().IsRegular() || fi.Name()[0] == '.' {
-				continue
-			}
-			key, ok := fs.decode(fi.Name())
-			if !ok {
-				continue
-			}
-			res = append(res, query.Entry{Key: key.String()})
 		}
 	}
 	return query.ResultsWithEntries(q, res), nil
+}
+
+func (fs *Datastore) enumerateKeys(fi os.FileInfo, res []query.Entry) ([]query.Entry, error) {
+	if !fi.IsDir() || fi.Name()[0] == '.' {
+		return res, nil
+	}
+	child, err := os.Open(path.Join(fs.path, fi.Name()))
+	if err != nil {
+		return nil, err
+	}
+	defer child.Close()
+	objs, err := child.Readdir(0)
+	if err != nil {
+		return nil, err
+	}
+	for _, fi := range objs {
+		if !fi.Mode().IsRegular() || fi.Name()[0] == '.' {
+			return res, nil
+		}
+		key, ok := fs.decode(fi.Name())
+		if !ok {
+			return res, nil
+		}
+		res = append(res, query.Entry{Key: key.String()})
+	}
+	return res, nil
 }
 
 var _ datastore.ThreadSafeDatastore = (*Datastore)(nil)
