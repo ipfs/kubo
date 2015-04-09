@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -25,6 +27,8 @@ import (
 	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 )
+
+var RepoVersion = "2"
 
 const (
 	leveldbDirectory = "datastore"
@@ -107,6 +111,24 @@ func open(repoPath string) (repo.Repo, error) {
 	if !isInitializedUnsynced(r.path) {
 		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
+
+	// Check version, and error out if not matching
+	ver, err := ioutil.ReadFile(path.Join(expPath, "version"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.New("version check failed, no version file found, please run 0-to-1 migration tool.")
+		}
+		return nil, err
+	}
+
+	vers := string(ver)[:1]
+
+	if vers != RepoVersion {
+		return nil, fmt.Errorf("Repo has incorrect version: '%s'\nProgram version is: '%s'\nPlease run the appropriate migration tool before continuing",
+			vers, RepoVersion)
+
+	}
+
 	// check repo path, then check all constituent parts.
 	// TODO acquire repo lock
 	// TODO if err := initCheckDir(logpath); err != nil { // }
@@ -205,6 +227,10 @@ func Init(repoPath string, conf *config.Config) error {
 	}
 
 	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
+		return err
+	}
+
+	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
 		return err
 	}
 

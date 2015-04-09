@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -14,7 +12,6 @@ import (
 	leveldb "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	migrate "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-migrate"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -41,8 +38,8 @@ func (m migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	// 1) move key out of config, into its own path
-	err := moveKeyOutOfConfig(opts.Path)
+	// 1) run some sanity checks to make sure we should even bother
+	err := sanityChecks(opts)
 	if err != nil {
 		return err
 	}
@@ -87,13 +84,7 @@ func (m migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
-	// 3) move key back into config
-	err = moveKeyIntoConfig(npath)
-	if err != nil {
-		return err
-	}
-
-	// 4) change version number back down
+	// 3) change version number back down
 	repo = mfsr.RepoPath(npath)
 	err = repo.WriteVersion("1")
 	if err != nil {
@@ -103,8 +94,30 @@ func (m migration) Revert(opts migrate.Options) error {
 	return nil
 }
 
+// sanityChecks performs a set of tests to make sure the migration will go
+// smoothly
+func sanityChecks(opts migrate.Options) error {
+	npath := strings.Replace(opts.Path, ".go-ipfs", ".ipfs", 1)
+
+	// make sure we can move the repo from .go-ipfs to .ipfs
+	err := os.Mkdir(npath, 0777)
+	if err != nil {
+		return err
+	}
+
+	// we can? good, remove it now
+	err = os.Remove(npath)
+	if err != nil {
+		// this is weird... not worth continuing
+		return err
+	}
+
+	return nil
+}
+
 func transferBlocksToFlatDB(repopath string) error {
-	r, err := fsrepo.Open(repopath)
+	ldbpath := path.Join(repopath, "datastore")
+	ldb, err := leveldb.NewDatastore(ldbpath, nil)
 	if err != nil {
 		return err
 	}
@@ -120,7 +133,7 @@ func transferBlocksToFlatDB(repopath string) error {
 		return err
 	}
 
-	return transferBlocks(r.Datastore(), fds, "/b/", "")
+	return transferBlocks(ldb, fds, "/b/", "")
 }
 
 func transferBlocksFromFlatDB(repopath string) error {
@@ -183,98 +196,6 @@ func transferBlocks(from, to dstore.Datastore, fpref, tpref string) error {
 	return nil
 }
 
-func moveKeyOutOfConfig(repopath string) error {
-	// Make keys directory
-	keypath := path.Join(repopath, "keys")
-	err := os.Mkdir(keypath, 0777)
-	if err != nil {
-		return err
-	}
-
-	// Grab the config
-	cfg, err := loadConfigJSON(repopath)
-	if err != nil {
-		return err
-	}
-
-	// get the private key from it
-	privKey, err := getPrivateKeyFromConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	keyfilepath := path.Join(keypath, peerKeyName)
-	fi, err := os.OpenFile(keyfilepath, os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		return err
-	}
-
-	// Write our b64-protobuf encoded key
-	_, err = fi.WriteString(privKey)
-	if err != nil {
-		return err
-	}
-
-	err = fi.Close()
-	if err != nil {
-		return err
-	}
-
-	// Now that the key is safely in its own file, remove it from the config
-	err = clearPrivateKeyFromConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	err = saveConfigJSON(repopath, cfg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Part of the 2-to-1 revert process
-func moveKeyIntoConfig(repopath string) error {
-	// Make keys directory
-	keypath := path.Join(repopath, "keys")
-
-	// Grab the config
-	cfg, err := loadConfigJSON(repopath)
-	if err != nil {
-		return err
-	}
-
-	keyfilepath := path.Join(keypath, peerKeyName)
-	pkey, err := ioutil.ReadFile(keyfilepath)
-	if err != nil {
-		return err
-	}
-
-	id, ok := cfg["Identity"]
-	if !ok {
-		return errors.New("expected to find an identity object in config")
-	}
-	identity, ok := id.(map[string]interface{})
-	if !ok {
-		return errors.New("expected Identity in config to be an object")
-	}
-	identity["PrivKey"] = string(pkey)
-
-	err = saveConfigJSON(repopath, cfg)
-	if err != nil {
-		return err
-	}
-
-	// Now that the key is safely in the config, delete the file
-	err = os.RemoveAll(keypath)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func moveIpfsDir(curpath string) (string, error) {
 	newpath := strings.Replace(curpath, ".go-ipfs", ".ipfs", 1)
 	return newpath, os.Rename(curpath, newpath)
@@ -318,45 +239,6 @@ func saveConfigJSON(repoPath string, cfg map[string]interface{}) error {
 		return err
 	}
 
-	return nil
-}
-
-func getPrivateKeyFromConfig(cfg map[string]interface{}) (string, error) {
-	ident, ok := cfg["Identity"]
-	if !ok {
-		return "", errors.New("no identity found in config")
-	}
-
-	identMap, ok := ident.(map[string]interface{})
-	if !ok {
-		return "", errors.New("expected Identity to be object (map)")
-	}
-
-	privkey, ok := identMap["PrivKey"]
-	if !ok {
-		return "", errors.New("no PrivKey field found in Identity")
-	}
-
-	privkeyStr, ok := privkey.(string)
-	if !ok {
-		return "", errors.New("expected PrivKey to be a string")
-	}
-
-	return privkeyStr, nil
-}
-
-func clearPrivateKeyFromConfig(cfg map[string]interface{}) error {
-	ident, ok := cfg["Identity"]
-	if !ok {
-		return errors.New("no identity found in config")
-	}
-
-	identMap, ok := ident.(map[string]interface{})
-	if !ok {
-		return errors.New("expected Identity to be object (map)")
-	}
-
-	delete(identMap, "PrivKey")
 	return nil
 }
 
