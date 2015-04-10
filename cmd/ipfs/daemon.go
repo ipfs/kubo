@@ -103,21 +103,16 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		}
 	}
 
-	// To ensure that IPFS has been initialized, fetch the config. Do this
-	// _before_ acquiring the daemon lock so the user gets an appropriate error
-	// message.
-	// NB: It's safe to read the config without the daemon lock, but not safe
-	// to write.
-	ctx := req.Context()
-	cfg, err := ctx.GetConfig()
+	// acquire the repo lock _before_ constructing a node. we need to make
+	// sure we are permitted to access the resources (datastore, etc.)
+	repo, err := fsrepo.Open(req.Context().ConfigRoot)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
 
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(req.Context().ConfigRoot)
+	ctx := req.Context()
+	cfg, err := ctx.GetConfig()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return

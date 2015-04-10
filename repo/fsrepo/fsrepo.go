@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -28,7 +28,12 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 )
 
+// version number that we are currently expecting to see
 var RepoVersion = "2"
+
+var incorrectRepoFormat = "Repo has incorrect version: '%s'\nProgram version is: '%s'\nPlease run the appropriate migration tool before continuing"
+
+var ErrNoVersion = errors.New("version check failed, no version file found, please run 0-to-1 migration tool.")
 
 const (
 	leveldbDirectory = "datastore"
@@ -87,13 +92,14 @@ func open(repoPath string) (repo.Repo, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	expPath, err := u.TildeExpansion(path.Clean(repoPath))
+	r, err := newFSRepo(repoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	r := &FSRepo{
-		path: expPath,
+	// Check if its initialized
+	if err := checkInitialized(r.path); err != nil {
+		return nil, err
 	}
 
 	r.lockfile, err = lockfile.Lock(r.path)
@@ -108,30 +114,20 @@ func open(repoPath string) (repo.Repo, error) {
 		}
 	}()
 
-	if !isInitializedUnsynced(r.path) {
-		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
-	}
-
 	// Check version, and error out if not matching
-	ver, err := ioutil.ReadFile(path.Join(expPath, "version"))
+	ver, err := mfsr.RepoPath(r.path).Version()
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.New("version check failed, no version file found, please run 0-to-1 migration tool.")
+			return nil, ErrNoVersion
 		}
 		return nil, err
 	}
 
-	vers := string(ver)[:1]
-
-	if vers != RepoVersion {
-		return nil, fmt.Errorf("Repo has incorrect version: '%s'\nProgram version is: '%s'\nPlease run the appropriate migration tool before continuing",
-			vers, RepoVersion)
-
+	if ver != RepoVersion {
+		return nil, fmt.Errorf(incorrectRepoFormat, ver, RepoVersion)
 	}
 
 	// check repo path, then check all constituent parts.
-	// TODO acquire repo lock
-	// TODO if err := initCheckDir(logpath); err != nil { // }
 	if err := dir.Writable(r.path); err != nil {
 		return nil, err
 	}
@@ -144,11 +140,31 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	// log.Debugf("writing eventlogs to ...", c.path)
+	// setup eventlogger
 	configureEventLoggerAtRepoPath(r.config, r.path)
 
 	keepLocked = true
 	return r, nil
+}
+
+func newFSRepo(rpath string) (*FSRepo, error) {
+	expPath, err := u.TildeExpansion(path.Clean(rpath))
+	if err != nil {
+		return nil, err
+	}
+
+	return &FSRepo{path: expPath}, nil
+}
+
+func checkInitialized(path string) error {
+	if !isInitializedUnsynced(path) {
+		alt := strings.Replace(path, ".ipfs", ".go-ipfs", 1)
+		if isInitializedUnsynced(alt) {
+			return debugerror.New("ipfs repo found in old '.go-ipfs' location, please run migration tool")
+		}
+		return debugerror.New("ipfs not initialized, please run 'ipfs init'")
+	}
+	return nil
 }
 
 // ConfigAt returns an error if the FSRepo at the given path is not

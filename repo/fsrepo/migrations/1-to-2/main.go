@@ -124,7 +124,7 @@ func transferBlocksToFlatDB(repopath string) error {
 
 	blockspath := path.Join(repopath, "blocks")
 	err = os.Mkdir(blockspath, 0777)
-	if err != nil {
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
