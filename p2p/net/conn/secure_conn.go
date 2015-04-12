@@ -130,20 +130,6 @@ func (c *secureConn) Write(buf []byte) (int, error) {
 	return c.secure.Write(buf)
 }
 
-func (c *secureConn) NextMsgLen() (int, error) {
-	return c.secure.NextMsgLen()
-}
-
-// ReadMsg reads data, net.Conn style
-func (c *secureConn) ReadMsg() ([]byte, error) {
-	return c.secure.ReadMsg()
-}
-
-// WriteMsg writes data, net.Conn style
-func (c *secureConn) WriteMsg(buf []byte) error {
-	return c.secure.WriteMsg(buf)
-}
-
 // ReleaseMsg releases a buffer
 func (c *secureConn) ReleaseMsg(m []byte) {
 	c.secure.ReleaseMsg(m)

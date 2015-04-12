@@ -6,7 +6,6 @@ import (
 	"net"
 	"time"
 
-	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	mpool "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio/mpool"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
@@ -32,7 +31,6 @@ type singleConn struct {
 	local  peer.ID
 	remote peer.ID
 	maconn manet.Conn
-	msgrw  msgio.ReadWriteCloser
 	event  io.Closer
 }
 
@@ -44,7 +42,6 @@ func newSingleConn(ctx context.Context, local, remote peer.ID, maconn manet.Conn
 		local:  local,
 		remote: remote,
 		maconn: maconn,
-		msgrw:  msgio.NewReadWriter(maconn),
 		event:  log.EventBegin(ctx, "connLifetime", ml),
 	}
 
@@ -62,7 +59,7 @@ func (c *singleConn) Close() error {
 	}()
 
 	// close underlying connection
-	return c.msgrw.Close()
+	return c.maconn.Close()
 }
 
 // ID is an identifier unique to this connection.
@@ -123,31 +120,12 @@ func (c *singleConn) RemotePeer() peer.ID {
 
 // Read reads data, net.Conn style
 func (c *singleConn) Read(buf []byte) (int, error) {
-	return c.msgrw.Read(buf)
+	return c.maconn.Read(buf)
 }
 
 // Write writes data, net.Conn style
 func (c *singleConn) Write(buf []byte) (int, error) {
-	return c.msgrw.Write(buf)
-}
-
-func (c *singleConn) NextMsgLen() (int, error) {
-	return c.msgrw.NextMsgLen()
-}
-
-// ReadMsg reads data, net.Conn style
-func (c *singleConn) ReadMsg() ([]byte, error) {
-	return c.msgrw.ReadMsg()
-}
-
-// WriteMsg writes data, net.Conn style
-func (c *singleConn) WriteMsg(buf []byte) error {
-	return c.msgrw.WriteMsg(buf)
-}
-
-// ReleaseMsg releases a buffer
-func (c *singleConn) ReleaseMsg(m []byte) {
-	c.msgrw.ReleaseMsg(m)
+	return c.maconn.Write(buf)
 }
 
 // ID returns the ID of a given Conn.

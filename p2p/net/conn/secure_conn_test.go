@@ -136,13 +136,16 @@ func TestSecureCloseLeak(t *testing.T) {
 	}
 
 	runPair := func(c1, c2 Conn, num int) {
+		mc1 := msgioWrap(c1)
+		mc2 := msgioWrap(c2)
+
 		log.Debugf("runPair %d", num)
 
 		for i := 0; i < num; i++ {
 			log.Debugf("runPair iteration %d", i)
 			b1 := []byte("beep")
-			c1.WriteMsg(b1)
-			b2, err := c2.ReadMsg()
+			mc1.WriteMsg(b1)
+			b2, err := mc2.ReadMsg()
 			if err != nil {
 				panic(err)
 			}
@@ -151,8 +154,8 @@ func TestSecureCloseLeak(t *testing.T) {
 			}
 
 			b2 = []byte("beep")
-			c2.WriteMsg(b2)
-			b1, err = c1.ReadMsg()
+			mc2.WriteMsg(b2)
+			b1, err = mc1.ReadMsg()
 			if err != nil {
 				panic(err)
 			}
