@@ -10,7 +10,6 @@ import (
 	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 )
@@ -46,8 +45,8 @@ type Conn interface {
 	SetReadDeadline(t time.Time) error
 	SetWriteDeadline(t time.Time) error
 
-	msgio.Reader
-	msgio.Writer
+	io.Reader
+	io.Writer
 }
 
 // Dialer is an object that can open connections. We could have a "convenience"
