@@ -71,16 +71,17 @@ func TestChildFunc(t *testing.T) {
 	wait2 := make(chan struct{})
 	wait3 := make(chan struct{})
 	wait4 := make(chan struct{})
-	go func() {
-		a.Close()
-		wait4 <- struct{}{}
-	}()
 
 	a.Go(func(process Process) {
 		wait1 <- struct{}{}
 		<-wait2
 		wait3 <- struct{}{}
 	})
+
+	go func() {
+		a.Close()
+		wait4 <- struct{}{}
+	}()
 
 	<-wait1
 	select {

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	ci "github.com/jbenet/go-cienv"
 	gp "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	ci "github.com/jbenet/go-cienv"
 )
 
 var (
