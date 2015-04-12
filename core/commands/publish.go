@@ -12,6 +12,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	nsys "github.com/ipfs/go-ipfs/namesys"
 	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
+	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -32,12 +33,12 @@ default value of <name> is your own identity public key.
 
 Examples:
 
-Publish a <ref> to your identity name:
+Publish an <ipfs-path> to your identity name:
 
-  > ipfs name publish QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs name publish /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
-Publish a <ref> to another public key:
+Publish an <ipfs-path> to another public key (not implemented):
 
   > ipfs name publish QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
   published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
@@ -71,21 +72,32 @@ Publish a <ref> to another public key:
 			return
 		}
 
-		// name := ""
-		ref := ""
+		var pstr string
 
 		switch len(args) {
 		case 2:
 			// name = args[0]
-			ref = args[1]
+			pstr = args[1]
 			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
 		case 1:
 			// name = n.Identity.ID.String()
-			ref = args[0]
+			pstr = args[0]
+		}
+
+		node, err := n.Resolver.ResolvePath(path.FromString(pstr))
+		if err != nil {
+			res.SetError(fmt.Errorf("failed to resolve path: %v", err), cmds.ErrNormal)
+			return
+		}
+
+		key, err := node.Key()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey
-		output, err := publish(n, n.PrivateKey, ref)
+		output, err := publish(n, n.PrivateKey, key.Pretty())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
