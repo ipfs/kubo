@@ -105,7 +105,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 				if !more {
 					return
 				}
-				log.Debugf("swarm listener accept error: %s", err)
+				log.Warningf("swarm listener accept error: %s", err)
 			case <-ctx.Done():
 				return
 			}
