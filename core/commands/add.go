@@ -17,6 +17,7 @@ import (
 	pinning "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/debugerror"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
@@ -106,6 +107,7 @@ remains to be implemented.
 
 				_, err = addFile(n, file, outChan, progress, wrap)
 				if err != nil {
+					res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
 					return
 				}
 			}
