@@ -496,22 +496,24 @@ func (i *cmdInvocation) setupInterruptHandler() {
 			case <-ctx.InitDone:
 			}
 
-			// TODO cancel the command context instead
-
-			n, err := ctx.GetNode()
-			if err != nil {
-				log.Error(err)
-				fmt.Println(shutdownMessage)
-				os.Exit(-1)
-			}
-
 			switch count {
 			case 0:
 				fmt.Println(shutdownMessage)
-				go func() {
-					n.Close()
-					log.Info("Gracefully shut down.")
-				}()
+				if ctx.Online {
+					go func() {
+						// TODO cancel the command context instead
+						n, err := ctx.GetNode()
+						if err != nil {
+							log.Error(err)
+							fmt.Println(shutdownMessage)
+							os.Exit(-1)
+						}
+						n.Close()
+						log.Info("Gracefully shut down.")
+					}()
+				} else {
+					os.Exit(0)
+				}
 
 			default:
 				fmt.Println("Received another interrupt before graceful shutdown, terminating...")
