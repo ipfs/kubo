@@ -144,7 +144,12 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" {
-		i.getHandler(w, r)
+		i.getOrHeadHandler(w, r)
+		return
+	}
+
+	if r.Method == "HEAD" {
+		i.getOrHeadHandler(w, r)
 		return
 	}
 
@@ -160,7 +165,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug(errmsg)
 }
 
-func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
@@ -244,8 +249,11 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			defer dr.Close()
+
 			// write to request
-			io.Copy(w, dr)
+			if r.Method != "HEAD" {
+				io.Copy(w, dr)
+			}
 			break
 		}
 
@@ -259,9 +267,12 @@ func (i *gatewayHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 			"listing": dirListing,
 			"path":    urlPath,
 		}
-		if err := i.dirList.Execute(w, hndlr); err != nil {
-			internalWebError(w, err)
-			return
+
+		if r.Method != "HEAD" {
+			if err := i.dirList.Execute(w, hndlr); err != nil {
+				internalWebError(w, err)
+				return
+			}
 		}
 	}
 }
