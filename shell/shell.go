@@ -3,7 +3,6 @@ package shell
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -13,9 +12,6 @@ import (
 	cc "github.com/ipfs/go-ipfs/core/commands"
 )
 
-// TODO: REMOVE
-var _ = fmt.Print
-
 type Shell struct {
 	client http.Client
 }
@@ -24,6 +20,7 @@ func NewShell(url string) *Shell {
 	return &Shell{http.NewClient(url)}
 }
 
+// Cat the content at the given path
 func (s *Shell) Cat(path string) (io.Reader, error) {
 	ropts, err := cc.Root.GetOptions([]string{"cat"})
 	if err != nil {
@@ -43,6 +40,7 @@ func (s *Shell) Cat(path string) (io.Reader, error) {
 	return resp.Reader()
 }
 
+// Add a file to ipfs from the given reader, returns the hash of the added file
 func (s *Shell) Add(r io.Reader) (string, error) {
 	ropts, err := cc.Root.GetOptions([]string{"add"})
 	if err != nil {
@@ -76,6 +74,7 @@ func (s *Shell) Add(r io.Reader) (string, error) {
 	return out.Hash, nil
 }
 
+// List entries at the given path
 func (s *Shell) List(path string) ([]cc.Link, error) {
 	ropts, err := cc.Root.GetOptions([]string{"ls"})
 	if err != nil {
