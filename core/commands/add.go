@@ -99,7 +99,11 @@ remains to be implemented.
 
 			for {
 				file, err := req.Files().NextFile()
-				if (err != nil && err != io.EOF) || file == nil {
+				if err != nil && err != io.EOF {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+				if file == nil { // done
 					return
 				}
 
