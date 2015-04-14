@@ -175,7 +175,7 @@ Guidelines:
 
 ## Todo
 
-IPFS is nearing an alpha release. Things left to be done are all marked as [Issues](https://github.com/ipfs/go-ipfs/issues)
+An IPFS alpha version has been released in February 2015. Things left to be done are all marked as [Issues](https://github.com/ipfs/go-ipfs/issues)
 
 ## Development Dependencies
 
