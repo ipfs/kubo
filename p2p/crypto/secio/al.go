@@ -91,11 +91,11 @@ func newBlockCipher(cipherT string, key []byte) (cipher.Block, error) {
 // Determines which algorithm to use.  Note:  f(a, b) = f(b, a)
 func selectBest(order int, p1, p2 string) (string, error) {
 	var f, s []string
-	switch order {
-	case -1:
+	switch {
+	case order < 0:
 		f = strings.Split(p2, ",")
 		s = strings.Split(p1, ",")
-	case 1:
+	case order > 0:
 		f = strings.Split(p1, ",")
 		s = strings.Split(p2, ",")
 	default: // Exact same preferences.
