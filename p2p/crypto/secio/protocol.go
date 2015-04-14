@@ -24,6 +24,9 @@ var ErrUnsupportedKeyType = errors.New("unsupported key type")
 // ErrClosed signals the closing of a connection.
 var ErrClosed = errors.New("connection closed")
 
+// ErrEcho is returned when we're attempting to handshake with the same keys and nonces.
+var ErrEcho = errors.New("same keys and nonces. one side talking to self.")
+
 // nonceSize is the size of our nonces (in bytes)
 const nonceSize = 16
 
@@ -145,6 +148,10 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	oh1 := u.Hash(append(proposeIn.GetPubkey(), nonceOut...))
 	oh2 := u.Hash(append(myPubKeyBytes, proposeIn.GetRand()...))
 	order := bytes.Compare(oh1, oh2)
+	if order == 0 {
+		return ErrEcho // talking to self (same socket. must be reuseport + dialing self)
+	}
+
 	s.local.curveT, err = selectBest(order, SupportedExchanges, proposeIn.GetExchanges())
 	if err != nil {
 		return err
@@ -242,19 +249,14 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	k1, k2 := ci.KeyStretcher(s.local.cipherT, s.local.hashT, s.sharedSecret)
 
 	// use random nonces to decide order.
-	switch order {
-	case 1:
-	case -1:
+	switch {
+	case order > 0:
+		// just break
+	case order < 0:
 		k1, k2 = k2, k1 // swap
 	default:
-		log.Error("WOAH: same keys (AND same nonce: 1/(2^128) chance!).")
-		log.Errorf("k1: %v, k2: %v, insecure: %v, insecureM %v", k1, k2, s.insecure, s.insecureM)
-
-		// this shouldn't happen. must determine order another way.
-		// use the same keys but, make sure to copy underlying data!
-		copy(k2.IV, k1.IV)
-		copy(k2.MacKey, k1.MacKey)
-		copy(k2.CipherKey, k1.CipherKey)
+		// we should've bailed before this. but if not, bail here.
+		return ErrEcho
 	}
 	s.local.keys = k1
 	s.remote.keys = k2
