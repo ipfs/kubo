@@ -736,8 +736,9 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	}
 	minConnections := 10
 	macConnections := 20
-	for c := 25; c <= 50; c += 25 {
-		testFindPeersConnectedToPeerSingle(t, c, minConnections, macConnections)
+	nodeCount := 20
+	for a := 0; a < 2; a++ {
+		testFindPeersConnectedToPeerSingle(t, nodeCount, minConnections, macConnections)
 	}
 }
 
