@@ -78,3 +78,17 @@ func TestMerge(t *testing.T) {
 		}
 	}
 }
+
+func TestHamming(t *testing.T) {
+	f1 := NewFilter(128)
+	f2 := NewFilter(128)
+
+	f1.Add([]byte("no collision"))
+	f1.Add([]byte("collision? no!"))
+
+	dist, _ := f1.HammingDistance(f2)
+
+	if dist != 6 {
+		t.Fatal("Should have 6 bit difference")
+	}
+}
