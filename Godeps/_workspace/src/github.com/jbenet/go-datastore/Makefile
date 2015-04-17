@@ -1,8 +1,8 @@
 build:
 	go build
 
-test:
-	go test ./...
+test: build
+	go test -race -cpu=5 -v ./...
 
 # saves/vendors third-party dependencies to Godeps/_workspace
 # -r flag rewrites import paths to use the vendored path

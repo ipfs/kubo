@@ -39,7 +39,7 @@ type Datastore interface {
 	// Ultimately, the lowest-level datastore will need to do some value checking
 	// or risk getting incorrect values. It may also be useful to expose a more
 	// type-safe interface to your application, and do the checking up-front.
-	Put(key Key, value interface{}) (err error)
+	Put(key Key, value interface{}) error
 
 	// Get retrieves the object `value` named by `key`.
 	// Get will return ErrNotFound if the key is not mapped to a value.
@@ -52,7 +52,7 @@ type Datastore interface {
 	Has(key Key) (exists bool, err error)
 
 	// Delete removes the value for given `key`.
-	Delete(key Key) (err error)
+	Delete(key Key) error
 
 	// Query searches the datastore and returns a query result. This function
 	// may return before the query actually runs. To wait for the query:

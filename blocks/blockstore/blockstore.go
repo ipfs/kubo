@@ -18,7 +18,7 @@ import (
 var log = eventlog.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ds.NewKey("b")
+var BlockPrefix = ds.NewKey("blocks")
 
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
@@ -89,6 +89,8 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
+	// datastore/namespace does *NOT* fix up Query.Prefix
+	q.Prefix = BlockPrefix.String()
 	res, err := bs.datastore.Query(q)
 	if err != nil {
 		return nil, err
