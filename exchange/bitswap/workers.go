@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	inflect "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect"
@@ -9,7 +11,18 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-var TaskWorkerCount = 4
+var TaskWorkerCount = 16
+
+func init() {
+	twc := os.Getenv("IPFS_TASK_WORKERS")
+	if twc != "" {
+		n, err := strconv.Atoi(twc)
+		if err != nil {
+			return
+		}
+		TaskWorkerCount = n
+	}
+}
 
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
