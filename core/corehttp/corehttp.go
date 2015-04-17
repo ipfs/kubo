@@ -79,6 +79,10 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	// if node being closed before server exits, close server
 	case <-node.Closing():
 		log.Infof("server at %s terminating...", addr)
+
+		// make sure keep-alive connections do not keep the server running
+		server.InnerServer.SetKeepAlivesEnabled(false)
+
 		server.Shutdown <- true
 
 	outer:
