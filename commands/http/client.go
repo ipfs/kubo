@@ -82,25 +82,44 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 	version := config.CurrentVersionNumber
 	httpReq.Header.Set("User-Agent", fmt.Sprintf("/go-ipfs/%s/", version))
 
-	httpRes, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
+	ec := make(chan error, 1)
+	rc := make(chan cmds.Response, 1)
+	dc := req.Context().Context.Done()
 
-	// using the overridden JSON encoding in request
-	res, err := getResponse(httpRes, req)
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		httpRes, err := http.DefaultClient.Do(httpReq)
+		if err != nil {
+			ec <- err
+			return
+		}
+		// using the overridden JSON encoding in request
+		res, err := getResponse(httpRes, req)
+		if err != nil {
+			ec <- err
+			return
+		}
+		rc <- res
+	}()
 
-	if found && len(previousUserProvidedEncoding) > 0 {
-		// reset to user provided encoding after sending request
-		// NB: if user has provided an encoding but it is the empty string,
-		// still leave it as JSON.
-		req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
+	for {
+		select {
+		case <-dc:
+			log.Debug("Context cancelled, cancelling HTTP request...")
+			tr := http.DefaultTransport.(*http.Transport)
+			tr.CancelRequest(httpReq)
+			dc = nil // Wait for ec or rc
+		case err := <-ec:
+			return nil, err
+		case res := <-rc:
+			if found && len(previousUserProvidedEncoding) > 0 {
+				// reset to user provided encoding after sending request
+				// NB: if user has provided an encoding but it is the empty string,
+				// still leave it as JSON.
+				req.SetOption(cmds.EncShort, previousUserProvidedEncoding)
+			}
+			return res, nil
+		}
 	}
-
-	return res, nil
 }
 
 func getQuery(req cmds.Request) (string, error) {
