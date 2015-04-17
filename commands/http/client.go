@@ -181,6 +181,8 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 			dec := json.NewDecoder(httpRes.Body)
 			outputType := reflect.TypeOf(req.Command().Type)
 
+			ctx := req.Context().Context
+
 			for {
 				var v interface{}
 				var err error
@@ -194,6 +196,14 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 					fmt.Println(err.Error())
 					return
 				}
+
+				select {
+				case <-ctx.Done():
+					close(outChan)
+					return
+				default:
+				}
+
 				if err == io.EOF {
 					close(outChan)
 					return
