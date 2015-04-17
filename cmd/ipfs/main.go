@@ -226,7 +226,6 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	i.req.Context().Context = ctx
 
 	repoPath, err := getRepoPath(i.req)
 	if err != nil {
@@ -278,6 +277,8 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd *cmds.Command) (cmds.Response, error) {
 	log.Info(config.EnvDir, " ", req.Context().ConfigRoot)
 	var res cmds.Response
+
+	req.Context().Context = ctx
 
 	details, err := commandDetails(req.Path(), root)
 	if err != nil {
