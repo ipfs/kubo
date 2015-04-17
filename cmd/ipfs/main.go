@@ -141,8 +141,9 @@ func main() {
 	}
 
 	// ok, finally, run the command invocation.
-	intrh := invoc.SetupInterruptHandler()
+	intrh, ctx := invoc.SetupInterruptHandler(ctx)
 	defer intrh.Close()
+
 	output, err := invoc.Run(ctx)
 	if err != nil {
 		printErr(err)
@@ -514,14 +515,15 @@ func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...
 	}()
 }
 
-func (i *cmdInvocation) SetupInterruptHandler() io.Closer {
+func (i *cmdInvocation) SetupInterruptHandler(ctx context.Context) (io.Closer, context.Context) {
 
 	intrh := NewIntrHandler()
+	ctx, cancelFunc := context.WithCancel(ctx)
+
 	handlerFunc := func(count int, ih *IntrHandler) {
 		switch count {
 		case 1:
-			// first time, try to shut down
-			fmt.Println("Received interrupt signal, shutting down...")
+			fmt.Println() // Prevent un-terminated ^C character in terminal
 
 			ctx := i.req.Context()
 
@@ -535,16 +537,7 @@ func (i *cmdInvocation) SetupInterruptHandler() io.Closer {
 			ih.wg.Add(1)
 			go func() {
 				defer ih.wg.Done()
-
-				// TODO cancel the command context instead
-				n, err := ctx.GetNode()
-				if err != nil {
-					log.Error(err)
-					os.Exit(-1)
-				}
-
-				n.Close()
-				log.Info("Gracefully shut down.")
+				cancelFunc()
 			}()
 
 		default:
@@ -555,7 +548,7 @@ func (i *cmdInvocation) SetupInterruptHandler() io.Closer {
 
 	intrh.Handle(handlerFunc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 
-	return intrh
+	return intrh, ctx
 }
 
 func profileIfEnabled() (func(), error) {

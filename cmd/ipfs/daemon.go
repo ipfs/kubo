@@ -80,6 +80,15 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
+	ctx := req.Context()
+
+	go func() {
+		select {
+		case <-ctx.Context.Done():
+			fmt.Println("Received interrupt signal, shutting down...")
+		}
+	}()
+
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _, err := req.Option(initOptionKwd).Bool()
@@ -111,7 +120,6 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	ctx := req.Context()
 	cfg, err := ctx.GetConfig()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
@@ -149,7 +157,19 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
-	defer node.Close()
+
+	defer func() {
+		// We wait for the node to close first, as the node has children
+		// that it will wait for before closing, such as the API server.
+		node.Close()
+
+		select {
+		case <-ctx.Context.Done():
+			log.Info("Gracefully shut down daemon")
+		default:
+		}
+	}()
+
 	req.Context().ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
