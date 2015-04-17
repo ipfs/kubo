@@ -64,6 +64,9 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	var serverError error
 	serverExited := make(chan struct{})
 
+	node.Children().Add(1)
+	defer node.Children().Done()
+
 	go func() {
 		serverError = server.ListenAndServe(host, handler)
 		close(serverExited)
