@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"net/http"
+	"time"
 
 	manners "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -76,7 +77,17 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	case <-node.Closing():
 		log.Infof("server at %s terminating...", addr)
 		server.Shutdown <- true
-		<-serverExited // now, DO wait until server exit
+
+	outer:
+		for {
+			// wait until server exits
+			select {
+			case <-serverExited:
+				break outer
+			case <-time.After(5 * time.Second):
+				log.Infof("waiting for server at %s to terminate...", addr)
+			}
+		}
 	}
 
 	log.Infof("server at %s terminated", addr)
