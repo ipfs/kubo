@@ -132,14 +132,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// our global interrupt handler may try to stop the daemon
-	// before the daemon is ready to be stopped; this dirty
-	// workaround is for the daemon only; other commands are always
-	// ready to be stopped
-	if invoc.cmd != daemonCmd {
-		close(invoc.req.Context().InitDone)
-	}
-
 	// ok, finally, run the command invocation.
 	intrh, ctx := invoc.SetupInterruptHandler(ctx)
 	defer intrh.Close()
@@ -524,15 +516,6 @@ func (i *cmdInvocation) SetupInterruptHandler(ctx context.Context) (io.Closer, c
 		switch count {
 		case 1:
 			fmt.Println() // Prevent un-terminated ^C character in terminal
-
-			ctx := i.req.Context()
-
-			// if we're still initializing, cannot use `ctx.GetNode()`
-			select {
-			default: // initialization not done
-				os.Exit(-1)
-			case <-ctx.InitDone:
-			}
 
 			ih.wg.Add(1)
 			go func() {
