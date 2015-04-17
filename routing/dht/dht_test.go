@@ -734,9 +734,12 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	minConnections := 10
-	macConnections := 20
-	nodeCount := 20
+	minConnections := 5
+	macConnections := 10
+	nodeCount := 10
+	// Run multiple times with smaller count
+	// instead of once with large node count to get around max open files issue
+	// Topology is generated randomly
 	for a := 0; a < 2; a++ {
 		testFindPeersConnectedToPeerSingle(t, nodeCount, minConnections, macConnections)
 	}
@@ -745,32 +748,41 @@ func TestFindPeersConnectedToPeer(t *testing.T) {
 func testFindPeersConnectedToPeerSingle(t *testing.T, nodeCount, min, max int) {
 	ctx := context.Background()
 	dhtCount := nodeCount
-	_, peers, dhts := setupDHTS(ctx, dhtCount, t)
+	_, _, dhts := setupDHTS(ctx, dhtCount, t)
 	defer closeDHTs(dhts)
-
+	//Build dht lookup map
+	dhtMap := make(map[peer.ID]*IpfsDHT, len(dhts))
+	for _, dht := range dhts {
+		dhtMap[dht.self] = dht
+	}
+	// Connect nodes in random partial mesh
 	shouldFindMap := connectDhtToRandomPeers(t, ctx, min, max, dhts)
 
-	//Pick peer src is connected to
-	//Test agains that peers know connections
-
-	// Select first dht from list and pick first connection as target for now
-	srcInd := 0
-	tgtInd := 0
-
-	srcDHT := dhts[srcInd]
-	tgtId := shouldFindMap[srcDHT.self][tgtInd]
-	shouldFind := shouldFindMap[tgtId]
-
-	//Filter src and target id from should find
-	var tmp []peer.ID
-	for _, a := range shouldFind {
-		if a == srcDHT.self || a == tgtId {
-			continue
+	//For every dht, randomly select one known connection as src and slef as target
+	for _, dht := range dhts {
+		tgtId := dht.self
+		//Find src that is connected to this node
+		conInd := rand.Intn(len(shouldFindMap[tgtId]))
+		conId := shouldFindMap[tgtId][conInd]
+		srcDHT := dhtMap[conId]
+		srcId := srcDHT.self
+		shouldFind := shouldFindMap[tgtId]
+		//Filter src and target id from should find
+		var tmp []peer.ID
+		for _, a := range shouldFind {
+			if a == srcId || a == tgtId {
+				continue
+			}
+			tmp = append(tmp, a)
 		}
-		tmp = append(tmp, a)
-	}
-	shouldFind = tmp
+		shouldFind = tmp
 
+		testPeersConectedToTarget(t, ctx, srcDHT, shouldFind, tgtId)
+	}
+}
+
+func testPeersConectedToTarget(t *testing.T, ctx context.Context, srcDHT *IpfsDHT, shouldFind []peer.ID, tgtId peer.ID) {
+	srcId := srcDHT.self
 	//Make request
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
 	pchan, err := srcDHT.FindPeersConnectedToPeer(ctxT, tgtId)
@@ -778,12 +790,12 @@ func testFindPeersConnectedToPeerSingle(t *testing.T, nodeCount, min, max int) {
 		t.Fatal(err)
 	}
 
-	testSame := func(id peer.ID) {
-		if id == peers[srcInd] {
-			t.Errorf("should not contain id of requesting peer %s", id)
+	testSame := func(srcId, targetId, foundId peer.ID) {
+		if foundId == srcId {
+			t.Errorf("should not contain id of requesting peer %s", foundId)
 		}
-		if id == tgtId {
-			t.Errorf("should not contain id of target peer %s", id)
+		if foundId == targetId {
+			t.Errorf("should not contain id of target peer %s", foundId)
 		}
 	}
 
@@ -791,7 +803,7 @@ func testFindPeersConnectedToPeerSingle(t *testing.T, nodeCount, min, max int) {
 	for nextp := range pchan {
 		id := nextp.ID
 		found = append(found, id)
-		testSame(id)
+		testSame(srcId, tgtId, id)
 	}
 
 	if len(found) == 0 {
