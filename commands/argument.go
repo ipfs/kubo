@@ -5,6 +5,7 @@ type ArgumentType int
 const (
 	ArgString ArgumentType = iota
 	ArgFile
+	ArgStream
 )
 
 type Argument struct {
@@ -31,6 +32,16 @@ func FileArg(name string, required, variadic bool, description string) Argument 
 	return Argument{
 		Name:        name,
 		Type:        ArgFile,
+		Required:    required,
+		Variadic:    variadic,
+		Description: description,
+	}
+}
+
+func StreamArg(name string, required, variadic bool, description string) Argument {
+	return Argument{
+		Name:        name,
+		Type:        ArgStream,
 		Required:    required,
 		Variadic:    variadic,
 		Description: description,

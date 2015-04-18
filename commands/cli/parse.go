@@ -144,20 +144,24 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		stdin = nil
 	}
 
+	hasStream := false
+	numRequired := 0
+	// count required argument definitions
+	// and see if we have a stream argument
+	for _, argDef := range argDefs {
+		if argDef.Type == cmds.ArgStream {
+			hasStream = true
+		}
+		if argDef.Required {
+			numRequired++
+		}
+	}
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		if term, err := isTerminal(stdin); err != nil {
 			return nil, nil, err
-		} else if term {
+		} else if term && hasStream == false {
 			stdin = nil // set to nil so we ignore it
-		}
-	}
-
-	// count required argument definitions
-	numRequired := 0
-	for _, argDef := range argDefs {
-		if argDef.Required {
-			numRequired++
 		}
 	}
 
@@ -213,6 +217,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				}
 
 			} else if argDef.SupportsStdin {
+				// if we have a stdin, create a file from it
+				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+			}
+		} else if argDef.Type == cmds.ArgStream {
+			if argDef.SupportsStdin {
 				// if we have a stdin, create a file from it
 				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
 			}
