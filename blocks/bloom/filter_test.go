@@ -92,3 +92,44 @@ func TestHamming(t *testing.T) {
 		t.Fatal("Should have 6 bit difference")
 	}
 }
+
+func TestSupersetOf(t *testing.T) {
+
+	f1 := NewFilter(128)
+	f2 := NewFilter(128)
+
+	b := make([]byte, 4)
+
+	var i uint32
+	for i = 0; i < 10; i++ {
+		binary.LittleEndian.PutUint32(b, i)
+		f1.Add(b)
+	}
+
+	for i = 10; i < 20; i++ {
+		binary.LittleEndian.PutUint32(b, i)
+		f2.Add(b)
+	}
+
+	merged, _ := f1.Merge(f2)
+
+	test, _ := merged.SupersetOf(f1)
+
+	if !test {
+		t.Fatal("Merged filter should contain f1")
+	}
+
+	test, _ = merged.SupersetOf(f2)
+
+	if !test {
+		t.Fatal("Merged filter should contain f2")
+	}
+
+	f1.Add([]byte("i'm not even a number"))
+
+	test, _ = merged.SupersetOf(f1)
+
+	if test {
+		t.Fatal("Merged filter should not contain modified f1")
+	}
+}
