@@ -6,7 +6,7 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
-	u "github.com/ipfs/go-ipfs/util"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
@@ -31,7 +31,7 @@ type NameSystem interface {
 type Resolver interface {
 
 	// Resolve looks up a name, and returns the value previously published.
-	Resolve(ctx context.Context, name string) (value u.Key, err error)
+	Resolve(ctx context.Context, name string) (value path.Path, err error)
 
 	// CanResolve checks whether this Resolver can resolve a name
 	CanResolve(name string) bool
@@ -42,5 +42,5 @@ type Publisher interface {
 
 	// Publish establishes a name-value mapping.
 	// TODO make this not PrivKey specific.
-	Publish(ctx context.Context, name ci.PrivKey, value u.Key) error
+	Publish(ctx context.Context, name ci.PrivKey, value path.Path) error
 }

@@ -6,8 +6,6 @@ import (
 	"io"
 	"strings"
 
-	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	nsys "github.com/ipfs/go-ipfs/namesys"
@@ -84,20 +82,14 @@ Publish an <ipfs-path> to another public key (not implemented):
 			pstr = args[0]
 		}
 
-		node, err := n.Resolver.ResolvePath(path.FromString(pstr))
+		p, err := path.ParsePath(pstr)
 		if err != nil {
-			res.SetError(fmt.Errorf("failed to resolve path: %v", err), cmds.ErrNormal)
-			return
-		}
-
-		key, err := node.Key()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
+			res.SetError(fmt.Errorf("failed to validate path: %v", err), cmds.ErrNormal)
 			return
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey
-		output, err := publish(n, n.PrivateKey, key.Pretty())
+		output, err := publish(n, n.PrivateKey, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -114,10 +106,10 @@ Publish an <ipfs-path> to another public key (not implemented):
 	Type: IpnsEntry{},
 }
 
-func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error) {
+func publish(n *core.IpfsNode, k crypto.PrivKey, ref path.Path) (*IpnsEntry, error) {
 	pub := nsys.NewRoutingPublisher(n.Routing)
-	val := b58.Decode(ref)
-	err := pub.Publish(n.Context(), k, u.Key(val))
+
+	err := pub.Publish(n.Context(), k, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +121,6 @@ func publish(n *core.IpfsNode, k crypto.PrivKey, ref string) (*IpnsEntry, error)
 
 	return &IpnsEntry{
 		Name:  u.Key(hash).String(),
-		Value: ref,
+		Value: ref.String(),
 	}, nil
 }

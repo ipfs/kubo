@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,18 +9,27 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
+const maxLinks = 32
+
+var ErrTooManyLinks = errors.New("exceeded maximum number of links in ipns entry")
+
 // Resolves the given path by parsing out /ipns/ entries and then going
 // through the /ipfs/ entries and returning the final merkledage node.
 // Effectively enables /ipns/ in CLI commands.
 func Resolve(n *IpfsNode, p path.Path) (*merkledag.Node, error) {
-	strpath := string(p)
+	return resolveRecurse(n, p, 0)
+}
 
+func resolveRecurse(n *IpfsNode, p path.Path, depth int) (*merkledag.Node, error) {
+	if depth >= maxLinks {
+		return nil, ErrTooManyLinks
+	}
 	// for now, we only try to resolve ipns paths if
 	// they begin with "/ipns/". Otherwise, ambiguity
 	// emerges when resolving just a <hash>. Is it meant
 	// to be an ipfs or an ipns resolution?
 
-	if strings.HasPrefix(strpath, "/ipns/") {
+	if strings.HasPrefix(p.String(), "/ipns/") {
 		// if it's an ipns path, try to resolve it.
 		// if we can't, we can give that error back to the user.
 		seg := p.Segments()
@@ -29,17 +39,12 @@ func Resolve(n *IpfsNode, p path.Path) (*merkledag.Node, error) {
 
 		ipnsPath := seg[1]
 		extensions := seg[2:]
-		key, err := n.Namesys.Resolve(n.Context(), ipnsPath)
+		respath, err := n.Namesys.Resolve(n.Context(), ipnsPath)
 		if err != nil {
 			return nil, err
 		}
 
-		pathHead := make([]string, 2)
-		pathHead[0] = "ipfs"
-		pathHead[1] = key.Pretty()
-
-		p = path.FromSegments(append(pathHead, extensions...)...)
-		//p = path.RebasePath(path.FromSegments(extensions...), basePath)
+		return resolveRecurse(n, path.FromSegments(append(respath.Segments(), extensions...)...), depth+1)
 	}
 
 	// ok, we have an ipfs path now (or what we'll treat as one)

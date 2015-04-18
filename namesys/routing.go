@@ -7,6 +7,7 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
+	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -36,7 +37,7 @@ func (r *routingResolver) CanResolve(name string) bool {
 
 // Resolve implements Resolver. Uses the IPFS routing system to resolve SFS-like
 // names.
-func (r *routingResolver) Resolve(ctx context.Context, name string) (u.Key, error) {
+func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
 	log.Debugf("RoutingResolve: '%s'", name)
 	hash, err := mh.FromB58String(name)
 	if err != nil {
@@ -77,5 +78,15 @@ func (r *routingResolver) Resolve(ctx context.Context, name string) (u.Key, erro
 	}
 
 	// ok sig checks out. this is a valid name.
-	return u.Key(entry.GetValue()), nil
+
+	// check for old style record:
+	valh, err := mh.Cast(entry.GetValue())
+	if err != nil {
+		// Not a multihash, probably a new record
+		return path.ParsePath(string(entry.GetValue()))
+	} else {
+		// Its an old style multihash record
+		log.Warning("Detected old style multihash record")
+		return path.FromKey(u.Key(valh)), nil
+	}
 }
