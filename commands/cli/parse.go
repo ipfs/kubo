@@ -160,8 +160,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	if stdin != nil {
 		if term, err := isTerminal(stdin); err != nil {
 			return nil, nil, err
-		} else if term && hasStream == false {
-			stdin = nil // set to nil so we ignore it
+		} else if term {
+			if hasStream == false {
+				stdin = nil // set to nil so we ignore it
+			}
+			// TURN BUFFERING OFF
 		}
 	}
 
