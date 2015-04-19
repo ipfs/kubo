@@ -31,9 +31,19 @@ import (
 // version number that we are currently expecting to see
 var RepoVersion = "2"
 
-var incorrectRepoFormat = "Repo has incorrect version: '%s'\nProgram version is: '%s'\nPlease run the appropriate migration tool before continuing"
+var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
+Sorry for the inconvenience. In the future, these will run automatically.`
 
-var ErrNoVersion = errors.New("version check failed, no version file found, please run 0-to-1 migration tool.")
+var errIncorrectRepoFmt = `Repo has incorrect version: %s
+Program version is: %s
+Please run the ipfs migration tool before continuing.
+` + migrationInstructions
+
+var (
+	ErrNoRepo    = errors.New("no ipfs repo found. please run: ipfs init")
+	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
+	ErrOldRepo   = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+)
 
 const (
 	leveldbDirectory = "datastore"
@@ -124,7 +134,7 @@ func open(repoPath string) (repo.Repo, error) {
 	}
 
 	if ver != RepoVersion {
-		return nil, fmt.Errorf(incorrectRepoFormat, ver, RepoVersion)
+		return nil, fmt.Errorf(errIncorrectRepoFmt, ver, RepoVersion)
 	}
 
 	// check repo path, then check all constituent parts.
@@ -160,9 +170,9 @@ func checkInitialized(path string) error {
 	if !isInitializedUnsynced(path) {
 		alt := strings.Replace(path, ".ipfs", ".go-ipfs", 1)
 		if isInitializedUnsynced(alt) {
-			return debugerror.New("ipfs repo found in old '.go-ipfs' location, please run migration tool")
+			return ErrOldRepo
 		}
-		return debugerror.New("ipfs not initialized, please run 'ipfs init'")
+		return ErrNoRepo
 	}
 	return nil
 }
