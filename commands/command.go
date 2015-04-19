@@ -206,7 +206,7 @@ func (c *Command) CheckArguments(req Request) error {
 	valueIndex := 0 // the index of the current value (in `args`)
 	for _, argDef := range c.Arguments {
 		// skip optional argument definitions if there aren't sufficient remaining values
-		if len(args)-valueIndex <= numRequired && !argDef.Required || argDef.Type == ArgFile {
+		if len(args)-valueIndex <= numRequired && !argDef.Required || argDef.Type == ArgFile || argDef.Type == ArgStream {
 			continue
 		}
 

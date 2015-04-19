@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"io"
-	"os"
 	"reflect"
 	"time"
 
@@ -22,10 +21,10 @@ var PipeCmd = &cmds.Command{
 		ShortDescription: ``,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("peer ID", true, true, "ID of peer to talk to"),
+		cmds.StreamArg("data", true, false, "data to send through the pipe"),
+		cmds.StringArg("peer ID", true, false, "ID of peer to talk to"),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption("count", "n", "number of ping messages to send"),
 		cmds.BoolOption("listen", "l", "listen for other peer to dial us"),
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -77,6 +76,7 @@ var PipeCmd = &cmds.Command{
 
 		var rwc io.ReadWriteCloser
 		if listen {
+			log.Error("LISTENING")
 			list, err := corenet.Listen(n, protocolForPeer(pid))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
@@ -110,7 +110,12 @@ var PipeCmd = &cmds.Command{
 			rwc = s
 		}
 
-		go io.Copy(os.Stdout, req.Stdin())
+		in, err := req.Files().NextFile()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		go io.Copy(rwc, in)
 
 		res.SetOutput(rwc)
 	},
@@ -118,5 +123,5 @@ var PipeCmd = &cmds.Command{
 }
 
 func protocolForPeer(pid peer.ID) string {
-	return "/ipfs/pipe/" + string(pid)
+	return "/ipfs/pipe/" + pid.Pretty()
 }

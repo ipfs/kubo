@@ -198,7 +198,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 
 		var err error
-		if argDef.Type == cmds.ArgString {
+		switch argDef.Type {
+		case cmds.ArgString:
 			if stdin == nil {
 				// add string values
 				stringArgs, inputs = appendString(stringArgs, inputs)
@@ -211,7 +212,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				}
 			}
 
-		} else if argDef.Type == cmds.ArgFile {
+		case cmds.ArgFile:
 			if stdin == nil {
 				// treat stringArg values as file paths
 				fileArgs, inputs, err = appendFile(fileArgs, inputs, argDef, recursive)
@@ -223,10 +224,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				// if we have a stdin, create a file from it
 				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
 			}
-		} else if argDef.Type == cmds.ArgStream {
+		case cmds.ArgStream:
 			if argDef.SupportsStdin {
 				// if we have a stdin, create a file from it
 				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+				stdin = nil
 			}
 		}
 
@@ -237,6 +239,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	if len(argDefs) > argDefIndex {
 		for _, argDef := range argDefs[argDefIndex:] {
 			if argDef.Required {
+				panic(3)
 				return nil, nil, fmt.Errorf("Argument '%s' is required", argDef.Name)
 			}
 		}
