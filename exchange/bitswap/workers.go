@@ -18,9 +18,14 @@ func init() {
 	if twc != "" {
 		n, err := strconv.Atoi(twc)
 		if err != nil {
+			log.Error(err)
 			return
 		}
-		TaskWorkerCount = n
+		if n > 0 {
+			TaskWorkerCount = n
+		} else {
+			log.Errorf("Invalid value of '%d' for IPFS_TASK_WORKERS", n)
+		}
 	}
 }
 
