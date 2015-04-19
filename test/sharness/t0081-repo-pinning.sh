@@ -10,7 +10,7 @@ test_description="Test ipfs repo pinning"
 
 
 
-function test_pin_flag() {
+test_pin_flag() {
 	object=$1
 	ptype=$2
 	expect=$3
@@ -34,7 +34,7 @@ function test_pin_flag() {
 	return 0
 }
 
-function test_pin() {
+test_pin() {
 	object=$1
 	shift
 
