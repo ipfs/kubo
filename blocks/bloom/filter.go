@@ -6,6 +6,7 @@ import (
 	"errors"
 	// Non crypto hash, because speed
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mtchavez/jenkins"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/steakknife/hamming"
 	"hash"
 )
 
@@ -13,6 +14,7 @@ type Filter interface {
 	Add([]byte)
 	Find([]byte) bool
 	Merge(Filter) (Filter, error)
+	HammingDistance(Filter) (int, error)
 }
 
 func NewFilter(size int) Filter {
@@ -99,4 +101,24 @@ func (f *filter) Merge(o Filter) (Filter, error) {
 	}
 
 	return nfilt, nil
+}
+
+func (f *filter) HammingDistance(o Filter) (int, error) {
+	casfil, ok := o.(*filter)
+	if !ok {
+		return 0, errors.New("Unsupported filter type")
+	}
+
+	if len(f.filter) != len(casfil.filter) {
+		return 0, errors.New("filter lengths must match!")
+	}
+
+	acc := 0
+
+	// xor together
+	for i := 0; i < len(f.filter); i++ {
+		acc += hamming.Byte(f.filter[i], casfil.filter[i])
+	}
+
+	return acc, nil
 }

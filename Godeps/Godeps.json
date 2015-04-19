@@ -218,6 +218,11 @@
 			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
 		},
 		{
+			"ImportPath": "github.com/steakknife/hamming",
+			"Comment": "0.0.10",
+			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
+		},
+		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "87e4e645d80ae9c537e8f2dee52b28036a5dd75e"
 		},
