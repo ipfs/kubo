@@ -107,9 +107,15 @@ Publish an <ipfs-path> to another public key (not implemented):
 }
 
 func publish(n *core.IpfsNode, k crypto.PrivKey, ref path.Path) (*IpnsEntry, error) {
+	// First, verify the path exists
+	_, err := n.Resolver.ResolvePath(ref)
+	if err != nil {
+		return nil, err
+	}
+
 	pub := nsys.NewRoutingPublisher(n.Routing)
 
-	err := pub.Publish(n.Context(), k, ref)
+	err = pub.Publish(n.Context(), k, ref)
 	if err != nil {
 		return nil, err
 	}
