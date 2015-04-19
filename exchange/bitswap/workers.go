@@ -14,7 +14,7 @@ import (
 var TaskWorkerCount = 16
 
 func init() {
-	twc := os.Getenv("IPFS_TASK_WORKERS")
+	twc := os.Getenv("IPFS_BITSWAP_TASK_WORKERS")
 	if twc != "" {
 		n, err := strconv.Atoi(twc)
 		if err != nil {
@@ -24,7 +24,7 @@ func init() {
 		if n > 0 {
 			TaskWorkerCount = n
 		} else {
-			log.Errorf("Invalid value of '%d' for IPFS_TASK_WORKERS", n)
+			log.Errorf("Invalid value of '%d' for IPFS_BITSWAP_TASK_WORKERS", n)
 		}
 	}
 }
