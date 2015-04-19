@@ -1,3 +1,28 @@
+//
+// hamming distance calculations in Go
+//
+// https://github.com/steakknife/hamming
+//
+// Copyright © 2014, 2015 Barry Allard
+//
+// MIT license
+//
+//
+// Usage
+//
+// The functions are named (CountBits)?(Byte|Uint64)s?.  The plural forms are for slices.  The CountBits.+ forms are Population Count only, where the bare-type forms are Hamming distance.
+//
+//    import 'github.com/steakknife/hamming'
+//
+//    // ...
+//
+//    // hamming distance between values
+//    hamming.Byte(0xFF, 0x00) // 8
+//    hamming.Byte(0x00, 0x00) // 0
+//
+//    // just count bits in a byte
+//    hamming.CountBitsByte(0xA5), // 4
+//
 package hamming
 
 // SSE4.x PopCnt is 10x slower
@@ -21,9 +46,27 @@ func Uint64(x, y uint64) int {
 	return CountBitsUint64(x ^ y)
 }
 
+// hamming distance of two uint64 buffers, of which the size of the first argument is used for both (panics if b1 is smaller than b0, does not compare b1 beyond length of b0)
+func Uint64s(b0, b1 []uint64) int {
+	d := 0
+	for i, x := range b0 {
+		d += Uint64(x, b1[i])
+	}
+	return d
+}
+
 // hamming distance of two bytes
 func Byte(x, y byte) int {
 	return CountBitsByte(x ^ y)
+}
+
+// hamming distance of two byte buffers, of which the size of the first argument is used for both (panics if b1 is smaller than b0, does not compare b1 beyond length of b0)
+func Bytes(b0, b1 []byte) int {
+	d := 0
+	for i, x := range b0 {
+		d += Byte(x, b1[i])
+	}
+	return d
 }
 
 func CountBitsUint64(x uint64) int {
@@ -33,6 +76,22 @@ func CountBitsUint64(x uint64) int {
 	return int((x * h01) >> 56)    // returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ...
 }
 
+func CountBitsUint64s(b []uint64) int {
+	c := 0
+	for _, x := range b {
+		c += CountBitsUint64(x)
+	}
+	return c
+}
+
 func CountBitsByte(x byte) int {
 	return int(table[x])
+}
+
+func CountBitsBytes(b []byte) int {
+	c := 0
+	for _, x := range b {
+		c += CountBitsByte(x)
+	}
+	return c
 }

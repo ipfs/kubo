@@ -219,8 +219,8 @@
 		},
 		{
 			"ImportPath": "github.com/steakknife/hamming",
-			"Comment": "0.0.2-2-g9ad4a62",
-			"Rev": "9ad4a620e3d573267a083c892f2b42a39302153b"
+			"Comment": "0.0.10",
+			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
