@@ -1,6 +1,8 @@
 package bitswap
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	inflect "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect"
@@ -9,16 +11,36 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
+var TaskWorkerCount = 16
+
+func init() {
+	twc := os.Getenv("IPFS_BITSWAP_TASK_WORKERS")
+	if twc != "" {
+		n, err := strconv.Atoi(twc)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		if n > 0 {
+			TaskWorkerCount = n
+		} else {
+			log.Errorf("Invalid value of '%d' for IPFS_BITSWAP_TASK_WORKERS", n)
+		}
+	}
+}
+
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
 	px.Go(func(px process.Process) {
 		bs.clientWorker(ctx)
 	})
 
-	// Start up a worker to handle requests from other nodes for the data on this node
-	px.Go(func(px process.Process) {
-		bs.taskWorker(ctx)
-	})
+	// Start up workers to handle requests from other nodes for the data on this node
+	for i := 0; i < TaskWorkerCount; i++ {
+		px.Go(func(px process.Process) {
+			bs.taskWorker(ctx)
+		})
+	}
 
 	// Start up a worker to manage periodically resending our wantlist out to peers
 	px.Go(func(px process.Process) {
