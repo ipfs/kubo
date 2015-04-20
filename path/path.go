@@ -1,10 +1,9 @@
 package path
 
 import (
+	u "github.com/ipfs/go-ipfs/util"
 	"path"
 	"strings"
-
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // TODO: debate making this a private struct wrapped in a public interface
@@ -35,4 +34,8 @@ func (p Path) Segments() []string {
 
 func (p Path) String() string {
 	return string(p)
+}
+
+func FromSegments(seg ...string) Path {
+	return Path(strings.Join(seg, "/"))
 }

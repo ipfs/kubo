@@ -345,7 +345,7 @@ Data should be in the format specified by the --inputenc flag.
 
 // objectData takes a key string and writes out the raw bytes of that node (if there is one)
 func objectData(n *core.IpfsNode, fpath path.Path) (io.Reader, error) {
-	dagnode, err := n.Resolver.ResolvePath(fpath)
+	dagnode, err := core.Resolve(n, fpath)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +357,7 @@ func objectData(n *core.IpfsNode, fpath path.Path) (io.Reader, error) {
 
 // objectLinks takes a key string and lists the links it points to
 func objectLinks(n *core.IpfsNode, fpath path.Path) (*Object, error) {
-	dagnode, err := n.Resolver.ResolvePath(fpath)
+	dagnode, err := core.Resolve(n, fpath)
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +369,7 @@ func objectLinks(n *core.IpfsNode, fpath path.Path) (*Object, error) {
 
 // objectGet takes a key string from args and a format option and serializes the dagnode to that format
 func objectGet(n *core.IpfsNode, fpath path.Path) (*dag.Node, error) {
-	dagnode, err := n.Resolver.ResolvePath(fpath)
+	dagnode, err := core.Resolve(n, fpath)
 	if err != nil {
 		return nil, err
 	}

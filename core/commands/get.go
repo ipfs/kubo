@@ -24,7 +24,7 @@ var GetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Download IPFS objects",
 		ShortDescription: `
-Retrieves the object named by <ipfs-path> and stores the data to disk.
+Retrieves the object named by <ipfs-or-ipns-path> and stores the data to disk.
 
 By default, the output will be stored at ./<ipfs-path>, but an alternate path
 can be specified with '--output=<path>' or '-o=<path>'.
@@ -166,5 +166,11 @@ func getCompressOptions(req cmds.Request) (int, error) {
 }
 
 func get(node *core.IpfsNode, p string, compression int) (io.Reader, error) {
-	return utar.NewReader(path.Path(p), node.DAG, node.Resolver, compression)
+	pathToResolve := path.Path(p)
+	dagnode, err := core.Resolve(node, pathToResolve)
+	if err != nil {
+		return nil, err
+	}
+
+	return utar.NewReader(pathToResolve, node.DAG, dagnode, compression)
 }

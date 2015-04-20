@@ -18,7 +18,7 @@ var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show IPFS object data",
 		ShortDescription: `
-Retrieves the object named by <ipfs-path> and outputs the data
+Retrieves the object named by <ipfs-or-ipns-path> and outputs the data
 it contains.
 `,
 	},
@@ -62,7 +62,7 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader,
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	for _, fpath := range paths {
-		dagnode, err := node.Resolver.ResolvePath(path.Path(fpath))
+		dagnode, err := core.Resolve(node, path.Path(fpath))
 		if err != nil {
 			return nil, 0, err
 		}

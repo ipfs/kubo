@@ -28,12 +28,11 @@ type Reader struct {
 	err        error
 }
 
-func NewReader(path path.Path, dag mdag.DAGService, resolver *path.Resolver, compression int) (*Reader, error) {
+func NewReader(path path.Path, dag mdag.DAGService, dagnode *mdag.Node, compression int) (*Reader, error) {
 
 	reader := &Reader{
 		signalChan: make(chan struct{}),
 		dag:        dag,
-		resolver:   resolver,
 	}
 
 	var err error
@@ -45,11 +44,6 @@ func NewReader(path path.Path, dag mdag.DAGService, resolver *path.Resolver, com
 		reader.writer = tar.NewWriter(reader.gzipWriter)
 	} else {
 		reader.writer = tar.NewWriter(&reader.buf)
-	}
-
-	dagnode, err := resolver.ResolvePath(path)
-	if err != nil {
-		return nil, err
 	}
 
 	// writeToBuf will write the data to the buffer, and will signal when there
