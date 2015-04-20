@@ -225,8 +225,11 @@ func toPeerInfo(bp config.BootstrapPeer) peer.PeerInfo {
 func randomSubsetOfPeers(in []peer.PeerInfo, max int) []peer.PeerInfo {
 	n := math2.IntMin(max, len(in))
 	var out []peer.PeerInfo
-	for _, val := range rand.Perm(n) {
+	for _, val := range rand.Perm(len(in)) {
 		out = append(out, in[val])
+		if len(out) >= n {
+			break
+		}
 	}
 	return out
 }
