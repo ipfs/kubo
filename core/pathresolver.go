@@ -1,9 +1,11 @@
 package core
 
 import (
+	"fmt"
+	"strings"
+
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	"strings"
 )
 
 // Resolves the given path by parsing out /ipns/ entries and then going
@@ -20,8 +22,13 @@ func Resolve(n *IpfsNode, p path.Path) (*merkledag.Node, error) {
 	if strings.HasPrefix(strpath, "/ipns/") {
 		// if it's an ipns path, try to resolve it.
 		// if we can't, we can give that error back to the user.
-		ipnsPath := p.Segments()[1]
-		extensions := p.Segments()[2:]
+		seg := p.Segments()
+		if len(seg) < 2 || seg[1] == "" { // just "/ipns/"
+			return nil, fmt.Errorf("invalid path: %s", string(p))
+		}
+
+		ipnsPath := seg[1]
+		extensions := seg[2:]
 		key, err := n.Namesys.Resolve(n.Context(), ipnsPath)
 		if err != nil {
 			return nil, err
