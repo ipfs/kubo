@@ -384,13 +384,8 @@ var ErrEmptyNode = errors.New("no data or links in this node")
 
 // objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
 func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, error) {
-	var (
-		dagnode *dag.Node
-		data    []byte
-		err     error
-	)
 
-	data, err = ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
+	data, err := ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
 	if err != nil {
 		return nil, err
 	}
@@ -399,6 +394,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 		return nil, ErrObjectTooLarge
 	}
 
+	var dagnode *dag.Node
 	switch getObjectEnc(encoding) {
 	case objectEncodingJSON:
 		node := new(Node)
@@ -429,7 +425,7 @@ func objectPut(n *core.IpfsNode, input io.Reader, encoding string) (*Object, err
 		return nil, err
 	}
 
-	err = addNode(n, dagnode)
+	_, err = n.DAG.Add(dagnode)
 	if err != nil {
 		return nil, err
 	}

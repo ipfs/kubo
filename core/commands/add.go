@@ -232,15 +232,6 @@ func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
 	return dagnodes, nil
 }
 
-func addNode(n *core.IpfsNode, node *dag.Node) error {
-	err := n.DAG.AddRecursive(node) // add the file to the graph + local storage
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool) (*dag.Node, error) {
 	if file.IsDirectory() {
 		return addDir(n, file, out, progress)
@@ -309,7 +300,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 		return nil, err
 	}
 
-	err = addNode(n, tree)
+	_, err = n.DAG.Add(tree)
 	if err != nil {
 		return nil, err
 	}
