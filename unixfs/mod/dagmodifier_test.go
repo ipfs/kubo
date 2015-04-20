@@ -578,7 +578,7 @@ func enumerateChildren(t *testing.T, nd *mdag.Node, ds mdag.DAGService) []u.Key 
 	var out []u.Key
 	for _, lnk := range nd.Links {
 		out = append(out, u.Key(lnk.Hash))
-		child, err := lnk.GetNode(ds)
+		child, err := lnk.GetNode(context.Background(), ds)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -643,7 +643,7 @@ func printDag(nd *mdag.Node, ds mdag.DAGService, indent int) {
 		fmt.Println()
 	}
 	for _, lnk := range nd.Links {
-		child, err := lnk.GetNode(ds)
+		child, err := lnk.GetNode(context.Background(), ds)
 		if err != nil {
 			panic(err)
 		}

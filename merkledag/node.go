@@ -3,6 +3,8 @@ package merkledag
 import (
 	"fmt"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -77,12 +79,12 @@ func MakeLink(n *Node) (*Link, error) {
 }
 
 // GetNode returns the MDAG Node that this link points to
-func (l *Link) GetNode(serv DAGService) (*Node, error) {
+func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 	if l.Node != nil {
 		return l.Node, nil
 	}
 
-	return serv.Get(u.Key(l.Hash))
+	return serv.Get(ctx, u.Key(l.Hash))
 }
 
 // AddNodeLink adds a link to another node.

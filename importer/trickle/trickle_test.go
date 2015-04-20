@@ -607,7 +607,7 @@ func printDag(nd *merkledag.Node, ds merkledag.DAGService, indent int) {
 		fmt.Println()
 	}
 	for _, lnk := range nd.Links {
-		child, err := lnk.GetNode(ds)
+		child, err := lnk.GetNode(context.Background(), ds)
 		if err != nil {
 			panic(err)
 		}

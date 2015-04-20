@@ -143,7 +143,7 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		return err
 	}
 
-	if err := nd.Pinning.Pin(dir, true); err != nil {
+	if err := nd.Pinning.Pin(ctx, dir, true); err != nil {
 		return err
 	}
 

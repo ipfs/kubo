@@ -165,12 +165,14 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
 
+To see the ref count on indirect pins, pass the -count option flag.
 Defaults to "direct".
 `,
 	},
 
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
+		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
@@ -195,21 +197,57 @@ Defaults to "direct".
 			res.SetError(err, cmds.ErrClient)
 		}
 
-		keys := make([]u.Key, 0)
+		keys := make(map[string]int)
 		if typeStr == "direct" || typeStr == "all" {
-			keys = append(keys, n.Pinning.DirectKeys()...)
+			for _, k := range n.Pinning.DirectKeys() {
+				keys[k.B58String()] = 1
+			}
 		}
 		if typeStr == "indirect" || typeStr == "all" {
-			keys = append(keys, n.Pinning.IndirectKeys()...)
+			for k, v := range n.Pinning.IndirectKeys() {
+				keys[k.B58String()] = v
+			}
 		}
 		if typeStr == "recursive" || typeStr == "all" {
-			keys = append(keys, n.Pinning.RecursiveKeys()...)
+			for _, k := range n.Pinning.RecursiveKeys() {
+				keys[k.B58String()] = 1
+			}
 		}
 
-		res.SetOutput(&KeyList{Keys: keys})
+		res.SetOutput(&RefKeyList{Keys: keys})
 	},
-	Type: KeyList{},
+	Type: RefKeyList{},
 	Marshalers: cmds.MarshalerMap{
-		cmds.Text: KeyListTextMarshaler,
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			typeStr, _, err := res.Request().Option("type").String()
+			if err != nil {
+				return nil, err
+			}
+
+			count, _, err := res.Request().Option("count").Bool()
+			if err != nil {
+				return nil, err
+			}
+
+			keys, ok := res.Output().(*RefKeyList)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+			out := new(bytes.Buffer)
+			if typeStr == "indirect" && count {
+				for k, v := range keys.Keys {
+					fmt.Fprintf(out, "%s %d\n", k, v)
+				}
+			} else {
+				for k, _ := range keys.Keys {
+					fmt.Fprintf(out, "%s\n", k)
+				}
+			}
+			return out, nil
+		},
 	},
+}
+
+type RefKeyList struct {
+	Keys map[string]int
 }

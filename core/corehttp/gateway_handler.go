@@ -352,7 +352,9 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rootnd, err := i.node.Resolver.DAG.Get(u.Key(h))
+	tctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, u.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -414,7 +416,9 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rootnd, err := i.node.Resolver.DAG.Get(u.Key(h))
+	tctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, u.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return

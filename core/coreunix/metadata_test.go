@@ -8,6 +8,7 @@ import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
@@ -65,7 +66,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatalf("something went wrong in conversion: '%s' != '%s'", rec.MimeType, m.MimeType)
 	}
 
-	retnode, err := ds.Get(u.B58KeyDecode(mdk))
+	retnode, err := ds.Get(context.Background(), u.B58KeyDecode(mdk))
 	if err != nil {
 		t.Fatal(err)
 	}

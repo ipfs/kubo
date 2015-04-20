@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
+
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -135,7 +138,10 @@ func (d *Directory) childDir(name string) (*Directory, error) {
 func (d *Directory) childFromDag(name string) (*dag.Node, error) {
 	for _, lnk := range d.node.Links {
 		if lnk.Name == name {
-			return lnk.GetNode(d.fs.dserv)
+			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+			defer cancel()
+
+			return lnk.GetNode(ctx, d.fs.dserv)
 		}
 	}
 

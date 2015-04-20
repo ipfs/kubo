@@ -3,8 +3,10 @@ package path
 
 import (
 	"fmt"
+	"time"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -74,7 +76,9 @@ func (s *Resolver) ResolvePathComponents(fpath Path) ([]*merkledag.Node, error) 
 	}
 
 	log.Debug("Resolve dag get.\n")
-	nd, err := s.DAG.Get(u.Key(h))
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	defer cancel()
+	nd, err := s.DAG.Get(ctx, u.Key(h))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +121,9 @@ func (s *Resolver) ResolveLinks(ndd *merkledag.Node, names []string) (
 
 		if nlink.Node == nil {
 			// fetch object for link and assign to nd
-			nd, err = s.DAG.Get(next)
+			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+			defer cancel()
+			nd, err = s.DAG.Get(ctx, next)
 			if err != nil {
 				return append(result, nd), err
 			}

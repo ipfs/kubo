@@ -93,7 +93,7 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.Node) []str
 	}
 	var out []string
 	for _, lnk := range n.Links {
-		child, err := lnk.GetNode(ipfs.DAG)
+		child, err := lnk.GetNode(ipfs.Context(), ipfs.DAG)
 		if err != nil {
 			t.Fatal(err)
 		}
