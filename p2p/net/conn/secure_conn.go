@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"errors"
 	"net"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	secio "github.com/ipfs/go-ipfs/p2p/crypto/secio"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // secureConn wraps another Conn object with an encrypted channel.

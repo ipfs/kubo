@@ -1,7 +1,8 @@
 package config
 
 import (
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
+	"errors"
+	"fmt"
 
 	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
 )
@@ -40,7 +41,7 @@ func (c *Config) BootstrapPeers() ([]BootstrapPeer, error) {
 func DefaultBootstrapPeers() ([]BootstrapPeer, error) {
 	ps, err := ParseBootstrapPeers(DefaultBootstrapAddresses)
 	if err != nil {
-		return nil, errors.Errorf(`failed to parse hardcoded bootstrap peers: %s
+		return nil, fmt.Errorf(`failed to parse hardcoded bootstrap peers: %s
 This is a problem with the ipfs codebase. Please report it to the dev team.`, err)
 	}
 	return ps, nil

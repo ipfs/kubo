@@ -15,7 +15,6 @@ import (
 
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // String returns the string rep of d.
@@ -107,7 +106,7 @@ func (d *Dialer) rawConnDial(ctx context.Context, raddr ma.Multiaddr, remote pee
 
 	if strings.HasPrefix(raddr.String(), "/ip4/0.0.0.0") {
 		log.Event(ctx, "connDialZeroAddr", lgbl.Dial("conn", d.LocalPeer, remote, nil, raddr))
-		return nil, debugerror.Errorf("Attempted to connect to zero address: %s", raddr)
+		return nil, fmt.Errorf("Attempted to connect to zero address: %s", raddr)
 	}
 
 	// get local addr to use.

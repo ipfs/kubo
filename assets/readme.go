@@ -1,4 +1,5 @@
 package assets
+
 var Init_doc_readme = `Hello and Welcome to IPFS!
 
 ██╗██████╗ ███████╗███████╗

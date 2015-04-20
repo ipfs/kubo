@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"errors"
+
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	host "github.com/ipfs/go-ipfs/p2p/host"
@@ -10,7 +12,6 @@ import (
 	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	"github.com/ipfs/go-ipfs/util"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
@@ -103,7 +104,7 @@ func (px *standard) sendMessage(ctx context.Context, m *dhtpb.Message, remote pe
 	defer s.Close()
 	pbw := ggio.NewDelimitedWriter(s)
 	if err := pbw.WriteMsg(m); err != nil {
-		return errors.Wrap(err)
+		return err
 	}
 	return nil
 }

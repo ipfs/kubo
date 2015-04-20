@@ -1,6 +1,7 @@
 package supernode
 
 import (
+	"errors"
 	"fmt"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -11,7 +12,6 @@ import (
 	record "github.com/ipfs/go-ipfs/routing/record"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	util "github.com/ipfs/go-ipfs/util"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // Server handles routing queries using a database backend
@@ -117,7 +117,7 @@ func getRoutingRecord(ds datastore.Datastore, k util.Key) (*dhtpb.Record, error)
 	dskey := k.DsKey()
 	val, err := ds.Get(dskey)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	recordBytes, ok := val.([]byte)
 	if !ok {

@@ -1,6 +1,8 @@
 package fsrepo
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -20,7 +22,6 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
-	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const (
@@ -100,7 +101,7 @@ func open(repoPath string) (repo.Repo, error) {
 	}()
 
 	if !isInitializedUnsynced(r.path) {
-		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 	// check repo path, then check all constituent parts.
 	// TODO acquire repo lock
@@ -191,7 +192,7 @@ func Init(repoPath string, conf *config.Config) error {
 	// During Init, we merely check that the directory is writeable.
 	p := path.Join(repoPath, defaultDataStoreDirectory)
 	if err := dir.Writable(p); err != nil {
-		return debugerror.Errorf("datastore: %s", err)
+		return fmt.Errorf("datastore: %s", err)
 	}
 
 	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
@@ -240,7 +241,7 @@ func (r *FSRepo) openDatastore() error {
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
-		return debugerror.New("unable to open leveldb datastore")
+		return errors.New("unable to open leveldb datastore")
 	}
 	r.ds = ds
 	return nil
@@ -264,7 +265,7 @@ func (r *FSRepo) Close() error {
 	defer packageLock.Unlock()
 
 	if r.closed {
-		return debugerror.New("repo is closed")
+		return errors.New("repo is closed")
 	}
 
 	if err := r.ds.Close(); err != nil {
@@ -349,7 +350,7 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 	defer packageLock.Unlock()
 
 	if r.closed {
-		return nil, debugerror.New("repo is closed")
+		return nil, errors.New("repo is closed")
 	}
 
 	filename, err := config.Filename(r.path)
@@ -369,7 +370,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	defer packageLock.Unlock()
 
 	if r.closed {
-		return debugerror.New("repo is closed")
+		return errors.New("repo is closed")
 	}
 
 	filename, err := config.Filename(r.path)

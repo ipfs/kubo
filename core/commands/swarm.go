@@ -2,13 +2,13 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"

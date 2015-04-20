@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -130,7 +130,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 				// first, one stream per peer (nice)
 				stream, err := s1.NewStreamWithPeer(p)
 				if err != nil {
-					errChan <- errors.Wrap(err)
+					errChan <- err
 					return
 				}
 
@@ -177,12 +177,12 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 
 					// read from the stream
 					if _, err := stream.Read(msg); err != nil {
-						errChan <- errors.Wrap(err)
+						errChan <- err
 						continue
 					}
 
 					if string(msg) != "pong" {
-						errChan <- errors.Errorf("unexpected message: %s", msg)
+						errChan <- fmt.Errorf("unexpected message: %s", msg)
 						continue
 					}
 
@@ -195,7 +195,7 @@ func SubtestSwarm(t *testing.T, SwarmNum int, MsgNum int) {
 			}
 
 			if count != countShouldBe {
-				errChan <- errors.Errorf("count mismatch: %d != %d", count, countShouldBe)
+				errChan <- fmt.Errorf("count mismatch: %d != %d", count, countShouldBe)
 			}
 		}()
 
