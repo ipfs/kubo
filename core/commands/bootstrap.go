@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"sort"
 
@@ -10,7 +11,6 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	u "github.com/ipfs/go-ipfs/util"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 type BootstrapOutput struct {

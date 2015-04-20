@@ -14,7 +14,6 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	util "github.com/ipfs/go-ipfs/util"
-	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const (
@@ -56,7 +55,7 @@ in the network, use 0.0.0.0 as the ip address:
 
    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 
-Be careful if you expose the API. It is a security risk, as anyone could use control 
+Be careful if you expose the API. It is a security risk, as anyone could use control
 your node remotely. If you need to control the node remotely, make sure to protect
 the port as you would other services or database (firewall, authenticated proxy, etc).`,
 	},
@@ -98,7 +97,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		if !util.FileExists(req.Context().ConfigRoot) {
 			err := initWithDefaults(os.Stdout, req.Context().ConfigRoot)
 			if err != nil {
-				res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
+				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 		}
@@ -120,7 +119,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(req.Context().ConfigRoot)
 	if err != nil {
-		res.SetError(debugerror.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
+		res.SetError(fmt.Errorf("Couldn't obtain lock. Is another daemon already running?"), cmds.ErrNormal)
 		return
 	}
 

@@ -1,4 +1,5 @@
 package assets
+
 var Init_doc_contact = `Come hang out in our IRC chat room if you have any questions.
 
 Contact the ipfs dev team:

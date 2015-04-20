@@ -1,4 +1,5 @@
 package assets
+
 var Init_doc_quick_start = `# 0.1 - Quick Start
 
 This is a set of short examples with minmal explanation. It is meant as

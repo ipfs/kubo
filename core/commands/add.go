@@ -18,7 +18,6 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
-	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // Error indicating the max depth has been exceded.
@@ -106,19 +105,19 @@ remains to be implemented.
 
 				rootnd, err := addFile(n, file, outChan, progress, wrap)
 				if err != nil {
-					res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
+					res.SetError(err, cmds.ErrNormal)
 					return
 				}
 
 				err = n.Pinning.Pin(context.Background(), rootnd, true)
 				if err != nil {
-					res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
+					res.SetError(err, cmds.ErrNormal)
 					return
 				}
 
 				err = n.Pinning.Flush()
 				if err != nil {
-					res.SetError(debugerror.Wrap(err), cmds.ErrNormal)
+					res.SetError(err, cmds.ErrNormal)
 					return
 				}
 			}

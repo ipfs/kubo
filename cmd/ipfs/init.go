@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -15,7 +16,6 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
-	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 const nBitsForKeypairDefault = 4096
@@ -65,14 +65,14 @@ var initCmd = &cmds.Command{
 	},
 }
 
-var errRepoExists = debugerror.New(`ipfs configuration file already exists!
+var errRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 (use -f to force overwrite)
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
 	err := doInit(out, repoRoot, false, nBitsForKeypairDefault)
-	return debugerror.Wrap(err)
+	return err
 }
 
 func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {

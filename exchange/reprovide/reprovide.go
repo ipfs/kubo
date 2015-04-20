@@ -1,6 +1,7 @@
 package reprovide
 
 import (
+	"fmt"
 	"time"
 
 	backoff "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cenkalti/backoff"
@@ -8,7 +9,6 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks/blockstore"
 	routing "github.com/ipfs/go-ipfs/routing"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 var log = eventlog.Logger("reprovider")
@@ -50,7 +50,7 @@ func (rp *Reprovider) ProvideEvery(ctx context.Context, tick time.Duration) {
 func (rp *Reprovider) Reprovide(ctx context.Context) error {
 	keychan, err := rp.bstore.AllKeysChan(ctx)
 	if err != nil {
-		return debugerror.Errorf("Failed to get key chan from blockstore: %s", err)
+		return fmt.Errorf("Failed to get key chan from blockstore: %s", err)
 	}
 	for k := range keychan {
 		op := func() error {

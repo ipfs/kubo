@@ -2,6 +2,7 @@ package fsrepo
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/facebookgo/atomicfile"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/util"
-	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 var log = util.Logger("fsrepo")
@@ -59,7 +59,7 @@ func encode(w io.Writer, value interface{}) error {
 func Load(filename string) (*config.Config, error) {
 	// if nothing is there, fail. User must run 'ipfs init'
 	if !util.FileExists(filename) {
-		return nil, debugerror.New("ipfs not initialized, please run 'ipfs init'")
+		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
 	}
 
 	var cfg config.Config

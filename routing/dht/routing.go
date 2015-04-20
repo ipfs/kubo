@@ -13,7 +13,6 @@ import (
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	u "github.com/ipfs/go-ipfs/util"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	pset "github.com/ipfs/go-ipfs/util/peerset"
 )
 
@@ -95,7 +94,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	log.Debugf("peers in rt: %s", len(rtp), rtp)
 	if len(rtp) == 0 {
 		log.Warning("No peers from routing table!")
-		return nil, errors.Wrap(kb.ErrLookupFailure)
+		return nil, kb.ErrLookupFailure
 	}
 
 	// setup the Query
@@ -278,7 +277,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 
 	peers := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if len(peers) == 0 {
-		return peer.PeerInfo{}, errors.Wrap(kb.ErrLookupFailure)
+		return peer.PeerInfo{}, kb.ErrLookupFailure
 	}
 
 	// Sanity...
@@ -344,7 +343,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 
 	peers := dht.routingTable.NearestPeers(kb.ConvertPeerID(id), AlphaValue)
 	if len(peers) == 0 {
-		return nil, errors.Wrap(kb.ErrLookupFailure)
+		return nil, kb.ErrLookupFailure
 	}
 
 	// setup the Query

@@ -3,6 +3,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -14,7 +15,6 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	metrics "github.com/ipfs/go-ipfs/metrics"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	debugerror "github.com/ipfs/go-ipfs/util/debugerror"
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -133,7 +133,7 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 
 	node.Blocks, err = bserv.New(node.Blockstore, node.Exchange)
 	if err != nil {
-		return nil, debugerror.Wrap(err)
+		return nil, err
 	}
 	if node.Peerstore == nil {
 		node.Peerstore = peer.NewPeerstore()
@@ -149,7 +149,7 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 	if node.OnlineMode() {
 		fs, err := ipnsfs.NewFilesystem(ctx, node.DAG, node.Namesys, node.Pinning, node.PrivateKey)
 		if err != nil && err != kb.ErrLookupFailure {
-			return nil, debugerror.Wrap(err)
+			return nil, err
 		}
 		node.IpnsFs = fs
 	}
@@ -192,7 +192,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 		// to test all node construction code paths.
 
 		if r == nil {
-			return nil, debugerror.Errorf("repo required")
+			return nil, fmt.Errorf("repo required")
 		}
 		n = &IpfsNode{
 			mode: func() mode {
@@ -214,7 +214,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 
 		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
 		if err != nil {
-			return nil, debugerror.Wrap(err)
+			return nil, err
 		}
 
 		if online {
@@ -233,7 +233,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption) error {
 
 	if n.PeerHost != nil { // already online.
-		return debugerror.New("node already online")
+		return errors.New("node already online")
 	}
 
 	// load private key
@@ -246,7 +246,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter)
 	if err != nil {
-		return debugerror.Wrap(err)
+		return err
 	}
 
 	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption); err != nil {
@@ -255,7 +255,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	// Ok, now we're ready to listen.
 	if err := startListening(ctx, n.PeerHost, n.Repo.Config()); err != nil {
-		return debugerror.Wrap(err)
+		return err
 	}
 
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
@@ -273,7 +273,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	// setup routing service
 	r, err := routingOption(ctx, host, n.Repo.Datastore())
 	if err != nil {
-		return debugerror.Wrap(err)
+		return err
 	}
 	n.Routing = r
 
@@ -380,15 +380,15 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 
 func (n *IpfsNode) loadID() error {
 	if n.Identity != "" {
-		return debugerror.New("identity already loaded")
+		return errors.New("identity already loaded")
 	}
 
 	cid := n.Repo.Config().Identity.PeerID
 	if cid == "" {
-		return debugerror.New("Identity was not set in config (was ipfs init run?)")
+		return errors.New("Identity was not set in config (was ipfs init run?)")
 	}
 	if len(cid) == 0 {
-		return debugerror.New("No peer ID in config! (was ipfs init run?)")
+		return errors.New("No peer ID in config! (was ipfs init run?)")
 	}
 
 	n.Identity = peer.ID(b58.Decode(cid))
@@ -397,11 +397,11 @@ func (n *IpfsNode) loadID() error {
 
 func (n *IpfsNode) LoadPrivateKey() error {
 	if n.Identity == "" || n.Peerstore == nil {
-		return debugerror.New("loaded private key out of order.")
+		return errors.New("loaded private key out of order.")
 	}
 
 	if n.PrivateKey != nil {
-		return debugerror.New("private key already loaded")
+		return errors.New("private key already loaded")
 	}
 
 	sk, err := loadPrivateKey(&n.Repo.Config().Identity, n.Identity)
@@ -480,7 +480,7 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr m
 	// no addresses to begin with. we'll start later.
 	network, err := swarm.NewNetwork(ctx, nil, id, ps, bwr)
 	if err != nil {
-		return nil, debugerror.Wrap(err)
+		return nil, err
 	}
 
 	host := p2pbhost.New(network, p2pbhost.NATPortMap, bwr)
@@ -492,7 +492,7 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr m
 func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) error {
 	listenAddrs, err := listenAddresses(cfg)
 	if err != nil {
-		return debugerror.Wrap(err)
+		return err
 	}
 
 	// make sure we error out if our config does not have addresses we can use
@@ -500,7 +500,7 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 	filteredAddrs := addrutil.FilterUsableAddrs(listenAddrs)
 	log.Debugf("Config.Addresses.Swarm:%s (filtered)", filteredAddrs)
 	if len(filteredAddrs) < 1 {
-		return debugerror.Errorf("addresses in config not usable: %s", listenAddrs)
+		return fmt.Errorf("addresses in config not usable: %s", listenAddrs)
 	}
 
 	// Actually start listening:
@@ -511,7 +511,7 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 	// list out our addresses
 	addrs, err := host.Network().InterfaceListenAddresses()
 	if err != nil {
-		return debugerror.Wrap(err)
+		return err
 	}
 	log.Infof("Swarm listening at: %s", addrs)
 	return nil

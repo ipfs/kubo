@@ -2,12 +2,12 @@ package config
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -44,10 +44,10 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 			Gateway: "/ip4/127.0.0.1/tcp/8080",
 		},
 
-		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
-		SupernodeRouting:       *snr,
-		Datastore: *ds,
-		Identity:  identity,
+		Bootstrap:        BootstrapPeerStrings(bootstrapPeers),
+		SupernodeRouting: *snr,
+		Datastore:        *ds,
+		Identity:         identity,
 		Log: Log{
 			MaxSizeMB:  250,
 			MaxBackups: 1,

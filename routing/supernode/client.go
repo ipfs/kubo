@@ -2,6 +2,7 @@ package supernode
 
 import (
 	"bytes"
+	"errors"
 	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
@@ -13,7 +14,6 @@ import (
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 var log = eventlog.Logger("supernode")
@@ -44,13 +44,13 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 		request := pb.NewMessage(pb.Message_GET_PROVIDERS, string(k), 0)
 		response, err := c.proxy.SendRequest(ctx, request)
 		if err != nil {
-			log.Debug(errors.Wrap(err))
+			log.Debug(err)
 			return
 		}
 		for _, p := range pb.PBPeersToPeerInfos(response.GetProviderPeers()) {
 			select {
 			case <-ctx.Done():
-				log.Debug(errors.Wrap(ctx.Err()))
+				log.Debug(ctx.Err())
 				return
 			case ch <- p:
 			}
@@ -75,7 +75,7 @@ func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
 	msg := pb.NewMessage(pb.Message_GET_VALUE, string(k), 0)
 	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	return response.Record.GetValue(), nil
 }
@@ -101,7 +101,7 @@ func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error
 	request := pb.NewMessage(pb.Message_FIND_NODE, string(id), 0)
 	response, err := c.proxy.SendRequest(ctx, request) // hide remote
 	if err != nil {
-		return peer.PeerInfo{}, errors.Wrap(err)
+		return peer.PeerInfo{}, err
 	}
 	for _, p := range pb.PBPeersToPeerInfos(response.GetCloserPeers()) {
 		if p.ID == id {

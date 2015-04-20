@@ -3,6 +3,7 @@
 package bitswap
 
 import (
+	"errors"
 	"math"
 	"sync"
 	"time"
@@ -21,7 +22,6 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	pset "github.com/ipfs/go-ipfs/util/peerset" // TODO move this to peerstore
 )
 
@@ -432,7 +432,7 @@ func (bs *Bitswap) ReceiveError(err error) {
 func (bs *Bitswap) send(ctx context.Context, p peer.ID, m bsmsg.BitSwapMessage) error {
 	defer log.EventBegin(ctx, "sendMessage", p, m).Done()
 	if err := bs.network.SendMessage(ctx, p, m); err != nil {
-		return errors.Wrap(err)
+		return err
 	}
 	return bs.engine.MessageSent(p, m)
 }

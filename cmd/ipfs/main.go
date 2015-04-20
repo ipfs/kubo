@@ -26,7 +26,6 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
-	"github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // log is the command logger
@@ -355,7 +354,7 @@ func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
 		var found bool
 		cmd, found = cmd.Subcommands[cmp]
 		if !found {
-			return nil, debugerror.Errorf("subcommand %s should be in root", cmp)
+			return nil, fmt.Errorf("subcommand %s should be in root", cmp)
 		}
 
 		if cmdDetails, found := cmdDetailsMap[cmd]; found {

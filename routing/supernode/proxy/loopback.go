@@ -6,7 +6,6 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 )
 
 // RequestHandler handles routing requests locally
@@ -43,7 +42,7 @@ func (lb *Loopback) HandleStream(s inet.Stream) {
 	pbr := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	var incoming dhtpb.Message
 	if err := pbr.ReadMsg(&incoming); err != nil {
-		log.Debug(errors.Wrap(err))
+		log.Debug(err)
 		return
 	}
 	ctx := context.TODO()

@@ -1,4 +1,5 @@
 package assets
+
 var Init_doc_security_notes = `                    IPFS Alpha Security Notes
 
 We try hard to ensure our system is safe and robust, but all software
