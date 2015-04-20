@@ -141,7 +141,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "35738aceb35505bd3c77c2a618fb1947ca3f72da"
+			"Rev": "f1a0a0fd88f23b67589957f02b7500372aca186f"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
@@ -158,6 +158,10 @@
 		{
 			"ImportPath": "github.com/jbenet/go-logging",
 			"Rev": "74bec4b83f6d45d1402c1e9d94c0c29e39f6e0ea"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-migrate",
+			"Rev": "593be6b4b24a87e4d380e54339721ad4b4c6543c"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-msgio",

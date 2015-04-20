@@ -1,6 +1,6 @@
 # FUSE
 
-As a golang project, `go-ipfs` is easily downloaded and installed with `go get github.com/ipfs/go-ipfs`. All data is stored in a leveldb data store in `~/.go-ipfs/datastore`. If, however, you would like to mount the datastore (`ipfs mount /ipfs`) and use it as you would a normal filesystem, you will need to install fuse.
+As a golang project, `go-ipfs` is easily downloaded and installed with `go get github.com/ipfs/go-ipfs`. All data is stored in a leveldb data store in `~/.ipfs/datastore`. If, however, you would like to mount the datastore (`ipfs mount /ipfs`) and use it as you would a normal filesystem, you will need to install fuse.
 
 As a precursor, you will have to create the `/ipfs` and `/ipns` directories explicitly. Note that modifying root requires sudo permissions.
 

@@ -7,15 +7,19 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	levelds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	ldbopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	serialize "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -24,8 +28,26 @@ import (
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 )
 
+// version number that we are currently expecting to see
+var RepoVersion = "2"
+
+var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
+Sorry for the inconvenience. In the future, these will run automatically.`
+
+var errIncorrectRepoFmt = `Repo has incorrect version: %s
+Program version is: %s
+Please run the ipfs migration tool before continuing.
+` + migrationInstructions
+
+var (
+	ErrNoRepo    = errors.New("no ipfs repo found. please run: ipfs init")
+	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
+	ErrOldRepo   = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
+)
+
 const (
-	defaultDataStoreDirectory = "datastore"
+	leveldbDirectory = "datastore"
+	flatfsDirectory  = "blocks"
 )
 
 var (
@@ -60,8 +82,9 @@ type FSRepo struct {
 	// the same fsrepo path concurrently
 	lockfile io.Closer
 	config   *config.Config
-	// ds is set on Open
-	ds ds2.ThreadSafeDatastoreCloser
+	ds       ds.ThreadSafeDatastore
+	// tracked separately for use in Close; do not use directly.
+	leveldbDS levelds.Datastore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -79,13 +102,14 @@ func open(repoPath string) (repo.Repo, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	expPath, err := u.TildeExpansion(path.Clean(repoPath))
+	r, err := newFSRepo(repoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	r := &FSRepo{
-		path: expPath,
+	// Check if its initialized
+	if err := checkInitialized(r.path); err != nil {
+		return nil, err
 	}
 
 	r.lockfile, err = lockfile.Lock(r.path)
@@ -100,12 +124,20 @@ func open(repoPath string) (repo.Repo, error) {
 		}
 	}()
 
-	if !isInitializedUnsynced(r.path) {
-		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
+	// Check version, and error out if not matching
+	ver, err := mfsr.RepoPath(r.path).Version()
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrNoVersion
+		}
+		return nil, err
 	}
+
+	if ver != RepoVersion {
+		return nil, fmt.Errorf(errIncorrectRepoFmt, ver, RepoVersion)
+	}
+
 	// check repo path, then check all constituent parts.
-	// TODO acquire repo lock
-	// TODO if err := initCheckDir(logpath); err != nil { // }
 	if err := dir.Writable(r.path); err != nil {
 		return nil, err
 	}
@@ -118,11 +150,31 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	// log.Debugf("writing eventlogs to ...", c.path)
+	// setup eventlogger
 	configureEventLoggerAtRepoPath(r.config, r.path)
 
 	keepLocked = true
 	return r, nil
+}
+
+func newFSRepo(rpath string) (*FSRepo, error) {
+	expPath, err := u.TildeExpansion(path.Clean(rpath))
+	if err != nil {
+		return nil, err
+	}
+
+	return &FSRepo{path: expPath}, nil
+}
+
+func checkInitialized(path string) error {
+	if !isInitializedUnsynced(path) {
+		alt := strings.Replace(path, ".ipfs", ".go-ipfs", 1)
+		if isInitializedUnsynced(alt) {
+			return ErrOldRepo
+		}
+		return ErrNoRepo
+	}
+	return nil
 }
 
 // ConfigAt returns an error if the FSRepo at the given path is not
@@ -190,12 +242,21 @@ func Init(repoPath string, conf *config.Config) error {
 
 	// The actual datastore contents are initialized lazily when Opened.
 	// During Init, we merely check that the directory is writeable.
-	p := path.Join(repoPath, defaultDataStoreDirectory)
-	if err := dir.Writable(p); err != nil {
+	leveldbPath := path.Join(repoPath, leveldbDirectory)
+	if err := dir.Writable(leveldbPath); err != nil {
+		return fmt.Errorf("datastore: %s", err)
+	}
+
+	flatfsPath := path.Join(repoPath, flatfsDirectory)
+	if err := dir.Writable(flatfsPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
 	}
 
 	if err := dir.Writable(path.Join(repoPath, "logs")); err != nil {
+		return err
+	}
+
+	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
 		return err
 	}
 
@@ -236,14 +297,41 @@ func (r *FSRepo) openConfig() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	dsPath := path.Join(r.path, defaultDataStoreDirectory)
-	ds, err := levelds.NewDatastore(dsPath, &levelds.Options{
+	leveldbPath := path.Join(r.path, leveldbDirectory)
+	var err error
+	// save leveldb reference so it can be neatly closed afterward
+	r.leveldbDS, err = levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
 		return errors.New("unable to open leveldb datastore")
 	}
-	r.ds = ds
+
+	// 4TB of 256kB objects ~=17M objects, splitting that 256-way
+	// leads to ~66k objects per dir, splitting 256*256-way leads to
+	// only 256.
+	//
+	// The keys seen by the block store have predictable prefixes,
+	// including "/" from datastore.Key and 2 bytes from multihash. To
+	// reach a uniform 256-way split, we need approximately 4 bytes of
+	// prefix.
+	blocksDS, err := flatfs.New(path.Join(r.path, flatfsDirectory), 4)
+	if err != nil {
+		return errors.New("unable to open flatfs datastore")
+	}
+
+	mountDS := mount.New([]mount.Mount{
+		{Prefix: ds.NewKey("/blocks"), Datastore: blocksDS},
+		{Prefix: ds.NewKey("/"), Datastore: r.leveldbDS},
+	})
+	// Make sure it's ok to claim the virtual datastore from mount as
+	// threadsafe. There's no clean way to make mount itself provide
+	// this information without copy-pasting the code into two
+	// variants. This is the same dilemma as the `[].byte` attempt at
+	// introducing const types to Go.
+	var _ ds.ThreadSafeDatastore = blocksDS
+	var _ ds.ThreadSafeDatastore = r.leveldbDS
+	r.ds = ds2.ClaimThreadSafe{mountDS}
 	return nil
 }
 
@@ -268,7 +356,7 @@ func (r *FSRepo) Close() error {
 		return errors.New("repo is closed")
 	}
 
-	if err := r.ds.Close(); err != nil {
+	if err := r.leveldbDS.Close(); err != nil {
 		return err
 	}
 
@@ -430,7 +518,7 @@ func isInitializedUnsynced(repoPath string) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
-	if !util.FileExists(path.Join(repoPath, defaultDataStoreDirectory)) {
+	if !util.FileExists(path.Join(repoPath, leveldbDirectory)) {
 		return false
 	}
 	return true

@@ -2,7 +2,7 @@
 //
 // TODO explain the package roadmap...
 //
-//   .go-ipfs/
+//   .ipfs/
 //   ├── client/
 //   |   ├── client.lock          <------ protects client/ + signals its own pid
 //   │   ├── ipfs-client.cpuprof

@@ -145,7 +145,7 @@ accomplished with the following command:
 ### Troubleshooting
 If you have previously installed ipfs before and you are running into
 problems getting a newer version to work, try deleting (or backing up somewhere
-else) your ipfs config directory (~/.go-ipfs by default) and rerunning `ipfs init`.
+else) your ipfs config directory (~/.ipfs by default) and rerunning `ipfs init`.
 This will reinitialize the config file to its defaults and clear out the local
 datastore of any bad entries.
 

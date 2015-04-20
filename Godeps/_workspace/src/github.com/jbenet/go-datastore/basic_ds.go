@@ -45,6 +45,9 @@ func (d *MapDatastore) Has(key Key) (exists bool, err error) {
 
 // Delete implements Datastore.Delete
 func (d *MapDatastore) Delete(key Key) (err error) {
+	if _, found := d.values[key]; !found {
+		return ErrNotFound
+	}
 	delete(d.values, key)
 	return nil
 }

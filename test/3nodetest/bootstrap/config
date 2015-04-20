@@ -5,7 +5,7 @@
   },
   "Datastore": {
     "Type": "leveldb",
-    "Path": "/root/.go-ipfs/datastore"
+    "Path": "/root/.ipfs/datastore"
   },
   "Addresses": {
     "Swarm": [
@@ -30,7 +30,7 @@
     "Last": ""
   },
   "Logs": {
-    "Filename": "/root/.go-ipfs/logs/events.log",
+    "Filename": "/root/.ipfs/logs/events.log",
     "MaxSizeMB": 0,
     "MaxBackups": 0,
     "MaxAgeDays": 0

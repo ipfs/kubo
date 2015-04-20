@@ -10,7 +10,7 @@ test_description="Test daemon command"
 
 # this needs to be in a different test than "ipfs daemon --init" below
 test_expect_success "setup IPFS_PATH" '
-  IPFS_PATH="$(pwd)/.go-ipfs"
+  IPFS_PATH="$(pwd)/.ipfs"
 '
 
 # NOTE: this should remove bootstrap peers (needs a flag)
@@ -54,11 +54,11 @@ test_expect_failure "ipfs daemon output looks good" '
   test_cmp_repeat_10_sec expected actual_daemon
 '
 
-test_expect_success ".go-ipfs/ has been created" '
-  test -d ".go-ipfs" &&
-  test -f ".go-ipfs/config" &&
-  test -d ".go-ipfs/datastore" ||
-  test_fsh ls .go-ipfs
+test_expect_success ".ipfs/ has been created" '
+  test -d ".ipfs" &&
+  test -f ".ipfs/config" &&
+  test -d ".ipfs/datastore" ||
+  test_fsh ls .ipfs
 '
 
 # begin same as in t0010
