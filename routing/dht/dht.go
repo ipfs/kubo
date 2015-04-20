@@ -3,7 +3,6 @@
 package dht
 
 import (
-	"bytes"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -126,15 +125,7 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
 	pmes.Record = rec
-	rpmes, err := dht.sendRequest(ctx, p, pmes)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(rpmes.GetRecord().Value, pmes.GetRecord().Value) {
-		return errors.New("value not put correctly")
-	}
-	return nil
+	return dht.sendMessage(ctx, p, pmes)
 }
 
 // putProvider sends a message to peer 'p' saying that the local node
@@ -170,7 +161,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) erro
 // NOTE: it will update the dht's peerstore with any new addresses
 // it finds for the given peer.
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
-	key u.Key) ([]byte, []peer.PeerInfo, error) {
+	key u.Key) (*pb.Record, []peer.PeerInfo, error) {
 
 	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
@@ -187,7 +178,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 			log.Info("Received invalid record! (discarded)")
 			return nil, nil, err
 		}
-		return record.GetValue(), nil, nil
+		return record, nil, nil
 	}
 
 	// Perhaps we were given closer peers

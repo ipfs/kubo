@@ -75,4 +75,7 @@ message Record {
 
 	// A PKI signature for the key+value+author
 	optional bytes signature = 4;
+
+	// A timestamp marking when the record was created
+	optional int64 timestamp = 5;
 }

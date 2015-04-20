@@ -15,12 +15,10 @@ It has these top-level messages:
 package dht_pb
 
 import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
-import json "encoding/json"
 import math "math"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type Message_MessageType int32
@@ -223,7 +221,9 @@ type Record struct {
 	// hash of the authors public key
 	Author *string `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
 	// A PKI signature for the key+value+author
-	Signature        []byte `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
+	Signature []byte `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
+	// A timestamp marking when the record was created
+	Timestamp        *int64 `protobuf:"varint,5,opt,name=timestamp" json:"timestamp,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
@@ -257,6 +257,13 @@ func (m *Record) GetSignature() []byte {
 		return m.Signature
 	}
 	return nil
+}
+
+func (m *Record) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
 }
 
 func init() {

@@ -119,7 +119,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 
 	err = dht.datastore.Put(dskey, data)
 	log.Debugf("%s handlePutValue %v", dht.self, dskey)
-	return pmes, err
+	return nil, err
 }
 
 func (dht *IpfsDHT) handlePing(_ context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
