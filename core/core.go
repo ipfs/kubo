@@ -345,10 +345,6 @@ func (n *IpfsNode) OnlineMode() bool {
 	}
 }
 
-func (n *IpfsNode) Resolve(fpath string) (*merkledag.Node, error) {
-	return n.Resolver.ResolvePath(path.Path(fpath))
-}
-
 func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 
 	// TODO what should return value be when in offlineMode?

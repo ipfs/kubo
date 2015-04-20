@@ -164,7 +164,7 @@ Displays the hashes of all local objects.
 func objectsForPaths(n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
 	objects := make([]*dag.Node, len(paths))
 	for i, p := range paths {
-		o, err := n.Resolver.ResolvePath(path.Path(p))
+		o, err := core.Resolve(n, path.Path(p))
 		if err != nil {
 			return nil, err
 		}

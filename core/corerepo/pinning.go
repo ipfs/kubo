@@ -16,7 +16,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, fpath := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path.Path(fpath))
+		dagnode, err := core.Resolve(n, path.Path(fpath))
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
@@ -51,7 +51,7 @@ func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, fpath := range paths {
-		dagnode, err := n.Resolver.ResolvePath(path.Path(fpath))
+		dagnode, err := core.Resolve(n, path.Path(fpath))
 		if err != nil {
 			return nil, err
 		}
