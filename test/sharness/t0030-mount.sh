@@ -25,7 +25,7 @@ test_expect_success "'ipfs mount' fails when there is no mount dir" '
 	test_must_fail tmp_ipfs_mount
 '
 
-test_expect_failure "'ipfs mount' output looks good" '
+test_expect_success "'ipfs mount' output looks good" '
 	test_must_be_empty output &&
 	test_should_contain "not_ipns\|not_ipfs" output.err
 '
