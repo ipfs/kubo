@@ -44,4 +44,16 @@ test_expect_success "ipfs init output looks good" '
 	test_cmp expected actual_init
 '
 
+test_init_ipfs
+
+test_launch_ipfs_daemon
+
+test_expect_success "ipfs init should not run while daemon is running" '
+	test_must_fail ipfs init 2> daemon_running_err &&
+	EXPECT="Error: ipfs daemon is running. please stop it to run this command" &&
+	grep "$EXPECT" daemon_running_err
+'
+
+test_kill_ipfs_daemon
+
 test_done
