@@ -35,6 +35,17 @@ var initCmd = &cmds.Command{
 		// name of the file?
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
+	PreRun: func(req cmds.Request) error {
+		daemonLocked := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+
+		log.Info("checking if daemon is running...")
+		if daemonLocked {
+			e := "ipfs daemon is running. please stop it to run this command"
+			return cmds.ClientError(e)
+		}
+
+		return nil
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
