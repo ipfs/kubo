@@ -48,10 +48,10 @@ test_init_ipfs
 
 test_launch_ipfs_daemon
 
-test_expect_failure "ipfs init should not run while daemon is running" '
-	ipfs init 2> daemon_running_err &&
-	expect="Error: ipfs daemon is running. please stop it to run this command" &&
-	cat daemon_running_err | grep $expect
+test_expect_success "ipfs init should not run while daemon is running" '
+	test_must_fail ipfs init 2> daemon_running_err &&
+	EXPECT="Error: ipfs daemon is running. please stop it to run this command" &&
+	grep "$EXPECT" daemon_running_err
 '
 
 test_kill_ipfs_daemon
