@@ -18,7 +18,7 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-const nBitsForKeypairDefault = 4096
+const nBitsForKeypairDefault = 2048
 
 var initCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
