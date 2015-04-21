@@ -1,6 +1,16 @@
 # go-ipfs changelog
 
 
+### 0.3.1 - 2015-04-21
+
+This patch update fixes a few bugs:
+
+* harden shutdown logic by @torarnv
+* daemon locking fixes by @travisperson
+* don't re-add entire dirs by @whyrusleeping
+* tests now wait for graceful shutdown by @jbenet
+* default key size is now 2048 by @jbenet
+
 ### 0.3.0 - 2015-04-20
 
 We've just released version 0.3.0, which contains many

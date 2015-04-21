@@ -8,7 +8,7 @@ import (
 )
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.3.0"
+const CurrentVersionNumber = "0.3.1"
 
 // Version regulates checking if the most recent version is run
 type Version struct {
