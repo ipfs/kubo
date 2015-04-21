@@ -13,8 +13,12 @@ Linux
 -----
 ### Bash
 
-For bash, completion can be enabled in a couple of ways. One is to add the line
-`source $GOPATH/src/github.com/ipfs/go-ipfs/misc/completion/ipfs-completion.bash` 
+For bash, completion can be enabled in a couple of ways. One is to add
+```bash
+if [ -n "$GOPATH" ]; then
+  source $GOPATH/src/github.com/ipfs/go-ipfs/misc/completion/ipfs-completion.bash
+fi
+```
 into your `~/.bash_completion`. It will automatically be loaded the next time 
 bash is loaded.
 To enable ipfs command completion globally on your system you may also 
