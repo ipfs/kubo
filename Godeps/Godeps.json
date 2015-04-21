@@ -37,6 +37,10 @@
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
 		{
+			"ImportPath":"github.com/whyrusleeping/iptb",
+			"Rev": "5ee5bc0bb43502dfc798786a78df2448c91dd764"
+		},
+		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.7.1",
 			"Rev": "3fc34d061b9c78a70db853c7cb6b0576b6d4f32d"
