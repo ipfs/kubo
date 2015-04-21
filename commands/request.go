@@ -30,7 +30,6 @@ type Context struct {
 
 	node          *core.IpfsNode
 	ConstructNode func() (*core.IpfsNode, error)
-	InitDone      chan bool
 }
 
 // GetConfig returns the config of the current Command exection
@@ -288,7 +287,7 @@ func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd 
 		optDefs = make(map[string]Option)
 	}
 
-	ctx := Context{Context: context.TODO(), InitDone: make(chan bool)}
+	ctx := Context{Context: context.TODO()}
 	values := make(map[string]interface{})
 	req := &request{path, opts, args, file, cmd, ctx, optDefs, values, os.Stdin}
 	err := req.ConvertOptions()

@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -39,7 +40,6 @@ const (
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
 	errorFormat        = "ERROR: %v\n\n"
-	shutdownMessage    = "Received interrupt signal, shutting down..."
 )
 
 type cmdInvocation struct {
@@ -132,15 +132,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// our global interrupt handler may try to stop the daemon
-	// before the daemon is ready to be stopped; this dirty
-	// workaround is for the daemon only; other commands are always
-	// ready to be stopped
-	if invoc.cmd != daemonCmd {
-		close(invoc.req.Context().InitDone)
-	}
-
 	// ok, finally, run the command invocation.
+	intrh, ctx := invoc.SetupInterruptHandler(ctx)
+	defer intrh.Close()
+
 	output, err := invoc.Run(ctx)
 	if err != nil {
 		printErr(err)
@@ -157,8 +152,6 @@ func main() {
 }
 
 func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
-	// setup our global interrupt handler.
-	i.setupInterruptHandler()
 
 	// check if user wants to debug. option OR env var.
 	debug, _, err := i.req.Option("debug").Bool()
@@ -226,7 +219,6 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	i.req.Context().Context = ctx
 
 	repoPath, err := getRepoPath(i.req)
 	if err != nil {
@@ -278,6 +270,8 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd *cmds.Command) (cmds.Response, error) {
 	log.Info(config.EnvDir, " ", req.Context().ConfigRoot)
 	var res cmds.Response
+
+	req.Context().Context = ctx
 
 	details, err := commandDetails(req.Path(), root)
 	if err != nil {
@@ -474,59 +468,70 @@ func writeHeapProfileToFile() error {
 	return pprof.WriteHeapProfile(mprof)
 }
 
-// listen for and handle SIGTERM
-func (i *cmdInvocation) setupInterruptHandler() {
+// IntrHandler helps set up an interrupt handler that can
+// be cleanly shut down through the io.Closer interface.
+type IntrHandler struct {
+	sig chan os.Signal
+	wg  sync.WaitGroup
+}
 
-	ctx := i.req.Context()
-	sig := allInterruptSignals()
+func NewIntrHandler() *IntrHandler {
+	ih := &IntrHandler{}
+	ih.sig = make(chan os.Signal, 1)
+	return ih
+}
 
+func (ih *IntrHandler) Close() error {
+	close(ih.sig)
+	ih.wg.Wait()
+	return nil
+}
+
+
+// Handle starts handling the given signals, and will call the handler
+// callback function each time a signal is catched. The function is passed
+// the number of times the handler has been triggered in total, as
+// well as the handler itself, so that the handling logic can use the
+// handler's wait group to ensure clean shutdown when Close() is called.
+func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...os.Signal) {
+	signal.Notify(ih.sig, sigs...)
+	ih.wg.Add(1)
 	go func() {
-		// first time, try to shut down.
-
-		// loop because we may be
-		for count := 0; ; count++ {
-			<-sig
-
-			// if we're still initializing, cannot use `ctx.GetNode()`
-			select {
-			default: // initialization not done
-				fmt.Println(shutdownMessage)
-				os.Exit(-1)
-			case <-ctx.InitDone:
-			}
-
-			switch count {
-			case 0:
-				fmt.Println(shutdownMessage)
-				if ctx.Online {
-					go func() {
-						// TODO cancel the command context instead
-						n, err := ctx.GetNode()
-						if err != nil {
-							log.Error(err)
-							fmt.Println(shutdownMessage)
-							os.Exit(-1)
-						}
-						n.Close()
-						log.Info("Gracefully shut down.")
-					}()
-				} else {
-					os.Exit(0)
-				}
-
-			default:
-				fmt.Println("Received another interrupt before graceful shutdown, terminating...")
-				os.Exit(-1)
-			}
+		defer ih.wg.Done()
+		count := 0
+		for _ = range ih.sig {
+			count++
+			handler(count, ih)
 		}
+		signal.Stop(ih.sig)
 	}()
 }
 
-func allInterruptSignals() chan os.Signal {
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
-		syscall.SIGTERM)
-	return sigc
+func (i *cmdInvocation) SetupInterruptHandler(ctx context.Context) (io.Closer, context.Context) {
+
+	intrh := NewIntrHandler()
+	ctx, cancelFunc := context.WithCancel(ctx)
+
+	handlerFunc := func(count int, ih *IntrHandler) {
+		switch count {
+		case 1:
+			fmt.Println() // Prevent un-terminated ^C character in terminal
+
+			ih.wg.Add(1)
+			go func() {
+				defer ih.wg.Done()
+				cancelFunc()
+			}()
+
+		default:
+			fmt.Println("Received another interrupt before graceful shutdown, terminating...")
+			os.Exit(-1)
+		}
+	}
+
+	intrh.Handle(handlerFunc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+
+	return intrh, ctx
 }
 
 func profileIfEnabled() (func(), error) {
