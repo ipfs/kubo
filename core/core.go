@@ -18,6 +18,7 @@ import (
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	discovery "github.com/ipfs/go-ipfs/p2p/discovery"
 	p2phost "github.com/ipfs/go-ipfs/p2p/host"
 	p2pbhost "github.com/ipfs/go-ipfs/p2p/host/basic"
 	rhost "github.com/ipfs/go-ipfs/p2p/host/routed"
@@ -83,6 +84,7 @@ type IpfsNode struct {
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
+	Discovery  discovery.Service
 
 	// Online
 	PeerHost     p2phost.Host        // the network host (server+client)
@@ -218,7 +220,8 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 		}
 
 		if online {
-			if err := n.startOnlineServices(ctx, routingOption, hostOption); err != nil {
+			do := setupDiscoveryOption(n.Repo.Config().Discovery)
+			if err := n.startOnlineServices(ctx, routingOption, hostOption, do); err != nil {
 				return nil, err
 			}
 		} else {
@@ -230,7 +233,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 	}
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -261,7 +264,39 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
+	// setup local discovery
+	if do != nil {
+		service, err := do(n.PeerHost)
+		if err != nil {
+			log.Error("mdns error: ", err)
+		} else {
+			service.RegisterNotifee(n)
+			n.Discovery = service
+		}
+	}
+
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
+	if d.MDNS.Enabled {
+		return func(h p2phost.Host) (discovery.Service, error) {
+			if d.MDNS.Interval == 0 {
+				d.MDNS.Interval = 5
+			}
+			return discovery.NewMdnsService(h, time.Duration(d.MDNS.Interval)*time.Second)
+		}
+	}
+	return nil
+}
+
+func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
+	log.Warning("trying peer info: ", p)
+	ctx, _ := context.WithTimeout(n.Context(), time.Second*10)
+	err := n.PeerHost.Connect(ctx, p)
+	if err != nil {
+		log.Warning("Failed to connect to peer found by discovery: ", err)
+	}
 }
 
 // startOnlineServicesWithHost  is the set of services which need to be
@@ -520,5 +555,7 @@ func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.Threa
 }
 
 type RoutingOption func(context.Context, p2phost.Host, ds.ThreadSafeDatastore) (routing.IpfsRouting, error)
+
+type DiscoveryOption func(p2phost.Host) (discovery.Service, error)
 
 var DHTOption RoutingOption = constructDHTRouting

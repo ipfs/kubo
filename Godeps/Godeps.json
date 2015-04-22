@@ -15,6 +15,11 @@
 			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
 		},
 		{
+			"ImportPath": "code.google.com/p/go.net/internal/iana",
+			"Comment": "null-240",
+			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
+		},
+		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/io",
 			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
 		},
@@ -107,8 +112,20 @@
 			"Rev": "654d875bb65e96729678180215cf080fe2810371"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/go.net/ipv4",
+			"Rev": "cbad13bf000d0cbdbc71506b26e94bcc72bbe74d"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go.net/ipv6",
+			"Rev": "cbad13bf000d0cbdbc71506b26e94bcc72bbe74d"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/mdns",
+			"Rev": "2b439d37011456df8ff83a70ffd1cd6046410113"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
@@ -160,10 +177,6 @@
 			"Rev": "74bec4b83f6d45d1402c1e9d94c0c29e39f6e0ea"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-migrate",
-			"Rev": "593be6b4b24a87e4d380e54339721ad4b4c6543c"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-msgio",
 			"Rev": "dbae89193876910c736b2ce1291fa8bbcf299d77"
 		},
@@ -212,6 +225,10 @@
 		{
 			"ImportPath": "github.com/kr/binarydist",
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
+		},
+		{
+			"ImportPath": "github.com/miekg/dns",
+			"Rev": "5a357a6fc5e85268b929350aa6423e2d56dcc4ff"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",

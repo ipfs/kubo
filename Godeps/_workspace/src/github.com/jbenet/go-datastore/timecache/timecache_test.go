@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	ds "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
 func testHas(t *testing.T, d ds.Datastore, k ds.Key, v interface{}) {
