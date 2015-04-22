@@ -1,5 +1,11 @@
 # go-ipfs changelog
 
+### 0.3.2 - 2015-04-22
+
+This patch update implements multicast dns as well as fxing a few test issues.
+
+* implment mdns peer discovery @whyrusleeping
+* fix mounting issues in sharness tests @chriscool
 
 ### 0.3.1 - 2015-04-21
 
