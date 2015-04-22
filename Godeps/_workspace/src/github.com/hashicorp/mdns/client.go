@@ -236,7 +236,7 @@ func (c *client) query(params *QueryParam) error {
 		select {
 		case resp := <-msgCh:
 			var inp *ServiceEntry
-			for _, answer := range resp.Answer {
+			for _, answer := range append(resp.Answer, resp.Extra...) {
 				// TODO(reddaly): Check that response corresponds to serviceAddr?
 				switch rr := answer.(type) {
 				case *dns.PTR:

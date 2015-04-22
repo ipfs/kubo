@@ -99,7 +99,7 @@ func NewMDNSService(instance, service, domain, hostName string, port int, ips []
 		if err != nil {
 			// Try appending the host domain suffix and lookup again
 			// (required for Linux-based hosts)
-			tmpHostName := fmt.Sprintf("%s%s.", hostName, domain)
+			tmpHostName := fmt.Sprintf("%s%s", hostName, domain)
 
 			ips, err = net.LookupIP(tmpHostName)
 

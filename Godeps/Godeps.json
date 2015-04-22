@@ -125,7 +125,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/mdns",
-			"Rev": "e4aba3430cd7360a45a596da8eacff13abb8ae2d"
+			"Rev": "2b439d37011456df8ff83a70ffd1cd6046410113"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
@@ -228,7 +228,7 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "a76c0a363dd4798064787c742fdf54a593787e91"
+			"Rev": "5a357a6fc5e85268b929350aa6423e2d56dcc4ff"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",

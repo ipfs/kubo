@@ -1,16 +1,3 @@
-// DNSSEC
-//
-// DNSSEC (DNS Security Extension) adds a layer of security to the DNS. It
-// uses public key cryptography to sign resource records. The
-// public keys are stored in DNSKEY records and the signatures in RRSIG records.
-//
-// Requesting DNSSEC information for a zone is done by adding the DO (DNSSEC OK) bit
-// to an request.
-//
-//      m := new(dns.Msg)
-//      m.SetEdns0(4096, true)
-//
-// Signature generation, signature verification and key generation are all supported.
 package dns
 
 import (
@@ -200,6 +187,22 @@ func (k *DNSKEY) ToDS(h uint8) *DS {
 		return nil
 	}
 	return ds
+}
+
+// ToCDNSKEY converts a DNSKEY record to a CDNSKEY record.
+func (k *DNSKEY) ToCDNSKEY() *CDNSKEY {
+	c := &CDNSKEY{DNSKEY: *k}
+	c.Hdr = *k.Hdr.copyHeader()
+	c.Hdr.Rrtype = TypeCDNSKEY
+	return c
+}
+
+// ToCDS converts a DS record to a CDS record.
+func (d *DS) ToCDS() *CDS {
+	c := &CDS{DS: *d}
+	c.Hdr = *d.Hdr.copyHeader()
+	c.Hdr.Rrtype = TypeCDS
+	return c
 }
 
 // Sign signs an RRSet. The signature needs to be filled in with
@@ -422,8 +425,8 @@ func (rr *RRSIG) ValidityPeriod(t time.Time) bool {
 }
 
 // Return the signatures base64 encodedig sigdata as a byte slice.
-func (s *RRSIG) sigBuf() []byte {
-	sigbuf, err := fromBase64([]byte(s.Signature))
+func (rr *RRSIG) sigBuf() []byte {
+	sigbuf, err := fromBase64([]byte(rr.Signature))
 	if err != nil {
 		return nil
 	}
@@ -588,7 +591,10 @@ func rawSignatureData(rrset []RR, s *RRSIG) (buf []byte, err error) {
 		wires[i] = wire
 	}
 	sort.Sort(wires)
-	for _, wire := range wires {
+	for i, wire := range wires {
+		if i > 0 && bytes.Equal(wire, wires[i-1]) {
+			continue
+		}
 		buf = append(buf, wire...)
 	}
 	return buf, nil
