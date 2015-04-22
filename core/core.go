@@ -268,10 +268,11 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if do != nil {
 		service, err := do(n.PeerHost)
 		if err != nil {
-			return err
+			log.Error("mdns error: ", err)
+		} else {
+			service.RegisterNotifee(n)
+			n.Discovery = service
 		}
-		service.RegisterNotifee(n)
-		n.Discovery = service
 	}
 
 	return n.Bootstrap(DefaultBootstrapConfig)

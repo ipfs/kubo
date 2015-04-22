@@ -2,13 +2,10 @@ package discovery
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	golog "log"
 	"net"
-	//"strconv"
-	//"strings"
 	"sync"
 	"time"
 
@@ -75,8 +72,6 @@ func NewMdnsService(peerhost host.Host, interval time.Duration) (Service, error)
 		port = addr.Port
 	}
 
-	fmt.Println("using port: ", port)
-
 	myid := peerhost.ID().Pretty()
 
 	info := []string{myid}
@@ -135,7 +130,6 @@ func (m *mdnsService) pollForEntries() {
 }
 
 func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
-	fmt.Println("handling entry!")
 	mpeer, err := peer.IDB58Decode(e.Info)
 	if err != nil {
 		log.Warning("Error parsing peer ID from mdns entry: ", err)
