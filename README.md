@@ -32,7 +32,7 @@ dependencies as well.
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/ipfs/go-ipfs/issues/177)
 * For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder
-* Shell command completion is available by running `source misc/completion/ipfs-completion.bash`.
+* Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
 
 
 ## Usage
