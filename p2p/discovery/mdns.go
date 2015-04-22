@@ -1,13 +1,14 @@
 package discovery
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	golog "log"
 	"net"
-	"strconv"
-	"strings"
+	//"strconv"
+	//"strings"
 	"sync"
 	"time"
 
@@ -22,7 +23,6 @@ import (
 
 var log = u.Logger("mdns")
 
-const LookupFrequency = time.Second * 5
 const ServiceTag = "discovery.ipfs.io"
 
 type Service interface {
@@ -42,33 +42,45 @@ type mdnsService struct {
 
 	lk       sync.Mutex
 	notifees []Notifee
+	interval time.Duration
 }
 
-func NewMdnsService(peerhost host.Host) (Service, error) {
+func getDialableListenAddr(ph host.Host) (*net.TCPAddr, error) {
+	for _, addr := range ph.Addrs() {
+		na, err := manet.ToNetAddr(addr)
+		if err != nil {
+			continue
+		}
+		tcp, ok := na.(*net.TCPAddr)
+		if ok {
+			return tcp, nil
+		}
+	}
+	return nil, errors.New("failed to find good external addr from peerhost")
+}
+
+func NewMdnsService(peerhost host.Host, interval time.Duration) (Service, error) {
 
 	// TODO: dont let mdns use logging...
 	golog.SetOutput(ioutil.Discard)
 
-	// determine my local swarm port
+	var ipaddrs []net.IP
 	port := 4001
-	for _, addr := range peerhost.Addrs() {
-		parts := strings.Split(addr.String(), "/")
-		fmt.Println("parts len: ", len(parts))
-		if len(parts) == 5 && parts[3] == "tcp" {
-			n, err := strconv.Atoi(parts[4])
-			if err != nil {
-				return nil, err
-			}
-			port = n
-			break
-		}
+
+	addr, err := getDialableListenAddr(peerhost)
+	if err != nil {
+		log.Warning(err)
+	} else {
+		ipaddrs = []net.IP{addr.IP}
+		port = addr.Port
 	}
+
 	fmt.Println("using port: ", port)
 
 	myid := peerhost.ID().Pretty()
 
 	info := []string{myid}
-	service, err := mdns.NewMDNSService(myid, ServiceTag, "", "", port, nil, info)
+	service, err := mdns.NewMDNSService(myid, ServiceTag, "", "", port, ipaddrs, info)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +92,10 @@ func NewMdnsService(peerhost host.Host) (Service, error) {
 	}
 
 	s := &mdnsService{
-		server:  server,
-		service: service,
-		host:    peerhost,
+		server:   server,
+		service:  service,
+		host:     peerhost,
+		interval: interval,
 	}
 
 	go s.pollForEntries()
@@ -95,7 +108,7 @@ func (m *mdnsService) Close() error {
 }
 
 func (m *mdnsService) pollForEntries() {
-	ticker := time.NewTicker(LookupFrequency)
+	ticker := time.NewTicker(m.interval)
 	for {
 		select {
 		case <-ticker.C:
@@ -110,7 +123,7 @@ func (m *mdnsService) pollForEntries() {
 			qp.Domain = "local"
 			qp.Entries = entriesCh
 			qp.Service = ServiceTag
-			qp.Timeout = time.Second * 3
+			qp.Timeout = time.Second * 5
 
 			err := mdns.Query(&qp)
 			if err != nil {
@@ -122,6 +135,7 @@ func (m *mdnsService) pollForEntries() {
 }
 
 func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
+	fmt.Println("handling entry!")
 	mpeer, err := peer.IDB58Decode(e.Info)
 	if err != nil {
 		log.Warning("Error parsing peer ID from mdns entry: ", err)

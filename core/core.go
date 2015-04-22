@@ -220,7 +220,8 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 		}
 
 		if online {
-			if err := n.startOnlineServices(ctx, routingOption, hostOption); err != nil {
+			do := setupDiscoveryOption(n.Repo.Config().Discovery)
+			if err := n.startOnlineServices(ctx, routingOption, hostOption, do); err != nil {
 				return nil, err
 			}
 		} else {
@@ -232,7 +233,7 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 	}
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption) error {
 
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
@@ -264,14 +265,28 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
 	// setup local discovery
-	service, err := discovery.NewMdnsService(n.PeerHost)
-	if err != nil {
-		return err
+	if do != nil {
+		service, err := do(n.PeerHost)
+		if err != nil {
+			return err
+		}
+		service.RegisterNotifee(n)
+		n.Discovery = service
 	}
-	service.RegisterNotifee(n)
-	n.Discovery = service
 
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+func setupDiscoveryOption(d config.Discovery) DiscoveryOption {
+	if d.MDNS.Enabled {
+		return func(h p2phost.Host) (discovery.Service, error) {
+			if d.MDNS.Interval == 0 {
+				d.MDNS.Interval = 5
+			}
+			return discovery.NewMdnsService(h, time.Duration(d.MDNS.Interval)*time.Second)
+		}
+	}
+	return nil
 }
 
 func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
@@ -539,5 +554,7 @@ func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.Threa
 }
 
 type RoutingOption func(context.Context, p2phost.Host, ds.ThreadSafeDatastore) (routing.IpfsRouting, error)
+
+type DiscoveryOption func(p2phost.Host) (discovery.Service, error)
 
 var DHTOption RoutingOption = constructDHTRouting
