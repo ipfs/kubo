@@ -2,7 +2,7 @@ Command Completion
 ==================
 
 Shell command completion is provided by the script at 
-`/misc/completion/ipfs-completion.bash`.
+[/misc/completion/ipfs-completion.bash](../misc/completion/ipfs-completion.bash).
 
 
 Installation
