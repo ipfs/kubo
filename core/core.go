@@ -18,6 +18,7 @@ import (
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	discovery "github.com/ipfs/go-ipfs/p2p/discovery"
 	p2phost "github.com/ipfs/go-ipfs/p2p/host"
 	p2pbhost "github.com/ipfs/go-ipfs/p2p/host/basic"
 	rhost "github.com/ipfs/go-ipfs/p2p/host/routed"
@@ -83,6 +84,7 @@ type IpfsNode struct {
 	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
 	Resolver   *path.Resolver       // the path resolution system
 	Reporter   metrics.Reporter
+	Discovery  discovery.Service
 
 	// Online
 	PeerHost     p2phost.Host        // the network host (server+client)
@@ -261,7 +263,24 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
+	// setup local discovery
+	service, err := discovery.NewMdnsService(n.PeerHost)
+	if err != nil {
+		return err
+	}
+	service.RegisterNotifee(n)
+	n.Discovery = service
+
 	return n.Bootstrap(DefaultBootstrapConfig)
+}
+
+func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
+	log.Warning("trying peer info: ", p)
+	ctx, _ := context.WithTimeout(n.Context(), time.Second*10)
+	err := n.PeerHost.Connect(ctx, p)
+	if err != nil {
+		log.Warning("Failed to connect to peer found by discovery: ", err)
+	}
 }
 
 // startOnlineServicesWithHost  is the set of services which need to be
