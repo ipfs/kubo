@@ -13,14 +13,13 @@ is only temporary and to fully enable it, you'll have to follow one of the steps
 below.
 
 ### Bash on Linux
-For bash, completion can be enabled in a couple of ways. One is to add
+For bash, completion can be enabled in a couple of ways. One is to copy the 
+completion script to the directory `~/.ipfs/` and then in the file 
+`~/.bash_completion` add
 ```bash
-if [ -n "$GOPATH" ]; then
-  source $GOPATH/src/github.com/ipfs/go-ipfs/misc/completion/ipfs-completion.bash
-fi
+source ~/.ipfs/ipfs-completion.bash
 ```
-into your `~/.bash_completion`. It will automatically be loaded the next time 
-bash is loaded.
+It will automatically be loaded the next time bash is loaded.
 To enable ipfs command completion globally on your system you may also 
 copy the completion script to `/etc/bash_completion.d/`.
 
