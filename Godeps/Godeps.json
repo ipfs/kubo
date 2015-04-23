@@ -177,10 +177,6 @@
 			"Rev": "93b717f2ae17838a265e30277275ee99ee7198d6"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-logging",
-			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-msgio",
 			"Rev": "dbae89193876910c736b2ce1291fa8bbcf299d77"
 		},
@@ -254,6 +250,10 @@
 		{
 			"ImportPath": "github.com/syndtr/gosnappy/snappy",
 			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-logging",
+			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
