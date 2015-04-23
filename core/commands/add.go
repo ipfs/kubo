@@ -213,23 +213,18 @@ remains to be implemented.
 	Type: AddedObject{},
 }
 
-func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
-	dagnodes := make([]*dag.Node, 0)
-
-	for _, reader := range readers {
-		node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
-		if err != nil {
-			return nil, err
-		}
-		dagnodes = append(dagnodes, node)
-	}
-
-	err := n.Pinning.Flush()
+func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
+	node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
 
-	return dagnodes, nil
+	err = n.Pinning.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
 }
 
 func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool) (*dag.Node, error) {
@@ -256,16 +251,16 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 		return dagnode, nil
 	}
 
-	dns, err := add(n, []io.Reader{reader})
+	dagnode, err := add(n, reader)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Infof("adding file: %s", file.FileName())
-	if err := outputDagnode(out, file.FileName(), dns[len(dns)-1]); err != nil {
+	if err := outputDagnode(out, file.FileName(), dagnode); err != nil {
 		return nil, err
 	}
-	return dns[len(dns)-1], nil // last dag node is the file.
+	return dagnode, nil
 }
 
 func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool) (*dag.Node, error) {
