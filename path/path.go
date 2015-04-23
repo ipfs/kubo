@@ -45,7 +45,11 @@ func (p Path) String() string {
 }
 
 func FromSegments(seg ...string) Path {
-	return Path(strings.Join(seg, "/"))
+	var pref string
+	if seg[0] == "ipfs" || seg[0] == "ipns" {
+		pref = "/"
+	}
+	return Path(pref + strings.Join(seg, "/"))
 }
 
 func ParsePath(txt string) (Path, error) {

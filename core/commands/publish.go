@@ -8,7 +8,6 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	nsys "github.com/ipfs/go-ipfs/namesys"
 	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
@@ -77,6 +76,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 			// name = args[0]
 			pstr = args[1]
 			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
+			return
 		case 1:
 			// name = n.Identity.ID.String()
 			pstr = args[0]
@@ -108,14 +108,12 @@ Publish an <ipfs-path> to another public key (not implemented):
 
 func publish(n *core.IpfsNode, k crypto.PrivKey, ref path.Path) (*IpnsEntry, error) {
 	// First, verify the path exists
-	_, err := n.Resolver.ResolvePath(ref)
+	_, err := core.Resolve(n, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	pub := nsys.NewRoutingPublisher(n.Routing)
-
-	err = pub.Publish(n.Context(), k, ref)
+	err = n.Namesys.Publish(n.Context(), k, ref)
 	if err != nil {
 		return nil, err
 	}
