@@ -38,7 +38,7 @@
 		},
 		{
 			"ImportPath":"github.com/whyrusleeping/iptb",
-			"Rev": "5ee5bc0bb43502dfc798786a78df2448c91dd764"
+			"Rev": "7f5790b9a136aca057bc8f1dc711e204c6343504"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",

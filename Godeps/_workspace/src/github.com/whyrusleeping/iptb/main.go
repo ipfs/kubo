@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 	"io/ioutil"
 	"log"
 	"net"
@@ -14,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 )
 
 // GetNumNodes returns the number of testbed nodes configured in the testbed directory
@@ -313,6 +315,15 @@ func IpfsShell(n int) error {
 	return syscall.Exec(shell, []string{shell}, nenvs)
 }
 
+func GetAttr(attr string, node int) (string, error) {
+	switch attr {
+	case "id":
+		return GetPeerID(node)
+	default:
+		return "", errors.New("unrecognized attribute")
+	}
+}
+
 var helptext = `Ipfs Testbed
 
 Commands:
@@ -340,6 +351,10 @@ Commands:
 	        IPFS_PATH - set to testbed node n's IPFS_PATH
 	        NODE[x] - set to the peer ID of node x
 
+	get [attribute] [node]
+		get an attribute of the given node
+		currently supports: "id"
+
 Env Vars:
 
 IPTB_ROOT:
@@ -348,7 +363,7 @@ IPTB_ROOT:
 
 func handleErr(s string, err error) {
 	if err != nil {
-		fmt.Println(s, err)
+		fmt.Fprintln(os.Stderr, s, err)
 		os.Exit(1)
 	}
 }
@@ -396,6 +411,18 @@ func main() {
 
 		err = IpfsShell(n)
 		handleErr("ipfs shell err: ", err)
+	case "get":
+		if len(flag.Args()) < 3 {
+			fmt.Println("iptb get [attr] [node]")
+			os.Exit(1)
+		}
+		attr := flag.Arg(1)
+		num, err := strconv.Atoi(flag.Arg(2))
+		handleErr("error parsing node number: ", err)
+
+		val, err := GetAttr(attr, num)
+		handleErr("error getting attribute: ", err)
+		fmt.Println(val)
 	default:
 		flag.Usage()
 		os.Exit(1)
