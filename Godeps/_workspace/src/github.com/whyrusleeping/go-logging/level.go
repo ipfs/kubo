@@ -107,6 +107,7 @@ func (l *moduleLeveled) IsEnabledFor(level Level, module string) bool {
 
 func (l *moduleLeveled) Log(level Level, calldepth int, rec *Record) (err error) {
 	if l.IsEnabledFor(level, rec.Module) {
+		// TODO get rid of traces of formatter here. BackendFormatter should be used.
 		rec.formatter = l.getFormatterAndCacheCurrent()
 		err = l.backend.Log(level, calldepth+1, rec)
 	}

@@ -148,6 +148,7 @@ func (b *ChannelMemoryBackend) Start() {
 }
 
 func (b *ChannelMemoryBackend) process() {
+	defer b.stopWg.Done()
 	for {
 		select {
 		case rec := <-b.incoming:
@@ -155,7 +156,7 @@ func (b *ChannelMemoryBackend) process() {
 		case e := <-b.events:
 			switch e {
 			case eventStop:
-				break
+				return
 			case eventFlush:
 				for len(b.incoming) > 0 {
 					b.insertRecord(<-b.incoming)
@@ -164,7 +165,6 @@ func (b *ChannelMemoryBackend) process() {
 			}
 		}
 	}
-	b.stopWg.Done()
 }
 
 func (b *ChannelMemoryBackend) insertRecord(rec *Record) {

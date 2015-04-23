@@ -32,6 +32,10 @@ func logAndGetLine(backend *MemoryBackend) string {
 	return MemoryRecordN(backend, 0).Formatted(1)
 }
 
+func getLastLine(backend *MemoryBackend) string {
+	return MemoryRecordN(backend, 0).Formatted(1)
+}
+
 func realFunc(backend *MemoryBackend) string {
 	return logAndGetLine(backend)
 }
@@ -135,6 +139,28 @@ func TestFormatFuncName(t *testing.T) {
 		if test.shortfunc != v {
 			t.Errorf("%s != %s", test.shortfunc, v)
 		}
+	}
+}
+
+func TestBackendFormatter(t *testing.T) {
+	InitForTesting(DEBUG)
+
+	// Create two backends and wrap one of the with a backend formatter
+	b1 := NewMemoryBackend(1)
+	b2 := NewMemoryBackend(1)
+
+	f := MustStringFormatter("%{level} %{message}")
+	bf := NewBackendFormatter(b2, f)
+
+	SetBackend(b1, bf)
+
+	log := MustGetLogger("module")
+	log.Info("foo")
+	if "foo" != getLastLine(b1) {
+		t.Errorf("Unexpected line: %s", getLastLine(b1))
+	}
+	if "INFO foo" != getLastLine(b2) {
+		t.Errorf("Unexpected line: %s", getLastLine(b2))
 	}
 }
 
