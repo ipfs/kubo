@@ -3,7 +3,7 @@ package util
 import (
 	"os"
 
-	logging "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-logging"
+	logging "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-logging"
 )
 
 func init() {
@@ -80,6 +80,7 @@ func SetAllLoggers(lvl logging.Level) {
 // Logger retrieves a particular logger
 func Logger(name string) *logging.Logger {
 	log := logging.MustGetLogger(name)
+	log.ExtraCalldepth = 1
 	loggers[name] = log
 	return log
 }

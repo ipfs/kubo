@@ -4,6 +4,8 @@
 
 package logging
 
+// TODO remove Level stuff from the multi logger. Do one thing.
+
 // multiLogger is a log multiplexer which can be used to utilize multiple log
 // backends at once.
 type multiLogger struct {

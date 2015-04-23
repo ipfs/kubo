@@ -43,9 +43,9 @@ func TestMultiLoggerLevel(t *testing.T) {
 	leveled1.SetLevel(DEBUG, "test")
 	log.Notice("log")
 	if "log" != MemoryRecordN(log1, 0).Formatted(0) {
-		t.Errorf("log1 not receieved")
+		t.Errorf("log1 not received")
 	}
 	if nil != MemoryRecordN(log2, 0) {
-		t.Errorf("log2 receieved")
+		t.Errorf("log2 received")
 	}
 }

@@ -174,7 +174,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-logging",
-			"Rev": "74bec4b83f6d45d1402c1e9d94c0c29e39f6e0ea"
+			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-msgio",
