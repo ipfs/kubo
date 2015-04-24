@@ -44,12 +44,12 @@ func (p Path) String() string {
 	return string(p)
 }
 
-func FromSegments(seg ...string) Path {
+func FromSegments(seg ...string) (Path, error) {
 	var pref string
 	if seg[0] == "ipfs" || seg[0] == "ipns" {
 		pref = "/"
 	}
-	return Path(pref + strings.Join(seg, "/"))
+	return ParsePath(pref + strings.Join(seg, "/"))
 }
 
 func ParsePath(txt string) (Path, error) {

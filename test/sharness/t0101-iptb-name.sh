@@ -16,7 +16,7 @@ test_expect_success "set up an iptb cluster" '
 '
 
 test_expect_success "add an obect on one node" '
-	export IPFS_PATH="$IPTB_ROOT/1"
+	export IPFS_PATH="$IPTB_ROOT/1" &&
 	echo "ipns is super fun" > file &&
 	HASH_FILE=`ipfs add -q file`
 '
@@ -26,13 +26,13 @@ test_expect_success "publish that object as an ipns entry" '
 '
 
 test_expect_success "add an entry on another node pointing to that one" '
-	export IPFS_PATH="$IPTB_ROOT/2"
+	export IPFS_PATH="$IPTB_ROOT/2" &&
 	NODE1_ID=`iptb get id 1` &&
 	ipfs name publish /ipns/$NODE1_ID
 '
 
 test_expect_success "cat that entry on a third node" '
-	export IPFS_PATH="$IPTB_ROOT/3"
+	export IPFS_PATH="$IPTB_ROOT/3" &&
 	NODE2_ID=`iptb get id 2` &&
 	ipfs cat /ipns/$NODE2_ID > output
 '

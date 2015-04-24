@@ -44,7 +44,12 @@ func resolveRecurse(n *IpfsNode, p path.Path, depth int) (*merkledag.Node, error
 			return nil, err
 		}
 
-		return resolveRecurse(n, path.FromSegments(append(respath.Segments(), extensions...)...), depth+1)
+		segments := append(respath.Segments(), extensions...)
+		respath, err = path.FromSegments(segments...)
+		if err != nil {
+			return nil, err
+		}
+		return resolveRecurse(n, respath, depth+1)
 	}
 
 	// ok, we have an ipfs path now (or what we'll treat as one)
