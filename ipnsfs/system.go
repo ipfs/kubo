@@ -159,8 +159,10 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 		}
 	}
 
-	mnode, err := fs.dserv.Get(ctx, pointsTo)
+	tctx, _ := context.WithTimeout(parent, time.Second*5)
+	mnode, err := fs.dserv.Get(tctx, pointsTo)
 	if err != nil {
+		log.Errorf("Failed to retreive value '%s' for ipns entry: %s\n", pointsTo, err)
 		return nil, err
 	}
 
