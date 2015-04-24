@@ -487,7 +487,6 @@ func (ih *IntrHandler) Close() error {
 	return nil
 }
 
-
 // Handle starts handling the given signals, and will call the handler
 // callback function each time a signal is catched. The function is passed
 // the number of times the handler has been triggered in total, as
