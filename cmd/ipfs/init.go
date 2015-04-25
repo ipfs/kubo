@@ -10,12 +10,13 @@ import (
 	assets "github.com/ipfs/go-ipfs/assets"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	importer "github.com/ipfs/go-ipfs/importer"
+	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "github.com/ipfs/go-ipfs/util"
+	unixfs "github.com/ipfs/go-ipfs/unixfs"
 )
 
 const nBitsForKeypairDefault = 2048
@@ -132,23 +133,24 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	}
 	defer nd.Close()
 
-	dirb := uio.NewDirectory(nd.DAG)
+	dir := &merkledag.Node{Data: unixfs.FolderPBData()}
 
 	// add every file in the assets pkg
 	for fname, file := range assets.Init_dir {
 		buf := bytes.NewBufferString(file)
-		s, err := coreunix.Add(nd, buf)
+		dagNode, err := importer.BuildDagFromReader(
+			buf,
+			nd.DAG,
+			nd.Pinning.GetManual(),
+			chunk.DefaultSplitter)
 		if err != nil {
 			return err
 		}
-
-		k := u.B58KeyDecode(s)
-		if err := dirb.AddChild(fname, k); err != nil {
+		if err := dir.AddNodeLink(fname, dagNode); err != nil {
 			return err
 		}
 	}
 
-	dir := dirb.GetNode()
 	dkey, err := nd.DAG.Add(dir)
 	if err != nil {
 		return err
