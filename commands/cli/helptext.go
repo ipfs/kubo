@@ -14,7 +14,8 @@ const (
 	requiredArg = "<%v>"
 	optionalArg = "[<%v>]"
 	variadicArg = "%v..."
-	optionFlag  = "-%v"
+	shortFlag  = "-%v"
+	longFlag  = "--%v"
 	optionType  = "(%v)"
 
 	whitespace = "\r\n\t "
@@ -219,6 +220,14 @@ func argumentText(cmd *cmds.Command) []string {
 	return lines
 }
 
+func optionFlag(flag string) string {
+	if len(flag) == 1 {
+		return fmt.Sprintf(shortFlag, flag)
+	} else {
+		return fmt.Sprintf(longFlag, flag)
+	}
+}
+
 func optionText(cmd ...*cmds.Command) []string {
 	// get a slice of the options we want to list out
 	options := make([]cmds.Option, 0)
@@ -241,7 +250,7 @@ func optionText(cmd ...*cmds.Command) []string {
 
 			names := sortByLength(opt.Names())
 			if len(names) >= j+1 {
-				lines[i] += fmt.Sprintf(optionFlag, names[j])
+				lines[i] += optionFlag(names[j])
 			}
 			if len(names) > j+1 {
 				lines[i] += ", "

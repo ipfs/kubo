@@ -93,6 +93,12 @@ func main() {
 		fmt.Fprintf(w, "Use 'ipfs %s --help' for information about this command\n", cmdPath)
 	}
 
+	// Handle `ipfs help'
+	if len(os.Args) == 2 && os.Args[1] == "help" {
+		printHelp(false, os.Stdout)
+		os.Exit(0)
+	}
+
 	// parse the commandline into a command invocation
 	parseErr := invoc.Parse(ctx, os.Args[1:])
 
@@ -110,13 +116,6 @@ func main() {
 		}
 	}
 
-	// here we handle the cases where
-	// - commands with no Run func are invoked directly.
-	// - the main command is invoked.
-	if invoc.cmd == nil || invoc.cmd.Run == nil {
-		printHelp(false, os.Stdout)
-		os.Exit(0)
-	}
 
 	// ok now handle parse error (which means cli input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
@@ -130,6 +129,14 @@ func main() {
 			printMetaHelp(os.Stderr)
 		}
 		os.Exit(1)
+	}
+
+	// here we handle the cases where
+	// - commands with no Run func are invoked directly.
+	// - the main command is invoked.
+	if invoc.cmd == nil || invoc.cmd.Run == nil {
+		printHelp(false, os.Stdout)
+		os.Exit(0)
 	}
 
 	// ok, finally, run the command invocation.

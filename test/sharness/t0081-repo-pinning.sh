@@ -143,7 +143,7 @@ test_expect_success "added dir was NOT pinned indirectly" '
 '
 
 test_expect_success "nothing is pinned directly" '
-	ipfs pin ls -type=direct >actual4 &&
+	ipfs pin ls --type=direct >actual4 &&
 	test_must_be_empty actual4
 '
 

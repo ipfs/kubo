@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -13,33 +12,17 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-// ErrInvalidSubcmd signals when the parse error is not found
-var ErrInvalidSubcmd = errors.New("subcommand not found")
-
 // Parse parses the input commandline string (cmd, flags, and args).
 // returns the corresponding command Request object.
 func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *cmds.Command, []string, error) {
-	path, input, cmd := parsePath(input, root)
-	if len(path) == 0 {
-		return nil, nil, path, ErrInvalidSubcmd
-	}
-
-	opts, stringVals, err := parseOptions(input)
+	path, opts, stringVals, cmd, err := parseOpts(input, root)
 	if err != nil {
-		return nil, cmd, path, err
+		return nil, nil, path, err
 	}
 
 	optDefs, err := root.GetOptions(path)
 	if err != nil {
 		return nil, cmd, path, err
-	}
-
-	// check to make sure there aren't any undefined options
-	for k := range opts {
-		if _, found := optDefs[k]; !found {
-			err = fmt.Errorf("Unrecognized option: -%s", k)
-			return nil, cmd, path, err
-		}
 	}
 
 	req, err := cmds.NewRequest(path, opts, nil, nil, cmd, optDefs)
@@ -75,67 +58,142 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	return req, cmd, path, nil
 }
 
-// parsePath separates the command path and the opts and args from a command string
-// returns command path slice, rest slice, and the corresponding *cmd.Command
-func parsePath(input []string, root *cmds.Command) ([]string, []string, *cmds.Command) {
-	cmd := root
-	path := make([]string, 0, len(input))
-	input2 := make([]string, 0, len(input))
+// Parse a command line made up of sub-commands, short arguments, long arguments and positional arguments
+func parseOpts(args []string, root *cmds.Command) (
+	path []string,
+	opts map[string]interface{},
+	stringVals []string,
+	cmd *cmds.Command,
+	err error,
+) {
+	path = make([]string, 0, len(args))
+	stringVals = make([]string, 0, len(args))
+	optDefs := map[string]cmds.Option{}
+	opts = map[string]interface{}{}
+	cmd = root
 
-	for i, blob := range input {
-		if strings.HasPrefix(blob, "-") {
-			input2 = append(input2, blob)
-			continue
+	// parseFlag checks that a flag is valid and saves it into opts
+	// Returns true if the optional second argument is used
+	parseFlag := func(name string, arg *string, mustUse bool) (bool, error) {
+		if _, ok := opts[name]; ok {
+			return false, fmt.Errorf("Duplicate values for option '%s'", name)
 		}
 
-		sub := cmd.Subcommand(blob)
-		if sub == nil {
-			input2 = append(input2, input[i:]...)
-			break
+		optDef, found := optDefs[name]
+		if !found {
+			err = fmt.Errorf("Unrecognized option '%s'", name)
+			return false, err
 		}
-		cmd = sub
-		path = append(path, blob)
-	}
 
-	return path, input2, cmd
-}
-
-// parseOptions parses the raw string values of the given options
-// returns the parsed options as strings, along with the CLI args
-func parseOptions(input []string) (map[string]interface{}, []string, error) {
-	opts := make(map[string]interface{})
-	args := []string{}
-
-	for i := 0; i < len(input); i++ {
-		blob := input[i]
-
-		if strings.HasPrefix(blob, "-") {
-			name := blob[1:]
-			value := ""
-
-			// support single and double dash
-			if strings.HasPrefix(name, "-") {
-				name = name[1:]
+		if optDef.Type() == cmds.Bool {
+			if mustUse {
+				return false, fmt.Errorf("Option '%s' takes no arguments, but was passed '%s'", name, *arg)
 			}
-
-			if strings.Contains(name, "=") {
-				split := strings.SplitN(name, "=", 2)
-				name = split[0]
-				value = split[1]
-			}
-
-			if _, ok := opts[name]; ok {
-				return nil, nil, fmt.Errorf("Duplicate values for option '%s'", name)
-			}
-
-			opts[name] = value
-
+			opts[name] = ""
+			return false, nil
 		} else {
-			args = append(args, blob)
+			if arg == nil {
+				return true, fmt.Errorf("Missing argument for option '%s'", name)
+			}
+			opts[name] = *arg
+			return true, nil
 		}
 	}
 
-	return opts, args, nil
+	optDefs, err = root.GetOptions(path)
+	if err != nil {
+		return
+	}
+
+	consumed := false
+	for i, arg := range args {
+		switch {
+		case consumed:
+			// arg was already consumed by the preceding flag
+			consumed = false
+			continue
+
+		case arg == "--":
+			// treat all remaining arguments as positional arguments
+			stringVals = append(stringVals, args[i+1:]...)
+			return
+
+		case strings.HasPrefix(arg, "--"):
+			// arg is a long flag, with an optional argument specified
+			// using `=' or in args[i+1]
+			var slurped bool
+			var next *string
+			split := strings.SplitN(arg, "=", 2)
+			if len(split) == 2 {
+				slurped = false
+				arg = split[0]
+				next = &split[1]
+			} else {
+				slurped = true
+				if i+1 < len(args) {
+					next = &args[i+1]
+				} else {
+					next = nil
+				}
+			}
+			consumed, err = parseFlag(arg[2:], next, len(split) == 2)
+			if err != nil {
+				return
+			}
+			if !slurped {
+				consumed = false
+			}
+
+		case strings.HasPrefix(arg, "-") && arg != "-":
+			// args is one or more flags in short form, followed by an optional argument
+			// all flags except the last one have type bool
+			for arg = arg[1:]; len(arg) != 0; arg = arg[1:] {
+				var rest *string
+				var slurped bool
+				mustUse := false
+				if len(arg) > 1 {
+					slurped = false
+					str := arg[1:]
+					if len(str) > 0 && str[0] == '=' {
+						str = str[1:]
+						mustUse = true
+					}
+					rest = &str
+				} else {
+					slurped = true
+					if i+1 < len(args) {
+						rest = &args[i+1]
+					} else {
+						rest = nil
+					}
+				}
+				var end bool
+				end, err = parseFlag(arg[0:1], rest, mustUse)
+				if err != nil {
+					return
+				}
+				if end {
+					consumed = slurped
+					break
+				}
+			}
+
+		default:
+			// arg is a sub-command or a positional argument
+			sub := cmd.Subcommand(arg)
+			if sub != nil {
+				cmd = sub
+				path = append(path, arg)
+				optDefs, err = root.GetOptions(path)
+				if err != nil {
+					return
+				}
+			} else {
+				stringVals = append(stringVals, arg)
+			}
+		}
+	}
+	return
 }
 
 func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []files.File, error) {
@@ -171,7 +229,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	// and the last arg definition is not variadic (or there are no definitions), return an error
 	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
 	if notVariadic && numInputs > len(argDefs) {
-		return nil, nil, fmt.Errorf("Expected %v arguments, got %v", len(argDefs), numInputs)
+		return nil, nil, fmt.Errorf("Expected %v arguments, got %v: %v", len(argDefs), numInputs, inputs)
 	}
 
 	stringArgs := make([]string, 0, numInputs)

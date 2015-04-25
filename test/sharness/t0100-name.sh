@@ -13,7 +13,7 @@ test_init_ipfs
 # test publishing a hash
 
 test_expect_success "'ipfs name publish' succeeds" '
-	PEERID=`ipfs id -format="<id>"` &&
+	PEERID=`ipfs id --format="<id>"` &&
 	ipfs name publish "$HASH_WELCOME_DOCS" >publish_out
 '
 
@@ -34,7 +34,7 @@ test_expect_success "resolve output looks good" '
 # now test with a path
 
 test_expect_success "'ipfs name publish' succeeds" '
-	PEERID=`ipfs id -format="<id>"` &&
+	PEERID=`ipfs id --format="<id>"` &&
 	ipfs name publish "/ipfs/$HASH_WELCOME_DOCS/help" >publish_out
 '
 
