@@ -162,7 +162,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-datastore",
-			"Rev": "f1a0a0fd88f23b67589957f02b7500372aca186f"
+			"Rev": "2525cae416316b9cf2eb66ec8d4792f567436efa"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-detect-race",
@@ -193,6 +193,10 @@
 			"ImportPath": "github.com/jbenet/go-multihash",
 			"Comment": "0.1.0-36-g87e53a9",
 			"Rev": "87e53a9d2875a18a7863b351d22f912545e6b3a3"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-os-rename",
+			"Rev": "2d93ae970ba96c41f717036a5bf5494faf1f38c0"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",

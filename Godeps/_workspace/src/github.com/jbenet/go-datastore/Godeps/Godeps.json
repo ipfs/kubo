@@ -19,6 +19,10 @@
 			"Rev": "4dfff096c4973178c8f35cf6dd1a732a0a139370"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-os-rename",
+			"Rev": "2d93ae970ba96c41f717036a5bf5494faf1f38c0"
+		},
+		{
 			"ImportPath": "github.com/jbenet/goprocess",
 			"Rev": "5b02f8d275a2dd882fb06f8bbdf74347795ff3b1"
 		},
