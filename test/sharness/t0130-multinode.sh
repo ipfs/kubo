@@ -16,18 +16,19 @@ test_expect_success "set up a few nodes" '
 '
 
 test_expect_success "add a file on node1" '
-	export IPFS_PATH="$IPTB_ROOT/1"
+	export IPFS_PATH="$IPTB_ROOT/1" &&
 	random 1000000 > filea &&
-	FILEA_HASH=`ipfs add -q filea`
+	FILEA_HASH=$(ipfs add -q filea)
 '
 
 test_expect_success "cat that file on node2" '
-	export IPFS_PATH="$IPTB_ROOT/2"
-	ipfs cat $FILEA_HASH | multihash > actual1
+	export IPFS_PATH="$IPTB_ROOT/2" &&
+	ipfs cat $FILEA_HASH >fileb
 '
 
 test_expect_success "verify files match" '
 	multihash filea > expected1 &&
+	multihash fileb > actual1 &&
 	test_cmp actual1 expected1
 '
 
