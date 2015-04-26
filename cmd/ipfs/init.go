@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	assets "github.com/ipfs/go-ipfs/assets"
@@ -137,9 +137,9 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 
 	// add every file in the assets pkg
 	for fname, file := range assets.Init_dir {
-		buf := bytes.NewBufferString(file)
+		reader := strings.NewReader(file)
 		dagNode, err := importer.BuildDagFromReader(
-			buf,
+			reader,
 			nd.DAG,
 			nd.Pinning.GetManual(),
 			chunk.DefaultSplitter)
