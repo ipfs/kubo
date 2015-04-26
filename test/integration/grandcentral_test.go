@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"testing"
 
@@ -14,7 +13,6 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
-	"github.com/ipfs/go-ipfs/core/coreunix"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	"github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/iter"
@@ -22,6 +20,7 @@ import (
 	"github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	addcat "github.com/ipfs/go-ipfs/util/testutil/addcat"
 )
 
 func TestSupernodeBootstrappedAddCat(t *testing.T) {
@@ -54,24 +53,9 @@ func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) er
 	adder := clients[0]
 	catter := clients[1]
 
-	log.Info("adder is", adder.Identity)
-	log.Info("catter is", catter.Identity)
-
-	keyAdded, err := coreunix.Add(adder, bytes.NewReader(data))
+	err = addcat.AddCat(adder, catter, data)
 	if err != nil {
 		return err
-	}
-
-	readerCatted, err := coreunix.Cat(catter, keyAdded)
-	if err != nil {
-		return err
-	}
-
-	// verify
-	var bufout bytes.Buffer
-	io.Copy(&bufout, readerCatted)
-	if 0 != bytes.Compare(bufout.Bytes(), data) {
-		return errors.New("catted data does not match added data")
 	}
 	return nil
 }

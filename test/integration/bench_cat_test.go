@@ -1,19 +1,17 @@
 package integrationtest
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"math"
 	"testing"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/core"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	"github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	addcat "github.com/ipfs/go-ipfs/util/testutil/addcat"
 )
 
 func BenchmarkCat1MB(b *testing.B) { benchmarkVarCat(b, unit.MB*1) }
@@ -74,22 +72,9 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	added, err := coreunix.Add(adder, bytes.NewReader(data))
+	err = addcat.AddCat(adder, catter, data)
 	if err != nil {
 		return err
-	}
-
-	b.StartTimer()
-	readerCatted, err := coreunix.Cat(catter, added)
-	if err != nil {
-		return err
-	}
-
-	// verify
-	var bufout bytes.Buffer
-	io.Copy(&bufout, readerCatted)
-	if 0 != bytes.Compare(bufout.Bytes(), data) {
-		return errors.New("catted data does not match added data")
 	}
 	return nil
 }
