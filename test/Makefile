@@ -1,5 +1,5 @@
 
-BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint
+BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint bin/iptb
 IPFS_ROOT = ../
 IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
