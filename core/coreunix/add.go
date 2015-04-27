@@ -86,24 +86,23 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 	return gopath.Join(k.String(), filename), dagnode, nil
 }
 
-func add(n *core.IpfsNode, readers []io.Reader) ([]*merkledag.Node, error) {
+func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
 	mp, ok := n.Pinning.(pin.ManualPinner)
 	if !ok {
 		return nil, errors.New("invalid pinner type! expected manual pinner")
 	}
-	dagnodes := make([]*merkledag.Node, 0)
-	for _, reader := range readers {
-		node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)
-		if err != nil {
-			return nil, err
-		}
-		dagnodes = append(dagnodes, node)
-	}
-	err := n.Pinning.Flush()
+
+	node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
-	return dagnodes, nil
+
+	err = n.Pinning.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
 }
 
 func addNode(n *core.IpfsNode, node *merkledag.Node) error {
@@ -125,12 +124,12 @@ func addFile(n *core.IpfsNode, file files.File) (*merkledag.Node, error) {
 		return addDir(n, file)
 	}
 
-	dns, err := add(n, []io.Reader{file})
+	dagnode, err := add(n, file)
 	if err != nil {
 		return nil, err
 	}
 
-	return dns[len(dns)-1], nil // last dag node is the file.
+	return dagnode, nil
 }
 
 func addDir(n *core.IpfsNode, dir files.File) (*merkledag.Node, error) {
