@@ -7,6 +7,7 @@ package ipns
 import (
 	"errors"
 	"os"
+	"strings"
 
 	fuse "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	fs "github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
@@ -30,8 +31,8 @@ type FileSystem struct {
 }
 
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
-func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath string) (*FileSystem, error) {
-	root, err := CreateRoot(ipfs, []ci.PrivKey{sk}, ipfspath)
+func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath, ipnspath string) (*FileSystem, error) {
+	root, err := CreateRoot(ipfs, []ci.PrivKey{sk}, ipfspath, ipnspath)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +59,7 @@ type Root struct {
 
 	// Used for symlinking into ipfs
 	IpfsRoot  string
+	IpnsRoot  string
 	LocalDirs map[string]fs.Node
 	Roots     map[string]*nsfs.KeyRoot
 
@@ -65,7 +67,7 @@ type Root struct {
 	LocalLink *Link
 }
 
-func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath string) (*Root, error) {
+func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath string) (*Root, error) {
 	ldirs := make(map[string]fs.Node)
 	roots := make(map[string]*nsfs.KeyRoot)
 	for _, k := range keys {
@@ -95,6 +97,7 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath string) (*Root,
 		fs:        ipfs.IpnsFs,
 		Ipfs:      ipfs,
 		IpfsRoot:  ipfspath,
+		IpnsRoot:  ipnspath,
 		Keys:      keys,
 		LocalDirs: ldirs,
 		LocalLink: &Link{ipfs.Identity.Pretty()},
@@ -143,7 +146,17 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	return &Link{s.IpfsRoot + "/" + resolved.B58String()}, nil
+	segments := resolved.Segments()
+	if segments[0] == "ipfs" {
+		p := strings.Join(resolved.Segments()[1:], "/")
+		return &Link{s.IpfsRoot + "/" + p}, nil
+	} else if segments[0] == "ipns" {
+		p := strings.Join(resolved.Segments()[1:], "/")
+		return &Link{s.IpnsRoot + "/" + p}, nil
+	} else {
+		log.Error("Invalid path.Path: ", resolved)
+		return nil, errors.New("invalid path from ipns record")
+	}
 }
 
 func (r *Root) Close() error {

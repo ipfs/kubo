@@ -81,12 +81,12 @@ func (i *gatewayHandler) resolveNamePath(ctx context.Context, p string) (string,
 	if strings.HasPrefix(p, IpnsPathPrefix) {
 		elements := strings.Split(p[len(IpnsPathPrefix):], "/")
 		hash := elements[0]
-		k, err := i.node.Namesys.Resolve(ctx, hash)
+		rp, err := i.node.Namesys.Resolve(ctx, hash)
 		if err != nil {
 			return "", err
 		}
 
-		elements[0] = k.Pretty()
+		elements = append(rp.Segments(), elements[1:]...)
 		p = gopath.Join(elements...)
 	}
 	if !strings.HasPrefix(p, IpfsPathPrefix) {

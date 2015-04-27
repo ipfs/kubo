@@ -20,6 +20,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
@@ -38,6 +39,8 @@ type Filesystem struct {
 
 	nsys namesys.NameSystem
 
+	resolver *path.Resolver
+
 	pins pin.Pinner
 
 	roots map[string]*KeyRoot
@@ -47,10 +50,11 @@ type Filesystem struct {
 func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSystem, pins pin.Pinner, keys ...ci.PrivKey) (*Filesystem, error) {
 	roots := make(map[string]*KeyRoot)
 	fs := &Filesystem{
-		roots: roots,
-		nsys:  nsys,
-		dserv: ds,
-		pins:  pins,
+		roots:    roots,
+		nsys:     nsys,
+		dserv:    ds,
+		pins:     pins,
+		resolver: &path.Resolver{DAG: ds},
 	}
 	for _, k := range keys {
 		pkh, err := k.GetPublic().Hash()
@@ -159,8 +163,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 		}
 	}
 
-	tctx, _ := context.WithTimeout(parent, time.Second*5)
-	mnode, err := fs.dserv.Get(tctx, pointsTo)
+	mnode, err := fs.resolver.ResolvePath(pointsTo)
 	if err != nil {
 		log.Errorf("Failed to retreive value '%s' for ipns entry: %s\n", pointsTo, err)
 		return nil, err
@@ -179,9 +182,9 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 
 	switch pbn.GetType() {
 	case ft.TDirectory:
-		root.val = NewDirectory(pointsTo.B58String(), mnode, root, fs)
+		root.val = NewDirectory(pointsTo.String(), mnode, root, fs)
 	case ft.TFile, ft.TMetadata, ft.TRaw:
-		fi, err := NewFile(pointsTo.B58String(), mnode, root, fs)
+		fi, err := NewFile(pointsTo.String(), mnode, root, fs)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +231,7 @@ func (kr *KeyRoot) Publish(ctx context.Context) error {
 	// network operation
 
 	fmt.Println("Publishing!")
-	return kr.fs.nsys.Publish(ctx, kr.key, k)
+	return kr.fs.nsys.Publish(ctx, kr.key, path.FromKey(k))
 }
 
 // Republisher manages when to publish the ipns entry associated with a given key

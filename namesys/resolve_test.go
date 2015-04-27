@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	path "github.com/ipfs/go-ipfs/path"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	u "github.com/ipfs/go-ipfs/util"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
@@ -20,12 +21,7 @@ func TestRoutingResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = publisher.Publish(context.Background(), privk, "Hello")
-	if err == nil {
-		t.Fatal("should have errored out when publishing a non-multihash val")
-	}
-
-	h := u.Key(u.Hash([]byte("Hello")))
+	h := path.FromString("/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	err = publisher.Publish(context.Background(), privk, h)
 	if err != nil {
 		t.Fatal(err)

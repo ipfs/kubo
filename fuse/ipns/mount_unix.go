@@ -13,7 +13,7 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 	cfg := ipfs.Repo.Config()
 	allow_other := cfg.Mounts.FuseAllowOther
 
-	fsys, err := NewFileSystem(ipfs, ipfs.PrivateKey, ipfsmp)
+	fsys, err := NewFileSystem(ipfs, ipfs.PrivateKey, ipfsmp, ipnsmp)
 	if err != nil {
 		return nil, err
 	}

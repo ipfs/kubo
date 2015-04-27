@@ -1,14 +1,14 @@
 package namesys
 
 import (
+	"errors"
 	"net"
+	"strings"
 
-	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	isd "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-is-domain"
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
-	u "github.com/ipfs/go-ipfs/util"
+	path "github.com/ipfs/go-ipfs/path"
 )
 
 // DNSResolver implements a Resolver on DNS domains
@@ -25,7 +25,7 @@ func (r *DNSResolver) CanResolve(name string) bool {
 // Resolve implements Resolver
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) Resolve(ctx context.Context, name string) (u.Key, error) {
+func (r *DNSResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
 	log.Info("DNSResolver resolving %v", name)
 	txt, err := net.LookupTXT(name)
 	if err != nil {
@@ -33,17 +33,29 @@ func (r *DNSResolver) Resolve(ctx context.Context, name string) (u.Key, error) {
 	}
 
 	for _, t := range txt {
-		chk := b58.Decode(t)
-		if len(chk) == 0 {
-			continue
+		p, err := parseEntry(t)
+		if err == nil {
+			return p, nil
 		}
-
-		_, err := mh.Cast(chk)
-		if err != nil {
-			continue
-		}
-		return u.Key(chk), nil
 	}
 
 	return "", ErrResolveFailed
+}
+
+func parseEntry(txt string) (path.Path, error) {
+	p, err := path.ParseKeyToPath(txt)
+	if err == nil {
+		return p, nil
+	}
+
+	return tryParseDnsLink(txt)
+}
+
+func tryParseDnsLink(txt string) (path.Path, error) {
+	parts := strings.Split(txt, "=")
+	if len(parts) == 1 || parts[0] != "dnslink" {
+		return "", errors.New("not a valid dnslink entry")
+	}
+
+	return path.ParsePath(parts[1])
 }

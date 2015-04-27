@@ -127,7 +127,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		node.IpnsFs = ipnsfs
 	}
 
-	fs, err := NewFileSystem(node, node.PrivateKey, "")
+	fs, err := NewFileSystem(node, node.PrivateKey, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

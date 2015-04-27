@@ -18,7 +18,7 @@ test_expect_success "'ipfs name publish' succeeds" '
 '
 
 test_expect_success "publish output looks good" '
-	echo "Published name $PEERID to $HASH_WELCOME_DOCS" >expected1 &&
+	echo "Published name $PEERID to /ipfs/$HASH_WELCOME_DOCS" >expected1 &&
 	test_cmp publish_out expected1
 '
 
@@ -27,7 +27,7 @@ test_expect_success "'ipfs name resolve' succeeds" '
 '
 
 test_expect_success "resolve output looks good" '
-	printf "%s" "$HASH_WELCOME_DOCS" >expected2 &&
+	printf "/ipfs/%s" "$HASH_WELCOME_DOCS" >expected2 &&
 	test_cmp output expected2
 '
 
@@ -39,7 +39,7 @@ test_expect_success "'ipfs name publish' succeeds" '
 '
 
 test_expect_success "publish a path looks good" '
-	echo "Published name $PEERID to $HASH_HELP_PAGE" >expected3 &&
+	echo "Published name $PEERID to /ipfs/$HASH_WELCOME_DOCS/help" >expected3 &&
 	test_cmp publish_out expected3
 '
 
@@ -48,7 +48,7 @@ test_expect_success "'ipfs name resolve' succeeds" '
 '
 
 test_expect_success "resolve output looks good" '
-	printf "%s" "$HASH_HELP_PAGE" >expected4 &&
+	printf "/ipfs/%s/help" "$HASH_WELCOME_DOCS" >expected4 &&
 	test_cmp output expected4
 '
 

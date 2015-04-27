@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-type ResolvedKey struct {
-	Key u.Key
+type ResolvedPath struct {
+	Path path.Path
 }
 
 var resolveCmd = &cmds.Command{
@@ -82,16 +83,16 @@ Resolve te value of another name:
 
 		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
 
-		res.SetOutput(&ResolvedKey{output})
+		res.SetOutput(&ResolvedPath{output})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			output, ok := res.Output().(*ResolvedKey)
+			output, ok := res.Output().(*ResolvedPath)
 			if !ok {
 				return nil, u.ErrCast()
 			}
-			return strings.NewReader(output.Key.B58String()), nil
+			return strings.NewReader(output.Path.String()), nil
 		},
 	},
-	Type: ResolvedKey{},
+	Type: ResolvedPath{},
 }

@@ -7,12 +7,12 @@ import (
 	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	routing "github.com/ipfs/go-ipfs/routing"
 	record "github.com/ipfs/go-ipfs/routing/record"
@@ -41,14 +41,8 @@ func NewRoutingPublisher(route routing.IpfsRouting) Publisher {
 
 // Publish implements Publisher. Accepts a keypair and a value,
 // and publishes it out to the routing system
-func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) error {
+func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path) error {
 	log.Debugf("namesys: Publish %s", value)
-
-	// validate `value` is a ref (multihash)
-	_, err := mh.FromB58String(value.Pretty())
-	if err != nil {
-		return fmt.Errorf("publish value must be str multihash. %v", err)
-	}
 
 	data, err := createRoutingEntryData(k, value)
 	if err != nil {
@@ -84,7 +78,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value u.Key) 
 	return nil
 }
 
-func createRoutingEntryData(pk ci.PrivKey, val u.Key) ([]byte, error) {
+func createRoutingEntryData(pk ci.PrivKey, val path.Path) ([]byte, error) {
 	entry := new(pb.IpnsEntry)
 
 	entry.Value = []byte(val)
@@ -160,7 +154,7 @@ func InitializeKeyspace(ctx context.Context, ds dag.DAGService, pub Publisher, p
 		return err
 	}
 
-	err = pub.Publish(ctx, key, nodek)
+	err = pub.Publish(ctx, key, path.FromKey(nodek))
 	if err != nil {
 		return err
 	}

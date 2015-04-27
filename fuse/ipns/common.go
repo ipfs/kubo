@@ -9,6 +9,7 @@ import (
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	nsys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
@@ -35,7 +36,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 	}
 
 	pub := nsys.NewRoutingPublisher(n.Routing)
-	err = pub.Publish(n.Context(), key, nodek)
+	err = pub.Publish(n.Context(), key, path.FromKey(nodek))
 	if err != nil {
 		return err
 	}
