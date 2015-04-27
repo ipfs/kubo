@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
@@ -147,8 +148,8 @@ func TestStorage(t *testing.T) {
 	defer cleanup()
 
 	const prefixLen = 2
-	const prefix = "2f71"
-	const target = prefix + "/2f71757578.data"
+	const prefix = "7175"
+	const target = prefix + string(os.PathSeparator) + "71757578.data"
 	fs, err := flatfs.New(temp, prefixLen)
 	if err != nil {
 		t.Fatalf("New fail: %v\n", err)
@@ -182,8 +183,10 @@ func TestStorage(t *testing.T) {
 			if !fi.Mode().IsRegular() {
 				t.Errorf("expected a regular file, mode: %04o", fi.Mode())
 			}
-			if g, e := fi.Mode()&os.ModePerm&0007, os.FileMode(0000); g != e {
-				t.Errorf("file should not be world accessible: %04o", fi.Mode())
+			if runtime.GOOS != "windows" {
+				if g, e := fi.Mode()&os.ModePerm&0007, os.FileMode(0000); g != e {
+					t.Errorf("file should not be world accessible: %04o", fi.Mode())
+				}
 			}
 		default:
 			t.Errorf("saw unexpected directory entry: %q %v", path, fi.Mode())
