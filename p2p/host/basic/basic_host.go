@@ -1,6 +1,8 @@
 package basichost
 
 import (
+	"io"
+
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -95,7 +97,11 @@ func (h *BasicHost) newConnHandler(c inet.Conn) {
 func (h *BasicHost) newStreamHandler(s inet.Stream) {
 	protoID, handle, err := h.Mux().ReadHeader(s)
 	if err != nil {
-		log.Error("protocol mux failed: %s", err)
+		if err == io.EOF {
+			log.Warningf("protocol EOF: %s", s.Conn().RemotePeer())
+		} else {
+			log.Errorf("protocol mux failed: %s", err)
+		}
 		return
 	}
 
