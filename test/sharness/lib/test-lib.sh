@@ -105,7 +105,7 @@ test_wait_open_tcp_port_10_sec() {
 # was setting really weird things and am not sure why.
 test_config_set() {
 
-	# grab flags (like -bool in "ipfs config -bool")
+	# grab flags (like --bool in "ipfs config --bool")
 	test_cfg_flags="" # unset in case.
 	test "$#" = 3 && { test_cfg_flags=$1; shift; }
 
@@ -184,7 +184,7 @@ test_config_ipfs_gateway_writable() {
 	test_config_ipfs_gateway_readonly $1
 
 	test_expect_success "prepare config -- gateway writable" '
-		test_config_set -bool Gateway.Writable true ||
+		test_config_set --bool Gateway.Writable true ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
 }

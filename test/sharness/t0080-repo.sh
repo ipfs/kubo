@@ -17,7 +17,7 @@ test_expect_success "'ipfs add afile' succeeds" '
 '
 
 test_expect_success "added file was pinned" '
-	ipfs pin ls -type=recursive >actual &&
+	ipfs pin ls --type=recursive >actual &&
 	grep "$HASH" actual
 '
 
@@ -49,7 +49,7 @@ test_expect_success "file no longer pinned" '
 	echo "$HASH_WELCOME_DOCS" >expected2 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
-	ipfs pin ls -type=recursive >actual2 &&
+	ipfs pin ls --type=recursive >actual2 &&
 	test_sort_cmp expected2 actual2
 '
 
@@ -102,10 +102,10 @@ test_expect_success "adding multiblock random file succeeds" '
 	MBLOCKHASH=`ipfs add -q multiblock`
 '
 
-test_expect_success "'ipfs pin ls -type=indirect' is correct" '
+test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
-	ipfs pin ls -type=indirect >indirectpins &&
+	ipfs pin ls --type=indirect >indirectpins &&
 	test_sort_cmp refsout indirectpins
 '
 
@@ -121,27 +121,27 @@ test_expect_success "pin something directly" '
 	test_cmp expected10 actual10
 '
 
-test_expect_success "'ipfs pin ls -type=direct' is correct" '
+test_expect_success "'ipfs pin ls --type=direct' is correct" '
 	echo "$DIRECTPIN" >directpinexpected &&
-	ipfs pin ls -type=direct >directpinout &&
+	ipfs pin ls --type=direct >directpinout &&
 	test_sort_cmp directpinexpected directpinout
 '
 
-test_expect_success "'ipfs pin ls -type=recursive' is correct" '
+test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
-	ipfs pin ls -type=recursive >rp_actual &&
+	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
 '
 
-test_expect_success "'ipfs pin ls -type=all' is correct" '
+test_expect_success "'ipfs pin ls --type=all' is correct" '
 	cat directpinout >allpins &&
 	cat rp_actual >>allpins &&
 	cat indirectpins >>allpins &&
 	cat allpins | sort | uniq >> allpins_uniq &&
-	ipfs pin ls -type=all >actual_allpins &&
+	ipfs pin ls --type=all >actual_allpins &&
 	test_sort_cmp allpins_uniq actual_allpins
 '
 

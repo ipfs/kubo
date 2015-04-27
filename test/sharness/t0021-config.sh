@@ -7,7 +7,7 @@ test_description="Test config command"
 # we use a function so that we can run it both offline + online
 test_config_cmd_set() {
 
-  # flags (like -bool in "ipfs config -bool")
+  # flags (like --bool in "ipfs config --bool")
   cfg_flags="" # unset in case.
   test "$#" = 3 && { cfg_flags=$1; shift; }
 
@@ -41,8 +41,8 @@ test_config_cmd() {
   test_config_cmd_set "beep" "boop"
   test_config_cmd_set "beep1" "boop2"
   test_config_cmd_set "beep1" "boop2"
-  test_config_cmd_set "-bool" "beep2" "true"
-  test_config_cmd_set "-bool" "beep2" "false"
+  test_config_cmd_set "--bool" "beep2" "true"
+  test_config_cmd_set "--bool" "beep2" "false"
 
 }
 

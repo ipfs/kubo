@@ -1,7 +1,7 @@
 package cli
 
 import (
-	//"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/commands"
@@ -11,43 +11,79 @@ func TestOptionParsing(t *testing.T) {
 	subCmd := &commands.Command{}
 	cmd := &commands.Command{
 		Options: []commands.Option{
-			commands.StringOption("b", "some option"),
+			commands.StringOption("string", "s", "a string"),
+			commands.BoolOption("bool", "b", "a bool"),
 		},
 		Subcommands: map[string]*commands.Command{
 			"test": subCmd,
 		},
 	}
 
-	opts, input, err := parseOptions([]string{"--beep", "-boop=lol", "test2", "-c", "beep", "--foo=5"})
-	/*for k, v := range opts {
-	    fmt.Printf("%s: %s\n", k, v)
-	  }
-	  fmt.Printf("%s\n", input)*/
-	if err != nil {
-		t.Error("Should have passed")
-	}
-	if len(opts) != 4 || opts["beep"] != "" || opts["boop"] != "lol" || opts["c"] != "" || opts["foo"] != "5" {
-		t.Errorf("Returned options were defferent than expected: %v", opts)
-	}
-	if len(input) != 2 || input[0] != "test2" || input[1] != "beep" {
-		t.Errorf("Returned input was different than expected: %v", input)
+	type kvs map[string]interface{}
+	type words []string
+
+	sameWords := func(a words, b words) bool {
+		for i, w := range a {
+			if w != b[i] {
+				return false
+			}
+		}
+		return true
 	}
 
-	_, _, err = parseOptions([]string{"-beep=1", "-boop=2", "-beep=3"})
-	if err == nil {
-		t.Error("Should have failed (duplicate option name)")
+	sameKVs := func(a kvs, b kvs) bool {
+		if len(a) != len(b) {
+			return false
+		}
+		for k, v := range a {
+			if v != b[k] {
+				return false
+			}
+		}
+		return true
 	}
 
-	path, args, sub := parsePath([]string{"test", "beep", "boop"}, cmd)
-	if len(path) != 1 || path[0] != "test" {
-		t.Errorf("Returned path was defferent than expected: %v", path)
+	testHelper := func(args string, expectedOpts kvs, expectedWords words, expectErr bool) {
+		_, opts, input, _, err := parseOpts(strings.Split(args, " "), cmd)
+		if expectErr {
+			if err == nil {
+				t.Errorf("Command line '%v' parsing should have failed", args)
+			}
+		} else if err != nil {
+			t.Errorf("Command line '%v' failed to parse: %v", args, err)
+		} else if !sameWords(input, expectedWords) || !sameKVs(opts, expectedOpts) {
+			t.Errorf("Command line '%v':\n  parsed as  %v %v\n  instead of %v %v",
+				args, opts, input, expectedOpts, expectedWords)
+		}
 	}
-	if len(args) != 2 || args[0] != "beep" || args[1] != "boop" {
-		t.Errorf("Returned args were different than expected: %v", args)
+
+	testFail := func(args string) {
+		testHelper(args, kvs{}, words{}, true)
 	}
-	if sub != subCmd {
-		t.Errorf("Returned command was different than expected")
+
+	test := func(args string, expectedOpts kvs, expectedWords words) {
+		testHelper(args, expectedOpts, expectedWords, false)
 	}
+
+	test("-", kvs{}, words{"-"})
+	testFail("-b -b")
+	test("beep boop", kvs{}, words{"beep", "boop"})
+	test("test beep boop", kvs{}, words{"beep", "boop"})
+	testFail("-s")
+	test("-s foo", kvs{"s": "foo"}, words{})
+	test("-sfoo", kvs{"s": "foo"}, words{})
+	test("-s=foo", kvs{"s": "foo"}, words{})
+	test("-b", kvs{"b": ""}, words{})
+	test("-bs foo", kvs{"b": "", "s": "foo"}, words{})
+	test("-sb", kvs{"s": "b"}, words{})
+	test("-b foo", kvs{"b": ""}, words{"foo"})
+	test("--bool foo", kvs{"bool": ""}, words{"foo"})
+	testFail("--bool=foo")
+	testFail("--string")
+	test("--string foo", kvs{"string": "foo"}, words{})
+	test("--string=foo", kvs{"string": "foo"}, words{})
+	test("-- -b", kvs{}, words{"-b"})
+	test("foo -b", kvs{"b": ""}, words{"foo"})
 }
 
 func TestArgumentParsing(t *testing.T) {
