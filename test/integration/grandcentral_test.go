@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	"github.com/ipfs/go-ipfs/core/coreunix"
@@ -19,7 +21,6 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	"github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
@@ -83,7 +84,7 @@ func InitializeSupernodeNetwork(
 	// create network
 	mn, err := mocknet.FullMeshLinked(ctx, numServers+numClients)
 	if err != nil {
-		return nil, nil, errors.Wrap(err)
+		return nil, nil, err
 	}
 
 	mn.SetLinkDefaults(mocknet.LinkOptions{

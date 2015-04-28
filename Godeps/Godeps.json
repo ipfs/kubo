@@ -78,14 +78,6 @@
 			"Rev": "6f117f2e7f224fb03eb5e5fba370eade6e2b90c8"
 		},
 		{
-			"ImportPath": "github.com/facebookgo/stack",
-			"Rev": "4da6d991fc3c389efa512151354d643eb5fae4e2"
-		},
-		{
-			"ImportPath": "github.com/facebookgo/stackerr",
-			"Rev": "060fbf9364c89acd41bf710e9e92915a90e7a5b5"
-		},
-		{
 			"ImportPath": "github.com/fd/go-nat",
 			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
 		},
