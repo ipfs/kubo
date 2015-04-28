@@ -1,25 +1,38 @@
 package utp
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 const (
 	version = 1
 
-	st_data  = 0
-	st_fin   = 1
-	st_state = 2
-	st_reset = 3
-	st_syn   = 4
+	stData  = 0
+	stFin   = 1
+	stState = 2
+	stReset = 3
+	stSyn   = 4
 
-	ext_none          = 0
-	ext_selective_ack = 1
+	stateClosed = iota
+	stateClosing
+	stateSynSent
+	stateConnected
+	stateFinSent
 
-	header_size = 20
-	mtu         = 3200
-	mss         = mtu - header_size
-	window_size = 100
+	extNone         = 0
+	extSelectiveAck = 1
 
-	reset_timeout = time.Second
+	headerSize       = 20
+	mtu              = 3200
+	mss              = mtu - headerSize
+	windowSize       = 100
+	packetBufferSize = 256
+	readBufferSize   = 1048576
+	maxRetry         = 3
+
+	maxUdpPayload = 65507
+	resetTimeout  = time.Second
 )
 
 type timeoutError struct{}
@@ -27,3 +40,8 @@ type timeoutError struct{}
 func (e *timeoutError) Error() string   { return "i/o timeout" }
 func (e *timeoutError) Timeout() bool   { return true }
 func (e *timeoutError) Temporary() bool { return true }
+
+var (
+	errTimeout error = &timeoutError{}
+	errClosing       = errors.New("use of closed network connection")
+)

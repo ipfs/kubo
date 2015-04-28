@@ -96,7 +96,7 @@
 		},
 		{
 			"ImportPath": "github.com/h2so5/utp",
-			"Rev": "654d875bb65e96729678180215cf080fe2810371"
+			"Rev": "6ca83358f5c331028feb9b97c445e9c7354967b0"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go.net/ipv4",

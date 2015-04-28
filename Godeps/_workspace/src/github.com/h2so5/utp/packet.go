@@ -5,7 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"sync"
+	"io/ioutil"
+	"net"
 )
 
 type header struct {
@@ -24,16 +25,11 @@ type packet struct {
 	header  header
 	ext     []extension
 	payload []byte
-}
-
-type outgoingPacket struct {
-	typ     int
-	ext     []extension
-	payload []byte
+	addr    net.Addr
 }
 
 func (p *packet) MarshalBinary() ([]byte, error) {
-	firstExt := ext_none
+	firstExt := extNone
 	if len(p.ext) > 0 {
 		firstExt = p.ext[0].typ
 	}
@@ -68,7 +64,7 @@ func (p *packet) MarshalBinary() ([]byte, error) {
 
 	if len(p.ext) > 0 {
 		for i, e := range p.ext {
-			next := ext_none
+			next := extNone
 			if i < len(p.ext)-1 {
 				next = p.ext[i+1].typ
 			}
@@ -123,7 +119,7 @@ func (p *packet) UnmarshalBinary(data []byte) error {
 		}
 	}
 
-	for e != ext_none {
+	for e != extNone {
 		currentExt := int(e)
 		var l uint8
 		var ext = []interface{}{
@@ -173,68 +169,30 @@ func (p *packet) UnmarshalBinary(data []byte) error {
 	p.header.typ = int((tv >> 4) & 0xF)
 	p.header.ver = int(tv & 0xF)
 
-	l := buf.Len()
-	if l > 0 {
-		p.payload = p.payload[:l]
-		_, err := buf.Read(p.payload[:])
-		if err != nil {
-			return err
-		}
+	data, err := ioutil.ReadAll(buf)
+	if err != nil {
+		return err
 	}
+	p.payload = data
 
 	return nil
 }
 
 func (p packet) String() string {
-	var s string = fmt.Sprintf("[%d ", p.header.id)
+	s := fmt.Sprintf("[%d ", p.header.id)
 	switch p.header.typ {
-	case st_data:
+	case stData:
 		s += "ST_DATA"
-	case st_fin:
+	case stFin:
 		s += "ST_FIN"
-	case st_state:
+	case stState:
 		s += "ST_STATE"
-	case st_reset:
+	case stReset:
 		s += "ST_RESET"
-	case st_syn:
+	case stSyn:
 		s += "ST_SYN"
 	}
 	s += fmt.Sprintf(" seq:%d ack:%d len:%d", p.header.seq, p.header.ack, len(p.payload))
 	s += "]"
 	return s
-}
-
-var globalPool packetPool
-
-type packetPool struct {
-	root  *packetPoolNode
-	mutex sync.Mutex
-}
-
-type packetPoolNode struct {
-	p    *packet
-	next *packetPoolNode
-}
-
-func (o *packetPool) get() *packet {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
-	r := o.root
-	if r != nil {
-		o.root = o.root.next
-		return r.p
-	} else {
-		return &packet{
-			payload: make([]byte, 0, mss),
-		}
-	}
-}
-
-func (o *packetPool) put(p *packet) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
-	o.root = &packetPoolNode{
-		p:    p,
-		next: o.root,
-	}
 }

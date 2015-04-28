@@ -2,7 +2,9 @@ package utp
 
 import (
 	"errors"
+	"io"
 	"math"
+	"sync"
 	"time"
 )
 
@@ -74,7 +76,7 @@ func (b *packetBuffer) compact() {
 	}
 }
 
-func (b *packetBuffer) first() *packet {
+func (b *packetBuffer) front() *packet {
 	if b.root == nil || b.root.p == nil {
 		return nil
 	}
@@ -157,6 +159,9 @@ func (b *packetBuffer) generateSelectiveACK() []byte {
 		ack = ack[:len(ack)-1]
 	}
 
+	if len(ack) == 0 {
+		return nil
+	}
 	return ack
 }
 
@@ -185,46 +190,283 @@ func (b *packetBuffer) processSelectiveACK(ack []byte) {
 	}
 }
 
-type timedBuffer struct {
-	d    time.Duration
-	root *timedBufferNode
+type packetRingBuffer struct {
+	b     []*packet
+	begin int
+	s     int
+	mutex sync.RWMutex
+	rch   chan int
 }
 
-type timedBufferNode struct {
-	val    float64
-	next   *timedBufferNode
-	pushed time.Time
+func newPacketRingBuffer(s int) *packetRingBuffer {
+	return &packetRingBuffer{
+		b:   make([]*packet, s),
+		rch: make(chan int),
+	}
 }
 
-func (b *timedBuffer) push(val float64) {
-	var before *timedBufferNode
-	for n := b.root; n != nil; n = n.next {
-		if time.Now().Sub(n.pushed) >= b.d {
-			if before != nil {
-				before.next = nil
-			} else {
-				b.root = nil
+func (b *packetRingBuffer) size() int {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+	return b.s
+}
+
+func (b *packetRingBuffer) empty() bool {
+	return b.size() == 0
+}
+
+func (b *packetRingBuffer) push(p *packet) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	b.b[(b.begin+b.s)%len(b.b)] = p
+	if b.s < len(b.b) {
+		b.s++
+	} else {
+		b.begin = (b.begin + 1) % len(b.b)
+	}
+	select {
+	case b.rch <- 0:
+	default:
+	}
+}
+
+func (b *packetRingBuffer) pop() *packet {
+	if b.empty() {
+		return nil
+	}
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	p := b.b[b.begin]
+	b.begin = (b.begin + 1) % len(b.b)
+	b.s--
+	return p
+}
+
+func (b *packetRingBuffer) popOne(timeout time.Duration) (*packet, error) {
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	if timeout == 0 {
+		t.Stop()
+	}
+	if b.empty() {
+		select {
+		case <-b.rch:
+		case <-t.C:
+			return nil, errTimeout
+		}
+	}
+	return b.pop(), nil
+}
+
+type byteRingBuffer struct {
+	b            []byte
+	begin        int
+	s            int
+	mutex        sync.RWMutex
+	rch          chan int
+	closech      chan int
+	closechMutex sync.Mutex
+}
+
+func newByteRingBuffer(s int) *byteRingBuffer {
+	return &byteRingBuffer{
+		b:       make([]byte, s),
+		rch:     make(chan int),
+		closech: make(chan int),
+	}
+}
+
+func (r *byteRingBuffer) size() int {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return r.s
+}
+
+func (r *byteRingBuffer) space() int {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return len(r.b) - r.s
+}
+
+func (r *byteRingBuffer) empty() bool {
+	return r.size() == 0
+}
+
+func (r *byteRingBuffer) Write(b []byte) (int, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	for len(b) > 0 {
+		end := (r.begin + r.s) % len(r.b)
+		n := copy(r.b[end:], b)
+		b = b[n:]
+
+		s := r.s + n
+		if s > len(r.b) {
+			r.begin = (r.begin + s - len(r.b)) % len(r.b)
+			r.s = len(r.b)
+		} else {
+			r.s += n
+		}
+	}
+	select {
+	case r.rch <- 0:
+	case <-r.closech:
+		return 0, io.EOF
+	default:
+	}
+	return len(b), nil
+}
+
+func (r *byteRingBuffer) ReadTimeout(b []byte, timeout time.Duration) (int, error) {
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	if timeout == 0 {
+		t.Stop()
+	}
+	if r.empty() {
+		select {
+		case <-r.rch:
+		case <-t.C:
+			return 0, errTimeout
+		case <-r.closech:
+			return 0, io.EOF
+		}
+	}
+	l := r.size()
+	if l > len(b) {
+		l = len(b)
+	}
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.begin+l > len(r.b) {
+		n := copy(b, r.b[r.begin:])
+		n = copy(b[n:], r.b[:])
+		r.begin = n
+	} else {
+		copy(b, r.b[r.begin:r.begin+l])
+		r.begin = (r.begin + l) % len(r.b)
+	}
+	r.s -= l
+	return l, nil
+}
+
+func (r *byteRingBuffer) Close() error {
+	r.closechMutex.Lock()
+	defer r.closechMutex.Unlock()
+	select {
+	case <-r.closech:
+		return errClosing
+	default:
+		close(r.closech)
+	}
+	return nil
+}
+
+type rateLimitedBuffer struct {
+	wch          chan<- []byte
+	closech      chan int
+	closechMutex sync.Mutex
+	size         uint32
+	sizech       chan uint32
+	sizeMutex    sync.Mutex
+}
+
+func newRateLimitedBuffer(ch chan<- []byte, size uint32) *rateLimitedBuffer {
+	return &rateLimitedBuffer{
+		wch:     ch,
+		closech: make(chan int),
+		size:    size,
+		sizech:  make(chan uint32),
+	}
+}
+
+func (r *rateLimitedBuffer) WriteTimeout(b []byte, timeout time.Duration) (int, error) {
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	if timeout == 0 {
+		t.Stop()
+	}
+
+	for wrote := uint32(0); wrote < uint32(len(b)); {
+		r.sizeMutex.Lock()
+		s := r.size
+		r.sizeMutex.Unlock()
+		if s == 0 {
+			select {
+			case ns := <-r.sizech:
+				s = ns
+			case <-r.closech:
+				return 0, errClosing
 			}
-			break
 		}
-		before = n
+		if s > uint32(len(b))-wrote {
+			s = uint32(len(b)) - wrote
+		}
+		select {
+		case r.wch <- append([]byte{}, b[wrote:wrote+s]...):
+			wrote += s
+			r.sizeMutex.Lock()
+			r.size -= uint32(s)
+			r.sizeMutex.Unlock()
+		case <-r.closech:
+			return 0, errClosing
+		case <-t.C:
+			return 0, errTimeout
+		}
 	}
-	b.root = &timedBufferNode{
-		val:    val,
-		next:   b.root,
-		pushed: time.Now(),
+
+	return len(b), nil
+}
+
+func (r *rateLimitedBuffer) Reset(size uint32) {
+	r.sizeMutex.Lock()
+	defer r.sizeMutex.Unlock()
+	r.size = size
+	select {
+	case r.sizech <- size:
+	default:
 	}
 }
 
-func (b *timedBuffer) min() float64 {
-	if b.root == nil {
-		return 0
+func (r *rateLimitedBuffer) Close() error {
+	r.closechMutex.Lock()
+	defer r.closechMutex.Unlock()
+	select {
+	case <-r.closech:
+		return errClosing
+	default:
+		close(r.closech)
 	}
-	min := b.root.val
-	for n := b.root; n != nil; n = n.next {
-		if min > n.val {
-			min = n.val
+	return nil
+}
+
+type baseDelayBuffer struct {
+	b    [6]uint32
+	last int
+	min  uint32
+}
+
+func (b *baseDelayBuffer) Push(val uint32) {
+	t := time.Now()
+	i := t.Second()/20 + (t.Minute()%2)*3
+	if b.last == i {
+		if b.b[i] > val {
+			b.b[i] = val
+		}
+	} else {
+		b.b[i] = val
+		b.last = i
+	}
+	min := val
+	for _, v := range b.b {
+		if v > 0 && min > v {
+			min = v
 		}
 	}
-	return min
+	b.min = min
+}
+
+func (b *baseDelayBuffer) Min() uint32 {
+	return b.min
 }

@@ -2,24 +2,58 @@ package utp
 
 import (
 	"errors"
+	"math"
+	"math/rand"
 	"net"
 	"time"
 )
 
-func Dial(n, addr string) (*UTPConn, error) {
-	raddr, err := ResolveUTPAddr(n, addr)
+// DialUTP connects to the remote address raddr on the network net,
+// which must be "utp", "utp4", or "utp6".  If laddr is not nil, it is
+// used as the local address for the connection.
+func DialUTP(n string, laddr, raddr *Addr) (*Conn, error) {
+	return DialUTPTimeout(n, laddr, raddr, 0)
+}
+
+// DialUTPTimeout acts like Dial but takes a timeout.
+// The timeout includes name resolution, if required.
+func DialUTPTimeout(n string, laddr, raddr *Addr, timeout time.Duration) (*Conn, error) {
+	conn, err := getSharedBaseConn(n, laddr)
 	if err != nil {
 		return nil, err
 	}
-	return DialUTP(n, nil, raddr)
-}
 
-func DialUTP(n string, laddr, raddr *UTPAddr) (*UTPConn, error) {
-	return dial(n, laddr, raddr, 0)
-}
+	id := uint16(rand.Intn(math.MaxUint16))
+	c := newConn()
+	c.conn = conn
+	c.raddr = raddr.Addr
+	c.rid = id
+	c.sid = id + 1
+	c.seq = 1
+	c.state = stateSynSent
+	c.sendbuf = newPacketBuffer(windowSize*2, 1)
+	c.conn.Register(int32(c.rid), c.recv)
+	go c.loop()
+	c.synch <- 0
 
-func DialUTPTimeout(n string, laddr, raddr *UTPAddr, timeout time.Duration) (*UTPConn, error) {
-	return dial(n, laddr, raddr, timeout)
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	if timeout == 0 {
+		t.Stop()
+	}
+
+	select {
+	case <-c.connch:
+	case <-t.C:
+		c.Close()
+		return nil, &net.OpError{
+			Op:   "dial",
+			Net:  c.LocalAddr().Network(),
+			Addr: c.LocalAddr(),
+			Err:  errTimeout,
+		}
+	}
+	return c, nil
 }
 
 // A Dialer contains options for connecting to an address.
@@ -49,18 +83,18 @@ type Dialer struct {
 // Dial connects to the address on the named network.
 //
 // See func Dial for a description of the network and address parameters.
-func (d *Dialer) Dial(n, addr string) (*UTPConn, error) {
-	raddr, err := ResolveUTPAddr(n, addr)
+func (d *Dialer) Dial(n, addr string) (*Conn, error) {
+	raddr, err := ResolveAddr(n, addr)
 	if err != nil {
 		return nil, err
 	}
 
-	var laddr *UTPAddr
+	var laddr *Addr
 	if d.LocalAddr != nil {
 		var ok bool
-		laddr, ok = d.LocalAddr.(*UTPAddr)
+		laddr, ok = d.LocalAddr.(*Addr)
 		if !ok {
-			return nil, errors.New("Dialer.LocalAddr is not a UTPAddr")
+			return nil, errors.New("Dialer.LocalAddr is not a Addr")
 		}
 	}
 
