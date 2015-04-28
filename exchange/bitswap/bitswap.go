@@ -175,6 +175,14 @@ func (bs *Bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	}
 }
 
+func (bs *Bitswap) WantlistForPeer(p peer.ID) []u.Key {
+	var out []u.Key
+	for _, e := range bs.engine.WantlistForPeer(p) {
+		out = append(out, e.Key)
+	}
+	return out
+}
+
 // GetBlocks returns a channel where the caller may receive blocks that
 // correspond to the provided |keys|. Returns an error if BitSwap is unable to
 // begin this request within the deadline enforced by the context.

@@ -3,10 +3,12 @@ package commands
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	u "github.com/ipfs/go-ipfs/util"
-	"io"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -26,6 +28,9 @@ var showWantlistCmd = &cmds.Command{
 		ShortDescription: `
 Print out all blocks currently on the bitswap wantlist for the local peer`,
 	},
+	Options: []cmds.Option{
+		cmds.StringOption("peer", "p", "specify which peer to show wantlist for (default self)"),
+	},
 	Type: KeyList{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.Context().GetNode()
@@ -39,7 +44,21 @@ Print out all blocks currently on the bitswap wantlist for the local peer`,
 			return
 		}
 
-		res.SetOutput(&KeyList{bs.GetWantlist()})
+		pstr, found, err := req.Option("peer").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if found {
+			pid, err := peer.IDB58Decode(pstr)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
+		} else {
+			res.SetOutput(&KeyList{bs.GetWantlist()})
+		}
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: KeyListTextMarshaler,

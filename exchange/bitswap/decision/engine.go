@@ -96,6 +96,16 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 	return e
 }
 
+func (e *Engine) WantlistForPeer(p peer.ID) (out []wl.Entry) {
+	e.lock.Lock()
+	partner, ok := e.ledgerMap[p]
+	if ok {
+		out = partner.wantList.SortedEntries()
+	}
+	e.lock.Unlock()
+	return out
+}
+
 func (e *Engine) taskWorker(ctx context.Context) {
 	defer close(e.outbox) // because taskWorker uses the channel exclusively
 	for {
