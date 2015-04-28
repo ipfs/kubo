@@ -116,7 +116,6 @@ func main() {
 		}
 	}
 
-
 	// ok now handle parse error (which means cli input was wrong,
 	// e.g. incorrect number of args, or nonexistent subcommand)
 	if parseErr != nil {

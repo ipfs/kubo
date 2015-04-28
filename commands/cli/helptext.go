@@ -14,8 +14,8 @@ const (
 	requiredArg = "<%v>"
 	optionalArg = "[<%v>]"
 	variadicArg = "%v..."
-	shortFlag  = "-%v"
-	longFlag  = "--%v"
+	shortFlag   = "-%v"
+	longFlag    = "--%v"
 	optionType  = "(%v)"
 
 	whitespace = "\r\n\t "
