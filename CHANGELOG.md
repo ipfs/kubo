@@ -1,5 +1,21 @@
 # go-ipfs changelog
 
+### 0.3.3 - 2015-04-28
+
+This patch update fixes various issues, in particular:
+- windows support (0.3.0 had broken it)
+- commandline parses spaces correctly.
+
+* much improved commandline parsing by @AtnNn
+* improved dockerfile by @luzifer
+* add cmd cleanup by @wking
+* fix flatfs windows support by @tv42 and @gatesvp
+* test case improvements by @chriscool
+* ipns resolution timeout bug fix by @whyrusleeping
+* new cluster tests with iptb by @whyrusleeping
+* fix log callstack printing bug by @whyrusleeping
+* document bash completiong by @dylanPowers
+
 ### 0.3.2 - 2015-04-22
 
 This patch update implements multicast dns as well as fxing a few test issues.
