@@ -40,10 +40,19 @@ Please run the ipfs migration tool before continuing.
 ` + migrationInstructions
 
 var (
-	ErrNoRepo    = func (path string) error { return fmt.Errorf("no ipfs repo found in '%s'. please run: ipfs init ", path) }
 	ErrNoVersion = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
 	ErrOldRepo   = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
 )
+
+type NoRepoError struct {
+	Path string
+}
+
+var _ error = NoRepoError{}
+
+func (err NoRepoError) Error() string {
+	return fmt.Sprintf("no ipfs repo found in '%s'. please run: ipfs init ", err.Path)
+}
 
 const (
 	leveldbDirectory = "datastore"
@@ -172,7 +181,7 @@ func checkInitialized(path string) error {
 		if isInitializedUnsynced(alt) {
 			return ErrOldRepo
 		}
-		return ErrNoRepo(path)
+		return NoRepoError{Path: path}
 	}
 	return nil
 }
