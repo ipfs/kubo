@@ -6,17 +6,17 @@ different bootstrapping patterns. iptb makes testing networks in ipfs
 easy!
 
 ### Commands:
-- init
+- init 
 	- creates and initializes 'n' repos
 	- Options:
 		- -n=[number of nodes]
 		- -f : force overwriting of existing nodes
 		- -bootstrap : select bootstrapping style for cluster choices: star, none
-- start
+- start 
 	- starts up all testbed nodes
 	- Options:
 		- -wait : wait until daemons are fully initialized
-- stop
+- stop 
 	- kills all testbed nodes
 - restart
 	- kills and then restarts all testbed nodes
@@ -28,7 +28,7 @@ easy!
 
 ### Configuration
 By default, iptb uses `$HOME/testbed` to store created nodes. This path is
-configurable via the environment variables `IPTB_ROOT`.
+configurable via the environment variables `IPTB_ROOT`. 
 
 
 

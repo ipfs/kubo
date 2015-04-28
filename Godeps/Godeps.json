@@ -24,10 +24,6 @@
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
 		{
-			"ImportPath":"github.com/whyrusleeping/iptb",
-			"Rev": "7f5790b9a136aca057bc8f1dc711e204c6343504"
-		},
-		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.7.1",
 			"Rev": "3fc34d061b9c78a70db853c7cb6b0576b6d4f32d"
@@ -257,6 +253,10 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/iptb",
+			"Rev": "7f5790b9a136aca057bc8f1dc711e204c6343504"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/blowfish",
