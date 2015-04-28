@@ -49,7 +49,7 @@ test_expect_success "file no longer pinned" '
 	echo "$HASH_WELCOME_DOCS" >expected2 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
-	ipfs pin ls --type=recursive >actual2 &&
+	ipfs pin ls --type=recursive --quiet >actual2 &&
 	test_sort_cmp expected2 actual2
 '
 
@@ -105,6 +105,7 @@ test_expect_success "adding multiblock random file succeeds" '
 test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
+	sed -i="" "s/\(.*\)/\1 indirect/g" refsout &&
 	ipfs pin ls --type=indirect >indirectpins &&
 	test_sort_cmp refsout indirectpins
 '
@@ -122,7 +123,7 @@ test_expect_success "pin something directly" '
 '
 
 test_expect_success "'ipfs pin ls --type=direct' is correct" '
-	echo "$DIRECTPIN" >directpinexpected &&
+	echo "$DIRECTPIN direct" >directpinexpected &&
 	ipfs pin ls --type=direct >directpinout &&
 	test_sort_cmp directpinexpected directpinout
 '
@@ -132,17 +133,18 @@ test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
+	sed -i="" "s/\(.*\)/\1 recursive/g" rp_expected &&
 	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
 '
 
-test_expect_success "'ipfs pin ls --type=all' is correct" '
+test_expect_success "'ipfs pin ls --type=all --quiet' is correct" '
 	cat directpinout >allpins &&
 	cat rp_actual >>allpins &&
 	cat indirectpins >>allpins &&
-	cat allpins | sort | uniq >> allpins_uniq &&
-	ipfs pin ls --type=all >actual_allpins &&
-	test_sort_cmp allpins_uniq actual_allpins
+	cut -f1 -d " " allpins | sort | uniq >> allpins_uniq_hashes &&
+	ipfs pin ls --type=all --quiet >actual_allpins &&
+	test_sort_cmp allpins_uniq_hashes actual_allpins
 '
 
 test_kill_ipfs_daemon

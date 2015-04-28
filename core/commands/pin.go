@@ -173,6 +173,7 @@ Defaults to "direct".
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
 		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
+		cmds.BoolOption("quiet", "q", "Write just hashes of objects"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.Context().GetNode()
@@ -197,20 +198,29 @@ Defaults to "direct".
 			res.SetError(err, cmds.ErrClient)
 		}
 
-		keys := make(map[string]int)
+		keys := make(map[string]RefKeyObject)
 		if typeStr == "direct" || typeStr == "all" {
 			for _, k := range n.Pinning.DirectKeys() {
-				keys[k.B58String()] = 1
+				keys[k.B58String()] = RefKeyObject{
+					Type:  "direct",
+					Count: 1,
+				}
 			}
 		}
 		if typeStr == "indirect" || typeStr == "all" {
 			for k, v := range n.Pinning.IndirectKeys() {
-				keys[k.B58String()] = v
+				keys[k.B58String()] = RefKeyObject{
+					Type:  "indirect",
+					Count: v,
+				}
 			}
 		}
 		if typeStr == "recursive" || typeStr == "all" {
 			for _, k := range n.Pinning.RecursiveKeys() {
-				keys[k.B58String()] = 1
+				keys[k.B58String()] = RefKeyObject{
+					Type:  "recursive",
+					Count: 1,
+				}
 			}
 		}
 
@@ -229,6 +239,11 @@ Defaults to "direct".
 				return nil, err
 			}
 
+			quiet, _, err := res.Request().Option("quiet").Bool()
+			if err != nil {
+				return nil, err
+			}
+
 			keys, ok := res.Output().(*RefKeyList)
 			if !ok {
 				return nil, u.ErrCast()
@@ -236,11 +251,19 @@ Defaults to "direct".
 			out := new(bytes.Buffer)
 			if typeStr == "indirect" && count {
 				for k, v := range keys.Keys {
-					fmt.Fprintf(out, "%s %d\n", k, v)
+					if quiet {
+						fmt.Fprintf(out, "%s\n", k, v.Count)
+					} else {
+						fmt.Fprintf(out, "%s %s %d\n", k, v.Type, v.Count)
+					}
 				}
 			} else {
-				for k, _ := range keys.Keys {
-					fmt.Fprintf(out, "%s\n", k)
+				for k, v := range keys.Keys {
+					if quiet {
+						fmt.Fprintf(out, "%s\n", k)
+					} else {
+						fmt.Fprintf(out, "%s %s\n", k, v.Type)
+					}
 				}
 			}
 			return out, nil
@@ -248,6 +271,11 @@ Defaults to "direct".
 	},
 }
 
+type RefKeyObject struct {
+	Type  string
+	Count int
+}
+
 type RefKeyList struct {
-	Keys map[string]int
+	Keys map[string]RefKeyObject
 }
