@@ -1,18 +1,31 @@
 {
 	"ImportPath": "github.com/jbenet/go-multiaddr-net",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/h2so5/utp",
-			"Rev": "654d875bb65e96729678180215cf080fe2810371"
+			"Rev": "5288a05e1781334589c4b8806bcfb1e69f5b5d63"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-base58",
+			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr",
-			"Comment": "0.1.2-34-g0d7b54b",
-			"Rev": "0d7b54ba432fda14bac37cdad717bd6270eacc85"
+			"Comment": "0.1.2-38-gc13f11b",
+			"Rev": "c13f11bbfe6439771f4df7bfb330f686826144e8"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multihash",
+			"Comment": "0.1.0-36-g87e53a9",
+			"Rev": "87e53a9d2875a18a7863b351d22f912545e6b3a3"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
 		}
 	]
 }

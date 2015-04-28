@@ -34,10 +34,11 @@ var (
 	DefaultCompactionTotalSize           = 10 * MiB
 	DefaultCompactionTotalSizeMultiplier = 10.0
 	DefaultCompressionType               = SnappyCompression
-	DefaultOpenFilesCacher               = LRUCacher
-	DefaultOpenFilesCacheCapacity        = 500
+	DefaultIteratorSamplingRate          = 1 * MiB
 	DefaultMaxMemCompationLevel          = 2
 	DefaultNumLevel                      = 7
+	DefaultOpenFilesCacher               = LRUCacher
+	DefaultOpenFilesCacheCapacity        = 500
 	DefaultWriteBuffer                   = 4 * MiB
 	DefaultWriteL0PauseTrigger           = 12
 	DefaultWriteL0SlowdownTrigger        = 8
@@ -288,6 +289,13 @@ type Options struct {
 	// The default value is nil.
 	Filter filter.Filter
 
+	// IteratorSamplingRate defines approximate gap (in bytes) between read
+	// sampling of an iterator. The samples will be used to determine when
+	// compaction should be triggered.
+	//
+	// The default is 1MiB.
+	IteratorSamplingRate int
+
 	// MaxMemCompationLevel defines maximum level a newly compacted 'memdb'
 	// will be pushed into if doesn't creates overlap. This should less than
 	// NumLevel. Use -1 for level-0.
@@ -490,6 +498,13 @@ func (o *Options) GetFilter() filter.Filter {
 		return nil
 	}
 	return o.Filter
+}
+
+func (o *Options) GetIteratorSamplingRate() int {
+	if o == nil || o.IteratorSamplingRate <= 0 {
+		return DefaultIteratorSamplingRate
+	}
+	return o.IteratorSamplingRate
 }
 
 func (o *Options) GetMaxMemCompationLevel() int {

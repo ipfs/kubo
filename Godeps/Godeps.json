@@ -25,8 +25,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.7.1",
-			"Rev": "3fc34d061b9c78a70db853c7cb6b0576b6d4f32d"
+			"Comment": "v0.7.3-2-g26709e2",
+			"Rev": "26709e2714106fb8ad40b773b711ebce25b78914"
 		},
 		{
 			"ImportPath": "github.com/braintree/manners",
@@ -71,7 +71,7 @@
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",
-			"Rev": "b198514c204f20799b91c93b6ffd8b26be04c2c9"
+			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
 		{
 			"ImportPath": "github.com/facebookgo/atomicfile",
@@ -170,16 +170,16 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multiaddr-net",
-			"Rev": "eae26b653a87d02193bb261ae5c5e1f39cc033d6"
+			"Rev": "62d4c740c29c00a47ef7f670208022940d245eef"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-multihash",
-			"Comment": "0.1.0-36-g87e53a9",
-			"Rev": "87e53a9d2875a18a7863b351d22f912545e6b3a3"
+			"Comment": "0.1.0-39-ge8d2374",
+			"Rev": "e8d2374934f16a971d1e94a864514a21ac74bf7f"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-os-rename",
-			"Rev": "2d93ae970ba96c41f717036a5bf5494faf1f38c0"
+			"Rev": "3ac97f61ef67a6b87b95c1282f6c317ed0e693c2"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
@@ -187,11 +187,11 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
-			"Rev": "c50d0ce235bacde481d3e885b5dfd562c75c981a"
+			"Rev": "cd535bd25356746b9b1e824871dda7da932460e2"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-reuseport",
-			"Rev": "c71a70ef82a7acb87ad77704de1be7b9cd776a55"
+			"Rev": "48959f1fad204b6cf2c0e8d086ef69f03f2de961"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-sockaddr/net",
@@ -199,7 +199,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
-			"Rev": "c531232018e678b2a702cfb86b5c3f68d1c8beb8"
+			"Rev": "aac704a3f4f27190b4ccc05f303a4931fd1241ff"
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
@@ -207,7 +207,7 @@
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",
-			"Rev": "efacde03154693404c65e7aa7d461ac9014acd0c"
+			"Rev": "8fef92e41e22a70e700a96b29f066cda30ea24ef"
 		},
 		{
 			"ImportPath": "github.com/kr/binarydist",
@@ -215,11 +215,11 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "5a357a6fc5e85268b929350aa6423e2d56dcc4ff"
+			"Rev": "82ffc45b1f84ff71bd1cebed8b210118ce3d181e"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
-			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
+			"Rev": "1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
 		},
 		{
 			"ImportPath": "github.com/mtchavez/jenkins",
@@ -232,7 +232,7 @@
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "87e4e645d80ae9c537e8f2dee52b28036a5dd75e"
+			"Rev": "4875955338b0a434238a31165cb87255ab6e9e4a"
 		},
 		{
 			"ImportPath": "github.com/syndtr/gosnappy/snappy",
@@ -248,19 +248,19 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
-			"Rev": "7f5790b9a136aca057bc8f1dc711e204c6343504"
+			"Rev": "4fa36405d0baea7773676f83fba9695e9a560473"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/blowfish",
-			"Rev": "b7d6bf2c61544745a02f83dec90393985fc3a065"
+			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/sha3",
-			"Rev": "b7d6bf2c61544745a02f83dec90393985fc3a065"
+			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "7dbad50ab5b31073856416cdcfeb2796d682f844"
+			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",

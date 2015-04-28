@@ -26,6 +26,10 @@ easy!
 	    - IPFS_PATH - set to testbed node n's IPFS_PATH
 	    - NODE[x] - set to the peer ID of node x
 
+- get [attr] [n]
+	- gets the specified attribute from then given node
+		- available attributes: id
+
 ### Configuration
 By default, iptb uses `$HOME/testbed` to store created nodes. This path is
 configurable via the environment variables `IPTB_ROOT`. 

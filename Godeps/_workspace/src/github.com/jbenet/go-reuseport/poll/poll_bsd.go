@@ -1,4 +1,4 @@
-// +build darwin,amd64 freebsd dragonfly netbsd openbsd
+// +build darwin,amd64 darwin,arm64 freebsd dragonfly netbsd openbsd
 
 package poll
 

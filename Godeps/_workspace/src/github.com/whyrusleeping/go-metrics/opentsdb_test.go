@@ -19,3 +19,4 @@ func ExampleOpenTSDBWithConfig() {
 		DurationUnit:  time.Millisecond,
 	})
 }
+

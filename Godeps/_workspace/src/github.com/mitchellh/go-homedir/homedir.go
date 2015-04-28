@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -43,7 +44,7 @@ func Expand(path string) (string, error) {
 		return "", err
 	}
 
-	return dir + path[1:], nil
+	return filepath.Join(dir, path[1:]), nil
 }
 
 func dirUnix() (string, error) {

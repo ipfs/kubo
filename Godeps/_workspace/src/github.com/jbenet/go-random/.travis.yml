@@ -6,6 +6,7 @@ go:
   - tip
 
 script:
-  - go test ./...
+  - go test -race -cpu=5 -v ./...
+  - cd random && go build
 
 env: TEST_VERBOSE=1

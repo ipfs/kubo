@@ -1,7 +1,7 @@
 // package fuseversion simply exposes the version of FUSE installed
 // in the user's machine. For reasoning, see:
-// - https://github.com/ipfs/go-ipfs/issues/177
-// - https://github.com/ipfs/go-ipfs/issues/202
+// - https://github.com/jbenet/go-ipfs/issues/177
+// - https://github.com/jbenet/go-ipfs/issues/202
 // - https://github.com/osxfuse/osxfuse/issues/175#issuecomment-61888505
 package fuseversion
 

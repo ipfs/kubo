@@ -6,9 +6,11 @@ Warning: this is a **multihash** tool! Its digests follow the [multihash](https:
 
 ### Install
 
-```
-go get github.com/jbenet/go-multihash/multihash
-```
+- From Source:
+    ```
+    go get github.com/jbenet/go-multihash/multihash
+    ```
+- Precompiled Binaries: https://gobuilder.me/github.com/jbenet/go-multihash/multihash
 
 ### Usage
 

@@ -8,8 +8,8 @@ import (
 var log = logrus.New()
 
 func init() {
-	log.Formatter = // default
-	new(logrus.TextFormatter)
+	log. // default
+	Formatter = new(logrus.TextFormatter)
 	log.Hooks.Add(airbrake.NewHook("https://example.com", "xyz", "development"))
 }
 

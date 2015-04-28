@@ -91,7 +91,7 @@ func TestFromUDP(t *testing.T) {
 
 func TestFromUTP(t *testing.T) {
 	testConvert(t, "/ip4/10.20.30.40/udp/1234/utp", func() (ma.Multiaddr, error) {
-		return FromNetAddr(&utp.UTPAddr{
+		return FromNetAddr(&utp.Addr{
 			Addr: &net.UDPAddr{
 				IP:   net.ParseIP("10.20.30.40"),
 				Port: 1234,

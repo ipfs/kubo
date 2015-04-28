@@ -37,7 +37,7 @@ See help in the [docs](https://godoc.org/github.com/steakknife/hamming)
 
 - [Issues](https://github.com/steakknife/hamming/issues)
 
-## License
+## License 
 
 [MIT license](MIT-LICENSE.txt)
 

@@ -57,7 +57,7 @@ func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 		return ipm.Encapsulate(udpm), nil
 
 	case "utp", "utp4", "utp6":
-		acc, ok := a.(*utp.UTPAddr)
+		acc, ok := a.(*utp.Addr)
 		if !ok {
 			return nil, errIncorrectNetAddr
 		}
@@ -117,7 +117,7 @@ func ToNetAddr(maddr ma.Multiaddr) (net.Addr, error) {
 	case "udp", "udp4", "udp6":
 		return net.ResolveUDPAddr(network, host)
 	case "utp", "utp4", "utp6":
-		return utp.ResolveUTPAddr(network, host)
+		return utp.ResolveAddr(network, host)
 	case "ip", "ip4", "ip6":
 		return net.ResolveIPAddr(network, host)
 	}
