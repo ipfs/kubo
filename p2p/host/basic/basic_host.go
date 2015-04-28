@@ -98,9 +98,9 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 	protoID, handle, err := h.Mux().ReadHeader(s)
 	if err != nil {
 		if err == io.EOF {
-			log.Warningf("protocol EOF: %s", s.Conn().RemotePeer())
+			log.Debugf("protocol EOF: %s", s.Conn().RemotePeer())
 		} else {
-			log.Errorf("protocol mux failed: %s", err)
+			log.Warning("protocol mux failed: %s", err)
 		}
 		return
 	}
@@ -120,7 +120,7 @@ func (h *BasicHost) Peerstore() peer.Peerstore {
 	return h.Network().Peerstore()
 }
 
-// Networks returns the Network interface of the Host
+// Network returns the Network interface of the Host
 func (h *BasicHost) Network() inet.Network {
 	return h.network
 }
@@ -130,6 +130,7 @@ func (h *BasicHost) Mux() *protocol.Mux {
 	return h.mux
 }
 
+// IDService returns
 func (h *BasicHost) IDService() *identify.IDService {
 	return h.ids
 }
@@ -142,6 +143,7 @@ func (h *BasicHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandler
 	h.Mux().SetHandler(pid, handler)
 }
 
+// RemoveStreamHandler returns ..
 func (h *BasicHost) RemoveStreamHandler(pid protocol.ID) {
 	h.Mux().RemoveHandler(pid)
 }
@@ -238,6 +240,7 @@ func (h *BasicHost) Close() error {
 	return h.proc.Close()
 }
 
+// GetBandwidthReporter exposes the Host's bandiwth metrics reporter
 func (h *BasicHost) GetBandwidthReporter() metrics.Reporter {
 	return h.bwc
 }
