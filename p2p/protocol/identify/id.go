@@ -4,8 +4,8 @@ import (
 	"strings"
 	"sync"
 
-	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/io"
 	semver "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 

@@ -5,8 +5,9 @@ import (
 	"errors"
 	"time"
 
-	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	"github.com/ipfs/go-ipfs/p2p/host"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"

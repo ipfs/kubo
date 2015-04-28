@@ -20,19 +20,6 @@
 			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
 		},
 		{
-			"ImportPath": "code.google.com/p/gogoprotobuf/io",
-			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
-		},
-		{
-			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
-			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
-		},
-		{
-			"ImportPath": "code.google.com/p/goprotobuf/proto",
-			"Comment": "go.r60-152",
-			"Rev": "36be16571e14f67e114bb0af619e5de2c1591679"
-		},
-		{
 			"ImportPath": "github.com/ActiveState/tail",
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
@@ -110,6 +97,14 @@
 			"ImportPath": "github.com/fzzy/radix/redis",
 			"Comment": "v0.5.1",
 			"Rev": "27a863cdffdb0998d13e1e11992b18489aeeaa25"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/io",
+			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/proto",
+			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
 		},
 		{
 			"ImportPath": "github.com/h2so5/utp",
