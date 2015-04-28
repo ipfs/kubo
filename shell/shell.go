@@ -3,6 +3,7 @@ package shell
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -58,6 +59,9 @@ func (s *Shell) Add(r io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if resp.Error() != nil {
+		return "", resp.Error()
+	}
 
 	read, err := resp.Reader()
 	if err != nil {
@@ -91,6 +95,10 @@ func (s *Shell) List(path string) ([]cc.Link, error) {
 		return nil, err
 	}
 
+	if resp.Error() != nil {
+		return nil, resp.Error()
+	}
+
 	read, err := resp.Reader()
 	if err != nil {
 		return nil, err
@@ -104,4 +112,40 @@ func (s *Shell) List(path string) ([]cc.Link, error) {
 	}
 
 	return out.Objects[0].Links, nil
+}
+
+// Pin the given path
+func (s *Shell) Pin(path string) error {
+	ropts, err := cc.Root.GetOptions([]string{"pin", "add"})
+	if err != nil {
+		return err
+	}
+	pinadd := cc.PinCmd.Subcommands["add"]
+
+	req, err := cmds.NewRequest([]string{"pin", "add", path}, nil, nil, nil, pinadd, ropts)
+	if err != nil {
+		return err
+	}
+	req.SetOption("r", true)
+
+	resp, err := s.client.Send(req)
+	if err != nil {
+		return err
+	}
+	if resp.Error() != nil {
+		return resp.Error()
+	}
+
+	read, err := resp.Reader()
+	if err != nil {
+		return err
+	}
+
+	out, err := ioutil.ReadAll(read)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(out))
+	return nil
 }
