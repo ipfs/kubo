@@ -22,8 +22,12 @@ import (
 
 var log = eventlog.Logger("coreunix")
 
-// Add builds a merkledag from the a reader, pinning all objects to the local
-// datastore. Returns a key representing the root node.
+// DEPRECATED: Add builds a merkledag from the a reader, pinning all
+// objects to the local datastore. Returns a key representing the root
+// node.
+//
+// This function is deprecated and will be removed in 0.4.0.  You
+// should use shell/unixfs's AddFromReader instead.
 func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	// TODO more attractive function signature importer.BuildDagFromReader
 	dagNode, err := importer.BuildDagFromReader(
