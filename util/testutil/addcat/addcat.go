@@ -6,16 +6,11 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
-	importer "github.com/ipfs/go-ipfs/importer"
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
+	unixfs "github.com/ipfs/go-ipfs/shell/unixfs"
 )
 
 func AddCat(adder *core.IpfsNode, catter *core.IpfsNode, data []byte) error {
-	dagNode, err := importer.BuildDagFromReader(
-		bytes.NewBuffer(data),
-		adder.DAG,
-		adder.Pinning.GetManual(),
-		chunk.DefaultSplitter)
+	dagNode, err := unixfs.AddFromReader(adder, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
