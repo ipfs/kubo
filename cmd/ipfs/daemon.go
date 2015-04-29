@@ -3,6 +3,7 @@ package main
 import (
 	_ "expvar"
 	"fmt"
+	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
