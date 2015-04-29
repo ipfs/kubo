@@ -58,6 +58,14 @@
 			"Rev": "423e3ac59c611e2d549527ab8c15fb99335d30ba"
 		},
 		{
+			"ImportPath": "github.com/codahale/hdrhistogram",
+			"Rev": "5fd85ec0b4e2dd5d4158d257d943f2e586d86b62"
+		},
+		{
+			"ImportPath": "github.com/codahale/metrics",
+			"Rev": "7d3beb1b480077e77c08a6f6c65ea969f6e91420"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
 			"Rev": "568e959cd89871e61434c1143528d9162da89ef2"
 		},
