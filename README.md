@@ -102,7 +102,7 @@ ipfs files that will persist when you restart the container.
     
 Start a container running ipfs and expose ports 4001, 5001 and 8080:
 
-    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/root/.ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 jbenet/go-ipfs:latest
+    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 jbenet/go-ipfs:latest
     
 Watch the ipfs log:
 
