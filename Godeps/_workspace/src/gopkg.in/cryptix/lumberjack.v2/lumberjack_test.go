@@ -41,6 +41,7 @@ func TestNewFile(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 	existsWithLen(logFile(dir), n, t)
 	fileCount(dir, 1, t)
 }
@@ -65,6 +66,7 @@ func TestOpenExisting(t *testing.T) {
 	isNil(err, t)
 	equals(len(b), n, t)
 
+	isNil(l.bw.Flush(), t)
 	// make sure the file got appended
 	existsWithLen(filename, len(data)+n, t)
 
@@ -106,6 +108,7 @@ func TestMakeLogDir(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 	existsWithLen(logFile(dir), n, t)
 	fileCount(dir, 1, t)
 }
@@ -122,6 +125,7 @@ func TestDefaultFilename(t *testing.T) {
 
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 	existsWithLen(filename, n, t)
 }
 
@@ -142,6 +146,7 @@ func TestAutoRotate(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 
 	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
@@ -152,6 +157,7 @@ func TestAutoRotate(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
+	isNil(l.bw.Flush(), t)
 
 	// the old logfile should be moved aside and the main logfile should have
 	// only the last write in it.
@@ -187,6 +193,7 @@ func TestFirstWriteRotate(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 
 	existsWithLen(filename, n, t)
 	existsWithLen(backupFile(dir), len(start), t)
@@ -211,6 +218,7 @@ func TestMaxBackups(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 
 	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
@@ -222,6 +230,7 @@ func TestMaxBackups(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
+	isNil(l.bw.Flush(), t)
 
 	// this will use the new fake time
 	secondFilename := backupFile(dir)
@@ -238,6 +247,7 @@ func TestMaxBackups(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
+	isNil(l.bw.Flush(), t)
 
 	// this will use the new fake time
 	thirdFilename := backupFile(dir)
@@ -280,6 +290,7 @@ func TestMaxBackups(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
+	isNil(l.bw.Flush(), t)
 
 	// this will use the new fake time
 	fourthFilename := backupFile(dir)
@@ -326,6 +337,7 @@ func TestMaxAge(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 
 	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
@@ -337,6 +349,7 @@ func TestMaxAge(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
+	isNil(l.bw.Flush(), t)
 	existsWithLen(backupFile(dir), len(b), t)
 
 	// we need to wait a little bit since the files get deleted on a different
@@ -359,6 +372,7 @@ func TestMaxAge(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b3), n, t)
+	isNil(l.bw.Flush(), t)
 	existsWithLen(backupFile(dir), len(b2), t)
 
 	// we need to wait a little bit since the files get deleted on a different
@@ -454,6 +468,7 @@ func TestLocalTime(t *testing.T) {
 	n2, err := l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n2, t)
+	isNil(l.bw.Flush(), t)
 
 	existsWithLen(logFile(dir), n2, t)
 	existsWithLen(backupFileLocal(dir), n, t)
@@ -476,6 +491,7 @@ func TestRotate(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
+	isNil(l.bw.Flush(), t)
 
 	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
@@ -511,6 +527,7 @@ func TestRotate(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
+	isNil(l.Close(), t)
 
 	// this will use the new fake time
 	existsWithLen(filename, n, t)
