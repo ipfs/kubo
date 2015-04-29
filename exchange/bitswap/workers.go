@@ -11,7 +11,7 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-var TaskWorkerCount = 16
+var TaskWorkerCount = 8
 
 func init() {
 	twc := os.Getenv("IPFS_BITSWAP_TASK_WORKERS")
