@@ -44,6 +44,9 @@ type mdnsService struct {
 
 func getDialableListenAddr(ph host.Host) (*net.TCPAddr, error) {
 	for _, addr := range ph.Addrs() {
+		if manet.IsIPLoopback(addr) {
+			continue
+		}
 		na, err := manet.ToNetAddr(addr)
 		if err != nil {
 			continue
