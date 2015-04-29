@@ -53,6 +53,7 @@ func IsThinWaist(m ma.Multiaddr) bool {
 
 // IsIPLoopback returns whether a Multiaddr is a "Loopback" IP address
 // This means either /ip4/127.0.0.1 or /ip6/::1
+// TODO: differentiate IsIPLoopback and OverIPLoopback
 func IsIPLoopback(m ma.Multiaddr) bool {
 	b := m.Bytes()
 

@@ -14,27 +14,21 @@
 */
 package merkledag_pb
 
-import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 import math "math"
 
 // discarding unused import gogoproto "code.google.com/p/gogoprotobuf/gogoproto/gogo.pb"
 
 import io "io"
 import fmt "fmt"
-import code_google_com_p_gogoprotobuf_proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
+import github_com_gogo_protobuf_proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
-import fmt1 "fmt"
 import strings "strings"
 import reflect "reflect"
 
-import fmt2 "fmt"
-import strings1 "strings"
-import code_google_com_p_gogoprotobuf_proto1 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/gogoprotobuf/proto"
 import sort "sort"
 import strconv "strconv"
-import reflect1 "reflect"
 
-import fmt3 "fmt"
 import bytes "bytes"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -143,7 +137,7 @@ func (m *PBLink) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Hash = append(m.Hash, data[index:postIndex]...)
+			m.Hash = append([]byte{}, data[index:postIndex]...)
 			index = postIndex
 		case 2:
 			if wireType != 2 {
@@ -195,7 +189,7 @@ func (m *PBLink) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -270,7 +264,7 @@ func (m *PBNode) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Data = append(m.Data, data[index:postIndex]...)
+			m.Data = append([]byte{}, data[index:postIndex]...)
 			index = postIndex
 		default:
 			var sizeOfWire int
@@ -282,7 +276,7 @@ func (m *PBNode) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -303,7 +297,7 @@ func (this *PBLink) String() string {
 		`Hash:` + valueToStringMerkledag(this.Hash) + `,`,
 		`Name:` + valueToStringMerkledag(this.Name) + `,`,
 		`Tsize:` + valueToStringMerkledag(this.Tsize) + `,`,
-		`XXX_unrecognized:` + fmt1.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -313,9 +307,9 @@ func (this *PBNode) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&PBNode{`,
-		`Links:` + strings.Replace(fmt1.Sprintf("%v", this.Links), "PBLink", "PBLink", 1) + `,`,
+		`Links:` + strings.Replace(fmt.Sprintf("%v", this.Links), "PBLink", "PBLink", 1) + `,`,
 		`Data:` + valueToStringMerkledag(this.Data) + `,`,
-		`XXX_unrecognized:` + fmt1.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -326,7 +320,7 @@ func valueToStringMerkledag(v interface{}) string {
 		return "nil"
 	}
 	pv := reflect.Indirect(rv).Interface()
-	return fmt1.Sprintf("*%v", pv)
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *PBLink) Size() (n int) {
 	var l int
@@ -347,6 +341,7 @@ func (m *PBLink) Size() (n int) {
 	}
 	return n
 }
+
 func (m *PBNode) Size() (n int) {
 	var l int
 	_ = l
@@ -434,11 +429,7 @@ type randyMerkledag interface {
 }
 
 func randUTF8RuneMerkledag(r randyMerkledag) rune {
-	res := rune(r.Uint32() % 1112064)
-	if 55296 <= res {
-		res += 2047
-	}
-	return res
+	return rune(r.Intn(126-43) + 43)
 }
 func randStringMerkledag(r randyMerkledag) string {
 	v6 := r.Intn(100)
@@ -531,6 +522,7 @@ func (m *PBLink) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *PBNode) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -569,6 +561,7 @@ func (m *PBNode) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func encodeFixed64Merkledag(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)
@@ -600,25 +593,32 @@ func (this *PBLink) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings1.Join([]string{`&merkledag_pb.PBLink{` + `Hash:` + valueToGoStringMerkledag(this.Hash, "byte"), `Name:` + valueToGoStringMerkledag(this.Name, "string"), `Tsize:` + valueToGoStringMerkledag(this.Tsize, "uint64"), `XXX_unrecognized:` + fmt2.Sprintf("%#v", this.XXX_unrecognized) + `}`}, ", ")
+	s := strings.Join([]string{`&merkledag_pb.PBLink{` +
+		`Hash:` + valueToGoStringMerkledag(this.Hash, "byte"),
+		`Name:` + valueToGoStringMerkledag(this.Name, "string"),
+		`Tsize:` + valueToGoStringMerkledag(this.Tsize, "uint64"),
+		`XXX_unrecognized:` + fmt.Sprintf("%#v", this.XXX_unrecognized) + `}`}, ", ")
 	return s
 }
 func (this *PBNode) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings1.Join([]string{`&merkledag_pb.PBNode{` + `Links:` + fmt2.Sprintf("%#v", this.Links), `Data:` + valueToGoStringMerkledag(this.Data, "byte"), `XXX_unrecognized:` + fmt2.Sprintf("%#v", this.XXX_unrecognized) + `}`}, ", ")
+	s := strings.Join([]string{`&merkledag_pb.PBNode{` +
+		`Links:` + fmt.Sprintf("%#v", this.Links),
+		`Data:` + valueToGoStringMerkledag(this.Data, "byte"),
+		`XXX_unrecognized:` + fmt.Sprintf("%#v", this.XXX_unrecognized) + `}`}, ", ")
 	return s
 }
 func valueToGoStringMerkledag(v interface{}, typ string) string {
-	rv := reflect1.ValueOf(v)
+	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
 		return "nil"
 	}
-	pv := reflect1.Indirect(rv).Interface()
-	return fmt2.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func extensionToGoStringMerkledag(e map[int32]code_google_com_p_gogoprotobuf_proto1.Extension) string {
+func extensionToGoStringMerkledag(e map[int32]github_com_gogo_protobuf_proto.Extension) string {
 	if e == nil {
 		return "nil"
 	}
@@ -632,7 +632,7 @@ func extensionToGoStringMerkledag(e map[int32]code_google_com_p_gogoprotobuf_pro
 	for _, k := range keys {
 		ss = append(ss, strconv.Itoa(k)+": "+e[int32(k)].GoString())
 	}
-	s += strings1.Join(ss, ",") + "}"
+	s += strings.Join(ss, ",") + "}"
 	return s
 }
 func (this *PBLink) VerboseEqual(that interface{}) error {
@@ -640,44 +640,44 @@ func (this *PBLink) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt3.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*PBLink)
 	if !ok {
-		return fmt3.Errorf("that is not of type *PBLink")
+		return fmt.Errorf("that is not of type *PBLink")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt3.Errorf("that is type *PBLink but is nil && this != nil")
+		return fmt.Errorf("that is type *PBLink but is nil && this != nil")
 	} else if this == nil {
-		return fmt3.Errorf("that is type *PBLinkbut is not nil && this == nil")
+		return fmt.Errorf("that is type *PBLinkbut is not nil && this == nil")
 	}
 	if !bytes.Equal(this.Hash, that1.Hash) {
-		return fmt3.Errorf("Hash this(%v) Not Equal that(%v)", this.Hash, that1.Hash)
+		return fmt.Errorf("Hash this(%v) Not Equal that(%v)", this.Hash, that1.Hash)
 	}
 	if this.Name != nil && that1.Name != nil {
 		if *this.Name != *that1.Name {
-			return fmt3.Errorf("Name this(%v) Not Equal that(%v)", *this.Name, *that1.Name)
+			return fmt.Errorf("Name this(%v) Not Equal that(%v)", *this.Name, *that1.Name)
 		}
 	} else if this.Name != nil {
-		return fmt3.Errorf("this.Name == nil && that.Name != nil")
+		return fmt.Errorf("this.Name == nil && that.Name != nil")
 	} else if that1.Name != nil {
-		return fmt3.Errorf("Name this(%v) Not Equal that(%v)", this.Name, that1.Name)
+		return fmt.Errorf("Name this(%v) Not Equal that(%v)", this.Name, that1.Name)
 	}
 	if this.Tsize != nil && that1.Tsize != nil {
 		if *this.Tsize != *that1.Tsize {
-			return fmt3.Errorf("Tsize this(%v) Not Equal that(%v)", *this.Tsize, *that1.Tsize)
+			return fmt.Errorf("Tsize this(%v) Not Equal that(%v)", *this.Tsize, *that1.Tsize)
 		}
 	} else if this.Tsize != nil {
-		return fmt3.Errorf("this.Tsize == nil && that.Tsize != nil")
+		return fmt.Errorf("this.Tsize == nil && that.Tsize != nil")
 	} else if that1.Tsize != nil {
-		return fmt3.Errorf("Tsize this(%v) Not Equal that(%v)", this.Tsize, that1.Tsize)
+		return fmt.Errorf("Tsize this(%v) Not Equal that(%v)", this.Tsize, that1.Tsize)
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt3.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -732,34 +732,34 @@ func (this *PBNode) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt3.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*PBNode)
 	if !ok {
-		return fmt3.Errorf("that is not of type *PBNode")
+		return fmt.Errorf("that is not of type *PBNode")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt3.Errorf("that is type *PBNode but is nil && this != nil")
+		return fmt.Errorf("that is type *PBNode but is nil && this != nil")
 	} else if this == nil {
-		return fmt3.Errorf("that is type *PBNodebut is not nil && this == nil")
+		return fmt.Errorf("that is type *PBNodebut is not nil && this == nil")
 	}
 	if len(this.Links) != len(that1.Links) {
-		return fmt3.Errorf("Links this(%v) Not Equal that(%v)", len(this.Links), len(that1.Links))
+		return fmt.Errorf("Links this(%v) Not Equal that(%v)", len(this.Links), len(that1.Links))
 	}
 	for i := range this.Links {
 		if !this.Links[i].Equal(that1.Links[i]) {
-			return fmt3.Errorf("Links this[%v](%v) Not Equal that[%v](%v)", i, this.Links[i], i, that1.Links[i])
+			return fmt.Errorf("Links this[%v](%v) Not Equal that[%v](%v)", i, this.Links[i], i, that1.Links[i])
 		}
 	}
 	if !bytes.Equal(this.Data, that1.Data) {
-		return fmt3.Errorf("Data this(%v) Not Equal that(%v)", this.Data, that1.Data)
+		return fmt.Errorf("Data this(%v) Not Equal that(%v)", this.Data, that1.Data)
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt3.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }

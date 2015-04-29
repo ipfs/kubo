@@ -2,9 +2,20 @@ package homedir
 
 import (
 	"fmt"
+	"os"
 	"os/user"
 	"testing"
 )
+
+func patchEnv(key, value string) func() {
+	bck := os.Getenv(key)
+	deferFunc := func() {
+		os.Setenv(key, bck)
+	}
+
+	os.Setenv(key, value)
+	return deferFunc
+}
 
 func TestDir(t *testing.T) {
 	u, err := user.Current()
@@ -44,7 +55,7 @@ func TestExpand(t *testing.T) {
 			fmt.Sprintf("%s/foo", u.HomeDir),
 			false,
 		},
-		
+
 		{
 			"",
 			"",
@@ -73,5 +84,15 @@ func TestExpand(t *testing.T) {
 		if actual != tc.Output {
 			t.Fatalf("Input: %#v\n\nOutput: %#v", tc.Input, actual)
 		}
+	}
+
+	defer patchEnv("HOME", "/custom/path/")()
+	expected := "/custom/path/foo/bar"
+	actual, err := Expand("~/foo/bar")
+
+	if err != nil {
+		t.Errorf("No error is expected, got: %v", err)
+	} else if actual != "/custom/path/foo/bar" {
+		t.Errorf("Expected: %v; actual: %v", expected, actual)
 	}
 }

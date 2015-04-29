@@ -27,7 +27,8 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/util"
 )
 
-type DB struct { // DB is a LevelDB database.
+type DB struct // DB is a LevelDB database.
+{
 	// Need 64-bit alignment.
 	seq uint64
 

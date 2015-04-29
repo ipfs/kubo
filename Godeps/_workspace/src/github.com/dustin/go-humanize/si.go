@@ -54,6 +54,8 @@ func init() {
 // and returns the prefix along with the value adjusted to be within
 // that prefix.
 //
+// See also: SI, ParseSI.
+//
 // e.g. ComputeSI(2.2345e-12) -> (2.2345, "p")
 func ComputeSI(input float64) (float64, string) {
 	if input == 0 {
@@ -79,6 +81,8 @@ func ComputeSI(input float64) (float64, string) {
 //
 // SI uses Ftoa to format float value, removing trailing zeros.
 //
+// See also: ComputeSI, ParseSI.
+//
 // e.g. SI(1000000, B) -> 1MB
 // e.g. SI(2.2345e-12, "F") -> 2.2345pF
 func SI(input float64, unit string) string {
@@ -89,6 +93,8 @@ func SI(input float64, unit string) string {
 var errInvalid = errors.New("invalid input")
 
 // ParseSI parses an SI string back into the number and unit.
+//
+// See also: SI, ComputeSI.
 //
 // e.g. ParseSI(2.2345pF) -> (2.2345e-12, "F", nil)
 func ParseSI(input string) (float64, string, error) {

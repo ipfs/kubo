@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/core"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
@@ -21,7 +21,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 	// create network
 	mn, err := mocknet.FullMeshLinked(ctx, numPeers)
 	if err != nil {
-		t.Fatal(errors.Wrap(err))
+		t.Fatal(err)
 	}
 
 	peers := mn.Peers()

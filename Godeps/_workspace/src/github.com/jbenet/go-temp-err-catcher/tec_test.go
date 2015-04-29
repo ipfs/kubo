@@ -76,7 +76,7 @@ func TestDoubles(t *testing.T) {
 
 	testDiff := func(low, hi time.Duration) {
 		d := diff()
-		grace := time.Duration(time.Microsecond)
+		grace := time.Duration(50 * time.Microsecond)
 		if (d + grace) < low {
 			t.Error("time difference is smaller than", low, d)
 		}
@@ -106,7 +106,7 @@ func TestDifferentStart(t *testing.T) {
 
 	testDiff := func(low, hi time.Duration) {
 		d := diff()
-		grace := time.Duration(time.Microsecond)
+		grace := time.Duration(50 * time.Microsecond)
 		if (d + grace) < low {
 			t.Error("time difference is smaller than", low, d)
 		}

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
-	"os"
 	"fmt"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"io"
-	"time"
-	"strings"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func main() {

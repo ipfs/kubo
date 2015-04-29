@@ -2,18 +2,19 @@ package integrationtest
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"math"
 	"testing"
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	"github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	errors "github.com/ipfs/go-ipfs/util/debugerror"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
@@ -68,7 +69,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	// create network
 	mn, err := mocknet.FullMeshLinked(ctx, numPeers)
 	if err != nil {
-		return errors.Wrap(err)
+		return err
 	}
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency: conf.NetworkLatency,

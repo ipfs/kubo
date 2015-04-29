@@ -111,7 +111,11 @@ func log(format string, vals ...interface{}) {
 // Listen listens and accepts one incoming uTP connection on a given port,
 // and pipes all incoming data to os.Stdout.
 func Listen(localAddr string) error {
-	l, err := utp.Listen("utp", localAddr)
+	laddr, err := utp.ResolveAddr("utp", localAddr)
+	if err != nil {
+		return fmt.Errorf("failed to resolve address %s", localAddr)
+	}
+	l, err := utp.Listen("utp", laddr)
 	if err != nil {
 		return err
 	}
@@ -138,7 +142,7 @@ func Dial(localAddr, remoteAddr string) error {
 	var laddr net.Addr
 	var err error
 	if localAddr != "" {
-		laddr, err = utp.ResolveUTPAddr("utp", localAddr)
+		laddr, err = utp.ResolveAddr("utp", localAddr)
 		if err != nil {
 			return fmt.Errorf("failed to resolve address %s", localAddr)
 		}

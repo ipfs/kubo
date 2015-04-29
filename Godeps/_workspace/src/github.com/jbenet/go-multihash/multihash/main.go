@@ -1,15 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"strings"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mhopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash/opts"
 )
 
 var usage = `usage: %s [options] [FILE]
@@ -20,20 +18,11 @@ Options:
 `
 
 // flags
-var encodings = []string{"raw", "hex", "base58", "base64"}
-var algorithms = []string{"sha1", "sha2-256", "sha2-512", "sha3"}
-var encoding string
-var algorithm string
-var algorithmCode int
-var length int
+var opts *mhopts.Options
 var checkRaw string
 var checkMh mh.Multihash
 var inputFilename string
 var quiet bool
-
-// joined names
-var algoStr string
-var encStr string
 
 func init() {
 	flag.Usage = func() {
@@ -41,70 +30,31 @@ func init() {
 		flag.PrintDefaults()
 	}
 
-	algoStr = "one of: " + strings.Join(algorithms, ", ")
-	flag.StringVar(&algorithm, "algorithm", "sha2-256", algoStr)
-	flag.StringVar(&algorithm, "a", "sha2-256", algoStr+" (shorthand)")
-
-	encStr = "one of: " + strings.Join(encodings, ", ")
-	flag.StringVar(&encoding, "encoding", "base58", encStr)
-	flag.StringVar(&encoding, "e", "base58", encStr+" (shorthand)")
+	opts = mhopts.SetupFlags(flag.CommandLine)
 
 	checkStr := "check checksum matches"
 	flag.StringVar(&checkRaw, "check", "", checkStr)
 	flag.StringVar(&checkRaw, "c", "", checkStr+" (shorthand)")
-
-	lengthStr := "checksums length in bits (truncate). -1 is default"
-	flag.IntVar(&length, "length", -1, lengthStr)
-	flag.IntVar(&length, "l", -1, lengthStr+" (shorthand)")
 
 	quietStr := "quiet output (no newline on checksum, no error text)"
 	flag.BoolVar(&quiet, "quiet", false, quietStr)
 	flag.BoolVar(&quiet, "q", false, quietStr+" (shorthand)")
 }
 
-func strIn(a string, set []string) bool {
-	for _, s := range set {
-		if s == a {
-			return true
-		}
-	}
-	return false
-}
-
-func parseFlags() error {
+func parseFlags(o *mhopts.Options) error {
 	flag.Parse()
-
-	if !strIn(algorithm, algorithms) {
-		return fmt.Errorf("algorithm '%s' not %s", algorithm, algoStr)
-	}
-	var found bool
-	algorithmCode, found = mh.Names[algorithm]
-	if !found {
-		return fmt.Errorf("algorithm '%s' not found (lib error, pls report).")
-	}
-
-	if !strIn(encoding, encodings) {
-		return fmt.Errorf("encoding '%s' not %s", encoding, encStr)
+	if err := o.ParseError(); err != nil {
+		return err
 	}
 
 	if checkRaw != "" {
 		var err error
-		checkMh, err = Decode(encoding, checkRaw)
+		checkMh, err = mhopts.Decode(o.Encoding, checkRaw)
 		if err != nil {
 			return fmt.Errorf("fail to decode check '%s': %s", checkRaw, err)
 		}
 	}
 
-	if length >= 0 {
-		if length%8 != 0 {
-			return fmt.Errorf("length must be multiple of 8")
-		}
-		length = length / 8
-
-		if length > mh.DefaultLengths[algorithmCode] {
-			length = mh.DefaultLengths[algorithmCode]
-		}
-	}
 	return nil
 }
 
@@ -127,42 +77,13 @@ func getInput() (io.ReadCloser, error) {
 		return f, nil
 	}
 }
-
-func check(h1 mh.Multihash, r io.Reader) error {
-	h2, err := hash(r)
+func printHash(o *mhopts.Options, r io.Reader) error {
+	h, err := o.Multihash(r)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(h1, h2) {
-		if quiet {
-			os.Exit(1)
-		}
-		return fmt.Errorf("computed checksum did not match (-q for no output)")
-	}
-
-	if !quiet {
-		fmt.Println("OK checksums match (-q for no output)")
-	}
-	return nil
-}
-
-func hash(r io.Reader) (mh.Multihash, error) {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return mh.Sum(b, algorithmCode, length)
-}
-
-func printHash(r io.Reader) error {
-	h, err := hash(r)
-	if err != nil {
-		return err
-	}
-
-	s, err := Encode(encoding, h)
+	s, err := mhopts.Encode(o.Encoding, h)
 	if err != nil {
 		return err
 	}
@@ -182,17 +103,20 @@ func main() {
 		}
 	}
 
-	err := parseFlags()
+	err := parseFlags(opts)
 	checkErr(err)
 
 	inp, err := getInput()
 	checkErr(err)
 
 	if checkMh != nil {
-		err = check(checkMh, inp)
+		err = opts.Check(inp, checkMh)
 		checkErr(err)
+		if !quiet {
+			fmt.Println("OK checksums match (-q for no output)")
+		}
 	} else {
-		err = printHash(inp)
+		err = printHash(opts, inp)
 		checkErr(err)
 	}
 	inp.Close()
