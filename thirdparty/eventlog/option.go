@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/gopkg.in/cryptix/lumberjack.v2"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
 
 // init sets up sane defaults
