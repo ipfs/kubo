@@ -1,6 +1,7 @@
 package eventlog
 
 import (
+	"bufio"
 	"io"
 	"os"
 
@@ -53,12 +54,12 @@ func Output(w io.Writer) Option {
 func OutputRotatingLogFile(config LogRotatorConfig) Option {
 	return func() {
 		logrus.SetOutput(
-			&lumberjack.Logger{
+			bufio.NewWriter(&lumberjack.Logger{
 				Filename:   config.Filename,
 				MaxSize:    int(config.MaxSizeMB),
 				MaxBackups: int(config.MaxBackups),
 				MaxAge:     int(config.MaxAgeDays),
-			})
+			}))
 	}
 }
 
