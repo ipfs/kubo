@@ -219,6 +219,15 @@ func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 		return errors.New("bitswap is closed")
 	default:
 	}
+	has, err := bs.blockstore.Has(blk.Key())
+	if err != nil {
+		return err
+	}
+
+	if has {
+		log.Error(bs.self, "Dup Block! ", blk.Key())
+	}
+
 	if err := bs.blockstore.Put(blk); err != nil {
 		return err
 	}

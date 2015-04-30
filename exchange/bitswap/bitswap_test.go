@@ -69,9 +69,6 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	hasBlock := g.Next()
 	defer hasBlock.Exchange.Close()
 
-	if err := hasBlock.Blockstore().Put(block); err != nil {
-		t.Fatal(err)
-	}
 	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +133,6 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	var blkeys []u.Key
 	first := instances[0]
 	for _, b := range blocks {
-		first.Blockstore().Put(b) // TODO remove. don't need to do this. bitswap owns block
 		blkeys = append(blkeys, b.Key())
 		first.Exchange.HasBlock(context.Background(), b)
 	}
@@ -144,7 +140,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	t.Log("Distribute!")
 
 	wg := sync.WaitGroup{}
-	for _, inst := range instances {
+	for _, inst := range instances[1:] {
 		wg.Add(1)
 		go func(inst Instance) {
 			defer wg.Done()
