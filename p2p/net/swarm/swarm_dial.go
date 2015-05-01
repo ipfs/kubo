@@ -237,7 +237,8 @@ func (s *Swarm) gatedDialAttempt(ctx context.Context, p peer.ID) (*Conn, error) 
 			log.Event(ctx, "swarmDialBackoffAdd", logdial)
 			s.backf.AddBackoff(p) // let others know to backoff
 
-			return nil, ErrDialFailed // ok, we failed. try again. (if loop is done, our error is output)
+			// ok, we failed. try again. (if loop is done, our error is output)
+			return nil, fmt.Errorf("dial attempt failed: %s", err)
 		}
 		log.Event(ctx, "swarmDialBackoffClear", logdial)
 		s.backf.Clear(p) // okay, no longer need to backoff
@@ -416,7 +417,7 @@ func (s *Swarm) dialAddrs(ctx context.Context, d *conn.Dialer, p peer.ID, remote
 	for i := 0; i < len(remoteAddrs); i++ {
 		select {
 		case exitErr = <-errs: //
-			log.Debug(exitErr)
+			log.Debug("dial error: ", exitErr)
 		case connC := <-conns:
 			// take the first + return asap
 			close(foundConn)
