@@ -11,12 +11,17 @@
       <string>ipfs</string>
       <string>daemon</string>
     </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>IPFS_PATH</key>
+      <string>{{IPFS_PATH}}</string>
+    </dict>
     <key>RunAtLoad</key>
     <true/>
     <key>StandardErrorPath</key>
-    <string>/usr/local/var/log/ipfs.err</string>
+    <string>{{IPFS_PATH}}/logs/stderr.log</string>
     <key>StandardOutPath</key>
-    <string>/usr/local/var/log/ipfs.log</string>
+    <string>{{IPFS_PATH}}/logs/stdout.log</string>
   </dict>
 </plist>
 
