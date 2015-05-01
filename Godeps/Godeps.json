@@ -263,14 +263,14 @@
 			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
 		},
 		{
-			"ImportPath": "gopkg.in/cryptix/lumberjack.v2",
-			"Comment": "v1.0-13-gb9ca6a4",
-			"Rev": "b9ca6a494a971c67b412b38c88ccdbc096d1c9af"
-		},
-		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
 			"Comment": "v1.2.0",
 			"Rev": "96c060f6a6b7e0d6f75fddd10efeaca3e5d1bcb0"
+		},
+		{
+			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
+			"Comment": "v1.0-12-gd28785c",
+			"Rev": "d28785c2f27cd682d872df46ccd8232843629f54"
 		},
 		{
 			"ImportPath": "gopkg.in/tomb.v1",
