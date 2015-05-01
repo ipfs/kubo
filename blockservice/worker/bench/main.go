@@ -1,3 +1,12 @@
+/*
+Benchmark github.com/ipfs/go-ipfs/blockservice/worker.
+
+Loop over a range of workers and buffer sizes and measure the time it
+per block-transfer operation for each value.  Run with:
+
+  $ go run "${GOPATH}/src/github.com/ipfs/go-ipfs/blockservice/worker/bench/main.go"
+*/
+
 package main
 
 import (
