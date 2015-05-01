@@ -1,5 +1,9 @@
-// package core implements the IpfsNode object and methods for constructing
-// and properly setting it up.
+/*
+Package core implements the IpfsNode object and related methods.
+
+Packages underneath core/ provide a (relatively) stable, low-level API
+to carry out most IPFS-related tasks.
+*/
 package core
 
 import (
