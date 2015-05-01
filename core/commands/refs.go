@@ -85,7 +85,7 @@ Note: list all refs recursively with -r.
 			return
 		}
 
-		objs, err := objectsForPaths(n, req.Arguments())
+		objs, err := objectsForPaths(ctx, n, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -161,10 +161,10 @@ Displays the hashes of all local objects.
 	},
 }
 
-func objectsForPaths(n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
+func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]*dag.Node, error) {
 	objects := make([]*dag.Node, len(paths))
 	for i, p := range paths {
-		o, err := core.Resolve(n, path.Path(p))
+		o, err := core.Resolve(ctx, n, path.Path(p))
 		if err != nil {
 			return nil, err
 		}

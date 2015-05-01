@@ -56,7 +56,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	nd, err := s.Ipfs.Resolver.ResolvePath(path.Path(name))
+	nd, err := s.Ipfs.Resolver.ResolvePath(ctx, path.Path(name))
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
@@ -124,7 +124,7 @@ func (s *Node) Attr() fuse.Attr {
 // Lookup performs a lookup under this node.
 func (s *Node) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	log.Debugf("Lookup '%s'", name)
-	nodes, err := s.Ipfs.Resolver.ResolveLinks(s.Nd, []string{name})
+	nodes, err := s.Ipfs.Resolver.ResolveLinks(ctx, s.Nd, []string{name})
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT

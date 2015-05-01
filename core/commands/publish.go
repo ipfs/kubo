@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -89,7 +91,8 @@ Publish an <ipfs-path> to another public key (not implemented):
 		}
 
 		// TODO n.Keychain.Get(name).PrivKey
-		output, err := publish(n, n.PrivateKey, p)
+		// TODO(cryptix): is req.Context().Context a child of n.Context()?
+		output, err := publish(req.Context().Context, n, n.PrivateKey, p)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -106,14 +109,14 @@ Publish an <ipfs-path> to another public key (not implemented):
 	Type: IpnsEntry{},
 }
 
-func publish(n *core.IpfsNode, k crypto.PrivKey, ref path.Path) (*IpnsEntry, error) {
+func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.Path) (*IpnsEntry, error) {
 	// First, verify the path exists
-	_, err := core.Resolve(n, ref)
+	_, err := core.Resolve(ctx, n, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	err = n.Namesys.Publish(n.Context(), k, ref)
+	err = n.Namesys.Publish(ctx, k, ref)
 	if err != nil {
 		return nil, err
 	}

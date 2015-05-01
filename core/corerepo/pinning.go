@@ -26,10 +26,12 @@ import (
 )
 
 func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
+	// TODO(cryptix): do we want a ctx as first param for (Un)Pin() as well, just like core.Resolve?
+	ctx := n.Context()
 
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, fpath := range paths {
-		dagnode, err := core.Resolve(n, path.Path(fpath))
+		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
@@ -43,7 +45,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 			return nil, err
 		}
 
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 		err = n.Pinning.Pin(ctx, dagnode, recursive)
 		if err != nil {
@@ -61,10 +63,12 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 }
 
 func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
+	// TODO(cryptix): do we want a ctx as first param for (Un)Pin() as well, just like core.Resolve?
+	ctx := n.Context()
 
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, fpath := range paths {
-		dagnode, err := core.Resolve(n, path.Path(fpath))
+		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +79,7 @@ func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 	for _, dagnode := range dagnodes {
 		k, _ := dagnode.Key()
 
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 		err := n.Pinning.Unpin(ctx, k, recursive)
 		if err != nil {
