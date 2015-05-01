@@ -29,13 +29,6 @@ const (
 	IpnsPathPrefix = "/ipns/"
 )
 
-type gateway interface {
-	ResolvePath(string) (*dag.Node, error)
-	NewDagFromReader(io.Reader) (*dag.Node, error)
-	AddNodeToDAG(nd *dag.Node) (u.Key, error)
-	NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error)
-}
-
 // shortcut for templating
 type webHandler map[string]interface{}
 
