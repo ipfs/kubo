@@ -1,3 +1,7 @@
+/*
+Package corehttp provides utilities for the webui, gateways, and other
+high-level HTTP interfaces to IPFS.
+*/
 package corehttp
 
 import (

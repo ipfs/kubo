@@ -1,3 +1,16 @@
+/*
+Package corerepo provides pinning and garbage collection for local
+IPFS block services.
+
+IPFS nodes will keep local copies of any object that have either been
+added or requested locally.  Not all of these objects are worth
+preserving forever though, so the node adminstrator can pin objects
+they want to keep and unpin objects that they don't care about.
+
+Garbage collection sweeps iterate through the local block store
+removing objects that aren't pinned, which frees storage space for new
+objects.
+*/
 package corerepo
 
 import (

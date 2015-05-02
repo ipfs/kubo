@@ -1,3 +1,11 @@
+/*
+Package commands provides an API for defining and parsing commands.
+
+Supporting nested commands, options, arguments, etc.  The commands
+package also supports a collection of marshallers for presenting
+output to the user, including text, JSON, and XML marshallers.
+*/
+
 package commands
 
 import (
