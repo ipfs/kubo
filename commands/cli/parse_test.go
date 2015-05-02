@@ -239,19 +239,23 @@ func TestArgumentParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, _, _, err = Parse([]string{"stdinenabled", "value1", "value2"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-		t.Fatal(err)
+	test := func(cmd words, f *os.File, res words) {
+		if f != nil {
+			if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+				t.Fatal(err)
+			}
+		}
+		req, _, _, err := Parse(cmd, f, rootCmd)
+		if err != nil {
+			t.Error("Command '%v' should have passed parsing", cmd)
+		}
+		if !sameWords(req.Arguments(), res) {
+			t.Errorf("Arguments parsed from '%v' are not '%v'", cmd, res)
+		}
 	}
-	_, _, _, err = Parse([]string{"stdinenabled"}, fstdin, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-		t.Fatal(err)
-	}
-	_, _, _, err = Parse([]string{"stdinenabled", "value1"}, fstdin, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-		t.Fatal(err)
-	}
+
+	test([]string{"stdinenabled", "value1", "value2"}, nil, []string{"value1", "value2"})
+	test([]string{"stdinenabled"}, fstdin, []string{"stdin1"})
+	test([]string{"stdinenabled", "value1"}, fstdin, []string{"stdin1", "value1"})
+	test([]string{"stdinenabled", "value1", "value2"}, fstdin, []string{"stdin1", "value1", "value2"})
 }
