@@ -11,6 +11,9 @@ type kvs map[string]interface{}
 type words []string
 
 func sameWords(a words, b words) bool {
+	if len(a) != len(b) {
+		return false
+	}
 	for i, w := range a {
 		if w != b[i] {
 			return false
@@ -29,6 +32,33 @@ func sameKVs(a kvs, b kvs) bool {
 		}
 	}
 	return true
+}
+
+func TestSameWords(t *testing.T) {
+	a := []string{"v1", "v2"}
+	b := []string{"v1", "v2", "v3"}
+	c := []string{"v2", "v3"}
+	d := []string{"v2"}
+	e := []string{"v2", "v3"}
+	f := []string{"v2", "v1"}
+
+	test := func(a words, b words, v bool) {
+		if sameWords(a, b) != v {
+			t.Errorf("sameWords('%v', '%v') != %v", a, b, v)
+		}
+	}
+
+	test(a, b, false)
+	test(a, a, true)
+	test(a, c, false)
+	test(b, c, false)
+	test(c, d, false)
+	test(c, e, true)
+	test(b, e, false)
+	test(a, b, false)
+	test(a, f, false)
+	test(e, f, false)
+	test(f, f, true)
 }
 
 func TestOptionParsing(t *testing.T) {
