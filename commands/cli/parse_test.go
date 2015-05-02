@@ -3,6 +3,9 @@ package cli
 import (
 	"strings"
 	"testing"
+	"io"
+	"io/ioutil"
+	"os"
 
 	"github.com/ipfs/go-ipfs/commands"
 )
@@ -147,6 +150,11 @@ func TestArgumentParsing(t *testing.T) {
 					commands.StringArg("b", true, false, "another arg"),
 				},
 			},
+			"stdinenabled": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, true, "some arg").EnableStdin(),
+				},
+			},
 		},
 	}
 
@@ -218,5 +226,32 @@ func TestArgumentParsing(t *testing.T) {
 	_, _, _, err = Parse([]string{"reversedoptional", "value1", "value2", "value3"}, nil, rootCmd)
 	if err == nil {
 		t.Error("Should have failed (provided too many args, only takes 1)")
+	}
+
+	// Use a temp file to simulate stdin
+	fstdin, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fstdin.Name())
+
+	if _, err := io.WriteString(fstdin, "stdin1"); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, _, err = Parse([]string{"stdinenabled", "value1", "value2"}, nil, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+		t.Fatal(err)
+	}
+	_, _, _, err = Parse([]string{"stdinenabled"}, fstdin, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+		t.Fatal(err)
+	}
+	_, _, _, err = Parse([]string{"stdinenabled", "value1"}, fstdin, rootCmd)
+	if err != nil {
+		t.Error("Should have passed")
+		t.Fatal(err)
 	}
 }
