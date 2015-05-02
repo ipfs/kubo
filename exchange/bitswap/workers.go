@@ -182,10 +182,11 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 	defer cancel()
 
 	broadcastSignal := time.After(rebroadcastDelay.Get())
+	tick := time.Tick(10 * time.Second)
 
 	for {
 		select {
-		case <-time.Tick(10 * time.Second):
+		case <-tick:
 			n := bs.wantlist.Len()
 			if n > 0 {
 				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
