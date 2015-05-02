@@ -7,6 +7,30 @@ import (
 	"github.com/ipfs/go-ipfs/commands"
 )
 
+type kvs map[string]interface{}
+type words []string
+
+func sameWords(a words, b words) bool {
+	for i, w := range a {
+		if w != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func sameKVs(a kvs, b kvs) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if v != b[k] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestOptionParsing(t *testing.T) {
 	subCmd := &commands.Command{}
 	cmd := &commands.Command{
@@ -17,30 +41,6 @@ func TestOptionParsing(t *testing.T) {
 		Subcommands: map[string]*commands.Command{
 			"test": subCmd,
 		},
-	}
-
-	type kvs map[string]interface{}
-	type words []string
-
-	sameWords := func(a words, b words) bool {
-		for i, w := range a {
-			if w != b[i] {
-				return false
-			}
-		}
-		return true
-	}
-
-	sameKVs := func(a kvs, b kvs) bool {
-		if len(a) != len(b) {
-			return false
-		}
-		for k, v := range a {
-			if v != b[k] {
-				return false
-			}
-		}
-		return true
 	}
 
 	testHelper := func(args string, expectedOpts kvs, expectedWords words, expectErr bool) {
