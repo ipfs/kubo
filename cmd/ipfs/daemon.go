@@ -1,7 +1,11 @@
 package main
 
 import (
+	_ "expvar"
 	"fmt"
+	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 
@@ -74,6 +78,17 @@ the port as you would other services or database (firewall, authenticated proxy,
 	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
+}
+
+// defaultMux tells mux to serve path using the default muxer. This is
+// mostly useful to hook up things that register in the default muxer,
+// and don't provide a convenient http.Handler entry point, such as
+// expvar and http/pprof.
+func defaultMux(path string) func(node *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+	return func(node *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+		mux.Handle(path, http.DefaultServeMux)
+		return mux, nil
+	}
 }
 
 func daemonFunc(req cmds.Request, res cmds.Response) {
@@ -281,6 +296,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		corehttp.WebUIOption,
 		gateway.ServeOption(),
 		corehttp.VersionOption(),
+		defaultMux("/debug/vars"),
+		defaultMux("/debug/pprof/"),
 	}
 
 	if rootRedirect != nil {

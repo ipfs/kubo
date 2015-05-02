@@ -13,6 +13,7 @@ import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	levelds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	ldbopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	repo "github.com/ipfs/go-ipfs/repo"
@@ -93,7 +94,9 @@ type FSRepo struct {
 	config   *config.Config
 	ds       ds.ThreadSafeDatastore
 	// tracked separately for use in Close; do not use directly.
-	leveldbDS levelds.Datastore
+	leveldbDS      levelds.Datastore
+	metricsBlocks  measure.DatastoreCloser
+	metricsLevelDB measure.DatastoreCloser
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -329,9 +332,27 @@ func (r *FSRepo) openDatastore() error {
 		return errors.New("unable to open flatfs datastore")
 	}
 
+	// Add our PeerID to metrics paths to keep them unique
+	//
+	// As some tests just pass a zero-value Config to fsrepo.Init,
+	// cope with missing PeerID.
+	id := r.config.Identity.PeerID
+	if id == "" {
+		// the tests pass in a zero Config; cope with it
+		id = fmt.Sprintf("uninitialized_%p", r)
+	}
+	prefix := "fsrepo." + id + ".datastore."
+	r.metricsBlocks = measure.New(prefix+"blocks", blocksDS)
+	r.metricsLevelDB = measure.New(prefix+"leveldb", r.leveldbDS)
 	mountDS := mount.New([]mount.Mount{
-		{Prefix: ds.NewKey("/blocks"), Datastore: blocksDS},
-		{Prefix: ds.NewKey("/"), Datastore: r.leveldbDS},
+		{
+			Prefix:    ds.NewKey("/blocks"),
+			Datastore: r.metricsBlocks,
+		},
+		{
+			Prefix:    ds.NewKey("/"),
+			Datastore: r.metricsLevelDB,
+		},
 	})
 	// Make sure it's ok to claim the virtual datastore from mount as
 	// threadsafe. There's no clean way to make mount itself provide
@@ -365,6 +386,12 @@ func (r *FSRepo) Close() error {
 		return errors.New("repo is closed")
 	}
 
+	if err := r.metricsBlocks.Close(); err != nil {
+		return err
+	}
+	if err := r.metricsLevelDB.Close(); err != nil {
+		return err
+	}
 	if err := r.leveldbDS.Close(); err != nil {
 		return err
 	}
