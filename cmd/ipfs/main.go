@@ -453,14 +453,18 @@ func startProfiling() (func(), error) {
 		return nil, err
 	}
 	pprof.StartCPUProfile(ofi)
+	go func() {
+		for _ = range time.NewTicker(time.Second * 30).C {
+			err := writeHeapProfileToFile()
+			if err != nil {
+				log.Critical(err)
+			}
+		}
+	}()
 
 	stopProfiling := func() {
 		pprof.StopCPUProfile()
 		defer ofi.Close() // captured by the closure
-		err := writeHeapProfileToFile()
-		if err != nil {
-			log.Critical(err)
-		}
 	}
 	return stopProfiling, nil
 }
