@@ -11,7 +11,7 @@ test_description="Test ipfs repo operations"
 export IPTB_ROOT="`pwd`/.iptb"
 
 test_expect_success "set up an iptb cluster" '
-	iptb -n=4 init &&
+	iptb -n=4 -p=9000 init &&
 	iptb -wait start
 '
 
