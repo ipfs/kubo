@@ -229,14 +229,17 @@ func TestArgumentParsing(t *testing.T) {
 	}
 
 	// Use a temp file to simulate stdin
-	fstdin, err := ioutil.TempFile("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(fstdin.Name())
+	fileToSimulateStdin := func(t *testing.T, content string) (*os.File) {
+		fstdin, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(fstdin.Name())
 
-	if _, err := io.WriteString(fstdin, "stdin1"); err != nil {
-		t.Fatal(err)
+		if _, err := io.WriteString(fstdin, content); err != nil {
+			t.Fatal(err)
+		}
+		return fstdin
 	}
 
 	test := func(cmd words, f *os.File, res words) {
@@ -255,6 +258,9 @@ func TestArgumentParsing(t *testing.T) {
 	}
 
 	test([]string{"stdinenabled", "value1", "value2"}, nil, []string{"value1", "value2"})
+
+	fstdin := fileToSimulateStdin(t, "stdin1")
+
 	test([]string{"stdinenabled"}, fstdin, []string{"stdin1"})
 	test([]string{"stdinenabled", "value1"}, fstdin, []string{"stdin1", "value1"})
 	test([]string{"stdinenabled", "value1", "value2"}, fstdin, []string{"stdin1", "value1", "value2"})
