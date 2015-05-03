@@ -69,39 +69,8 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-func (i *gatewayHandler) resolveNamePath(ctx context.Context, p string) (string, error) {
-	p = gopath.Clean(p)
 
-	if strings.HasPrefix(p, IpnsPathPrefix) {
-		elements := strings.Split(p[len(IpnsPathPrefix):], "/")
-		hash := elements[0]
-		rp, err := i.node.Namesys.Resolve(ctx, hash)
-		if err != nil {
-			return "", err
-		}
-
-		elements = append(rp.Segments(), elements[1:]...)
-		p = gopath.Join(elements...)
-	}
-	if !strings.HasPrefix(p, IpfsPathPrefix) {
-		p = gopath.Join(IpfsPathPrefix, p)
-	}
-	return p, nil
-}
-
-func (i *gatewayHandler) ResolvePath(ctx context.Context, p string) (*dag.Node, string, error) {
-	p, err := i.resolveNamePath(ctx, p)
-	if err != nil {
-		return nil, "", err
-	}
-
-	node, err := i.node.Resolver.ResolvePath(ctx, path.Path(p))
-	if err != nil {
-		return nil, "", err
-	}
-	return node, p, err
-}
-
+// TODO(cryptix):  these four helper funcs shoudl also be available elsewhere, i think?
 func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
 	return importer.BuildDagFromReader(
 		r, i.node.DAG, i.node.Pinning.GetManual(), chunk.DefaultSplitter)
@@ -119,30 +88,23 @@ func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) 
 	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
-// TODO(btc): break this apart into separate handlers using a more expressive
-// muxer
+// TODO(btc): break this apart into separate handlers using a more expressive muxer
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if i.config.Writable && r.Method == "POST" {
-		i.postHandler(w, r)
-		return
+	if i.config.Writable {
+		switch r.Method {
+		case "POST":
+			i.postHandler(w, r)
+			return
+		case "PUT":
+			i.putHandler(w, r)
+			return
+		case "DELETE":
+			i.deleteHandler(w, r)
+			return
+		}
 	}
 
-	if i.config.Writable && r.Method == "PUT" {
-		i.putHandler(w, r)
-		return
-	}
-
-	if i.config.Writable && r.Method == "DELETE" {
-		i.deleteHandler(w, r)
-		return
-	}
-
-	if r.Method == "GET" {
-		i.getOrHeadHandler(w, r)
-		return
-	}
-
-	if r.Method == "HEAD" {
+	if r.Method == "GET" || r.Method == "HEAD" {
 		i.getOrHeadHandler(w, r)
 		return
 	}
@@ -156,7 +118,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		errmsg = errmsg + "bad request for " + r.URL.Path
 	}
 	w.Write([]byte(errmsg))
-	log.Debug(errmsg)
+	log.Error(errmsg) // TODO(cryptix): Why are we ignoring handler errors?
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
@@ -171,19 +133,19 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	nd, p, err := i.ResolvePath(ctx, urlPath)
+	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
 	if err != nil {
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
 		return
 	}
 
-	etag := gopath.Base(p)
+	etag := gopath.Base(urlPath)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	w.Header().Set("X-IPFS-Path", p)
+	w.Header().Set("X-IPFS-Path", urlPath)
 
 	// Suborigin header, sandboxes apps from each other in the browser (even
 	// though they are served from the same gateway domain). NOTE: This is not
@@ -232,7 +194,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			log.Debug("found index")
 			foundIndex = true
 			// return index page instead.
-			nd, _, err := i.ResolvePath(ctx, urlPath+"/index.html")
+			nd, err := core.Resolve(ctx, i.node, path.Path(urlPath+"/index.html"))
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -328,14 +290,20 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	ipfspath, err := i.resolveNamePath(ctx, urlPath)
+	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
 	if err != nil {
 		// FIXME HTTP error code
 		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
 		return
 	}
 
-	h, components, err := path.SplitAbsPath(path.Path(ipfspath))
+	k, err := ipfsNode.Key()
+	if err != nil {
+		webError(w, "Could not get key from resolved node", err, http.StatusInternalServerError)
+		return
+	}
+
+	h, components, err := path.SplitAbsPath(path.FromKey(k))
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
@@ -351,6 +319,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
+	// TODO(cryptix): could this be core.Resolve() too?
 	rootnd, err := i.node.Resolver.DAG.Get(tctx, u.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
@@ -400,14 +369,20 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	ipfspath, err := i.resolveNamePath(ctx, urlPath)
+	ipfsNode, err := core.Resolve(ctx, i.node, path.Path(urlPath))
 	if err != nil {
 		// FIXME HTTP error code
 		webError(w, "Could not resolve name", err, http.StatusInternalServerError)
 		return
 	}
 
-	h, components, err := path.SplitAbsPath(path.Path(ipfspath))
+	k, err := ipfsNode.Key()
+	if err != nil {
+		webError(w, "Could not get key from resolved node", err, http.StatusInternalServerError)
+		return
+	}
+
+	h, components, err := path.SplitAbsPath(path.FromKey(k))
 	if err != nil {
 		webError(w, "Could not split path", err, http.StatusInternalServerError)
 		return
@@ -427,6 +402,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO(cyrptix): assumes len(path_nodes) > 1 - not found is an error above?
 	err = path_nodes[len(path_nodes)-1].RemoveNodeLink(components[len(components)-1])
 	if err != nil {
 		webError(w, "Could not delete link", err, http.StatusBadRequest)
@@ -481,7 +457,7 @@ func webErrorWithCode(w http.ResponseWriter, message string, err error, code int
 func internalWebError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte(err.Error()))
-	log.Debug("%s", err)
+	log.Error("%s", err) // TODO(cryptix): Why are we ignoring handler errors?
 }
 
 // Directory listing template
