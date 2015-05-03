@@ -158,28 +158,37 @@ func TestArgumentParsing(t *testing.T) {
 		},
 	}
 
-	_, _, _, err := Parse([]string{"noarg"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
+	test := func(cmd words, f *os.File, res words) {
+		if f != nil {
+			if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+				t.Fatal(err)
+			}
+		}
+		req, _, _, err := Parse(cmd, f, rootCmd)
+		if err != nil {
+			t.Errorf("Command '%v' should have passed parsing", cmd)
+		}
+		if !sameWords(req.Arguments(), res) {
+			t.Errorf("Arguments parsed from '%v' are not '%v'", cmd, res)
+		}
 	}
-	_, _, _, err = Parse([]string{"noarg", "value!"}, nil, rootCmd)
+
+	test([]string{"noarg"}, nil, []string{})
+
+	_, _, _, err := Parse([]string{"noarg", "value!"}, nil, rootCmd)
 	if err == nil {
 		t.Error("Should have failed (provided an arg, but command didn't define any)")
 	}
 
-	_, _, _, err = Parse([]string{"onearg", "value!"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
+	test([]string{"onearg", "value!"}, nil, []string{"value!"})
+
 	_, _, _, err = Parse([]string{"onearg"}, nil, rootCmd)
 	if err == nil {
 		t.Error("Should have failed (didn't provide any args, arg is required)")
 	}
 
-	_, _, _, err = Parse([]string{"twoargs", "value1", "value2"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
+	test([]string{"twoargs", "value1", "value2"}, nil, []string{"value1", "value2"})
+
 	_, _, _, err = Parse([]string{"twoargs", "value!"}, nil, rootCmd)
 	if err == nil {
 		t.Error("Should have failed (only provided 1 arg, needs 2)")
@@ -189,36 +198,20 @@ func TestArgumentParsing(t *testing.T) {
 		t.Error("Should have failed (didn't provide any args, 2 required)")
 	}
 
-	_, _, _, err = Parse([]string{"variadic", "value!"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
-	_, _, _, err = Parse([]string{"variadic", "value1", "value2", "value3"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
+	test([]string{"variadic", "value!"}, nil, []string{"value!"})
+	test([]string{"variadic", "value1", "value2", "value3"}, nil, []string{"value1", "value2", "value3"})
+
 	_, _, _, err = Parse([]string{"variadic"}, nil, rootCmd)
 	if err == nil {
 		t.Error("Should have failed (didn't provide any args, 1 required)")
 	}
 
-	_, _, _, err = Parse([]string{"optional", "value!"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
-	_, _, _, err = Parse([]string{"optional"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
+	test([]string{"optional", "value!"}, nil, []string{"value!"})
+	test([]string{"optional"}, nil, []string{})
 
-	_, _, _, err = Parse([]string{"reversedoptional", "value1", "value2"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
-	_, _, _, err = Parse([]string{"reversedoptional", "value!"}, nil, rootCmd)
-	if err != nil {
-		t.Error("Should have passed")
-	}
+	test([]string{"reversedoptional", "value1", "value2"}, nil, []string{"value1", "value2"})
+	test([]string{"reversedoptional", "value!"}, nil, []string{"value!"})
+
 	_, _, _, err = Parse([]string{"reversedoptional"}, nil, rootCmd)
 	if err == nil {
 		t.Error("Should have failed (didn't provide any args, 1 required)")
@@ -240,21 +233,6 @@ func TestArgumentParsing(t *testing.T) {
 			t.Fatal(err)
 		}
 		return fstdin
-	}
-
-	test := func(cmd words, f *os.File, res words) {
-		if f != nil {
-			if _, err := f.Seek(0, os.SEEK_SET); err != nil {
-				t.Fatal(err)
-			}
-		}
-		req, _, _, err := Parse(cmd, f, rootCmd)
-		if err != nil {
-			t.Error("Command '%v' should have passed parsing", cmd)
-		}
-		if !sameWords(req.Arguments(), res) {
-			t.Errorf("Arguments parsed from '%v' are not '%v'", cmd, res)
-		}
 	}
 
 	test([]string{"stdinenabled", "value1", "value2"}, nil, []string{"value1", "value2"})
