@@ -67,6 +67,7 @@ type varintReader struct {
 	next int
 	pool *mpool.Pool
 	lock sync.Locker
+	max  int // the maximal message size (in bytes) this reader handles
 }
 
 // NewVarintReader wraps an io.Reader with a varint msgio framed reader.
@@ -92,6 +93,7 @@ func NewVarintReaderWithPool(r io.Reader, p *mpool.Pool) ReadCloser {
 		next: -1,
 		pool: p,
 		lock: new(sync.Mutex),
+		max:  defaultMaxSize,
 	}
 }
 
@@ -139,6 +141,10 @@ func (s *varintReader) ReadMsg() ([]byte, error) {
 	length, err := s.nextMsgLen()
 	if err != nil {
 		return nil, err
+	}
+
+	if length > s.max {
+		return nil, ErrMsgTooLarge
 	}
 
 	msgb := s.pool.Get(uint32(length))

@@ -2,6 +2,7 @@ package msgio
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 	"sync"
 
@@ -11,7 +12,13 @@ import (
 // NBO is NetworkByteOrder
 var NBO = binary.BigEndian
 
-const lengthSize = 4
+//  ErrMsgTooLarge is returned when the message length is exessive
+var ErrMsgTooLarge = errors.New("message too large")
+
+const (
+	lengthSize     = 4
+	defaultMaxSize = 8 * 1024 * 1024 // 8mb
+)
 
 // Writer is the msgio Writer interface. It writes len-framed messages.
 type Writer interface {
@@ -121,6 +128,7 @@ type reader struct {
 	next int
 	pool *mpool.Pool
 	lock sync.Locker
+	max  int // the maximal message size (in bytes) this reader handles
 }
 
 // NewReader wraps an io.Reader with a msgio framed reader. The msgio.Reader
@@ -143,6 +151,7 @@ func NewReaderWithPool(r io.Reader, p *mpool.Pool) ReadCloser {
 		next: -1,
 		pool: p,
 		lock: new(sync.Mutex),
+		max:  defaultMaxSize,
 	}
 }
 
@@ -189,6 +198,10 @@ func (s *reader) ReadMsg() ([]byte, error) {
 	length, err := s.nextMsgLen()
 	if err != nil {
 		return nil, err
+	}
+
+	if length > s.max {
+		return nil, ErrMsgTooLarge
 	}
 
 	msgb := s.pool.Get(uint32(length))
