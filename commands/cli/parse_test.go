@@ -173,38 +173,26 @@ func TestArgumentParsing(t *testing.T) {
 		}
 	}
 
-	test([]string{"noarg"}, nil, []string{})
-
-	_, _, _, err := Parse([]string{"noarg", "value!"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (provided an arg, but command didn't define any)")
+	testFail := func(cmd words, msg string) {
+		_, _, _, err := Parse(cmd, nil, rootCmd)
+		if err == nil {
+			t.Errorf("Should have failed: %v", msg)
+		}
 	}
+
+	test([]string{"noarg"}, nil, []string{})
+	testFail([]string{"noarg", "value!"}, "provided an arg, but command didn't define any")
 
 	test([]string{"onearg", "value!"}, nil, []string{"value!"})
-
-	_, _, _, err = Parse([]string{"onearg"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (didn't provide any args, arg is required)")
-	}
+	testFail([]string{"onearg"}, "didn't provide any args, arg is required")
 
 	test([]string{"twoargs", "value1", "value2"}, nil, []string{"value1", "value2"})
-
-	_, _, _, err = Parse([]string{"twoargs", "value!"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (only provided 1 arg, needs 2)")
-	}
-	_, _, _, err = Parse([]string{"twoargs"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (didn't provide any args, 2 required)")
-	}
+	testFail([]string{"twoargs", "value!"}, "only provided 1 arg, needs 2")
+	testFail([]string{"twoargs"}, "didn't provide any args, 2 required")
 
 	test([]string{"variadic", "value!"}, nil, []string{"value!"})
 	test([]string{"variadic", "value1", "value2", "value3"}, nil, []string{"value1", "value2", "value3"})
-
-	_, _, _, err = Parse([]string{"variadic"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (didn't provide any args, 1 required)")
-	}
+	testFail([]string{"variadic"}, "didn't provide any args, 1 required")
 
 	test([]string{"optional", "value!"}, nil, []string{"value!"})
 	test([]string{"optional"}, nil, []string{})
@@ -212,14 +200,8 @@ func TestArgumentParsing(t *testing.T) {
 	test([]string{"reversedoptional", "value1", "value2"}, nil, []string{"value1", "value2"})
 	test([]string{"reversedoptional", "value!"}, nil, []string{"value!"})
 
-	_, _, _, err = Parse([]string{"reversedoptional"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (didn't provide any args, 1 required)")
-	}
-	_, _, _, err = Parse([]string{"reversedoptional", "value1", "value2", "value3"}, nil, rootCmd)
-	if err == nil {
-		t.Error("Should have failed (provided too many args, only takes 1)")
-	}
+	testFail([]string{"reversedoptional"}, "didn't provide any args, 1 required")
+	testFail([]string{"reversedoptional", "value1", "value2", "value3"}, "provided too many args, only takes 1")
 
 	// Use a temp file to simulate stdin
 	fileToSimulateStdin := func(t *testing.T, content string) (*os.File) {
