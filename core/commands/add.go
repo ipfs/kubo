@@ -29,6 +29,7 @@ const progressReaderIncrement = 1024 * 256
 const (
 	progressOptionName = "progress"
 	wrapOptionName     = "wrap-with-directory"
+	hiddenOptionName   = "hidden"
 )
 
 type AddedObject struct {
@@ -57,6 +58,7 @@ remains to be implemented.
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 		cmds.BoolOption("t", "trickle", "Use trickle-dag format for dag generation"),
+		cmds.BoolOption(hiddenOptionName, "Include files that are hidden"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
@@ -90,6 +92,7 @@ remains to be implemented.
 
 		progress, _, _ := req.Option(progressOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
+		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
@@ -107,7 +110,7 @@ remains to be implemented.
 					return
 				}
 
-				rootnd, err := addFile(n, file, outChan, progress, wrap)
+				rootnd, err := addFile(n, file, outChan, progress, wrap, hidden)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -227,9 +230,12 @@ func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	return node, nil
 }
 
-func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool, hidden bool) (*dag.Node, error) {
 	if file.IsDirectory() {
-		return addDir(n, file, out, progress)
+		return addDir(n, file, out, progress, hidden)
+	} else if fileIsHidden := files.IsHidden(file); fileIsHidden && !hidden {
+		log.Infof("%s is a hidden file, skipping", file.FileName())
+		return nil, &hiddenFileError{file.FileName()}
 	}
 
 	// if the progress flag was specified, wrap the file so that we can send
@@ -263,41 +269,49 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 	return dagnode, nil
 }
 
-func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool) (*dag.Node, error) {
-	log.Infof("adding directory: %s", dir.FileName())
+func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool, hidden bool) (*dag.Node, error) {
 
 	tree := &dag.Node{Data: ft.FolderPBData()}
+	if dirIsHidden := files.IsHidden(dir); dirIsHidden && !hidden {
+		log.Infof("ignoring directory: %s", dir.FileName())
+	} else {
+		log.Infof("adding directory: %s", dir.FileName())
+		for {
+			file, err := dir.NextFile()
+			if err != nil && err != io.EOF {
+				return nil, err
+			}
+			if file == nil {
+				break
+			}
 
-	for {
-		file, err := dir.NextFile()
-		if err != nil && err != io.EOF {
-			return nil, err
-		}
-		if file == nil {
-			break
+			node, err := addFile(n, file, out, progress, false, hidden)
+			if _, ok := err.(*hiddenFileError); ok {
+				// hidden file error, set the node to nil for below
+				node = nil
+			} else if err != nil {
+				return nil, err
+			}
+
+			if node != nil {
+				_, name := path.Split(file.FileName())
+
+				err = tree.AddNodeLink(name, node)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 
-		node, err := addFile(n, file, out, progress, false)
+		err := outputDagnode(out, dir.FileName(), tree)
 		if err != nil {
 			return nil, err
 		}
 
-		_, name := path.Split(file.FileName())
-
-		err = tree.AddNodeLink(name, node)
+		_, err = n.DAG.Add(tree)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	err := outputDagnode(out, dir.FileName(), tree)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = n.DAG.Add(tree)
-	if err != nil {
-		return nil, err
 	}
 
 	return tree, nil
