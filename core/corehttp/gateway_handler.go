@@ -19,7 +19,6 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
-	ufs "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -71,12 +70,10 @@ func (i *gatewayHandler) loadTemplate() error {
 
 // TODO(cryptix):  find these helpers somewhere else
 func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
+	// TODO(cryptix): change and remove this helper once PR1136 is merged
+	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
 		r, i.node.DAG, i.node.Pinning.GetManual(), chunk.DefaultSplitter)
-}
-
-func newDagEmptyDir() *dag.Node {
-	return &dag.Node{Data: ufs.FolderPBData()}
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
@@ -243,7 +240,7 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
-	newnode := newDagEmptyDir()
+	newnode := uio.NewDirectory(i.node.DAG).GetNode()
 
 	key, err := i.node.DAG.Add(newnode)
 	if err != nil {
@@ -269,7 +266,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode *dag.Node
 	if pathext[len(pathext)-1] == '/' {
-		newnode = newDagEmptyDir()
+		newnode = uio.NewDirectory(i.node.DAG).GetNode()
 	} else {
 		newnode, err = i.newDagFromReader(r.Body)
 		if err != nil {
@@ -321,7 +318,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	if _, ok := err.(path.ErrNoLink); ok {
 		// Create empty directories, links will be made further down the code
 		for len(pathNodes) < len(components) {
-			pathNodes = append(pathNodes, newDagEmptyDir())
+			pathNodes = append(pathNodes, uio.NewDirectory(i.node.DAG).GetNode())
 		}
 	} else if err != nil {
 		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
