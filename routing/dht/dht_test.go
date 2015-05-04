@@ -3,8 +3,8 @@ package dht
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/rand"
-	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -75,6 +75,56 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	a.peerstore.AddAddrs(idB, addrB, peer.TempAddrTTL)
 	if err := a.Connect(ctx, idB); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func connectDHTS(t *testing.T, ctx context.Context, dhts []*IpfsDHT, start, end, target int) []peer.ID {
+	var ret []peer.ID
+	for a := start; a < end; a++ {
+		connect(t, ctx, dhts[a], dhts[target])
+		ret = append(ret, dhts[a].self)
+	}
+	return ret
+}
+
+// Connect dht to n nodes between min and max
+// Returns map of connected IDs per dht ID
+func connectDhtToRandomPeers(t *testing.T, ctx context.Context, min, max int, dhts []*IpfsDHT) map[peer.ID][]peer.ID {
+	ret := make(map[peer.ID][]peer.ID, len(dhts))
+	diff := max - min + 1
+	for i, node := range dhts {
+		conCount := rand.Intn(diff) + min
+		maxConnections := int(math.Min(float64(conCount), float64(len(dhts)-2)))
+		connectList := make(map[int]interface{})
+
+		//While not connected to as many as wanted
+		// and there are nodes left to connect to
+		//Pick node that's not self and not already linked
+		for a := 0; a < maxConnections; a++ {
+			nInd := i
+			connected := true
+			for nInd == i || connected {
+				nInd = rand.Intn(len(dhts))
+				_, connected = connectList[nInd]
+			}
+			connectList[nInd] = struct{}{}
+		}
+
+		//Collect ids and connect dhts
+		for k, _ := range connectList {
+			connect(t, ctx, node, dhts[k])
+			selfId := node.self
+			otherId := dhts[k].self
+			ret[selfId] = append(ret[node.self], otherId)
+		}
+	}
+	return ret
+}
+
+func closeDHTs(dhts []*IpfsDHT) {
+	for _, dht := range dhts {
+		dht.Close()
+		dht.host.Close()
 	}
 }
 
@@ -681,83 +731,112 @@ func TestFindPeer(t *testing.T) {
 }
 
 func TestFindPeersConnectedToPeer(t *testing.T) {
-	t.Skip("not quite correct (see note)")
-
 	if testing.Short() {
 		t.SkipNow()
 	}
+	minConnections := 5
+	macConnections := 10
+	nodeCount := 10
+	// Run multiple times with smaller count
+	// instead of once with large node count to get around max open files issue
+	// Topology is generated randomly
+	for a := 0; a < 2; a++ {
+		testFindPeersConnectedToPeerSingle(t, nodeCount, minConnections, macConnections)
+	}
+}
 
+func testFindPeersConnectedToPeerSingle(t *testing.T, nodeCount, min, max int) {
 	ctx := context.Background()
+	dhtCount := nodeCount
+	_, _, dhts := setupDHTS(ctx, dhtCount, t)
+	defer closeDHTs(dhts)
+	//Build dht lookup map
+	dhtMap := make(map[peer.ID]*IpfsDHT, len(dhts))
+	for _, dht := range dhts {
+		dhtMap[dht.self] = dht
+	}
+	// Connect nodes in random partial mesh
+	shouldFindMap := connectDhtToRandomPeers(t, ctx, min, max, dhts)
 
-	_, peers, dhts := setupDHTS(ctx, 4, t)
-	defer func() {
-		for i := 0; i < 4; i++ {
-			dhts[i].Close()
-			dhts[i].host.Close()
+	//For every dht, randomly select one known connection as src and slef as target
+	for _, dht := range dhts {
+		tgtId := dht.self
+		//Find src that is connected to this node
+		conInd := rand.Intn(len(shouldFindMap[tgtId]))
+		conId := shouldFindMap[tgtId][conInd]
+		srcDHT := dhtMap[conId]
+		srcId := srcDHT.self
+		shouldFind := shouldFindMap[tgtId]
+		//Filter src and target id from should find
+		var tmp []peer.ID
+		for _, a := range shouldFind {
+			if a == srcId || a == tgtId {
+				continue
+			}
+			tmp = append(tmp, a)
 		}
-	}()
+		shouldFind = tmp
 
-	// topology:
-	// 0-1, 1-2, 1-3, 2-3
-	connect(t, ctx, dhts[0], dhts[1])
-	connect(t, ctx, dhts[1], dhts[2])
-	connect(t, ctx, dhts[1], dhts[3])
-	connect(t, ctx, dhts[2], dhts[3])
+		testPeersConectedToTarget(t, ctx, srcDHT, shouldFind, tgtId)
+	}
+}
 
-	// fmt.Println("0 is", peers[0])
-	// fmt.Println("1 is", peers[1])
-	// fmt.Println("2 is", peers[2])
-	// fmt.Println("3 is", peers[3])
-
+func testPeersConectedToTarget(t *testing.T, ctx context.Context, srcDHT *IpfsDHT, shouldFind []peer.ID, tgtId peer.ID) {
+	srcId := srcDHT.self
+	//Make request
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	pchan, err := dhts[0].FindPeersConnectedToPeer(ctxT, peers[2])
+	pchan, err := srcDHT.FindPeersConnectedToPeer(ctxT, tgtId)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// shouldFind := []peer.ID{peers[1], peers[3]}
-	found := []peer.PeerInfo{}
-	for nextp := range pchan {
-		found = append(found, nextp)
+	testSame := func(srcId, targetId, foundId peer.ID) {
+		if foundId == srcId {
+			t.Errorf("should not contain id of requesting peer %s", foundId)
+		}
+		if foundId == targetId {
+			t.Errorf("should not contain id of target peer %s", foundId)
+		}
 	}
 
-	// fmt.Printf("querying 0 (%s) FindPeersConnectedToPeer 2 (%s)\n", peers[0], peers[2])
-	// fmt.Println("should find 1, 3", shouldFind)
-	// fmt.Println("found", found)
+	found := []peer.ID{}
+	for nextp := range pchan {
+		id := nextp.ID
+		found = append(found, id)
+		testSame(srcId, tgtId, id)
+	}
 
-	// testPeerListsMatch(t, shouldFind, found)
-
-	log.Warning("TestFindPeersConnectedToPeer is not quite correct")
 	if len(found) == 0 {
 		t.Fatal("didn't find any peers.")
 	}
+
+	matchErr := testPeerListsMatch(t, shouldFind, found)
+	if matchErr {
+		t.Logf("Src: %s target: %s", srcDHT.self, tgtId)
+		t.Log("Should find: ", shouldFind)
+		t.Log("Found: ", found)
+	}
 }
 
-func testPeerListsMatch(t *testing.T, p1, p2 []peer.ID) {
+func testPeerListsMatch(t *testing.T, shouldFind, found []peer.ID) bool {
 
-	if len(p1) != len(p2) {
-		t.Fatal("did not find as many peers as should have", p1, p2)
+	if len(found) < len(shouldFind) {
+		t.Errorf("size mismatch. expected >= %d found: %d", len(shouldFind), len(found))
+		return true
 	}
 
-	ids1 := make([]string, len(p1))
-	ids2 := make([]string, len(p2))
-
-	for i, p := range p1 {
-		ids1[i] = string(p)
+	ids2 := make(map[string]interface{})
+	for _, p := range found {
+		ids2[p.String()] = struct{}{}
 	}
 
-	for i, p := range p2 {
-		ids2[i] = string(p)
-	}
-
-	sort.Sort(sort.StringSlice(ids1))
-	sort.Sort(sort.StringSlice(ids2))
-
-	for i := range ids1 {
-		if ids1[i] != ids2[i] {
-			t.Fatal("Didnt find expected peer", ids1[i], ids2)
+	for _, id := range shouldFind {
+		if _, ok := ids2[id.String()]; !ok {
+			t.Errorf("did not find expected peer %s\n", id)
+			return true
 		}
 	}
+	return false
 }
 
 func TestConnectCollision(t *testing.T) {
