@@ -25,5 +25,5 @@ func IsHidden(f File) bool {
 	if e != nil {
 		return false
 	}
-	return attrs&syscall.FILE_ATTRIBUTE_HIDDEN != 0, nil
+	return attrs&syscall.FILE_ATTRIBUTE_HIDDEN != 0
 }
