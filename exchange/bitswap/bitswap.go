@@ -127,6 +127,9 @@ type Bitswap struct {
 	newBlocks chan *blocks.Block
 
 	provideKeys chan u.Key
+
+	blocksRecvd    int
+	dupBlocksRecvd int
 }
 
 type blockRequest struct {
@@ -218,14 +221,6 @@ func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	case <-bs.process.Closing():
 		return errors.New("bitswap is closed")
 	default:
-	}
-	has, err := bs.blockstore.Has(blk.Key())
-	if err != nil {
-		return err
-	}
-
-	if has {
-		log.Error(bs.self, "Dup Block! ", blk.Key())
 	}
 
 	if err := bs.blockstore.Put(blk); err != nil {
@@ -351,6 +346,10 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	// Should only track *useful* messages in ledger
 
 	for _, block := range incoming.Blocks() {
+		bs.blocksRecvd++
+		if has, err := bs.blockstore.Has(block.Key()); err == nil && has {
+			bs.dupBlocksRecvd++
+		}
 		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
 			log.Debug(err)

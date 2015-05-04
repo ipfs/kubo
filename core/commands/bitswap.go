@@ -101,6 +101,8 @@ var bitswapStatCmd = &cmds.Command{
 			buf := new(bytes.Buffer)
 			fmt.Fprintln(buf, "bitswap status")
 			fmt.Fprintf(buf, "\tprovides buffer: %d / %d\n", out.ProvideBufLen, bitswap.HasBlockBufferSize)
+			fmt.Fprintf(buf, "\tblocks received: %d\n", out.BlocksReceived)
+			fmt.Fprintf(buf, "\tdup blocks received: %d\n", out.DupBlksReceived)
 			fmt.Fprintf(buf, "\twantlist [%d keys]\n", len(out.Wantlist))
 			for _, k := range out.Wantlist {
 				fmt.Fprintf(buf, "\t\t%s\n", k.B58String())
