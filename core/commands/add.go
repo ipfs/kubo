@@ -332,6 +332,14 @@ func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
 	return nil
 }
 
+type hiddenFileError struct {
+	fileName string
+}
+
+func (e *hiddenFileError) Error() string {
+	return fmt.Sprintf("%s is a hidden file", e.fileName)
+}
+
 type progressReader struct {
 	file         files.File
 	out          chan interface{}
