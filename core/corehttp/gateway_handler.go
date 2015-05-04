@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	IpfsPathPrefix = "/ipfs/"
-	IpnsPathPrefix = "/ipns/"
+	ipfsPathPrefix = "/ipfs/"
+	ipnsPathPrefix = "/ipns/"
 )
 
 // shortcut for templating
@@ -69,23 +69,14 @@ func (i *gatewayHandler) loadTemplate() error {
 	return nil
 }
 
-
-// TODO(cryptix):  these four helper funcs shoudl also be available elsewhere, i think?
-func (i *gatewayHandler) NewDagFromReader(r io.Reader) (*dag.Node, error) {
+// TODO(cryptix):  find these helpers somewhere else
+func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 	return importer.BuildDagFromReader(
 		r, i.node.DAG, i.node.Pinning.GetManual(), chunk.DefaultSplitter)
 }
 
-func NewDagEmptyDir() *dag.Node {
+func newDagEmptyDir() *dag.Node {
 	return &dag.Node{Data: ufs.FolderPBData()}
-}
-
-func (i *gatewayHandler) AddNodeToDAG(nd *dag.Node) (u.Key, error) {
-	return i.node.DAG.Add(nd)
-}
-
-func (i *gatewayHandler) NewDagReader(nd *dag.Node) (uio.ReadSeekCloser, error) {
-	return uio.NewDagReader(i.node.Context(), nd, i.node.DAG)
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
@@ -117,8 +108,8 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		errmsg = errmsg + "bad request for " + r.URL.Path
 	}
-	w.Write([]byte(errmsg))
-	log.Error(errmsg) // TODO(cryptix): Why are we ignoring handler errors?
+	fmt.Fprint(w, errmsg)
+	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +144,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	pathRoot := strings.SplitN(urlPath, "/", 4)[2]
 	w.Header().Set("Suborigin", pathRoot)
 
-	dr, err := i.NewDagReader(nd)
+	dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
 	if err != nil && err != uio.ErrIsDir {
 		// not a directory and still an error
 		internalWebError(w, err)
@@ -165,7 +156,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// and only if it's /ipfs!
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
-	if strings.HasPrefix(urlPath, IpfsPathPrefix) {
+	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
 		w.Header().Set("Etag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=29030400")
 
@@ -199,7 +190,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				internalWebError(w, err)
 				return
 			}
-			dr, err := i.NewDagReader(nd)
+			dr, err := uio.NewDagReader(ctx, nd, i.node.DAG)
 			if err != nil {
 				internalWebError(w, err)
 				return
@@ -234,13 +225,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.NewDagFromReader(r.Body)
+	nd, err := i.newDagFromReader(r.Body)
 	if err != nil {
 		internalWebError(w, err)
 		return
 	}
 
-	k, err := i.AddNodeToDAG(nd)
+	k, err := i.node.DAG.Add(nd)
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -248,11 +239,11 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 
 	h := mh.Multihash(k).B58String()
 	w.Header().Set("IPFS-Hash", h)
-	http.Redirect(w, r, IpfsPathPrefix+h, http.StatusCreated)
+	http.Redirect(w, r, ipfsPathPrefix+h, http.StatusCreated)
 }
 
 func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
-	newnode := NewDagEmptyDir()
+	newnode := newDagEmptyDir()
 
 	key, err := i.node.DAG.Add(newnode)
 	if err != nil {
@@ -261,7 +252,7 @@ func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, IpfsPathPrefix+key.String()+"/", http.StatusCreated)
+	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/", http.StatusCreated)
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
@@ -271,16 +262,16 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 	pathext := urlPath[5:]
 	var err error
-	if urlPath == IpfsPathPrefix+"QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn/" {
+	if urlPath == ipfsPathPrefix+"QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn/" {
 		i.putEmptyDirHandler(w, r)
 		return
 	}
 
 	var newnode *dag.Node
 	if pathext[len(pathext)-1] == '/' {
-		newnode = NewDagEmptyDir()
+		newnode = newDagEmptyDir()
 	} else {
-		newnode, err = i.NewDagFromReader(r.Body)
+		newnode, err = i.newDagFromReader(r.Body)
 		if err != nil {
 			webError(w, "Could not create DAG from request", err, http.StatusInternalServerError)
 			return
@@ -311,9 +302,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	if len(components) < 1 {
 		err = fmt.Errorf("Cannot override existing object")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		log.Debug("%s", err)
+		webError(w, "http gateway", err, http.StatusBadRequest)
 		return
 	}
 
@@ -328,19 +317,19 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	// resolving path components into merkledag nodes. if a component does not
 	// resolve, create empty directories (which will be linked and populated below.)
-	path_nodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
+	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
 	if _, ok := err.(path.ErrNoLink); ok {
 		// Create empty directories, links will be made further down the code
-		for len(path_nodes) < len(components) {
-			path_nodes = append(path_nodes, NewDagEmptyDir())
+		for len(pathNodes) < len(components) {
+			pathNodes = append(pathNodes, newDagEmptyDir())
 		}
 	} else if err != nil {
 		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
 		return
 	}
 
-	for i := len(path_nodes) - 1; i >= 0; i-- {
-		newnode, err = path_nodes[i].UpdateNodeLink(components[i], newnode)
+	for i := len(pathNodes) - 1; i >= 0; i-- {
+		newnode, err = pathNodes[i].UpdateNodeLink(components[i], newnode)
 		if err != nil {
 			webError(w, "Could not update node links", err, http.StatusInternalServerError)
 			return
@@ -361,7 +350,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, IpfsPathPrefix+key.String()+"/"+strings.Join(components, "/"), http.StatusCreated)
+	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components, "/"), http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -396,22 +385,22 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path_nodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
+	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
 	if err != nil {
 		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
 		return
 	}
 
-	// TODO(cyrptix): assumes len(path_nodes) > 1 - not found is an error above?
-	err = path_nodes[len(path_nodes)-1].RemoveNodeLink(components[len(components)-1])
+	// TODO(cyrptix): assumes len(pathNodes) > 1 - not found is an error above?
+	err = pathNodes[len(pathNodes)-1].RemoveNodeLink(components[len(components)-1])
 	if err != nil {
 		webError(w, "Could not delete link", err, http.StatusBadRequest)
 		return
 	}
 
-	newnode := path_nodes[len(path_nodes)-1]
-	for i := len(path_nodes) - 2; i >= 0; i-- {
-		newnode, err = path_nodes[i].UpdateNodeLink(components[i], newnode)
+	newnode := pathNodes[len(pathNodes)-1]
+	for i := len(pathNodes) - 2; i >= 0; i-- {
+		newnode, err = pathNodes[i].UpdateNodeLink(components[i], newnode)
 		if err != nil {
 			webError(w, "Could not update node links", err, http.StatusInternalServerError)
 			return
@@ -432,7 +421,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("IPFS-Hash", key.String())
-	http.Redirect(w, r, IpfsPathPrefix+key.String()+"/"+strings.Join(components[:len(components)-1], "/"), http.StatusCreated)
+	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components[:len(components)-1], "/"), http.StatusCreated)
 }
 
 func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
@@ -449,15 +438,13 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	w.WriteHeader(code)
-	log.Debugf("%s: %s", message, err)
-	w.Write([]byte(message + ": " + err.Error()))
+	log.Errorf("%s: %s", message, err) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
+	fmt.Fprintf(w, "%s: %s", message, err)
 }
 
 // return a 500 error and log
 func internalWebError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(err.Error()))
-	log.Error("%s", err) // TODO(cryptix): Why are we ignoring handler errors?
+	webErrorWithCode(w, "internalWebError", err, http.StatusInternalServerError)
 }
 
 // Directory listing template
