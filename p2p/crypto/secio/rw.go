@@ -15,6 +15,10 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
+const MaxMsgSize = 8 * 1024 * 1024
+
+var ErrMaxMessageSize = errors.New("attempted to read message larger than max size")
+
 // ErrMACInvalid signals that a MAC verification failed
 var ErrMACInvalid = errors.New("MAC verification failed")
 
@@ -128,6 +132,10 @@ func (r *etmReader) Read(buf []byte) (int, error) {
 	fullLen, err := r.msg.NextMsgLen()
 	if err != nil {
 		return 0, err
+	}
+
+	if fullLen > MaxMsgSize {
+		return 0, ErrMaxMessageSize
 	}
 
 	buf2 := buf
