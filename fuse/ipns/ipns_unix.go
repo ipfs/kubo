@@ -337,6 +337,20 @@ func (fi *File) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	}
 }
 
+func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
+	cursize, err := fi.fi.Size()
+	if err != nil {
+		return err
+	}
+	if cursize != int64(req.Size) {
+		err := fi.fi.Truncate(int64(req.Size))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Fsync flushes the content in the file to disk, but does not
 // update the dag tree internally
 func (fi *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
@@ -370,13 +384,21 @@ func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Nod
 
 func (fi *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	if req.Flags&fuse.OpenTruncate != 0 {
-		log.Warning("Need to truncate file!")
+		log.Info("Need to truncate file!")
 		err := fi.fi.Truncate(0)
 		if err != nil {
 			return nil, err
 		}
 	} else if req.Flags&fuse.OpenAppend != 0 {
-		log.Warning("Need to append to file!")
+		log.Info("Need to append to file!")
+
+		// seek(0) essentially resets the file object, this is required for appends to work
+		// properly
+		_, err := fi.fi.Seek(0, os.SEEK_SET)
+		if err != nil {
+			log.Error("seek reset failed: ", err)
+			return nil, err
+		}
 	}
 	return fi, nil
 }
