@@ -6,15 +6,19 @@ import (
 )
 
 type Stat struct {
-	ProvideBufLen int
-	Wantlist      []u.Key
-	Peers         []string
+	ProvideBufLen   int
+	Wantlist        []u.Key
+	Peers           []string
+	BlocksReceived  int
+	DupBlksReceived int
 }
 
 func (bs *Bitswap) Stat() (*Stat, error) {
 	st := new(Stat)
 	st.ProvideBufLen = len(bs.newBlocks)
 	st.Wantlist = bs.GetWantlist()
+	st.BlocksReceived = bs.blocksRecvd
+	st.DupBlksReceived = bs.dupBlocksRecvd
 
 	for _, p := range bs.engine.Peers() {
 		st.Peers = append(st.Peers, p.Pretty())
