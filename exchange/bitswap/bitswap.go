@@ -349,7 +349,8 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		keys = append(keys, block.Key())
 	}
 
-	return bs.cancelBlocks(ctx, keys)
+	bs.cancelBlocks(ctx, keys)
+	return nil
 }
 
 // Connected/Disconnected warns bitswap about peer connections
@@ -369,9 +370,9 @@ func (bs *Bitswap) PeerDisconnected(p peer.ID) {
 	bs.engine.PeerDisconnected(p)
 }
 
-func (bs *Bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) error {
+func (bs *Bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	if len(bkeys) < 1 {
-		return nil
+		return
 	}
 	message := bsmsg.New()
 	message.SetFull(false)
@@ -379,14 +380,21 @@ func (bs *Bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) error {
 		log.Debug("cancel block: %s", k)
 		message.Cancel(k)
 	}
+
+	wg := sync.WaitGroup{}
 	for _, p := range bs.engine.Peers() {
-		err := bs.send(ctx, p, message)
-		if err != nil {
-			log.Debugf("Error sending message: %s", err)
-			return err
-		}
+		wg.Add(1)
+		go func(p peer.ID) {
+			defer wg.Done()
+			err := bs.send(ctx, p, message)
+			if err != nil {
+				log.Warningf("Error sending message: %s", err)
+				return
+			}
+		}(p)
 	}
-	return nil
+	wg.Wait()
+	return
 }
 
 func (bs *Bitswap) wantNewBlocks(ctx context.Context, bkeys []u.Key) {
