@@ -144,7 +144,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	// =============================================================================
 	// step 1.2 Selection -- select/agree on best encryption parameters
 
-	// to determine order, use cmp(H(lr||rpk), H(rr||lpk)).
+	// to determine order, use cmp(H(remote_pubkey||local_rand), H(local_pubkey||remote_rand)).
 	oh1 := u.Hash(append(proposeIn.GetPubkey(), nonceOut...))
 	oh2 := u.Hash(append(myPubKeyBytes, proposeIn.GetRand()...))
 	order := bytes.Compare(oh1, oh2)
@@ -203,7 +203,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 		return err
 	}
 
-	// Receive + Parse their Propose packet and generate an Exchange packet.
+	// Receive + Parse their Exchange packet.
 	exchangeIn := new(pb.Exchange)
 	if _, err := readMsgCtx(ctx, s.insecureM, exchangeIn); err != nil {
 		return err
@@ -278,7 +278,7 @@ func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) e
 	// log.Debug("2.3 mac + cipher.")
 
 	// =============================================================================
-	// step 3. Finish -- send expected message (the nonces), verify encryption works
+	// step 3. Finish -- send expected message to verify encryption works (send local nonce)
 
 	// setup ETM ReadWriter
 	w := NewETMWriter(s.insecure, s.local.cipher, s.local.mac)

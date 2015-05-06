@@ -19,12 +19,6 @@ type BitSwapNetwork interface {
 		peer.ID,
 		bsmsg.BitSwapMessage) error
 
-	// SendRequest sends a BitSwap message to a peer and waits for a response.
-	SendRequest(
-		context.Context,
-		peer.ID,
-		bsmsg.BitSwapMessage) (incoming bsmsg.BitSwapMessage, err error)
-
 	// SetDelegate registers the Reciver to handle messages received from the
 	// network.
 	SetDelegate(Receiver)
@@ -35,8 +29,9 @@ type BitSwapNetwork interface {
 // Implement Receiver to receive messages from the BitSwapNetwork
 type Receiver interface {
 	ReceiveMessage(
-		ctx context.Context, sender peer.ID, incoming bsmsg.BitSwapMessage) (
-		destination peer.ID, outgoing bsmsg.BitSwapMessage)
+		ctx context.Context,
+		sender peer.ID,
+		incoming bsmsg.BitSwapMessage) error
 
 	ReceiveError(error)
 

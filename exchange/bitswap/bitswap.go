@@ -4,6 +4,7 @@ package bitswap
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -324,20 +325,8 @@ func (bs *Bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 }
 
 // TODO(brian): handle errors
-func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
-	peer.ID, bsmsg.BitSwapMessage) {
+func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) error {
 	defer log.EventBegin(ctx, "receiveMessage", p, incoming).Done()
-
-	if p == "" {
-		log.Debug("Received message from nil peer!")
-		// TODO propagate the error upward
-		return "", nil
-	}
-	if incoming == nil {
-		log.Debug("Got nil bitswap message!")
-		// TODO propagate the error upward
-		return "", nil
-	}
 
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
@@ -345,26 +334,23 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
+	var keys []u.Key
 	for _, block := range incoming.Blocks() {
 		bs.blocksRecvd++
 		if has, err := bs.blockstore.Has(block.Key()); err == nil && has {
 			bs.dupBlocksRecvd++
 		}
+		log.Debugf("got block %s from %s", block, p)
 		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
-			log.Debug(err)
+			return fmt.Errorf("ReceiveMessage HasBlock error: %s", err)
 		}
 		cancel()
-	}
-
-	var keys []u.Key
-	for _, block := range incoming.Blocks() {
 		keys = append(keys, block.Key())
 	}
-	bs.cancelBlocks(ctx, keys)
 
-	// TODO: consider changing this function to not return anything
-	return "", nil
+	bs.cancelBlocks(ctx, keys)
+	return nil
 }
 
 // Connected/Disconnected warns bitswap about peer connections
@@ -391,14 +377,24 @@ func (bs *Bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
 	message := bsmsg.New()
 	message.SetFull(false)
 	for _, k := range bkeys {
+		log.Debug("cancel block: %s", k)
 		message.Cancel(k)
 	}
+
+	wg := sync.WaitGroup{}
 	for _, p := range bs.engine.Peers() {
-		err := bs.send(ctx, p, message)
-		if err != nil {
-			log.Debugf("Error sending message: %s", err)
-		}
+		wg.Add(1)
+		go func(p peer.ID) {
+			defer wg.Done()
+			err := bs.send(ctx, p, message)
+			if err != nil {
+				log.Warningf("Error sending message: %s", err)
+				return
+			}
+		}(p)
 	}
+	wg.Wait()
+	return
 }
 
 func (bs *Bitswap) wantNewBlocks(ctx context.Context, bkeys []u.Key) {

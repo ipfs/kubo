@@ -14,57 +14,6 @@ import (
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
-func TestSendRequestToCooperativePeer(t *testing.T) {
-	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
-
-	recipientPeer := testutil.RandIdentityOrFatal(t)
-
-	t.Log("Get two network adapters")
-
-	initiator := net.Adapter(testutil.RandIdentityOrFatal(t))
-	recipient := net.Adapter(recipientPeer)
-
-	expectedStr := "response from recipient"
-	recipient.SetDelegate(lambda(func(
-		ctx context.Context,
-		from peer.ID,
-		incoming bsmsg.BitSwapMessage) (
-		peer.ID, bsmsg.BitSwapMessage) {
-
-		t.Log("Recipient received a message from the network")
-
-		// TODO test contents of incoming message
-
-		m := bsmsg.New()
-		m.AddBlock(blocks.NewBlock([]byte(expectedStr)))
-
-		return from, m
-	}))
-
-	t.Log("Build a message and send a synchronous request to recipient")
-
-	message := bsmsg.New()
-	message.AddBlock(blocks.NewBlock([]byte("data")))
-	response, err := initiator.SendRequest(
-		context.Background(), recipientPeer.ID(), message)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log("Check the contents of the response from recipient")
-
-	if response == nil {
-		t.Fatal("Should have received a response")
-	}
-
-	for _, blockFromRecipient := range response.Blocks() {
-		if string(blockFromRecipient.Data) == expectedStr {
-			return
-		}
-	}
-	t.Fatal("Should have returned after finding expected block data")
-}
-
 func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	net := VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
 	responderPeer := testutil.RandIdentityOrFatal(t)
@@ -80,20 +29,19 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	responder.SetDelegate(lambda(func(
 		ctx context.Context,
 		fromWaiter peer.ID,
-		msgFromWaiter bsmsg.BitSwapMessage) (
-		peer.ID, bsmsg.BitSwapMessage) {
+		msgFromWaiter bsmsg.BitSwapMessage) error {
 
 		msgToWaiter := bsmsg.New()
 		msgToWaiter.AddBlock(blocks.NewBlock([]byte(expectedStr)))
+		waiter.SendMessage(ctx, fromWaiter, msgToWaiter)
 
-		return fromWaiter, msgToWaiter
+		return nil
 	}))
 
 	waiter.SetDelegate(lambda(func(
 		ctx context.Context,
 		fromResponder peer.ID,
-		msgFromResponder bsmsg.BitSwapMessage) (
-		peer.ID, bsmsg.BitSwapMessage) {
+		msgFromResponder bsmsg.BitSwapMessage) error {
 
 		// TODO assert that this came from the correct peer and that the message contents are as expected
 		ok := false
@@ -108,7 +56,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 			t.Fatal("Message not received from the responder")
 
 		}
-		return "", nil
+		return nil
 	}))
 
 	messageSentAsync := bsmsg.New()
@@ -123,7 +71,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 }
 
 type receiverFunc func(ctx context.Context, p peer.ID,
-	incoming bsmsg.BitSwapMessage) (peer.ID, bsmsg.BitSwapMessage)
+	incoming bsmsg.BitSwapMessage) error
 
 // lambda returns a Receiver instance given a receiver function
 func lambda(f receiverFunc) bsnet.Receiver {
@@ -133,13 +81,11 @@ func lambda(f receiverFunc) bsnet.Receiver {
 }
 
 type lambdaImpl struct {
-	f func(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) (
-		peer.ID, bsmsg.BitSwapMessage)
+	f func(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) error
 }
 
 func (lam *lambdaImpl) ReceiveMessage(ctx context.Context,
-	p peer.ID, incoming bsmsg.BitSwapMessage) (
-	peer.ID, bsmsg.BitSwapMessage) {
+	p peer.ID, incoming bsmsg.BitSwapMessage) error {
 	return lam.f(ctx, p, incoming)
 }
 
