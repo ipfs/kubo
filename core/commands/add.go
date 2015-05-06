@@ -122,7 +122,15 @@ remains to be implemented.
 					return
 				}
 
-				rootnd, err := addFile(n, file, outChan, progress, wrap, hidden, ignoreFilePatterns)
+				// If the file is not a folder, then let's get the root of that
+				// folder and attempt to load the appropriate .ipfsignore.
+				localIgnorePatterns := ignoreFilePatterns
+				if !file.IsDirectory() {
+					parentPath := path.Dir(file.FileName())
+					localIgnorePatterns = checkForLocalIgnorePatterns(parentPath, ignoreFilePatterns)
+				}
+
+				rootnd, err := addFile(n, file, outChan, progress, wrap, hidden, localIgnorePatterns)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -299,7 +307,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 	log.Infof("adding directory: %s", dir.FileName())
 
 	// Check for an .ipfsignore file that is local to this Dir and append to the incoming
-	localIgnorePatterns := checkForLocalIgnorePatterns(dir, ignoreFilePatterns)
+	localIgnorePatterns := checkForLocalIgnorePatterns(dir.FileName(), ignoreFilePatterns)
 
 	for {
 		file, err := dir.NextFile()
@@ -344,17 +352,17 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 	return tree, nil
 }
 
-func checkForLocalIgnorePatterns(dir files.File, ignoreFilePatterns []ignore.GitIgnore) []ignore.GitIgnore {
+func checkForLocalIgnorePatterns(dir string, ignoreFilePatterns []ignore.GitIgnore) []ignore.GitIgnore {
 	var ignorePathname string
-	if dir.FileName() == "." {
+	if dir == "." {
 		ignorePathname = ".ipfsignore"
 	} else {
-		ignorePathname = path.Join(dir.FileName(), ".ipfsignore")
+		ignorePathname = path.Join(dir, ".ipfsignore")
 	}
 
 	localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
 	if ignoreErr == nil && localIgnore != nil {
-		log.Debugf("found ignore file: %s", dir.FileName())
+		log.Debugf("found ignore file: %s", dir)
 		return append(ignoreFilePatterns, *localIgnore)
 	} else {
 		return ignoreFilePatterns
