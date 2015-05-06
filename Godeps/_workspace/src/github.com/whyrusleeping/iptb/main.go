@@ -1,12 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -15,7 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
+	manet "github.com/jbenet/go-multiaddr-net"
 )
 
 // GetNumNodes returns the number of testbed nodes configured in the testbed directory
@@ -66,6 +69,15 @@ type initCfg struct {
 	Count     int
 	Force     bool
 	Bootstrap string
+	PortStart int
+}
+
+func (c *initCfg) swarmAddrForPeer(i int) string {
+	return fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.PortStart+i)
+}
+
+func (c *initCfg) apiAddrForPeer(i int) string {
+	return fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", c.PortStart+1000+i)
 }
 
 func IpfsInit(cfg *initCfg) error {
@@ -121,7 +133,7 @@ func IpfsInit(cfg *initCfg) error {
 	return nil
 }
 
-func starBootstrap(cfg *initCfg) error {
+func starBootstrap(icfg *initCfg) error {
 	// '0' node is the bootstrap node
 	cfgpath := path.Join(IpfsDirN(0), "config")
 	bcfg, err := serial.Load(cfgpath)
@@ -129,15 +141,15 @@ func starBootstrap(cfg *initCfg) error {
 		return err
 	}
 	bcfg.Bootstrap = nil
-	bcfg.Addresses.Swarm = []string{"/ip4/127.0.0.1/tcp/4002"}
-	bcfg.Addresses.API = "/ip4/127.0.0.1/tcp/5002"
+	bcfg.Addresses.Swarm = []string{icfg.swarmAddrForPeer(0)}
+	bcfg.Addresses.API = icfg.apiAddrForPeer(0)
 	bcfg.Addresses.Gateway = ""
 	err = serial.WriteConfigFile(cfgpath, bcfg)
 	if err != nil {
 		return err
 	}
 
-	for i := 1; i < cfg.Count; i++ {
+	for i := 1; i < icfg.Count; i++ {
 		cfgpath := path.Join(IpfsDirN(i), "config")
 		cfg, err := serial.Load(cfgpath)
 		if err != nil {
@@ -147,9 +159,9 @@ func starBootstrap(cfg *initCfg) error {
 		cfg.Bootstrap = []string{fmt.Sprintf("%s/ipfs/%s", bcfg.Addresses.Swarm[0], bcfg.Identity.PeerID)}
 		cfg.Addresses.Gateway = ""
 		cfg.Addresses.Swarm = []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 4002+i),
+			icfg.swarmAddrForPeer(i),
 		}
-		cfg.Addresses.API = fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5002+i)
+		cfg.Addresses.API = icfg.apiAddrForPeer(i)
 		err = serial.WriteConfigFile(cfgpath, cfg)
 		if err != nil {
 			return err
@@ -158,8 +170,8 @@ func starBootstrap(cfg *initCfg) error {
 	return nil
 }
 
-func clearBootstrapping(cfg *initCfg) error {
-	for i := 0; i < cfg.Count; i++ {
+func clearBootstrapping(icfg *initCfg) error {
+	for i := 0; i < icfg.Count; i++ {
 		cfgpath := path.Join(IpfsDirN(i), "config")
 		cfg, err := serial.Load(cfgpath)
 		if err != nil {
@@ -168,10 +180,8 @@ func clearBootstrapping(cfg *initCfg) error {
 
 		cfg.Bootstrap = nil
 		cfg.Addresses.Gateway = ""
-		cfg.Addresses.Swarm = []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 4002+i),
-		}
-		cfg.Addresses.API = fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 5002+i)
+		cfg.Addresses.Swarm = []string{icfg.swarmAddrForPeer(i)}
+		cfg.Addresses.API = icfg.apiAddrForPeer(i)
 		err = serial.WriteConfigFile(cfgpath, cfg)
 		if err != nil {
 			return err
@@ -222,6 +232,7 @@ func IpfsKill() error {
 }
 
 func IpfsStart(waitall bool) error {
+	var addrs []string
 	n := GetNumNodes()
 	for i := 0; i < n; i++ {
 		dir := IpfsDirN(i)
@@ -259,27 +270,83 @@ func IpfsStart(waitall bool) error {
 		// Make sure node 0 is up before starting the rest so
 		// bootstrapping works properly
 		if i == 0 || waitall {
-			err := waitForLive(fmt.Sprintf("localhost:%d", 5002+i))
+			cfg, err := serial.Load(path.Join(IpfsDirN(i), "config"))
+			if err != nil {
+				return err
+			}
+
+			maddr := ma.StringCast(cfg.Addresses.API)
+			_, addr, err := manet.DialArgs(maddr)
+			if err != nil {
+				return err
+			}
+
+			addrs = append(addrs, addr)
+
+			err = waitOnAPI(cfg.Identity.PeerID, addr)
 			if err != nil {
 				return err
 			}
 		}
 	}
+	if waitall {
+		for i := 0; i < n; i++ {
+			err := waitOnSwarmPeers(addrs[i])
+			if err != nil {
+				return err
+			}
+		}
+
+	}
 	return nil
 }
 
-// waitForLive polls the given endpoint until it is up, or until
-// a timeout
-func waitForLive(addr string) error {
+func waitOnAPI(peerid, addr string) error {
 	for i := 0; i < 50; i++ {
-		c, err := net.Dial("tcp", addr)
+		resp, err := http.Get("http://" + addr + "/api/v0/id")
 		if err == nil {
-			c.Close()
+			out := make(map[string]interface{})
+			err := json.NewDecoder(resp.Body).Decode(&out)
+			if err != nil {
+				return fmt.Errorf("liveness check failed: %s", err)
+			}
+			id, ok := out["ID"]
+			if !ok {
+				return fmt.Errorf("liveness check failed: ID field not present in output")
+			}
+			idstr := id.(string)
+			if idstr != peerid {
+				return fmt.Errorf("liveness check failed: unexpected peer at endpoint")
+			}
+
 			return nil
 		}
 		time.Sleep(time.Millisecond * 200)
 	}
 	return fmt.Errorf("node at %s failed to come online in given time period", addr)
+}
+
+func waitOnSwarmPeers(addr string) error {
+	for i := 0; i < 50; i++ {
+		resp, err := http.Get("http://" + addr + "/api/v0/swarm/peers")
+		if err == nil {
+			out := make(map[string]interface{})
+			err := json.NewDecoder(resp.Body).Decode(&out)
+			if err != nil {
+				return fmt.Errorf("liveness check failed: %s", err)
+			}
+
+			peers := out["Strings"].([]interface{})
+			if len(peers) == 0 {
+				time.Sleep(time.Millisecond * 200)
+				continue
+			}
+
+			return nil
+		}
+		time.Sleep(time.Millisecond * 200)
+	}
+	return fmt.Errorf("node at %s failed to bootstrap in given time period", addr)
 }
 
 // GetPeerID reads the config of node 'n' and returns its peer ID
@@ -371,6 +438,7 @@ func handleErr(s string, err error) {
 func main() {
 	cfg := new(initCfg)
 	flag.IntVar(&cfg.Count, "n", 0, "number of ipfs nodes to initialize")
+	flag.IntVar(&cfg.PortStart, "p", 4002, "port to start allocations from")
 	flag.BoolVar(&cfg.Force, "f", false, "force initialization (overwrite existing configs)")
 	flag.StringVar(&cfg.Bootstrap, "bootstrap", "star", "select bootstrapping style for cluster")
 

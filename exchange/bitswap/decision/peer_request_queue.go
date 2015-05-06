@@ -46,7 +46,7 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 	defer tl.lock.Unlock()
 	partner, ok := tl.partners[to]
 	if !ok {
-		partner = &activePartner{taskQueue: pq.New(wrapCmp(V1))}
+		partner = newActivePartner()
 		tl.pQueue.Push(partner)
 		tl.partners[to] = partner
 	}
@@ -57,12 +57,19 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 		return
 	}
 
+	partner.activelk.Lock()
+	defer partner.activelk.Unlock()
+	_, ok = partner.activeBlocks[entry.Key]
+	if ok {
+		return
+	}
+
 	task := &peerRequestTask{
 		Entry:   entry,
 		Target:  to,
 		created: time.Now(),
 		Done: func() {
-			partner.TaskDone()
+			partner.TaskDone(entry.Key)
 			tl.lock.Lock()
 			tl.pQueue.Update(partner.Index())
 			tl.lock.Unlock()
@@ -93,7 +100,7 @@ func (tl *prq) Pop() *peerRequestTask {
 			continue // discarding tasks that have been removed
 		}
 
-		partner.StartTask()
+		partner.StartTask(out.Entry.Key)
 		partner.requests--
 		break // and return |out|
 	}
@@ -179,6 +186,8 @@ type activePartner struct {
 	activelk sync.Mutex
 	active   int
 
+	activeBlocks map[u.Key]struct{}
+
 	// requests is the number of blocks this peer is currently requesting
 	// request need not be locked around as it will only be modified under
 	// the peerRequestQueue's locks
@@ -189,6 +198,13 @@ type activePartner struct {
 
 	// priority queue of tasks belonging to this peer
 	taskQueue pq.PQ
+}
+
+func newActivePartner() *activePartner {
+	return &activePartner{
+		taskQueue:    pq.New(wrapCmp(V1)),
+		activeBlocks: make(map[u.Key]struct{}),
+	}
 }
 
 // partnerCompare implements pq.ElemComparator
@@ -208,15 +224,17 @@ func partnerCompare(a, b pq.Elem) bool {
 }
 
 // StartTask signals that a task was started for this partner
-func (p *activePartner) StartTask() {
+func (p *activePartner) StartTask(k u.Key) {
 	p.activelk.Lock()
+	p.activeBlocks[k] = struct{}{}
 	p.active++
 	p.activelk.Unlock()
 }
 
 // TaskDone signals that a task was completed for this partner
-func (p *activePartner) TaskDone() {
+func (p *activePartner) TaskDone(k u.Key) {
 	p.activelk.Lock()
+	delete(p.activeBlocks, k)
 	p.active--
 	if p.active < 0 {
 		panic("more tasks finished than started!")

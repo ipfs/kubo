@@ -256,7 +256,7 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
-			"Rev": "4fa36405d0baea7773676f83fba9695e9a560473"
+			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/blowfish",
