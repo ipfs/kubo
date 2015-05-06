@@ -18,7 +18,7 @@ var BlockSizeLimit = 1048576 // 1 MB
 // rough estimates on expected sizes
 var roughDataBlockSize = chunk.DefaultBlockSize
 var roughLinkBlockSize = 1 << 13 // 8KB
-var roughLinkSize = 258 + 8 + 5  // sha256 multihash + size + no name + protobuf framing
+var roughLinkSize = 34 + 8 + 5   // sha256 multihash + size + no name + protobuf framing
 
 // DefaultLinksPerBlock governs how the importer decides how many links there
 // will be per block. This calculation is based on expected distributions of:

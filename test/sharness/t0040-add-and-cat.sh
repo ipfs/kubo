@@ -138,7 +138,7 @@ test_expect_success EXPENSIVE "ipfs add bigfile succeeds" '
 '
 
 test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
-	HASH="QmSVxWkYfbJ3cowQUUgF4iF4CQd92vubxw7bs2aZAVRUD9" &&
+	HASH="QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3" &&
 	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '
