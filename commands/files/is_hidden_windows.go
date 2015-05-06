@@ -12,7 +12,7 @@ func IsHidden(f File) bool {
 
 	fName := filepath.Base(f.FileName())
 
-	if strings.HasPrefix(fName, ".") {
+	if strings.HasPrefix(fName, ".") && len(fName) > 1 {
 		return true
 	}
 

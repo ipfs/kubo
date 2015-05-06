@@ -3,11 +3,13 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	ignore "github.com/sabhiram/go-git-ignore"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -94,6 +96,16 @@ remains to be implemented.
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 
+		var ignoreFilePatterns []ignore.GitIgnore
+
+		// Check the $IPFS_PATH
+		if ipfs_path := os.Getenv("$IPFS_PATH"); len(ipfs_path) > 0 {
+			baseFilePattern, err := ignore.CompileIgnoreFile(path.Join(ipfs_path, ".ipfsignore"))
+			if err == nil && baseFilePattern != nil {
+				ignoreFilePatterns = append(ignoreFilePatterns, *baseFilePattern)
+			}
+		}
+
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
@@ -110,7 +122,7 @@ remains to be implemented.
 					return
 				}
 
-				rootnd, err := addFile(n, file, outChan, progress, wrap, hidden)
+				rootnd, err := addFile(n, file, outChan, progress, wrap, hidden, ignoreFilePatterns)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -230,12 +242,24 @@ func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	return node, nil
 }
 
-func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool, hidden bool) (*dag.Node, error) {
-	if file.IsDirectory() {
-		return addDir(n, file, out, progress, hidden)
-	} else if fileIsHidden := files.IsHidden(file); fileIsHidden && !hidden {
-		log.Infof("%s is a hidden file, skipping", file.FileName())
+func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool, hidden bool, ignoreFilePatterns []ignore.GitIgnore) (*dag.Node, error) {
+	// Check if file is hidden
+	if fileIsHidden := files.IsHidden(file); fileIsHidden && !hidden {
+		log.Debugf("%s is hidden, skipping", file.FileName())
 		return nil, &hiddenFileError{file.FileName()}
+	}
+
+	// Check for ignore files matches
+	for i := range ignoreFilePatterns {
+		if ignoreFilePatterns[i].MatchesPath(file.FileName()) {
+			log.Debugf("%s is ignored file, skipping", file.FileName())
+			return nil, &ignoreFileError{file.FileName()}
+		}
+	}
+
+	// Check if "file" is actually a directory
+	if file.IsDirectory() {
+		return addDir(n, file, out, progress, hidden, ignoreFilePatterns)
 	}
 
 	// if the progress flag was specified, wrap the file so that we can send
@@ -269,52 +293,72 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 	return dagnode, nil
 }
 
-func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool, hidden bool) (*dag.Node, error) {
+func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool, hidden bool, ignoreFilePatterns []ignore.GitIgnore) (*dag.Node, error) {
 
 	tree := &dag.Node{Data: ft.FolderPBData()}
-	if dirIsHidden := files.IsHidden(dir); dirIsHidden && !hidden {
-		log.Infof("ignoring directory: %s", dir.FileName())
-	} else {
-		log.Infof("adding directory: %s", dir.FileName())
-		for {
-			file, err := dir.NextFile()
-			if err != nil && err != io.EOF {
-				return nil, err
-			}
-			if file == nil {
-				break
-			}
+	log.Infof("adding directory: %s", dir.FileName())
 
-			node, err := addFile(n, file, out, progress, false, hidden)
-			if _, ok := err.(*hiddenFileError); ok {
-				// hidden file error, set the node to nil for below
-				node = nil
-			} else if err != nil {
-				return nil, err
-			}
+	// Check for an .ipfsignore file that is local to this Dir and append to the incoming
+	localIgnorePatterns := checkForLocalIgnorePatterns(dir, ignoreFilePatterns)
 
-			if node != nil {
-				_, name := path.Split(file.FileName())
-
-				err = tree.AddNodeLink(name, node)
-				if err != nil {
-					return nil, err
-				}
-			}
+	for {
+		file, err := dir.NextFile()
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if file == nil {
+			break
 		}
 
-		err := outputDagnode(out, dir.FileName(), tree)
-		if err != nil {
+		node, err := addFile(n, file, out, progress, false, hidden, localIgnorePatterns)
+		if _, ok := err.(*hiddenFileError); ok {
+			// hidden file error, set the node to nil for below
+			node = nil
+		} else if _, ok := err.(*ignoreFileError); ok {
+			// ignore file error, set the node to nil for below
+			node = nil
+		} else if err != nil {
 			return nil, err
 		}
 
-		_, err = n.DAG.Add(tree)
-		if err != nil {
-			return nil, err
+		if node != nil {
+			_, name := path.Split(file.FileName())
+
+			err = tree.AddNodeLink(name, node)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
+	err := outputDagnode(out, dir.FileName(), tree)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = n.DAG.Add(tree)
+	if err != nil {
+		return nil, err
+	}
+
 	return tree, nil
+}
+
+func checkForLocalIgnorePatterns(dir files.File, ignoreFilePatterns []ignore.GitIgnore) []ignore.GitIgnore {
+	var ignorePathname string
+	if dir.FileName() == "." {
+		ignorePathname = ".ipfsignore"
+	} else {
+		ignorePathname = path.Join(dir.FileName(), ".ipfsignore")
+	}
+
+	localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
+	if ignoreErr == nil && localIgnore != nil {
+		log.Debugf("found ignore file: %s", dir.FileName())
+		return append(ignoreFilePatterns, *localIgnore)
+	} else {
+		return ignoreFilePatterns
+	}
 }
 
 // outputDagnode sends dagnode info over the output channel
@@ -338,6 +382,14 @@ type hiddenFileError struct {
 
 func (e *hiddenFileError) Error() string {
 	return fmt.Sprintf("%s is a hidden file", e.fileName)
+}
+
+type ignoreFileError struct {
+	fileName string
+}
+
+func (e *ignoreFileError) Error() string {
+	return fmt.Sprintf("%s is an ignored file", e.fileName)
 }
 
 type progressReader struct {
