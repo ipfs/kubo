@@ -75,7 +75,7 @@ func NewPinner(dstore ds.ThreadSafeDatastore, serv mdag.DAGService) Pinner {
 	return &pinner{
 		recursePin: rcset,
 		directPin:  dirset,
-		indirPin:   NewIndirectPin(nsdstore),
+		indirPin:   newIndirectPin(nsdstore),
 		dserv:      serv,
 		dstore:     dstore,
 	}
