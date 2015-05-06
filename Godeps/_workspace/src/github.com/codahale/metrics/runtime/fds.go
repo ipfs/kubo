@@ -14,7 +14,9 @@ func getFDLimit() (uint64, error) {
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit); err != nil {
 		return 0, err
 	}
-	return rlimit.Cur, nil
+	// rlimit.Cur's type is platform-dependent, so here we widen it as far as Go
+	// will allow by converting it to a uint64.
+	return uint64(rlimit.Cur), nil
 }
 
 func getFDUsage() (uint64, error) {

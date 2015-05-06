@@ -63,7 +63,7 @@
 		},
 		{
 			"ImportPath": "github.com/codahale/metrics",
-			"Rev": "7d3beb1b480077e77c08a6f6c65ea969f6e91420"
+			"Rev": "7c37910bc765e705301b159683480bdd44555c91"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
