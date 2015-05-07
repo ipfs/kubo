@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -11,64 +10,42 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
-const maxLinks = 32
+// ErrNoNamesys is an explicit error for when an IPFS node doesn't
+// (yet) have a name system
+var ErrNoNamesys = errors.New(
+	"core/resolve: no Namesys on IpfsNode - can't resolve ipns entry")
 
-// errors returned by Resolve function
-var (
-	ErrTooManyLinks = errors.New("core/resolve: exceeded maximum number of links in ipns entry")
-	ErrNoNamesys    = errors.New("core/resolve: no Namesys on IpfsNode - can't resolve ipns entry")
-)
-
-// Resolve resolves the given path by parsing out /ipns/ entries and then going
-// through the /ipfs/ entries and returning the final merkledage node.
-// Effectively enables /ipns/ in CLI commands.
+// Resolve resolves the given path by parsing out protocol-specific
+// entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
+// entries and returning the final merkledage node.  Effectively
+// enables /ipns/, /dns/, etc. in commands.
 func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, error) {
-	r := resolver{ctx, n, p}
-	return r.resolveRecurse(0)
-}
-
-type resolver struct {
-	ctx context.Context
-	n   *IpfsNode
-	p   path.Path
-}
-
-func (r *resolver) resolveRecurse(depth int) (*merkledag.Node, error) {
-	if depth >= maxLinks {
-		return nil, ErrTooManyLinks
-	}
-	// for now, we only try to resolve ipns paths if
-	// they begin with "/ipns/". Otherwise, ambiguity
-	// emerges when resolving just a <hash>. Is it meant
-	// to be an ipfs or an ipns resolution?
-
-	if strings.HasPrefix(r.p.String(), "/ipns/") {
+	if strings.HasPrefix(p.String(), "/") {
+		// namespaced path (/ipfs/..., /ipns/..., etc.)
 		// TODO(cryptix): we sould be able to query the local cache for the path
-		if r.n.Namesys == nil {
+		if n.Namesys == nil {
 			return nil, ErrNoNamesys
 		}
-		// if it's an ipns path, try to resolve it.
-		// if we can't, we can give that error back to the user.
-		seg := r.p.Segments()
-		if len(seg) < 2 || seg[1] == "" { // just "/ipns/"
-			return nil, fmt.Errorf("invalid path: %s", string(r.p))
+
+		seg := p.Segments()
+		extensions := seg[2:]
+		resolvable, err := path.FromSegments("/", seg[0], seg[1])
+		if err != nil {
+			return nil, err
 		}
 
-		ipnsPath := seg[1]
-		extensions := seg[2:]
-		respath, err := r.n.Namesys.Resolve(r.ctx, ipnsPath)
+		respath, err := n.Namesys.Resolve(ctx, resolvable.String())
 		if err != nil {
 			return nil, err
 		}
 
 		segments := append(respath.Segments(), extensions...)
-		r.p, err = path.FromSegments(segments...)
+		p, err = path.FromSegments("/", segments...)
 		if err != nil {
 			return nil, err
 		}
-		return r.resolveRecurse(depth + 1)
 	}
 
 	// ok, we have an ipfs path now (or what we'll treat as one)
-	return r.n.Resolver.ResolvePath(r.ctx, r.p)
+	return n.Resolver.ResolvePath(ctx, p)
 }

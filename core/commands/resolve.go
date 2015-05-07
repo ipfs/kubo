@@ -75,7 +75,7 @@ Resolve te value of another name:
 			name = req.Arguments()[0]
 		}
 
-		output, err := n.Namesys.Resolve(n.Context(), name)
+		output, err := n.Namesys.Resolve(n.Context(), "/ipns/"+name)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

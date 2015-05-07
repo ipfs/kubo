@@ -59,8 +59,8 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	segments := []string{"", "ipfs", aKey.String(), "child", "grandchild"}
-	p, err := path.FromSegments(segments...)
+	segments := []string{aKey.String(), "child", "grandchild"}
+	p, err := path.FromSegments("/ipfs/", segments...)
 	if err != nil {
 		t.Fatal(err)
 	}

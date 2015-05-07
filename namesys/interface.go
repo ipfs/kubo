@@ -37,8 +37,23 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
+const (
+	// DefaultDepthLimit is the default depth limit used by Resolve.
+	DefaultDepthLimit = 32
+
+	// UnlimitedDepth allows infinite recursion in ResolveN.  You
+	// probably don't want to use this, but it's here if you absolutely
+	// trust resolution to eventually complete and can't put an upper
+	// limit on how many steps it will take.
+	UnlimitedDepth = 0
+)
+
 // ErrResolveFailed signals an error when attempting to resolve.
 var ErrResolveFailed = errors.New("could not resolve name.")
+
+// ErrResolveRecursion signals a recursion-depth limit.
+var ErrResolveRecursion = errors.New(
+	"could not resolve name (recursion limit exceeded).")
 
 // ErrPublishFailed signals an error when attempting to publish.
 var ErrPublishFailed = errors.New("could not publish name.")
@@ -58,11 +73,30 @@ type NameSystem interface {
 // Resolver is an object capable of resolving names.
 type Resolver interface {
 
-	// Resolve looks up a name, and returns the value previously published.
+	// Resolve performs a recursive lookup, returning the dereferenced
+	// path.  For example, if ipfs.io has a DNS TXT record pointing to
+	//   /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+	// and there is a DHT IPNS entry for
+	//   QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+	//   -> /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
+	// then
+	//   Resolve(ctx, "/ipns/ipfs.io")
+	// will resolve both names, returning
+	//   /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
+	//
+	// There is a default depth-limit to avoid infinite recursion.  Most
+	// users will be fine with this default limit, but if you need to
+	// adjust the limit you can use ResolveN.
 	Resolve(ctx context.Context, name string) (value path.Path, err error)
 
-	// CanResolve checks whether this Resolver can resolve a name
-	CanResolve(name string) bool
+	// ResolveN performs a recursive lookup, returning the dereferenced
+	// path.  The only difference from Resolve is that the depth limit
+	// is configurable.  You can use DefaultDepthLimit, UnlimitedDepth,
+	// or a depth limit of your own choosing.
+	//
+	// Most users should use Resolve, since the default limit works well
+	// in most real-world situations.
+	ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error)
 }
 
 // Publisher is an object capable of publishing particular names.
