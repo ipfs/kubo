@@ -165,7 +165,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 
 	mnode, err := fs.resolver.ResolvePath(pointsTo)
 	if err != nil {
-		log.Errorf("Failed to retreive value '%s' for ipns entry: %s\n", pointsTo, err)
+		log.Errorf("Failed to retrieve value '%s' for ipns entry: %s\n", pointsTo, err)
 		return nil, err
 	}
 
