@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/cors"
+
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -16,10 +18,17 @@ import (
 
 var log = u.Logger("commands/http")
 
+// the internal handler for the API
+type internalHandler struct {
+	ctx  cmds.Context
+	root *cmds.Command
+}
+
+// The Handler struct is funny because we want to wrap our internal handler
+// with CORS while keeping our fields.
 type Handler struct {
-	ctx    cmds.Context
-	root   *cmds.Command
-	origin string
+	internalHandler
+	corsHandler http.Handler
 }
 
 var ErrNotFound = errors.New("404 page not found")
@@ -39,16 +48,31 @@ var mimeTypes = map[string]string{
 	cmds.Text: "text/plain",
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, origin string) *Handler {
+func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
 	// allow whitelisted origins (so we can make API requests from the browser)
-	if len(origin) > 0 {
-		log.Info("Allowing API requests from origin: " + origin)
+	if len(allowedOrigin) > 0 {
+		log.Info("Allowing API requests from origin: " + allowedOrigin)
 	}
 
-	return &Handler{ctx, root, origin}
+	// Create a handler for the API.
+	internal := internalHandler{ctx, root}
+
+	// Create a CORS object for wrapping the internal handler.
+	c := cors.New(cors.Options{
+		AllowedMethods: []string{"GET", "POST", "PUT"},
+
+		// use AllowOriginFunc instead of AllowedOrigins because we want to be
+		// restrictive by default.
+		AllowOriginFunc: func(origin string) bool {
+			return (allowedOrigin == "*") || (origin == allowedOrigin)
+		},
+	})
+
+	// Wrap the internal handler with CORS handling-middleware.
+	return &Handler{internal, c.Handler(internal)}
 }
 
-func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
 
 	// error on external referers (to prevent CSRF attacks)
@@ -64,11 +88,6 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("403 - Forbidden"))
 		return
 	}
-
-	if len(i.origin) > 0 {
-		w.Header().Set("Access-Control-Allow-Origin", i.origin)
-	}
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	req, err := Parse(r, i.root)
 	if err != nil {
@@ -166,6 +185,11 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	flushCopy(w, out)
+}
+
+func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Call the CORS handler which wraps the internal handler.
+	i.corsHandler.ServeHTTP(w, r)
 }
 
 // flushCopy Copies from an io.Reader to a http.ResponseWriter.
