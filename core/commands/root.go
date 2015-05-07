@@ -41,6 +41,7 @@ ADVANCED COMMANDS
     daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
     name          Publish or resolve IPNS names
+    dns           Resolve DNS links
     pin           Pin objects to local storage
     repo gc       Garbage collect unpinned objects
 
@@ -84,6 +85,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"config":    ConfigCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
+	"dns":       DNSCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
 	"log":       LogCmd,
