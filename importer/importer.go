@@ -20,7 +20,7 @@ var log = u.Logger("importer")
 
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created
-func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*dag.Node, error) {
+func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.Pinner) (*dag.Node, error) {
 	stat, err := os.Stat(fpath)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSp
 	return trickle.TrickleLayout(dbp.New(blkch))
 }
 
-func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {
+func BasicPinnerCB(p pin.Pinner) h.NodeCB {
 	return func(n *dag.Node, last bool) error {
 		k, err := n.Key()
 		if err != nil {
@@ -82,7 +82,7 @@ func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {
 	}
 }
 
-func PinIndirectCB(p pin.ManualPinner) h.NodeCB {
+func PinIndirectCB(p pin.Pinner) h.NodeCB {
 	return func(n *dag.Node, last bool) error {
 		k, err := n.Key()
 		if err != nil {
