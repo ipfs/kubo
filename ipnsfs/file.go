@@ -23,7 +23,7 @@ type File struct {
 
 // NewFile returns a NewFile object with the given parameters
 func NewFile(name string, node *dag.Node, parent childCloser, fs *Filesystem) (*File, error) {
-	dmod, err := mod.NewDagModifier(context.Background(), node, fs.dserv, fs.pins.GetManual(), chunk.DefaultSplitter)
+	dmod, err := mod.NewDagModifier(context.Background(), node, fs.dserv, fs.pins, chunk.DefaultSplitter)
 	if err != nil {
 		return nil, err
 	}
