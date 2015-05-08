@@ -17,7 +17,7 @@ var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
 	dserv    dag.DAGService
-	mp       pin.ManualPinner
+	mp       pin.Pinner
 	in       <-chan []byte
 	errs     <-chan error
 	recvdErr error
