@@ -37,7 +37,7 @@ var log = u.Logger("dagio")
 type DagModifier struct {
 	dagserv mdag.DAGService
 	curNode *mdag.Node
-	mp      pin.ManualPinner
+	mp      pin.Pinner
 
 	splitter   chunk.SplitterGen
 	ctx        context.Context
@@ -50,7 +50,7 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.SplitterGen) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.Pinner, spl chunk.SplitterGen) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,

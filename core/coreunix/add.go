@@ -28,7 +28,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	dagNode, err := importer.BuildDagFromReader(
 		n.DAG,
 		chunk.NewSizeSplitter(r, chunk.DefaultBlockSize),
-		importer.BasicPinnerCB(n.Pinning.GetManual()),
+		importer.BasicPinnerCB(n.Pinning),
 	)
 	if err != nil {
 		return "", err
@@ -64,7 +64,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	n.Pinning.GetManual().RemovePinWithMode(k, pin.Indirect)
+	n.Pinning.RemovePinWithMode(k, pin.Indirect)
 	if err := n.Pinning.Flush(); err != nil {
 		return "", err
 	}
@@ -91,12 +91,10 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 }
 
 func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
-	mp := n.Pinning.GetManual()
-
 	return importer.BuildDagFromReader(
 		n.DAG,
 		chunk.DefaultSplitter(reader),
-		importer.PinIndirectCB(mp),
+		importer.PinIndirectCB(n.Pinning),
 	)
 }
 
