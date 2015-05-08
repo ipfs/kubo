@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"io"
 	"strings"
 
@@ -15,40 +14,46 @@ type ResolvedPath struct {
 	Path path.Path
 }
 
-var resolveCmd = &cmds.Command{
+var ResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Gets the value currently published at an IPNS name",
+		Tagline: "Resolve the value of names to IPFS",
 		ShortDescription: `
-IPNS is a PKI namespace, where names are the hashes of public keys, and
-the private key enables publishing new (signed) values. In resolve, the
-default value of <name> is your own identity public key.
+There are a number of mutable name protocols that can link among
+themselves and into IPNS.  This command accepts any of these
+identifiers and resolves them to the referenced item.
 `,
 		LongDescription: `
-IPNS is a PKI namespace, where names are the hashes of public keys, and
-the private key enables publishing new (signed) values. In resolve, the
-default value of <name> is your own identity public key.
-
+There are a number of mutable name protocols that can link among
+themselves and into IPNS.  For example IPNS references can (currently)
+point at IPFS object, and DNS links can point at other DNS links, IPNS
+entries, or IPFS objects.  This command accepts any of these
+identifiers and resolves them to the referenced item.
 
 Examples:
 
 Resolve the value of your identity:
 
-  > ipfs name resolve
-  QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs resolve /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
 
-Resolve te value of another name:
+Resolve the value of another name:
 
-  > ipfs name resolve QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
-  QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs resolve /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+
+Resolve the value of another name recursively:
+
+  > ipfs resolve -r /ipns/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  /ipfs/Qmcqtw8FfrVSBaRmbWwHxt3AuySBhJLcvmFYi3Lbc4xnwj
 
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
+		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name"),
+		cmds.BoolOption("recursive", "r", "Resolve until the result is an IPFS name"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -66,32 +71,18 @@ Resolve te value of another name:
 			}
 		}
 
-		var name string
-
-		if len(req.Arguments()) == 0 {
-			if n.Identity == "" {
-				res.SetError(errors.New("Identity not loaded!"), cmds.ErrNormal)
-				return
-			}
-			name = n.Identity.Pretty()
-
-		} else {
-			name = req.Arguments()[0]
-		}
-
+		name := req.Arguments()[0]
 		recursive, _, _ := req.Option("recursive").Bool()
 		depth := 1
 		if recursive {
 			depth = namesys.DefaultDepthLimit
 		}
 
-		output, err := n.Namesys.ResolveN(n.Context(), "/ipns/"+name, depth)
+		output, err := n.Namesys.ResolveN(n.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
 
 		res.SetOutput(&ResolvedPath{output})
 	},

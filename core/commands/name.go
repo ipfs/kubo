@@ -40,18 +40,18 @@ Publish a <ref> to another public key:
 Resolve the value of your identity:
 
   > ipfs name resolve
-  QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 Resolve the value of another name:
 
   > ipfs name resolve QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
-  QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  /ipns/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 `,
 	},
 
 	Subcommands: map[string]*cmds.Command{
 		"publish": publishCmd,
-		"resolve": resolveCmd,
+		"resolve": ipnsCmd,
 	},
 }

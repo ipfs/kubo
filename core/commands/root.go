@@ -40,6 +40,7 @@ ADVANCED COMMANDS
 
     daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
+    resolve       Resolve any type of name
     name          Publish or resolve IPNS names
     dns           Resolve DNS links
     pin           Pin objects to local storage
@@ -97,6 +98,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"ping":      PingCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,
+	"resolve":   ResolveCmd,
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
 	"update":    UpdateCmd,
