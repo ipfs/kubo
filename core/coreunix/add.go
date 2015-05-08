@@ -29,7 +29,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 		r,
 		n.DAG,
 		chunk.DefaultSplitter,
-		importer.BasicPinnerCB(n.Pinning.GetManual()),
+		importer.BasicPinnerCB(n.Pinning),
 	)
 	if err != nil {
 		return "", err
@@ -65,7 +65,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	n.Pinning.GetManual().RemovePinWithMode(k, pin.Indirect)
+	n.Pinning.RemovePinWithMode(k, pin.Indirect)
 	err = n.Pinning.Flush()
 	if err != nil {
 		return "", err
@@ -93,13 +93,11 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 }
 
 func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
-	mp := n.Pinning.GetManual()
-
 	node, err := importer.BuildDagFromReader(
 		reader,
 		n.DAG,
 		chunk.DefaultSplitter,
-		importer.PinIndirectCB(mp),
+		importer.PinIndirectCB(n.Pinning),
 	)
 	if err != nil {
 		return nil, err

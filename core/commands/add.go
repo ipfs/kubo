@@ -145,9 +145,8 @@ remains to be implemented.
 					return
 				}
 
-				mp := n.Pinning.GetManual()
-				mp.RemovePinWithMode(rnk, pin.Indirect)
-				mp.PinWithMode(rnk, pin.Recursive)
+				n.Pinning.RemovePinWithMode(rnk, pin.Indirect)
+				n.Pinning.PinWithMode(rnk, pin.Recursive)
 
 				err = n.Pinning.Flush()
 				if err != nil {
@@ -262,14 +261,14 @@ func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error)
 			reader,
 			n.DAG,
 			chunk.DefaultSplitter,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
+			importer.PinIndirectCB(n.Pinning),
 		)
 	} else {
 		node, err = importer.BuildDagFromReader(
 			reader,
 			n.DAG,
 			chunk.DefaultSplitter,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
+			importer.PinIndirectCB(n.Pinning),
 		)
 	}
 
@@ -365,7 +364,7 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		return nil, err
 	}
 
-	params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
+	params.node.Pinning.PinWithMode(k, pin.Indirect)
 
 	return tree, nil
 }
