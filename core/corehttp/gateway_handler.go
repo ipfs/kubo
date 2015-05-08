@@ -50,7 +50,7 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 	return importer.BuildDagFromReader(
 		i.node.DAG,
 		chunk.DefaultSplitter(r),
-		importer.BasicPinnerCB(i.node.Pinning.GetManual()))
+		importer.BasicPinnerCB(i.node.Pinning))
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer

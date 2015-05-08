@@ -125,7 +125,7 @@ func arrComp(a, b []byte) error {
 
 type dagservAndPinner struct {
 	ds merkledag.DAGService
-	mp pin.ManualPinner
+	mp pin.Pinner
 }
 
 func TestIndirectBlocks(t *testing.T) {
