@@ -10,7 +10,7 @@ import (
 
 func Cat(n *core.IpfsNode, pstr string) (io.Reader, error) {
 	p := path.FromString(pstr)
-	dagNode, err := n.Resolver.ResolvePath(p)
+	dagNode, err := n.Resolver.ResolvePath(n.ContextGroup.Context(), p)
 	if err != nil {
 		return nil, err
 	}

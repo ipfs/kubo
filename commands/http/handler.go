@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -48,11 +49,6 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, origin string) *Handler {
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// create a context.Context to pass into the commands.
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
-	i.ctx.Context = ctx
-
 	log.Debug("Incoming API request: ", r.URL)
 
 	// error on external referers (to prevent CSRF attacks)
@@ -84,6 +80,27 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+
+	// get the node's context to pass into the commands.
+	node, err := i.ctx.GetNode()
+	if err != nil {
+		err = fmt.Errorf("cmds/http: couldn't GetNode(): %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	ctx, cancel := context.WithCancel(node.Context())
+	defer cancel()
+	/*
+		TODO(cryptix): the next line looks very fishy to me..
+		It looks like the the context for the command request beeing prepared here is shared across all incoming requests..
+
+		I assume it really isn't because ServeHTTP() doesn't take a pointer receiver, but it's really subtule..
+
+		Shouldn't the context be just put on the command request?
+
+		ps: take note of the name clash - commands.Context != context.Context
+	*/
+	i.ctx.Context = ctx
 	req.SetContext(i.ctx)
 
 	// call the command

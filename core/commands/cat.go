@@ -62,7 +62,7 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader,
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	for _, fpath := range paths {
-		dagnode, err := core.Resolve(node, path.Path(fpath))
+		dagnode, err := core.Resolve(ctx, node, path.Path(fpath))
 		if err != nil {
 			return nil, 0, err
 		}

@@ -9,13 +9,14 @@ import (
 	gopath "path"
 	"strings"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
 	utar "github.com/ipfs/go-ipfs/unixfs/tar"
-
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 )
 
 var ErrInvalidCompressionLevel = errors.New("Compression level must be between 1 and 9")
@@ -62,7 +63,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		reader, err := get(node, req.Arguments()[0], cmplvl)
+		reader, err := get(req.Context().Context, node, req.Arguments()[0], cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -165,9 +166,9 @@ func getCompressOptions(req cmds.Request) (int, error) {
 	return gzip.NoCompression, nil
 }
 
-func get(node *core.IpfsNode, p string, compression int) (io.Reader, error) {
+func get(ctx context.Context, node *core.IpfsNode, p string, compression int) (io.Reader, error) {
 	pathToResolve := path.Path(p)
-	dagnode, err := core.Resolve(node, pathToResolve)
+	dagnode, err := core.Resolve(ctx, node, pathToResolve)
 	if err != nil {
 		return nil, err
 	}
