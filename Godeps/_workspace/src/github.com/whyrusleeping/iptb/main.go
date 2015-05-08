@@ -17,8 +17,8 @@ import (
 	"time"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
-	manet "github.com/jbenet/go-multiaddr-net"
 )
 
 // GetNumNodes returns the number of testbed nodes configured in the testbed directory
