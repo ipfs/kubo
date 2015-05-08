@@ -11,9 +11,9 @@ type indirectPin struct {
 	refCounts map[key.Key]int
 }
 
-func newIndirectPin(dstore ds.Datastore) *indirectPin {
+func newIndirectPin() *indirectPin {
 	return &indirectPin{
-		blockset:  set.NewDBWrapperSet(dstore, set.NewSimpleBlockSet()),
+		blockset:  set.NewSimpleBlockSet(),
 		refCounts: make(map[key.Key]int),
 	}
 }
