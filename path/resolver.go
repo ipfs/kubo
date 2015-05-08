@@ -122,7 +122,8 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 			// fetch object for link and assign to nd
 			ctx, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			nd, err := s.DAG.Get(ctx, next)
+			var err error
+			nd, err = s.DAG.Get(ctx, next)
 			if err != nil {
 				return append(result, nd), err
 			}
