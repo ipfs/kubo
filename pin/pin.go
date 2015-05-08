@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	nsds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
@@ -65,17 +64,14 @@ type pinner struct {
 func NewPinner(dstore ds.ThreadSafeDatastore, serv mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
-	rcds := nsds.Wrap(dstore, recursePinDatastoreKey)
-	rcset := set.NewDBWrapperSet(rcds, set.NewSimpleBlockSet())
+	rcset := set.NewSimpleBlockSet()
 
-	dirds := nsds.Wrap(dstore, directPinDatastoreKey)
-	dirset := set.NewDBWrapperSet(dirds, set.NewSimpleBlockSet())
+	dirset := set.NewSimpleBlockSet()
 
-	nsdstore := nsds.Wrap(dstore, indirectPinDatastoreKey)
 	return &pinner{
 		recursePin: rcset,
 		directPin:  dirset,
-		indirPin:   newIndirectPin(nsdstore),
+		indirPin:   newIndirectPin(),
 		dserv:      serv,
 		dstore:     dstore,
 	}
