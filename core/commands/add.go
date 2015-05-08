@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"io"
-	"os"
 	"path"
 	"strings"
 
@@ -98,8 +97,8 @@ remains to be implemented.
 
 		var ignoreFilePatterns []ignore.GitIgnore
 
-		// Check the $IPFS_PATH
-		if ipfs_path := os.Getenv("$IPFS_PATH"); len(ipfs_path) > 0 {
+		// Check the IPFS_PATH
+		if ipfs_path := req.Context().ConfigRoot; len(ipfs_path) > 0 {
 			baseFilePattern, err := ignore.CompileIgnoreFile(path.Join(ipfs_path, ".ipfsignore"))
 			if err == nil && baseFilePattern != nil {
 				ignoreFilePatterns = append(ignoreFilePatterns, *baseFilePattern)
@@ -130,7 +129,7 @@ remains to be implemented.
 					localIgnorePatterns = checkForLocalIgnorePatterns(parentPath, ignoreFilePatterns)
 				}
 
-				rootnd, err := addFile(n, file, outChan, progress, wrap, hidden, localIgnorePatterns)
+				rootnd, err := addFile(n, addParams{file, outChan, progress, wrap, hidden, localIgnorePatterns})
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -236,6 +235,15 @@ remains to be implemented.
 	Type: AddedObject{},
 }
 
+type addParams struct {
+	file               files.File
+	out                chan interface{}
+	progress           bool
+	wrap               bool
+	hidden             bool
+	ignoreFilePatterns []ignore.GitIgnore
+}
+
 func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
 	if err != nil {
@@ -250,41 +258,41 @@ func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	return node, nil
 }
 
-func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool, hidden bool, ignoreFilePatterns []ignore.GitIgnore) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, params addParams) (*dag.Node, error) {
 	// Check if file is hidden
-	if fileIsHidden := files.IsHidden(file); fileIsHidden && !hidden {
-		log.Debugf("%s is hidden, skipping", file.FileName())
-		return nil, &hiddenFileError{file.FileName()}
+	if fileIsHidden := files.IsHidden(params.file); fileIsHidden && !params.hidden {
+		log.Debugf("%s is hidden, skipping", params.file.FileName())
+		return nil, &hiddenFileError{params.file.FileName()}
 	}
 
 	// Check for ignore files matches
-	for i := range ignoreFilePatterns {
-		if ignoreFilePatterns[i].MatchesPath(file.FileName()) {
-			log.Debugf("%s is ignored file, skipping", file.FileName())
-			return nil, &ignoreFileError{file.FileName()}
+	for i := range params.ignoreFilePatterns {
+		if params.ignoreFilePatterns[i].MatchesPath(params.file.FileName()) {
+			log.Debugf("%s is ignored file, skipping", params.file.FileName())
+			return nil, &ignoreFileError{params.file.FileName()}
 		}
 	}
 
 	// Check if "file" is actually a directory
-	if file.IsDirectory() {
-		return addDir(n, file, out, progress, hidden, ignoreFilePatterns)
+	if params.file.IsDirectory() {
+		return addDir(n, params)
 	}
 
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
-	var reader io.Reader = file
-	if progress {
-		reader = &progressReader{file: file, out: out}
+	var reader io.Reader = params.file
+	if params.progress {
+		reader = &progressReader{file: params.file, out: params.out}
 	}
 
-	if wrap {
-		p, dagnode, err := coreunix.AddWrapped(n, reader, path.Base(file.FileName()))
+	if params.wrap {
+		p, dagnode, err := coreunix.AddWrapped(n, reader, path.Base(params.file.FileName()))
 		if err != nil {
 			return nil, err
 		}
-		out <- &AddedObject{
+		params.out <- &AddedObject{
 			Hash: p,
-			Name: file.FileName(),
+			Name: params.file.FileName(),
 		}
 		return dagnode, nil
 	}
@@ -294,23 +302,23 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 		return nil, err
 	}
 
-	log.Infof("adding file: %s", file.FileName())
-	if err := outputDagnode(out, file.FileName(), dagnode); err != nil {
+	log.Infof("adding file: %s", params.file.FileName())
+	if err := outputDagnode(params.out, params.file.FileName(), dagnode); err != nil {
 		return nil, err
 	}
 	return dagnode, nil
 }
 
-func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool, hidden bool, ignoreFilePatterns []ignore.GitIgnore) (*dag.Node, error) {
+func addDir(n *core.IpfsNode, params addParams) (*dag.Node, error) {
 
 	tree := &dag.Node{Data: ft.FolderPBData()}
-	log.Infof("adding directory: %s", dir.FileName())
+	log.Infof("adding directory: %s", params.file.FileName())
 
 	// Check for an .ipfsignore file that is local to this Dir and append to the incoming
-	localIgnorePatterns := checkForLocalIgnorePatterns(dir.FileName(), ignoreFilePatterns)
+	localIgnorePatterns := checkForLocalIgnorePatterns(params.file.FileName(), params.ignoreFilePatterns)
 
 	for {
-		file, err := dir.NextFile()
+		file, err := params.file.NextFile()
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -318,7 +326,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 			break
 		}
 
-		node, err := addFile(n, file, out, progress, false, hidden, localIgnorePatterns)
+		node, err := addFile(n, addParams{file, params.out, params.progress, false, params.hidden, localIgnorePatterns})
 		if _, ok := err.(*hiddenFileError); ok {
 			// hidden file error, set the node to nil for below
 			node = nil
@@ -339,7 +347,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 		}
 	}
 
-	err := outputDagnode(out, dir.FileName(), tree)
+	err := outputDagnode(params.out, params.file.FileName(), tree)
 	if err != nil {
 		return nil, err
 	}
@@ -353,12 +361,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 }
 
 func checkForLocalIgnorePatterns(dir string, ignoreFilePatterns []ignore.GitIgnore) []ignore.GitIgnore {
-	var ignorePathname string
-	if dir == "." {
-		ignorePathname = ".ipfsignore"
-	} else {
-		ignorePathname = path.Join(dir, ".ipfsignore")
-	}
+	ignorePathname := path.Join(dir, ".ipfsignore")
 
 	localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
 	if ignoreErr == nil && localIgnore != nil {
