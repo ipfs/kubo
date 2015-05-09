@@ -73,10 +73,6 @@ func (i *indirectPin) HasKey(k key.Key) bool {
 	return i.blockset.HasKey(k)
 }
 
-func (i *indirectPin) Set() set.BlockSet {
-	return i.blockset
-}
-
 func (i *indirectPin) GetRefs() map[key.Key]int {
 	return i.refCounts
 }
