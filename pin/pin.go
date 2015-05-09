@@ -46,7 +46,7 @@ type Pinner interface {
 
 	Flush() error
 	DirectKeys() []key.Key
-	IndirectKeys() map[key.Key]int
+	IndirectKeys() map[key.Key]uint64
 	RecursiveKeys() []key.Key
 }
 
@@ -254,7 +254,7 @@ func (p *pinner) DirectKeys() []key.Key {
 }
 
 // IndirectKeys returns a slice containing the indirectly pinned keys
-func (p *pinner) IndirectKeys() map[key.Key]int {
+func (p *pinner) IndirectKeys() map[key.Key]uint64 {
 	return p.indirPin.GetRefs()
 }
 
