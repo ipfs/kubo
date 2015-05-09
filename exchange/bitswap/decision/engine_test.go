@@ -185,7 +185,7 @@ func checkHandledInOrder(t *testing.T, e *Engine, keys []string) error {
 	for _, k := range keys {
 		next := <-e.Outbox()
 		envelope := <-next
-		received := envelope.Message.Blocks()[0]
+		received := envelope.Block
 		expected := blocks.NewBlock([]byte(k))
 		if received.Key() != expected.Key() {
 			return errors.New(fmt.Sprintln("received", string(received.Data), "expected", string(expected.Data)))

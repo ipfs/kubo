@@ -70,9 +70,9 @@ func (bs *Bitswap) taskWorker(ctx context.Context) {
 				if !ok {
 					continue
 				}
-				log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
-				bs.send(ctx, envelope.Peer, envelope.Message)
-				envelope.Sent()
+
+				//log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
+				bs.pm.SendBlock(envelope)
 			case <-ctx.Done():
 				return
 			}

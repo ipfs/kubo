@@ -156,7 +156,7 @@ func (t *peerRequestTask) SetIndex(i int) {
 
 // taskKey returns a key that uniquely identifies a task.
 func taskKey(p peer.ID, k u.Key) string {
-	return string(p.String() + k.String())
+	return string(p) + string(k)
 }
 
 // FIFO is a basic task comparator that returns tasks in the order created.

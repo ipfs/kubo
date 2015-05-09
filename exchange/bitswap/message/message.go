@@ -29,6 +29,8 @@ type BitSwapMessage interface {
 
 	Cancel(key u.Key)
 
+	Empty() bool
+
 	// Sets whether or not the contained wantlist represents the entire wantlist
 	// true = full wantlist
 	// false = wantlist 'patch'
@@ -51,7 +53,7 @@ type Exportable interface {
 type impl struct {
 	full     bool
 	wantlist map[u.Key]Entry
-	blocks   map[u.Key]*blocks.Block // map to detect duplicates
+	blocks   map[u.Key]*blocks.Block
 }
 
 func New() BitSwapMessage {
@@ -92,6 +94,10 @@ func (m *impl) Full() bool {
 	return m.full
 }
 
+func (m *impl) Empty() bool {
+	return len(m.blocks) == 0 && len(m.wantlist) == 0
+}
+
 func (m *impl) Wantlist() []Entry {
 	var out []Entry
 	for _, e := range m.wantlist {
@@ -101,7 +107,7 @@ func (m *impl) Wantlist() []Entry {
 }
 
 func (m *impl) Blocks() []*blocks.Block {
-	bs := make([]*blocks.Block, 0)
+	bs := make([]*blocks.Block, 0, len(m.blocks))
 	for _, block := range m.blocks {
 		bs = append(bs, block)
 	}
@@ -109,6 +115,7 @@ func (m *impl) Blocks() []*blocks.Block {
 }
 
 func (m *impl) Cancel(k u.Key) {
+	delete(m.wantlist, k)
 	m.addEntry(k, 0, true)
 }
 

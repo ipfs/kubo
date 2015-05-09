@@ -23,6 +23,8 @@ type BitSwapNetwork interface {
 	// network.
 	SetDelegate(Receiver)
 
+	ConnectTo(context.Context, peer.ID) error
+
 	Routing
 }
 

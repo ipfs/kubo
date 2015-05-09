@@ -13,7 +13,6 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
-	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	u "github.com/ipfs/go-ipfs/util"
@@ -36,30 +35,6 @@ func TestClose(t *testing.T) {
 	bitswap.Exchange.GetBlock(context.Background(), block.Key())
 }
 
-func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
-
-	rs := mockrouting.NewServer()
-	net := tn.VirtualNetwork(rs, delay.Fixed(kNetworkDelay))
-	g := NewTestSessionGenerator(net)
-	defer g.Close()
-
-	block := blocks.NewBlock([]byte("block"))
-	pinfo := p2ptestutil.RandTestBogusIdentityOrFatal(t)
-	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
-
-	solo := g.Next()
-	defer solo.Exchange.Close()
-
-	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-	_, err := solo.Exchange.GetBlock(ctx, block.Key())
-
-	if err != context.DeadlineExceeded {
-		t.Fatal("Expected DeadlineExceeded error")
-	}
-}
-
-// TestGetBlockAfterRequesting...
-
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
@@ -67,14 +42,15 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	g := NewTestSessionGenerator(net)
 	defer g.Close()
 
-	hasBlock := g.Next()
+	peers := g.Instances(2)
+	hasBlock := peers[0]
 	defer hasBlock.Exchange.Close()
 
 	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
 		t.Fatal(err)
 	}
 
-	wantsBlock := g.Next()
+	wantsBlock := peers[1]
 	defer wantsBlock.Exchange.Close()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
@@ -196,8 +172,9 @@ func TestSendToWantingPeer(t *testing.T) {
 	prev := rebroadcastDelay.Set(time.Second / 2)
 	defer func() { rebroadcastDelay.Set(prev) }()
 
-	peerA := sg.Next()
-	peerB := sg.Next()
+	peers := sg.Instances(2)
+	peerA := peers[0]
+	peerB := peers[1]
 
 	t.Logf("Session %v\n", peerA.Peer)
 	t.Logf("Session %v\n", peerB.Peer)
