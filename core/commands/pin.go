@@ -274,7 +274,7 @@ Defaults to "direct".
 
 type RefKeyObject struct {
 	Type  string
-	Count int
+	Count uint64
 }
 
 type RefKeyList struct {
