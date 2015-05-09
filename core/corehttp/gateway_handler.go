@@ -240,7 +240,7 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
-	newnode := uio.NewDirectory(i.node.DAG).GetNode()
+	newnode := uio.NewEmptyDirectory()
 
 	key, err := i.node.DAG.Add(newnode)
 	if err != nil {
@@ -266,7 +266,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode *dag.Node
 	if pathext[len(pathext)-1] == '/' {
-		newnode = uio.NewDirectory(i.node.DAG).GetNode()
+		newnode = uio.NewEmptyDirectory()
 	} else {
 		newnode, err = i.newDagFromReader(r.Body)
 		if err != nil {

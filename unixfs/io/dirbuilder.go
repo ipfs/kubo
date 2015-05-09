@@ -15,15 +15,22 @@ type directoryBuilder struct {
 	dirnode *mdag.Node
 }
 
+// NewEmptyDirectory returns an empty merkledag Node with a folder Data chunk
+func NewEmptyDirectory() *mdag.Node {
+	return &mdag.Node{Data: format.FolderPBData()}
+}
+
+// NewDirectory returns a directoryBuilder. It needs a DAGService to add the Children
 func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
 	db := new(directoryBuilder)
 	db.dserv = dserv
-	db.dirnode = new(mdag.Node)
-	db.dirnode.Data = format.FolderPBData()
+	db.dirnode = NewEmptyDirectory()
 	return db
 }
 
+// AddChild adds a (name, key)-pair to the root node.
 func (d *directoryBuilder) AddChild(name string, k u.Key) error {
+	// TODO(cryptix): consolidate context managment
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
 	defer cancel()
 
@@ -40,6 +47,7 @@ func (d *directoryBuilder) AddChild(name string, k u.Key) error {
 	return nil
 }
 
+// GetNode returns the root of this directoryBuilder
 func (d *directoryBuilder) GetNode() *mdag.Node {
 	return d.dirnode
 }
