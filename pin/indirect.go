@@ -3,17 +3,14 @@ package pin
 import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	"github.com/ipfs/go-ipfs/blocks/set"
 )
 
 type indirectPin struct {
-	blockset  set.BlockSet
 	refCounts map[key.Key]int
 }
 
 func newIndirectPin() *indirectPin {
 	return &indirectPin{
-		blockset:  set.NewSimpleBlockSet(),
 		refCounts: make(map[key.Key]int),
 	}
 }
@@ -36,7 +33,7 @@ func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
 	}
 	// log.Debugf("indirPin keys: %#v", keys)
 
-	return &indirectPin{blockset: set.SimpleSetFromKeys(keys), refCounts: refcnt}, nil
+	return &indirectPin{refCounts: refcnt}, nil
 }
 
 func storeIndirPin(d ds.Datastore, k ds.Key, p *indirectPin) error {
@@ -49,11 +46,7 @@ func storeIndirPin(d ds.Datastore, k ds.Key, p *indirectPin) error {
 }
 
 func (i *indirectPin) Increment(k key.Key) {
-	c := i.refCounts[k]
-	i.refCounts[k] = c + 1
-	if c <= 0 {
-		i.blockset.AddBlock(k)
-	}
+	i.refCounts[k]++
 }
 
 func (i *indirectPin) Decrement(k key.Key) {
@@ -61,16 +54,15 @@ func (i *indirectPin) Decrement(k key.Key) {
 		log.Warningf("pinning: bad call: asked to unpin nonexistent indirect key: %v", k)
 		return
 	}
-	c := i.refCounts[k] - 1
-	i.refCounts[k] = c
-	if c <= 0 {
-		i.blockset.RemoveBlock(k)
+	i.refCounts[k]--
+	if i.refCounts[k] == 0 {
 		delete(i.refCounts, k)
 	}
 }
 
 func (i *indirectPin) HasKey(k key.Key) bool {
-	return i.blockset.HasKey(k)
+	_, found := i.refCounts[k]
+	return found
 }
 
 func (i *indirectPin) GetRefs() map[key.Key]int {
