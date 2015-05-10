@@ -143,6 +143,12 @@ test_init_ipfs() {
 	PORT_GWAY=$((RANDOM % 3000 + 8100))
 	ADDR_GWAY="/ip4/127.0.0.1/tcp/$PORT_GWAY"
 
+	PORT_SWARM=$((RANDOM % 3000 + 12000))
+	ADDR_SWARM="[
+  \"/ip4/0.0.0.0/tcp/$PORT_SWARM\"
+]"
+
+
 	# we set the Addresses.API config variable.
 	# the cli client knows to use it, so only need to set.
 	# todo: in the future, use env?
@@ -158,6 +164,7 @@ test_init_ipfs() {
 		test_config_set Mounts.IPNS "$(pwd)/ipns" &&
 		test_config_set Addresses.API "$ADDR_API" &&
 		test_config_set Addresses.Gateway "$ADDR_GWAY" &&
+		test_config_set --json Addresses.Swarm "$ADDR_SWARM" &&
 		ipfs bootstrap rm --all ||
 		test_fsh cat "\"$IPFS_PATH/config\""
 	'
