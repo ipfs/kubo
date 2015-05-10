@@ -1,3 +1,5 @@
+dist: trusty
+
 os:
   - linux
   - osx
