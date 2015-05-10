@@ -36,6 +36,17 @@ test_config_cmd_set() {
   '
 }
 
+# this is a bit brittle. the problem is we need to test
+# with something that will be forced to unmarshal as a struct.
+# (i.e. just setting 'ipfs config --json foo "[1, 2, 3]"') may
+# set it as astring instead of proper json. We leverage the
+# unmarshalling that has to happen.
+CONFIG_SET_JSON_TEST='{
+  "MDNS": {
+    "Enabled": true,
+    "Interval": 10
+  }
+}'
 
 test_config_cmd() {
   test_config_cmd_set "beep" "boop"
@@ -43,6 +54,9 @@ test_config_cmd() {
   test_config_cmd_set "beep1" "boop2"
   test_config_cmd_set "--bool" "beep2" "true"
   test_config_cmd_set "--bool" "beep2" "false"
+  test_config_cmd_set "--json" "beep3" "true"
+  test_config_cmd_set "--json" "beep3" "false"
+  test_config_cmd_set "--json" "Discovery" "$CONFIG_SET_JSON_TEST"
 
 }
 
