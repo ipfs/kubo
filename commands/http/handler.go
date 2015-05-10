@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/cors"
-
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
