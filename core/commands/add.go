@@ -145,13 +145,15 @@ remains to be implemented.
 					return
 				}
 
-				n.Pinning.RemovePinWithMode(rnk, pin.Indirect)
-				n.Pinning.PinWithMode(rnk, pin.Recursive)
+				if !hash {
+					n.Pinning.RemovePinWithMode(rnk, pin.Indirect)
+					n.Pinning.PinWithMode(rnk, pin.Recursive)
 
-				err = n.Pinning.Flush()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
+					err = n.Pinning.Flush()
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
 				}
 			}
 		}()
