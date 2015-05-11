@@ -214,7 +214,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	echo "removed $HASH_FILE3" > gc_out_exp2 &&
 	echo "removed $HASH_FILE5" >> gc_out_exp2 &&
 	echo "removed $HASH_DIR3" >> gc_out_exp2 &&
-	test_sort_cmp gc_out_actual2 gc_out_exp2
+	test_includes_lines gc_out_exp2 gc_out_actual2
 '
 
 # use object links for HASH_DIR1 here because its children
