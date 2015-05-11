@@ -148,8 +148,7 @@ test_expect_success "nothing is pinned directly" '
 '
 
 test_expect_success "'ipfs repo gc' succeeds" '
-	ipfs repo gc >gc_out_actual &&
-	test_must_be_empty gc_out_actual
+	ipfs repo gc >gc_out_actual
 '
 
 test_expect_success "objects are still there" '
