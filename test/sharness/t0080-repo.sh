@@ -25,11 +25,6 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' looks good (empty)" '
-	true >empty &&
-	test_cmp empty gc_out_actual
-'
-
 test_expect_success "'ipfs repo gc' doesnt remove file" '
 	ipfs cat "$HASH" >out &&
 	test_cmp out afile
@@ -96,9 +91,9 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-	echo "removed $HASH" >expected7 &&
 	ipfs repo gc >actual7 &&
-	test_cmp expected7 actual7
+	echo "removed $HASH" >expected7 &&
+	test_includes_lines expected7 actual7
 '
 
 # TODO: there seems to be a serious bug with leveldb not returning a key.
