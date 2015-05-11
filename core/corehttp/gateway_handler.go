@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -234,9 +233,8 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h := mh.Multihash(k).B58String()
-	w.Header().Set("IPFS-Hash", h)
-	http.Redirect(w, r, ipfsPathPrefix+h, http.StatusCreated)
+	w.Header().Set("IPFS-Hash", k.String())
+	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
 }
 
 func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
@@ -253,7 +251,7 @@ func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO(cryptix): will be resolved in PR#1191
+	// TODO(cryptix): either ask mildred about the flow of this or rewrite it
 	webErrorWithCode(w, "Sorry, PUT is bugged right now, closing request", errors.New("handler disabled"), http.StatusInternalServerError)
 	return
 	urlPath := r.URL.Path
