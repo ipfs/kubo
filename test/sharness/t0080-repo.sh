@@ -105,7 +105,7 @@ test_expect_success "adding multiblock random file succeeds" '
 test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
-	sed -i="" "s/\(.*\)/\1 indirect/g" refsout &&
+	sed -i"~" "s/\(.*\)/\1 indirect/g" refsout &&
 	ipfs pin ls --type=indirect >indirectpins &&
 	test_sort_cmp refsout indirectpins
 '
@@ -133,7 +133,7 @@ test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
-	sed -i="" "s/\(.*\)/\1 recursive/g" rp_expected &&
+	sed -i"~" "s/\(.*\)/\1 recursive/g" rp_expected &&
 	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
 '
