@@ -149,8 +149,7 @@ test_expect_success "nothing is pinned directly" '
 '
 
 test_expect_success "'ipfs repo gc' succeeds" '
-	ipfs repo gc >gc_out_actual &&
-	test_must_be_empty gc_out_actual
+	ipfs repo gc >gc_out_actual
 '
 
 test_expect_success "objects are still there" '
@@ -216,7 +215,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	echo "removed $HASH_FILE3" > gc_out_exp2 &&
 	echo "removed $HASH_FILE5" >> gc_out_exp2 &&
 	echo "removed $HASH_DIR3" >> gc_out_exp2 &&
-	test_sort_cmp gc_out_actual2 gc_out_exp2
+	test_includes_lines gc_out_exp2 gc_out_actual2
 '
 
 # use object links for HASH_DIR1 here because its children

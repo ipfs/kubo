@@ -105,8 +105,8 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-	echo "removed $PATCH_ROOT" >expected7 &&
-	echo "removed $HASH" >>expected7 &&
+	echo "removed $HASH" >expected7 &&
+	echo "removed $PATCH_ROOT" >>expected7 &&
 	ipfs repo gc >actual7 &&
 	test_sort_cmp expected7 actual7
 '
