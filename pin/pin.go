@@ -3,8 +3,6 @@
 package pin
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -17,9 +15,16 @@ import (
 )
 
 var log = util.Logger("pin")
-var recursePinDatastoreKey = ds.NewKey("/local/pins/recursive/keys")
-var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
-var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")
+
+var pinDatastoreKey = ds.NewKey("/local/pins")
+
+var emptyKey = key.B58KeyDecode("QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n")
+
+const (
+	linkDirect    = "direct"
+	linkRecursive = "recursive"
+	linkIndirect  = "indirect"
+)
 
 type PinMode int
 
@@ -56,8 +61,11 @@ type pinner struct {
 	recursePin set.BlockSet
 	directPin  set.BlockSet
 	indirPin   *indirectPin
-	dserv      mdag.DAGService
-	dstore     ds.ThreadSafeDatastore
+	// Track the keys used for storing the pinning state, so gc does
+	// not delete them.
+	internalPin map[key.Key]struct{}
+	dserv       mdag.DAGService
+	dstore      ds.ThreadSafeDatastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
@@ -189,13 +197,19 @@ func (p *pinner) pinLinks(ctx context.Context, node *mdag.Node) error {
 	return nil
 }
 
+func (p *pinner) isInternalPin(key key.Key) bool {
+	_, ok := p.internalPin[key]
+	return ok
+}
+
 // IsPinned returns whether or not the given key is pinned
 func (p *pinner) IsPinned(key key.Key) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.recursePin.HasKey(key) ||
 		p.directPin.HasKey(key) ||
-		p.indirPin.HasKey(key)
+		p.indirPin.HasKey(key) ||
+		p.isInternalPin(key)
 }
 
 func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
@@ -218,29 +232,50 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
+	rootKeyI, err := d.Get(pinDatastoreKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load pin state: %v", err)
+	}
+	rootKey := key.Key(rootKeyI.([]byte))
+
+	ctx := context.TODO()
+	root, err := dserv.Get(ctx, rootKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find pinning root object: %v", err)
+	}
+
+	internalPin := map[key.Key]struct{}{
+		rootKey: struct{}{},
+	}
+	recordInternal := func(k key.Key) {
+		internalPin[k] = struct{}{}
+	}
+
 	{ // load recursive set
-		var recurseKeys []key.Key
-		if err := loadSet(d, recursePinDatastoreKey, &recurseKeys); err != nil {
-			return nil, err
+		recurseKeys, err := loadSet(ctx, dserv, root, linkRecursive, recordInternal)
+		if err != nil {
+			return nil, fmt.Errorf("cannot load recursive pins: %v", err)
 		}
 		p.recursePin = set.SimpleSetFromKeys(recurseKeys)
 	}
 
 	{ // load direct set
-		var directKeys []key.Key
-		if err := loadSet(d, directPinDatastoreKey, &directKeys); err != nil {
-			return nil, err
+		directKeys, err := loadSet(ctx, dserv, root, linkDirect, recordInternal)
+		if err != nil {
+			return nil, fmt.Errorf("cannot load direct pins: %v", err)
 		}
 		p.directPin = set.SimpleSetFromKeys(directKeys)
 	}
 
 	{ // load indirect set
-		var err error
-		p.indirPin, err = loadIndirPin(d, indirectPinDatastoreKey)
+		refcnt, err := loadMultiset(ctx, dserv, root, linkIndirect, recordInternal)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot load indirect pins: %v", err)
 		}
+		p.indirPin = &indirectPin{refCounts: refcnt}
 	}
+
+	p.internalPin = internalPin
 
 	// assign services
 	p.dserv = dserv
@@ -269,44 +304,54 @@ func (p *pinner) Flush() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	err := storeSet(p.dstore, directPinDatastoreKey, p.directPin.GetKeys())
-	if err != nil {
-		return err
+	ctx := context.TODO()
+
+	internalPin := make(map[key.Key]struct{})
+	recordInternal := func(k key.Key) {
+		internalPin[k] = struct{}{}
 	}
 
-	err = storeSet(p.dstore, recursePinDatastoreKey, p.recursePin.GetKeys())
-	if err != nil {
-		return err
+	root := &mdag.Node{}
+	{
+		n, err := storeSet(ctx, p.dserv, p.directPin.GetKeys(), recordInternal)
+		if err != nil {
+			return err
+		}
+		if err := root.AddNodeLink(linkDirect, n); err != nil {
+			return err
+		}
 	}
 
-	err = storeIndirPin(p.dstore, indirectPinDatastoreKey, p.indirPin)
+	{
+		n, err := storeSet(ctx, p.dserv, p.recursePin.GetKeys(), recordInternal)
+		if err != nil {
+			return err
+		}
+		if err := root.AddNodeLink(linkRecursive, n); err != nil {
+			return err
+		}
+	}
+
+	{
+		n, err := storeMultiset(ctx, p.dserv, p.indirPin.GetRefs(), recordInternal)
+		if err != nil {
+			return err
+		}
+		if err := root.AddNodeLink(linkIndirect, n); err != nil {
+			return err
+		}
+	}
+
+	k, err := p.dserv.Add(root)
 	if err != nil {
 		return err
 	}
+	internalPin[k] = struct{}{}
+	if err := p.dstore.Put(pinDatastoreKey, []byte(k)); err != nil {
+		return fmt.Errorf("cannot store pin state: %v", err)
+	}
+	p.internalPin = internalPin
 	return nil
-}
-
-// helpers to marshal / unmarshal a pin set
-func storeSet(d ds.Datastore, k ds.Key, val interface{}) error {
-	buf, err := json.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	return d.Put(k, buf)
-}
-
-func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
-	buf, err := d.Get(k)
-	if err != nil {
-		return err
-	}
-
-	bf, ok := buf.([]byte)
-	if !ok {
-		return errors.New("invalid pin set value in datastore")
-	}
-	return json.Unmarshal(bf, val)
 }
 
 // PinWithMode allows the user to have fine grained control over pin
