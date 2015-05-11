@@ -214,12 +214,20 @@ test_launch_ipfs_daemon() {
 	fi
 }
 
+do_umount() {
+    if [ "$(uname -s)" = "Linux" ]; then
+	fusermount -u "$1"
+    else
+	umount "$1"
+    fi
+}
+
 test_mount_ipfs() {
 
 	# make sure stuff is unmounted first.
 	test_expect_success FUSE "'ipfs mount' succeeds" '
-		umount "$(pwd)/ipfs" || true &&
-		umount "$(pwd)/ipns" || true &&
+		do_umount "$(pwd)/ipfs" || true &&
+		do_umount "$(pwd)/ipns" || true &&
 		ipfs mount >actual
 	'
 
