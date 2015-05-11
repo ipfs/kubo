@@ -25,11 +25,6 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' looks good (empty)" '
-	true >empty &&
-	test_cmp empty gc_out_actual
-'
-
 test_expect_success "'ipfs repo gc' doesnt remove file" '
 	ipfs cat "$HASH" >out &&
 	test_cmp out afile
