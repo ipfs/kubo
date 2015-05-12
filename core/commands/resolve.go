@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-ipfs/path"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -46,6 +47,9 @@ Resolve te value of another name:
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID.").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name"),
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		n, err := req.Context().GetNode()
@@ -75,7 +79,13 @@ Resolve te value of another name:
 			name = req.Arguments()[0]
 		}
 
-		output, err := n.Namesys.Resolve(n.Context(), "/ipns/"+name)
+		recursive, _, _ := req.Option("recursive").Bool()
+		depth := 1
+		if recursive {
+			depth = namesys.DefaultDepthLimit
+		}
+
+		output, err := n.Namesys.ResolveN(n.Context(), "/ipns/"+name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
