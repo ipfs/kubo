@@ -28,6 +28,7 @@ const (
 	writableKwd               = "writable"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
+	unrestrictedApiAccess     = "unrestricted-api"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -71,6 +72,7 @@ the port as you would other services or database (firewall, authenticated proxy,
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
+		cmds.BoolOption(unrestrictedApiAccess, "Allow API access to unlisted hashes"),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -281,6 +283,10 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		Writable: true,
 		BlockList: &corehttp.BlockList{
 			Decider: func(s string) bool {
+				unrestricted, _, _ := req.Option(unrestrictedApiAccess).Bool()
+				if unrestricted {
+					return true
+				}
 				// for now, only allow paths in the WebUI path
 				for _, webuipath := range corehttp.WebUIPaths {
 					if strings.HasPrefix(s, webuipath) {
