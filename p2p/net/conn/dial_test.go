@@ -75,23 +75,54 @@ func setupConn(t *testing.T, ctx context.Context, secure bool) (a, b Conn, p1, p
 
 	done := make(chan error)
 	go func() {
+		defer close(done)
+
 		var err error
 		c2, err = d2.Dial(ctx, p1.Addr, p1.ID)
 		if err != nil {
 			done <- err
+			return
 		}
-		close(done)
+
+		// if secure, need to read + write, as that's what triggers the handshake.
+		if secure {
+			if err := sayHello(c2); err != nil {
+				done <- err
+			}
+		}
 	}()
 
 	c1, err := l1.Accept()
 	if err != nil {
 		t.Fatal("failed to accept", err)
 	}
+
+	// if secure, need to read + write, as that's what triggers the handshake.
+	if secure {
+		if err := sayHello(c1); err != nil {
+			done <- err
+		}
+	}
+
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
 
 	return c1.(Conn), c2, p1, p2
+}
+
+func sayHello(c net.Conn) error {
+	h := []byte("hello")
+	if _, err := c.Write(h); err != nil {
+		return err
+	}
+	if _, err := c.Read(h); err != nil {
+		return err
+	}
+	if string(h) != "hello" {
+		return fmt.Errorf("did not get hello")
+	}
+	return nil
 }
 
 func testDialer(t *testing.T, secure bool) {
@@ -203,7 +234,7 @@ func testDialerCloseEarly(t *testing.T, secure bool) {
 	go func() {
 		defer func() { done <- struct{}{} }()
 
-		_, err := l1.Accept()
+		c, err := l1.Accept()
 		if err != nil {
 			if strings.Contains(err.Error(), "closed") {
 				gotclosed <- struct{}{}
@@ -211,7 +242,13 @@ func testDialerCloseEarly(t *testing.T, secure bool) {
 			}
 			errs <- err
 		}
-		errs <- fmt.Errorf("got conn")
+
+		if _, err := c.Write([]byte("hello")); err != nil {
+			gotclosed <- struct{}{}
+			return
+		}
+
+		errs <- fmt.Errorf("wrote to conn")
 	}()
 
 	c, err := d2.Dial(ctx, p1.Addr, p1.ID)

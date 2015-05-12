@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
+	"time"
 
 	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -27,15 +29,23 @@ var ErrClosed = errors.New("connection closed")
 // ErrEcho is returned when we're attempting to handshake with the same keys and nonces.
 var ErrEcho = errors.New("same keys and nonces. one side talking to self.")
 
+// HandshakeTimeout governs how long the handshake will be allowed to take place for.
+// Making this number large means there could be many bogus connections waiting to
+// timeout in flight. Typical handshakes take ~3RTTs, so it should be completed within
+// seconds across a typical planet in the solar system.
+var HandshakeTimeout = time.Second * 30
+
 // nonceSize is the size of our nonces (in bytes)
 const nonceSize = 16
 
 // secureSession encapsulates all the parameters needed for encrypting
 // and decrypting traffic from an insecure channel.
 type secureSession struct {
-	secure msgio.ReadWriteCloser
+	ctx    context.Context
+	cancel context.CancelFunc
 
-	insecure  io.ReadWriter
+	secure    msgio.ReadWriteCloser
+	insecure  io.ReadWriteCloser
 	insecureM msgio.ReadWriter
 
 	localKey   ci.PrivKey
@@ -46,6 +56,10 @@ type secureSession struct {
 	remote encParams
 
 	sharedSecret []byte
+
+	handshakeMu   sync.Mutex // guards handshakeDone + handshakeErr
+	handshakeDone bool
+	handshakeErr  error
 }
 
 func (s *secureSession) Loggable() map[string]interface{} {
@@ -56,8 +70,9 @@ func (s *secureSession) Loggable() map[string]interface{} {
 	return m
 }
 
-func newSecureSession(local peer.ID, key ci.PrivKey) (*secureSession, error) {
+func newSecureSession(ctx context.Context, local peer.ID, key ci.PrivKey, insecure io.ReadWriteCloser) (*secureSession, error) {
 	s := &secureSession{localPeer: local, localKey: key}
+	s.ctx, s.cancel = context.WithCancel(ctx)
 
 	switch {
 	case s.localPeer == "":
@@ -66,18 +81,37 @@ func newSecureSession(local peer.ID, key ci.PrivKey) (*secureSession, error) {
 		return nil, errors.New("no local private key provided")
 	case !s.localPeer.MatchesPrivateKey(s.localKey):
 		return nil, fmt.Errorf("peer.ID does not match PrivateKey")
+	case insecure == nil:
+		return nil, fmt.Errorf("insecure ReadWriter is nil")
 	}
 
+	s.ctx = ctx
+	s.insecure = insecure
+	s.insecureM = msgio.NewReadWriter(insecure)
 	return s, nil
 }
 
-// handsahke performs initial communication over insecure channel to share
+func (s *secureSession) Handshake() error {
+	s.handshakeMu.Lock()
+	defer s.handshakeMu.Unlock()
+
+	if s.handshakeErr != nil {
+		return s.handshakeErr
+	}
+
+	if !s.handshakeDone {
+		s.handshakeErr = s.runHandshake()
+		s.handshakeDone = true
+	}
+	return s.handshakeErr
+}
+
+// runHandshake performs initial communication over insecure channel to share
 // keys, IDs, and initiate communication, assigning all necessary params.
 // requires the duplex channel to be a msgio.ReadWriter (for framed messaging)
-func (s *secureSession) handshake(ctx context.Context, insecure io.ReadWriter) error {
-
-	s.insecure = insecure
-	s.insecureM = msgio.NewReadWriter(insecure)
+func (s *secureSession) runHandshake() error {
+	ctx, cancel := context.WithTimeout(s.ctx, HandshakeTimeout) // remove
+	defer cancel()
 
 	// =============================================================================
 	// step 1. Propose -- propose cipher suite + send pubkeys + nonce
