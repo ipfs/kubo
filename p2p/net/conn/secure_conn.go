@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -16,15 +15,8 @@ import (
 
 // secureConn wraps another Conn object with an encrypted channel.
 type secureConn struct {
-
-	// the wrapped conn
-	insecure Conn
-
-	// secure io (wrapping insecure)
-	secure msgio.ReadWriteCloser
-
-	// secure Session
-	session secio.Session
+	insecure Conn          // the wrapped conn
+	secure   secio.Session // secure Session
 }
 
 // newConn constructs a new connection
@@ -37,23 +29,20 @@ func newSecureConn(ctx context.Context, sk ic.PrivKey, insecure Conn) (Conn, err
 		return nil, errors.New("insecure.LocalPeer() is nil")
 	}
 	if sk == nil {
-		panic("way")
 		return nil, errors.New("private key is nil")
 	}
 
 	// NewSession performs the secure handshake, which takes multiple RTT
 	sessgen := secio.SessionGenerator{LocalID: insecure.LocalPeer(), PrivateKey: sk}
-	session, err := sessgen.NewSession(ctx, insecure)
+	secure, err := sessgen.NewSession(ctx, insecure)
 	if err != nil {
 		return nil, err
 	}
 
 	conn := &secureConn{
 		insecure: insecure,
-		session:  session,
-		secure:   session.ReadWriter(),
+		secure:   secure,
 	}
-	log.Debugf("newSecureConn: %v to %v handshake success!", conn.LocalPeer(), conn.RemotePeer())
 	return conn, nil
 }
 
@@ -102,49 +91,49 @@ func (c *secureConn) RemoteMultiaddr() ma.Multiaddr {
 
 // LocalPeer is the Peer on this side
 func (c *secureConn) LocalPeer() peer.ID {
-	return c.session.LocalPeer()
+	return c.secure.LocalPeer()
 }
 
 // RemotePeer is the Peer on the remote side
 func (c *secureConn) RemotePeer() peer.ID {
-	return c.session.RemotePeer()
+	return c.secure.RemotePeer()
 }
 
 // LocalPrivateKey is the public key of the peer on this side
 func (c *secureConn) LocalPrivateKey() ic.PrivKey {
-	return c.session.LocalPrivateKey()
+	return c.secure.LocalPrivateKey()
 }
 
 // RemotePubKey is the public key of the peer on the remote side
 func (c *secureConn) RemotePublicKey() ic.PubKey {
-	return c.session.RemotePublicKey()
+	return c.secure.RemotePublicKey()
 }
 
 // Read reads data, net.Conn style
 func (c *secureConn) Read(buf []byte) (int, error) {
-	return c.secure.Read(buf)
+	return c.secure.ReadWriter().Read(buf)
 }
 
 // Write writes data, net.Conn style
 func (c *secureConn) Write(buf []byte) (int, error) {
-	return c.secure.Write(buf)
+	return c.secure.ReadWriter().Write(buf)
 }
 
 func (c *secureConn) NextMsgLen() (int, error) {
-	return c.secure.NextMsgLen()
+	return c.secure.ReadWriter().NextMsgLen()
 }
 
 // ReadMsg reads data, net.Conn style
 func (c *secureConn) ReadMsg() ([]byte, error) {
-	return c.secure.ReadMsg()
+	return c.secure.ReadWriter().ReadMsg()
 }
 
 // WriteMsg writes data, net.Conn style
 func (c *secureConn) WriteMsg(buf []byte) error {
-	return c.secure.WriteMsg(buf)
+	return c.secure.ReadWriter().WriteMsg(buf)
 }
 
 // ReleaseMsg releases a buffer
 func (c *secureConn) ReleaseMsg(m []byte) {
-	c.secure.ReleaseMsg(m)
+	c.secure.ReadWriter().ReleaseMsg(m)
 }

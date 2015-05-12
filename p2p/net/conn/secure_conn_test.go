@@ -23,6 +23,15 @@ func upgradeToSecureConn(t *testing.T, ctx context.Context, sk ic.PrivKey, c Con
 	if err != nil {
 		return nil, err
 	}
+
+	// need to read + write, as that's what triggers the handshake.
+	h := []byte("hello")
+	if _, err := s.Write(h); err != nil {
+		return nil, err
+	}
+	if _, err := s.Read(h); err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
