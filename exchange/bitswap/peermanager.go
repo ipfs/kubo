@@ -53,24 +53,24 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *PeerManager) SendBlock(env *engine.Envelope) {
+func (pm *PeerManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 	// Blocks need to be sent synchronously to maintain proper backpressure
 	// throughout the network stack
 	defer env.Sent()
 
 	msg := bsmsg.New()
 	msg.AddBlock(env.Block)
-	err := pm.network.SendMessage(context.TODO(), env.Peer, msg)
+	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
 		log.Error(err)
 	}
 }
 
-func (pm *PeerManager) startPeerHandler(p peer.ID) {
+func (pm *PeerManager) startPeerHandler(ctx context.Context, p peer.ID) *msgQueue {
 	_, ok := pm.peers[p]
 	if ok {
 		// TODO: log an error?
-		return
+		return nil
 	}
 
 	mq := new(msgQueue)
@@ -79,7 +79,8 @@ func (pm *PeerManager) startPeerHandler(p peer.ID) {
 	mq.p = p
 
 	pm.peers[p] = mq
-	go pm.runQueue(mq)
+	go pm.runQueue(ctx, mq)
+	return mq
 }
 
 func (pm *PeerManager) stopPeerHandler(p peer.ID) {
@@ -93,14 +94,14 @@ func (pm *PeerManager) stopPeerHandler(p peer.ID) {
 	delete(pm.peers, p)
 }
 
-func (pm *PeerManager) runQueue(mq *msgQueue) {
+func (pm *PeerManager) runQueue(ctx context.Context, mq *msgQueue) {
 	for {
 		select {
 		case <-mq.work: // there is work to be done
 
 			// TODO: this might not need to be done every time, figure out
 			// a good heuristic
-			err := pm.network.ConnectTo(context.TODO(), mq.p)
+			err := pm.network.ConnectTo(ctx, mq.p)
 			if err != nil {
 				log.Error(err)
 				// TODO: cant connect, what now?
@@ -114,7 +115,7 @@ func (pm *PeerManager) runQueue(mq *msgQueue) {
 
 			if wlm != nil && !wlm.Empty() {
 				// send wantlist updates
-				err = pm.network.SendMessage(context.TODO(), mq.p, wlm)
+				err = pm.network.SendMessage(ctx, mq.p, wlm)
 				if err != nil {
 					log.Error("bitswap send error: ", err)
 					// TODO: what do we do if this fails?
@@ -162,13 +163,12 @@ func (pm *PeerManager) Run(ctx context.Context) {
 			p, ok := pm.peers[msgp.to]
 			if !ok {
 				//TODO: decide, drop message? or dial?
-				pm.startPeerHandler(msgp.to)
-				p = pm.peers[msgp.to]
+				p = pm.startPeerHandler(ctx, msgp.to)
 			}
 
 			p.addMessage(msgp.msg)
 		case p := <-pm.connect:
-			pm.startPeerHandler(p)
+			pm.startPeerHandler(ctx, p)
 		case p := <-pm.disconnect:
 			pm.stopPeerHandler(p)
 		case <-ctx.Done():

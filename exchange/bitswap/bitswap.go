@@ -316,8 +316,6 @@ func (bs *Bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 
 // TODO(brian): handle errors
 func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) error {
-	//defer log.EventBegin(ctx, "receiveMessage", p, incoming).Done()
-
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
 	bs.engine.MessageReceived(p, incoming)

@@ -46,6 +46,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 		bs.rebroadcastWorker(ctx)
 	})
 
+	// Start up a worker to manage sending out provides messages
 	px.Go(func(px process.Process) {
 		bs.provideCollector(ctx)
 	})
@@ -71,8 +72,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context) {
 					continue
 				}
 
-				//log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
-				bs.pm.SendBlock(envelope)
+				bs.pm.SendBlock(ctx, envelope)
 			case <-ctx.Done():
 				return
 			}
