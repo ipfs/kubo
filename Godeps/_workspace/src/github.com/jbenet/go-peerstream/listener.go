@@ -8,6 +8,13 @@ import (
 	tec "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
 )
 
+// AcceptConcurrency is how many connections can simultaneously be
+// in process of being accepted. Handshakes can sometimes occurr as
+// part of this process, so it may take some time. It is imporant to
+// rate limit lest a malicious influx of connections would cause our
+// node to consume all its resources accepting new connections.
+var AcceptConcurrency = 200
+
 type Listener struct {
 	netList net.Listener
 	groups  groupSet
@@ -73,6 +80,9 @@ func (l *Listener) accept() {
 	// Using the lib: https://godoc.org/github.com/jbenet/go-temp-err-catcher
 	var catcher tec.TempErrCatcher
 
+	// rate limit concurrency
+	limit := make(chan struct{}, AcceptConcurrency)
+
 	// loop forever accepting connections
 	for {
 		conn, err := l.netList.Accept()
@@ -85,13 +95,18 @@ func (l *Listener) accept() {
 		}
 
 		// add conn to swarm and listen for incoming streams
-		// log.Printf("accepted conn %s\n", conn.RemoteAddr())
-		conn2, err := l.swarm.addConn(conn, true)
-		if err != nil {
-			l.acceptErr <- err
-			continue
-		}
-		conn2.groups.AddSet(&l.groups) // add out groups
+		// do this in a goroutine to avoid blocking the Accept loop.
+		// note that this does not rate limit accepts.
+		limit <- struct{}{} // sema down
+		go func(conn net.Conn) {
+			defer func() { <-limit }() // sema up
+
+			conn2, err := l.swarm.addConn(conn, true)
+			if err != nil {
+				l.acceptErr <- err
+			}
+			conn2.groups.AddSet(&l.groups) // add out groups
+		}(conn)
 	}
 }
 
