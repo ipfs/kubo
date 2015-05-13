@@ -13,6 +13,7 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
+	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 	u "github.com/ipfs/go-ipfs/util"
@@ -33,6 +34,28 @@ func TestClose(t *testing.T) {
 
 	bitswap.Exchange.Close()
 	bitswap.Exchange.GetBlock(context.Background(), block.Key())
+}
+
+func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
+
+	rs := mockrouting.NewServer()
+	net := tn.VirtualNetwork(rs, delay.Fixed(kNetworkDelay))
+	g := NewTestSessionGenerator(net)
+	defer g.Close()
+
+	block := blocks.NewBlock([]byte("block"))
+	pinfo := p2ptestutil.RandTestBogusIdentityOrFatal(t)
+	rs.Client(pinfo).Provide(context.Background(), block.Key()) // but not on network
+
+	solo := g.Next()
+	defer solo.Exchange.Close()
+
+	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+	_, err := solo.Exchange.GetBlock(ctx, block.Key())
+
+	if err != context.DeadlineExceeded {
+		t.Fatal("Expected DeadlineExceeded error")
+	}
 }
 
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {

@@ -46,8 +46,8 @@ type cancellation struct {
 type msgQueue struct {
 	p peer.ID
 
-	lk    sync.Mutex
-	wlmsg bsmsg.BitSwapMessage
+	outlk sync.Mutex
+	out   bsmsg.BitSwapMessage
 
 	work chan struct{}
 	done chan struct{}
@@ -106,11 +106,11 @@ func (pm *PeerManager) runQueue(mq *msgQueue) {
 				// TODO: cant connect, what now?
 			}
 
-			// grab messages from queue
-			mq.lk.Lock()
-			wlm := mq.wlmsg
-			mq.wlmsg = nil
-			mq.lk.Unlock()
+			// grab outgoin message
+			mq.outlk.Lock()
+			wlm := mq.out
+			mq.out = nil
+			mq.outlk.Unlock()
 
 			if wlm != nil && !wlm.Empty() {
 				// send wantlist updates
@@ -178,26 +178,30 @@ func (pm *PeerManager) Run(ctx context.Context) {
 }
 
 func (mq *msgQueue) addMessage(msg bsmsg.BitSwapMessage) {
-	mq.lk.Lock()
+	mq.outlk.Lock()
 	defer func() {
-		mq.lk.Unlock()
+		mq.outlk.Unlock()
 		select {
 		case mq.work <- struct{}{}:
 		default:
 		}
 	}()
 
-	if mq.wlmsg == nil || msg.Full() {
-		mq.wlmsg = msg
+	// if we have no message held, or the one we are given is full
+	// overwrite the one we are holding
+	if mq.out == nil || msg.Full() {
+		mq.out = msg
 		return
 	}
 
 	// TODO: add a msg.Combine(...) method
+	// otherwise, combine the one we are holding with the
+	// one passed in
 	for _, e := range msg.Wantlist() {
 		if e.Cancel {
-			mq.wlmsg.Cancel(e.Key)
+			mq.out.Cancel(e.Key)
 		} else {
-			mq.wlmsg.AddEntry(e.Key, e.Priority)
+			mq.out.AddEntry(e.Key, e.Priority)
 		}
 	}
 }
