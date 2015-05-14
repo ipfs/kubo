@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
@@ -123,11 +124,7 @@ remains to be implemented.
 
 				// If the file is not a folder, then let's get the root of that
 				// folder and attempt to load the appropriate .ipfsignore.
-				localIgnorePatterns := ignoreFilePatterns
-				if !file.IsDirectory() {
-					parentPath := path.Dir(file.FileName())
-					localIgnorePatterns = checkForLocalIgnorePatterns(parentPath, ignoreFilePatterns)
-				}
+				localIgnorePatterns := checkForParentIgnorePatterns(file.FileName(), ignoreFilePatterns)
 
 				addParams := adder{n, outChan, progress, wrap, hidden}
 				rootnd, err := addParams.addFile(file, localIgnorePatterns)
@@ -236,6 +233,7 @@ remains to be implemented.
 	Type: AddedObject{},
 }
 
+// Internal structure for holding the switches passed to the `add` call
 type adder struct {
 	node     *core.IpfsNode
 	out      chan interface{}
@@ -244,6 +242,7 @@ type adder struct {
 	hidden   bool
 }
 
+// Perform the actual add & pin locally, outputting results to reader
 func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
 	if err != nil {
@@ -258,6 +257,9 @@ func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	return node, nil
 }
 
+// Add the given file while respecting the params and ignoreFilePatterns.
+// Note that ignoreFilePatterns is not part of the struct as it may change while
+// we dig through folders.
 func (params *adder) addFile(file files.File, ignoreFilePatterns []ignore.GitIgnore) (*dag.Node, error) {
 	// Check if file is hidden
 	if fileIsHidden := files.IsHidden(file); fileIsHidden && !params.hidden {
@@ -360,7 +362,10 @@ func (params *adder) addDir(file files.File, ignoreFilePatterns []ignore.GitIgno
 	return tree, nil
 }
 
+// this helper checks the local path for any .ipfsignore file that need to be
+// respected. returns the updated or the original GitIgnore.
 func checkForLocalIgnorePatterns(dir string, ignoreFilePatterns []ignore.GitIgnore) []ignore.GitIgnore {
+
 	ignorePathname := path.Join(dir, ".ipfsignore")
 
 	localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
@@ -370,6 +375,36 @@ func checkForLocalIgnorePatterns(dir string, ignoreFilePatterns []ignore.GitIgno
 	} else {
 		return ignoreFilePatterns
 	}
+}
+
+// this helper just walks the parent directories of the given path looking for
+// any .ipfsignore files in those directories.
+func checkForParentIgnorePatterns(givenPath string, ignoreFilePatterns []ignore.GitIgnore) []ignore.GitIgnore {
+	absolutePath, err := filepath.Abs(givenPath)
+
+	if err != nil {
+		return ignoreFilePatterns
+	}
+
+	// break out the absolute path
+	dir := filepath.Dir(absolutePath)
+	pathComponents := strings.Split(dir, "\\")
+
+	// We loop through each parent component attempting to find an .ipfsignore file
+	for index, _ := range pathComponents {
+
+		pathParts := make([]string, len(pathComponents)+1)
+		copy(pathParts, pathComponents[0:index+1])
+		ignorePathname := path.Join(append(pathParts, ".ipfsignore")...)
+
+		localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
+		if ignoreErr == nil && localIgnore != nil {
+			log.Debugf("found ignore file: %s", dir)
+			ignoreFilePatterns = append(ignoreFilePatterns, *localIgnore)
+		}
+	}
+
+	return ignoreFilePatterns
 }
 
 // outputDagnode sends dagnode info over the output channel
