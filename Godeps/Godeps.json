@@ -238,6 +238,10 @@
 			"Rev": "5e4ce6bc0ecd3472f6f943666d84876691be2ced"
 		},
 		{
+			"ImportPath": "github.com/sabhiram/go-git-ignore",
+			"Rev": "f9a1328f5fc50414f8751f587774ccd3f49b492b"
+		},
+		{
 			"ImportPath": "github.com/steakknife/hamming",
 			"Comment": "0.0.10",
 			"Rev": "8bad99011016569c05320e51be39c648679c5b73"

@@ -8,9 +8,8 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
+	ignore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/sabhiram/go-git-ignore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	ignore "github.com/sabhiram/go-git-ignore"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
