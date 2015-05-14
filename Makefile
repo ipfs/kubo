@@ -61,3 +61,11 @@ test_all_commits:
 	@echo "WARNING: this will 'git rebase --exec'."
 	@test/bin/continueyn
 	GIT_EDITOR=true git rebase -i --exec "make test" origin/master
+
+test_all_commits_travis:
+	# these are needed because travis.
+	# we don't use this yet because it takes way too long.
+	git config --global user.email "nemo@ipfs.io"
+	git config --global user.name "IPFS BOT"
+	git fetch origin master:master
+	GIT_EDITOR=true git rebase -i --exec "make test" master
