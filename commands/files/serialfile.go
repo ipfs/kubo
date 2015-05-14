@@ -3,7 +3,7 @@ package files
 import (
 	"io"
 	"os"
-	fp "path"
+	fp "path/filepath"
 	"sort"
 	"syscall"
 )
