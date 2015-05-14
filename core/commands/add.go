@@ -5,7 +5,6 @@ import (
 	"io"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
@@ -389,7 +388,7 @@ func checkForParentIgnorePatterns(givenPath string, ignoreFilePatterns []ignore.
 
 	// break out the absolute path
 	dir := filepath.Dir(absolutePath)
-	pathComponents := strings.Split(dir, strconv.QuoteRune(filepath.Separator))
+	pathComponents := strings.Split(dir, string(filepath.Separator))
 
 	// We loop through each parent component attempting to find an .ipfsignore file
 	for index, _ := range pathComponents {
@@ -400,7 +399,7 @@ func checkForParentIgnorePatterns(givenPath string, ignoreFilePatterns []ignore.
 
 		localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
 		if ignoreErr == nil && localIgnore != nil {
-			log.Debugf("found ignore file: %s", dir)
+			log.Debugf("found ignore file: %s", ignorePathname)
 			ignoreFilePatterns = append(ignoreFilePatterns, *localIgnore)
 		}
 	}
