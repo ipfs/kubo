@@ -202,20 +202,27 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		stdin = nil
 	}
 
+	hasStream := false
+	numRequired := 0
+	// count required argument definitions
+	// and see if we have a stream argument
+	for _, argDef := range argDefs {
+		if argDef.Type == cmds.ArgStream {
+			hasStream = true
+		}
+		if argDef.Required {
+			numRequired++
+		}
+	}
 	// check if stdin is coming from terminal or is being piped in
 	if stdin != nil {
 		if term, err := isTerminal(stdin); err != nil {
 			return nil, nil, err
 		} else if term {
-			stdin = nil // set to nil so we ignore it
-		}
-	}
-
-	// count required argument definitions
-	numRequired := 0
-	for _, argDef := range argDefs {
-		if argDef.Required {
-			numRequired++
+			if hasStream == false {
+				stdin = nil // set to nil so we ignore it
+			}
+			// TURN BUFFERING OFF
 		}
 	}
 
@@ -249,7 +256,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 
 		var err error
-		if argDef.Type == cmds.ArgString {
+		switch argDef.Type {
+		case cmds.ArgString:
 			if stdin == nil {
 				// add string values
 				stringArgs, inputs = appendString(stringArgs, inputs)
@@ -262,7 +270,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				}
 			}
 
-		} else if argDef.Type == cmds.ArgFile {
+		case cmds.ArgFile:
 			if stdin == nil {
 				// treat stringArg values as file paths
 				fileArgs, inputs, err = appendFile(fileArgs, inputs, argDef, recursive)
@@ -274,6 +282,12 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				// if we have a stdin, create a file from it
 				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
 			}
+		case cmds.ArgStream:
+			if argDef.SupportsStdin {
+				// if we have a stdin, create a file from it
+				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+				stdin = nil
+			}
 		}
 
 		argDefIndex++
@@ -283,6 +297,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	if len(argDefs) > argDefIndex {
 		for _, argDef := range argDefs[argDefIndex:] {
 			if argDef.Required {
+				panic(3)
 				return nil, nil, fmt.Errorf("Argument '%s' is required", argDef.Name)
 			}
 		}

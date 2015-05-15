@@ -5,6 +5,7 @@ type ArgumentType int
 const (
 	ArgString ArgumentType = iota
 	ArgFile
+	ArgStream
 )
 
 type Argument struct {
@@ -17,6 +18,7 @@ type Argument struct {
 	Description   string
 }
 
+// Regular string arugment passed to the command
 func StringArg(name string, required, variadic bool, description string) Argument {
 	return Argument{
 		Name:        name,
@@ -27,6 +29,8 @@ func StringArg(name string, required, variadic bool, description string) Argumen
 	}
 }
 
+// Opens the argument name as a file, supports EnableStdin and EnableRecursive
+// EnableStdin will use stdin as the file source only if it's not from the terminal
 func FileArg(name string, required, variadic bool, description string) Argument {
 	return Argument{
 		Name:        name,
@@ -37,10 +41,23 @@ func FileArg(name string, required, variadic bool, description string) Argument 
 	}
 }
 
+// Used for piping to a command, differs from FileArg with the SupportsStdin set to true
+// by making sure we always capture stdin.
+// FileArg will only use stdin if the input is not from the keyboard (terminal).
+func StreamArg(name string, required, variadic bool, description string) Argument {
+	return Argument{
+		Name:        name,
+		Type:        ArgStream,
+		Required:    required,
+		Variadic:    variadic,
+		Description: description,
+		SupportsStdin: true,       // Always
+	}
+}
+
 // TODO: modifiers might need a different API?
 //       e.g. passing enum values into arg constructors variadically
 //       (`FileArg("file", ArgRequired, ArgStdin, ArgRecursive)`)
-
 func (a Argument) EnableStdin() Argument {
 	a.SupportsStdin = true
 	return a
