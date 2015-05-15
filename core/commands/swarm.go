@@ -148,8 +148,9 @@ var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Open connection to a given address",
 		ShortDescription: `
-'ipfs swarm connect' opens a connection to a peer address. The address format
-is an ipfs multiaddr:
+'ipfs swarm connect' opens a new direct connection to a peer address.
+
+The address format is an ipfs multiaddr:
 
 ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
