@@ -52,10 +52,10 @@ func parseEntry(txt string) (path.Path, error) {
 }
 
 func tryParseDnsLink(txt string) (path.Path, error) {
-	parts := strings.Split(txt, "=")
-	if len(parts) == 1 || parts[0] != "dnslink" {
-		return "", errors.New("not a valid dnslink entry")
+	parts := strings.SplitN(txt, "=", 2)
+	if len(parts) == 2 && parts[0] == "dnslink" {
+		return path.ParsePath(parts[1])
 	}
 
-	return path.ParsePath(parts[1])
+	return "", errors.New("not a valid dnslink entry")
 }
