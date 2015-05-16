@@ -128,6 +128,7 @@ type Bitswap struct {
 
 	provideKeys chan u.Key
 
+	counterLk      sync.Mutex
 	blocksRecvd    int
 	dupBlocksRecvd int
 }
@@ -281,10 +282,12 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	bs.wm.CancelWants(keys)
 
 	for _, block := range incoming.Blocks() {
+		bs.counterLk.Lock()
 		bs.blocksRecvd++
 		if has, err := bs.blockstore.Has(block.Key()); err == nil && has {
 			bs.dupBlocksRecvd++
 		}
+		bs.counterLk.Unlock()
 		log.Debugf("got block %s from %s", block, p)
 
 		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)

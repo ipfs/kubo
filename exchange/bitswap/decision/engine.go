@@ -210,11 +210,11 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
-			log.Errorf("cancel %s", entry.Key)
+			log.Debugf("cancel %s", entry.Key)
 			l.CancelWant(entry.Key)
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
-			log.Errorf("wants %s - %d", entry.Key, entry.Priority)
+			log.Debugf("wants %s - %d", entry.Key, entry.Priority)
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				e.peerRequestQueue.Push(entry.Entry, p)

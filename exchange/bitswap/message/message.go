@@ -162,7 +162,7 @@ func (m *impl) ToProto() *pb.Message {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(string(e.Key)),
 			Priority: proto.Int32(int32(e.Priority)),
-			Cancel:   &e.Cancel,
+			Cancel:   proto.Bool(e.Cancel),
 		})
 	}
 	for _, b := range m.Blocks() {

@@ -62,12 +62,10 @@ type msgQueue struct {
 }
 
 func (pm *WantManager) WantBlocks(ks []u.Key) {
-	log.Error("WANT: ", ks)
 	pm.addEntries(ks, false)
 }
 
 func (pm *WantManager) CancelWants(ks []u.Key) {
-	log.Error("CANCEL: ", ks)
 	pm.addEntries(ks, true)
 }
 
@@ -147,18 +145,12 @@ func (pm *WantManager) runQueue(ctx context.Context, mq *msgQueue) {
 			// grab outgoing message
 			mq.outlk.Lock()
 			wlm := mq.out
+			if wlm == nil || wlm.Empty() {
+				mq.outlk.Unlock()
+				continue
+			}
 			mq.out = nil
 			mq.outlk.Unlock()
-
-			// no message or empty message, continue
-			if wlm == nil {
-				log.Error("nil wantlist")
-				continue
-			}
-			if wlm.Empty() {
-				log.Error("empty wantlist")
-				continue
-			}
 
 			// send wantlist updates
 			err = pm.network.SendMessage(ctx, mq.p, wlm)
@@ -186,22 +178,18 @@ func (pm *WantManager) Run(ctx context.Context) {
 		select {
 		case entries := <-pm.incoming:
 
-			msg := bsmsg.New()
-			msg.SetFull(false)
 			// add changes to our wantlist
 			for _, e := range entries {
 				if e.Cancel {
 					pm.wl.Remove(e.Key)
-					msg.Cancel(e.Key)
 				} else {
 					pm.wl.Add(e.Key, e.Priority)
-					msg.AddEntry(e.Key, e.Priority)
 				}
 			}
 
 			// broadcast those wantlist changes
 			for _, p := range pm.peers {
-				p.addMessage(msg)
+				p.addMessage(entries)
 			}
 
 		case p := <-pm.connect:
@@ -223,7 +211,7 @@ func newMsgQueue(p peer.ID) *msgQueue {
 	return mq
 }
 
-func (mq *msgQueue) addMessage(msg bsmsg.BitSwapMessage) {
+func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	mq.outlk.Lock()
 	defer func() {
 		mq.outlk.Unlock()
@@ -233,26 +221,19 @@ func (mq *msgQueue) addMessage(msg bsmsg.BitSwapMessage) {
 		}
 	}()
 
-	if msg.Full() {
-		log.Error("GOt FULL MESSAGE")
-	}
-
 	// if we have no message held, or the one we are given is full
 	// overwrite the one we are holding
-	if mq.out == nil || msg.Full() {
-		mq.out = msg
-		return
+	if mq.out == nil {
+		mq.out = bsmsg.New()
 	}
 
 	// TODO: add a msg.Combine(...) method
 	// otherwise, combine the one we are holding with the
 	// one passed in
-	for _, e := range msg.Wantlist() {
+	for _, e := range entries {
 		if e.Cancel {
-			log.Error("add message cancel: ", e.Key, mq.p)
 			mq.out.Cancel(e.Key)
 		} else {
-			log.Error("add message want: ", e.Key, mq.p)
 			mq.out.AddEntry(e.Key, e.Priority)
 		}
 	}
