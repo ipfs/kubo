@@ -56,7 +56,7 @@ The resolver will give:
 
 		recursive, _, _ := req.Option("recursive").Bool()
 		name := req.Arguments()[0]
-		var resolver namesys.DNSResolver
+		resolver := namesys.NewDNSResolver()
 
 		depth := 1
 		if recursive {

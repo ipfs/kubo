@@ -11,10 +11,24 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
+type LookupTXTFunc func(name string) (txt []string, err error)
+
 // DNSResolver implements a Resolver on DNS domains
 type DNSResolver struct {
+	lookupTXT LookupTXTFunc
 	// TODO: maybe some sort of caching?
 	// cache would need a timeout
+}
+
+// NewDNSResolver constructs a name resolver using DNS TXT records.
+func NewDNSResolver() Resolver {
+	return &DNSResolver{lookupTXT: net.LookupTXT}
+}
+
+// newDNSResolver constructs a name resolver using DNS TXT records,
+// returning a resolver instead of NewDNSResolver's Resolver.
+func newDNSResolver() resolver {
+	return &DNSResolver{lookupTXT: net.LookupTXT}
 }
 
 // Resolve implements Resolver.
@@ -36,7 +50,7 @@ func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, 
 	}
 
 	log.Infof("DNSResolver resolving %s", name)
-	txt, err := net.LookupTXT(name)
+	txt, err := r.lookupTXT(name)
 	if err != nil {
 		return "", err
 	}

@@ -27,7 +27,7 @@ type mpns struct {
 func NewNameSystem(r routing.IpfsRouting) NameSystem {
 	return &mpns{
 		resolvers: map[string]resolver{
-			"dns":      new(DNSResolver),
+			"dns":      newDNSResolver(),
 			"proquint": new(ProquintResolver),
 			"dht":      newRoutingResolver(r),
 		},
