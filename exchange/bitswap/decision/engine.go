@@ -92,7 +92,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 		bs:               bs,
 		peerRequestQueue: newPRQ(),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
-		workSignal:       make(chan struct{}),
+		workSignal:       make(chan struct{}, 1),
 	}
 	go e.taskWorker(ctx)
 	return e
@@ -156,7 +156,15 @@ func (e *Engine) nextEnvelope(ctx context.Context) (*Envelope, error) {
 		return &Envelope{
 			Peer:  nextTask.Target,
 			Block: block,
-			Sent:  nextTask.Done,
+			Sent: func() {
+				nextTask.Done()
+				select {
+				case e.workSignal <- struct{}{}:
+					// work completing may mean that our queue will provide new
+					// work to be done.
+				default:
+				}
+			},
 		}, nil
 	}
 }
@@ -202,11 +210,11 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
-			log.Debugf("cancel %s", entry.Key)
+			log.Errorf("cancel %s", entry.Key)
 			l.CancelWant(entry.Key)
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
-			log.Debugf("wants %s - %d", entry.Key, entry.Priority)
+			log.Errorf("wants %s - %d", entry.Key, entry.Priority)
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				e.peerRequestQueue.Push(entry.Entry, p)

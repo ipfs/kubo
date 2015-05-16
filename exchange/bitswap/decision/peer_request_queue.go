@@ -51,16 +51,16 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 		tl.partners[to] = partner
 	}
 
-	if task, ok := tl.taskMap[taskKey(to, entry.Key)]; ok {
-		task.Entry.Priority = entry.Priority
-		partner.taskQueue.Update(task.index)
-		return
-	}
-
 	partner.activelk.Lock()
 	defer partner.activelk.Unlock()
 	_, ok = partner.activeBlocks[entry.Key]
 	if ok {
+		return
+	}
+
+	if task, ok := tl.taskMap[taskKey(to, entry.Key)]; ok {
+		task.Entry.Priority = entry.Priority
+		partner.taskQueue.Update(task.index)
 		return
 	}
 
@@ -219,6 +219,12 @@ func partnerCompare(a, b pq.Elem) bool {
 	}
 	if pb.requests == 0 {
 		return true
+	}
+	if pa.active == pb.active {
+		// sorting by taskQueue.Len() aids in cleaning out trash entries faster
+		// if we sorted instead by requests, one peer could potentially build up
+		// a huge number of cancelled entries in the queue resulting in a memory leak
+		return pa.taskQueue.Len() > pb.taskQueue.Len()
 	}
 	return pa.active < pb.active
 }

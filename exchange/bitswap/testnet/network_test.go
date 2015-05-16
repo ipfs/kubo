@@ -29,19 +29,17 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 	responder.SetDelegate(lambda(func(
 		ctx context.Context,
 		fromWaiter peer.ID,
-		msgFromWaiter bsmsg.BitSwapMessage) error {
+		msgFromWaiter bsmsg.BitSwapMessage) {
 
 		msgToWaiter := bsmsg.New()
 		msgToWaiter.AddBlock(blocks.NewBlock([]byte(expectedStr)))
 		waiter.SendMessage(ctx, fromWaiter, msgToWaiter)
-
-		return nil
 	}))
 
 	waiter.SetDelegate(lambda(func(
 		ctx context.Context,
 		fromResponder peer.ID,
-		msgFromResponder bsmsg.BitSwapMessage) error {
+		msgFromResponder bsmsg.BitSwapMessage) {
 
 		// TODO assert that this came from the correct peer and that the message contents are as expected
 		ok := false
@@ -54,9 +52,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 
 		if !ok {
 			t.Fatal("Message not received from the responder")
-
 		}
-		return nil
 	}))
 
 	messageSentAsync := bsmsg.New()
@@ -71,7 +67,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 }
 
 type receiverFunc func(ctx context.Context, p peer.ID,
-	incoming bsmsg.BitSwapMessage) error
+	incoming bsmsg.BitSwapMessage)
 
 // lambda returns a Receiver instance given a receiver function
 func lambda(f receiverFunc) bsnet.Receiver {
@@ -81,12 +77,12 @@ func lambda(f receiverFunc) bsnet.Receiver {
 }
 
 type lambdaImpl struct {
-	f func(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) error
+	f func(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage)
 }
 
 func (lam *lambdaImpl) ReceiveMessage(ctx context.Context,
-	p peer.ID, incoming bsmsg.BitSwapMessage) error {
-	return lam.f(ctx, p, incoming)
+	p peer.ID, incoming bsmsg.BitSwapMessage) {
+	lam.f(ctx, p, incoming)
 }
 
 func (lam *lambdaImpl) ReceiveError(err error) {

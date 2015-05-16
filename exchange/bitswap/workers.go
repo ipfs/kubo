@@ -42,9 +42,11 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	}
 
 	// Start up a worker to manage periodically resending our wantlist out to peers
-	px.Go(func(px process.Process) {
-		bs.rebroadcastWorker(ctx)
-	})
+	/*
+		px.Go(func(px process.Process) {
+			bs.rebroadcastWorker(ctx)
+		})
+	*/
 
 	// Start up a worker to manage sending out provides messages
 	px.Go(func(px process.Process) {
@@ -72,7 +74,7 @@ func (bs *Bitswap) taskWorker(ctx context.Context) {
 					continue
 				}
 
-				bs.pm.SendBlock(ctx, envelope)
+				bs.wm.SendBlock(ctx, envelope)
 			case <-ctx.Done():
 				return
 			}
@@ -146,29 +148,18 @@ func (bs *Bitswap) clientWorker(parent context.Context) {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-			for i, k := range keys {
-				bs.wantlist.Add(k, kMaxPriority-i)
-			}
 
-			done := make(chan struct{})
-			go func() {
-				bs.wantNewBlocks(req.ctx, keys)
-				close(done)
-			}()
+			bs.wm.WantBlocks(keys)
 
 			// NB: Optimization. Assumes that providers of key[0] are likely to
 			// be able to provide for all keys. This currently holds true in most
 			// every situation. Later, this assumption may not hold as true.
 			child, cancel := context.WithTimeout(req.ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
-			err := bs.sendWantlistToPeers(req.ctx, providers)
-			if err != nil {
-				log.Debugf("error sending wantlist: %s", err)
+			for p := range providers {
+				go bs.network.ConnectTo(req.ctx, p)
 			}
 			cancel()
-
-			// Wait for wantNewBlocks to finish
-			<-done
 
 		case <-parent.Done():
 			return
@@ -180,22 +171,24 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
-	broadcastSignal := time.After(rebroadcastDelay.Get())
-	tick := time.Tick(10 * time.Second)
+	broadcastSignal := time.NewTicker(rebroadcastDelay.Get())
+	defer broadcastSignal.Stop()
+
+	tick := time.NewTicker(10 * time.Second)
+	defer tick.Stop()
 
 	for {
 		select {
-		case <-tick:
-			n := bs.wantlist.Len()
+		case <-tick.C:
+			n := bs.wm.wl.Len()
 			if n > 0 {
 				log.Debug(n, "keys in bitswap wantlist")
 			}
-		case <-broadcastSignal: // resend unfulfilled wantlist keys
-			entries := bs.wantlist.Entries()
+		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
+			entries := bs.wm.wl.Entries()
 			if len(entries) > 0 {
-				bs.sendWantlistToProviders(ctx, entries)
+				bs.connectToProviders(ctx, entries)
 			}
-			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case <-parent.Done():
 			return
 		}

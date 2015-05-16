@@ -72,7 +72,8 @@ func (n *network) deliver(
 
 	n.delay.Wait()
 
-	return r.ReceiveMessage(context.TODO(), from, message)
+	r.ReceiveMessage(context.TODO(), from, message)
+	return nil
 }
 
 type networkClient struct {

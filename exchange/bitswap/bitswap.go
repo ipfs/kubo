@@ -4,7 +4,6 @@ package bitswap
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -23,7 +22,6 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
-	pset "github.com/ipfs/go-ipfs/util/peerset" // TODO move this to peerstore
 )
 
 var log = eventlog.Logger("bitswap")
@@ -45,9 +43,7 @@ const (
 	provideWorkers     = 4
 )
 
-var (
-	rebroadcastDelay = delay.Fixed(time.Second * 10)
-)
+var rebroadcastDelay = delay.Fixed(time.Second * 10)
 
 // New initializes a BitSwap instance that communicates over the provided
 // BitSwapNetwork. This function registers the returned instance as the network
@@ -86,14 +82,13 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
-		wantlist:      wantlist.NewThreadSafe(),
 		batchRequests: make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan u.Key),
-		pm:            NewPeerManager(network),
+		wm:            NewWantManager(network),
 	}
-	go bs.pm.Run(ctx)
+	go bs.wm.Run(ctx)
 	network.SetDelegate(bs)
 
 	// Start up bitswaps async worker routines
@@ -112,7 +107,7 @@ type Bitswap struct {
 
 	// the peermanager manages sending messages to peers in a way that
 	// wont block bitswap operation
-	pm *PeerManager
+	wm *WantManager
 
 	// blockstore is the local database
 	// NB: ensure threadsafety
@@ -126,8 +121,6 @@ type Bitswap struct {
 	batchRequests chan *blockRequest
 
 	engine *decision.Engine
-
-	wantlist *wantlist.ThreadSafe
 
 	process process.Process
 
@@ -233,59 +226,20 @@ func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 		return err
 	}
 
-	bs.wantlist.Remove(blk.Key())
 	bs.notifications.Publish(blk)
 	select {
 	case bs.newBlocks <- blk:
+		// send block off to be reprovided
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 	return nil
 }
 
-func (bs *Bitswap) sendWantlistMsgToPeers(ctx context.Context, m bsmsg.BitSwapMessage, peers <-chan peer.ID) error {
-	set := pset.New()
-
-loop:
-	for {
-		select {
-		case peerToQuery, ok := <-peers:
-			if !ok {
-				break loop
-			}
-
-			if !set.TryAdd(peerToQuery) { //Do once per peer
-				continue
-			}
-
-			bs.pm.Send(peerToQuery, m)
-		case <-ctx.Done():
-			return nil
-		}
-	}
-	return nil
-}
-
-func (bs *Bitswap) sendWantlistToPeers(ctx context.Context, peers <-chan peer.ID) error {
-	entries := bs.wantlist.Entries()
-	if len(entries) == 0 {
-		return nil
-	}
-	message := bsmsg.New()
-	message.SetFull(true)
-	for _, wanted := range entries {
-		message.AddEntry(wanted.Key, wanted.Priority)
-	}
-	return bs.sendWantlistMsgToPeers(ctx, message, peers)
-}
-
-func (bs *Bitswap) sendWantlistToProviders(ctx context.Context, entries []wantlist.Entry) {
+func (bs *Bitswap) connectToProviders(ctx context.Context, entries []wantlist.Entry) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
-	// prepare a channel to hand off to sendWantlistToPeers
-	sendToPeers := make(chan peer.ID)
 
 	// Get providers for all entries in wantlist (could take a while)
 	wg := sync.WaitGroup{}
@@ -298,95 +252,59 @@ func (bs *Bitswap) sendWantlistToProviders(ctx context.Context, entries []wantli
 			defer cancel()
 			providers := bs.network.FindProvidersAsync(child, k, maxProvidersPerRequest)
 			for prov := range providers {
-				sendToPeers <- prov
+				go func(p peer.ID) {
+					bs.network.ConnectTo(ctx, p)
+				}(prov)
 			}
 		}(e.Key)
 	}
 
-	go func() {
-		wg.Wait() // make sure all our children do finish.
-		close(sendToPeers)
-	}()
-
-	err := bs.sendWantlistToPeers(ctx, sendToPeers)
-	if err != nil {
-		log.Debugf("sendWantlistToPeers error: %s", err)
-	}
+	wg.Wait() // make sure all our children do finish.
 }
 
-// TODO(brian): handle errors
-func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) error {
+func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg.BitSwapMessage) {
 	// This call records changes to wantlists, blocks received,
 	// and number of bytes transfered.
 	bs.engine.MessageReceived(p, incoming)
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
+	if len(incoming.Blocks()) == 0 {
+		return
+	}
+
+	// quickly send out cancels, reduces chances of duplicate block receives
 	var keys []u.Key
+	for _, block := range incoming.Blocks() {
+		keys = append(keys, block.Key())
+	}
+	bs.wm.CancelWants(keys)
+
 	for _, block := range incoming.Blocks() {
 		bs.blocksRecvd++
 		if has, err := bs.blockstore.Has(block.Key()); err == nil && has {
 			bs.dupBlocksRecvd++
 		}
 		log.Debugf("got block %s from %s", block, p)
+
 		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
-			return fmt.Errorf("ReceiveMessage HasBlock error: %s", err)
+			log.Warningf("ReceiveMessage HasBlock error: %s", err)
 		}
 		cancel()
-		keys = append(keys, block.Key())
 	}
-
-	bs.cancelBlocks(ctx, keys)
-	return nil
 }
 
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *Bitswap) PeerConnected(p peer.ID) {
 	// TODO: add to clientWorker??
-	bs.pm.Connected(p)
-	peers := make(chan peer.ID, 1)
-	peers <- p
-	close(peers)
-	err := bs.sendWantlistToPeers(context.TODO(), peers)
-	if err != nil {
-		log.Debugf("error sending wantlist: %s", err)
-	}
+	bs.wm.Connected(p)
 }
 
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *Bitswap) PeerDisconnected(p peer.ID) {
-	bs.pm.Disconnected(p)
+	bs.wm.Disconnected(p)
 	bs.engine.PeerDisconnected(p)
-}
-
-func (bs *Bitswap) cancelBlocks(ctx context.Context, bkeys []u.Key) {
-	if len(bkeys) < 1 {
-		return
-	}
-	message := bsmsg.New()
-	message.SetFull(false)
-	for _, k := range bkeys {
-		log.Debug("cancel block: %s", k)
-		message.Cancel(k)
-	}
-
-	bs.pm.Broadcast(message)
-	return
-}
-
-func (bs *Bitswap) wantNewBlocks(ctx context.Context, bkeys []u.Key) {
-	if len(bkeys) < 1 {
-		return
-	}
-
-	message := bsmsg.New()
-	message.SetFull(false)
-	for i, k := range bkeys {
-		message.AddEntry(k, kMaxPriority-i)
-	}
-
-	bs.pm.Broadcast(message)
 }
 
 func (bs *Bitswap) ReceiveError(err error) {
@@ -401,7 +319,7 @@ func (bs *Bitswap) Close() error {
 
 func (bs *Bitswap) GetWantlist() []u.Key {
 	var out []u.Key
-	for _, e := range bs.wantlist.Entries() {
+	for _, e := range bs.wm.wl.Entries() {
 		out = append(out, e.Key)
 	}
 	return out

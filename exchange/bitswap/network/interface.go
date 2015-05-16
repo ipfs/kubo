@@ -33,7 +33,7 @@ type Receiver interface {
 	ReceiveMessage(
 		ctx context.Context,
 		sender peer.ID,
-		incoming bsmsg.BitSwapMessage) error
+		incoming bsmsg.BitSwapMessage)
 
 	ReceiveError(error)
 
