@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -20,7 +21,7 @@ func IPNSHostnameOption() ServeOption {
 
 			host := strings.SplitN(r.Host, ":", 2)[0]
 			if p, err := n.Namesys.Resolve(ctx, host); err == nil {
-				r.URL.Path = p.String() + r.URL.Path
+				r.URL.Path = path.Join(p.String(), r.URL.Path)
 			}
 			childMux.ServeHTTP(w, r)
 		})
