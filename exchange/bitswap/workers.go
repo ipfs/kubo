@@ -42,11 +42,9 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	}
 
 	// Start up a worker to manage periodically resending our wantlist out to peers
-	/*
-		px.Go(func(px process.Process) {
-			bs.rebroadcastWorker(ctx)
-		})
-	*/
+	px.Go(func(px process.Process) {
+		bs.rebroadcastWorker(ctx)
+	})
 
 	// Start up a worker to manage sending out provides messages
 	px.Go(func(px process.Process) {
