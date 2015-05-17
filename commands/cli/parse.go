@@ -255,13 +255,17 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				stringArgs, inputs = appendString(stringArgs, inputs)
 
 			} else if argDef.SupportsStdin {
-				// if we have a stdin, read it in and use the data as a string value
-				stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
-				if err != nil {
-					return nil, nil, err
+				if len(inputs) > 0 {
+					// don't use stdin if we have inputs
+					stdin = nil
+				} else {
+					// if we have a stdin, read it in and use the data as a string value
+					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
+					if err != nil {
+						return nil, nil, err
+					}
 				}
 			}
-
 		} else if argDef.Type == cmds.ArgFile {
 			if stdin == nil {
 				// treat stringArg values as file paths
@@ -271,8 +275,13 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 				}
 
 			} else if argDef.SupportsStdin {
-				// if we have a stdin, create a file from it
-				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+				if len(inputs) > 0 {
+					// don't use stdin if we have inputs
+					stdin = nil
+				} else {
+					// if we have a stdin, create a file from it
+					fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+				}
 			}
 		}
 
