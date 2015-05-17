@@ -224,4 +224,10 @@ func TestArgumentParsing(t *testing.T) {
 	test([]string{"stdinenabled"}, fstdin, []string{"stdin1"})
 	test([]string{"stdinenabled", "value1"}, fstdin, []string{"stdin1", "value1"})
 	test([]string{"stdinenabled", "value1", "value2"}, fstdin, []string{"stdin1", "value1", "value2"})
+
+	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2")
+	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2"})
+
+	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2\nstdin3")
+	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2", "stdin3"})
 }
