@@ -86,9 +86,9 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan u.Key),
-		wm:            NewWantManager(network),
+		wm:            NewWantManager(ctx, network),
 	}
-	go bs.wm.Run(ctx)
+	go bs.wm.Run()
 	network.SetDelegate(bs)
 
 	// Start up bitswaps async worker routines

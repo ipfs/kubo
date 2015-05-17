@@ -92,7 +92,7 @@ func TestLargeSwarm(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	numInstances := 500
+	numInstances := 100
 	numBlocks := 2
 	if detectrace.WithRace() {
 		// when running with the race detector, 500 instances launches
@@ -124,7 +124,6 @@ func TestLargeFileTwoPeers(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
 	numInstances := 2
 	numBlocks := 100
 	PerformDistributionTest(t, numInstances, numBlocks)
@@ -164,6 +163,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 			}
 			for _ = range outch {
 			}
+			log.Error("DONE")
 		}(inst)
 	}
 	wg.Wait()
