@@ -31,12 +31,7 @@ type BitSwapMessage interface {
 
 	Empty() bool
 
-	// Sets whether or not the contained wantlist represents the entire wantlist
-	// true = full wantlist
-	// false = wantlist 'patch'
-	// default: true
-	SetFull(isFull bool)
-
+	// A full wantlist is an authoritative copy, a 'non-full' wantlist is a patch-set
 	Full() bool
 
 	AddBlock(*blocks.Block)
@@ -56,15 +51,15 @@ type impl struct {
 	blocks   map[u.Key]*blocks.Block
 }
 
-func New() BitSwapMessage {
-	return newMsg()
+func New(full bool) BitSwapMessage {
+	return newMsg(full)
 }
 
-func newMsg() *impl {
+func newMsg(full bool) *impl {
 	return &impl{
 		blocks:   make(map[u.Key]*blocks.Block),
 		wantlist: make(map[u.Key]Entry),
-		full:     true,
+		full:     full,
 	}
 }
 
@@ -74,8 +69,7 @@ type Entry struct {
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
-	m := newMsg()
-	m.SetFull(pbm.GetWantlist().GetFull())
+	m := newMsg(pbm.GetWantlist().GetFull())
 	for _, e := range pbm.GetWantlist().GetEntries() {
 		m.addEntry(u.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
 	}
@@ -84,10 +78,6 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 		m.AddBlock(b)
 	}
 	return m
-}
-
-func (m *impl) SetFull(full bool) {
-	m.full = full
 }
 
 func (m *impl) Full() bool {

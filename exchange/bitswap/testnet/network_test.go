@@ -31,7 +31,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 		fromWaiter peer.ID,
 		msgFromWaiter bsmsg.BitSwapMessage) {
 
-		msgToWaiter := bsmsg.New()
+		msgToWaiter := bsmsg.New(true)
 		msgToWaiter.AddBlock(blocks.NewBlock([]byte(expectedStr)))
 		waiter.SendMessage(ctx, fromWaiter, msgToWaiter)
 	}))
@@ -55,7 +55,7 @@ func TestSendMessageAsyncButWaitForResponse(t *testing.T) {
 		}
 	}))
 
-	messageSentAsync := bsmsg.New()
+	messageSentAsync := bsmsg.New(true)
 	messageSentAsync.AddBlock(blocks.NewBlock([]byte("data")))
 	errSending := waiter.SendMessage(
 		context.Background(), responderPeer.ID(), messageSentAsync)

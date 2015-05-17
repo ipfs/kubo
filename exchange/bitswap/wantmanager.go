@@ -2,6 +2,7 @@ package bitswap
 
 import (
 	"sync"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	engine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
@@ -94,9 +95,8 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 	// throughout the network stack
 	defer env.Sent()
 
-	msg := bsmsg.New()
+	msg := bsmsg.New(false)
 	msg.AddBlock(env.Block)
-	msg.SetFull(false)
 	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
 		log.Error(err)
@@ -113,11 +113,10 @@ func (pm *WantManager) startPeerHandler(p peer.ID) *msgQueue {
 	mq := newMsgQueue(p)
 
 	// new peer, we will want to give them our full wantlist
-	fullwantlist := bsmsg.New()
+	fullwantlist := bsmsg.New(true)
 	for _, e := range pm.wl.Entries() {
 		fullwantlist.AddEntry(e.Key, e.Priority)
 	}
-	fullwantlist.SetFull(true)
 	mq.out = fullwantlist
 	mq.work <- struct{}{}
 
@@ -180,6 +179,7 @@ func (pm *WantManager) Disconnected(p peer.ID) {
 
 // TODO: use goprocess here once i trust it
 func (pm *WantManager) Run() {
+	tock := time.NewTicker(rebroadcastDelay.Get())
 	for {
 		select {
 		case entries := <-pm.incoming:
@@ -198,6 +198,19 @@ func (pm *WantManager) Run() {
 				p.addMessage(entries)
 			}
 
+		case <-tock.C:
+			// resend entire wantlist every so often (REALLY SHOULDNT BE NECESSARY)
+			var es []*bsmsg.Entry
+			for _, e := range pm.wl.Entries() {
+				es = append(es, &bsmsg.Entry{Entry: e})
+			}
+			for _, p := range pm.peers {
+				p.outlk.Lock()
+				p.out = bsmsg.New(true)
+				p.outlk.Unlock()
+
+				p.addMessage(es)
+			}
 		case p := <-pm.connect:
 			pm.startPeerHandler(p)
 		case p := <-pm.disconnect:
@@ -230,7 +243,7 @@ func (mq *msgQueue) addMessage(entries []*bsmsg.Entry) {
 	// if we have no message held, or the one we are given is full
 	// overwrite the one we are holding
 	if mq.out == nil {
-		mq.out = bsmsg.New()
+		mq.out = bsmsg.New(false)
 	}
 
 	// TODO: add a msg.Combine(...) method

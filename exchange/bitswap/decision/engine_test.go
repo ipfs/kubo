@@ -41,7 +41,7 @@ func TestConsistentAccounting(t *testing.T) {
 	// Send messages from Ernie to Bert
 	for i := 0; i < 1000; i++ {
 
-		m := message.New()
+		m := message.New(false)
 		content := []string{"this", "is", "message", "i"}
 		m.AddBlock(blocks.NewBlock([]byte(strings.Join(content, " "))))
 
@@ -73,7 +73,7 @@ func TestPeerIsAddedToPeersWhenMessageReceivedOrSent(t *testing.T) {
 	sanfrancisco := newEngine(ctx, "sf")
 	seattle := newEngine(ctx, "sea")
 
-	m := message.New()
+	m := message.New(true)
 
 	sanfrancisco.Engine.MessageSent(seattle.Peer, m)
 	seattle.Engine.MessageReceived(sanfrancisco.Peer, m)
@@ -164,7 +164,7 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 }
 
 func partnerWants(e *Engine, keys []string, partner peer.ID) {
-	add := message.New()
+	add := message.New(false)
 	for i, letter := range keys {
 		block := blocks.NewBlock([]byte(letter))
 		add.AddEntry(block.Key(), math.MaxInt32-i)
@@ -173,7 +173,7 @@ func partnerWants(e *Engine, keys []string, partner peer.ID) {
 }
 
 func partnerCancels(e *Engine, keys []string, partner peer.ID) {
-	cancels := message.New()
+	cancels := message.New(false)
 	for _, k := range keys {
 		block := blocks.NewBlock([]byte(k))
 		cancels.Cancel(block.Key())
