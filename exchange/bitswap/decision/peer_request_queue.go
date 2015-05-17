@@ -69,8 +69,8 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 		Target:  to,
 		created: time.Now(),
 		Done: func() {
-			partner.TaskDone(entry.Key)
 			tl.lock.Lock()
+			partner.TaskDone(entry.Key)
 			tl.pQueue.Update(partner.Index())
 			tl.lock.Unlock()
 		},
