@@ -228,8 +228,8 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	// if we have more arg values provided than argument definitions,
 	// and the last arg definition is not variadic (or there are no definitions), return an error
 	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
-	if notVariadic && numInputs > len(argDefs) {
-		return nil, nil, fmt.Errorf("Expected %v arguments, got %v: %v", len(argDefs), numInputs, inputs)
+	if notVariadic && len(inputs) > len(argDefs) {
+		return nil, nil, fmt.Errorf("Expected %v arguments, got %v: %v", len(argDefs), len(inputs), inputs)
 	}
 
 	stringArgs := make([]string, 0, numInputs)
