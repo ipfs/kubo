@@ -166,10 +166,10 @@ func TestArgumentParsing(t *testing.T) {
 		}
 		req, _, _, err := Parse(cmd, f, rootCmd)
 		if err != nil {
-			t.Errorf("Command '%v' should have passed parsing", cmd)
+			t.Errorf("Command '%v' should have passed parsing: %v", cmd, err)
 		}
 		if !sameWords(req.Arguments(), res) {
-			t.Errorf("Arguments parsed from '%v' are not '%v'", cmd, res)
+			t.Errorf("Arguments parsed from '%v' are '%v' instead of '%v'", cmd, req.Arguments(), res)
 		}
 	}
 
