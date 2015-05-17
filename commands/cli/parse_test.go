@@ -155,6 +155,12 @@ func TestArgumentParsing(t *testing.T) {
 					commands.StringArg("a", true, true, "some arg").EnableStdin(),
 				},
 			},
+			"stdinenabled2args": &commands.Command{
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, false, "some arg"),
+					commands.StringArg("b", true, true, "another arg").EnableStdin(),
+				},
+			},
 		},
 	}
 
@@ -220,7 +226,6 @@ func TestArgumentParsing(t *testing.T) {
 	test([]string{"stdinenabled", "value1", "value2"}, nil, []string{"value1", "value2"})
 
 	fstdin := fileToSimulateStdin(t, "stdin1")
-
 	test([]string{"stdinenabled"}, fstdin, []string{"stdin1"})
 	test([]string{"stdinenabled", "value1"}, fstdin, []string{"value1"})
 	test([]string{"stdinenabled", "value1", "value2"}, fstdin, []string{"value1", "value2"})
@@ -230,4 +235,14 @@ func TestArgumentParsing(t *testing.T) {
 
 	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2\nstdin3")
 	test([]string{"stdinenabled"}, fstdin, []string{"stdin1", "stdin2", "stdin3"})
+
+	test([]string{"stdinenabled2args", "value1", "value2"}, nil, []string{"value1", "value2"})
+
+	fstdin = fileToSimulateStdin(t, "stdin1")
+	test([]string{"stdinenabled2args", "value1"}, fstdin, []string{"value1", "stdin1"})
+	test([]string{"stdinenabled2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+	test([]string{"stdinenabled2args", "value1", "value2", "value3"}, fstdin, []string{"value1", "value2", "value3"})
+
+	fstdin = fileToSimulateStdin(t, "stdin1\nstdin2")
+	test([]string{"stdinenabled2args", "value1"}, fstdin, []string{"value1", "stdin1", "stdin2"})
 }
