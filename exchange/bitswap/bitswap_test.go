@@ -120,6 +120,18 @@ func TestLargeFile(t *testing.T) {
 	PerformDistributionTest(t, numInstances, numBlocks)
 }
 
+func TestLargeFileNoRebroadcast(t *testing.T) {
+	rbd := rebroadcastDelay.Get()
+	rebroadcastDelay.Set(time.Hour * 24 * 365 * 10) // ten years should be long enough
+	if testing.Short() {
+		t.SkipNow()
+	}
+	numInstances := 10
+	numBlocks := 100
+	PerformDistributionTest(t, numInstances, numBlocks)
+	rebroadcastDelay.Set(rbd)
+}
+
 func TestLargeFileTwoPeers(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
