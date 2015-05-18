@@ -66,6 +66,7 @@ type msgQueue struct {
 }
 
 func (pm *WantManager) WantBlocks(ks []u.Key) {
+	log.Infof("want blocks: %s", ks)
 	pm.addEntries(ks, false)
 }
 
@@ -97,6 +98,7 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 
 	msg := bsmsg.New(false)
 	msg.AddBlock(env.Block)
+	log.Infof("Sending block %s to %s", env.Peer, env.Block)
 	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
 		log.Error(err)
@@ -143,8 +145,9 @@ func (pm *WantManager) runQueue(mq *msgQueue) {
 
 			err := pm.network.ConnectTo(pm.ctx, mq.p)
 			if err != nil {
-				log.Error(err)
+				log.Errorf("cant connect to peer %s: %s", mq.p, err)
 				// TODO: cant connect, what now?
+				continue
 			}
 
 			// grab outgoing message
