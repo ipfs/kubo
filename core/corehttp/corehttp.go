@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	manners "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	core "github.com/ipfs/go-ipfs/core"
@@ -62,7 +61,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 		return err
 	}
 
-	server := manners.NewServer()
+	server := &http.Server{Addr: host, Handler: handler}
 
 	// if the server exits beforehand
 	var serverError error
@@ -72,7 +71,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	defer node.Children().Done()
 
 	go func() {
-		serverError = server.ListenAndServe(host, handler)
+		serverError = server.ListenAndServe()
 		close(serverExited)
 	}()
 
@@ -85,9 +84,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 		log.Infof("server at %s terminating...", addr)
 
 		// make sure keep-alive connections do not keep the server running
-		server.InnerServer.SetKeepAlivesEnabled(false)
-
-		server.Shutdown <- true
+		server.SetKeepAlivesEnabled(false)
 
 	outer:
 		for {
