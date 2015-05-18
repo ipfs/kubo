@@ -86,7 +86,7 @@ func (c *Client) Provide(ctx context.Context, k u.Key) error {
 	msg := pb.NewMessage(pb.Message_ADD_PROVIDER, string(k), 0)
 	// FIXME how is connectedness defined for the local node
 	pri := []pb.PeerRoutingInfo{
-		pb.PeerRoutingInfo{
+		{
 			PeerInfo: peer.PeerInfo{
 				ID:    c.local,
 				Addrs: c.peerhost.Addrs(),

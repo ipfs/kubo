@@ -27,7 +27,7 @@ func TestNewMessageFromProto(t *testing.T) {
 	protoMessage := new(pb.Message)
 	protoMessage.Wantlist = new(pb.Message_Wantlist)
 	protoMessage.Wantlist.Entries = []*pb.Message_Wantlist_Entry{
-		&pb.Message_Wantlist_Entry{Block: proto.String(str)},
+		{Block: proto.String(str)},
 	}
 	if !wantlistContains(protoMessage.Wantlist, str) {
 		t.Fail()

@@ -73,7 +73,7 @@ func (s *Server) handleMessage(
 	case dhtpb.Message_FIND_NODE:
 		p := s.peerstore.PeerInfo(peer.ID(req.GetKey()))
 		pri := []dhtpb.PeerRoutingInfo{
-			dhtpb.PeerRoutingInfo{
+			{
 				PeerInfo: p,
 				// Connectedness: TODO
 			},

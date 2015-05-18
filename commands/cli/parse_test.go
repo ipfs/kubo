@@ -1,11 +1,11 @@
 package cli
 
 import (
-	"strings"
-	"testing"
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
+	"testing"
 
 	"github.com/ipfs/go-ipfs/commands"
 )
@@ -122,35 +122,35 @@ func TestOptionParsing(t *testing.T) {
 func TestArgumentParsing(t *testing.T) {
 	rootCmd := &commands.Command{
 		Subcommands: map[string]*commands.Command{
-			"noarg": &commands.Command{},
-			"onearg": &commands.Command{
+			"noarg": {},
+			"onearg": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
 				},
 			},
-			"twoargs": &commands.Command{
+			"twoargs": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, false, "some arg"),
 					commands.StringArg("b", true, false, "another arg"),
 				},
 			},
-			"variadic": &commands.Command{
+			"variadic": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, true, "some arg"),
 				},
 			},
-			"optional": &commands.Command{
+			"optional": {
 				Arguments: []commands.Argument{
 					commands.StringArg("b", false, true, "another arg"),
 				},
 			},
-			"reversedoptional": &commands.Command{
+			"reversedoptional": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", false, false, "some arg"),
 					commands.StringArg("b", true, false, "another arg"),
 				},
 			},
-			"stdinenabled": &commands.Command{
+			"stdinenabled": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", true, true, "some arg").EnableStdin(),
 				},
@@ -204,7 +204,7 @@ func TestArgumentParsing(t *testing.T) {
 	testFail([]string{"reversedoptional", "value1", "value2", "value3"}, "provided too many args, only takes 1")
 
 	// Use a temp file to simulate stdin
-	fileToSimulateStdin := func(t *testing.T, content string) (*os.File) {
+	fileToSimulateStdin := func(t *testing.T, content string) *os.File {
 		fstdin, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)

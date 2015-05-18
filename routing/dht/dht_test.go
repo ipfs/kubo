@@ -215,7 +215,7 @@ func TestProvides(t *testing.T) {
 		}
 	}
 
-	for k, _ := range testCaseValues {
+	for k := range testCaseValues {
 		log.Debugf("announcing provider for %s", k)
 		if err := dhts[3].Provide(ctx, k); err != nil {
 			t.Fatal(err)
@@ -226,7 +226,7 @@ func TestProvides(t *testing.T) {
 	time.Sleep(time.Millisecond * 6)
 
 	n := 0
-	for k, _ := range testCaseValues {
+	for k := range testCaseValues {
 		n = (n + 1) % 3
 
 		log.Debugf("getting providers for %s from %d", k, n)
@@ -521,7 +521,7 @@ func TestProvidesMany(t *testing.T) {
 		}
 	}
 
-	for k, _ := range testCaseValues {
+	for k := range testCaseValues {
 		// everyone should be able to find it...
 		for _, dht := range dhts {
 			log.Debugf("getting providers for %s at %s", k, dht.self)

@@ -183,7 +183,7 @@ func (r *Root) Forget() {
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Root ReadDirAll")
 	listing := []fuse.Dirent{
-		fuse.Dirent{
+		{
 			Name: "local",
 			Type: fuse.DT_Link,
 		},

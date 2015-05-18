@@ -132,7 +132,7 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 type devZero struct{}
 
 func (_ devZero) Read(b []byte) (int, error) {
-	for i, _ := range b {
+	for i := range b {
 		b[i] = 0
 	}
 	return len(b), nil

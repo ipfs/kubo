@@ -181,7 +181,7 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 
 	promises := make([]NodeGetter, len(keys))
 	sendChans := make([]chan<- *Node, len(keys))
-	for i, _ := range keys {
+	for i := range keys {
 		promises[i], sendChans[i] = newNodePromise(ctx)
 	}
 
