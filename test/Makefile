@@ -43,21 +43,24 @@ bin/iptb: $(call find_go_files, $(IPTB_SRC)) IPFS-BUILD-OPTIONS
 
 test: test_expensive
 
-test_expensive:
+test_expensive: verify_gofmt
 	cd sharness && make TEST_EXPENSIVE=1
 	cd 3nodetest && make
 	cd dependencies && make
 
-test_cheap:
+test_cheap: verify_gofmt
 	cd sharness && make
 	cd 3nodetest && make
 
-test_race:
+test_race: verify_gofmt
 	cd sharness && make GOFLAGS=-race TEST_EXPENSIVE=1
 	cd 3nodetest && make GOFLAGS=-race
 	cd dependencies && make GOFLAGS=-race
 
 IPFS-BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'
+
+verify_gofmt:
+	bin/verify-go-fmt.sh
 
 .PHONY: all clean FORCE
