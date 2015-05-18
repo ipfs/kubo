@@ -44,12 +44,27 @@ type itemIterator func() (k key.Key, data []byte, ok bool)
 
 type keyObserver func(key.Key)
 
+// refcount is the marshaled format of refcounts. It may change
+// between versions; this is valid for version 1. Changing it may
+// become desirable if there are many links with refcount > 255.
+//
+// There are two guarantees that need to be preserved, if this is
+// changed:
+//
+//     - the marshaled format is of fixed size, matching
+//       unsafe.Sizeof(refcount(0))
+//     - methods of refcount handle endianness, and may
+//       in later versions need encoding/binary.
 type refcount uint8
 
 func (r refcount) Bytes() []byte {
-	// refcount size can change in later versions; this may need
-	// encoding/binary
 	return []byte{byte(r)}
+}
+
+// readRefcount returns the idx'th refcount in []byte, which is
+// assumed to be a sequence of refcount.Bytes results.
+func (r *refcount) ReadFromIdx(buf []byte, idx int) {
+	*r = refcount(buf[idx])
 }
 
 type sortByHash struct {
@@ -70,9 +85,9 @@ func (s sortByHash) Swap(a, b int) {
 	if len(s.data) != 0 {
 		const n = int(unsafe.Sizeof(refcount(0)))
 		tmp := make([]byte, n)
-		copy(tmp, s.data[a:a+n])
-		copy(s.data[a:a+n], s.data[b:b+n])
-		copy(s.data[b:b+n], tmp)
+		copy(tmp, s.data[a*n:a*n+n])
+		copy(s.data[a*n:a*n+n], s.data[b*n:b*n+n])
+		copy(s.data[b*n:b*n+n], tmp)
 	}
 }
 
@@ -267,7 +282,9 @@ func loadMultiset(ctx context.Context, dag merkledag.DAGService, root *merkledag
 
 	refcounts := make(map[key.Key]uint64)
 	walk := func(buf []byte, idx int, link *merkledag.Link) error {
-		refcounts[key.Key(link.Hash)] += uint64(buf[idx])
+		var r refcount
+		r.ReadFromIdx(buf, idx)
+		refcounts[key.Key(link.Hash)] += uint64(r)
 		return nil
 	}
 	if err := walkItems(ctx, dag, n, walk, internalKeys); err != nil {
