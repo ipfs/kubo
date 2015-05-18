@@ -91,7 +91,7 @@ remains to be implemented.
 		progress, _, _ := req.Option(progressOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 
-		outChan := make(chan interface{})
+		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
 		go func() {
@@ -215,11 +215,6 @@ remains to be implemented.
 
 func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
-	if err != nil {
-		return nil, err
-	}
-
-	err = n.Pinning.Flush()
 	if err != nil {
 		return nil, err
 	}
