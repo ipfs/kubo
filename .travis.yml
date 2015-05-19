@@ -1,4 +1,4 @@
-dist: trusty
+# dist: trusty # KVM Setup
 
 os:
   - linux
