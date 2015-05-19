@@ -113,8 +113,9 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 	}
 
 	// Pin the child node indirectly
-	if db.mp != nil {
-		db.mp.PinWithMode(childkey, pin.Indirect)
+	err = db.bcb(childkey, false)
+	if err != nil {
+		return err
 	}
 
 	return nil

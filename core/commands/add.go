@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -16,6 +15,7 @@ import (
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -113,11 +113,15 @@ remains to be implemented.
 					return
 				}
 
-				err = n.Pinning.Pin(context.Background(), rootnd, true)
+				rnk, err := rootnd.Key()
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
+
+				mp := n.Pinning.GetManual()
+				mp.RemovePinWithMode(rnk, pin.Indirect)
+				mp.PinWithMode(rnk, pin.Recursive)
 
 				err = n.Pinning.Flush()
 				if err != nil {
@@ -214,7 +218,12 @@ remains to be implemented.
 }
 
 func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
-	node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
+	node, err := importer.BuildDagFromReader(
+		reader,
+		n.DAG,
+		chunk.DefaultSplitter,
+		importer.PinIndirectCB(n.Pinning.GetManual()),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -290,10 +299,12 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 		return nil, err
 	}
 
-	_, err = n.DAG.Add(tree)
+	k, err := n.DAG.Add(tree)
 	if err != nil {
 		return nil, err
 	}
+
+	n.Pinning.GetManual().PinWithMode(k, pin.Indirect)
 
 	return tree, nil
 }

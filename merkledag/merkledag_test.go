@@ -156,7 +156,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 
 	spl := &chunk.SizeSplitter{512}
 
-	root, err := imp.BuildDagFromReader(read, dagservs[0], nil, spl)
+	root, err := imp.BuildDagFromReader(read, dagservs[0], spl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

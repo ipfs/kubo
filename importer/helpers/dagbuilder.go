@@ -3,7 +3,12 @@ package helpers
 import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
+	u "github.com/ipfs/go-ipfs/util"
 )
+
+type BlockCB func(u.Key, bool) error
+
+var nilFunc BlockCB = func(_ u.Key, _ bool) error { return nil }
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
@@ -13,6 +18,7 @@ type DagBuilderHelper struct {
 	in       <-chan []byte
 	nextData []byte // the next item to return.
 	maxlinks int
+	bcb      BlockCB
 }
 
 type DagBuilderParams struct {
@@ -22,18 +28,23 @@ type DagBuilderParams struct {
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
 
-	// Pinner to use for pinning files (optionally nil)
-	Pinner pin.ManualPinner
+	// Callback for each block added
+	BlockCB BlockCB
 }
 
 // Generate a new DagBuilderHelper from the given params, using 'in' as a
 // data source
 func (dbp *DagBuilderParams) New(in <-chan []byte) *DagBuilderHelper {
+	bcb := dbp.BlockCB
+	if bcb == nil {
+		bcb = nilFunc
+	}
+
 	return &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
-		mp:       dbp.Pinner,
 		in:       in,
 		maxlinks: dbp.Maxlinks,
+		bcb:      bcb,
 	}
 }
 
@@ -130,12 +141,10 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 		return nil, err
 	}
 
-	if db.mp != nil {
-		db.mp.PinWithMode(key, pin.Recursive)
-		err := db.mp.Flush()
-		if err != nil {
-			return nil, err
-		}
+	// block callback
+	err = db.bcb(key, true)
+	if err != nil {
+		return nil, err
 	}
 
 	return dn, nil

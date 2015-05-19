@@ -1,7 +1,6 @@
 package coreunix
 
 import (
-	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("coreunix")
@@ -29,13 +29,10 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	dagNode, err := importer.BuildDagFromReader(
 		r,
 		n.DAG,
-		n.Pinning.GetManual(), // Fix this interface
 		chunk.DefaultSplitter,
+		importer.BasicPinnerCB(n.Pinning.GetManual()),
 	)
 	if err != nil {
-		return "", err
-	}
-	if err := n.Pinning.Flush(); err != nil {
 		return "", err
 	}
 	k, err := dagNode.Key()
@@ -53,18 +50,28 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 	defer f.Close()
+
 	ff, err := files.NewSerialFile(root, f)
 	if err != nil {
 		return "", err
 	}
+
 	dagnode, err := addFile(n, ff)
 	if err != nil {
 		return "", err
 	}
+
 	k, err := dagnode.Key()
 	if err != nil {
 		return "", err
 	}
+
+	n.Pinning.GetManual().RemovePinWithMode(k, pin.Indirect)
+	err = n.Pinning.Flush()
+	if err != nil {
+		return "", err
+	}
+
 	return k.String(), nil
 }
 
@@ -87,17 +94,17 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 }
 
 func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
-	mp, ok := n.Pinning.(pin.ManualPinner)
-	if !ok {
-		return nil, errors.New("invalid pinner type! expected manual pinner")
-	}
+	mp := n.Pinning.GetManual()
 
-	node, err := importer.BuildDagFromReader(reader, n.DAG, mp, chunk.DefaultSplitter)
-	if err != nil {
-		return nil, err
-	}
-
-	err = n.Pinning.Flush()
+	node, err := importer.BuildDagFromReader(
+		reader,
+		n.DAG,
+		chunk.DefaultSplitter,
+		func(k u.Key, root bool) error {
+			mp.PinWithMode(k, pin.Indirect)
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
