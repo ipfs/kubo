@@ -3,8 +3,6 @@ package namesys
 import (
 	"fmt"
 	"testing"
-
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type mockDNS struct {
@@ -89,20 +87,6 @@ func newMockDNS() *mockDNS {
 				"dnslink=",
 			},
 		},
-	}
-}
-
-func testResolution(t *testing.T, resolver Resolver, name string, depth int, expected string, expError error) {
-	p, err := resolver.ResolveN(context.Background(), name, depth)
-	if err != expError {
-		t.Fatal(fmt.Errorf(
-			"Expected %s with a depth of %d to have a '%s' error, but got '%s'",
-			name, depth, expError, err))
-	}
-	if p.String() != expected {
-		t.Fatal(fmt.Errorf(
-			"%s with depth %d resolved to %s != %s",
-			name, depth, p.String(), expected))
 	}
 }
 
