@@ -128,10 +128,10 @@ func TestPartnerWantsThenCancels(t *testing.T) {
 
 	type testCase [][]string
 	testcases := []testCase{
-		testCase{
+		{
 			alphabet, vowels,
 		},
-		testCase{
+		{
 			alphabet, stringsComplement(alphabet, vowels),
 		},
 	}

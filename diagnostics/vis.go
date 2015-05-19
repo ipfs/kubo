@@ -35,7 +35,7 @@ func GetGraphJson(dinfo []*DiagInfo) []byte {
 
 	var links []*link
 	linkexists := make([][]bool, len(nodes))
-	for i, _ := range linkexists {
+	for i := range linkexists {
 		linkexists[i] = make([]bool, len(nodes))
 	}
 

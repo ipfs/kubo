@@ -41,11 +41,11 @@ func TestQueuesReturnTypeIsSameAsParameterToPush(t *testing.T) {
 func TestCorrectnessOfPop(t *testing.T) {
 	q := New(PriorityComparator)
 	tasks := []TestElem{
-		TestElem{Key: "a", Priority: 9},
-		TestElem{Key: "b", Priority: 4},
-		TestElem{Key: "c", Priority: 3},
-		TestElem{Key: "d", Priority: 0},
-		TestElem{Key: "e", Priority: 6},
+		{Key: "a", Priority: 9},
+		{Key: "b", Priority: 4},
+		{Key: "c", Priority: 3},
+		{Key: "d", Priority: 0},
+		{Key: "e", Priority: 6},
 	}
 	for _, e := range tasks {
 		q.Push(&e)

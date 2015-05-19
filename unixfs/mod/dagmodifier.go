@@ -95,7 +95,7 @@ func (dm *DagModifier) WriteAt(b []byte, offset int64) (int, error) {
 type zeroReader struct{}
 
 func (zr zeroReader) Read(b []byte) (int, error) {
-	for i, _ := range b {
+	for i := range b {
 		b[i] = 0
 	}
 	return len(b), nil

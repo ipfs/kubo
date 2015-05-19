@@ -77,7 +77,7 @@ func (pm *ProviderManager) run() {
 
 		case lc := <-pm.getlocal:
 			var keys []u.Key
-			for k, _ := range pm.local {
+			for k := range pm.local {
 				keys = append(keys, k)
 			}
 			lc <- keys

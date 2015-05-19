@@ -109,7 +109,7 @@ func TestNotifications(t *testing.T) {
 
 	// there's one stream per conn that we need to drain....
 	// unsure where these are coming from
-	for i, _ := range nets {
+	for i := range nets {
 		n := notifiees[i]
 		testOCStream(n, nil)
 		testOCStream(n, nil)

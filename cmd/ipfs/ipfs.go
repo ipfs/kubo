@@ -97,17 +97,17 @@ func (d *cmdDetails) usesRepo() bool                 { return !d.doesNotUseRepo 
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[*cmds.Command]cmdDetails{
-	initCmd: cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+	initCmd: {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
 
 	// daemonCmd allows user to initialize the config. Thus, it may be called
 	// without using the config as input
-	daemonCmd:                  cmdDetails{doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
-	commandsClientCmd:          cmdDetails{doesNotUseRepo: true},
-	commands.CommandsDaemonCmd: cmdDetails{doesNotUseRepo: true},
-	commands.DiagCmd:           cmdDetails{cannotRunOnClient: true},
-	commands.VersionCmd:        cmdDetails{doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
-	commands.UpdateCmd:         cmdDetails{preemptsAutoUpdate: true, cannotRunOnDaemon: true},
-	commands.UpdateCheckCmd:    cmdDetails{preemptsAutoUpdate: true},
-	commands.UpdateLogCmd:      cmdDetails{preemptsAutoUpdate: true},
-	commands.LogCmd:            cmdDetails{cannotRunOnClient: true},
+	daemonCmd:                  {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	commandsClientCmd:          {doesNotUseRepo: true},
+	commands.CommandsDaemonCmd: {doesNotUseRepo: true},
+	commands.DiagCmd:           {cannotRunOnClient: true},
+	commands.VersionCmd:        {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
+	commands.UpdateCmd:         {preemptsAutoUpdate: true, cannotRunOnDaemon: true},
+	commands.UpdateCheckCmd:    {preemptsAutoUpdate: true},
+	commands.UpdateLogCmd:      {preemptsAutoUpdate: true},
+	commands.LogCmd:            {cannotRunOnClient: true},
 }

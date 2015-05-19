@@ -14,7 +14,7 @@ func TestInitialization(t *testing.T) {
 	id := testIdentity
 
 	good := []*config.Config{
-		&config.Config{
+		{
 			Identity: id,
 			Datastore: config.Datastore{
 				Type: "memory",
@@ -25,7 +25,7 @@ func TestInitialization(t *testing.T) {
 			},
 		},
 
-		&config.Config{
+		{
 			Identity: id,
 			Datastore: config.Datastore{
 				Type: "leveldb",
@@ -39,8 +39,8 @@ func TestInitialization(t *testing.T) {
 	}
 
 	bad := []*config.Config{
-		&config.Config{},
-		&config.Config{Datastore: config.Datastore{Type: "memory"}},
+		{},
+		{Datastore: config.Datastore{Type: "memory"}},
 	}
 
 	for i, c := range good {

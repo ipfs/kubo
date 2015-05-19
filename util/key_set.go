@@ -39,7 +39,7 @@ func (wl *ks) Keys() []Key {
 	wl.lock.RLock()
 	defer wl.lock.RUnlock()
 	keys := make([]Key, 0)
-	for k, _ := range wl.data {
+	for k := range wl.data {
 		keys = append(keys, k)
 	}
 	return keys
