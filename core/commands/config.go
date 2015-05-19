@@ -181,7 +181,7 @@ variable set to your preferred text editor.
 
 var configReplaceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Replaces the config with `file>",
+		Tagline: "Replaces the config with <file>",
 		ShortDescription: `
 Make sure to back up the config file first if neccessary, this operation
 can't be undone.
