@@ -96,7 +96,7 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 	log.Infof("Sending block %s to %s", env.Peer, env.Block)
 	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
-		log.Error(err)
+		log.Noticef("sendblock error: %s", err)
 	}
 }
 
@@ -158,7 +158,7 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 			// send wantlist updates
 			err = mq.network.SendMessage(ctx, mq.p, wlm)
 			if err != nil {
-				log.Error("bitswap send error: ", err)
+				log.Noticef("bitswap send error: %s", err)
 				// TODO: what do we do if this fails?
 			}
 		case <-mq.done:
