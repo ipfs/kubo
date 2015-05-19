@@ -178,6 +178,7 @@ func (pm *WantManager) Disconnected(p peer.ID) {
 // TODO: use goprocess here once i trust it
 func (pm *WantManager) Run() {
 	tock := time.NewTicker(rebroadcastDelay.Get())
+	defer tock.Stop()
 	for {
 		select {
 		case entries := <-pm.incoming:
