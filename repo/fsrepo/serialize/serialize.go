@@ -68,12 +68,5 @@ func Load(filename string) (*config.Config, error) {
 		return nil, err
 	}
 
-	// tilde expansion on datastore path
-	// TODO why is this here??
-	cfg.Datastore.Path, err = util.TildeExpansion(cfg.Datastore.Path)
-	if err != nil {
-		return nil, err
-	}
-
 	return &cfg, err
 }
