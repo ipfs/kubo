@@ -583,8 +583,5 @@ func isInitializedUnsynced(repoPath string) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
-	if !util.FileExists(path.Join(repoPath, leveldbDirectory)) {
-		return false
-	}
 	return true
 }
