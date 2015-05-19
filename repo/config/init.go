@@ -11,11 +11,6 @@ import (
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
-	ds, err := datastoreConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	identity, err := identityConfig(out, nBitsForKeypair)
 	if err != nil {
 		return nil, err
@@ -47,7 +42,6 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 
 		Bootstrap:        BootstrapPeerStrings(bootstrapPeers),
 		SupernodeRouting: *snr,
-		Datastore:        *ds,
 		Identity:         identity,
 		Discovery: Discovery{MDNS{
 			Enabled:  true,
@@ -75,17 +69,6 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	}
 
 	return conf, nil
-}
-
-func datastoreConfig() (*Datastore, error) {
-	dspath, err := DataStorePath("")
-	if err != nil {
-		return nil, err
-	}
-	return &Datastore{
-		Path: dspath,
-		Type: "leveldb",
-	}, nil
 }
 
 // identityConfig initializes a new identity.
