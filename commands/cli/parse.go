@@ -244,6 +244,13 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 			argDefIndex++
 			argDef = getArgDef(argDefIndex, argDefs)
 		}
+
+		// for some reason, this can be nil if
+		// ipfs is run as a node subprocess
+		if argDef == nil {
+			continue
+		}
+
 		if argDef.Required {
 			numRequired--
 		}
