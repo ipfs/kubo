@@ -121,12 +121,7 @@ func run(ipfsPath, watchPath string) error {
 					}
 				}
 				proc.Go(func(p process.Process) {
-					file, err := os.Open(e.Name)
-					if err != nil {
-						log.Println(err)
-					}
-					defer file.Close()
-					k, err := coreunix.Add(node, file)
+					k, err := coreunix.AddR(node, e.Name)
 					if err != nil {
 						log.Println(err)
 					}

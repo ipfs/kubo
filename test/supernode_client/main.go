@@ -28,6 +28,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	unixfs "github.com/ipfs/go-ipfs/shell/unixfs"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	unit "github.com/ipfs/go-ipfs/thirdparty/unit"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
@@ -151,10 +152,15 @@ func runFileAddingWorker(n *core.IpfsNode) error {
 					log.Fatal(err)
 				}
 			}()
-			k, err := coreunix.Add(n, piper)
+			fileNode, err := unixfs.AddFromReader(n, piper)
 			if err != nil {
 				log.Fatal(err)
 			}
+			key, err := fileNode.Key()
+			if err != nil {
+				log.Fatal(err)
+			}
+			k := key.String()
 			log.Println("added file", "seed", *seed, "#", i, "key", k, "size", unit.Information(sizeOfIthFile(i)))
 			time.Sleep(1 * time.Second)
 		}
@@ -185,10 +191,15 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 				log.Fatal(err)
 			}
 			// add to a dummy node to discover the key
-			k, err := coreunix.Add(dummy, bytes.NewReader(buf.Bytes()))
+			fileNode, err := unixfs.AddFromReader(dummy, bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				log.Fatal(err)
 			}
+			key, err := fileNode.Key()
+			if err != nil {
+				log.Fatal(err)
+			}
+			k := key.String()
 			e := elog.EventBegin(ctx, "cat", eventlog.LoggableF(func() map[string]interface{} {
 				return map[string]interface{}{
 					"key":       k,

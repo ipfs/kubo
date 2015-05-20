@@ -1,4 +1,4 @@
-package corehttp
+package corehttp_test
 
 import (
 	"errors"
@@ -10,12 +10,13 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
+	unixfs "github.com/ipfs/go-ipfs/shell/unixfs"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
@@ -60,15 +61,20 @@ func TestGatewayGet(t *testing.T) {
 	t.Skip("not sure whats going on here")
 	ns := mockNamesys{}
 	n := newNodeWithMockNamesys(t, ns)
-	k, err := coreunix.Add(n, strings.NewReader("fnord"))
+	dagNode, err := unixfs.AddFromReader(n, strings.NewReader("fnord"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	key, err := dagNode.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	k := key.String()
 	ns["example.com"] = path.FromString("/ipfs/" + k)
 
-	h, err := makeHandler(n,
-		IPNSHostnameOption(),
-		GatewayOption(false),
+	h, err := corehttp.MakeHandler(n,
+		corehttp.IPNSHostnameOption(),
+		corehttp.GatewayOption(false),
 	)
 	if err != nil {
 		t.Fatal(err)
