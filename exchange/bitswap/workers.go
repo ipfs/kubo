@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	inflect "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect"
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	u "github.com/ipfs/go-ipfs/util"
@@ -189,7 +188,7 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 		case <-tick:
 			n := bs.wantlist.Len()
 			if n > 0 {
-				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
+				log.Debug(n, "keys in bitswap wantlist")
 			}
 		case <-broadcastSignal: // resend unfulfilled wantlist keys
 			entries := bs.wantlist.Entries()
