@@ -154,7 +154,12 @@ func main() {
 	}
 
 	// everything went better than expected :)
-	io.Copy(os.Stdout, output)
+	_, err = io.Copy(os.Stdout, output)
+	if err != nil {
+		printErr(err)
+
+		os.Exit(1)
+	}
 }
 
 func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
