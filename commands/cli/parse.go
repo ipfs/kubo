@@ -223,7 +223,7 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	// if there is at least one ArgDef, we can safely trigger the inputs loop
 	// below to parse stdin.
 	numInputs := len(inputs)
-	if argDef := getArgDef(0, argDefs); argDef != nil && stdin != nil {
+	if len(argDefs) > 0 && stdin != nil {
 		numInputs += 1
 	}
 
