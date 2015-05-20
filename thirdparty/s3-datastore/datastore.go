@@ -18,6 +18,7 @@ var ErrInvalidType = errors.New("s3 datastore: invalid type error")
 type S3Datastore struct {
 	Client *s3.S3
 	Bucket string
+	ACL    s3.ACL
 }
 
 func (ds *S3Datastore) encode(key datastore.Key) string {
@@ -37,10 +38,14 @@ func (ds *S3Datastore) Put(key datastore.Key, value interface{}) (err error) {
 	if !ok {
 		return ErrInvalidType
 	}
-	// TODO extract perms and s3 options
+	// TODO extract s3 options
 
 	k := ds.encode(key)
-	return ds.Client.Bucket(ds.Bucket).Put(k, data, "application/protobuf", s3.PublicRead, s3.Options{})
+	acl := ds.ACL
+	if acl == "" {
+		acl = s3.Private
+	}
+	return ds.Client.Bucket(ds.Bucket).Put(k, data, "application/protobuf", acl, s3.Options{})
 }
 
 func (ds *S3Datastore) Get(key datastore.Key) (value interface{}, err error) {
