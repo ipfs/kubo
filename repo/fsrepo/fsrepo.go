@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -21,6 +22,7 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/util/datastore2"
 )
 
 // version number that we are currently expecting to see
@@ -341,7 +343,41 @@ func (r *FSRepo) openDatastore() error {
 	if err != nil {
 		return err
 	}
-	r.ds = d
+
+	// Wrap it with metrics gathering
+	//
+	// Add our PeerID to metrics paths to keep them unique
+	//
+	// As some tests just pass a zero-value Config to fsrepo.Init,
+	// cope with missing PeerID.
+	id := r.config.Identity.PeerID
+	if id == "" {
+		// the tests pass in a zero Config; cope with it
+		id = fmt.Sprintf("uninitialized_%p", r)
+	}
+	prefix := "fsrepo." + id + ".datastore"
+	dMetr := measure.New(prefix, d)
+
+	r.ds = &metricsWrap{dMetr, d}
+	return nil
+}
+
+type metricsWrap struct {
+	measure.DatastoreCloser
+	backend datastore2.ThreadSafeDatastoreCloser
+}
+
+var _ ds.ThreadSafeDatastore = (*metricsWrap)(nil)
+
+func (*metricsWrap) IsThreadSafe() {}
+
+func (m *metricsWrap) Close() error {
+	if err := m.backend.Close(); err != nil {
+		return err
+	}
+	if err := m.DatastoreCloser.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
