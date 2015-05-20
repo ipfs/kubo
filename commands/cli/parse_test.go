@@ -268,4 +268,7 @@ func TestArgumentParsing(t *testing.T) {
 	fstdin = fileToSimulateStdin(t, "stdin1")
 	test([]string{"stdinenablednotvariadic2args", "value1"}, fstdin, []string{"value1", "stdin1"})
 	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+
+	fstdin = fileToSimulateStdin(t, "stdin1")
+	test([]string{"noarg"}, fstdin, []string{})
 }
