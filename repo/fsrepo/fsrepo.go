@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -331,6 +332,18 @@ func (r *FSRepo) openDatastore() error {
 			return err
 		}
 		r.ds = d
+	case "s3":
+		var dscfg config.S3Datastore
+		if err := json.Unmarshal(r.config.Datastore.ParamData(), &dscfg); err != nil {
+			return fmt.Errorf("datastore s3: %v", err)
+		}
+
+		ds, err := openS3Datastore(dscfg)
+		if err != nil {
+			return err
+		}
+
+		r.ds = ds
 	default:
 		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
 	}
