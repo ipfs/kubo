@@ -9,9 +9,9 @@ import (
 
 func TestConfig(t *testing.T) {
 	const filename = ".ipfsconfig"
-	const dsPath = "/path/to/datastore"
 	cfgWritten := new(config.Config)
-	cfgWritten.Datastore.Path = dsPath
+	cfgWritten.Identity.PeerID = "faketest"
+
 	err := WriteConfigFile(filename, cfgWritten)
 	if err != nil {
 		t.Error(err)
@@ -21,7 +21,7 @@ func TestConfig(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if cfgWritten.Datastore.Path != cfgRead.Datastore.Path {
+	if cfgWritten.Identity.PeerID != cfgRead.Identity.PeerID {
 		t.Fail()
 	}
 	st, err := os.Stat(filename)
