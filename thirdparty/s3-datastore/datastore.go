@@ -67,4 +67,8 @@ func (ds *S3Datastore) Query(q query.Query) (query.Results, error) {
 	return nil, errors.New("TODO implement query for s3 datastore?")
 }
 
+func (ds *S3Datastore) Close() error {
+	return nil
+}
+
 func (ds *S3Datastore) IsThreadSafe() {}
