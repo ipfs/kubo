@@ -59,6 +59,15 @@ func (d *Datastore) UnmarshalJSON(data []byte) error {
 	case "default", "leveldb":
 		// leave ds nil, it's handled in Open
 		return nil
+
+	case "s3":
+		ds := s3Datastore{}
+		if err := json.Unmarshal(data, &ds); err != nil {
+			return fmt.Errorf("datastore s3: %v", err)
+		}
+		d.ds = ds
+		return nil
+
 	default:
 		return fmt.Errorf("unsupported datastore type: %q", env.Type)
 	}
