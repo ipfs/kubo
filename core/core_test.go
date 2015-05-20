@@ -16,9 +16,6 @@ func TestInitialization(t *testing.T) {
 	good := []*config.Config{
 		{
 			Identity: id,
-			Datastore: config.Datastore{
-				Type: "memory",
-			},
 			Addresses: config.Addresses{
 				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
 				API:   "/ip4/127.0.0.1/tcp/8000",
@@ -27,10 +24,6 @@ func TestInitialization(t *testing.T) {
 
 		{
 			Identity: id,
-			Datastore: config.Datastore{
-				Type: "leveldb",
-				Path: ".testdb",
-			},
 			Addresses: config.Addresses{
 				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
 				API:   "/ip4/127.0.0.1/tcp/8000",
@@ -40,7 +33,6 @@ func TestInitialization(t *testing.T) {
 
 	bad := []*config.Config{
 		{},
-		{Datastore: config.Datastore{Type: "memory"}},
 	}
 
 	for i, c := range good {
