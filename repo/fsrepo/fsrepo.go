@@ -334,7 +334,10 @@ func (r *FSRepo) openConfig() error {
 
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
-	d, err := openDefaultDatastore(r)
+	d, err := r.config.Datastore.Open(r.path)
+	if err == config.UseDefaultDatastoreErr {
+		d, err = openDefaultDatastore(r)
+	}
 	if err != nil {
 		return err
 	}
