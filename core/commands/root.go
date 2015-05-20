@@ -95,6 +95,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"ping":      PingCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,
+	"save":      SaveCmd,
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
 	"update":    UpdateCmd,
