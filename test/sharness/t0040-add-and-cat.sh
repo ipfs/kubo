@@ -48,6 +48,22 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "ipfs cat succeeds with stdin opened (issue #1141)" '
+	cat mountdir/hello.txt | while read line; do ipfs cat "$HASH" >actual || exit; done
+'
+
+test_expect_success "ipfs cat output looks good" '
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat accept hash from stdin" '
+	echo "$HASH" | ipfs cat >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	test_cmp expected actual
+'
+
 test_expect_success FUSE "cat ipfs/stuff succeeds" '
 	cat "ipfs/$HASH" >actual
 '
@@ -81,6 +97,41 @@ test_expect_success "'ipfs add -r' output looks good" '
 	echo "added $MARS mountdir/planets/mars.txt" >expected &&
 	echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
 	echo "added $PLANETS mountdir/planets" >>expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat accept many hashes from stdin" '
+	{ echo "$MARS"; echo "$VENUS"; } | ipfs cat >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/mars.txt mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat accept many hashes as args" '
+	ipfs cat "$MARS" "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat with both arg and stdin" '
+	echo "$MARS" | ipfs cat "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs cat with two args and stdin" '
+	echo "$MARS" | ipfs cat "$VENUS" "$VENUS" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/venus.txt mountdir/planets/venus.txt >expected &&
 	test_cmp expected actual
 '
 
