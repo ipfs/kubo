@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -347,6 +348,20 @@ func (r *FSRepo) openDatastore() error {
 	default:
 		return fmt.Errorf("unknown datastore type: %s", r.config.Datastore.Type)
 	}
+
+	// Wrap it with metrics gathering
+	//
+	// Add our PeerID to metrics paths to keep them unique
+	//
+	// As some tests just pass a zero-value Config to fsrepo.Init,
+	// cope with missing PeerID.
+	id := r.config.Identity.PeerID
+	if id == "" {
+		// the tests pass in a zero Config; cope with it
+		id = fmt.Sprintf("uninitialized_%p", r)
+	}
+	prefix := "fsrepo." + id + ".datastore"
+	r.ds = measure.New(prefix, r.ds)
 
 	return nil
 }
