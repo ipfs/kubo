@@ -387,7 +387,10 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
-	daemonLocked := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+	daemonLocked, err := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+	if err != nil {
+		return false, err
+	}
 
 	if daemonLocked {
 

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	assets "github.com/ipfs/go-ipfs/assets"
@@ -36,7 +38,10 @@ var initCmd = &cmds.Command{
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
 	PreRun: func(req cmds.Request) error {
-		daemonLocked := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+		daemonLocked, err := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+		if err != nil {
+			return err
+		}
 
 		log.Info("checking if daemon is running...")
 		if daemonLocked {
@@ -47,6 +52,10 @@ var initCmd = &cmds.Command{
 		return nil
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
+		if req.Context().Online {
+			res.SetError(errors.New("init must be run offline only!"), cmds.ErrNormal)
+			return
+		}
 
 		force, _, err := req.Option("f").Bool() // if !found, it's okay force == false
 		if err != nil {
@@ -64,15 +73,10 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		rpipe, wpipe := io.Pipe()
-		go func() {
-			defer wpipe.Close()
-			if err := doInit(wpipe, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		}()
-		res.SetOutput(rpipe)
+		if err := doInit(os.Stdout, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	},
 }
 
@@ -82,12 +86,15 @@ Reinitializing would overwrite your keys.
 `)
 
 func initWithDefaults(out io.Writer, repoRoot string) error {
-	err := doInit(out, repoRoot, false, nBitsForKeypairDefault)
-	return err
+	return doInit(out, repoRoot, false, nBitsForKeypairDefault)
 }
 
 func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
 	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
+		return err
+	}
+
+	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
 
@@ -115,6 +122,34 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 	}
 
 	return initializeIpnsKeyspace(repoRoot)
+}
+
+func checkWriteable(dir string) error {
+	_, err := os.Stat(dir)
+	if err == nil {
+		// dir exists, make sure we can write to it
+		testfile := path.Join(dir, "test")
+		fi, err := os.Create(testfile)
+		if err != nil {
+			if os.IsPermission(err) {
+				return fmt.Errorf("%s is not writeable by the current user", dir)
+			}
+			return fmt.Errorf("unexpected error while checking writeablility of repo root: %s", err)
+		}
+		fi.Close()
+		return os.Remove(testfile)
+	}
+
+	if os.IsNotExist(err) {
+		// dir doesnt exist, check that we can create it
+		return os.Mkdir(dir, 0775)
+	}
+
+	if os.IsPermission(err) {
+		return fmt.Errorf("cannot write to %s, incorrect permissions", err)
+	}
+
+	return err
 }
 
 func addDefaultAssets(out io.Writer, repoRoot string) error {

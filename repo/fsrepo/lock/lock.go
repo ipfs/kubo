@@ -2,6 +2,7 @@ package lock
 
 import (
 	"io"
+	"os"
 	"path"
 
 	lock "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/camlistore/lock"
@@ -17,14 +18,17 @@ func Lock(confdir string) (io.Closer, error) {
 	return c, err
 }
 
-func Locked(confdir string) bool {
+func Locked(confdir string) (bool, error) {
 	if !util.FileExists(path.Join(confdir, LockFile)) {
-		return false
+		return false, nil
 	}
 	if lk, err := Lock(confdir); err != nil {
-		return true
+		if os.IsPermission(err) {
+			return false, err
+		}
+		return true, nil
 	} else {
 		lk.Close()
-		return false
+		return false, nil
 	}
 }
