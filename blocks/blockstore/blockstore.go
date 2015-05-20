@@ -51,7 +51,7 @@ type GCBlockstore interface {
 	PinLock() func()
 }
 
-func NewBlockstore(d ds.ThreadSafeDatastore) *blockstore {
+func NewBlockstore(d ds.Datastore) *blockstore {
 	dd := dsns.Wrap(d, BlockPrefix)
 	return &blockstore{
 		datastore: dd,
