@@ -14,21 +14,20 @@ func TestConfig(t *testing.T) {
 
 	err := WriteConfigFile(filename, cfgWritten)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	cfgRead, err := Load(filename)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if cfgWritten.Identity.PeerID != cfgRead.Identity.PeerID {
-		t.Fail()
+		t.Fatal()
 	}
 	st, err := os.Stat(filename)
 	if err != nil {
 		t.Fatalf("cannot stat config file: %v", err)
 	}
 	if g := st.Mode().Perm(); g&0117 != 0 {
-		t.Errorf("config file should not be executable or accessible to world: %v", g)
+		t.Fatalf("config file should not be executable or accessible to world: %v", g)
 	}
 }
