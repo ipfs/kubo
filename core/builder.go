@@ -63,7 +63,7 @@ func (cfg *BuildCfg) fillDefaults() error {
 	return nil
 }
 
-func defaultRepo(dstore ds.ThreadSafeDatastore) (repo.Repo, error) {
+func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 	c := cfg.Config{}
 	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
 	if err != nil {

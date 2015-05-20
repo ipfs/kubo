@@ -47,7 +47,7 @@ func (c *nilclient) Bootstrap(_ context.Context) error {
 	return nil
 }
 
-func ConstructNilRouting(_ context.Context, _ p2phost.Host, _ ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
+func ConstructNilRouting(_ context.Context, _ p2phost.Host, _ ds.Datastore) (routing.IpfsRouting, error) {
 	return &nilclient{}, nil
 }
 
