@@ -20,7 +20,7 @@ func IPNSHostnameOption() ServeOption {
 
 			host := strings.SplitN(r.Host, ":", 2)[0]
 			if p, err := n.Namesys.Resolve(ctx, host); err == nil {
-				r.URL.Path = "/ipfs/" + p.String() + r.URL.Path
+				r.URL.Path = p.String() + r.URL.Path
 			}
 			childMux.ServeHTTP(w, r)
 		})

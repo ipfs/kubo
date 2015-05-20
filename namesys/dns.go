@@ -11,23 +11,46 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
+type LookupTXTFunc func(name string) (txt []string, err error)
+
 // DNSResolver implements a Resolver on DNS domains
 type DNSResolver struct {
+	lookupTXT LookupTXTFunc
 	// TODO: maybe some sort of caching?
 	// cache would need a timeout
 }
 
-// CanResolve implements Resolver
-func (r *DNSResolver) CanResolve(name string) bool {
-	return isd.IsDomain(name)
+// NewDNSResolver constructs a name resolver using DNS TXT records.
+func NewDNSResolver() Resolver {
+	return &DNSResolver{lookupTXT: net.LookupTXT}
 }
 
-// Resolve implements Resolver
+// newDNSResolver constructs a name resolver using DNS TXT records,
+// returning a resolver instead of NewDNSResolver's Resolver.
+func newDNSResolver() resolver {
+	return &DNSResolver{lookupTXT: net.LookupTXT}
+}
+
+// Resolve implements Resolver.
+func (r *DNSResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
+	return r.ResolveN(ctx, name, DefaultDepthLimit)
+}
+
+// ResolveN implements Resolver.
+func (r *DNSResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
+	return resolve(ctx, r, name, depth, "/ipns/")
+}
+
+// resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-func (r *DNSResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
-	log.Info("DNSResolver resolving %v", name)
-	txt, err := net.LookupTXT(name)
+func (r *DNSResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
+	if !isd.IsDomain(name) {
+		return "", errors.New("not a valid domain name")
+	}
+
+	log.Infof("DNSResolver resolving %s", name)
+	txt, err := r.lookupTXT(name)
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +66,7 @@ func (r *DNSResolver) Resolve(ctx context.Context, name string) (path.Path, erro
 }
 
 func parseEntry(txt string) (path.Path, error) {
-	p, err := path.ParseKeyToPath(txt)
+	p, err := path.ParseKeyToPath(txt) // bare IPFS multihashes
 	if err == nil {
 		return p, nil
 	}
@@ -52,10 +75,10 @@ func parseEntry(txt string) (path.Path, error) {
 }
 
 func tryParseDnsLink(txt string) (path.Path, error) {
-	parts := strings.Split(txt, "=")
-	if len(parts) == 1 || parts[0] != "dnslink" {
-		return "", errors.New("not a valid dnslink entry")
+	parts := strings.SplitN(txt, "=", 2)
+	if len(parts) == 2 && parts[0] == "dnslink" {
+		return path.ParsePath(parts[1])
 	}
 
-	return path.ParsePath(parts[1])
+	return "", errors.New("not a valid dnslink entry")
 }

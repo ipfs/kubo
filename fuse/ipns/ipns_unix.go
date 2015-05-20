@@ -150,9 +150,6 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if segments[0] == "ipfs" {
 		p := strings.Join(resolved.Segments()[1:], "/")
 		return &Link{s.IpfsRoot + "/" + p}, nil
-	} else if segments[0] == "ipns" {
-		p := strings.Join(resolved.Segments()[1:], "/")
-		return &Link{s.IpnsRoot + "/" + p}, nil
 	} else {
 		log.Error("Invalid path.Path: ", resolved)
 		return nil, errors.New("invalid path from ipns record")

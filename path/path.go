@@ -44,12 +44,8 @@ func (p Path) String() string {
 	return string(p)
 }
 
-func FromSegments(seg ...string) (Path, error) {
-	var pref string
-	if seg[0] == "ipfs" || seg[0] == "ipns" {
-		pref = "/"
-	}
-	return ParsePath(pref + strings.Join(seg, "/"))
+func FromSegments(prefix string, seg ...string) (Path, error) {
+	return ParsePath(prefix + strings.Join(seg, "/"))
 }
 
 func ParsePath(txt string) (Path, error) {
@@ -68,13 +64,13 @@ func ParsePath(txt string) (Path, error) {
 		return "", ErrBadPath
 	}
 
-	if parts[1] != "ipfs" && parts[1] != "ipns" {
+	if parts[1] == "ipfs" {
+		_, err := ParseKeyToPath(parts[2])
+		if err != nil {
+			return "", err
+		}
+	} else if parts[1] != "ipns" {
 		return "", ErrBadPath
-	}
-
-	_, err := ParseKeyToPath(parts[2])
-	if err != nil {
-		return "", err
 	}
 
 	return Path(txt), nil

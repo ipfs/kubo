@@ -141,7 +141,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 		return nil, err
 	}
 
-	name := u.Key(hash).Pretty()
+	name := "/ipns/" + u.Key(hash).String()
 
 	root := new(KeyRoot)
 	root.key = k

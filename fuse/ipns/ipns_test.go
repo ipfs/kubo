@@ -462,7 +462,7 @@ func TestFastRepublish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubkeyHash := u.Key(h).Pretty()
+	pubkeyPath := "/ipns/" + u.Key(h).String()
 
 	// set them back
 	defer func() {
@@ -482,9 +482,9 @@ func TestFastRepublish(t *testing.T) {
 	writeFileData(t, dataA, fname) // random
 	<-time.After(shortRepublishTimeout * 2)
 	log.Debug("resolving first hash")
-	resolvedHash, err := node.Namesys.Resolve(context.Background(), pubkeyHash)
+	resolvedHash, err := node.Namesys.Resolve(context.Background(), pubkeyPath)
 	if err != nil {
-		t.Fatal("resolve err:", pubkeyHash, err)
+		t.Fatal("resolve err:", pubkeyPath, err)
 	}
 
 	// constantly keep writing to the file
@@ -501,7 +501,7 @@ func TestFastRepublish(t *testing.T) {
 	}(shortRepublishTimeout)
 
 	hasPublished := func() bool {
-		res, err := node.Namesys.Resolve(context.Background(), pubkeyHash)
+		res, err := node.Namesys.Resolve(context.Background(), pubkeyPath)
 		if err != nil {
 			t.Fatalf("resolve err: %v", err)
 		}
