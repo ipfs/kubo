@@ -72,7 +72,8 @@ func (n *network) deliver(
 
 	n.delay.Wait()
 
-	return r.ReceiveMessage(context.TODO(), from, message)
+	r.ReceiveMessage(context.TODO(), from, message)
+	return nil
 }
 
 type networkClient struct {
@@ -118,4 +119,13 @@ func (nc *networkClient) Provide(ctx context.Context, k util.Key) error {
 
 func (nc *networkClient) SetDelegate(r bsnet.Receiver) {
 	nc.Receiver = r
+}
+
+func (nc *networkClient) ConnectTo(_ context.Context, p peer.ID) error {
+	if !nc.network.HasPeer(p) {
+		return errors.New("no such peer in network")
+	}
+	nc.network.clients[p].PeerConnected(nc.local)
+	nc.Receiver.PeerConnected(p)
+	return nil
 }

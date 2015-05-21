@@ -29,12 +29,9 @@ type BitSwapMessage interface {
 
 	Cancel(key u.Key)
 
-	// Sets whether or not the contained wantlist represents the entire wantlist
-	// true = full wantlist
-	// false = wantlist 'patch'
-	// default: true
-	SetFull(isFull bool)
+	Empty() bool
 
+	// A full wantlist is an authoritative copy, a 'non-full' wantlist is a patch-set
 	Full() bool
 
 	AddBlock(*blocks.Block)
@@ -51,18 +48,18 @@ type Exportable interface {
 type impl struct {
 	full     bool
 	wantlist map[u.Key]Entry
-	blocks   map[u.Key]*blocks.Block // map to detect duplicates
+	blocks   map[u.Key]*blocks.Block
 }
 
-func New() BitSwapMessage {
-	return newMsg()
+func New(full bool) BitSwapMessage {
+	return newMsg(full)
 }
 
-func newMsg() *impl {
+func newMsg(full bool) *impl {
 	return &impl{
 		blocks:   make(map[u.Key]*blocks.Block),
 		wantlist: make(map[u.Key]Entry),
-		full:     true,
+		full:     full,
 	}
 }
 
@@ -72,8 +69,7 @@ type Entry struct {
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
-	m := newMsg()
-	m.SetFull(pbm.GetWantlist().GetFull())
+	m := newMsg(pbm.GetWantlist().GetFull())
 	for _, e := range pbm.GetWantlist().GetEntries() {
 		m.addEntry(u.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
 	}
@@ -84,12 +80,12 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	return m
 }
 
-func (m *impl) SetFull(full bool) {
-	m.full = full
-}
-
 func (m *impl) Full() bool {
 	return m.full
+}
+
+func (m *impl) Empty() bool {
+	return len(m.blocks) == 0 && len(m.wantlist) == 0
 }
 
 func (m *impl) Wantlist() []Entry {
@@ -101,7 +97,7 @@ func (m *impl) Wantlist() []Entry {
 }
 
 func (m *impl) Blocks() []*blocks.Block {
-	bs := make([]*blocks.Block, 0)
+	bs := make([]*blocks.Block, 0, len(m.blocks))
 	for _, block := range m.blocks {
 		bs = append(bs, block)
 	}
@@ -109,6 +105,7 @@ func (m *impl) Blocks() []*blocks.Block {
 }
 
 func (m *impl) Cancel(k u.Key) {
+	delete(m.wantlist, k)
 	m.addEntry(k, 0, true)
 }
 
@@ -155,7 +152,7 @@ func (m *impl) ToProto() *pb.Message {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(string(e.Key)),
 			Priority: proto.Int32(int32(e.Priority)),
-			Cancel:   &e.Cancel,
+			Cancel:   proto.Bool(e.Cancel),
 		})
 	}
 	for _, b := range m.Blocks() {

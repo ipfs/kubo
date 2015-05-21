@@ -97,6 +97,10 @@ func (bsnet *impl) SetDelegate(r Receiver) {
 	bsnet.receiver = r
 }
 
+func (bsnet *impl) ConnectTo(ctx context.Context, p peer.ID) error {
+	return bsnet.host.Connect(ctx, peer.PeerInfo{ID: p})
+}
+
 // FindProvidersAsync returns a channel of providers for the given key
 func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
 

@@ -23,6 +23,8 @@ type BitSwapNetwork interface {
 	// network.
 	SetDelegate(Receiver)
 
+	ConnectTo(context.Context, peer.ID) error
+
 	Routing
 }
 
@@ -31,7 +33,7 @@ type Receiver interface {
 	ReceiveMessage(
 		ctx context.Context,
 		sender peer.ID,
-		incoming bsmsg.BitSwapMessage) error
+		incoming bsmsg.BitSwapMessage)
 
 	ReceiveError(error)
 

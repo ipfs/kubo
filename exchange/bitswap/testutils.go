@@ -7,7 +7,6 @@ import (
 	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	exchange "github.com/ipfs/go-ipfs/exchange"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
@@ -56,12 +55,18 @@ func (g *SessionGenerator) Instances(n int) []Instance {
 		inst := g.Next()
 		instances = append(instances, inst)
 	}
+	for i, inst := range instances {
+		for j := i + 1; j < len(instances); j++ {
+			oinst := instances[j]
+			inst.Exchange.PeerConnected(oinst.Peer)
+		}
+	}
 	return instances
 }
 
 type Instance struct {
 	Peer       peer.ID
-	Exchange   exchange.Interface
+	Exchange   *Bitswap
 	blockstore blockstore.Blockstore
 
 	blockstoreDelay delay.D
@@ -94,7 +99,7 @@ func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance 
 
 	const alwaysSendToPeer = true
 
-	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer)
+	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer).(*Bitswap)
 
 	return Instance{
 		Peer:            p.ID(),

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	blocks "github.com/ipfs/go-ipfs/blocks"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
@@ -53,8 +54,9 @@ const (
 type Envelope struct {
 	// Peer is the intended recipient
 	Peer peer.ID
-	// Message is the payload
-	Message bsmsg.BitSwapMessage
+
+	// Block is the payload
+	Block *blocks.Block
 
 	// A callback to notify the decision queue that the task is complete
 	Sent func()
@@ -90,7 +92,7 @@ func NewEngine(ctx context.Context, bs bstore.Blockstore) *Engine {
 		bs:               bs,
 		peerRequestQueue: newPRQ(),
 		outbox:           make(chan (<-chan *Envelope), outboxChanBuffer),
-		workSignal:       make(chan struct{}),
+		workSignal:       make(chan struct{}, 1),
 	}
 	go e.taskWorker(ctx)
 	return e
@@ -151,12 +153,18 @@ func (e *Engine) nextEnvelope(ctx context.Context) (*Envelope, error) {
 			continue
 		}
 
-		m := bsmsg.New() // TODO: maybe add keys from our wantlist?
-		m.AddBlock(block)
 		return &Envelope{
-			Peer:    nextTask.Target,
-			Message: m,
-			Sent:    nextTask.Done,
+			Peer:  nextTask.Target,
+			Block: block,
+			Sent: func() {
+				nextTask.Done()
+				select {
+				case e.workSignal <- struct{}{}:
+					// work completing may mean that our queue will provide new
+					// work to be done.
+				default:
+				}
+			},
 		}, nil
 	}
 }
@@ -185,7 +193,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	defer e.lock.Unlock()
 
 	if len(m.Wantlist()) == 0 && len(m.Blocks()) == 0 {
-		log.Debug("received empty message from", p)
+		log.Debugf("received empty message from %s", p)
 	}
 
 	newWorkExists := false
@@ -202,11 +210,11 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 
 	for _, entry := range m.Wantlist() {
 		if entry.Cancel {
-			log.Debug("cancel", entry.Key)
+			log.Debugf("cancel %s", entry.Key)
 			l.CancelWant(entry.Key)
 			e.peerRequestQueue.Remove(entry.Key, p)
 		} else {
-			log.Debug("wants", entry.Key, entry.Priority)
+			log.Debugf("wants %s - %d", entry.Key, entry.Priority)
 			l.Wants(entry.Key, entry.Priority)
 			if exists, err := e.bs.Has(entry.Key); err == nil && exists {
 				e.peerRequestQueue.Push(entry.Entry, p)
@@ -216,7 +224,7 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		log.Debug("got block %s %d bytes", block.Key(), len(block.Data))
+		log.Debugf("got block %s %d bytes", block.Key(), len(block.Data))
 		l.ReceivedBytes(len(block.Data))
 		for _, l := range e.ledgerMap {
 			if entry, ok := l.WantListContains(block.Key()); ok {
