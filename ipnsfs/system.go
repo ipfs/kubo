@@ -80,7 +80,7 @@ func (fs *Filesystem) Close() error {
 			defer wg.Done()
 			err := r.Publish(context.TODO())
 			if err != nil {
-				log.Error(err)
+				log.Notice(err)
 				return
 			}
 		}(r)
