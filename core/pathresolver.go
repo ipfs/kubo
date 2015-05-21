@@ -20,8 +20,9 @@ var ErrNoNamesys = errors.New(
 // entries and returning the final merkledage node.  Effectively
 // enables /ipns/, /dns/, etc. in commands.
 func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, error) {
-	if strings.HasPrefix(p.String(), "/") {
-		// namespaced path (/ipfs/..., /ipns/..., etc.)
+	if strings.HasPrefix(p.String(), "/ipns/") {
+		// resolve ipns paths
+
 		// TODO(cryptix): we sould be able to query the local cache for the path
 		if n.Namesys == nil {
 			return nil, ErrNoNamesys
