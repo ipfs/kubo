@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"strings"
+	"fmt"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -29,8 +30,9 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 		}
 
 		seg := p.Segments()
-		if len(seg) < 2 {
-			return nil, errors.New("No path given")
+
+		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
+			return nil, fmt.Errorf("invalid path: %s", string(p))
 		}
 
 		extensions := seg[2:]
