@@ -17,6 +17,7 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
 )
@@ -114,7 +115,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 	var err error
 	if node == nil {
-		node, err = core.NewMockNode()
+		node, err = coremock.NewMockNode()
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -1,16 +1,18 @@
 package blockservice
 
 import (
-	"testing"
-
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
 )
 
+type fataler interface {
+	Fatal(args ...interface{})
+}
+
 // Mocks returns |n| connected mock Blockservices
-func Mocks(t *testing.T, n int) []*BlockService {
+func Mocks(t fataler, n int) []*BlockService {
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(0))
 	sg := bitswap.NewTestSessionGenerator(net)
 
