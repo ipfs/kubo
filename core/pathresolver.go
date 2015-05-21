@@ -28,6 +28,10 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 		}
 
 		seg := p.Segments()
+		if len(seg) < 2 {
+			return nil, errors.New("No path given")
+		}
+
 		extensions := seg[2:]
 		resolvable, err := path.FromSegments("/", seg[0], seg[1])
 		if err != nil {
