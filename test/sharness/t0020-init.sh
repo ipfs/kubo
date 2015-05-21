@@ -20,7 +20,7 @@ test_expect_success "ipfs init fails" '
 '
 
 test_expect_success "ipfs init output looks good" '
-	echo "Error: open $IPFS_PATH/repo.lock: permission denied" > init_fail_exp &&
+	echo "Error: failed to take lock at $IPFS_PATH: permission denied" > init_fail_exp &&
 	test_cmp init_fail_out init_fail_exp
 '
 
