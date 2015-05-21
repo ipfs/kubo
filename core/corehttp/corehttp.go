@@ -5,6 +5,7 @@ high-level HTTP interfaces to IPFS.
 package corehttp
 
 import (
+	"net"
 	"net/http"
 	"time"
 
@@ -56,12 +57,15 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 }
 
 func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler) error {
-	_, host, err := manet.DialArgs(addr)
+	netarg, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return err
 	}
 
-	server := &http.Server{Addr: host, Handler: handler}
+	list, err := net.Listen(netarg, host)
+	if err != nil {
+		return err
+	}
 
 	// if the server exits beforehand
 	var serverError error
@@ -71,7 +75,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	defer node.Children().Done()
 
 	go func() {
-		serverError = server.ListenAndServe()
+		serverError = http.Serve(list, handler)
 		close(serverExited)
 	}()
 
@@ -83,14 +87,15 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	case <-node.Closing():
 		log.Infof("server at %s terminating...", addr)
 
-		// make sure keep-alive connections do not keep the server running
-		server.SetKeepAlivesEnabled(false)
+		list.Close()
 
 	outer:
 		for {
 			// wait until server exits
 			select {
 			case <-serverExited:
+				// if the server exited as we are closing, we really dont care about errors
+				serverError = nil
 				break outer
 			case <-time.After(5 * time.Second):
 				log.Infof("waiting for server at %s to terminate...", addr)
