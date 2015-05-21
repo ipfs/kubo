@@ -49,10 +49,6 @@
 			"Rev": "e8c7cc515bfde3e267957a3b110080ceed51354e"
 		},
 		{
-			"ImportPath": "github.com/chuckpreslar/inflect",
-			"Rev": "423e3ac59c611e2d549527ab8c15fb99335d30ba"
-		},
-		{
 			"ImportPath": "github.com/codahale/hdrhistogram",
 			"Rev": "5fd85ec0b4e2dd5d4158d257d943f2e586d86b62"
 		},
