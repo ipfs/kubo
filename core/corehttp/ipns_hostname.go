@@ -2,7 +2,6 @@ package corehttp
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	isd "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-is-domain"
@@ -24,7 +23,7 @@ func IPNSHostnameOption() ServeOption {
 			if len(host) > 0 && isd.IsDomain(host) {
 				name := "/ipns/" + host
 				if _, err := n.Namesys.Resolve(ctx, name); err == nil {
-					r.URL.Path = path.Join("/ipns/", host) + r.URL.Path
+					r.URL.Path = name + r.URL.Path
 				}
 			}
 			childMux.ServeHTTP(w, r)
