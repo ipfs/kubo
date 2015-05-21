@@ -283,7 +283,7 @@ func Remove(repoPath string) error {
 
 // LockedByOtherProcess returns true if the FSRepo is locked by another
 // process. If true, then the repo cannot be opened by this process.
-func LockedByOtherProcess(repoPath string) bool {
+func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = path.Clean(repoPath)
 
 	// TODO replace this with the "api" file
