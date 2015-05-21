@@ -219,9 +219,11 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 	}
 
-	// count number of values provided by user
+	// count number of values provided by user.
+	// if there is at least one ArgDef, we can safely trigger the inputs loop
+	// below to parse stdin.
 	numInputs := len(inputs)
-	if stdin != nil {
+	if len(argDefs) > 0 && argDefs[len(argDefs)-1].SupportsStdin && stdin != nil {
 		numInputs += 1
 	}
 

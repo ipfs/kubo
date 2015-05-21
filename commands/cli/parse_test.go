@@ -144,6 +144,12 @@ func TestArgumentParsing(t *testing.T) {
 					commands.StringArg("b", false, true, "another arg"),
 				},
 			},
+			"optionalsecond": {
+				Arguments: []commands.Argument{
+					commands.StringArg("a", true, false, "some arg"),
+					commands.StringArg("b", false, false, "another arg"),
+				},
+			},
 			"reversedoptional": {
 				Arguments: []commands.Argument{
 					commands.StringArg("a", false, false, "some arg"),
@@ -213,6 +219,12 @@ func TestArgumentParsing(t *testing.T) {
 
 	test([]string{"optional", "value!"}, nil, []string{"value!"})
 	test([]string{"optional"}, nil, []string{})
+	test([]string{"optional", "value1", "value2"}, nil, []string{"value1", "value2"})
+
+	test([]string{"optionalsecond", "value!"}, nil, []string{"value!"})
+	test([]string{"optionalsecond", "value1", "value2"}, nil, []string{"value1", "value2"})
+	testFail([]string{"optionalsecond"}, "didn't provide any args, 1 required")
+	testFail([]string{"optionalsecond", "value1", "value2", "value3"}, "provided too many args, takes 2 maximum")
 
 	test([]string{"reversedoptional", "value1", "value2"}, nil, []string{"value1", "value2"})
 	test([]string{"reversedoptional", "value!"}, nil, []string{"value!"})
@@ -268,4 +280,10 @@ func TestArgumentParsing(t *testing.T) {
 	fstdin = fileToSimulateStdin(t, "stdin1")
 	test([]string{"stdinenablednotvariadic2args", "value1"}, fstdin, []string{"value1", "stdin1"})
 	test([]string{"stdinenablednotvariadic2args", "value1", "value2"}, fstdin, []string{"value1", "value2"})
+
+	fstdin = fileToSimulateStdin(t, "stdin1")
+	test([]string{"noarg"}, fstdin, []string{})
+
+	fstdin = fileToSimulateStdin(t, "stdin1")
+	test([]string{"optionalsecond", "value1", "value2"}, fstdin, []string{"value1", "value2"})
 }
