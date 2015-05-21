@@ -71,7 +71,9 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			// only use this when the flag is '-C' without '-a'
 			reader, err = getZip(req.Context(), node, p, cmplvl)
 		} else {
-			reader, err = get(req.Context(), node, p, cmplvl)
+			var length uint64
+			reader, length, err = get(req.Context(), node, p, cmplvl)
+			res.SetLength(length)
 		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -107,17 +109,16 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			Compression: cmplvl,
 		}
 
-		if err := gw.Write(outReader, outPath); err != nil {
+		if err := gw.Write(outReader, outPath, res.Length()); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 	},
 }
 
-func progressBarForReader(out io.Writer, r io.Reader) (*pb.ProgressBar, *pb.Reader) {
+func progressBarForReader(out io.Writer, r io.Reader, l uint64) (*pb.ProgressBar, *pb.Reader) {
 	// setup bar reader
-	// TODO: get total length of files
-	bar := pb.New(0).SetUnits(pb.U_BYTES)
+	bar := pb.New64(int64(l)).SetUnits(pb.U_BYTES)
 	bar.Output = out
 	barR := bar.NewProxyReader(r)
 	return bar, barR
@@ -131,11 +132,11 @@ type getWriter struct {
 	Compression int
 }
 
-func (gw *getWriter) Write(r io.Reader, fpath string) error {
+func (gw *getWriter) Write(r io.Reader, fpath string, l uint64) error {
 	if gw.Archive || gw.Compression != gzip.NoCompression {
 		return gw.writeArchive(r, fpath)
 	}
-	return gw.writeExtracted(r, fpath)
+	return gw.writeExtracted(r, fpath, l)
 }
 
 func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
@@ -161,7 +162,7 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 	defer file.Close()
 
 	fmt.Fprintf(gw.Out, "Saving archive to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r)
+	bar, barR := progressBarForReader(gw.Err, r, 0)
 	bar.Start()
 	defer bar.Finish()
 
@@ -169,9 +170,9 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 	return err
 }
 
-func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
+func (gw *getWriter) writeExtracted(r io.Reader, fpath string, l uint64) error {
 	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r)
+	bar, barR := progressBarForReader(gw.Err, r, l)
 	bar.Start()
 	defer bar.Finish()
 
@@ -193,23 +194,30 @@ func getCompressOptions(req cmds.Request) (int, error) {
 	return gzip.NoCompression, nil
 }
 
-func get(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
+func get(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, uint64, error) {
+	dn, err := core.Resolve(ctx, node, p)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	reader, err := utar.DagArchive(ctx, dn, p.String(), node.DAG, compression)
+
+	length, err := utar.GetTarSize(ctx, dn, node.DAG)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return reader, length, err
+}
+
+// getZip is equivalent to `ipfs getdag $hash | gzip`
+func getZip(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
 	dn, err := core.Resolve(ctx, node, p)
 	if err != nil {
 		return nil, err
 	}
 
-	return utar.DagArchive(ctx, dn, p.String(), node.DAG, compression)
-}
-
-// getZip is equivalent to `ipfs getdag $hash | gzip`
-func getZip(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
-	dagnode, err := core.Resolve(ctx, node, p)
-	if err != nil {
-		return nil, err
-	}
-
-	reader, err := uio.NewDagReader(ctx, dagnode, node.DAG)
+	reader, err := uio.NewDagReader(ctx, dn, node.DAG)
 	if err != nil {
 		return nil, err
 	}

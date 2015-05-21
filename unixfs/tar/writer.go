@@ -17,6 +17,8 @@ import (
 	upb "github.com/ipfs/go-ipfs/unixfs/pb"
 )
 
+const tarBlockSize = 512
+
 // DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
 // TODO: does this need to be configurable?
 var DefaultBufSize = 1048576
@@ -53,6 +55,45 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 	}()
 
 	return piper, nil
+}
+
+func GetTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService) (uint64, error) {
+	return _getTarSize(ctx, nd, dag, true)
+}
+
+func _getTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, isRoot bool) (uint64, error) {
+	size := uint64(0)
+	pb := new(upb.Data)
+	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+		return 0, err
+	}
+
+	switch pb.GetType() {
+	case upb.Data_Directory:
+		for _, ng := range dag.GetDAG(ctx, nd) {
+			child, err := ng.Get(ctx)
+			if err != nil {
+				return 0, err
+			}
+			childSize, err := _getTarSize(ctx, child, dag, false)
+			if err != nil {
+				return 0, err
+			}
+			size += childSize
+		}
+	case upb.Data_File:
+		unixSize := pb.GetFilesize()
+		// tar header + file size + round up to nearest 512 bytes
+		size = tarBlockSize + unixSize + (tarBlockSize - unixSize%tarBlockSize)
+	default:
+		return 0, fmt.Errorf("unixfs type not supported: %s", pb.GetType())
+	}
+
+	if isRoot {
+		size += 2 * tarBlockSize // tar root padding
+	}
+
+	return size, nil
 }
 
 // Writer is a utility structure that helps to write
