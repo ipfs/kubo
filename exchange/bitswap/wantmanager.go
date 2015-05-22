@@ -140,7 +140,7 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 
 			err := mq.network.ConnectTo(ctx, mq.p)
 			if err != nil {
-				log.Errorf("cant connect to peer %s: %s", mq.p, err)
+				log.Noticef("cant connect to peer %s: %s", mq.p, err)
 				// TODO: cant connect, what now?
 				continue
 			}
