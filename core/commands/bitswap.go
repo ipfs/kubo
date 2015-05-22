@@ -38,6 +38,12 @@ Print out all blocks currently on the bitswap wantlist for the local peer`,
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		if !nd.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)
 		if !ok {
 			res.SetError(u.ErrCast(), cmds.ErrNormal)
@@ -75,6 +81,11 @@ var bitswapStatCmd = &cmds.Command{
 		nd, err := req.Context().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if !nd.OnlineMode() {
+			res.SetError(errNotOnline, cmds.ErrClient)
 			return
 		}
 
