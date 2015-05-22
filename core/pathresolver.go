@@ -29,6 +29,11 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 		}
 
 		seg := p.Segments()
+
+		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
+			return nil, path.ErrNoComponents
+		}
+
 		extensions := seg[2:]
 		resolvable, err := path.FromSegments("/", seg[0], seg[1])
 		if err != nil {

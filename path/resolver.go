@@ -4,6 +4,7 @@ package path
 import (
 	"fmt"
 	"time"
+	"errors"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -13,6 +14,10 @@ import (
 )
 
 var log = u.Logger("path")
+
+// Paths after a protocol must contain at least one component
+var ErrNoComponents = errors.New(
+	"path must contain at least one component")
 
 // ErrNoLink is returned when a link is not found in a path
 type ErrNoLink struct {
@@ -43,7 +48,7 @@ func SplitAbsPath(fpath Path) (mh.Multihash, []string, error) {
 
 	// if nothing, bail.
 	if len(parts) == 0 {
-		return nil, nil, fmt.Errorf("ipfs path must contain at least one component")
+		return nil, nil, ErrNoComponents
 	}
 
 	// first element in the path is a b58 hash (for now)
