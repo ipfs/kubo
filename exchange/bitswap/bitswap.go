@@ -287,8 +287,10 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 		if has, err := bs.blockstore.Has(block.Key()); err == nil && has {
 			bs.dupBlocksRecvd++
 		}
+		brecvd := bs.blocksRecvd
+		bdup := bs.dupBlocksRecvd
 		bs.counterLk.Unlock()
-		log.Infof("got block %s from %s (%d,%d)", block, p, bs.blocksRecvd, bs.dupBlocksRecvd)
+		log.Infof("got block %s from %s (%d,%d)", block, p, brecvd, bdup)
 
 		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
 		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
