@@ -83,6 +83,44 @@ test_expect_success "'ipfs add -q' output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs add -q' with stdin input succeeds" '
+	echo "Hello Jupiter!" | ipfs add -q >actual
+'
+
+test_expect_success "'ipfs add -q' output looks good" '
+	HASH="QmUnvPcBctVTAcJpigv6KMqDvmDewksPWrNVoy1E1WP5fh" &&
+	echo "$HASH" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs cat' succeeds" '
+	ipfs cat "$HASH" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	echo "Hello Jupiter!" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs add' with stdin input succeeds" '
+	printf "Hello Neptune!\nHello Pluton!" | ipfs add >actual
+'
+
+test_expect_success "'ipfs add' output looks good" '
+	HASH="QmZDhWpi8NvKrekaYYhxKCdNVGWsFFe1CREnAjP1QbPaB3" &&
+	echo "added $HASH " >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs cat' with stdin input succeeds" '
+	echo "$HASH" | ipfs cat >actual
+'
+
+test_expect_success "ipfs cat with stdin input output looks good" '
+	printf "Hello Neptune!\nHello Pluton!" >expected &&
+	test_cmp expected actual
+'
+
 test_expect_success "'ipfs add -r' succeeds" '
 	mkdir mountdir/planets &&
 	echo "Hello Mars!" >mountdir/planets/mars.txt &&
