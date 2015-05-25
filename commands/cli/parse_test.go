@@ -110,8 +110,6 @@ func TestOptionParsing(t *testing.T) {
 	test("-bs foo", kvs{"b": "", "s": "foo"}, words{})
 	test("-sb", kvs{"s": "b"}, words{})
 	test("-b foo", kvs{"b": ""}, words{"foo"})
-	test("--bool foo", kvs{"bool": ""}, words{"foo"})
-	testFail("--bool=foo")
 	testFail("--string")
 	test("--string foo", kvs{"string": "foo"}, words{})
 	test("--string=foo", kvs{"string": "foo"}, words{})
