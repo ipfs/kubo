@@ -134,7 +134,7 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 	}
 }
 
-// TODO ensure only one active request per key
+// TODO: figure out clientWorkers purpose in life
 func (bs *Bitswap) clientWorker(parent context.Context) {
 	defer log.Info("bitswap client worker shutting down...")
 
@@ -146,8 +146,6 @@ func (bs *Bitswap) clientWorker(parent context.Context) {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-
-			bs.wm.WantBlocks(keys)
 
 			// NB: Optimization. Assumes that providers of key[0] are likely to
 			// be able to provide for all keys. This currently holds true in most

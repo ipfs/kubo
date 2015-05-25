@@ -202,6 +202,8 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.
 	}
 	promise := bs.notifications.Subscribe(ctx, keys...)
 
+	bs.wm.WantBlocks(keys)
+
 	req := &blockRequest{
 		keys: keys,
 		ctx:  ctx,

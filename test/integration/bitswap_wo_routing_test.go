@@ -75,7 +75,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		}
 
 		log.Debugf("%d %s get block.", i, n.Identity)
-		b, err := n.Exchange.GetBlock(ctx, block0.Key())
+		b, err := n.Blocks.GetBlock(ctx, block0.Key())
 		if err != nil {
 			t.Error(err)
 		} else if !bytes.Equal(b.Data, block0.Data) {
@@ -92,7 +92,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 
 	//  get it out.
 	for _, n := range nodes {
-		b, err := n.Exchange.GetBlock(ctx, block1.Key())
+		b, err := n.Blocks.GetBlock(ctx, block1.Key())
 		if err != nil {
 			t.Error(err)
 		} else if !bytes.Equal(b.Data, block1.Data) {
