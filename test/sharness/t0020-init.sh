@@ -21,9 +21,22 @@ test_expect_success "ipfs init fails" '
 
 test_expect_success "ipfs init output looks good" '
 	echo "Error: failed to take lock at $IPFS_PATH: permission denied" > init_fail_exp &&
-	test_cmp init_fail_out init_fail_exp
+	test_cmp init_fail_exp init_fail_out
 '
 
+# test no repo error message
+# this applies to `ipfs add sth`, `ipfs refs <hash>`
+test_expect_success "ipfs cat fails" '
+    export IPFS_PATH="$(pwd)/.ipfs" &&
+    test_must_fail ipfs cat Qmaa4Rw81a3a1VEx4LxB7HADUAXvZFhCoRdBzsMZyZmqHD 2> cat_fail_out
+'
+
+test_expect_success "ipfs cat no repo message looks good" '
+    echo "Error: no ipfs repo found in $IPFS_PATH. please run: ipfs init" > cat_fail_exp &&
+    test_cmp cat_fail_exp cat_fail_out
+'
+
+# test that init succeeds
 test_expect_success "ipfs init succeeds" '
 	export IPFS_PATH="$(pwd)/.ipfs" &&
 	BITS="2048" &&
