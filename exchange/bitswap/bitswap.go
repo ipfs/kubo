@@ -270,26 +270,40 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	// TODO: this is bad, and could be easily abused.
 	// Should only track *useful* messages in ledger
 
-	if len(incoming.Blocks()) == 0 {
+	iblocks := incoming.Blocks()
+
+	if len(iblocks) == 0 {
 		return
 	}
 
 	// quickly send out cancels, reduces chances of duplicate block receives
 	var keys []u.Key
-	for _, block := range incoming.Blocks() {
+	for _, block := range iblocks {
 		keys = append(keys, block.Key())
 	}
 	bs.wm.CancelWants(keys)
 
-	for _, block := range incoming.Blocks() {
+	for _, block := range iblocks {
 		bs.counterLk.Lock()
 		bs.blocksRecvd++
-		if has, err := bs.blockstore.Has(block.Key()); err == nil && has {
+		has, err := bs.blockstore.Has(block.Key())
+		if err == nil && has {
 			bs.dupBlocksRecvd++
 		}
 		brecvd := bs.blocksRecvd
 		bdup := bs.dupBlocksRecvd
 		bs.counterLk.Unlock()
+		if has {
+			continue
+		}
+
+		// put this after the duplicate check as a block not on our wantlist may
+		// have already been received.
+		if _, found := bs.wm.wl.Contains(block.Key()); !found {
+			log.Notice("received un-asked-for block: %s", block)
+			continue
+		}
+
 		log.Infof("got block %s from %s (%d,%d)", block, p, brecvd, bdup)
 
 		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
@@ -302,7 +316,6 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 
 // Connected/Disconnected warns bitswap about peer connections
 func (bs *Bitswap) PeerConnected(p peer.ID) {
-	// TODO: add to clientWorker??
 	bs.wm.Connected(p)
 }
 
@@ -313,7 +326,7 @@ func (bs *Bitswap) PeerDisconnected(p peer.ID) {
 }
 
 func (bs *Bitswap) ReceiveError(err error) {
-	log.Debugf("Bitswap ReceiveError: %s", err)
+	log.Infof("Bitswap ReceiveError: %s", err)
 	// TODO log the network error
 	// TODO bubble the network error up to the parent context/error logger
 }
