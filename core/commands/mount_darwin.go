@@ -172,8 +172,8 @@ func tryGFVFromFuseVersion() (string, error) {
 	}
 
 	cmd := exec.Command("fuse-version", "-q", "-only", "agent", "-s", "OSXFUSE")
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	out := new(bytes.Buffer)
+	cmd.Stdout = out
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf(errStrFailedToRunFuseVersion, fuseVersionPkg, dontCheckOSXFUSEConfigKey, err)
 	}
@@ -190,9 +190,9 @@ func ensureFuseVersionIsInstalled() error {
 	// try installing it...
 	log.Debug("fuse-version: no fuse-version. attempting to install.")
 	cmd := exec.Command("go", "get", "github.com/jbenet/go-fuse-version/fuse-version")
-	var cmdout bytes.Buffer
-	cmd.Stdout = &cmdout
-	cmd.Stderr = &cmdout
+	cmdout := new(bytes.Buffer)
+	cmd.Stdout = cmdout
+	cmd.Stderr = cmdout
 	if err := cmd.Run(); err != nil {
 		// Ok, install fuse-version failed. is it they dont have fuse?
 		cmdoutstr := cmdout.String()

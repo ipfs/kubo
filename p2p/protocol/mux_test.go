@@ -16,8 +16,8 @@ var testCases = map[string]string{
 
 func TestWrite(t *testing.T) {
 	for k, v := range testCases {
-		var buf bytes.Buffer
-		if err := WriteHeader(&buf, ID(k)); err != nil {
+		buf := new(bytes.Buffer)
+		if err := WriteHeader(buf, ID(k)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -46,13 +46,13 @@ func TestHandler(t *testing.T) {
 	m.SetHandler("/ipfs/dksnafkasnfkdajfkdajfdsjadosiaaodj", h("bitswap"))
 
 	for k, v := range testCases {
-		var buf bytes.Buffer
+		buf := new(bytes.Buffer)
 		if _, err := buf.Write([]byte(v)); err != nil {
 			t.Error(err)
 			continue
 		}
 
-		name, err := ReadHeader(&buf)
+		name, err := ReadHeader(buf)
 		if err != nil {
 			t.Error(err)
 			continue

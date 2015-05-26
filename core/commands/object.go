@@ -136,14 +136,14 @@ multihash.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			object := res.Output().(*Object)
-			var buf bytes.Buffer
-			w := tabwriter.NewWriter(&buf, 1, 2, 1, ' ', 0)
+			buf := new(bytes.Buffer)
+			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			fmt.Fprintln(w, "Hash\tSize\tName\t")
 			for _, link := range object.Links {
 				fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
 			}
 			w.Flush()
-			return &buf, nil
+			return buf, nil
 		},
 	},
 	Type: Object{},
@@ -266,9 +266,9 @@ var objectStatCmd = &cmds.Command{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			ns := res.Output().(*dag.NodeStat)
 
-			var buf bytes.Buffer
+			buf := new(bytes.Buffer)
 			w := func(s string, n int) {
-				fmt.Fprintf(&buf, "%s: %d\n", s, n)
+				fmt.Fprintf(buf, "%s: %d\n", s, n)
 			}
 			w("NumLinks", ns.NumLinks)
 			w("BlockSize", ns.BlockSize)
@@ -276,7 +276,7 @@ var objectStatCmd = &cmds.Command{
 			w("DataSize", ns.DataSize)
 			w("CumulativeSize", ns.CumulativeSize)
 
-			return &buf, nil
+			return buf, nil
 		},
 	},
 }

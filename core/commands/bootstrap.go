@@ -112,13 +112,12 @@ in the bootstrap list).
 				return nil, u.ErrCast()
 			}
 
-			var buf bytes.Buffer
-			err := bootstrapWritePeers(&buf, "added ", v.Peers)
-			if err != nil {
+			buf := new(bytes.Buffer)
+			if err := bootstrapWritePeers(buf, "added ", v.Peers); err != nil {
 				return nil, err
 			}
 
-			return &buf, nil
+			return buf, nil
 		},
 	},
 }
@@ -178,9 +177,9 @@ var bootstrapRemoveCmd = &cmds.Command{
 				return nil, u.ErrCast()
 			}
 
-			var buf bytes.Buffer
-			err := bootstrapWritePeers(&buf, "removed ", v.Peers)
-			return &buf, err
+			buf := new(bytes.Buffer)
+			err := bootstrapWritePeers(buf, "removed ", v.Peers)
+			return buf, err
 		},
 	},
 }
@@ -220,9 +219,9 @@ func bootstrapMarshaler(res cmds.Response) (io.Reader, error) {
 		return nil, u.ErrCast()
 	}
 
-	var buf bytes.Buffer
-	err := bootstrapWritePeers(&buf, "", v.Peers)
-	return &buf, err
+	buf := new(bytes.Buffer)
+	err := bootstrapWritePeers(buf, "", v.Peers)
+	return buf, err
 }
 
 func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {

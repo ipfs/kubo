@@ -32,7 +32,7 @@ func TestMarshalling(t *testing.T) {
 	if err != nil {
 		t.Error(err, "Should have passed")
 	}
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	buf.ReadFrom(reader)
 	output := buf.String()
 	if removeWhitespace(output) != "{\"Foo\":\"beep\",\"Bar\":\"boop\",\"Baz\":1337}" {

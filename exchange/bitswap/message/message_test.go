@@ -100,12 +100,12 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 	original.AddEntry(u.Key("T"), 1)
 	original.AddEntry(u.Key("F"), 1)
 
-	var buf bytes.Buffer
-	if err := original.ToNet(&buf); err != nil {
+	buf := new(bytes.Buffer)
+	if err := original.ToNet(buf); err != nil {
 		t.Fatal(err)
 	}
 
-	copied, err := FromNet(&buf)
+	copied, err := FromNet(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,12 +130,12 @@ func TestToAndFromNetMessage(t *testing.T) {
 	original.AddBlock(blocks.NewBlock([]byte("F")))
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
-	var buf bytes.Buffer
-	if err := original.ToNet(&buf); err != nil {
+	buf := new(bytes.Buffer)
+	if err := original.ToNet(buf); err != nil {
 		t.Fatal(err)
 	}
 
-	m2, err := FromNet(&buf)
+	m2, err := FromNet(buf)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -109,8 +109,8 @@ it contains, with the following format:
 
 			headers, _, _ := res.Request().Option("headers").Bool()
 			output := res.Output().(*LsOutput)
-			var buf bytes.Buffer
-			w := tabwriter.NewWriter(&buf, 1, 2, 1, ' ', 0)
+			buf := new(bytes.Buffer)
+			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, object := range output.Objects {
 				if len(output.Objects) > 1 {
 					fmt.Fprintf(w, "%s:\n", object.Hash)
@@ -130,7 +130,7 @@ it contains, with the following format:
 			}
 			w.Flush()
 
-			return &buf, nil
+			return buf, nil
 		},
 	},
 	Type: LsOutput{},

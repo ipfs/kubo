@@ -49,8 +49,8 @@ func TestReader(t *testing.T) {
 }
 
 func TestWriter(t *testing.T) {
-	var buf bytes.Buffer
-	w := NewWriter(context.Background(), &buf)
+	buf := new(bytes.Buffer)
+	w := NewWriter(context.Background(), buf)
 
 	// write three
 	n, err := w.Write([]byte("abc"))

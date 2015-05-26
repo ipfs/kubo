@@ -86,8 +86,8 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	// verify
-	var bufout bytes.Buffer
-	io.Copy(&bufout, readerCatted)
+	bufout := new(bytes.Buffer)
+	io.Copy(bufout, readerCatted)
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}

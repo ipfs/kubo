@@ -21,8 +21,8 @@ func TestPrintDiagnostics(t *testing.T) {
 			},
 		},
 	}
-	var buf bytes.Buffer
-	if err := printDiagnostics(&buf, &output); err != nil {
+	buf := new(bytes.Buffer)
+	if err := printDiagnostics(buf, &output); err != nil {
 		t.Fatal(err)
 	}
 	t.Log(buf.String())
