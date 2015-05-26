@@ -41,7 +41,7 @@ Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
-You may have to create /ipfs and /ipfs before using 'ipfs mount':
+You may have to create /ipfs and /ipns before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
@@ -53,7 +53,7 @@ Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
-You may have to create /ipfs and /ipfs before using 'ipfs mount':
+You may have to create /ipfs and /ipns before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
