@@ -82,7 +82,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		notifications: notif,
 		engine:        decision.NewEngine(ctx, bstore), // TODO close the engine with Close() method
 		network:       network,
-		batchRequests: make(chan *blockRequest, sizeBatchRequestChan),
+		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
 		provideKeys:   make(chan u.Key),
@@ -115,10 +115,8 @@ type Bitswap struct {
 
 	notifications notifications.PubSub
 
-	// Requests for a set of related blocks
-	// the assumption is made that the same peer is likely to
-	// have more than a single block in the set
-	batchRequests chan *blockRequest
+	// send keys to a worker to find and connect to providers for them
+	findKeys chan *blockRequest
 
 	engine *decision.Engine
 
@@ -209,7 +207,7 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.
 		ctx:  ctx,
 	}
 	select {
-	case bs.batchRequests <- req:
+	case bs.findKeys <- req:
 		return promise, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()

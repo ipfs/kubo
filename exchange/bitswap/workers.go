@@ -31,7 +31,7 @@ func init() {
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
 	px.Go(func(px process.Process) {
-		bs.clientWorker(ctx)
+		bs.providerConnector(ctx)
 	})
 
 	// Start up workers to handle requests from other nodes for the data on this node
@@ -134,13 +134,13 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 	}
 }
 
-// TODO: figure out clientWorkers purpose in life
-func (bs *Bitswap) clientWorker(parent context.Context) {
+// connects to providers for the given keys
+func (bs *Bitswap) providerConnector(parent context.Context) {
 	defer log.Info("bitswap client worker shutting down...")
 
 	for {
 		select {
-		case req := <-bs.batchRequests:
+		case req := <-bs.findKeys:
 			keys := req.keys
 			if len(keys) == 0 {
 				log.Warning("Received batch request for zero blocks")
