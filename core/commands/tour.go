@@ -1,11 +1,10 @@
-package main
+package commands
 
 import (
 	"bytes"
 	"fmt"
 	"html/template"
 	"io"
-	"os"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -50,7 +49,6 @@ func tourRunFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	var w bytes.Buffer
-	defer w.WriteTo(os.Stdout)
 	t, err := tourGet(id)
 	if err != nil {
 
@@ -64,11 +62,13 @@ func tourRunFunc(req cmds.Request, res cmds.Response) {
 		fmt.Fprintln(&w, err)
 		fmt.Fprintln(&w, "")
 		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
+		res.SetOutput(bytes.NewReader(w.Bytes()))
 
 		return
 	}
 
 	fprintTourShow(&w, t)
+	res.SetOutput(bytes.NewReader(w.Bytes()))
 }
 
 var cmdIpfsTourNext = &cmds.Command{
@@ -106,7 +106,7 @@ var cmdIpfsTourNext = &cmds.Command{
 			}
 		}
 
-		w.WriteTo(os.Stdout)
+		res.SetOutput(bytes.NewReader(w.Bytes()))
 	},
 }
 
@@ -146,7 +146,7 @@ var cmdIpfsTourList = &cmds.Command{
 
 		var w bytes.Buffer
 		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
-		w.WriteTo(os.Stdout)
+		res.SetOutput(bytes.NewReader(w.Bytes()))
 	},
 }
 

@@ -101,6 +101,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"resolve":   ResolveCmd,
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
+	"tour":      tourCmd,
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
