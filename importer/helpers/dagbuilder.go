@@ -5,6 +5,9 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 )
 
+// NodeCB is callback function for dag generation
+// the `root` flag signifies whether or not this is
+// the root of a dag.
 type NodeCB func(node *dag.Node, root bool) error
 
 var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
