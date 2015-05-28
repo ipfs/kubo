@@ -295,6 +295,11 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			bs.counterLk.Lock()
 			bs.blocksRecvd++
 			has, err := bs.blockstore.Has(b.Key())
+			if err != nil {
+				bs.counterLk.Unlock()
+				log.Noticef("blockstore.Has error: %s", err)
+				return
+			}
 			if err == nil && has {
 				bs.dupBlocksRecvd++
 			}
