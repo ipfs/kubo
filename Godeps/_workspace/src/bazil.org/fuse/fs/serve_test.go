@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -42,12 +43,18 @@ type symlink struct {
 	target string
 }
 
-func (f symlink) Attr() fuse.Attr { return fuse.Attr{Mode: os.ModeSymlink | 0666} }
+func (f symlink) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = os.ModeSymlink | 0666
+	return nil
+}
 
 // fifo can be embedded in a struct to make it look like a named pipe.
 type fifo struct{}
 
-func (f fifo) Attr() fuse.Attr { return fuse.Attr{Mode: os.ModeNamedPipe | 0666} }
+func (f fifo) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = os.ModeNamedPipe | 0666
+	return nil
+}
 
 type badRootFS struct{}
 
@@ -79,14 +86,59 @@ func TestRootErr(t *testing.T) {
 	}
 }
 
+type testPanic struct{}
+
+type panicSentinel struct{}
+
+var _ error = panicSentinel{}
+
+func (panicSentinel) Error() string { return "just a test" }
+
+var _ fuse.ErrorNumber = panicSentinel{}
+
+func (panicSentinel) Errno() fuse.Errno {
+	return fuse.Errno(syscall.ENAMETOOLONG)
+}
+
+func (f testPanic) Root() (fs.Node, error) {
+	return f, nil
+}
+
+func (f testPanic) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Inode = 1
+	a.Mode = os.ModeDir | 0777
+	return nil
+}
+
+func (f testPanic) Statfs(ctx context.Context, req *fuse.StatfsRequest, resp *fuse.StatfsResponse) error {
+	panic(panicSentinel{})
+}
+
+func TestPanic(t *testing.T) {
+	t.Parallel()
+	mnt, err := fstestutil.MountedT(t, testPanic{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mnt.Close()
+
+	var st syscall.Statfs_t
+	err = syscall.Statfs(mnt.Dir, &st)
+	if g, e := err, syscall.ENAMETOOLONG; g != e {
+		t.Fatalf("wrong error from panicking handler: %v != %v", g, e)
+	}
+}
+
 type testStatFS struct{}
 
 func (f testStatFS) Root() (fs.Node, error) {
 	return f, nil
 }
 
-func (f testStatFS) Attr() fuse.Attr {
-	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0777}
+func (f testStatFS) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Inode = 1
+	a.Mode = os.ModeDir | 0777
+	return nil
 }
 
 func (f testStatFS) Statfs(ctx context.Context, req *fuse.StatfsRequest, resp *fuse.StatfsResponse) error {
@@ -148,8 +200,10 @@ func (f root) Root() (fs.Node, error) {
 	return f, nil
 }
 
-func (root) Attr() fuse.Attr {
-	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0555}
+func (root) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Inode = 1
+	a.Mode = os.ModeDir | 0555
+	return nil
 }
 
 func TestStatRoot(t *testing.T) {
@@ -196,11 +250,10 @@ type readAll struct {
 
 const hi = "hello, world"
 
-func (readAll) Attr() fuse.Attr {
-	return fuse.Attr{
-		Mode: 0666,
-		Size: uint64(len(hi)),
-	}
+func (readAll) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = 0666
+	a.Size = uint64(len(hi))
+	return nil
 }
 
 func (readAll) ReadAll(ctx context.Context) ([]byte, error) {
@@ -234,11 +287,10 @@ type readWithHandleRead struct {
 	fstestutil.File
 }
 
-func (readWithHandleRead) Attr() fuse.Attr {
-	return fuse.Attr{
-		Mode: 0666,
-		Size: uint64(len(hi)),
-	}
+func (readWithHandleRead) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = 0666
+	a.Size = uint64(len(hi))
+	return nil
 }
 
 func (readWithHandleRead) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -772,11 +824,10 @@ type dataHandleTest struct {
 	fstestutil.File
 }
 
-func (dataHandleTest) Attr() fuse.Attr {
-	return fuse.Attr{
-		Mode: 0666,
-		Size: uint64(len(hi)),
-	}
+func (dataHandleTest) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = 0666
+	a.Size = uint64(len(hi))
+	return nil
 }
 
 func (dataHandleTest) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
@@ -811,11 +862,10 @@ type interrupt struct {
 	hanging chan struct{}
 }
 
-func (interrupt) Attr() fuse.Attr {
-	return fuse.Attr{
-		Mode: 0666,
-		Size: 1,
-	}
+func (interrupt) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = 0666
+	a.Size = 1
+	return nil
 }
 
 func (it *interrupt) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -1609,22 +1659,38 @@ func TestCustomErrno(t *testing.T) {
 // Test Mmap writing
 
 type inMemoryFile struct {
+	mu   sync.Mutex
 	data []byte
 }
 
-func (f *inMemoryFile) Attr() fuse.Attr {
-	return fuse.Attr{
-		Mode: 0666,
-		Size: uint64(len(f.data)),
-	}
+func (f *inMemoryFile) bytes() []byte {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.data
+}
+
+func (f *inMemoryFile) Attr(ctx context.Context, a *fuse.Attr) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	a.Mode = 0666
+	a.Size = uint64(len(f.data))
+	return nil
 }
 
 func (f *inMemoryFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	fuseutil.HandleRead(req, resp, f.data)
 	return nil
 }
 
 func (f *inMemoryFile) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	resp.Size = copy(f.data[req.Offset:], req.Data)
 	return nil
 }
@@ -1709,7 +1775,7 @@ func TestMmap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := w.data
+	got := w.bytes()
 	if g, e := len(got), mmapSize; g != e {
 		t.Fatalf("bad write length: %d != %d", g, e)
 	}
@@ -1795,5 +1861,59 @@ func TestDirectWrite(t *testing.T) {
 
 	if got := string(w.RecordedWriteData()); got != hi {
 		t.Errorf("write = %q, want %q", got, hi)
+	}
+}
+
+// Test Attr
+
+// attrUnlinked is a file that is unlinked (Nlink==0).
+type attrUnlinked struct {
+	fstestutil.File
+}
+
+var _ fs.Node = attrUnlinked{}
+
+func (f attrUnlinked) Attr(ctx context.Context, a *fuse.Attr) error {
+	if err := f.File.Attr(ctx, a); err != nil {
+		return err
+	}
+	a.Nlink = 0
+	return nil
+}
+
+func TestAttrUnlinked(t *testing.T) {
+	t.Parallel()
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": attrUnlinked{}}})
+
+	fi, err := os.Stat(mnt.Dir + "/child")
+	if err != nil {
+		t.Fatalf("Stat failed with %v", err)
+	}
+	switch stat := fi.Sys().(type) {
+	case *syscall.Stat_t:
+		if stat.Nlink != 0 {
+			t.Errorf("wrong link count: %v", stat.Nlink)
+		}
+	}
+}
+
+// Test behavior when Attr method fails
+
+type attrBad struct {
+}
+
+var _ fs.Node = attrBad{}
+
+func (attrBad) Attr(ctx context.Context, attr *fuse.Attr) error {
+	return fuse.Errno(syscall.ENAMETOOLONG)
+}
+
+func TestAttrBad(t *testing.T) {
+	t.Parallel()
+	mnt, err := fstestutil.MountedT(t, fstestutil.SimpleFS{fstestutil.ChildMap{"child": attrBad{}}})
+
+	_, err = os.Stat(mnt.Dir + "/child")
+	if nerr, ok := err.(*os.PathError); !ok || nerr.Err != syscall.ENAMETOOLONG {
+		t.Fatalf("wrong error: %v", err)
 	}
 }

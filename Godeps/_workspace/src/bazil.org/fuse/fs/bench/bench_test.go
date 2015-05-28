@@ -43,8 +43,10 @@ var _ = fs.NodeStringLookuper(benchDir{})
 var _ = fs.Handle(benchDir{})
 var _ = fs.HandleReadDirAller(benchDir{})
 
-func (benchDir) Attr() fuse.Attr {
-	return fuse.Attr{Inode: 1, Mode: os.ModeDir | 0555}
+func (benchDir) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Inode = 1
+	a.Mode = os.ModeDir | 0555
+	return nil
 }
 
 func (d benchDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
@@ -72,8 +74,11 @@ var _ = fs.Handle(benchFile{})
 var _ = fs.HandleReader(benchFile{})
 var _ = fs.HandleWriter(benchFile{})
 
-func (benchFile) Attr() fuse.Attr {
-	return fuse.Attr{Inode: 2, Mode: 0644, Size: 9999999999999999}
+func (benchFile) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Inode = 2
+	a.Mode = 0644
+	a.Size = 9999999999999999
+	return nil
 }
 
 func (f benchFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {

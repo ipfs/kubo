@@ -6,6 +6,7 @@ package ipns
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -106,9 +107,10 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 }
 
 // Attr returns file attributes.
-func (*Root) Attr() fuse.Attr {
+func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
-	return fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	*a = fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	return nil
 }
 
 // Lookup performs a lookup under this node.
@@ -215,29 +217,31 @@ type File struct {
 }
 
 // Attr returns the attributes of a given node.
-func (d *Directory) Attr() fuse.Attr {
+func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
-	return fuse.Attr{
+	*a = fuse.Attr{
 		Mode: os.ModeDir | 0555,
 		Uid:  uint32(os.Getuid()),
 		Gid:  uint32(os.Getgid()),
 	}
+	return nil
 }
 
 // Attr returns the attributes of a given node.
-func (fi *File) Attr() fuse.Attr {
+func (fi *File) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
 	size, err := fi.fi.Size()
 	if err != nil {
 		// In this case, the dag node in question may not be unixfs
-		log.Critical("Failed to get file size: %s", err)
+		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
-	return fuse.Attr{
+	*a = fuse.Attr{
 		Mode: os.FileMode(0666),
 		Size: uint64(size),
 		Uid:  uint32(os.Getuid()),
 		Gid:  uint32(os.Getgid()),
 	}
+	return nil
 }
 
 // Lookup performs a lookup under this node.

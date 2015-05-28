@@ -4,6 +4,7 @@
 package readonly
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -43,8 +44,9 @@ type Root struct {
 }
 
 // Attr returns file attributes.
-func (*Root) Attr() fuse.Attr {
-	return fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
+	*a = fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	return nil
 }
 
 // Lookup performs a lookup under this node.
@@ -85,21 +87,23 @@ func (s *Node) loadData() error {
 }
 
 // Attr returns the attributes of a given node.
-func (s *Node) Attr() fuse.Attr {
+func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Node attr.")
 	if s.cached == nil {
-		s.loadData()
+		if err := s.loadData(); err != nil {
+			return fmt.Errorf("readonly: loadData() failed: %s", err)
+		}
 	}
 	switch s.cached.GetType() {
 	case ftpb.Data_Directory:
-		return fuse.Attr{
+		*a = fuse.Attr{
 			Mode: os.ModeDir | 0555,
 			Uid:  uint32(os.Getuid()),
 			Gid:  uint32(os.Getgid()),
 		}
 	case ftpb.Data_File:
 		size := s.cached.GetFilesize()
-		return fuse.Attr{
+		*a = fuse.Attr{
 			Mode:   0444,
 			Size:   uint64(size),
 			Blocks: uint64(len(s.Nd.Links)),
@@ -107,7 +111,7 @@ func (s *Node) Attr() fuse.Attr {
 			Gid:    uint32(os.Getgid()),
 		}
 	case ftpb.Data_Raw:
-		return fuse.Attr{
+		*a = fuse.Attr{
 			Mode:   0444,
 			Size:   uint64(len(s.cached.GetData())),
 			Blocks: uint64(len(s.Nd.Links)),
@@ -116,9 +120,9 @@ func (s *Node) Attr() fuse.Attr {
 		}
 
 	default:
-		log.Debug("Invalid data type.")
-		return fuse.Attr{}
+		return fmt.Errorf("Invalid data type - %s", s.cached.GetType())
 	}
+	return nil
 }
 
 // Lookup performs a lookup under this node.
