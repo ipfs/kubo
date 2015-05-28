@@ -279,39 +279,41 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	// quickly send out cancels, reduces chances of duplicate block receives
 	var keys []u.Key
 	for _, block := range iblocks {
-		keys = append(keys, block.Key())
-	}
-	bs.wm.CancelWants(keys)
-
-	for _, block := range iblocks {
-		bs.counterLk.Lock()
-		bs.blocksRecvd++
-		has, err := bs.blockstore.Has(block.Key())
-		if err == nil && has {
-			bs.dupBlocksRecvd++
-		}
-		brecvd := bs.blocksRecvd
-		bdup := bs.dupBlocksRecvd
-		bs.counterLk.Unlock()
-		if has {
-			continue
-		}
-
-		// put this after the duplicate check as a block not on our wantlist may
-		// have already been received.
 		if _, found := bs.wm.wl.Contains(block.Key()); !found {
 			log.Notice("received un-asked-for block: %s", block)
 			continue
 		}
-
-		log.Infof("got block %s from %s (%d,%d)", block, p, brecvd, bdup)
-
-		hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
-		if err := bs.HasBlock(hasBlockCtx, block); err != nil {
-			log.Warningf("ReceiveMessage HasBlock error: %s", err)
-		}
-		cancel()
+		keys = append(keys, block.Key())
 	}
+	bs.wm.CancelWants(keys)
+
+	wg := sync.WaitGroup{}
+	for _, block := range iblocks {
+		wg.Add(1)
+		go func(b *blocks.Block) {
+			defer wg.Done()
+			bs.counterLk.Lock()
+			bs.blocksRecvd++
+			has, err := bs.blockstore.Has(b.Key())
+			if err == nil && has {
+				bs.dupBlocksRecvd++
+			}
+			brecvd := bs.blocksRecvd
+			bdup := bs.dupBlocksRecvd
+			bs.counterLk.Unlock()
+			if has {
+				return
+			}
+
+			log.Debugf("got block %s from %s (%d,%d)", b, p, brecvd, bdup)
+			hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
+			if err := bs.HasBlock(hasBlockCtx, b); err != nil {
+				log.Warningf("ReceiveMessage HasBlock error: %s", err)
+			}
+			cancel()
+		}(block)
+	}
+	wg.Wait()
 }
 
 // Connected/Disconnected warns bitswap about peer connections
