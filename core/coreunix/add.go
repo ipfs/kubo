@@ -17,7 +17,6 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("coreunix")
@@ -100,10 +99,7 @@ func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
 		reader,
 		n.DAG,
 		chunk.DefaultSplitter,
-		func(k u.Key, root bool) error {
-			mp.PinWithMode(k, pin.Indirect)
-			return nil
-		},
+		importer.PinIndirectCB(mp),
 	)
 	if err != nil {
 		return nil, err

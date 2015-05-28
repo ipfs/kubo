@@ -309,7 +309,7 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.No
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
-		BlockCB:  imp.BasicPinnerCB(dm.mp),
+		NodeCB:   imp.BasicPinnerCB(dm.mp),
 	}
 
 	return trickle.TrickleAppend(node, dbp.New(blks))

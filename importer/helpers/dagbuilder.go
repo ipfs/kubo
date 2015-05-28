@@ -3,12 +3,11 @@ package helpers
 import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
-type BlockCB func(u.Key, bool) error
+type NodeCB func(node *dag.Node, root bool) error
 
-var nilFunc BlockCB = func(_ u.Key, _ bool) error { return nil }
+var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
@@ -18,7 +17,7 @@ type DagBuilderHelper struct {
 	in       <-chan []byte
 	nextData []byte // the next item to return.
 	maxlinks int
-	bcb      BlockCB
+	ncb      NodeCB
 }
 
 type DagBuilderParams struct {
@@ -29,22 +28,22 @@ type DagBuilderParams struct {
 	Dagserv dag.DAGService
 
 	// Callback for each block added
-	BlockCB BlockCB
+	NodeCB NodeCB
 }
 
 // Generate a new DagBuilderHelper from the given params, using 'in' as a
 // data source
 func (dbp *DagBuilderParams) New(in <-chan []byte) *DagBuilderHelper {
-	bcb := dbp.BlockCB
-	if bcb == nil {
-		bcb = nilFunc
+	ncb := dbp.NodeCB
+	if ncb == nil {
+		ncb = nilFunc
 	}
 
 	return &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
 		in:       in,
 		maxlinks: dbp.Maxlinks,
-		bcb:      bcb,
+		ncb:      ncb,
 	}
 }
 
@@ -136,13 +135,13 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 		return nil, err
 	}
 
-	key, err := db.dserv.Add(dn)
+	_, err = db.dserv.Add(dn)
 	if err != nil {
 		return nil, err
 	}
 
-	// block callback
-	err = db.bcb(key, true)
+	// node callback
+	err = db.ncb(dn, true)
 	if err != nil {
 		return nil, err
 	}

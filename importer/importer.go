@@ -39,34 +39,39 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 	return BuildDagFromReader(f, ds, chunk.DefaultSplitter, BasicPinnerCB(mp))
 }
 
-func BuildDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, bcb h.BlockCB) (*dag.Node, error) {
+func BuildDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
 	// Start the splitter
 	blkch := spl.Split(r)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
-		BlockCB:  bcb,
+		NodeCB:   ncb,
 	}
 
 	return bal.BalancedLayout(dbp.New(blkch))
 }
 
-func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, bcb h.BlockCB) (*dag.Node, error) {
+func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
 	// Start the splitter
 	blkch := spl.Split(r)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
-		BlockCB:  bcb,
+		NodeCB:   ncb,
 	}
 
 	return trickle.TrickleLayout(dbp.New(blkch))
 }
 
-func BasicPinnerCB(p pin.ManualPinner) h.BlockCB {
-	return func(k u.Key, root bool) error {
+func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {
+	return func(n *dag.Node, root bool) error {
+		k, err := n.Key()
+		if err != nil {
+			return err
+		}
+
 		if root {
 			p.PinWithMode(k, pin.Recursive)
 			return p.Flush()
@@ -77,8 +82,13 @@ func BasicPinnerCB(p pin.ManualPinner) h.BlockCB {
 	}
 }
 
-func PinIndirectCB(p pin.ManualPinner) h.BlockCB {
-	return func(k u.Key, root bool) error {
+func PinIndirectCB(p pin.ManualPinner) h.NodeCB {
+	return func(n *dag.Node, root bool) error {
+		k, err := n.Key()
+		if err != nil {
+			return err
+		}
+
 		p.PinWithMode(k, pin.Indirect)
 		return nil
 	}
