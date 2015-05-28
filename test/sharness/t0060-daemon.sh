@@ -14,6 +14,7 @@ test_expect_success "setup IPFS_PATH" '
 '
 
 # NOTE: this should remove bootstrap peers (needs a flag)
+# TODO(cryptix): also default ports - might clash with local clients, failure in that case isn't clear because pollEndpoint just passes too 
 test_expect_success "ipfs daemon --init launches" '
   ipfs daemon --init >actual_daemon 2>daemon_err &
 '
@@ -28,9 +29,9 @@ test_expect_success "initialization ended" '
 # this is lifted straight from t0020-init.sh
 test_expect_success "ipfs peer id looks good" '
   PEERID=$(ipfs config Identity.PeerID) &&
-  echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual &&
-  echo "46" >expected &&
-  test_cmp_repeat_10_sec expected actual
+  echo $PEERID | tr -dC "[:alnum:]" | wc -c | tr -d " " >actual_id &&
+  echo "46" >expected_id &&
+  test_cmp_repeat_10_sec expected_id actual_id
 '
 
 # This is like t0020-init.sh "ipfs init output looks good"
@@ -43,15 +44,15 @@ test_expect_success "ipfs peer id looks good" '
 #
 test_expect_failure "ipfs daemon output looks good" '
   STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
-  echo "Initializing daemon..." >expected &&
-  echo "initializing ipfs node at $IPFS_PATH" >>expected &&
-  echo "generating 4096-bit RSA keypair...done" >>expected &&
-  echo "peer identity: $PEERID" >>expected &&
-  echo "to get started, enter:" >>expected &&
-  printf "\\n\\t$STARTFILE\\n\\n" >>expected &&
-  echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected &&
-  echo "Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080" >>expected &&
-  test_cmp_repeat_10_sec expected actual_daemon
+  echo "Initializing daemon..." >expected_daemon &&
+  echo "initializing ipfs node at $IPFS_PATH" >>expected_daemon &&
+  echo "generating 2048-bit RSA keypair...done" >>expected_daemon &&
+  echo "peer identity: $PEERID" >>expected_daemon &&
+  echo "to get started, enter:" >>expected_daemon &&
+  printf "\\n\\t$STARTFILE\\n\\n" >>expected_daemon &&
+  echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected_daemon &&
+  echo "Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080" >>expected_daemon &&
+  test_cmp_repeat_10_sec expected_daemon actual_daemon
 '
 
 test_expect_success ".ipfs/ has been created" '
