@@ -15,11 +15,6 @@
 			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
 		},
 		{
-			"ImportPath": "code.google.com/p/go.net/internal/iana",
-			"Comment": "null-240",
-			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
-		},
-		{
 			"ImportPath": "github.com/ActiveState/tail",
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
@@ -69,6 +64,10 @@
 			"Rev": "82345796204222aa56be89cf930c316b1297f906"
 		},
 		{
+			"ImportPath": "github.com/cryptix/mdns",
+			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
@@ -98,20 +97,8 @@
 			"Rev": "6ca83358f5c331028feb9b97c445e9c7354967b0"
 		},
 		{
-			"ImportPath": "github.com/hashicorp/go.net/ipv4",
-			"Rev": "cbad13bf000d0cbdbc71506b26e94bcc72bbe74d"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/go.net/ipv6",
-			"Rev": "cbad13bf000d0cbdbc71506b26e94bcc72bbe74d"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/mdns",
-			"Rev": "2b439d37011456df8ff83a70ffd1cd6046410113"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
@@ -263,6 +250,18 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
+			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/iana",
+			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
+		},
+		{
+			"ImportPath": "golang.org/x/net/ipv4",
+			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
+		},
+		{
+			"ImportPath": "golang.org/x/net/ipv6",
 			"Rev": "ff8eb9a34a5cbb9941ffc6f84a19a8014c2646ad"
 		},
 		{
