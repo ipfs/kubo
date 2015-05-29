@@ -6,9 +6,10 @@ import (
 )
 
 // NodeCB is callback function for dag generation
-// the `root` flag signifies whether or not this is
-// the root of a dag.
-type NodeCB func(node *dag.Node, root bool) error
+// the `last` flag signifies whether or not this is the last
+// (top-most root) node being added. useful for things like
+// only pinning the first node recursively.
+type NodeCB func(node *dag.Node, last bool) error
 
 var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
 

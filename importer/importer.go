@@ -66,13 +66,13 @@ func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSp
 }
 
 func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {
-	return func(n *dag.Node, root bool) error {
+	return func(n *dag.Node, last bool) error {
 		k, err := n.Key()
 		if err != nil {
 			return err
 		}
 
-		if root {
+		if last {
 			p.PinWithMode(k, pin.Recursive)
 			return p.Flush()
 		} else {
@@ -83,7 +83,7 @@ func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {
 }
 
 func PinIndirectCB(p pin.ManualPinner) h.NodeCB {
-	return func(n *dag.Node, root bool) error {
+	return func(n *dag.Node, last bool) error {
 		k, err := n.Key()
 		if err != nil {
 			return err
