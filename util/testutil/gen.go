@@ -109,7 +109,7 @@ func (p *PeerNetParams) checkKeys() error {
 		return errors.New("p.ID does not match p.PubKey")
 	}
 
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	buf.Write([]byte("hello world. this is me, I swear."))
 	b := buf.Bytes()
 

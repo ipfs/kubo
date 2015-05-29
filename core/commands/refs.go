@@ -23,11 +23,11 @@ type KeyList struct {
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
 func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 	output := res.Output().(*KeyList)
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	for _, key := range output.Keys {
 		buf.WriteString(key.B58String() + "\n")
 	}
-	return &buf, nil
+	return buf, nil
 }
 
 var RefsCmd = &cmds.Command{

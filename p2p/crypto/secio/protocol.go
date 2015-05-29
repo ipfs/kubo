@@ -218,7 +218,7 @@ func (s *secureSession) runHandshake() error {
 	s.local.ephemeralPubKey, genSharedKey, err = ci.GenerateEKeyPair(s.local.curveT)
 
 	// Gather corpus to sign.
-	var selectionOut bytes.Buffer
+	selectionOut := new(bytes.Buffer)
 	selectionOut.Write(proposeOutBytes)
 	selectionOut.Write(proposeInBytes)
 	selectionOut.Write(s.local.ephemeralPubKey)
@@ -249,7 +249,7 @@ func (s *secureSession) runHandshake() error {
 	// get their ephemeral pub key
 	s.remote.ephemeralPubKey = exchangeIn.GetEpubkey()
 
-	var selectionIn bytes.Buffer
+	selectionIn := new(bytes.Buffer)
 	selectionIn.Write(proposeInBytes)
 	selectionIn.Write(proposeOutBytes)
 	selectionIn.Write(s.remote.ephemeralPubKey)

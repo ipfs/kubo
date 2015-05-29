@@ -321,7 +321,7 @@ func appendString(args, inputs []string) ([]string, []string) {
 }
 
 func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, error) {
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 
 	_, err := buf.ReadFrom(stdin)
 	if err != nil {

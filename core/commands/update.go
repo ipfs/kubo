@@ -54,14 +54,14 @@ var updateCmd = &cmds.Command{
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*UpdateOutput)
-			var buf bytes.Buffer
+			buf := new(bytes.Buffer)
 			if v.NewVersion != v.OldVersion {
 				buf.WriteString(fmt.Sprintf("Successfully updated to IPFS version '%s' (from '%s')\n",
 					v.NewVersion, v.OldVersion))
 			} else {
 				buf.WriteString(fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion))
 			}
-			return &buf, nil
+			return buf, nil
 		},
 	},
 }
@@ -90,14 +90,14 @@ var UpdateCheckCmd = &cmds.Command{
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*UpdateOutput)
-			var buf bytes.Buffer
+			buf := new(bytes.Buffer)
 			if v.NewVersion != v.OldVersion {
 				buf.WriteString(fmt.Sprintf("A new version of IPFS is available ('%s', currently running '%s')\n",
 					v.NewVersion, v.OldVersion))
 			} else {
 				buf.WriteString(fmt.Sprintf("Already updated to latest version ('%s')\n", v.NewVersion))
 			}
-			return &buf, nil
+			return buf, nil
 		},
 	},
 }

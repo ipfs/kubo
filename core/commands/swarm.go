@@ -130,7 +130,7 @@ ipfs swarm addrs lists all addresses this node is aware of.
 			}
 			sort.Sort(sort.StringSlice(ids))
 
-			var buf bytes.Buffer
+			buf := new(bytes.Buffer)
 			for _, p := range ids {
 				paddrs := m.Addrs[p]
 				buf.WriteString(fmt.Sprintf("%s (%d)\n", p, len(paddrs)))
@@ -138,7 +138,7 @@ ipfs swarm addrs lists all addresses this node is aware of.
 					buf.WriteString("\t" + addr + "\n")
 				}
 			}
-			return &buf, nil
+			return buf, nil
 		},
 	},
 	Type: addrMap{},
@@ -273,12 +273,12 @@ func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 		return nil, errors.New("failed to cast []string")
 	}
 
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	for _, s := range list.Strings {
 		buf.WriteString(s)
 		buf.WriteString("\n")
 	}
-	return &buf, nil
+	return buf, nil
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses

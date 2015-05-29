@@ -1,11 +1,10 @@
-package main
+package commands
 
 import (
 	"bytes"
 	"fmt"
 	"html/template"
 	"io"
-	"os"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -49,8 +48,7 @@ func tourRunFunc(req cmds.Request, res cmds.Response) {
 		id = tour.TopicID(req.Arguments()[0])
 	}
 
-	var w bytes.Buffer
-	defer w.WriteTo(os.Stdout)
+	w := new(bytes.Buffer)
 	t, err := tourGet(id)
 	if err != nil {
 
@@ -60,15 +58,17 @@ func tourRunFunc(req cmds.Request, res cmds.Response) {
 		// 1) a simple error message
 		// 2) the full list of topics
 
-		fmt.Fprintln(&w, "ERROR")
-		fmt.Fprintln(&w, err)
-		fmt.Fprintln(&w, "")
-		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
+		fmt.Fprintln(w, "ERROR")
+		fmt.Fprintln(w, err)
+		fmt.Fprintln(w, "")
+		fprintTourList(w, tour.TopicID(cfg.Tour.Last))
+		res.SetOutput(w)
 
 		return
 	}
 
-	fprintTourShow(&w, t)
+	fprintTourShow(w, t)
+	res.SetOutput(w)
 }
 
 var cmdIpfsTourNext = &cmds.Command{
@@ -77,7 +77,7 @@ var cmdIpfsTourNext = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		var w bytes.Buffer
+		w := new(bytes.Buffer)
 		path := req.Context().ConfigRoot
 		cfg, err := req.Context().GetConfig()
 		if err != nil {
@@ -91,7 +91,7 @@ var cmdIpfsTourNext = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if err := fprintTourShow(&w, topic); err != nil {
+		if err := fprintTourShow(w, topic); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
@@ -106,7 +106,7 @@ var cmdIpfsTourNext = &cmds.Command{
 			}
 		}
 
-		w.WriteTo(os.Stdout)
+		res.SetOutput(w)
 	},
 }
 
@@ -144,9 +144,9 @@ var cmdIpfsTourList = &cmds.Command{
 			return
 		}
 
-		var w bytes.Buffer
-		fprintTourList(&w, tour.TopicID(cfg.Tour.Last))
-		w.WriteTo(os.Stdout)
+		w := new(bytes.Buffer)
+		fprintTourList(w, tour.TopicID(cfg.Tour.Last))
+		res.SetOutput(w)
 	},
 }
 

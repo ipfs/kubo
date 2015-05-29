@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bytes"
@@ -18,8 +18,8 @@ This is where we test our beautiful command line interfaces
 		`,
 		},
 	}
-	var buf bytes.Buffer
-	err := fprintTourShow(&buf, topic)
+	buf := new(bytes.Buffer)
+	err := fprintTourShow(buf, topic)
 	if err != nil {
 		t.Fatal(err)
 	}

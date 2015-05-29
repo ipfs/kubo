@@ -79,8 +79,8 @@ func AddCatPowers(conf testutil.LatencyConfig, megabytesMax int64) error {
 }
 
 func RandomBytes(n int64) []byte {
-	var data bytes.Buffer
-	random.WritePseudoRandomBytes(n, &data, kSeed)
+	data := new(bytes.Buffer)
+	random.WritePseudoRandomBytes(n, data, kSeed)
 	return data.Bytes()
 }
 
@@ -137,8 +137,8 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	// verify
-	var bufout bytes.Buffer
-	io.Copy(&bufout, readerCatted)
+	bufout := new(bytes.Buffer)
+	io.Copy(bufout, readerCatted)
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}
