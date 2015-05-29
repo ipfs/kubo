@@ -1,6 +1,6 @@
 // See the file LICENSE for copyright and licensing information.
 
-// Derived from FUSE's fuse_kernel.h
+// Derived from FUSE's fuse_kernel.h, which carries this notice:
 /*
    This file defines the kernel interface of FUSE
    Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>

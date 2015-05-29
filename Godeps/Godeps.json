@@ -7,7 +7,7 @@
 	"Deps": [
 		{
 			"ImportPath": "bazil.org/fuse",
-			"Rev": "79d103f5608724e3ccee0a10daccc5e4aff03591"
+			"Rev": "e4fcc9a2c7567d1c42861deebeb483315d222262"
 		},
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",

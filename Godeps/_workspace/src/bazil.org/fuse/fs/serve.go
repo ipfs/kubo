@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"log"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -55,9 +57,6 @@ type FSDestroyer interface {
 	// Linux only sends this request for block device backed (fuseblk)
 	// filesystems, to allow them to flush writes to disk before the
 	// unmount completes.
-	//
-	// On normal FUSE filesystems, use Forget of the root Node to
-	// do actions at unmount time.
 	Destroy()
 }
 
@@ -87,7 +86,8 @@ type FSInodeGenerator interface {
 // Other FUSE requests can be handled by implementing methods from the
 // Node* interfaces, for example NodeOpener.
 type Node interface {
-	Attr() fuse.Attr
+	// Attr fills attr with the standard metadata for the node.
+	Attr(ctx context.Context, attr *fuse.Attr) error
 }
 
 type NodeGetattrer interface {
@@ -192,6 +192,11 @@ type NodeCreater interface {
 }
 
 type NodeForgetter interface {
+	// Forget about this node. This node will not receive further
+	// method calls.
+	//
+	// Forget is not necessarily seen on unmount, as all nodes are
+	// implicitly forgotten as part part of the unmount.
 	Forget()
 }
 
@@ -236,24 +241,17 @@ type NodeRemovexattrer interface {
 
 var startTime = time.Now()
 
-func nodeAttr(n Node) (attr fuse.Attr) {
-	attr = n.Attr()
-	if attr.Nlink == 0 {
-		attr.Nlink = 1
+func nodeAttr(ctx context.Context, n Node, attr *fuse.Attr) error {
+	attr.Valid = attrValidTime
+	attr.Nlink = 1
+	attr.Atime = startTime
+	attr.Mtime = startTime
+	attr.Ctime = startTime
+	attr.Crtime = startTime
+	if err := n.Attr(ctx, attr); err != nil {
+		return err
 	}
-	if attr.Atime.IsZero() {
-		attr.Atime = startTime
-	}
-	if attr.Mtime.IsZero() {
-		attr.Mtime = startTime
-	}
-	if attr.Ctime.IsZero() {
-		attr.Ctime = startTime
-	}
-	if attr.Crtime.IsZero() {
-		attr.Crtime = startTime
-	}
-	return
+	return nil
 }
 
 // A Handle is the interface required of an opened file or directory.
@@ -323,12 +321,17 @@ type Server struct {
 	//
 	// See fuse.Debug for the rules that log functions must follow.
 	Debug func(msg interface{})
+
+	// Used to ensure worker goroutines finish before Serve returns
+	wg sync.WaitGroup
 }
 
 // Serve serves the FUSE connection by making calls to the methods
 // of fs and the Nodes and Handles it makes available.  It returns only
 // when the connection has been closed or an unexpected error occurs.
 func (s *Server) Serve(c *fuse.Conn) error {
+	defer s.wg.Wait() // Wait for worker goroutines to complete before return
+
 	sc := serveConn{
 		fs:           s.FS,
 		debug:        s.Debug,
@@ -358,7 +361,11 @@ func (s *Server) Serve(c *fuse.Conn) error {
 			return err
 		}
 
-		go sc.serve(req)
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			sc.serve(req)
+		}()
 	}
 	return nil
 }
@@ -398,12 +405,12 @@ type serveNode struct {
 	refs  uint64
 }
 
-func (sn *serveNode) attr() (attr fuse.Attr) {
-	attr = nodeAttr(sn.node)
+func (sn *serveNode) attr(ctx context.Context, attr *fuse.Attr) error {
+	err := nodeAttr(ctx, sn.node, attr)
 	if attr.Inode == 0 {
 		attr.Inode = sn.inode
 	}
-	return
+	return err
 }
 
 type serveHandle struct {
@@ -646,6 +653,30 @@ func (m *renameNewDirNodeNotFound) String() string {
 	return fmt.Sprintf("In RenameRequest (request %#x), node %d not found", m.Request.Hdr().ID, m.In.NewDir)
 }
 
+type handlerPanickedError struct {
+	Request interface{}
+	Err     interface{}
+}
+
+var _ error = handlerPanickedError{}
+
+func (h handlerPanickedError) Error() string {
+	return fmt.Sprintf("handler panicked: %v", h.Err)
+}
+
+var _ fuse.ErrorNumber = handlerPanickedError{}
+
+func (h handlerPanickedError) Errno() fuse.Errno {
+	if err, ok := h.Err.(fuse.ErrorNumber); ok {
+		return err.Errno()
+	}
+	return fuse.DefaultErrno
+}
+
+func initLookupResponse(s *fuse.LookupResponse) {
+	s.EntryValid = entryValidTime
+}
+
 func (c *serveConn) serve(r fuse.Request) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -725,6 +756,22 @@ func (c *serveConn) serve(r fuse.Request) {
 		c.meta.Unlock()
 	}
 
+	defer func() {
+		if rec := recover(); rec != nil {
+			const size = 1 << 16
+			buf := make([]byte, size)
+			n := runtime.Stack(buf, false)
+			buf = buf[:n]
+			log.Printf("fuse: panic in handler for %v: %v\n%s", r, rec, buf)
+			err := handlerPanickedError{
+				Request: r,
+				Err:     rec,
+			}
+			done(err)
+			r.RespondError(err)
+		}
+	}()
+
 	switch r := r.(type) {
 	default:
 		// Note: To FUSE, ENOSYS means "this server never implements this request."
@@ -771,8 +818,11 @@ func (c *serveConn) serve(r fuse.Request) {
 				break
 			}
 		} else {
-			s.AttrValid = attrValidTime
-			s.Attr = snode.attr()
+			if err := snode.attr(ctx, &s.Attr); err != nil {
+				done(err)
+				r.RespondError(err)
+				break
+			}
 		}
 		done(s)
 		r.Respond(s)
@@ -790,15 +840,17 @@ func (c *serveConn) serve(r fuse.Request) {
 			break
 		}
 
-		if s.AttrValid == 0 {
-			s.AttrValid = attrValidTime
+		if err := snode.attr(ctx, &s.Attr); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
 		}
-		s.Attr = snode.attr()
 		done(s)
 		r.Respond(s)
 
 	case *fuse.SymlinkRequest:
 		s := &fuse.SymlinkResponse{}
+		initLookupResponse(&s.LookupResponse)
 		n, ok := node.(NodeSymlinker)
 		if !ok {
 			done(fuse.EIO) // XXX or EPERM like Mkdir?
@@ -811,7 +863,11 @@ func (c *serveConn) serve(r fuse.Request) {
 			r.RespondError(err)
 			break
 		}
-		c.saveLookup(&s.LookupResponse, snode, r.NewName, n2)
+		if err := c.saveLookup(ctx, &s.LookupResponse, snode, r.NewName, n2); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
+		}
 		done(s)
 		r.Respond(s)
 
@@ -860,7 +916,12 @@ func (c *serveConn) serve(r fuse.Request) {
 			break
 		}
 		s := &fuse.LookupResponse{}
-		c.saveLookup(s, snode, r.NewName, n2)
+		initLookupResponse(s)
+		if err := c.saveLookup(ctx, s, snode, r.NewName, n2); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
+		}
 		done(s)
 		r.Respond(s)
 
@@ -895,6 +956,7 @@ func (c *serveConn) serve(r fuse.Request) {
 		var n2 Node
 		var err error
 		s := &fuse.LookupResponse{}
+		initLookupResponse(s)
 		if n, ok := node.(NodeStringLookuper); ok {
 			n2, err = n.Lookup(ctx, r.Name)
 		} else if n, ok := node.(NodeRequestLookuper); ok {
@@ -909,12 +971,17 @@ func (c *serveConn) serve(r fuse.Request) {
 			r.RespondError(err)
 			break
 		}
-		c.saveLookup(s, snode, r.Name, n2)
+		if err := c.saveLookup(ctx, s, snode, r.Name, n2); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
+		}
 		done(s)
 		r.Respond(s)
 
 	case *fuse.MkdirRequest:
 		s := &fuse.MkdirResponse{}
+		initLookupResponse(&s.LookupResponse)
 		n, ok := node.(NodeMkdirer)
 		if !ok {
 			done(fuse.EPERM)
@@ -927,7 +994,11 @@ func (c *serveConn) serve(r fuse.Request) {
 			r.RespondError(err)
 			break
 		}
-		c.saveLookup(&s.LookupResponse, snode, r.Name, n2)
+		if err := c.saveLookup(ctx, &s.LookupResponse, snode, r.Name, n2); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
+		}
 		done(s)
 		r.Respond(s)
 
@@ -958,13 +1029,18 @@ func (c *serveConn) serve(r fuse.Request) {
 			break
 		}
 		s := &fuse.CreateResponse{OpenResponse: fuse.OpenResponse{}}
+		initLookupResponse(&s.LookupResponse)
 		n2, h2, err := n.Create(ctx, r, s)
 		if err != nil {
 			done(err)
 			r.RespondError(err)
 			break
 		}
-		c.saveLookup(&s.LookupResponse, snode, r.Name, n2)
+		if err := c.saveLookup(ctx, &s.LookupResponse, snode, r.Name, n2); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
+		}
 		s.Handle = c.saveHandle(h2, hdr.Node)
 		done(s)
 		r.Respond(s)
@@ -1240,7 +1316,12 @@ func (c *serveConn) serve(r fuse.Request) {
 			break
 		}
 		s := &fuse.LookupResponse{}
-		c.saveLookup(s, snode, r.Name, n2)
+		initLookupResponse(s)
+		if err := c.saveLookup(ctx, s, snode, r.Name, n2); err != nil {
+			done(err)
+			r.RespondError(err)
+			break
+		}
 		done(s)
 		r.Respond(s)
 
@@ -1290,19 +1371,16 @@ func (c *serveConn) serve(r fuse.Request) {
 	}
 }
 
-func (c *serveConn) saveLookup(s *fuse.LookupResponse, snode *serveNode, elem string, n2 Node) {
-	s.Attr = nodeAttr(n2)
+func (c *serveConn) saveLookup(ctx context.Context, s *fuse.LookupResponse, snode *serveNode, elem string, n2 Node) error {
+	if err := nodeAttr(ctx, n2, &s.Attr); err != nil {
+		return err
+	}
 	if s.Attr.Inode == 0 {
 		s.Attr.Inode = c.dynamicInode(snode.inode, elem)
 	}
 
 	s.Node, s.Generation = c.saveNode(s.Attr.Inode, n2)
-	if s.EntryValid == 0 {
-		s.EntryValid = entryValidTime
-	}
-	if s.AttrValid == 0 {
-		s.AttrValid = attrValidTime
-	}
+	return nil
 }
 
 // DataHandle returns a read-only Handle that satisfies reads
