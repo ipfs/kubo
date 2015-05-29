@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin dragonfly freebsd linux,amd64 linux,arm linux,ppc64 linux,ppc64le netbsd openbsd
+// +build darwin dragonfly freebsd linux,!386 netbsd openbsd
 
 package ipv6
 

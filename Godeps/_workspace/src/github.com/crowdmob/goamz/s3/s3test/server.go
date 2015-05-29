@@ -432,9 +432,72 @@ func (r bucketResource) put(a *action) interface{} {
 	return nil
 }
 
-func (bucketResource) post(a *action) interface{} {
-	fatalf(400, "Method", "bucket POST method not available")
+func (r bucketResource) post(a *action) interface{} {
+	if _, multiDel := a.req.URL.Query()["delete"]; multiDel {
+		return r.multiDel(a)
+	}
+
+	fatalf(400, "Method", "bucket operation not supported")
 	return nil
+}
+
+func (b bucketResource) multiDel(a *action) interface{} {
+	type multiDelRequestObject struct {
+		Key       string
+		VersionId string
+	}
+
+	type multiDelRequest struct {
+		Quiet  bool
+		Object []*multiDelRequestObject
+	}
+
+	type multiDelDelete struct {
+		XMLName struct{} `xml:"Deleted"`
+		Key     string
+	}
+
+	type multiDelError struct {
+		XMLName struct{} `xml:"Error"`
+		Key     string
+		Code    string
+		Message string
+	}
+
+	type multiDelResult struct {
+		XMLName struct{} `xml:"DeleteResult"`
+		Deleted []*multiDelDelete
+		Error   []*multiDelError
+	}
+
+	req := &multiDelRequest{}
+
+	if err := xml.NewDecoder(a.req.Body).Decode(req); err != nil {
+		fatalf(400, "InvalidRequest", err.Error())
+	}
+
+	res := &multiDelResult{
+		Deleted: []*multiDelDelete{},
+		Error:   []*multiDelError{},
+	}
+
+	for _, o := range req.Object {
+		if _, exists := b.bucket.objects[o.Key]; exists {
+			delete(b.bucket.objects, o.Key)
+
+			res.Deleted = append(res.Deleted, &multiDelDelete{
+				Key: o.Key,
+			})
+		} else {
+			res.Error = append(res.Error, &multiDelError{
+				Key:     o.Key,
+				Code:    "AccessDenied",
+				Message: "Access Denied",
+			})
+		}
+	}
+
+	return res
 }
 
 // validBucketName returns whether name is a valid bucket name.

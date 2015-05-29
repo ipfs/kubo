@@ -30,6 +30,7 @@ type Client struct {
 	reader    *bufio.Reader
 	pending   []*request
 	completed []*Reply
+	writeBuf  []byte
 }
 
 // request describes a client's request to the redis server
@@ -42,7 +43,7 @@ type request struct {
 // used as the read/write timeout when communicating with redis
 func DialTimeout(network, addr string, timeout time.Duration) (*Client, error) {
 	// establish a connection
-	conn, err := net.Dial(network, addr)
+	conn, err := net.DialTimeout(network, addr, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +52,7 @@ func DialTimeout(network, addr string, timeout time.Duration) (*Client, error) {
 	c.Conn = conn
 	c.timeout = timeout
 	c.reader = bufio.NewReaderSize(conn, bufSize)
+	c.writeBuf = make([]byte, 0, 1024)
 	return c, nil
 }
 
@@ -152,7 +154,9 @@ func (c *Client) writeRequest(requests ...*request) error {
 		req := make([]interface{}, 0, len(requests[i].args)+1)
 		req = append(req, requests[i].cmd)
 		req = append(req, requests[i].args...)
-		err := resp.WriteArbitraryAsFlattenedStrings(c.Conn, req)
+		buf := resp.AppendArbitraryAsFlattenedStrings(c.writeBuf[:0], req)
+
+		_, err := c.Conn.Write(buf)
 		if err != nil {
 			c.Close()
 			return err

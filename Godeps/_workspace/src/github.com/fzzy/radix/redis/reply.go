@@ -124,6 +124,29 @@ func (r *Reply) Int() (int, error) {
 	return int(i64), nil
 }
 
+// Float64 returns the reply value as a float64 or an error,
+// if the reply type is not BulkReply or the reply type
+// BulkReply could not be parsed to an float64.
+func (r *Reply) Float64() (float64, error) {
+	if r.Type == ErrorReply {
+		return 0, r.Err
+	}
+	if r.Type == BulkReply {
+		s, err := r.Str()
+		if err != nil {
+			return 0, err
+		}
+		f64, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return 0, errors.New("failed to parse float value from string value")
+		} else {
+			return f64, nil
+		}
+	}
+
+	return 0, errors.New("float value is not available for this reply type")
+}
+
 // Bool returns false, if the reply value equals to 0 or "0", otherwise true; or
 // an error, if the reply type is not IntegerReply or BulkReply.
 func (r *Reply) Bool() (bool, error) {

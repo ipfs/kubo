@@ -806,7 +806,7 @@ func (b *Bucket) SignedURLWithMethod(method, path string, expires time.Time, par
 	if err != nil {
 		panic(err)
 	}
-	if b.S3.Auth.Token() != "" {
+	if b.S3.Auth.Token() != "" && b.S3.Signature == aws.V2Signature {
 		return u.String() + "&x-amz-security-token=" + url.QueryEscape(req.headers["X-Amz-Security-Token"][0])
 	} else {
 		return u.String()
@@ -1041,8 +1041,10 @@ func (s3 *S3) prepare(req *request) error {
 		}
 	}
 
-	if s3.Auth.Token() != "" {
+	if s3.Signature == aws.V2Signature && s3.Auth.Token() != "" {
 		req.headers["X-Amz-Security-Token"] = []string{s3.Auth.Token()}
+	} else if s3.Auth.Token() != "" {
+		req.params.Set("X-Amz-Security-Token", s3.Auth.Token())
 	}
 
 	if s3.Signature == aws.V2Signature {
@@ -1232,6 +1234,19 @@ func shouldRetry(err error) bool {
 		switch e.Op {
 		case "read", "write":
 			return true
+		}
+	case *url.Error:
+		// url.Error can be returned either by net/url if a URL cannot be
+		// parsed, or by net/http if the response is closed before the headers
+		// are received or parsed correctly. In that later case, e.Op is set to
+		// the HTTP method name with the first letter uppercased. We don't want
+		// to retry on POST operations, since those are not idempotent, all the
+		// other ones should be safe to retry.
+		switch e.Op {
+		case "Get", "Put", "Delete", "Head":
+			return shouldRetry(e.Err)
+		default:
+			return false
 		}
 	case *Error:
 		switch e.Code {

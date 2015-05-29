@@ -42,7 +42,7 @@ func (client *SOAPClient) PerformAction(actionNamespace, actionName string, inAc
 		Method: "POST",
 		URL:    &client.EndpointURL,
 		Header: http.Header{
-			"SOAPACTION":   []string{actionNamespace + "#" + actionName},
+			"SOAPACTION":   []string{`"` + actionNamespace + "#" + actionName + `"`},
 			"CONTENT-TYPE": []string{"text/xml; charset=\"utf-8\""},
 		},
 		Body: ioutil.NopCloser(bytes.NewBuffer(requestBytes)),
