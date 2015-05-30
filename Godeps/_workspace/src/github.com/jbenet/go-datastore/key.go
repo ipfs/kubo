@@ -4,9 +4,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/go-uuid/uuid"
-
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/satori/go.uuid"
 )
 
 /*
@@ -204,7 +203,7 @@ func (k Key) IsTopLevel() bool {
 //   RandomKey()
 //   NewKey("/f98719ea086343f7b71f32ea9d9d521d")
 func RandomKey() Key {
-	return NewKey(strings.Replace(uuid.New(), "-", "", -1))
+	return NewKey(strings.Replace(uuid.NewV4().String(), "-", "", -1))
 }
 
 /*
