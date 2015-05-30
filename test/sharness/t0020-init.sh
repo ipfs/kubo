@@ -32,7 +32,8 @@ test_expect_success "ipfs cat fails" '
 '
 
 test_expect_success "ipfs cat no repo message looks good" '
-    echo "Error: no ipfs repo found in $IPFS_PATH. please run: ipfs init" > cat_fail_exp &&
+    echo "Error: no ipfs repo found in $IPFS_PATH." > cat_fail_exp &&
+    echo "please run: ipfs init" >> cat_fail_exp &&
     test_cmp cat_fail_exp cat_fail_out
 '
 
