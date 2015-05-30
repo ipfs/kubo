@@ -13,10 +13,10 @@ import (
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/util"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
-var log = util.Logger("importer")
+var log = u.Logger("importer")
 
 // Builds a DAG from the given file, writing created blocks to disk as they are
 // created
@@ -36,31 +36,60 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 	}
 	defer f.Close()
 
-	return BuildDagFromReader(f, ds, mp, chunk.DefaultSplitter)
+	return BuildDagFromReader(f, ds, chunk.DefaultSplitter, BasicPinnerCB(mp))
 }
 
-func BuildDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*dag.Node, error) {
+func BuildDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
 	// Start the splitter
 	blkch := spl.Split(r)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
-		Pinner:   mp,
+		NodeCB:   ncb,
 	}
 
 	return bal.BalancedLayout(dbp.New(blkch))
 }
 
-func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*dag.Node, error) {
+func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
 	// Start the splitter
 	blkch := spl.Split(r)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
-		Pinner:   mp,
+		NodeCB:   ncb,
 	}
 
 	return trickle.TrickleLayout(dbp.New(blkch))
+}
+
+func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {
+	return func(n *dag.Node, last bool) error {
+		k, err := n.Key()
+		if err != nil {
+			return err
+		}
+
+		if last {
+			p.PinWithMode(k, pin.Recursive)
+			return p.Flush()
+		} else {
+			p.PinWithMode(k, pin.Indirect)
+			return nil
+		}
+	}
+}
+
+func PinIndirectCB(p pin.ManualPinner) h.NodeCB {
+	return func(n *dag.Node, last bool) error {
+		k, err := n.Key()
+		if err != nil {
+			return err
+		}
+
+		p.PinWithMode(k, pin.Indirect)
+		return nil
+	}
 }
