@@ -49,7 +49,17 @@ func BuildDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter,
 		NodeCB:   ncb,
 	}
 
-	return bal.BalancedLayout(dbp.New(blkch))
+	db := dbp.New(blkch)
+	defer db.Shutdown()
+
+	node, err := bal.BalancedLayout(db)
+
+	select {
+	case err := <-db.Error:
+		return nil, err
+	default:
+		return node, err
+	}
 }
 
 func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
