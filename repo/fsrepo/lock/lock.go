@@ -34,6 +34,9 @@ func Locked(confdir string) (bool, error) {
 		if err == syscall.EAGAIN {
 			return true, nil
 		}
+		if strings.Contains(err.Error(), "can't Lock file") {
+			return true, nil
+		}
 
 		// lock fails on permissions error
 		if os.IsPermission(err) {
