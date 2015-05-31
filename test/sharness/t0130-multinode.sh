@@ -11,7 +11,8 @@ test_description="Test multiple ipfs nodes"
 export IPTB_ROOT="`pwd`/.iptb"
 
 test_expect_success "set up a few nodes" '
-	iptb -n=3 -p=9200 init &&
+	IPTB_PORT=$((RANDOM % 10000 + 22000)) &&
+	iptb -n=3 "-p=$IPTB_PORT" init &&
 	iptb -wait start
 '
 
