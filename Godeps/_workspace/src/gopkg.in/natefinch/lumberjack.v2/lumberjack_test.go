@@ -308,6 +308,62 @@ func TestMaxBackups(t *testing.T) {
 	exists(notlogfiledir, t)
 }
 
+func TestCleanupExistingBackups(t *testing.T) {
+	// test that if we start with more backup files than we're supposed to have
+	// in total, that extra ones get cleaned up when we rotate.
+
+	currentTime = fakeTime
+	megabyte = 1
+
+	dir := makeTempDir("TestCleanupExistingBackups", t)
+	defer os.RemoveAll(dir)
+
+	// make 3 backup files
+
+	data := []byte("data")
+	backup := backupFile(dir)
+	err := ioutil.WriteFile(backup, data, 0644)
+	isNil(err, t)
+
+	newFakeTime()
+
+	backup = backupFile(dir)
+	err = ioutil.WriteFile(backup, data, 0644)
+	isNil(err, t)
+
+	newFakeTime()
+
+	backup = backupFile(dir)
+	err = ioutil.WriteFile(backup, data, 0644)
+	isNil(err, t)
+
+	// now create a primary log file with some data
+	filename := logFile(dir)
+	err = ioutil.WriteFile(filename, data, 0644)
+	isNil(err, t)
+
+	l := &Logger{
+		Filename:   filename,
+		MaxSize:    10,
+		MaxBackups: 1,
+	}
+	defer l.Close()
+
+	newFakeTime()
+
+	b2 := []byte("foooooo!")
+	n, err := l.Write(b2)
+	isNil(err, t)
+	equals(len(b2), n, t)
+
+	// we need to wait a little bit since the files get deleted on a different
+	// goroutine.
+	<-time.After(time.Millisecond * 10)
+
+	// now we should only have 2 files left - the primary and one backup
+	fileCount(dir, 2, t)
+}
+
 func TestMaxAge(t *testing.T) {
 	currentTime = fakeTime
 	megabyte = 1

@@ -3,7 +3,7 @@ package lumberjack_test
 import (
 	"log"
 
-	"github.com/natefinch/lumberjack"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
 
 // To use lumberjack with the standard library's log package, just pass it into

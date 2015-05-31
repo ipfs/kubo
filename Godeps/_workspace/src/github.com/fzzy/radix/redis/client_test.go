@@ -3,9 +3,10 @@ package redis
 import (
 	"bufio"
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	. "testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func dial(t *T) *Client {

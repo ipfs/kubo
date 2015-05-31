@@ -63,7 +63,7 @@ var USWest = Region{
 	ServiceInfo{"https://monitoring.us-west-1.amazonaws.com", V2Signature},
 	"https://autoscaling.us-west-1.amazonaws.com",
 	ServiceInfo{"https://rds.us-west-1.amazonaws.com", V2Signature},
-	"",
+	"https://kinesis.us-west-1.amazonaws.com",
 	"https://sts.amazonaws.com",
 	"https://cloudformation.us-west-1.amazonaws.com",
 	"https://elasticache.us-west-1.amazonaws.com",

@@ -115,9 +115,7 @@ func dial(dialer net.Dialer, netw, addr string) (c net.Conn, err error) {
 	// here we just try again 3 times.
 	for i := 0; i < 3; i++ {
 		if !deadline.IsZero() && deadline.Before(time.Now()) {
-			if err == nil {
-				err = errTimeout
-			}
+			err = errTimeout
 			break
 		}
 
@@ -357,6 +355,6 @@ var errTimeout = &timeoutError{}
 
 type timeoutError struct{}
 
-func (e *timeoutError) Error() string   { return "i/o timeout (reuseport)" }
+func (e *timeoutError) Error() string   { return "i/o timeout" }
 func (e *timeoutError) Timeout() bool   { return true }
 func (e *timeoutError) Temporary() bool { return true }

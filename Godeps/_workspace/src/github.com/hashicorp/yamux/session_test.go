@@ -76,6 +76,13 @@ func TestAccept(t *testing.T) {
 	defer client.Close()
 	defer server.Close()
 
+	if client.NumStreams() != 0 {
+		t.Fatalf("bad")
+	}
+	if server.NumStreams() != 0 {
+		t.Fatalf("bad")
+	}
+
 	wg := &sync.WaitGroup{}
 	wg.Add(4)
 
@@ -163,6 +170,10 @@ func TestSendData_Small(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if server.NumStreams() != 1 {
+			t.Fatalf("bad")
+		}
+
 		buf := make([]byte, 4)
 		for i := 0; i < 1000; i++ {
 			n, err := stream.Read(buf)
@@ -189,6 +200,10 @@ func TestSendData_Small(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if client.NumStreams() != 1 {
+			t.Fatalf("bad")
+		}
+
 		for i := 0; i < 1000; i++ {
 			n, err := stream.Write([]byte("test"))
 			if err != nil {
@@ -213,6 +228,13 @@ func TestSendData_Small(t *testing.T) {
 	case <-doneCh:
 	case <-time.After(time.Second):
 		panic("timeout")
+	}
+
+	if client.NumStreams() != 0 {
+		t.Fatalf("bad")
+	}
+	if server.NumStreams() != 0 {
+		t.Fatalf("bad")
 	}
 }
 
@@ -576,21 +598,26 @@ func TestBacklogExceeded(t *testing.T) {
 		}
 	}
 
-	// Exceed the backlog!
-	stream, err := client.Open()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer stream.Close()
+	// Attempt to open a new stream
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := client.Open()
+		errCh <- err
+	}()
 
-	if _, err := stream.Write([]byte("foo")); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Shutdown the server
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		server.Close()
+	}()
 
-	buf := make([]byte, 4)
-	stream.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
-	if _, err := stream.Read(buf); err != ErrConnectionReset {
-		t.Fatalf("err: %v", err)
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatalf("open should fail")
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("timeout")
 	}
 }
 
@@ -725,5 +752,35 @@ func TestSendData_VeryLarge(t *testing.T) {
 	case <-doneCh:
 	case <-time.After(20 * time.Second):
 		panic("timeout")
+	}
+}
+
+func TestBacklogExceeded_Accept(t *testing.T) {
+	client, server := testClientServer()
+	defer client.Close()
+	defer server.Close()
+
+	max := 5 * client.config.AcceptBacklog
+	go func() {
+		for i := 0; i < max; i++ {
+			stream, err := server.Accept()
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			defer stream.Close()
+		}
+	}()
+
+	// Fill the backlog
+	for i := 0; i < max; i++ {
+		stream, err := client.Open()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		defer stream.Close()
+
+		if _, err := stream.Write([]byte("foo")); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
 }

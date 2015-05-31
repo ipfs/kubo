@@ -40,6 +40,10 @@ import (
 	"reflect"
 )
 
+func NewRequiredNotSetError(field string) *RequiredNotSetError {
+	return &RequiredNotSetError{field}
+}
+
 type Sizer interface {
 	Size() int
 }
