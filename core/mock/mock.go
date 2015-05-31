@@ -1,4 +1,4 @@
-package core
+package coremock
 
 import (
 	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
@@ -7,6 +7,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
+	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	nsys "github.com/ipfs/go-ipfs/namesys"
@@ -25,9 +26,9 @@ import (
 // Additionally, the context group isn't wired up. This is as good as broken.
 
 // NewMockNode constructs an IpfsNode for use in tests.
-func NewMockNode() (*IpfsNode, error) {
+func NewMockNode() (*core.IpfsNode, error) {
 	ctx := context.TODO()
-	nd := new(IpfsNode)
+	nd := new(core.IpfsNode)
 
 	// Generate Identity
 	ident, err := testutil.RandIdentity()
