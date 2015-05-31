@@ -57,6 +57,10 @@ func (i *indirectPin) Increment(k key.Key) {
 }
 
 func (i *indirectPin) Decrement(k key.Key) {
+	if i.refCounts[k] == 0 {
+		log.Warningf("pinning: bad call: asked to unpin nonexistent indirect key: %v", k)
+		return
+	}
 	c := i.refCounts[k] - 1
 	i.refCounts[k] = c
 	if c <= 0 {
