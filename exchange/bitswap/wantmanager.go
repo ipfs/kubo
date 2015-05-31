@@ -21,7 +21,7 @@ type WantManager struct {
 
 	// synchronized by Run loop, only touch inside there
 	peers map[peer.ID]*msgQueue
-	wl    *wantlist.Wantlist
+	wl    *wantlist.ThreadSafe
 
 	network bsnet.BitSwapNetwork
 	ctx     context.Context
@@ -33,7 +33,7 @@ func NewWantManager(ctx context.Context, network bsnet.BitSwapNetwork) *WantMana
 		connect:    make(chan peer.ID, 10),
 		disconnect: make(chan peer.ID, 10),
 		peers:      make(map[peer.ID]*msgQueue),
-		wl:         wantlist.New(),
+		wl:         wantlist.NewThreadSafe(),
 		network:    network,
 		ctx:        ctx,
 	}
