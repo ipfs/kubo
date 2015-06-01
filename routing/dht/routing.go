@@ -5,6 +5,7 @@ import (
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -12,7 +13,6 @@ import (
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	u "github.com/ipfs/go-ipfs/util"
 	pset "github.com/ipfs/go-ipfs/util/peerset"
 )
 
@@ -28,7 +28,7 @@ var asyncQueryBuffer = 10
 
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
-func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error {
+func (dht *IpfsDHT) PutValue(ctx context.Context, key key.Key, value []byte) error {
 	log.Debugf("PutValue %s", key)
 	sk, err := dht.getOwnPrivateKey()
 	if err != nil {
@@ -79,7 +79,7 @@ func (dht *IpfsDHT) PutValue(ctx context.Context, key u.Key, value []byte) error
 // GetValue searches for the value corresponding to given Key.
 // If the search does not succeed, a multiaddr string of a closer peer is
 // returned along with util.ErrSearchIncomplete
-func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
+func (dht *IpfsDHT) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 	// If we have it local, dont bother doing an RPC!
 	val, err := dht.getLocal(key)
 	if err == nil {
@@ -141,7 +141,7 @@ func (dht *IpfsDHT) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 // This is what DSHTs (Coral and MainlineDHT) do to store large values in a DHT.
 
 // Provide makes this node announce that it can provide a value for the given key
-func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
+func (dht *IpfsDHT) Provide(ctx context.Context, key key.Key) error {
 	defer log.EventBegin(ctx, "provide", &key).Done()
 
 	// add self locally
@@ -169,7 +169,7 @@ func (dht *IpfsDHT) Provide(ctx context.Context, key u.Key) error {
 }
 
 // FindProviders searches until the context expires.
-func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
+func (dht *IpfsDHT) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
 	var providers []peer.PeerInfo
 	for p := range dht.FindProvidersAsync(ctx, key, KValue) {
 		providers = append(providers, p)
@@ -180,14 +180,14 @@ func (dht *IpfsDHT) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerIn
 // FindProvidersAsync is the same thing as FindProviders, but returns a channel.
 // Peers will be returned on the channel as soon as they are found, even before
 // the search query completes.
-func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key u.Key, count int) <-chan peer.PeerInfo {
+func (dht *IpfsDHT) FindProvidersAsync(ctx context.Context, key key.Key, count int) <-chan peer.PeerInfo {
 	log.Event(ctx, "findProviders", &key)
 	peerOut := make(chan peer.PeerInfo, count)
 	go dht.findProvidersAsyncRoutine(ctx, key, count, peerOut)
 	return peerOut
 }
 
-func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key u.Key, count int, peerOut chan peer.PeerInfo) {
+func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key key.Key, count int, peerOut chan peer.PeerInfo) {
 	defer log.EventBegin(ctx, "findProvidersAsync", &key).Done()
 	defer close(peerOut)
 
@@ -289,7 +289,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, er
 	}
 
 	// setup the Query
-	query := dht.newQuery(u.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+	query := dht.newQuery(key.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
 		notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 			Type: notif.SendingQuery,
 			ID:   p,
@@ -347,7 +347,7 @@ func (dht *IpfsDHT) FindPeersConnectedToPeer(ctx context.Context, id peer.ID) (<
 	}
 
 	// setup the Query
-	query := dht.newQuery(u.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
+	query := dht.newQuery(key.Key(id), func(ctx context.Context, p peer.ID) (*dhtQueryResult, error) {
 
 		pmes, err := dht.findPeerSingle(ctx, p, id)
 		if err != nil {

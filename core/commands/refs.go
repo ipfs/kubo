@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -17,7 +18,7 @@ import (
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
-	Keys []u.Key
+	Keys []key.Key
 }
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
@@ -214,7 +215,7 @@ type RefWriter struct {
 	PrintEdge bool
 	PrintFmt  string
 
-	seen map[u.Key]struct{}
+	seen map[key.Key]struct{}
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
@@ -238,7 +239,7 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 
 	var count int
 	for i, ng := range rw.DAG.GetDAG(rw.Ctx, n) {
-		lk := u.Key(n.Links[i].Hash)
+		lk := key.Key(n.Links[i].Hash)
 		if rw.skip(lk) {
 			continue
 		}
@@ -273,7 +274,7 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 
 	count := 0
 	for _, l := range n.Links {
-		lk := u.Key(l.Hash)
+		lk := key.Key(l.Hash)
 
 		if rw.skip(lk) {
 			continue
@@ -288,13 +289,13 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 }
 
 // skip returns whether to skip a key
-func (rw *RefWriter) skip(k u.Key) bool {
+func (rw *RefWriter) skip(k key.Key) bool {
 	if !rw.Unique {
 		return false
 	}
 
 	if rw.seen == nil {
-		rw.seen = make(map[u.Key]struct{})
+		rw.seen = make(map[key.Key]struct{})
 	}
 
 	_, found := rw.seen[k]
@@ -305,7 +306,7 @@ func (rw *RefWriter) skip(k u.Key) bool {
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to u.Key, linkname string) error {
+func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.

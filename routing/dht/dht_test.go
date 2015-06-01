@@ -14,6 +14,7 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	netutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	routing "github.com/ipfs/go-ipfs/routing"
@@ -24,14 +25,14 @@ import (
 	travisci "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 )
 
-var testCaseValues = map[u.Key][]byte{}
+var testCaseValues = map[key.Key][]byte{}
 
 func init() {
 	testCaseValues["hello"] = []byte("world")
 	for i := 0; i < 100; i++ {
 		k := fmt.Sprintf("%d -- key", i)
 		v := fmt.Sprintf("%d -- value", i)
-		testCaseValues[u.Key(k)] = []byte(v)
+		testCaseValues[key.Key(k)] = []byte(v)
 	}
 }
 
@@ -42,7 +43,7 @@ func setupDHT(ctx context.Context, t *testing.T) *IpfsDHT {
 	d := NewDHT(ctx, h, dss)
 
 	d.Validator["v"] = &record.ValidChecker{
-		Func: func(u.Key, []byte) error {
+		Func: func(key.Key, []byte) error {
 			return nil
 		},
 		Sign: false,
@@ -143,7 +144,7 @@ func TestValueGetSet(t *testing.T) {
 	defer dhtB.host.Close()
 
 	vf := &record.ValidChecker{
-		Func: func(u.Key, []byte) error {
+		Func: func(key.Key, []byte) error {
 			return nil
 		},
 		Sign: false,
@@ -460,7 +461,7 @@ func TestProvidesMany(t *testing.T) {
 		}
 	}
 
-	var providers = map[u.Key]peer.ID{}
+	var providers = map[key.Key]peer.ID{}
 
 	d := 0
 	for k, v := range testCaseValues {
@@ -501,7 +502,7 @@ func TestProvidesMany(t *testing.T) {
 	ctxT, _ = context.WithTimeout(ctx, 5*time.Second)
 
 	var wg sync.WaitGroup
-	getProvider := func(dht *IpfsDHT, k u.Key) {
+	getProvider := func(dht *IpfsDHT, k key.Key) {
 		defer wg.Done()
 
 		expected := providers[k]
@@ -561,7 +562,7 @@ func TestProvidesAsync(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	k := u.Key("hello")
+	k := key.Key("hello")
 	val := []byte("world")
 	sk := dhts[3].peerstore.PrivKey(dhts[3].self)
 	rec, err := record.MakePutRecord(sk, k, val, false)
@@ -579,7 +580,7 @@ func TestProvidesAsync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dhts[3].Provide(ctx, u.Key("hello"))
+	err = dhts[3].Provide(ctx, key.Key("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -587,7 +588,7 @@ func TestProvidesAsync(t *testing.T) {
 	time.Sleep(time.Millisecond * 60)
 
 	ctxT, _ := context.WithTimeout(ctx, time.Millisecond*300)
-	provs := dhts[0].FindProvidersAsync(ctxT, u.Key("hello"), 5)
+	provs := dhts[0].FindProvidersAsync(ctxT, key.Key("hello"), 5)
 	select {
 	case p, ok := <-provs:
 		if !ok {
@@ -624,7 +625,7 @@ func TestLayeredGet(t *testing.T) {
 	connect(t, ctx, dhts[1], dhts[2])
 	connect(t, ctx, dhts[1], dhts[3])
 
-	err := dhts[3].Provide(ctx, u.Key("/v/hello"))
+	err := dhts[3].Provide(ctx, key.Key("/v/hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -633,7 +634,7 @@ func TestLayeredGet(t *testing.T) {
 
 	t.Log("interface was changed. GetValue should not use providers.")
 	ctxT, _ := context.WithTimeout(ctx, time.Second)
-	val, err := dhts[0].GetValue(ctxT, u.Key("/v/hello"))
+	val, err := dhts[0].GetValue(ctxT, key.Key("/v/hello"))
 	if err != routing.ErrNotFound {
 		t.Error(err)
 	}

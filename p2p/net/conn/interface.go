@@ -5,9 +5,9 @@ import (
 	"net"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
 
 	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -15,7 +15,7 @@ import (
 )
 
 // Map maps Keys (Peer.IDs) to Connections.
-type Map map[u.Key]Conn
+type Map map[key.Key]Conn
 
 type PeerConn interface {
 	io.Closer

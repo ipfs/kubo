@@ -10,6 +10,7 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	assets "github.com/ipfs/go-ipfs/assets"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
@@ -17,7 +18,6 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 const nBitsForKeypairDefault = 2048
@@ -177,7 +177,7 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 			return err
 		}
 
-		k := u.B58KeyDecode(s)
+		k := key.B58KeyDecode(s)
 		if err := dirb.AddChild(fname, k); err != nil {
 			return err
 		}

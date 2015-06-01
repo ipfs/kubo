@@ -19,13 +19,13 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
-func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
+func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]key.Key, error) {
 	// TODO(cryptix): do we want a ctx as first param for (Un)Pin() as well, just like core.Resolve?
 	ctx := n.Context()
 
@@ -38,7 +38,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 		dagnodes = append(dagnodes, dagnode)
 	}
 
-	var out []u.Key
+	var out []key.Key
 	for _, dagnode := range dagnodes {
 		k, err := dagnode.Key()
 		if err != nil {
@@ -62,7 +62,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 	return out, nil
 }
 
-func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
+func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]key.Key, error) {
 	// TODO(cryptix): do we want a ctx as first param for (Un)Pin() as well, just like core.Resolve?
 	ctx := n.Context()
 
@@ -75,7 +75,7 @@ func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]u.Key, error) {
 		dagnodes = append(dagnodes, dagnode)
 	}
 
-	var unpinned []u.Key
+	var unpinned []key.Key
 	for _, dagnode := range dagnodes {
 		k, _ := dagnode.Key()
 

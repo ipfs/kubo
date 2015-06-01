@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"sync"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	ks "github.com/ipfs/go-ipfs/routing/keyspace"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // peerMetric tracks a peer and its distance to something else.
@@ -93,7 +93,7 @@ func (pq *distancePQ) Dequeue() peer.ID {
 // NewXORDistancePQ returns a PeerQueue which maintains its peers sorted
 // in terms of their distances to each other in an XORKeySpace (i.e. using
 // XOR as a metric of distance).
-func NewXORDistancePQ(fromKey u.Key) PeerQueue {
+func NewXORDistancePQ(fromKey key.Key) PeerQueue {
 	return &distancePQ{
 		from: ks.XORKeySpace.Key([]byte(fromKey)),
 		heap: peerMetricHeap{},

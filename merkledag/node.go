@@ -6,13 +6,8 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 )
-
-// NodeMap maps u.Keys to Nodes.
-// We cannot use []byte/Multihash for keys :(
-// so have to convert Multihash bytes to string (u.Key)
-type NodeMap map[u.Key]*Node
 
 // Node represents a node in the IPFS Merkle DAG.
 // nodes have opaque data and a set of navigable links.
@@ -84,7 +79,7 @@ func (l *Link) GetNode(ctx context.Context, serv DAGService) (*Node, error) {
 		return l.Node, nil
 	}
 
-	return serv.Get(ctx, u.Key(l.Hash))
+	return serv.Get(ctx, key.Key(l.Hash))
 }
 
 // AddNodeLink adds a link to another node.
@@ -227,7 +222,7 @@ func (n *Node) Multihash() (mh.Multihash, error) {
 }
 
 // Key returns the Multihash as a key, for maps.
-func (n *Node) Key() (u.Key, error) {
+func (n *Node) Key() (key.Key, error) {
 	h, err := n.Multihash()
-	return u.Key(h), err
+	return key.Key(h), err
 }

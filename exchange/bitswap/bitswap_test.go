@@ -12,11 +12,11 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -155,7 +155,7 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 
 	t.Log("Give the blocks to the first instance")
 
-	var blkeys []u.Key
+	var blkeys []key.Key
 	first := instances[0]
 	for _, b := range blocks {
 		blkeys = append(blkeys, b.Key())
@@ -227,7 +227,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	alpha := bg.Next()
 	// peerA requests and waits for block alpha
 	ctx, _ := context.WithTimeout(context.TODO(), waitTime)
-	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []u.Key{alpha.Key()})
+	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []key.Key{alpha.Key()})
 	if err != nil {
 		t.Fatal(err)
 	}

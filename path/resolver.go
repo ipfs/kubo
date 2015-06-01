@@ -2,13 +2,14 @@
 package path
 
 import (
+	"errors"
 	"fmt"
 	"time"
-	"errors"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -83,7 +84,7 @@ func (s *Resolver) ResolvePathComponents(ctx context.Context, fpath Path) ([]*me
 	log.Debug("Resolve dag get.")
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	nd, err := s.DAG.Get(ctx, u.Key(h))
+	nd, err := s.DAG.Get(ctx, key.Key(h))
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +108,12 @@ func (s *Resolver) ResolveLinks(ctx context.Context, ndd *merkledag.Node, names 
 	// for each of the path components
 	for _, name := range names {
 
-		var next u.Key
+		var next key.Key
 		var nlink *merkledag.Link
 		// for each of the links in nd, the current object
 		for _, link := range nd.Links {
 			if link.Name == name {
-				next = u.Key(link.Hash)
+				next = key.Key(link.Hash)
 				nlink = link
 				break
 			}

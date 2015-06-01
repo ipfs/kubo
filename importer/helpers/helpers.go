@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -123,7 +123,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 
 // Removes the child node at the given index
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
-	k := u.Key(n.node.Links[index].Hash)
+	k := key.Key(n.node.Links[index].Hash)
 	if dbh.mp != nil {
 		dbh.mp.RemovePinWithMode(k, pin.Indirect)
 	}

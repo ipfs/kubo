@@ -11,6 +11,7 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -161,22 +162,22 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 	Type: BlockStat{},
 }
 
-func getBlockForKey(req cmds.Request, key string) (*blocks.Block, error) {
+func getBlockForKey(req cmds.Request, skey string) (*blocks.Block, error) {
 	n, err := req.Context().GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	if !u.IsValidHash(key) {
+	if !u.IsValidHash(skey) {
 		return nil, errors.New("Not a valid hash")
 	}
 
-	h, err := mh.FromB58String(key)
+	h, err := mh.FromB58String(skey)
 	if err != nil {
 		return nil, err
 	}
 
-	k := u.Key(h)
+	k := key.Key(h)
 	b, err := n.Blocks.GetBlock(context.TODO(), k)
 	if err != nil {
 		return nil, err

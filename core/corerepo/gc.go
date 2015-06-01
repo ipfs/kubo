@@ -2,8 +2,8 @@ package corerepo
 
 import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
-	u "github.com/ipfs/go-ipfs/util"
 
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
@@ -11,7 +11,7 @@ import (
 var log = eventlog.Logger("corerepo")
 
 type KeyRemoved struct {
-	Key u.Key
+	Key key.Key
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {

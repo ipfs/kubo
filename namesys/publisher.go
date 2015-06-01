@@ -9,6 +9,7 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -55,7 +56,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Pa
 	}
 
 	nameb := u.Hash(pkbytes)
-	namekey := u.Key("/pk/" + string(nameb))
+	namekey := key.Key("/pk/" + string(nameb))
 
 	log.Debugf("Storing pubkey at: %s", namekey)
 	// Store associated public key
@@ -65,7 +66,7 @@ func (p *ipnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Pa
 		return err
 	}
 
-	ipnskey := u.Key("/ipns/" + string(nameb))
+	ipnskey := key.Key("/ipns/" + string(nameb))
 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
 	// Store ipns entry at "/ipns/"+b58(h(pubkey))
@@ -110,7 +111,7 @@ var IpnsRecordValidator = &record.ValidChecker{
 
 // ValidateIpnsRecord implements ValidatorFunc and verifies that the
 // given 'val' is an IpnsEntry and that that entry is valid.
-func ValidateIpnsRecord(k u.Key, val []byte) error {
+func ValidateIpnsRecord(k key.Key, val []byte) error {
 	entry := new(pb.IpnsEntry)
 	err := proto.Unmarshal(val, entry)
 	if err != nil {

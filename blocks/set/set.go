@@ -3,6 +3,7 @@ package set
 
 import (
 	"github.com/ipfs/go-ipfs/blocks/bloom"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/util"
 )
 
@@ -10,16 +11,16 @@ var log = util.Logger("blockset")
 
 // BlockSet represents a mutable set of keyed blocks
 type BlockSet interface {
-	AddBlock(util.Key)
-	RemoveBlock(util.Key)
-	HasKey(util.Key) bool
+	AddBlock(key.Key)
+	RemoveBlock(key.Key)
+	HasKey(key.Key) bool
 	GetBloomFilter() bloom.Filter
 
-	GetKeys() []util.Key
+	GetKeys() []key.Key
 }
 
-func SimpleSetFromKeys(keys []util.Key) BlockSet {
-	sbs := &simpleBlockSet{blocks: make(map[util.Key]struct{})}
+func SimpleSetFromKeys(keys []key.Key) BlockSet {
+	sbs := &simpleBlockSet{blocks: make(map[key.Key]struct{})}
 	for _, k := range keys {
 		sbs.blocks[k] = struct{}{}
 	}
@@ -27,22 +28,22 @@ func SimpleSetFromKeys(keys []util.Key) BlockSet {
 }
 
 func NewSimpleBlockSet() BlockSet {
-	return &simpleBlockSet{blocks: make(map[util.Key]struct{})}
+	return &simpleBlockSet{blocks: make(map[key.Key]struct{})}
 }
 
 type simpleBlockSet struct {
-	blocks map[util.Key]struct{}
+	blocks map[key.Key]struct{}
 }
 
-func (b *simpleBlockSet) AddBlock(k util.Key) {
+func (b *simpleBlockSet) AddBlock(k key.Key) {
 	b.blocks[k] = struct{}{}
 }
 
-func (b *simpleBlockSet) RemoveBlock(k util.Key) {
+func (b *simpleBlockSet) RemoveBlock(k key.Key) {
 	delete(b.blocks, k)
 }
 
-func (b *simpleBlockSet) HasKey(k util.Key) bool {
+func (b *simpleBlockSet) HasKey(k key.Key) bool {
 	_, has := b.blocks[k]
 	return has
 }
@@ -55,8 +56,8 @@ func (b *simpleBlockSet) GetBloomFilter() bloom.Filter {
 	return f
 }
 
-func (b *simpleBlockSet) GetKeys() []util.Key {
-	var out []util.Key
+func (b *simpleBlockSet) GetKeys() []key.Key {
+	var out []key.Key
 	for k := range b.blocks {
 		out = append(out, k)
 	}

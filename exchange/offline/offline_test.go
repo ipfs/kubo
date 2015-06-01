@@ -9,12 +9,12 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	"github.com/ipfs/go-ipfs/blocks/blocksutil"
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
 func TestBlockReturnsErr(t *testing.T) {
 	off := Exchange(bstore())
-	_, err := off.GetBlock(context.Background(), u.Key("foo"))
+	_, err := off.GetBlock(context.Background(), key.Key("foo"))
 	if err != nil {
 		return // as desired
 	}
@@ -49,8 +49,8 @@ func TestGetBlocks(t *testing.T) {
 		}
 	}
 
-	request := func() []u.Key {
-		var ks []u.Key
+	request := func() []key.Key {
+		var ks []key.Key
 
 		for _, b := range expected {
 			ks = append(ks, b.Key())

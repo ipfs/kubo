@@ -3,20 +3,20 @@ package decision
 import (
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	wl "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // keySet is just a convenient alias for maps of keys, where we only care
 // access/lookups.
-type keySet map[u.Key]struct{}
+type keySet map[key.Key]struct{}
 
 func newLedger(p peer.ID) *ledger {
 	return &ledger{
 		wantList:   wl.New(),
 		Partner:    p,
-		sentToPeer: make(map[u.Key]time.Time),
+		sentToPeer: make(map[key.Key]time.Time),
 	}
 }
 
@@ -43,7 +43,7 @@ type ledger struct {
 
 	// sentToPeer is a set of keys to ensure we dont send duplicate blocks
 	// to a given peer
-	sentToPeer map[u.Key]time.Time
+	sentToPeer map[key.Key]time.Time
 }
 
 type debtRatio struct {
@@ -68,16 +68,16 @@ func (l *ledger) ReceivedBytes(n int) {
 }
 
 // TODO: this needs to be different. We need timeouts.
-func (l *ledger) Wants(k u.Key, priority int) {
+func (l *ledger) Wants(k key.Key, priority int) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
 	l.wantList.Add(k, priority)
 }
 
-func (l *ledger) CancelWant(k u.Key) {
+func (l *ledger) CancelWant(k key.Key) {
 	l.wantList.Remove(k)
 }
 
-func (l *ledger) WantListContains(k u.Key) (wl.Entry, bool) {
+func (l *ledger) WantListContains(k key.Key) (wl.Entry, bool) {
 	return l.wantList.Contains(k)
 }
 

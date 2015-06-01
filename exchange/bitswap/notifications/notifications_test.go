@@ -8,7 +8,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
-	"github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
 func TestDuplicates(t *testing.T) {
@@ -131,8 +131,8 @@ func TestDoesNotDeadLockIfContextCancelledBeforePublish(t *testing.T) {
 
 	t.Log("generate a large number of blocks. exceed default buffer")
 	bs := g.Blocks(1000)
-	ks := func() []util.Key {
-		var keys []util.Key
+	ks := func() []key.Key {
+		var keys []key.Key
 		for _, b := range bs {
 			keys = append(keys, b.Key())
 		}

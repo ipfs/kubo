@@ -7,7 +7,7 @@ import (
 
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
 var TaskWorkerCount = 8
@@ -104,9 +104,9 @@ func (bs *Bitswap) provideWorker(ctx context.Context) {
 
 func (bs *Bitswap) provideCollector(ctx context.Context) {
 	defer close(bs.provideKeys)
-	var toProvide []u.Key
-	var nextKey u.Key
-	var keysOut chan u.Key
+	var toProvide []key.Key
+	var nextKey key.Key
+	var keysOut chan key.Key
 
 	for {
 		select {

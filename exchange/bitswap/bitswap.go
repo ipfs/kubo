@@ -12,6 +12,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	decision "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
@@ -21,7 +22,6 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/delay"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("bitswap")
@@ -85,7 +85,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
-		provideKeys:   make(chan u.Key),
+		provideKeys:   make(chan key.Key),
 		wm:            NewWantManager(ctx, network),
 	}
 	go bs.wm.Run()
@@ -124,7 +124,7 @@ type Bitswap struct {
 
 	newBlocks chan *blocks.Block
 
-	provideKeys chan u.Key
+	provideKeys chan key.Key
 
 	counterLk      sync.Mutex
 	blocksRecvd    int
@@ -132,13 +132,13 @@ type Bitswap struct {
 }
 
 type blockRequest struct {
-	keys []u.Key
+	keys []key.Key
 	ctx  context.Context
 }
 
 // GetBlock attempts to retrieve a particular block from peers within the
 // deadline enforced by the context.
-func (bs *Bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, error) {
+func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (*blocks.Block, error) {
 
 	// Any async work initiated by this function must end when this function
 	// returns. To ensure this, derive a new context. Note that it is okay to
@@ -156,7 +156,7 @@ func (bs *Bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 		cancelFunc()
 	}()
 
-	promise, err := bs.GetBlocks(ctx, []u.Key{k})
+	promise, err := bs.GetBlocks(ctx, []key.Key{k})
 	if err != nil {
 		return nil, err
 	}
@@ -177,8 +177,8 @@ func (bs *Bitswap) GetBlock(parent context.Context, k u.Key) (*blocks.Block, err
 	}
 }
 
-func (bs *Bitswap) WantlistForPeer(p peer.ID) []u.Key {
-	var out []u.Key
+func (bs *Bitswap) WantlistForPeer(p peer.ID) []key.Key {
+	var out []key.Key
 	for _, e := range bs.engine.WantlistForPeer(p) {
 		out = append(out, e.Key)
 	}
@@ -192,7 +192,7 @@ func (bs *Bitswap) WantlistForPeer(p peer.ID) []u.Key {
 // NB: Your request remains open until the context expires. To conserve
 // resources, provide a context with a reasonably short deadline (ie. not one
 // that lasts throughout the lifetime of the server)
-func (bs *Bitswap) GetBlocks(ctx context.Context, keys []u.Key) (<-chan *blocks.Block, error) {
+func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *blocks.Block, error) {
 	select {
 	case <-bs.process.Closing():
 		return nil, errors.New("bitswap is closed")
@@ -246,7 +246,7 @@ func (bs *Bitswap) connectToProviders(ctx context.Context, entries []wantlist.En
 	wg := sync.WaitGroup{}
 	for _, e := range entries {
 		wg.Add(1)
-		go func(k u.Key) {
+		go func(k key.Key) {
 			defer wg.Done()
 
 			child, cancel := context.WithTimeout(ctx, providerRequestTimeout)
@@ -277,7 +277,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	}
 
 	// quickly send out cancels, reduces chances of duplicate block receives
-	var keys []u.Key
+	var keys []key.Key
 	for _, block := range iblocks {
 		if _, found := bs.wm.wl.Contains(block.Key()); !found {
 			log.Notice("received un-asked-for block: %s", block)
@@ -342,8 +342,8 @@ func (bs *Bitswap) Close() error {
 	return bs.process.Close()
 }
 
-func (bs *Bitswap) GetWantlist() []u.Key {
-	var out []u.Key
+func (bs *Bitswap) GetWantlist() []key.Key {
+	var out []key.Key
 	for _, e := range bs.wm.wl.Entries() {
 		out = append(out, e.Key)
 	}

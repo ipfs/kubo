@@ -7,9 +7,9 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	u "github.com/ipfs/go-ipfs/util"
 	lgbl "github.com/ipfs/go-ipfs/util/eventlog/loggables"
 )
 
@@ -46,15 +46,15 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 
 	// first, is there even a key?
-	key := pmes.GetKey()
-	if key == "" {
+	k := pmes.GetKey()
+	if k == "" {
 		return nil, errors.New("handleGetValue but no key was provided")
 		// TODO: send back an error response? could be bad, but the other node's hanging.
 	}
 
 	// let's first check if we have the value locally.
 	log.Debugf("%s handleGetValue looking into ds", dht.self)
-	dskey := u.Key(pmes.GetKey()).DsKey()
+	dskey := key.Key(k).DsKey()
 	iVal, err := dht.datastore.Get(dskey)
 	log.Debugf("%s handleGetValue looking into ds GOT %v", dht.self, iVal)
 
@@ -105,10 +105,10 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 // Store a value in this peer local storage
 func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	defer log.EventBegin(ctx, "handlePutValue", p).Done()
-	dskey := u.Key(pmes.GetKey()).DsKey()
+	dskey := key.Key(pmes.GetKey()).DsKey()
 
 	if err := dht.verifyRecordLocally(pmes.GetRecord()); err != nil {
-		log.Debugf("Bad dht record in PUT from: %s. %s", u.Key(pmes.GetRecord().GetAuthor()), err)
+		log.Debugf("Bad dht record in PUT from: %s. %s", key.Key(pmes.GetRecord().GetAuthor()), err)
 		return nil, err
 	}
 
@@ -163,7 +163,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	defer log.EventBegin(ctx, "handleGetProviders", lm).Done()
 
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
-	key := u.Key(pmes.GetKey())
+	key := key.Key(pmes.GetKey())
 	lm["key"] = func() interface{} { return key.Pretty() }
 
 	// debug logging niceness.
@@ -207,7 +207,7 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 	lm["peer"] = func() interface{} { return p.Pretty() }
 
 	defer log.EventBegin(ctx, "handleAddProvider", lm).Done()
-	key := u.Key(pmes.GetKey())
+	key := key.Key(pmes.GetKey())
 	lm["key"] = func() interface{} { return key.Pretty() }
 
 	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)

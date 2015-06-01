@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	u "github.com/ipfs/go-ipfs/util"
 
@@ -27,7 +28,7 @@ func TestQueue(t *testing.T) {
 	// [78 135 26 216 178 181 224 181 234 117 2 248 152 115 255 103 244 34 4 152 193 88 9 225 8 127 216 158 226 8 236 246]
 	// [125 135 124 6 226 160 101 94 192 57 39 12 18 79 121 140 190 154 147 55 44 83 101 151 63 255 94 179 51 203 241 51]
 
-	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
+	pq := NewXORDistancePQ(key.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	pq.Enqueue(p3)
 	pq.Enqueue(p1)
 	pq.Enqueue(p2)
@@ -81,7 +82,7 @@ func TestSyncQueue(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	pq := NewXORDistancePQ(u.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
+	pq := NewXORDistancePQ(key.Key("11140beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a31"))
 	cq := NewChanQueue(ctx, pq)
 	wg := sync.WaitGroup{}
 

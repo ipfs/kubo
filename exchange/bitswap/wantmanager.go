@@ -5,12 +5,12 @@ import (
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	engine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 type WantManager struct {
@@ -46,7 +46,7 @@ type msgPair struct {
 
 type cancellation struct {
 	who peer.ID
-	blk u.Key
+	blk key.Key
 }
 
 type msgQueue struct {
@@ -60,16 +60,16 @@ type msgQueue struct {
 	done chan struct{}
 }
 
-func (pm *WantManager) WantBlocks(ks []u.Key) {
+func (pm *WantManager) WantBlocks(ks []key.Key) {
 	log.Infof("want blocks: %s", ks)
 	pm.addEntries(ks, false)
 }
 
-func (pm *WantManager) CancelWants(ks []u.Key) {
+func (pm *WantManager) CancelWants(ks []key.Key) {
 	pm.addEntries(ks, true)
 }
 
-func (pm *WantManager) addEntries(ks []u.Key, cancel bool) {
+func (pm *WantManager) addEntries(ks []key.Key, cancel bool) {
 	var entries []*bsmsg.Entry
 	for i, k := range ks {
 		entries = append(entries, &bsmsg.Entry{

@@ -6,13 +6,13 @@ import (
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	kbucket "github.com/ipfs/go-ipfs/routing/kbucket"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	util "github.com/ipfs/go-ipfs/util"
 )
 
 const ProtocolSNR = "/ipfs/supernoderouting"
@@ -162,7 +162,7 @@ func (px *standard) sendRequest(ctx context.Context, m *dhtpb.Message, remote pe
 	return response, nil
 }
 
-func sortedByKey(peers []peer.ID, key string) []peer.ID {
-	target := kbucket.ConvertKey(util.Key(key))
+func sortedByKey(peers []peer.ID, skey string) []peer.ID {
+	target := kbucket.ConvertKey(key.Key(skey))
 	return kbucket.SortClosestPeers(peers, target)
 }

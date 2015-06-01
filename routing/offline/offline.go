@@ -7,13 +7,13 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	"github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("offlinerouting")
@@ -35,7 +35,7 @@ type offlineRouting struct {
 	sk        ci.PrivKey
 }
 
-func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte) error {
+func (c *offlineRouting) PutValue(ctx context.Context, key key.Key, val []byte) error {
 	rec, err := record.MakePutRecord(c.sk, key, val, false)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (c *offlineRouting) PutValue(ctx context.Context, key u.Key, val []byte) er
 	return c.datastore.Put(key.DsKey(), data)
 }
 
-func (c *offlineRouting) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
+func (c *offlineRouting) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 	v, err := c.datastore.Get(key.DsKey())
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (c *offlineRouting) GetValue(ctx context.Context, key u.Key) ([]byte, error
 	return rec.GetValue(), nil
 }
 
-func (c *offlineRouting) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
+func (c *offlineRouting) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
 	return nil, ErrOffline
 }
 
@@ -75,13 +75,13 @@ func (c *offlineRouting) FindPeer(ctx context.Context, pid peer.ID) (peer.PeerIn
 	return peer.PeerInfo{}, ErrOffline
 }
 
-func (c *offlineRouting) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+func (c *offlineRouting) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
 	out := make(chan peer.PeerInfo)
 	close(out)
 	return out
 }
 
-func (c *offlineRouting) Provide(_ context.Context, key u.Key) error {
+func (c *offlineRouting) Provide(_ context.Context, key key.Key) error {
 	return ErrOffline
 }
 

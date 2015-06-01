@@ -3,13 +3,13 @@ package network
 import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	util "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("bitswap_network")
@@ -102,7 +102,7 @@ func (bsnet *impl) ConnectTo(ctx context.Context, p peer.ID) error {
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
-func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
+func (bsnet *impl) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.ID {
 
 	// Since routing queries are expensive, give bitswap the peers to which we
 	// have open connections. Note that this may cause issues if bitswap starts
@@ -138,7 +138,7 @@ func (bsnet *impl) FindProvidersAsync(ctx context.Context, k util.Key, max int) 
 }
 
 // Provide provides the key to the network
-func (bsnet *impl) Provide(ctx context.Context, k util.Key) error {
+func (bsnet *impl) Provide(ctx context.Context, k key.Key) error {
 	return bsnet.routing.Provide(ctx, k)
 }
 

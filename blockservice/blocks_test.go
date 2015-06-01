@@ -11,6 +11,7 @@ import (
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -30,7 +31,7 @@ func TestBlocks(t *testing.T) {
 		t.Error("Block Multihash and data multihash not equal")
 	}
 
-	if b.Key() != u.Key(h) {
+	if b.Key() != key.Key(h) {
 		t.Error("Block key and data multihash key not equal")
 	}
 
@@ -68,7 +69,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	bg := blocksutil.NewBlockGenerator()
 	blks := bg.Blocks(50)
 
-	var keys []u.Key
+	var keys []key.Key
 	for _, blk := range blks {
 		keys = append(keys, blk.Key())
 		servs[0].AddBlock(blk)
@@ -79,7 +80,7 @@ func TestGetBlocksSequential(t *testing.T) {
 	for i := 1; i < len(servs); i++ {
 		ctx, _ := context.WithTimeout(context.TODO(), time.Second*50)
 		out := servs[i].GetBlocks(ctx, keys)
-		gotten := make(map[u.Key]*blocks.Block)
+		gotten := make(map[key.Key]*blocks.Block)
 		for blk := range out {
 			if _, ok := gotten[blk.Key()]; ok {
 				t.Fatal("Got duplicate block!")

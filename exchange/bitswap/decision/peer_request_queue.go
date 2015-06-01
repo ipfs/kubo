@@ -4,17 +4,17 @@ import (
 	"sync"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 type peerRequestQueue interface {
 	// Pop returns the next peerRequestTask. Returns nil if the peerRequestQueue is empty.
 	Pop() *peerRequestTask
 	Push(entry wantlist.Entry, to peer.ID)
-	Remove(k u.Key, p peer.ID)
+	Remove(k key.Key, p peer.ID)
 	// NB: cannot expose simply expose taskQueue.Len because trashed elements
 	// may exist. These trashed elements should not contribute to the count.
 }
@@ -110,7 +110,7 @@ func (tl *prq) Pop() *peerRequestTask {
 }
 
 // Remove removes a task from the queue
-func (tl *prq) Remove(k u.Key, p peer.ID) {
+func (tl *prq) Remove(k key.Key, p peer.ID) {
 	tl.lock.Lock()
 	t, ok := tl.taskMap[taskKey(p, k)]
 	if ok {
@@ -155,7 +155,7 @@ func (t *peerRequestTask) SetIndex(i int) {
 }
 
 // taskKey returns a key that uniquely identifies a task.
-func taskKey(p peer.ID, k u.Key) string {
+func taskKey(p peer.ID, k key.Key) string {
 	return string(p) + string(k)
 }
 
@@ -186,7 +186,7 @@ type activePartner struct {
 	activelk sync.Mutex
 	active   int
 
-	activeBlocks map[u.Key]struct{}
+	activeBlocks map[key.Key]struct{}
 
 	// requests is the number of blocks this peer is currently requesting
 	// request need not be locked around as it will only be modified under
@@ -203,7 +203,7 @@ type activePartner struct {
 func newActivePartner() *activePartner {
 	return &activePartner{
 		taskQueue:    pq.New(wrapCmp(V1)),
-		activeBlocks: make(map[u.Key]struct{}),
+		activeBlocks: make(map[key.Key]struct{}),
 	}
 }
 
@@ -230,7 +230,7 @@ func partnerCompare(a, b pq.Elem) bool {
 }
 
 // StartTask signals that a task was started for this partner
-func (p *activePartner) StartTask(k u.Key) {
+func (p *activePartner) StartTask(k key.Key) {
 	p.activelk.Lock()
 	p.activeBlocks[k] = struct{}{}
 	p.active++
@@ -238,7 +238,7 @@ func (p *activePartner) StartTask(k u.Key) {
 }
 
 // TaskDone signals that a task was completed for this partner
-func (p *activePartner) TaskDone(k u.Key) {
+func (p *activePartner) TaskDone(k key.Key) {
 	p.activelk.Lock()
 	delete(p.activeBlocks, k)
 	p.active--
