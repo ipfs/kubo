@@ -5,16 +5,16 @@ import (
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("routing/record")
 
 // MakePutRecord creates and signs a dht record for the given key/value pair
-func MakePutRecord(sk ci.PrivKey, key u.Key, value []byte, sign bool) (*pb.Record, error) {
+func MakePutRecord(sk ci.PrivKey, key key.Key, value []byte, sign bool) (*pb.Record, error) {
 	record := new(pb.Record)
 
 	record.Key = proto.String(string(key))

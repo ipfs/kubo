@@ -2,19 +2,19 @@ package pin
 
 import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
-	"github.com/ipfs/go-ipfs/util"
 )
 
 type indirectPin struct {
 	blockset  set.BlockSet
-	refCounts map[util.Key]int
+	refCounts map[key.Key]int
 }
 
 func NewIndirectPin(dstore ds.Datastore) *indirectPin {
 	return &indirectPin{
 		blockset:  set.NewDBWrapperSet(dstore, set.NewSimpleBlockSet()),
-		refCounts: make(map[util.Key]int),
+		refCounts: make(map[key.Key]int),
 	}
 }
 
@@ -25,11 +25,11 @@ func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
 		return nil, err
 	}
 
-	refcnt := make(map[util.Key]int)
-	var keys []util.Key
+	refcnt := make(map[key.Key]int)
+	var keys []key.Key
 	for encK, v := range rcStore {
 		if v > 0 {
-			k := util.B58KeyDecode(encK)
+			k := key.B58KeyDecode(encK)
 			keys = append(keys, k)
 			refcnt[k] = v
 		}
@@ -43,12 +43,12 @@ func storeIndirPin(d ds.Datastore, k ds.Key, p *indirectPin) error {
 
 	rcStore := map[string]int{}
 	for k, v := range p.refCounts {
-		rcStore[util.B58KeyEncode(k)] = v
+		rcStore[key.B58KeyEncode(k)] = v
 	}
 	return storeSet(d, k, rcStore)
 }
 
-func (i *indirectPin) Increment(k util.Key) {
+func (i *indirectPin) Increment(k key.Key) {
 	c := i.refCounts[k]
 	i.refCounts[k] = c + 1
 	if c <= 0 {
@@ -56,7 +56,7 @@ func (i *indirectPin) Increment(k util.Key) {
 	}
 }
 
-func (i *indirectPin) Decrement(k util.Key) {
+func (i *indirectPin) Decrement(k key.Key) {
 	c := i.refCounts[k] - 1
 	i.refCounts[k] = c
 	if c <= 0 {
@@ -65,7 +65,7 @@ func (i *indirectPin) Decrement(k util.Key) {
 	}
 }
 
-func (i *indirectPin) HasKey(k util.Key) bool {
+func (i *indirectPin) HasKey(k key.Key) bool {
 	return i.blockset.HasKey(k)
 }
 
@@ -73,6 +73,6 @@ func (i *indirectPin) Set() set.BlockSet {
 	return i.blockset
 }
 
-func (i *indirectPin) GetRefs() map[util.Key]int {
+func (i *indirectPin) GetRefs() map[key.Key]int {
 	return i.refCounts
 }

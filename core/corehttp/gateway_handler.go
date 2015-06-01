@@ -12,6 +12,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -19,7 +20,6 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 const (
@@ -304,7 +304,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	// TODO(cryptix): could this be core.Resolve() too?
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, u.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return
@@ -374,7 +374,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	tctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, u.Key(h))
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, key.Key(h))
 	if err != nil {
 		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
 		return

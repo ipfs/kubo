@@ -15,12 +15,12 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("fuse/ipns")
@@ -76,7 +76,7 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 		if err != nil {
 			return nil, err
 		}
-		name := u.Key(pkh).B58String()
+		name := key.Key(pkh).B58String()
 		root, err := ipfs.IpnsFs.GetRoot(name)
 		if err != nil {
 			return nil, err
@@ -194,7 +194,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			continue
 		}
 		ent := fuse.Dirent{
-			Name: u.Key(hash).Pretty(),
+			Name: key.Key(hash).Pretty(),
 			Type: fuse.DT_Dir,
 		}
 		listing = append(listing, ent)

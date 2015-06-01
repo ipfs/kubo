@@ -157,7 +157,7 @@ func ID(c Conn) string {
 	lh := u.Hash([]byte(l))
 	rh := u.Hash([]byte(r))
 	ch := u.XOR(lh, rh)
-	return u.Key(ch).Pretty()
+	return peer.ID(ch).Pretty()
 }
 
 // String returns the user-friendly String representation of a conn

@@ -11,6 +11,7 @@ import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	nsds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/util"
@@ -31,22 +32,22 @@ const (
 )
 
 type Pinner interface {
-	IsPinned(util.Key) bool
+	IsPinned(key.Key) bool
 	Pin(context.Context, *mdag.Node, bool) error
-	Unpin(context.Context, util.Key, bool) error
+	Unpin(context.Context, key.Key, bool) error
 	Flush() error
 	GetManual() ManualPinner
-	DirectKeys() []util.Key
-	IndirectKeys() map[util.Key]int
-	RecursiveKeys() []util.Key
+	DirectKeys() []key.Key
+	IndirectKeys() map[key.Key]int
+	RecursiveKeys() []key.Key
 }
 
 // ManualPinner is for manually editing the pin structure
 // Use with care! If used improperly, garbage collection
 // may not be successful
 type ManualPinner interface {
-	PinWithMode(util.Key, PinMode)
-	RemovePinWithMode(util.Key, PinMode)
+	PinWithMode(key.Key, PinMode)
+	RemovePinWithMode(key.Key, PinMode)
 	Pinner
 }
 
@@ -120,7 +121,7 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 }
 
 // Unpin a given key
-func (p *pinner) Unpin(ctx context.Context, k util.Key, recursive bool) error {
+func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if p.recursePin.HasKey(k) {
@@ -193,7 +194,7 @@ func (p *pinner) pinLinks(ctx context.Context, node *mdag.Node) error {
 }
 
 // IsPinned returns whether or not the given key is pinned
-func (p *pinner) IsPinned(key util.Key) bool {
+func (p *pinner) IsPinned(key key.Key) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.recursePin.HasKey(key) ||
@@ -201,7 +202,7 @@ func (p *pinner) IsPinned(key util.Key) bool {
 		p.indirPin.HasKey(key)
 }
 
-func (p *pinner) RemovePinWithMode(key util.Key, mode PinMode) {
+func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	switch mode {
@@ -222,7 +223,7 @@ func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error)
 	p := new(pinner)
 
 	{ // load recursive set
-		var recurseKeys []util.Key
+		var recurseKeys []key.Key
 		if err := loadSet(d, recursePinDatastoreKey, &recurseKeys); err != nil {
 			return nil, err
 		}
@@ -230,7 +231,7 @@ func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error)
 	}
 
 	{ // load direct set
-		var directKeys []util.Key
+		var directKeys []key.Key
 		if err := loadSet(d, directPinDatastoreKey, &directKeys); err != nil {
 			return nil, err
 		}
@@ -253,17 +254,17 @@ func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error)
 }
 
 // DirectKeys returns a slice containing the directly pinned keys
-func (p *pinner) DirectKeys() []util.Key {
+func (p *pinner) DirectKeys() []key.Key {
 	return p.directPin.GetKeys()
 }
 
 // IndirectKeys returns a slice containing the indirectly pinned keys
-func (p *pinner) IndirectKeys() map[util.Key]int {
+func (p *pinner) IndirectKeys() map[key.Key]int {
 	return p.indirPin.GetRefs()
 }
 
 // RecursiveKeys returns a slice containing the recursively pinned keys
-func (p *pinner) RecursiveKeys() []util.Key {
+func (p *pinner) RecursiveKeys() []key.Key {
 	return p.recursePin.GetKeys()
 }
 
@@ -314,7 +315,7 @@ func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
 
 // PinWithMode is a method on ManualPinners, allowing the user to have fine
 // grained control over pin counts
-func (p *pinner) PinWithMode(k util.Key, mode PinMode) {
+func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	switch mode {

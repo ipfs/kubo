@@ -17,13 +17,13 @@ import (
 	"sync"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -66,7 +66,7 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSyst
 		if err != nil {
 			return nil, err
 		}
-		roots[u.Key(pkh).Pretty()] = root
+		roots[key.Key(pkh).Pretty()] = root
 	}
 
 	return fs, nil
@@ -141,7 +141,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 		return nil, err
 	}
 
-	name := "/ipns/" + u.Key(hash).String()
+	name := "/ipns/" + key.Key(hash).String()
 
 	root := new(KeyRoot)
 	root.key = k

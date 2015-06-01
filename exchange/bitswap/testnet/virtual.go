@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	util "github.com/ipfs/go-ipfs/util"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
 
@@ -91,7 +91,7 @@ func (nc *networkClient) SendMessage(
 }
 
 // FindProvidersAsync returns a channel of providers for the given key
-func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max int) <-chan peer.ID {
+func (nc *networkClient) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.ID {
 
 	// NB: this function duplicates the PeerInfo -> ID transformation in the
 	// bitswap network adapter. Not to worry. This network client will be
@@ -113,7 +113,7 @@ func (nc *networkClient) FindProvidersAsync(ctx context.Context, k util.Key, max
 }
 
 // Provide provides the key to the network
-func (nc *networkClient) Provide(ctx context.Context, k util.Key) error {
+func (nc *networkClient) Provide(ctx context.Context, k key.Key) error {
 	return nc.routing.Provide(ctx, k)
 }
 

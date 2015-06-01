@@ -7,6 +7,7 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
@@ -64,7 +65,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	// /ipns/<name>
 	h := []byte("/ipns/" + string(hash))
 
-	ipnsKey := u.Key(h)
+	ipnsKey := key.Key(h)
 	val, err := r.routing.GetValue(ctx, ipnsKey)
 	if err != nil {
 		log.Warning("RoutingResolve get failed.")
@@ -84,7 +85,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	}
 
 	hsh, _ := pubkey.Hash()
-	log.Debugf("pk hash = %s", u.Key(hsh))
+	log.Debugf("pk hash = %s", key.Key(hsh))
 
 	// check sig with pk
 	if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
@@ -101,6 +102,6 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 	} else {
 		// Its an old style multihash record
 		log.Warning("Detected old style multihash record")
-		return path.FromKey(u.Key(valh)), nil
+		return path.FromKey(key.Key(valh)), nil
 	}
 }

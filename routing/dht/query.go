@@ -3,6 +3,7 @@ package dht
 import (
 	"sync"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	queue "github.com/ipfs/go-ipfs/p2p/peer/queue"
@@ -21,7 +22,7 @@ var maxQueryConcurrency = AlphaValue
 
 type dhtQuery struct {
 	dht         *IpfsDHT
-	key         u.Key     // the key we're querying for
+	key         key.Key   // the key we're querying for
 	qfunc       queryFunc // the function to execute per peer
 	concurrency int       // the concurrency parameter
 }
@@ -35,7 +36,7 @@ type dhtQueryResult struct {
 }
 
 // constructs query
-func (dht *IpfsDHT) newQuery(k u.Key, f queryFunc) *dhtQuery {
+func (dht *IpfsDHT) newQuery(k key.Key, f queryFunc) *dhtQuery {
 	return &dhtQuery{
 		key:         k,
 		dht:         dht,

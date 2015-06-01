@@ -9,6 +9,7 @@ import (
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	ratelimit "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/ratelimit"
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	waitable "github.com/ipfs/go-ipfs/thirdparty/waitable"
 	util "github.com/ipfs/go-ipfs/util"
@@ -141,12 +142,12 @@ func (w *Worker) start(c Config) {
 
 type BlockList struct {
 	list    list.List
-	uniques map[util.Key]*list.Element
+	uniques map[key.Key]*list.Element
 }
 
 func (s *BlockList) PushFront(b *blocks.Block) {
 	if s.uniques == nil {
-		s.uniques = make(map[util.Key]*list.Element)
+		s.uniques = make(map[key.Key]*list.Element)
 	}
 	_, ok := s.uniques[b.Key()]
 	if !ok {
@@ -157,7 +158,7 @@ func (s *BlockList) PushFront(b *blocks.Block) {
 
 func (s *BlockList) Push(b *blocks.Block) {
 	if s.uniques == nil {
-		s.uniques = make(map[util.Key]*list.Element)
+		s.uniques = make(map[key.Key]*list.Element)
 	}
 	_, ok := s.uniques[b.Key()]
 	if !ok {

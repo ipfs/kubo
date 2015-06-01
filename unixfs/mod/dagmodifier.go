@@ -11,6 +11,7 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
@@ -226,7 +227,7 @@ func (dm *DagModifier) Sync() error {
 // modifyDag writes the data in 'data' over the data in 'node' starting at 'offset'
 // returns the new key of the passed in node and whether or not all the data in the reader
 // has been consumed.
-func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (u.Key, bool, error) {
+func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader) (key.Key, bool, error) {
 	f, err := ft.FromBytes(node.Data)
 	if err != nil {
 		return "", false, err
@@ -266,7 +267,7 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 		// We found the correct child to write into
 		if cur+bs > offset {
 			// Unpin block
-			ckey := u.Key(node.Links[i].Hash)
+			ckey := key.Key(node.Links[i].Hash)
 			dm.mp.RemovePinWithMode(ckey, pin.Indirect)
 
 			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)

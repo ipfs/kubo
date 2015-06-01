@@ -5,14 +5,14 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
-func AddMetadataTo(n *core.IpfsNode, key string, m *ft.Metadata) (string, error) {
-	ukey := u.B58KeyDecode(key)
+func AddMetadataTo(n *core.IpfsNode, skey string, m *ft.Metadata) (string, error) {
+	ukey := key.B58KeyDecode(skey)
 
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
 	defer cancel()
@@ -41,8 +41,8 @@ func AddMetadataTo(n *core.IpfsNode, key string, m *ft.Metadata) (string, error)
 	return nk.B58String(), nil
 }
 
-func Metadata(n *core.IpfsNode, key string) (*ft.Metadata, error) {
-	ukey := u.B58KeyDecode(key)
+func Metadata(n *core.IpfsNode, skey string) (*ft.Metadata, error) {
+	ukey := key.B58KeyDecode(skey)
 
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
 	defer cancel()

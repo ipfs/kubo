@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	"github.com/ipfs/go-ipfs/util"
 )
 
 func TestPutProviderDoesntResultInDuplicates(t *testing.T) {
 	routingBackend := datastore.NewMapDatastore()
-	k := util.Key("foo")
+	k := key.Key("foo")
 	put := []*dhtpb.Message_Peer{
 		convPeer("bob", "127.0.0.1/tcp/4001"),
 		convPeer("alice", "10.0.0.10/tcp/4001"),

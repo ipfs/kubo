@@ -12,6 +12,7 @@ import (
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
@@ -81,7 +82,7 @@ func TestNode(t *testing.T) {
 		k, err := n.Key()
 		if err != nil {
 			t.Error(err)
-		} else if k != u.Key(h) {
+		} else if k != key.Key(h) {
 			t.Error("Key is not equivalent to multihash")
 		} else {
 			fmt.Println("key: ", k)

@@ -4,8 +4,8 @@ import (
 	"time"
 
 	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
@@ -16,10 +16,10 @@ type providerInfo struct {
 }
 
 type ProviderManager struct {
-	providers map[u.Key][]*providerInfo
-	local     map[u.Key]struct{}
+	providers map[key.Key][]*providerInfo
+	local     map[key.Key]struct{}
 	lpeer     peer.ID
-	getlocal  chan chan []u.Key
+	getlocal  chan chan []key.Key
 	newprovs  chan *addProv
 	getprovs  chan *getProv
 	period    time.Duration
@@ -27,12 +27,12 @@ type ProviderManager struct {
 }
 
 type addProv struct {
-	k   u.Key
+	k   key.Key
 	val peer.ID
 }
 
 type getProv struct {
-	k    u.Key
+	k    key.Key
 	resp chan []peer.ID
 }
 
@@ -40,9 +40,9 @@ func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm := new(ProviderManager)
 	pm.getprovs = make(chan *getProv)
 	pm.newprovs = make(chan *addProv)
-	pm.providers = make(map[u.Key][]*providerInfo)
-	pm.getlocal = make(chan chan []u.Key)
-	pm.local = make(map[u.Key]struct{})
+	pm.providers = make(map[key.Key][]*providerInfo)
+	pm.getlocal = make(chan chan []key.Key)
+	pm.local = make(map[key.Key]struct{})
 	pm.ContextGroup = ctxgroup.WithContext(ctx)
 
 	pm.Children().Add(1)
@@ -76,7 +76,7 @@ func (pm *ProviderManager) run() {
 			gp.resp <- parr
 
 		case lc := <-pm.getlocal:
-			var keys []u.Key
+			var keys []key.Key
 			for k := range pm.local {
 				keys = append(keys, k)
 			}
@@ -99,7 +99,7 @@ func (pm *ProviderManager) run() {
 	}
 }
 
-func (pm *ProviderManager) AddProvider(ctx context.Context, k u.Key, val peer.ID) {
+func (pm *ProviderManager) AddProvider(ctx context.Context, k key.Key, val peer.ID) {
 	prov := &addProv{
 		k:   k,
 		val: val,
@@ -110,7 +110,7 @@ func (pm *ProviderManager) AddProvider(ctx context.Context, k u.Key, val peer.ID
 	}
 }
 
-func (pm *ProviderManager) GetProviders(ctx context.Context, k u.Key) []peer.ID {
+func (pm *ProviderManager) GetProviders(ctx context.Context, k key.Key) []peer.ID {
 	gp := &getProv{
 		k:    k,
 		resp: make(chan []peer.ID, 1), // buffered to prevent sender from blocking
@@ -128,8 +128,8 @@ func (pm *ProviderManager) GetProviders(ctx context.Context, k u.Key) []peer.ID 
 	}
 }
 
-func (pm *ProviderManager) GetLocal() []u.Key {
-	resp := make(chan []u.Key)
+func (pm *ProviderManager) GetLocal() []key.Key {
+	resp := make(chan []key.Key)
 	pm.getlocal <- resp
 	return <-resp
 }

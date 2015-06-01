@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
@@ -125,4 +127,38 @@ func RPartition(subject string, sep string) (string, string, string) {
 	} else {
 		return subject, "", ""
 	}
+}
+
+// Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits
+func Hash(data []byte) mh.Multihash {
+	h, err := mh.Sum(data, mh.SHA2_256, -1)
+	if err != nil {
+		// this error can be safely ignored (panic) because multihash only fails
+		// from the selection of hash function. If the fn + length are valid, it
+		// won't error.
+		panic("multihash failed to hash using SHA2_256.")
+	}
+	return h
+}
+
+// IsValidHash checks whether a given hash is valid (b58 decodable, len > 0)
+func IsValidHash(s string) bool {
+	out := b58.Decode(s)
+	if out == nil || len(out) == 0 {
+		return false
+	}
+	_, err := mh.Cast(out)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// XOR takes two byte slices, XORs them together, returns the resulting slice.
+func XOR(a, b []byte) []byte {
+	c := make([]byte, len(a))
+	for i := 0; i < len(a); i++ {
+		c[i] = a[i] ^ b[i]
+	}
+	return c
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	u "github.com/ipfs/go-ipfs/util"
@@ -23,7 +24,7 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pinned []u.Key
+	Pinned []key.Key
 }
 
 var addPinCmd = &cmds.Command{

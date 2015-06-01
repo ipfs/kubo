@@ -8,11 +8,11 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
@@ -128,7 +128,7 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 	}
 
 	return &IpnsEntry{
-		Name:  u.Key(hash).String(),
+		Name:  key.Key(hash).String(),
 		Value: ref.String(),
 	}, nil
 }
