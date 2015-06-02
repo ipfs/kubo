@@ -29,12 +29,12 @@ const (
 	Nil
 )
 
-var (
-	simpleStrPrefix = []byte{'+'}
-	errPrefix       = []byte{'-'}
-	intPrefix       = []byte{':'}
-	bulkStrPrefix   = []byte{'$'}
-	arrayPrefix     = []byte{'*'}
+const (
+	simpleStrPrefix = '+'
+	errPrefix       = '-'
+	intPrefix       = ':'
+	bulkStrPrefix   = '$'
+	arrayPrefix     = '*'
 )
 
 // Parse errors
@@ -65,7 +65,7 @@ func NewMessage(b []byte) (*Message, error) {
 // 	resp.WriteArbitrary(w, []interface{}{bar, baz})
 //
 func NewSimpleString(s string) *Message {
-	b := append(make([]byte, 0, len(s)+3), '+')
+	b := append(make([]byte, 0, len(s) + 3), '+')
 	b = append(b, []byte(s)...)
 	b = append(b, '\r', '\n')
 	return &Message{
@@ -88,15 +88,15 @@ func bufioReadMessage(r *bufio.Reader) (*Message, error) {
 		return nil, err
 	}
 	switch b[0] {
-	case simpleStrPrefix[0]:
+	case simpleStrPrefix:
 		return readSimpleStr(r)
-	case errPrefix[0]:
+	case errPrefix:
 		return readError(r)
-	case intPrefix[0]:
+	case intPrefix:
 		return readInt(r)
-	case bulkStrPrefix[0]:
+	case bulkStrPrefix:
 		return readBulkStr(r)
-	case arrayPrefix[0]:
+	case arrayPrefix:
 		return readArray(r)
 	default:
 		return nil, badType
@@ -248,14 +248,6 @@ func (m *Message) Array() ([]*Message, error) {
 	return nil, badType
 }
 
-func writeBytesHelper(w io.Writer, b []byte, lastErr error) error {
-	if lastErr != nil {
-		return lastErr
-	}
-	_, err := w.Write(b)
-	return err
-}
-
 // WriteMessage takes in the given Message and writes its encoded form to the
 // given io.Writer
 func WriteMessage(w io.Writer, m *Message) error {
@@ -263,52 +255,20 @@ func WriteMessage(w io.Writer, m *Message) error {
 	return err
 }
 
-// AppendArbitrary takes in any primitive golang value, or Message, and appends
-// its encoded form to the given buffer, inferring types where appropriate. It
-// then returns the appended buffer
-func AppendArbitrary(buf []byte, m interface{}) []byte {
-	return appendArb(buf, m, false, false)
-}
-
 // WriteArbitrary takes in any primitive golang value, or Message, and writes
 // its encoded form to the given io.Writer, inferring types where appropriate.
 func WriteArbitrary(w io.Writer, m interface{}) error {
-	buf := AppendArbitrary(make([]byte, 0, 1024), m)
-	_, err := w.Write(buf)
+	b := format(m, false)
+	_, err := w.Write(b)
 	return err
-}
-
-// AppendArbitraryAsString is similar to AppendArbitraryAsFlattenedString except
-// that it won't flatten any embedded arrays.
-func AppendArbitraryAsStrings(buf []byte, m interface{}) []byte {
-	return appendArb(buf, m, true, false)
 }
 
 // WriteArbitraryAsString is similar to WriteArbitraryAsFlattenedString except
 // that it won't flatten any embedded arrays.
 func WriteArbitraryAsString(w io.Writer, m interface{}) error {
-	buf := AppendArbitraryAsStrings(make([]byte, 0, 1024), m)
-	_, err := w.Write(buf)
+	b := format(m, true)
+	_, err := w.Write(b)
 	return err
-}
-
-// AppendArbitraryAsFlattenedStrings is similar to AppendArbitrary except that
-// it will encode all types except Array as a BulkStr, converting the argument
-// into a string first as necessary. It will also flatten any embedded arrays
-// into a single long array. This is useful because commands to a redis server
-// must be given as an array of bulk strings. If the argument isn't already in a
-// slice or map it will be wrapped so that it is written as an Array of size
-// one.
-//
-// Note that if a Message type is found it will *not* be encoded to a BulkStr,
-// but will simply be passed through as whatever type it already represents.
-func AppendArbitraryAsFlattenedStrings(buf []byte, m interface{}) []byte {
-	fl := flattenedLength(m)
-	buf = append(buf, arrayPrefix...)
-	buf = strconv.AppendInt(buf, int64(fl), 10)
-	buf = append(buf, delim...)
-
-	return appendArb(buf, m, true, true)
 }
 
 // WriteArbitraryAsFlattenedStrings is similar to WriteArbitrary except that it
@@ -321,85 +281,76 @@ func AppendArbitraryAsFlattenedStrings(buf []byte, m interface{}) []byte {
 // Note that if a Message type is found it will *not* be encoded to a BulkStr,
 // but will simply be passed through as whatever type it already represents.
 func WriteArbitraryAsFlattenedStrings(w io.Writer, m interface{}) error {
-	buf := AppendArbitraryAsFlattenedStrings(make([]byte, 0, 1024), m)
-	_, err := w.Write(buf)
-	return err
+	fm := flatten(m)
+	return WriteArbitraryAsString(w, fm)
 }
 
-func appendArb(buf []byte, m interface{}, forceString, flattened bool) []byte {
+func format(m interface{}, forceString bool) []byte {
 	switch mt := m.(type) {
 	case []byte:
-		return appendStr(buf, mt)
+		return formatStr(mt)
 	case string:
-		return appendStr(buf, []byte(mt))
+		return formatStr([]byte(mt))
 	case bool:
 		if mt {
-			return appendStr(buf, []byte("1"))
+			return formatStr([]byte("1"))
 		} else {
-			return appendStr(buf, []byte("0"))
+			return formatStr([]byte("0"))
 		}
 	case nil:
 		if forceString {
-			return appendStr(buf, []byte{})
+			return formatStr([]byte{})
 		} else {
-			return appendNil(buf)
+			return formatNil()
 		}
 	case int:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case int8:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case int16:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case int32:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case int64:
-		return appendInt(buf, mt, forceString)
+		return formatInt(mt, forceString)
 	case uint:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case uint8:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case uint16:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case uint32:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case uint64:
-		return appendInt(buf, int64(mt), forceString)
+		return formatInt(int64(mt), forceString)
 	case float32:
 		ft := strconv.FormatFloat(float64(mt), 'f', -1, 32)
-		return appendStr(buf, []byte(ft))
+		return formatStr([]byte(ft))
 	case float64:
 		ft := strconv.FormatFloat(mt, 'f', -1, 64)
-		return appendStr(buf, []byte(ft))
+		return formatStr([]byte(ft))
 	case error:
 		if forceString {
-			return appendStr(buf, []byte(mt.Error()))
+			return formatStr([]byte(mt.Error()))
 		} else {
-			return appendErr(buf, mt)
+			return formatErr(mt)
 		}
-
-	// For the following cases, where we are writing an array, we only append the
-	// array header (a new array) if flattened is false, otherwise we just append
-	// each element inline and assume the array header has already been written
 
 	// We duplicate the below code here a bit, since this is the common case and
 	// it'd be better to not get the reflect package involved here
 	case []interface{}:
 		l := len(mt)
-
-		if !flattened {
-			buf = append(buf, arrayPrefix...)
-			buf = strconv.AppendInt(buf, int64(l), 10)
-			buf = append(buf, delim...)
-		}
-
+		b := make([]byte, 0, l*1024)
+		b = append(b, '*')
+		b = append(b, []byte(strconv.Itoa(l))...)
+		b = append(b, []byte("\r\n")...)
 		for i := 0; i < l; i++ {
-			buf = appendArb(buf, mt[i], forceString, flattened)
+			b = append(b, format(mt[i], forceString)...)
 		}
-		return buf
+		return b
 
 	case *Message:
-		buf = append(buf, mt.raw...)
-		return buf
+		return mt.raw
 
 	default:
 		// Fallback to reflect-based.
@@ -407,119 +358,109 @@ func appendArb(buf []byte, m interface{}, forceString, flattened bool) []byte {
 		case reflect.Slice:
 			rm := reflect.ValueOf(mt)
 			l := rm.Len()
-
-			if !flattened {
-				buf = append(buf, arrayPrefix...)
-				buf = strconv.AppendInt(buf, int64(l), 10)
-				buf = append(buf, delim...)
-			}
-
+			b := make([]byte, 0, l*1024)
+			b = append(b, '*')
+			b = append(b, []byte(strconv.Itoa(l))...)
+			b = append(b, []byte("\r\n")...)
 			for i := 0; i < l; i++ {
 				vv := rm.Index(i).Interface()
-				buf = appendArb(buf, vv, forceString, flattened)
+				b = append(b, format(vv, forceString)...)
 			}
-			return buf
 
+			return b
 		case reflect.Map:
 			rm := reflect.ValueOf(mt)
 			l := rm.Len() * 2
-
-			if !flattened {
-				buf = append(buf, arrayPrefix...)
-				buf = strconv.AppendInt(buf, int64(l), 10)
-				buf = append(buf, delim...)
-			}
-
+			b := make([]byte, 0, l*1024)
+			b = append(b, '*')
+			b = append(b, []byte(strconv.Itoa(l))...)
+			b = append(b, []byte("\r\n")...)
 			keys := rm.MapKeys()
 			for _, k := range keys {
 				kv := k.Interface()
 				vv := rm.MapIndex(k).Interface()
-				buf = appendArb(buf, kv, forceString, flattened)
-				buf = appendArb(buf, vv, forceString, flattened)
+				b = append(b, format(kv, forceString)...)
+				b = append(b, format(vv, forceString)...)
 			}
-			return buf
-
+			return b
 		default:
-			return appendStr(buf, []byte(fmt.Sprint(m)))
+			return formatStr([]byte(fmt.Sprint(m)))
 		}
 	}
 }
 
 var typeOfBytes = reflect.TypeOf([]byte(nil))
 
-func flattenedLength(m interface{}) int {
+func flatten(m interface{}) []interface{} {
 	t := reflect.TypeOf(m)
 
 	// If it's a byte-slice we don't want to flatten
 	if t == typeOfBytes {
-		return 1
+		return []interface{}{m}
 	}
-
-	total := 0
 
 	switch t.Kind() {
 	case reflect.Slice:
 		rm := reflect.ValueOf(m)
 		l := rm.Len()
+		ret := make([]interface{}, 0, l)
 		for i := 0; i < l; i++ {
-			total += flattenedLength(rm.Index(i).Interface())
+			ret = append(ret, flatten(rm.Index(i).Interface())...)
 		}
+		return ret
 
 	case reflect.Map:
 		rm := reflect.ValueOf(m)
+		l := rm.Len() * 2
 		keys := rm.MapKeys()
+		ret := make([]interface{}, 0, l)
 		for _, k := range keys {
 			kv := k.Interface()
 			vv := rm.MapIndex(k).Interface()
-			total += flattenedLength(kv)
-			total += flattenedLength(vv)
+			ret = append(ret, flatten(kv)...)
+			ret = append(ret, flatten(vv)...)
 		}
+		return ret
 
 	default:
-		total++
+		return []interface{}{m}
 	}
-
-	return total
 }
 
-func appendStr(buf []byte, b []byte) []byte {
-	buf = append(buf, bulkStrPrefix...)
-	buf = strconv.AppendInt(buf, int64(len(b)), 10)
-	buf = append(buf, delim...)
-	buf = append(buf, b...)
-	buf = append(buf, delim...)
-	return buf
+func formatStr(b []byte) []byte {
+	l := strconv.Itoa(len(b))
+	bs := make([]byte, 0, len(l)+len(b)+5)
+	bs = append(bs, bulkStrPrefix)
+	bs = append(bs, []byte(l)...)
+	bs = append(bs, delim...)
+	bs = append(bs, b...)
+	bs = append(bs, delim...)
+	return bs
 }
 
-func appendErr(buf []byte, ierr error) []byte {
-	buf = append(buf, errPrefix...)
-	buf = append(buf, []byte(ierr.Error())...)
-	buf = append(buf, delim...)
-	return buf
+func formatErr(ierr error) []byte {
+	ierrstr := []byte(ierr.Error())
+	bs := make([]byte, 0, len(ierrstr)+3)
+	bs = append(bs, errPrefix)
+	bs = append(bs, ierrstr...)
+	bs = append(bs, delim...)
+	return bs
 }
 
-func appendInt(buf []byte, i int64, forceString bool) []byte {
-	if !forceString {
-		buf = append(buf, intPrefix...)
-	} else {
-		// Really want to avoid alloating a new []byte. So I write the int to
-		// the buf for the sole purpose of getting its length as a string, and
-		// even though it'll be immediately overwritten right after and
-		// AppendInt will be called again. This isn't great.
-		tmpBuf := strconv.AppendInt(buf, i, 10)
-
-		buf = append(buf, bulkStrPrefix...)
-		buf = strconv.AppendInt(buf, int64(len(tmpBuf)-len(buf)+1), 10)
-		buf = append(buf, delim...)
+func formatInt(i int64, forceString bool) []byte {
+	istr := strconv.FormatInt(i, 10)
+	if forceString {
+		return formatStr([]byte(istr))
 	}
-
-	buf = strconv.AppendInt(buf, i, 10)
-	buf = append(buf, delim...)
-	return buf
+	bs := make([]byte, 0, len(istr)+3)
+	bs = append(bs, intPrefix)
+	bs = append(bs, istr...)
+	bs = append(bs, delim...)
+	return bs
 }
 
 var nilFormatted = []byte("$-1\r\n")
 
-func appendNil(buf []byte) []byte {
-	return append(buf, nilFormatted...)
+func formatNil() []byte {
+	return nilFormatted
 }

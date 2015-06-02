@@ -86,8 +86,6 @@ func (s *Stream) Read(b []byte) (n int, err error) {
 START:
 	s.stateLock.Lock()
 	switch s.state {
-	case streamLocalClose:
-		fallthrough
 	case streamRemoteClose:
 		fallthrough
 	case streamClosed:
@@ -267,7 +265,6 @@ func (s *Stream) sendClose() error {
 
 // Close is used to close the stream
 func (s *Stream) Close() error {
-	closeStream := false
 	s.stateLock.Lock()
 	switch s.state {
 	// Opened means we need to signal a close
@@ -282,7 +279,7 @@ func (s *Stream) Close() error {
 	case streamLocalClose:
 	case streamRemoteClose:
 		s.state = streamClosed
-		closeStream = true
+		s.session.closeStream(s.id)
 		goto SEND_CLOSE
 
 	case streamClosed:
@@ -296,9 +293,6 @@ SEND_CLOSE:
 	s.stateLock.Unlock()
 	s.sendClose()
 	s.notifyWaiting()
-	if closeStream {
-		s.session.closeStream(s.id)
-	}
 	return nil
 }
 
@@ -313,23 +307,14 @@ func (s *Stream) forceClose() {
 // processFlags is used to update the state of the stream
 // based on set flags, if any. Lock must be held
 func (s *Stream) processFlags(flags uint16) error {
-	// Close the stream without holding the state lock
-	closeStream := false
-	defer func() {
-		if closeStream {
-			s.session.closeStream(s.id)
-		}
-	}()
-
 	s.stateLock.Lock()
 	defer s.stateLock.Unlock()
 	if flags&flagACK == flagACK {
 		if s.state == streamSYNSent {
 			s.state = streamEstablished
 		}
-		s.session.establishStream()
-	}
-	if flags&flagFIN == flagFIN {
+
+	} else if flags&flagFIN == flagFIN {
 		switch s.state {
 		case streamSYNSent:
 			fallthrough
@@ -340,19 +325,15 @@ func (s *Stream) processFlags(flags uint16) error {
 			s.notifyWaiting()
 		case streamLocalClose:
 			s.state = streamClosed
-			closeStream = true
+			s.session.closeStream(s.id)
 			s.notifyWaiting()
 		default:
 			s.session.logger.Printf("[ERR] yamux: unexpected FIN flag in state %d", s.state)
 			return ErrUnexpectedFlag
 		}
-	}
-	if flags&flagRST == flagRST {
-		if s.state == streamSYNSent {
-			s.session.establishStream()
-		}
+	} else if flags&flagRST == flagRST {
 		s.state = streamReset
-		closeStream = true
+		s.session.closeStream(s.id)
 		s.notifyWaiting()
 	}
 	return nil

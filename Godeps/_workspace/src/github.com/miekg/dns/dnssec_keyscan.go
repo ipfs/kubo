@@ -6,7 +6,6 @@ import (
 	"crypto/rsa"
 	"io"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -35,12 +34,8 @@ func (k *DNSKEY) ReadPrivateKey(q io.Reader, file string) (PrivateKey, error) {
 		return nil, ErrPrivKey
 	}
 	// TODO(mg): check if the pubkey matches the private key
-	algo, err := strconv.Atoi(strings.SplitN(m["algorithm"], " ", 2)[0])
-	if err != nil {
-		return nil, ErrPrivKey
-	}
-	switch uint8(algo) {
-	case DSA:
+	switch m["algorithm"] {
+	case "3 (DSA)":
 		priv, e := readPrivateKeyDSA(m)
 		if e != nil {
 			return nil, e
@@ -51,15 +46,15 @@ func (k *DNSKEY) ReadPrivateKey(q io.Reader, file string) (PrivateKey, error) {
 		}
 		priv.PublicKey = *pub
 		return (*DSAPrivateKey)(priv), e
-	case RSAMD5:
+	case "1 (RSAMD5)":
 		fallthrough
-	case RSASHA1:
+	case "5 (RSASHA1)":
 		fallthrough
-	case RSASHA1NSEC3SHA1:
+	case "7 (RSASHA1NSEC3SHA1)":
 		fallthrough
-	case RSASHA256:
+	case "8 (RSASHA256)":
 		fallthrough
-	case RSASHA512:
+	case "10 (RSASHA512)":
 		priv, e := readPrivateKeyRSA(m)
 		if e != nil {
 			return nil, e
@@ -70,11 +65,11 @@ func (k *DNSKEY) ReadPrivateKey(q io.Reader, file string) (PrivateKey, error) {
 		}
 		priv.PublicKey = *pub
 		return (*RSAPrivateKey)(priv), e
-	case ECCGOST:
+	case "12 (ECC-GOST)":
 		return nil, ErrPrivKey
-	case ECDSAP256SHA256:
+	case "13 (ECDSAP256SHA256)":
 		fallthrough
-	case ECDSAP384SHA384:
+	case "14 (ECDSAP384SHA384)":
 		priv, e := readPrivateKeyECDSA(m)
 		if e != nil {
 			return nil, e

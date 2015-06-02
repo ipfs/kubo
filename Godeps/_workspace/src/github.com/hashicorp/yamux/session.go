@@ -50,21 +50,12 @@ type Session struct {
 	streams    map[uint32]*Stream
 	streamLock sync.Mutex
 
-	// synCh acts like a semaphore. It is sized to the AcceptBacklog which
-	// is assumed to be symmetric between the client and server. This allows
-	// the client to avoid exceeding the backlog and instead blocks the open.
-	synCh chan struct{}
-
 	// acceptCh is used to pass ready streams to the client
 	acceptCh chan *Stream
 
 	// sendCh is used to mark a stream as ready to send,
 	// or to send a header out directly.
 	sendCh chan sendReady
-
-	// recvDoneCh is closed when recv() exits to avoid a race
-	// between stream registration and stream shutdown
-	recvDoneCh chan struct{}
 
 	// shutdown is used to safely close a session
 	shutdown     bool
@@ -90,10 +81,8 @@ func newSession(config *Config, conn io.ReadWriteCloser, client bool) *Session {
 		bufRead:    bufio.NewReader(conn),
 		pings:      make(map[uint32]chan struct{}),
 		streams:    make(map[uint32]*Stream),
-		synCh:      make(chan struct{}, config.AcceptBacklog),
 		acceptCh:   make(chan *Stream, config.AcceptBacklog),
 		sendCh:     make(chan sendReady, 64),
-		recvDoneCh: make(chan struct{}),
 		shutdownCh: make(chan struct{}),
 	}
 	if client {
@@ -119,14 +108,6 @@ func (s *Session) IsClosed() bool {
 	}
 }
 
-// NumStreams returns the number of currently open streams
-func (s *Session) NumStreams() int {
-	s.streamLock.Lock()
-	num := len(s.streams)
-	s.streamLock.Unlock()
-	return num
-}
-
 // Open is used to create a new stream as a net.Conn
 func (s *Session) Open() (net.Conn, error) {
 	return s.OpenStream()
@@ -139,13 +120,6 @@ func (s *Session) OpenStream() (*Stream, error) {
 	}
 	if atomic.LoadInt32(&s.remoteGoAway) == 1 {
 		return nil, ErrRemoteGoAway
-	}
-
-	// Block if we have too many inflight SYNs
-	select {
-	case s.synCh <- struct{}{}:
-	case <-s.shutdownCh:
-		return nil, ErrSessionShutdown
 	}
 
 GET_ID:
@@ -165,10 +139,7 @@ GET_ID:
 	s.streamLock.Unlock()
 
 	// Send the window update to create
-	if err := stream.sendWindowUpdate(); err != nil {
-		return nil, err
-	}
-	return stream, nil
+	return stream, stream.sendWindowUpdate()
 }
 
 // Accept is used to block until the next available stream
@@ -182,10 +153,7 @@ func (s *Session) Accept() (net.Conn, error) {
 func (s *Session) AcceptStream() (*Stream, error) {
 	select {
 	case stream := <-s.acceptCh:
-		if err := stream.sendWindowUpdate(); err != nil {
-			return nil, err
-		}
-		return stream, nil
+		return stream, stream.sendWindowUpdate()
 	case <-s.shutdownCh:
 		return nil, s.shutdownErr
 	}
@@ -206,7 +174,6 @@ func (s *Session) Close() error {
 	}
 	close(s.shutdownCh)
 	s.conn.Close()
-	<-s.recvDoneCh
 
 	s.streamLock.Lock()
 	defer s.streamLock.Unlock()
@@ -358,14 +325,6 @@ func (s *Session) send() {
 
 // recv is a long running goroutine that accepts new data
 func (s *Session) recv() {
-	if err := s.recvLoop(); err != nil {
-		s.exitErr(err)
-	}
-}
-
-// recvLoop continues to receive data until a fatal error is encountered
-func (s *Session) recvLoop() error {
-	defer close(s.recvDoneCh)
 	hdr := header(make([]byte, headerSize))
 	var handler func(header) error
 	for {
@@ -374,13 +333,15 @@ func (s *Session) recvLoop() error {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") && !strings.Contains(err.Error(), "reset by peer") {
 				s.logger.Printf("[ERR] yamux: Failed to read header: %v", err)
 			}
-			return err
+			s.exitErr(err)
+			return
 		}
 
 		// Verify the version
 		if hdr.Version() != protoVersion {
 			s.logger.Printf("[ERR] yamux: Invalid protocol version: %d", hdr.Version())
-			return ErrInvalidVersion
+			s.exitErr(ErrInvalidVersion)
+			return
 		}
 
 		// Switch on the type
@@ -394,12 +355,14 @@ func (s *Session) recvLoop() error {
 		case typePing:
 			handler = s.handlePing
 		default:
-			return ErrInvalidMsgType
+			s.exitErr(ErrInvalidMsgType)
+			return
 		}
 
 		// Invoke the handler
 		if err := handler(hdr); err != nil {
-			return err
+			s.exitErr(err)
+			return
 		}
 	}
 }
@@ -539,14 +502,4 @@ func (s *Session) closeStream(id uint32) {
 	s.streamLock.Lock()
 	delete(s.streams, id)
 	s.streamLock.Unlock()
-}
-
-// establishStream is used to mark a stream that was in the
-// SYN Sent state as established.
-func (s *Session) establishStream() {
-	select {
-	case <-s.synCh:
-	default:
-		panic("established stream without inflight syn")
-	}
 }

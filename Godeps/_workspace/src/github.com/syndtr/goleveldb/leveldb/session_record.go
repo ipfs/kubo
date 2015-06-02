@@ -52,6 +52,8 @@ type dtRecord struct {
 }
 
 type sessionRecord struct {
+	numLevel int
+
 	hasRec         int
 	comparer       string
 	journalNum     uint64
@@ -228,7 +230,7 @@ func (p *sessionRecord) readBytes(field string, r byteReader) []byte {
 	return x
 }
 
-func (p *sessionRecord) readLevel(field string, r io.ByteReader, numLevel int) int {
+func (p *sessionRecord) readLevel(field string, r io.ByteReader) int {
 	if p.err != nil {
 		return 0
 	}
@@ -236,14 +238,14 @@ func (p *sessionRecord) readLevel(field string, r io.ByteReader, numLevel int) i
 	if p.err != nil {
 		return 0
 	}
-	if x >= uint64(numLevel) {
+	if x >= uint64(p.numLevel) {
 		p.err = errors.NewErrCorrupted(nil, &ErrManifestCorrupted{field, "invalid level number"})
 		return 0
 	}
 	return int(x)
 }
 
-func (p *sessionRecord) decode(r io.Reader, numLevel int) error {
+func (p *sessionRecord) decode(r io.Reader) error {
 	br, ok := r.(byteReader)
 	if !ok {
 		br = bufio.NewReader(r)
@@ -284,13 +286,13 @@ func (p *sessionRecord) decode(r io.Reader, numLevel int) error {
 				p.setSeqNum(x)
 			}
 		case recCompPtr:
-			level := p.readLevel("comp-ptr.level", br, numLevel)
+			level := p.readLevel("comp-ptr.level", br)
 			ikey := p.readBytes("comp-ptr.ikey", br)
 			if p.err == nil {
 				p.addCompPtr(level, iKey(ikey))
 			}
 		case recAddTable:
-			level := p.readLevel("add-table.level", br, numLevel)
+			level := p.readLevel("add-table.level", br)
 			num := p.readUvarint("add-table.num", br)
 			size := p.readUvarint("add-table.size", br)
 			imin := p.readBytes("add-table.imin", br)
@@ -299,7 +301,7 @@ func (p *sessionRecord) decode(r io.Reader, numLevel int) error {
 				p.addTable(level, num, size, imin, imax)
 			}
 		case recDelTable:
-			level := p.readLevel("del-table.level", br, numLevel)
+			level := p.readLevel("del-table.level", br)
 			num := p.readUvarint("del-table.num", br)
 			if p.err == nil {
 				p.delTable(level, num)

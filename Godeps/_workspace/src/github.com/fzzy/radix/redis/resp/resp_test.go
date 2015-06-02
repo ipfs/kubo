@@ -3,9 +3,8 @@ package resp
 import (
 	"bytes"
 	"errors"
-	. "testing"
-
 	"github.com/stretchr/testify/assert"
+	. "testing"
 )
 
 func TestRead(t *T) {

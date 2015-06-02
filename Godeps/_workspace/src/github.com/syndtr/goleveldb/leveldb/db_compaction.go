@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 )
 
@@ -61,8 +62,58 @@ func (p *cStatsStaging) stopTimer() {
 	}
 }
 
+type cMem struct {
+	s     *session
+	level int
+	rec   *sessionRecord
+}
+
+func newCMem(s *session) *cMem {
+	return &cMem{s: s, rec: &sessionRecord{numLevel: s.o.GetNumLevel()}}
+}
+
+func (c *cMem) flush(mem *memdb.DB, level int) error {
+	s := c.s
+
+	// Write memdb to table.
+	iter := mem.NewIterator(nil)
+	defer iter.Release()
+	t, n, err := s.tops.createFrom(iter)
+	if err != nil {
+		return err
+	}
+
+	// Pick level.
+	if level < 0 {
+		v := s.version()
+		level = v.pickLevel(t.imin.ukey(), t.imax.ukey())
+		v.release()
+	}
+	c.rec.addTableFile(level, t)
+
+	s.logf("mem@flush created L%d@%d N·%d S·%s %q:%q", level, t.file.Num(), n, shortenb(int(t.size)), t.imin, t.imax)
+
+	c.level = level
+	return nil
+}
+
+func (c *cMem) reset() {
+	c.rec = &sessionRecord{numLevel: c.s.o.GetNumLevel()}
+}
+
+func (c *cMem) commit(journal, seq uint64) error {
+	c.rec.setJournalNum(journal)
+	c.rec.setSeqNum(seq)
+
+	// Commit changes.
+	return c.s.commit(c.rec)
+}
+
 func (db *DB) compactionError() {
-	var err error
+	var (
+		err     error
+		wlocked bool
+	)
 noerr:
 	// No error.
 	for {
@@ -70,7 +121,7 @@ noerr:
 		case err = <-db.compErrSetC:
 			switch {
 			case err == nil:
-			case err == ErrReadOnly, errors.IsCorrupted(err):
+			case errors.IsCorrupted(err):
 				goto hasperr
 			default:
 				goto haserr
@@ -88,7 +139,7 @@ haserr:
 			switch {
 			case err == nil:
 				goto noerr
-			case err == ErrReadOnly, errors.IsCorrupted(err):
+			case errors.IsCorrupted(err):
 				goto hasperr
 			default:
 			}
@@ -104,9 +155,9 @@ hasperr:
 		case db.compPerErrC <- err:
 		case db.writeLockC <- struct{}{}:
 			// Hold write lock, so that write won't pass-through.
-			db.compWriteLocking = true
+			wlocked = true
 		case _, _ = <-db.closeC:
-			if db.compWriteLocking {
+			if wlocked {
 				// We should release the lock or Close will hang.
 				<-db.writeLockC
 			}
@@ -236,18 +287,21 @@ func (db *DB) compactionExitTransact() {
 }
 
 func (db *DB) memCompaction() {
-	mdb := db.getFrozenMem()
-	if mdb == nil {
+	mem := db.getFrozenMem()
+	if mem == nil {
 		return
 	}
-	defer mdb.decref()
+	defer mem.decref()
 
-	db.logf("memdb@flush N·%d S·%s", mdb.Len(), shortenb(mdb.Size()))
+	c := newCMem(db.s)
+	stats := new(cStatsStaging)
+
+	db.logf("mem@flush N·%d S·%s", mem.mdb.Len(), shortenb(mem.mdb.Size()))
 
 	// Don't compact empty memdb.
-	if mdb.Len() == 0 {
-		db.logf("memdb@flush skipping")
-		// drop frozen memdb
+	if mem.mdb.Len() == 0 {
+		db.logf("mem@flush skipping")
+		// drop frozen mem
 		db.dropFrozenMem()
 		return
 	}
@@ -263,20 +317,13 @@ func (db *DB) memCompaction() {
 		return
 	}
 
-	var (
-		rec        = &sessionRecord{}
-		stats      = &cStatsStaging{}
-		flushLevel int
-	)
-
-	db.compactionTransactFunc("memdb@flush", func(cnt *compactionTransactCounter) (err error) {
+	db.compactionTransactFunc("mem@flush", func(cnt *compactionTransactCounter) (err error) {
 		stats.startTimer()
-		flushLevel, err = db.s.flushMemdb(rec, mdb.DB, -1)
-		stats.stopTimer()
-		return
+		defer stats.stopTimer()
+		return c.flush(mem.mdb, -1)
 	}, func() error {
-		for _, r := range rec.addedTables {
-			db.logf("memdb@flush revert @%d", r.num)
+		for _, r := range c.rec.addedTables {
+			db.logf("mem@flush revert @%d", r.num)
 			f := db.s.getTableFile(r.num)
 			if err := f.Remove(); err != nil {
 				return err
@@ -285,23 +332,20 @@ func (db *DB) memCompaction() {
 		return nil
 	})
 
-	db.compactionTransactFunc("memdb@commit", func(cnt *compactionTransactCounter) (err error) {
+	db.compactionTransactFunc("mem@commit", func(cnt *compactionTransactCounter) (err error) {
 		stats.startTimer()
-		rec.setJournalNum(db.journalFile.Num())
-		rec.setSeqNum(db.frozenSeq)
-		err = db.s.commit(rec)
-		stats.stopTimer()
-		return
+		defer stats.stopTimer()
+		return c.commit(db.journalFile.Num(), db.frozenSeq)
 	}, nil)
 
-	db.logf("memdb@flush committed F·%d T·%v", len(rec.addedTables), stats.duration)
+	db.logf("mem@flush committed F·%d T·%v", len(c.rec.addedTables), stats.duration)
 
-	for _, r := range rec.addedTables {
+	for _, r := range c.rec.addedTables {
 		stats.write += r.size
 	}
-	db.compStats[flushLevel].add(stats)
+	db.compStats[c.level].add(stats)
 
-	// Drop frozen memdb.
+	// Drop frozen mem.
 	db.dropFrozenMem()
 
 	// Resume table compaction.
@@ -513,7 +557,7 @@ func (b *tableCompactionBuilder) revert() error {
 func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 	defer c.release()
 
-	rec := &sessionRecord{}
+	rec := &sessionRecord{numLevel: db.s.o.GetNumLevel()}
 	rec.addCompPtr(c.level, c.imax)
 
 	if !noTrivial && c.trivial() {

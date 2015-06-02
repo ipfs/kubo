@@ -1,9 +1,8 @@
 package redis
 
 import (
-	. "testing"
-
 	"github.com/stretchr/testify/assert"
+	. "testing"
 )
 
 func TestStr(t *T) {
@@ -78,25 +77,6 @@ func TestBool(t *T) {
 
 	r = &Reply{Type: NilReply}
 	_, err = r.Bool()
-	assert.NotNil(t, err)
-}
-
-func TestFloat64(t *T) {
-	r := &Reply{Type: ErrorReply, Err: LoadingError}
-	_, err := r.Float64()
-	assert.Equal(t, LoadingError, err)
-
-	r = &Reply{Type: IntegerReply, int: 5}
-	_, err = r.Float64()
-	assert.NotNil(t, err)
-
-	r = &Reply{Type: BulkReply, buf: []byte("5.1")}
-	b, err := r.Float64()
-	assert.Nil(t, err)
-	assert.Equal(t, float64(5.1), b)
-
-	r = &Reply{Type: BulkReply, buf: []byte("foo")}
-	_, err = r.Float64()
 	assert.NotNil(t, err)
 }
 

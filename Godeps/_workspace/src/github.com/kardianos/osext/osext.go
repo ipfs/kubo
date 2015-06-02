@@ -16,12 +16,12 @@ func Executable() (string, error) {
 }
 
 // Returns same path as Executable, returns just the folder
-// path. Excludes the executable name and any trailing slash.
+// path. Excludes the executable name.
 func ExecutableFolder() (string, error) {
 	p, err := Executable()
 	if err != nil {
 		return "", err
 	}
-
-	return filepath.Dir(p), nil
+	folder, _ := filepath.Split(p)
+	return folder, nil
 }

@@ -40,11 +40,11 @@ func (db *DB) newRawIterator(slice *util.Range, ro *opt.ReadOptions) iterator.It
 	ti := v.getIterators(slice, ro)
 	n := len(ti) + 2
 	i := make([]iterator.Iterator, 0, n)
-	emi := em.NewIterator(slice)
+	emi := em.mdb.NewIterator(slice)
 	emi.SetReleaser(&memdbReleaser{m: em})
 	i = append(i, emi)
 	if fm != nil {
-		fmi := fm.NewIterator(slice)
+		fmi := fm.mdb.NewIterator(slice)
 		fmi.SetReleaser(&memdbReleaser{m: fm})
 		i = append(i, fmi)
 	}

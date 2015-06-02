@@ -6,24 +6,21 @@ import (
 	"strings"
 )
 
-type Units int
-
 const (
 	// By default, without type handle
-	U_NO Units = iota
+	U_NO = 0
 	// Handle as b, Kb, Mb, etc
-	U_BYTES
+	U_BYTES = 1
 )
 
 // Format integer
-func Format(i int64, units Units) string {
+func Format(i int64, units int) string {
 	switch units {
 	case U_BYTES:
 		return FormatBytes(i)
-	default:
-		// by default just convert to string
-		return strconv.FormatInt(i, 10)
 	}
+	// by default just convert to string
+	return strconv.Itoa(int(i))
 }
 
 // Convert bytes to human readable string. Like a 2 MB, 64.2 KB, 52 B

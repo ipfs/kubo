@@ -12,15 +12,13 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
-
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	serial "github.com/ipfs/go-ipfs/repo/fsrepo/serialize"
 )
 
 // GetNumNodes returns the number of testbed nodes configured in the testbed directory
@@ -72,7 +70,6 @@ type initCfg struct {
 	Force     bool
 	Bootstrap string
 	PortStart int
-	Mdns      bool
 }
 
 func (c *initCfg) swarmAddrForPeer(i int) string {
@@ -147,7 +144,6 @@ func starBootstrap(icfg *initCfg) error {
 	bcfg.Addresses.Swarm = []string{icfg.swarmAddrForPeer(0)}
 	bcfg.Addresses.API = icfg.apiAddrForPeer(0)
 	bcfg.Addresses.Gateway = ""
-	bcfg.Discovery.MDNS.Enabled = icfg.Mdns
 	err = serial.WriteConfigFile(cfgpath, bcfg)
 	if err != nil {
 		return err
@@ -160,11 +156,8 @@ func starBootstrap(icfg *initCfg) error {
 			return err
 		}
 
-		ba := fmt.Sprintf("%s/ipfs/%s", bcfg.Addresses.Swarm[0], bcfg.Identity.PeerID)
-		ba = strings.Replace(ba, "0.0.0.0", "127.0.0.1", -1)
-		cfg.Bootstrap = []string{ba}
+		cfg.Bootstrap = []string{fmt.Sprintf("%s/ipfs/%s", bcfg.Addresses.Swarm[0], bcfg.Identity.PeerID)}
 		cfg.Addresses.Gateway = ""
-		cfg.Discovery.MDNS.Enabled = icfg.Mdns
 		cfg.Addresses.Swarm = []string{
 			icfg.swarmAddrForPeer(i),
 		}
@@ -189,7 +182,6 @@ func clearBootstrapping(icfg *initCfg) error {
 		cfg.Addresses.Gateway = ""
 		cfg.Addresses.Swarm = []string{icfg.swarmAddrForPeer(i)}
 		cfg.Addresses.API = icfg.apiAddrForPeer(i)
-		cfg.Discovery.MDNS.Enabled = icfg.Mdns
 		err = serial.WriteConfigFile(cfgpath, cfg)
 		if err != nil {
 			return err
@@ -448,7 +440,6 @@ func main() {
 	flag.IntVar(&cfg.Count, "n", 0, "number of ipfs nodes to initialize")
 	flag.IntVar(&cfg.PortStart, "p", 4002, "port to start allocations from")
 	flag.BoolVar(&cfg.Force, "f", false, "force initialization (overwrite existing configs)")
-	flag.BoolVar(&cfg.Mdns, "mdns", false, "turn on mdns for nodes")
 	flag.StringVar(&cfg.Bootstrap, "bootstrap", "star", "select bootstrapping style for cluster")
 
 	wait := flag.Bool("wait", false, "wait for nodes to come fully online before exiting")
