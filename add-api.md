@@ -16,7 +16,7 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     //
     //   p: The path from the add root to the just-created node.  This
     //     is empty for the root node.  For large files and
-    //     directories that are chunked and trickled, each chunk and
+    //     directories that are chunked and laid-out, each chunk and
     //     fanout node will have the same path argument.
     //   f: A File reference for the file used to create nIn.  Don't
     //     seek this (which could throw off the chunker), but you can
@@ -36,14 +36,14 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     //   nIn: The just-created node
     //   p: The path from the add root to the just-created node.  This
     //     is empty for the root node.  For large files and
-    //     directories that are chunked and trickled, each chunk and
+    //     directories that are chunked and laid-out, each chunk and
     //     fanout node will have the same path argument.
     //   f: A File reference for the file used to create nIn.  Don't
     //     seek this (which could throw off the chunker), but you can
     //     use it to extract metadata about the visited file including
     //     its name, permissions, etc.  This will be nil for
     //     io.Reader-based adders.
-    //   top: Whether or not nIn is the tip of a trickle DAG or an
+    //   top: Whether or not nIn is the tip of a layout DAG or an
     //     unchunked object.  This allows you to distinguish those
     //     nodes (which are referenced from a link with a user-visible
     //     name)
@@ -103,13 +103,14 @@ filename is left to the caller and the callback API.
 
 These should look just like the high-level API, except instead of
 passing in an IpfsNode and using that node's default DAG service,
-trickler, and splitter, we pass each of those in explicitly:
+layout, and splitter, we pass each of those in explicitly:
 
-    Add(ctx context.Context, ds dag.DAGService, t trickle.Trickler, s chunk.BlockSplitter, f *os.File, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
-    AddFromReader(ctx context.Context, ds dag.DAGService, t trickle.Trickler, s chunk.BlockSplitter, r io.Reader, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, error)
+    Add(ctx context.Context, ds dag.DAGService, layout _layout.Layout, s chunk.BlockSplitter, f *os.File, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
+    AddFromReader(ctx context.Context, ds dag.DAGService, layout _layout.Layout, s chunk.BlockSplitter, r io.Reader, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, error)
 
-We don't currently have a public `Trickler` interface, but I think we should
-add one so folks can easily plug in alternative trickler implementations.
+We don't currently have a public `Layout` interface, but I think we
+should add one so folks can easily plug in alternative layout
+implementations.
 
 I'm not familiar enough with Go at the moment to know which arguments
 are best passed by reference and which should be passed by value.  If
