@@ -14,70 +14,94 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     // PreNodeCallback is called before each DAG node is created.  The
     // arguments are:
     //
-    //   p: The path from the add root to the just-created node.  This
-    //     is empty for the root node.  For large files and
+    //   path: The path from the add root to the just-created node.
+    //     This is empty for the root node.  For large files and
     //     directories that are chunked and laid-out, each chunk and
     //     fanout node will have the same path argument.
-    //   f: A File reference for the file used to create nIn.  Don't
-    //     seek this (which could throw off the chunker), but you can
-    //     use it to extract metadata about the visited file including
-    //     its name, permissions, etc.  This will be nil for
-    //     io.Reader-based adders.
+    //   file: A File reference for the file used to create the new
+    //     nodes.  Don't seek this (which could throw off the chunker),
+    //     but you can use it to extract metadata about the visited
+    //     file including its name, permissions, etc.  This will be
+    //     nil for io.Reader-based adders.
     //
     // The returned values are:
     //
     //   ignore: True if we should skip this path.
     //   err: Any errors serious enough to abort the addition.
-    type PreNodeCallback func(p *path.Path, f *os.File) (ignore bool, err error)
+    type PreNodeCallback func(
+        path *path.Path,
+        file *os.File
+        ) (ignore bool, err error)
 
     // PostNodeCallback is called after each DAG node is created.  The
     // arguments are:
     //
-    //   nIn: The just-created node
-    //   p: The path from the add root to the just-created node.  This
-    //     is empty for the root node.  For large files and
+    //   nodeIn: The just-created node.
+    //   path: The path from the add root to the just-created node.
+    //     This is empty for the root node.  For large files and
     //     directories that are chunked and laid-out, each chunk and
     //     fanout node will have the same path argument.
-    //   f: A File reference for the file used to create nIn.  Don't
-    //     seek this (which could throw off the chunker), but you can
-    //     use it to extract metadata about the visited file including
-    //     its name, permissions, etc.  This will be nil for
+    //   file: A File reference for the file used to create nodeIn.
+    //     Don't seek this (which could throw off the chunker), but
+    //     you can use it to extract metadata about the visited file
+    //     including its name, permissions, etc.  This will be nil for
     //     io.Reader-based adders.
-    //   top: Whether or not nIn is the tip of a layout DAG or an
+    //   top: Whether or not nodeIn is the tip of a layout DAG or an
     //     unchunked object.  This allows you to distinguish those
     //     nodes (which are referenced from a link with a user-visible
     //     name)
     //
     // The returned values are:
     //
-    //   nOut: The node to insert into the constructed DAG.  Return nIn
-    //     to use the just-created node without changes or nil to drop
-    //     the just-created node.  You're also free to return another
-    //     node of your choosing (e.g. a new node wrapping the
+    //   nodeOut: The node to insert into the constructed DAG.  Return
+    //     nodeIn to use the just-created node without changes or nil
+    //     to drop the just-created node.  You're also free to return
+    //     another node of your choosing (e.g. a new node wrapping the
     //     just-created node or a completely independent node).
     //   err: Any errors serious enough to abort the addition.
-    type PostNodeCallback func(nIn *dag.Node, p *path.Path, f *os.File, top bool) (nOut *dag.Node, err error)
+    type PostNodeCallback func(
+        nodeIn *dag.Node,
+        path *path.Path,
+        file *os.File,
+        top bool
+        ) (nodeOut *dag.Node, err error)
 
     // Add recursively adds files from a File type, which can point to
     // either a directory or a file.  The arguments are:
     //
     //   ctx: A Context for cancelling or timing out a recursive
     //     addition.
-    //   n: And IPFS node for storing newly-created DAG nodes.
-    //   f: An open file pointing at the root of the filesystem to be
+    //   node: And IPFS node for storing newly-created DAG nodes.
+    //   file: An open file pointing at the root of the filesystem to be
     //     added.
-    //   cb: An optional hook for post-DAG-node processing.  Set to nil
-    //     if you don't need it.
+    //   preNodeCallBack: An optional hook for pre-DAG-node checks
+    //     (e.g. ignoring boring paths).  Set to nil if you don't need
+    //     it.
+    //   postNodeCallBack: An optional hook for post-DAG-node
+    //     processing (e.g. altering or wrapping the newly-created
+    //     nodes).  Set to nil if you don't need it.
     //
     // The returned values are:
     //
     //   root: The root of the just-added DAG.
     //   err: Any errors serious enough to abort the addition.
-    Add(ctx context.Context, n *core.IpfsNode, f *os.File, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
+    Add(
+        ctx context.Context,
+        node *core.IpfsNode,
+        file *os.File,
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
+        ) (root *dag.Node, err error)
 
-    // AddFromReader recursively adds a file from an io.Reader.  It is
-    // otherwise identical to Add().
-    AddFromReader(ctx context.Context, n *core.IpfsNode, r io.Reader, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
+    // AddFromReader adds a file from an io.Reader.  It is otherwise
+    // identical to Add(), but is obviously not recursive.
+    AddFromReader(
+        ctx context.Context,
+        node *core.IpfsNode,
+        reader io.Reader,
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
+        ) (root *dag.Node, err error)
 
 Most additions will be recursive and load data from a [*File][File]
 (which can be a directory or a file).  Alternatively, the
@@ -105,8 +129,24 @@ These should look just like the high-level API, except instead of
 passing in an IpfsNode and using that node's default DAG service,
 layout, and splitter, we pass each of those in explicitly:
 
-    Add(ctx context.Context, ds dag.DAGService, layout _layout.Layout, s chunk.BlockSplitter, f *os.File, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
-    AddFromReader(ctx context.Context, ds dag.DAGService, layout _layout.Layout, s chunk.BlockSplitter, r io.Reader, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, error)
+    Add(
+        ctx context.Context,
+        dagService dag.DAGService,
+        layout _layout.Layout,
+        splitter chunk.BlockSplitter,
+        file *os.File,
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
+        ) (root *dag.Node, err error)
+    AddFromReader(
+        ctx context.Context,
+        dagService dag.DAGService,
+        layout _layout.Layout,
+        splitter chunk.BlockSplitter,
+        reader io.Reader,
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
+        ) (root *dag.Node, error)
 
 We don't currently have a public `Layout` interface, but I think we
 should add one so folks can easily plug in alternative layout
