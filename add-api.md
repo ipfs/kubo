@@ -11,7 +11,26 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
 
 # High-level UI (shell/unixfs/)
 
-    // NodeCallback is called after each DAG node is created.  The
+    // PreNodeCallback is called before each DAG node is created.  The
+    // arguments are:
+    //
+    //   p: The path from the add root to the just-created node.  This
+    //     is empty for the root node.  For large files and
+    //     directories that are chunked and trickled, each chunk and
+    //     fanout node will have the same path argument.
+    //   f: A File reference for the file used to create nIn.  Don't
+    //     seek this (which could throw off the chunker), but you can
+    //     use it to extract metadata about the visited file including
+    //     its name, permissions, etc.  This will be nil for
+    //     io.Reader-based adders.
+    //
+    // The returned values are:
+    //
+    //   ignore: True if we should skip this path.
+    //   err: Any errors serious enough to abort the addition.
+    type PreNodeCallback func(p *path.Path, f *os.File) (ignore bool, err error)
+
+    // PostNodeCallback is called after each DAG node is created.  The
     // arguments are:
     //
     //   nIn: The just-created node
@@ -37,7 +56,7 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     //     node of your choosing (e.g. a new node wrapping the
     //     just-created node or a completely independent node).
     //   err: Any errors serious enough to abort the addition.
-    type NodeCallback func(nIn *dag.Node, p *path.Path, f *os.File, top bool) (nOut *dag.Node, err error)
+    type PostNodeCallback func(nIn *dag.Node, p *path.Path, f *os.File, top bool) (nOut *dag.Node, err error)
 
     // Add recursively adds files from a File type, which can point to
     // either a directory or a file.  The arguments are:
@@ -54,11 +73,11 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     //
     //   root: The root of the just-added DAG.
     //   err: Any errors serious enough to abort the addition.
-    Add(ctx context.Context, n *core.IpfsNode, f *os.File, cb *NodeCallback) (root *dag.Node, err error)
+    Add(ctx context.Context, n *core.IpfsNode, f *os.File, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
 
     // AddFromReader recursively adds a file from an io.Reader.  It is
     // otherwise identical to Add().
-    AddFromReader(ctx context.Context, n *core.IpfsNode, r io.Reader, cb *NodeCallback) (root *dag.Node, err error)
+    AddFromReader(ctx context.Context, n *core.IpfsNode, r io.Reader, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
 
 Most additions will be recursive and load data from a [*File][File]
 (which can be a directory or a file).  Alternatively, the
@@ -86,8 +105,8 @@ These should look just like the high-level API, except instead of
 passing in an IpfsNode and using that node's default DAG service,
 trickler, and splitter, we pass each of those in explicitly:
 
-    Add(ctx context.Context, ds dag.DAGService, t trickle.Trickler, s chunk.BlockSplitter, f *os.File, cb *NodeCallback) (root *dag.Node, err error)
-    AddFromReader(ctx context.Context, ds dag.DAGService, t trickle.Trickler, s chunk.BlockSplitter, r io.Reader, cb *NodeCallback) (root *dag.Node, error)
+    Add(ctx context.Context, ds dag.DAGService, t trickle.Trickler, s chunk.BlockSplitter, f *os.File, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, err error)
+    AddFromReader(ctx context.Context, ds dag.DAGService, t trickle.Trickler, s chunk.BlockSplitter, r io.Reader, preNodeCallBack *PreNodeCallback, postNodeCallback *PostNodeCallback) (root *dag.Node, error)
 
 We don't currently have a public `Trickler` interface, but I think we should
 add one so folks can easily plug in alternative trickler implementations.
