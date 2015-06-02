@@ -1,6 +1,7 @@
 package msgio
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -79,7 +80,8 @@ type ReadWriteCloser interface {
 
 // writer is the underlying type that implements the Writer interface.
 type writer struct {
-	W io.Writer
+	W   io.Writer
+	buf *bufio.Writer
 
 	lock sync.Locker
 }
@@ -87,7 +89,7 @@ type writer struct {
 // NewWriter wraps an io.Writer with a msgio framed writer. The msgio.Writer
 // will write the length prefix of every message written.
 func NewWriter(w io.Writer) WriteCloser {
-	return &writer{W: w, lock: new(sync.Mutex)}
+	return &writer{W: w, buf: bufio.NewWriter(w), lock: new(sync.Mutex)}
 }
 
 func (s *writer) Write(msg []byte) (int, error) {
@@ -103,11 +105,16 @@ func (s *writer) WriteMsg(msg []byte) (err error) {
 	defer s.lock.Unlock()
 
 	length := uint32(len(msg))
-	if err := binary.Write(s.W, NBO, &length); err != nil {
+	if err := binary.Write(s.buf, NBO, &length); err != nil {
 		return err
 	}
-	_, err = s.W.Write(msg)
-	return err
+
+	_, err = s.buf.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	return s.buf.Flush()
 }
 
 func (s *writer) Close() error {
