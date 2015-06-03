@@ -9,13 +9,18 @@ import (
 	"io/ioutil"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
+	ft "github.com/ipfs/go-ipfs/unixfs"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 512k
@@ -45,11 +50,13 @@ var ObjectCmd = &cmds.Command{
 'ipfs object' is a plumbing command used to manipulate DAG objects
 directly.`,
 		Synopsis: `
-ipfs object get <key>   - Get the DAG node named by <key>
-ipfs object put <data>  - Stores input, outputs its key
-ipfs object data <key>  - Outputs raw bytes in an object
-ipfs object links <key> - Outputs links pointed to by object
-ipfs object stat <key>  - Outputs statistics of object
+ipfs object get <key>       - Get the DAG node named by <key>
+ipfs object put <data>      - Stores input, outputs its key
+ipfs object data <key>      - Outputs raw bytes in an object
+ipfs object links <key>     - Outputs links pointed to by object
+ipfs object stat <key>      - Outputs statistics of object
+ipfs object new <template>  - Create new ipfs objects
+ipfs object patch <args>    - Create new object from old ones
 `,
 	},
 
@@ -59,6 +66,8 @@ ipfs object stat <key>  - Outputs statistics of object
 		"get":   objectGetCmd,
 		"put":   objectPutCmd,
 		"stat":  objectStatCmd,
+		"new":   objectNewCmd,
+		"patch": objectPatchCmd,
 	},
 }
 
@@ -346,6 +355,274 @@ Data should be in the format specified by the --inputenc flag.
 		},
 	},
 	Type: Object{},
+}
+
+var objectNewCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "creates a new object from an ipfs template",
+		ShortDescription: `
+'ipfs object new' is a plumbing command for creating new DAG nodes.
+`,
+		LongDescription: `
+'ipfs object new' is a plumbing command for creating new DAG nodes.
+By default it creates and returns a new empty merkledag node, but
+you may pass an optional template argument to create a preformatted
+node.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("template", false, false, "optional template to use"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		node := new(dag.Node)
+		if len(req.Arguments()) == 1 {
+			template := req.Arguments()[0]
+			var err error
+			node, err = nodeFromTemplate(template)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+		}
+
+		k, err := n.DAG.Add(node)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(&Object{Hash: k.B58String()})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			object := res.Output().(*Object)
+			return strings.NewReader(object.Hash + "\n"), nil
+		},
+	},
+	Type: Object{},
+}
+
+var objectPatchCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Create a new merkledag object based on an existing one",
+		ShortDescription: `
+'ipfs patch <root> [add-link|rm-link] <args>' is a plumbing command used to
+build custom DAG objects. It adds and removes links from objects, creating a new
+object as a result. This is the merkle-dag version of modifying an object.
+
+Examples:
+
+    EMPTY_DIR=$(ipfs object new unixfs-dir)
+    BAR=$(echo "bar" | ipfs add -q)
+    ipfs patch $EMPTY_DIR add-link foo $BAR
+
+This takes an empty directory, and adds a link named foo under it, pointing to
+a file containing 'bar', and returns the hash of the new object.
+
+    ipfs patch $FOO_BAR rm-link foo
+
+This removes the link named foo from the hash in $FOO_BAR and returns the
+resulting object hash.
+`,
+	},
+	Options: []cmds.Option{},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("root", true, false, "the hash of the node to modify"),
+		cmds.StringArg("command", true, false, "the operation to perform"),
+		cmds.StringArg("args", true, true, "extra arguments").EnableStdin(),
+	},
+	Type: key.Key(""),
+	Run: func(req cmds.Request, res cmds.Response) {
+		nd, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		rhash := key.B58KeyDecode(req.Arguments()[0])
+		if rhash == "" {
+			res.SetError(fmt.Errorf("incorrectly formatted root hash"), cmds.ErrNormal)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(req.Context().Context, time.Second*30)
+		rnode, err := nd.DAG.Get(ctx, rhash)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			cancel()
+			return
+		}
+		cancel()
+
+		action := req.Arguments()[1]
+
+		switch action {
+		case "add-link":
+			k, err := addLinkCaller(req, rnode)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(k)
+		case "rm-link":
+			k, err := rmLinkCaller(req, rnode)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(k)
+		case "set-data":
+			k, err := setDataCaller(req, rnode)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(k)
+		case "append-data":
+			k, err := appendDataCaller(req, rnode)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			res.SetOutput(k)
+		default:
+			res.SetError(fmt.Errorf("unrecognized subcommand"), cmds.ErrNormal)
+			return
+		}
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			k, ok := res.Output().(key.Key)
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			return strings.NewReader(k.B58String() + "\n"), nil
+		},
+	},
+}
+
+func appendDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
+	if len(req.Arguments()) < 3 {
+		return "", fmt.Errorf("not enough arguments for set-data")
+	}
+
+	nd, err := req.Context().GetNode()
+	if err != nil {
+		return "", err
+	}
+
+	root.Data = append(root.Data, []byte(req.Arguments()[2])...)
+
+	newkey, err := nd.DAG.Add(root)
+	if err != nil {
+		return "", err
+	}
+
+	return newkey, nil
+}
+
+func setDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
+	if len(req.Arguments()) < 3 {
+		return "", fmt.Errorf("not enough arguments for set-data")
+	}
+
+	nd, err := req.Context().GetNode()
+	if err != nil {
+		return "", err
+	}
+
+	root.Data = []byte(req.Arguments()[2])
+
+	newkey, err := nd.DAG.Add(root)
+	if err != nil {
+		return "", err
+	}
+
+	return newkey, nil
+}
+
+func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
+	if len(req.Arguments()) < 3 {
+		return "", fmt.Errorf("not enough arguments for rm-link")
+	}
+
+	nd, err := req.Context().GetNode()
+	if err != nil {
+		return "", err
+	}
+
+	name := req.Arguments()[2]
+
+	err = root.RemoveNodeLink(name)
+	if err != nil {
+		return "", err
+	}
+
+	newkey, err := nd.DAG.Add(root)
+	if err != nil {
+		return "", err
+	}
+
+	return newkey, nil
+}
+
+func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
+	if len(req.Arguments()) < 4 {
+		return "", fmt.Errorf("not enough arguments for add-link")
+	}
+
+	nd, err := req.Context().GetNode()
+	if err != nil {
+		return "", err
+	}
+
+	name := req.Arguments()[2]
+	childk := key.B58KeyDecode(req.Arguments()[3])
+
+	newkey, err := addLink(req.Context().Context, nd.DAG, root, name, childk)
+	if err != nil {
+		return "", err
+	}
+
+	return newkey, nil
+}
+
+func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (key.Key, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	childnd, err := ds.Get(ctx, childk)
+	if err != nil {
+		cancel()
+		return "", err
+	}
+	cancel()
+
+	err = root.AddNodeLinkClean(childname, childnd)
+	if err != nil {
+		return "", err
+	}
+
+	newkey, err := ds.Add(root)
+	if err != nil {
+		return "", err
+	}
+	return newkey, nil
+}
+
+func nodeFromTemplate(template string) (*dag.Node, error) {
+	switch template {
+	case "unixfs-dir":
+		nd := new(dag.Node)
+		nd.Data = ft.FolderPBData()
+		return nd, nil
+	default:
+		return nil, fmt.Errorf("template '%s' not found", template)
+	}
 }
 
 // ErrEmptyNode is returned when the input to 'ipfs object put' contains no data
