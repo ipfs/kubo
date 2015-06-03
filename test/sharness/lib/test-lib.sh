@@ -52,7 +52,7 @@ fi
 . ../../ipfs-test-lib.sh
 
 test_cmp_repeat_10_sec() {
-	for i in `seq 1 100`
+	for i in $(test_seq 1 100)
 	do
 		test_cmp "$1" "$2" >/dev/null && return
 		sleep 0.1
@@ -245,7 +245,7 @@ test_launch_ipfs_daemon_and_mount() {
 test_kill_repeat_10_sec() {
 	# try to shut down once + wait for graceful exit
 	kill $1
-	for i in `seq 1 100`
+	for i in $(test_seq 1 100)
 	do
 		sleep 0.1
 		! kill -0 $1 2>/dev/null && return
