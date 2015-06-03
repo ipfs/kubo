@@ -4,7 +4,6 @@ package ipns
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	mrand "math/rand"
@@ -19,6 +18,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
+	u "github.com/ipfs/go-ipfs/util"
 	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
 )
 
@@ -30,7 +30,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randBytes(size int) []byte {
 	b := make([]byte, size)
-	rand.Read(b)
+	u.NewTimeSeededRand().Read(b)
 	return b
 }
 

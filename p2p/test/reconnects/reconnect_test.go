@@ -1,7 +1,6 @@
 package reconnect
 
 import (
-	crand "crypto/rand"
 	"io"
 	"math/rand"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+	u "github.com/ipfs/go-ipfs/util"
 
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -66,7 +66,7 @@ func newSender() (chan sendChans, func(s inet.Stream)) {
 
 		buf := make([]byte, 65536)
 		buf2 := make([]byte, 65536)
-		crand.Read(buf)
+		u.NewTimeSeededRand().Read(buf)
 
 		for {
 			select {

@@ -1,7 +1,6 @@
 package backpressure_tests
 
 import (
-	crand "crypto/rand"
 	"io"
 	"math/rand"
 	"testing"
@@ -15,6 +14,7 @@ import (
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("backpressure")
@@ -236,7 +236,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 		// ready a buffer of random data
 		buf := make([]byte, 65536)
-		crand.Read(buf)
+		u.NewTimeSeededRand().Read(buf)
 
 		for {
 			// send a randomly sized subchunk
