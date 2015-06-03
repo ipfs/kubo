@@ -66,14 +66,12 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
         top bool
         ) (nodeOut *dag.Node, err error)
 
-    // Add recursively adds files from a File type, which can point to
-    // either a directory or a file.  The arguments are:
+    // Add adds a single file from an io.Reader.  The arguments are:
     //
     //   ctx: A Context for cancelling or timing out a recursive
     //     addition.
     //   node: And IPFS node for storing newly-created DAG nodes.
-    //   file: An open file pointing at the root of the filesystem to be
-    //     added.
+    //   reader: A Reader from which the file contents are read.
     //   preNodeCallBack: An optional hook for pre-DAG-node checks
     //     (e.g. ignoring boring paths).  Set to nil if you don't need
     //     it.
@@ -83,19 +81,11 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     //
     // The returned values are:
     //
-    //   root: The root of the just-added DAG.
+    //   root: The root of the just-added DAG.  Even though we're only
+    //     adding a single file, layout and chunking choices may lead
+    //     to the creation of several Merkle objects.
     //   err: Any errors serious enough to abort the addition.
     Add(
-        ctx context.Context,
-        node *core.IpfsNode,
-        file *os.File,
-        preNodeCallBack *PreNodeCallback,
-        postNodeCallback *PostNodeCallback
-        ) (root *dag.Node, err error)
-
-    // AddFromReader adds a file from an io.Reader.  It is otherwise
-    // identical to Add(), but is obviously not recursive.
-    AddFromReader(
         ctx context.Context,
         node *core.IpfsNode,
         reader io.Reader,
@@ -103,9 +93,26 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
         postNodeCallback *PostNodeCallback
         ) (root *dag.Node, err error)
 
-Most additions will be recursive and load data from a [*File][File]
-(which can be a directory or a file).  Alternatively, the
-`*FromReader` variants accept a [Reader][2].
+    // AddFile recursively adds files from a File type, which can
+    // point to either a directory or a file.  The signature matches
+    // Add, except that the 'reader' io.Reader is replaced by the
+    // 'file' *os.File.
+    AddFile(
+        ctx context.Context,
+        node *core.IpfsNode,
+        file *os.File,
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
+        ) (root *dag.Node, err error)
+
+Single file additions can use a [Reader][], but filesystem-based
+additions may find the recursive, [*File][File]-based AddFile more
+convenient, because:
+
+1. It handles directory recursion internally, and
+2. It allows access to local metadata (access mode, ownership, …) and
+   root-relative filenames for use by the pre- and post-node
+   callbacks.
 
 We need a way to get information about progress of a running addition
 back to other goroutines.  Choices for this include [the channel
@@ -134,19 +141,19 @@ layout, and splitter, we pass each of those in explicitly:
         dagService dag.DAGService,
         layout _layout.Layout,
         splitter chunk.BlockSplitter,
-        file *os.File,
-        preNodeCallBack *PreNodeCallback,
-        postNodeCallback *PostNodeCallback
-        ) (root *dag.Node, err error)
-    AddFromReader(
-        ctx context.Context,
-        dagService dag.DAGService,
-        layout _layout.Layout,
-        splitter chunk.BlockSplitter,
         reader io.Reader,
         preNodeCallBack *PreNodeCallback,
         postNodeCallback *PostNodeCallback
         ) (root *dag.Node, error)
+    AddFile(
+        ctx context.Context,
+        dagService dag.DAGService,
+        layout _layout.Layout,
+        splitter chunk.BlockSplitter,
+        file *os.File,
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
+        ) (root *dag.Node, err error)
 
 We don't currently have a public `Layout` interface, but I think we
 should add one so folks can easily plug in alternative layout
