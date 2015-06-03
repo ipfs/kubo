@@ -222,9 +222,8 @@ type RefWriter struct {
 func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
 	if rw.Recursive {
 		return rw.writeRefsRecursive(n)
-	} else {
-		return rw.writeRefsSingle(n)
 	}
+	return rw.writeRefsSingle(n)
 }
 
 func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {

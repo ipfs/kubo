@@ -64,7 +64,7 @@ it contains, with the following format:
 
 		paths := req.Arguments()
 
-		dagnodes := make([]*merkledag.Node, 0)
+		var dagnodes []*merkledag.Node
 		for _, fpath := range paths {
 			dagnode, err := core.Resolve(req.Context().Context, node, path.Path(fpath))
 			if err != nil {

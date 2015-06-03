@@ -2,14 +2,15 @@ package chunk
 
 import (
 	"bytes"
-	"crypto/rand"
 	"io"
 	"testing"
+
+	u "github.com/ipfs/go-ipfs/util"
 )
 
 func randBuf(t *testing.T, size int) []byte {
 	buf := make([]byte, size)
-	if _, err := rand.Read(buf); err != nil {
+	if _, err := u.NewTimeSeededRand().Read(buf); err != nil {
 		t.Fatal("failed to read enough randomness")
 	}
 	return buf

@@ -253,7 +253,7 @@ Defaults to "direct".
 			if typeStr == "indirect" && count {
 				for k, v := range keys.Keys {
 					if quiet {
-						fmt.Fprintf(out, "%s\n", k, v.Count)
+						fmt.Fprintf(out, "%s %d\n", k, v.Count)
 					} else {
 						fmt.Fprintf(out, "%s %s %d\n", k, v.Type, v.Count)
 					}

@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"bytes"
-	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -44,7 +43,7 @@ func SeededTestKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
 //  id, _ := peer.IDFromPublicKey(pk)
 func RandPeerID() (peer.ID, error) {
 	buf := make([]byte, 16)
-	if _, err := io.ReadFull(crand.Reader, buf); err != nil {
+	if _, err := io.ReadFull(u.NewTimeSeededRand(), buf); err != nil {
 		return "", err
 	}
 	h := u.Hash(buf)
