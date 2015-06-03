@@ -13,8 +13,8 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -151,7 +151,7 @@ func TestBatchFetchDupBlock(t *testing.T) {
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	var dagservs []DAGService
-	for _, bsi := range blockservice.Mocks(t, 5) {
+	for _, bsi := range bstest.Mocks(t, 5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 

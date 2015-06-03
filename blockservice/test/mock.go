@@ -1,6 +1,7 @@
-package blockservice
+package bstest
 
 import (
+	. "github.com/ipfs/go-ipfs/blockservice"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"

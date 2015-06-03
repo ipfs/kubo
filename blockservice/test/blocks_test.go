@@ -1,4 +1,4 @@
-package blockservice
+package bstest
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	. "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	u "github.com/ipfs/go-ipfs/util"
 )
