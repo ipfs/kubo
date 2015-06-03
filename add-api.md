@@ -74,21 +74,12 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
     //   node: And IPFS node for storing newly-created DAG nodes.
     //   file: An open file pointing at the root of the filesystem to be
     //     added.
-    //   preNodeCallBacks: An optional slice of hooks for pre-DAG-node
-    //     checks (e.g. ignoring boring paths).  Before adding a path,
-    //     Add will iterate through the preNodeCallbacks and ignore
-    //     the path (and stop further preNodeCallbacks iteration) if
-    //     any of the callbacks set ignore to true.  Set to nil if you
-    //     don't need it.
-    //   postNodeCallBacks: An optional slice of hooks for
-    //     post-DAG-node processing (e.g. altering or wrapping the
-    //     newly-created nodes).  After creating a node, Add will
-    //     iterate through the postNodeCallbacks, passing nodeOut from
-    //     earlier callbacks in as nodeIn to the next callback.  For
-    //     example, if Add internally creates node1, the first
-    //     callback will get node1 as nodeIn.  If that callback
-    //     returns node2 (possibly nil), the second callback will get
-    //     node2 as nodeIn.  Set to nil if you don't need it.
+    //   preNodeCallBack: An optional hook for pre-DAG-node checks
+    //     (e.g. ignoring boring paths).  Set to nil if you don't need
+    //     it.
+    //   postNodeCallBack: An optional hook for post-DAG-node
+    //     processing (e.g. altering or wrapping the newly-created
+    //     nodes).  Set to nil if you don't need it.
     //
     // The returned values are:
     //
@@ -98,8 +89,8 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
         ctx context.Context,
         node *core.IpfsNode,
         file *os.File,
-        preNodeCallBacks []*PreNodeCallback,
-        postNodeCallbacks []*PostNodeCallback
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
         ) (root *dag.Node, err error)
 
     // AddFromReader adds a file from an io.Reader.  It is otherwise
@@ -108,8 +99,8 @@ I'd suggest moving `core/coreunix` to `core/unixfs` to match
         ctx context.Context,
         node *core.IpfsNode,
         reader io.Reader,
-        preNodeCallBacks []*PreNodeCallback,
-        postNodeCallbacks []*PostNodeCallback
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
         ) (root *dag.Node, err error)
 
 Most additions will be recursive and load data from a [*File][File]
@@ -144,8 +135,8 @@ layout, and splitter, we pass each of those in explicitly:
         layout _layout.Layout,
         splitter chunk.BlockSplitter,
         file *os.File,
-        preNodeCallBacks []*PreNodeCallback,
-        postNodeCallbacks []*PostNodeCallback
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
         ) (root *dag.Node, err error)
     AddFromReader(
         ctx context.Context,
@@ -153,8 +144,8 @@ layout, and splitter, we pass each of those in explicitly:
         layout _layout.Layout,
         splitter chunk.BlockSplitter,
         reader io.Reader,
-        preNodeCallBacks []*PreNodeCallback,
-        postNodeCallbacks []*PostNodeCallback
+        preNodeCallBack *PreNodeCallback,
+        postNodeCallback *PostNodeCallback
         ) (root *dag.Node, error)
 
 We don't currently have a public `Layout` interface, but I think we
