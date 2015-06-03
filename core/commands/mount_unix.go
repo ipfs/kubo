@@ -223,9 +223,8 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 
 		if err1 != nil {
 			return fmtFuseErr(err1)
-		} else {
-			return fmtFuseErr(err2)
 		}
+		return fmtFuseErr(err2)
 	}
 
 	// setup node state, so that it can be cancelled
