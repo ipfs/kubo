@@ -252,20 +252,19 @@ func (l *Logger) openExistingOrNew(writeLen int) error {
 	if err != nil {
 		return fmt.Errorf("error getting log file info: %s", err)
 	}
-
-	if info.Size()+int64(writeLen) >= l.max() {
-		return l.rotate()
-	}
-
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
+	// the first file we find that matches our pattern will be the most
+	// recently modified log file.
+	if info.Size()+int64(writeLen) < l.max() {
+		file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
+		if err == nil {
+			l.file = file
+			l.size = info.Size()
+			return nil
+		}
 		// if we fail to open the old log file for some reason, just ignore
 		// it and open a new log file.
-		return l.openNew()
 	}
-	l.file = file
-	l.size = info.Size()
-	return nil
+	return l.openNew()
 }
 
 // genFilename generates the name of the logfile from the current time.
@@ -339,6 +338,7 @@ func (l *Logger) oldLogFiles() ([]logInfo, error) {
 		if f.IsDir() {
 			continue
 		}
+
 		name := l.timeFromName(f.Name(), prefix, ext)
 		if name == "" {
 			continue
@@ -347,8 +347,6 @@ func (l *Logger) oldLogFiles() ([]logInfo, error) {
 		if err == nil {
 			logFiles = append(logFiles, logInfo{t, f})
 		}
-		// error parsing means that the suffix at the end was not generated
-		// by lumberjack, and therefore it's not a backup file.
 	}
 
 	sort.Sort(byFormatTime(logFiles))

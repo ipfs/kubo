@@ -22,7 +22,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/httpu"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/huin/goupnp/ssdp"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/html/charset"
 )
 
 // ContextError is an error that wraps an error with some context information.
@@ -105,7 +104,6 @@ func requestXml(url string, defaultSpace string, doc interface{}) error {
 
 	decoder := xml.NewDecoder(resp.Body)
 	decoder.DefaultSpace = defaultSpace
-	decoder.CharsetReader = charset.NewReaderLabel
 
 	return decoder.Decode(doc)
 }

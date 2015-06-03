@@ -61,12 +61,9 @@ func TestSpecialFields(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		logger.Hooks.Add(hook)
-
-		req, _ := http.NewRequest("GET", "url", nil)
 		logger.WithFields(logrus.Fields{
-			"server_name":  server_name,
-			"logger":       logger_name,
-			"http_request": req,
+			"server_name": server_name,
+			"logger":      logger_name,
 		}).Error(message)
 
 		packet := <-pch

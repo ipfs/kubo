@@ -74,7 +74,7 @@ const (
 
 // NewExponentialBackOff creates an instance of ExponentialBackOff using default values.
 func NewExponentialBackOff() *ExponentialBackOff {
-	b := &ExponentialBackOff{
+	return &ExponentialBackOff{
 		InitialInterval:     DefaultInitialInterval,
 		RandomizationFactor: DefaultRandomizationFactor,
 		Multiplier:          DefaultMultiplier,
@@ -82,8 +82,6 @@ func NewExponentialBackOff() *ExponentialBackOff {
 		MaxElapsedTime:      DefaultMaxElapsedTime,
 		Clock:               SystemClock,
 	}
-	b.Reset()
-	return b
 }
 
 type systemClock struct{}

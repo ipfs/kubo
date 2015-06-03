@@ -188,7 +188,6 @@ func (entry *Entry) Fatalf(format string, args ...interface{}) {
 	if entry.Logger.Level >= FatalLevel {
 		entry.Fatal(fmt.Sprintf(format, args...))
 	}
-	os.Exit(1)
 }
 
 func (entry *Entry) Panicf(format string, args ...interface{}) {
@@ -235,7 +234,6 @@ func (entry *Entry) Fatalln(args ...interface{}) {
 	if entry.Logger.Level >= FatalLevel {
 		entry.Fatal(entry.sprintlnn(args...))
 	}
-	os.Exit(1)
 }
 
 func (entry *Entry) Panicln(args ...interface{}) {

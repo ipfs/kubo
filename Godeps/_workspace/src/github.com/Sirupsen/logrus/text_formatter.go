@@ -3,7 +3,6 @@ package logrus
 import (
 	"bytes"
 	"fmt"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -70,8 +69,7 @@ func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
 
 	prefixFieldClashes(entry.Data)
 
-	isColorTerminal := isTerminal && (runtime.GOOS != "windows")
-	isColored := (f.ForceColors || isColorTerminal) && !f.DisableColors
+	isColored := (f.ForceColors || isTerminal) && !f.DisableColors
 
 	if f.TimestampFormat == "" {
 		f.TimestampFormat = DefaultTimestampFormat
