@@ -58,10 +58,10 @@ bar.ShowTimeLeft = true
 bar.ShowSpeed = true
 
 // sets the width of the progress bar
-bar.SetWith(80)
+bar.SetWidth(80)
 
 // sets the width of the progress bar, but if terminal size smaller will be ignored
-bar.SetMaxWith(80)
+bar.SetMaxWidth(80)
 
 // convert output to readable format (like KB, MB)     
 bar.SetUnits(pb.U_BYTES)
