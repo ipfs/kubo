@@ -60,7 +60,7 @@ in the network, use 0.0.0.0 as the ip address:
 
    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 
-Be careful if you expose the API. It is a security risk, as anyone could use control
+Be careful if you expose the API. It is a security risk, as anyone could control
 your node remotely. If you need to control the node remotely, make sure to protect
 the port as you would other services or database (firewall, authenticated proxy, etc).`,
 	},
