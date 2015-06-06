@@ -36,7 +36,7 @@
 		},
 		{
 			"ImportPath": "github.com/cheggaaa/pb",
-			"Rev": "e8c7cc515bfde3e267957a3b110080ceed51354e"
+			"Rev": "d7729fd7ec1372c15b83db39834bf842bf2d69fb"
 		},
 		{
 			"ImportPath": "github.com/codahale/hdrhistogram",
