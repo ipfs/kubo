@@ -55,38 +55,33 @@ test_cmp_repeat_10_sec() {
 	for i in $(test_seq 1 100)
 	do
 		test_cmp "$1" "$2" >/dev/null && return
-		sleep 0.1
+		go-sleep 100ms
 	done
 	test_cmp "$1" "$2"
 }
 
 test_run_repeat_60_sec() {
-	for i in 1 2 3 4 5 6
+	for i in $(test_seq 1 600)
 	do
-		for i in 1 2 3 4 5 6 7 8 9 10
-		do
-			(test_eval_ "$1") && return
-			sleep 1
-		done
+		(test_eval_ "$1") && return
+		go-sleep 100ms
 	done
 	return 1 # failed
 }
 
 test_wait_output_n_lines_60_sec() {
-	for i in 1 2 3 4 5 6
+	for i in $(test_seq 1 600)
 	do
-		for i in 1 2 3 4 5 6 7 8 9 10
-		do
-			test $(cat "$1" | wc -l | tr -d " ") -ge $2 && return
-			sleep 1
-		done
+		test $(cat "$1" | wc -l | tr -d " ") -ge $2 && return
+		go-sleep 100ms
 	done
 	actual=$(cat "$1" | wc -l | tr -d " ")
 	test_fsh "expected $2 lines of output. got $actual"
 }
 
 test_wait_open_tcp_port_10_sec() {
-	for i in 1 2 3 4 5 6 7 8 9 10; do
+	for i in $(test_seq 1 100)
+	do
 		# this is not a perfect check, but it's portable.
 		# cant count on ss. not installed everywhere.
 		# cant count on netstat using : or . as port delim. differ across platforms.
@@ -94,7 +89,7 @@ test_wait_open_tcp_port_10_sec() {
 		if [ $(netstat -aln | egrep "^tcp.*LISTEN" | egrep "[.:]$1" | wc -l) -gt 0 ]; then
 			return 0
 		fi
-		sleep 1
+		go-sleep 100ms
 	done
 	return 1
 }
@@ -247,13 +242,13 @@ test_kill_repeat_10_sec() {
 	kill $1
 	for i in $(test_seq 1 100)
 	do
-		sleep 0.1
+		go-sleep 100ms
 		! kill -0 $1 2>/dev/null && return
 	done
 
 	# if not, try once more, which will skip graceful exit
 	kill $1
-	sleep 1
+	go-sleep 1s
 	! kill -0 $1 2>/dev/null && return
 
 	# ok, no hope. kill it to prevent it messing with other tests
