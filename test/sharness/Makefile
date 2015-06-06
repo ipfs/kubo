@@ -8,7 +8,7 @@
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint \
-	   bin/iptb
+	   bin/iptb bin/go-sleep
 SHARNESS = lib/sharness/sharness.sh
 IPFS_ROOT = ../..
 
