@@ -1,11 +1,12 @@
 
-BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint bin/iptb
+BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint bin/iptb bin/go-sleep
 IPFS_ROOT = ../
 IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
 MULTIHASH_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-multihash
 IPTB_SRC = ../Godeps/_workspace/src/github.com/whyrusleeping/iptb
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
+GOSLEEP_SRC = ../Godeps/_workspace/src/github.com/chriscool/go-sleep
 
 # User might want to override those on the command line
 GOFLAGS =
@@ -40,6 +41,10 @@ bin/pollEndpoint: $(call find_go_files, $(POLLENDPOINT_SRC)) IPFS-BUILD-OPTIONS
 bin/iptb: $(call find_go_files, $(IPTB_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/iptb $(IPTB_SRC)
+
+bin/go-sleep: $(call find_go_files, $(GOSLEEP_SRC)) IPFS-BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/go-sleep $(GOSLEEP_SRC)
 
 test: test_expensive
 
