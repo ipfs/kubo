@@ -3,13 +3,16 @@ package main
 import (
 	_ "expvar"
 	"fmt"
-	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"strings"
+	"sync"
 
+	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
@@ -192,98 +195,76 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return node, nil
 	}
 
-	// verify api address is valid multiaddr
-	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
+	// construct api endpoint - every time
+	err, apiErrc := serveHTTPApi(req)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
 
-	var gatewayMaddr ma.Multiaddr
+	// construct http gateway - if it is set in the config
+	var gwErrc <-chan error
 	if len(cfg.Addresses.Gateway) > 0 {
-		// ignore error for gateway address
-		// if there is an error (invalid address), then don't run the gateway
-		gatewayMaddr, _ = ma.NewMultiaddr(cfg.Addresses.Gateway)
-		if gatewayMaddr == nil {
-			log.Errorf("Invalid gateway address: %s", cfg.Addresses.Gateway)
+		var err error
+		err, gwErrc = serveHTTPGateway(req)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 	}
 
-	// mount if the user provided the --mount flag
+	// construct fuse mountpoints - if the user provided the --mount flag
 	mount, _, err := req.Option(mountKwd).Bool()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
 	}
 	if mount {
-		fsdir, found, err := req.Option(ipfsMountKwd).String()
-		if err != nil {
+		if err := mountFuse(req); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-		if !found {
-			fsdir = cfg.Mounts.IPFS
-		}
-
-		nsdir, found, err := req.Option(ipnsMountKwd).String()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		if !found {
-			nsdir = cfg.Mounts.IPNS
-		}
-
-		err = commands.Mount(node, fsdir, nsdir)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-		fmt.Printf("IPFS mounted at: %s\n", fsdir)
-		fmt.Printf("IPNS mounted at: %s\n", nsdir)
 	}
 
-	var rootRedirect corehttp.ServeOption
-	if len(cfg.Gateway.RootRedirect) > 0 {
-		rootRedirect = corehttp.RedirectOption("", cfg.Gateway.RootRedirect)
+	// collect long-running errors and block for shutdown
+	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
+	for err := range merge(apiErrc, gwErrc) {
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
 	}
+}
 
-	writable, writableOptionFound, err := req.Option(writableKwd).Bool()
+// serveHTTPApi collects options, creates listener, prints status message and starts serving requests
+func serveHTTPApi(req cmds.Request) (error, <-chan error) {
+	cfg, err := req.Context().GetConfig()
 	if err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
-	}
-	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+		return fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err), nil
 	}
 
-	if gatewayMaddr != nil {
-		go func() {
-			var opts = []corehttp.ServeOption{
-				corehttp.VersionOption(),
-				corehttp.IPNSHostnameOption(),
-				corehttp.GatewayOption(writable),
-			}
-			if rootRedirect != nil {
-				opts = append(opts, rootRedirect)
-			}
-			if writable {
-				fmt.Printf("Gateway (writable) server listening on %s\n", gatewayMaddr)
-			} else {
-				fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
-			}
-			err := corehttp.ListenAndServe(node, gatewayMaddr.String(), opts...)
-			if err != nil {
-				log.Error(err)
-			}
-		}()
+	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
+	if err != nil {
+		return fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", cfg.Addresses.API, err), nil
 	}
 
-	gateway := corehttp.NewGateway(corehttp.GatewayConfig{
+	apiLis, err := manet.Listen(apiMaddr)
+	if err != nil {
+		return fmt.Errorf("serveHTTPApi: manet.Listen(%s) failed: %s", apiMaddr, err), nil
+	}
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	apiMaddr = apiLis.Multiaddr()
+	fmt.Printf("API server listening on %s\n", apiMaddr)
+
+	unrestricted, _, err := req.Option(unrestrictedApiAccess).Bool()
+	if err != nil {
+		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccess, err), nil
+	}
+
+	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
 		Writable: true,
 		BlockList: &corehttp.BlockList{
 			Decider: func(s string) bool {
-				unrestricted, _, _ := req.Option(unrestrictedApiAccess).Bool()
 				if unrestricted {
 					return true
 				}
@@ -300,18 +281,146 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	var opts = []corehttp.ServeOption{
 		corehttp.CommandsOption(*req.Context()),
 		corehttp.WebUIOption,
-		gateway.ServeOption(),
+		apiGw.ServeOption(),
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
 	}
 
-	if rootRedirect != nil {
-		opts = append(opts, rootRedirect)
+	if len(cfg.Gateway.RootRedirect) > 0 {
+		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}
-	fmt.Printf("API server listening on %s\n", apiMaddr)
-	if err := corehttp.ListenAndServe(node, apiMaddr.String(), opts...); err != nil {
-		res.SetError(err, cmds.ErrNormal)
-		return
+
+	node, err := req.Context().ConstructNode()
+	if err != nil {
+		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
 	}
+
+	errc := make(chan error)
+	go func() {
+		errc <- corehttp.Serve(node, apiLis.NetListener(), opts...)
+	}()
+	return nil, errc
+}
+
+// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
+func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
+	cfg, err := req.Context().GetConfig()
+	if err != nil {
+		return fmt.Errorf("serveHTTPGateway: GetConfig() failed: %s", err), nil
+	}
+
+	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
+	if err != nil {
+		return fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err), nil
+	}
+
+	writable, writableOptionFound, err := req.Option(writableKwd).Bool()
+	if err != nil {
+		return fmt.Errorf("serveHTTPGateway: req.Option(%s) failed: %s", writableKwd, err), nil
+	}
+	if !writableOptionFound {
+		writable = cfg.Gateway.Writable
+	}
+
+	gwLis, err := manet.Listen(gatewayMaddr)
+	if err != nil {
+		return fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err), nil
+	}
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	gatewayMaddr = gwLis.Multiaddr()
+
+	if writable {
+		fmt.Printf("Gateway (writable) server listening on %s\n", gatewayMaddr)
+	} else {
+		fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
+	}
+
+	var opts = []corehttp.ServeOption{
+		corehttp.VersionOption(),
+		corehttp.IPNSHostnameOption(),
+		corehttp.GatewayOption(writable),
+	}
+
+	if len(cfg.Gateway.RootRedirect) > 0 {
+		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
+	}
+
+	node, err := req.Context().ConstructNode()
+	if err != nil {
+		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
+	}
+
+	errc := make(chan error)
+	go func() {
+		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
+	}()
+	return nil, errc
+}
+
+//collects options and opens the fuse mountpoint
+func mountFuse(req cmds.Request) error {
+	cfg, err := req.Context().GetConfig()
+	if err != nil {
+		return fmt.Errorf("mountFuse: GetConfig() failed: %s", err)
+	}
+
+	fsdir, found, err := req.Option(ipfsMountKwd).String()
+	if err != nil {
+		return fmt.Errorf("mountFuse: req.Option(%s) failed: %s", ipfsMountKwd, err)
+	}
+	if !found {
+		fsdir = cfg.Mounts.IPFS
+	}
+
+	nsdir, found, err := req.Option(ipnsMountKwd).String()
+	if err != nil {
+		return fmt.Errorf("mountFuse: req.Option(%s) failed: %s", ipnsMountKwd, err)
+	}
+	if !found {
+		nsdir = cfg.Mounts.IPNS
+	}
+
+	node, err := req.Context().ConstructNode()
+	if err != nil {
+		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
+	}
+
+	err = commands.Mount(node, fsdir, nsdir)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("IPFS mounted at: %s\n", fsdir)
+	fmt.Printf("IPNS mounted at: %s\n", nsdir)
+	return nil
+}
+
+// merge does fan-in of multiple read-only error channels
+// taken from http://blog.golang.org/pipelines
+func merge(cs ...<-chan error) <-chan error {
+	var wg sync.WaitGroup
+	out := make(chan error)
+
+	// Start an output goroutine for each input channel in cs.  output
+	// copies values from c to out until c is closed, then calls wg.Done.
+	output := func(c <-chan error) {
+		for n := range c {
+			out <- n
+		}
+		wg.Done()
+	}
+	for _, c := range cs {
+		if c != nil {
+			wg.Add(1)
+			go output(c)
+		}
+	}
+
+	// Start a goroutine to close out once all the output goroutines are
+	// done.  This must start after the wg.Add call.
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
 }

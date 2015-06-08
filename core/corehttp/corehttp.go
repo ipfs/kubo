@@ -5,6 +5,7 @@ high-level HTTP interfaces to IPFS.
 package corehttp
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -49,20 +50,26 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	if err != nil {
 		return err
 	}
-	handler, err := makeHandler(n, options...)
+
+	list, err := manet.Listen(addr)
 	if err != nil {
 		return err
 	}
-	return listenAndServe(n, addr, handler)
+
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	addr = list.Multiaddr()
+	fmt.Printf("API server listening on %s\n", addr)
+
+	return Serve(n, list.NetListener(), options...)
 }
 
-func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler) error {
-	netarg, host, err := manet.DialArgs(addr)
+func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {
+	handler, err := makeHandler(node, options...)
 	if err != nil {
 		return err
 	}
 
-	list, err := net.Listen(netarg, host)
+	addr, err := manet.FromNetAddr(lis.Addr())
 	if err != nil {
 		return err
 	}
@@ -75,7 +82,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	defer node.Children().Done()
 
 	go func() {
-		serverError = http.Serve(list, handler)
+		serverError = http.Serve(lis, handler)
 		close(serverExited)
 	}()
 
@@ -87,7 +94,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	case <-node.Closing():
 		log.Infof("server at %s terminating...", addr)
 
-		list.Close()
+		lis.Close()
 
 	outer:
 		for {
