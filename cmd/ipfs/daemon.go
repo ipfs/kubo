@@ -196,7 +196,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 
 	// construct api endpoint - every time
-	err, apiErrc := mountHTTPapi(req)
+	err, apiErrc := serveHTTPApi(req)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
@@ -206,7 +206,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	var gwErrc <-chan error
 	if len(cfg.Addresses.Gateway) > 0 {
 		var err error
-		err, gwErrc = mountHTTPgw(req)
+		err, gwErrc = serveHTTPGateway(req)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -236,21 +236,21 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	}
 }
 
-// mountHTTPapi collects options, creates listener, prints status message and starts serving requests
-func mountHTTPapi(req cmds.Request) (error, <-chan error) {
+// serveHTTPApi collects options, creates listener, prints status message and starts serving requests
+func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	cfg, err := req.Context().GetConfig()
 	if err != nil {
-		return fmt.Errorf("mountHTTPapi: GetConfig() failed: %s", err), nil
+		return fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err), nil
 	}
 
 	apiMaddr, err := ma.NewMultiaddr(cfg.Addresses.API)
 	if err != nil {
-		return fmt.Errorf("mountHTTPapi: invalid API address: %q (err: %s)", cfg.Addresses.API, err), nil
+		return fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", cfg.Addresses.API, err), nil
 	}
 
 	apiLis, err := manet.Listen(apiMaddr)
 	if err != nil {
-		return fmt.Errorf("mountHTTPapi: manet.Listen(%s) failed: %s", apiMaddr, err), nil
+		return fmt.Errorf("serveHTTPApi: manet.Listen(%s) failed: %s", apiMaddr, err), nil
 	}
 	// we might have listened to /tcp/0 - lets see what we are listing on
 	apiMaddr = apiLis.Multiaddr()
@@ -258,7 +258,7 @@ func mountHTTPapi(req cmds.Request) (error, <-chan error) {
 
 	unrestricted, _, err := req.Option(unrestrictedApiAccess).Bool()
 	if err != nil {
-		return fmt.Errorf("mountHTTPapi: Option(%s) failed: %s", unrestrictedApiAccess, err), nil
+		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccess, err), nil
 	}
 
 	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
@@ -293,7 +293,7 @@ func mountHTTPapi(req cmds.Request) (error, <-chan error) {
 
 	node, err := req.Context().ConstructNode()
 	if err != nil {
-		return fmt.Errorf("mountHTTPgw: ConstructNode() failed: %s", err), nil
+		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
 	}
 
 	errc := make(chan error)
@@ -303,21 +303,21 @@ func mountHTTPapi(req cmds.Request) (error, <-chan error) {
 	return nil, errc
 }
 
-// mountHTTPgw collects options, creates listener, prints status message and starts serving requests
-func mountHTTPgw(req cmds.Request) (error, <-chan error) {
+// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
+func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	cfg, err := req.Context().GetConfig()
 	if err != nil {
-		return fmt.Errorf("mountHTTPgw: GetConfig() failed: %s", err), nil
+		return fmt.Errorf("serveHTTPGateway: GetConfig() failed: %s", err), nil
 	}
 
 	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
 	if err != nil {
-		return fmt.Errorf("mountHTTPgw: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err), nil
+		return fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err), nil
 	}
 
 	writable, writableOptionFound, err := req.Option(writableKwd).Bool()
 	if err != nil {
-		return fmt.Errorf("mountHTTPgw: req.Option(%s) failed: %s", writableKwd, err), nil
+		return fmt.Errorf("serveHTTPGateway: req.Option(%s) failed: %s", writableKwd, err), nil
 	}
 	if !writableOptionFound {
 		writable = cfg.Gateway.Writable
@@ -325,7 +325,7 @@ func mountHTTPgw(req cmds.Request) (error, <-chan error) {
 
 	gwLis, err := manet.Listen(gatewayMaddr)
 	if err != nil {
-		return fmt.Errorf("mountHTTPgw: manet.Listen(%s) failed: %s", gatewayMaddr, err), nil
+		return fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err), nil
 	}
 	// we might have listened to /tcp/0 - lets see what we are listing on
 	gatewayMaddr = gwLis.Multiaddr()
@@ -348,7 +348,7 @@ func mountHTTPgw(req cmds.Request) (error, <-chan error) {
 
 	node, err := req.Context().ConstructNode()
 	if err != nil {
-		return fmt.Errorf("mountHTTPgw: ConstructNode() failed: %s", err), nil
+		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
 	}
 
 	errc := make(chan error)
@@ -409,9 +409,9 @@ func merge(cs ...<-chan error) <-chan error {
 		}
 		wg.Done()
 	}
-	wg.Add(len(cs))
 	for _, c := range cs {
 		if c != nil {
+			wg.Add(1)
 			go output(c)
 		}
 	}
