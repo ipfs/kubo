@@ -36,6 +36,10 @@ func TestObsAddrSet(t *testing.T) {
 	a1 := m("/ip4/1.2.3.4/tcp/1231")
 	a2 := m("/ip4/1.2.3.4/tcp/1232")
 	a3 := m("/ip4/1.2.3.4/tcp/1233")
+	a4 := m("/ip4/1.2.3.4/tcp/1234")
+	a5 := m("/ip4/1.2.3.4/tcp/1235")
+	a6 := m("/ip4/1.2.3.6/tcp/1236")
+	a7 := m("/ip4/1.2.3.7/tcp/1237")
 
 	oas := ObservedAddrSet{}
 
@@ -43,23 +47,45 @@ func TestObsAddrSet(t *testing.T) {
 		t.Error("addrs should be empty")
 	}
 
-	oas.Add(a1)
-	oas.Add(a2)
-	oas.Add(a3)
+	oas.Add(a1, a4)
+	oas.Add(a2, a4)
+	oas.Add(a3, a4)
 
 	// these are all different so we should not yet get them.
 	if !addrsMarch(oas.Addrs(), nil) {
 		t.Error("addrs should _still_ be empty (once)")
 	}
 
-	oas.Add(a1)
+	// same observer, so should not yet get them.
+	oas.Add(a1, a4)
+	oas.Add(a2, a4)
+	oas.Add(a3, a4)
+	if !addrsMarch(oas.Addrs(), nil) {
+		t.Error("addrs should _still_ be empty (same obs)")
+	}
+
+	// different observer, but same observer group.
+	oas.Add(a1, a5)
+	oas.Add(a2, a5)
+	oas.Add(a3, a5)
+	if !addrsMarch(oas.Addrs(), nil) {
+		t.Error("addrs should _still_ be empty (same obs group)")
+	}
+
+	oas.Add(a1, a6)
 	if !addrsMarch(oas.Addrs(), []ma.Multiaddr{a1}) {
 		t.Error("addrs should only have a1")
 	}
 
-	oas.Add(a2)
-	oas.Add(a1)
-	oas.Add(a1)
+	oas.Add(a2, a5)
+	oas.Add(a1, a5)
+	oas.Add(a1, a5)
+	oas.Add(a2, a6)
+	oas.Add(a1, a6)
+	oas.Add(a1, a6)
+	oas.Add(a2, a7)
+	oas.Add(a1, a7)
+	oas.Add(a1, a7)
 	if !addrsMarch(oas.Addrs(), []ma.Multiaddr{a1, a2}) {
 		t.Error("addrs should only have a1, a2")
 	}
