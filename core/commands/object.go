@@ -436,7 +436,7 @@ resulting object hash.
 		cmds.StringArg("command", true, false, "the operation to perform"),
 		cmds.StringArg("args", true, true, "extra arguments").EnableStdin(),
 	},
-	Type: key.Key(""),
+	Type: Object{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.Context().GetNode()
 		if err != nil {
@@ -468,28 +468,28 @@ resulting object hash.
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(k)
+			res.SetOutput(&Object{Hash: k.B58String()})
 		case "rm-link":
 			k, err := rmLinkCaller(req, rnode)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(k)
+			res.SetOutput(&Object{Hash: k.B58String()})
 		case "set-data":
 			k, err := setDataCaller(req, rnode)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(k)
+			res.SetOutput(&Object{Hash: k.B58String()})
 		case "append-data":
 			k, err := appendDataCaller(req, rnode)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(k)
+			res.SetOutput(&Object{Hash: k.B58String()})
 		default:
 			res.SetError(fmt.Errorf("unrecognized subcommand"), cmds.ErrNormal)
 			return
@@ -497,12 +497,12 @@ resulting object hash.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			k, ok := res.Output().(key.Key)
+			o, ok := res.Output().(*Object)
 			if !ok {
 				return nil, u.ErrCast()
 			}
 
-			return strings.NewReader(k.B58String() + "\n"), nil
+			return strings.NewReader(o.Hash + "\n"), nil
 		},
 	},
 }
