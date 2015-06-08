@@ -85,9 +85,23 @@ func (oas *ObservedAddrSet) Add(addr ma.Multiaddr, observer ma.Multiaddr) {
 		oas.addrs[s] = oa
 	}
 
-	// Add current observer.
-	oa.SeenBy[observer.String()] = struct{}{}
+	// mark the observer
+	oa.SeenBy[observerGroup(observer)] = struct{}{}
 	oa.LastSeen = time.Now()
+}
+
+// observerGroup is a function that determines what part of
+// a multiaddr counts as a different observer. for example,
+// two ipfs nodes at the same IP/TCP transport would get
+// the exact same NAT mapping; they would count as the
+// same observer. This may protect against NATs who assign
+// different ports to addresses at different IP hosts, but
+// not TCP ports.
+//
+// Here, we use the root multiaddr address. This is mostly
+// IP addresses. In practice, this is what we want.
+func observerGroup(m ma.Multiaddr) string {
+	return ma.Split(m)[0].String()
 }
 
 func (oas *ObservedAddrSet) SetTTL(ttl time.Duration) {
