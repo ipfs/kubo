@@ -314,7 +314,18 @@ func storeSet(ctx context.Context, dag merkledag.DAGService, keys []key.Key, int
 	return n, nil
 }
 
+func copyRefcounts(orig map[key.Key]uint64) map[key.Key]uint64 {
+	r := make(map[key.Key]uint64, len(orig))
+	for k, v := range orig {
+		r[k] = v
+	}
+	return r
+}
+
 func storeMultiset(ctx context.Context, dag merkledag.DAGService, refcounts map[key.Key]uint64, internalKeys keyObserver) (*merkledag.Node, error) {
+	// make a working copy of the refcounts
+	refcounts = copyRefcounts(refcounts)
+
 	iter := func() (k key.Key, data []byte, ok bool) {
 		// Every call of this function returns the next refcount item.
 		//
