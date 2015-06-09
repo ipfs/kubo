@@ -209,9 +209,10 @@ func (dm *DagModifier) Sync() error {
 		dm.curNode = nd
 	}
 
-	// Finalize correct pinning, and flush pinner
-	dm.mp.PinWithMode(thisk, pin.Recursive)
+	// Finalize correct pinning, and flush pinner.
+	// Be careful about the order, as curk might equal thisk.
 	dm.mp.RemovePinWithMode(curk, pin.Recursive)
+	dm.mp.PinWithMode(thisk, pin.Recursive)
 	err = dm.mp.Flush()
 	if err != nil {
 		return err
