@@ -55,6 +55,7 @@ it contains.
 
 		reader := bar.NewProxyReader(res.Output().(io.Reader))
 		res.SetOutput(reader)
+		defer bar.Finish()
 	},
 }
 
