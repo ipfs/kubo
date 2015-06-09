@@ -4,7 +4,7 @@
 # MIT Licensed; see the LICENSE file in this repository.
 #
 
-test_description="Test unixfs ls command"
+test_description="Test file ls command"
 
 . lib/test-lib.sh
 
@@ -38,11 +38,11 @@ test_ls_cmd() {
 		test_cmp expected_add actual_add
 	'
 
-	test_expect_success "'ipfs unixfs ls <three dir hashes>' succeeds" '
-		ipfs unixfs ls QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls
+	test_expect_success "'ipfs file ls <three dir hashes>' succeeds" '
+		ipfs file ls QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls
 	'
 
-	test_expect_success "'ipfs unixfs ls <three dir hashes>' output looks good" '
+	test_expect_success "'ipfs file ls <three dir hashes>' output looks good" '
 		cat <<-\EOF >expected_ls &&
 			QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
 			d1
@@ -61,11 +61,11 @@ test_ls_cmd() {
 		test_cmp expected_ls actual_ls
 	'
 
-	test_expect_success "'ipfs unixfs ls <file hashes>' succeeds" '
-		ipfs unixfs ls /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe >actual_ls_file
+	test_expect_success "'ipfs file ls <file hashes>' succeeds" '
+		ipfs file ls /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe >actual_ls_file
 	'
 
-	test_expect_success "'ipfs unixfs ls <file hashes>' output looks good" '
+	test_expect_success "'ipfs file ls <file hashes>' output looks good" '
 		cat <<-\EOF >expected_ls_file &&
 			/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024
 			QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe

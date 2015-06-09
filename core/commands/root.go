@@ -36,7 +36,7 @@ DATA STRUCTURE COMMANDS
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
-    unixfs        Interact with Unix filesystem objects
+    file          Interact with Unix filesystem objects
 
 ADVANCED COMMANDS
 
@@ -104,7 +104,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
 	"tour":      tourCmd,
-	"unixfs":    unixfs.UnixFSCmd,
+	"file":      unixfs.UnixFSCmd,
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
