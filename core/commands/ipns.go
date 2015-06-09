@@ -82,7 +82,7 @@ Resolve the value of another name:
 
 		resolver := namesys.NewRoutingResolver(n.Routing)
 		output, err := resolver.ResolveN(n.Context(), name, depth)
-		if err != nil {
+		if err != nil && (err != namesys.ErrResolveRecursion || depth > 1) {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
