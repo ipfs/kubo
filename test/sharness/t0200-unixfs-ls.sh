@@ -72,6 +72,32 @@ test_ls_cmd() {
 		EOF
 		test_cmp expected_ls_file actual_ls_file
 	'
+
+	test_expect_success "'ipfs --encoding=json file ls <file hashes>' succeeds" '
+		ipfs --encoding=json file ls /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 >actual_json_ls_file
+	'
+
+	test_expect_success "'ipfs --encoding=json file ls <file hashes>' output looks good" '
+		cat <<-\EOF >expected_json_ls_file_trailing_newline &&
+			{
+			  "Objects": [
+			    {
+			      "Argument": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
+			      "Links": [
+			        {
+			          "Name": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
+			          "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
+			          "Size": 1024,
+			          "Type": 2
+			        }
+			      ]
+			    }
+			  ]
+			}
+		EOF
+		printf %s "$(cat expected_json_ls_file_trailing_newline)" >expected_json_ls_file &&
+		test_cmp expected_json_ls_file actual_json_ls_file
+	'
 }
 
 
