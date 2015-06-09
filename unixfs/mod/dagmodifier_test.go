@@ -568,6 +568,7 @@ func TestCorrectPinning(t *testing.T) {
 
 	indirpins := pins.IndirectKeys()
 	children := enumerateChildren(t, nd, dserv)
+	// TODO this is not true if the contents happen to be identical
 	if len(indirpins) != len(children) {
 		t.Log(len(indirpins), len(children))
 		t.Fatal("Incorrect number of indirectly pinned blocks")
