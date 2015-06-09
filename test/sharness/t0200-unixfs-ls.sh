@@ -57,9 +57,20 @@ test_ls_cmd() {
 			QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 			128
 			a
-
 		EOF
 		test_cmp expected_ls actual_ls
+	'
+
+	test_expect_success "'ipfs unixfs ls <file hashes>' succeeds" '
+		ipfs unixfs ls /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe >actual_ls_file
+	'
+
+	test_expect_success "'ipfs unixfs ls <file hashes>' output looks good" '
+		cat <<-\EOF >expected_ls_file &&
+			/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024
+			QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe
+		EOF
+		test_cmp expected_ls_file actual_ls_file
 	'
 }
 
