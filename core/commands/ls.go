@@ -116,13 +116,13 @@ it contains, with the following format:
 					fmt.Fprintf(w, "%s:\n", object.Hash)
 				}
 				if headers {
-					fmt.Fprintln(w, "Hash\tSize\tName\t")
+					fmt.Fprintln(w, "Hash\tSize\tName")
 				}
 				for _, link := range object.Links {
 					if link.Type == unixfspb.Data_Directory {
 						link.Name += "/"
 					}
-					fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
+					fmt.Fprintf(w, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
 				}
 				if len(output.Objects) > 1 {
 					fmt.Fprintln(w)
