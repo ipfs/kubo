@@ -198,6 +198,27 @@ func TestDuplicateSemantics(t *testing.T) {
 	}
 }
 
+func TestFlush(t *testing.T) {
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dserv := mdag.NewDAGService(bserv)
+	p := NewPinner(dstore, dserv)
+	_, k := randNode()
+
+	p.PinWithMode(k, Indirect)
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if !p.IsPinned(k) {
+		t.Fatal("expected key to still be pinned")
+	}
+}
+
 func TestPinRecursiveFail(t *testing.T) {
 	ctx := context.Background()
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
