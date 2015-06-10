@@ -19,7 +19,7 @@ import (
 type LsLink struct {
 	Name, Hash string
 	Size       uint64
-	Type       unixfspb.Data_DataType
+	Type       string
 }
 
 type LsObject struct {
@@ -88,7 +88,7 @@ directories, the child size is the IPFS link size.
 				output[i].Links = []LsLink{LsLink{
 					Name: fpath,
 					Hash: key.String(),
-					Type: t,
+					Type: t.String(),
 					Size: unixFSNode.GetFilesize(),
 				}}
 			case unixfspb.Data_Directory:
@@ -106,12 +106,13 @@ directories, the child size is the IPFS link size.
 						res.SetError(err, cmds.ErrNormal)
 						return
 					}
+					t := d.GetType()
 					lsLink := LsLink{
 						Name: link.Name,
 						Hash: link.Hash.B58String(),
-						Type: d.GetType(),
+						Type: t.String(),
 					}
-					if lsLink.Type == unixfspb.Data_File {
+					if t == unixfspb.Data_File {
 						lsLink.Size = d.GetFilesize()
 					} else {
 						lsLink.Size = link.Size

@@ -88,7 +88,7 @@ test_ls_cmd() {
 			          "Name": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
 			          "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
 			          "Size": 1024,
-			          "Type": 2
+			          "Type": "File"
 			        }
 			      ]
 			    }
