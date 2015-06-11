@@ -773,7 +773,7 @@ func TestConnectCollision(t *testing.T) {
 	runTimes := 10
 
 	for rtime := 0; rtime < runTimes; rtime++ {
-		log.Notice("Running Time: ", rtime)
+		log.Info("Running Time: ", rtime)
 
 		ctx := context.Background()
 

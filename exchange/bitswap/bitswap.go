@@ -280,7 +280,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 	var keys []key.Key
 	for _, block := range iblocks {
 		if _, found := bs.wm.wl.Contains(block.Key()); !found {
-			log.Notice("received un-asked-for block: %s", block)
+			log.Info("received un-asked-for block: %s", block)
 			continue
 		}
 		keys = append(keys, block.Key())
@@ -297,7 +297,7 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			has, err := bs.blockstore.Has(b.Key())
 			if err != nil {
 				bs.counterLk.Unlock()
-				log.Noticef("blockstore.Has error: %s", err)
+				log.Infof("blockstore.Has error: %s", err)
 				return
 			}
 			if err == nil && has {
