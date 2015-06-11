@@ -11,8 +11,6 @@ import (
 // StandardLogger provides API compatibility with standard printf loggers
 // eg. go-logging
 type StandardLogger interface {
-	Critical(args ...interface{})
-	Criticalf(format string, args ...interface{})
 	Debug(args ...interface{})
 	Debugf(format string, args ...interface{})
 	Error(args ...interface{})

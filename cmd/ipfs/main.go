@@ -465,7 +465,7 @@ func startProfiling() (func(), error) {
 		for _ = range time.NewTicker(time.Second * 30).C {
 			err := writeHeapProfileToFile()
 			if err != nil {
-				log.Critical(err)
+				log.Error(err)
 			}
 		}
 	}()

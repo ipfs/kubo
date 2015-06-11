@@ -285,7 +285,7 @@ func (np *Republisher) Run(ctx context.Context) {
 			log.Info("Publishing Changes!")
 			err := np.root.Publish(ctx)
 			if err != nil {
-				log.Critical("republishRoot error: %s", err)
+				log.Error("republishRoot error: %s", err)
 			}
 
 		case <-ctx.Done():

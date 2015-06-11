@@ -90,8 +90,7 @@ func init() {
 	var err error
 	currentVersion, err = parseVersion()
 	if err != nil {
-		log.Criticalf("invalid version number in code (must be semver): %q", Version)
-		os.Exit(1)
+		log.Fatalf("invalid version number in code (must be semver): %q", Version)
 	}
 	log.Infof("go-ipfs Version: %s", currentVersion)
 }
