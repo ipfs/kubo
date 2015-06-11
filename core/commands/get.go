@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
+	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	utar "github.com/ipfs/go-ipfs/unixfs/tar"
 )
 
@@ -63,7 +65,20 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		reader, err := get(req.Context().Context, node, req.Arguments()[0], cmplvl)
+		// Validate path string
+		p, err := path.ParsePath(req.Arguments()[0])
+		if err != nil {
+			res.SetError(fmt.Errorf("failed to validate path: %v", err), cmds.ErrNormal)
+			return
+		}
+		var reader io.Reader
+
+		if archive, _, _ := req.Option("archive").Bool(); !archive && cmplvl != gzip.NoCompression {
+			// only use this when the flag is '-C' without '-a'
+			reader, err = getZip(req.Context().Context, node, p, cmplvl)
+		} else {
+			reader, err = get(req.Context().Context, node, p, cmplvl)
+		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -89,8 +104,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		if archive, _, _ := req.Option("archive").Bool(); archive {
-			if !strings.HasSuffix(outPath, ".tar") {
+		if archive, _, _ := req.Option("archive").Bool(); archive || cmplvl != gzip.NoCompression {
+			if archive && !strings.HasSuffix(outPath, ".tar") {
 				outPath += ".tar"
 			}
 			if cmplvl != gzip.NoCompression {
@@ -127,19 +142,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		bar.Output = os.Stderr
 
 		// wrap the reader with the progress bar proxy reader
-		// if the output is compressed, also wrap it in a gzip.Reader
-		var reader io.Reader
-		if cmplvl != gzip.NoCompression {
-			gzipReader, err := gzip.NewReader(outReader)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			defer gzipReader.Close()
-			reader = bar.NewProxyReader(gzipReader)
-		} else {
-			reader = bar.NewProxyReader(outReader)
-		}
+		reader := bar.NewProxyReader(outReader)
 
 		bar.Start()
 		defer bar.Finish()
@@ -166,12 +169,41 @@ func getCompressOptions(req cmds.Request) (int, error) {
 	return gzip.NoCompression, nil
 }
 
-func get(ctx context.Context, node *core.IpfsNode, p string, compression int) (io.Reader, error) {
-	pathToResolve := path.Path(p)
+func get(ctx context.Context, node *core.IpfsNode, pathToResolve path.Path, compression int) (io.Reader, error) {
 	dagnode, err := core.Resolve(ctx, node, pathToResolve)
 	if err != nil {
 		return nil, err
 	}
 
 	return utar.NewReader(pathToResolve, node.DAG, dagnode, compression)
+}
+
+// getZip is equivalent to `ipfs getdag $hash | gzip`
+func getZip(ctx context.Context, node *core.IpfsNode, pathToResolve path.Path, compression int) (io.Reader, error) {
+	dagnode, err := core.Resolve(ctx, node, pathToResolve)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := uio.NewDagReader(ctx, dagnode, node.DAG)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, pw := io.Pipe()
+	gw, err := gzip.NewWriterLevel(pw, compression)
+	if err != nil {
+		return nil, err
+	}
+	bufin := bufio.NewReader(reader)
+	go func() {
+		_, err := bufin.WriteTo(gw)
+		if err != nil {
+			log.Error("Fail to compress the stream")
+		}
+		gw.Close()
+		pw.Close()
+	}()
+
+	return pr, nil
 }
