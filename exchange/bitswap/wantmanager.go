@@ -145,10 +145,10 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 }
 
 func (mq *msgQueue) doWork(ctx context.Context) {
-	// allow a minute for connections
+	// allow ten minutes for connections
 	// this includes looking them up in the dht
 	// dialing them, and handshaking
-	conctx, cancel := context.WithTimeout(ctx, time.Minute)
+	conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
 	defer cancel()
 
 	err := mq.network.ConnectTo(conctx, mq.p)
@@ -161,14 +161,14 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	// grab outgoing message
 	mq.outlk.Lock()
 	wlm := mq.out
+	if wlm == nil || wlm.Empty() {
+		mq.outlk.Unlock()
+		return
+	}
 	mq.out = nil
 	mq.outlk.Unlock()
 
-	if wlm == nil || wlm.Empty() {
-		return
-	}
-
-	sendctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	sendctx, cancel := context.WithTimeout(ctx, time.Minute*5)
 	defer cancel()
 
 	// send wantlist updates
