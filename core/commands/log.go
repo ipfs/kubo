@@ -45,7 +45,7 @@ output of a running daemon.
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
 		cmds.StringArg("subsystem", true, false, fmt.Sprintf("the subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
-		cmds.StringArg("level", true, false, "one of: debug, info, warning, error, fatal"),
+		cmds.StringArg("level", true, false, "one of: debug, info, warning, error, fatal, panic"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
