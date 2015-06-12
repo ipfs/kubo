@@ -27,7 +27,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
-func getMockDagServ(t testing.TB) (mdag.DAGService, pin.ManualPinner) {
+func getMockDagServ(t testing.TB) (mdag.DAGService, pin.Pinner) {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
@@ -36,10 +36,10 @@ func getMockDagServ(t testing.TB) (mdag.DAGService, pin.ManualPinner) {
 		t.Fatal(err)
 	}
 	dserv := mdag.NewDAGService(bserv)
-	return dserv, pin.NewPinner(tsds, dserv).GetManual()
+	return dserv, pin.NewPinner(tsds, dserv)
 }
 
-func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blockstore, pin.ManualPinner) {
+func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blockstore, pin.Pinner) {
 	dstore := ds.NewMapDatastore()
 	tsds := sync.MutexWrap(dstore)
 	bstore := blockstore.NewBlockstore(tsds)
@@ -48,10 +48,10 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blocksto
 		t.Fatal(err)
 	}
 	dserv := mdag.NewDAGService(bserv)
-	return dserv, bstore, pin.NewPinner(tsds, dserv).GetManual()
+	return dserv, bstore, pin.NewPinner(tsds, dserv)
 }
 
-func getNode(t testing.TB, dserv mdag.DAGService, size int64, pinner pin.ManualPinner) ([]byte, *mdag.Node) {
+func getNode(t testing.TB, dserv mdag.DAGService, size int64, pinner pin.Pinner) ([]byte, *mdag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	node, err := imp.BuildTrickleDagFromReader(in, dserv, &chunk.SizeSplitter{500}, imp.BasicPinnerCB(pinner))
 	if err != nil {
@@ -469,7 +469,7 @@ func TestSparseWrite(t *testing.T) {
 	}
 }
 
-func basicGC(t *testing.T, bs blockstore.Blockstore, pins pin.ManualPinner) {
+func basicGC(t *testing.T, bs blockstore.Blockstore, pins pin.Pinner) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // in case error occurs during operation
 	keychan, err := bs.AllKeysChan(ctx)
@@ -568,6 +568,7 @@ func TestCorrectPinning(t *testing.T) {
 
 	indirpins := pins.IndirectKeys()
 	children := enumerateChildren(t, nd, dserv)
+	// TODO this is not true if the contents happen to be identical
 	if len(indirpins) != len(children) {
 		t.Log(len(indirpins), len(children))
 		t.Fatal("Incorrect number of indirectly pinned blocks")

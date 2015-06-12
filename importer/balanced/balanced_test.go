@@ -144,7 +144,7 @@ func TestRabinBlockSize(t *testing.T) {
 
 type dagservAndPinner struct {
 	ds merkledag.DAGService
-	mp pin.ManualPinner
+	mp pin.Pinner
 }
 
 func TestIndirectBlocks(t *testing.T) {

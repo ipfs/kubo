@@ -38,7 +38,7 @@ var log = u.Logger("dagio")
 type DagModifier struct {
 	dagserv mdag.DAGService
 	curNode *mdag.Node
-	mp      pin.ManualPinner
+	mp      pin.Pinner
 
 	splitter   chunk.BlockSplitter
 	ctx        context.Context
@@ -51,7 +51,7 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.Pinner, spl chunk.BlockSplitter) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
@@ -210,9 +210,10 @@ func (dm *DagModifier) Sync() error {
 		dm.curNode = nd
 	}
 
-	// Finalize correct pinning, and flush pinner
-	dm.mp.PinWithMode(thisk, pin.Recursive)
+	// Finalize correct pinning, and flush pinner.
+	// Be careful about the order, as curk might equal thisk.
 	dm.mp.RemovePinWithMode(curk, pin.Recursive)
+	dm.mp.PinWithMode(thisk, pin.Recursive)
 	err = dm.mp.Flush()
 	if err != nil {
 		return err
