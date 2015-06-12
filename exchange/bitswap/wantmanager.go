@@ -137,33 +137,46 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 	for {
 		select {
 		case <-mq.work: // there is work to be done
-
-			err := mq.network.ConnectTo(ctx, mq.p)
-			if err != nil {
-				log.Noticef("cant connect to peer %s: %s", mq.p, err)
-				// TODO: cant connect, what now?
-				continue
-			}
-
-			// grab outgoing message
-			mq.outlk.Lock()
-			wlm := mq.out
-			if wlm == nil || wlm.Empty() {
-				mq.outlk.Unlock()
-				continue
-			}
-			mq.out = nil
-			mq.outlk.Unlock()
-
-			// send wantlist updates
-			err = mq.network.SendMessage(ctx, mq.p, wlm)
-			if err != nil {
-				log.Noticef("bitswap send error: %s", err)
-				// TODO: what do we do if this fails?
-			}
+			mq.doWork(ctx)
 		case <-mq.done:
 			return
 		}
+	}
+}
+
+func (mq *msgQueue) doWork(ctx context.Context) {
+	// allow ten minutes for connections
+	// this includes looking them up in the dht
+	// dialing them, and handshaking
+	conctx, cancel := context.WithTimeout(ctx, time.Minute*10)
+	defer cancel()
+
+	err := mq.network.ConnectTo(conctx, mq.p)
+	if err != nil {
+		log.Noticef("cant connect to peer %s: %s", mq.p, err)
+		// TODO: cant connect, what now?
+		return
+	}
+
+	// grab outgoing message
+	mq.outlk.Lock()
+	wlm := mq.out
+	if wlm == nil || wlm.Empty() {
+		mq.outlk.Unlock()
+		return
+	}
+	mq.out = nil
+	mq.outlk.Unlock()
+
+	sendctx, cancel := context.WithTimeout(ctx, time.Minute*5)
+	defer cancel()
+
+	// send wantlist updates
+	err = mq.network.SendMessage(sendctx, mq.p, wlm)
+	if err != nil {
+		log.Noticef("bitswap send error: %s", err)
+		// TODO: what do we do if this fails?
+		return
 	}
 }
 
