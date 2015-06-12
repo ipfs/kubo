@@ -16,6 +16,9 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	ldbopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/ipfs/go-ipfs/keystore"
+	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -25,7 +28,6 @@ import (
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
-	util "github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 )
 
@@ -56,8 +58,9 @@ func (err NoRepoError) Error() string {
 }
 
 const (
-	leveldbDirectory = "datastore"
-	flatfsDirectory  = "blocks"
+	leveldbDirectory  = "datastore"
+	flatfsDirectory   = "blocks"
+	keystoreDirectory = "keys"
 )
 
 var (
@@ -97,6 +100,8 @@ type FSRepo struct {
 	leveldbDS      levelds.Datastore
 	metricsBlocks  measure.DatastoreCloser
 	metricsLevelDB measure.DatastoreCloser
+
+	keystore keystore.Keystore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -162,6 +167,10 @@ func open(repoPath string) (repo.Repo, error) {
 		return nil, err
 	}
 
+	if err := r.openKeystore(); err != nil {
+		return nil, err
+	}
+
 	// setup eventlogger
 	configureEventLoggerAtRepoPath(r.config, r.path)
 
@@ -212,7 +221,7 @@ func configIsInitialized(path string) bool {
 	if err != nil {
 		return false
 	}
-	if !util.FileExists(configFilename) {
+	if !u.FileExists(configFilename) {
 		return false
 	}
 	return true
@@ -237,7 +246,7 @@ func initConfig(path string, conf *config.Config) error {
 
 // Init initializes a new FSRepo at the given path with the provided config.
 // TODO add support for custom datastores.
-func Init(repoPath string, conf *config.Config) error {
+func Init(out io.Writer, repoPath string, conf *config.Config, nbits int) error {
 
 	// packageLock must be held to ensure that the repo is not initialized more
 	// than once.
@@ -248,6 +257,13 @@ func Init(repoPath string, conf *config.Config) error {
 		return nil
 	}
 
+	keystorePath := path.Join(repoPath, keystoreDirectory)
+	id, err := initKeystore(out, keystorePath, nbits)
+	if err != nil {
+		return fmt.Errorf("keystore: %s", err)
+	}
+
+	conf.Identity = id
 	if err := initConfig(repoPath, conf); err != nil {
 		return err
 	}
@@ -307,6 +323,16 @@ func (r *FSRepo) openConfig() error {
 	return nil
 }
 
+func (r *FSRepo) openKeystore() error {
+	kspath := path.Join(r.path, "keys")
+	err := os.Mkdir(kspath, 0700)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+	r.keystore = keystore.NewFsKeystore(kspath)
+	return nil
+}
+
 // openDatastore returns an error if the config file is not present.
 func (r *FSRepo) openDatastore() error {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
@@ -336,7 +362,7 @@ func (r *FSRepo) openDatastore() error {
 	//
 	// As some tests just pass a zero-value Config to fsrepo.Init,
 	// cope with missing PeerID.
-	id := r.config.Identity.PeerID
+	id := r.config.Identity
 	if id == "" {
 		// the tests pass in a zero Config; cope with it
 		id = fmt.Sprintf("uninitialized_%p", r)
@@ -533,6 +559,12 @@ func (r *FSRepo) Datastore() ds.ThreadSafeDatastore {
 	return d
 }
 
+func (f *FSRepo) Keystore() keystore.Keystore {
+	packageLock.Lock()
+	defer packageLock.Unlock()
+	return f.keystore
+}
+
 var _ io.Closer = &FSRepo{}
 var _ repo.Repo = &FSRepo{}
 
@@ -554,8 +586,43 @@ func isInitializedUnsynced(repoPath string) bool {
 	if !configIsInitialized(repoPath) {
 		return false
 	}
-	if !util.FileExists(path.Join(repoPath, leveldbDirectory)) {
+	if !u.FileExists(path.Join(repoPath, leveldbDirectory)) {
 		return false
 	}
 	return true
+}
+
+// initPeerKey initializes a new identity.
+func initKeystore(out io.Writer, kspath string, nbits int) (string, error) {
+	if nbits < 1024 {
+		return "", errors.New("Bitsize less than 1024 is considered unsafe.")
+	}
+
+	// Setup dir for keystore
+	err := os.Mkdir(kspath, 0700)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+	if os.IsExist(err) {
+		err := os.Chmod(kspath, 0700)
+		if err != nil {
+			return "", fmt.Errorf("failed to set perms for keystore: %s", err)
+		}
+	}
+
+	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintf(out, "done\n")
+
+	id, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintf(out, "peer identity: %s\n", id.Pretty())
+
+	ks := keystore.NewFsKeystore(kspath)
+	return id.Pretty(), ks.PutKey("local", sk)
 }

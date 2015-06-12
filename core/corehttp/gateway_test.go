@@ -39,9 +39,7 @@ func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Pa
 
 func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
 	c := config.Config{
-		Identity: config.Identity{
-			PeerID: "Qmfoo", // required by offline node
-		},
+		Identity: "Qmfoo", // required by offline node
 	}
 	r := &repo.Mock{
 		C: c,

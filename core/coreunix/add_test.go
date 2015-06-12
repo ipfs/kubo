@@ -19,9 +19,7 @@ func TestAddRecursive(t *testing.T) {
 	}
 	r := &repo.Mock{
 		C: config.Config{
-			Identity: config.Identity{
-				PeerID: "Qmfoo", // required by offline node
-			},
+			Identity: "Qmfoo", // required by offline node
 		},
 		D: testutil.ThreadSafeCloserMapDatastore(),
 	}

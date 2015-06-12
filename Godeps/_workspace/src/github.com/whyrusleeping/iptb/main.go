@@ -156,7 +156,7 @@ func starBootstrap(icfg *initCfg) error {
 			return err
 		}
 
-		cfg.Bootstrap = []string{fmt.Sprintf("%s/ipfs/%s", bcfg.Addresses.Swarm[0], bcfg.Identity.PeerID)}
+		cfg.Bootstrap = []string{fmt.Sprintf("%s/ipfs/%s", bcfg.Addresses.Swarm[0], bcfg.Identity)}
 		cfg.Addresses.Gateway = ""
 		cfg.Addresses.Swarm = []string{
 			icfg.swarmAddrForPeer(i),
@@ -283,7 +283,7 @@ func IpfsStart(waitall bool) error {
 
 			addrs = append(addrs, addr)
 
-			err = waitOnAPI(cfg.Identity.PeerID, addr)
+			err = waitOnAPI(cfg.Identity, addr)
 			if err != nil {
 				return err
 			}
@@ -355,7 +355,7 @@ func GetPeerID(n int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return cfg.Identity.PeerID, nil
+	return cfg.Identity, nil
 }
 
 // IpfsShell sets up environment variables for a new shell to more easily

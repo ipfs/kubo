@@ -33,6 +33,8 @@ const (
 	RSA = iota
 )
 
+var KeyTypes = []string{"RSA"}
+
 // Key represents a crypto key that can be compared to another key
 type Key interface {
 	// Bytes returns a serialized, storeable representation of this key
