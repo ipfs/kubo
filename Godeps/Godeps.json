@@ -228,10 +228,6 @@
 			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
 		},
 		{
-			"ImportPath": "github.com/whyrusleeping/go-logging",
-			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
-		},
-		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
 		},
