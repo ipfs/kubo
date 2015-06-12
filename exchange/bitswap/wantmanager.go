@@ -181,11 +181,17 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 }
 
 func (pm *WantManager) Connected(p peer.ID) {
-	pm.connect <- p
+	select {
+	case pm.connect <- p:
+	case <-pm.ctx.Done():
+	}
 }
 
 func (pm *WantManager) Disconnected(p peer.ID) {
-	pm.disconnect <- p
+	select {
+	case pm.disconnect <- p:
+	case <-pm.ctx.Done():
+	}
 }
 
 // TODO: use goprocess here once i trust it
