@@ -1,5 +1,40 @@
 # go-ipfs changelog
 
+### 0.3.5 - 2015-06-11
+
+This patch improves overall stability and performance
+
+* added 'object patch' and 'object new' commands @whyrusleeping
+* improved symmetric NAT avoidance @jbenet
+* move util.Key to blocks.Key @whyrusleeping
+* fix memory leak in provider store @whyrusleeping
+* updated webui to 0.2.0 @krl
+* improved bitswap performance @whyrusleeping
+* update fuse lib @cryptix
+* fix path resolution @wking
+* implement test_seq() in sharness @chriscool
+* improve parsing of stdin for commands @chriscool
+* fix 'ipfs refs' failing silently @whyrusleeping
+* fix serial dialing bug @jbenet
+* improved testing @chriscool @rht @jbenet
+* fixed domain resolving @luzifer
+* fix parsing of unwanted stdin @lgierth
+* added CORS handlers to gateway @NodeGuy
+* added `ipfs daemon --unrestricted-api` option @krl
+* general cleanup of dependencies
+
+### 0.3.4 - 2015-05-10
+
+* fix ipns append bug @whyrusleeping
+* fix out of memory panic @whyrusleeping
+* add in expvar metrics @tv42
+* bitswap improvements @whyrusleeping
+* fix write-cache in blockstore @tv42
+* vendoring cleanup @cryptix
+* added `launchctl` plist for OSX @grncdr
+* improved Dockerfile, changed root and mount paths @ehd
+* improved `pin ls` output to show types @vitorbaptista
+
 ### 0.3.3 - 2015-04-28
 
 This patch update fixes various issues, in particular:
