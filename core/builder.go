@@ -51,7 +51,7 @@ func defaultRepo() (repo.Repo, error) {
 	}
 
 	c.Bootstrap = cfg.DefaultBootstrapAddresses
-	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001"}
+	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001","/ip6/::/tcp/4001"}
 	c.Identity.PeerID = key.Key(data).B58String()
 	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
 
