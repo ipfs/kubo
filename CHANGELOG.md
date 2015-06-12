@@ -1,5 +1,14 @@
 # go-ipfs changelog
 
+### 0.3.6 - unreleased
+
+We don't know what the main changes will be yet.
+
+#### Stability and performance
+
+* prevent wantmanager from leaking goroutines (and
+  memory). @whyrusleeping, #1356
+
 ### 0.3.5 - 2015-06-11
 
 This patch improves overall stability and performance
