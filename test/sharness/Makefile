@@ -35,8 +35,8 @@ aggregate: clean-test-results $(T)
 
 deps: $(SHARNESS) $(BINS) curl
 
-$(SHARNESS):
-	@echo "*** installing $@ ***"
+$(SHARNESS): FORCE
+	@echo "*** checking $@ ***"
 	lib/install-sharness.sh
 
 bin/%: FORCE
