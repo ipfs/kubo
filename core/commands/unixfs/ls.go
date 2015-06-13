@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"text/tabwriter"
 	"time"
 
@@ -23,12 +24,12 @@ type LsLink struct {
 }
 
 type LsObject struct {
-	Argument string
-	Links    []LsLink
+	Links []LsLink
 }
 
 type LsOutput struct {
-	Objects []*LsObject
+	Arguments map[string]string
+	Objects   map[string]*LsObject
 }
 
 var LsCmd = &cmds.Command{
@@ -57,8 +58,12 @@ directories, the child size is the IPFS link size.
 
 		paths := req.Arguments()
 
-		output := make([]*LsObject, len(paths))
-		for i, fpath := range paths {
+		output := LsOutput{
+			Arguments: map[string]string{},
+			Objects:   map[string]*LsObject{},
+		}
+
+		for _, fpath := range paths {
 			ctx := req.Context().Context
 			merkleNode, err := core.Resolve(ctx, node, path.Path(fpath))
 			if err != nil {
@@ -66,13 +71,27 @@ directories, the child size is the IPFS link size.
 				return
 			}
 
-			unixFSNode, err := unixfs.FromBytes(merkleNode.Data)
+			key, err := merkleNode.Key()
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 
-			output[i] = &LsObject{Argument: fpath}
+			hash := key.B58String()
+			output.Arguments[fpath] = hash
+
+			if _, ok := output.Objects[hash]; ok {
+				// duplicate argument for an already-listed node
+				continue
+			}
+
+			output.Objects[hash] = &LsObject{}
+
+			unixFSNode, err := unixfs.FromBytes(merkleNode.Data)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 
 			t := unixFSNode.GetType()
 			switch t {
@@ -85,15 +104,16 @@ directories, the child size is the IPFS link size.
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
-				output[i].Links = []LsLink{LsLink{
+				output.Objects[hash].Links = []LsLink{LsLink{
 					Name: fpath,
 					Hash: key.String(),
 					Type: t.String(),
 					Size: unixFSNode.GetFilesize(),
 				}}
 			case unixfspb.Data_Directory:
-				output[i].Links = make([]LsLink, len(merkleNode.Links))
-				for j, link := range merkleNode.Links {
+				links := make([]LsLink, len(merkleNode.Links))
+				output.Objects[hash].Links = links
+				for i, link := range merkleNode.Links {
 					getCtx, cancel := context.WithTimeout(ctx, time.Minute)
 					defer cancel()
 					link.Node, err = link.GetNode(getCtx, node.DAG)
@@ -117,12 +137,12 @@ directories, the child size is the IPFS link size.
 					} else {
 						lsLink.Size = link.Size
 					}
-					output[i].Links[j] = lsLink
+					links[i] = lsLink
 				}
 			}
 		}
 
-		res.SetOutput(&LsOutput{Objects: output})
+		res.SetOutput(&output)
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -130,21 +150,44 @@ directories, the child size is the IPFS link size.
 			output := res.Output().(*LsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
-			lastObjectDirHeader := false
-			for i, object := range output.Objects {
-				singleObject := (len(object.Links) == 1 &&
-					object.Links[0].Name == object.Argument)
-				if len(output.Objects) > 1 && !singleObject {
-					if i > 0 {
-						fmt.Fprintln(w)
-					}
-					fmt.Fprintf(w, "%s:\n", object.Argument)
-					lastObjectDirHeader = true
+
+			nonDirectories := []string{}
+			directories := []string{}
+			for argument, hash := range output.Arguments {
+				object, ok := output.Objects[hash]
+				if !ok {
+					return nil, fmt.Errorf("unresolved hash: %s", hash)
+				}
+
+				if len(object.Links) == 1 && object.Links[0].Hash == hash {
+					nonDirectories = append(nonDirectories, argument)
 				} else {
-					if lastObjectDirHeader {
-						fmt.Fprintln(w)
+					directories = append(directories, argument)
+				}
+			}
+			sort.Strings(nonDirectories)
+			sort.Strings(directories)
+
+			for _, argument := range nonDirectories {
+				fmt.Fprintf(w, "%s\n", argument)
+			}
+
+			seen := map[string]bool{}
+			for i, argument := range directories {
+				hash := output.Arguments[argument]
+				if _, ok := seen[hash]; ok {
+					continue
+				}
+				seen[hash] = true
+
+				object := output.Objects[hash]
+				if i > 0 || len(nonDirectories) > 0 {
+					fmt.Fprintln(w)
+				}
+				for _, arg := range directories[i:] {
+					if output.Arguments[arg] == hash {
+						fmt.Fprintf(w, "%s:\n", arg)
 					}
-					lastObjectDirHeader = false
 				}
 				for _, link := range object.Links {
 					fmt.Fprintf(w, "%s\n", link.Name)

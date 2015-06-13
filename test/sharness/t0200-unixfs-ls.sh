@@ -44,12 +44,6 @@ test_ls_cmd() {
 
 	test_expect_success "'ipfs file ls <three dir hashes>' output looks good" '
 		cat <<-\EOF >expected_ls &&
-			QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-			d1
-			d2
-			f1
-			f2
-
 			QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
 			1024
 			a
@@ -57,6 +51,12 @@ test_ls_cmd() {
 			QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 			128
 			a
+
+			QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
+			d1
+			d2
+			f1
+			f2
 		EOF
 		test_cmp expected_ls actual_ls
 	'
@@ -73,6 +73,23 @@ test_ls_cmd() {
 		test_cmp expected_ls_file actual_ls_file
 	'
 
+	test_expect_success "'ipfs file ls <duplicates>' succeeds" '
+		ipfs file ls /ipfs/QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj/d1 /ipfs/QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 /ipfs/QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd >actual_ls_duplicates_file
+	'
+
+	test_expect_success "'ipfs file ls <duplicates>' output looks good" '
+		cat <<-\EOF >expected_ls_duplicates_file &&
+			/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024
+			/ipfs/QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd
+
+			/ipfs/QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
+			/ipfs/QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj/d1:
+			128
+			a
+		EOF
+		test_cmp expected_ls_duplicates_file actual_ls_duplicates_file
+	'
+
 	test_expect_success "'ipfs --encoding=json file ls <file hashes>' succeeds" '
 		ipfs --encoding=json file ls /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 >actual_json_ls_file
 	'
@@ -80,9 +97,11 @@ test_ls_cmd() {
 	test_expect_success "'ipfs --encoding=json file ls <file hashes>' output looks good" '
 		cat <<-\EOF >expected_json_ls_file_trailing_newline &&
 			{
-			  "Objects": [
-			    {
-			      "Argument": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
+			  "Arguments": {
+			    "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd"
+			  },
+			  "Objects": {
+			    "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": {
 			      "Links": [
 			        {
 			          "Name": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
@@ -92,11 +111,58 @@ test_ls_cmd() {
 			        }
 			      ]
 			    }
-			  ]
+			  }
 			}
 		EOF
 		printf %s "$(cat expected_json_ls_file_trailing_newline)" >expected_json_ls_file &&
 		test_cmp expected_json_ls_file actual_json_ls_file
+	'
+
+	test_expect_success "'ipfs --encoding=json file ls <duplicates>' succeeds" '
+		ipfs --encoding=json file ls /ipfs/QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj/d1 /ipfs/QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss /ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024 /ipfs/QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd >actual_json_ls_duplicates_file
+	'
+
+	test_expect_success "'ipfs --encoding=json file ls <duplicates>' output looks good" '
+		cat <<-\EOF >expected_json_ls_duplicates_file_trailing_newline &&
+			{
+			  "Arguments": {
+			    "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
+			    "/ipfs/QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss": "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss",
+			    "/ipfs/QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
+			    "/ipfs/QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj/d1": "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss"
+			  },
+			  "Objects": {
+			    "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss": {
+			      "Links": [
+			        {
+			          "Name": "128",
+			          "Hash": "QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe",
+			          "Size": 128,
+			          "Type": "File"
+			        },
+			        {
+			          "Name": "a",
+			          "Hash": "QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN",
+			          "Size": 6,
+			          "Type": "File"
+			        }
+			      ]
+			    },
+			    "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": {
+			      "Links": [
+			        {
+			          "Name": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
+			          "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
+			          "Size": 1024,
+			          "Type": "File"
+			        }
+			      ]
+			    }
+			  }
+			}
+		EOF
+		printf %s "$(cat expected_json_ls_duplicates_file_trailing_newline)" >expected_json_ls_duplicates_file &&
+		test_cmp expected_json_ls_duplicates_file actual_json_ls_duplicates_file
 	'
 }
 
