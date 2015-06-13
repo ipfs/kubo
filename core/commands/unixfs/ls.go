@@ -94,7 +94,7 @@ directories, the child size is the IPFS link size.
 			case unixfspb.Data_Directory:
 				output[i].Links = make([]LsLink, len(merkleNode.Links))
 				for j, link := range merkleNode.Links {
-					getCtx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+					getCtx, cancel := context.WithTimeout(ctx, time.Minute)
 					defer cancel()
 					link.Node, err = link.GetNode(getCtx, node.DAG)
 					if err != nil {
