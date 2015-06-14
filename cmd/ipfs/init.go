@@ -102,7 +102,7 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 		return errRepoExists
 	}
 
-	conf, err := config.Init(out, nBitsForKeypair)
+	conf, err := config.Init(out)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 		}
 	}
 
-	if err := fsrepo.Init(repoRoot, conf); err != nil {
+	if err := fsrepo.Init(os.Stdout, repoRoot, conf, nBitsForKeypair); err != nil {
 		return err
 	}
 

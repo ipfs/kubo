@@ -16,7 +16,7 @@ var log = u.Logger("config")
 
 // Config is used to load IPFS config files.
 type Config struct {
-	Identity         Identity              // local node's peer identity
+	Identity         string                // local nodes peerID
 	Datastore        Datastore             // local node's storage
 	Addresses        Addresses             // local node's addresses
 	Mounts           Mounts                // local node's mount points

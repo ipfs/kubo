@@ -2,13 +2,13 @@ package core
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	"github.com/ipfs/go-ipfs/keystore"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
@@ -45,15 +45,15 @@ func defaultRepo() (repo.Repo, error) {
 		return nil, err
 	}
 
-	privkeyb, err := priv.Bytes()
+	c.Bootstrap = cfg.DefaultBootstrapAddresses
+	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001"}
+	c.Identity = key.Key(data).B58String()
+
+	ks := keystore.NewInMemKeystore()
+	err = ks.PutKey("local", priv)
 	if err != nil {
 		return nil, err
 	}
-
-	c.Bootstrap = cfg.DefaultBootstrapAddresses
-	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001"}
-	c.Identity.PeerID = key.Key(data).B58String()
-	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
 
 	return &repo.Mock{
 		D: dsync.MutexWrap(ds.NewMapDatastore()),

@@ -421,7 +421,7 @@ func (n *IpfsNode) loadID() error {
 		return errors.New("identity already loaded")
 	}
 
-	cid := n.Repo.Config().Identity.PeerID
+	cid := n.Repo.Config().Identity
 	if cid == "" {
 		return errors.New("Identity was not set in config (was ipfs init run?)")
 	}
@@ -442,7 +442,7 @@ func (n *IpfsNode) LoadPrivateKey() error {
 		return errors.New("private key already loaded")
 	}
 
-	sk, err := loadPrivateKey(&n.Repo.Config().Identity, n.Identity)
+	sk, err := n.Repo.Keystore().GetKey("local")
 	if err != nil {
 		return err
 	}
@@ -475,24 +475,6 @@ func (n *IpfsNode) SetupOfflineRouting() error {
 	n.Namesys = namesys.NewNameSystem(n.Routing)
 
 	return nil
-}
-
-func loadPrivateKey(cfg *config.Identity, id peer.ID) (ic.PrivKey, error) {
-	sk, err := cfg.DecodePrivateKey("passphrase todo!")
-	if err != nil {
-		return nil, err
-	}
-
-	id2, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		return nil, err
-	}
-
-	if id2 != id {
-		return nil, fmt.Errorf("private key in config does not match id: %s != %s", id, id2)
-	}
-
-	return sk, nil
 }
 
 func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {

@@ -48,11 +48,11 @@ func run() error {
 	}
 
 	if !fsrepo.IsInitialized(repoPath) {
-		conf, err := config.Init(os.Stdout, *nBitsForKeypair)
+		conf, err := config.Init(os.Stdout)
 		if err != nil {
 			return err
 		}
-		if err := fsrepo.Init(repoPath, conf); err != nil {
+		if err := fsrepo.Init(os.Stdout, repoPath, conf, *nBitsForKeypair); err != nil {
 			return err
 		}
 	}
