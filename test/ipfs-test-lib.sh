@@ -22,16 +22,3 @@ test_sort_cmp() {
 	sort "$2" >"$2_sorted" &&
 	test_cmp "$1_sorted" "$2_sorted"
 }
-
-# Depending on GNU seq availability is not nice.
-# Git also has test_seq but it uses Perl.
-test_seq() {
-	test "$1" -le "$2" || return
-	i="$1"
-	j="$2"
-	while test "$i" -le "$j"
-	do
-		echo "$i"
-		i=$(expr "$i" + 1)
-	done
-}
