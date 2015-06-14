@@ -1,4 +1,9 @@
 ---
+build_matrix:
+  all:
+  windows:
+    build_tags:
+      - nofuse
 artifacts:
   - dist/README.md
   - dist/LICENSE
