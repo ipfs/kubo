@@ -61,7 +61,7 @@ func TestDegenerateSlowRouting(t *testing.T) {
 
 func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
-	conf := testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
+	conf := testutil.LatencyConfig{}.NetworkNYtoSF().BlockstoreSlowSSD2014().RoutingSlow()
 	if err := DirectAddCat(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}

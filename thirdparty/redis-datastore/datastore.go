@@ -11,31 +11,31 @@ import (
 	query "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
-var _ datastore.Datastore = &RedisDatastore{}
-var _ datastore.ThreadSafeDatastore = &RedisDatastore{}
+var _ datastore.Datastore = &Datastore{}
+var _ datastore.ThreadSafeDatastore = &Datastore{}
 
 var ErrInvalidType = errors.New("redis datastore: invalid type error. this datastore only supports []byte values")
 
 func NewExpiringDatastore(client *redis.Client, ttl time.Duration) (datastore.ThreadSafeDatastore, error) {
-	return &RedisDatastore{
+	return &Datastore{
 		client: client,
 		ttl:    ttl,
 	}, nil
 }
 
 func NewDatastore(client *redis.Client) (datastore.ThreadSafeDatastore, error) {
-	return &RedisDatastore{
+	return &Datastore{
 		client: client,
 	}, nil
 }
 
-type RedisDatastore struct {
+type Datastore struct {
 	mu     sync.Mutex
 	client *redis.Client
 	ttl    time.Duration
 }
 
-func (ds *RedisDatastore) Put(key datastore.Key, value interface{}) error {
+func (ds *Datastore) Put(key datastore.Key, value interface{}) error {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 
@@ -59,26 +59,26 @@ func (ds *RedisDatastore) Put(key datastore.Key, value interface{}) error {
 	return nil
 }
 
-func (ds *RedisDatastore) Get(key datastore.Key) (value interface{}, err error) {
+func (ds *Datastore) Get(key datastore.Key) (value interface{}, err error) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	return ds.client.Cmd("GET", key.String()).Bytes()
 }
 
-func (ds *RedisDatastore) Has(key datastore.Key) (exists bool, err error) {
+func (ds *Datastore) Has(key datastore.Key) (exists bool, err error) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	return ds.client.Cmd("EXISTS", key.String()).Bool()
 }
 
-func (ds *RedisDatastore) Delete(key datastore.Key) (err error) {
+func (ds *Datastore) Delete(key datastore.Key) (err error) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	return ds.client.Cmd("DEL", key.String()).Err
 }
 
-func (ds *RedisDatastore) Query(q query.Query) (query.Results, error) {
+func (ds *Datastore) Query(q query.Query) (query.Results, error) {
 	return nil, errors.New("TODO implement query for redis datastore?")
 }
 
-func (ds *RedisDatastore) IsThreadSafe() {}
+func (ds *Datastore) IsThreadSafe() {}

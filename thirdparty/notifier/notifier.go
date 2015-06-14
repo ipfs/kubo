@@ -71,7 +71,7 @@ func (n *Notifier) Notify(e Notifiee) {
 	n.mu.Unlock()
 }
 
-// StopNotifying stops notifying Notifiee e. This function
+// StopNotify stops notifying Notifiee e. This function
 // is meant to be called behind your own type-safe function(s):
 //
 //   // generic function for pattern-following
