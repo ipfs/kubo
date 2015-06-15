@@ -17,7 +17,7 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
-	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
+	pss "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/spdystream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -26,9 +26,7 @@ var log = eventlog.Logger("swarm2")
 var PSTransport pst.Transport
 
 func init() {
-	tpt := *psy.DefaultTransport
-	tpt.MaxStreamWindowSize = 512 * 1024
-	PSTransport = &tpt
+	PSTransport = pss.Transport
 }
 
 // Swarm is a connection muxer, allowing connections to other peers to
