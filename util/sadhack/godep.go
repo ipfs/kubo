@@ -6,3 +6,7 @@ import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-hum
 
 // similar to the above, only used in the tests makefile
 import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/iptb"
+
+import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chriscool/go-sleep"
+
+import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/hashicorp/yamux"
