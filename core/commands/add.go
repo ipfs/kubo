@@ -28,6 +28,7 @@ const progressReaderIncrement = 1024 * 256
 
 const (
 	progressOptionName = "progress"
+	trickleOptionName  = "trickle"
 	wrapOptionName     = "wrap-with-directory"
 )
 
@@ -56,7 +57,7 @@ remains to be implemented.
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
-		cmds.BoolOption("t", "trickle", "Use trickle-dag format for dag generation"),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
@@ -89,6 +90,7 @@ remains to be implemented.
 		}
 
 		progress, _, _ := req.Option(progressOptionName).Bool()
+		trickle, _, _ := req.Option(trickleOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
 
 		outChan := make(chan interface{}, 8)
@@ -107,7 +109,7 @@ remains to be implemented.
 					return
 				}
 
-				rootnd, err := addFile(n, file, outChan, progress, wrap)
+				rootnd, err := addFile(n, file, outChan, progress, wrap, trickle)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -217,13 +219,25 @@ remains to be implemented.
 	Type: AddedObject{},
 }
 
-func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
-	node, err := importer.BuildDagFromReader(
-		reader,
-		n.DAG,
-		chunk.DefaultSplitter,
-		importer.PinIndirectCB(n.Pinning.GetManual()),
-	)
+func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error) {
+	var node *dag.Node
+	var err error
+	if useTrickle {
+		node, err = importer.BuildTrickleDagFromReader(
+			reader,
+			n.DAG,
+			chunk.DefaultSplitter,
+			importer.PinIndirectCB(n.Pinning.GetManual()),
+		)
+	} else {
+		node, err = importer.BuildDagFromReader(
+			reader,
+			n.DAG,
+			chunk.DefaultSplitter,
+			importer.PinIndirectCB(n.Pinning.GetManual()),
+		)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -231,9 +245,9 @@ func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
 	return node, nil
 }
 
-func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool) (*dag.Node, error) {
+func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool, useTrickle bool) (*dag.Node, error) {
 	if file.IsDirectory() {
-		return addDir(n, file, out, progress)
+		return addDir(n, file, out, progress, useTrickle)
 	}
 
 	// if the progress flag was specified, wrap the file so that we can send
@@ -255,7 +269,7 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 		return dagnode, nil
 	}
 
-	dagnode, err := add(n, reader)
+	dagnode, err := add(n, reader, useTrickle)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +281,7 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 	return dagnode, nil
 }
 
-func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool) (*dag.Node, error) {
+func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool, useTrickle bool) (*dag.Node, error) {
 	log.Infof("adding directory: %s", dir.FileName())
 
 	tree := &dag.Node{Data: ft.FolderPBData()}
@@ -281,7 +295,7 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 			break
 		}
 
-		node, err := addFile(n, file, out, progress, false)
+		node, err := addFile(n, file, out, progress, false, useTrickle)
 		if err != nil {
 			return nil, err
 		}
