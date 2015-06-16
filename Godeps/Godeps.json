@@ -39,6 +39,10 @@
 			"Rev": "d7729fd7ec1372c15b83db39834bf842bf2d69fb"
 		},
 		{
+			"ImportPath": "github.com/chriscool/go-sleep",
+			"Rev": "743ab5f1bb487edf1772bc29ca0bdf572b40785e"
+		},
+		{
 			"ImportPath": "github.com/codahale/hdrhistogram",
 			"Rev": "5fd85ec0b4e2dd5d4158d257d943f2e586d86b62"
 		},
@@ -61,6 +65,10 @@
 		{
 			"ImportPath": "github.com/cryptix/mdns",
 			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
+		},
+		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",
@@ -164,7 +172,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "8d52ed2801410a2af995b4e87660272d11c8a9a4"
+			"Rev": "4e3bc81fee5e7c149b276ed1c1d7c511a07cc992"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
@@ -276,10 +284,6 @@
 		{
 			"ImportPath": "gopkg.in/tomb.v1",
 			"Rev": "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
-		},
-		{
-			"ImportPath": "github.com/chriscool/go-sleep",
-			"Rev": "743ab5f1bb487edf1772bc29ca0bdf572b40785e"
 		}
 	]
 }
