@@ -4,6 +4,7 @@ package swarm
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -50,6 +51,9 @@ type Swarm struct {
 	notifmu sync.RWMutex
 	notifs  map[inet.Notifiee]ps.Notifiee
 
+	// filters for addresses that shouldnt be dialed
+	filters []*net.IPNet
+
 	cg  ctxgroup.ContextGroup
 	bwc metrics.Reporter
 }
@@ -82,6 +86,10 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 
 func (s *Swarm) teardown() error {
 	return s.swarm.Close()
+}
+
+func (s *Swarm) AddDialFilter(f *net.IPNet) {
+	s.filters = append(s.filters, f)
 }
 
 // CtxGroup returns the Context Group of the swarm

@@ -303,6 +303,8 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	ila, _ := s.InterfaceListenAddresses()
 	remoteAddrs = addrutil.Subtract(remoteAddrs, ila)
 	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addrs(s.local))
+	remoteAddrs = s.filterAddrs(remoteAddrs)
+
 	log.Debugf("%s swarm dialing %s -- local:%s remote:%s", s.local, p, s.ListenAddresses(), remoteAddrs)
 	if len(remoteAddrs) == 0 {
 		err := errors.New("peer has no addresses")
@@ -452,6 +454,32 @@ func (s *Swarm) dialAddr(ctx context.Context, d *conn.Dialer, p peer.ID, addr ma
 
 	// success! we got one!
 	return connC, nil
+}
+
+func (s *Swarm) filterAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	var out []ma.Multiaddr
+	for _, a := range addrs {
+		if !s.addrBlocked(a) {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+func (s *Swarm) addrBlocked(a ma.Multiaddr) bool {
+	_, addr, err := manet.DialArgs(a)
+	if err != nil {
+		// if we cant parse it, its probably not blocked
+		return false
+	}
+
+	ip := net.ParseIP(addr)
+	for _, f := range s.filters {
+		if f.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // dialConnSetup is the setup logic for a connection from the dial side. it

@@ -13,17 +13,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"time"
 
 	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mamask "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	metrics "github.com/ipfs/go-ipfs/metrics"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-
 	diag "github.com/ipfs/go-ipfs/diagnostics"
+	metrics "github.com/ipfs/go-ipfs/metrics"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	discovery "github.com/ipfs/go-ipfs/p2p/discovery"
 	p2phost "github.com/ipfs/go-ipfs/p2p/host"
@@ -32,6 +32,7 @@ import (
 	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
 	routing "github.com/ipfs/go-ipfs/routing"
 	dht "github.com/ipfs/go-ipfs/routing/dht"
@@ -254,7 +255,18 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	// Set reporter
 	n.Reporter = metrics.NewBandwidthCounter()
 
-	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter)
+	// get undialable addrs from config
+	cfg := n.Repo.Config()
+	var addrfilter []*net.IPNet
+	for _, s := range cfg.DialBlocklist {
+		f, err := mamask.NewMask(s)
+		if err != nil {
+			return fmt.Errorf("incorrectly formatter address filter in config: %s", s)
+		}
+		addrfilter = append(addrfilter, f)
+	}
+
+	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter, addrfilter)
 	if err != nil {
 		return err
 	}
@@ -508,12 +520,12 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	return listen, nil
 }
 
-type HostOption func(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter) (p2phost.Host, error)
+type HostOption func(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error)
 
 var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error) {
 
 	// no addresses to begin with. we'll start later.
 	network, err := swarm.NewNetwork(ctx, nil, id, ps, bwr)
