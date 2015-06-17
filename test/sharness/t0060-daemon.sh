@@ -105,7 +105,7 @@ test_expect_success "nc is available" '
 test_expect_success "transport should be encrypted" '
   nc -w 5 localhost 4001 >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
-  test_must_fail grep -q "/ipfs/identify" swarmnc ||
+  test_must_fail grep -q "/multistream/1.0.0" swarmnc ||
 	test_fsh cat swarmnc
 '
 
