@@ -12,10 +12,10 @@ import (
 	"unsafe"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
-	"golang.org/x/net/context"
 )
 
 const (

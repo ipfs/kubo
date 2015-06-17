@@ -7,13 +7,13 @@ import (
 	semver "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/coreos/go-semver/semver"
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	mstream "github.com/ipfs/go-ipfs/metrics/stream"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	pb "github.com/ipfs/go-ipfs/p2p/protocol/identify/pb"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -23,7 +23,7 @@ import (
 var log = eventlog.Logger("net/identify")
 
 // ID is the protocol.ID of the Identify Service.
-const ID protocol.ID = "/ipfs/identify"
+const ID = "/ipfs/identify"
 
 // IpfsVersion holds the current protocol version for a client running this code
 // TODO(jbenet): fix the versioning mess.
@@ -87,14 +87,14 @@ func (ids *IDService) IdentifyConn(c inet.Conn) {
 		s = mstream.WrapStream(s, ID, bwc)
 
 		// ok give the response to our handler.
-		if err := protocol.WriteHeader(s, ID); err != nil {
+		if err := msmux.SelectProtoOrFail(ID, s); err != nil {
 			log.Debugf("error writing stream header for %s", ID)
 			log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer())
 			s.Close()
-			c.Close()
 			return
+		} else {
+			ids.ResponseHandler(s)
 		}
-		ids.ResponseHandler(s)
 	}
 
 	ids.currmu.Lock()
