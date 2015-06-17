@@ -18,6 +18,8 @@ func init() {
 	Configure(LevelError)
 }
 
+var WriterGroup = new(MirrorWriter)
+
 type Option func()
 
 // Configure applies the provided options sequentially from left to right
