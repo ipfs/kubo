@@ -10,6 +10,7 @@ import (
 	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	logging "github.com/ipfs/go-ipfs/vendor/QmQg1J6vikuXF9oDvm4wpdeAUvvkVEKW1EYDw9HhTMnP2b/go-log"
 
+	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -62,7 +63,7 @@ func TestRelaySimple(t *testing.T) {
 
 	// ok now the header's there, we can write the next protocol header.
 	log.Debug("write testing header")
-	if err := protocol.WriteHeader(s, protocol.TestingID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(protocol.TestingID), s); err != nil {
 		t.Fatal(err)
 	}
 
@@ -155,7 +156,7 @@ func TestRelayAcrossFour(t *testing.T) {
 	}
 
 	log.Debugf("write relay header n1->n4 (%s -> %s)", n1p, n4p)
-	if err := protocol.WriteHeader(s, relay.ID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(relay.ID), s); err != nil {
 		t.Fatal(err)
 	}
 	if err := relay.WriteHeader(s, n1p, n4p); err != nil {
@@ -163,7 +164,7 @@ func TestRelayAcrossFour(t *testing.T) {
 	}
 
 	log.Debugf("write relay header n1->n5 (%s -> %s)", n1p, n5p)
-	if err := protocol.WriteHeader(s, relay.ID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(relay.ID), s); err != nil {
 		t.Fatal(err)
 	}
 	if err := relay.WriteHeader(s, n1p, n5p); err != nil {
@@ -172,7 +173,7 @@ func TestRelayAcrossFour(t *testing.T) {
 
 	// ok now the header's there, we can write the next protocol header.
 	log.Debug("write testing header")
-	if err := protocol.WriteHeader(s, protocol.TestingID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(protocol.TestingID), s); err != nil {
 		t.Fatal(err)
 	}
 
@@ -257,7 +258,7 @@ func TestRelayStress(t *testing.T) {
 
 	// ok now the header's there, we can write the next protocol header.
 	log.Debug("write testing header")
-	if err := protocol.WriteHeader(s, protocol.TestingID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(protocol.TestingID), s); err != nil {
 		t.Fatal(err)
 	}
 
