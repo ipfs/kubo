@@ -83,6 +83,11 @@ func (el *eventLogger) EventBegin(ctx context.Context, event string, metadata ..
 
 func (el *eventLogger) Event(ctx context.Context, event string, metadata ...Loggable) {
 
+	// short circuit if theres nothing to write to
+	if !WriterGroup.Active() {
+		return
+	}
+
 	// Collect loggables for later logging
 	var loggables []Loggable
 

@@ -29,3 +29,10 @@ func (mw *MirrorWriter) AddWriter(w io.Writer) {
 	mw.writers = append(mw.writers, w)
 	mw.lk.Unlock()
 }
+
+func (mw *MirrorWriter) Active() (active bool) {
+	mw.lk.Lock()
+	active = len(mw.writers) > 0
+	mw.lk.Unlock()
+	return
+}
