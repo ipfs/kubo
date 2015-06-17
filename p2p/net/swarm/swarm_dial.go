@@ -459,27 +459,11 @@ func (s *Swarm) dialAddr(ctx context.Context, d *conn.Dialer, p peer.ID, addr ma
 func (s *Swarm) filterAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	var out []ma.Multiaddr
 	for _, a := range addrs {
-		if !s.addrBlocked(a) {
+		if !s.Filters.AddrBlocked(a) {
 			out = append(out, a)
 		}
 	}
 	return out
-}
-
-func (s *Swarm) addrBlocked(a ma.Multiaddr) bool {
-	_, addr, err := manet.DialArgs(a)
-	if err != nil {
-		// if we cant parse it, its probably not blocked
-		return false
-	}
-
-	ip := net.ParseIP(addr)
-	for _, f := range s.filters {
-		if f.Contains(ip) {
-			return true
-		}
-	}
-	return false
 }
 
 // dialConnSetup is the setup logic for a connection from the dial side. it
