@@ -24,7 +24,10 @@ func newWriteErrNotifier(w io.Writer) (io.Writer, <-chan error) {
 func (w *writeErrNotifier) Write(b []byte) (int, error) {
 	n, err := w.w.Write(b)
 	if err != nil {
-		w.errs <- err
+		select {
+		case w.errs <- err:
+		default:
+		}
 	}
 	return n, err
 }
