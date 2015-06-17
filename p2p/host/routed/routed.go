@@ -15,6 +15,8 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	routing "github.com/ipfs/go-ipfs/routing"
+
+	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 )
 
 var log = eventlog.Logger("p2p/host/routed")
@@ -97,7 +99,7 @@ func (rh *RoutedHost) Network() inet.Network {
 	return rh.host.Network()
 }
 
-func (rh *RoutedHost) Mux() *protocol.Mux {
+func (rh *RoutedHost) Mux() *msmux.MultistreamMuxer {
 	return rh.host.Mux()
 }
 

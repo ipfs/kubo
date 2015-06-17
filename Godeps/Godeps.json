@@ -76,6 +76,10 @@
 			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
 		},
 		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
@@ -181,7 +185,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "8d52ed2801410a2af995b4e87660272d11c8a9a4"
+			"Rev": "828b1bad61e7265e913afa70db3ac2c5cfa7a94c"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
@@ -277,8 +281,12 @@
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
 		},
 		{
+			"ImportPath": "github.com/whyrusleeping/go-multistream",
+			"Rev": "c9eea2e3be705b7cfd730351b510cfa12ca038f4"
+		},
+		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
-			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
+			"Rev": "fa9bbc437fae1c3a9410e7f1bc3dd02f0449279a"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",

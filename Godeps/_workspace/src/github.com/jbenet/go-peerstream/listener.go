@@ -9,7 +9,7 @@ import (
 )
 
 // AcceptConcurrency is how many connections can simultaneously be
-// in process of being accepted. Handshakes can sometimes occurr as
+// in process of being accepted. Handshakes can sometimes occur as
 // part of this process, so it may take some time. It is imporant to
 // rate limit lest a malicious influx of connections would cause our
 // node to consume all its resources accepting new connections.
@@ -104,6 +104,7 @@ func (l *Listener) accept() {
 			conn2, err := l.swarm.addConn(conn, true)
 			if err != nil {
 				l.acceptErr <- err
+				return
 			}
 			conn2.groups.AddSet(&l.groups) // add out groups
 		}(conn)
