@@ -121,6 +121,13 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	i.ctx.Context = ctx
 	req.SetContext(i.ctx)
 
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			<-cn.CloseNotify()
+			cancel()
+		}()
+	}
+
 	// call the command
 	res := i.root.Call(req)
 
