@@ -8,7 +8,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 )
 
 // mount implements go-ipfs/fuse/mount
@@ -18,12 +18,12 @@ type mount struct {
 	fuseConn *fuse.Conn
 	// closeErr error
 
-	cg ctxgroup.ContextGroup
+	proc goprocess.Process
 }
 
 // Mount mounts a fuse fs.FS at a given location, and returns a Mount instance.
 // parent is a ContextGroup to bind the mount's ContextGroup to.
-func NewMount(p ctxgroup.ContextGroup, fsys fs.FS, mountpoint string, allow_other bool) (Mount, error) {
+func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bool) (Mount, error) {
 	var conn *fuse.Conn
 	var err error
 
@@ -41,9 +41,9 @@ func NewMount(p ctxgroup.ContextGroup, fsys fs.FS, mountpoint string, allow_othe
 		mpoint:   mountpoint,
 		fuseConn: conn,
 		filesys:  fsys,
-		cg:       ctxgroup.WithParent(p), // link it to parent.
+		proc:     goprocess.WithParent(p), // link it to parent.
 	}
-	m.cg.SetTeardown(m.unmount)
+	m.proc.SetTeardown(m.unmount)
 
 	// launch the mounting process.
 	if err := m.mount(); err != nil {
@@ -116,8 +116,8 @@ func (m *mount) unmount() error {
 	return nil
 }
 
-func (m *mount) CtxGroup() ctxgroup.ContextGroup {
-	return m.cg
+func (m *mount) Process() goprocess.Process {
+	return m.proc
 }
 
 func (m *mount) MountPoint() string {
@@ -125,6 +125,6 @@ func (m *mount) MountPoint() string {
 }
 
 func (m *mount) Unmount() error {
-	// call ContextCloser Close(), which calls unmount() exactly once.
-	return m.cg.Close()
+	// call Process Close(), which calls unmount() exactly once.
+	return m.proc.Close()
 }

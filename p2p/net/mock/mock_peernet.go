@@ -9,8 +9,9 @@ import (
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -34,7 +35,7 @@ type peernet struct {
 	notifmu sync.RWMutex
 	notifs  map[inet.Notifiee]struct{}
 
-	cg ctxgroup.ContextGroup
+	proc goprocess.Process
 	sync.RWMutex
 }
 
@@ -57,7 +58,7 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 		mocknet: m,
 		peer:    p,
 		ps:      ps,
-		cg:      ctxgroup.WithContext(ctx),
+		proc:    goprocessctx.WithContext(ctx),
 
 		connsByPeer: map[peer.ID]map[*conn]struct{}{},
 		connsByLink: map[*link]map[*conn]struct{}{},
@@ -223,9 +224,9 @@ func (pn *peernet) removeConn(c *conn) {
 	delete(cs, c)
 }
 
-// CtxGroup returns the network's ContextGroup
-func (pn *peernet) CtxGroup() ctxgroup.ContextGroup {
-	return pn.cg
+// Process returns the network's Process
+func (pn *peernet) Process() goprocess.Process {
+	return pn.proc
 }
 
 // LocalPeer the network's LocalPeer

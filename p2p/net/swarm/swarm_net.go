@@ -8,8 +8,8 @@ import (
 	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -43,9 +43,9 @@ func (n *Network) DialPeer(ctx context.Context, p peer.ID) (inet.Conn, error) {
 	return inet.Conn(sc), nil
 }
 
-// CtxGroup returns the network's ContextGroup
-func (n *Network) CtxGroup() ctxgroup.ContextGroup {
-	return n.cg
+// Process returns the network's Process
+func (n *Network) Process() goprocess.Process {
+	return n.proc
 }
 
 // Swarm returns the network's peerstream.Swarm
@@ -100,7 +100,7 @@ func (n *Network) close() error {
 
 // Close calls the ContextCloser func
 func (n *Network) Close() error {
-	return n.Swarm().cg.Close()
+	return n.Swarm().proc.Close()
 }
 
 // Listen tells the network to start listening on given multiaddrs.

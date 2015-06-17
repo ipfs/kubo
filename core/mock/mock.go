@@ -1,9 +1,9 @@
 package coremock
 
 import (
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
@@ -42,7 +42,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 	nd.Peerstore = peer.NewPeerstore()
 	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
 	nd.Peerstore.AddPubKey(p, ident.PublicKey())
-	nd.ContextGroup = ctxgroup.WithContext(ctx)
+	nd.Process = goprocessctx.WithContext(ctx)
 
 	nd.PeerHost, err = mocknet.New(ctx).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
 	if err != nil {

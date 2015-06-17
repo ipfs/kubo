@@ -17,9 +17,10 @@ import (
 	"time"
 
 	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	mamask "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	diag "github.com/ipfs/go-ipfs/diagnostics"
@@ -105,7 +106,7 @@ type IpfsNode struct {
 
 	IpnsFs *ipnsfs.Filesystem
 
-	ctxgroup.ContextGroup
+	goprocess.Process
 
 	mode mode
 }
@@ -121,12 +122,12 @@ type Mounts struct {
 type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
 func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error) {
-	ctxg := ctxgroup.WithContext(parent)
-	ctx := ctxg.Context()
+	procctx := goprocessctx.WithContext(parent)
+	ctx := parent
 	success := false // flip to true after all sub-system inits succeed
 	defer func() {
 		if !success {
-			ctxg.Close()
+			procctx.Close()
 		}
 	}()
 
@@ -134,7 +135,7 @@ func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error)
 	if err != nil {
 		return nil, err
 	}
-	node.ContextGroup = ctxg
+	node.Process = procctx
 	ctxg.SetTeardown(node.teardown)
 
 	// Need to make sure it's perfectly clear 1) which variables are expected

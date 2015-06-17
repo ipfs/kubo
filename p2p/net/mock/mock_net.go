@@ -13,8 +13,9 @@ import (
 	p2putil "github.com/ipfs/go-ipfs/p2p/test/util"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -31,7 +32,7 @@ type mocknet struct {
 
 	linkDefaults LinkOptions
 
-	cg ctxgroup.ContextGroup // for Context closing
+	proc goprocess.Process // for Context closing
 	sync.RWMutex
 }
 
@@ -40,7 +41,7 @@ func New(ctx context.Context) Mocknet {
 		nets:  map[peer.ID]*peernet{},
 		hosts: map[peer.ID]*bhost.BasicHost{},
 		links: map[peer.ID]map[peer.ID]map[*link]struct{}{},
-		cg:    ctxgroup.WithContext(ctx),
+		proc:  goprocessctx.WithContext(ctx),
 	}
 }
 

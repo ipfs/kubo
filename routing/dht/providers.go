@@ -3,7 +3,8 @@ package dht
 import (
 	"time"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
@@ -21,7 +22,7 @@ type ProviderManager struct {
 	newprovs chan *addProv
 	getprovs chan *getProv
 	period   time.Duration
-	ctxgroup.ContextGroup
+	goprocess.Process
 }
 
 type providerSet struct {
@@ -46,17 +47,13 @@ func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm.providers = make(map[key.Key]*providerSet)
 	pm.getlocal = make(chan chan []key.Key)
 	pm.local = make(map[key.Key]struct{})
-	pm.ContextGroup = ctxgroup.WithContext(ctx)
-
-	pm.Children().Add(1)
-	go pm.run()
+	pm.Process = goprocessctx.WithContext(ctx)
+	pm.Go(pm.run)
 
 	return pm
 }
 
 func (pm *ProviderManager) run() {
-	defer pm.Children().Done()
-
 	tick := time.NewTicker(time.Hour)
 	for {
 		select {

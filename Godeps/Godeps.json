@@ -138,10 +138,6 @@
 			"Rev": "6237cf65f3a6f7111cd8a42be3590df99a66bc7d"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-ctxgroup",
-			"Rev": "c14598396fa31465dc558b176c7976606f95a49d"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-datastore",
 			"Rev": "245a981af3750d7710db13dca731ba8461aa1095"
 		},

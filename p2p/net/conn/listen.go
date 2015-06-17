@@ -5,11 +5,12 @@ import (
 	"io"
 	"net"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	reuseport "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-reuseport"
 	tec "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
@@ -31,7 +32,7 @@ type listener struct {
 
 	wrapper ConnWrapper
 
-	cg ctxgroup.ContextGroup
+	proc goprocess.Process
 }
 
 func (l *listener) teardown() error {
@@ -41,7 +42,7 @@ func (l *listener) teardown() error {
 
 func (l *listener) Close() error {
 	log.Debugf("listener closing: %s %s", l.local, l.Multiaddr())
-	return l.cg.Close()
+	return l.proc.Close()
 }
 
 func (l *listener) String() string {
@@ -157,9 +158,9 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 		Listener: ml,
 		local:    local,
 		privk:    sk,
-		cg:       ctxgroup.WithContext(ctx),
+		proc:     goprocessctx.WithContext(ctx),
 	}
-	l.cg.SetTeardown(l.teardown)
+	l.proc.SetTeardown(l.teardown)
 
 	log.Debugf("Conn Listener on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)
