@@ -5,6 +5,7 @@ package pin
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -243,7 +244,9 @@ func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error)
 
 	rootKey := key.Key(rootKeyBytes)
 
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+	defer cancel()
+
 	root, err := dserv.Get(ctx, rootKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find pinning root object: %v", err)

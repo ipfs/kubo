@@ -19,11 +19,11 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multiplex",
-			"Rev": "ce5baa716247510379cb7640a14da857afd3b622"
+			"Rev": "474b9aebeb391746f304ddf7c764a5da12319857"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multistream",
-			"Rev": "08e8f9c9f5665ed0c63ffde4fa5ef1d5fb3d516d"
+			"Rev": "31bb014803a6eba2261bda5593e42c016a5f33bb"
 		}
 	]
 }
