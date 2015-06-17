@@ -7,6 +7,7 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
 	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
@@ -85,6 +86,8 @@ type Listener interface {
 
 	// LocalPeer is the identity of the local Peer.
 	LocalPeer() peer.ID
+
+	SetAddrFilters(*filter.Filters)
 
 	// Close closes the listener.
 	// Any blocked Accept operations will be unblocked and return errors.

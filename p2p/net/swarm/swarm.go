@@ -4,19 +4,18 @@ package swarm
 
 import (
 	"fmt"
-	"net"
 	"sync"
 	"time"
 
 	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
+	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
 	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
@@ -53,7 +52,7 @@ type Swarm struct {
 	notifs  map[inet.Notifiee]ps.Notifiee
 
 	// filters for addresses that shouldnt be dialed
-	Filters *Filters
+	Filters *filter.Filters
 
 	cg  ctxgroup.ContextGroup
 	bwc metrics.Reporter
@@ -76,7 +75,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		dialT:   DialTimeout,
 		notifs:  make(map[inet.Notifiee]ps.Notifiee),
 		bwc:     bwc,
-		Filters: new(Filters),
+		Filters: new(filter.Filters),
 	}
 
 	// configure Swarm
@@ -88,30 +87,6 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 
 func (s *Swarm) teardown() error {
 	return s.swarm.Close()
-}
-
-type Filters struct {
-	filters []*net.IPNet
-}
-
-func (fs *Filters) AddDialFilter(f *net.IPNet) {
-	fs.filters = append(fs.filters, f)
-}
-
-func (f *Filters) AddrBlocked(a ma.Multiaddr) bool {
-	_, addr, err := manet.DialArgs(a)
-	if err != nil {
-		// if we cant parse it, its probably not blocked
-		return false
-	}
-
-	ip := net.ParseIP(addr)
-	for _, ft := range f.filters {
-		if ft.Contains(ip) {
-			return true
-		}
-	}
-	return false
 }
 
 // CtxGroup returns the Context Group of the swarm

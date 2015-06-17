@@ -303,11 +303,17 @@ func (s *Swarm) dial(ctx context.Context, p peer.ID) (*Conn, error) {
 	ila, _ := s.InterfaceListenAddresses()
 	remoteAddrs = addrutil.Subtract(remoteAddrs, ila)
 	remoteAddrs = addrutil.Subtract(remoteAddrs, s.peers.Addrs(s.local))
-	remoteAddrs = s.filterAddrs(remoteAddrs)
 
 	log.Debugf("%s swarm dialing %s -- local:%s remote:%s", s.local, p, s.ListenAddresses(), remoteAddrs)
 	if len(remoteAddrs) == 0 {
 		err := errors.New("peer has no addresses")
+		logdial["error"] = err
+		return nil, err
+	}
+
+	remoteAddrs = s.filterAddrs(remoteAddrs)
+	if len(remoteAddrs) == 0 {
+		err := errors.New("all adresses for peer have been filtered out")
 		logdial["error"] = err
 		return nil, err
 	}
