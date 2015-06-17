@@ -82,8 +82,11 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if cn, ok := w.(http.CloseNotifier); ok {
 		go func() {
-			<-cn.CloseNotify()
-			cancel()
+			select {
+			case <-cn.CloseNotify():
+				cancel()
+			case <-ctx.Done():
+			}
 		}()
 	}
 
