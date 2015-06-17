@@ -12,14 +12,29 @@ type MirrorWriter struct {
 
 func (mw *MirrorWriter) Write(b []byte) (int, error) {
 	mw.lk.Lock()
-	var filter []io.Writer
-	for _, w := range mw.writers {
+	// write to all writers, and nil out the broken ones.
+	for i, w := range mw.writers {
 		_, err := w.Write(b)
-		if err == nil {
-			filter = append(filter, w)
+		if err != nil {
+			mw.writers[i] = nil
 		}
 	}
-	mw.writers = filter
+
+	// consolidate the slice
+	for i := 0; i < len(mw.writers); i++ {
+		if mw.writers[i] != nil {
+			continue
+		}
+
+		j := len(mw.writers)
+		for ; j > i; j-- {
+			if mw.writers[j] != nil {
+				mw.writers[i], mw.writers[j] = mw.writers[j], nil // swap
+				break
+			}
+		}
+		mw.writers = mw.writers[:j]
+	}
 	mw.lk.Unlock()
 	return len(b), nil
 }
