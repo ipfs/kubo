@@ -26,7 +26,7 @@ func (mw *MirrorWriter) Write(b []byte) (int, error) {
 			continue
 		}
 
-		j := len(mw.writers)
+		j := len(mw.writers) - 1
 		for ; j > i; j-- {
 			if mw.writers[j] != nil {
 				mw.writers[i], mw.writers[j] = mw.writers[j], nil // swap

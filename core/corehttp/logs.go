@@ -29,6 +29,9 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 		default:
 		}
 	}
+	if f, ok := w.w.(http.Flusher); ok {
+		f.Flush()
+	}
 	return n, err
 }
 
@@ -38,6 +41,7 @@ func LogOption() ServeOption {
 			w.WriteHeader(200)
 			wnf, errs := newWriteErrNotifier(w)
 			eventlog.WriterGroup.AddWriter(wnf)
+			log.Event(n.Context(), "log API client connected")
 			<-errs
 		})
 		return mux, nil
