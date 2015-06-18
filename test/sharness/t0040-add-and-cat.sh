@@ -112,6 +112,13 @@ test_expect_success "'ipfs add' output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs add -t' output looks good" '
+	local HASH="QmTmqTcv9Xs8wUSa8aWEtrJUXzKdHvTh1HNWpCBWE7Vm8p" &&
+	echo "added $HASH " >expected &&
+	printf "Hello Neptune!\nHello Pluton!" | ipfs add -t >actual
+	test_cmp expected actual
+'
+
 test_expect_success "'ipfs cat' with stdin input succeeds" '
 	echo "$HASH" | ipfs cat >actual
 '
@@ -196,6 +203,7 @@ test_expect_success "'ipfs add bigfile' output looks good" '
 	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
 '
+
 test_expect_success "'ipfs cat' succeeds" '
 	ipfs cat "$HASH" >actual
 '
@@ -230,6 +238,11 @@ test_expect_success EXPENSIVE "ipfs add bigfile output looks good" '
 	HASH="QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3" &&
 	echo "added $HASH mountdir/bigfile" >expected &&
 	test_cmp expected actual
+'
+
+test_expect_success EXPENSIVE "ipfs add -t bigfile creates a trickledag" '
+	HASH=$(ipfs add -qt mountdir/bigfile)
+	test_links_in_trickle_dag $HASH
 '
 
 test_expect_success EXPENSIVE "ipfs cat succeeds" '
