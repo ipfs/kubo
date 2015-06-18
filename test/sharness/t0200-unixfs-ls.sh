@@ -38,12 +38,24 @@ test_ls_cmd() {
 		test_cmp expected_add actual_add
 	'
 
+	test_expect_success "'ipfs file ls <dir>' succeeds" '
+		ipfs file ls QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy >actual_ls_one_directory
+	'
+
+	test_expect_success "'ipfs file ls <dir>' output looks good" '
+		cat <<-\EOF >expected_ls_one_directory &&
+			1024
+			a
+		EOF
+		test_cmp expected_ls_one_directory actual_ls_one_directory
+	'
+
 	test_expect_success "'ipfs file ls <three dir hashes>' succeeds" '
-		ipfs file ls QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls
+		ipfs file ls QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls_three_directories
 	'
 
 	test_expect_success "'ipfs file ls <three dir hashes>' output looks good" '
-		cat <<-\EOF >expected_ls &&
+		cat <<-\EOF >expected_ls_three_directories &&
 			QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
 			1024
 			a
@@ -58,7 +70,7 @@ test_ls_cmd() {
 			f1
 			f2
 		EOF
-		test_cmp expected_ls actual_ls
+		test_cmp expected_ls_three_directories actual_ls_three_directories
 	'
 
 	test_expect_success "'ipfs file ls <file hashes>' succeeds" '

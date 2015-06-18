@@ -184,9 +184,11 @@ directories, the child size is the IPFS link size.
 				if i > 0 || len(nonDirectories) > 0 {
 					fmt.Fprintln(w)
 				}
-				for _, arg := range directories[i:] {
-					if output.Arguments[arg] == hash {
-						fmt.Fprintf(w, "%s:\n", arg)
+				if len(output.Arguments) > 1 {
+					for _, arg := range directories[i:] {
+						if output.Arguments[arg] == hash {
+							fmt.Fprintf(w, "%s:\n", arg)
+						}
 					}
 				}
 				for _, link := range object.Links {
