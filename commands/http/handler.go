@@ -97,8 +97,6 @@ func NewReadOnlyHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin stri
 		},
 	})
 
-	fmt.Println("Read Only API")
-
 	// Wrap the internal handler with CORS handling-middleware.
 	return &Handler{internal, c.Handler(internal)}
 }
