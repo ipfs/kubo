@@ -75,6 +75,14 @@ test_expect_success "GET /webui/ returns code expected" '
   test_curl_resp_http_code "http://127.0.0.1:$apiport/webui/" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"
 '
 
+test_expect_success "GET /logs returns logs" '
+	test_expect_code 28 curl http://127.0.0.1:$apiport/logs -m1 > log_out
+'
+
+test_expect_success "log output looks good" '
+	grep "log API client connected" log_out
+'
+
 test_kill_ipfs_daemon
 
 test_done

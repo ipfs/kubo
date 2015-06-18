@@ -368,13 +368,7 @@ func (r *FSRepo) openDatastore() error {
 func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 	eventlog.Configure(eventlog.LevelInfo)
 	eventlog.Configure(eventlog.LdJSONFormatter)
-	rotateConf := eventlog.LogRotatorConfig{
-		Filename:   path.Join(repoPath, "logs", "events.log"),
-		MaxSizeMB:  c.Log.MaxSizeMB,
-		MaxBackups: c.Log.MaxBackups,
-		MaxAgeDays: c.Log.MaxAgeDays,
-	}
-	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
+	eventlog.Configure(eventlog.Output(eventlog.WriterGroup))
 }
 
 // Close closes the FSRepo, releasing held resources.

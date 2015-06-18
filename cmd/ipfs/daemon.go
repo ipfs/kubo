@@ -285,6 +285,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
+		corehttp.LogOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
