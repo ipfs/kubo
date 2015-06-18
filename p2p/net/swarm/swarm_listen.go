@@ -64,7 +64,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 		log.Warning("Listener not given PrivateKey, so WILL NOT SECURE conns.")
 	}
 	log.Debugf("Swarm Listening at %s", maddr)
-	list, err := conn.Listen(s.cg.Context(), maddr, s.local, sk)
+	list, err := conn.Listen(s.Context(), maddr, s.local, sk)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 				return
 			}
 		}
-	}(s.cg.Context(), sl)
+	}(s.Context(), sl)
 
 	return nil
 }

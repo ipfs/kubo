@@ -58,8 +58,8 @@ type IpfsDHT struct {
 
 	Validator record.Validator // record validator funcs
 
-	Context context.Context
-	goprocess.Process
+	ctx  context.Context
+	proc goprocess.Process
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
@@ -73,18 +73,18 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	// register for network notifs.
 	dht.host.Network().Notify((*netNotifiee)(dht))
 
-	procctx = goprocessctx.WithContext(ctx)
-	procctx.SetTeardown(func() error {
+	proc := goprocessctx.WithContext(ctx)
+	proc.SetTeardown(func() error {
 		// remove ourselves from network notifs.
 		dht.host.Network().StopNotify((*netNotifiee)(dht))
 		return nil
 	})
-	dht.Process = procctx
-	dht.Context = ctx
+	dht.proc = proc
+	dht.ctx = ctx
 
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
-	dht.providers = NewProviderManager(dht.Context, dht.self)
-	dht.AddChild(dht.providers)
+	dht.providers = NewProviderManager(dht.ctx, dht.self)
+	dht.proc.AddChild(dht.providers.proc)
 
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
@@ -93,7 +93,9 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.Validator["pk"] = record.PublicKeyValidator
 
 	if doPinging {
-		dht.Go(func() { dht.PingRoutine(time.Second * 10) })
+		dht.proc.Go(func(p goprocess.Process) {
+			dht.PingRoutine(time.Second * 10)
+		})
 	}
 	return dht
 }
@@ -360,15 +362,30 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 			rand.Read(id)
 			peers := dht.routingTable.NearestPeers(kb.ConvertKey(key.Key(id)), 5)
 			for _, p := range peers {
-				ctx, cancel := context.WithTimeout(dht.Context, time.Second*5)
+				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*5)
 				_, err := dht.Ping(ctx, p)
 				if err != nil {
 					log.Debugf("Ping error: %s", err)
 				}
 				cancel()
 			}
-		case <-dht.Closing():
+		case <-dht.proc.Closing():
 			return
 		}
 	}
+}
+
+// Context return dht's context
+func (dht *IpfsDHT) Context() context.Context {
+	return dht.ctx
+}
+
+// Process return dht's process
+func (dht *IpfsDHT) Process() goprocess.Process {
+	return dht.proc
+}
+
+// Close calls Process Close
+func (dht *IpfsDHT) Close() error {
+	return dht.proc.Close()
 }

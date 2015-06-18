@@ -106,7 +106,8 @@ type IpfsNode struct {
 
 	IpnsFs *ipnsfs.Filesystem
 
-	goprocess.Process
+	proc goprocess.Process
+	ctx  context.Context
 
 	mode mode
 }
@@ -121,22 +122,23 @@ type Mounts struct {
 
 type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
-func NewIPFSNode(parent context.Context, option ConfigOption) (*IpfsNode, error) {
-	procctx := goprocessctx.WithContext(parent)
-	ctx := parent
-	success := false // flip to true after all sub-system inits succeed
-	defer func() {
-		if !success {
-			procctx.Close()
-		}
-	}()
-
+func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	node, err := option(ctx)
 	if err != nil {
 		return nil, err
 	}
-	node.Process = procctx
-	ctxg.SetTeardown(node.teardown)
+
+	proc := goprocessctx.WithContext(ctx)
+	proc.SetTeardown(node.teardown)
+	node.proc = proc
+	node.ctx = ctx
+
+	success := false // flip to true after all sub-system inits succeed
+	defer func() {
+		if !success {
+			proc.Close()
+		}
+	}()
 
 	// Need to make sure it's perfectly clear 1) which variables are expected
 	// to be initialized at this point, and 2) which variables will be
@@ -346,6 +348,21 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	return nil
 }
 
+// Process returns the Process object
+func (n *IpfsNode) Process() goprocess.Process {
+	return n.proc
+}
+
+// Close calls Close() on the Process object
+func (n *IpfsNode) Close() error {
+	return n.proc.Close()
+}
+
+// Context returns the IpfsNode context
+func (n *IpfsNode) Context() context.Context {
+	return n.ctx
+}
+
 // teardown closes owned children. If any errors occur, this function returns
 // the first error.
 func (n *IpfsNode) teardown() error {
@@ -372,7 +389,7 @@ func (n *IpfsNode) teardown() error {
 	}
 
 	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
-		closers = append(closers, dht)
+		closers = append(closers, dht.Process())
 	}
 
 	if n.PeerHost != nil {

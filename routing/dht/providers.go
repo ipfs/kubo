@@ -22,7 +22,7 @@ type ProviderManager struct {
 	newprovs chan *addProv
 	getprovs chan *getProv
 	period   time.Duration
-	goprocess.Process
+	proc     goprocess.Process
 }
 
 type providerSet struct {
@@ -47,8 +47,8 @@ func NewProviderManager(ctx context.Context, local peer.ID) *ProviderManager {
 	pm.providers = make(map[key.Key]*providerSet)
 	pm.getlocal = make(chan chan []key.Key)
 	pm.local = make(map[key.Key]struct{})
-	pm.Process = goprocessctx.WithContext(ctx)
-	pm.Go(pm.run)
+	pm.proc = goprocessctx.WithContext(ctx)
+	pm.proc.Go(func(p goprocess.Process) { pm.run() })
 
 	return pm
 }
@@ -97,7 +97,7 @@ func (pm *ProviderManager) run() {
 				provs.providers = filtered
 			}
 
-		case <-pm.Closing():
+		case <-pm.proc.Closing():
 			return
 		}
 	}

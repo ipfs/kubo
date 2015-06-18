@@ -13,5 +13,5 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
 	cfg := ipfs.Repo.Config()
 	allow_other := cfg.Mounts.FuseAllowOther
 	fsys := NewFileSystem(ipfs)
-	return mount.NewMount(ipfs, fsys, mountpoint, allow_other)
+	return mount.NewMount(ipfs.Process(), fsys, mountpoint, allow_other)
 }

@@ -3,7 +3,6 @@ package coremock
 import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
-	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
@@ -16,6 +15,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
+	config "github.com/ipfs/go-ipfs/repo/config"
 	offrt "github.com/ipfs/go-ipfs/routing/offline"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
@@ -28,31 +28,36 @@ import (
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
 	ctx := context.TODO()
-	nd := new(core.IpfsNode)
 
 	// Generate Identity
 	ident, err := testutil.RandIdentity()
 	if err != nil {
 		return nil, err
 	}
-
 	p := ident.ID()
-	nd.Identity = p
-	nd.PrivateKey = ident.PrivateKey()
-	nd.Peerstore = peer.NewPeerstore()
-	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
-	nd.Peerstore.AddPubKey(p, ident.PublicKey())
-	nd.Process = goprocessctx.WithContext(ctx)
 
-	nd.PeerHost, err = mocknet.New(ctx).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
+	c := config.Config{
+		Identity: config.Identity{
+			PeerID: p.String(),
+		},
+	}
+
+	nd, err := core.Offline(&repo.Mock{
+		C: c,
+		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
+	})(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Temp Datastore
-	nd.Repo = &repo.Mock{
-		// TODO C: conf,
-		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
+	nd.PrivateKey = ident.PrivateKey()
+	nd.Peerstore = peer.NewPeerstore()
+	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
+	nd.Peerstore.AddPubKey(p, ident.PublicKey())
+
+	nd.PeerHost, err = mocknet.New(ctx).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
+	if err != nil {
+		return nil, err
 	}
 
 	// Routing

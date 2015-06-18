@@ -12,6 +12,7 @@ import (
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	core "github.com/ipfs/go-ipfs/core"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
@@ -78,20 +79,17 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	var serverError error
 	serverExited := make(chan struct{})
 
-	node.Children().Add(1)
-	defer node.Children().Done()
-
-	go func() {
+	node.Process().Go(func(p goprocess.Process) {
 		serverError = http.Serve(lis, handler)
 		close(serverExited)
-	}()
+	})
 
 	// wait for server to exit.
 	select {
 	case <-serverExited:
 
 	// if node being closed before server exits, close server
-	case <-node.Closing():
+	case <-node.Process().Closing():
 		log.Infof("server at %s terminating...", addr)
 
 		lis.Close()

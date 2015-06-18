@@ -65,6 +65,7 @@ type Swarm struct {
 	Filters *filter.Filters
 
 	proc goprocess.Process
+	ctx  context.Context
 	bwc  metrics.Reporter
 }
 
@@ -82,6 +83,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		local:   local,
 		peers:   peers,
 		proc:    goprocessctx.WithContext(ctx),
+		ctx:     ctx,
 		dialT:   DialTimeout,
 		notifs:  make(map[inet.Notifiee]ps.Notifiee),
 		bwc:     bwc,
@@ -135,6 +137,11 @@ func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
 // Process returns the Process of the swarm
 func (s *Swarm) Process() goprocess.Process {
 	return s.proc
+}
+
+// Context returns the context of the swarm
+func (s *Swarm) Context() context.Context {
+	return s.ctx
 }
 
 // Close stops the Swarm.

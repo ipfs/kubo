@@ -16,7 +16,7 @@ func (nn *netNotifiee) DHT() *IpfsDHT {
 func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
 	dht := nn.DHT()
 	select {
-	case <-dht.Closing():
+	case <-dht.Process().Closing():
 		return
 	default:
 	}
@@ -26,7 +26,7 @@ func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
 func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
 	dht := nn.DHT()
 	select {
-	case <-dht.Closing():
+	case <-dht.Process().Closing():
 		return
 	default:
 	}

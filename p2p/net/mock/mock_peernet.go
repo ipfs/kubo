@@ -66,7 +66,7 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 		notifs: make(map[inet.Notifiee]struct{}),
 	}
 
-	n.cg.SetTeardown(n.teardown)
+	n.proc.SetTeardown(n.teardown)
 	return n, nil
 }
 
@@ -94,7 +94,7 @@ func (pn *peernet) allConns() []*conn {
 
 // Close calls the ContextCloser func
 func (pn *peernet) Close() error {
-	return pn.cg.Close()
+	return pn.proc.Close()
 }
 
 func (pn *peernet) Peerstore() peer.Peerstore {
