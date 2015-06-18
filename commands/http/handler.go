@@ -12,6 +12,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	commands "github.com/ipfs/go-ipfs/core/commands"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -21,6 +22,7 @@ var log = u.Logger("commands/http")
 type internalHandler struct {
 	ctx  cmds.Context
 	root *cmds.Command
+	readOnly bool
 }
 
 // The Handler struct is funny because we want to wrap our internal handler
@@ -47,6 +49,10 @@ var mimeTypes = map[string]string{
 	cmds.Text: "text/plain",
 }
 
+var readOnlyCmds = map[*cmds.Command]bool{
+	commands.RefsCmd: true,
+}
+
 func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
 	// allow whitelisted origins (so we can make API requests from the browser)
 	if len(allowedOrigin) > 0 {
@@ -54,7 +60,7 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Han
 	}
 
 	// Create a handler for the API.
-	internal := internalHandler{ctx, root}
+	internal := internalHandler{ctx, root, false}
 
 	// Create a CORS object for wrapping the internal handler.
 	c := cors.New(cors.Options{
@@ -66,6 +72,32 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Han
 			return (allowedOrigin == "*") || (origin == allowedOrigin)
 		},
 	})
+
+	// Wrap the internal handler with CORS handling-middleware.
+	return &Handler{internal, c.Handler(internal)}
+}
+
+func NewReadOnlyHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
+	// allow whitelisted origins (so we can make API requests from the browser)
+	if len(allowedOrigin) > 0 {
+		log.Info("Allowing API requests from origin: " + allowedOrigin)
+	}
+
+	// Create a handler for the API.
+	internal := internalHandler{ctx, root, true}
+
+	// Create a CORS object for wrapping the internal handler.
+	c := cors.New(cors.Options{
+		AllowedMethods: []string{"GET"},
+
+		// use AllowOriginFunc instead of AllowedOrigins because we want to be
+		// restrictive by default.
+		AllowOriginFunc: func(origin string) bool {
+			return (allowedOrigin == "*") || (origin == allowedOrigin)
+		},
+	})
+
+	fmt.Println("Read Only API")
 
 	// Wrap the internal handler with CORS handling-middleware.
 	return &Handler{internal, c.Handler(internal)}
@@ -89,6 +121,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req, err := Parse(r, i.root)
+
 	if err != nil {
 		if err == ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -97,6 +130,15 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write([]byte(err.Error()))
 		return
+	}
+
+	if i.readOnly == true {
+		if _, ok := readOnlyCmds[req.Command()]; !ok {
+			// Or a 404?
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("You may not execute this request on the read-only api."))
+			return
+		}
 	}
 
 	// get the node's context to pass into the commands.
