@@ -96,7 +96,7 @@ func (pm *WantManager) SendBlock(ctx context.Context, env *engine.Envelope) {
 	log.Infof("Sending block %s to %s", env.Peer, env.Block)
 	err := pm.network.SendMessage(ctx, env.Peer, msg)
 	if err != nil {
-		log.Noticef("sendblock error: %s", err)
+		log.Infof("sendblock error: %s", err)
 	}
 }
 
@@ -153,7 +153,7 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 
 	err := mq.network.ConnectTo(conctx, mq.p)
 	if err != nil {
-		log.Noticef("cant connect to peer %s: %s", mq.p, err)
+		log.Infof("cant connect to peer %s: %s", mq.p, err)
 		// TODO: cant connect, what now?
 		return
 	}
@@ -174,7 +174,7 @@ func (mq *msgQueue) doWork(ctx context.Context) {
 	// send wantlist updates
 	err = mq.network.SendMessage(sendctx, mq.p, wlm)
 	if err != nil {
-		log.Noticef("bitswap send error: %s", err)
+		log.Infof("bitswap send error: %s", err)
 		// TODO: what do we do if this fails?
 		return
 	}

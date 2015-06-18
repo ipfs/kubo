@@ -24,7 +24,7 @@ type TestBogusPrivateKey []byte
 type TestBogusPublicKey []byte
 
 func (pk TestBogusPublicKey) Verify(data, sig []byte) (bool, error) {
-	log.Criticalf("TestBogusPublicKey.Verify -- this better be a test!")
+	log.Errorf("TestBogusPublicKey.Verify -- this better be a test!")
 	return bytes.Equal(data, reverse(sig)), nil
 }
 
@@ -33,7 +33,7 @@ func (pk TestBogusPublicKey) Bytes() ([]byte, error) {
 }
 
 func (pk TestBogusPublicKey) Encrypt(b []byte) ([]byte, error) {
-	log.Criticalf("TestBogusPublicKey.Encrypt -- this better be a test!")
+	log.Errorf("TestBogusPublicKey.Encrypt -- this better be a test!")
 	return reverse(b), nil
 }
 
@@ -51,7 +51,7 @@ func (sk TestBogusPrivateKey) GenSecret() []byte {
 }
 
 func (sk TestBogusPrivateKey) Sign(message []byte) ([]byte, error) {
-	log.Criticalf("TestBogusPrivateKey.Sign -- this better be a test!")
+	log.Errorf("TestBogusPrivateKey.Sign -- this better be a test!")
 	return reverse(message), nil
 }
 
@@ -60,7 +60,7 @@ func (sk TestBogusPrivateKey) GetPublic() ic.PubKey {
 }
 
 func (sk TestBogusPrivateKey) Decrypt(b []byte) ([]byte, error) {
-	log.Criticalf("TestBogusPrivateKey.Decrypt -- this better be a test!")
+	log.Errorf("TestBogusPrivateKey.Decrypt -- this better be a test!")
 	return reverse(b), nil
 }
 

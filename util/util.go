@@ -1,4 +1,4 @@
-// package util implements various utility functions used within ipfs
+// Package util implements various utility functions used within ipfs
 // that do not currently have a better place to live.
 package util
 
@@ -95,7 +95,7 @@ func GetenvBool(name string) bool {
 	return v == "true" || v == "t" || v == "1"
 }
 
-// multiErr is a util to return multiple errors
+// MultiErr is a util to return multiple errors
 type MultiErr []error
 
 func (m MultiErr) Error() string {
@@ -116,17 +116,15 @@ func (m MultiErr) Error() string {
 func Partition(subject string, sep string) (string, string, string) {
 	if i := strings.Index(subject, sep); i != -1 {
 		return subject[:i], subject[i : i+len(sep)], subject[i+len(sep):]
-	} else {
-		return subject, "", ""
 	}
+	return subject, "", ""
 }
 
 func RPartition(subject string, sep string) (string, string, string) {
 	if i := strings.LastIndex(subject, sep); i != -1 {
 		return subject[:i], subject[i : i+len(sep)], subject[i+len(sep):]
-	} else {
-		return subject, "", ""
 	}
+	return subject, "", ""
 }
 
 // Hash is the global IPFS hash function. uses multihash SHA2_256, 256 bits

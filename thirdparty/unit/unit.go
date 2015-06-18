@@ -19,7 +19,7 @@ func (i Information) String() string {
 	tmp := int64(i)
 
 	// default
-	var d int64 = tmp
+	var d = tmp
 	symbol := "B"
 
 	switch {

@@ -50,7 +50,7 @@ func (g *SessionGenerator) Next() Instance {
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
-	instances := make([]Instance, 0)
+	var instances []Instance
 	for j := 0; j < n; j++ {
 		inst := g.Next()
 		instances = append(instances, inst)
@@ -87,12 +87,12 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // just a much better idea.
 func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
-	const kWriteCacheElems = 100
+	const writeCacheElems = 100
 
 	adapter := net.Adapter(p)
 	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
 
-	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), kWriteCacheElems)
+	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), writeCacheElems)
 	if err != nil {
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}

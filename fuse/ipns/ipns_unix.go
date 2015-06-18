@@ -462,10 +462,10 @@ func (dir *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDi
 			return err
 		}
 	case *File:
-		log.Critical("Cannot move node into a file!")
+		log.Error("Cannot move node into a file!")
 		return fuse.EPERM
 	default:
-		log.Critical("Unknown node type for rename target dir!")
+		log.Error("Unknown node type for rename target dir!")
 		return errors.New("Unknown fs node type!")
 	}
 	return nil

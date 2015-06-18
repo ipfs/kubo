@@ -21,7 +21,7 @@ func benchmarkAddCat(numBytes int64, conf testutil.LatencyConfig, b *testing.B) 
 	}
 }
 
-var instant = testutil.LatencyConfig{}.All_Instantaneous()
+var instant = testutil.LatencyConfig{}.AllInstantaneous()
 
 func BenchmarkInstantaneousAddCat1KB(b *testing.B)   { benchmarkAddCat(1*unit.KB, instant, b) }
 func BenchmarkInstantaneousAddCat1MB(b *testing.B)   { benchmarkAddCat(1*unit.MB, instant, b) }
@@ -34,7 +34,7 @@ func BenchmarkInstantaneousAddCat64MB(b *testing.B)  { benchmarkAddCat(64*unit.M
 func BenchmarkInstantaneousAddCat128MB(b *testing.B) { benchmarkAddCat(128*unit.MB, instant, b) }
 func BenchmarkInstantaneousAddCat256MB(b *testing.B) { benchmarkAddCat(256*unit.MB, instant, b) }
 
-var routing = testutil.LatencyConfig{}.Routing_Slow()
+var routing = testutil.LatencyConfig{}.RoutingSlow()
 
 func BenchmarkRoutingSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*unit.MB, routing, b) }
 func BenchmarkRoutingSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*unit.MB, routing, b) }
@@ -47,7 +47,7 @@ func BenchmarkRoutingSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*unit.MB
 func BenchmarkRoutingSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*unit.MB, routing, b) }
 func BenchmarkRoutingSlowAddCat512MB(b *testing.B) { benchmarkAddCat(512*unit.MB, routing, b) }
 
-var network = testutil.LatencyConfig{}.Network_NYtoSF()
+var network = testutil.LatencyConfig{}.NetworkNYtoSF()
 
 func BenchmarkNetworkSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*unit.MB, network, b) }
 func BenchmarkNetworkSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*unit.MB, network, b) }
@@ -59,7 +59,7 @@ func BenchmarkNetworkSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*unit.MB,
 func BenchmarkNetworkSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*unit.MB, network, b) }
 func BenchmarkNetworkSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*unit.MB, network, b) }
 
-var hdd = testutil.LatencyConfig{}.Blockstore_7200RPM()
+var hdd = testutil.LatencyConfig{}.Blockstore7200RPM()
 
 func BenchmarkBlockstoreSlowAddCat1MB(b *testing.B)   { benchmarkAddCat(1*unit.MB, hdd, b) }
 func BenchmarkBlockstoreSlowAddCat2MB(b *testing.B)   { benchmarkAddCat(2*unit.MB, hdd, b) }
@@ -71,7 +71,7 @@ func BenchmarkBlockstoreSlowAddCat64MB(b *testing.B)  { benchmarkAddCat(64*unit.
 func BenchmarkBlockstoreSlowAddCat128MB(b *testing.B) { benchmarkAddCat(128*unit.MB, hdd, b) }
 func BenchmarkBlockstoreSlowAddCat256MB(b *testing.B) { benchmarkAddCat(256*unit.MB, hdd, b) }
 
-var mixed = testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
+var mixed = testutil.LatencyConfig{}.NetworkNYtoSF().BlockstoreSlowSSD2014().RoutingSlow()
 
 func BenchmarkMixedAddCat1MBXX(b *testing.B) { benchmarkAddCat(1*unit.MB, mixed, b) }
 func BenchmarkMixedAddCat2MBXX(b *testing.B) { benchmarkAddCat(2*unit.MB, mixed, b) }

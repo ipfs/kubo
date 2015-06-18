@@ -80,7 +80,7 @@ func (fs *Filesystem) Close() error {
 			defer wg.Done()
 			err := r.Publish(context.TODO())
 			if err != nil {
-				log.Notice(err)
+				log.Info(err)
 				return
 			}
 		}(r)
@@ -285,7 +285,7 @@ func (np *Republisher) Run(ctx context.Context) {
 			log.Info("Publishing Changes!")
 			err := np.root.Publish(ctx)
 			if err != nil {
-				log.Critical("republishRoot error: %s", err)
+				log.Error("republishRoot error: %s", err)
 			}
 
 		case <-ctx.Done():

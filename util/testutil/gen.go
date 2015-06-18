@@ -122,7 +122,7 @@ func (p *PeerNetParams) checkKeys() error {
 		return fmt.Errorf("sig verify failed: %s", err)
 	}
 	if !sigok {
-		return fmt.Errorf("sig verify failed: sig invalid!")
+		return fmt.Errorf("sig verify failed: sig invalid")
 	}
 
 	return nil // ok. move along.
