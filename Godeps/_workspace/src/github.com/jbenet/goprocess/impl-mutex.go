@@ -114,6 +114,16 @@ func (p *process) Go(f ProcessFunc) Process {
 	return child
 }
 
+// SetTeardown to assign a teardown function
+func (p *process) SetTeardown(tf TeardownFunc) {
+	if tf == nil {
+		tf = nilTeardownFunc
+	}
+	p.Lock()
+	p.teardown = tf
+	p.Unlock()
+}
+
 // Close is the external close function.
 // it's a wrapper around internalClose that waits on Closed()
 func (p *process) Close() error {
