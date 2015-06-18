@@ -115,6 +115,9 @@ type Process interface {
 	// It is useful to construct simple asynchronous workers, children of p.
 	Go(f ProcessFunc) Process
 
+	// SetTeardown sets the process's teardown to tf.
+	SetTeardown(tf TeardownFunc)
+
 	// Close ends the process. Close blocks until the process has completely
 	// shut down, and any teardown has run _exactly once_. The returned error
 	// is available indefinitely: calling Close twice returns the same error.

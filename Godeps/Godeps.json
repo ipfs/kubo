@@ -39,6 +39,10 @@
 			"Rev": "d7729fd7ec1372c15b83db39834bf842bf2d69fb"
 		},
 		{
+			"ImportPath": "github.com/chriscool/go-sleep",
+			"Rev": "743ab5f1bb487edf1772bc29ca0bdf572b40785e"
+		},
+		{
 			"ImportPath": "github.com/codahale/hdrhistogram",
 			"Rev": "5fd85ec0b4e2dd5d4158d257d943f2e586d86b62"
 		},
@@ -184,7 +188,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "ea63e9540cd19cb39e0e4c4442b9c27664287bb8"
+			"Rev": "67fe91f1081e806f1bb51051c972ac782ea46d85"
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",

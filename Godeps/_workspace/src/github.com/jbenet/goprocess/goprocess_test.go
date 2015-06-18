@@ -123,17 +123,13 @@ func TestTeardownCalledOnce(t *testing.T) {
 		}
 	}
 
-	setTeardown := func(t tree, tf TeardownFunc) {
-		t.Process.(*process).teardown = tf
-	}
-
-	setTeardown(a, onlyOnce())
-	setTeardown(a.c[0], onlyOnce())
-	setTeardown(a.c[0].c[0], onlyOnce())
-	setTeardown(a.c[0].c[1], onlyOnce())
-	setTeardown(a.c[1], onlyOnce())
-	setTeardown(a.c[1].c[0], onlyOnce())
-	setTeardown(a.c[1].c[1], onlyOnce())
+	a.SetTeardown(onlyOnce())
+	a.c[0].SetTeardown(onlyOnce())
+	a.c[0].c[0].SetTeardown(onlyOnce())
+	a.c[0].c[1].SetTeardown(onlyOnce())
+	a.c[1].SetTeardown(onlyOnce())
+	a.c[1].c[0].SetTeardown(onlyOnce())
+	a.c[1].c[1].SetTeardown(onlyOnce())
 
 	a.c[0].c[0].Close()
 	a.c[0].c[0].Close()
