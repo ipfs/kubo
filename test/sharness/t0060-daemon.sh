@@ -36,6 +36,11 @@ test_expect_success "'ipfs config Identity.PeerID' works" '
   ipfs config Identity.PeerID >config_peerId
 '
 
+test_expect_success "'ipfs swarm addrs local' works" '
+  ipfs swarm addrs local >local_addrs
+'
+
+
 # this is lifted straight from t0020-init.sh
 test_expect_success "ipfs peer id looks good" '
   PEERID=$(cat config_peerId) &&
@@ -60,6 +65,7 @@ test_expect_success "ipfs daemon output looks good" '
   echo "peer identity: $PEERID" >>expected_daemon &&
   echo "to get started, enter:" >>expected_daemon &&
   printf "\\n\\t$STARTFILE\\n\\n" >>expected_daemon &&
+  cat local_addrs | sed "s/^/Swarm listening on /" >>expected_daemon &&
   echo "API server listening on /ip4/127.0.0.1/tcp/5001" >>expected_daemon &&
   echo "Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon

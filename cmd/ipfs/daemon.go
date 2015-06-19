@@ -6,6 +6,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 
@@ -179,6 +180,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		return
 	}
 
+	printSwarmAddrs(node)
+
 	defer func() {
 		// We wait for the node to close first, as the node has children
 		// that it will wait for before closing, such as the API server.
@@ -303,6 +306,19 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		close(errc)
 	}()
 	return nil, errc
+}
+
+// printSwarmAddrs prints the addresses of the host
+func printSwarmAddrs(node *core.IpfsNode) {
+	var addrs []string
+	for _, addr := range node.PeerHost.Addrs() {
+		addrs = append(addrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(addrs))
+
+	for _, addr := range addrs {
+		fmt.Printf("Swarm listening on %s\n", addr)
+	}
 }
 
 // serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
