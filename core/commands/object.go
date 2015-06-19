@@ -75,12 +75,12 @@ var objectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the raw bytes in an IPFS object",
 		ShortDescription: `
-ipfs data is a plumbing command for retreiving the raw bytes stored in
+ipfs object data is a plumbing command for retreiving the raw bytes stored in
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 `,
 		LongDescription: `
-ipfs data is a plumbing command for retreiving the raw bytes stored in
+ipfs object data is a plumbing command for retreiving the raw bytes stored in
 a DAG node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 
@@ -411,7 +411,7 @@ var objectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create a new merkledag object based on an existing one",
 		ShortDescription: `
-'ipfs patch <root> [add-link|rm-link] <args>' is a plumbing command used to
+'ipfs object patch <root> [add-link|rm-link] <args>' is a plumbing command used to
 build custom DAG objects. It adds and removes links from objects, creating a new
 object as a result. This is the merkle-dag version of modifying an object.
 
@@ -419,12 +419,12 @@ Examples:
 
     EMPTY_DIR=$(ipfs object new unixfs-dir)
     BAR=$(echo "bar" | ipfs add -q)
-    ipfs patch $EMPTY_DIR add-link foo $BAR
+    ipfs object patch $EMPTY_DIR add-link foo $BAR
 
 This takes an empty directory, and adds a link named foo under it, pointing to
 a file containing 'bar', and returns the hash of the new object.
 
-    ipfs patch $FOO_BAR rm-link foo
+    ipfs object patch $FOO_BAR rm-link foo
 
 This removes the link named foo from the hash in $FOO_BAR and returns the
 resulting object hash.
