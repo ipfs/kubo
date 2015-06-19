@@ -8,6 +8,8 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
+# TODO: randomize ports here once we add --config to ipfs daemon
+
 # this needs to be in a different test than "ipfs daemon --init" below
 test_expect_success "setup IPFS_PATH" '
   IPFS_PATH="$(pwd)/.ipfs" &&
@@ -89,6 +91,16 @@ test_expect_success "ipfs help output looks good" '
 	cat help.txt | egrep -i "^Usage:" >/dev/null &&
 	cat help.txt | egrep "ipfs .* <command>" >/dev/null ||
 	test_fsh cat help.txt
+'
+
+# check transport is encrypted
+
+test_expect_success 'transport should be encrypted' '
+  nc localhost 4001 >swarmnc &
+  go-sleep 0.1s &&
+  grep -q "AES-256,AES-128" swarmnc &&
+  ! grep -q "/ipfs/identify" swarmnc ||
+	test_fsh cat swarmnc
 '
 
 # end same as in t0010
