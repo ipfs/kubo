@@ -19,6 +19,7 @@ import (
 	commands "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/ipfs/go-ipfs/core/corerouting"
+	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	util "github.com/ipfs/go-ipfs/util"
@@ -32,7 +33,8 @@ const (
 	writableKwd               = "writable"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
-	unrestrictedApiAccess     = "unrestricted-api"
+	unrestrictedApiAccessKwd  = "unrestricted-api"
+	unencryptTransportKwd     = "disable-transport-encryption"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -76,7 +78,8 @@ the port as you would other services or database (firewall, authenticated proxy,
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount)"),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount)"),
-		cmds.BoolOption(unrestrictedApiAccess, "Allow API access to unlisted hashes"),
+		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
+		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -109,6 +112,14 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 			fmt.Println("Received interrupt signal, shutting down...")
 		}
 	}()
+
+	// check transport encryption flag.
+	unencrypted, _, _ := req.Option(unencryptTransportKwd).Bool()
+	if unencrypted {
+		log.Warningf(`Running with --%s: All connections are UNENCRYPTED.
+		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
+		conn.EncryptConnections = false
+	}
 
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
@@ -259,9 +270,9 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	apiMaddr = apiLis.Multiaddr()
 	fmt.Printf("API server listening on %s\n", apiMaddr)
 
-	unrestricted, _, err := req.Option(unrestrictedApiAccess).Bool()
+	unrestricted, _, err := req.Option(unrestrictedApiAccessKwd).Bool()
 	if err != nil {
-		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccess, err), nil
+		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
 
 	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{

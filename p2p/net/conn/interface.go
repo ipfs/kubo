@@ -93,3 +93,11 @@ type Listener interface {
 	// Any blocked Accept operations will be unblocked and return errors.
 	Close() error
 }
+
+// EncryptConnections is a global parameter because it should either be
+// enabled or _completely disabled_. I.e. a node should only be able to talk
+// to proper (encrypted) networks if it is encrypting all its transports.
+// Running a node with disabled transport encryption is useful to debug the
+// protocols, achieve implementation interop, or for private networks which
+// -- for whatever reason -- _must_ run unencrypted.
+var EncryptConnections = true

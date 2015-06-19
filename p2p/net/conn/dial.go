@@ -60,7 +60,7 @@ func (d *Dialer) Dial(ctx context.Context, raddr ma.Multiaddr, remote peer.ID) (
 			return
 		}
 
-		if d.PrivateKey == nil {
+		if d.PrivateKey == nil || EncryptConnections == false {
 			log.Warning("dialer %s dialing INSECURELY %s at %s!", d, remote, raddr)
 			connOut = c
 			return
