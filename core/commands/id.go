@@ -46,6 +46,7 @@ ipfs id supports the format option for output with the following keys:
 <aver>: agent version
 <pver>: protocol version
 <pubkey>: public key
+<addrs>: addresses (newline delimited)
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -119,6 +120,9 @@ ipfs id supports the format option for output with the following keys:
 				output = strings.Replace(output, "<aver>", val.AgentVersion, -1)
 				output = strings.Replace(output, "<pver>", val.ProtocolVersion, -1)
 				output = strings.Replace(output, "<pubkey>", val.PublicKey, -1)
+				output = strings.Replace(output, "<addrs>", strings.Join(val.Addresses, "\n"), -1)
+				output = strings.Replace(output, "\\n", "\n", -1)
+				output = strings.Replace(output, "\\t", "\t", -1)
 				return strings.NewReader(output), nil
 			} else {
 
