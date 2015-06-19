@@ -52,4 +52,16 @@ test_expect_success "resolve output looks good" '
 	test_cmp output expected4
 '
 
+# publish with an explicit node ID
+
+test_expect_success "'ipfs name publish <local-id> <hash>' succeeds" '
+	PEERID=`ipfs id --format="<id>"` &&
+	ipfs name publish "${PEERID}" "/ipfs/$HASH_WELCOME_DOCS" >actual_node_id_publish
+'
+
+test_expect_success "publish with our explicit node ID looks good" '
+	echo "Published to ${PEERID}: /ipfs/$HASH_WELCOME_DOCS" >expected_node_id_publish &&
+	test_cmp expected_node_id_publish actual_node_id_publish
+'
+
 test_done
