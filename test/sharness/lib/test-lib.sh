@@ -193,8 +193,10 @@ test_config_ipfs_gateway_writable() {
 
 test_launch_ipfs_daemon() {
 
+	args=$1
+
 	test_expect_success "'ipfs daemon' succeeds" '
-		ipfs daemon >actual_daemon 2>daemon_err &
+		ipfs daemon $args >actual_daemon 2>daemon_err &
 	'
 
 	# we say the daemon is ready when the API server is ready.
