@@ -114,14 +114,10 @@ test_ls_cmd() {
 			  },
 			  "Objects": {
 			    "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": {
-			      "Links": [
-			        {
-			          "Name": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
-			          "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
-			          "Size": 1024,
-			          "Type": "File"
-			        }
-			      ]
+			      "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
+			      "Size": 1024,
+			      "Type": "File",
+			      "Links": null
 			    }
 			  }
 			}
@@ -145,6 +141,9 @@ test_ls_cmd() {
 			  },
 			  "Objects": {
 			    "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss": {
+			      "Hash": "QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss",
+			      "Size": 0,
+			      "Type": "Directory",
 			      "Links": [
 			        {
 			          "Name": "128",
@@ -161,14 +160,10 @@ test_ls_cmd() {
 			      ]
 			    },
 			    "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd": {
-			      "Links": [
-			        {
-			          "Name": "/ipfs/QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy/1024",
-			          "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
-			          "Size": 1024,
-			          "Type": "File"
-			        }
-			      ]
+			      "Hash": "QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd",
+			      "Size": 1024,
+			      "Type": "File",
+			      "Links": null
 			    }
 			  }
 			}

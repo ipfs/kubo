@@ -24,6 +24,9 @@ type LsLink struct {
 }
 
 type LsObject struct {
+	Hash  string
+	Size  uint64
+	Type  string
 	Links []LsLink
 }
 
@@ -85,8 +88,6 @@ directories, the child size is the IPFS link size.
 				continue
 			}
 
-			output.Objects[hash] = &LsObject{}
-
 			unixFSNode, err := unixfs.FromBytes(merkleNode.Data)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
@@ -94,22 +95,19 @@ directories, the child size is the IPFS link size.
 			}
 
 			t := unixFSNode.GetType()
+
+			output.Objects[hash] = &LsObject{
+				Hash: key.String(),
+				Type: t.String(),
+				Size: unixFSNode.GetFilesize(),
+			}
+
 			switch t {
 			default:
 				res.SetError(fmt.Errorf("unrecognized type: %s", t), cmds.ErrImplementation)
 				return
 			case unixfspb.Data_File:
-				key, err := merkleNode.Key()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-				output.Objects[hash].Links = []LsLink{LsLink{
-					Name: fpath,
-					Hash: key.String(),
-					Type: t.String(),
-					Size: unixFSNode.GetFilesize(),
-				}}
+				break
 			case unixfspb.Data_Directory:
 				links := make([]LsLink, len(merkleNode.Links))
 				output.Objects[hash].Links = links
@@ -159,10 +157,10 @@ directories, the child size is the IPFS link size.
 					return nil, fmt.Errorf("unresolved hash: %s", hash)
 				}
 
-				if len(object.Links) == 1 && object.Links[0].Hash == hash {
-					nonDirectories = append(nonDirectories, argument)
-				} else {
+				if object.Type == "Directory" {
 					directories = append(directories, argument)
+				} else {
+					nonDirectories = append(nonDirectories, argument)
 				}
 			}
 			sort.Strings(nonDirectories)
