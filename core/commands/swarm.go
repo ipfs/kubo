@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -91,6 +92,9 @@ var swarmAddrsCmd = &cmds.Command{
 ipfs swarm addrs lists all addresses this node is aware of.
 `,
 	},
+	Subcommands: map[string]*cmds.Command{
+		"local": swarmAddrsLocalCmd,
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		n, err := req.Context().GetNode()
@@ -142,6 +146,50 @@ ipfs swarm addrs lists all addresses this node is aware of.
 		},
 	},
 	Type: addrMap{},
+}
+
+var swarmAddrsLocalCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List local addresses.",
+		ShortDescription: `
+ipfs swarm addrs local lists all local addresses the node is listening on.
+`,
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("id", "Show peer ID in addresses"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		showid, _, _ := req.Option("id").Bool()
+		id := n.Identity.Pretty()
+
+		var addrs []string
+		for _, addr := range n.PeerHost.Addrs() {
+			saddr := addr.String()
+			if showid {
+				saddr = path.Join(saddr, "ipfs", id)
+			}
+			addrs = append(addrs, saddr)
+		}
+		sort.Sort(sort.StringSlice(addrs))
+
+		res.SetOutput(&stringList{addrs})
+	},
+	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
 }
 
 var swarmConnectCmd = &cmds.Command{
