@@ -26,6 +26,9 @@ type Conn interface {
 // WrapNetConn wraps a net.Conn object with a Multiaddr
 // friendly Conn.
 func WrapNetConn(nconn net.Conn) (Conn, error) {
+	if nconn == nil {
+		return nil, fmt.Errorf("failed to convert nconn.LocalAddr: nil")
+	}
 
 	laddr, err := FromNetAddr(nconn.LocalAddr())
 	if err != nil {
