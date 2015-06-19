@@ -271,11 +271,6 @@
 		{
 			"ImportPath": "gopkg.in/tomb.v1",
 			"Rev": "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
-		},
-		{
-			"ImportPath": "github.com/chriscool/go-sleep",
-			"Rev": "743ab5f1bb487edf1772bc29ca0bdf572b40785e"
 		}
-
 	]
 }
