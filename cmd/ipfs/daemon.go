@@ -300,6 +300,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	errc := make(chan error)
 	go func() {
 		errc <- corehttp.Serve(node, apiLis.NetListener(), opts...)
+		close(errc)
 	}()
 	return nil, errc
 }
@@ -355,6 +356,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	errc := make(chan error)
 	go func() {
 		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
+		close(errc)
 	}()
 	return nil, errc
 }
