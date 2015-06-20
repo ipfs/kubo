@@ -72,16 +72,19 @@ Publish an <ipfs-path> to another public key (not implemented):
 			return
 		}
 
+		var name string
 		var pstr string
 
 		switch len(args) {
 		case 2:
-			// name = args[0]
+			name = args[0]
 			pstr = args[1]
-			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
-			return
+			if name != n.Identity.Pretty() {
+				res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
+				return
+			}
 		case 1:
-			// name = n.Identity.ID.String()
+			// name = n.Identity.Pretty()
 			pstr = args[0]
 		}
 
