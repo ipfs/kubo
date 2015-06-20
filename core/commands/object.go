@@ -305,6 +305,26 @@ Data should be in the format specified by the --inputenc flag.
 --inputenc may be one of the following:
 	* "protobuf"
 	* "json" (default)
+
+Examples:
+
+	echo '{ "Data": "abc" }' | ipfs object put
+
+This creates a node with the data "abc" and no links. For an object with links,
+create a file named node.json with the contents:
+
+    {
+        "Data": "another",
+        "Links": [ {
+            "Name": "some link",
+            "Hash": "QmXg9Pp2ytZ14xgmQjYEiHjVjMFXzCVVEcRTWJBmLgR39V",
+            "Size": 8
+        } ]
+    }
+
+and then run
+
+	ipfs object put node.json
 `,
 	},
 
