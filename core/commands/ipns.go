@@ -10,7 +10,7 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-var ipnsCmd = &cmds.Command{
+var IpnsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Gets the value currently published at an IPNS name",
 		ShortDescription: `

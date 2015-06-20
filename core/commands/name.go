@@ -51,7 +51,7 @@ Resolve the value of another name:
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"publish": publishCmd,
-		"resolve": ipnsCmd,
+		"publish": PublishCmd,
+		"resolve": IpnsCmd,
 	},
 }
