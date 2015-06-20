@@ -1,13 +1,32 @@
 # go-ipfs changelog
 
-### 0.3.6 - unreleased
+### 0.4.0 - unreleased
 
 We don't know what the main changes will be yet.
 
+#### User interface changes
+
+* `ipfs object patch ...` now bubbles changes up the DAG. @whyrusleeping, #1404
+* trickle-DAG option (`ipfs add -t ...`) now acts as
+  advertized. @dylanPowers, #1379
+* trailing tabs removed from `ipfs ls ...` output. @wking, #1346
+* event logs are now HTTP-only. @whyrusleeping, #1382
+* `ipfs name publish <your-local-node-ID> <hash-to-publish>`
+  works. @wking, #1398
+* daemon shuts down cleanly on ctrl-c. @whyrusleeping, #1405
+* better docs. @dylanPowers, #1400, #1402
+
 #### Stability and performance
 
+* better Linux FUSE-mount errors for missing mount points, @jbenet, #1391
 * prevent wantmanager from leaking goroutines (and
   memory). @whyrusleeping, #1356
+* store pins in IPFS objects. @tv42, #1381
+* better context handling. @whyrusleeping, #1367
+* sharness improvements. @chriscool, @Luzifer, #1370, #1371, #1372
+* dependency update for goprocess, @jbenet, #1392
+* internal polishing. @lgierth, @rht, @jbenet, @wking, #1377, #1359,
+  #1395, #1397
 
 ### 0.3.5 - 2015-06-11
 
