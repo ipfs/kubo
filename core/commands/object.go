@@ -582,36 +582,75 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	name := req.Arguments()[2]
+	path := req.Arguments()[2]
 	childk := key.B58KeyDecode(req.Arguments()[3])
 
-	newkey, err := addLink(req.Context().Context, nd.DAG, root, name, childk)
+	parts := strings.Split(path, "/")
+
+	nnode, err := insertNodeAtPath(req.Context().Context, nd.DAG, root, parts, childk)
 	if err != nil {
 		return "", err
 	}
-
-	return newkey, nil
+	return nnode.Key()
 }
 
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (key.Key, error) {
+func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	childnd, err := ds.Get(ctx, childk)
 	if err != nil {
 		cancel()
-		return "", err
+		return nil, err
 	}
 	cancel()
 
 	err = root.AddNodeLinkClean(childname, childnd)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	newkey, err := ds.Add(root)
+	_, err = ds.Add(root)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return newkey, nil
+	return root, nil
+}
+
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key) (*dag.Node, error) {
+	if len(path) == 1 {
+		return addLink(ctx, ds, root, path[0], toinsert)
+	}
+
+	child, err := root.GetNodeLink(path[0])
+	if err != nil {
+		return nil, err
+	}
+
+	nd, err := child.GetNode(ctx, ds)
+	if err != nil {
+		return nil, err
+	}
+
+	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert)
+	if err != nil {
+		return nil, err
+	}
+
+	err = root.RemoveNodeLink(path[0])
+	if err != nil {
+		return nil, err
+	}
+
+	err = root.AddNodeLinkClean(path[0], ndprime)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = ds.Add(root)
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
 }
 
 func nodeFromTemplate(template string) (*dag.Node, error) {
