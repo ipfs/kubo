@@ -134,6 +134,23 @@ test_object_cmd() {
 		test_cmp set_data_overwrite_expected set_data_overwrite
 	'
 
+	test_expect_success "'ipfs object patch append-data' should work" '
+		EMPTY=$(ipfs object new) &&
+		printf %s "hello world" >empty_append_data_expected &&
+		PATCHED=$(ipfs object patch $EMPTY append-data "$(<empty_append_data_expected)") &&
+		ipfs object data $PATCHED >empty_append_data &&
+		test_cmp empty_append_data_expected empty_append_data
+	'
+
+	test_expect_success "'ipfs object patch append-data' should append to existing data" '
+		EMPTY=$(ipfs object new) &&
+		printf %s "hello world" >append_data_expected &&
+		P1=$(ipfs object patch $EMPTY append-data "hello") &&
+		P2=$(ipfs object patch $P1 append-data " world") &&
+		ipfs object data $P2 >append_data &&
+		test_cmp append_data_expected append_data_expected
+	'
+
 	test_expect_success "multilayer patch add-link auto-creates directories" '
 		echo "hello world" > hwfile &&
 		FILE=$(ipfs add -q hwfile) &&
