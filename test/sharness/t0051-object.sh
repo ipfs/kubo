@@ -118,6 +118,22 @@ test_object_cmd() {
 		test_cmp rmlink_exp rmlink_output
 	'
 
+	test_expect_success "'ipfs object patch set-data' should work" '
+		EMPTY=$(ipfs object new) &&
+		printf %s "hello world" >set_data_expected &&
+		PATCHED=$(ipfs object patch $EMPTY set-data "$(<set_data_expected)") &&
+		ipfs object data $PATCHED >set_data &&
+		test_cmp set_data_expected set_data
+	'
+
+	test_expect_success "'ipfs object patch set-data' should overwrite existing data" '
+		EMPTY_DIR=$(ipfs object new unixfs-dir) &&
+		printf %s "hello world" >set_data_overwrite_expected &&
+		PATCHED=$(ipfs object patch $EMPTY_DIR set-data "$(<set_data_overwrite_expected)") &&
+		ipfs object data $PATCHED >set_data_overwrite &&
+		test_cmp set_data_overwrite_expected set_data_overwrite
+	'
+
 	test_expect_success "multilayer patch add-link auto-creates directories" '
 		echo "hello world" > hwfile &&
 		FILE=$(ipfs add -q hwfile) &&
