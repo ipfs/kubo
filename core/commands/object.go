@@ -602,65 +602,77 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
+	ctx := req.Context().Context
 	path := req.Arguments()[2]
-	childk := key.B58KeyDecode(req.Arguments()[3])
+	insertk := key.B58KeyDecode(req.Arguments()[3])
+
+	toinsert, err := nd.DAG.Get(ctx, insertk)
+	if err != nil {
+		return "", err
+	}
 
 	parts := strings.Split(path, "/")
 
-	nnode, err := insertNodeAtPath(req.Context().Context, nd.DAG, root, parts, childk)
+	nnode, err := insertNodeAtPath(ctx, nd.DAG, root, parts, toinsert)
 	if err != nil {
 		return "", err
 	}
 	return nnode.Key()
 }
 
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	childnd, err := ds.Get(ctx, childk)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-	cancel()
-
-	err = root.AddNodeLinkClean(childname, childnd)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-	return root, nil
-}
-
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key) (*dag.Node, error) {
+// insertNodeAtPath follows the relative 'path' from 'root', creating
+// empty nodes as needed, and adjusts the final link to reference
+// 'toinsert'.  Then it bubbles that change back up 'path', returning
+// the new root.  If 'toinsert' is nil, the final path segment will be
+// removed, and that change will be bubbled up to a new root.
+//
+// This mutates the in-memory root *dag.Node, but the immutable DAG
+// service will contain both the original objects (e.g. root, a, b,
+// and c) and the new objects (e.g. root', a', b', and c') so
+// <root>/a/b/c will reference the old content (if there was any) and
+// <root'>/a/b/c will reference the inserted content.
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert *dag.Node) (*dag.Node, error) {
 	if len(path) == 1 {
-		return addLink(ctx, ds, root, path[0], toinsert)
+		if toinsert == nil {
+			err := root.RemoveNodeLink(path[0])
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err := root.AddNodeLinkClean(path[0], toinsert)
+			if err != nil {
+				return nil, err
+			}
+		}
+		_, err := ds.Add(root)
+		if err != nil {
+			return nil, err
+		}
+		return root, nil
 	}
 
-	child, err := root.GetNodeLink(path[0])
-	if err != nil {
-		return nil, err
+	link, err := root.GetNodeLink(path[0])
+	var child *dag.Node
+	if err == nil {
+		child, err = link.GetNode(ctx, ds)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		child = new(dag.Node)
 	}
 
-	nd, err := child.GetNode(ctx, ds)
-	if err != nil {
-		return nil, err
-	}
-
-	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert)
+	newChild, err := insertNodeAtPath(ctx, ds, child, path[1:], toinsert)
 	if err != nil {
 		return nil, err
 	}
 
 	err = root.RemoveNodeLink(path[0])
-	if err != nil {
+	if err != nil && err != dag.ErrNotFound {
 		return nil, err
 	}
 
-	err = root.AddNodeLinkClean(path[0], ndprime)
+	err = root.AddNodeLinkClean(path[0], newChild)
 	if err != nil {
 		return nil, err
 	}

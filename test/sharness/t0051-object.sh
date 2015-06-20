@@ -118,6 +118,36 @@ test_object_cmd() {
 		test_cmp rmlink_exp rmlink_output
 	'
 
+	test_expect_success "multilayer patch add-link auto-creates directories" '
+		echo "hello world" > hwfile &&
+		FILE=$(ipfs add -q hwfile) &&
+		EMPTY=$(ipfs object new unixfs-dir) &&
+		ipfs object patch $EMPTY add-link a/b/c $FILE >multi_patch_add_auto_create_directories
+	'
+
+	test_expect_success "multilayer patch add-link auto-create leaf looks good" '
+		ipfs cat $(<multi_patch_add_auto_create_directories)/a/b/c >multi_patch_add_auto_create_leaf &&
+		test_cmp hwfile multi_patch_add_auto_create_leaf
+	'
+
+	test_expect_success "multilayer patch add-link auto-create intermediate looks good" '
+		cat <<-\EOF >multi_patch_add_auto_create_intermediate_expected_newline &&
+			{
+			  "Links": [
+			    {
+			      "Name": "c",
+			      "Hash": "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o",
+			      "Size": 20
+			    }
+			  ],
+			  "Data": ""
+			}
+		EOF
+		printf %s "$(<multi_patch_add_auto_create_intermediate_expected_newline)" >multi_patch_add_auto_create_intermediate_expected &&
+		ipfs object get $(<multi_patch_add_auto_create_directories)/a/b >multi_patch_add_auto_create_intermediate &&
+		test_cmp multi_patch_add_auto_create_intermediate_expected multi_patch_add_auto_create_intermediate
+	'
+
 	test_expect_success "multilayer ipfs patch works" '
 		echo "hello world" > hwfile &&
 		FILE=$(ipfs add -q hwfile) &&
@@ -128,7 +158,7 @@ test_object_cmd() {
 	'
 
 	test_expect_success "output looks good" '
-		ipfs cat $(cat multi_patch)/a/b/c > hwfile_out &&
+		ipfs cat $(<multi_patch)/a/b/c > hwfile_out &&
 		test_cmp hwfile hwfile_out
 	'
 }
