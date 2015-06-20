@@ -100,6 +100,20 @@ test_object_cmd() {
 		OUTPUT=$(ipfs object patch $EMPTY_DIR add-link foo $EMPTY_DIR)
 	'
 
+	test_expect_success "multilayer ipfs patch works" '
+		echo "hello world" > hwfile &&
+		FILE=$(ipfs add -q hwfile) &&
+		EMPTY=$(ipfs object new unixfs-dir) &&
+		ONE=$(ipfs object patch $EMPTY add-link b $EMPTY) &&
+		TWO=$(ipfs object patch $EMPTY add-link a $ONE) &&
+		ipfs object patch $TWO add-link a/b/c $FILE > multi_patch
+	'
+
+	test_expect_success "output looks good" '
+		ipfs cat $(cat multi_patch)/a/b/c > hwfile_out &&
+		test_cmp hwfile hwfile_out
+	'
+
 	test_expect_success "should have created dir within a dir" '
 		ipfs ls $OUTPUT > patched_output
 	'
