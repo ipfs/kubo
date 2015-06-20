@@ -431,9 +431,31 @@ var objectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create a new merkledag object based on an existing one",
 		ShortDescription: `
-'ipfs object patch <root> [add-link|rm-link] <args>' is a plumbing command used to
-build custom DAG objects. It adds and removes links from objects, creating a new
-object as a result. This is the merkle-dag version of modifying an object.
+'ipfs object patch <root> [action] <args>' is a plumbing command used
+to build custom DAG objects. It adds and removes links from objects or
+manipulates their data, creating new objects as a result. This is the
+merkle-dag version of modifying an object.
+
+Actions and their expected arguments:
+
+    * add-link PATH LINK_HASH
+      Creates a new link referencing LINK_HASH named after the final
+      segment of PATH and bubbles the Merkle node changes up the path
+      to return the new root. If some intermediate nodes in PATH are
+      missing, add-link will automatically create new nodes for them.
+    * rm-link PATH
+      Removes any links named after the final segment of PATH and
+      bubbles the Merkle node changes up the path to return the new
+      root.
+    * set-data BINARY_DATA
+      Set the root node's data to BINARY_DATA.
+    * append-data BINARY_DATA
+      Append BINARY_DATA to the root node's existing data.
+
+The nodes auto-created by add-link are basic Merkle nodes, not the
+directory nodes used for filesystem entries.  To auto-create those
+you'd need a filesystem-level version of the patch command (which
+hasn't been written yet).
 
 Examples:
 
@@ -529,7 +551,7 @@ resulting object hash.
 
 func appendDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for set-data")
+		return "", fmt.Errorf("not enough arguments for append-data")
 	}
 
 	nd, err := req.Context().GetNode()
