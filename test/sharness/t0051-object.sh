@@ -148,7 +148,7 @@ test_object_cmd() {
 		test_cmp multi_patch_add_auto_create_intermediate_expected multi_patch_add_auto_create_intermediate
 	'
 
-	test_expect_success "multilayer ipfs patch works" '
+	test_expect_success "multilayer patch add works" '
 		echo "hello world" > hwfile &&
 		FILE=$(ipfs add -q hwfile) &&
 		EMPTY=$(ipfs object new unixfs-dir) &&
@@ -157,8 +157,34 @@ test_object_cmd() {
 		ipfs object patch $TWO add-link a/b/c $FILE > multi_patch
 	'
 
-	test_expect_success "output looks good" '
+	test_expect_success "multilayer patch add leaf looks good" '
 		ipfs cat $(<multi_patch)/a/b/c > hwfile_out &&
+		test_cmp hwfile hwfile_out
+	'
+
+	test_expect_success "multilayer patch rm-link works" '
+		echo "hello world" > hwfile &&
+		FILE=$(ipfs add -q hwfile) &&
+		EMPTY=$(ipfs object new unixfs-dir) &&
+		ROOT=$(ipfs object patch $EMPTY add-link a/b/c/d $FILE) &&
+		ipfs object patch $ROOT rm-link a/b/c >multi_patch_remove
+	'
+
+	test_expect_success "multilayer patch rm-link looks good" '
+		cat <<-\EOF >multi_patch_remove_expected_newline &&
+			{
+			  "Links": [
+			    {
+			      "Name": "c",
+			      "Hash": "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o",
+			      "Size": 20
+			    }
+			  ],
+			  "Data": ""
+			}
+		EOF
+		printf %s "$(<multi_patch_remove_expected_newline)" >multi_patch_remove_expected &&
+		ipfs object get $(<multi_patch_remove)/a/b > multi_patch_remove_actual &&
 		test_cmp hwfile hwfile_out
 	'
 }

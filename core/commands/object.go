@@ -577,19 +577,15 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	name := req.Arguments()[2]
+	ctx := req.Context().Context
+	path := req.Arguments()[2]
+	parts := strings.Split(path, "/")
 
-	err = root.RemoveNodeLink(name)
+	newRoot, err := insertNodeAtPath(ctx, nd.DAG, root, parts, nil)
 	if err != nil {
 		return "", err
 	}
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
+	return newRoot.Key()
 }
 
 func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
