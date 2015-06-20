@@ -501,32 +501,60 @@ resulting object hash.
 		}
 		cancel()
 
+		ctx = req.Context().Context
 		action := req.Arguments()[1]
+		arguments := req.Arguments()[2:]
+
+		minArguments := 1
+		maxArguments := 1
+		if action == "add-link" {
+			minArguments = 2
+			maxArguments = 2
+		}
+
+		if len(arguments) < minArguments {
+			res.SetError(
+				fmt.Errorf("not enough arguments for %s", action), cmds.ErrNormal)
+			return
+		}
+
+		if maxArguments >= 0 && len(arguments) > maxArguments {
+			res.SetError(
+				fmt.Errorf("too many arguments for %s", action), cmds.ErrNormal)
+			return
+		}
 
 		switch action {
 		case "add-link":
-			k, err := addLinkCaller(req, rnode)
+			path := arguments[0]
+			insertk := key.B58KeyDecode(arguments[1])
+			k, err := addLinkCaller(ctx, nd.DAG, rnode, path, insertk)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 			res.SetOutput(&Object{Hash: k.B58String()})
 		case "rm-link":
-			k, err := rmLinkCaller(req, rnode)
+			path := arguments[0]
+			k, err := rmLinkCaller(ctx, nd.DAG, rnode, path)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 			res.SetOutput(&Object{Hash: k.B58String()})
 		case "set-data":
-			k, err := setDataCaller(req, rnode)
+			data := arguments[0]
+			reader := strings.NewReader(data)
+			k, err := setDataCaller(ctx, nd.DAG, rnode, reader)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
 			res.SetOutput(&Object{Hash: k.B58String()})
 		case "append-data":
-			k, err := appendDataCaller(req, rnode)
+			data := arguments[0]
+			reader := strings.NewReader(data)
+			k, err := appendDataCaller(ctx, nd.DAG, rnode, reader)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -549,89 +577,45 @@ resulting object hash.
 	},
 }
 
-func appendDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for append-data")
-	}
-
-	nd, err := req.Context().GetNode()
+func appendDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (key.Key, error) {
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}
 
-	root.Data = append(root.Data, []byte(req.Arguments()[2])...)
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
+	root.Data = append(root.Data, data...)
+	return ds.Add(root)
 }
 
-func setDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for set-data")
-	}
-
-	nd, err := req.Context().GetNode()
+func setDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (key.Key, error) {
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}
 
-	root.Data = []byte(req.Arguments()[2])
+	root.Data = data
 
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
+	return ds.Add(root)
 }
 
-func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for rm-link")
-	}
-
-	nd, err := req.Context().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	ctx := req.Context().Context
-	path := req.Arguments()[2]
+func rmLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path string) (key.Key, error) {
 	parts := strings.Split(path, "/")
-
-	newRoot, err := insertNodeAtPath(ctx, nd.DAG, root, parts, nil)
+	newRoot, err := insertNodeAtPath(ctx, ds, root, parts, nil)
 	if err != nil {
 		return "", err
 	}
 	return newRoot.Key()
 }
 
-func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 4 {
-		return "", fmt.Errorf("not enough arguments for add-link")
-	}
-
-	nd, err := req.Context().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	ctx := req.Context().Context
-	path := req.Arguments()[2]
-	insertk := key.B58KeyDecode(req.Arguments()[3])
-
-	toinsert, err := nd.DAG.Get(ctx, insertk)
+func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path string, insertk key.Key) (key.Key, error) {
+	toinsert, err := ds.Get(ctx, insertk)
 	if err != nil {
 		return "", err
 	}
 
 	parts := strings.Split(path, "/")
 
-	nnode, err := insertNodeAtPath(ctx, nd.DAG, root, parts, toinsert)
+	nnode, err := insertNodeAtPath(ctx, ds, root, parts, toinsert)
 	if err != nil {
 		return "", err
 	}
