@@ -3,7 +3,6 @@ package corehttp
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	gopath "path"
@@ -30,9 +29,8 @@ const (
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node    *core.IpfsNode
-	dirList *template.Template
-	config  GatewayConfig
+	node   *core.IpfsNode
+	config GatewayConfig
 }
 
 func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
