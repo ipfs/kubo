@@ -524,46 +524,41 @@ resulting object hash.
 			return
 		}
 
-		switch action {
+		var newRoot *dag.Node
+
+		switch action { // each case's final error is checked after the switch
 		case "add-link":
 			path := arguments[0]
 			insertk := key.B58KeyDecode(arguments[1])
-			k, err := addLinkCaller(ctx, nd.DAG, rnode, path, insertk)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			newRoot, err = addLinkCaller(ctx, nd.DAG, rnode, path, insertk)
 		case "rm-link":
 			path := arguments[0]
-			k, err := rmLinkCaller(ctx, nd.DAG, rnode, path)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			parts := strings.Split(path, "/")
+			newRoot, err = insertNodeAtPath(ctx, nd.DAG, rnode, parts, nil)
 		case "set-data":
 			data := arguments[0]
 			reader := strings.NewReader(data)
-			k, err := setDataCaller(ctx, nd.DAG, rnode, reader)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			newRoot, err = setDataCaller(ctx, nd.DAG, rnode, reader)
 		case "append-data":
 			data := arguments[0]
 			reader := strings.NewReader(data)
-			k, err := appendDataCaller(ctx, nd.DAG, rnode, reader)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			newRoot, err = appendDataCaller(ctx, nd.DAG, rnode, reader)
 		default:
 			res.SetError(fmt.Errorf("unrecognized subcommand"), cmds.ErrNormal)
 			return
 		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		key, err := newRoot.Key()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&Object{Hash: key.String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -577,49 +572,48 @@ resulting object hash.
 	},
 }
 
-func appendDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (key.Key, error) {
+func appendDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (*dag.Node, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	root.Data = append(root.Data, data...)
-	return ds.Add(root)
+	_, err = ds.Add(root)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
 }
 
-func setDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (key.Key, error) {
+func setDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (*dag.Node, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	root.Data = data
 
-	return ds.Add(root)
-}
+	_, err = ds.Add(root)
 
-func rmLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path string) (key.Key, error) {
-	parts := strings.Split(path, "/")
-	newRoot, err := insertNodeAtPath(ctx, ds, root, parts, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return newRoot.Key()
+
+	return root, nil
 }
 
-func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path string, insertk key.Key) (key.Key, error) {
+func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path string, insertk key.Key) (*dag.Node, error) {
 	toinsert, err := ds.Get(ctx, insertk)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	parts := strings.Split(path, "/")
 
-	nnode, err := insertNodeAtPath(ctx, ds, root, parts, toinsert)
-	if err != nil {
-		return "", err
-	}
-	return nnode.Key()
+	return insertNodeAtPath(ctx, ds, root, parts, toinsert)
 }
 
 // insertNodeAtPath follows the relative 'path' from 'root', creating
