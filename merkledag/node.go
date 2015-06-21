@@ -137,6 +137,23 @@ func (n *Node) RemoveNodeLink(name string) error {
 	return ErrNotFound
 }
 
+// Remove all links on this node by the given name
+func (n *Node) RemoveNodeLinks(name string) error {
+	n.encoded = nil
+	found := false
+	for i := len(n.Links) - 1; i >= 0; i-- {
+		link := n.Links[i]
+		if link.Name == name {
+			n.Links = append(n.Links[:i], n.Links[i+1:]...)
+			found = true
+		}
+	}
+	if found {
+		return nil
+	}
+	return ErrNotFound
+}
+
 // Return a copy of the link with given name
 func (n *Node) GetNodeLink(name string) (*Link, error) {
 	for _, l := range n.Links {

@@ -172,6 +172,25 @@ test_object_cmd() {
 		test_cmp rmlink_exp rmlink_output
 	'
 
+	test_expect_success "object patch rm-link removes multiple links" '
+		EMPTY=$(ipfs object new) &&
+		P1=$(ipfs object patch $EMPTY add-link foo $EMPTY) &&
+		P2=$(ipfs object patch $P1 add-link foo $EMPTY) &&
+		ipfs object patch $P2 rm-link foo >rm_multiple_links
+	'
+
+	test_expect_success "object patch rm-link multi-link removal looks good" '
+		cat <<-\EOF >rm_multiple_links_expected_newline &&
+			{
+			  "Links": [],
+			  "Data": ""
+			}
+		EOF
+		printf %s "$(<rm_multiple_links_expected_newline)" >rm_multiple_links_expected &&
+		ipfs object get $(<rm_multiple_links) >rm_multiple_links_actual &&
+		test_cmp rm_multiple_links_expected rm_multiple_links_actual
+	'
+
 	test_expect_success "'ipfs object patch set-data' should work" '
 		EMPTY=$(ipfs object new) &&
 		printf %s "hello world" >set_data_expected &&

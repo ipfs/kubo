@@ -655,7 +655,7 @@ func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path 
 func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert *dag.Node, write bool) (*dag.Node, error) {
 	if len(path) == 1 {
 		if toinsert == nil {
-			err := root.RemoveNodeLink(path[0])
+			err := root.RemoveNodeLinks(path[0])
 			if err != nil {
 				return nil, err
 			}
@@ -690,7 +690,7 @@ func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, pa
 		return nil, err
 	}
 
-	err = root.RemoveNodeLink(path[0])
+	err = root.RemoveNodeLinks(path[0])
 	if err != nil && err != dag.ErrNotFound {
 		return nil, err
 	}
