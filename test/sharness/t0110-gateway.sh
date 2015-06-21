@@ -53,6 +53,10 @@ test_expect_success "GET IPFS directory file output looks good" '
   test_cmp dir/test actual
 '
 
+test_expect_success "GET IPFS non existent file returns code expected (404)" '
+  test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "HTTP/1.1 404 Not Found"
+'
+
 test_expect_failure "GET IPNS path succeeds" '
   ipfs name publish "$HASH" &&
   NAME=$(ipfs config Identity.PeerID) &&
