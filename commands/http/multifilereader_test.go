@@ -12,15 +12,25 @@ import (
 
 func TestOutput(t *testing.T) {
 	text := "Some text! :)"
+
+	sf, err := files.NewSliceFile("boop", nil, []files.File{
+		files.NewReaderFile("boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
+		files.NewReaderFile("boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
+	})
+	if err != nil {
+		t.Error("Failed to create a new SliceFile")
+	}
+
 	fileset := []files.File{
 		files.NewReaderFile("file.txt", ioutil.NopCloser(strings.NewReader(text)), nil),
-		files.NewSliceFile("boop", []files.File{
-			files.NewReaderFile("boop/a.txt", ioutil.NopCloser(strings.NewReader("bleep")), nil),
-			files.NewReaderFile("boop/b.txt", ioutil.NopCloser(strings.NewReader("bloop")), nil),
-		}),
+		sf,
 		files.NewReaderFile("beep.txt", ioutil.NopCloser(strings.NewReader("beep")), nil),
 	}
-	sf := files.NewSliceFile("", fileset)
+
+	sf, err = files.NewSliceFile("", nil, fileset)
+	if err != nil {
+		t.Error("Failed to create a new SliceFile")
+	}
 	buf := make([]byte, 20)
 
 	// testing output by reading it with the go stdlib "mime/multipart" Reader

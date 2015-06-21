@@ -17,7 +17,10 @@ func TestSliceFiles(t *testing.T) {
 	}
 	buf := make([]byte, 20)
 
-	sf := NewSliceFile(name, files)
+	sf, err := NewSliceFile(name, nil, files)
+	if err != nil {
+		t.Error("Failed to create a new SliceFile")
+	}
 
 	if !sf.IsDirectory() {
 		t.Error("SliceFile should always be a directory")

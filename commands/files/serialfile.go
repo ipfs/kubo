@@ -115,8 +115,8 @@ func (f *serialFile) Close() error {
 	return nil
 }
 
-func (f *serialFile) Stat() os.FileInfo {
-	return f.stat
+func (f *serialFile) Stat() (fi os.FileInfo, err error) {
+	return f.stat, nil
 }
 
 func (f *serialFile) Size() (int64, error) {

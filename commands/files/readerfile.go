@@ -38,8 +38,8 @@ func (f *ReaderFile) Close() error {
 	return f.reader.Close()
 }
 
-func (f *ReaderFile) Stat() os.FileInfo {
-	return f.stat
+func (f *ReaderFile) Stat() (fi os.FileInfo, err error) {
+	return f.stat, nil
 }
 
 func (f *ReaderFile) Size() (int64, error) {

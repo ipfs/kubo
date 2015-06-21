@@ -47,7 +47,11 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 	req.SetArguments(stringArgs)
 
-	file := files.NewSliceFile("", fileArgs)
+	file, err := files.NewSliceFile("", nil, fileArgs)
+	if err != nil {
+		return req, cmd, path, err
+	}
+
 	req.SetFiles(file)
 
 	err = cmd.CheckArguments(req)
@@ -367,7 +371,7 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 }
 
 func appendStdinAsFile(args []files.File, stdin *os.File) ([]files.File, *os.File) {
-	arg := files.NewReaderFile("", stdin, nil)
+	arg := files.NewReaderFile("", stdin, files.NewDummyRegularFileInfo("stdin"))
 	return append(args, arg), nil
 }
 

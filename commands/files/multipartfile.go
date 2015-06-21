@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 const (
@@ -22,6 +23,7 @@ type MultipartFile struct {
 	Part      *multipart.Part
 	Reader    *multipart.Reader
 	Mediatype string
+	stat      os.FileInfo
 }
 
 func NewFileFromPart(part *multipart.Part) (File, error) {
@@ -38,6 +40,7 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 		return nil, err
 	}
 
+	name := f.FileName()
 	if f.IsDirectory() {
 		boundary, found := params["boundary"]
 		if !found {
@@ -45,6 +48,9 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 		}
 
 		f.Reader = multipart.NewReader(part, boundary)
+		f.stat = NewDummyDirectoryFileInfo(name)
+	} else {
+		f.stat = NewDummyRegularFileInfo(name)
 	}
 
 	return f, nil
@@ -88,4 +94,8 @@ func (f *MultipartFile) Close() error {
 		return ErrNotReader
 	}
 	return f.Part.Close()
+}
+
+func (f *MultipartFile) Stat() (fi os.FileInfo, err error) {
+	return f.stat, nil
 }

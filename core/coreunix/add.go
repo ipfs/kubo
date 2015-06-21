@@ -79,8 +79,13 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
 func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkledag.Node, error) {
-	file := files.NewReaderFile(filename, ioutil.NopCloser(r), nil)
-	dir := files.NewSliceFile("", []files.File{file})
+	file := files.NewReaderFile(
+		filename, ioutil.NopCloser(r), files.NewDummyRegularFileInfo(filename))
+	dir, err := files.NewSliceFile("", nil, []files.File{file})
+	if err != nil {
+		return "", nil, err
+	}
+
 	dagnode, err := addDir(n, dir)
 	if err != nil {
 		return "", nil, err

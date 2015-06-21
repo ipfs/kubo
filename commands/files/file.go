@@ -25,16 +25,14 @@ type File interface {
 	// and false if the File is a normal file (and therefor supports calling `Read` and `Close`)
 	IsDirectory() bool
 
+	// Stat returns an os.FileInfo structure describing the file.  If
+	// there is an error it will be of type *PathError.
+	Stat() (fi os.FileInfo, err error)
+
 	// NextFile returns the next child file available (if the File is a directory).
 	// It will return (nil, io.EOF) if no more files are available.
 	// If the file is a regular file (not a directory), NextFile will return a non-nil error.
 	NextFile() (File, error)
-}
-
-type StatFile interface {
-	File
-
-	Stat() os.FileInfo
 }
 
 type PeekFile interface {
