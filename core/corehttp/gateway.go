@@ -30,6 +30,12 @@ func NewGateway(conf GatewayConfig) *Gateway {
 }
 
 func (g *Gateway) ServeOption(cctx * commands.Context) ServeOption {
+	var commandList = map[*commands.Command]bool{}
+
+	for _, cmd := range corecommands.Root.Subcommands {
+		commandList[cmd] = cmd.GatewayAccess
+	}
+
 	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		gateway, err := newGatewayHandler(n, g.Config)
 		if err != nil {
@@ -40,7 +46,7 @@ func (g *Gateway) ServeOption(cctx * commands.Context) ServeOption {
 
 		if cctx != nil {
 			origin := os.Getenv(originEnvKey)
-			cmdHandler := cmdsHttp.NewReadOnlyHandler(*cctx, corecommands.Root, origin)
+			cmdHandler := cmdsHttp.NewHandler(*cctx, corecommands.Root, origin, commandList)
 			mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
 		}
 		return mux, nil

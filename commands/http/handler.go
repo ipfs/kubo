@@ -22,7 +22,7 @@ var log = u.Logger("commands/http")
 type internalHandler struct {
 	ctx  cmds.Context
 	root *cmds.Command
-	readOnly bool
+	availableCmds map[*cmds.Command]bool
 }
 
 // The Handler struct is funny because we want to wrap our internal handler
@@ -53,42 +53,18 @@ var readOnlyCmds = map[*cmds.Command]bool{
 	commands.RefsCmd: true,
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
+func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string, commandList map[*cmds.Command]bool) *Handler {
 	// allow whitelisted origins (so we can make API requests from the browser)
 	if len(allowedOrigin) > 0 {
 		log.Info("Allowing API requests from origin: " + allowedOrigin)
 	}
 
 	// Create a handler for the API.
-	internal := internalHandler{ctx, root, false}
+	internal := internalHandler{ctx, root, commandList}
 
 	// Create a CORS object for wrapping the internal handler.
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT"},
-
-		// use AllowOriginFunc instead of AllowedOrigins because we want to be
-		// restrictive by default.
-		AllowOriginFunc: func(origin string) bool {
-			return (allowedOrigin == "*") || (origin == allowedOrigin)
-		},
-	})
-
-	// Wrap the internal handler with CORS handling-middleware.
-	return &Handler{internal, c.Handler(internal)}
-}
-
-func NewReadOnlyHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
-	// allow whitelisted origins (so we can make API requests from the browser)
-	if len(allowedOrigin) > 0 {
-		log.Info("Allowing API requests from origin: " + allowedOrigin)
-	}
-
-	// Create a handler for the API.
-	internal := internalHandler{ctx, root, true}
-
-	// Create a CORS object for wrapping the internal handler.
-	c := cors.New(cors.Options{
-		AllowedMethods: []string{"GET"},
 
 		// use AllowOriginFunc instead of AllowedOrigins because we want to be
 		// restrictive by default.
@@ -130,13 +106,11 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if i.readOnly == true {
-		if _, ok := readOnlyCmds[req.Command()]; !ok {
-			// Or a 404?
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte("You may not execute this request on the read-only api."))
-			return
-		}
+	if access, ok := i.availableCmds[req.Command()]; !ok || access == false {
+		// Or a 404?
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("You may not execute this command on this server."))
+		return
 	}
 
 	// get the node's context to pass into the commands.
