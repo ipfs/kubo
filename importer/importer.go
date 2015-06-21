@@ -30,6 +30,12 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 		return nil, fmt.Errorf("`%s` is a directory", fpath)
 	}
 
+	mode := stat.Mode()
+
+	if !mode.IsRegular() {
+		return nil, fmt.Errorf("`%s` is neither a directory nor a file", fpath)
+	}
+
 	f, err := os.Open(fpath)
 	if err != nil {
 		return nil, err
