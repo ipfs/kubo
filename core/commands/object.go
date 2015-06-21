@@ -443,6 +443,13 @@ Actions and their expected arguments:
       segment of PATH and bubbles the Merkle node changes up the path
       to return the new root. If some intermediate nodes in PATH are
       missing, add-link will automatically create new nodes for them.
+    * replace-link PATH LINK_HASH
+      Removes any existing links named after the final segment of
+      PATH, adds a new link named named after that segment referencing
+      LINK_HASH, and bubbles the Merkle node changes up the path to
+      return the new root. If some intermediate nodes in PATH are
+      missing, replace-link will automatically create new nodes for
+      them.
     * rm-link PATH
       Removes any links named after the final segment of PATH and
       bubbles the Merkle node changes up the path to return the new
@@ -452,10 +459,10 @@ Actions and their expected arguments:
     * append-data BINARY_DATA
       Append BINARY_DATA to the root node's existing data.
 
-The nodes auto-created by add-link are basic Merkle nodes, not the
-directory nodes used for filesystem entries.  To auto-create those
-you'd need a filesystem-level version of the patch command (which
-hasn't been written yet).
+The nodes auto-created by add-link and replace-link are basic Merkle
+nodes, not the directory nodes used for filesystem entries.  To
+auto-create those you'd need a filesystem-level version of the patch
+command (which hasn't been written yet).
 
 Examples:
 
@@ -507,7 +514,7 @@ resulting object hash.
 
 		minArguments := 1
 		maxArguments := 1
-		if action == "add-link" {
+		if action == "add-link" || action == "replace-link" {
 			minArguments = 2
 			maxArguments = 2
 		}
@@ -531,10 +538,22 @@ resulting object hash.
 			path := arguments[0]
 			insertk := key.B58KeyDecode(arguments[1])
 			newRoot, err = addLinkCaller(ctx, nd.DAG, rnode, path, insertk)
+		case "replace-link":
+			path := arguments[0]
+			parts := strings.Split(path, "/")
+			insertk := key.B58KeyDecode(arguments[1])
+			newRoot, err = insertNodeAtPath(ctx, nd.DAG, rnode, parts, nil, false)
+			if err == dag.ErrNotFound {
+				newRoot = rnode
+			} else if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			newRoot, err = addLinkCaller(ctx, nd.DAG, newRoot, path, insertk)
 		case "rm-link":
 			path := arguments[0]
 			parts := strings.Split(path, "/")
-			newRoot, err = insertNodeAtPath(ctx, nd.DAG, rnode, parts, nil)
+			newRoot, err = insertNodeAtPath(ctx, nd.DAG, rnode, parts, nil, true)
 		case "set-data":
 			data := arguments[0]
 			reader := strings.NewReader(data)
@@ -613,7 +632,7 @@ func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path 
 
 	parts := strings.Split(path, "/")
 
-	return insertNodeAtPath(ctx, ds, root, parts, toinsert)
+	return insertNodeAtPath(ctx, ds, root, parts, toinsert, true)
 }
 
 // insertNodeAtPath follows the relative 'path' from 'root', creating
@@ -627,7 +646,13 @@ func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path 
 // and c) and the new objects (e.g. root', a', b', and c') so
 // <root>/a/b/c will reference the old content (if there was any) and
 // <root'>/a/b/c will reference the inserted content.
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert *dag.Node) (*dag.Node, error) {
+//
+// If 'write' is true, insertNodeAtPath will write nodes to the DAG
+// service as it adjusts them.  Setting 'write' to false is useful
+// when you have want to make several mutations to an in-memory tree
+// (that can still read nodes from the DAG service) and then have one
+// final call to flush the changes to the DAG service.
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert *dag.Node, write bool) (*dag.Node, error) {
 	if len(path) == 1 {
 		if toinsert == nil {
 			err := root.RemoveNodeLink(path[0])
@@ -635,14 +660,16 @@ func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, pa
 				return nil, err
 			}
 		} else {
-			err := root.AddNodeLinkClean(path[0], toinsert)
+			err := root.AddNodeLink(path[0], toinsert)
 			if err != nil {
 				return nil, err
 			}
 		}
-		_, err := ds.Add(root)
-		if err != nil {
-			return nil, err
+		if write {
+			_, err := ds.Add(root)
+			if err != nil {
+				return nil, err
+			}
 		}
 		return root, nil
 	}
@@ -658,7 +685,7 @@ func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, pa
 		child = new(dag.Node)
 	}
 
-	newChild, err := insertNodeAtPath(ctx, ds, child, path[1:], toinsert)
+	newChild, err := insertNodeAtPath(ctx, ds, child, path[1:], toinsert, write)
 	if err != nil {
 		return nil, err
 	}
@@ -668,14 +695,16 @@ func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, pa
 		return nil, err
 	}
 
-	err = root.AddNodeLinkClean(path[0], newChild)
+	err = root.AddNodeLink(path[0], newChild)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
+	if write {
+		_, err = ds.Add(root)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return root, nil

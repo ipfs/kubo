@@ -109,6 +109,60 @@ test_object_cmd() {
 		test_cmp patched_exp patched_output
 	'
 
+	test_expect_success "object patch add-link can create links with existing names" '
+		EMPTY=$(ipfs object new) &&
+		P1=$(ipfs object patch $EMPTY add-link foo $EMPTY) &&
+		ipfs object patch $P1 add-link foo $EMPTY >multiple_add_links
+	'
+
+	test_expect_success "object patch add-link with existing names looks good" '
+		cat <<-\EOF >multiple_add_links_expected_newline &&
+			{
+			  "Links": [
+			    {
+			      "Name": "foo",
+			      "Hash": "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n",
+			      "Size": 0
+			    },
+			    {
+			      "Name": "foo",
+			      "Hash": "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n",
+			      "Size": 0
+			    }
+			  ],
+			  "Data": ""
+			}
+		EOF
+		printf %s "$(<multiple_add_links_expected_newline)" >multiple_add_links_expected &&
+		ipfs object get $(<multiple_add_links) >multiple_add_links_output &&
+		test_cmp multiple_add_links_expected multiple_add_links_output
+	'
+
+	test_expect_success "object patch replace-link overwrites existing names" '
+		EMPTY=$(ipfs object new) &&
+		EMPTY_DIR=$(ipfs object new unixfs-dir) &&
+		P1=$(ipfs object patch $EMPTY replace-link foo $EMPTY_DIR) &&
+		ipfs object patch $P1 replace-link foo $EMPTY >multiple_replace_links
+	'
+
+	test_expect_success "object patch replace-link with existing names looks good" '
+		cat <<-\EOF >multiple_replace_links_expected_newline &&
+			{
+			  "Links": [
+			    {
+			      "Name": "foo",
+			      "Hash": "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n",
+			      "Size": 0
+			    }
+			  ],
+			  "Data": ""
+			}
+		EOF
+		printf %s "$(<multiple_replace_links_expected_newline)" >multiple_replace_links_expected &&
+		ipfs object get $(<multiple_replace_links) >multiple_replace_links_output &&
+		test_cmp multiple_replace_links_expected multiple_replace_links_output
+	'
+
 	test_expect_success "can remove the directory" '
 		ipfs object patch $OUTPUT rm-link foo > rmlink_output
 	'
