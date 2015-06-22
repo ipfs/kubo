@@ -82,7 +82,7 @@ func (f *serialFile) NextFile() (File, error) {
 
 	// open the next file
 	filePath := fp.Join(f.path, stat.Name())
-	file, err := os.Open(filePath)
+	file, err := os.OpenFile(filePath, (os.O_RDONLY | syscall.O_NONBLOCK), 0)
 	if err != nil {
 		return nil, err
 	}
