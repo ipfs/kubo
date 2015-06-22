@@ -58,7 +58,6 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 		mocknet: m,
 		peer:    p,
 		ps:      ps,
-		proc:    goprocessctx.WithContext(ctx),
 
 		connsByPeer: map[peer.ID]map[*conn]struct{}{},
 		connsByLink: map[*link]map[*conn]struct{}{},
@@ -66,7 +65,7 @@ func newPeernet(ctx context.Context, m *mocknet, k ic.PrivKey,
 		notifs: make(map[inet.Notifiee]struct{}),
 	}
 
-	n.proc.SetTeardown(n.teardown)
+	n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
 	return n, nil
 }
 

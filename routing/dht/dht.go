@@ -73,13 +73,12 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	// register for network notifs.
 	dht.host.Network().Notify((*netNotifiee)(dht))
 
-	proc := goprocessctx.WithContext(ctx)
-	proc.SetTeardown(func() error {
+	dht.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
 		// remove ourselves from network notifs.
 		dht.host.Network().StopNotify((*netNotifiee)(dht))
 		return nil
 	})
-	dht.proc = proc
+
 	dht.ctx = ctx
 
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)

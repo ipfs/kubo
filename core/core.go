@@ -128,15 +128,13 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	proc := goprocessctx.WithContext(ctx)
-	proc.SetTeardown(node.teardown)
-	node.proc = proc
+	node.proc = goprocessctx.WithContextAndTeardown(ctx, node.teardown)
 	node.ctx = ctx
 
 	success := false // flip to true after all sub-system inits succeed
 	defer func() {
 		if !success {
-			proc.Close()
+			node.proc.Close()
 		}
 	}()
 

@@ -158,9 +158,8 @@ func Listen(ctx context.Context, addr ma.Multiaddr, local peer.ID, sk ic.PrivKey
 		Listener: ml,
 		local:    local,
 		privk:    sk,
-		proc:     goprocessctx.WithContext(ctx),
 	}
-	l.proc.SetTeardown(l.teardown)
+	l.proc = goprocessctx.WithContextAndTeardown(ctx, l.teardown)
 
 	log.Debugf("Conn Listener on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)

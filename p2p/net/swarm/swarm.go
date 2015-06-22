@@ -82,7 +82,6 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		swarm:   ps.NewSwarm(PSTransport),
 		local:   local,
 		peers:   peers,
-		proc:    goprocessctx.WithContext(ctx),
 		ctx:     ctx,
 		dialT:   DialTimeout,
 		notifs:  make(map[inet.Notifiee]ps.Notifiee),
@@ -91,7 +90,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	// configure Swarm
-	s.proc.SetTeardown(s.teardown)
+	s.proc = goprocessctx.WithContextAndTeardown(ctx, s.teardown)
 	s.SetConnHandler(nil) // make sure to setup our own conn handler.
 
 	// setup swarm metrics
