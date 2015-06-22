@@ -1,12 +1,15 @@
 package files
 
 import (
+	"errors"
 	"io"
 	"os"
 	fp "path"
 	"sort"
 	"syscall"
 )
+
+var ErrIsPipe = errors.New("ipfs cannot add pipes")
 
 type sortFIByName []os.FileInfo
 
@@ -30,6 +33,10 @@ func NewSerialFile(path string, file *os.File) (File, error) {
 		return nil, err
 	}
 
+	if IsPipe(stat) {
+		return nil, ErrIsPipe
+	}
+
 	return newSerialFile(path, file, stat)
 }
 
@@ -46,6 +53,8 @@ func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
 		return nil, err
 	}
 
+	contents = filterDirContents(contents)
+
 	// we no longer need our root directory file (we already statted the contents),
 	// so close it
 	err = file.Close()
@@ -57,6 +66,27 @@ func newSerialFile(path string, file *os.File, stat os.FileInfo) (File, error) {
 	sort.Sort(sortFIByName(contents))
 
 	return &serialFile{path, contents, stat, nil}, nil
+}
+
+func filterDirContents(es []os.FileInfo) []os.FileInfo {
+	var out []os.FileInfo
+	for _, e := range es {
+		good := true
+
+		// ensure its not a pipe
+		good = good && !IsPipe(e)
+
+		// TODO: checks for other things that break
+
+		if good {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+func IsPipe(e os.FileInfo) bool {
+	return e.Mode()&os.ModeNamedPipe > 0
 }
 
 func (f *serialFile) IsDirectory() bool {

@@ -335,14 +335,13 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
 	path := inputs[0]
 
-	file, err := os.Open(path)
+	// Stat before open, Open hangs for pipes
+	stat, err := os.Stat(path)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, nil, err
+	if files.IsPipe(stat) {
+		return nil, nil, files.ErrIsPipe
 	}
 
 	if stat.IsDir() {
@@ -356,6 +355,11 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 				path, cmds.RecShort)
 			return nil, nil, err
 		}
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	arg, err := files.NewSerialFile(path, file)
