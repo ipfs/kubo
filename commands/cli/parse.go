@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -339,7 +340,7 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
 	path := inputs[0]
 
-	file, err := os.Open(path)
+	file, err := os.OpenFile(path, (os.O_RDONLY | syscall.O_NONBLOCK), 0)
 	if err != nil {
 		return nil, nil, err
 	}
