@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/textproto"
 	"net/url"
 	"sync"
+	"time"
 
 	files "github.com/ipfs/go-ipfs/commands/files"
 )
@@ -90,7 +92,18 @@ func (mfr *MultiFileReader) Read(buf []byte) (written int, err error) {
 				header.Set("Content-Type", "application/octet-stream")
 			}
 
-			_, err := mfr.mpWriter.CreatePart(header)
+			stat, err := file.Stat()
+			if err != nil {
+				return 0, err
+			}
+
+			params := map[string]string{
+				"mode":     fmt.Sprintf("%#o", stat.Mode()),
+				"size":     fmt.Sprintf("%d", stat.Size()),
+				"mod-time": stat.ModTime().Format(time.RFC3339Nano),
+			}
+			header.Set("File-Info", mime.FormatMediaType("ipfs/v1", params))
+			_, err = mfr.mpWriter.CreatePart(header)
 			if err != nil {
 				return 0, err
 			}
