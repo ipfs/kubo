@@ -1,16 +1,12 @@
-//go:generate doc2go -in=init-doc/about -out=about.go -package=assets
-//go:generate doc2go -in=init-doc/readme -out=readme.go -package=assets
-//go:generate doc2go -in=init-doc/help -out=help.go -package=assets
-//go:generate doc2go -in=init-doc/contact -out=contact.go -package=assets
-//go:generate doc2go -in=init-doc/security-notes -out=security-notes.go -package=assets
-//go:generate doc2go -in=init-doc/quick-start -out=quick-start.go -package=assets
+//go:generate go-bindata -pkg=assets init-doc
+
 package assets
 
-var Init_dir = map[string]string{
-	"about":          Init_doc_about,
-	"readme":         Init_doc_readme,
-	"help":           Init_doc_help,
-	"contact":        Init_doc_contact,
-	"security-notes": Init_doc_security_notes,
-	"quick-start":    Init_doc_quick_start,
+var InitDir = map[string][]byte{
+	"about":          MustAsset("init-doc/about"),
+	"readme":         MustAsset("init-doc/readme"),
+	"help":           MustAsset("init-doc/help"),
+	"contact":        MustAsset("init-doc/contact"),
+	"security-notes": MustAsset("init-doc/security-notes"),
+	"quick-start":    MustAsset("init-doc/quick-start"),
 }

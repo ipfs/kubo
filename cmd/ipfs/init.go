@@ -170,8 +170,8 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	dirb := uio.NewDirectory(nd.DAG)
 
 	// add every file in the assets pkg
-	for fname, file := range assets.Init_dir {
-		buf := bytes.NewBufferString(file)
+	for fname, file := range assets.InitDir {
+		buf := bytes.NewBuffer(file)
 		s, err := coreunix.Add(nd, buf)
 		if err != nil {
 			return err
