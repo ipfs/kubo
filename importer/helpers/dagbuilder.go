@@ -2,30 +2,18 @@ package helpers
 
 import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/pin"
 )
-
-// NodeCB is callback function for dag generation
-// the `last` flag signifies whether or not this is the last
-// (top-most root) node being added. useful for things like
-// only pinning the first node recursively.
-type NodeCB func(node *dag.Node, last bool) error
-
-var nilFunc NodeCB = func(_ *dag.Node, _ bool) error { return nil }
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
 	dserv    dag.DAGService
-	mp       pin.Pinner
 	in       <-chan []byte
 	errs     <-chan error
 	recvdErr error
 	nextData []byte // the next item to return.
 	maxlinks int
-	ncb      NodeCB
-
-	batch *dag.Batch
+	batch    *dag.Batch
 }
 
 type DagBuilderParams struct {
@@ -34,25 +22,16 @@ type DagBuilderParams struct {
 
 	// DAGService to write blocks to (required)
 	Dagserv dag.DAGService
-
-	// Callback for each block added
-	NodeCB NodeCB
 }
 
 // Generate a new DagBuilderHelper from the given params, using 'in' as a
 // data source
 func (dbp *DagBuilderParams) New(in <-chan []byte, errs <-chan error) *DagBuilderHelper {
-	ncb := dbp.NodeCB
-	if ncb == nil {
-		ncb = nilFunc
-	}
-
 	return &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
 		in:       in,
 		errs:     errs,
 		maxlinks: dbp.Maxlinks,
-		ncb:      ncb,
 		batch:    dbp.Dagserv.Batch(),
 	}
 }
@@ -106,7 +85,6 @@ func (db *DagBuilderHelper) GetDagServ() dag.DAGService {
 // FillNodeLayer will add datanodes as children to the give node until
 // at most db.indirSize ndoes are added
 //
-// warning: **children** pinned indirectly, but input node IS NOT pinned.
 func (db *DagBuilderHelper) FillNodeLayer(node *UnixfsNode) error {
 
 	// while we have room AND we're not done
@@ -146,12 +124,6 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 	}
 
 	_, err = db.dserv.Add(dn)
-	if err != nil {
-		return nil, err
-	}
-
-	// node callback
-	err = db.ncb(dn, true)
 	if err != nil {
 		return nil, err
 	}

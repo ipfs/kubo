@@ -161,7 +161,6 @@ remains to be implemented.
 				return err
 			}
 
-			n.Pinning.RemovePinWithMode(rnk, pin.Indirect)
 			n.Pinning.PinWithMode(rnk, pin.Recursive)
 			return n.Pinning.Flush()
 		}
@@ -317,13 +316,11 @@ func add(n *core.IpfsNode, reader io.Reader, useTrickle bool, chunker string) (*
 		node, err = importer.BuildTrickleDagFromReader(
 			n.DAG,
 			chnk,
-			importer.PinIndirectCB(n.Pinning),
 		)
 	} else {
 		node, err = importer.BuildDagFromReader(
 			n.DAG,
 			chnk,
-			importer.PinIndirectCB(n.Pinning),
 		)
 	}
 
@@ -450,12 +447,10 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		return nil, err
 	}
 
-	k, err := params.node.DAG.Add(tree)
+	_, err := params.node.DAG.Add(tree)
 	if err != nil {
 		return nil, err
 	}
-
-	params.node.Pinning.PinWithMode(k, pin.Indirect)
 
 	return tree, nil
 }

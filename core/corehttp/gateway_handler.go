@@ -48,8 +48,7 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
 		i.node.DAG,
-		chunk.DefaultSplitter(r),
-		importer.BasicPinnerCB(i.node.Pinning))
+		chunk.DefaultSplitter(r))
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
