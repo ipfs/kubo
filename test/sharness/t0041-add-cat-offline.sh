@@ -15,6 +15,20 @@ test_expect_success "ipfs add file succeeds" '
 	HASH=$(ipfs add -q afile)
 '
 
+test_expect_success "ipfs add output looks good" '
+	echo Qmb1EXrDyKhNWfvLPYK4do3M9nU7BuLAcbqBir6aUrDsRY > expected &&
+	echo $HASH > actual &&
+	test_cmp expected actual
+'
+
+test_expect_success "ipfs add --only-hash succeeds" '
+	ipfs add -q --only-hash afile > ho_output
+'
+
+test_expect_success "ipfs add --only-hash output looks good" '
+	test_cmp expected ho_output
+'
+
 test_expect_success "ipfs cat file suceeds" '
 	ipfs cat $HASH > out_1
 '
