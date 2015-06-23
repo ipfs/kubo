@@ -17,7 +17,7 @@ import (
 func getBalancedDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGService) {
 	ds := mdtest.Mock(t)
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := BuildDagFromReader(r, ds, &chunk.SizeSplitter{blksize}, nil)
+	nd, err := BuildDagFromReader(r, ds, &chunk.SizeSplitter{blksize})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func getBalancedDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGSe
 func getTrickleDag(t testing.TB, size int64, blksize int) (*dag.Node, dag.DAGService) {
 	ds := mdtest.Mock(t)
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := BuildTrickleDagFromReader(r, ds, &chunk.SizeSplitter{blksize}, nil)
+	nd, err := BuildTrickleDagFromReader(r, ds, &chunk.SizeSplitter{blksize})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestBalancedDag(t *testing.T) {
 	u.NewTimeSeededRand().Read(buf)
 	r := bytes.NewReader(buf)
 
-	nd, err := BuildDagFromReader(r, ds, chunk.DefaultSplitter, nil)
+	nd, err := BuildDagFromReader(r, ds, chunk.DefaultSplitter)
 	if err != nil {
 		t.Fatal(err)
 	}
