@@ -19,12 +19,20 @@ import (
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
+	prom "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/prometheus/client_golang/prometheus"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 var log = eventlog.Logger("swarm2")
 
 var PSTransport pst.Transport
+
+var peersTotal = prom.NewGaugeVec(prom.GaugeOpts{
+	Namespace: "ipfs",
+	Subsystem: "p2p",
+	Name:      "peers_total",
+	Help:      "Number of connected peers",
+}, []string{"peer_id"})
 
 func init() {
 	tpt := *psy.DefaultTransport
@@ -81,6 +89,10 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	// configure Swarm
 	s.cg.SetTeardown(s.teardown)
 	s.SetConnHandler(nil) // make sure to setup our own conn handler.
+
+	// setup swarm metrics
+	prom.MustRegisterOrGet(peersTotal)
+	s.Notify((*metricsNotifiee)(s))
 
 	return s, s.listen(listenAddrs)
 }
@@ -272,4 +284,23 @@ func (n *ps2netNotifee) OpenedStream(s *ps.Stream) {
 
 func (n *ps2netNotifee) ClosedStream(s *ps.Stream) {
 	n.not.ClosedStream(n.net, inet.Stream((*Stream)(s)))
+}
+
+type metricsNotifiee Swarm
+
+func (nn *metricsNotifiee) Connected(n inet.Network, v inet.Conn) {
+	peersTotalGauge(n.LocalPeer()).Inc()
+}
+
+func (nn *metricsNotifiee) Disconnected(n inet.Network, v inet.Conn) {
+	peersTotalGauge(n.LocalPeer()).Dec()
+}
+
+func (nn *metricsNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
+func (nn *metricsNotifiee) ClosedStream(n inet.Network, v inet.Stream) {}
+func (nn *metricsNotifiee) Listen(n inet.Network, a ma.Multiaddr)      {}
+func (nn *metricsNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {}
+
+func peersTotalGauge(id peer.ID) prom.Gauge {
+	return peersTotal.With(prom.Labels{"peer_id": id.Pretty()})
 }
