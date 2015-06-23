@@ -14,7 +14,6 @@ import (
 	importer "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 )
@@ -32,7 +31,6 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 		r,
 		n.DAG,
 		chunk.DefaultSplitter,
-		importer.BasicPinnerCB(n.Pinning),
 	)
 	if err != nil {
 		return "", err
@@ -71,12 +69,6 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	n.Pinning.RemovePinWithMode(k, pin.Indirect)
-	err = n.Pinning.Flush()
-	if err != nil {
-		return "", err
-	}
-
 	return k.String(), nil
 }
 
@@ -106,7 +98,6 @@ func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
 		reader,
 		n.DAG,
 		chunk.DefaultSplitter,
-		importer.PinIndirectCB(n.Pinning),
 	)
 	if err != nil {
 		return nil, err

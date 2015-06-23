@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	"github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
@@ -112,21 +110,11 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 		return err
 	}
 
-	// Pin the child node indirectly
-	err = db.ncb(childnode, false)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 // Removes the child node at the given index
 func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
-	k := key.Key(n.node.Links[index].Hash)
-	if dbh.mp != nil {
-		dbh.mp.RemovePinWithMode(k, pin.Indirect)
-	}
 	n.ufmt.RemoveBlockSize(index)
 	n.node.Links = append(n.node.Links[:index], n.node.Links[index+1:]...)
 }

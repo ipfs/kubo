@@ -72,7 +72,7 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 	// TODO(cryptix): change and remove this helper once PR1136 is merged
 	// return ufs.AddFromReader(i.node, r.Body)
 	return importer.BuildDagFromReader(
-		r, i.node.DAG, chunk.DefaultSplitter, importer.BasicPinnerCB(i.node.Pinning))
+		r, i.node.DAG, chunk.DefaultSplitter)
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer

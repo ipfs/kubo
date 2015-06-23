@@ -40,12 +40,8 @@ test_expect_success "'ipfs pin rm' output looks good" '
 '
 
 test_expect_success "file no longer pinned" '
-	# we expect the welcome files to show up here
-	echo "$HASH_WELCOME_DOCS" >expected2 &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
 	ipfs pin ls --type=recursive --quiet >actual2 &&
-	test_sort_cmp expected2 actual2
+	test_expect_code 1 grep $HASH actual2
 '
 
 test_expect_success "recursively pin afile" '
@@ -97,8 +93,7 @@ test_expect_success "adding multiblock random file succeeds" '
 	MBLOCKHASH=`ipfs add -q multiblock`
 '
 
-# TODO: this starts to fail with the pinning rewrite, for unclear reasons
-test_expect_failure "'ipfs pin ls --type=indirect' is correct" '
+test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
 	sed -i"~" "s/\(.*\)/\1 indirect/g" refsout &&
@@ -128,7 +123,6 @@ test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
 	sed -i"~" "s/\(.*\)/\1 recursive/g" rp_expected &&
 	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
