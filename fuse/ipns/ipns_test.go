@@ -68,30 +68,16 @@ func writeFileData(t *testing.T, data []byte, path string) []byte {
 	return data
 }
 
-func verifyFile(t *testing.T, path string, data []byte) {
-	fi, err := os.Open(path)
+func verifyFile(t *testing.T, path string, wantData []byte) {
+	isData, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer fi.Close()
-
-	buf := make([]byte, 1024)
-	offset := 0
-	for {
-		n, err := fi.Read(buf)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !bytes.Equal(buf[:n], data[offset:offset+n]) {
-			t.Fatal("Data not equal")
-		}
-
-		if n < len(buf) {
-			break
-		}
-
-		offset += n
+	if len(isData) != len(wantData) {
+		t.Fatal("Data not equal - length check failed")
+	}
+	if !bytes.Equal(isData, wantData) {
+		t.Fatal("Data not equal")
 	}
 }
 
