@@ -53,7 +53,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// create new node c, to be indirectly pinned through b
-	c, ck := randNode()
+	c, _ := randNode()
 	_, err = dserv.Add(c)
 	if err != nil {
 		t.Fatal(err)
@@ -82,10 +82,6 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !p.IsPinned(ck) {
-		t.Fatal("Child of recursively pinned node not found")
-	}
-
 	bk, _ := b.Key()
 	if !p.IsPinned(bk) {
 		t.Fatal("Recursively pinned node not found..")
@@ -95,7 +91,7 @@ func TestPinnerBasic(t *testing.T) {
 	d.AddNodeLink("a", a)
 	d.AddNodeLink("c", c)
 
-	e, ek := randNode()
+	e, _ := randNode()
 	d.AddNodeLink("e", e)
 
 	// Must be in dagserv for unpin to work
@@ -110,10 +106,6 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !p.IsPinned(ek) {
-		t.Fatal(err)
-	}
-
 	dk, _ := d.Key()
 	if !p.IsPinned(dk) {
 		t.Fatal("pinned node not found.")
@@ -123,11 +115,6 @@ func TestPinnerBasic(t *testing.T) {
 	err = p.Unpin(ctx, dk, true)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// c should still be pinned under b
-	if !p.IsPinned(ck) {
-		t.Fatal("Recursive / indirect unpin fail.")
 	}
 
 	err = p.Flush()
@@ -143,11 +130,6 @@ func TestPinnerBasic(t *testing.T) {
 	// Test directly pinned
 	if !np.IsPinned(ak) {
 		t.Fatal("Could not find pinned node!")
-	}
-
-	// Test indirectly pinned
-	if !np.IsPinned(ck) {
-		t.Fatal("could not find indirectly pinned node")
 	}
 
 	// Test recursively pinned
@@ -201,7 +183,7 @@ func TestFlush(t *testing.T) {
 	p := NewPinner(dstore, dserv)
 	_, k := randNode()
 
-	p.PinWithMode(k, Indirect)
+	p.PinWithMode(k, Recursive)
 	if err := p.Flush(); err != nil {
 		t.Fatal(err)
 	}

@@ -11,7 +11,6 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
@@ -266,10 +265,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	for i, bs := range f.GetBlocksizes() {
 		// We found the correct child to write into
 		if cur+bs > offset {
-			// Unpin block
-			ckey := key.Key(node.Links[i].Hash)
-			dm.mp.RemovePinWithMode(ckey, pin.Indirect)
-
 			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
 				return "", false, err
@@ -278,9 +273,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			if err != nil {
 				return "", false, err
 			}
-
-			// pin the new node
-			dm.mp.PinWithMode(k, pin.Indirect)
 
 			offset += bs
 			node.Links[i].Hash = mh.Multihash(k)
@@ -310,7 +302,6 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte, errs <-ch
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
-		NodeCB:   imp.BasicPinnerCB(dm.mp),
 	}
 
 	return trickle.TrickleAppend(dm.ctx, node, dbp.New(blks, errs))
