@@ -39,6 +39,14 @@ test_expect_success "ipfs add output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "ipfs add --only-hash succeeds" '
+	ipfs add --only-hash mountdir/hello.txt > oh_actual
+'
+
+test_expect_success "ipfs add --only-hash output looks good" '
+	ipfs add --only-hash mountdir/hello.txt > oh_actual
+'
+
 test_expect_success "ipfs cat succeeds" '
 	ipfs cat "$HASH" >actual
 '

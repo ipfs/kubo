@@ -58,6 +58,7 @@ remains to be implemented.
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
+		cmds.BoolOption("only-hash", "n", "Only chunk and hash the specified content, don't write to disk"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
@@ -92,6 +93,16 @@ remains to be implemented.
 		progress, _, _ := req.Option(progressOptionName).Bool()
 		trickle, _, _ := req.Option(trickleOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
+		hash, _, _ := req.Option("only-hash").Bool()
+
+		if hash {
+			nilnode, err := core.NewNodeBuilder().NilRepo().Build(n.Context())
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			n = nilnode
+		}
 
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))

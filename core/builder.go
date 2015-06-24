@@ -23,6 +23,7 @@ type NodeBuilder struct {
 	peerhost HostOption
 	repo     repo.Repo
 	built    bool
+	nilrepo  bool
 }
 
 func NewNodeBuilder() *NodeBuilder {
@@ -33,7 +34,7 @@ func NewNodeBuilder() *NodeBuilder {
 	}
 }
 
-func defaultRepo() (repo.Repo, error) {
+func defaultRepo(dstore ds.ThreadSafeDatastore) (repo.Repo, error) {
 	c := cfg.Config{}
 	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
 	if err != nil {
@@ -56,7 +57,7 @@ func defaultRepo() (repo.Repo, error) {
 	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
 
 	return &repo.Mock{
-		D: dsync.MutexWrap(ds.NewMapDatastore()),
+		D: dstore,
 		C: c,
 	}, nil
 }
@@ -86,13 +87,23 @@ func (nb *NodeBuilder) SetRepo(r repo.Repo) *NodeBuilder {
 	return nb
 }
 
+func (nb *NodeBuilder) NilRepo() *NodeBuilder {
+	nb.nilrepo = true
+	return nb
+}
+
 func (nb *NodeBuilder) Build(ctx context.Context) (*IpfsNode, error) {
 	if nb.built {
 		return nil, ErrAlreadyBuilt
 	}
 	nb.built = true
 	if nb.repo == nil {
-		r, err := defaultRepo()
+		var d ds.Datastore
+		d = ds.NewMapDatastore()
+		if nb.nilrepo {
+			d = ds.NewNullDatastore()
+		}
+		r, err := defaultRepo(dsync.MutexWrap(d))
 		if err != nil {
 			return nil, err
 		}
