@@ -10,6 +10,11 @@
 			"Rev": "e4fcc9a2c7567d1c42861deebeb483315d222262"
 		},
 		{
+			"ImportPath": "bitbucket.org/ww/goautoneg",
+			"Comment": "null-5",
+			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
+		},
+		{
 			"ImportPath": "github.com/ActiveState/tail",
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
@@ -17,6 +22,10 @@
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.7.3-2-g26709e2",
 			"Rev": "26709e2714106fb8ad40b773b711ebce25b78914"
+		},
+		{
+			"ImportPath": "github.com/beorn7/perks/quantile",
+			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
 		},
 		{
 			"ImportPath": "github.com/bren2010/proquint",
@@ -90,6 +99,10 @@
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
 			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
 		},
 		{
 			"ImportPath": "github.com/h2so5/utp",
@@ -199,6 +212,10 @@
 			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
+			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
+			"Rev": "fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a"
+		},
+		{
 			"ImportPath": "github.com/miekg/dns",
 			"Rev": "82ffc45b1f84ff71bd1cebed8b210118ce3d181e"
 		},
@@ -209,6 +226,30 @@
 		{
 			"ImportPath": "github.com/mtchavez/jenkins",
 			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_golang/model",
+			"Comment": "0.6.0-15-g00e4c46",
+			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_golang/prometheus",
+			"Comment": "0.6.0-15-g00e4c46",
+			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_golang/text",
+			"Comment": "0.6.0-15-g00e4c46",
+			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_model/go",
+			"Comment": "model-0.0.2-12-gfa8ad6f",
+			"Rev": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
+		},
+		{
+			"ImportPath": "github.com/prometheus/procfs",
+			"Rev": "c91d8eefde16bd047416409eb56353ea84a186e4"
 		},
 		{
 			"ImportPath": "github.com/rs/cors",
