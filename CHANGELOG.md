@@ -19,6 +19,8 @@ We don't know what the main changes will be yet.
 #### Stability and performance
 
 * better Linux FUSE-mount errors for missing mount points, @jbenet, #1391
+* fix "slice bounds out of range" error from concurrent FUSE writes,
+  @chriscool, #1414
 * prevent wantmanager from leaking goroutines (and
   memory). @whyrusleeping, #1356
 * store pins in IPFS objects. @tv42, #1381
