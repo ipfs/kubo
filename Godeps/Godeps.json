@@ -240,6 +240,10 @@
 			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
 		},
 		{
+			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
+			"Rev": "15837fcc356fddef27c634b0f6379b3b7f259114"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/blowfish",
 			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},

@@ -69,6 +69,8 @@ func (s *Swarm) setupListener(maddr ma.Multiaddr) error {
 		return err
 	}
 
+	list.SetAddrFilters(s.Filters)
+
 	if cw, ok := list.(conn.ListenerConnWrapper); ok {
 		cw.SetConnWrapper(func(c manet.Conn) manet.Conn {
 			return mconn.WrapConn(s.bwc, c)

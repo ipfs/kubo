@@ -9,6 +9,7 @@ import (
 
 	metrics "github.com/ipfs/go-ipfs/metrics"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
+	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
@@ -50,6 +51,9 @@ type Swarm struct {
 	notifmu sync.RWMutex
 	notifs  map[inet.Notifiee]ps.Notifiee
 
+	// filters for addresses that shouldnt be dialed
+	Filters *filter.Filters
+
 	cg  ctxgroup.ContextGroup
 	bwc metrics.Reporter
 }
@@ -64,13 +68,14 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	s := &Swarm{
-		swarm:  ps.NewSwarm(PSTransport),
-		local:  local,
-		peers:  peers,
-		cg:     ctxgroup.WithContext(ctx),
-		dialT:  DialTimeout,
-		notifs: make(map[inet.Notifiee]ps.Notifiee),
-		bwc:    bwc,
+		swarm:   ps.NewSwarm(PSTransport),
+		local:   local,
+		peers:   peers,
+		cg:      ctxgroup.WithContext(ctx),
+		dialT:   DialTimeout,
+		notifs:  make(map[inet.Notifiee]ps.Notifiee),
+		bwc:     bwc,
+		Filters: new(filter.Filters),
 	}
 
 	// configure Swarm
