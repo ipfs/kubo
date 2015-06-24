@@ -82,8 +82,12 @@ func (f *serialFile) NextFile() (File, error) {
 
 	// open the next file
 	filePath := fp.Join(f.path, stat.Name())
-	file, err := os.OpenFile(filePath, (os.O_RDONLY | syscall.O_NONBLOCK), 0)
+	file, err := os.OpenFile(filePath, (os.O_RDONLY | syscall.O_NOFOLLOW | syscall.O_NONBLOCK), 0)
 	if err != nil {
+		errno, err2 := Errno(err)
+		if err2 == nil && errno == syscall.ELOOP {
+			return NewSymlink(filePath)
+		}
 		return nil, err
 	}
 	f.current = file
@@ -147,4 +151,19 @@ func size(stat os.FileInfo, filename string) (int64, error) {
 		output += s
 	}
 	return output, nil
+}
+
+func Errno(err error) (syscall.Errno, error) {
+	if err == nil {
+		return 0, err
+	}
+	err2, ok := err.(*os.PathError)
+	if !ok {
+		return 0, err
+	}
+	errno, ok := err2.Err.(syscall.Errno)
+	if !ok {
+		return 0, err
+	}
+	return errno, nil
 }

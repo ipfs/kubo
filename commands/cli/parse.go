@@ -340,8 +340,16 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
 	path := inputs[0]
 
-	file, err := os.OpenFile(path, (os.O_RDONLY | syscall.O_NONBLOCK), 0)
+	file, err := os.OpenFile(path, (os.O_RDONLY | syscall.O_NOFOLLOW | syscall.O_NONBLOCK), 0)
 	if err != nil {
+		errno, err2 := files.Errno(err)
+		if err2 == nil && errno == syscall.ELOOP {
+			arg, err := files.NewSymlink(path)
+			if err != nil {
+				return nil, nil, err
+			}
+			return append(args, arg), inputs[1:], nil
+		}
 		return nil, nil, err
 	}
 
