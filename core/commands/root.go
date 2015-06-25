@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 	evlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
@@ -35,6 +36,7 @@ DATA STRUCTURE COMMANDS
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
+    file          Interact with Unix filesystem objects
 
 ADVANCED COMMANDS
 
@@ -102,6 +104,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
 	"tour":      tourCmd,
+	"file":      unixfs.UnixFSCmd,
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,
