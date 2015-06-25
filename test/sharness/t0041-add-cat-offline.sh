@@ -45,4 +45,12 @@ test_expect_success "output looks good" '
 	test_cmp afile out_2
 '
 
+test_expect_success "ipfs add --only-hash succeeds" '
+	echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
+'
+
+test_expect_success "ipfs cat file fails" '
+	test_must_fail ipfs cat $(cat oh_hash)
+'
+
 test_done
