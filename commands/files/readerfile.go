@@ -3,7 +3,9 @@ package files
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"os"
+	"strings"
 )
 
 // ReaderFile is a implementation of File created from an `io.Reader`.
@@ -16,6 +18,20 @@ type ReaderFile struct {
 
 func NewReaderFile(filename string, reader io.ReadCloser, stat os.FileInfo) *ReaderFile {
 	return &ReaderFile{filename, reader, stat}
+}
+
+func NewSymlink(path string) (File, error) {
+	stat, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	target, err := os.Readlink(path)
+	if err != nil {
+		return nil, err
+	}
+	reader := strings.NewReader(target)
+	readCloser := ioutil.NopCloser(reader)
+	return &ReaderFile{path, readCloser, stat}, nil
 }
 
 func (f *ReaderFile) IsDirectory() bool {
@@ -31,6 +47,9 @@ func (f *ReaderFile) FileName() string {
 }
 
 func (f *ReaderFile) Read(p []byte) (int, error) {
+	if f.reader == nil {
+		return 0, io.EOF
+	}
 	return f.reader.Read(p)
 }
 
@@ -38,8 +57,8 @@ func (f *ReaderFile) Close() error {
 	return f.reader.Close()
 }
 
-func (f *ReaderFile) Stat() os.FileInfo {
-	return f.stat
+func (f *ReaderFile) Stat() (fi os.FileInfo, err error) {
+	return f.stat, nil
 }
 
 func (f *ReaderFile) Size() (int64, error) {

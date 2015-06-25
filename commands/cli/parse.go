@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
@@ -47,7 +48,11 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 	}
 	req.SetArguments(stringArgs)
 
-	file := files.NewSliceFile("", fileArgs)
+	file, err := files.NewSliceFile("", nil, fileArgs)
+	if err != nil {
+		return req, cmd, path, err
+	}
+
 	req.SetFiles(file)
 
 	err = cmd.CheckArguments(req)
@@ -335,8 +340,16 @@ func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, err
 func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recursive bool) ([]files.File, []string, error) {
 	path := inputs[0]
 
-	file, err := os.Open(path)
+	file, err := os.OpenFile(path, (os.O_RDONLY | syscall.O_NOFOLLOW | syscall.O_NONBLOCK), 0)
 	if err != nil {
+		errno, err2 := files.Errno(err)
+		if err2 == nil && errno == syscall.ELOOP {
+			arg, err := files.NewSymlink(path)
+			if err != nil {
+				return nil, nil, err
+			}
+			return append(args, arg), inputs[1:], nil
+		}
 		return nil, nil, err
 	}
 
@@ -367,7 +380,7 @@ func appendFile(args []files.File, inputs []string, argDef *cmds.Argument, recur
 }
 
 func appendStdinAsFile(args []files.File, stdin *os.File) ([]files.File, *os.File) {
-	arg := files.NewReaderFile("", stdin, nil)
+	arg := files.NewReaderFile("", stdin, files.NewDummyRegularFileInfo("stdin"))
 	return append(args, arg), nil
 }
 

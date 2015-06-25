@@ -206,6 +206,11 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 				if err == io.EOF {
 					close(outChan)
+					errorString := httpRes.Trailer.Get("Error")
+					if errorString != "" {
+						err = fmt.Errorf(errorString)
+						res.SetError(err, cmds.ErrNormal)
+					}
 					return
 				}
 				outChan <- v

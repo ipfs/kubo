@@ -1,10 +1,14 @@
 package files
 
 import (
+	"fmt"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
+	"time"
 )
 
 const (
@@ -22,6 +26,7 @@ type MultipartFile struct {
 	Part      *multipart.Part
 	Reader    *multipart.Reader
 	Mediatype string
+	stat      os.FileInfo
 }
 
 func NewFileFromPart(part *multipart.Part) (File, error) {
@@ -45,6 +50,55 @@ func NewFileFromPart(part *multipart.Part) (File, error) {
 		}
 
 		f.Reader = multipart.NewReader(part, boundary)
+	}
+
+	name := f.FileName()
+	fileInfoString := part.Header.Get("File-Info")
+	if fileInfoString == "" {
+		if f.IsDirectory() {
+			f.stat = NewDummyDirectoryFileInfo(name)
+		} else {
+			f.stat = NewDummyRegularFileInfo(name)
+		}
+	} else {
+		version, params, err := mime.ParseMediaType(fileInfoString)
+		if version != "ipfs/v1" {
+			return nil, fmt.Errorf(
+				"unrecognized File-Info version: %s (%s)", version, fileInfoString)
+		}
+		sizeString, ok := params["size"]
+		if !ok {
+			return nil, fmt.Errorf(
+				"File-Info missing \"size\" parameter: %s", fileInfoString)
+		}
+		size, err := strconv.ParseInt(sizeString, 0, 64)
+		if err != nil {
+			return nil, err
+		}
+		modeString, ok := params["mode"]
+		if !ok {
+			return nil, fmt.Errorf(
+				"File-Info missing \"mode\" parameter: %s", fileInfoString)
+		}
+		mode, err := strconv.ParseUint(modeString, 0, 32)
+		if err != nil {
+			return nil, err
+		}
+		modTimeString, ok := params["mod-time"]
+		if !ok {
+			return nil, fmt.Errorf(
+				"File-Info missing \"mod-time\" parameter: %s", fileInfoString)
+		}
+		modTime, err := time.Parse(time.RFC3339Nano, modTimeString)
+		if err != nil {
+			return nil, err
+		}
+		f.stat = &fileInfo{
+			name:    name,
+			size:    size,
+			mode:    os.FileMode(mode),
+			modTime: modTime,
+		}
 	}
 
 	return f, nil
@@ -88,4 +142,8 @@ func (f *MultipartFile) Close() error {
 		return ErrNotReader
 	}
 	return f.Part.Close()
+}
+
+func (f *MultipartFile) Stat() (fi os.FileInfo, err error) {
+	return f.stat, nil
 }

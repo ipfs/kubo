@@ -176,14 +176,14 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// w.WriteString(transferEncodingHeader + ": chunked\r\n")
 		// w.Header().Set(channelHeader, "1")
 		// w.WriteHeader(200)
-		err = copyChunks(applicationJson, w, out)
+		err = copyChunks(res, applicationJson, w, out)
 		if err != nil {
 			log.Debug(err)
 		}
 		return
 	}
 
-	flushCopy(w, out)
+	flushCopy(nil, w, out)
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -193,9 +193,9 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // flushCopy Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
-func flushCopy(w http.ResponseWriter, out io.Reader) error {
+func flushCopy(res cmds.Response, w http.ResponseWriter, out io.Reader) error {
 	if _, ok := w.(http.Flusher); !ok {
-		return copyChunks("", w, out)
+		return copyChunks(res, "", w, out)
 	}
 
 	io.Copy(&flushResponse{w}, out)
@@ -204,7 +204,7 @@ func flushCopy(w http.ResponseWriter, out io.Reader) error {
 
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
-func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error {
+func copyChunks(res cmds.Response, contentType string, w http.ResponseWriter, out io.Reader) error {
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		return errors.New("Could not create hijacker")
@@ -216,6 +216,9 @@ func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error 
 	defer conn.Close()
 
 	writer.WriteString("HTTP/1.1 200 OK\r\n")
+	if res != nil {
+		writer.WriteString("Trailer: Error\r\n")
+	}
 	if contentType != "" {
 		writer.WriteString(contentTypeHeader + ": " + contentType + "\r\n")
 	}
@@ -248,7 +251,18 @@ func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error 
 		}
 	}
 
-	writer.WriteString("0\r\n\r\n")
+	writer.WriteString("0\r\n") // eof
+
+	if res != nil {
+		err := res.Error()
+		if err != nil {
+			t := http.Header{}
+			t.Set("Error", err.Error())
+			t.Write(writer)
+		}
+	}
+
+	writer.WriteString("\r\n") // end of trailers
 	writer.Flush()
 
 	return nil

@@ -261,6 +261,16 @@ func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress b
 		return addDir(n, file, out, progress, useTrickle)
 	}
 
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	mode := stat.Mode()
+	if !mode.IsRegular() {
+		return nil, fmt.Errorf("`%s` is an unknown type", file.FileName())
+	}
+
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
