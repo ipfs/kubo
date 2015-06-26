@@ -10,7 +10,8 @@ test_description="Test daemon command"
 
 # this needs to be in a different test than "ipfs daemon --init" below
 test_expect_success "setup IPFS_PATH" '
-  IPFS_PATH="$(pwd)/.ipfs"
+  IPFS_PATH="$(pwd)/.ipfs" &&
+  export IPFS_PATH
 '
 
 # NOTE: this should remove bootstrap peers (needs a flag)
