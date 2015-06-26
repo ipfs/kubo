@@ -388,6 +388,9 @@ var objectNewCmd = &cmds.Command{
 By default it creates and returns a new empty merkledag node, but
 you may pass an optional template argument to create a preformatted
 node.
+
+Available templates:
+	* unixfs-dir
 `,
 	},
 	Arguments: []cmds.Argument{
