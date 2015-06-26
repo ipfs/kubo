@@ -17,6 +17,7 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
+	commands "github.com/ipfs/go-ipfs/commands"
 )
 
 type mockNamesys map[string]path.Path
@@ -65,9 +66,10 @@ func TestGatewayGet(t *testing.T) {
 	}
 	ns["example.com"] = path.FromString("/ipfs/" + k)
 
+	cmd_ctx := commands.Context{}
 	h, err := makeHandler(n,
 		IPNSHostnameOption(),
-		GatewayOption(false),
+		GatewayOption(false, &cmd_ctx),
 	)
 	if err != nil {
 		t.Fatal(err)
