@@ -12,7 +12,6 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	commands "github.com/ipfs/go-ipfs/core/commands"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -47,10 +46,6 @@ var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
 	cmds.XML:  "application/xml",
 	cmds.Text: "text/plain",
-}
-
-var readOnlyCmds = map[*cmds.Command]bool{
-	commands.RefsCmd: true,
 }
 
 func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string, commandList map[*cmds.Command]bool) *Handler {
