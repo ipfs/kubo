@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/fzzy/radix/redis"
+	"github.com/fzzy/radix/redis"
 	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	dstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/test"
 )
 
 const RedisEnv = "REDIS_DATASTORE_TEST_HOST"
@@ -20,7 +20,7 @@ func TestPutGetBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 	key, val := datastore.NewKey("foo"), []byte("bar")
-	assert.Nil(ds.Put(key, val), t)
+	dstest.Nil(ds.Put(key, val), t)
 	v, err := ds.Get(key)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestHasBytes(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Nil(ds.Put(key, val), t)
+	dstest.Nil(ds.Put(key, val), t)
 	hasAfterPut, err := ds.Has(key)
 	if err != nil {
 		t.Fatal(err)
@@ -62,8 +62,8 @@ func TestDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 	key, val := datastore.NewKey("foo"), []byte("bar")
-	assert.Nil(ds.Put(key, val), t)
-	assert.Nil(ds.Delete(key), t)
+	dstest.Nil(ds.Put(key, val), t)
+	dstest.Nil(ds.Delete(key), t)
 
 	hasAfterDelete, err := ds.Has(key)
 	if err != nil {
@@ -82,9 +82,9 @@ func TestExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 	key, val := datastore.NewKey("foo"), []byte("bar")
-	assert.Nil(ds.Put(key, val), t)
+	dstest.Nil(ds.Put(key, val), t)
 	time.Sleep(ttl + 1*time.Second)
-	assert.Nil(ds.Delete(key), t)
+	dstest.Nil(ds.Delete(key), t)
 
 	hasAfterExpiration, err := ds.Has(key)
 	if err != nil {

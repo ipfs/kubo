@@ -10,7 +10,7 @@ type Datastore struct {
 	F func()
 }
 
-func Wrap(ds ds.Datastore, f func()) ds.Datastore {
+func Wrap(ds ds.Datastore, f func()) *Datastore {
 	return &Datastore{ds, f}
 }
 

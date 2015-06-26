@@ -22,6 +22,8 @@ type DagBuilderHelper struct {
 	nextData []byte // the next item to return.
 	maxlinks int
 	ncb      NodeCB
+
+	batch *dag.Batch
 }
 
 type DagBuilderParams struct {
@@ -48,6 +50,7 @@ func (dbp *DagBuilderParams) New(in <-chan []byte) *DagBuilderHelper {
 		in:       in,
 		maxlinks: dbp.Maxlinks,
 		ncb:      ncb,
+		batch:    dbp.Dagserv.Batch(),
 	}
 }
 
@@ -155,4 +158,8 @@ func (db *DagBuilderHelper) Add(node *UnixfsNode) (*dag.Node, error) {
 
 func (db *DagBuilderHelper) Maxlinks() int {
 	return db.maxlinks
+}
+
+func (db *DagBuilderHelper) Close() error {
+	return db.batch.Commit()
 }

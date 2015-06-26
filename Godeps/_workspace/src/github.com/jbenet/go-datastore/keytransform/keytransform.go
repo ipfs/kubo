@@ -73,3 +73,37 @@ func (d *ktds) Query(q dsq.Query) (dsq.Results, error) {
 
 	return dsq.DerivedResults(qr, ch), nil
 }
+
+func (d *ktds) Batch() (ds.Batch, error) {
+	bds, ok := d.child.(ds.BatchingDatastore)
+	if !ok {
+		return nil, ds.ErrBatchUnsupported
+	}
+
+	childbatch, err := bds.Batch()
+	if err != nil {
+		return nil, err
+	}
+	return &transformBatch{
+		dst: childbatch,
+		f:   d.ConvertKey,
+	}, nil
+}
+
+type transformBatch struct {
+	dst ds.Batch
+
+	f KeyMapping
+}
+
+func (t *transformBatch) Put(key ds.Key, val interface{}) error {
+	return t.dst.Put(t.f(key), val)
+}
+
+func (t *transformBatch) Delete(key ds.Key) error {
+	return t.dst.Delete(t.f(key))
+}
+
+func (t *transformBatch) Commit() error {
+	return t.dst.Commit()
+}

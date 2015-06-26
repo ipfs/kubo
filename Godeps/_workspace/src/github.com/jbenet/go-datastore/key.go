@@ -4,8 +4,9 @@ import (
 	"path"
 	"strings"
 
-	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/satori/go.uuid"
+
+	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
 
 /*

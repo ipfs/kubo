@@ -1,15 +1,18 @@
 package flatfs_test
 
 import (
+	"encoding/base32"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 
+	rand "github.com/dustin/randbo"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+	dstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/test"
 )
 
 func tempdir(t testing.TB) (path string, cleanup func()) {
@@ -314,5 +317,100 @@ func TestQuerySimple(t *testing.T) {
 	}
 	if !seen {
 		t.Errorf("did not see wanted key %q in %+v", myKey, entries)
+	}
+}
+
+func TestBatchPut(t *testing.T) {
+	temp, cleanup := tempdir(t)
+	defer cleanup()
+
+	fs, err := flatfs.New(temp, 2)
+	if err != nil {
+		t.Fatalf("New fail: %v\n", err)
+	}
+
+	dstest.RunBatchTest(t, fs)
+}
+
+func TestBatchDelete(t *testing.T) {
+	temp, cleanup := tempdir(t)
+	defer cleanup()
+
+	fs, err := flatfs.New(temp, 2)
+	if err != nil {
+		t.Fatalf("New fail: %v\n", err)
+	}
+
+	dstest.RunBatchDeleteTest(t, fs)
+}
+
+func BenchmarkConsecutivePut(b *testing.B) {
+	r := rand.New()
+	var blocks [][]byte
+	var keys []datastore.Key
+	for i := 0; i < b.N; i++ {
+		blk := make([]byte, 256*1024)
+		r.Read(blk)
+		blocks = append(blocks, blk)
+
+		key := base32.StdEncoding.EncodeToString(blk[:8])
+		keys = append(keys, datastore.NewKey(key))
+	}
+	temp, cleanup := tempdir(b)
+	defer cleanup()
+
+	fs, err := flatfs.New(temp, 2)
+	if err != nil {
+		b.Fatalf("New fail: %v\n", err)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		err := fs.Put(keys[i], blocks[i])
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkBatchedPut(b *testing.B) {
+	r := rand.New()
+	var blocks [][]byte
+	var keys []datastore.Key
+	for i := 0; i < b.N; i++ {
+		blk := make([]byte, 256*1024)
+		r.Read(blk)
+		blocks = append(blocks, blk)
+
+		key := base32.StdEncoding.EncodeToString(blk[:8])
+		keys = append(keys, datastore.NewKey(key))
+	}
+	temp, cleanup := tempdir(b)
+	defer cleanup()
+
+	fs, err := flatfs.New(temp, 2)
+	if err != nil {
+		b.Fatalf("New fail: %v\n", err)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; {
+		batch, err := fs.Batch()
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for n := i; i-n < 512 && i < b.N; i++ {
+			err := batch.Put(keys[i], blocks[i])
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+		err = batch.Commit()
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
