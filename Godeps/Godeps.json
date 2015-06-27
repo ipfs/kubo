@@ -118,7 +118,7 @@
 		},
 		{
 			"ImportPath": "github.com/ipfs/go-blocks",
-			"Rev": "b32499887509764000a128c7caa6169cb2ce7ec7"
+			"Rev": "0d699799f2ace710352ac7d25a5757b962ec9116"
 		},
 		{
 			"ImportPath": "github.com/jackpal/go-nat-pmp",

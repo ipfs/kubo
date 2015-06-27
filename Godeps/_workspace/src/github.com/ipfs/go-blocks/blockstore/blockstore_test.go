@@ -38,7 +38,43 @@ func TestPutThenGetBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(block.Data, blockFromBlockstore.Data) {
-		t.Fail()
+		t.Fatal("blocks differ")
+	}
+}
+
+func TestPutThenGetBlocks(t *testing.T) {
+	checkErr := func(err error) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	block1 := blocks.NewBlock([]byte("some data 1"))
+	block2 := blocks.NewBlock([]byte("some data 2"))
+	block3 := blocks.NewBlock([]byte("some data 3"))
+	block4 := blocks.NewBlock([]byte("some data 4"))
+
+	checkErr(bs.Put(block1))
+	checkErr(bs.Put(block2))
+	checkErr(bs.Put(block3))
+
+	out := bs.GetChan([]key.Key{block1.Key(), block2.Key(), block3.Key(), block4.Key()})
+
+	checkGets := func(expect *blocks.Block, out <-chan *blocks.Block) {
+		actual := <-out
+		if !bytes.Equal(expect.Data, actual.Data) {
+			t.Fatal("blocks differ")
+		}
+	}
+
+	checkGets(block1, out)
+	checkGets(block2, out)
+	checkGets(block3, out)
+
+	_, more := <-out
+	if more {
+		t.Fatal("should be closed")
 	}
 }
 

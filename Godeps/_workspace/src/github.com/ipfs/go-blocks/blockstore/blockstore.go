@@ -28,6 +28,7 @@ type Blockstore interface {
 	Get(key.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
 
+	GetChan([]key.Key) <-chan *blocks.Block
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
 
@@ -58,6 +59,23 @@ func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 	}
 
 	return blocks.NewBlockWithHash(bdata, mh.Multihash(k))
+}
+
+func (bs *blockstore) GetChan(ks []key.Key) <-chan *blocks.Block {
+	out := make(chan *blocks.Block, 1)
+
+	go func() {
+		defer close(out)
+
+		for _, k := range ks {
+			b, err := bs.Get(k)
+			if err != nil {
+				continue
+			}
+			out <- b
+		}
+	}()
+	return out
 }
 
 func (bs *blockstore) Put(block *blocks.Block) error {

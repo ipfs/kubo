@@ -1,6 +1,9 @@
 all:
 	# no-op.
 
+test:
+	go test ./... -race -cpu 5
+
 godep:
 	go get github.com/tools/godep
 

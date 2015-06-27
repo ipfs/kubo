@@ -37,6 +37,10 @@ func (w *writecache) Get(k key.Key) (*blocks.Block, error) {
 	return w.blockstore.Get(k)
 }
 
+func (w *writecache) GetChan(ks []key.Key) <-chan *blocks.Block {
+	return w.blockstore.GetChan(ks)
+}
+
 func (w *writecache) Put(b *blocks.Block) error {
 	if _, ok := w.cache.Get(b.Key()); ok {
 		return nil
