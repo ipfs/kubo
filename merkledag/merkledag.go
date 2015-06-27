@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	blocks "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks"
+	bserv "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/blockservice"
 	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
