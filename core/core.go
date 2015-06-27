@@ -39,7 +39,7 @@ import (
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
 	offroute "github.com/ipfs/go-ipfs/routing/offline"
 
-	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	bstore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"

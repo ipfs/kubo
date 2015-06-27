@@ -1,0 +1,51 @@
+{
+	"ImportPath": "github.com/ipfs/go-blocks",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/hashicorp/golang-lru",
+			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-base58",
+			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-datastore",
+			"Rev": "c18ac933badbb459bfa4cced6c60deb2d88dd5a3"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multihash",
+			"Comment": "0.1.0-39-ge8d2374",
+			"Rev": "e8d2374934f16a971d1e94a864514a21ac74bf7f"
+		},
+		{
+			"ImportPath": "github.com/jbenet/goprocess",
+			"Rev": "67fe91f1081e806f1bb51051c972ac782ea46d85"
+		},
+		{
+			"ImportPath": "github.com/mtchavez/jenkins",
+			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
+		},
+		{
+			"ImportPath": "github.com/satori/go.uuid",
+			"Rev": "7c7f2020c4c9491594b85767967f4619c2fa75f9"
+		},
+		{
+			"ImportPath": "github.com/steakknife/hamming",
+			"Comment": "0.0.10",
+			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "59435533c88bd0b1254c738244da1fe96b59d05d"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "933937213561306ee71d265fb8a2913f20a55123"
+		}
+	]
+}

@@ -15,7 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	dag "github.com/ipfs/go-ipfs/merkledag"

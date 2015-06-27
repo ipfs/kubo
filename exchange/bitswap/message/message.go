@@ -3,8 +3,8 @@ package message
 import (
 	"io"
 
-	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	blocks "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/internal/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	inet "github.com/ipfs/go-ipfs/p2p/net"

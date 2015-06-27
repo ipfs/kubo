@@ -2,17 +2,14 @@
 package set
 
 import (
-	"github.com/ipfs/go-ipfs/blocks/bloom"
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	"github.com/ipfs/go-ipfs/util"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/bloom"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 )
-
-var log = util.Logger("blockset")
 
 // BlockSet represents a mutable set of keyed blocks
 type BlockSet interface {
-	AddBlock(key.Key)
-	RemoveBlock(key.Key)
+	AddBlock(key.Key) error
+	RemoveBlock(key.Key) error
 	HasKey(key.Key) bool
 	GetBloomFilter() bloom.Filter
 
@@ -35,12 +32,14 @@ type simpleBlockSet struct {
 	blocks map[key.Key]struct{}
 }
 
-func (b *simpleBlockSet) AddBlock(k key.Key) {
+func (b *simpleBlockSet) AddBlock(k key.Key) error {
 	b.blocks[k] = struct{}{}
+	return nil
 }
 
-func (b *simpleBlockSet) RemoveBlock(k key.Key) {
+func (b *simpleBlockSet) RemoveBlock(k key.Key) error {
 	delete(b.blocks, k)
+	return nil
 }
 
 func (b *simpleBlockSet) HasKey(k key.Key) bool {

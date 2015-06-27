@@ -1,9 +1,9 @@
 package set
 
 import (
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/bloom"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	"github.com/ipfs/go-ipfs/blocks/bloom"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
 type datastoreBlockSet struct {
@@ -19,20 +19,22 @@ func NewDBWrapperSet(d ds.Datastore, bset BlockSet) BlockSet {
 	}
 }
 
-func (d *datastoreBlockSet) AddBlock(k key.Key) {
+func (d *datastoreBlockSet) AddBlock(k key.Key) error {
 	err := d.dstore.Put(k.DsKey(), []byte{})
 	if err != nil {
-		log.Debugf("blockset put error: %s", err)
+		return err
 	}
 
 	d.bset.AddBlock(k)
+	return nil
 }
 
-func (d *datastoreBlockSet) RemoveBlock(k key.Key) {
+func (d *datastoreBlockSet) RemoveBlock(k key.Key) error {
 	d.bset.RemoveBlock(k)
 	if !d.bset.HasKey(k) {
-		d.dstore.Delete(k.DsKey())
+		return d.dstore.Delete(k.DsKey())
 	}
+	return nil
 }
 
 func (d *datastoreBlockSet) HasKey(k key.Key) bool {

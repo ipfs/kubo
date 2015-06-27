@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	hash "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/hash"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // Block is a singular block of data in ipfs
@@ -19,15 +19,15 @@ type Block struct {
 
 // NewBlock creates a Block object from opaque data. It will hash the data.
 func NewBlock(data []byte) *Block {
-	return &Block{Data: data, Multihash: u.Hash(data)}
+	return &Block{Data: data, Multihash: hash.Hash(data)}
 }
 
 // NewBlockWithHash creates a new block when the hash of the data
 // is already known, this is used to save time in situations where
 // we are able to be confident that the data is correct
 func NewBlockWithHash(data []byte, h mh.Multihash) (*Block, error) {
-	if u.Debug {
-		chk := u.Hash(data)
+	if hash.Debug {
+		chk := hash.Hash(data)
 		if string(chk) != string(h) {
 			return nil, errors.New("Data did not match given hash!")
 		}

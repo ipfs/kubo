@@ -5,17 +5,14 @@ package blockstore
 import (
 	"errors"
 
+	blocks "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	blocks "github.com/ipfs/go-ipfs/blocks"
-	key "github.com/ipfs/go-ipfs/blocks/key"
-	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
-
-var log = eventlog.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
 var BlockPrefix = ds.NewKey("blocks")
@@ -107,13 +104,11 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 				return k, false
 			}
 			if e.Error != nil {
-				log.Debug("blockstore.AllKeysChan got err:", e.Error)
 				return k, false
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
 			k = key.KeyFromDsKey(ds.NewKey(e.Key))
-			log.Debug("blockstore: query got key", k)
 
 			// key must be a multihash. else ignore it.
 			_, err := mh.Cast([]byte(k))

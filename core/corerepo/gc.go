@@ -1,8 +1,8 @@
 package corerepo
 
 import (
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/core"
 
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"

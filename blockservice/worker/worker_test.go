@@ -1,7 +1,7 @@
 package worker
 
 import (
-	blocks "github.com/ipfs/go-ipfs/blocks"
+	blocks "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks"
 	"testing"
 )
 

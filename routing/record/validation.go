@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	u "github.com/ipfs/go-ipfs/util"
