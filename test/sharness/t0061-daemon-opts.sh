@@ -26,10 +26,9 @@ test_expect_success 'api gateway should be unrestricted' '
 '
 
 # Odd. this fails here, but the inverse works on t0060-daemon.
-test_expect_failure 'transport should be unencrypted' '
-  nc 127.0.0.1 "$PORT_SWARM" >swarmnc &
-  go-sleep 0.1s &&
-  ! grep -q "AES-256,AES-128" swarmnc &&
+test_expect_success 'transport should be unencrypted' '
+  go-sleep 0.5s | nc localhost "$PORT_SWARM" >swarmnc &&
+  test_must_fail grep -q "AES-256,AES-128" swarmnc &&
   grep -q "/ipfs/identify" swarmnc ||
   test_fsh cat swarmnc
 '

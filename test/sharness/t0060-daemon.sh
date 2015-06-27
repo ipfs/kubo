@@ -19,7 +19,7 @@ test_expect_success "setup IPFS_PATH" '
 # NOTE: this should remove bootstrap peers (needs a flag)
 # TODO(cryptix):
 #  - we won't see daemon startup failure because we put the daemon in the background - fix: fork with exit code after api listen
-#  - also default ports: might clash with local clients. Failure in that case isn't clear as well because pollEndpoint just uses the already running node 
+#  - also default ports: might clash with local clients. Failure in that case isn't clear as well because pollEndpoint just uses the already running node
 test_expect_success "ipfs daemon --init launches" '
   ipfs daemon --init >actual_daemon 2>daemon_err &
 '
@@ -102,10 +102,9 @@ test_expect_success "ipfs help output looks good" '
 # check transport is encrypted
 
 test_expect_success 'transport should be encrypted' '
-  nc localhost 4001 >swarmnc &
-  go-sleep 0.1s &&
+  nc -w 5 localhost 4001 >swarmnc &&
   grep -q "AES-256,AES-128" swarmnc &&
-  ! grep -q "/ipfs/identify" swarmnc ||
+  test_must_fail grep -q "/ipfs/identify" swarmnc ||
 	test_fsh cat swarmnc
 '
 
