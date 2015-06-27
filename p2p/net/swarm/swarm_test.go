@@ -325,6 +325,6 @@ func TestFilterBounds(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("should have gotten connection")
 	case <-conns:
-		fmt.Println("got connect")
+		t.Log("got connect")
 	}
 }
