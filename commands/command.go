@@ -64,8 +64,9 @@ type Command struct {
 	// the Run Function.
 	//
 	// ie. If command Run returns &Block{}, then Command.Type == &Block{}
-	Type        interface{}
-	Subcommands map[string]*Command
+	Type          interface{}
+	Subcommands   map[string]*Command
+	GatewayAccess bool
 }
 
 // ErrNotCallable signals a command that cannot be called.

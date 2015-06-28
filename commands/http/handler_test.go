@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/commands"
+	corecommands "github.com/ipfs/go-ipfs/core/commands"
 )
 
 func assertHeaders(t *testing.T, resHeaders http.Header, reqHeaders map[string]string) {
@@ -21,7 +22,13 @@ func TestDisallowedOrigin(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.com/foo", nil)
 	req.Header.Add("Origin", "http://barbaz.com")
 
-	handler := NewHandler(commands.Context{}, nil, "")
+	commandList := map[*commands.Command]bool{}
+
+	for _, cmd := range corecommands.Root.Subcommands {
+		commandList[cmd] = true
+	}
+
+	handler := NewHandler(commands.Context{}, nil, "", commandList)
 	handler.ServeHTTP(res, req)
 
 	assertHeaders(t, res.Header(), map[string]string{
@@ -38,7 +45,13 @@ func TestWildcardOrigin(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.com/foo", nil)
 	req.Header.Add("Origin", "http://foobar.com")
 
-	handler := NewHandler(commands.Context{}, nil, "*")
+	commandList := map[*commands.Command]bool{}
+
+	for _, cmd := range corecommands.Root.Subcommands {
+		commandList[cmd] = true
+	}
+
+	handler := NewHandler(commands.Context{}, nil, "*", commandList)
 	handler.ServeHTTP(res, req)
 
 	assertHeaders(t, res.Header(), map[string]string{
@@ -57,7 +70,13 @@ func TestAllowedMethod(t *testing.T) {
 	req.Header.Add("Origin", "http://www.foobar.com")
 	req.Header.Add("Access-Control-Request-Method", "PUT")
 
-	handler := NewHandler(commands.Context{}, nil, "http://www.foobar.com")
+	commandList := map[*commands.Command]bool{}
+
+	for _, cmd := range corecommands.Root.Subcommands {
+		commandList[cmd] = true
+	}
+
+	handler := NewHandler(commands.Context{}, nil, "http://www.foobar.com", commandList)
 	handler.ServeHTTP(res, req)
 
 	assertHeaders(t, res.Header(), map[string]string{
@@ -68,4 +87,22 @@ func TestAllowedMethod(t *testing.T) {
 		"Access-Control-Max-Age":           "",
 		"Access-Control-Expose-Headers":    "",
 	})
+}
+
+func TestLimitingCommands(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "http://example.com/api/v0/cat", nil)
+
+	query := req.URL.Query()
+	query.Add("arg", "QmFooBar")
+	req.URL.RawQuery = query.Encode()
+
+	commandList := map[*commands.Command]bool{}
+
+	handler := NewHandler(commands.Context{}, corecommands.Root, "*", commandList)
+	handler.ServeHTTP(res, req)
+
+	if(res.Code != http.StatusForbidden) {
+		t.Errorf("Invalid status code, expected `%d` received `%d`\nBody:\n %s", http.StatusForbidden, res.Code, res.Body)
+	}
 }

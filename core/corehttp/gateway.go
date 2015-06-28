@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"os"
 
+	commands "github.com/ipfs/go-ipfs/commands"
+	cmdsHttp "github.com/ipfs/go-ipfs/commands/http"
+	corecommands "github.com/ipfs/go-ipfs/core/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	id "github.com/ipfs/go-ipfs/p2p/protocol/identify"
 )
@@ -25,7 +29,13 @@ func NewGateway(conf GatewayConfig) *Gateway {
 	}
 }
 
-func (g *Gateway) ServeOption() ServeOption {
+func (g *Gateway) ServeOption(cctx * commands.Context) ServeOption {
+	var commandList = map[*commands.Command]bool{}
+
+	for _, cmd := range corecommands.Root.Subcommands {
+		commandList[cmd] = cmd.GatewayAccess
+	}
+
 	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
 		gateway, err := newGatewayHandler(n, g.Config)
 		if err != nil {
@@ -33,17 +43,25 @@ func (g *Gateway) ServeOption() ServeOption {
 		}
 		mux.Handle("/ipfs/", gateway)
 		mux.Handle("/ipns/", gateway)
+
+		if cctx != nil {
+			origin := os.Getenv(originEnvKey)
+			cmdHandler := cmdsHttp.NewHandler(*cctx, corecommands.Root, origin, commandList)
+			mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
+		}
 		return mux, nil
 	}
 }
 
-func GatewayOption(writable bool) ServeOption {
+
+func GatewayOption(writable bool, cctx * commands.Context) ServeOption {
 	g := NewGateway(GatewayConfig{
 		Writable:  writable,
 		BlockList: &BlockList{},
 	})
-	return g.ServeOption()
+	return g.ServeOption(cctx)
 }
+
 
 func VersionOption() ServeOption {
 	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {

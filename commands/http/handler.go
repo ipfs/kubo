@@ -21,6 +21,7 @@ var log = u.Logger("commands/http")
 type internalHandler struct {
 	ctx  cmds.Context
 	root *cmds.Command
+	availableCmds map[*cmds.Command]bool
 }
 
 // The Handler struct is funny because we want to wrap our internal handler
@@ -47,14 +48,14 @@ var mimeTypes = map[string]string{
 	cmds.Text: "text/plain",
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
+func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string, commandList map[*cmds.Command]bool) *Handler {
 	// allow whitelisted origins (so we can make API requests from the browser)
 	if len(allowedOrigin) > 0 {
 		log.Info("Allowing API requests from origin: " + allowedOrigin)
 	}
 
 	// Create a handler for the API.
-	internal := internalHandler{ctx, root}
+	internal := internalHandler{ctx, root, commandList}
 
 	// Create a CORS object for wrapping the internal handler.
 	c := cors.New(cors.Options{
@@ -89,6 +90,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req, err := Parse(r, i.root)
+
 	if err != nil {
 		if err == ErrNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -96,6 +98,13 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		}
 		w.Write([]byte(err.Error()))
+		return
+	}
+
+	if access, ok := i.availableCmds[req.Command()]; !ok || access == false {
+		// Or a 404?
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("You may not execute this command on this server."))
 		return
 	}
 

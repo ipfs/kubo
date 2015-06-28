@@ -76,13 +76,13 @@ func run(ipfsPath, watchPath string) error {
 		return err
 	}
 	defer node.Close()
-
+	cmd_ctx := cmdCtx(node, ipfsPath)
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"
 		var opts = []corehttp.ServeOption{
-			corehttp.GatewayOption(true),
+			corehttp.GatewayOption(true, &cmd_ctx),
 			corehttp.WebUIOption,
-			corehttp.CommandsOption(cmdCtx(node, ipfsPath)),
+			corehttp.CommandsOption(cmd_ctx),
 		}
 		proc.Go(func(p process.Process) {
 			if err := corehttp.ListenAndServe(node, addr, opts...); err != nil {

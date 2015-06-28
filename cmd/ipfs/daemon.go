@@ -295,7 +295,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 	var opts = []corehttp.ServeOption{
 		corehttp.CommandsOption(*req.Context()),
 		corehttp.WebUIOption,
-		apiGw.ServeOption(),
+		apiGw.ServeOption(nil),
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
@@ -368,7 +368,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	var opts = []corehttp.ServeOption{
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable),
+		corehttp.GatewayOption(writable, req.Context()),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {

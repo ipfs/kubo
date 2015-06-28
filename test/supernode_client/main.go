@@ -106,9 +106,10 @@ func run() error {
 	}
 	defer node.Close()
 
+	cmd_ctx := cmdCtx(node, repoPath)
 	opts := []corehttp.ServeOption{
-		corehttp.CommandsOption(cmdCtx(node, repoPath)),
-		corehttp.GatewayOption(false),
+		corehttp.CommandsOption(cmd_ctx),
+		corehttp.GatewayOption(false, &cmd_ctx),
 	}
 
 	if *cat {
