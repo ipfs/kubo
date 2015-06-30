@@ -32,6 +32,7 @@ func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 }
 
 var RefsCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Lists links (references) from an object",
 		ShortDescription: `

@@ -72,6 +72,7 @@ ipfs object patch <args>    - Create new object from old ones
 }
 
 var objectDataCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the raw bytes in an IPFS object",
 		ShortDescription: `
@@ -110,6 +111,7 @@ output is the raw data of the object.
 }
 
 var objectLinksCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Outputs the links pointed to by the specified object",
 		ShortDescription: `
@@ -159,6 +161,7 @@ multihash.
 }
 
 var objectGetCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Get and serialize the DAG node named by <key>",
 		ShortDescription: `
@@ -230,6 +233,7 @@ This command outputs data in the following encodings:
 }
 
 var objectStatCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Get stats for the DAG node named by <key>",
 		ShortDescription: `

@@ -15,6 +15,7 @@ import (
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
 
 var CatCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Show IPFS object data",
 		ShortDescription: `

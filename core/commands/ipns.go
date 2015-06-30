@@ -11,6 +11,7 @@ import (
 )
 
 var ipnsCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Gets the value currently published at an IPNS name",
 		ShortDescription: `

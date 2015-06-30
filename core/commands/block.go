@@ -43,6 +43,7 @@ multihash.
 }
 
 var blockStatCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Print information of a raw IPFS block",
 		ShortDescription: `
@@ -80,6 +81,7 @@ on raw ipfs blocks. It outputs the following to stdout:
 }
 
 var blockGetCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "Get a raw IPFS block",
 		ShortDescription: `

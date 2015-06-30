@@ -33,6 +33,7 @@ type LsOutput struct {
 }
 
 var LsCmd = &cmds.Command{
+	GatewayAccess: true,
 	Helptext: cmds.HelpText{
 		Tagline: "List links from an object.",
 		ShortDescription: `
