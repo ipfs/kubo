@@ -300,6 +300,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
 		corehttp.LogOption(),
+		corehttp.PrometheusOption("/debug/metrics/prometheus"),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
