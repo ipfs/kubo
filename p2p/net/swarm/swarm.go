@@ -84,7 +84,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		dialT:   DialTimeout,
 		notifs:  make(map[inet.Notifiee]ps.Notifiee),
 		bwc:     bwc,
-		Filters: new(filter.Filters),
+		Filters: filter.NewFilters(),
 	}
 
 	// configure Swarm
