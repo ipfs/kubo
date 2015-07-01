@@ -75,21 +75,14 @@ Set the value of the 'datastore.path' key:
 		var output *ConfigField
 		if len(args) == 2 {
 			value := args[1]
-
-			if parseJson, _, _ := req.Option("json").Bool(); parseJson {
-				var jsonVal interface{}
-				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
-					err = fmt.Errorf("failed to unmarshal json. %s", err)
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-
-				output, err = setConfig(r, key, jsonVal)
-			} else if isbool, _, _ := req.Option("bool").Bool(); isbool {
-				output, err = setConfig(r, key, value == "true")
-			} else {
-				output, err = setConfig(r, key, value)
+			var jsonVal interface{}
+			if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
+				err = fmt.Errorf("failed to unmarshal json. %s", err)
+				res.SetError(err, cmds.ErrNormal)
+				return
 			}
+
+			output, err = setConfig(r, key, jsonVal)
 		} else {
 			output, err = getConfig(r, key)
 		}
@@ -181,7 +174,7 @@ variable set to your preferred text editor.
 
 var configReplaceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Replaces the config with `file>",
+		Tagline: "Replaces the config with <file>",
 		ShortDescription: `
 Make sure to back up the config file first if neccessary, this operation
 can't be undone.
@@ -228,7 +221,7 @@ func getConfig(r repo.Repo, key string) (*ConfigField, error) {
 func setConfig(r repo.Repo, key string, value interface{}) (*ConfigField, error) {
 	err := r.SetConfigKey(key, value)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to set config value: %s (maybe use --json?)", err)
+		return nil, fmt.Errorf("Failed to set config value: %s", err)
 	}
 	return getConfig(r, key)
 }

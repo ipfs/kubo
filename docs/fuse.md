@@ -65,7 +65,7 @@ ipfs daemon --mount
 If you wish to allow other users to use the mount points, use the following:
 
 ```sh
-ipfs config Mounts.FuseAllowOther --bool true
+ipfs config Mounts.FuseAllowOther true
 ipfs daemon --mount
 ```
 
