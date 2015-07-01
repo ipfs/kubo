@@ -289,11 +289,11 @@ func (n *ps2netNotifee) ClosedStream(s *ps.Stream) {
 type metricsNotifiee Swarm
 
 func (nn *metricsNotifiee) Connected(n inet.Network, v inet.Conn) {
-	peersTotalGauge(n.LocalPeer()).Inc()
+	peersTotalGauge(n.LocalPeer()).Set(float64(len(n.Conns())))
 }
 
 func (nn *metricsNotifiee) Disconnected(n inet.Network, v inet.Conn) {
-	peersTotalGauge(n.LocalPeer()).Dec()
+	peersTotalGauge(n.LocalPeer()).Set(float64(len(n.Conns())))
 }
 
 func (nn *metricsNotifiee) OpenedStream(n inet.Network, v inet.Stream) {}
