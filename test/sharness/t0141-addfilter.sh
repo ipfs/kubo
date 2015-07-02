@@ -33,6 +33,9 @@ test_swarm_filter_cmd() {
 
 test_swarm_filters() {
 	
+	# expect first address from config
+	test_swarm_filter_cmd $AF1 $AF4
+
 	ipfs swarm filters rm all
 
 	test_swarm_filter_cmd
@@ -61,6 +64,10 @@ test_swarm_filters() {
 
 	test_swarm_filter_cmd
 }
+
+test_expect_success "adding addresses to the config to filter succeeds" '
+	ipfs config --json DialBlocklist "[\"$AF1\", \"$AF4\"]"
+'
 
 test_launch_ipfs_daemon
 
