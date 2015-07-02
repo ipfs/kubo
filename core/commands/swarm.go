@@ -378,7 +378,7 @@ Where the above is equivalent to the standard CIDR:
 
     192.168.0.0/16
 
-Filters default to those specified under the "DialBlocklist" config key.
+Filters default to those specified under the "Swarm.AddrFilters" config key.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -419,7 +419,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "add an address filter",
 		ShortDescription: `
-'ipfs swarm filters add' will add an address filter to the daemons swarm. 
+'ipfs swarm filters add' will add an address filter to the daemons swarm.
 Filters applied this way will not persist daemon reboots, to acheive that,
 add your filters to the ipfs config file.
 `,
@@ -456,7 +456,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "remove an address filter",
 		ShortDescription: `
-'ipfs swarm filters rm' will remove an address filter from the daemons swarm. 
+'ipfs swarm filters rm' will remove an address filter from the daemons swarm.
 Filters removed this way will not persist daemon reboots, to acheive that,
 remove your filters from the ipfs config file.
 `,

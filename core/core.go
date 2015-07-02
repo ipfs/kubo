@@ -258,7 +258,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	// get undialable addrs from config
 	cfg := n.Repo.Config()
 	var addrfilter []*net.IPNet
-	for _, s := range cfg.DialBlocklist {
+	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
 		if err != nil {
 			return fmt.Errorf("incorrectly formatter address filter in config: %s", s)
