@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -91,6 +92,9 @@ var swarmAddrsCmd = &cmds.Command{
 ipfs swarm addrs lists all addresses this node is aware of.
 `,
 	},
+	Subcommands: map[string]*cmds.Command{
+		"local": swarmAddrsLocalCmd,
+	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		n, err := req.Context().GetNode()
@@ -130,7 +134,7 @@ ipfs swarm addrs lists all addresses this node is aware of.
 			}
 			sort.Sort(sort.StringSlice(ids))
 
-			var buf bytes.Buffer
+			buf := new(bytes.Buffer)
 			for _, p := range ids {
 				paddrs := m.Addrs[p]
 				buf.WriteString(fmt.Sprintf("%s (%d)\n", p, len(paddrs)))
@@ -138,18 +142,63 @@ ipfs swarm addrs lists all addresses this node is aware of.
 					buf.WriteString("\t" + addr + "\n")
 				}
 			}
-			return &buf, nil
+			return buf, nil
 		},
 	},
 	Type: addrMap{},
+}
+
+var swarmAddrsLocalCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List local addresses.",
+		ShortDescription: `
+ipfs swarm addrs local lists all local addresses the node is listening on.
+`,
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("id", "Show peer ID in addresses"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrClient)
+			return
+		}
+
+		showid, _, _ := req.Option("id").Bool()
+		id := n.Identity.Pretty()
+
+		var addrs []string
+		for _, addr := range n.PeerHost.Addrs() {
+			saddr := addr.String()
+			if showid {
+				saddr = path.Join(saddr, "ipfs", id)
+			}
+			addrs = append(addrs, saddr)
+		}
+		sort.Sort(sort.StringSlice(addrs))
+
+		res.SetOutput(&stringList{addrs})
+	},
+	Type: stringList{},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
 }
 
 var swarmConnectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Open connection to a given address",
 		ShortDescription: `
-'ipfs swarm connect' opens a connection to a peer address. The address format
-is an ipfs multiaddr:
+'ipfs swarm connect' opens a new direct connection to a peer address.
+
+The address format is an ipfs multiaddr:
 
 ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
@@ -272,12 +321,12 @@ func stringListMarshaler(res cmds.Response) (io.Reader, error) {
 		return nil, errors.New("failed to cast []string")
 	}
 
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	for _, s := range list.Strings {
 		buf.WriteString(s)
 		buf.WriteString("\n")
 	}
-	return &buf, nil
+	return buf, nil
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses

@@ -5,9 +5,10 @@ import (
 	"net"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
 
 	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
@@ -15,7 +16,7 @@ import (
 )
 
 // Map maps Keys (Peer.IDs) to Connections.
-type Map map[u.Key]Conn
+type Map map[key.Key]Conn
 
 type PeerConn interface {
 	io.Closer
@@ -86,7 +87,17 @@ type Listener interface {
 	// LocalPeer is the identity of the local Peer.
 	LocalPeer() peer.ID
 
+	SetAddrFilters(*filter.Filters)
+
 	// Close closes the listener.
 	// Any blocked Accept operations will be unblocked and return errors.
 	Close() error
 }
+
+// EncryptConnections is a global parameter because it should either be
+// enabled or _completely disabled_. I.e. a node should only be able to talk
+// to proper (encrypted) networks if it is encrypting all its transports.
+// Running a node with disabled transport encryption is useful to debug the
+// protocols, achieve implementation interop, or for private networks which
+// -- for whatever reason -- _must_ run unencrypted.
+var EncryptConnections = true

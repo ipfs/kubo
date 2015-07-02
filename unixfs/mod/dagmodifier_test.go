@@ -10,6 +10,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	imp "github.com/ipfs/go-ipfs/importer"
@@ -52,7 +53,7 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blocksto
 
 func getNode(t testing.TB, dserv mdag.DAGService, size int64, pinner pin.ManualPinner) ([]byte, *mdag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
-	node, err := imp.BuildTrickleDagFromReader(in, dserv, pinner, &chunk.SizeSplitter{500})
+	node, err := imp.BuildTrickleDagFromReader(in, dserv, &chunk.SizeSplitter{500}, imp.BasicPinnerCB(pinner))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -574,10 +575,10 @@ func TestCorrectPinning(t *testing.T) {
 
 }
 
-func enumerateChildren(t *testing.T, nd *mdag.Node, ds mdag.DAGService) []u.Key {
-	var out []u.Key
+func enumerateChildren(t *testing.T, nd *mdag.Node, ds mdag.DAGService) []key.Key {
+	var out []key.Key
 	for _, lnk := range nd.Links {
-		out = append(out, u.Key(lnk.Hash))
+		out = append(out, key.Key(lnk.Hash))
 		child, err := lnk.GetNode(context.Background(), ds)
 		if err != nil {
 			t.Fatal(err)

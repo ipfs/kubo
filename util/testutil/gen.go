@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"bytes"
-	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -44,7 +43,7 @@ func SeededTestKeyPair(seed int64) (ci.PrivKey, ci.PubKey, error) {
 //  id, _ := peer.IDFromPublicKey(pk)
 func RandPeerID() (peer.ID, error) {
 	buf := make([]byte, 16)
-	if _, err := io.ReadFull(crand.Reader, buf); err != nil {
+	if _, err := io.ReadFull(u.NewTimeSeededRand(), buf); err != nil {
 		return "", err
 	}
 	h := u.Hash(buf)
@@ -109,7 +108,7 @@ func (p *PeerNetParams) checkKeys() error {
 		return errors.New("p.ID does not match p.PubKey")
 	}
 
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	buf.Write([]byte("hello world. this is me, I swear."))
 	b := buf.Bytes()
 
@@ -123,7 +122,7 @@ func (p *PeerNetParams) checkKeys() error {
 		return fmt.Errorf("sig verify failed: %s", err)
 	}
 	if !sigok {
-		return fmt.Errorf("sig verify failed: sig invalid!")
+		return fmt.Errorf("sig verify failed: sig invalid")
 	}
 
 	return nil // ok. move along.

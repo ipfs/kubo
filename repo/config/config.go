@@ -26,6 +26,7 @@ type Config struct {
 	Tour             Tour                  // local node's tour position
 	Gateway          Gateway               // local node's gateway server options
 	SupernodeRouting SupernodeClientConfig // local node's routing servers (if SupernodeRouting enabled)
+	DialBlocklist    []string
 	Log              Log
 }
 
@@ -86,24 +87,24 @@ func Marshal(value interface{}) ([]byte, error) {
 }
 
 func FromMap(v map[string]interface{}) (*Config, error) {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+	buf := new(bytes.Buffer)
+	if err := json.NewEncoder(buf).Encode(v); err != nil {
 		return nil, err
 	}
 	var conf Config
-	if err := json.NewDecoder(&buf).Decode(&conf); err != nil {
+	if err := json.NewDecoder(buf).Decode(&conf); err != nil {
 		return nil, fmt.Errorf("Failure to decode config: %s", err)
 	}
 	return &conf, nil
 }
 
 func ToMap(conf *Config) (map[string]interface{}, error) {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(conf); err != nil {
+	buf := new(bytes.Buffer)
+	if err := json.NewEncoder(buf).Encode(conf); err != nil {
 		return nil, err
 	}
 	var m map[string]interface{}
-	if err := json.NewDecoder(&buf).Decode(&m); err != nil {
+	if err := json.NewDecoder(buf).Decode(&m); err != nil {
 		return nil, fmt.Errorf("Failure to decode config: %s", err)
 	}
 	return m, nil

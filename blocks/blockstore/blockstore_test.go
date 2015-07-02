@@ -11,14 +11,14 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
 // TODO(brian): TestGetReturnsNil
 
 func TestGetWhenKeyNotPresent(t *testing.T) {
 	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
-	_, err := bs.Get(u.Key("not present"))
+	_, err := bs.Get(key.Key("not present"))
 
 	if err != nil {
 		t.Log("As expected, block is not present")
@@ -45,13 +45,13 @@ func TestPutThenGetBlock(t *testing.T) {
 	}
 }
 
-func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []u.Key) {
+func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []key.Key) {
 	if d == nil {
 		d = ds.NewMapDatastore()
 	}
 	bs := NewBlockstore(ds_sync.MutexWrap(d))
 
-	keys := make([]u.Key, N)
+	keys := make([]key.Key, N)
 	for i := 0; i < N; i++ {
 		block := blocks.NewBlock([]byte(fmt.Sprintf("some data %d", i)))
 		err := bs.Put(block)
@@ -63,8 +63,8 @@ func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []u
 	return bs, keys
 }
 
-func collect(ch <-chan u.Key) []u.Key {
-	var keys []u.Key
+func collect(ch <-chan key.Key) []key.Key {
+	var keys []key.Key
 	for k := range ch {
 		keys = append(keys, k)
 	}
@@ -219,7 +219,7 @@ func TestValueTypeMismatch(t *testing.T) {
 	}
 }
 
-func expectMatches(t *testing.T, expect, actual []u.Key) {
+func expectMatches(t *testing.T, expect, actual []key.Key) {
 
 	if len(expect) != len(actual) {
 		t.Errorf("expect and actual differ: %d != %d", len(expect), len(actual))

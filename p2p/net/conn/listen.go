@@ -13,6 +13,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
+	filter "github.com/ipfs/go-ipfs/p2p/net/filter"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
@@ -25,6 +26,8 @@ type listener struct {
 
 	local peer.ID    // LocalPeer is the identity of the local Peer
 	privk ic.PrivKey // private key to use to initialize secure conns
+
+	filters *filter.Filters
 
 	wrapper ConnWrapper
 
@@ -43,6 +46,10 @@ func (l *listener) Close() error {
 
 func (l *listener) String() string {
 	return fmt.Sprintf("<Listener %s %s>", l.local, l.Multiaddr())
+}
+
+func (l *listener) SetAddrFilters(fs *filter.Filters) {
+	l.filters = fs
 }
 
 // Accept waits for and returns the next connection to the listener.
@@ -81,6 +88,12 @@ func (l *listener) Accept() (net.Conn, error) {
 		}
 
 		log.Debugf("listener %s got connection: %s <---> %s", l, maconn.LocalMultiaddr(), maconn.RemoteMultiaddr())
+
+		if l.filters != nil && l.filters.AddrBlocked(maconn.RemoteMultiaddr()) {
+			log.Debugf("blocked connection from %s", maconn.RemoteMultiaddr())
+			maconn.Close()
+			continue
+		}
 		// If we have a wrapper func, wrap this conn
 		if l.wrapper != nil {
 			maconn = l.wrapper(maconn)
@@ -94,7 +107,7 @@ func (l *listener) Accept() (net.Conn, error) {
 			return nil, err
 		}
 
-		if l.privk == nil {
+		if l.privk == nil || EncryptConnections == false {
 			log.Warning("listener %s listening INSECURELY!", l)
 			return c, nil
 		}

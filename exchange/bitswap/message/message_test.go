@@ -7,14 +7,14 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/internal/pb"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 func TestAppendWanted(t *testing.T) {
 	const str = "foo"
-	m := New()
-	m.AddEntry(u.Key(str), 1)
+	m := New(true)
+	m.AddEntry(key.Key(str), 1)
 
 	if !wantlistContains(m.ToProto().GetWantlist(), str) {
 		t.Fail()
@@ -27,7 +27,7 @@ func TestNewMessageFromProto(t *testing.T) {
 	protoMessage := new(pb.Message)
 	protoMessage.Wantlist = new(pb.Message_Wantlist)
 	protoMessage.Wantlist.Entries = []*pb.Message_Wantlist_Entry{
-		&pb.Message_Wantlist_Entry{Block: proto.String(str)},
+		{Block: proto.String(str)},
 	}
 	if !wantlistContains(protoMessage.Wantlist, str) {
 		t.Fail()
@@ -44,7 +44,7 @@ func TestAppendBlock(t *testing.T) {
 	strs = append(strs, "Celeritas")
 	strs = append(strs, "Incendia")
 
-	m := New()
+	m := New(true)
 	for _, str := range strs {
 		block := blocks.NewBlock([]byte(str))
 		m.AddBlock(block)
@@ -61,9 +61,9 @@ func TestAppendBlock(t *testing.T) {
 
 func TestWantlist(t *testing.T) {
 	keystrs := []string{"foo", "bar", "baz", "bat"}
-	m := New()
+	m := New(true)
 	for _, s := range keystrs {
-		m.AddEntry(u.Key(s), 1)
+		m.AddEntry(key.Key(s), 1)
 	}
 	exported := m.Wantlist()
 
@@ -84,33 +84,33 @@ func TestWantlist(t *testing.T) {
 
 func TestCopyProtoByValue(t *testing.T) {
 	const str = "foo"
-	m := New()
+	m := New(true)
 	protoBeforeAppend := m.ToProto()
-	m.AddEntry(u.Key(str), 1)
+	m.AddEntry(key.Key(str), 1)
 	if wantlistContains(protoBeforeAppend.GetWantlist(), str) {
 		t.Fail()
 	}
 }
 
 func TestToNetFromNetPreservesWantList(t *testing.T) {
-	original := New()
-	original.AddEntry(u.Key("M"), 1)
-	original.AddEntry(u.Key("B"), 1)
-	original.AddEntry(u.Key("D"), 1)
-	original.AddEntry(u.Key("T"), 1)
-	original.AddEntry(u.Key("F"), 1)
+	original := New(true)
+	original.AddEntry(key.Key("M"), 1)
+	original.AddEntry(key.Key("B"), 1)
+	original.AddEntry(key.Key("D"), 1)
+	original.AddEntry(key.Key("T"), 1)
+	original.AddEntry(key.Key("F"), 1)
 
-	var buf bytes.Buffer
-	if err := original.ToNet(&buf); err != nil {
+	buf := new(bytes.Buffer)
+	if err := original.ToNet(buf); err != nil {
 		t.Fatal(err)
 	}
 
-	copied, err := FromNet(&buf)
+	copied, err := FromNet(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	keys := make(map[u.Key]bool)
+	keys := make(map[key.Key]bool)
 	for _, k := range copied.Wantlist() {
 		keys[k.Key] = true
 	}
@@ -124,23 +124,23 @@ func TestToNetFromNetPreservesWantList(t *testing.T) {
 
 func TestToAndFromNetMessage(t *testing.T) {
 
-	original := New()
+	original := New(true)
 	original.AddBlock(blocks.NewBlock([]byte("W")))
 	original.AddBlock(blocks.NewBlock([]byte("E")))
 	original.AddBlock(blocks.NewBlock([]byte("F")))
 	original.AddBlock(blocks.NewBlock([]byte("M")))
 
-	var buf bytes.Buffer
-	if err := original.ToNet(&buf); err != nil {
+	buf := new(bytes.Buffer)
+	if err := original.ToNet(buf); err != nil {
 		t.Fatal(err)
 	}
 
-	m2, err := FromNet(&buf)
+	m2, err := FromNet(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	keys := make(map[u.Key]bool)
+	keys := make(map[key.Key]bool)
 	for _, b := range m2.Blocks() {
 		keys[b.Key()] = true
 	}
@@ -172,7 +172,7 @@ func contains(strs []string, x string) bool {
 
 func TestDuplicates(t *testing.T) {
 	b := blocks.NewBlock([]byte("foo"))
-	msg := New()
+	msg := New(true)
 
 	msg.AddEntry(b.Key(), 1)
 	msg.AddEntry(b.Key(), 1)

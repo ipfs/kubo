@@ -4,17 +4,17 @@ import (
 	"sync"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pq "github.com/ipfs/go-ipfs/thirdparty/pq"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 type peerRequestQueue interface {
 	// Pop returns the next peerRequestTask. Returns nil if the peerRequestQueue is empty.
 	Pop() *peerRequestTask
 	Push(entry wantlist.Entry, to peer.ID)
-	Remove(k u.Key, p peer.ID)
+	Remove(k key.Key, p peer.ID)
 	// NB: cannot expose simply expose taskQueue.Len because trashed elements
 	// may exist. These trashed elements should not contribute to the count.
 }
@@ -51,16 +51,16 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 		tl.partners[to] = partner
 	}
 
-	if task, ok := tl.taskMap[taskKey(to, entry.Key)]; ok {
-		task.Entry.Priority = entry.Priority
-		partner.taskQueue.Update(task.index)
-		return
-	}
-
 	partner.activelk.Lock()
 	defer partner.activelk.Unlock()
 	_, ok = partner.activeBlocks[entry.Key]
 	if ok {
+		return
+	}
+
+	if task, ok := tl.taskMap[taskKey(to, entry.Key)]; ok {
+		task.Entry.Priority = entry.Priority
+		partner.taskQueue.Update(task.index)
 		return
 	}
 
@@ -69,8 +69,8 @@ func (tl *prq) Push(entry wantlist.Entry, to peer.ID) {
 		Target:  to,
 		created: time.Now(),
 		Done: func() {
-			partner.TaskDone(entry.Key)
 			tl.lock.Lock()
+			partner.TaskDone(entry.Key)
 			tl.pQueue.Update(partner.Index())
 			tl.lock.Unlock()
 		},
@@ -110,7 +110,7 @@ func (tl *prq) Pop() *peerRequestTask {
 }
 
 // Remove removes a task from the queue
-func (tl *prq) Remove(k u.Key, p peer.ID) {
+func (tl *prq) Remove(k key.Key, p peer.ID) {
 	tl.lock.Lock()
 	t, ok := tl.taskMap[taskKey(p, k)]
 	if ok {
@@ -155,8 +155,8 @@ func (t *peerRequestTask) SetIndex(i int) {
 }
 
 // taskKey returns a key that uniquely identifies a task.
-func taskKey(p peer.ID, k u.Key) string {
-	return string(p.String() + k.String())
+func taskKey(p peer.ID, k key.Key) string {
+	return string(p) + string(k)
 }
 
 // FIFO is a basic task comparator that returns tasks in the order created.
@@ -186,7 +186,7 @@ type activePartner struct {
 	activelk sync.Mutex
 	active   int
 
-	activeBlocks map[u.Key]struct{}
+	activeBlocks map[key.Key]struct{}
 
 	// requests is the number of blocks this peer is currently requesting
 	// request need not be locked around as it will only be modified under
@@ -203,7 +203,7 @@ type activePartner struct {
 func newActivePartner() *activePartner {
 	return &activePartner{
 		taskQueue:    pq.New(wrapCmp(V1)),
-		activeBlocks: make(map[u.Key]struct{}),
+		activeBlocks: make(map[key.Key]struct{}),
 	}
 }
 
@@ -220,11 +220,17 @@ func partnerCompare(a, b pq.Elem) bool {
 	if pb.requests == 0 {
 		return true
 	}
+	if pa.active == pb.active {
+		// sorting by taskQueue.Len() aids in cleaning out trash entries faster
+		// if we sorted instead by requests, one peer could potentially build up
+		// a huge number of cancelled entries in the queue resulting in a memory leak
+		return pa.taskQueue.Len() > pb.taskQueue.Len()
+	}
 	return pa.active < pb.active
 }
 
 // StartTask signals that a task was started for this partner
-func (p *activePartner) StartTask(k u.Key) {
+func (p *activePartner) StartTask(k key.Key) {
 	p.activelk.Lock()
 	p.activeBlocks[k] = struct{}{}
 	p.active++
@@ -232,7 +238,7 @@ func (p *activePartner) StartTask(k u.Key) {
 }
 
 // TaskDone signals that a task was completed for this partner
-func (p *activePartner) TaskDone(k u.Key) {
+func (p *activePartner) TaskDone(k key.Key) {
 	p.activelk.Lock()
 	delete(p.activeBlocks, k)
 	p.active--

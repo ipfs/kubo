@@ -33,6 +33,10 @@ test_expect_success "GET IPFS path output looks good" '
   rm actual
 '
 
+test_expect_success "GET IPFS path on API forbidden" '
+  test_curl_resp_http_code "http://127.0.0.1:$apiport/ipfs/$HASH" "HTTP/1.1 403 Forbidden"
+'
+
 test_expect_success "GET IPFS directory path succeeds" '
   mkdir dir &&
   echo "12345" >dir/test &&
@@ -73,6 +77,14 @@ test_expect_success "GET /webui returns code expected" '
 
 test_expect_success "GET /webui/ returns code expected" '
   test_curl_resp_http_code "http://127.0.0.1:$apiport/webui/" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"
+'
+
+test_expect_success "GET /logs returns logs" '
+	test_expect_code 28 curl http://127.0.0.1:$apiport/logs -m1 > log_out
+'
+
+test_expect_success "log output looks good" '
+	grep "log API client connected" log_out
 '
 
 test_kill_ipfs_daemon

@@ -7,7 +7,6 @@ import (
 	ds_sync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	exchange "github.com/ipfs/go-ipfs/exchange"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
@@ -51,17 +50,23 @@ func (g *SessionGenerator) Next() Instance {
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
-	instances := make([]Instance, 0)
+	var instances []Instance
 	for j := 0; j < n; j++ {
 		inst := g.Next()
 		instances = append(instances, inst)
+	}
+	for i, inst := range instances {
+		for j := i + 1; j < len(instances); j++ {
+			oinst := instances[j]
+			inst.Exchange.PeerConnected(oinst.Peer)
+		}
 	}
 	return instances
 }
 
 type Instance struct {
 	Peer       peer.ID
-	Exchange   exchange.Interface
+	Exchange   *Bitswap
 	blockstore blockstore.Blockstore
 
 	blockstoreDelay delay.D
@@ -82,19 +87,19 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // just a much better idea.
 func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
-	const kWriteCacheElems = 100
+	const writeCacheElems = 100
 
 	adapter := net.Adapter(p)
 	dstore := ds_sync.MutexWrap(datastore2.WithDelay(ds.NewMapDatastore(), bsdelay))
 
-	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), kWriteCacheElems)
+	bstore, err := blockstore.WriteCached(blockstore.NewBlockstore(ds_sync.MutexWrap(dstore)), writeCacheElems)
 	if err != nil {
 		panic(err.Error()) // FIXME perhaps change signature and return error.
 	}
 
 	const alwaysSendToPeer = true
 
-	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer)
+	bs := New(ctx, p.ID(), adapter, bstore, alwaysSendToPeer).(*Bitswap)
 
 	return Instance{
 		Peer:            p.ID(),

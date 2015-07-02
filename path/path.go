@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 
 	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
@@ -24,7 +24,7 @@ func FromString(s string) Path {
 }
 
 // FromKey safely converts a Key type to a Path type
-func FromKey(k u.Key) Path {
+func FromKey(k key.Key) Path {
 	return Path("/ipfs/" + k.String())
 }
 
@@ -44,12 +44,8 @@ func (p Path) String() string {
 	return string(p)
 }
 
-func FromSegments(seg ...string) (Path, error) {
-	var pref string
-	if seg[0] == "ipfs" || seg[0] == "ipns" {
-		pref = "/"
-	}
-	return ParsePath(pref + strings.Join(seg, "/"))
+func FromSegments(prefix string, seg ...string) (Path, error) {
+	return ParsePath(prefix + strings.Join(seg, "/"))
 }
 
 func ParsePath(txt string) (Path, error) {
@@ -68,13 +64,13 @@ func ParsePath(txt string) (Path, error) {
 		return "", ErrBadPath
 	}
 
-	if parts[1] != "ipfs" && parts[1] != "ipns" {
+	if parts[1] == "ipfs" {
+		_, err := ParseKeyToPath(parts[2])
+		if err != nil {
+			return "", err
+		}
+	} else if parts[1] != "ipns" {
 		return "", ErrBadPath
-	}
-
-	_, err := ParseKeyToPath(parts[2])
-	if err != nil {
-		return "", err
 	}
 
 	return Path(txt), nil
@@ -90,7 +86,7 @@ func ParseKeyToPath(txt string) (Path, error) {
 	if err != nil {
 		return "", err
 	}
-	return FromKey(u.Key(chk)), nil
+	return FromKey(key.Key(chk)), nil
 }
 
 func (p *Path) IsValid() error {

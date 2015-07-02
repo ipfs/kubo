@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -35,8 +36,8 @@ func NewBlockWithHash(data []byte, h mh.Multihash) (*Block, error) {
 }
 
 // Key returns the block's Multihash as a Key value.
-func (b *Block) Key() u.Key {
-	return u.Key(b.Multihash)
+func (b *Block) Key() key.Key {
+	return key.Key(b.Multihash)
 }
 
 func (b *Block) String() string {

@@ -1,12 +1,10 @@
 package eventlog
 
 import (
-	"bufio"
 	"io"
 	"os"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/gopkg.in/natefinch/lumberjack.v2"
 )
 
 // init sets up sane defaults
@@ -17,6 +15,9 @@ func init() {
 	// level by convention
 	Configure(LevelError)
 }
+
+// Global writer group for logs to output to
+var WriterGroup = new(MirrorWriter)
 
 type Option func()
 
@@ -37,29 +38,10 @@ var TextFormatter = func() {
 	logrus.SetFormatter(&logrus.TextFormatter{})
 }
 
-type LogRotatorConfig struct {
-	Filename   string
-	MaxSizeMB  int
-	MaxBackups int
-	MaxAgeDays int
-}
-
 func Output(w io.Writer) Option {
 	return func() {
 		logrus.SetOutput(w)
 		// TODO return previous Output option
-	}
-}
-
-func OutputRotatingLogFile(config LogRotatorConfig) Option {
-	return func() {
-		logrus.SetOutput(
-			bufio.NewWriter(&lumberjack.Logger{
-				Filename:   config.Filename,
-				MaxSize:    int(config.MaxSizeMB),
-				MaxBackups: int(config.MaxBackups),
-				MaxAge:     int(config.MaxAgeDays),
-			}))
 	}
 }
 

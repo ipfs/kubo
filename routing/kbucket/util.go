@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	ks "github.com/ipfs/go-ipfs/routing/keyspace"
 	u "github.com/ipfs/go-ipfs/util"
@@ -45,13 +46,13 @@ func ConvertPeerID(id peer.ID) ID {
 }
 
 // ConvertKey creates a DHT ID by hashing a local key (String)
-func ConvertKey(id u.Key) ID {
+func ConvertKey(id key.Key) ID {
 	hash := sha256.Sum256([]byte(id))
 	return hash[:]
 }
 
 // Closer returns true if a is closer to key than b is
-func Closer(a, b peer.ID, key u.Key) bool {
+func Closer(a, b peer.ID, key key.Key) bool {
 	aid := ConvertPeerID(a)
 	bid := ConvertPeerID(b)
 	tgt := ConvertKey(key)

@@ -11,8 +11,6 @@ import (
 )
 
 func TestNotifications(t *testing.T) {
-	t.Parallel()
-
 	ctx := context.Background()
 	swarms := makeSwarms(ctx, t, 5)
 	defer func() {
@@ -44,24 +42,30 @@ func TestNotifications(t *testing.T) {
 				continue
 			}
 
-			cos := s.ConnectionsToPeer(s2.LocalPeer())
-			func() {
-				for i := 0; i < len(cos); i++ {
-					var c inet.Conn
-					select {
-					case c = <-n.connected:
-					case <-time.After(timeout):
-						t.Fatal("timeout")
-					}
-					for _, c2 := range cos {
-						if c == c2 {
-							t.Log("got notif for conn", c)
-							return
-						}
-					}
-					t.Error("connection not found", c)
+			var actual []inet.Conn
+			for len(s.ConnectionsToPeer(s2.LocalPeer())) != len(actual) {
+				select {
+				case c := <-n.connected:
+					actual = append(actual, c)
+				case <-time.After(timeout):
+					t.Fatal("timeout")
 				}
-			}()
+			}
+
+			expect := s.ConnectionsToPeer(s2.LocalPeer())
+			for _, c1 := range actual {
+				found := false
+				for _, c2 := range expect {
+					if c1 == c2 {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Error("connection not found")
+				}
+			}
+
 		}
 	}
 

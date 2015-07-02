@@ -78,7 +78,7 @@ order to reclaim hard disk space.
 					return nil, u.ErrCast()
 				}
 
-				var buf *bytes.Buffer
+				buf := new(bytes.Buffer)
 				if quiet {
 					buf = bytes.NewBufferString(string(obj.Key) + "\n")
 				} else {

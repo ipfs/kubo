@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -59,7 +60,7 @@ var queryDhtCmd = &cmds.Command{
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
 
-		closestPeers, err := dht.GetClosestPeers(ctx, u.Key(req.Arguments()[0]))
+		closestPeers, err := dht.GetClosestPeers(ctx, key.Key(req.Arguments()[0]))
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -171,7 +172,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
 
-		pchan := dht.FindProvidersAsync(ctx, u.B58KeyDecode(req.Arguments()[0]), numProviders)
+		pchan := dht.FindProvidersAsync(ctx, key.B58KeyDecode(req.Arguments()[0]), numProviders)
 		go func() {
 			defer close(outChan)
 			for e := range events {
@@ -401,7 +402,7 @@ GetValue will return the value stored in the dht at the given key.
 
 		go func() {
 			defer close(events)
-			val, err := dht.GetValue(ctx, u.B58KeyDecode(req.Arguments()[0]))
+			val, err := dht.GetValue(ctx, key.B58KeyDecode(req.Arguments()[0]))
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -500,7 +501,7 @@ PutValue will store the given key value pair in the dht.
 		events := make(chan *notif.QueryEvent)
 		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
 
-		key := u.B58KeyDecode(req.Arguments()[0])
+		key := key.B58KeyDecode(req.Arguments()[0])
 		data := req.Arguments()[1]
 
 		go func() {

@@ -7,6 +7,7 @@ import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
@@ -22,13 +23,13 @@ type client struct {
 }
 
 // FIXME(brian): is this method meant to simulate putting a value into the network?
-func (c *client) PutValue(ctx context.Context, key u.Key, val []byte) error {
+func (c *client) PutValue(ctx context.Context, key key.Key, val []byte) error {
 	log.Debugf("PutValue: %s", key)
 	return c.datastore.Put(key.DsKey(), val)
 }
 
 // FIXME(brian): is this method meant to simulate getting a value from the network?
-func (c *client) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
+func (c *client) GetValue(ctx context.Context, key key.Key) ([]byte, error) {
 	log.Debugf("GetValue: %s", key)
 	v, err := c.datastore.Get(key.DsKey())
 	if err != nil {
@@ -43,7 +44,7 @@ func (c *client) GetValue(ctx context.Context, key u.Key) ([]byte, error) {
 	return data, nil
 }
 
-func (c *client) FindProviders(ctx context.Context, key u.Key) ([]peer.PeerInfo, error) {
+func (c *client) FindProviders(ctx context.Context, key key.Key) ([]peer.PeerInfo, error) {
 	return c.server.Providers(key), nil
 }
 
@@ -52,7 +53,7 @@ func (c *client) FindPeer(ctx context.Context, pid peer.ID) (peer.PeerInfo, erro
 	return peer.PeerInfo{}, nil
 }
 
-func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+func (c *client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
 	out := make(chan peer.PeerInfo)
 	go func() {
 		defer close(out)
@@ -72,7 +73,7 @@ func (c *client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 
 // Provide returns once the message is on the network. Value is not necessarily
 // visible yet.
-func (c *client) Provide(_ context.Context, key u.Key) error {
+func (c *client) Provide(_ context.Context, key key.Key) error {
 	info := peer.PeerInfo{
 		ID:    c.peer.ID(),
 		Addrs: []ma.Multiaddr{c.peer.Address()},

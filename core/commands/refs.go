@@ -2,11 +2,13 @@ package commands
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"strings"
-	"sync"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -16,17 +18,17 @@ import (
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
-	Keys []u.Key
+	Keys []key.Key
 }
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
 func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
 	output := res.Output().(*KeyList)
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	for _, key := range output.Keys {
 		buf.WriteString(key.B58String() + "\n")
 	}
-	return &buf, nil
+	return buf, nil
 }
 
 var RefsCmd = &cmds.Command{
@@ -91,14 +93,14 @@ Note: list all refs recursively with -r.
 			return
 		}
 
-		piper, pipew := io.Pipe()
-		eptr := &ErrPassThroughReader{R: piper}
+		out := make(chan interface{})
+		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
-			defer pipew.Close()
+			defer close(out)
 
 			rw := RefWriter{
-				W:         pipew,
+				out:       out,
 				DAG:       n.DAG,
 				Ctx:       ctx,
 				Unique:    unique,
@@ -109,14 +111,40 @@ Note: list all refs recursively with -r.
 
 			for _, o := range objs {
 				if _, err := rw.WriteRefs(o); err != nil {
-					eptr.SetError(err)
+					out <- &RefWrapper{Err: err.Error()}
 					return
 				}
 			}
 		}()
-
-		res.SetOutput(eptr)
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			outChan, ok := res.Output().(<-chan interface{})
+			if !ok {
+				return nil, u.ErrCast()
+			}
+
+			marshal := func(v interface{}) (io.Reader, error) {
+				obj, ok := v.(*RefWrapper)
+				if !ok {
+					fmt.Println("%#v", v)
+					return nil, u.ErrCast()
+				}
+
+				if obj.Err != "" {
+					return nil, errors.New(obj.Err)
+				}
+
+				return strings.NewReader(obj.Ref), nil
+			}
+
+			return &cmds.ChannelMarshaler{
+				Channel:   outChan,
+				Marshaler: marshal,
+			}, nil
+		},
+	},
+	Type: RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -143,7 +171,6 @@ Displays the hashes of all local objects.
 		}
 
 		piper, pipew := io.Pipe()
-		eptr := &ErrPassThroughReader{R: piper}
 
 		go func() {
 			defer pipew.Close()
@@ -151,13 +178,13 @@ Displays the hashes of all local objects.
 			for k := range allKeys {
 				s := k.Pretty() + "\n"
 				if _, err := pipew.Write([]byte(s)); err != nil {
-					eptr.SetError(err)
+					log.Error("pipe write error: ", err)
 					return
 				}
 			}
 		}()
 
-		res.SetOutput(eptr)
+		res.SetOutput(piper)
 	},
 }
 
@@ -173,46 +200,13 @@ func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]*
 	return objects, nil
 }
 
-// ErrPassThroughReader is a reader that may return an externally set error.
-type ErrPassThroughReader struct {
-	R   io.ReadCloser
-	err error
-
-	sync.RWMutex
-}
-
-func (r *ErrPassThroughReader) Error() error {
-	r.RLock()
-	defer r.RUnlock()
-	return r.err
-}
-
-func (r *ErrPassThroughReader) SetError(err error) {
-	r.Lock()
-	r.err = err
-	r.Unlock()
-}
-
-func (r *ErrPassThroughReader) Read(buf []byte) (int, error) {
-	err := r.Error()
-	if err != nil {
-		return 0, err
-	}
-
-	return r.R.Read(buf)
-}
-
-func (r *ErrPassThroughReader) Close() error {
-	err1 := r.R.Close()
-	err2 := r.Error()
-	if err2 != nil {
-		return err2
-	}
-	return err1
+type RefWrapper struct {
+	Ref string
+	Err string
 }
 
 type RefWriter struct {
-	W   io.Writer
+	out chan interface{}
 	DAG dag.DAGService
 	Ctx context.Context
 
@@ -221,16 +215,15 @@ type RefWriter struct {
 	PrintEdge bool
 	PrintFmt  string
 
-	seen map[u.Key]struct{}
+	seen map[key.Key]struct{}
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
 func (rw *RefWriter) WriteRefs(n *dag.Node) (int, error) {
 	if rw.Recursive {
 		return rw.writeRefsRecursive(n)
-	} else {
-		return rw.writeRefsSingle(n)
 	}
+	return rw.writeRefsSingle(n)
 }
 
 func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
@@ -245,7 +238,7 @@ func (rw *RefWriter) writeRefsRecursive(n *dag.Node) (int, error) {
 
 	var count int
 	for i, ng := range rw.DAG.GetDAG(rw.Ctx, n) {
-		lk := u.Key(n.Links[i].Hash)
+		lk := key.Key(n.Links[i].Hash)
 		if rw.skip(lk) {
 			continue
 		}
@@ -280,7 +273,7 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 
 	count := 0
 	for _, l := range n.Links {
-		lk := u.Key(l.Hash)
+		lk := key.Key(l.Hash)
 
 		if rw.skip(lk) {
 			continue
@@ -295,13 +288,13 @@ func (rw *RefWriter) writeRefsSingle(n *dag.Node) (int, error) {
 }
 
 // skip returns whether to skip a key
-func (rw *RefWriter) skip(k u.Key) bool {
+func (rw *RefWriter) skip(k key.Key) bool {
 	if !rw.Unique {
 		return false
 	}
 
 	if rw.seen == nil {
-		rw.seen = make(map[u.Key]struct{})
+		rw.seen = make(map[key.Key]struct{})
 	}
 
 	_, found := rw.seen[k]
@@ -312,7 +305,7 @@ func (rw *RefWriter) skip(k u.Key) bool {
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to u.Key, linkname string) error {
+func (rw *RefWriter) WriteEdge(from, to key.Key, linkname string) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.
@@ -335,8 +328,6 @@ func (rw *RefWriter) WriteEdge(from, to u.Key, linkname string) error {
 	}
 	s += "\n"
 
-	if _, err := rw.W.Write([]byte(s)); err != nil {
-		return err
-	}
+	rw.out <- &RefWrapper{Ref: s}
 	return nil
 }

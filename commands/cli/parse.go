@@ -219,17 +219,19 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 		}
 	}
 
-	// count number of values provided by user
+	// count number of values provided by user.
+	// if there is at least one ArgDef, we can safely trigger the inputs loop
+	// below to parse stdin.
 	numInputs := len(inputs)
-	if stdin != nil {
+	if len(argDefs) > 0 && argDefs[len(argDefs)-1].SupportsStdin && stdin != nil {
 		numInputs += 1
 	}
 
 	// if we have more arg values provided than argument definitions,
 	// and the last arg definition is not variadic (or there are no definitions), return an error
 	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
-	if notVariadic && numInputs > len(argDefs) {
-		return nil, nil, fmt.Errorf("Expected %v arguments, got %v: %v", len(argDefs), numInputs, inputs)
+	if notVariadic && len(inputs) > len(argDefs) {
+		return nil, nil, fmt.Errorf("Expected %v arguments, got %v: %v", len(argDefs), len(inputs), inputs)
 	}
 
 	stringArgs := make([]string, 0, numInputs)
@@ -250,29 +252,38 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 
 		var err error
 		if argDef.Type == cmds.ArgString {
-			if stdin == nil {
+			if stdin == nil || !argDef.SupportsStdin {
 				// add string values
 				stringArgs, inputs = appendString(stringArgs, inputs)
 
-			} else if argDef.SupportsStdin {
-				// if we have a stdin, read it in and use the data as a string value
-				stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
-				if err != nil {
-					return nil, nil, err
+			} else {
+				if len(inputs) > 0 {
+					// don't use stdin if we have inputs
+					stdin = nil
+				} else {
+					// if we have a stdin, read it in and use the data as a string value
+					stringArgs, stdin, err = appendStdinAsString(stringArgs, stdin)
+					if err != nil {
+						return nil, nil, err
+					}
 				}
 			}
-
 		} else if argDef.Type == cmds.ArgFile {
-			if stdin == nil {
+			if stdin == nil || !argDef.SupportsStdin {
 				// treat stringArg values as file paths
 				fileArgs, inputs, err = appendFile(fileArgs, inputs, argDef, recursive)
 				if err != nil {
 					return nil, nil, err
 				}
 
-			} else if argDef.SupportsStdin {
-				// if we have a stdin, create a file from it
-				fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+			} else {
+				if len(inputs) > 0 {
+					// don't use stdin if we have inputs
+					stdin = nil
+				} else {
+					// if we have a stdin, create a file from it
+					fileArgs, stdin = appendStdinAsFile(fileArgs, stdin)
+				}
 			}
 		}
 
@@ -310,7 +321,7 @@ func appendString(args, inputs []string) ([]string, []string) {
 }
 
 func appendStdinAsString(args []string, stdin *os.File) ([]string, *os.File, error) {
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 
 	_, err := buf.ReadFrom(stdin)
 	if err != nil {

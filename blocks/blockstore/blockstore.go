@@ -11,8 +11,8 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("blockstore")
@@ -26,12 +26,12 @@ var ErrNotFound = errors.New("blockstore: block not found")
 
 // Blockstore wraps a ThreadSafeDatastore
 type Blockstore interface {
-	DeleteBlock(u.Key) error
-	Has(u.Key) (bool, error)
-	Get(u.Key) (*blocks.Block, error)
+	DeleteBlock(key.Key) error
+	Has(key.Key) (bool, error)
+	Get(key.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
 
-	AllKeysChan(ctx context.Context) (<-chan u.Key, error)
+	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
 
 func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
@@ -47,7 +47,7 @@ type blockstore struct {
 	// we do check it on `NewBlockstore` though.
 }
 
-func (bs *blockstore) Get(k u.Key) (*blocks.Block, error) {
+func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
 	maybeData, err := bs.datastore.Get(k.DsKey())
 	if err == ds.ErrNotFound {
 		return nil, ErrNotFound
@@ -74,11 +74,11 @@ func (bs *blockstore) Put(block *blocks.Block) error {
 	return bs.datastore.Put(k, block.Data)
 }
 
-func (bs *blockstore) Has(k u.Key) (bool, error) {
+func (bs *blockstore) Has(k key.Key) (bool, error) {
 	return bs.datastore.Has(k.DsKey())
 }
 
-func (s *blockstore) DeleteBlock(k u.Key) error {
+func (s *blockstore) DeleteBlock(k key.Key) error {
 	return s.datastore.Delete(k.DsKey())
 }
 
@@ -86,7 +86,7 @@ func (s *blockstore) DeleteBlock(k u.Key) error {
 // this is very simplistic, in the future, take dsq.Query as a param?
 //
 // AllKeysChan respects context
-func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
+func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}
@@ -98,7 +98,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
 	}
 
 	// this function is here to compartmentalize
-	get := func() (k u.Key, ok bool) {
+	get := func() (k key.Key, ok bool) {
 		select {
 		case <-ctx.Done():
 			return k, false
@@ -111,8 +111,8 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
 				return k, false
 			}
 
-			// need to convert to u.Key using u.KeyFromDsKey.
-			k = u.KeyFromDsKey(ds.NewKey(e.Key))
+			// need to convert to key.Key using key.KeyFromDsKey.
+			k = key.KeyFromDsKey(ds.NewKey(e.Key))
 			log.Debug("blockstore: query got key", k)
 
 			// key must be a multihash. else ignore it.
@@ -125,7 +125,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan u.Key, error) {
 		}
 	}
 
-	output := make(chan u.Key)
+	output := make(chan key.Key)
 	go func() {
 		defer func() {
 			res.Process().Close() // ensure exit (signals early exit, too)

@@ -64,7 +64,7 @@ it contains, with the following format:
 
 		paths := req.Arguments()
 
-		dagnodes := make([]*merkledag.Node, 0)
+		var dagnodes []*merkledag.Node
 		for _, fpath := range paths {
 			dagnode, err := core.Resolve(req.Context().Context, node, path.Path(fpath))
 			if err != nil {
@@ -109,20 +109,20 @@ it contains, with the following format:
 
 			headers, _, _ := res.Request().Option("headers").Bool()
 			output := res.Output().(*LsOutput)
-			var buf bytes.Buffer
-			w := tabwriter.NewWriter(&buf, 1, 2, 1, ' ', 0)
+			buf := new(bytes.Buffer)
+			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			for _, object := range output.Objects {
 				if len(output.Objects) > 1 {
 					fmt.Fprintf(w, "%s:\n", object.Hash)
 				}
 				if headers {
-					fmt.Fprintln(w, "Hash\tSize\tName\t")
+					fmt.Fprintln(w, "Hash\tSize\tName")
 				}
 				for _, link := range object.Links {
 					if link.Type == unixfspb.Data_Directory {
 						link.Name += "/"
 					}
-					fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
+					fmt.Fprintf(w, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
 				}
 				if len(output.Objects) > 1 {
 					fmt.Fprintln(w)
@@ -130,7 +130,7 @@ it contains, with the following format:
 			}
 			w.Flush()
 
-			return &buf, nil
+			return buf, nil
 		},
 	},
 	Type: LsOutput{},

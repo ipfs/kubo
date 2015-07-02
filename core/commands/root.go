@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 	evlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 )
 
@@ -35,12 +36,15 @@ DATA STRUCTURE COMMANDS
 
     block         Interact with raw blocks in the datastore
     object        Interact with raw dag nodes
+    file          Interact with Unix filesystem objects
 
 ADVANCED COMMANDS
 
     daemon        Start a long-running daemon process
     mount         Mount an ipfs read-only mountpoint
+    resolve       Resolve any type of name
     name          Publish or resolve IPNS names
+    dns           Resolve DNS links
     pin           Pin objects to local storage
     repo gc       Garbage collect unpinned objects
 
@@ -84,6 +88,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"config":    ConfigCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,
+	"dns":       DNSCmd,
 	"get":       GetCmd,
 	"id":        IDCmd,
 	"log":       LogCmd,
@@ -95,8 +100,11 @@ var rootSubcommands = map[string]*cmds.Command{
 	"ping":      PingCmd,
 	"refs":      RefsCmd,
 	"repo":      RepoCmd,
+	"resolve":   ResolveCmd,
 	"stats":     StatsCmd,
 	"swarm":     SwarmCmd,
+	"tour":      tourCmd,
+	"file":      unixfs.UnixFSCmd,
 	"update":    UpdateCmd,
 	"version":   VersionCmd,
 	"bitswap":   BitswapCmd,

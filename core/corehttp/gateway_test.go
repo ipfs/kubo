@@ -22,16 +22,15 @@ import (
 type mockNamesys map[string]path.Path
 
 func (m mockNamesys) Resolve(ctx context.Context, name string) (value path.Path, err error) {
+	return m.ResolveN(ctx, name, namesys.DefaultDepthLimit)
+}
+
+func (m mockNamesys) ResolveN(ctx context.Context, name string, depth int) (value path.Path, err error) {
 	p, ok := m[name]
 	if !ok {
 		return "", namesys.ErrResolveFailed
 	}
 	return p, nil
-}
-
-func (m mockNamesys) CanResolve(name string) bool {
-	_, ok := m[name]
-	return ok
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {

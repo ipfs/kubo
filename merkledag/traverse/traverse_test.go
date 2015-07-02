@@ -317,7 +317,7 @@ func TestBFSSkip(t *testing.T) {
 func testWalkOutputs(t *testing.T, root *mdag.Node, opts Options, expect []byte) {
 	expect = bytes.TrimLeft(expect, "\n")
 
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 	walk := func(current State) error {
 		s := fmt.Sprintf("%d %s\n", current.Depth, current.Node.Data)
 		t.Logf("walk: %s", s)

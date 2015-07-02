@@ -55,7 +55,7 @@ func TestThreeLeggedCatDegenerateSlowRouting(t *testing.T) {
 
 func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
-	conf := testutil.LatencyConfig{}.Network_NYtoSF().Blockstore_SlowSSD2014().Routing_Slow()
+	conf := testutil.LatencyConfig{}.NetworkNYtoSF().BlockstoreSlowSSD2014().RoutingSlow()
 	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
@@ -117,8 +117,8 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	// verify
-	var bufout bytes.Buffer
-	io.Copy(&bufout, readerCatted)
+	bufout := new(bytes.Buffer)
+	io.Copy(bufout, readerCatted)
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}

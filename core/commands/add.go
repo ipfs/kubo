@@ -9,7 +9,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	ignore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/sabhiram/go-git-ignore"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	//context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
@@ -17,6 +17,7 @@ import (
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -29,6 +30,7 @@ const progressReaderIncrement = 1024 * 256
 
 const (
 	progressOptionName = "progress"
+	trickleOptionName  = "trickle"
 	wrapOptionName     = "wrap-with-directory"
 	hiddenOptionName   = "hidden"
 )
@@ -58,8 +60,9 @@ remains to be implemented.
 		cmds.BoolOption("quiet", "q", "Write minimal output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
-		cmds.BoolOption("t", "trickle", "Use trickle-dag format for dag generation"),
 		cmds.BoolOption(hiddenOptionName, "Include files that are hidden"),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
+		cmds.BoolOption("only-hash", "n", "Only chunk and hash the specified content, don't write to disk"),
 	},
 	PreRun: func(req cmds.Request) error {
 		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
@@ -92,7 +95,9 @@ remains to be implemented.
 		}
 
 		progress, _, _ := req.Option(progressOptionName).Bool()
+		trickle, _, _ := req.Option(trickleOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
+		hash, _, _ := req.Option("only-hash").Bool()
 		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 
 		var ignoreFilePatterns []ignore.GitIgnore
@@ -105,7 +110,16 @@ remains to be implemented.
 			}
 		}
 
-		outChan := make(chan interface{})
+		if hash {
+			nilnode, err := core.NewNodeBuilder().NilRepo().Build(n.Context())
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			n = nilnode
+		}
+
+		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
 		go func() {
@@ -125,18 +139,22 @@ remains to be implemented.
 				// folder and attempt to load the appropriate .ipfsignore.
 				localIgnorePatterns := checkForParentIgnorePatterns(file.FileName(), ignoreFilePatterns)
 
-				addParams := adder{n, outChan, progress, wrap, hidden}
+				addParams := adder{n, outChan, progress, wrap, hidden, trickle}
 				rootnd, err := addParams.addFile(file, localIgnorePatterns)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
 
-				err = n.Pinning.Pin(context.Background(), rootnd, true)
+				rnk, err := rootnd.Key()
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
 				}
+
+				mp := n.Pinning.GetManual()
+				mp.RemovePinWithMode(rnk, pin.Indirect)
+				mp.PinWithMode(rnk, pin.Recursive)
 
 				err = n.Pinning.Flush()
 				if err != nil {
@@ -239,16 +257,29 @@ type adder struct {
 	progress bool
 	wrap     bool
 	hidden   bool
+	trickle  bool
 }
 
 // Perform the actual add & pin locally, outputting results to reader
-func add(n *core.IpfsNode, reader io.Reader) (*dag.Node, error) {
-	node, err := importer.BuildDagFromReader(reader, n.DAG, nil, chunk.DefaultSplitter)
-	if err != nil {
-		return nil, err
+func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error) {
+	var node *dag.Node
+	var err error
+	if useTrickle {
+		node, err = importer.BuildTrickleDagFromReader(
+			reader,
+			n.DAG,
+			chunk.DefaultSplitter,
+			importer.PinIndirectCB(n.Pinning.GetManual()),
+		)
+	} else {
+		node, err = importer.BuildDagFromReader(
+			reader,
+			n.DAG,
+			chunk.DefaultSplitter,
+			importer.PinIndirectCB(n.Pinning.GetManual()),
+		)
 	}
 
-	err = n.Pinning.Flush()
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +329,7 @@ func (params *adder) addFile(file files.File, ignoreFilePatterns []ignore.GitIgn
 		return dagnode, nil
 	}
 
-	dagnode, err := add(params.node, reader)
+	dagnode, err := add(params.node, reader, params.trickle)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +342,6 @@ func (params *adder) addFile(file files.File, ignoreFilePatterns []ignore.GitIgn
 }
 
 func (params *adder) addDir(file files.File, ignoreFilePatterns []ignore.GitIgnore) (*dag.Node, error) {
-
 	tree := &dag.Node{Data: ft.FolderPBData()}
 	log.Infof("adding directory: %s", file.FileName())
 
@@ -353,10 +383,12 @@ func (params *adder) addDir(file files.File, ignoreFilePatterns []ignore.GitIgno
 		return nil, err
 	}
 
-	_, err = params.node.DAG.Add(tree)
+	k, err := params.node.DAG.Add(tree)
 	if err != nil {
 		return nil, err
 	}
+
+	params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
 
 	return tree, nil
 }
@@ -369,7 +401,8 @@ func checkForLocalIgnorePatterns(dir string, ignoreFilePatterns []ignore.GitIgno
 
 	localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
 	if ignoreErr == nil && localIgnore != nil {
-		log.Debugf("found ignore file: %s", dir)
+		absoluteDir, _ := filepath.Abs(ignorePathname) // ignoring error it's just loggin
+		log.Debugf("found local ignore file: %s", absoluteDir)
 		return append(ignoreFilePatterns, *localIgnore)
 	} else {
 		return ignoreFilePatterns
@@ -392,13 +425,13 @@ func checkForParentIgnorePatterns(givenPath string, ignoreFilePatterns []ignore.
 	// We loop through each parent component attempting to find an .ipfsignore file
 	for index, _ := range pathComponents {
 
-		pathParts := make([]string, len(pathComponents)+1)
+		pathParts := make([]string, index+1)
 		copy(pathParts, pathComponents[0:index+1])
-		ignorePathname := path.Join(append(pathParts, ".ipfsignore")...)
+		ignorePathname := path.Clean(strings.Join(append(pathParts, ".ipfsignore"), string(filepath.Separator)))
 
 		localIgnore, ignoreErr := ignore.CompileIgnoreFile(ignorePathname)
 		if ignoreErr == nil && localIgnore != nil {
-			log.Debugf("found ignore file: %s", ignorePathname)
+			log.Debugf("found parent ignore file: %s", ignorePathname)
 			ignoreFilePatterns = append(ignoreFilePatterns, *localIgnore)
 		}
 	}

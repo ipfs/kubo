@@ -8,7 +8,7 @@
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint \
-	   bin/iptb
+	   bin/iptb bin/go-sleep
 SHARNESS = lib/sharness/sharness.sh
 IPFS_ROOT = ../..
 
@@ -35,8 +35,8 @@ aggregate: clean-test-results $(T)
 
 deps: $(SHARNESS) $(BINS) curl
 
-$(SHARNESS):
-	@echo "*** installing $@ ***"
+$(SHARNESS): FORCE
+	@echo "*** checking $@ ***"
 	lib/install-sharness.sh
 
 bin/%: FORCE

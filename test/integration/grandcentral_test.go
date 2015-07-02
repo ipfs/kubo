@@ -12,6 +12,7 @@ import (
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerouting"
 	"github.com/ipfs/go-ipfs/core/coreunix"
@@ -19,7 +20,6 @@ import (
 	"github.com/ipfs/go-ipfs/p2p/peer"
 	"github.com/ipfs/go-ipfs/thirdparty/iter"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-	"github.com/ipfs/go-ipfs/util"
 	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 )
@@ -68,8 +68,8 @@ func RunSupernodeBootstrappedAddCat(data []byte, conf testutil.LatencyConfig) er
 	}
 
 	// verify
-	var bufout bytes.Buffer
-	io.Copy(&bufout, readerCatted)
+	bufout := new(bytes.Buffer)
+	io.Copy(bufout, readerCatted)
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}
@@ -166,7 +166,7 @@ func RunSupernodePutRecordGetRecord(conf testutil.LatencyConfig) error {
 	putter := clients[0]
 	getter := clients[1]
 
-	k := util.Key("key")
+	k := key.Key("key")
 	note := []byte("a note from putter")
 
 	if err := putter.Routing.PutValue(ctx, k, note); err != nil {

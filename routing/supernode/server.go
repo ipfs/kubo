@@ -8,11 +8,11 @@ import (
 	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	dhtpb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
-	util "github.com/ipfs/go-ipfs/util"
 )
 
 // Server handles routing queries using a database backend
@@ -53,7 +53,7 @@ func (s *Server) handleMessage(
 	switch req.GetType() {
 
 	case dhtpb.Message_GET_VALUE:
-		rawRecord, err := getRoutingRecord(s.routingBackend, util.Key(req.GetKey()))
+		rawRecord, err := getRoutingRecord(s.routingBackend, key.Key(req.GetKey()))
 		if err != nil {
 			return "", nil
 		}
@@ -67,13 +67,13 @@ func (s *Server) handleMessage(
 		// 	log.Event(ctx, "validationFailed", req, p)
 		// 	return "", nil
 		// }
-		putRoutingRecord(s.routingBackend, util.Key(req.GetKey()), req.GetRecord())
+		putRoutingRecord(s.routingBackend, key.Key(req.GetKey()), req.GetRecord())
 		return p, req
 
 	case dhtpb.Message_FIND_NODE:
 		p := s.peerstore.PeerInfo(peer.ID(req.GetKey()))
 		pri := []dhtpb.PeerRoutingInfo{
-			dhtpb.PeerRoutingInfo{
+			{
 				PeerInfo: p,
 				// Connectedness: TODO
 			},
@@ -87,7 +87,7 @@ func (s *Server) handleMessage(
 			if providerID == p {
 				store := []*dhtpb.Message_Peer{provider}
 				storeProvidersToPeerstore(s.peerstore, p, store)
-				if err := putRoutingProviders(s.routingBackend, util.Key(req.GetKey()), store); err != nil {
+				if err := putRoutingProviders(s.routingBackend, key.Key(req.GetKey()), store); err != nil {
 					return "", nil
 				}
 			} else {
@@ -97,7 +97,7 @@ func (s *Server) handleMessage(
 		return "", nil
 
 	case dhtpb.Message_GET_PROVIDERS:
-		providers, err := getRoutingProviders(s.routingBackend, util.Key(req.GetKey()))
+		providers, err := getRoutingProviders(s.routingBackend, key.Key(req.GetKey()))
 		if err != nil {
 			return "", nil
 		}
@@ -114,7 +114,7 @@ func (s *Server) handleMessage(
 var _ proxy.RequestHandler = &Server{}
 var _ proxy.Proxy = &Server{}
 
-func getRoutingRecord(ds datastore.Datastore, k util.Key) (*dhtpb.Record, error) {
+func getRoutingRecord(ds datastore.Datastore, k key.Key) (*dhtpb.Record, error) {
 	dskey := k.DsKey()
 	val, err := ds.Get(dskey)
 	if err != nil {
@@ -131,7 +131,7 @@ func getRoutingRecord(ds datastore.Datastore, k util.Key) (*dhtpb.Record, error)
 	return &record, nil
 }
 
-func putRoutingRecord(ds datastore.Datastore, k util.Key, value *dhtpb.Record) error {
+func putRoutingRecord(ds datastore.Datastore, k key.Key, value *dhtpb.Record) error {
 	data, err := proto.Marshal(value)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func putRoutingRecord(ds datastore.Datastore, k util.Key, value *dhtpb.Record) e
 	return nil
 }
 
-func putRoutingProviders(ds datastore.Datastore, k util.Key, newRecords []*dhtpb.Message_Peer) error {
+func putRoutingProviders(ds datastore.Datastore, k key.Key, newRecords []*dhtpb.Message_Peer) error {
 	log.Event(context.Background(), "putRoutingProviders", &k)
 	oldRecords, err := getRoutingProviders(ds, k)
 	if err != nil {
@@ -183,7 +183,7 @@ func storeProvidersToPeerstore(ps peer.Peerstore, p peer.ID, providers []*dhtpb.
 	}
 }
 
-func getRoutingProviders(ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_Peer, error) {
+func getRoutingProviders(ds datastore.Datastore, k key.Key) ([]*dhtpb.Message_Peer, error) {
 	e := log.EventBegin(context.Background(), "getProviders", &k)
 	defer e.Done()
 	var providers []*dhtpb.Message_Peer
@@ -199,7 +199,7 @@ func getRoutingProviders(ds datastore.Datastore, k util.Key) ([]*dhtpb.Message_P
 	return providers, nil
 }
 
-func providerKey(k util.Key) datastore.Key {
+func providerKey(k key.Key) datastore.Key {
 	return datastore.KeyWithNamespaces([]string{"routing", "providers", k.String()})
 }
 

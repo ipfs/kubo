@@ -9,6 +9,7 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	blockstore "github.com/ipfs/go-ipfs/blocks/blockstore"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	merkledag "github.com/ipfs/go-ipfs/merkledag"
@@ -16,7 +17,7 @@ import (
 	util "github.com/ipfs/go-ipfs/util"
 )
 
-func randNode() (*merkledag.Node, util.Key) {
+func randNode() (*merkledag.Node, key.Key) {
 	node := new(merkledag.Node)
 	node.Data = make([]byte, 32)
 	util.NewTimeSeededRand().Read(node.Data)
@@ -59,8 +60,8 @@ func TestRecurivePathResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	segments := []string{"", "ipfs", aKey.String(), "child", "grandchild"}
-	p, err := path.FromSegments(segments...)
+	segments := []string{aKey.String(), "child", "grandchild"}
+	p, err := path.FromSegments("/ipfs/", segments...)
 	if err != nil {
 		t.Fatal(err)
 	}

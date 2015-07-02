@@ -8,13 +8,13 @@ import (
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/p2p/host"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	proxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("supernode")
@@ -36,7 +36,7 @@ func NewClient(px proxy.Proxy, h host.Host, ps peer.Peerstore, local peer.ID) (*
 	}, nil
 }
 
-func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-chan peer.PeerInfo {
+func (c *Client) FindProvidersAsync(ctx context.Context, k key.Key, max int) <-chan peer.PeerInfo {
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("findProviders"))
 	defer log.EventBegin(ctx, "findProviders", &k).Done()
 	ch := make(chan peer.PeerInfo)
@@ -60,7 +60,7 @@ func (c *Client) FindProvidersAsync(ctx context.Context, k u.Key, max int) <-cha
 	return ch
 }
 
-func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
+func (c *Client) PutValue(ctx context.Context, k key.Key, v []byte) error {
 	defer log.EventBegin(ctx, "putValue", &k).Done()
 	r, err := makeRecord(c.peerstore, c.local, k, v)
 	if err != nil {
@@ -71,7 +71,7 @@ func (c *Client) PutValue(ctx context.Context, k u.Key, v []byte) error {
 	return c.proxy.SendMessage(ctx, pmes) // wrap to hide the remote
 }
 
-func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
+func (c *Client) GetValue(ctx context.Context, k key.Key) ([]byte, error) {
 	defer log.EventBegin(ctx, "getValue", &k).Done()
 	msg := pb.NewMessage(pb.Message_GET_VALUE, string(k), 0)
 	response, err := c.proxy.SendRequest(ctx, msg) // TODO wrap to hide the remote
@@ -81,12 +81,12 @@ func (c *Client) GetValue(ctx context.Context, k u.Key) ([]byte, error) {
 	return response.Record.GetValue(), nil
 }
 
-func (c *Client) Provide(ctx context.Context, k u.Key) error {
+func (c *Client) Provide(ctx context.Context, k key.Key) error {
 	defer log.EventBegin(ctx, "provide", &k).Done()
 	msg := pb.NewMessage(pb.Message_ADD_PROVIDER, string(k), 0)
 	// FIXME how is connectedness defined for the local node
 	pri := []pb.PeerRoutingInfo{
-		pb.PeerRoutingInfo{
+		{
 			PeerInfo: peer.PeerInfo{
 				ID:    c.local,
 				Addrs: c.peerhost.Addrs(),
@@ -113,7 +113,7 @@ func (c *Client) FindPeer(ctx context.Context, id peer.ID) (peer.PeerInfo, error
 }
 
 // creates and signs a record for the given key/value pair
-func makeRecord(ps peer.Peerstore, p peer.ID, k u.Key, v []byte) (*pb.Record, error) {
+func makeRecord(ps peer.Peerstore, p peer.ID, k key.Key, v []byte) (*pb.Record, error) {
 	blob := bytes.Join([][]byte{[]byte(k), v, []byte(p)}, []byte{})
 	sig, err := ps.PrivKey(p).Sign(blob)
 	if err != nil {

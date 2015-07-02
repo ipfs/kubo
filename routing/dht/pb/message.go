@@ -3,10 +3,10 @@ package dht_pb
 import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	util "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("dht.pb")
@@ -143,7 +143,7 @@ func (m *Message) Loggable() map[string]interface{} {
 	return map[string]interface{}{
 		"message": map[string]string{
 			"type": m.Type.String(),
-			"key":  util.Key(m.GetKey()).Pretty(),
+			"key":  key.Key(m.GetKey()).Pretty(),
 		},
 	}
 }

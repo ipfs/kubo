@@ -15,9 +15,9 @@ import (
 // - have been observed recently (10min), because our position in the
 //   network, or network port mapppings, may have changed.
 type ObservedAddr struct {
-	Addr      ma.Multiaddr
-	LastSeen  time.Time
-	TimesSeen int
+	Addr     ma.Multiaddr
+	SeenBy   map[string]struct{}
+	LastSeen time.Time
 }
 
 // ObservedAddrSet keeps track of a set of ObservedAddrs
@@ -25,7 +25,7 @@ type ObservedAddr struct {
 type ObservedAddrSet struct {
 	sync.Mutex // guards whole datastruct.
 
-	addrs map[string]ObservedAddr
+	addrs map[string]*ObservedAddr
 	ttl   time.Duration
 }
 
@@ -54,29 +54,54 @@ func (oas *ObservedAddrSet) Addrs() []ma.Multiaddr {
 		// very useful. We make the assumption that if we've
 		// connected to two different peers, and they both have
 		// reported seeing the same address, it is probably useful.
-		if a.TimesSeen > 1 {
+		//
+		// Note: make sure not to double count observers.
+		if len(a.SeenBy) > 1 {
 			addrs = append(addrs, a.Addr)
 		}
 	}
 	return addrs
 }
 
-func (oas *ObservedAddrSet) Add(addr ma.Multiaddr) {
+func (oas *ObservedAddrSet) Add(addr ma.Multiaddr, observer ma.Multiaddr) {
 	oas.Lock()
 	defer oas.Unlock()
 
 	// for zero-value.
 	if oas.addrs == nil {
-		oas.addrs = make(map[string]ObservedAddr)
+		oas.addrs = make(map[string]*ObservedAddr)
 		oas.ttl = peer.OwnObservedAddrTTL
 	}
 
 	s := addr.String()
-	oas.addrs[s] = ObservedAddr{
-		Addr:      addr,
-		TimesSeen: oas.addrs[s].TimesSeen + 1,
-		LastSeen:  time.Now(),
+	oa, found := oas.addrs[s]
+
+	// first time seeing address.
+	if !found {
+		oa = &ObservedAddr{
+			Addr:   addr,
+			SeenBy: make(map[string]struct{}),
+		}
+		oas.addrs[s] = oa
 	}
+
+	// mark the observer
+	oa.SeenBy[observerGroup(observer)] = struct{}{}
+	oa.LastSeen = time.Now()
+}
+
+// observerGroup is a function that determines what part of
+// a multiaddr counts as a different observer. for example,
+// two ipfs nodes at the same IP/TCP transport would get
+// the exact same NAT mapping; they would count as the
+// same observer. This may protect against NATs who assign
+// different ports to addresses at different IP hosts, but
+// not TCP ports.
+//
+// Here, we use the root multiaddr address. This is mostly
+// IP addresses. In practice, this is what we want.
+func observerGroup(m ma.Multiaddr) string {
+	return ma.Split(m)[0].String()
 }
 
 func (oas *ObservedAddrSet) SetTTL(ttl time.Duration) {

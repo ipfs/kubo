@@ -180,8 +180,8 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 		defer dummy.Close()
 		var i int64 = 1
 		for {
-			var buf bytes.Buffer
-			if err := random.WritePseudoRandomBytes(sizeOfIthFile(i), &buf, *seed); err != nil {
+			buf := new(bytes.Buffer)
+			if err := random.WritePseudoRandomBytes(sizeOfIthFile(i), buf, *seed); err != nil {
 				log.Fatal(err)
 			}
 			// add to a dummy node to discover the key

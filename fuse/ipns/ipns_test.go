@@ -4,7 +4,6 @@ package ipns
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	mrand "math/rand"
@@ -17,7 +16,9 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	core "github.com/ipfs/go-ipfs/core"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
+	u "github.com/ipfs/go-ipfs/util"
 	ci "github.com/ipfs/go-ipfs/util/testutil/ci"
 )
 
@@ -29,7 +30,7 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randBytes(size int) []byte {
 	b := make([]byte, size)
-	rand.Read(b)
+	u.NewTimeSeededRand().Read(b)
 	return b
 }
 
@@ -67,30 +68,16 @@ func writeFileData(t *testing.T, data []byte, path string) []byte {
 	return data
 }
 
-func verifyFile(t *testing.T, path string, data []byte) {
-	fi, err := os.Open(path)
+func verifyFile(t *testing.T, path string, wantData []byte) {
+	isData, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer fi.Close()
-
-	buf := make([]byte, 1024)
-	offset := 0
-	for {
-		n, err := fi.Read(buf)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !bytes.Equal(buf[:n], data[offset:offset+n]) {
-			t.Fatal("Data not equal")
-		}
-
-		if n < len(buf) {
-			break
-		}
-
-		offset += n
+	if len(isData) != len(wantData) {
+		t.Fatal("Data not equal - length check failed")
+	}
+	if !bytes.Equal(isData, wantData) {
+		t.Fatal("Data not equal")
 	}
 }
 
@@ -114,7 +101,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 	var err error
 	if node == nil {
-		node, err = core.NewMockNode()
+		node, err = coremock.NewMockNode()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -462,7 +449,7 @@ func TestFastRepublish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubkeyHash := u.Key(h).Pretty()
+	pubkeyPath := "/ipns/" + u.Key(h).String()
 
 	// set them back
 	defer func() {
@@ -482,9 +469,9 @@ func TestFastRepublish(t *testing.T) {
 	writeFileData(t, dataA, fname) // random
 	<-time.After(shortRepublishTimeout * 2)
 	log.Debug("resolving first hash")
-	resolvedHash, err := node.Namesys.Resolve(context.Background(), pubkeyHash)
+	resolvedHash, err := node.Namesys.Resolve(context.Background(), pubkeyPath)
 	if err != nil {
-		t.Fatal("resolve err:", pubkeyHash, err)
+		t.Fatal("resolve err:", pubkeyPath, err)
 	}
 
 	// constantly keep writing to the file
@@ -501,7 +488,7 @@ func TestFastRepublish(t *testing.T) {
 	}(shortRepublishTimeout)
 
 	hasPublished := func() bool {
-		res, err := node.Namesys.Resolve(context.Background(), pubkeyHash)
+		res, err := node.Namesys.Resolve(context.Background(), pubkeyPath)
 		if err != nil {
 			t.Fatalf("resolve err: %v", err)
 		}

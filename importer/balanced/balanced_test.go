@@ -2,7 +2,6 @@ package balanced
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -130,7 +129,7 @@ func TestRabinBlockSize(t *testing.T) {
 	}
 	buf := new(bytes.Buffer)
 	nbytes := 1024 * 1024
-	io.CopyN(buf, rand.Reader, int64(nbytes))
+	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
 	rab := chunk.NewMaybeRabin(4096)
 	blkch := rab.Split(buf)
 

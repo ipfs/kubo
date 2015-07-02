@@ -4,10 +4,10 @@ import (
 	"io"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/internal/pb"
 	wantlist "github.com/ipfs/go-ipfs/exchange/bitswap/wantlist"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
-	u "github.com/ipfs/go-ipfs/util"
 
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
@@ -25,16 +25,13 @@ type BitSwapMessage interface {
 	Blocks() []*blocks.Block
 
 	// AddEntry adds an entry to the Wantlist.
-	AddEntry(key u.Key, priority int)
+	AddEntry(key key.Key, priority int)
 
-	Cancel(key u.Key)
+	Cancel(key key.Key)
 
-	// Sets whether or not the contained wantlist represents the entire wantlist
-	// true = full wantlist
-	// false = wantlist 'patch'
-	// default: true
-	SetFull(isFull bool)
+	Empty() bool
 
+	// A full wantlist is an authoritative copy, a 'non-full' wantlist is a patch-set
 	Full() bool
 
 	AddBlock(*blocks.Block)
@@ -50,19 +47,19 @@ type Exportable interface {
 
 type impl struct {
 	full     bool
-	wantlist map[u.Key]Entry
-	blocks   map[u.Key]*blocks.Block // map to detect duplicates
+	wantlist map[key.Key]Entry
+	blocks   map[key.Key]*blocks.Block
 }
 
-func New() BitSwapMessage {
-	return newMsg()
+func New(full bool) BitSwapMessage {
+	return newMsg(full)
 }
 
-func newMsg() *impl {
+func newMsg(full bool) *impl {
 	return &impl{
-		blocks:   make(map[u.Key]*blocks.Block),
-		wantlist: make(map[u.Key]Entry),
-		full:     true,
+		blocks:   make(map[key.Key]*blocks.Block),
+		wantlist: make(map[key.Key]Entry),
+		full:     full,
 	}
 }
 
@@ -72,10 +69,9 @@ type Entry struct {
 }
 
 func newMessageFromProto(pbm pb.Message) BitSwapMessage {
-	m := newMsg()
-	m.SetFull(pbm.GetWantlist().GetFull())
+	m := newMsg(pbm.GetWantlist().GetFull())
 	for _, e := range pbm.GetWantlist().GetEntries() {
-		m.addEntry(u.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
+		m.addEntry(key.Key(e.GetBlock()), int(e.GetPriority()), e.GetCancel())
 	}
 	for _, d := range pbm.GetBlocks() {
 		b := blocks.NewBlock(d)
@@ -84,12 +80,12 @@ func newMessageFromProto(pbm pb.Message) BitSwapMessage {
 	return m
 }
 
-func (m *impl) SetFull(full bool) {
-	m.full = full
-}
-
 func (m *impl) Full() bool {
 	return m.full
+}
+
+func (m *impl) Empty() bool {
+	return len(m.blocks) == 0 && len(m.wantlist) == 0
 }
 
 func (m *impl) Wantlist() []Entry {
@@ -101,22 +97,23 @@ func (m *impl) Wantlist() []Entry {
 }
 
 func (m *impl) Blocks() []*blocks.Block {
-	bs := make([]*blocks.Block, 0)
+	bs := make([]*blocks.Block, 0, len(m.blocks))
 	for _, block := range m.blocks {
 		bs = append(bs, block)
 	}
 	return bs
 }
 
-func (m *impl) Cancel(k u.Key) {
+func (m *impl) Cancel(k key.Key) {
+	delete(m.wantlist, k)
 	m.addEntry(k, 0, true)
 }
 
-func (m *impl) AddEntry(k u.Key, priority int) {
+func (m *impl) AddEntry(k key.Key, priority int) {
 	m.addEntry(k, priority, false)
 }
 
-func (m *impl) addEntry(k u.Key, priority int, cancel bool) {
+func (m *impl) addEntry(k key.Key, priority int, cancel bool) {
 	e, exists := m.wantlist[k]
 	if exists {
 		e.Priority = priority
@@ -155,7 +152,7 @@ func (m *impl) ToProto() *pb.Message {
 		pbm.Wantlist.Entries = append(pbm.Wantlist.Entries, &pb.Message_Wantlist_Entry{
 			Block:    proto.String(string(e.Key)),
 			Priority: proto.Int32(int32(e.Priority)),
-			Cancel:   &e.Cancel,
+			Cancel:   proto.Bool(e.Cancel),
 		})
 	}
 	for _, b := range m.Blocks() {

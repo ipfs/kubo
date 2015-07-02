@@ -52,7 +52,7 @@ type NoRepoError struct {
 var _ error = NoRepoError{}
 
 func (err NoRepoError) Error() string {
-	return fmt.Sprintf("no ipfs repo found in '%s'. please run: ipfs init ", err.Path)
+	return fmt.Sprintf("no ipfs repo found in %s.\nplease run: ipfs init", err.Path)
 }
 
 const (
@@ -283,7 +283,7 @@ func Remove(repoPath string) error {
 
 // LockedByOtherProcess returns true if the FSRepo is locked by another
 // process. If true, then the repo cannot be opened by this process.
-func LockedByOtherProcess(repoPath string) bool {
+func LockedByOtherProcess(repoPath string) (bool, error) {
 	repoPath = path.Clean(repoPath)
 
 	// TODO replace this with the "api" file
@@ -368,13 +368,7 @@ func (r *FSRepo) openDatastore() error {
 func configureEventLoggerAtRepoPath(c *config.Config, repoPath string) {
 	eventlog.Configure(eventlog.LevelInfo)
 	eventlog.Configure(eventlog.LdJSONFormatter)
-	rotateConf := eventlog.LogRotatorConfig{
-		Filename:   path.Join(repoPath, "logs", "events.log"),
-		MaxSizeMB:  c.Log.MaxSizeMB,
-		MaxBackups: c.Log.MaxBackups,
-		MaxAgeDays: c.Log.MaxAgeDays,
-	}
-	eventlog.Configure(eventlog.OutputRotatingLogFile(rotateConf))
+	eventlog.Configure(eventlog.Output(eventlog.WriterGroup))
 }
 
 // Close closes the FSRepo, releasing held resources.

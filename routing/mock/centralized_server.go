@@ -7,15 +7,15 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	u "github.com/ipfs/go-ipfs/util"
 	"github.com/ipfs/go-ipfs/util/testutil"
 )
 
 // server is the mockrouting.Client's private interface to the routing server
 type server interface {
-	Announce(peer.PeerInfo, u.Key) error
-	Providers(u.Key) []peer.PeerInfo
+	Announce(peer.PeerInfo, key.Key) error
+	Providers(key.Key) []peer.PeerInfo
 
 	Server
 }
@@ -25,7 +25,7 @@ type s struct {
 	delayConf DelayConfig
 
 	lock      sync.RWMutex
-	providers map[u.Key]map[peer.ID]providerRecord
+	providers map[key.Key]map[peer.ID]providerRecord
 }
 
 type providerRecord struct {
@@ -33,7 +33,7 @@ type providerRecord struct {
 	Created time.Time
 }
 
-func (rs *s) Announce(p peer.PeerInfo, k u.Key) error {
+func (rs *s) Announce(p peer.PeerInfo, k key.Key) error {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
@@ -48,7 +48,7 @@ func (rs *s) Announce(p peer.PeerInfo, k u.Key) error {
 	return nil
 }
 
-func (rs *s) Providers(k u.Key) []peer.PeerInfo {
+func (rs *s) Providers(k key.Key) []peer.PeerInfo {
 	rs.delayConf.Query.Wait() // before locking
 
 	rs.lock.RLock()

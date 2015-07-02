@@ -43,24 +43,30 @@ func TestNotifications(t *testing.T) {
 	for i, s := range nets {
 		n := notifiees[i]
 		for _, s2 := range nets {
-			cos := s.ConnsToPeer(s2.LocalPeer())
-			func() {
-				for i := 0; i < len(cos); i++ {
-					var c inet.Conn
-					select {
-					case c = <-n.connected:
-					case <-time.After(timeout):
-						t.Fatal("timeout")
+			var actual []inet.Conn
+			for len(s.ConnsToPeer(s2.LocalPeer())) != len(actual) {
+				select {
+				case c := <-n.connected:
+					actual = append(actual, c)
+				case <-time.After(timeout):
+					t.Fatal("timeout")
+				}
+			}
+
+			expect := s.ConnsToPeer(s2.LocalPeer())
+			for _, c1 := range actual {
+				found := false
+				for _, c2 := range expect {
+					if c1 == c2 {
+						found = true
+						break
 					}
-					for _, c2 := range cos {
-						if c == c2 {
-							t.Log("got notif for conn")
-							return
-						}
-					}
+				}
+				if !found {
 					t.Error("connection not found")
 				}
-			}()
+			}
+
 		}
 	}
 
@@ -109,7 +115,7 @@ func TestNotifications(t *testing.T) {
 
 	// there's one stream per conn that we need to drain....
 	// unsure where these are coming from
-	for i, _ := range nets {
+	for i := range nets {
 		n := notifiees[i]
 		testOCStream(n, nil)
 		testOCStream(n, nil)

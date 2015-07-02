@@ -365,6 +365,75 @@ func TestIP6LinkLocal(t *testing.T) {
 	}
 }
 
+func TestConvertNetAddr(t *testing.T) {
+	m1 := newMultiaddr(t, "/ip4/1.2.3.4/tcp/4001")
+
+	n1, err := ToNetAddr(m1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m2, err := FromNetAddr(n1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if m1.String() != m2.String() {
+		t.Fatal("ToNetAddr + FromNetAddr did not work")
+	}
+}
+
+func TestWrapNetConn(t *testing.T) {
+	// test WrapNetConn nil
+	if _, err := WrapNetConn(nil); err == nil {
+		t.Error("WrapNetConn(nil) should return an error")
+	}
+
+	checkErr := func(err error, s string) {
+		if err != nil {
+			t.Fatal(s, err)
+		}
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	checkErr(err, "failed to listen")
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cB, err := listener.Accept()
+		checkErr(err, "failed to accept")
+		cB.Close()
+	}()
+
+	cA, err := net.Dial("tcp", listener.Addr().String())
+	checkErr(err, "failed to dial")
+	defer cA.Close()
+
+	lmaddr, err := FromNetAddr(cA.LocalAddr())
+	checkErr(err, "failed to get local addr")
+	rmaddr, err := FromNetAddr(cA.RemoteAddr())
+	checkErr(err, "failed to get remote addr")
+
+	mcA, err := WrapNetConn(cA)
+	checkErr(err, "failed to wrap conn")
+
+	if mcA.LocalAddr().String() != cA.LocalAddr().String() {
+		t.Error("wrapped conn local addr differs")
+	}
+	if mcA.RemoteAddr().String() != cA.RemoteAddr().String() {
+		t.Error("wrapped conn remote addr differs")
+	}
+	if mcA.LocalMultiaddr().String() != lmaddr.String() {
+		t.Error("wrapped conn local maddr differs")
+	}
+	if mcA.RemoteMultiaddr().String() != rmaddr.String() {
+		t.Error("wrapped conn remote maddr differs")
+	}
+}
+
 func TestAddrMatch(t *testing.T) {
 
 	test := func(m ma.Multiaddr, input, expect []ma.Multiaddr) {

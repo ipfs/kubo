@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -122,7 +123,7 @@ func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
 
 // putValueToPeer stores the given key/value pair at the peer 'p'
 func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
-	key u.Key, rec *pb.Record) error {
+	key key.Key, rec *pb.Record) error {
 
 	pmes := pb.NewMessage(pb.Message_PUT_VALUE, string(key), 0)
 	pmes.Record = rec
@@ -139,7 +140,7 @@ func (dht *IpfsDHT) putValueToPeer(ctx context.Context, p peer.ID,
 
 // putProvider sends a message to peer 'p' saying that the local node
 // can provide the value of 'key'
-func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) error {
+func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) error {
 
 	// add self as the provider
 	pi := peer.PeerInfo{
@@ -150,18 +151,18 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) erro
 	// // only share WAN-friendly addresses ??
 	// pi.Addrs = addrutil.WANShareableAddrs(pi.Addrs)
 	if len(pi.Addrs) < 1 {
-		// log.Infof("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, u.Key(key), pi.Addrs)
+		// log.Infof("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, key.Key(key), pi.Addrs)
 		return fmt.Errorf("no known addresses for self. cannot put provider.")
 	}
 
-	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, string(key), 0)
+	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, skey, 0)
 	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]peer.PeerInfo{pi})
 	err := dht.sendMessage(ctx, p, pmes)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("%s putProvider: %s for %s (%s)", dht.self, p, u.Key(key), pi.Addrs)
+	log.Debugf("%s putProvider: %s for %s (%s)", dht.self, p, key.Key(skey), pi.Addrs)
 	return nil
 }
 
@@ -170,7 +171,7 @@ func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, key string) erro
 // NOTE: it will update the dht's peerstore with any new addresses
 // it finds for the given peer.
 func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
-	key u.Key) ([]byte, []peer.PeerInfo, error) {
+	key key.Key) ([]byte, []peer.PeerInfo, error) {
 
 	pmes, err := dht.getValueSingle(ctx, p, key)
 	if err != nil {
@@ -203,7 +204,7 @@ func (dht *IpfsDHT) getValueOrPeers(ctx context.Context, p peer.ID,
 
 // getValueSingle simply performs the get value RPC with the given parameters
 func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
-	key u.Key) (*pb.Message, error) {
+	key key.Key) (*pb.Message, error) {
 	defer log.EventBegin(ctx, "getValueSingle", p, &key).Done()
 
 	pmes := pb.NewMessage(pb.Message_GET_VALUE, string(key), 0)
@@ -211,7 +212,7 @@ func (dht *IpfsDHT) getValueSingle(ctx context.Context, p peer.ID,
 }
 
 // getLocal attempts to retrieve the value from the datastore
-func (dht *IpfsDHT) getLocal(key u.Key) ([]byte, error) {
+func (dht *IpfsDHT) getLocal(key key.Key) ([]byte, error) {
 
 	log.Debug("getLocal %s", key)
 	v, err := dht.datastore.Get(key.DsKey())
@@ -254,7 +255,7 @@ func (dht *IpfsDHT) getOwnPrivateKey() (ci.PrivKey, error) {
 }
 
 // putLocal stores the key value pair in the datastore
-func (dht *IpfsDHT) putLocal(key u.Key, rec *pb.Record) error {
+func (dht *IpfsDHT) putLocal(key key.Key, rec *pb.Record) error {
 	data, err := proto.Marshal(rec)
 	if err != nil {
 		return err
@@ -287,7 +288,7 @@ func (dht *IpfsDHT) findPeerSingle(ctx context.Context, p peer.ID, id peer.ID) (
 	return dht.sendRequest(ctx, p, pmes)
 }
 
-func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key u.Key) (*pb.Message, error) {
+func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key key.Key) (*pb.Message, error) {
 	defer log.EventBegin(ctx, "findProvidersSingle", p, &key).Done()
 
 	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, string(key), 0)
@@ -296,7 +297,7 @@ func (dht *IpfsDHT) findProvidersSingle(ctx context.Context, p peer.ID, key u.Ke
 
 // nearestPeersToQuery returns the routing tables closest peers.
 func (dht *IpfsDHT) nearestPeersToQuery(pmes *pb.Message, count int) []peer.ID {
-	key := u.Key(pmes.GetKey())
+	key := key.Key(pmes.GetKey())
 	closer := dht.routingTable.NearestPeers(kb.ConvertKey(key), count)
 	return closer
 }
@@ -326,7 +327,7 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 		}
 
 		// must all be closer than self
-		key := u.Key(pmes.GetKey())
+		key := key.Key(pmes.GetKey())
 		if !kb.Closer(dht.self, clp, key) {
 			filtered = append(filtered, clp)
 		}
@@ -355,7 +356,7 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 		case <-tick:
 			id := make([]byte, 16)
 			rand.Read(id)
-			peers := dht.routingTable.NearestPeers(kb.ConvertKey(u.Key(id)), 5)
+			peers := dht.routingTable.NearestPeers(kb.ConvertKey(key.Key(id)), 5)
 			for _, p := range peers {
 				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*5)
 				_, err := dht.Ping(ctx, p)

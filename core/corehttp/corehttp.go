@@ -5,10 +5,11 @@ high-level HTTP interfaces to IPFS.
 package corehttp
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 	"time"
 
-	manners "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/braintree/manners"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 	core "github.com/ipfs/go-ipfs/core"
@@ -49,20 +50,29 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	if err != nil {
 		return err
 	}
-	handler, err := makeHandler(n, options...)
+
+	list, err := manet.Listen(addr)
 	if err != nil {
 		return err
 	}
-	return listenAndServe(n, addr, handler)
+
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	addr = list.Multiaddr()
+	fmt.Printf("API server listening on %s\n", addr)
+
+	return Serve(n, list.NetListener(), options...)
 }
 
-func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler) error {
-	_, host, err := manet.DialArgs(addr)
+func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {
+	handler, err := makeHandler(node, options...)
 	if err != nil {
 		return err
 	}
 
-	server := manners.NewServer()
+	addr, err := manet.FromNetAddr(lis.Addr())
+	if err != nil {
+		return err
+	}
 
 	// if the server exits beforehand
 	var serverError error
@@ -72,7 +82,7 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	defer node.Children().Done()
 
 	go func() {
-		serverError = server.ListenAndServe(host, handler)
+		serverError = http.Serve(lis, handler)
 		close(serverExited)
 	}()
 
@@ -84,16 +94,15 @@ func listenAndServe(node *core.IpfsNode, addr ma.Multiaddr, handler http.Handler
 	case <-node.Closing():
 		log.Infof("server at %s terminating...", addr)
 
-		// make sure keep-alive connections do not keep the server running
-		server.InnerServer.SetKeepAlivesEnabled(false)
-
-		server.Shutdown <- true
+		lis.Close()
 
 	outer:
 		for {
 			// wait until server exits
 			select {
 			case <-serverExited:
+				// if the server exited as we are closing, we really dont care about errors
+				serverError = nil
 				break outer
 			case <-time.After(5 * time.Second):
 				log.Infof("waiting for server at %s to terminate...", addr)

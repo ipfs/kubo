@@ -58,12 +58,12 @@ func (n *Network) LocalPeer() peer.ID {
 	return n.Swarm().LocalPeer()
 }
 
-// Peers returns the connected peers
+// Peers returns the known peer IDs from the Peerstore
 func (n *Network) Peers() []peer.ID {
 	return n.Swarm().Peers()
 }
 
-// Peers returns the connected peers
+// Peers returns the Peerstore, which tracks known peers
 func (n *Network) Peerstore() peer.Peerstore {
 	return n.Swarm().peers
 }

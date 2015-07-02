@@ -11,7 +11,7 @@ func (l LoggableMap) Loggable() map[string]interface{} {
 	return l
 }
 
-// Loggable converts a func into a Loggable
+// LoggableF converts a func into a Loggable
 type LoggableF func() map[string]interface{}
 
 func (l LoggableF) Loggable() map[string]interface{} {

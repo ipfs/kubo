@@ -14,11 +14,12 @@ type Link struct {
 	Target string
 }
 
-func (l *Link) Attr() fuse.Attr {
+func (l *Link) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Link attr.")
-	return fuse.Attr{
+	*a = fuse.Attr{
 		Mode: os.ModeSymlink | 0555,
 	}
+	return nil
 }
 
 func (l *Link) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {

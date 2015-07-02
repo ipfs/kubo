@@ -36,11 +36,11 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Marshalers: cmds.MarshalerMap{
 			cmds.Text: func(res cmds.Response) (io.Reader, error) {
 				v := res.Output().(*Command)
-				var buf bytes.Buffer
+				buf := new(bytes.Buffer)
 				for _, s := range cmdPathStrings(v) {
 					buf.Write([]byte(s + "\n"))
 				}
-				return &buf, nil
+				return buf, nil
 			},
 		},
 		Type: Command{},

@@ -90,8 +90,7 @@ func init() {
 	var err error
 	currentVersion, err = parseVersion()
 	if err != nil {
-		log.Criticalf("invalid version number in code (must be semver): %q", Version)
-		os.Exit(1)
+		log.Fatalf("invalid version number in code (must be semver): %q", Version)
 	}
 	log.Infof("go-ipfs Version: %s", currentVersion)
 }
@@ -211,7 +210,7 @@ func CliCheckForUpdates(cfg *config.Config, repoPath string) error {
 	// if there is no update available, record it, and exit. NB:  only record
 	// if we checked successfully.
 	if err == ErrNoUpdateAvailable {
-		log.Noticef("No update available, checked on %s", time.Now())
+		log.Infof("No update available, checked on %s", time.Now())
 		r, err := fsrepo.Open(repoPath)
 		if err != nil {
 			return err
@@ -239,7 +238,7 @@ func CliCheckForUpdates(cfg *config.Config, repoPath string) error {
 	if cfg.Version.AutoUpdate != config.AutoUpdateNever {
 		// and we should auto update
 		if ShouldAutoUpdate(cfg.Version.AutoUpdate, u.Version) {
-			log.Noticef("Applying update %s", u.Version)
+			log.Infof("Applying update %s", u.Version)
 
 			if err = Apply(u); err != nil {
 				log.Debug(err)

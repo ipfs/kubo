@@ -12,8 +12,9 @@ import (
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	bstest "github.com/ipfs/go-ipfs/blockservice/test"
 	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
@@ -81,7 +82,7 @@ func TestNode(t *testing.T) {
 		k, err := n.Key()
 		if err != nil {
 			t.Error(err)
-		} else if k != u.Key(h) {
+		} else if k != key.Key(h) {
 			t.Error("Key is not equivalent to multihash")
 		} else {
 			fmt.Println("key: ", k)
@@ -132,7 +133,7 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 type devZero struct{}
 
 func (_ devZero) Read(b []byte) (int, error) {
-	for i, _ := range b {
+	for i := range b {
 		b[i] = 0
 	}
 	return len(b), nil
@@ -150,13 +151,13 @@ func TestBatchFetchDupBlock(t *testing.T) {
 
 func runBatchFetchTest(t *testing.T, read io.Reader) {
 	var dagservs []DAGService
-	for _, bsi := range blockservice.Mocks(t, 5) {
+	for _, bsi := range bstest.Mocks(t, 5) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 
 	spl := &chunk.SizeSplitter{512}
 
-	root, err := imp.BuildDagFromReader(read, dagservs[0], nil, spl)
+	root, err := imp.BuildDagFromReader(read, dagservs[0], spl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

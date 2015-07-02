@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	blocks "github.com/ipfs/go-ipfs/blocks"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -16,15 +17,15 @@ var ErrNotFound = fmt.Errorf("merkledag: not found")
 
 // DAGService is an IPFS Merkle DAG service.
 type DAGService interface {
-	Add(*Node) (u.Key, error)
+	Add(*Node) (key.Key, error)
 	AddRecursive(*Node) error
-	Get(context.Context, u.Key) (*Node, error)
+	Get(context.Context, key.Key) (*Node, error)
 	Remove(*Node) error
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
 	GetDAG(context.Context, *Node) []NodeGetter
-	GetNodes(context.Context, []u.Key) []NodeGetter
+	GetNodes(context.Context, []key.Key) []NodeGetter
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -41,7 +42,7 @@ type dagService struct {
 }
 
 // Add adds a node to the dagService, storing the block in the BlockService
-func (n *dagService) Add(nd *Node) (u.Key, error) {
+func (n *dagService) Add(nd *Node) (key.Key, error) {
 	if n == nil { // FIXME remove this assertion. protect with constructor invariant
 		return "", fmt.Errorf("dagService is nil")
 	}
@@ -82,7 +83,7 @@ func (n *dagService) AddRecursive(nd *Node) error {
 }
 
 // Get retrieves a node from the dagService, fetching the block in the BlockService
-func (n *dagService) Get(ctx context.Context, k u.Key) (*Node, error) {
+func (n *dagService) Get(ctx context.Context, k key.Key) (*Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
@@ -148,7 +149,7 @@ func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} 
 
 // FindLinks searches this nodes links for the given key,
 // returns the indexes of any links pointing to it
-func FindLinks(links []u.Key, k u.Key, start int) []int {
+func FindLinks(links []key.Key, k key.Key, start int) []int {
 	var out []int
 	for i, lnk_k := range links[start:] {
 		if k == lnk_k {
@@ -162,9 +163,9 @@ func FindLinks(links []u.Key, k u.Key, start int) []int {
 // It returns a channel of nodes, which the caller can receive
 // all the child nodes of 'root' on, in proper order.
 func (ds *dagService) GetDAG(ctx context.Context, root *Node) []NodeGetter {
-	var keys []u.Key
+	var keys []key.Key
 	for _, lnk := range root.Links {
-		keys = append(keys, u.Key(lnk.Hash))
+		keys = append(keys, key.Key(lnk.Hash))
 	}
 
 	return ds.GetNodes(ctx, keys)
@@ -172,7 +173,7 @@ func (ds *dagService) GetDAG(ctx context.Context, root *Node) []NodeGetter {
 
 // GetNodes returns an array of 'NodeGetter' promises, with each corresponding
 // to the key with the same index as the passed in keys
-func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
+func (ds *dagService) GetNodes(ctx context.Context, keys []key.Key) []NodeGetter {
 
 	// Early out if no work to do
 	if len(keys) == 0 {
@@ -181,7 +182,7 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 
 	promises := make([]NodeGetter, len(keys))
 	sendChans := make([]chan<- *Node, len(keys))
-	for i, _ := range keys {
+	for i := range keys {
 		promises[i], sendChans[i] = newNodePromise(ctx)
 	}
 
@@ -219,9 +220,9 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 }
 
 // Remove duplicates from a list of keys
-func dedupeKeys(ks []u.Key) []u.Key {
-	kmap := make(map[u.Key]struct{})
-	var out []u.Key
+func dedupeKeys(ks []key.Key) []key.Key {
+	kmap := make(map[key.Key]struct{})
+	var out []key.Key
 	for _, k := range ks {
 		if _, ok := kmap[k]; !ok {
 			kmap[k] = struct{}{}

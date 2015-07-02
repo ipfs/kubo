@@ -5,10 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	inflect "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chuckpreslar/inflect"
 	process "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 )
 
 var TaskWorkerCount = 8
@@ -32,7 +31,7 @@ func init() {
 func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 	// Start up a worker to handle block requests this node is making
 	px.Go(func(px process.Process) {
-		bs.clientWorker(ctx)
+		bs.providerConnector(ctx)
 	})
 
 	// Start up workers to handle requests from other nodes for the data on this node
@@ -47,6 +46,7 @@ func (bs *Bitswap) startWorkers(px process.Process, ctx context.Context) {
 		bs.rebroadcastWorker(ctx)
 	})
 
+	// Start up a worker to manage sending out provides messages
 	px.Go(func(px process.Process) {
 		bs.provideCollector(ctx)
 	})
@@ -71,9 +71,8 @@ func (bs *Bitswap) taskWorker(ctx context.Context) {
 				if !ok {
 					continue
 				}
-				log.Event(ctx, "deliverBlocks", envelope.Message, envelope.Peer)
-				bs.send(ctx, envelope.Peer, envelope.Message)
-				envelope.Sent()
+
+				bs.wm.SendBlock(ctx, envelope)
 			case <-ctx.Done():
 				return
 			}
@@ -105,9 +104,9 @@ func (bs *Bitswap) provideWorker(ctx context.Context) {
 
 func (bs *Bitswap) provideCollector(ctx context.Context) {
 	defer close(bs.provideKeys)
-	var toProvide []u.Key
-	var nextKey u.Key
-	var keysOut chan u.Key
+	var toProvide []key.Key
+	var nextKey key.Key
+	var keysOut chan key.Key
 
 	for {
 		select {
@@ -135,41 +134,28 @@ func (bs *Bitswap) provideCollector(ctx context.Context) {
 	}
 }
 
-// TODO ensure only one active request per key
-func (bs *Bitswap) clientWorker(parent context.Context) {
+// connects to providers for the given keys
+func (bs *Bitswap) providerConnector(parent context.Context) {
 	defer log.Info("bitswap client worker shutting down...")
 
 	for {
 		select {
-		case req := <-bs.batchRequests:
+		case req := <-bs.findKeys:
 			keys := req.keys
 			if len(keys) == 0 {
 				log.Warning("Received batch request for zero blocks")
 				continue
 			}
-			for i, k := range keys {
-				bs.wantlist.Add(k, kMaxPriority-i)
-			}
-
-			done := make(chan struct{})
-			go func() {
-				bs.wantNewBlocks(req.ctx, keys)
-				close(done)
-			}()
 
 			// NB: Optimization. Assumes that providers of key[0] are likely to
 			// be able to provide for all keys. This currently holds true in most
 			// every situation. Later, this assumption may not hold as true.
 			child, cancel := context.WithTimeout(req.ctx, providerRequestTimeout)
 			providers := bs.network.FindProvidersAsync(child, keys[0], maxProvidersPerRequest)
-			err := bs.sendWantlistToPeers(req.ctx, providers)
-			if err != nil {
-				log.Debugf("error sending wantlist: %s", err)
+			for p := range providers {
+				go bs.network.ConnectTo(req.ctx, p)
 			}
 			cancel()
-
-			// Wait for wantNewBlocks to finish
-			<-done
 
 		case <-parent.Done():
 			return
@@ -181,22 +167,24 @@ func (bs *Bitswap) rebroadcastWorker(parent context.Context) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
-	broadcastSignal := time.After(rebroadcastDelay.Get())
-	tick := time.Tick(10 * time.Second)
+	broadcastSignal := time.NewTicker(rebroadcastDelay.Get())
+	defer broadcastSignal.Stop()
+
+	tick := time.NewTicker(10 * time.Second)
+	defer tick.Stop()
 
 	for {
 		select {
-		case <-tick:
-			n := bs.wantlist.Len()
+		case <-tick.C:
+			n := bs.wm.wl.Len()
 			if n > 0 {
-				log.Debug(n, inflect.FromNumber("keys", n), "in bitswap wantlist")
+				log.Debug(n, "keys in bitswap wantlist")
 			}
-		case <-broadcastSignal: // resend unfulfilled wantlist keys
-			entries := bs.wantlist.Entries()
+		case <-broadcastSignal.C: // resend unfulfilled wantlist keys
+			entries := bs.wm.wl.Entries()
 			if len(entries) > 0 {
-				bs.sendWantlistToProviders(ctx, entries)
+				bs.connectToProviders(ctx, entries)
 			}
-			broadcastSignal = time.After(rebroadcastDelay.Get())
 		case <-parent.Done():
 			return
 		}

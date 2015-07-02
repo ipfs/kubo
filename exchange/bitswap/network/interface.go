@@ -2,10 +2,10 @@ package network
 
 import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	bsmsg "github.com/ipfs/go-ipfs/exchange/bitswap/message"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var ProtocolBitswap protocol.ID = "/ipfs/bitswap"
@@ -23,6 +23,8 @@ type BitSwapNetwork interface {
 	// network.
 	SetDelegate(Receiver)
 
+	ConnectTo(context.Context, peer.ID) error
+
 	Routing
 }
 
@@ -31,7 +33,7 @@ type Receiver interface {
 	ReceiveMessage(
 		ctx context.Context,
 		sender peer.ID,
-		incoming bsmsg.BitSwapMessage) error
+		incoming bsmsg.BitSwapMessage)
 
 	ReceiveError(error)
 
@@ -42,8 +44,8 @@ type Receiver interface {
 
 type Routing interface {
 	// FindProvidersAsync returns a channel of providers for the given key
-	FindProvidersAsync(context.Context, u.Key, int) <-chan peer.ID
+	FindProvidersAsync(context.Context, key.Key, int) <-chan peer.ID
 
 	// Provide provides the key to the network
-	Provide(context.Context, u.Key) error
+	Provide(context.Context, key.Key) error
 }

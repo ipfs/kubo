@@ -6,6 +6,7 @@ package ipns
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -14,12 +15,12 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	ft "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var log = eventlog.Logger("fuse/ipns")
@@ -75,7 +76,7 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 		if err != nil {
 			return nil, err
 		}
-		name := u.Key(pkh).B58String()
+		name := key.Key(pkh).B58String()
 		root, err := ipfs.IpnsFs.GetRoot(name)
 		if err != nil {
 			return nil, err
@@ -106,9 +107,10 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 }
 
 // Attr returns file attributes.
-func (*Root) Attr() fuse.Attr {
+func (*Root) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Root Attr")
-	return fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	*a = fuse.Attr{Mode: os.ModeDir | 0111} // -rw+x
+	return nil
 }
 
 // Lookup performs a lookup under this node.
@@ -150,9 +152,6 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if segments[0] == "ipfs" {
 		p := strings.Join(resolved.Segments()[1:], "/")
 		return &Link{s.IpfsRoot + "/" + p}, nil
-	} else if segments[0] == "ipns" {
-		p := strings.Join(resolved.Segments()[1:], "/")
-		return &Link{s.IpnsRoot + "/" + p}, nil
 	} else {
 		log.Error("Invalid path.Path: ", resolved)
 		return nil, errors.New("invalid path from ipns record")
@@ -183,7 +182,7 @@ func (r *Root) Forget() {
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Root ReadDirAll")
 	listing := []fuse.Dirent{
-		fuse.Dirent{
+		{
 			Name: "local",
 			Type: fuse.DT_Link,
 		},
@@ -195,7 +194,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			continue
 		}
 		ent := fuse.Dirent{
-			Name: u.Key(hash).Pretty(),
+			Name: key.Key(hash).Pretty(),
 			Type: fuse.DT_Dir,
 		}
 		listing = append(listing, ent)
@@ -218,29 +217,31 @@ type File struct {
 }
 
 // Attr returns the attributes of a given node.
-func (d *Directory) Attr() fuse.Attr {
+func (d *Directory) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("Directory Attr")
-	return fuse.Attr{
+	*a = fuse.Attr{
 		Mode: os.ModeDir | 0555,
 		Uid:  uint32(os.Getuid()),
 		Gid:  uint32(os.Getgid()),
 	}
+	return nil
 }
 
 // Attr returns the attributes of a given node.
-func (fi *File) Attr() fuse.Attr {
+func (fi *File) Attr(ctx context.Context, a *fuse.Attr) error {
 	log.Debug("File Attr")
 	size, err := fi.fi.Size()
 	if err != nil {
 		// In this case, the dag node in question may not be unixfs
-		log.Critical("Failed to get file size: %s", err)
+		return fmt.Errorf("fuse/ipns: failed to get file.Size(): %s", err)
 	}
-	return fuse.Attr{
+	*a = fuse.Attr{
 		Mode: os.FileMode(0666),
 		Size: uint64(size),
 		Uid:  uint32(os.Getuid()),
 		Gid:  uint32(os.Getgid()),
 	}
+	return nil
 }
 
 // Lookup performs a lookup under this node.
@@ -461,10 +462,10 @@ func (dir *Directory) Rename(ctx context.Context, req *fuse.RenameRequest, newDi
 			return err
 		}
 	case *File:
-		log.Critical("Cannot move node into a file!")
+		log.Error("Cannot move node into a file!")
 		return fuse.EPERM
 	default:
-		log.Critical("Unknown node type for rename target dir!")
+		log.Error("Unknown node type for rename target dir!")
 		return errors.New("Unknown fs node type!")
 	}
 	return nil

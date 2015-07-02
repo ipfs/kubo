@@ -154,7 +154,12 @@ func main() {
 	}
 
 	// everything went better than expected :)
-	io.Copy(os.Stdout, output)
+	_, err = io.Copy(os.Stdout, output)
+	if err != nil {
+		printErr(err)
+
+		os.Exit(1)
+	}
 }
 
 func (i *cmdInvocation) Run(ctx context.Context) (output io.Reader, err error) {
@@ -387,7 +392,10 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
-	daemonLocked := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+	daemonLocked, err := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+	if err != nil {
+		return false, err
+	}
 
 	if daemonLocked {
 
@@ -457,7 +465,7 @@ func startProfiling() (func(), error) {
 		for _ = range time.NewTicker(time.Second * 30).C {
 			err := writeHeapProfileToFile()
 			if err != nil {
-				log.Critical(err)
+				log.Error(err)
 			}
 		}
 	}()

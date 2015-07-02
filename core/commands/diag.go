@@ -132,14 +132,14 @@ that consume the dot format to generate graphs of the network.
 		case visD3:
 			res.SetOutput(bytes.NewReader(diag.GetGraphJson(info)))
 		case visDot:
-			var buf bytes.Buffer
-			w := diag.DotWriter{W: &buf}
+			buf := new(bytes.Buffer)
+			w := diag.DotWriter{W: buf}
 			err := w.WriteGraph(info)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(io.Reader(&buf))
+			res.SetOutput(io.Reader(buf))
 		default:
 			output, err := stdDiagOutputMarshal(standardDiagOutput(info))
 			if err != nil {
@@ -152,12 +152,12 @@ that consume the dot format to generate graphs of the network.
 }
 
 func stdDiagOutputMarshal(output *DiagnosticOutput) (io.Reader, error) {
-	var buf bytes.Buffer
-	err := printDiagnostics(&buf, output)
+	buf := new(bytes.Buffer)
+	err := printDiagnostics(buf, output)
 	if err != nil {
 		return nil, err
 	}
-	return &buf, nil
+	return buf, nil
 }
 
 func standardDiagOutput(info []*diag.DiagInfo) *DiagnosticOutput {

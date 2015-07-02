@@ -94,6 +94,43 @@ test_object_cmd() {
 		test_cmp expected_putBroken actual_putBroken &&
 		test_cmp expected_putBrokenErr actual_putBrokenErr
 	'
+
+	test_expect_success "'ipfs object patch' should work" '
+		EMPTY_DIR=$(ipfs object new unixfs-dir) &&
+		OUTPUT=$(ipfs object patch $EMPTY_DIR add-link foo $EMPTY_DIR)
+	'
+
+	test_expect_success "multilayer ipfs patch works" '
+		echo "hello world" > hwfile &&
+		FILE=$(ipfs add -q hwfile) &&
+		EMPTY=$(ipfs object new unixfs-dir) &&
+		ONE=$(ipfs object patch $EMPTY add-link b $EMPTY) &&
+		TWO=$(ipfs object patch $EMPTY add-link a $ONE) &&
+		ipfs object patch $TWO add-link a/b/c $FILE > multi_patch
+	'
+
+	test_expect_success "output looks good" '
+		ipfs cat $(cat multi_patch)/a/b/c > hwfile_out &&
+		test_cmp hwfile hwfile_out
+	'
+
+	test_expect_success "should have created dir within a dir" '
+		ipfs ls $OUTPUT > patched_output
+	'
+
+	test_expect_success "output looks good" '
+		echo "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn 4 foo/" > patched_exp &&
+		test_cmp patched_exp patched_output
+	'
+
+	test_expect_success "can remove the directory" '
+		ipfs object patch $OUTPUT rm-link foo > rmlink_output
+	'
+
+	test_expect_success "output should be empty" '
+		echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > rmlink_exp &&
+		test_cmp rmlink_exp rmlink_output
+	'
 }
 
 # should work offline

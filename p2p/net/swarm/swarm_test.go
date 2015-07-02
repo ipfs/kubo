@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -268,5 +269,62 @@ func TestConnHandler(t *testing.T) {
 	case <-gotconn:
 		t.Fatalf("should have connected to %d swarms", expect)
 	default:
+	}
+}
+
+func TestAddrBlocking(t *testing.T) {
+	ctx := context.Background()
+	swarms := makeSwarms(ctx, t, 2)
+
+	swarms[0].SetConnHandler(func(conn *Conn) {
+		t.Fatal("no connections should happen!")
+	})
+
+	_, block, err := net.ParseCIDR("127.0.0.1/8")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	swarms[1].Filters.AddDialFilter(block)
+
+	swarms[1].peers.AddAddr(swarms[0].LocalPeer(), swarms[0].ListenAddresses()[0], peer.PermanentAddrTTL)
+	_, err = swarms[1].Dial(context.TODO(), swarms[0].LocalPeer())
+	if err == nil {
+		t.Fatal("dial should have failed")
+	}
+
+	swarms[0].peers.AddAddr(swarms[1].LocalPeer(), swarms[1].ListenAddresses()[0], peer.PermanentAddrTTL)
+	_, err = swarms[0].Dial(context.TODO(), swarms[1].LocalPeer())
+	if err == nil {
+		t.Fatal("dial should have failed")
+	}
+}
+
+func TestFilterBounds(t *testing.T) {
+	ctx := context.Background()
+	swarms := makeSwarms(ctx, t, 2)
+
+	conns := make(chan struct{}, 8)
+	swarms[0].SetConnHandler(func(conn *Conn) {
+		conns <- struct{}{}
+	})
+
+	// Address that we wont be dialing from
+	_, block, err := net.ParseCIDR("192.0.0.1/8")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// set filter on both sides, shouldnt matter
+	swarms[1].Filters.AddDialFilter(block)
+	swarms[0].Filters.AddDialFilter(block)
+
+	connectSwarms(t, ctx, swarms)
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("should have gotten connection")
+	case <-conns:
+		t.Log("got connect")
 	}
 }

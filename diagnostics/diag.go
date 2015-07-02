@@ -179,7 +179,7 @@ func decodeDiagJson(data []byte) (*DiagInfo, error) {
 func (d *Diagnostics) getDiagnosticFromPeers(ctx context.Context, peers map[peer.ID]int, pmes *pb.Message) (<-chan *DiagInfo, error) {
 	respdata := make(chan *DiagInfo)
 	wg := sync.WaitGroup{}
-	for p, _ := range peers {
+	for p := range peers {
 		wg.Add(1)
 		log.Debugf("Sending diagnostic request to peer: %s", p)
 		go func(p peer.ID) {

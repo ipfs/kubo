@@ -8,16 +8,16 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	crypto "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 var errNotOnline = errors.New("This command must be run in online mode. Try running 'ipfs daemon' first.")
 
-var publishCmd = &cmds.Command{
+var PublishCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Publish an object to IPNS",
 		ShortDescription: `
@@ -35,12 +35,13 @@ Examples:
 Publish an <ipfs-path> to your identity name:
 
   > ipfs name publish /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
-  published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
 
 Publish an <ipfs-path> to another public key (not implemented):
 
-  > ipfs name publish QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
-  published name QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n to QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+  > ipfs name publish /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n
+  Published to QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n: /ipfs/QmatmE9msSfkKxoffpHwNLNKgwZG8eT9Bud6YoPab52vpy
+
 `,
 	},
 
@@ -71,16 +72,19 @@ Publish an <ipfs-path> to another public key (not implemented):
 			return
 		}
 
+		var name string
 		var pstr string
 
 		switch len(args) {
 		case 2:
-			// name = args[0]
+			name = args[0]
 			pstr = args[1]
-			res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
-			return
+			if name != n.Identity.Pretty() {
+				res.SetError(errors.New("keychains not yet implemented"), cmds.ErrNormal)
+				return
+			}
 		case 1:
-			// name = n.Identity.ID.String()
+			// name = n.Identity.Pretty()
 			pstr = args[0]
 		}
 
@@ -102,7 +106,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v := res.Output().(*IpnsEntry)
-			s := fmt.Sprintf("Published name %s to %s\n", v.Name, v.Value)
+			s := fmt.Sprintf("Published to %s: %s\n", v.Name, v.Value)
 			return strings.NewReader(s), nil
 		},
 	},
@@ -127,7 +131,7 @@ func publish(ctx context.Context, n *core.IpfsNode, k crypto.PrivKey, ref path.P
 	}
 
 	return &IpnsEntry{
-		Name:  u.Key(hash).String(),
+		Name:  key.Key(hash).String(),
 		Value: ref.String(),
 	}, nil
 }

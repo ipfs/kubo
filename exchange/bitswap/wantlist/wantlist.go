@@ -3,7 +3,7 @@
 package wantlist
 
 import (
-	u "github.com/ipfs/go-ipfs/util"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	"sort"
 	"sync"
 )
@@ -15,14 +15,14 @@ type ThreadSafe struct {
 
 // not threadsafe
 type Wantlist struct {
-	set map[u.Key]Entry
+	set map[key.Key]Entry
 	// TODO provide O(1) len accessor if cost becomes an issue
 }
 
 type Entry struct {
 	// TODO consider making entries immutable so they can be shared safely and
 	// slices can be copied efficiently.
-	Key      u.Key
+	Key      key.Key
 	Priority int
 }
 
@@ -40,25 +40,25 @@ func NewThreadSafe() *ThreadSafe {
 
 func New() *Wantlist {
 	return &Wantlist{
-		set: make(map[u.Key]Entry),
+		set: make(map[key.Key]Entry),
 	}
 }
 
-func (w *ThreadSafe) Add(k u.Key, priority int) {
+func (w *ThreadSafe) Add(k key.Key, priority int) {
 	// TODO rm defer for perf
 	w.lk.Lock()
 	defer w.lk.Unlock()
 	w.Wantlist.Add(k, priority)
 }
 
-func (w *ThreadSafe) Remove(k u.Key) {
+func (w *ThreadSafe) Remove(k key.Key) {
 	// TODO rm defer for perf
 	w.lk.Lock()
 	defer w.lk.Unlock()
 	w.Wantlist.Remove(k)
 }
 
-func (w *ThreadSafe) Contains(k u.Key) (Entry, bool) {
+func (w *ThreadSafe) Contains(k key.Key) (Entry, bool) {
 	// TODO rm defer for perf
 	w.lk.RLock()
 	defer w.lk.RUnlock()
@@ -87,7 +87,7 @@ func (w *Wantlist) Len() int {
 	return len(w.set)
 }
 
-func (w *Wantlist) Add(k u.Key, priority int) {
+func (w *Wantlist) Add(k key.Key, priority int) {
 	if _, ok := w.set[k]; ok {
 		return
 	}
@@ -97,11 +97,11 @@ func (w *Wantlist) Add(k u.Key, priority int) {
 	}
 }
 
-func (w *Wantlist) Remove(k u.Key) {
+func (w *Wantlist) Remove(k key.Key) {
 	delete(w.set, k)
 }
 
-func (w *Wantlist) Contains(k u.Key) (Entry, bool) {
+func (w *Wantlist) Contains(k key.Key) (Entry, bool) {
 	e, ok := w.set[k]
 	return e, ok
 }

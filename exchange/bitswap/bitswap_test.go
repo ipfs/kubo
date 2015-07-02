@@ -8,14 +8,15 @@ import (
 
 	detectrace "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-detect-race"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	travis "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	blocksutil "github.com/ipfs/go-ipfs/blocks/blocksutil"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	tn "github.com/ipfs/go-ipfs/exchange/bitswap/testnet"
 	p2ptestutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	mockrouting "github.com/ipfs/go-ipfs/routing/mock"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 // FIXME the tests are really sensitive to the network delay. fix them to work
@@ -57,8 +58,6 @@ func TestProviderForKeyButNetworkCannotFind(t *testing.T) { // TODO revisit this
 	}
 }
 
-// TestGetBlockAfterRequesting...
-
 func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 
 	net := tn.VirtualNetwork(mockrouting.NewServer(), delay.Fixed(kNetworkDelay))
@@ -66,14 +65,15 @@ func TestGetBlockFromPeerAfterPeerAnnounces(t *testing.T) {
 	g := NewTestSessionGenerator(net)
 	defer g.Close()
 
-	hasBlock := g.Next()
+	peers := g.Instances(2)
+	hasBlock := peers[0]
 	defer hasBlock.Exchange.Close()
 
 	if err := hasBlock.Exchange.HasBlock(context.Background(), block); err != nil {
 		t.Fatal(err)
 	}
 
-	wantsBlock := g.Next()
+	wantsBlock := peers[1]
 	defer wantsBlock.Exchange.Close()
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
@@ -92,12 +92,14 @@ func TestLargeSwarm(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	numInstances := 500
+	numInstances := 100
 	numBlocks := 2
 	if detectrace.WithRace() {
 		// when running with the race detector, 500 instances launches
 		// well over 8k goroutines. This hits a race detector limit.
 		numInstances = 100
+	} else if travis.IsRunning() {
+		numInstances = 200
 	} else {
 		t.Parallel()
 	}
@@ -108,8 +110,33 @@ func TestLargeFile(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+
+	if !travis.IsRunning() {
+		t.Parallel()
+	}
+
 	numInstances := 10
+	numBlocks := 100
+	PerformDistributionTest(t, numInstances, numBlocks)
+}
+
+func TestLargeFileNoRebroadcast(t *testing.T) {
+	rbd := rebroadcastDelay.Get()
+	rebroadcastDelay.Set(time.Hour * 24 * 365 * 10) // ten years should be long enough
+	if testing.Short() {
+		t.SkipNow()
+	}
+	numInstances := 10
+	numBlocks := 100
+	PerformDistributionTest(t, numInstances, numBlocks)
+	rebroadcastDelay.Set(rbd)
+}
+
+func TestLargeFileTwoPeers(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	numInstances := 2
 	numBlocks := 100
 	PerformDistributionTest(t, numInstances, numBlocks)
 }
@@ -123,14 +150,12 @@ func PerformDistributionTest(t *testing.T, numInstances, numBlocks int) {
 	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
-	t.Log("Test a few nodes trying to get one file with a lot of blocks")
-
 	instances := sg.Instances(numInstances)
 	blocks := bg.Blocks(numBlocks)
 
 	t.Log("Give the blocks to the first instance")
 
-	var blkeys []u.Key
+	var blkeys []key.Key
 	first := instances[0]
 	for _, b := range blocks {
 		blkeys = append(blkeys, b.Key())
@@ -189,8 +214,9 @@ func TestSendToWantingPeer(t *testing.T) {
 	prev := rebroadcastDelay.Set(time.Second / 2)
 	defer func() { rebroadcastDelay.Set(prev) }()
 
-	peerA := sg.Next()
-	peerB := sg.Next()
+	peers := sg.Instances(2)
+	peerA := peers[0]
+	peerB := peers[1]
 
 	t.Logf("Session %v\n", peerA.Peer)
 	t.Logf("Session %v\n", peerB.Peer)
@@ -201,7 +227,7 @@ func TestSendToWantingPeer(t *testing.T) {
 	alpha := bg.Next()
 	// peerA requests and waits for block alpha
 	ctx, _ := context.WithTimeout(context.TODO(), waitTime)
-	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []u.Key{alpha.Key()})
+	alphaPromise, err := peerA.Exchange.GetBlocks(ctx, []key.Key{alpha.Key()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +257,7 @@ func TestBasicBitswap(t *testing.T) {
 	defer sg.Close()
 	bg := blocksutil.NewBlockGenerator()
 
-	t.Log("Test a few nodes trying to get one file with a lot of blocks")
+	t.Log("Test a one node trying to get one block from another")
 
 	instances := sg.Instances(2)
 	blocks := bg.Blocks(1)

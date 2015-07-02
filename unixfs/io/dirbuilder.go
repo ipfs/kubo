@@ -5,9 +5,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	format "github.com/ipfs/go-ipfs/unixfs"
-	u "github.com/ipfs/go-ipfs/util"
 )
 
 type directoryBuilder struct {
@@ -29,7 +29,7 @@ func NewDirectory(dserv mdag.DAGService) *directoryBuilder {
 }
 
 // AddChild adds a (name, key)-pair to the root node.
-func (d *directoryBuilder) AddChild(name string, k u.Key) error {
+func (d *directoryBuilder) AddChild(name string, k key.Key) error {
 	// TODO(cryptix): consolidate context managment
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
 	defer cancel()

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	u "github.com/ipfs/go-ipfs/util"
@@ -23,7 +24,7 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pinned []u.Key
+	Pinned []key.Key
 }
 
 var addPinCmd = &cmds.Command{
@@ -252,7 +253,7 @@ Defaults to "direct".
 			if typeStr == "indirect" && count {
 				for k, v := range keys.Keys {
 					if quiet {
-						fmt.Fprintf(out, "%s\n", k, v.Count)
+						fmt.Fprintf(out, "%s %d\n", k, v.Count)
 					} else {
 						fmt.Fprintf(out, "%s %s %d\n", k, v.Type, v.Count)
 					}

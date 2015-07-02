@@ -2,10 +2,10 @@ package dht
 
 import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	notif "github.com/ipfs/go-ipfs/notifications"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	kb "github.com/ipfs/go-ipfs/routing/kbucket"
-	u "github.com/ipfs/go-ipfs/util"
 	pset "github.com/ipfs/go-ipfs/util/peerset"
 )
 
@@ -21,7 +21,7 @@ func pointerizePeerInfos(pis []peer.PeerInfo) []*peer.PeerInfo {
 
 // Kademlia 'node lookup' operation. Returns a channel of the K closest peers
 // to the given key
-func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key) (<-chan peer.ID, error) {
+func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key key.Key) (<-chan peer.ID, error) {
 	e := log.EventBegin(ctx, "getClosestPeers", &key)
 	tablepeers := dht.routingTable.NearestPeers(kb.ConvertKey(key), AlphaValue)
 	if len(tablepeers) == 0 {
@@ -88,7 +88,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key u.Key) (<-chan peer
 	return out, nil
 }
 
-func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key u.Key, p peer.ID) ([]peer.ID, error) {
+func (dht *IpfsDHT) closerPeersSingle(ctx context.Context, key key.Key, p peer.ID) ([]peer.ID, error) {
 	pmes, err := dht.findPeerSingle(ctx, p, peer.ID(key))
 	if err != nil {
 		return nil, err

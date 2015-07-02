@@ -1,4 +1,5 @@
 // See the file LICENSE for copyright and licensing information.
+
 // Adapted from Plan 9 from User Space's src/cmd/9pfuse/fuse.c,
 // which carries this notice:
 //
@@ -45,7 +46,7 @@
 // The required and optional methods for the FS, Node, and Handle interfaces
 // have the general form
 //
-//	Op(ctx context.Context, req *OpRequest, resp *OpResponse) Error
+//	Op(ctx context.Context, req *OpRequest, resp *OpResponse) error
 //
 // where Op is the name of a FUSE operation. Op reads request
 // parameters from req and writes results to resp. An operation whose
@@ -67,7 +68,7 @@
 // can implement ErrorNumber to control the errno returned. Without
 // ErrorNumber, a generic errno (EIO) is returned.
 //
-// Errors messages will be visible in the debug log as part of the
+// Error messages will be visible in the debug log as part of the
 // response.
 //
 // Interrupted Operations
@@ -1064,6 +1065,8 @@ func (r *AccessRequest) Respond() {
 
 // An Attr is the metadata for a single file or directory.
 type Attr struct {
+	Valid time.Duration // how long Attr can be cached
+
 	Inode  uint64      // inode number
 	Size   uint64      // size in bytes
 	Blocks uint64      // size in blocks
@@ -1143,8 +1146,8 @@ func (r *GetattrRequest) String() string {
 func (r *GetattrRequest) Respond(resp *GetattrResponse) {
 	out := &attrOut{
 		outHeader:     outHeader{Unique: uint64(r.ID)},
-		AttrValid:     uint64(resp.AttrValid / time.Second),
-		AttrValidNsec: uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:     uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec: uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:          resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))
@@ -1152,8 +1155,7 @@ func (r *GetattrRequest) Respond(resp *GetattrResponse) {
 
 // A GetattrResponse is the response to a GetattrRequest.
 type GetattrResponse struct {
-	AttrValid time.Duration // how long Attr can be cached
-	Attr      Attr          // file attributes
+	Attr Attr // file attributes
 }
 
 func (r *GetattrResponse) String() string {
@@ -1333,8 +1335,8 @@ func (r *LookupRequest) Respond(resp *LookupResponse) {
 		Generation:     resp.Generation,
 		EntryValid:     uint64(resp.EntryValid / time.Second),
 		EntryValidNsec: uint32(resp.EntryValid % time.Second / time.Nanosecond),
-		AttrValid:      uint64(resp.AttrValid / time.Second),
-		AttrValidNsec:  uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:      uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec:  uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:           resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))
@@ -1345,7 +1347,6 @@ type LookupResponse struct {
 	Node       NodeID
 	Generation uint64
 	EntryValid time.Duration
-	AttrValid  time.Duration
 	Attr       Attr
 }
 
@@ -1409,8 +1410,8 @@ func (r *CreateRequest) Respond(resp *CreateResponse) {
 		Generation:     resp.Generation,
 		EntryValid:     uint64(resp.EntryValid / time.Second),
 		EntryValidNsec: uint32(resp.EntryValid % time.Second / time.Nanosecond),
-		AttrValid:      uint64(resp.AttrValid / time.Second),
-		AttrValidNsec:  uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:      uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec:  uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:           resp.Attr.attr(),
 
 		Fh:        uint64(resp.Handle),
@@ -1451,8 +1452,8 @@ func (r *MkdirRequest) Respond(resp *MkdirResponse) {
 		Generation:     resp.Generation,
 		EntryValid:     uint64(resp.EntryValid / time.Second),
 		EntryValidNsec: uint32(resp.EntryValid % time.Second / time.Nanosecond),
-		AttrValid:      uint64(resp.AttrValid / time.Second),
-		AttrValidNsec:  uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:      uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec:  uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:           resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))
@@ -1776,8 +1777,8 @@ func (r *SetattrRequest) String() string {
 func (r *SetattrRequest) Respond(resp *SetattrResponse) {
 	out := &attrOut{
 		outHeader:     outHeader{Unique: uint64(r.ID)},
-		AttrValid:     uint64(resp.AttrValid / time.Second),
-		AttrValidNsec: uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:     uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec: uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:          resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))
@@ -1785,8 +1786,7 @@ func (r *SetattrRequest) Respond(resp *SetattrResponse) {
 
 // A SetattrResponse is the response to a SetattrRequest.
 type SetattrResponse struct {
-	AttrValid time.Duration // how long Attr can be cached
-	Attr      Attr          // file attributes
+	Attr Attr // file attributes
 }
 
 func (r *SetattrResponse) String() string {
@@ -1855,8 +1855,8 @@ func (r *SymlinkRequest) Respond(resp *SymlinkResponse) {
 		Generation:     resp.Generation,
 		EntryValid:     uint64(resp.EntryValid / time.Second),
 		EntryValidNsec: uint32(resp.EntryValid % time.Second / time.Nanosecond),
-		AttrValid:      uint64(resp.AttrValid / time.Second),
-		AttrValidNsec:  uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:      uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec:  uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:           resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))
@@ -1903,8 +1903,8 @@ func (r *LinkRequest) Respond(resp *LookupResponse) {
 		Generation:     resp.Generation,
 		EntryValid:     uint64(resp.EntryValid / time.Second),
 		EntryValidNsec: uint32(resp.EntryValid % time.Second / time.Nanosecond),
-		AttrValid:      uint64(resp.AttrValid / time.Second),
-		AttrValidNsec:  uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:      uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec:  uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:           resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))
@@ -1948,8 +1948,8 @@ func (r *MknodRequest) Respond(resp *LookupResponse) {
 		Generation:     resp.Generation,
 		EntryValid:     uint64(resp.EntryValid / time.Second),
 		EntryValidNsec: uint32(resp.EntryValid % time.Second / time.Nanosecond),
-		AttrValid:      uint64(resp.AttrValid / time.Second),
-		AttrValidNsec:  uint32(resp.AttrValid % time.Second / time.Nanosecond),
+		AttrValid:      uint64(resp.Attr.Valid / time.Second),
+		AttrValidNsec:  uint32(resp.Attr.Valid % time.Second / time.Nanosecond),
 		Attr:           resp.Attr.attr(),
 	}
 	r.respond(&out.outHeader, unsafe.Sizeof(*out))

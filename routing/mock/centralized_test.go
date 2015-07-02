@@ -5,16 +5,16 @@ import (
 	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	u "github.com/ipfs/go-ipfs/util"
 	"github.com/ipfs/go-ipfs/util/testutil"
 )
 
 func TestKeyNotFound(t *testing.T) {
 
 	var pi = testutil.RandIdentityOrFatal(t)
-	var key = u.Key("mock key")
+	var key = key.Key("mock key")
 	var ctx = context.Background()
 
 	rs := NewServer()
@@ -30,7 +30,7 @@ func TestClientFindProviders(t *testing.T) {
 	rs := NewServer()
 	client := rs.Client(pi)
 
-	k := u.Key("hello")
+	k := key.Key("hello")
 	err := client.Provide(context.Background(), k)
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestClientFindProviders(t *testing.T) {
 	time.Sleep(time.Millisecond * 300)
 	max := 100
 
-	providersFromClient := client.FindProvidersAsync(context.Background(), u.Key("hello"), max)
+	providersFromClient := client.FindProvidersAsync(context.Background(), key.Key("hello"), max)
 	isInClient := false
 	for pi := range providersFromClient {
 		if pi.ID == pi.ID {
@@ -54,7 +54,7 @@ func TestClientFindProviders(t *testing.T) {
 
 func TestClientOverMax(t *testing.T) {
 	rs := NewServer()
-	k := u.Key("hello")
+	k := key.Key("hello")
 	numProvidersForHelloKey := 100
 	for i := 0; i < numProvidersForHelloKey; i++ {
 		pi := testutil.RandIdentityOrFatal(t)
@@ -81,7 +81,7 @@ func TestClientOverMax(t *testing.T) {
 // TODO does dht ensure won't receive self as a provider? probably not.
 func TestCanceledContext(t *testing.T) {
 	rs := NewServer()
-	k := u.Key("hello")
+	k := key.Key("hello")
 
 	// avoid leaking goroutine, without using the context to signal
 	// (we want the goroutine to keep trying to publish on a
@@ -139,7 +139,7 @@ func TestCanceledContext(t *testing.T) {
 func TestValidAfter(t *testing.T) {
 
 	pi := testutil.RandIdentityOrFatal(t)
-	var key = u.Key("mock key")
+	var key = key.Key("mock key")
 	var ctx = context.Background()
 	conf := DelayConfig{
 		ValueVisibility: delay.Fixed(1 * time.Hour),

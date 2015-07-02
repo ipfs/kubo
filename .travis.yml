@@ -1,3 +1,5 @@
+# dist: trusty # KVM Setup
+
 os:
   - linux
   - osx
@@ -5,10 +7,12 @@ os:
 language: go
 
 go:
-  - 1.3
+#  - 1.3
   - 1.4
 
-script:
-  - make test
+env:
+  - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_go_expensive
+  - TEST_NO_FUSE=1 TEST_VERBOSE=1 TEST_SUITE=test_sharness_expensive
 
-env: TEST_NO_FUSE=1 TEST_VERBOSE=1
+script:
+  - make $TEST_SUITE

@@ -1,0 +1,15 @@
+machine:
+  environment:
+    TEST_NO_FUSE: 1
+    TEST_VERBOSE: 1
+    TRAVIS: 1
+
+dependencies:
+  pre:
+    # setup ipv6
+    - sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0 net.ipv6.conf.default.disable_ipv6=0 net.ipv6.conf.all.disable_ipv6=0
+
+test:
+  override:
+    - make test_go_expensive
+    - make test_sharness_expensive

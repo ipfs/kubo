@@ -24,6 +24,9 @@ const mountTimeout = time.Second
 // fuseNoDirectory used to check the returning fuse error
 const fuseNoDirectory = "fusermount: failed to access mountpoint"
 
+// fuseExitStatus1 used to check the returning fuse error
+const fuseExitStatus1 = "fusermount: exit status 1"
+
 // platformFuseChecks can get overridden by arch-specific files
 // to run fuse checks (like checking the OSXFUSE version)
 var platformFuseChecks = func(*core.IpfsNode) error {
@@ -41,7 +44,7 @@ Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
-You may have to create /ipfs and /ipfs before using 'ipfs mount':
+You may have to create /ipfs and /ipns before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
@@ -53,7 +56,7 @@ Mount ipfs at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All ipfs objects will be accessible under that directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
-You may have to create /ipfs and /ipfs before using 'ipfs mount':
+You may have to create /ipfs and /ipns before using 'ipfs mount':
 
 > sudo mkdir /ipfs /ipns
 > sudo chown ` + "`" + `whoami` + "`" + ` /ipfs /ipns
@@ -181,11 +184,15 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 }
 
 func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
-	fmtFuseErr := func(err error) error {
+	fmtFuseErr := func(err error, mountpoint string) error {
 		s := err.Error()
 		if strings.Contains(s, fuseNoDirectory) {
 			s = strings.Replace(s, `fusermount: "fusermount:`, "", -1)
 			s = strings.Replace(s, `\n", exit status 1`, "", -1)
+			return cmds.ClientError(s)
+		}
+		if s == fuseExitStatus1 {
+			s = fmt.Sprintf("fuse failed to access mountpoint %s", mountpoint)
 			return cmds.ClientError(s)
 		}
 		return err
@@ -222,10 +229,9 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 		}
 
 		if err1 != nil {
-			return fmtFuseErr(err1)
-		} else {
-			return fmtFuseErr(err2)
+			return fmtFuseErr(err1, fsdir)
 		}
+		return fmtFuseErr(err2, nsdir)
 	}
 
 	// setup node state, so that it can be cancelled

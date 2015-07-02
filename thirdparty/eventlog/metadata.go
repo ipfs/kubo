@@ -5,7 +5,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/code.google.com/p/go-uuid/uuid"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/satori/go.uuid"
 )
 
 // Metadata is a convenience type for generic maps
@@ -14,7 +14,7 @@ type Metadata map[string]interface{}
 // Uuid returns a Metadata with the string key and UUID value
 func Uuid(key string) Metadata {
 	return Metadata{
-		key: uuid.New(),
+		key: uuid.NewV4().String(),
 	}
 }
 

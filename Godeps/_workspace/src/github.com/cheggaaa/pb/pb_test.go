@@ -28,3 +28,10 @@ func Test_Width(t *testing.T) {
 	bar.Increment()
 	bar.Finish()
 }
+
+func Test_MultipleFinish(t *testing.T) {
+	bar := New(5000)
+	bar.Add(2000)
+	bar.Finish()
+	bar.Finish()
+}

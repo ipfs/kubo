@@ -7,6 +7,7 @@ import (
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
 	path "github.com/ipfs/go-ipfs/path"
 	routing "github.com/ipfs/go-ipfs/routing"
@@ -30,15 +31,28 @@ func NewRoutingResolver(route routing.IpfsRouting) Resolver {
 	return &routingResolver{routing: route}
 }
 
-// CanResolve implements Resolver. Checks whether name is a b58 encoded string.
-func (r *routingResolver) CanResolve(name string) bool {
-	_, err := mh.FromB58String(name)
-	return err == nil
+// newRoutingResolver returns a resolver instead of a Resolver.
+func newRoutingResolver(route routing.IpfsRouting) resolver {
+	if route == nil {
+		panic("attempt to create resolver with nil routing system")
+	}
+
+	return &routingResolver{routing: route}
 }
 
-// Resolve implements Resolver. Uses the IPFS routing system to resolve SFS-like
-// names.
+// Resolve implements Resolver.
 func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, error) {
+	return r.ResolveN(ctx, name, DefaultDepthLimit)
+}
+
+// ResolveN implements Resolver.
+func (r *routingResolver) ResolveN(ctx context.Context, name string, depth int) (path.Path, error) {
+	return resolve(ctx, r, name, depth, "/ipns/")
+}
+
+// resolveOnce implements resolver. Uses the IPFS routing system to
+// resolve SFS-like names.
+func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Path, error) {
 	log.Debugf("RoutingResolve: '%s'", name)
 	hash, err := mh.FromB58String(name)
 	if err != nil {
@@ -51,7 +65,7 @@ func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, 
 	// /ipns/<name>
 	h := []byte("/ipns/" + string(hash))
 
-	ipnsKey := u.Key(h)
+	ipnsKey := key.Key(h)
 	val, err := r.routing.GetValue(ctx, ipnsKey)
 	if err != nil {
 		log.Warning("RoutingResolve get failed.")
@@ -71,7 +85,7 @@ func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, 
 	}
 
 	hsh, _ := pubkey.Hash()
-	log.Debugf("pk hash = %s", u.Key(hsh))
+	log.Debugf("pk hash = %s", key.Key(hsh))
 
 	// check sig with pk
 	if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
@@ -88,6 +102,6 @@ func (r *routingResolver) Resolve(ctx context.Context, name string) (path.Path, 
 	} else {
 		// Its an old style multihash record
 		log.Warning("Detected old style multihash record")
-		return path.FromKey(u.Key(valh)), nil
+		return path.FromKey(key.Key(valh)), nil
 	}
 }

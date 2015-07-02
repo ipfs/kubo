@@ -7,10 +7,10 @@ package mockrouting
 import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	delay "github.com/ipfs/go-ipfs/thirdparty/delay"
-	u "github.com/ipfs/go-ipfs/util"
 	"github.com/ipfs/go-ipfs/util/testutil"
 )
 
@@ -22,7 +22,7 @@ type Server interface {
 
 // Client implements IpfsRouting
 type Client interface {
-	FindProviders(context.Context, u.Key) ([]peer.PeerInfo, error)
+	FindProviders(context.Context, key.Key) ([]peer.PeerInfo, error)
 	routing.IpfsRouting
 }
 
@@ -37,7 +37,7 @@ func NewServer() Server {
 // NewServerWithDelay returns a mockrouting Server with a delay!
 func NewServerWithDelay(conf DelayConfig) Server {
 	return &s{
-		providers: make(map[u.Key]map[peer.ID]providerRecord),
+		providers: make(map[key.Key]map[peer.ID]providerRecord),
 		delayConf: conf,
 	}
 }
