@@ -65,6 +65,12 @@ test_swarm_filters() {
 	test_swarm_filter_cmd
 }
 
+test_expect_success "init without any filters" '
+	echo "null" >expected &&
+	ipfs config Swarm.AddrFilters >actual &&
+	test_cmp expected actual
+'
+
 test_expect_success "adding addresses to the config to filter succeeds" '
 	ipfs config --json DialBlocklist "[\"$AF1\", \"$AF4\"]"
 '
