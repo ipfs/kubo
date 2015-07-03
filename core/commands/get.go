@@ -65,14 +65,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		// Validate path string
-		p, err := path.ParsePath(req.Arguments()[0])
-		if err != nil {
-			res.SetError(fmt.Errorf("failed to validate path: %v", err), cmds.ErrNormal)
-			return
-		}
+		p := path.Path(req.Arguments()[0])
 		var reader io.Reader
-
 		if archive, _, _ := req.Option("archive").Bool(); !archive && cmplvl != gzip.NoCompression {
 			// only use this when the flag is '-C' without '-a'
 			reader, err = getZip(req.Context().Context, node, p, cmplvl)
@@ -169,18 +163,18 @@ func getCompressOptions(req cmds.Request) (int, error) {
 	return gzip.NoCompression, nil
 }
 
-func get(ctx context.Context, node *core.IpfsNode, pathToResolve path.Path, compression int) (io.Reader, error) {
-	dagnode, err := core.Resolve(ctx, node, pathToResolve)
+func get(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
+	dagnode, err := core.Resolve(ctx, node, p)
 	if err != nil {
 		return nil, err
 	}
 
-	return utar.NewReader(pathToResolve, node.DAG, dagnode, compression)
+	return utar.NewReader(p, node.DAG, dagnode, compression)
 }
 
 // getZip is equivalent to `ipfs getdag $hash | gzip`
-func getZip(ctx context.Context, node *core.IpfsNode, pathToResolve path.Path, compression int) (io.Reader, error) {
-	dagnode, err := core.Resolve(ctx, node, pathToResolve)
+func getZip(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
+	dagnode, err := core.Resolve(ctx, node, p)
 	if err != nil {
 		return nil, err
 	}
