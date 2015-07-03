@@ -68,7 +68,13 @@ in the network, use 0.0.0.0 as the ip address:
 
 Be careful if you expose the API. It is a security risk, as anyone could control
 your node remotely. If you need to control the node remotely, make sure to protect
-the port as you would other services or database (firewall, authenticated proxy, etc).`,
+the port as you would other services or database (firewall, authenticated proxy, etc).
+
+In order to explicitly allow Cross-Origin requests, export the root url as
+environment variable API_ORIGIN.  For example, to allow a local server at port 8888,
+run this then restart the daemon:
+
+   export API_ORIGIN="http://localhost:8888/`,
 	},
 
 	Options: []cmds.Option{
