@@ -133,6 +133,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("X-IPFS-Path", urlPath)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Suborigin header, sandboxes apps from each other in the browser (even
 	// though they are served from the same gateway domain). NOTE: This is not
