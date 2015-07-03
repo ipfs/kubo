@@ -45,9 +45,11 @@ test_expect_success "'ipfs pin rm' output looks good" '
 '
 
 test_expect_success "file no longer pinned" '
-	# we expect the welcome files to show up here
+	# we expect the welcome files and gw assets to show up here
 	echo "$HASH_WELCOME_DOCS" >expected2 &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
+	echo "$HASH_GATEWAY_ASSETS" >>expected2 &&
+	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>expected2 &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
 	ipfs pin ls --type=recursive --quiet >actual2 &&
 	test_sort_cmp expected2 actual2
@@ -105,6 +107,7 @@ test_expect_success "adding multiblock random file succeeds" '
 test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
+	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>refsout &&
 	sed -i="" "s/\(.*\)/\1 indirect/g" refsout &&
 	ipfs pin ls --type=indirect >indirectpins &&
 	test_sort_cmp refsout indirectpins
@@ -131,8 +134,10 @@ test_expect_success "'ipfs pin ls --type=direct' is correct" '
 test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$MBLOCKHASH" >rp_expected &&
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
+	echo "$HASH_GATEWAY_ASSETS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
+	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>rp_expected &&
 	sed -i="" "s/\(.*\)/\1 recursive/g" rp_expected &&
 	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
