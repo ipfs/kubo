@@ -88,15 +88,9 @@ Publish an <ipfs-path> to another public key (not implemented):
 			pstr = args[0]
 		}
 
-		p, err := path.ParsePath(pstr)
-		if err != nil {
-			res.SetError(fmt.Errorf("failed to validate path: %v", err), cmds.ErrNormal)
-			return
-		}
-
 		// TODO n.Keychain.Get(name).PrivKey
 		// TODO(cryptix): is req.Context().Context a child of n.Context()?
-		output, err := publish(req.Context().Context, n, n.PrivateKey, p)
+		output, err := publish(req.Context().Context, n, n.PrivateKey, path.Path(pstr))
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

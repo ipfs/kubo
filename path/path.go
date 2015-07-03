@@ -61,12 +61,15 @@ func ParsePath(txt string) (Path, error) {
 	}
 
 	if parts[0] != "" {
-		return "", ErrBadPath
+		if _, err := ParseKeyToPath(parts[0]); err != nil {
+			return "", ErrBadPath
+		}
+		// The case when the path starts with hash without a protocol prefix
+		return Path("/ipfs/" + txt), nil
 	}
 
 	if parts[1] == "ipfs" {
-		_, err := ParseKeyToPath(parts[2])
-		if err != nil {
+		if _, err := ParseKeyToPath(parts[2]); err != nil {
 			return "", err
 		}
 	} else if parts[1] != "ipns" {
@@ -77,13 +80,16 @@ func ParsePath(txt string) (Path, error) {
 }
 
 func ParseKeyToPath(txt string) (Path, error) {
+	if txt == "" {
+		return "", ErrNoComponents
+	}
+
 	chk := b58.Decode(txt)
 	if len(chk) == 0 {
 		return "", errors.New("not a key")
 	}
 
-	_, err := mh.Cast(chk)
-	if err != nil {
+	if _, err := mh.Cast(chk); err != nil {
 		return "", err
 	}
 	return FromKey(key.Key(chk)), nil

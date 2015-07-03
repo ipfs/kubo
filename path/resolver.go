@@ -65,6 +65,11 @@ func SplitAbsPath(fpath Path) (mh.Multihash, []string, error) {
 // ResolvePath fetches the node for given path. It returns the last item
 // returned by ResolvePathComponents.
 func (s *Resolver) ResolvePath(ctx context.Context, fpath Path) (*merkledag.Node, error) {
+	// validate path
+	if err := fpath.IsValid(); err != nil {
+		return nil, err
+	}
+
 	nodes, err := s.ResolvePathComponents(ctx, fpath)
 	if err != nil || nodes == nil {
 		return nil, err
