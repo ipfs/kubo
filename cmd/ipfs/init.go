@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -10,14 +9,11 @@ import (
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	assets "github.com/ipfs/go-ipfs/assets"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
 )
 
 const nBitsForKeypairDefault = 2048
@@ -167,34 +163,9 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	}
 	defer nd.Close()
 
-	dirb := uio.NewDirectory(nd.DAG)
-
-	// add every file in the assets pkg
-	for fname, file := range assets.InitDir {
-		buf := bytes.NewBuffer(file)
-		s, err := coreunix.Add(nd, buf)
-		if err != nil {
-			return err
-		}
-
-		k := key.B58KeyDecode(s)
-		if err := dirb.AddChild(fname, k); err != nil {
-			return err
-		}
-	}
-
-	dir := dirb.GetNode()
-	dkey, err := nd.DAG.Add(dir)
+	dkey, err := assets.SeedInitDocs(nd)
 	if err != nil {
-		return err
-	}
-
-	if err := nd.Pinning.Pin(ctx, dir, true); err != nil {
-		return err
-	}
-
-	if err := nd.Pinning.Flush(); err != nil {
-		return err
+		return fmt.Errorf("init: seeding init docs failed: %s", err)
 	}
 
 	if _, err = fmt.Fprintf(out, "to get started, enter:\n"); err != nil {
