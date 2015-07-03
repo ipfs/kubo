@@ -9,11 +9,17 @@ import (
 )
 
 type Filters struct {
-	filters []*net.IPNet
+	filters map[string]*net.IPNet
+}
+
+func NewFilters() *Filters {
+	return &Filters{
+		filters: make(map[string]*net.IPNet),
+	}
 }
 
 func (fs *Filters) AddDialFilter(f *net.IPNet) {
-	fs.filters = append(fs.filters, f)
+	fs.filters[f.String()] = f
 }
 
 func (f *Filters) AddrBlocked(a ma.Multiaddr) bool {
@@ -31,4 +37,16 @@ func (f *Filters) AddrBlocked(a ma.Multiaddr) bool {
 		}
 	}
 	return false
+}
+
+func (f *Filters) Filters() []*net.IPNet {
+	var out []*net.IPNet
+	for _, ff := range f.filters {
+		out = append(out, ff)
+	}
+	return out
+}
+
+func (f *Filters) Remove(ff *net.IPNet) {
+	delete(f.filters, ff.String())
 }

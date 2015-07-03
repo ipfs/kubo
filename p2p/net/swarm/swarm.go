@@ -20,6 +20,7 @@ import (
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
 	prom "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/prometheus/client_golang/prometheus"
+	mafilter "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -83,7 +84,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		dialT:   DialTimeout,
 		notifs:  make(map[inet.Notifiee]ps.Notifiee),
 		bwc:     bwc,
-		Filters: new(filter.Filters),
+		Filters: filter.NewFilters(),
 	}
 
 	// configure Swarm
@@ -99,6 +100,16 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 
 func (s *Swarm) teardown() error {
 	return s.swarm.Close()
+}
+
+func (s *Swarm) AddAddrFilter(f string) error {
+	m, err := mafilter.NewMask(f)
+	if err != nil {
+		return err
+	}
+
+	s.Filters.AddDialFilter(m)
+	return nil
 }
 
 // CtxGroup returns the Context Group of the swarm

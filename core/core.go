@@ -258,7 +258,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	// get undialable addrs from config
 	cfg := n.Repo.Config()
 	var addrfilter []*net.IPNet
-	for _, s := range cfg.DialBlocklist {
+	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
 		if err != nil {
 			return fmt.Errorf("incorrectly formatter address filter in config: %s", s)
@@ -531,6 +531,10 @@ func constructPeerHost(ctx context.Context, id peer.ID, ps peer.Peerstore, bwr m
 	network, err := swarm.NewNetwork(ctx, nil, id, ps, bwr)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, f := range fs {
+		network.Swarm().Filters.AddDialFilter(f)
 	}
 
 	host := p2pbhost.New(network, p2pbhost.NATPortMap, bwr)

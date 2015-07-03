@@ -282,7 +282,7 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
-			"Rev": "15837fcc356fddef27c634b0f6379b3b7f259114"
+			"Rev": "9e26222151125ecd3fc1fd190179b6bdd55f5608"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/blowfish",

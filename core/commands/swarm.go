@@ -9,10 +9,12 @@ import (
 	"sort"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	iaddr "github.com/ipfs/go-ipfs/util/ipfsaddr"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	mafilter "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -32,6 +34,7 @@ ipfs swarm peers                - List peers with open connections
 ipfs swarm addrs                - List known addresses. Useful to debug.
 ipfs swarm connect <address>    - Open connection to a given address
 ipfs swarm disconnect <address> - Close connection to a given address
+ipfs swarm filters				- Manipulate filters addresses
 `,
 		ShortDescription: `
 ipfs swarm is a tool to manipulate the network swarm. The swarm is the
@@ -44,6 +47,7 @@ ipfs peers in the internet.
 		"addrs":      swarmAddrsCmd,
 		"connect":    swarmConnectCmd,
 		"disconnect": swarmDisconnectCmd,
+		"filters":    swarmFiltersCmd,
 	},
 }
 
@@ -357,4 +361,143 @@ func peersWithAddresses(addrs []string) (pis []peer.PeerInfo, err error) {
 		})
 	}
 	return pis, nil
+}
+
+var swarmFiltersCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Manipulate address filters",
+		ShortDescription: `
+'ipfs swarm filters' will list out currently applied filters. Its subcommands can be used
+to add or remove said filters. Filters are specified using the multiaddr-filter format:
+
+example:
+
+    /ip4/192.168.0.0/ipcidr/16
+
+Where the above is equivalent to the standard CIDR:
+
+    192.168.0.0/16
+
+Filters default to those specified under the "Swarm.AddrFilters" config key.
+`,
+	},
+	Subcommands: map[string]*cmds.Command{
+		"add": swarmFiltersAddCmd,
+		"rm":  swarmFiltersRmCmd,
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		if !ok {
+			res.SetError(errors.New("failed to cast network to swarm network"), cmds.ErrNormal)
+			return
+		}
+
+		var output []string
+		for _, f := range snet.Filters.Filters() {
+			s, err := mafilter.ConvertIPNet(f)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+			output = append(output, s)
+		}
+		res.SetOutput(&stringList{output})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: stringListMarshaler,
+	},
+	Type: stringList{},
+}
+
+var swarmFiltersAddCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "add an address filter",
+		ShortDescription: `
+'ipfs swarm filters add' will add an address filter to the daemons swarm.
+Filters applied this way will not persist daemon reboots, to acheive that,
+add your filters to the ipfs config file.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("address", true, true, "multiaddr to filter").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		if !ok {
+			res.SetError(errors.New("failed to cast network to swarm network"), cmds.ErrNormal)
+			return
+		}
+
+		for _, arg := range req.Arguments() {
+			mask, err := mafilter.NewMask(arg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			snet.Filters.AddDialFilter(mask)
+		}
+	},
+}
+
+var swarmFiltersRmCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "remove an address filter",
+		ShortDescription: `
+'ipfs swarm filters rm' will remove an address filter from the daemons swarm.
+Filters removed this way will not persist daemon reboots, to acheive that,
+remove your filters from the ipfs config file.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("address", true, true, "multiaddr filter to remove").EnableStdin(),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		n, err := req.Context().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		if !ok {
+			res.SetError(errors.New("failed to cast network to swarm network"), cmds.ErrNormal)
+			return
+		}
+
+		if req.Arguments()[0] == "all" || req.Arguments()[0] == "*" {
+			fs := snet.Filters.Filters()
+			for _, f := range fs {
+				snet.Filters.Remove(f)
+			}
+			return
+		}
+
+		for _, arg := range req.Arguments() {
+			mask, err := mafilter.NewMask(arg)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			snet.Filters.Remove(mask)
+		}
+	},
 }

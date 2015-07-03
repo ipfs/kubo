@@ -26,7 +26,7 @@ type Config struct {
 	Tour             Tour                  // local node's tour position
 	Gateway          Gateway               // local node's gateway server options
 	SupernodeRouting SupernodeClientConfig // local node's routing servers (if SupernodeRouting enabled)
-	DialBlocklist    []string
+	Swarm            SwarmConfig
 	Log              Log
 }
 
