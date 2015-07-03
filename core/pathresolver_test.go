@@ -24,4 +24,8 @@ func TestResolveNoComponents(t *testing.T) {
 		t.Fatal("Should error with no components (/ipfs/).", err)
 	}
 
+	_, err = core.Resolve(n.Context(), n, path.Path("/../.."))
+	if err != path.ErrBadPath {
+		t.Fatal("Should error with invalid path.", err)
+	}
 }
