@@ -119,8 +119,16 @@ func (p *process) SetTeardown(tf TeardownFunc) {
 	if tf == nil {
 		tf = nilTeardownFunc
 	}
+
 	p.Lock()
-	p.teardown = tf
+	if p.teardown == nil {
+		select {
+		case <-p.Closed():
+			p.teardown = tf
+			p.closeErr = tf()
+		default:
+		}
+	}
 	p.Unlock()
 }
 
