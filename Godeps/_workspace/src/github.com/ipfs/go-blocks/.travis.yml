@@ -1,0 +1,15 @@
+# dist: trusty # KVM Setup
+
+os:
+  - linux
+  - osx
+
+language: go
+
+go:
+  - 1.4
+
+env:
+
+script:
+  - go test ./... -race -cpu 5

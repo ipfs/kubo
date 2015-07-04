@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"sync"
 
-	key "github.com/ipfs/go-ipfs/blocks/key"
+	key "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks/key"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	ks "github.com/ipfs/go-ipfs/routing/keyspace"
 )

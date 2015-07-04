@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ipfs/go-blocks"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/ipfs/go-ipfs/blocks"
 	"github.com/ipfs/go-ipfs/core"
 	mocknet "github.com/ipfs/go-ipfs/p2p/net/mock"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
