@@ -3,7 +3,6 @@ package corehttp
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	gopath "path"
@@ -27,22 +26,11 @@ const (
 	ipnsPathPrefix = "/ipns/"
 )
 
-// shortcut for templating
-type webHandler map[string]interface{}
-
-// struct for directory listing
-type directoryItem struct {
-	Size uint64
-	Name string
-	Path string
-}
-
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node    *core.IpfsNode
-	dirList *template.Template
-	config  GatewayConfig
+	node   *core.IpfsNode
+	config GatewayConfig
 }
 
 func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler, error) {
@@ -50,21 +38,7 @@ func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler
 		node:   node,
 		config: conf,
 	}
-	err := i.loadTemplate()
-	if err != nil {
-		return nil, err
-	}
 	return i, nil
-}
-
-// Load the directroy list template
-func (i *gatewayHandler) loadTemplate() error {
-	t, err := template.New("dir").Parse(listingTemplate)
-	if err != nil {
-		return err
-	}
-	i.dirList = t
-	return nil
 }
 
 // TODO(cryptix):  find these helpers somewhere else
@@ -205,14 +179,36 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if !foundIndex {
-		// template and return directory listing
-		hndlr := webHandler{
-			"listing": dirListing,
-			"path":    urlPath,
-		}
-
 		if r.Method != "HEAD" {
-			if err := i.dirList.Execute(w, hndlr); err != nil {
+			// construct the correct back link
+			// https://github.com/ipfs/go-ipfs/issues/1365
+			var backLink string = r.URL.Path
+
+			// don't go further up than /ipfs/$hash/
+			pathSplit := strings.Split(backLink, "/")
+			switch {
+			// keep backlink
+			case len(pathSplit) == 3: // url: /ipfs/$hash
+
+			// keep backlink
+			case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
+
+			// add the correct link depending on wether the path ends with a slash
+			default:
+				if strings.HasSuffix(backLink, "/") {
+					backLink += "./.."
+				} else {
+					backLink += "/.."
+				}
+			}
+
+			tplData := listingTemplateData{
+				Listing:  dirListing,
+				Path:     urlPath,
+				BackLink: backLink,
+			}
+			err := listingTemplate.Execute(w, tplData)
+			if err != nil {
 				internalWebError(w, err)
 				return
 			}
@@ -441,23 +437,3 @@ func webErrorWithCode(w http.ResponseWriter, message string, err error, code int
 func internalWebError(w http.ResponseWriter, err error) {
 	webErrorWithCode(w, "internalWebError", err, http.StatusInternalServerError)
 }
-
-// Directory listing template
-var listingTemplate = `
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<title>{{ .path }}</title>
-	</head>
-	<body>
-	<h2>Index of {{ .path }}</h2>
-	<ul>
-	<li><a href="./..">..</a></li>
-  {{ range .listing }}
-	<li><a href="{{ .Path }}">{{ .Name }}</a> - {{ .Size }} bytes</li>
-	{{ end }}
-	</ul>
-	</body>
-</html>
-`
