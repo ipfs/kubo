@@ -127,10 +127,7 @@ func (r *dhtQueryRunner) Run(ctx context.Context, peers []peer.ID) (*dhtQueryRes
 	// now, if the context finishes, close the proc.
 	// we have to do it here because the logic before is setup, which
 	// should run without closing the proc.
-	go func() {
-		<-ctx.Done()
-		r.proc.Close()
-	}()
+	ctxproc.CloseAfterContext(r.proc, ctx)
 
 	select {
 	case <-r.peersRemaining.Done():

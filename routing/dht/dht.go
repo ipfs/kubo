@@ -73,7 +73,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	// register for network notifs.
 	dht.host.Network().Notify((*netNotifiee)(dht))
 
-	dht.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
+	dht.proc = goprocess.WithTeardown(func() error {
 		// remove ourselves from network notifs.
 		dht.host.Network().StopNotify((*netNotifiee)(dht))
 		return nil
@@ -84,6 +84,7 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
 	dht.providers = NewProviderManager(dht.ctx, dht.self)
 	dht.proc.AddChild(dht.providers.proc)
+	goprocessctx.CloseAfterContext(dht.proc, ctx)
 
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
