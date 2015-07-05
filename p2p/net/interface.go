@@ -6,8 +6,8 @@ import (
 	conn "github.com/ipfs/go-ipfs/p2p/net/conn"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -80,8 +80,8 @@ type Network interface {
 	// use the known local interfaces.
 	InterfaceListenAddresses() ([]ma.Multiaddr, error)
 
-	// CtxGroup returns the network's contextGroup
-	CtxGroup() ctxgroup.ContextGroup
+	// Process returns the network's Process
+	Process() goprocess.Process
 }
 
 // Dialer represents a service that can dial out to peers

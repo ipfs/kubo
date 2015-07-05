@@ -14,11 +14,12 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
 	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/yamux"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	prom "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/prometheus/client_golang/prometheus"
 	mafilter "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -63,8 +64,9 @@ type Swarm struct {
 	// filters for addresses that shouldnt be dialed
 	Filters *filter.Filters
 
-	cg  ctxgroup.ContextGroup
-	bwc metrics.Reporter
+	proc goprocess.Process
+	ctx  context.Context
+	bwc  metrics.Reporter
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
@@ -80,7 +82,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		swarm:   ps.NewSwarm(PSTransport),
 		local:   local,
 		peers:   peers,
-		cg:      ctxgroup.WithContext(ctx),
+		ctx:     ctx,
 		dialT:   DialTimeout,
 		notifs:  make(map[inet.Notifiee]ps.Notifiee),
 		bwc:     bwc,
@@ -88,7 +90,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 	}
 
 	// configure Swarm
-	s.cg.SetTeardown(s.teardown)
+	s.proc = goprocessctx.WithContextAndTeardown(ctx, s.teardown)
 	s.SetConnHandler(nil) // make sure to setup our own conn handler.
 
 	// setup swarm metrics
@@ -111,8 +113,6 @@ func (s *Swarm) AddAddrFilter(f string) error {
 	s.Filters.AddDialFilter(m)
 	return nil
 }
-
-// CtxGroup returns the Context Group of the swarm
 func filterAddrs(listenAddrs []ma.Multiaddr) ([]ma.Multiaddr, error) {
 	if len(listenAddrs) > 0 {
 		filtered := addrutil.FilterUsableAddrs(listenAddrs)
@@ -124,7 +124,6 @@ func filterAddrs(listenAddrs []ma.Multiaddr) ([]ma.Multiaddr, error) {
 	return listenAddrs, nil
 }
 
-// CtxGroup returns the Context Group of the swarm
 func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
 	addrs, err := filterAddrs(addrs)
 	if err != nil {
@@ -134,14 +133,19 @@ func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
 	return s.listen(addrs)
 }
 
-// CtxGroup returns the Context Group of the swarm
-func (s *Swarm) CtxGroup() ctxgroup.ContextGroup {
-	return s.cg
+// Process returns the Process of the swarm
+func (s *Swarm) Process() goprocess.Process {
+	return s.proc
+}
+
+// Context returns the context of the swarm
+func (s *Swarm) Context() context.Context {
+	return s.ctx
 }
 
 // Close stops the Swarm.
 func (s *Swarm) Close() error {
-	return s.cg.Close()
+	return s.proc.Close()
 }
 
 // StreamSwarm returns the underlying peerstream.Swarm

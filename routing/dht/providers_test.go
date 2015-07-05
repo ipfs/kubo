@@ -19,5 +19,5 @@ func TestProviderManager(t *testing.T) {
 	if len(resp) != 1 {
 		t.Fatal("Could not retrieve provider.")
 	}
-	p.Close()
+	p.proc.Close()
 }

@@ -13,8 +13,9 @@ import (
 	p2putil "github.com/ipfs/go-ipfs/p2p/test/util"
 	testutil "github.com/ipfs/go-ipfs/util/testutil"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -31,7 +32,8 @@ type mocknet struct {
 
 	linkDefaults LinkOptions
 
-	cg ctxgroup.ContextGroup // for Context closing
+	proc goprocess.Process // for Context closing
+	ctx  context.Context
 	sync.RWMutex
 }
 
@@ -40,7 +42,8 @@ func New(ctx context.Context) Mocknet {
 		nets:  map[peer.ID]*peernet{},
 		hosts: map[peer.ID]*bhost.BasicHost{},
 		links: map[peer.ID]map[peer.ID]map[*link]struct{}{},
-		cg:    ctxgroup.WithContext(ctx),
+		proc:  goprocessctx.WithContext(ctx),
+		ctx:   ctx,
 	}
 }
 
@@ -61,7 +64,7 @@ func (mn *mocknet) GenPeer() (host.Host, error) {
 }
 
 func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
-	n, err := newPeernet(mn.cg.Context(), mn, k, a)
+	n, err := newPeernet(mn.ctx, mn, k, a)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +72,7 @@ func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
 	h := bhost.New(n)
 	log.Debugf("mocknet added listen addr for peer: %s -- %s", n.LocalPeer(), a)
 
-	mn.cg.AddChild(n.cg)
+	mn.proc.AddChild(n.proc)
 
 	mn.Lock()
 	mn.nets[n.peer] = n
@@ -297,11 +300,11 @@ func (mn *mocknet) ConnectAll() error {
 }
 
 func (mn *mocknet) ConnectPeers(a, b peer.ID) (inet.Conn, error) {
-	return mn.Net(a).DialPeer(mn.cg.Context(), b)
+	return mn.Net(a).DialPeer(mn.ctx, b)
 }
 
 func (mn *mocknet) ConnectNets(a, b inet.Network) (inet.Conn, error) {
-	return a.DialPeer(mn.cg.Context(), b.LocalPeer())
+	return a.DialPeer(mn.ctx, b.LocalPeer())
 }
 
 func (mn *mocknet) DisconnectPeers(p1, p2 peer.ID) error {

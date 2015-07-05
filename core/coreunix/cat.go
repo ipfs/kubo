@@ -10,9 +10,9 @@ import (
 
 func Cat(n *core.IpfsNode, pstr string) (io.Reader, error) {
 	p := path.FromString(pstr)
-	dagNode, err := n.Resolver.ResolvePath(n.ContextGroup.Context(), p)
+	dagNode, err := n.Resolver.ResolvePath(n.Context(), p)
 	if err != nil {
 		return nil, err
 	}
-	return uio.NewDagReader(n.ContextGroup.Context(), dagNode, n.DAG)
+	return uio.NewDagReader(n.Context(), dagNode, n.DAG)
 }

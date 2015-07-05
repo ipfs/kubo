@@ -23,8 +23,9 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
@@ -57,7 +58,8 @@ type IpfsDHT struct {
 
 	Validator record.Validator // record validator funcs
 
-	ctxgroup.ContextGroup
+	ctx  context.Context
+	proc goprocess.Process
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
@@ -71,15 +73,18 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	// register for network notifs.
 	dht.host.Network().Notify((*netNotifiee)(dht))
 
-	dht.ContextGroup = ctxgroup.WithContextAndTeardown(ctx, func() error {
+	dht.proc = goprocess.WithTeardown(func() error {
 		// remove ourselves from network notifs.
 		dht.host.Network().StopNotify((*netNotifiee)(dht))
 		return nil
 	})
 
+	dht.ctx = ctx
+
 	h.SetStreamHandler(ProtocolDHT, dht.handleNewStream)
-	dht.providers = NewProviderManager(dht.Context(), dht.self)
-	dht.AddChild(dht.providers)
+	dht.providers = NewProviderManager(dht.ctx, dht.self)
+	dht.proc.AddChild(dht.providers.proc)
+	goprocessctx.CloseAfterContext(dht.proc, ctx)
 
 	dht.routingTable = kb.NewRoutingTable(20, kb.ConvertPeerID(dht.self), time.Minute, dht.peerstore)
 	dht.birth = time.Now()
@@ -88,8 +93,9 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.Validator["pk"] = record.PublicKeyValidator
 
 	if doPinging {
-		dht.Children().Add(1)
-		go dht.PingRoutine(time.Second * 10)
+		dht.proc.Go(func(p goprocess.Process) {
+			dht.PingRoutine(time.Second * 10)
+		})
 	}
 	return dht
 }
@@ -348,8 +354,6 @@ func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, p peer.ID) error 
 
 // PingRoutine periodically pings nearest neighbors.
 func (dht *IpfsDHT) PingRoutine(t time.Duration) {
-	defer dht.Children().Done()
-
 	tick := time.Tick(t)
 	for {
 		select {
@@ -365,8 +369,23 @@ func (dht *IpfsDHT) PingRoutine(t time.Duration) {
 				}
 				cancel()
 			}
-		case <-dht.Closing():
+		case <-dht.proc.Closing():
 			return
 		}
 	}
+}
+
+// Context return dht's context
+func (dht *IpfsDHT) Context() context.Context {
+	return dht.ctx
+}
+
+// Process return dht's process
+func (dht *IpfsDHT) Process() goprocess.Process {
+	return dht.proc
+}
+
+// Close calls Process Close
+func (dht *IpfsDHT) Close() error {
+	return dht.proc.Close()
 }

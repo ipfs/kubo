@@ -138,10 +138,6 @@
 			"Rev": "6237cf65f3a6f7111cd8a42be3590df99a66bc7d"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-ctxgroup",
-			"Rev": "c14598396fa31465dc558b176c7976606f95a49d"
-		},
-		{
 			"ImportPath": "github.com/jbenet/go-datastore",
 			"Rev": "245a981af3750d7710db13dca731ba8461aa1095"
 		},
@@ -201,7 +197,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "67fe91f1081e806f1bb51051c972ac782ea46d85"
+			"Rev": "a6650d0b69f2aa0fe7c9685baf0b4d7ecc8766bf"
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",

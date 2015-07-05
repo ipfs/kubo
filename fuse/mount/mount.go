@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	ctxgroup "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-ctxgroup"
+	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -24,9 +24,9 @@ type Mount interface {
 	// Unmounts the mount
 	Unmount() error
 
-	// CtxGroup returns the mount's CtxGroup to be able to link it
+	// Process returns the mount's Process to be able to link it
 	// to other processes. Unmount upon closing.
-	CtxGroup() ctxgroup.ContextGroup
+	Process() goprocess.Process
 }
 
 // ForceUnmount attempts to forcibly unmount a given mount.
