@@ -140,10 +140,70 @@ test_expect_success "'ipfs add -r' output looks good" '
 	PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
 	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
 	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
-	echo "added $MARS mountdir/planets/mars.txt" >expected &&
-	echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
-	echo "added $PLANETS mountdir/planets" >>expected &&
+	echo "added $MARS mountdir/planets/mars.txt" > expected &&
+	echo "added $VENUS mountdir/planets/venus.txt" >> expected &&
+	echo "added $PLANETS mountdir/planets" >> expected &&
 	test_cmp expected actual
+'
+test_expect_success "'ipfs add -r' treats . as ignore" '
+       echo "Hello Mars!" >mountdir/planets/mars.txt &&
+       echo "Hello Venus!" >mountdir/planets/venus.txt &&
+       echo "ignore*" >mountdir/planets/.ipfsignore &&
+       ipfs add -r mountdir/planets >actual
+       PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
+       MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
+       VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
+       echo "added $MARS mountdir/planets/mars.txt" > expected &&
+       echo "added $VENUS mountdir/planets/venus.txt" >> expected &&
+       echo "added $PLANETS mountdir/planets" >> expected &&
+       test_cmp expected actual
+'
+
+test_expect_success "'ipfs add -r --hidden' will include hidden file" '
+	ipfs add -r --hidden mountdir/planets > actual 
+	IGNORE="QmcPE2m7ori3WozZT6HzAxLP7nSUNAfgRENUEkKpfvAerJ" &&
+	PLANETS="QmQALn8EZGDAPUKijt56mYLdqTNvxMAZBAoQpDjV7G1A8D" &&
+	MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
+	VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
+	echo "added $IGNORE mountdir/planets/.ipfsignore" > expected &&
+	echo "added $MARS mountdir/planets/mars.txt" >> expected &&
+	echo "added $VENUS mountdir/planets/venus.txt" >> expected &&
+	echo "added $PLANETS mountdir/planets" >> expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs add -r' respects .ipfsignore in active folder" '
+       echo "Hello Mars!" >mountdir/planets/mars.txt &&
+       echo "Hello Venus!" >mountdir/planets/venus.txt &&
+       echo "ignore*" >mountdir/planets/.ipfsignore &&
+       echo "this file should be ignored" >mountdir/planets/ignore_me.txt &&
+       ipfs add -r mountdir/planets >actual
+       PLANETS="QmWSgS32xQEcXMeqd3YPJLrNBLSdsfYCep2U7CFkyrjXwY" &&
+       MARS="QmPrrHqJzto9m7SyiRzarwkqPcCSsKR2EB1AyqJfe8L8tN" &&
+       VENUS="QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4" &&
+       echo "added $MARS mountdir/planets/mars.txt" >expected &&
+       echo "added $VENUS mountdir/planets/venus.txt" >>expected &&
+       echo "added $PLANETS mountdir/planets" >>expected &&
+       test_cmp expected actual
+'
+
+test_expect_success "'ipfs add -r' respects root .ipfsignore files" '
+       mkdir -p mountdir/planets/moons &&
+       echo "mars*" >mountdir/.ipfsignore &&
+       echo "ignore*" >mountdir/planets/.ipfsignore &&
+       echo "europa*" >mountdir/planets/moons/.ipfsignore &&
+       echo "Hello Mars!" >mountdir/planets/mars.txt &&
+       echo "Hello Venus!" >mountdir/planets/venus.txt &&
+       echo "Hello IO!" >mountdir/planets/moons/io.txt &&
+       echo "Hello Europa!" >mountdir/planets/moons/europa.txt &&
+       echo "this file should be ignored" >mountdir/planets/ignore_me.txt &&
+       ipfs add -r mountdir/planets > recursive_ignore &&
+       echo "added QmTXxVggAJ1Jh3ZZgDteSMcrxX9T6VgxdxUisKmZMy2qdT mountdir/planets/moons/io.txt" > expected
+       echo "added Qmd9A64XXUgHqUkkxNiZww2C2yxm3uPbrfvvLfCujDFFGq mountdir/planets/moons" >> expected
+       echo "added QmU5kp3BH3B8tnWUU2Pikdb2maksBNkb92FHRr56hyghh4 mountdir/planets/venus.txt" >> expected
+       echo "added Qmc5Lpt1LczLsbvcx4AkX9YMJbfRYfwVyHufgYpP41SJBB mountdir/planets" >> expected
+       test_cmp expected recursive_ignore
+       #cat recursive_ignore
 '
 
 test_expect_success "ipfs cat accept many hashes from stdin" '
