@@ -7,13 +7,12 @@
 package mocknet
 
 import (
-	"io"
-	"time"
-
 	ic "github.com/ipfs/go-ipfs/p2p/crypto"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	"io"
+	"time"
 
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 )
@@ -59,13 +58,14 @@ type Mocknet interface {
 	ConnectNets(inet.Network, inet.Network) (inet.Conn, error)
 	DisconnectPeers(peer.ID, peer.ID) error
 	DisconnectNets(inet.Network, inet.Network) error
+	LinkAll() error
 }
 
 // LinkOptions are used to change aspects of the links.
 // Sorry but they dont work yet :(
 type LinkOptions struct {
 	Latency   time.Duration
-	Bandwidth int // in bytes-per-second
+	Bandwidth float64 // in bytes-per-second
 	// we can make these values distributions down the road.
 }
 

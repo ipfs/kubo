@@ -85,7 +85,7 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
+func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
 	const writeCacheElems = 100
 

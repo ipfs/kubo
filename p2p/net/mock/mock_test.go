@@ -3,9 +3,11 @@ package mocknet
 import (
 	"bytes"
 	"io"
+	"math"
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -477,4 +479,26 @@ func TestAdding(t *testing.T) {
 		t.Error("bytes mismatch 2")
 	}
 
+}
+
+func TestRateLimiting(t *testing.T) {
+	rl := NewRatelimiter(10)
+
+	if !within(rl.Limit(10), time.Duration(float32(time.Second)), time.Millisecond/10) {
+		t.Fail()
+	}
+
+	rl.UpdateBandwidth(50)
+	if !within(rl.Limit(75), time.Duration(float32(time.Second)*1.5), time.Millisecond/10) {
+		t.Fail()
+	}
+
+	rl.UpdateBandwidth(100)
+	if !within(rl.Limit(1), time.Duration(time.Millisecond*10), time.Millisecond/10) {
+		t.Fail()
+	}
+}
+
+func within(t1 time.Duration, t2 time.Duration, tolerance time.Duration) bool {
+	return math.Abs(float64(t1)-float64(t2)) < float64(tolerance)
 }
