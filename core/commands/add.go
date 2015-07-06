@@ -27,9 +27,12 @@ var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 const progressReaderIncrement = 1024 * 256
 
 const (
+	quietOptionName    = "quiet"
 	progressOptionName = "progress"
 	trickleOptionName  = "trickle"
 	wrapOptionName     = "wrap-with-directory"
+	hiddenOptionName   = "hidden"
+	onlyHashOptionName = "only-hash"
 )
 
 type AddedObject struct {
@@ -54,14 +57,15 @@ remains to be implemented.
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
-		cmds.BoolOption("quiet", "q", "Write minimal output"),
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output"),
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data"),
-		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation"),
-		cmds.BoolOption("only-hash", "n", "Only chunk and hash the specified content, don't write to disk"),
+		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk"),
+		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object"),
+		cmds.BoolOption(hiddenOptionName, "Include files that are hidden"),
 	},
 	PreRun: func(req cmds.Request) error {
-		if quiet, _, _ := req.Option("quiet").Bool(); quiet {
+		if quiet, _, _ := req.Option(quietOptionName).Bool(); quiet {
 			return nil
 		}
 
@@ -93,7 +97,8 @@ remains to be implemented.
 		progress, _, _ := req.Option(progressOptionName).Bool()
 		trickle, _, _ := req.Option(trickleOptionName).Bool()
 		wrap, _, _ := req.Option(wrapOptionName).Bool()
-		hash, _, _ := req.Option("only-hash").Bool()
+		hash, _, _ := req.Option(onlyHashOptionName).Bool()
+		hidden, _, _ := req.Option(hiddenOptionName).Bool()
 
 		if hash {
 			nilnode, err := core.NewNodeBuilder().NilRepo().Build(n.Context())
@@ -120,7 +125,15 @@ remains to be implemented.
 					return
 				}
 
-				rootnd, err := addFile(n, file, outChan, progress, wrap, trickle)
+				addParams := adder{
+					node:     n,
+					out:      outChan,
+					progress: progress,
+					wrap:     wrap,
+					hidden:   hidden,
+					trickle:  trickle,
+				}
+				rootnd, err := addParams.addFile(file)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
 					return
@@ -230,6 +243,17 @@ remains to be implemented.
 	Type: AddedObject{},
 }
 
+// Internal structure for holding the switches passed to the `add` call
+type adder struct {
+	node     *core.IpfsNode
+	out      chan interface{}
+	progress bool
+	wrap     bool
+	hidden   bool
+	trickle  bool
+}
+
+// Perform the actual add & pin locally, outputting results to reader
 func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error) {
 	var node *dag.Node
 	var err error
@@ -256,49 +280,56 @@ func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error)
 	return node, nil
 }
 
-func addFile(n *core.IpfsNode, file files.File, out chan interface{}, progress bool, wrap bool, useTrickle bool) (*dag.Node, error) {
+// Add the given file while respecting the params.
+func (params *adder) addFile(file files.File) (*dag.Node, error) {
+	// Check if file is hidden
+	if fileIsHidden := files.IsHidden(file); fileIsHidden && !params.hidden {
+		log.Debugf("%s is hidden, skipping", file.FileName())
+		return nil, &hiddenFileError{file.FileName()}
+	}
+
+	// Check if "file" is actually a directory
 	if file.IsDirectory() {
-		return addDir(n, file, out, progress, useTrickle)
+		return params.addDir(file)
 	}
 
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
-	if progress {
-		reader = &progressReader{file: file, out: out}
+	if params.progress {
+		reader = &progressReader{file: file, out: params.out}
 	}
 
-	if wrap {
-		p, dagnode, err := coreunix.AddWrapped(n, reader, path.Base(file.FileName()))
+	if params.wrap {
+		p, dagnode, err := coreunix.AddWrapped(params.node, reader, path.Base(file.FileName()))
 		if err != nil {
 			return nil, err
 		}
-		out <- &AddedObject{
+		params.out <- &AddedObject{
 			Hash: p,
 			Name: file.FileName(),
 		}
 		return dagnode, nil
 	}
 
-	dagnode, err := add(n, reader, useTrickle)
+	dagnode, err := add(params.node, reader, params.trickle)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Infof("adding file: %s", file.FileName())
-	if err := outputDagnode(out, file.FileName(), dagnode); err != nil {
+	if err := outputDagnode(params.out, file.FileName(), dagnode); err != nil {
 		return nil, err
 	}
 	return dagnode, nil
 }
 
-func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress bool, useTrickle bool) (*dag.Node, error) {
-	log.Infof("adding directory: %s", dir.FileName())
-
+func (params *adder) addDir(file files.File) (*dag.Node, error) {
 	tree := &dag.Node{Data: ft.FolderPBData()}
+	log.Infof("adding directory: %s", file.FileName())
 
 	for {
-		file, err := dir.NextFile()
+		file, err := file.NextFile()
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -306,30 +337,35 @@ func addDir(n *core.IpfsNode, dir files.File, out chan interface{}, progress boo
 			break
 		}
 
-		node, err := addFile(n, file, out, progress, false, useTrickle)
-		if err != nil {
+		node, err := params.addFile(file)
+		if _, ok := err.(*hiddenFileError); ok {
+			// hidden file error, set the node to nil for below
+			node = nil
+		} else if err != nil {
 			return nil, err
 		}
 
-		_, name := path.Split(file.FileName())
+		if node != nil {
+			_, name := path.Split(file.FileName())
 
-		err = tree.AddNodeLink(name, node)
-		if err != nil {
-			return nil, err
+			err = tree.AddNodeLink(name, node)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	err := outputDagnode(out, dir.FileName(), tree)
+	err := outputDagnode(params.out, file.FileName(), tree)
 	if err != nil {
 		return nil, err
 	}
 
-	k, err := n.DAG.Add(tree)
+	k, err := params.node.DAG.Add(tree)
 	if err != nil {
 		return nil, err
 	}
 
-	n.Pinning.GetManual().PinWithMode(k, pin.Indirect)
+	params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
 
 	return tree, nil
 }
@@ -347,6 +383,22 @@ func outputDagnode(out chan interface{}, name string, dn *dag.Node) error {
 	}
 
 	return nil
+}
+
+type hiddenFileError struct {
+	fileName string
+}
+
+func (e *hiddenFileError) Error() string {
+	return fmt.Sprintf("%s is a hidden file", e.fileName)
+}
+
+type ignoreFileError struct {
+	fileName string
+}
+
+func (e *ignoreFileError) Error() string {
+	return fmt.Sprintf("%s is an ignored file", e.fileName)
 }
 
 type progressReader struct {
