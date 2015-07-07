@@ -40,12 +40,11 @@ var LsCmd = &cmds.Command{
 		Tagline: "List directory contents for Unix-filesystem objects",
 		ShortDescription: `
 Retrieves the object named by <ipfs-or-ipns-path> and displays the
-contents with the following format:
+contents.
 
-  <hash> <type> <size> <name>
-
-For files, the child size is the total size of the file contents.  For
-directories, the child size is the IPFS link size.
+The JSON output contains size information.  For files, the child size
+is the total size of the file contents.  For directories, the child
+size is the IPFS link size.
 `,
 	},
 
