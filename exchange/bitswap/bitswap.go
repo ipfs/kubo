@@ -150,7 +150,8 @@ func (bs *Bitswap) GetBlock(parent context.Context, k key.Key) (*blocks.Block, e
 	ctx, cancelFunc := context.WithCancel(parent)
 
 	ctx = eventlog.ContextWithLoggable(ctx, eventlog.Uuid("GetBlockRequest"))
-	defer log.EventBegin(ctx, "GetBlockRequest", &k).Done()
+	log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
+	defer log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
 
 	defer func() {
 		cancelFunc()
@@ -199,6 +200,10 @@ func (bs *Bitswap) GetBlocks(ctx context.Context, keys []key.Key) (<-chan *block
 	default:
 	}
 	promise := bs.notifications.Subscribe(ctx, keys...)
+
+	for _, k := range keys {
+		log.Event(ctx, "Bitswap.GetBlockRequest.Start", &k)
+	}
 
 	bs.wm.WantBlocks(keys)
 
@@ -309,6 +314,9 @@ func (bs *Bitswap) ReceiveMessage(ctx context.Context, p peer.ID, incoming bsmsg
 			if has {
 				return
 			}
+
+			k := b.Key()
+			log.Event(ctx, "Bitswap.GetBlockRequest.End", &k)
 
 			log.Debugf("got block %s from %s (%d,%d)", b, p, brecvd, bdup)
 			hasBlockCtx, cancel := context.WithTimeout(ctx, hasBlockTimeout)
