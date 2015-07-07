@@ -1,46 +1,39 @@
 package key
 
-import (
-	"sync"
-)
-
 type KeySet interface {
 	Add(Key)
+	Has(Key) bool
 	Remove(Key)
 	Keys() []Key
 }
 
-type ks struct {
-	lock sync.RWMutex
-	data map[Key]struct{}
+type keySet struct {
+	keys map[Key]struct{}
 }
 
 func NewKeySet() KeySet {
-	return &ks{
-		data: make(map[Key]struct{}),
+	return &keySet{make(map[Key]struct{})}
+}
+
+func (gcs *keySet) Add(k Key) {
+	gcs.keys[k] = struct{}{}
+}
+
+func (gcs *keySet) Has(k Key) bool {
+	_, has := gcs.keys[k]
+	return has
+}
+
+func (ks *keySet) Keys() []Key {
+	var out []Key
+	for k, _ := range ks.keys {
+		out = append(out, k)
 	}
+	return out
 }
 
-func (wl *ks) Add(k Key) {
-	wl.lock.Lock()
-	defer wl.lock.Unlock()
-
-	wl.data[k] = struct{}{}
+func (ks *keySet) Remove(k Key) {
+	delete(ks.keys, k)
 }
 
-func (wl *ks) Remove(k Key) {
-	wl.lock.Lock()
-	defer wl.lock.Unlock()
-
-	delete(wl.data, k)
-}
-
-func (wl *ks) Keys() []Key {
-	wl.lock.RLock()
-	defer wl.lock.RUnlock()
-	keys := make([]Key, 0)
-	for k := range wl.data {
-		keys = append(keys, k)
-	}
-	return keys
-}
+// TODO: implement disk-backed keyset for working with massive DAGs
