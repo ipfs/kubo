@@ -495,19 +495,54 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-	switch v := value.(type) {
-	case string:
-		if i, err := strconv.Atoi(v); err == nil {
-			value = i
-		}
-	}
 	var mapconf map[string]interface{}
 	if err := serialize.ReadConfigFile(filename, &mapconf); err != nil {
 		return err
 	}
+
+	// Get the type of the value associated with the key
+	oldValue, err := common.MapGetKV(mapconf, key)
+	ok := true
+	if err != nil {
+		// key-value does not exist yet
+		switch v := value.(type) {
+		case string:
+			value, err = strconv.ParseBool(v)
+			if err != nil {
+				value, err = strconv.Atoi(v)
+				if err != nil {
+					value, err = strconv.ParseFloat(v, 32)
+					if err != nil {
+						value = v
+					}
+				}
+			}
+		default:
+		}
+	} else {
+		switch oldValue.(type) {
+		case bool:
+			value, ok = value.(bool)
+		case int:
+			value, ok = value.(int)
+		case float32:
+			value, ok = value.(float32)
+		case string:
+			value, ok = value.(string)
+		default:
+			value = value
+		}
+		if !ok {
+			return fmt.Errorf("Wrong config type, expected %T", oldValue)
+		}
+	}
+
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
 		return err
 	}
+
+	// This step doubles as to validate the map against the struct
+	// before serialization
 	conf, err := config.FromMap(mapconf)
 	if err != nil {
 		return err
