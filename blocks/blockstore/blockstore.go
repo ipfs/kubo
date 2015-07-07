@@ -4,6 +4,7 @@ package blockstore
 
 import (
 	"errors"
+	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
@@ -35,7 +36,14 @@ type Blockstore interface {
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
 
-func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
+type GCBlockstore interface {
+	Blockstore
+
+	Lock() func()
+	RLock() func()
+}
+
+func NewBlockstore(d ds.ThreadSafeDatastore) *blockstore {
 	dd := dsns.Wrap(d, BlockPrefix)
 	return &blockstore{
 		datastore: dd,
@@ -46,6 +54,8 @@ type blockstore struct {
 	datastore ds.Batching
 	// cant be ThreadSafeDatastore cause namespace.Datastore doesnt support it.
 	// we do check it on `NewBlockstore` though.
+
+	lk sync.RWMutex
 }
 
 func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
@@ -171,4 +181,14 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	}()
 
 	return output, nil
+}
+
+func (bs *blockstore) Lock() func() {
+	bs.lk.Lock()
+	return bs.lk.Unlock
+}
+
+func (bs *blockstore) RLock() func() {
+	bs.lk.RLock()
+	return bs.lk.RUnlock
 }
