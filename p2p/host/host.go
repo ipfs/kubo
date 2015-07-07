@@ -8,6 +8,8 @@ import (
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
+
+	msmux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-multistream"
 )
 
 var log = eventlog.Logger("p2p/host")
@@ -31,7 +33,7 @@ type Host interface {
 	Network() inet.Network
 
 	// Mux returns the Mux multiplexing incoming streams to protocol handlers
-	Mux() *protocol.Mux
+	Mux() *msmux.MultistreamMuxer
 
 	// Connect ensures there is a connection between this host and the peer with
 	// given peer.ID. Connect will absorb the addresses in pi into its internal

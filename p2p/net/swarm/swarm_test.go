@@ -237,6 +237,15 @@ func TestSwarm(t *testing.T) {
 	SubtestSwarm(t, swarms, msgs)
 }
 
+func TestBasicSwarm(t *testing.T) {
+	// t.Skip("skipping for another test")
+	t.Parallel()
+
+	msgs := 1
+	swarms := 2
+	SubtestSwarm(t, swarms, msgs)
+}
+
 func TestConnHandler(t *testing.T) {
 	// t.Skip("skipping for another test")
 	t.Parallel()
