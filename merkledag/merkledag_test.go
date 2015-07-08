@@ -290,26 +290,9 @@ func TestCantGet(t *testing.T) {
 }
 
 func TestFetchGraph(t *testing.T) {
-	bsi := bstest.Mocks(t, 1)[0]
-	ds := NewDAGService(bsi)
-
-	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
-	spl := &chunk.SizeSplitter{512}
-
-	root, err := imp.BuildDagFromReader(read, ds, spl, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = FetchGraph(context.TODO(), root, ds)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestFetchGraphOther(t *testing.T) {
 	var dservs []DAGService
-	for _, bsi := range bstest.Mocks(t, 2) {
+	bsis := bstest.Mocks(t, 2)
+	for _, bsi := range bsis {
 		dservs = append(dservs, NewDAGService(bsi))
 	}
 
@@ -322,6 +305,20 @@ func TestFetchGraphOther(t *testing.T) {
 	}
 
 	err = FetchGraph(context.TODO(), root, dservs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create an offline dagstore and ensure all blocks were fetched
+	bs, err := bserv.New(bsis[1].Blockstore, offline.Exchange(bsis[1].Blockstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offline_ds := NewDAGService(bs)
+	ks := key.NewKeySet()
+
+	err = EnumerateChildren(context.Background(), offline_ds, root, ks)
 	if err != nil {
 		t.Fatal(err)
 	}

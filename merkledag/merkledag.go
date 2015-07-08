@@ -117,84 +117,7 @@ func (n *dagService) Remove(nd *Node) error {
 
 // FetchGraph fetches all nodes that are children of the given node
 func FetchGraph(ctx context.Context, root *Node, serv DAGService) error {
-	toprocess := make(chan []key.Key, 8)
-	nodes := make(chan *Node, 8)
-	errs := make(chan error, 1)
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	defer close(toprocess)
-
-	go fetchNodes(ctx, serv, toprocess, nodes, errs)
-
-	nodes <- root
-	live := 1
-
-	for {
-		select {
-		case nd, ok := <-nodes:
-			if !ok {
-				return nil
-			}
-
-			var keys []key.Key
-			for _, lnk := range nd.Links {
-				keys = append(keys, key.Key(lnk.Hash))
-			}
-			keys = dedupeKeys(keys)
-
-			// keep track of open request, when zero, we're done
-			live += len(keys) - 1
-
-			if live == 0 {
-				return nil
-			}
-
-			if len(keys) > 0 {
-				select {
-				case toprocess <- keys:
-				case <-ctx.Done():
-					return ctx.Err()
-				}
-			}
-		case err := <-errs:
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-}
-
-func fetchNodes(ctx context.Context, ds DAGService, in <-chan []key.Key, out chan<- *Node, errs chan<- error) {
-	defer close(out)
-	for {
-		select {
-		case ks, ok := <-in:
-			if !ok {
-				return
-			}
-
-			ng := ds.GetNodes(ctx, ks)
-			for _, g := range ng {
-				go func(g NodeGetter) {
-					nd, err := g.Get(ctx)
-					if err != nil {
-						select {
-						case errs <- err:
-						case <-ctx.Done():
-						}
-						return
-					}
-
-					select {
-					case out <- nd:
-					case <-ctx.Done():
-						return
-					}
-				}(g)
-			}
-		}
-	}
+	return EnumerateChildrenAsync(ctx, serv, root, key.NewKeySet())
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -377,4 +300,84 @@ func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.K
 		}
 	}
 	return nil
+}
+
+func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, set key.KeySet) error {
+	toprocess := make(chan []key.Key, 8)
+	nodes := make(chan *Node, 8)
+	errs := make(chan error, 1)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	defer close(toprocess)
+
+	go fetchNodes(ctx, ds, toprocess, nodes, errs)
+
+	nodes <- root
+	live := 1
+
+	for {
+		select {
+		case nd, ok := <-nodes:
+			if !ok {
+				return nil
+			}
+			// a node has been fetched
+			live--
+
+			var keys []key.Key
+			for _, lnk := range nd.Links {
+				k := key.Key(lnk.Hash)
+				if !set.Has(k) {
+					set.Add(k)
+					live++
+					keys = append(keys, k)
+				}
+			}
+
+			if live == 0 {
+				return nil
+			}
+
+			if len(keys) > 0 {
+				select {
+				case toprocess <- keys:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		case err := <-errs:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func fetchNodes(ctx context.Context, ds DAGService, in <-chan []key.Key, out chan<- *Node, errs chan<- error) {
+	defer close(out)
+
+	get := func(g NodeGetter) {
+		nd, err := g.Get(ctx)
+		if err != nil {
+			select {
+			case errs <- err:
+			case <-ctx.Done():
+			}
+			return
+		}
+
+		select {
+		case out <- nd:
+		case <-ctx.Done():
+			return
+		}
+	}
+
+	for ks := range in {
+		ng := ds.GetNodes(ctx, ks)
+		for _, g := range ng {
+			go get(g)
+		}
+	}
 }
