@@ -107,18 +107,7 @@ func (n *UnixfsNode) AddChild(child *UnixfsNode, db *DagBuilderHelper) error {
 		return err
 	}
 
-	_, err = db.dserv.Add(childnode)
-	if err != nil {
-		return err
-	}
-
-	// Pin the child node indirectly
-	err = db.ncb(childnode, false)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return db.Store(childnode)
 }
 
 // Removes the child node at the given index

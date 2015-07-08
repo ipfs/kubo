@@ -3,6 +3,13 @@ package helpers
 import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin"
+	"sync"
+)
+
+const (
+	hashWorkers  = 1
+	storeWorkers = 50
+	pinWorkers   = 1
 )
 
 // NodeCB is callback function for dag generation
@@ -22,6 +29,8 @@ type DagBuilderHelper struct {
 	nextData []byte // the next item to return.
 	maxlinks int
 	ncb      NodeCB
+	pipeline chan *dag.Node
+	Error    chan error
 }
 
 type DagBuilderParams struct {
@@ -43,12 +52,91 @@ func (dbp *DagBuilderParams) New(in <-chan []byte) *DagBuilderHelper {
 		ncb = nilFunc
 	}
 
-	return &DagBuilderHelper{
+	dbh := &DagBuilderHelper{
 		dserv:    dbp.Dagserv,
 		in:       in,
 		maxlinks: dbp.Maxlinks,
 		ncb:      ncb,
+		pipeline: make(chan *dag.Node),
+		Error:    make(chan error),
 	}
+	dbh.init()
+	return dbh
+}
+
+type step func(*dag.Node) error
+
+func startWorkers(proc step, n int, in, out chan *dag.Node, errch chan error) {
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			for node := range in {
+				err := proc(node)
+				if err != nil {
+					errch <- err
+				}
+				if out != nil {
+					out <- node
+				}
+			}
+			wg.Done()
+		}()
+	}
+	if out != nil {
+		go func() {
+			wg.Wait()
+			close(out)
+		}()
+	}
+}
+
+func (db *DagBuilderHelper) init() {
+	hash := hasher()
+	store := storeWorker(db.dserv)
+	pin := pinner(db.ncb)
+
+	hashedch := make(chan *dag.Node)
+	storedch := make(chan *dag.Node)
+
+	startWorkers(hash, hashWorkers, db.pipeline, hashedch, db.Error)
+	startWorkers(store, storeWorkers, hashedch, storedch, db.Error)
+	startWorkers(pin, pinWorkers, storedch, nil, db.Error)
+}
+
+func hasher() step {
+	return func(node *dag.Node) error {
+		_, err := node.Encoded(false)
+		return err
+	}
+}
+
+func storeWorker(ds dag.DAGService) step {
+	return func(node *dag.Node) error {
+		_, err := ds.Add(node)
+		return err
+	}
+}
+
+func pinner(ncb NodeCB) step {
+	return func(node *dag.Node) error {
+		return ncb(node, false)
+	}
+}
+
+func (db *DagBuilderHelper) Store(node *dag.Node) error {
+	select {
+	case err := <-db.Error:
+		return err
+	default:
+	}
+	db.pipeline <- node
+	return nil
+}
+
+// shut down the store routines
+func (db *DagBuilderHelper) Shutdown() {
+	close(db.pipeline)
 }
 
 // prepareNext consumes the next item from the channel and puts it
