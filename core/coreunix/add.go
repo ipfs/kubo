@@ -23,7 +23,7 @@ var log = logging.Logger("coreunix")
 // Add builds a merkledag from the a reader, pinning all objects to the local
 // datastore. Returns a key representing the root node.
 func Add(n *core.IpfsNode, r io.Reader) (string, error) {
-	unlock := n.Blockstore.RLock()
+	unlock := n.Blockstore.PinLock()
 	defer unlock()
 
 	// TODO more attractive function signature importer.BuildDagFromReader
@@ -46,7 +46,7 @@ func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 
 // AddR recursively adds files in |path|.
 func AddR(n *core.IpfsNode, root string) (key string, err error) {
-	unlock := n.Blockstore.RLock()
+	unlock := n.Blockstore.PinLock()
 	defer unlock()
 
 	stat, err := os.Lstat(root)
@@ -86,7 +86,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, *merkle
 	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
 	dir := files.NewSliceFile("", "", []files.File{file})
 
-	unlock := n.Blockstore.RLock()
+	unlock := n.Blockstore.PinLock()
 	defer unlock()
 	dagnode, err := addDir(n, dir)
 	if err != nil {
