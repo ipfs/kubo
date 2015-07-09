@@ -111,7 +111,7 @@ remains to be implemented.
 			defer close(outChan)
 
 			// lock blockstore to prevent rogue GC
-			unlock := n.Blockstore.RLock()
+			unlock := n.Blockstore.PinLock()
 			defer unlock()
 
 			for {

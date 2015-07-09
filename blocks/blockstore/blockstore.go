@@ -38,8 +38,16 @@ type Blockstore interface {
 type GCBlockstore interface {
 	Blockstore
 
-	Lock() func()
-	RLock() func()
+	// GCLock locks the blockstore for garbage collection. No operations
+	// that expect to finish with a pin should ocurr simultaneously.
+	// Reading during GC is safe, and requires no lock.
+	GCLock() func()
+
+	// PinLock locks the blockstore for sequences of puts expected to finish
+	// with a pin (before GC). Multiple put->pin sequences can write through
+	// at the same time, but no GC should not happen simulatenously.
+	// Reading during Pinning is safe, and requires no lock.
+	PinLock() func()
 }
 
 func NewBlockstore(d ds.ThreadSafeDatastore) *blockstore {
@@ -162,12 +170,12 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	return output, nil
 }
 
-func (bs *blockstore) Lock() func() {
+func (bs *blockstore) GCLock() func() {
 	bs.lk.Lock()
 	return bs.lk.Unlock
 }
 
-func (bs *blockstore) RLock() func() {
+func (bs *blockstore) PinLock() func() {
 	bs.lk.RLock()
 	return bs.lk.RUnlock
 }
