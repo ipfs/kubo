@@ -1,4 +1,4 @@
-package peerstream_spdystream
+package peerstream_multiplex
 
 import (
 	"testing"
@@ -6,6 +6,6 @@ import (
 	psttest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/test"
 )
 
-func TestSpdyStreamTransport(t *testing.T) {
-	psttest.SubtestAll(t, Transport)
+func TestMultiplexTransport(t *testing.T) {
+	psttest.SubtestAll(t, DefaultTransport)
 }
