@@ -282,7 +282,7 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multistream",
-			"Rev": "c9eea2e3be705b7cfd730351b510cfa12ca038f4"
+			"Rev": "30c7a81b6c568654147bf6e106870c5d64ccebc8"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
