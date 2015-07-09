@@ -63,3 +63,43 @@ func (d *MutexDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	defer d.RUnlock()
 	return d.child.Query(q)
 }
+
+func (d *MutexDatastore) Batch() (ds.Batch, error) {
+	d.RLock()
+	defer d.RUnlock()
+	bds, ok := d.child.(ds.BatchingDatastore)
+	if !ok {
+		return nil, ds.ErrBatchUnsupported
+	}
+
+	b, err := bds.Batch()
+	if err != nil {
+		return nil, err
+	}
+	return &syncBatch{
+		batch: b,
+	}, nil
+}
+
+type syncBatch struct {
+	lk    sync.Mutex
+	batch ds.Batch
+}
+
+func (b *syncBatch) Put(key ds.Key, val interface{}) error {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	return b.batch.Put(key, val)
+}
+
+func (b *syncBatch) Delete(key ds.Key) error {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	return b.batch.Delete(key)
+}
+
+func (b *syncBatch) Commit() error {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	return b.batch.Commit()
+}

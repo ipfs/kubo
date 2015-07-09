@@ -36,7 +36,17 @@ func TrickleLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 		}
 	}
 
-	return db.Add(root)
+	out, err := db.Add(root)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error {
@@ -64,7 +74,16 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, depth int) error
 }
 
 // TrickleAppend appends the data in `db` to the dag, using the Trickledag format
-func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (*dag.Node, error) {
+func TrickleAppend(base *dag.Node, db *h.DagBuilderHelper) (out *dag.Node, err_out error) {
+	defer func() {
+		if err_out == nil {
+			err := db.Close()
+			if err != nil {
+				err_out = err
+			}
+		}
+	}()
+
 	// Convert to unixfs node for working with easily
 	ufsn, err := h.NewUnixfsNodeFromDag(base)
 	if err != nil {

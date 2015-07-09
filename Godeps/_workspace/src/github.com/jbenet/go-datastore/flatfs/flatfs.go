@@ -68,12 +68,8 @@ func (fs *Datastore) decode(file string) (key datastore.Key, ok bool) {
 }
 
 func (fs *Datastore) makePrefixDir(dir string) error {
-	if err := os.Mkdir(dir, 0777); err != nil {
-		// EEXIST is safe to ignore here, that just means the prefix
-		// directory already existed.
-		if !os.IsExist(err) {
-			return err
-		}
+	if err := fs.makePrefixDirNoSync(dir); err != nil {
+		return err
 	}
 
 	// In theory, if we create a new prefix dir and add a file to
@@ -82,6 +78,17 @@ func (fs *Datastore) makePrefixDir(dir string) error {
 	// a prefix dir, just to be paranoid.
 	if err := syncDir(fs.path); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (fs *Datastore) makePrefixDirNoSync(dir string) error {
+	if err := os.Mkdir(dir, 0777); err != nil {
+		// EEXIST is safe to ignore here, that just means the prefix
+		// directory already existed.
+		if !os.IsExist(err) {
+			return err
+		}
 	}
 	return nil
 }
@@ -134,6 +141,88 @@ func (fs *Datastore) Put(key datastore.Key, value interface{}) error {
 	if err := syncDir(dir); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (fs *Datastore) putMany(data map[datastore.Key]interface{}) error {
+	var dirsToSync []string
+	files := make(map[*os.File]string)
+
+	for key, value := range data {
+		val, ok := value.([]byte)
+		if !ok {
+			return datastore.ErrInvalidType
+		}
+		dir, path := fs.encode(key)
+		if err := fs.makePrefixDirNoSync(dir); err != nil {
+			return err
+		}
+		dirsToSync = append(dirsToSync, dir)
+
+		tmp, err := ioutil.TempFile(dir, "put-")
+		if err != nil {
+			return err
+		}
+
+		if _, err := tmp.Write(val); err != nil {
+			return err
+		}
+
+		files[tmp] = path
+	}
+
+	ops := make(map[*os.File]int)
+
+	defer func() {
+		for fi, _ := range files {
+			val, _ := ops[fi]
+			switch val {
+			case 0:
+				_ = fi.Close()
+				fallthrough
+			case 1:
+				_ = os.Remove(fi.Name())
+			}
+		}
+	}()
+
+	// Now we sync everything
+	// sync and close files
+	for fi, _ := range files {
+		if err := fi.Sync(); err != nil {
+			return err
+		}
+
+		if err := fi.Close(); err != nil {
+			return err
+		}
+
+		// signify closed
+		ops[fi] = 1
+	}
+
+	// move files to their proper places
+	for fi, path := range files {
+		if err := osrename.Rename(fi.Name(), path); err != nil {
+			return err
+		}
+
+		// signify removed
+		ops[fi] = 2
+	}
+
+	// now sync the dirs for those files
+	for _, dir := range dirsToSync {
+		if err := syncDir(dir); err != nil {
+			return err
+		}
+	}
+
+	// sync top flatfs dir
+	if err := syncDir(fs.path); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -232,6 +321,45 @@ func (fs *Datastore) enumerateKeys(fi os.FileInfo, res []query.Entry) ([]query.E
 		res = append(res, query.Entry{Key: key.String()})
 	}
 	return res, nil
+}
+
+type flatfsBatch struct {
+	puts    map[datastore.Key]interface{}
+	deletes map[datastore.Key]struct{}
+
+	ds *Datastore
+}
+
+func (fs *Datastore) Batch() (datastore.Batch, error) {
+	return &flatfsBatch{
+		puts:    make(map[datastore.Key]interface{}),
+		deletes: make(map[datastore.Key]struct{}),
+		ds:      fs,
+	}, nil
+}
+
+func (bt *flatfsBatch) Put(key datastore.Key, val interface{}) error {
+	bt.puts[key] = val
+	return nil
+}
+
+func (bt *flatfsBatch) Delete(key datastore.Key) error {
+	bt.deletes[key] = struct{}{}
+	return nil
+}
+
+func (bt *flatfsBatch) Commit() error {
+	if err := bt.ds.putMany(bt.puts); err != nil {
+		return err
+	}
+
+	for k, _ := range bt.deletes {
+		if err := bt.ds.Delete(k); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 var _ datastore.ThreadSafeDatastore = (*Datastore)(nil)

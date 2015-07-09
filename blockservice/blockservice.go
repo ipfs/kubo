@@ -77,6 +77,22 @@ func (s *BlockService) AddBlock(b *blocks.Block) (key.Key, error) {
 	return k, nil
 }
 
+func (s *BlockService) AddBlocks(bs []*blocks.Block) ([]key.Key, error) {
+	err := s.Blockstore.PutMany(bs)
+	if err != nil {
+		return nil, err
+	}
+
+	var ks []key.Key
+	for _, b := range bs {
+		if err := s.worker.HasBlock(b); err != nil {
+			return nil, errors.New("blockservice is closed")
+		}
+		ks = append(ks, b.Key())
+	}
+	return ks, nil
+}
+
 // GetBlock retrieves a particular block from the service,
 // Getting it from the datastore using the key (hash).
 func (s *BlockService) GetBlock(ctx context.Context, k key.Key) (*blocks.Block, error) {

@@ -41,4 +41,8 @@ func (dds *delayed) Query(q dsq.Query) (dsq.Results, error) {
 	return dds.ds.Query(q)
 }
 
+func (dds *delayed) Batch() (ds.Batch, error) {
+	return ds.NewBasicBatch(dds), nil
+}
+
 var _ ds.Datastore = &delayed{}

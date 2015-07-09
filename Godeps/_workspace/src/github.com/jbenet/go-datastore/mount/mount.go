@@ -114,3 +114,62 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	r = query.ResultsReplaceQuery(r, q)
 	return r, nil
 }
+
+type mountBatch struct {
+	mounts map[string]datastore.Batch
+
+	d *Datastore
+}
+
+func (d *Datastore) Batch() (datastore.Batch, error) {
+	return &mountBatch{
+		mounts: make(map[string]datastore.Batch),
+		d:      d,
+	}, nil
+}
+
+func (mt *mountBatch) lookupBatch(key datastore.Key) (datastore.Batch, datastore.Key, error) {
+	child, loc, rest := mt.d.lookup(key)
+	t, ok := mt.mounts[loc.String()]
+	if !ok {
+		bds, ok := child.(datastore.BatchingDatastore)
+		if !ok {
+			return nil, datastore.NewKey(""), datastore.ErrBatchUnsupported
+		}
+		var err error
+		t, err = bds.Batch()
+		if err != nil {
+			return nil, datastore.NewKey(""), err
+		}
+		mt.mounts[loc.String()] = t
+	}
+	return t, rest, nil
+}
+
+func (mt *mountBatch) Put(key datastore.Key, val interface{}) error {
+	t, rest, err := mt.lookupBatch(key)
+	if err != nil {
+		return err
+	}
+
+	return t.Put(rest, val)
+}
+
+func (mt *mountBatch) Delete(key datastore.Key) error {
+	t, rest, err := mt.lookupBatch(key)
+	if err != nil {
+		return err
+	}
+
+	return t.Delete(rest)
+}
+
+func (mt *mountBatch) Commit() error {
+	for _, t := range mt.mounts {
+		err := t.Commit()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -26,6 +26,8 @@ type DAGService interface {
 	// nodes of the passed in node.
 	GetDAG(context.Context, *Node) []NodeGetter
 	GetNodes(context.Context, []key.Key) []NodeGetter
+
+	Batch() *Batch
 }
 
 func NewDAGService(bs *bserv.BlockService) DAGService {
@@ -60,6 +62,10 @@ func (n *dagService) Add(nd *Node) (key.Key, error) {
 	}
 
 	return n.Blocks.AddBlock(b)
+}
+
+func (n *dagService) Batch() *Batch {
+	return &Batch{ds: n, MaxSize: 8 * 1024 * 1024}
 }
 
 // AddRecursive adds the given node and all child nodes to the BlockService
@@ -268,4 +274,42 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 		return nil, ctx.Err()
 	}
 	return np.cache, nil
+}
+
+type Batch struct {
+	ds *dagService
+
+	blocks  []*blocks.Block
+	size    int
+	MaxSize int
+}
+
+func (t *Batch) Add(nd *Node) (key.Key, error) {
+	d, err := nd.Encoded(false)
+	if err != nil {
+		return "", err
+	}
+
+	b := new(blocks.Block)
+	b.Data = d
+	b.Multihash, err = nd.Multihash()
+	if err != nil {
+		return "", err
+	}
+
+	k := key.Key(b.Multihash)
+
+	t.blocks = append(t.blocks, b)
+	t.size += len(b.Data)
+	if t.size > t.MaxSize {
+		return k, t.Commit()
+	}
+	return k, nil
+}
+
+func (t *Batch) Commit() error {
+	_, err := t.ds.Blocks.AddBlocks(t.blocks)
+	t.blocks = nil
+	t.size = 0
+	return err
 }

@@ -30,6 +30,7 @@ type Blockstore interface {
 	Has(key.Key) (bool, error)
 	Get(key.Key) (*blocks.Block, error)
 	Put(*blocks.Block) error
+	PutMany([]*blocks.Block) error
 
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
@@ -42,7 +43,7 @@ func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
 }
 
 type blockstore struct {
-	datastore ds.Datastore
+	datastore ds.BatchingDatastore
 	// cant be ThreadSafeDatastore cause namespace.Datastore doesnt support it.
 	// we do check it on `NewBlockstore` though.
 }
@@ -72,6 +73,26 @@ func (bs *blockstore) Put(block *blocks.Block) error {
 		return nil // already stored.
 	}
 	return bs.datastore.Put(k, block.Data)
+}
+
+func (bs *blockstore) PutMany(blocks []*blocks.Block) error {
+	t, err := bs.datastore.Batch()
+	if err != nil {
+		return err
+	}
+	for _, b := range blocks {
+		k := b.Key().DsKey()
+		exists, err := bs.datastore.Has(k)
+		if err == nil && exists {
+			continue
+		}
+
+		err = t.Put(k, b.Data)
+		if err != nil {
+			return err
+		}
+	}
+	return t.Commit()
 }
 
 func (bs *blockstore) Has(k key.Key) (bool, error) {

@@ -31,7 +31,17 @@ func BalancedLayout(db *h.DagBuilderHelper) (*dag.Node, error) {
 		root = h.NewUnixfsNode()
 	}
 
-	return db.Add(root)
+	out, err := db.Add(root)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 // fillNodeRec will fill the given node with data from the dagBuilders input

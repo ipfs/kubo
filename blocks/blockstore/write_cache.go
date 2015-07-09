@@ -45,6 +45,16 @@ func (w *writecache) Put(b *blocks.Block) error {
 	return w.blockstore.Put(b)
 }
 
+func (w *writecache) PutMany(bs []*blocks.Block) error {
+	var good []*blocks.Block
+	for _, b := range bs {
+		if _, ok := w.cache.Get(b.Key()); !ok {
+			good = append(good, b)
+		}
+	}
+	return w.blockstore.PutMany(good)
+}
+
 func (w *writecache) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	return w.blockstore.AllKeysChan(ctx)
 }

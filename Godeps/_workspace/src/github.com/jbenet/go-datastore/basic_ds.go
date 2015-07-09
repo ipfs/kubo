@@ -63,6 +63,10 @@ func (d *MapDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	return r, nil
 }
 
+func (d *MapDatastore) Batch() (Batch, error) {
+	return NewBasicBatch(d), nil
+}
+
 // NullDatastore stores nothing, but conforms to the API.
 // Useful to test with.
 type NullDatastore struct {
@@ -98,6 +102,10 @@ func (d *NullDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	return dsq.ResultsWithEntries(q, nil), nil
 }
 
+func (d *NullDatastore) Batch() (Batch, error) {
+	return NewBasicBatch(d), nil
+}
+
 // LogDatastore logs all accesses through the datastore.
 type LogDatastore struct {
 	Name  string
@@ -112,7 +120,7 @@ type Shim interface {
 }
 
 // NewLogDatastore constructs a log datastore.
-func NewLogDatastore(ds Datastore, name string) Shim {
+func NewLogDatastore(ds Datastore, name string) *LogDatastore {
 	if len(name) < 1 {
 		name = "LogDatastore"
 	}
@@ -153,4 +161,13 @@ func (d *LogDatastore) Delete(key Key) (err error) {
 func (d *LogDatastore) Query(q dsq.Query) (dsq.Results, error) {
 	log.Printf("%s: Query\n", d.Name)
 	return d.child.Query(q)
+}
+
+func (d *LogDatastore) Batch() (Batch, error) {
+	log.Printf("%s: Batch\n", d.Name)
+	bds, ok := d.child.(BatchingDatastore)
+	if !ok {
+		return nil, ErrBatchUnsupported
+	}
+	return bds.Batch()
 }
