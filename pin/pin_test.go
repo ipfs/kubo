@@ -195,10 +195,7 @@ func TestDuplicateSemantics(t *testing.T) {
 func TestFlush(t *testing.T) {
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := bs.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
+	bserv := bs.New(bstore, offline.Exchange(bstore))
 
 	dserv := mdag.NewDAGService(bserv)
 	p := NewPinner(dstore, dserv)
