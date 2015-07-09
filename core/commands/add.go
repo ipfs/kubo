@@ -112,6 +112,10 @@ remains to be implemented.
 
 		// addSingleFile is a function that adds a file given as a param.
 		addSingleFile := func(file files.File) error {
+			// lock blockstore to prevent rogue GC
+			unlock := n.Blockstore.PinLock()
+			defer unlock()
+
 			addParams := adder{
 				node:     n,
 				out:      outChan,
