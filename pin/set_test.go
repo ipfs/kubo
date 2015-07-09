@@ -27,10 +27,7 @@ func copyMap(m map[key.Key]uint16) map[key.Key]uint64 {
 func TestMultisetRoundtrip(t *testing.T) {
 	dstore := dssync.MutexWrap(datastore.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := blockservice.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
+	bserv := blockservice.New(bstore, offline.Exchange(bstore))
 	dag := merkledag.NewDAGService(bserv)
 
 	fn := func(m map[key.Key]uint16) bool {
