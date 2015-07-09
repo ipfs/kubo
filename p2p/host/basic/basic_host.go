@@ -170,12 +170,11 @@ func (h *BasicHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
 
 	logStream := mstream.WrapStream(s, pid, h.bwc)
 
-	if err := msmux.SelectProtoOrFail(string(pid), logStream); err != nil {
-		logStream.Close()
-		return nil, err
-	}
-
-	return logStream, nil
+	lzcon := msmux.NewLazyHandshakeConn(logStream, string(pid))
+	return &streamWrapper{
+		Stream: logStream,
+		rw:     lzcon,
+	}, nil
 }
 
 // Connect ensures there is a connection between this host and the peer with
@@ -253,4 +252,17 @@ func (h *BasicHost) Close() error {
 // GetBandwidthReporter exposes the Host's bandiwth metrics reporter
 func (h *BasicHost) GetBandwidthReporter() metrics.Reporter {
 	return h.bwc
+}
+
+type streamWrapper struct {
+	inet.Stream
+	rw io.ReadWriter
+}
+
+func (s *streamWrapper) Read(b []byte) (int, error) {
+	return s.rw.Read(b)
+}
+
+func (s *streamWrapper) Write(b []byte) (int, error) {
+	return s.rw.Write(b)
 }
