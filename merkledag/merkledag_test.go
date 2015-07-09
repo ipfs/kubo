@@ -300,15 +300,13 @@ func TestCantGet(t *testing.T) {
 
 func TestFetchGraph(t *testing.T) {
 	var dservs []DAGService
-	bsis := bstest.Mocks(t, 2)
+	bsis := bstest.Mocks(2)
 	for _, bsi := range bsis {
 		dservs = append(dservs, NewDAGService(bsi))
 	}
 
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
-	spl := &chunk.SizeSplitter{512}
-
-	root, err := imp.BuildDagFromReader(read, dservs[0], spl, nil)
+	root, err := imp.BuildDagFromReader(dservs[0], chunk.NewSizeSplitter(read, 512), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,10 +317,7 @@ func TestFetchGraph(t *testing.T) {
 	}
 
 	// create an offline dagstore and ensure all blocks were fetched
-	bs, err := bserv.New(bsis[1].Blockstore, offline.Exchange(bsis[1].Blockstore))
-	if err != nil {
-		t.Fatal(err)
-	}
+	bs := bserv.New(bsis[1].Blockstore, offline.Exchange(bsis[1].Blockstore))
 
 	offline_ds := NewDAGService(bs)
 	ks := key.NewKeySet()
@@ -334,14 +329,11 @@ func TestFetchGraph(t *testing.T) {
 }
 
 func TestEnumerateChildren(t *testing.T) {
-	bsi := bstest.Mocks(t, 1)
+	bsi := bstest.Mocks(1)
 	ds := NewDAGService(bsi[0])
 
-	spl := &chunk.SizeSplitter{512}
-
 	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
-
-	root, err := imp.BuildDagFromReader(read, ds, spl, nil)
+	root, err := imp.BuildDagFromReader(ds, chunk.NewSizeSplitter(read, 512), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

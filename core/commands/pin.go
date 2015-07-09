@@ -50,7 +50,7 @@ on disk.
 			return
 		}
 
-		unlock := n.Blockstore.RLock()
+		unlock := n.Blockstore.PinLock()
 		defer unlock()
 
 		// set recursive flag
