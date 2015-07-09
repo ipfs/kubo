@@ -110,6 +110,10 @@ remains to be implemented.
 		go func() {
 			defer close(outChan)
 
+			// lock blockstore to prevent rogue GC
+			unlock := n.Blockstore.PinLock()
+			defer unlock()
+
 			for {
 				file, err := req.Files().NextFile()
 				if err != nil && err != io.EOF {

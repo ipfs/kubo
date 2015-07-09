@@ -4,6 +4,7 @@ package blockstore
 
 import (
 	"errors"
+	"sync"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsns "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
@@ -34,7 +35,22 @@ type Blockstore interface {
 	AllKeysChan(ctx context.Context) (<-chan key.Key, error)
 }
 
-func NewBlockstore(d ds.ThreadSafeDatastore) Blockstore {
+type GCBlockstore interface {
+	Blockstore
+
+	// GCLock locks the blockstore for garbage collection. No operations
+	// that expect to finish with a pin should ocurr simultaneously.
+	// Reading during GC is safe, and requires no lock.
+	GCLock() func()
+
+	// PinLock locks the blockstore for sequences of puts expected to finish
+	// with a pin (before GC). Multiple put->pin sequences can write through
+	// at the same time, but no GC should not happen simulatenously.
+	// Reading during Pinning is safe, and requires no lock.
+	PinLock() func()
+}
+
+func NewBlockstore(d ds.ThreadSafeDatastore) *blockstore {
 	dd := dsns.Wrap(d, BlockPrefix)
 	return &blockstore{
 		datastore: dd,
@@ -45,6 +61,8 @@ type blockstore struct {
 	datastore ds.Datastore
 	// cant be ThreadSafeDatastore cause namespace.Datastore doesnt support it.
 	// we do check it on `NewBlockstore` though.
+
+	lk sync.RWMutex
 }
 
 func (bs *blockstore) Get(k key.Key) (*blocks.Block, error) {
@@ -150,4 +168,14 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan key.Key, error) {
 	}()
 
 	return output, nil
+}
+
+func (bs *blockstore) GCLock() func() {
+	bs.lk.Lock()
+	return bs.lk.Unlock
+}
+
+func (bs *blockstore) PinLock() func() {
+	bs.lk.RLock()
+	return bs.lk.RUnlock
 }
