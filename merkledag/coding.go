@@ -6,7 +6,7 @@ import (
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
-	pb "github.com/ipfs/go-ipfs/merkledag/internal/pb"
+	pb "github.com/ipfs/go-ipfs/merkledag/pb"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
