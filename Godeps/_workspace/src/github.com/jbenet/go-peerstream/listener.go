@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 
 	tec "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-temp-err-catcher"
 )
 
 // AcceptConcurrency is how many connections can simultaneously be
-// in process of being accepted. Handshakes can sometimes occurr as
+// in process of being accepted. Handshakes can sometimes occur as
 // part of this process, so it may take some time. It is imporant to
 // rate limit lest a malicious influx of connections would cause our
 // node to consume all its resources accepting new connections.
@@ -73,7 +74,11 @@ func ListenersWithGroup(g Group, ls []*Listener) []*Listener {
 // run in a goroutine.
 // TODO: add rate limiting
 func (l *Listener) accept() {
-	defer l.teardown()
+	var wg sync.WaitGroup
+	defer func() {
+		wg.Wait() // must happen before teardown
+		l.teardown()
+	}()
 
 	// catching the error here is odd. doing what net/http does:
 	// http://golang.org/src/net/http/server.go?s=51504:51550#L1728
@@ -98,12 +103,15 @@ func (l *Listener) accept() {
 		// do this in a goroutine to avoid blocking the Accept loop.
 		// note that this does not rate limit accepts.
 		limit <- struct{}{} // sema down
+		wg.Add(1)
 		go func(conn net.Conn) {
 			defer func() { <-limit }() // sema up
+			defer wg.Done()
 
 			conn2, err := l.swarm.addConn(conn, true)
 			if err != nil {
 				l.acceptErr <- err
+				return
 			}
 			conn2.groups.AddSet(&l.groups) // add out groups
 		}(conn)

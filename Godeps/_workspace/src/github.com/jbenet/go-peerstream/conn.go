@@ -158,37 +158,7 @@ func ConnInConns(c1 *Conn, conns []*Conn) bool {
 // addConn is the internal version of AddConn. we need the server bool
 // as spdystream requires it.
 func (s *Swarm) addConn(netConn net.Conn, isServer bool) (*Conn, error) {
-	if netConn == nil {
-		return nil, errors.New("nil conn")
-	}
-
-	// this function is so we can defer our lock, which needs to be
-	// unlocked **before** the Handler is called (which needs to be
-	// sequential). This was the simplest thing :)
-	setupConn := func() (*Conn, error) {
-		s.connLock.Lock()
-		defer s.connLock.Unlock()
-
-		// first, check if we already have it...
-		for c := range s.conns {
-			if c.netConn == netConn {
-				return c, nil
-			}
-		}
-
-		// create a new spdystream connection
-		ssConn, err := s.transport.NewConn(netConn, isServer)
-		if err != nil {
-			return nil, err
-		}
-
-		// add the connection
-		c := newConn(netConn, ssConn, s)
-		s.conns[c] = struct{}{}
-		return c, nil
-	}
-
-	c, err := setupConn()
+	c, err := s.setupConn(netConn, isServer)
 	if err != nil {
 		return nil, err
 	}
@@ -205,6 +175,49 @@ func (s *Swarm) addConn(netConn net.Conn, isServer bool) (*Conn, error) {
 	s.notifyAll(func(n Notifiee) {
 		n.Connected(c)
 	})
+	return c, nil
+}
+
+// setupConn adds the relevant connection to the map, first checking if it
+// was already there.
+func (s *Swarm) setupConn(netConn net.Conn, isServer bool) (*Conn, error) {
+	if netConn == nil {
+		return nil, errors.New("nil conn")
+	}
+
+	// first, check if we already have it, to avoid constructing it
+	// if it is already there
+	s.connLock.Lock()
+	for c := range s.conns {
+		if c.netConn == netConn {
+			s.connLock.Unlock()
+			return c, nil
+		}
+	}
+	s.connLock.Unlock()
+	// construct the connection without hanging onto the lock
+	// (as there could be deadlock if so.)
+
+	// create a new spdystream connection
+	ssConn, err := s.transport.NewConn(netConn, isServer)
+	if err != nil {
+		return nil, err
+	}
+
+	// take the lock to add it to the map.
+	s.connLock.Lock()
+	defer s.connLock.Unlock()
+
+	// check for it again as it may have been added already. (TOCTTOU)
+	for c := range s.conns {
+		if c.netConn == netConn {
+			return c, nil
+		}
+	}
+
+	// add the connection
+	c := newConn(netConn, ssConn, s)
+	s.conns[c] = struct{}{}
 	return c, nil
 }
 

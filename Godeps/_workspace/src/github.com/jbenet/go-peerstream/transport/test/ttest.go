@@ -194,7 +194,7 @@ func SubtestSimpleWrite100msgs(t *testing.T, tr pst.Transport) {
 			bufs <- buf
 			log("writing %d bytes (message %d/%d #%x)", len(buf), i, msgs, buf[:3])
 			if _, err := stream.Write(buf); err != nil {
-				errs <- err
+				errs <- fmt.Errorf("stream.Write(buf): %s", err)
 				continue
 			}
 		}
@@ -212,7 +212,7 @@ func SubtestSimpleWrite100msgs(t *testing.T, tr pst.Transport) {
 			i++
 
 			if _, err := io.ReadFull(stream, buf2); err != nil {
-				errs <- err
+				errs <- fmt.Errorf("readFull(stream, buf2): %s", err)
 				continue
 			}
 			if !bytes.Equal(buf1, buf2) {
@@ -253,7 +253,7 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 			bufs <- buf
 			log("%p writing %d bytes (message %d/%d #%x)", s, len(buf), i, nMsg, buf[:3])
 			if _, err := s.Write(buf); err != nil {
-				errs <- err
+				errs <- fmt.Errorf("s.Write(buf): %s", err)
 				continue
 			}
 		}
@@ -265,11 +265,12 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 		buf2 := make([]byte, msgsize)
 		i := 0
 		for buf1 := range bufs {
-			log("%p reading %d bytes (message %d/%d #%x)", s, len(buf1), i, nMsg, buf1[:3])
 			i++
+			log("%p reading %d bytes (message %d/%d #%x)", s, len(buf1), i-1, nMsg, buf1[:3])
 
 			if _, err := io.ReadFull(s, buf2); err != nil {
-				errs <- err
+				errs <- fmt.Errorf("io.ReadFull(s, buf2): %s", err)
+				log("%p failed to read %d bytes (message %d/%d #%x)", s, len(buf1), i-1, nMsg, buf1[:3])
 				continue
 			}
 			if !bytes.Equal(buf1, buf2) {
@@ -307,13 +308,13 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 
 		nc, err := net.Dial(nla.Network(), nla.String())
 		if err != nil {
-			errs <- err
+			errs <- fmt.Errorf("net.Dial(%s, %s): %s", nla.Network(), nla.String(), err)
 			return
 		}
 
 		c, err := a.AddConn(nc)
 		if err != nil {
-			errs <- err
+			errs <- fmt.Errorf("a.AddConn(%s <--> %s): %s", nc.LocalAddr(), nc.RemoteAddr(), err)
 			return
 		}
 

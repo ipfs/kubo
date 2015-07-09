@@ -4,8 +4,8 @@ import (
 	"net"
 	"net/http"
 
+	ss "github.com/docker/spdystream"
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
-	ss "github.com/jbenet/spdystream"
 )
 
 // stream implements pst.Stream using a ss.Stream
@@ -55,6 +55,8 @@ func (c *conn) IsClosed() bool {
 	select {
 	case <-c.closed:
 		return true
+	case <-c.sc.CloseChan():
+		return true
 	default:
 		return false
 	}
@@ -62,7 +64,10 @@ func (c *conn) IsClosed() bool {
 
 // OpenStream creates a new stream.
 func (c *conn) OpenStream() (pst.Stream, error) {
-	s, err := c.spdyConn().CreateStream(http.Header{}, nil, false)
+	s, err := c.spdyConn().CreateStream(http.Header{
+		":method": []string{"GET"}, // this is here for HTTP/SPDY interop
+		":path":   []string{"/"},   // this is here for HTTP/SPDY interop
+	}, nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +92,14 @@ func (c *conn) Serve(handler pst.StreamHandler) {
 		// -- at this moment -- not the solution. Either spdystream must
 		// change, or we must throttle another way. go-peerstream handles
 		// every new stream in its own goroutine.
-		go func() {
-			s.SendReply(http.Header{}, false)
-			handler((*stream)(s))
-		}()
+		err := s.SendReply(http.Header{}, false)
+		if err != nil {
+			// this _could_ error out. not sure how to handle this failure.
+			// don't return, and let the caller handle a broken stream.
+			// better than _hiding_ an error.
+			// return
+		}
+		go handler((*stream)(s))
 	})
 }
 
