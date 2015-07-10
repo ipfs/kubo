@@ -2,6 +2,7 @@ package pin
 
 import (
 	"testing"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
@@ -21,6 +22,17 @@ func randNode() (*mdag.Node, key.Key) {
 	util.NewTimeSeededRand().Read(nd.Data)
 	k, _ := nd.Key()
 	return nd, k
+}
+
+func assertPinned(t *testing.T, p Pinner, k key.Key, failmsg string) {
+	_, pinned, err := p.IsPinned(k)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !pinned {
+		t.Fatal(failmsg)
+	}
 }
 
 func TestPinnerBasic(t *testing.T) {
@@ -50,13 +62,11 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !p.IsPinned(ak) {
-		t.Fatal("Failed to find key")
-	}
+	assertPinned(t, p, ak, "Failed to find key")
 
 	// create new node c, to be indirectly pinned through b
 	c, _ := randNode()
-	_, err = dserv.Add(c)
+	ck, err := dserv.Add(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,10 +94,10 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	assertPinned(t, p, ck, "child of recursively pinned node not found")
+
 	bk, _ := b.Key()
-	if !p.IsPinned(bk) {
-		t.Fatal("Recursively pinned node not found..")
-	}
+	assertPinned(t, p, bk, "Recursively pinned node not found..")
 
 	d, _ := randNode()
 	d.AddNodeLink("a", a)
@@ -109,9 +119,7 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	dk, _ := d.Key()
-	if !p.IsPinned(dk) {
-		t.Fatal("pinned node not found.")
-	}
+	assertPinned(t, p, dk, "pinned node not found.")
 
 	// Test recursive unpin
 	err = p.Unpin(ctx, dk, true)
@@ -130,14 +138,10 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Test directly pinned
-	if !np.IsPinned(ak) {
-		t.Fatal("Could not find pinned node!")
-	}
+	assertPinned(t, np, ak, "Could not find pinned node!")
 
 	// Test recursively pinned
-	if !np.IsPinned(bk) {
-		t.Fatal("could not find recursively pinned node")
-	}
+	assertPinned(t, np, bk, "could not find recursively pinned node")
 }
 
 func TestDuplicateSemantics(t *testing.T) {
@@ -195,7 +199,45 @@ func TestFlush(t *testing.T) {
 	if err := p.Flush(); err != nil {
 		t.Fatal(err)
 	}
-	if !p.IsPinned(k) {
-		t.Fatal("expected key to still be pinned")
+	assertPinned(t, p, k, "expected key to still be pinned")
+}
+
+func TestPinRecursiveFail(t *testing.T) {
+	ctx := context.Background()
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dserv := mdag.NewDAGService(bserv)
+
+	p := NewPinner(dstore, dserv)
+
+	a, _ := randNode()
+	b, _ := randNode()
+	err = a.AddNodeLinkClean("child", b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Note: this isnt a time based test, we expect the pin to fail
+	mctx, _ := context.WithTimeout(ctx, time.Millisecond)
+	err = p.Pin(mctx, a, true)
+	if err == nil {
+		t.Fatal("should have failed to pin here")
+	}
+
+	_, err = dserv.Add(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// this one is time based... but shouldnt cause any issues
+	mctx, _ = context.WithTimeout(ctx, time.Second)
+	err = p.Pin(mctx, a, true)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
