@@ -344,7 +344,7 @@
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multistream",
-			"Rev": "30c7a81b6c568654147bf6e106870c5d64ccebc8"
+			"Rev": "31bb014803a6eba2261bda5593e42c016a5f33bb"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",
