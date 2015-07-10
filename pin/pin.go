@@ -126,18 +126,26 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if p.recursePin.HasKey(k) {
+	reason, pinned, err := p.isPinned(k)
+	if err != nil {
+		return err
+	}
+	if !pinned {
+		return fmt.Errorf("%s is not pinned", k)
+	}
+	switch reason {
+	case "recursive":
 		if recursive {
 			p.recursePin.RemoveBlock(k)
 			return nil
 		} else {
 			return fmt.Errorf("%s is pinned recursively", k)
 		}
-	} else if p.directPin.HasKey(k) {
+	case "direct":
 		p.directPin.RemoveBlock(k)
 		return nil
-	} else {
-		return fmt.Errorf("%s is not pinned", k)
+	default:
+		return fmt.Errorf("%s is pinned indirectly under %s", k, reason)
 	}
 }
 
@@ -151,6 +159,12 @@ func (p *pinner) isInternalPin(key key.Key) bool {
 func (p *pinner) IsPinned(k key.Key) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
+	return p.isPinned(k)
+}
+
+// isPinned is the implementation of IsPinned that does not lock.
+// intended for use by other pinned methods that already take locks
+func (p *pinner) isPinned(k key.Key) (string, bool, error) {
 	if p.recursePin.HasKey(k) {
 		return "recursive", true, nil
 	}
