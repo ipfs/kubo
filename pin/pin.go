@@ -177,19 +177,16 @@ func (p *pinner) isPinned(k key.Key) (string, bool, error) {
 	}
 
 	for _, rk := range p.recursePin.GetKeys() {
-		ss := &searchSet{target: k}
-
 		rnd, err := p.dserv.Get(context.Background(), rk)
 		if err != nil {
 			return "", false, err
 		}
 
-		err = mdag.EnumerateChildren(context.Background(), p.dserv, rnd, ss)
+		has, err := hasChild(p.dserv, rnd, k)
 		if err != nil {
 			return "", false, err
 		}
-
-		if ss.found {
+		if has {
 			return rk.B58String(), true, nil
 		}
 	}
@@ -350,26 +347,26 @@ func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 	}
 }
 
-// searchSet implements key.KeySet in
-type searchSet struct {
-	target key.Key
-	found  bool
-}
+func hasChild(ds mdag.DAGService, root *mdag.Node, child key.Key) (bool, error) {
+	for _, lnk := range root.Links {
+		k := key.Key(lnk.Hash)
+		if k == child {
+			return true, nil
+		}
 
-func (ss *searchSet) Add(k key.Key) {
-	if ss.target == k {
-		ss.found = true
+		nd, err := ds.Get(context.Background(), k)
+		if err != nil {
+			return false, err
+		}
+
+		has, err := hasChild(ds, nd, child)
+		if err != nil {
+			return false, err
+		}
+
+		if has {
+			return has, nil
+		}
 	}
+	return false, nil
 }
-
-func (ss *searchSet) Has(k key.Key) bool {
-	// returning true to all Has queries will cause EnumerateChildren to return
-	// almost immediately
-	return ss.found
-}
-
-func (ss *searchSet) Keys() []key.Key {
-	return nil
-}
-
-func (ss *searchSet) Remove(key.Key) {}
