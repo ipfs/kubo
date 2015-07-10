@@ -6,7 +6,16 @@ import (
 	"sync"
 )
 
-func NewLazyHandshakeConn(c io.ReadWriteCloser, proto string) io.ReadWriteCloser {
+type Multistream interface {
+	io.ReadWriteCloser
+	Protocol() string
+}
+
+func NewMSSelect(c io.ReadWriteCloser, proto string) Multistream {
+	return NewMultistream(NewMultistream(c, ProtocolID), proto)
+}
+
+func NewMultistream(c io.ReadWriteCloser, proto string) Multistream {
 	return &lazyConn{
 		proto: proto,
 		con:   c,
@@ -28,6 +37,10 @@ type lazyConn struct {
 
 	proto string
 	con   io.ReadWriteCloser
+}
+
+func (l *lazyConn) Protocol() string {
+	return l.proto
 }
 
 func (l *lazyConn) Read(b []byte) (int, error) {
@@ -58,20 +71,8 @@ func (l *lazyConn) readHandshake() error {
 	}
 	l.rhsync = true
 
-	// read multistream version
-	tok, err := ReadNextToken(l.con)
-	if err != nil {
-		l.rerr = err
-		return err
-	}
-
-	if tok != ProtocolID {
-		l.rerr = fmt.Errorf("multistream protocol mismatch ( %s != %s )", tok, ProtocolID)
-		return l.rerr
-	}
-
 	// read protocol
-	tok, err = ReadNextToken(l.con)
+	tok, err := ReadNextToken(l.con)
 	if err != nil {
 		l.rerr = err
 		return err
@@ -95,13 +96,7 @@ func (l *lazyConn) writeHandshake() error {
 
 	l.whsync = true
 
-	err := delimWrite(l.con, []byte(ProtocolID))
-	if err != nil {
-		l.werr = err
-		return err
-	}
-
-	err = delimWrite(l.con, []byte(l.proto))
+	err := delimWrite(l.con, []byte(l.proto))
 	if err != nil {
 		l.werr = err
 		return err
