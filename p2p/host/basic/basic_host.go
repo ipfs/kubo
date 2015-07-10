@@ -170,7 +170,7 @@ func (h *BasicHost) NewStream(pid protocol.ID, p peer.ID) (inet.Stream, error) {
 
 	logStream := mstream.WrapStream(s, pid, h.bwc)
 
-	lzcon := msmux.NewLazyHandshakeConn(logStream, string(pid))
+	lzcon := msmux.NewMSSelect(logStream, string(pid))
 	return &streamWrapper{
 		Stream: logStream,
 		rw:     lzcon,
