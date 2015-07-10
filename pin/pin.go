@@ -35,7 +35,7 @@ const (
 )
 
 type Pinner interface {
-	IsPinned(key.Key) bool
+	IsPinned(key.Key) (string, bool, error)
 	Pin(context.Context, *mdag.Node, bool) error
 	Unpin(context.Context, key.Key, bool) error
 
@@ -148,12 +148,38 @@ func (p *pinner) isInternalPin(key key.Key) bool {
 }
 
 // IsPinned returns whether or not the given key is pinned
-func (p *pinner) IsPinned(key key.Key) bool {
+// and an explanation of why its pinned
+func (p *pinner) IsPinned(k key.Key) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	return p.recursePin.HasKey(key) ||
-		p.directPin.HasKey(key) ||
-		p.isInternalPin(key)
+	if p.recursePin.HasKey(k) {
+		return "recursive", true, nil
+	}
+	if p.directPin.HasKey(k) {
+		return "direct", true, nil
+	}
+	if p.isInternalPin(k) {
+		return "internal", true, nil
+	}
+
+	for _, rk := range p.recursePin.GetKeys() {
+		ss := &searchSet{target: k}
+
+		rnd, err := p.dserv.Get(context.Background(), rk)
+		if err != nil {
+			return "", false, err
+		}
+
+		err = mdag.EnumerateChildren(context.Background(), p.dserv, rnd, ss)
+		if err != nil {
+			return "", false, err
+		}
+
+		if ss.found {
+			return rk.B58String(), true, nil
+		}
+	}
+	return "", false, nil
 }
 
 func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
@@ -309,3 +335,27 @@ func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 		p.directPin.AddBlock(k)
 	}
 }
+
+// searchSet implements key.KeySet in
+type searchSet struct {
+	target key.Key
+	found  bool
+}
+
+func (ss *searchSet) Add(k key.Key) {
+	if ss.target == k {
+		ss.found = true
+	}
+}
+
+func (ss *searchSet) Has(k key.Key) bool {
+	// returning true to all Has queries will cause EnumerateChildren to return
+	// almost immediately
+	return ss.found
+}
+
+func (ss *searchSet) Keys() []key.Key {
+	return nil
+}
+
+func (ss *searchSet) Remove(key.Key) {}
