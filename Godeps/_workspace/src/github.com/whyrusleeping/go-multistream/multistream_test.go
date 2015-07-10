@@ -126,8 +126,8 @@ func TestLazyConns(t *testing.T) {
 	mux.AddHandler("/b", nil)
 	mux.AddHandler("/c", nil)
 
-	la := NewLazyHandshakeConn(a, "/c")
-	lb := NewLazyHandshakeConn(b, "/c")
+	la := NewMSSelect(a, "/c")
+	lb := NewMSSelect(b, "/c")
 
 	verifyPipe(t, la, lb)
 }
@@ -159,7 +159,7 @@ func TestLazyAndMux(t *testing.T) {
 		close(done)
 	}()
 
-	lb := NewLazyHandshakeConn(b, "/c")
+	lb := NewMSSelect(b, "/c")
 
 	// do a write to push the handshake through
 	_, err := lb.Write([]byte("hello"))
@@ -202,7 +202,7 @@ func TestLazyAndMuxWrite(t *testing.T) {
 		close(done)
 	}()
 
-	lb := NewLazyHandshakeConn(b, "/c")
+	lb := NewMSSelect(b, "/c")
 
 	// do a write to push the handshake through
 	msg := make([]byte, 5)
