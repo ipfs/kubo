@@ -12,7 +12,7 @@ import (
 	msgio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-msgio"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
-	pb "github.com/ipfs/go-ipfs/p2p/crypto/secio/internal/pb"
+	pb "github.com/ipfs/go-ipfs/p2p/crypto/secio/pb"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"

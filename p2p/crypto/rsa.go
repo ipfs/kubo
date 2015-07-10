@@ -10,7 +10,7 @@ import (
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
-	pb "github.com/ipfs/go-ipfs/p2p/crypto/internal/pb"
+	pb "github.com/ipfs/go-ipfs/p2p/crypto/pb"
 )
 
 type RsaPrivateKey struct {

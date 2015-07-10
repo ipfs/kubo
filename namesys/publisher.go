@@ -11,7 +11,7 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	pb "github.com/ipfs/go-ipfs/namesys/internal/pb"
+	pb "github.com/ipfs/go-ipfs/namesys/pb"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"

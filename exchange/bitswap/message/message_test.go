@@ -8,7 +8,7 @@ import (
 
 	blocks "github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/internal/pb"
+	pb "github.com/ipfs/go-ipfs/exchange/bitswap/message/pb"
 )
 
 func TestAppendWanted(t *testing.T) {
