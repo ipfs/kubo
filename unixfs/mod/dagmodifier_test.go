@@ -10,7 +10,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
-	key "github.com/ipfs/go-ipfs/blocks/key"
 	bs "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/offline"
 	imp "github.com/ipfs/go-ipfs/importer"
@@ -562,20 +561,6 @@ func TestCorrectPinning(t *testing.T) {
 		t.Fatal("Incorrect node recursively pinned")
 	}
 
-}
-
-func enumerateChildren(t *testing.T, nd *mdag.Node, ds mdag.DAGService) []key.Key {
-	var out []key.Key
-	for _, lnk := range nd.Links {
-		out = append(out, key.Key(lnk.Hash))
-		child, err := lnk.GetNode(context.Background(), ds)
-		if err != nil {
-			t.Fatal(err)
-		}
-		children := enumerateChildren(t, child, ds)
-		out = append(out, children...)
-	}
-	return out
 }
 
 func BenchmarkDagmodWrite(b *testing.B) {
