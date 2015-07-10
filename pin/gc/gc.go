@@ -100,7 +100,7 @@ func ColoredSet(pn pin.Pinner, ds dag.DAGService) (key.KeySet, error) {
 		gcs.Add(k)
 	}
 
-	err = Color(ds, gcs, pn.InternalPins())
+	err = Descendants(ds, gcs, pn.InternalPins())
 	if err != nil {
 		return nil, err
 	}
