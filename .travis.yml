@@ -16,3 +16,5 @@ env:
 
 script:
   - make $TEST_SUITE
+
+sudo: false #docker containers for CI
