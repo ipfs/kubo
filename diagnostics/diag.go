@@ -13,15 +13,14 @@ import (
 
 	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+	ctxio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-context/io"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-
 	pb "github.com/ipfs/go-ipfs/diagnostics/pb"
 	host "github.com/ipfs/go-ipfs/p2p/host"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	util "github.com/ipfs/go-ipfs/util"
-	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 )
 
 var log = util.Logger("diagnostics")
@@ -209,8 +208,8 @@ func (d *Diagnostics) getDiagnosticFromPeer(ctx context.Context, p peer.ID, pmes
 		return nil, err
 	}
 
-	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
-	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(cw)
 
@@ -267,8 +266,8 @@ func newMessage(diagID string) *pb.Message {
 
 func (d *Diagnostics) HandleMessage(ctx context.Context, s inet.Stream) error {
 
-	cr := ctxutil.NewReader(ctx, s)
-	cw := ctxutil.NewWriter(ctx, s)
+	cr := ctxio.NewReader(ctx, s)
+	cw := ctxio.NewWriter(ctx, s)
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax) // maxsize
 	w := ggio.NewDelimitedWriter(cw)
 
