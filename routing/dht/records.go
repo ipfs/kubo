@@ -3,13 +3,13 @@ package dht
 import (
 	"fmt"
 
+	ctxfrac "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-context/frac"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	routing "github.com/ipfs/go-ipfs/routing"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
 	record "github.com/ipfs/go-ipfs/routing/record"
-	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
 )
 
 func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
@@ -22,7 +22,7 @@ func (dht *IpfsDHT) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, err
 	}
 
 	// ok, try the node itself. if they're overwhelmed or slow we can move on.
-	ctxT, cancelFunc := ctxutil.WithDeadlineFraction(ctx, 0.3)
+	ctxT, cancelFunc := ctxfrac.WithDeadlineFraction(ctx, 0.3)
 	defer cancelFunc()
 	if pk, err := dht.getPublicKeyFromNode(ctx, p); err == nil {
 		err := dht.peerstore.AddPubKey(p, pk)

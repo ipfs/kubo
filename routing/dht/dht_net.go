@@ -4,13 +4,12 @@ import (
 	"errors"
 	"time"
 
+	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
+	ctxio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-context/io"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
 	pb "github.com/ipfs/go-ipfs/routing/dht/pb"
-	ctxutil "github.com/ipfs/go-ipfs/util/ctx"
-
-	ggio "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/io"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // handleNewStream implements the inet.StreamHandler
@@ -22,8 +21,8 @@ func (dht *IpfsDHT) handleNewMessage(s inet.Stream) {
 	defer s.Close()
 
 	ctx := dht.Context()
-	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
-	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(cw)
 	mPeer := s.Conn().RemotePeer()
@@ -78,8 +77,8 @@ func (dht *IpfsDHT) sendRequest(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	defer s.Close()
 
-	cr := ctxutil.NewReader(ctx, s) // ok to use. we defer close stream in this func
-	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(cw)
 
@@ -116,7 +115,7 @@ func (dht *IpfsDHT) sendMessage(ctx context.Context, p peer.ID, pmes *pb.Message
 	}
 	defer s.Close()
 
-	cw := ctxutil.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	w := ggio.NewDelimitedWriter(cw)
 
 	if err := w.WriteMsg(pmes); err != nil {

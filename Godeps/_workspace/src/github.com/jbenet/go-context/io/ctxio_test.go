@@ -1,4 +1,4 @@
-package ctxutil
+package ctxio
 
 import (
 	"bytes"
@@ -49,8 +49,8 @@ func TestReader(t *testing.T) {
 }
 
 func TestWriter(t *testing.T) {
-	buf := new(bytes.Buffer)
-	w := NewWriter(context.Background(), buf)
+	var buf bytes.Buffer
+	w := NewWriter(context.Background(), &buf)
 
 	// write three
 	n, err := w.Write([]byte("abc"))

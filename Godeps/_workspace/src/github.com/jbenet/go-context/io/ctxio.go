@@ -1,4 +1,14 @@
-package ctxutil
+// Package ctxio provides io.Reader and io.Writer wrappers that
+// respect context.Contexts. Use these at the interface between
+// your context code and your io.
+//
+// WARNING: read the code. see how writes and reads will continue
+// until you cancel the io. Maybe this package should provide
+// versions of io.ReadCloser and io.WriteCloser that automatically
+// call .Close when the context expires. But for now -- since in my
+// use cases I have long-lived connections with ephemeral io wrappers
+// -- this has yet to be a need.
+package ctxio
 
 import (
 	"io"

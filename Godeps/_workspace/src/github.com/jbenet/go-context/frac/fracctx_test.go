@@ -1,17 +1,16 @@
-package ctxutil
+package ctxext
 
 import (
+	"os"
 	"testing"
 	"time"
-
-	travis "github.com/ipfs/go-ipfs/util/testutil/ci/travis"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 // this test is on the context tool itself, not our stuff. it's for sanity on ours.
 func TestDeadline(t *testing.T) {
-	if travis.IsRunning() {
+	if os.Getenv("TRAVIS") == "true" {
 		t.Skip("timeouts don't work reliably on travis")
 	}
 
@@ -43,7 +42,7 @@ func TestDeadlineFractionForever(t *testing.T) {
 }
 
 func TestDeadlineFractionHalf(t *testing.T) {
-	if travis.IsRunning() {
+	if os.Getenv("TRAVIS") == "true" {
 		t.Skip("timeouts don't work reliably on travis")
 	}
 
