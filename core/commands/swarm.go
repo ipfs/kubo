@@ -392,6 +392,11 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return
 		}
 
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
 		snet, ok := n.PeerHost.Network().(*swarm.Network)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmds.ErrNormal)
@@ -431,6 +436,11 @@ add your filters to the ipfs config file.
 		n, err := req.Context().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if n.PeerHost == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
 			return
 		}
 
