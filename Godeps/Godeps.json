@@ -280,6 +280,10 @@
 			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
 		},
 		{
+			"ImportPath": "github.com/texttheater/golang-levenshtein/levenshtein",
+			"Rev": "dfd657628c58d3eeaa26391097853b2473c8b94e"
+		},
+		{
 			"ImportPath": "github.com/whyrusleeping/go-metrics",
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
 		},
