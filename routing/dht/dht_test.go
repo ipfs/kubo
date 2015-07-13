@@ -74,7 +74,8 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	}
 
 	a.peerstore.AddAddrs(idB, addrB, peer.TempAddrTTL)
-	if err := a.Connect(ctx, idB); err != nil {
+	pi := peer.PeerInfo{ID: idB}
+	if err := a.host.Connect(ctx, pi); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -789,12 +790,14 @@ func TestConnectCollision(t *testing.T) {
 		errs := make(chan error)
 		go func() {
 			dhtA.peerstore.AddAddr(peerB, addrB, peer.TempAddrTTL)
-			err := dhtA.Connect(ctx, peerB)
+			pi := peer.PeerInfo{ID: peerB}
+			err := dhtA.host.Connect(ctx, pi)
 			errs <- err
 		}()
 		go func() {
 			dhtB.peerstore.AddAddr(peerA, addrA, peer.TempAddrTTL)
-			err := dhtB.Connect(ctx, peerA)
+			pi := peer.PeerInfo{ID: peerA}
+			err := dhtB.host.Connect(ctx, pi)
 			errs <- err
 		}()
 
