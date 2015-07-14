@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/jbenet/go-peerstream",
+	"ImportPath": "github.com/jbenet/go-stream-muxer",
 	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
@@ -18,16 +18,8 @@
 			"Rev": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
 		},
 		{
-			"ImportPath": "github.com/jbenet/go-stream-muxer",
-			"Rev": "e2e261765847234749629e0190fef193a4548303"
-		},
-		{
-			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
-			"Rev": "aac704a3f4f27190b4ccc05f303a4931fd1241ff"
-		},
-		{
 			"ImportPath": "github.com/whyrusleeping/go-multiplex",
-			"Rev": "474b9aebeb391746f304ddf7c764a5da12319857"
+			"Rev": "ce5baa716247510379cb7640a14da857afd3b622"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multistream",

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
 )
 
 // fd is a (file) descriptor, unix style
@@ -18,7 +18,7 @@ var GarbageCollectTimeout = 5 * time.Second
 
 type Swarm struct {
 	// the transport we'll use.
-	transport pst.Transport
+	transport smux.Transport
 
 	// active streams.
 	streams    map[*Stream]struct{}
@@ -46,7 +46,7 @@ type Swarm struct {
 	closed chan struct{}
 }
 
-func NewSwarm(t pst.Transport) *Swarm {
+func NewSwarm(t smux.Transport) *Swarm {
 	s := &Swarm{
 		transport:     t,
 		streams:       make(map[*Stream]struct{}),
@@ -183,7 +183,7 @@ func (s *Swarm) Conns() []*Conn {
 
 	open := make([]*Conn, 0, len(conns))
 	for _, c := range conns {
-		if c.pstConn.IsClosed() {
+		if c.smuxConn.IsClosed() {
 			c.Close()
 		} else {
 			open = append(open, c)
@@ -292,7 +292,7 @@ func (s *Swarm) NewStreamWithConn(conn *Conn) (*Stream, error) {
 		return nil, errors.New("connection not associated with swarm")
 	}
 
-	if conn.pstConn.IsClosed() {
+	if conn.smuxConn.IsClosed() {
 		go conn.Close()
 		return nil, errors.New("conn is closed")
 	}
@@ -360,7 +360,7 @@ func (s *Swarm) connGarbageCollect() {
 		}
 
 		for _, c := range s.Conns() {
-			if c.pstConn.IsClosed() {
+			if c.smuxConn.IsClosed() {
 				go c.Close()
 			}
 		}

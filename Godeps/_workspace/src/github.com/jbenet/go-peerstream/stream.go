@@ -3,7 +3,7 @@ package peerstream
 import (
 	"fmt"
 
-	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
 )
 
 // StreamHandler is a function which receives a Stream. It
@@ -17,17 +17,17 @@ type StreamHandler func(s *Stream)
 // Stream is an io.{Read,Write,Close}r to a remote counterpart.
 // It wraps a spdystream.Stream, and links it to a Conn and groups
 type Stream struct {
-	pstStream pst.Stream
+	smuxStream smux.Stream
 
 	conn   *Conn
 	groups groupSet
 }
 
-func newStream(ss pst.Stream, c *Conn) *Stream {
+func newStream(ss smux.Stream, c *Conn) *Stream {
 	s := &Stream{
-		conn:      c,
-		pstStream: ss,
-		groups:    groupSet{m: make(map[Group]struct{})},
+		conn:       c,
+		smuxStream: ss,
+		groups:     groupSet{m: make(map[Group]struct{})},
 	}
 	s.groups.AddSet(&c.groups) // inherit groups
 	return s
@@ -40,8 +40,8 @@ func (s *Stream) String() string {
 }
 
 // SPDYStream returns the underlying *spdystream.Stream
-func (s *Stream) Stream() pst.Stream {
-	return s.pstStream
+func (s *Stream) Stream() smux.Stream {
+	return s.smuxStream
 }
 
 // Conn returns the Conn associated with this Stream
@@ -70,11 +70,11 @@ func (s *Stream) AddGroup(g Group) {
 }
 
 func (s *Stream) Read(p []byte) (n int, err error) {
-	return s.pstStream.Read(p)
+	return s.smuxStream.Read(p)
 }
 
 func (s *Stream) Write(p []byte) (n int, err error) {
-	return s.pstStream.Write(p)
+	return s.smuxStream.Write(p)
 }
 
 func (s *Stream) Close() error {

@@ -4,10 +4,10 @@ import (
 	"net"
 
 	muxado "github.com/inconshreveable/muxado"
-	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
 )
 
-// stream implements pst.Stream using a ss.Stream
+// stream implements smux.Stream using a ss.Stream
 type stream struct {
 	ms muxado.Stream
 }
@@ -53,7 +53,7 @@ func (c *conn) IsClosed() bool {
 }
 
 // OpenStream creates a new stream.
-func (c *conn) OpenStream() (pst.Stream, error) {
+func (c *conn) OpenStream() (smux.Stream, error) {
 	s, err := c.ms.Open()
 	if err != nil {
 		return nil, err
@@ -62,15 +62,24 @@ func (c *conn) OpenStream() (pst.Stream, error) {
 	return &stream{ms: s}, nil
 }
 
+// AcceptStream accepts a stream opened by the other side.
+func (c *conn) AcceptStream() (smux.Stream, error) {
+	s, err := c.ms.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &stream{ms: s}, nil
+}
+
 // Serve starts listening for incoming requests and handles them
 // using given StreamHandler
-func (c *conn) Serve(handler pst.StreamHandler) {
+func (c *conn) Serve(handler smux.StreamHandler) {
 	for { // accept loop
-		s, err := c.ms.Accept()
+		s, err := c.AcceptStream()
 		if err != nil {
 			return // err always means closed.
 		}
-		go handler(&stream{ms: s})
+		go handler(s)
 	}
 }
 
@@ -80,7 +89,7 @@ type transport struct{}
 // spdystream-backed connections.
 var Transport = transport{}
 
-func (t transport) NewConn(nc net.Conn, isServer bool) (pst.Conn, error) {
+func (t transport) NewConn(nc net.Conn, isServer bool) (smux.Conn, error) {
 	var s muxado.Session
 	if isServer {
 		s = muxado.Server(nc)

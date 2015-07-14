@@ -7,13 +7,13 @@ import (
 	"os"
 
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
-	pstss "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport/spdystream"
+	spdy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer/spdystream"
 )
 
 func main() {
 
 	log("creating a new swarm with spdystream transport") // create a new Swarm
-	swarm := ps.NewSwarm(pstss.Transport)
+	swarm := ps.NewSwarm(spdy.Transport)
 	defer swarm.Close()
 
 	// tell swarm what to do with a new incoming streams.

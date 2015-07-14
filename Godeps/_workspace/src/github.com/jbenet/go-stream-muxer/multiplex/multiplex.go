@@ -1,18 +1,20 @@
 package peerstream_multiplex
 
 import (
+	"errors"
 	"net"
 
-	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
-	mp "github.com/whyrusleeping/go-multiplex"
+	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
+	mp "github.com/whyrusleeping/go-multiplex" // Conn is a connection to a remote peer.
 )
+
+var ErrUseServe = errors.New("not implemented, use Serve")
 
 type conn struct {
 	*mp.Multiplex
 }
 
-func ( // Conn is a connection to a remote peer.
-c *conn) Close() error {
+func (c *conn) Close() error {
 	return c.Multiplex.Close()
 }
 
@@ -21,13 +23,18 @@ func (c *conn) IsClosed() bool {
 }
 
 // OpenStream creates a new stream.
-func (c *conn) OpenStream() (pst.Stream, error) {
+func (c *conn) OpenStream() (smux.Stream, error) {
 	return c.Multiplex.NewStream(), nil
+}
+
+// AcceptStream accepts a stream opened by the other side.
+func (c *conn) AcceptStream() (smux.Stream, error) {
+	return nil, ErrUseServe
 }
 
 // Serve starts listening for incoming requests and handles them
 // using given StreamHandler
-func (c *conn) Serve(handler pst.StreamHandler) {
+func (c *conn) Serve(handler smux.StreamHandler) {
 	c.Multiplex.Serve(func(s *mp.Stream) {
 		handler(s)
 	})
@@ -40,6 +47,6 @@ type Transport struct{}
 // DefaultTransport has default settings for multiplex
 var DefaultTransport = &Transport{}
 
-func (t *Transport) NewConn(nc net.Conn, isServer bool) (pst.Conn, error) {
+func (t *Transport) NewConn(nc net.Conn, isServer bool) (smux.Conn, error) {
 	return &conn{mp.NewMultiplex(nc, isServer)}, nil
 }

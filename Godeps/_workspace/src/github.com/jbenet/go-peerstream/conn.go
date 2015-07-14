@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
 )
 
 // ConnHandler is a function which receives a Conn. It allows
@@ -36,8 +36,8 @@ var ErrNoConnections = errors.New("no connections")
 
 // Conn is a Swarm-associated connection.
 type Conn struct {
-	pstConn pst.Conn
-	netConn net.Conn // underlying connection
+	smuxConn smux.Conn
+	netConn  net.Conn // underlying connection
 
 	swarm  *Swarm
 	groups groupSet
@@ -46,13 +46,13 @@ type Conn struct {
 	streamLock sync.RWMutex
 }
 
-func newConn(nconn net.Conn, tconn pst.Conn, s *Swarm) *Conn {
+func newConn(nconn net.Conn, tconn smux.Conn, s *Swarm) *Conn {
 	return &Conn{
-		netConn: nconn,
-		pstConn: tconn,
-		swarm:   s,
-		groups:  groupSet{m: make(map[Group]struct{})},
-		streams: make(map[*Stream]struct{}),
+		netConn:  nconn,
+		smuxConn: tconn,
+		swarm:    s,
+		groups:   groupSet{m: make(map[Group]struct{})},
+		streams:  make(map[*Stream]struct{}),
 	}
 }
 
@@ -77,8 +77,8 @@ func (c *Conn) NetConn() net.Conn {
 
 // Conn returns the underlying transport Connection we use
 // Warning: modifying this object is undefined.
-func (c *Conn) Conn() pst.Conn {
-	return c.pstConn
+func (c *Conn) Conn() smux.Conn {
+	return c.smuxConn
 }
 
 // Groups returns the Groups this Conn belongs to
@@ -122,7 +122,7 @@ func (c *Conn) Close() error {
 
 	// close underlying connection
 	c.swarm.removeConn(c)
-	err := c.pstConn.Close()
+	err := c.smuxConn.Close()
 	c.swarm.notifyAll(func(n Notifiee) {
 		n.Disconnected(c)
 	})
@@ -166,7 +166,7 @@ func (s *Swarm) addConn(netConn net.Conn, isServer bool) (*Conn, error) {
 	s.ConnHandler()(c)
 
 	// go listen for incoming streams on this connection
-	go c.pstConn.Serve(func(ss pst.Stream) {
+	go c.smuxConn.Serve(func(ss smux.Stream) {
 		// log.Printf("accepted stream %d from %s\n", ssS.Identifier(), netConn.RemoteAddr())
 		stream := s.setupStream(ss, c)
 		s.StreamHandler()(stream) // call our handler
@@ -225,21 +225,21 @@ func (s *Swarm) setupConn(netConn net.Conn, isServer bool) (*Conn, error) {
 // all validation has happened.
 func (s *Swarm) createStream(c *Conn) (*Stream, error) {
 
-	// Create a new pst.Stream
-	pstStream, err := c.pstConn.OpenStream()
+	// Create a new smux.Stream
+	smuxStream, err := c.smuxConn.OpenStream()
 	if err != nil {
 		return nil, err
 	}
 
-	return s.setupStream(pstStream, c), nil
+	return s.setupStream(smuxStream, c), nil
 }
 
 // newStream is the internal function that creates a new stream. assumes
 // all validation has happened.
-func (s *Swarm) setupStream(pstStream pst.Stream, c *Conn) *Stream {
+func (s *Swarm) setupStream(smuxStream smux.Stream, c *Conn) *Stream {
 
 	// create a new stream
-	stream := newStream(pstStream, c)
+	stream := newStream(smuxStream, c)
 
 	// add it to our streams maps
 	s.streamLock.Lock()
@@ -265,7 +265,7 @@ func (s *Swarm) removeStream(stream *Stream) error {
 	s.streamLock.Unlock()
 	stream.conn.streamLock.Unlock()
 
-	err := stream.pstStream.Close()
+	err := stream.smuxStream.Close()
 	s.notifyAll(func(n Notifiee) {
 		n.ClosedStream(stream)
 	})
