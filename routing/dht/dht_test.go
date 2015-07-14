@@ -102,35 +102,6 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 	cancel()
 }
 
-func TestPing(t *testing.T) {
-	// t.Skip("skipping test to debug another")
-	ctx := context.Background()
-
-	dhtA := setupDHT(ctx, t)
-	dhtB := setupDHT(ctx, t)
-
-	peerA := dhtA.self
-	peerB := dhtB.self
-
-	defer dhtA.Close()
-	defer dhtB.Close()
-	defer dhtA.host.Close()
-	defer dhtB.host.Close()
-
-	connect(t, ctx, dhtA, dhtB)
-
-	//Test that we can ping the node
-	ctxT, _ := context.WithTimeout(ctx, 100*time.Millisecond)
-	if _, err := dhtA.Ping(ctxT, peerB); err != nil {
-		t.Fatal(err)
-	}
-
-	ctxT, _ = context.WithTimeout(ctx, 100*time.Millisecond)
-	if _, err := dhtB.Ping(ctxT, peerA); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestValueGetSet(t *testing.T) {
 	// t.Skip("skipping test to debug another")
 
