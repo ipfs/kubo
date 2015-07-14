@@ -33,6 +33,7 @@ import (
 	swarm "github.com/ipfs/go-ipfs/p2p/net/swarm"
 	addrutil "github.com/ipfs/go-ipfs/p2p/net/swarm/addr"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	ping "github.com/ipfs/go-ipfs/p2p/protocol/ping"
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
 
 	routing "github.com/ipfs/go-ipfs/routing"
@@ -102,7 +103,8 @@ type IpfsNode struct {
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
 	Diagnostics  *diag.Diagnostics   // the diagnostics service
-	Reprovider   *rp.Reprovider      // the value reprovider system
+	Ping         *ping.PingService
+	Reprovider   *rp.Reprovider // the value reprovider system
 
 	IpnsFs *ipnsfs.Filesystem
 
@@ -324,6 +326,7 @@ func (n *IpfsNode) HandlePeerFound(p peer.PeerInfo) {
 func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption) error {
 	// setup diagnostics service
 	n.Diagnostics = diag.NewDiagnostics(n.Identity, host)
+	n.Ping = ping.NewPingService(host)
 
 	// setup routing service
 	r, err := routingOption(ctx, host, n.Repo.Datastore())

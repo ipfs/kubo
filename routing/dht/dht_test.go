@@ -74,7 +74,8 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	}
 
 	a.peerstore.AddAddrs(idB, addrB, peer.TempAddrTTL)
-	if err := a.Connect(ctx, idB); err != nil {
+	pi := peer.PeerInfo{ID: idB}
+	if err := a.host.Connect(ctx, pi); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -99,35 +100,6 @@ func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
 		dht.runBootstrap(ctx, cfg)
 	}
 	cancel()
-}
-
-func TestPing(t *testing.T) {
-	// t.Skip("skipping test to debug another")
-	ctx := context.Background()
-
-	dhtA := setupDHT(ctx, t)
-	dhtB := setupDHT(ctx, t)
-
-	peerA := dhtA.self
-	peerB := dhtB.self
-
-	defer dhtA.Close()
-	defer dhtB.Close()
-	defer dhtA.host.Close()
-	defer dhtB.host.Close()
-
-	connect(t, ctx, dhtA, dhtB)
-
-	//Test that we can ping the node
-	ctxT, _ := context.WithTimeout(ctx, 100*time.Millisecond)
-	if _, err := dhtA.Ping(ctxT, peerB); err != nil {
-		t.Fatal(err)
-	}
-
-	ctxT, _ = context.WithTimeout(ctx, 100*time.Millisecond)
-	if _, err := dhtB.Ping(ctxT, peerA); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestValueGetSet(t *testing.T) {
@@ -789,12 +761,14 @@ func TestConnectCollision(t *testing.T) {
 		errs := make(chan error)
 		go func() {
 			dhtA.peerstore.AddAddr(peerB, addrB, peer.TempAddrTTL)
-			err := dhtA.Connect(ctx, peerB)
+			pi := peer.PeerInfo{ID: peerB}
+			err := dhtA.host.Connect(ctx, pi)
 			errs <- err
 		}()
 		go func() {
 			dhtB.peerstore.AddAddr(peerA, addrA, peer.TempAddrTTL)
-			err := dhtB.Connect(ctx, peerA)
+			pi := peer.PeerInfo{ID: peerA}
+			err := dhtB.host.Connect(ctx, pi)
 			errs <- err
 		}()
 

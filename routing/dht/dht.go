@@ -4,7 +4,6 @@ package dht
 
 import (
 	"bytes"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"sync"
@@ -32,8 +31,6 @@ import (
 var log = eventlog.Logger("dht")
 
 var ProtocolDHT protocol.ID = "/ipfs/dht"
-
-const doPinging = false
 
 // NumBootstrapQueries defines the number of random dht queries to do to
 // collect members of the routing table.
@@ -92,11 +89,6 @@ func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *Ip
 	dht.Validator = make(record.Validator)
 	dht.Validator["pk"] = record.PublicKeyValidator
 
-	if doPinging {
-		dht.proc.Go(func(p goprocess.Process) {
-			dht.PingRoutine(time.Second * 10)
-		})
-	}
 	return dht
 }
 
@@ -108,23 +100,6 @@ func (dht *IpfsDHT) LocalPeer() peer.ID {
 // log returns the dht's logger
 func (dht *IpfsDHT) log() eventlog.EventLogger {
 	return log // TODO rm
-}
-
-// Connect to a new peer at the given address, ping and add to the routing table
-func (dht *IpfsDHT) Connect(ctx context.Context, npeer peer.ID) error {
-	// TODO: change interface to accept a PeerInfo as well.
-	if err := dht.host.Connect(ctx, peer.PeerInfo{ID: npeer}); err != nil {
-		return err
-	}
-
-	// Ping new peer to register in their routing table
-	// NOTE: this should be done better...
-	if _, err := dht.Ping(ctx, npeer); err != nil {
-		return fmt.Errorf("failed to ping newly connected peer: %s", err)
-	}
-	log.Event(ctx, "connect", dht.self, npeer)
-	dht.Update(ctx, npeer)
-	return nil
 }
 
 // putValueToPeer stores the given key/value pair at the peer 'p'
@@ -341,38 +316,6 @@ func (dht *IpfsDHT) betterPeersToQuery(pmes *pb.Message, p peer.ID, count int) [
 
 	// ok seems like closer nodes
 	return filtered
-}
-
-func (dht *IpfsDHT) ensureConnectedToPeer(ctx context.Context, p peer.ID) error {
-	if p == dht.self {
-		return errors.New("attempting to ensure connection to self")
-	}
-
-	// dial connection
-	return dht.host.Connect(ctx, peer.PeerInfo{ID: p})
-}
-
-// PingRoutine periodically pings nearest neighbors.
-func (dht *IpfsDHT) PingRoutine(t time.Duration) {
-	tick := time.Tick(t)
-	for {
-		select {
-		case <-tick:
-			id := make([]byte, 16)
-			rand.Read(id)
-			peers := dht.routingTable.NearestPeers(kb.ConvertKey(key.Key(id)), 5)
-			for _, p := range peers {
-				ctx, cancel := context.WithTimeout(dht.Context(), time.Second*5)
-				_, err := dht.Ping(ctx, p)
-				if err != nil {
-					log.Debugf("Ping error: %s", err)
-				}
-				cancel()
-			}
-		case <-dht.proc.Closing():
-			return
-		}
-	}
 }
 
 // Context return dht's context

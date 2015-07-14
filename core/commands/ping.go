@@ -138,30 +138,35 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 
 		outChan <- &PingResult{Text: fmt.Sprintf("PING %s.", pid.Pretty())}
 
+		ctx, cancel := context.WithTimeout(ctx, kPingTimeout*time.Duration(numPings))
+		defer cancel()
+		pings, err := n.Ping.Ping(ctx, pid)
+		if err != nil {
+			log.Debugf("Ping error: %s", err)
+			outChan <- &PingResult{Text: fmt.Sprintf("Ping error: %s", err)}
+			return
+		}
+
 		var done bool
 		var total time.Duration
 		for i := 0; i < numPings && !done; i++ {
 			select {
 			case <-ctx.Done():
 				done = true
-				continue
-			default:
-			}
-
-			ctx, cancel := context.WithTimeout(ctx, kPingTimeout)
-			defer cancel()
-			took, err := n.Routing.Ping(ctx, pid)
-			if err != nil {
-				log.Debugf("Ping error: %s", err)
-				outChan <- &PingResult{Text: fmt.Sprintf("Ping error: %s", err)}
 				break
+			case t, ok := <-pings:
+				if !ok {
+					done = true
+					break
+				}
+
+				outChan <- &PingResult{
+					Success: true,
+					Time:    t,
+				}
+				total += t
+				time.Sleep(time.Second)
 			}
-			outChan <- &PingResult{
-				Success: true,
-				Time:    took,
-			}
-			total += took
-			time.Sleep(time.Second)
 		}
 		averagems := total.Seconds() * 1000 / float64(numPings)
 		outChan <- &PingResult{
