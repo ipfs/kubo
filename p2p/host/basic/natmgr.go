@@ -75,18 +75,22 @@ func (nmgr *natManager) discoverNAT() {
 		// to avoid leaking resources in a non-obvious way. the only case
 		// this affects is when the daemon is being started up and _immediately_
 		// asked to close. other services are also starting up, so ok to wait.
-		nat := inat.DiscoverNAT()
-		if nat == nil { // no nat, or failed to get it.
-			return
-		}
+		discoverdone := make(chan struct{})
+		var nat *inat.NAT
+		go func() {
+			defer close(discoverdone)
+			nat = inat.DiscoverNAT()
+		}()
 
 		// by this point -- after finding the NAT -- we may have already
 		// be closing. if so, just exit.
 		select {
 		case <-worker.Closing():
-			nat.Close()
 			return
-		default:
+		case <-discoverdone:
+			if nat == nil { // no nat, or failed to get it.
+				return
+			}
 		}
 
 		// wire up the nat to close when nmgr closes.
