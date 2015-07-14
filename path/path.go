@@ -56,16 +56,19 @@ func ParsePath(txt string) (Path, error) {
 			return kp, nil
 		}
 	}
-	if len(parts) < 3 {
-		return "", ErrBadPath
-	}
 
+	// if the path doesnt being with a '/'
+	// we expect this to start with a hash, and be an 'ipfs' path
 	if parts[0] != "" {
 		if _, err := ParseKeyToPath(parts[0]); err != nil {
 			return "", ErrBadPath
 		}
 		// The case when the path starts with hash without a protocol prefix
 		return Path("/ipfs/" + txt), nil
+	}
+
+	if len(parts) < 3 {
+		return "", ErrBadPath
 	}
 
 	if parts[1] == "ipfs" {

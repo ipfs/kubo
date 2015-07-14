@@ -114,6 +114,20 @@ test_object_cmd() {
 		test_cmp hwfile hwfile_out
 	'
 
+	test_expect_success "ipfs object stat path succeeds" '
+		ipfs object stat $(cat multi_patch)/a > obj_stat_out
+	'
+
+	test_expect_success "ipfs object stat output looks good" '
+		echo NumLinks: 1 > obj_stat_exp &&
+		echo BlockSize: 47 >> obj_stat_exp &&
+		echo LinksSize: 45 >> obj_stat_exp &&
+		echo DataSize: 2 >> obj_stat_exp &&
+		echo CumulativeSize: 114 >> obj_stat_exp &&
+
+		test_cmp obj_stat_out obj_stat_exp
+	'
+
 	test_expect_success "should have created dir within a dir" '
 		ipfs ls $OUTPUT > patched_output
 	'
