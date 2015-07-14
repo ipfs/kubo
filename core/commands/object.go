@@ -434,9 +434,38 @@ var objectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Create a new merkledag object based on an existing one",
 		ShortDescription: `
-'ipfs object patch <root> [add-link|rm-link] <args>' is a plumbing command used to
-build custom DAG objects. It adds and removes links from objects, creating a new
-object as a result. This is the merkle-dag version of modifying an object.
+'ipfs object patch <root> [action] <args>' is a plumbing command used
+to build custom DAG objects. It adds and removes links from objects or
+manipulates their data, creating new objects as a result. This is the
+merkle-dag version of modifying an object.
+
+Actions and their expected arguments:
+
+    * add-link PATH LINK_HASH
+      Creates a new link referencing LINK_HASH named after the final
+      segment of PATH and bubbles the Merkle node changes up the path
+      to return the new root. If some intermediate nodes in PATH are
+      missing, add-link will automatically create new nodes for them.
+    * replace-link PATH LINK_HASH
+      Removes any existing links named after the final segment of
+      PATH, adds a new link named named after that segment referencing
+      LINK_HASH, and bubbles the Merkle node changes up the path to
+      return the new root. If some intermediate nodes in PATH are
+      missing, replace-link will automatically create new nodes for
+      them.
+    * rm-link PATH
+      Removes any links named after the final segment of PATH and
+      bubbles the Merkle node changes up the path to return the new
+      root.
+    * set-data BINARY_DATA
+      Set the root node's data to BINARY_DATA.
+    * append-data BINARY_DATA
+      Append BINARY_DATA to the root node's existing data.
+
+The nodes auto-created by add-link and replace-link are basic Merkle
+nodes, not the directory nodes used for filesystem entries.  To
+auto-create those you'd need a filesystem-level version of the patch
+command (which hasn't been written yet).
 
 Examples:
 
@@ -482,41 +511,76 @@ resulting object hash.
 		}
 		cancel()
 
+		ctx = req.Context().Context
 		action := req.Arguments()[1]
+		arguments := req.Arguments()[2:]
 
-		switch action {
+		minArguments := 1
+		maxArguments := 1
+		if action == "add-link" || action == "replace-link" {
+			minArguments = 2
+			maxArguments = 2
+		}
+
+		if len(arguments) < minArguments {
+			res.SetError(
+				fmt.Errorf("not enough arguments for %s", action), cmds.ErrNormal)
+			return
+		}
+
+		if maxArguments >= 0 && len(arguments) > maxArguments {
+			res.SetError(
+				fmt.Errorf("too many arguments for %s", action), cmds.ErrNormal)
+			return
+		}
+
+		var newRoot *dag.Node
+
+		switch action { // each case's final error is checked after the switch
 		case "add-link":
-			k, err := addLinkCaller(req, rnode)
-			if err != nil {
+			path := arguments[0]
+			insertk := key.B58KeyDecode(arguments[1])
+			newRoot, err = addLinkCaller(ctx, nd.DAG, rnode, path, insertk)
+		case "replace-link":
+			path := arguments[0]
+			parts := strings.Split(path, "/")
+			insertk := key.B58KeyDecode(arguments[1])
+			newRoot, err = insertNodeAtPath(ctx, nd.DAG, rnode, parts, nil, false)
+			if err == dag.ErrNotFound {
+				newRoot = rnode
+			} else if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			newRoot, err = addLinkCaller(ctx, nd.DAG, newRoot, path, insertk)
 		case "rm-link":
-			k, err := rmLinkCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			path := arguments[0]
+			parts := strings.Split(path, "/")
+			newRoot, err = insertNodeAtPath(ctx, nd.DAG, rnode, parts, nil, true)
 		case "set-data":
-			k, err := setDataCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			data := arguments[0]
+			reader := strings.NewReader(data)
+			newRoot, err = setDataCaller(ctx, nd.DAG, rnode, reader)
 		case "append-data":
-			k, err := appendDataCaller(req, rnode)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			res.SetOutput(&Object{Hash: k.B58String()})
+			data := arguments[0]
+			reader := strings.NewReader(data)
+			newRoot, err = appendDataCaller(ctx, nd.DAG, rnode, reader)
 		default:
 			res.SetError(fmt.Errorf("unrecognized subcommand"), cmds.ErrNormal)
 			return
 		}
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		key, err := newRoot.Key()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&Object{Hash: key.String()})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -530,147 +594,120 @@ resulting object hash.
 	},
 }
 
-func appendDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for set-data")
-	}
-
-	nd, err := req.Context().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	root.Data = append(root.Data, []byte(req.Arguments()[2])...)
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
-}
-
-func setDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for set-data")
-	}
-
-	nd, err := req.Context().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	root.Data = []byte(req.Arguments()[2])
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
-}
-
-func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 3 {
-		return "", fmt.Errorf("not enough arguments for rm-link")
-	}
-
-	nd, err := req.Context().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	name := req.Arguments()[2]
-
-	err = root.RemoveNodeLink(name)
-	if err != nil {
-		return "", err
-	}
-
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
-
-	return newkey, nil
-}
-
-func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
-	if len(req.Arguments()) < 4 {
-		return "", fmt.Errorf("not enough arguments for add-link")
-	}
-
-	nd, err := req.Context().GetNode()
-	if err != nil {
-		return "", err
-	}
-
-	path := req.Arguments()[2]
-	childk := key.B58KeyDecode(req.Arguments()[3])
-
-	parts := strings.Split(path, "/")
-
-	nnode, err := insertNodeAtPath(req.Context().Context, nd.DAG, root, parts, childk)
-	if err != nil {
-		return "", err
-	}
-	return nnode.Key()
-}
-
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	childnd, err := ds.Get(ctx, childk)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-	cancel()
-
-	err = root.AddNodeLinkClean(childname, childnd)
+func appendDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (*dag.Node, error) {
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
+	root.Data = append(root.Data, data...)
 	_, err = ds.Add(root)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return root, nil
 }
 
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key) (*dag.Node, error) {
-	if len(path) == 1 {
-		return addLink(ctx, ds, root, path[0], toinsert)
-	}
-
-	child, err := root.GetNodeLink(path[0])
+func setDataCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, reader io.Reader) (*dag.Node, error) {
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	nd, err := child.GetNode(ctx, ds)
-	if err != nil {
-		return nil, err
-	}
-
-	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert)
-	if err != nil {
-		return nil, err
-	}
-
-	err = root.RemoveNodeLink(path[0])
-	if err != nil {
-		return nil, err
-	}
-
-	err = root.AddNodeLinkClean(path[0], ndprime)
-	if err != nil {
-		return nil, err
-	}
+	root.Data = data
 
 	_, err = ds.Add(root)
+
 	if err != nil {
 		return nil, err
+	}
+
+	return root, nil
+}
+
+func addLinkCaller(ctx context.Context, ds dag.DAGService, root *dag.Node, path string, insertk key.Key) (*dag.Node, error) {
+	toinsert, err := ds.Get(ctx, insertk)
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(path, "/")
+
+	return insertNodeAtPath(ctx, ds, root, parts, toinsert, true)
+}
+
+// insertNodeAtPath follows the relative 'path' from 'root', creating
+// empty nodes as needed, and adjusts the final link to reference
+// 'toinsert'.  Then it bubbles that change back up 'path', returning
+// the new root.  If 'toinsert' is nil, the final path segment will be
+// removed, and that change will be bubbled up to a new root.
+//
+// This mutates the in-memory root *dag.Node, but the immutable DAG
+// service will contain both the original objects (e.g. root, a, b,
+// and c) and the new objects (e.g. root', a', b', and c') so
+// <root>/a/b/c will reference the old content (if there was any) and
+// <root'>/a/b/c will reference the inserted content.
+//
+// If 'write' is true, insertNodeAtPath will write nodes to the DAG
+// service as it adjusts them.  Setting 'write' to false is useful
+// when you have want to make several mutations to an in-memory tree
+// (that can still read nodes from the DAG service) and then have one
+// final call to flush the changes to the DAG service.
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert *dag.Node, write bool) (*dag.Node, error) {
+	if len(path) == 1 {
+		if toinsert == nil {
+			err := root.RemoveNodeLinks(path[0])
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err := root.AddNodeLink(path[0], toinsert)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if write {
+			_, err := ds.Add(root)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return root, nil
+	}
+
+	link, err := root.GetNodeLink(path[0])
+	var child *dag.Node
+	if err == nil {
+		child, err = link.GetNode(ctx, ds)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		child = new(dag.Node)
+	}
+
+	newChild, err := insertNodeAtPath(ctx, ds, child, path[1:], toinsert, write)
+	if err != nil {
+		return nil, err
+	}
+
+	err = root.RemoveNodeLinks(path[0])
+	if err != nil && err != dag.ErrNotFound {
+		return nil, err
+	}
+
+	err = root.AddNodeLink(path[0], newChild)
+	if err != nil {
+		return nil, err
+	}
+
+	if write {
+		_, err = ds.Add(root)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return root, nil
