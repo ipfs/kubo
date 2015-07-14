@@ -140,6 +140,8 @@ func (mq *msgQueue) runQueue(ctx context.Context) {
 			mq.doWork(ctx)
 		case <-mq.done:
 			return
+		case <-ctx.Done():
+			return
 		}
 	}
 }
