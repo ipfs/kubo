@@ -228,13 +228,13 @@ func (bs *Bitswap) HasBlock(ctx context.Context, blk *blocks.Block) error {
 	default:
 	}
 
-	bs.notifications.Publish(blk)
-
 	err := bs.tryPutBlock(blk, 4) // attempt to store block up to four times
 	if err != nil {
 		log.Errorf("Error writing block to datastore: %s", err)
 		return err
 	}
+
+	bs.notifications.Publish(blk)
 
 	select {
 	case bs.newBlocks <- blk:
