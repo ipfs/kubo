@@ -1,6 +1,8 @@
 package goprocess
 
 import (
+	"fmt"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -513,6 +515,71 @@ func TestWithSignals(t *testing.T) {
 
 	syscall.Kill(syscall.Getpid(), syscall.SIGABRT)
 	testClosed(t, p)
+}
+
+func TestMemoryLeak(t *testing.T) {
+	iters := 100
+	fanout := 10
+	P := newProcess(nil)
+	var memories []float32
+
+	measure := func(str string) float32 {
+		s := new(runtime.MemStats)
+		runtime.ReadMemStats(s)
+		//fmt.Printf("%d ", s.HeapObjects)
+		//fmt.Printf("%d ", len(P.children))
+		//fmt.Printf("%d ", runtime.NumGoroutine())
+		//fmt.Printf("%s: %dk\n", str, s.HeapAlloc/1000)
+		return float32(s.HeapAlloc) / 1000
+	}
+
+	spawn := func() []Process {
+		var ps []Process
+		// Spawn processes
+		for i := 0; i < fanout; i++ {
+			p := WithParent(P)
+			ps = append(ps, p)
+
+			for i := 0; i < fanout; i++ {
+				p2 := WithParent(p)
+				ps = append(ps, p2)
+
+				for i := 0; i < fanout; i++ {
+					p3 := WithParent(p2)
+					ps = append(ps, p3)
+				}
+			}
+		}
+		return ps
+	}
+
+	// Read initial memory stats
+	measure("initial")
+	for i := 0; i < iters; i++ {
+		ps := spawn()
+		//measure("alloc") // read after alloc
+
+		// Close all processes
+		for _, p := range ps {
+			p.Close()
+			<-p.Closed()
+		}
+		ps = nil
+
+		//measure("dealloc") // read after dealloc, but before gc
+
+		// wait until all/most goroutines finish
+		<-time.After(time.Millisecond)
+
+		// Run GC
+		runtime.GC()
+		memories = append(memories, measure("gc")) // read after gc
+	}
+
+	memoryInit := memories[10]
+	percentGrowth := 100 * (memories[len(memories)-1] - memoryInit) / memoryInit
+	fmt.Printf("Memory growth after %d iteration with each %d processes: %.2f%% after %dk\n", iters, fanout*fanout*fanout, percentGrowth, int(memoryInit))
+
 }
 
 func testClosing(t *testing.T, p Process) {
