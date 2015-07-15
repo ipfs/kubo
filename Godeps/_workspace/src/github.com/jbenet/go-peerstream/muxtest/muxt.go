@@ -1,4 +1,4 @@
-package peerstream_transport_test
+package muxtest
 
 import (
 	"bytes"
@@ -14,11 +14,12 @@ import (
 	"testing"
 
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
-	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream/transport"
+	smux "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
 )
 
 var randomness []byte
 var nextPort = 20000
+var verbose = false
 
 func init() {
 	// read 1MB of randomness
@@ -45,7 +46,7 @@ func checkErr(t *testing.T, err error) {
 }
 
 func log(s string, v ...interface{}) {
-	if testing.Verbose() {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "> "+s+"\n", v...)
 	}
 }
@@ -55,7 +56,7 @@ type echoSetup struct {
 	conns []*ps.Conn
 }
 
-func singleConn(t *testing.T, tr pst.Transport) echoSetup {
+func singleConn(t *testing.T, tr smux.Transport) echoSetup {
 	swarm := ps.NewSwarm(tr)
 	swarm.SetStreamHandler(func(s *ps.Stream) {
 		defer s.Close()
@@ -84,7 +85,7 @@ func singleConn(t *testing.T, tr pst.Transport) echoSetup {
 	}
 }
 
-func makeSwarm(t *testing.T, tr pst.Transport, nListeners int) *ps.Swarm {
+func makeSwarm(t *testing.T, tr smux.Transport, nListeners int) *ps.Swarm {
 	swarm := ps.NewSwarm(tr)
 	swarm.SetStreamHandler(func(s *ps.Stream) {
 		defer s.Close()
@@ -104,7 +105,7 @@ func makeSwarm(t *testing.T, tr pst.Transport, nListeners int) *ps.Swarm {
 	return swarm
 }
 
-func makeSwarms(t *testing.T, tr pst.Transport, nSwarms, nListeners int) []*ps.Swarm {
+func makeSwarms(t *testing.T, tr smux.Transport, nSwarms, nListeners int) []*ps.Swarm {
 	swarms := make([]*ps.Swarm, nSwarms)
 	for i := 0; i < nSwarms; i++ {
 		swarms[i] = makeSwarm(t, tr, nListeners)
@@ -112,11 +113,11 @@ func makeSwarms(t *testing.T, tr pst.Transport, nSwarms, nListeners int) []*ps.S
 	return swarms
 }
 
-func SubtestConstructSwarm(t *testing.T, tr pst.Transport) {
+func SubtestConstructSwarm(t *testing.T, tr smux.Transport) {
 	ps.NewSwarm(tr)
 }
 
-func SubtestSimpleWrite(t *testing.T, tr pst.Transport) {
+func SubtestSimpleWrite(t *testing.T, tr smux.Transport) {
 	swarm := ps.NewSwarm(tr)
 	defer swarm.Close()
 
@@ -171,18 +172,18 @@ func SubtestSimpleWrite(t *testing.T, tr pst.Transport) {
 	}
 }
 
-func SubtestSimpleWrite100msgs(t *testing.T, tr pst.Transport) {
+func SubtestSimpleWrite100msgs(t *testing.T, tr smux.Transport) {
 
 	msgs := 100
 	msgsize := 1 << 19
 	es := singleConn(t, tr)
+	defer es.swarm.Close()
 
 	log("creating stream")
 	stream, err := es.conns[0].NewStream()
 	checkErr(t, err)
 
 	bufs := make(chan []byte, msgs)
-	errs := make(chan error, msgs*100)
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -194,7 +195,7 @@ func SubtestSimpleWrite100msgs(t *testing.T, tr pst.Transport) {
 			bufs <- buf
 			log("writing %d bytes (message %d/%d #%x)", len(buf), i, msgs, buf[:3])
 			if _, err := stream.Write(buf); err != nil {
-				errs <- fmt.Errorf("stream.Write(buf): %s", err)
+				t.Error(fmt.Errorf("stream.Write(buf): %s", err))
 				continue
 			}
 		}
@@ -212,26 +213,21 @@ func SubtestSimpleWrite100msgs(t *testing.T, tr pst.Transport) {
 			i++
 
 			if _, err := io.ReadFull(stream, buf2); err != nil {
-				errs <- fmt.Errorf("readFull(stream, buf2): %s", err)
+				t.Error(fmt.Errorf("readFull(stream, buf2): %s", err))
 				continue
 			}
 			if !bytes.Equal(buf1, buf2) {
-				errs <- fmt.Errorf("buffers not equal (%x != %x)", buf1[:3], buf2[:3])
+				t.Error(fmt.Errorf("buffers not equal (%x != %x)", buf1[:3], buf2[:3]))
 			}
 		}
 	}()
 
 	wg.Wait()
-	close(errs)
-	for err := range errs {
-		t.Error(err)
-	}
 }
 
-func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm, nConn, nStream, nMsg int) {
+func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr smux.Transport, nSwarm, nConn, nStream, nMsg int) {
 
 	msgsize := 1 << 11
-	errs := make(chan error, nSwarm*nConn*nStream*nMsg*100) // dont block anything.
 
 	rateLimitN := 5000
 	rateLimitChan := make(chan struct{}, rateLimitN) // max of 5k funcs.
@@ -253,7 +249,7 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 			bufs <- buf
 			log("%p writing %d bytes (message %d/%d #%x)", s, len(buf), i, nMsg, buf[:3])
 			if _, err := s.Write(buf); err != nil {
-				errs <- fmt.Errorf("s.Write(buf): %s", err)
+				t.Error(fmt.Errorf("s.Write(buf): %s", err))
 				continue
 			}
 		}
@@ -269,12 +265,12 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 			log("%p reading %d bytes (message %d/%d #%x)", s, len(buf1), i-1, nMsg, buf1[:3])
 
 			if _, err := io.ReadFull(s, buf2); err != nil {
-				errs <- fmt.Errorf("io.ReadFull(s, buf2): %s", err)
 				log("%p failed to read %d bytes (message %d/%d #%x)", s, len(buf1), i-1, nMsg, buf1[:3])
+				t.Error(fmt.Errorf("io.ReadFull(s, buf2): %s", err))
 				continue
 			}
 			if !bytes.Equal(buf1, buf2) {
-				errs <- fmt.Errorf("buffers not equal (%x != %x)", buf1[:3], buf2[:3])
+				t.Error(fmt.Errorf("buffers not equal (%x != %x)", buf1[:3], buf2[:3]))
 			}
 		}
 	}
@@ -284,7 +280,7 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 
 		s, err := c.NewStream()
 		if err != nil {
-			errs <- fmt.Errorf("Failed to create NewStream: %s", err)
+			t.Error(fmt.Errorf("Failed to create NewStream: %s", err))
 			return
 		}
 
@@ -308,13 +304,13 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 
 		nc, err := net.Dial(nla.Network(), nla.String())
 		if err != nil {
-			errs <- fmt.Errorf("net.Dial(%s, %s): %s", nla.Network(), nla.String(), err)
+			t.Fatal(fmt.Errorf("net.Dial(%s, %s): %s", nla.Network(), nla.String(), err))
 			return
 		}
 
 		c, err := a.AddConn(nc)
 		if err != nil {
-			errs <- fmt.Errorf("a.AddConn(%s <--> %s): %s", nc.LocalAddr(), nc.RemoteAddr(), err)
+			t.Fatal(fmt.Errorf("a.AddConn(%s <--> %s): %s", nc.LocalAddr(), nc.RemoteAddr(), err))
 			return
 		}
 
@@ -363,47 +359,38 @@ func SubtestStressNSwarmNConnNStreamNMsg(t *testing.T, tr pst.Transport, nSwarm,
 	}
 
 	swarms := makeSwarms(t, tr, nSwarm, 3) // 3 listeners per swarm.
-
-	go func() {
-		connectSwarmsAndRW(swarms)
-		close(errs) // done
-	}()
-
-	for err := range errs {
-		t.Error(err)
-	}
-
+	connectSwarmsAndRW(swarms)
 	for _, s := range swarms {
 		s.Close()
 	}
 
 }
 
-func SubtestStress1Swarm1Conn1Stream1Msg(t *testing.T, tr pst.Transport) {
+func SubtestStress1Swarm1Conn1Stream1Msg(t *testing.T, tr smux.Transport) {
 	SubtestStressNSwarmNConnNStreamNMsg(t, tr, 1, 1, 1, 1)
 }
 
-func SubtestStress1Swarm1Conn1Stream100Msg(t *testing.T, tr pst.Transport) {
+func SubtestStress1Swarm1Conn1Stream100Msg(t *testing.T, tr smux.Transport) {
 	SubtestStressNSwarmNConnNStreamNMsg(t, tr, 1, 1, 1, 100)
 }
 
-func SubtestStress1Swarm1Conn100Stream100Msg(t *testing.T, tr pst.Transport) {
+func SubtestStress1Swarm1Conn100Stream100Msg(t *testing.T, tr smux.Transport) {
 	SubtestStressNSwarmNConnNStreamNMsg(t, tr, 1, 1, 100, 100)
 }
 
-func SubtestStress1Swarm10Conn50Stream50Msg(t *testing.T, tr pst.Transport) {
+func SubtestStress1Swarm10Conn50Stream50Msg(t *testing.T, tr smux.Transport) {
 	SubtestStressNSwarmNConnNStreamNMsg(t, tr, 1, 10, 50, 50)
 }
 
-func SubtestStress5Swarm2Conn20Stream20Msg(t *testing.T, tr pst.Transport) {
+func SubtestStress5Swarm2Conn20Stream20Msg(t *testing.T, tr smux.Transport) {
 	SubtestStressNSwarmNConnNStreamNMsg(t, tr, 5, 2, 20, 20)
 }
 
-func SubtestStress10Swarm2Conn100Stream100Msg(t *testing.T, tr pst.Transport) {
+func SubtestStress10Swarm2Conn100Stream100Msg(t *testing.T, tr smux.Transport) {
 	SubtestStressNSwarmNConnNStreamNMsg(t, tr, 10, 2, 100, 100)
 }
 
-func SubtestAll(t *testing.T, tr pst.Transport) {
+func SubtestAll(t *testing.T, tr smux.Transport) {
 
 	tests := []TransportTest{
 		SubtestConstructSwarm,
@@ -425,7 +412,7 @@ func SubtestAll(t *testing.T, tr pst.Transport) {
 	}
 }
 
-type TransportTest func(t *testing.T, tr pst.Transport)
+type TransportTest func(t *testing.T, tr smux.Transport)
 
 func TestNoOp(t *testing.T) {}
 

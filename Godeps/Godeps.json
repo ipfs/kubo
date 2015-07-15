@@ -180,7 +180,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-peerstream",
-			"Rev": "62fe5ede12f9d9cd9406750160122525b3d6b694"
+			"Rev": "214e6057e1c0742c0b5f9bb3060e88dea32a4380"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-random",
@@ -193,6 +193,10 @@
 		{
 			"ImportPath": "github.com/jbenet/go-sockaddr/net",
 			"Rev": "da304f94eea1af8ba8d1faf184623e1f9d9777dc"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-stream-muxer",
+			"Rev": "4a97500beeb081571128d41d539787e137f18404"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
