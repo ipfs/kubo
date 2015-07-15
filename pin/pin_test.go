@@ -197,18 +197,14 @@ func TestPinRecursiveFail(t *testing.T) {
 	ctx := context.Background()
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
 	bstore := blockstore.NewBlockstore(dstore)
-	bserv, err := bs.New(bstore, offline.Exchange(bstore))
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	bserv := bs.New(bstore, offline.Exchange(bstore))
 	dserv := mdag.NewDAGService(bserv)
 
 	p := NewPinner(dstore, dserv)
 
 	a, _ := randNode()
 	b, _ := randNode()
-	err = a.AddNodeLinkClean("child", b)
+	err := a.AddNodeLinkClean("child", b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,43 +225,6 @@ func TestPinRecursiveFail(t *testing.T) {
 	mctx, _ = context.WithTimeout(ctx, time.Second)
 	err = p.Pin(mctx, a, true)
 	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestPinRecursiveFail(t *testing.T) {
-	ctx := context.Background()
-	dstore := dssync.MutexWrap(ds.NewMapDatastore())
-	bstore := blockstore.NewBlockstore(dstore)
-	bserv := bs.New(bstore, offline.Exchange(bstore))
-
-	dserv := mdag.NewDAGService(bserv)
-
-	p := NewPinner(dstore, dserv)
-
-	a, _ := randNode()
-	b, _ := randNode()
-	err := a.AddNodeLinkClean("child", b)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Note: this isnt a time based test, we expect the pin to fail
-	mctx, cancel := context.WithTimeout(ctx, time.Millisecond)
-	defer cancel()
-	err = p.Pin(mctx, a, true)
-	if err == nil {
-		t.Fatal("should have failed to pin here")
-	}
-
-	if _, err := dserv.Add(b); err != nil {
-		t.Fatal(err)
-	}
-
-	// this one is time based... but shouldnt cause any issues
-	mctx, cancel = context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	if err := p.Pin(mctx, a, true); err != nil {
 		t.Fatal(err)
 	}
 }
