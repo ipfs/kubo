@@ -6,9 +6,9 @@ import (
 
 // process implements Process
 type process struct {
-	children []*processLink // process to close with us
-	waitfors []*processLink // process to only wait for
-	waiters  []*processLink // processes that wait for us. for gc.
+	children map[*processLink]struct{} // process to close with us
+	waitfors map[*processLink]struct{} // process to only wait for
+	waiters  []*processLink            // processes that wait for us. for gc.
 
 	teardown TeardownFunc  // called to run the teardown logic.
 	waiting  chan struct{} // closed when CloseAfterChildrenClosed is called.
@@ -33,6 +33,8 @@ func newProcess(tf TeardownFunc) *process {
 		teardown: tf,
 		closed:   make(chan struct{}),
 		closing:  make(chan struct{}),
+		waitfors: make(map[*processLink]struct{}),
+		children: make(map[*processLink]struct{}),
 	}
 }
 
@@ -50,7 +52,7 @@ func (p *process) WaitFor(q Process) {
 	}
 
 	pl := newProcessLink(p, q)
-	p.waitfors = append(p.waitfors, pl)
+	p.waitfors[pl] = struct{}{}
 	p.Unlock()
 	go pl.AddToChild()
 }
@@ -71,7 +73,7 @@ func (p *process) AddChildNoWait(child Process) {
 	}
 
 	pl := newProcessLink(p, child)
-	p.children = append(p.children, pl)
+	p.children[pl] = struct{}{}
 	p.Unlock()
 	go pl.AddToChild()
 }
@@ -92,8 +94,12 @@ func (p *process) AddChild(child Process) {
 	}
 
 	pl := newProcessLink(p, child)
-	p.waitfors = append(p.waitfors, pl)
-	p.children = append(p.children, pl)
+	if p.waitfors != nil { // if p.waitfors hasn't been set nil
+		p.waitfors[pl] = struct{}{}
+	}
+	if p.children != nil { // if p.children hasn't been set nil
+		p.children[pl] = struct{}{}
+	}
 	p.Unlock()
 	go pl.AddToChild()
 }
@@ -167,7 +173,7 @@ func (p *process) doClose() {
 	close(p.closing) // signal that we're shutting down (Closing)
 
 	for len(p.children) > 0 || len(p.waitfors) > 0 {
-		for _, plc := range p.children {
+		for plc, _ := range p.children {
 			child := plc.Child()
 			if child != nil { // check because child may already have been removed.
 				go child.Close() // force all children to shut down
@@ -180,7 +186,7 @@ func (p *process) doClose() {
 		// change under our feet.
 		wf := p.waitfors
 		p.waitfors = nil // clear them. release memory.
-		for _, w := range wf {
+		for w, _ := range wf {
 			// Here, we wait UNLOCKED, so that waitfors who are in the middle of
 			// adding a child to us can finish. we will immediately close the child.
 			p.Unlock()
@@ -197,8 +203,18 @@ func (p *process) doClose() {
 	go func(waiters []*processLink) {
 		for _, pl := range waiters {
 			pl.ClearChild()
+			pr, ok := pl.Parent().(*process)
+			if !ok {
+				// parent has already been called to close
+				continue
+			}
+			pr.Lock()
+			delete(pr.waitfors, pl)
+			delete(pr.children, pl)
+			pr.Unlock()
 		}
 	}(p.waiters) // pass in so
+	p.waiters = nil // clear them. release memory.
 }
 
 // We will only wait on the children we have now.
@@ -223,7 +239,7 @@ func (p *process) CloseAfterChildren() error {
 	nextToWaitFor := func() Process {
 		p.Lock()
 		defer p.Unlock()
-		for _, e := range p.waitfors {
+		for e, _ := range p.waitfors {
 			c := e.Child()
 			if c == nil {
 				continue

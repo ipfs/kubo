@@ -114,7 +114,7 @@ type Process interface {
 	//
 	// It is useful to construct simple asynchronous workers, children of p.
 	Go(f ProcessFunc) Process
-	
+
 	// SetTeardown sets the process's teardown to tf.
 	SetTeardown(tf TeardownFunc)
 

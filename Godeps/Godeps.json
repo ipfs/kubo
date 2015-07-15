@@ -200,7 +200,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/goprocess",
-			"Rev": "a6650d0b69f2aa0fe7c9685baf0b4d7ecc8766bf"
+			"Rev": "788dcf5ca3517f243d276394545ca6b3b4ac32d5"
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",
