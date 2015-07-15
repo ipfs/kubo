@@ -1,0 +1,10 @@
+#!/bin/bash -xe
+
+VERSION=$1
+FILENAME=$2
+
+ONLINE_SHA=$( curl "https://gobuilder.me/api/v1/github.com/ipfs/go-ipfs/cmd/ipfs/signed-hashes/${VERSION}" 2>/dev/null | grep -A 4 ${FILENAME} | grep sha1 | awk '{ print $3 }' )
+
+echo "Checking SHA1: ${ONLINE_SHA} == $(sha1sum ${FILENAME} | awk '{print $1}')"
+
+echo "${ONLINE_SHA}  ${FILENAME}" | sha1sum -cw
