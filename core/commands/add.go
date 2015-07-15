@@ -115,6 +115,10 @@ remains to be implemented.
 		go func() {
 			defer close(outChan)
 
+			// lock blockstore to prevent rogue GC
+			unlock := n.Blockstore.PinLock()
+			defer unlock()
+
 			for {
 				file, err := req.Files().NextFile()
 				if err != nil && err != io.EOF {
@@ -145,14 +149,13 @@ remains to be implemented.
 					return
 				}
 
-				mp := n.Pinning.GetManual()
-				mp.RemovePinWithMode(rnk, pin.Indirect)
-				mp.PinWithMode(rnk, pin.Recursive)
-
-				err = n.Pinning.Flush()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
+				if !hash {
+					n.Pinning.PinWithMode(rnk, pin.Recursive)
+					err = n.Pinning.Flush()
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
 				}
 			}
 		}()
@@ -262,14 +265,12 @@ func add(n *core.IpfsNode, reader io.Reader, useTrickle bool) (*dag.Node, error)
 			reader,
 			n.DAG,
 			chunk.DefaultSplitter,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
 		)
 	} else {
 		node, err = importer.BuildDagFromReader(
 			reader,
 			n.DAG,
 			chunk.DefaultSplitter,
-			importer.PinIndirectCB(n.Pinning.GetManual()),
 		)
 	}
 
@@ -360,12 +361,10 @@ func (params *adder) addDir(file files.File) (*dag.Node, error) {
 		return nil, err
 	}
 
-	k, err := params.node.DAG.Add(tree)
+	_, err = params.node.DAG.Add(tree)
 	if err != nil {
 		return nil, err
 	}
-
-	params.node.Pinning.GetManual().PinWithMode(k, pin.Indirect)
 
 	return tree, nil
 }

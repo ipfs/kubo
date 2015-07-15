@@ -26,7 +26,7 @@ import (
 
 type dagservAndPinner struct {
 	ds DAGService
-	mp pin.ManualPinner
+	mp pin.Pinner
 }
 
 func getDagservAndPinner(t *testing.T) dagservAndPinner {
@@ -37,7 +37,7 @@ func getDagservAndPinner(t *testing.T) dagservAndPinner {
 		t.Fatal(err)
 	}
 	dserv := NewDAGService(blockserv)
-	mpin := pin.NewPinner(db, dserv).GetManual()
+	mpin := pin.NewPinner(db, dserv)
 	return dagservAndPinner{
 		ds: dserv,
 		mp: mpin,
@@ -157,7 +157,7 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 
 	spl := &chunk.SizeSplitter{512}
 
-	root, err := imp.BuildDagFromReader(read, dagservs[0], spl, nil)
+	root, err := imp.BuildDagFromReader(read, dagservs[0], spl)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,4 +213,77 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 
 	wg.Wait()
+}
+
+func TestFetchGraph(t *testing.T) {
+	var dservs []DAGService
+	bsis := bstest.Mocks(t, 2)
+	for _, bsi := range bsis {
+		dservs = append(dservs, NewDAGService(bsi))
+	}
+
+	read := io.LimitReader(u.NewTimeSeededRand(), 1024*32)
+	spl := &chunk.SizeSplitter{512}
+
+	root, err := imp.BuildDagFromReader(read, dservs[0], spl)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = FetchGraph(context.TODO(), root, dservs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create an offline dagstore and ensure all blocks were fetched
+	bs, err := bserv.New(bsis[1].Blockstore, offline.Exchange(bsis[1].Blockstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offline_ds := NewDAGService(bs)
+	ks := key.NewKeySet()
+
+	err = EnumerateChildren(context.Background(), offline_ds, root, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEnumerateChildren(t *testing.T) {
+	bsi := bstest.Mocks(t, 1)
+	ds := NewDAGService(bsi[0])
+
+	spl := &chunk.SizeSplitter{512}
+
+	read := io.LimitReader(u.NewTimeSeededRand(), 1024*1024)
+
+	root, err := imp.BuildDagFromReader(read, ds, spl)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := key.NewKeySet()
+	err = EnumerateChildren(context.Background(), ds, root, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var traverse func(n *Node)
+	traverse = func(n *Node) {
+		// traverse dag and check
+		for _, lnk := range n.Links {
+			k := key.Key(lnk.Hash)
+			if !ks.Has(k) {
+				t.Fatal("missing key in set!")
+			}
+			child, err := ds.Get(context.Background(), k)
+			if err != nil {
+				t.Fatal(err)
+			}
+			traverse(child)
+		}
+	}
+
+	traverse(root)
 }

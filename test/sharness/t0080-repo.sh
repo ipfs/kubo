@@ -25,11 +25,6 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	ipfs repo gc >gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' looks good (empty)" '
-	true >empty &&
-	test_cmp empty gc_out_actual
-'
-
 test_expect_success "'ipfs repo gc' doesnt remove file" '
 	ipfs cat "$HASH" >out &&
 	test_cmp out afile
@@ -45,14 +40,8 @@ test_expect_success "'ipfs pin rm' output looks good" '
 '
 
 test_expect_success "file no longer pinned" '
-	# we expect the welcome files and gw assets to show up here
-	echo "$HASH_WELCOME_DOCS" >expected2 &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
-	echo "$HASH_GATEWAY_ASSETS" >>expected2 &&
-	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>expected2 &&
-	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >> expected2 &&
 	ipfs pin ls --type=recursive --quiet >actual2 &&
-	test_sort_cmp expected2 actual2
+	test_expect_code 1 grep $HASH actual2
 '
 
 test_expect_success "recursively pin afile" '
@@ -85,9 +74,9 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-	echo "removed $HASH" >expected7 &&
 	ipfs repo gc >actual7 &&
-	test_cmp expected7 actual7
+	echo "removed $HASH" >expected7 &&
+	test_includes_lines expected7 actual7
 '
 
 # TODO: there seems to be a serious bug with leveldb not returning a key.
@@ -108,7 +97,7 @@ test_expect_success "'ipfs pin ls --type=indirect' is correct" '
 	ipfs refs "$MBLOCKHASH" >refsout &&
 	ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
 	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>refsout &&
-	sed -i="" "s/\(.*\)/\1 indirect/g" refsout &&
+	sed -i"~" "s/\(.*\)/\1 indirect/g" refsout &&
 	ipfs pin ls --type=indirect >indirectpins &&
 	test_sort_cmp refsout indirectpins
 '
@@ -136,9 +125,7 @@ test_expect_success "'ipfs pin ls --type=recursive' is correct" '
 	echo "$HASH_WELCOME_DOCS" >>rp_expected &&
 	echo "$HASH_GATEWAY_ASSETS" >>rp_expected &&
 	echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn >>rp_expected &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>rp_expected &&
-	ipfs refs -r "$HASH_GATEWAY_ASSETS" >>rp_expected &&
-	sed -i="" "s/\(.*\)/\1 recursive/g" rp_expected &&
+	sed -i"~" "s/\(.*\)/\1 recursive/g" rp_expected &&
 	ipfs pin ls --type=recursive >rp_actual &&
 	test_sort_cmp rp_expected rp_actual
 '

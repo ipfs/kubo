@@ -29,7 +29,7 @@ test_expect_success 'api gateway should be unrestricted' '
 test_expect_success 'transport should be unencrypted' '
   go-sleep 0.5s | nc localhost "$PORT_SWARM" >swarmnc &&
   test_must_fail grep -q "AES-256,AES-128" swarmnc &&
-  grep -q "/ipfs/identify" swarmnc ||
+  grep -q "/multistream/1.0.0" swarmnc ||
   test_fsh cat swarmnc
 '
 

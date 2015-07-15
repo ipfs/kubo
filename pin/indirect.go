@@ -1,78 +1,39 @@
 package pin
 
 import (
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	"github.com/ipfs/go-ipfs/blocks/set"
 )
 
 type indirectPin struct {
-	blockset  set.BlockSet
-	refCounts map[key.Key]int
+	refCounts map[key.Key]uint64
 }
 
-func NewIndirectPin(dstore ds.Datastore) *indirectPin {
+func newIndirectPin() *indirectPin {
 	return &indirectPin{
-		blockset:  set.NewDBWrapperSet(dstore, set.NewSimpleBlockSet()),
-		refCounts: make(map[key.Key]int),
+		refCounts: make(map[key.Key]uint64),
 	}
-}
-
-func loadIndirPin(d ds.Datastore, k ds.Key) (*indirectPin, error) {
-	var rcStore map[string]int
-	err := loadSet(d, k, &rcStore)
-	if err != nil {
-		return nil, err
-	}
-
-	refcnt := make(map[key.Key]int)
-	var keys []key.Key
-	for encK, v := range rcStore {
-		if v > 0 {
-			k := key.B58KeyDecode(encK)
-			keys = append(keys, k)
-			refcnt[k] = v
-		}
-	}
-	// log.Debugf("indirPin keys: %#v", keys)
-
-	return &indirectPin{blockset: set.SimpleSetFromKeys(keys), refCounts: refcnt}, nil
-}
-
-func storeIndirPin(d ds.Datastore, k ds.Key, p *indirectPin) error {
-
-	rcStore := map[string]int{}
-	for k, v := range p.refCounts {
-		rcStore[key.B58KeyEncode(k)] = v
-	}
-	return storeSet(d, k, rcStore)
 }
 
 func (i *indirectPin) Increment(k key.Key) {
-	c := i.refCounts[k]
-	i.refCounts[k] = c + 1
-	if c <= 0 {
-		i.blockset.AddBlock(k)
-	}
+	i.refCounts[k]++
 }
 
 func (i *indirectPin) Decrement(k key.Key) {
-	c := i.refCounts[k] - 1
-	i.refCounts[k] = c
-	if c <= 0 {
-		i.blockset.RemoveBlock(k)
+	if i.refCounts[k] == 0 {
+		log.Warningf("pinning: bad call: asked to unpin nonexistent indirect key: %v", k)
+		return
+	}
+	i.refCounts[k]--
+	if i.refCounts[k] == 0 {
 		delete(i.refCounts, k)
 	}
 }
 
 func (i *indirectPin) HasKey(k key.Key) bool {
-	return i.blockset.HasKey(k)
+	_, found := i.refCounts[k]
+	return found
 }
 
-func (i *indirectPin) Set() set.BlockSet {
-	return i.blockset
-}
-
-func (i *indirectPin) GetRefs() map[key.Key]int {
+func (i *indirectPin) GetRefs() map[key.Key]uint64 {
 	return i.refCounts
 }

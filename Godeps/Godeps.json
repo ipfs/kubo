@@ -76,6 +76,10 @@
 			"Rev": "04ff72a32679d57d009c0ac0fc5c4cda10350bad"
 		},
 		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "00897f070f09f194c26d65afae734ba4c32404e8"
 		},
@@ -196,7 +200,7 @@
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-stream-muxer",
-			"Rev": "4a97500beeb081571128d41d539787e137f18404"
+			"Rev": "e2e261765847234749629e0190fef193a4548303"
 		},
 		{
 			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
@@ -280,8 +284,16 @@
 			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
 		},
 		{
+			"ImportPath": "github.com/whyrusleeping/go-multiplex",
+			"Rev": "474b9aebeb391746f304ddf7c764a5da12319857"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-multistream",
+			"Rev": "31bb014803a6eba2261bda5593e42c016a5f33bb"
+		},
+		{
 			"ImportPath": "github.com/whyrusleeping/iptb",
-			"Rev": "3970c95a864f1a40037f796ff596607ce8ae43be"
+			"Rev": "fa9bbc437fae1c3a9410e7f1bc3dd02f0449279a"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/multiaddr-filter",

@@ -12,7 +12,6 @@ import (
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
-	imp "github.com/ipfs/go-ipfs/importer"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	help "github.com/ipfs/go-ipfs/importer/helpers"
 	trickle "github.com/ipfs/go-ipfs/importer/trickle"
@@ -38,7 +37,7 @@ var log = u.Logger("dagio")
 type DagModifier struct {
 	dagserv mdag.DAGService
 	curNode *mdag.Node
-	mp      pin.ManualPinner
+	mp      pin.Pinner
 
 	splitter   chunk.BlockSplitter
 	ctx        context.Context
@@ -51,7 +50,7 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.Pinner, spl chunk.BlockSplitter) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
@@ -210,9 +209,10 @@ func (dm *DagModifier) Sync() error {
 		dm.curNode = nd
 	}
 
-	// Finalize correct pinning, and flush pinner
-	dm.mp.PinWithMode(thisk, pin.Recursive)
+	// Finalize correct pinning, and flush pinner.
+	// Be careful about the order, as curk might equal thisk.
 	dm.mp.RemovePinWithMode(curk, pin.Recursive)
+	dm.mp.PinWithMode(thisk, pin.Recursive)
 	err = dm.mp.Flush()
 	if err != nil {
 		return err
@@ -266,10 +266,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 	for i, bs := range f.GetBlocksizes() {
 		// We found the correct child to write into
 		if cur+bs > offset {
-			// Unpin block
-			ckey := key.Key(node.Links[i].Hash)
-			dm.mp.RemovePinWithMode(ckey, pin.Indirect)
-
 			child, err := node.Links[i].GetNode(dm.ctx, dm.dagserv)
 			if err != nil {
 				return "", false, err
@@ -278,9 +274,6 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 			if err != nil {
 				return "", false, err
 			}
-
-			// pin the new node
-			dm.mp.PinWithMode(k, pin.Indirect)
 
 			offset += bs
 			node.Links[i].Hash = mh.Multihash(k)
@@ -310,7 +303,6 @@ func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.No
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
-		NodeCB:   imp.BasicPinnerCB(dm.mp),
 	}
 
 	return trickle.TrickleAppend(node, dbp.New(blks))

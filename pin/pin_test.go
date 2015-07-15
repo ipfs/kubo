@@ -24,6 +24,17 @@ func randNode() (*mdag.Node, key.Key) {
 	return nd, k
 }
 
+func assertPinned(t *testing.T, p Pinner, k key.Key, failmsg string) {
+	_, pinned, err := p.IsPinned(k)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !pinned {
+		t.Fatal(failmsg)
+	}
+}
+
 func TestPinnerBasic(t *testing.T) {
 	ctx := context.Background()
 
@@ -51,13 +62,11 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !p.IsPinned(ak) {
-		t.Fatal("Failed to find key")
-	}
+	assertPinned(t, p, ak, "Failed to find key")
 
 	// create new node c, to be indirectly pinned through b
-	c, ck := randNode()
-	_, err = dserv.Add(c)
+	c, _ := randNode()
+	ck, err := dserv.Add(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,20 +94,16 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !p.IsPinned(ck) {
-		t.Fatal("Child of recursively pinned node not found")
-	}
+	assertPinned(t, p, ck, "child of recursively pinned node not found")
 
 	bk, _ := b.Key()
-	if !p.IsPinned(bk) {
-		t.Fatal("Recursively pinned node not found..")
-	}
+	assertPinned(t, p, bk, "Recursively pinned node not found..")
 
 	d, _ := randNode()
 	d.AddNodeLink("a", a)
 	d.AddNodeLink("c", c)
 
-	e, ek := randNode()
+	e, _ := randNode()
 	d.AddNodeLink("e", e)
 
 	// Must be in dagserv for unpin to work
@@ -113,24 +118,13 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !p.IsPinned(ek) {
-		t.Fatal(err)
-	}
-
 	dk, _ := d.Key()
-	if !p.IsPinned(dk) {
-		t.Fatal("pinned node not found.")
-	}
+	assertPinned(t, p, dk, "pinned node not found.")
 
 	// Test recursive unpin
 	err = p.Unpin(ctx, dk, true)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// c should still be pinned under b
-	if !p.IsPinned(ck) {
-		t.Fatal("Recursive / indirect unpin fail.")
 	}
 
 	err = p.Flush()
@@ -144,19 +138,10 @@ func TestPinnerBasic(t *testing.T) {
 	}
 
 	// Test directly pinned
-	if !np.IsPinned(ak) {
-		t.Fatal("Could not find pinned node!")
-	}
-
-	// Test indirectly pinned
-	if !np.IsPinned(ck) {
-		t.Fatal("could not find indirectly pinned node")
-	}
+	assertPinned(t, np, ak, "Could not find pinned node!")
 
 	// Test recursively pinned
-	if !np.IsPinned(bk) {
-		t.Fatal("could not find recursively pinned node")
-	}
+	assertPinned(t, np, bk, "could not find recursively pinned node")
 }
 
 func TestDuplicateSemantics(t *testing.T) {
@@ -196,6 +181,25 @@ func TestDuplicateSemantics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestFlush(t *testing.T) {
+	dstore := dssync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bserv, err := bs.New(bstore, offline.Exchange(bstore))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dserv := mdag.NewDAGService(bserv)
+	p := NewPinner(dstore, dserv)
+	_, k := randNode()
+
+	p.PinWithMode(k, Recursive)
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	assertPinned(t, p, k, "expected key to still be pinned")
 }
 
 func TestPinRecursiveFail(t *testing.T) {

@@ -1,15 +1,13 @@
-// package pin implemnts structures and methods to keep track of
+// package pin implements structures and methods to keep track of
 // which objects a user wants to keep stored locally.
 package pin
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	nsds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/namespace"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	"github.com/ipfs/go-ipfs/blocks/set"
@@ -18,37 +16,42 @@ import (
 )
 
 var log = util.Logger("pin")
-var recursePinDatastoreKey = ds.NewKey("/local/pins/recursive/keys")
-var directPinDatastoreKey = ds.NewKey("/local/pins/direct/keys")
-var indirectPinDatastoreKey = ds.NewKey("/local/pins/indirect/keys")
+
+var pinDatastoreKey = ds.NewKey("/local/pins")
+
+var emptyKey = key.B58KeyDecode("QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n")
+
+const (
+	linkDirect    = "direct"
+	linkRecursive = "recursive"
+)
 
 type PinMode int
 
 const (
 	Recursive PinMode = iota
 	Direct
-	Indirect
 	NotPinned
 )
 
 type Pinner interface {
-	IsPinned(key.Key) bool
+	IsPinned(key.Key) (string, bool, error)
 	Pin(context.Context, *mdag.Node, bool) error
 	Unpin(context.Context, key.Key, bool) error
-	Flush() error
-	GetManual() ManualPinner
-	DirectKeys() []key.Key
-	IndirectKeys() map[key.Key]int
-	RecursiveKeys() []key.Key
-}
 
-// ManualPinner is for manually editing the pin structure
-// Use with care! If used improperly, garbage collection
-// may not be successful
-type ManualPinner interface {
+	// PinWithMode is for manually editing the pin structure. Use with
+	// care! If used improperly, garbage collection may not be
+	// successful.
 	PinWithMode(key.Key, PinMode)
+	// RemovePinWithMode is for manually editing the pin structure.
+	// Use with care! If used improperly, garbage collection may not
+	// be successful.
 	RemovePinWithMode(key.Key, PinMode)
-	Pinner
+
+	Flush() error
+	DirectKeys() []key.Key
+	RecursiveKeys() []key.Key
+	InternalPins() []key.Key
 }
 
 // pinner implements the Pinner interface
@@ -56,26 +59,25 @@ type pinner struct {
 	lock       sync.RWMutex
 	recursePin set.BlockSet
 	directPin  set.BlockSet
-	indirPin   *indirectPin
-	dserv      mdag.DAGService
-	dstore     ds.ThreadSafeDatastore
+
+	// Track the keys used for storing the pinning state, so gc does
+	// not delete them.
+	internalPin map[key.Key]struct{}
+	dserv       mdag.DAGService
+	dstore      ds.ThreadSafeDatastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
 func NewPinner(dstore ds.ThreadSafeDatastore, serv mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
-	rcds := nsds.Wrap(dstore, recursePinDatastoreKey)
-	rcset := set.NewDBWrapperSet(rcds, set.NewSimpleBlockSet())
+	rcset := set.NewSimpleBlockSet()
 
-	dirds := nsds.Wrap(dstore, directPinDatastoreKey)
-	dirset := set.NewDBWrapperSet(dirds, set.NewSimpleBlockSet())
+	dirset := set.NewSimpleBlockSet()
 
-	nsdstore := nsds.Wrap(dstore, indirectPinDatastoreKey)
 	return &pinner{
 		recursePin: rcset,
 		directPin:  dirset,
-		indirPin:   NewIndirectPin(nsdstore),
 		dserv:      serv,
 		dstore:     dstore,
 	}
@@ -99,7 +101,8 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 			p.directPin.RemoveBlock(k)
 		}
 
-		err := p.pinLinks(ctx, node)
+		// fetch entire graph
+		err := mdag.FetchGraph(ctx, node, p.dserv)
 		if err != nil {
 			return err
 		}
@@ -124,82 +127,70 @@ func (p *pinner) Pin(ctx context.Context, node *mdag.Node, recurse bool) error {
 func (p *pinner) Unpin(ctx context.Context, k key.Key, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if p.recursePin.HasKey(k) {
-		if recursive {
-			p.recursePin.RemoveBlock(k)
-			node, err := p.dserv.Get(ctx, k)
-			if err != nil {
-				return err
-			}
-
-			return p.unpinLinks(ctx, node)
-		} else {
-			return fmt.Errorf("%s is pinned recursively", k)
-		}
-	} else if p.directPin.HasKey(k) {
-		p.directPin.RemoveBlock(k)
-		return nil
-	} else if p.indirPin.HasKey(k) {
-		return fmt.Errorf("%s is pinned indirectly. indirect pins cannot be removed directly", k)
-	} else {
-		return fmt.Errorf("%s is not pinned", k)
-	}
-}
-
-func (p *pinner) unpinLinks(ctx context.Context, node *mdag.Node) error {
-	for _, l := range node.Links {
-		node, err := l.GetNode(ctx, p.dserv)
-		if err != nil {
-			return err
-		}
-
-		k, err := node.Key()
-		if err != nil {
-			return err
-		}
-
-		p.indirPin.Decrement(k)
-
-		err = p.unpinLinks(ctx, node)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *pinner) pinIndirectRecurse(ctx context.Context, node *mdag.Node) error {
-	k, err := node.Key()
+	reason, pinned, err := p.isPinned(k)
 	if err != nil {
 		return err
 	}
-
-	p.indirPin.Increment(k)
-	return p.pinLinks(ctx, node)
+	if !pinned {
+		return fmt.Errorf("%s is not pinned", k)
+	}
+	switch reason {
+	case "recursive":
+		if recursive {
+			p.recursePin.RemoveBlock(k)
+			return nil
+		} else {
+			return fmt.Errorf("%s is pinned recursively", k)
+		}
+	case "direct":
+		p.directPin.RemoveBlock(k)
+		return nil
+	default:
+		return fmt.Errorf("%s is pinned indirectly under %s", k, reason)
+	}
 }
 
-func (p *pinner) pinLinks(ctx context.Context, node *mdag.Node) error {
-	for _, ng := range p.dserv.GetDAG(ctx, node) {
-		subnode, err := ng.Get(ctx)
-		if err != nil {
-			// TODO: Maybe just log and continue?
-			return err
-		}
-		err = p.pinIndirectRecurse(ctx, subnode)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (p *pinner) isInternalPin(key key.Key) bool {
+	_, ok := p.internalPin[key]
+	return ok
 }
 
 // IsPinned returns whether or not the given key is pinned
-func (p *pinner) IsPinned(key key.Key) bool {
+// and an explanation of why its pinned
+func (p *pinner) IsPinned(k key.Key) (string, bool, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	return p.recursePin.HasKey(key) ||
-		p.directPin.HasKey(key) ||
-		p.indirPin.HasKey(key)
+	return p.isPinned(k)
+}
+
+// isPinned is the implementation of IsPinned that does not lock.
+// intended for use by other pinned methods that already take locks
+func (p *pinner) isPinned(k key.Key) (string, bool, error) {
+	if p.recursePin.HasKey(k) {
+		return "recursive", true, nil
+	}
+	if p.directPin.HasKey(k) {
+		return "direct", true, nil
+	}
+	if p.isInternalPin(k) {
+		return "internal", true, nil
+	}
+
+	for _, rk := range p.recursePin.GetKeys() {
+		rnd, err := p.dserv.Get(context.Background(), rk)
+		if err != nil {
+			return "", false, err
+		}
+
+		has, err := hasChild(p.dserv, rnd, k)
+		if err != nil {
+			return "", false, err
+		}
+		if has {
+			return rk.B58String(), true, nil
+		}
+	}
+	return "", false, nil
 }
 
 func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
@@ -208,8 +199,6 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 	switch mode {
 	case Direct:
 		p.directPin.RemoveBlock(key)
-	case Indirect:
-		p.indirPin.Decrement(key)
 	case Recursive:
 		p.recursePin.RemoveBlock(key)
 	default:
@@ -222,29 +211,49 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
+	rootKeyI, err := d.Get(pinDatastoreKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load pin state: %v", err)
+	}
+	rootKeyBytes, ok := rootKeyI.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("cannot load pin state: %s was not bytes", pinDatastoreKey)
+	}
+
+	rootKey := key.Key(rootKeyBytes)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+	defer cancel()
+
+	root, err := dserv.Get(ctx, rootKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find pinning root object: %v", err)
+	}
+
+	internalPin := map[key.Key]struct{}{
+		rootKey: struct{}{},
+	}
+	recordInternal := func(k key.Key) {
+		internalPin[k] = struct{}{}
+	}
+
 	{ // load recursive set
-		var recurseKeys []key.Key
-		if err := loadSet(d, recursePinDatastoreKey, &recurseKeys); err != nil {
-			return nil, err
+		recurseKeys, err := loadSet(ctx, dserv, root, linkRecursive, recordInternal)
+		if err != nil {
+			return nil, fmt.Errorf("cannot load recursive pins: %v", err)
 		}
 		p.recursePin = set.SimpleSetFromKeys(recurseKeys)
 	}
 
 	{ // load direct set
-		var directKeys []key.Key
-		if err := loadSet(d, directPinDatastoreKey, &directKeys); err != nil {
-			return nil, err
+		directKeys, err := loadSet(ctx, dserv, root, linkDirect, recordInternal)
+		if err != nil {
+			return nil, fmt.Errorf("cannot load direct pins: %v", err)
 		}
 		p.directPin = set.SimpleSetFromKeys(directKeys)
 	}
 
-	{ // load indirect set
-		var err error
-		p.indirPin, err = loadIndirPin(d, indirectPinDatastoreKey)
-		if err != nil {
-			return nil, err
-		}
-	}
+	p.internalPin = internalPin
 
 	// assign services
 	p.dserv = dserv
@@ -258,11 +267,6 @@ func (p *pinner) DirectKeys() []key.Key {
 	return p.directPin.GetKeys()
 }
 
-// IndirectKeys returns a slice containing the indirectly pinned keys
-func (p *pinner) IndirectKeys() map[key.Key]int {
-	return p.indirPin.GetRefs()
-}
-
 // RecursiveKeys returns a slice containing the recursively pinned keys
 func (p *pinner) RecursiveKeys() []key.Key {
 	return p.recursePin.GetKeys()
@@ -273,48 +277,65 @@ func (p *pinner) Flush() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	err := storeSet(p.dstore, directPinDatastoreKey, p.directPin.GetKeys())
+	ctx := context.TODO()
+
+	internalPin := make(map[key.Key]struct{})
+	recordInternal := func(k key.Key) {
+		internalPin[k] = struct{}{}
+	}
+
+	root := &mdag.Node{}
+	{
+		n, err := storeSet(ctx, p.dserv, p.directPin.GetKeys(), recordInternal)
+		if err != nil {
+			return err
+		}
+		if err := root.AddNodeLink(linkDirect, n); err != nil {
+			return err
+		}
+	}
+
+	{
+		n, err := storeSet(ctx, p.dserv, p.recursePin.GetKeys(), recordInternal)
+		if err != nil {
+			return err
+		}
+		if err := root.AddNodeLink(linkRecursive, n); err != nil {
+			return err
+		}
+	}
+
+	// add the empty node, its referenced by the pin sets but never created
+	_, err := p.dserv.Add(new(mdag.Node))
 	if err != nil {
 		return err
 	}
 
-	err = storeSet(p.dstore, recursePinDatastoreKey, p.recursePin.GetKeys())
+	k, err := p.dserv.Add(root)
 	if err != nil {
 		return err
 	}
 
-	err = storeIndirPin(p.dstore, indirectPinDatastoreKey, p.indirPin)
-	if err != nil {
-		return err
+	internalPin[k] = struct{}{}
+	if err := p.dstore.Put(pinDatastoreKey, []byte(k)); err != nil {
+		return fmt.Errorf("cannot store pin state: %v", err)
 	}
+	p.internalPin = internalPin
 	return nil
 }
 
-// helpers to marshal / unmarshal a pin set
-func storeSet(d ds.Datastore, k ds.Key, val interface{}) error {
-	buf, err := json.Marshal(val)
-	if err != nil {
-		return err
+func (p *pinner) InternalPins() []key.Key {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	var out []key.Key
+	for k, _ := range p.internalPin {
+		out = append(out, k)
 	}
-
-	return d.Put(k, buf)
+	return out
 }
 
-func loadSet(d ds.Datastore, k ds.Key, val interface{}) error {
-	buf, err := d.Get(k)
-	if err != nil {
-		return err
-	}
-
-	bf, ok := buf.([]byte)
-	if !ok {
-		return errors.New("invalid pin set value in datastore")
-	}
-	return json.Unmarshal(bf, val)
-}
-
-// PinWithMode is a method on ManualPinners, allowing the user to have fine
-// grained control over pin counts
+// PinWithMode allows the user to have fine grained control over pin
+// counts
 func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -323,11 +344,29 @@ func (p *pinner) PinWithMode(k key.Key, mode PinMode) {
 		p.recursePin.AddBlock(k)
 	case Direct:
 		p.directPin.AddBlock(k)
-	case Indirect:
-		p.indirPin.Increment(k)
 	}
 }
 
-func (p *pinner) GetManual() ManualPinner {
-	return p
+func hasChild(ds mdag.DAGService, root *mdag.Node, child key.Key) (bool, error) {
+	for _, lnk := range root.Links {
+		k := key.Key(lnk.Hash)
+		if k == child {
+			return true, nil
+		}
+
+		nd, err := ds.Get(context.Background(), k)
+		if err != nil {
+			return false, err
+		}
+
+		has, err := hasChild(ds, nd, child)
+		if err != nil {
+			return false, err
+		}
+
+		if has {
+			return has, nil
+		}
+	}
+	return false, nil
 }

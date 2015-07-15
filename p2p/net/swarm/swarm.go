@@ -17,7 +17,7 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	ps "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-peerstream"
 	pst "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer"
-	psy "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer/yamux"
+	psmss "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-stream-muxer/multistream"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	prom "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/prometheus/client_golang/prometheus"
@@ -37,9 +37,7 @@ var peersTotal = prom.NewGaugeVec(prom.GaugeOpts{
 }, []string{"peer_id"})
 
 func init() {
-	tpt := *psy.DefaultTransport
-	tpt.MaxStreamWindowSize = 512 * 1024
-	PSTransport = &tpt
+	PSTransport = psmss.NewTransport()
 }
 
 // Swarm is a connection muxer, allowing connections to other peers to

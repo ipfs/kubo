@@ -8,6 +8,7 @@ import (
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
@@ -49,6 +50,9 @@ on disk.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
+		unlock := n.Blockstore.PinLock()
+		defer unlock()
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()
@@ -166,14 +170,12 @@ Use --type=<type> to specify the type of pinned keys to list. Valid values are:
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
 
-To see the ref count on indirect pins, pass the -count option flag.
 Defaults to "direct".
 `,
 	},
 
 	Options: []cmds.Option{
 		cmds.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\". Defaults to \"direct\""),
-		cmds.BoolOption("count", "n", "Show refcount when listing indirect pins"),
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
@@ -203,24 +205,35 @@ Defaults to "direct".
 		if typeStr == "direct" || typeStr == "all" {
 			for _, k := range n.Pinning.DirectKeys() {
 				keys[k.B58String()] = RefKeyObject{
-					Type:  "direct",
-					Count: 1,
+					Type: "direct",
 				}
 			}
 		}
 		if typeStr == "indirect" || typeStr == "all" {
-			for k, v := range n.Pinning.IndirectKeys() {
+			ks := key.NewKeySet()
+			for _, k := range n.Pinning.RecursiveKeys() {
+				nd, err := n.DAG.Get(n.Context(), k)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+				err = dag.EnumerateChildren(n.Context(), n.DAG, nd, ks)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+
+			}
+			for _, k := range ks.Keys() {
 				keys[k.B58String()] = RefKeyObject{
-					Type:  "indirect",
-					Count: v,
+					Type: "indirect",
 				}
 			}
 		}
 		if typeStr == "recursive" || typeStr == "all" {
 			for _, k := range n.Pinning.RecursiveKeys() {
 				keys[k.B58String()] = RefKeyObject{
-					Type:  "recursive",
-					Count: 1,
+					Type: "recursive",
 				}
 			}
 		}
@@ -230,16 +243,6 @@ Defaults to "direct".
 	Type: RefKeyList{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			typeStr, _, err := res.Request().Option("type").String()
-			if err != nil {
-				return nil, err
-			}
-
-			count, _, err := res.Request().Option("count").Bool()
-			if err != nil {
-				return nil, err
-			}
-
 			quiet, _, err := res.Request().Option("quiet").Bool()
 			if err != nil {
 				return nil, err
@@ -250,21 +253,11 @@ Defaults to "direct".
 				return nil, u.ErrCast()
 			}
 			out := new(bytes.Buffer)
-			if typeStr == "indirect" && count {
-				for k, v := range keys.Keys {
-					if quiet {
-						fmt.Fprintf(out, "%s %d\n", k, v.Count)
-					} else {
-						fmt.Fprintf(out, "%s %s %d\n", k, v.Type, v.Count)
-					}
-				}
-			} else {
-				for k, v := range keys.Keys {
-					if quiet {
-						fmt.Fprintf(out, "%s\n", k)
-					} else {
-						fmt.Fprintf(out, "%s %s\n", k, v.Type)
-					}
+			for k, v := range keys.Keys {
+				if quiet {
+					fmt.Fprintf(out, "%s\n", k)
+				} else {
+					fmt.Fprintf(out, "%s %s\n", k, v.Type)
 				}
 			}
 			return out, nil
@@ -273,8 +266,7 @@ Defaults to "direct".
 }
 
 type RefKeyObject struct {
-	Type  string
-	Count int
+	Type string
 }
 
 type RefKeyList struct {
