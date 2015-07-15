@@ -59,11 +59,6 @@ test_expect_failure "ipfs repo gc fully reverse ipfs add" '
 '
 
 test_expect_success "file no longer pinned" '
-	# we expect the welcome files and gw assets to show up here
-	echo "$HASH_WELCOME_DOCS" >expected2 &&
-	ipfs refs -r "$HASH_WELCOME_DOCS" >>expected2 &&
-	EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
-	echo "$EMPTY_DIR" >>expected2 &&
 	ipfs pin ls --type=recursive --quiet >actual2 &&
 	test_expect_code 1 grep $HASH actual2
 '
