@@ -1,21 +1,27 @@
-FROM golang:1.4
+FROM alpine:3.2
 MAINTAINER Brian Tiger Chow <btc@perfmode.com>
 
 ENV IPFS_PATH /data/ipfs
-
-RUN useradd -m -d /data -u 1000 ipfs && \
-    mkdir -p /data/ipfs && chown ipfs:ipfs /data/ipfs
+ENV VERSION master
 
 EXPOSE 4001 5001 8080
 # 4001 = Swarm, 5001 = API, 8080 = HTTP transport
 
 VOLUME /data/ipfs
 
-ADD . /go/src/github.com/ipfs/go-ipfs
-RUN cd /go/src/github.com/ipfs/go-ipfs/cmd/ipfs && go install
+ADD bin/container_daemon /usr/local/bin/start_ipfs
+ADD bin/container_shacheck /usr/local/bin/shacheck
 
-RUN cp /go/src/github.com/ipfs/go-ipfs/bin/container_daemon /usr/local/bin/start_ipfs && \
-    chmod 755 /usr/local/bin/start_ipfs
+RUN adduser -D -h /data -u 1000 ipfs \
+ && mkdir -p /data/ipfs && chown ipfs:ipfs /data/ipfs \
+ && apk add --update bash curl wget ca-certificates zip \
+ && wget https://gobuilder.me/get/github.com/ipfs/go-ipfs/cmd/ipfs/ipfs_${VERSION}_linux-386.zip \
+ && /bin/bash /usr/local/bin/shacheck ${VERSION} ipfs_${VERSION}_linux-386.zip \
+ && unzip ipfs_${VERSION}_linux-386.zip \
+ && rm ipfs_${VERSION}_linux-386.zip \
+ && mv ipfs/ipfs /usr/local/bin/ipfs \
+ && chmod 755 /usr/local/bin/start_ipfs \
+ && apk del wget zip curl
 
 USER ipfs
 
