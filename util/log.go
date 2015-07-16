@@ -16,8 +16,8 @@ var log = logrus.New()
 // TODO: write custom TextFormatter (don't print module=name explicitly) and
 // fork logrus to add shortfile
 var LogFormats = map[string]*logrus.TextFormatter{
-	"nocolor": &logrus.TextFormatter{DisableColors: true, FullTimestamp: true, TimestampFormat: "2006-01-02 15:04:05.000000", DisableSorting: true},
-	"color":   &logrus.TextFormatter{DisableColors: false, FullTimestamp: true, TimestampFormat: "15:04:05:000", DisableSorting: true},
+	"nocolor": {DisableColors: true, FullTimestamp: true, TimestampFormat: "2006-01-02 15:04:05.000000", DisableSorting: true},
+	"color":   {DisableColors: false, FullTimestamp: true, TimestampFormat: "15:04:05:000", DisableSorting: true},
 }
 var defaultLogFormat = "color"
 
