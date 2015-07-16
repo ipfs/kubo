@@ -23,7 +23,7 @@ type Datastore interface {
 // Wrap wraps a given datastore with a KeyTransform function.
 // The resulting wrapped datastore will use the transform on all Datastore
 // operations.
-func Wrap(child ds.Datastore, t KeyTransform) Datastore {
+func Wrap(child ds.Datastore, t KeyTransform) *ktds {
 	if t == nil {
 		panic("t (KeyTransform) is nil")
 	}

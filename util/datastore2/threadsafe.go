@@ -7,7 +7,7 @@ import (
 // ClaimThreadSafe claims that a Datastore is threadsafe, even when
 // it's type does not guarantee this. Use carefully.
 type ClaimThreadSafe struct {
-	datastore.BatchingDatastore
+	datastore.Batching
 }
 
 var _ datastore.ThreadSafeDatastore = ClaimThreadSafe{}

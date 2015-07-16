@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
@@ -22,7 +21,6 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
 	util "github.com/ipfs/go-ipfs/util"
-	"github.com/ipfs/go-ipfs/util/datastore2"
 )
 
 // version number that we are currently expecting to see
@@ -74,13 +72,6 @@ var (
 	onlyOne repo.OnlyOne
 )
 
-// Datastore is the interface required from a datastore to be
-// acceptable to FSRepo.
-type Datastore interface {
-	ds.ThreadSafeDatastore
-	Close() error
-}
-
 // FSRepo represents an IPFS FileSystem Repo. It is safe for use by multiple
 // callers.
 type FSRepo struct {
@@ -92,7 +83,7 @@ type FSRepo struct {
 	// the same fsrepo path concurrently
 	lockfile io.Closer
 	config   *config.Config
-	ds       Datastore
+	ds       repo.Datastore
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -358,26 +349,7 @@ func (r *FSRepo) openDatastore() error {
 	prefix := "fsrepo." + id + ".datastore"
 	dMetr := measure.New(prefix, d)
 
-	r.ds = &metricsWrap{dMetr, d}
-	return nil
-}
-
-type metricsWrap struct {
-	measure.DatastoreCloser
-	backend datastore2.ThreadSafeDatastoreCloser
-}
-
-var _ ds.ThreadSafeDatastore = (*metricsWrap)(nil)
-
-func (*metricsWrap) IsThreadSafe() {}
-
-func (m *metricsWrap) Close() error {
-	if err := m.backend.Close(); err != nil {
-		return err
-	}
-	if err := m.DatastoreCloser.Close(); err != nil {
-		return err
-	}
+	r.ds = dMetr
 	return nil
 }
 
@@ -562,7 +534,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 
 // Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
 // is undefined.
-func (r *FSRepo) Datastore() ds.ThreadSafeDatastore {
+func (r *FSRepo) Datastore() repo.Datastore {
 	packageLock.Lock()
 	d := r.ds
 	packageLock.Unlock()

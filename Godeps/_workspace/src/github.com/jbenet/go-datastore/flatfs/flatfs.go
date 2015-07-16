@@ -323,6 +323,10 @@ func (fs *Datastore) enumerateKeys(fi os.FileInfo, res []query.Entry) ([]query.E
 	return res, nil
 }
 
+func (fs *Datastore) Close() error {
+	return nil
+}
+
 type flatfsBatch struct {
 	puts    map[datastore.Key]interface{}
 	deletes map[datastore.Key]struct{}

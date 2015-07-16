@@ -8,6 +8,7 @@ import (
 
 	"github.com/fzzy/radix/redis"
 	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+
 	dstest "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/test"
 )
 

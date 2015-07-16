@@ -1,6 +1,7 @@
 package timecache
 
 import (
+	"io"
 	"sync"
 	"time"
 
@@ -24,13 +25,13 @@ type datastore struct {
 	ttls  map[ds.Key]time.Time
 }
 
-func WithTTL(ttl time.Duration) ds.Datastore {
+func WithTTL(ttl time.Duration) *datastore {
 	return WithCache(ds.NewMapDatastore(), ttl)
 }
 
 // WithCache wraps a given datastore as a timecache.
 // Get + Has requests are considered expired after a TTL.
-func WithCache(d ds.Datastore, ttl time.Duration) ds.Datastore {
+func WithCache(d ds.Datastore, ttl time.Duration) *datastore {
 	return &datastore{cache: d, ttl: ttl, ttls: make(map[ds.Key]time.Time)}
 }
 
@@ -93,4 +94,11 @@ func (d *datastore) Delete(key ds.Key) (err error) {
 // Query returns a list of keys in the datastore
 func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
 	return d.cache.Query(q)
+}
+
+func (d *datastore) Close() error {
+	if c, ok := d.cache.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
 }

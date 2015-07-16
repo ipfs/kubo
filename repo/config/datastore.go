@@ -16,7 +16,9 @@ var (
 )
 
 type IPFSDatastore interface {
-	datastore.ThreadSafeDatastore
+	datastore.Datastore // should be threadsafe, be careful
+	Batch() (datastore.Batch, error)
+
 	Close() error
 }
 

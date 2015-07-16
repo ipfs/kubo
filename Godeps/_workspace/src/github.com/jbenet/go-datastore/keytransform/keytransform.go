@@ -1,6 +1,8 @@
 package keytransform
 
 import (
+	"io"
+
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsq "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
@@ -74,8 +76,15 @@ func (d *ktds) Query(q dsq.Query) (dsq.Results, error) {
 	return dsq.DerivedResults(qr, ch), nil
 }
 
+func (d *ktds) Close() error {
+	if c, ok := d.child.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
+}
+
 func (d *ktds) Batch() (ds.Batch, error) {
-	bds, ok := d.child.(ds.BatchingDatastore)
+	bds, ok := d.child.(ds.Batching)
 	if !ok {
 		return nil, ds.ErrBatchUnsupported
 	}

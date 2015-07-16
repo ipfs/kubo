@@ -9,7 +9,7 @@ import (
 	dstore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 )
 
-func RunBatchTest(t *testing.T, ds dstore.BatchingDatastore) {
+func RunBatchTest(t *testing.T, ds dstore.Batching) {
 	batch, err := ds.Batch()
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func RunBatchTest(t *testing.T, ds dstore.BatchingDatastore) {
 	}
 }
 
-func RunBatchDeleteTest(t *testing.T, ds dstore.BatchingDatastore) {
+func RunBatchDeleteTest(t *testing.T, ds dstore.Batching) {
 	r := rand.New()
 	var keys []dstore.Key
 	for i := 0; i < 20; i++ {

@@ -13,7 +13,7 @@ type tiered []ds.Datastore
 // New returns a tiered datastore. Puts and Deletes will write-through to
 // all datastores, Has and Get will try each datastore sequentially, and
 // Query will always try the last one (most complete) first.
-func New(dses ...ds.Datastore) ds.Datastore {
+func New(dses ...ds.Datastore) tiered {
 	return tiered(dses)
 }
 

@@ -1,13 +1,14 @@
 // Package mount provides a Datastore that has other Datastores
-// mounted at various key prefixes.
-package mount
+// mounted at various key prefixes and is threadsafe
+package syncmount
 
 import (
 	"errors"
 	"io"
 	"strings"
+	"sync"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/keytransform"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 )
@@ -17,8 +18,8 @@ var (
 )
 
 type Mount struct {
-	Prefix    datastore.Key
-	Datastore datastore.Datastore
+	Prefix    ds.Key
+	Datastore ds.Datastore
 }
 
 func New(mounts []Mount) *Datastore {
@@ -32,51 +33,54 @@ func New(mounts []Mount) *Datastore {
 
 type Datastore struct {
 	mounts []Mount
+	lk     sync.Mutex
 }
 
-var _ datastore.Datastore = (*Datastore)(nil)
+var _ ds.Datastore = (*Datastore)(nil)
 
-func (d *Datastore) lookup(key datastore.Key) (ds datastore.Datastore, mountpoint, rest datastore.Key) {
+func (d *Datastore) lookup(key ds.Key) (ds.Datastore, ds.Key, ds.Key) {
+	d.lk.Lock()
+	defer d.lk.Unlock()
 	for _, m := range d.mounts {
 		if m.Prefix.Equal(key) || m.Prefix.IsAncestorOf(key) {
 			s := strings.TrimPrefix(key.String(), m.Prefix.String())
-			k := datastore.NewKey(s)
+			k := ds.NewKey(s)
 			return m.Datastore, m.Prefix, k
 		}
 	}
-	return nil, datastore.NewKey("/"), key
+	return nil, ds.NewKey("/"), key
 }
 
-func (d *Datastore) Put(key datastore.Key, value interface{}) error {
-	ds, _, k := d.lookup(key)
-	if ds == nil {
+func (d *Datastore) Put(key ds.Key, value interface{}) error {
+	cds, _, k := d.lookup(key)
+	if cds == nil {
 		return ErrNoMount
 	}
-	return ds.Put(k, value)
+	return cds.Put(k, value)
 }
 
-func (d *Datastore) Get(key datastore.Key) (value interface{}, err error) {
-	ds, _, k := d.lookup(key)
-	if ds == nil {
-		return nil, datastore.ErrNotFound
+func (d *Datastore) Get(key ds.Key) (value interface{}, err error) {
+	cds, _, k := d.lookup(key)
+	if cds == nil {
+		return nil, ds.ErrNotFound
 	}
-	return ds.Get(k)
+	return cds.Get(k)
 }
 
-func (d *Datastore) Has(key datastore.Key) (exists bool, err error) {
-	ds, _, k := d.lookup(key)
-	if ds == nil {
+func (d *Datastore) Has(key ds.Key) (exists bool, err error) {
+	cds, _, k := d.lookup(key)
+	if cds == nil {
 		return false, nil
 	}
-	return ds.Has(k)
+	return cds.Has(k)
 }
 
-func (d *Datastore) Delete(key datastore.Key) error {
-	ds, _, k := d.lookup(key)
-	if ds == nil {
-		return datastore.ErrNotFound
+func (d *Datastore) Delete(key ds.Key) error {
+	cds, _, k := d.lookup(key)
+	if cds == nil {
+		return ds.ErrNotFound
 	}
-	return ds.Delete(k)
+	return cds.Delete(k)
 }
 
 func (d *Datastore) Query(q query.Query) (query.Results, error) {
@@ -88,9 +92,9 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 		// `ipfs refs local` for now, and this gets us moving.
 		return nil, errors.New("mount only supports listing all prefixed keys in random order")
 	}
-	key := datastore.NewKey(q.Prefix)
-	ds, mount, k := d.lookup(key)
-	if ds == nil {
+	key := ds.NewKey(q.Prefix)
+	cds, mount, k := d.lookup(key)
+	if cds == nil {
 		return nil, errors.New("mount only supports listing a mount point")
 	}
 	// TODO support listing cross mount points too
@@ -99,11 +103,11 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	// keys in and out
 	q2 := q
 	q2.Prefix = k.String()
-	wrapDS := keytransform.Wrap(ds, &keytransform.Pair{
-		Convert: func(datastore.Key) datastore.Key {
+	wrapDS := keytransform.Wrap(cds, &keytransform.Pair{
+		Convert: func(ds.Key) ds.Key {
 			panic("this should never be called")
 		},
-		Invert: func(k datastore.Key) datastore.Key {
+		Invert: func(k ds.Key) ds.Key {
 			return mount.Child(k)
 		},
 	})
@@ -115,6 +119,8 @@ func (d *Datastore) Query(q query.Query) (query.Results, error) {
 	r = query.ResultsReplaceQuery(r, q)
 	return r, nil
 }
+
+func (d *Datastore) IsThreadSafe() {}
 
 func (d *Datastore) Close() error {
 	for _, d := range d.mounts {
@@ -129,37 +135,41 @@ func (d *Datastore) Close() error {
 }
 
 type mountBatch struct {
-	mounts map[string]datastore.Batch
+	mounts map[string]ds.Batch
+	lk     sync.Mutex
 
 	d *Datastore
 }
 
-func (d *Datastore) Batch() (datastore.Batch, error) {
+func (d *Datastore) Batch() (ds.Batch, error) {
 	return &mountBatch{
-		mounts: make(map[string]datastore.Batch),
+		mounts: make(map[string]ds.Batch),
 		d:      d,
 	}, nil
 }
 
-func (mt *mountBatch) lookupBatch(key datastore.Key) (datastore.Batch, datastore.Key, error) {
+func (mt *mountBatch) lookupBatch(key ds.Key) (ds.Batch, ds.Key, error) {
+	mt.lk.Lock()
+	defer mt.lk.Unlock()
+
 	child, loc, rest := mt.d.lookup(key)
 	t, ok := mt.mounts[loc.String()]
 	if !ok {
-		bds, ok := child.(datastore.Batching)
+		bds, ok := child.(ds.Batching)
 		if !ok {
-			return nil, datastore.NewKey(""), datastore.ErrBatchUnsupported
+			return nil, ds.NewKey(""), ds.ErrBatchUnsupported
 		}
 		var err error
 		t, err = bds.Batch()
 		if err != nil {
-			return nil, datastore.NewKey(""), err
+			return nil, ds.NewKey(""), err
 		}
 		mt.mounts[loc.String()] = t
 	}
 	return t, rest, nil
 }
 
-func (mt *mountBatch) Put(key datastore.Key, val interface{}) error {
+func (mt *mountBatch) Put(key ds.Key, val interface{}) error {
 	t, rest, err := mt.lookupBatch(key)
 	if err != nil {
 		return err
@@ -168,7 +178,7 @@ func (mt *mountBatch) Put(key datastore.Key, val interface{}) error {
 	return t.Put(rest, val)
 }
 
-func (mt *mountBatch) Delete(key datastore.Key) error {
+func (mt *mountBatch) Delete(key ds.Key) error {
 	t, rest, err := mt.lookupBatch(key)
 	if err != nil {
 		return err
