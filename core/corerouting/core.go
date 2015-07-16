@@ -8,6 +8,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/p2p/host"
 	"github.com/ipfs/go-ipfs/p2p/peer"
+	repo "github.com/ipfs/go-ipfs/repo"
 	routing "github.com/ipfs/go-ipfs/routing"
 	supernode "github.com/ipfs/go-ipfs/routing/supernode"
 	gcproxy "github.com/ipfs/go-ipfs/routing/supernode/proxy"
@@ -28,7 +29,7 @@ var (
 // routing records to the provided datastore. Only routing records are store in
 // the datastore.
 func SupernodeServer(recordSource ds.ThreadSafeDatastore) core.RoutingOption {
-	return func(ctx context.Context, ph host.Host, dstore ds.Datastore) (routing.IpfsRouting, error) {
+	return func(ctx context.Context, ph host.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
 		server, err := supernode.NewServer(recordSource, ph.Peerstore(), ph.ID())
 		if err != nil {
 			return nil, err
@@ -44,7 +45,7 @@ func SupernodeServer(recordSource ds.ThreadSafeDatastore) core.RoutingOption {
 
 // TODO doc
 func SupernodeClient(remotes ...peer.PeerInfo) core.RoutingOption {
-	return func(ctx context.Context, ph host.Host, dstore ds.Datastore) (routing.IpfsRouting, error) {
+	return func(ctx context.Context, ph host.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
 		if len(remotes) < 1 {
 			return nil, errServersMissing
 		}
