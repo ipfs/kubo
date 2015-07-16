@@ -17,7 +17,6 @@ import (
 	"time"
 
 	b58 "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	mamask "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/multiaddr-filter"
@@ -570,14 +569,14 @@ func startListening(ctx context.Context, host p2phost.Host, cfg *config.Config) 
 	return nil
 }
 
-func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.Datastore) (routing.IpfsRouting, error) {
+func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
 	dhtRouting := dht.NewDHT(ctx, host, dstore)
 	dhtRouting.Validator[IpnsValidatorTag] = namesys.IpnsRecordValidator
 	dhtRouting.Selector[IpnsValidatorTag] = namesys.IpnsSelectorFunc
 	return dhtRouting, nil
 }
 
-type RoutingOption func(context.Context, p2phost.Host, ds.Datastore) (routing.IpfsRouting, error)
+type RoutingOption func(context.Context, p2phost.Host, repo.Datastore) (routing.IpfsRouting, error)
 
 type DiscoveryOption func(p2phost.Host) (discovery.Service, error)
 
