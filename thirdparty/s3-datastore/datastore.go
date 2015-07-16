@@ -71,4 +71,8 @@ func (ds *S3Datastore) Close() error {
 	return nil
 }
 
+func (ds *S3Datastore) Batch() (datastore.Batch, error) {
+	return datastore.NewBasicBatch(ds), nil
+}
+
 func (ds *S3Datastore) IsThreadSafe() {}
