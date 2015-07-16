@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	levelds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
+	mount "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/syncmount"
 	ldbopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
@@ -20,22 +20,11 @@ const (
 	flatfsDirectory  = "blocks"
 )
 
-type defaultDatastore struct {
-	repo.Datastore
-
-	// tracked separately for use in Close; do not use directly.
-	leveldbDS      repo.Datastore
-	metricsBlocks  repo.Datastore
-	metricsLevelDB repo.Datastore
-}
-
 func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
-	d := &defaultDatastore{}
-
 	leveldbPath := path.Join(r.path, leveldbDirectory)
-	var err error
+
 	// save leveldb reference so it can be neatly closed afterward
-	d.leveldbDS, err = levelds.NewDatastore(leveldbPath, &levelds.Options{
+	leveldbDS, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
@@ -65,26 +54,20 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		id = fmt.Sprintf("uninitialized_%p", r)
 	}
 	prefix := "fsrepo." + id + ".datastore."
-	d.metricsBlocks = measure.New(prefix+"blocks", blocksDS)
-	d.metricsLevelDB = measure.New(prefix+"leveldb", d.leveldbDS)
+	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
+	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
 	mountDS := mount.New([]mount.Mount{
 		{
 			Prefix:    ds.NewKey("/blocks"),
-			Datastore: d.metricsBlocks,
+			Datastore: metricsBlocks,
 		},
 		{
 			Prefix:    ds.NewKey("/"),
-			Datastore: d.metricsLevelDB,
+			Datastore: metricsLevelDB,
 		},
 	})
-	// Make sure it's ok to claim the virtual datastore from mount as
-	// threadsafe. There's no clean way to make mount itself provide
-	// this information without copy-pasting the code into two
-	// variants. This is the same dilemma as the `[].byte` attempt at
-	// introducing const types to Go.
-	d.Datastore = mountDS
 
-	return d, nil
+	return mountDS, nil
 }
 
 func initDefaultDatastore(repoPath string, conf *config.Config) error {
@@ -101,5 +84,3 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 	}
 	return nil
 }
-
-var _ repo.Datastore = (*defaultDatastore)(nil)
