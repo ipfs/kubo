@@ -69,7 +69,7 @@ type Datastore interface {
 	Query(q query.Query) (query.Results, error)
 }
 
-type BatchingDatastore interface {
+type Batching interface {
 	Datastore
 
 	Batch() (Batch, error)

@@ -3,7 +3,7 @@ package repo
 import (
 	"io"
 
-	datastore "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	config "github.com/ipfs/go-ipfs/repo/config"
 )
 
@@ -14,7 +14,15 @@ type Repo interface {
 	SetConfigKey(key string, value interface{}) error
 	GetConfigKey(key string) (interface{}, error)
 
-	Datastore() datastore.ThreadSafeDatastore
+	Datastore() Datastore
 
 	io.Closer
+}
+
+// Datastore is the interface required from a datastore to be
+// acceptable to FSRepo.
+type Datastore interface {
+	ds.Datastore // should be threadsafe, just be careful
+	Batch() (ds.Batch, error)
+	Close() error
 }

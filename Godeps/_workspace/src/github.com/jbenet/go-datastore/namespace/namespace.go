@@ -36,7 +36,7 @@ func PrefixTransform(prefix ds.Key) ktds.KeyTransform {
 }
 
 // Wrap wraps a given datastore with a key-prefix.
-func Wrap(child ds.Datastore, prefix ds.Key) ktds.Datastore {
+func Wrap(child ds.Datastore, prefix ds.Key) *datastore {
 	if child == nil {
 		panic("child (ds.Datastore) is nil")
 	}

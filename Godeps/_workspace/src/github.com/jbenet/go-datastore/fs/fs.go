@@ -149,3 +149,11 @@ func isFile(path string) bool {
 
 	return !finfo.IsDir()
 }
+
+func (d *Datastore) Close() error {
+	return nil
+}
+
+func (d *Datastore) Batch() (ds.Batch, error) {
+	return ds.NewBasicBatch(d), nil
+}

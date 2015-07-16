@@ -22,6 +22,11 @@
 			"Rev": "7f1b564ca7242d22bcc6e2128beb90d9fa38b9f0"
 		},
 		{
+			"ImportPath": "github.com/fzzy/radix/redis",
+			"Comment": "v0.5.1",
+			"Rev": "27a863cdffdb0998d13e1e11992b18489aeeaa25"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "4dfff096c4973178c8f35cf6dd1a732a0a139370"
 		},

@@ -54,3 +54,11 @@ func (d *Datastore) Delete(key ds.Key) (err error) {
 func (d *Datastore) Query(q dsq.Query) (dsq.Results, error) {
 	return nil, errors.New("KeyList not implemented.")
 }
+
+func (d *Datastore) Close() error {
+	return nil
+}
+
+func (d *Datastore) Batch() (ds.Batch, error) {
+	return nil, ds.ErrBatchUnsupported
+}

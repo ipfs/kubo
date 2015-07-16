@@ -45,7 +45,7 @@ type IpfsDHT struct {
 	self      peer.ID        // Local peer (yourself)
 	peerstore peer.Peerstore // Peer Registry
 
-	datastore ds.ThreadSafeDatastore // Local data
+	datastore ds.Datastore // Local data
 
 	routingTable *kb.RoutingTable // Array of routing tables for differently distanced nodes
 	providers    *ProviderManager
@@ -60,7 +60,7 @@ type IpfsDHT struct {
 }
 
 // NewDHT creates a new DHT object with the given peer as the 'local' host
-func NewDHT(ctx context.Context, h host.Host, dstore ds.ThreadSafeDatastore) *IpfsDHT {
+func NewDHT(ctx context.Context, h host.Host, dstore ds.Datastore) *IpfsDHT {
 	dht := new(IpfsDHT)
 	dht.datastore = dstore
 	dht.self = h.ID()
