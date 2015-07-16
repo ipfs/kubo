@@ -64,11 +64,11 @@ type pinner struct {
 	// not delete them.
 	internalPin map[key.Key]struct{}
 	dserv       mdag.DAGService
-	dstore      ds.ThreadSafeDatastore
+	dstore      ds.Datastore
 }
 
 // NewPinner creates a new pinner using the given datastore as a backend
-func NewPinner(dstore ds.ThreadSafeDatastore, serv mdag.DAGService) Pinner {
+func NewPinner(dstore ds.Datastore, serv mdag.DAGService) Pinner {
 
 	// Load set from given datastore...
 	rcset := set.NewSimpleBlockSet()
@@ -208,7 +208,7 @@ func (p *pinner) RemovePinWithMode(key key.Key, mode PinMode) {
 }
 
 // LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(d ds.ThreadSafeDatastore, dserv mdag.DAGService) (Pinner, error) {
+func LoadPinner(d ds.Datastore, dserv mdag.DAGService) (Pinner, error) {
 	p := new(pinner)
 
 	rootKeyI, err := d.Get(pinDatastoreKey)

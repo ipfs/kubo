@@ -8,11 +8,11 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
 	levelds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/leveldb"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/measure"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
+	mount "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/syncmount"
 	ldbopts "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
+	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/dir"
-	ds2 "github.com/ipfs/go-ipfs/util/datastore2"
 )
 
 const (
@@ -20,22 +20,11 @@ const (
 	flatfsDirectory  = "blocks"
 )
 
-type defaultDatastore struct {
-	ds.ThreadSafeDatastore
-
-	// tracked separately for use in Close; do not use directly.
-	leveldbDS      levelds.Datastore
-	metricsBlocks  measure.DatastoreCloser
-	metricsLevelDB measure.DatastoreCloser
-}
-
-func openDefaultDatastore(r *FSRepo) (Datastore, error) {
-	d := &defaultDatastore{}
-
+func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	leveldbPath := path.Join(r.path, leveldbDirectory)
-	var err error
+
 	// save leveldb reference so it can be neatly closed afterward
-	d.leveldbDS, err = levelds.NewDatastore(leveldbPath, &levelds.Options{
+	leveldbDS, err := levelds.NewDatastore(leveldbPath, &levelds.Options{
 		Compression: ldbopts.NoCompression,
 	})
 	if err != nil {
@@ -65,28 +54,27 @@ func openDefaultDatastore(r *FSRepo) (Datastore, error) {
 		id = fmt.Sprintf("uninitialized_%p", r)
 	}
 	prefix := "fsrepo." + id + ".datastore."
-	d.metricsBlocks = measure.New(prefix+"blocks", blocksDS)
-	d.metricsLevelDB = measure.New(prefix+"leveldb", d.leveldbDS)
+	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
+	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
 	mountDS := mount.New([]mount.Mount{
 		{
 			Prefix:    ds.NewKey("/blocks"),
-			Datastore: d.metricsBlocks,
+			Datastore: metricsBlocks,
 		},
 		{
 			Prefix:    ds.NewKey("/"),
-			Datastore: d.metricsLevelDB,
+			Datastore: metricsLevelDB,
 		},
 	})
+
 	// Make sure it's ok to claim the virtual datastore from mount as
 	// threadsafe. There's no clean way to make mount itself provide
 	// this information without copy-pasting the code into two
 	// variants. This is the same dilemma as the `[].byte` attempt at
 	// introducing const types to Go.
 	var _ ds.ThreadSafeDatastore = blocksDS
-	var _ ds.ThreadSafeDatastore = d.leveldbDS
-	d.ThreadSafeDatastore = ds2.ClaimThreadSafe{mountDS}
-
-	return d, nil
+	var _ ds.ThreadSafeDatastore = leveldbDS
+	return mountDS, nil
 }
 
 func initDefaultDatastore(repoPath string, conf *config.Config) error {
@@ -100,21 +88,6 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 	flatfsPath := path.Join(repoPath, flatfsDirectory)
 	if err := dir.Writable(flatfsPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
-	}
-	return nil
-}
-
-var _ Datastore = (*defaultDatastore)(nil)
-
-func (d *defaultDatastore) Close() error {
-	if err := d.metricsBlocks.Close(); err != nil {
-		return err
-	}
-	if err := d.metricsLevelDB.Close(); err != nil {
-		return err
-	}
-	if err := d.leveldbDS.Close(); err != nil {
-		return err
 	}
 	return nil
 }
