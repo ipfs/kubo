@@ -3,11 +3,11 @@ package nilrouting
 import (
 	"errors"
 
-	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	p2phost "github.com/ipfs/go-ipfs/p2p/host"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	repo "github.com/ipfs/go-ipfs/repo"
 	routing "github.com/ipfs/go-ipfs/routing"
 	u "github.com/ipfs/go-ipfs/util"
 )
@@ -43,7 +43,7 @@ func (c *nilclient) Bootstrap(_ context.Context) error {
 	return nil
 }
 
-func ConstructNilRouting(_ context.Context, _ p2phost.Host, _ ds.ThreadSafeDatastore) (routing.IpfsRouting, error) {
+func ConstructNilRouting(_ context.Context, _ p2phost.Host, _ repo.Datastore) (routing.IpfsRouting, error) {
 	return &nilclient{}, nil
 }
 
