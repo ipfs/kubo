@@ -28,7 +28,7 @@ var (
 // SupernodeServer returns a configuration for a routing server that stores
 // routing records to the provided datastore. Only routing records are store in
 // the datastore.
-func SupernodeServer(recordSource ds.ThreadSafeDatastore) core.RoutingOption {
+func SupernodeServer(recordSource ds.Datastore) core.RoutingOption {
 	return func(ctx context.Context, ph host.Host, dstore repo.Datastore) (routing.IpfsRouting, error) {
 		server, err := supernode.NewServer(recordSource, ph.Peerstore(), ph.ID())
 		if err != nil {
