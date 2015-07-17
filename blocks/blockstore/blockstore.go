@@ -52,9 +52,11 @@ type GCBlockstore interface {
 }
 
 func NewBlockstore(d ds.Batching) *blockstore {
+	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
+	dsb = dd
 	return &blockstore{
-		datastore: dd,
+		datastore: dsb,
 	}
 }
 
