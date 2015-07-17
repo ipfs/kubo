@@ -16,8 +16,6 @@ type KeyTransform interface {
 type Datastore interface {
 	ds.Shim
 	KeyTransform
-
-	Batch() (ds.Batch, error)
 }
 
 // Wrap wraps a given datastore with a KeyTransform function.

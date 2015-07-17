@@ -81,3 +81,11 @@ func (d *datastore) Query(q dsq.Query) (dsq.Results, error) {
 
 	return dsq.DerivedResults(qr, ch), nil
 }
+
+func (d *datastore) Batch() (ds.Batch, error) {
+	if bds, ok := d.Datastore.(ds.Batching); ok {
+		return bds.Batch()
+	}
+
+	return nil, ds.ErrBatchUnsupported
+}
