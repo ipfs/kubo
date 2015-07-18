@@ -78,6 +78,14 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 	if err := a.host.Connect(ctx, pi); err != nil {
 		t.Fatal(err)
 	}
+
+	for a.routingTable.Find(b.self) == "" {
+		time.Sleep(time.Millisecond * 5)
+	}
+
+	for b.routingTable.Find(a.self) == "" {
+		time.Sleep(time.Millisecond * 5)
+	}
 }
 
 func bootstrap(t *testing.T, ctx context.Context, dhts []*IpfsDHT) {
