@@ -14,12 +14,11 @@ import (
 	nat "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/fd/go-nat"
 	goprocess "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess"
 	periodic "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/periodic"
+	notifier "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/go-notifier" // ErrNoMapping signals no mapping exists for an address
 	eventlog "github.com/ipfs/go-ipfs/thirdparty/eventlog"
-	notifier "github.com/ipfs/go-ipfs/thirdparty/notifier"
 )
 
 var (
-	// ErrNoMapping signals no mapping exists for an address
 	ErrNoMapping = errors.New("mapping not established")
 )
 
