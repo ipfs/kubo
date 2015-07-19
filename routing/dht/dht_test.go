@@ -79,6 +79,8 @@ func connect(t *testing.T, ctx context.Context, a, b *IpfsDHT) {
 		t.Fatal(err)
 	}
 
+	// loop until connection notification has been received.
+	// under high load, this may not happen as immediately as we would like.
 	for a.routingTable.Find(b.self) == "" {
 		time.Sleep(time.Millisecond * 5)
 	}
