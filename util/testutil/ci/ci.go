@@ -16,7 +16,7 @@ type EnvVar string
 
 // Environment variables that TravisCI uses.
 const (
-	VarCI      EnvVar = "TEST_NO_FUSE"
+	VarCI      EnvVar = "CI"
 	VarNoFuse  EnvVar = "TEST_NO_FUSE"
 	VarVerbose EnvVar = "TEST_VERBOSE"
 )
