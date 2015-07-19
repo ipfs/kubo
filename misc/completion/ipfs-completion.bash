@@ -161,7 +161,7 @@ _ipfs_ls()
 
 _ipfs_mount()
 {
-    _ipfs_comp "-f= -n= --help"
+    _ipfs_comp "--ipfs-path= --ipns-path= --help"
 }
 
 _ipfs_name()
