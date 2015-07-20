@@ -81,7 +81,7 @@ it contains, with the following format:
 				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+				ctx, cancel := context.WithTimeout(req.Context().Context, time.Minute)
 				defer cancel()
 				link.Node, err = link.GetNode(ctx, node.DAG)
 				if err != nil {

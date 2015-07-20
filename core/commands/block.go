@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -178,7 +177,7 @@ func getBlockForKey(req cmds.Request, skey string) (*blocks.Block, error) {
 	}
 
 	k := key.Key(h)
-	b, err := n.Blocks.GetBlock(context.TODO(), k)
+	b, err := n.Blocks.GetBlock(req.Context().Context, k)
 	if err != nil {
 		return nil, err
 	}

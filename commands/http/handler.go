@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -106,20 +107,36 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	/*
-		TODO(cryptix): the next line looks very fishy to me..
-		It looks like the the context for the command request beeing prepared here is shared across all incoming requests..
 
-		I assume it really isn't because ServeHTTP() doesn't take a pointer receiver, but it's really subtule..
+	tout, found, err := req.Option("timeout").String()
+	if err != nil {
+		err = fmt.Errorf("error parsing timeout option: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-		Shouldn't the context be just put on the command request?
+	var ctx context.Context
+	if found {
+		duration, err := time.ParseDuration(tout)
+		if err != nil {
+			err = fmt.Errorf("error parsing timeout option: %s", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		ps: take note of the name clash - commands.Context != context.Context
-	*/
-	i.ctx.Context = ctx
-	req.SetContext(i.ctx)
+		tctx, cancel := context.WithTimeout(node.Context(), duration)
+		defer cancel()
+		ctx = tctx
+	} else {
+		cctx, cancel := context.WithCancel(node.Context())
+		defer cancel()
+		ctx = cctx
+	}
+
+	//ps: take note of the name clash - commands.Context != context.Context
+	cmdctx := i.ctx
+	cmdctx.Context = ctx
+	req.SetContext(cmdctx)
 
 	// call the command
 	res := i.root.Call(req)
