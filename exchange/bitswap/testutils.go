@@ -46,7 +46,7 @@ func (g *SessionGenerator) Next() Instance {
 	if err != nil {
 		panic("FIXME") // TODO change signature
 	}
-	return session(g.ctx, g.net, p)
+	return Session(g.ctx, g.net, p)
 }
 
 func (g *SessionGenerator) Instances(n int) []Instance {
@@ -85,7 +85,7 @@ func (i *Instance) SetBlockstoreLatency(t time.Duration) time.Duration {
 // NB: It's easy make mistakes by providing the same peer ID to two different
 // sessions. To safeguard, use the SessionGenerator to generate sessions. It's
 // just a much better idea.
-func session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
+func Session(ctx context.Context, net tn.Network, p testutil.Identity) Instance {
 	bsdelay := delay.Fixed(0)
 	const writeCacheElems = 100
 

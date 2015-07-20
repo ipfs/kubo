@@ -63,7 +63,7 @@ func TestNotifications(t *testing.T) {
 					}
 				}
 				if !found {
-					t.Error("connection not found")
+					t.Error("connection not found", c1, len(expect), len(actual))
 				}
 			}
 

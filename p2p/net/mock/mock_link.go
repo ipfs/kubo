@@ -1,8 +1,10 @@
 package mocknet
 
 import (
+	//	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -11,17 +13,20 @@ import (
 // link implements mocknet.Link
 // and, for simplicity, inet.Conn
 type link struct {
-	mock *mocknet
-	nets []*peernet
-	opts LinkOptions
-
+	mock        *mocknet
+	nets        []*peernet
+	opts        LinkOptions
+	ratelimiter *ratelimiter
 	// this could have addresses on both sides.
 
 	sync.RWMutex
 }
 
 func newLink(mn *mocknet, opts LinkOptions) *link {
-	return &link{mock: mn, opts: opts}
+	l := &link{mock: mn,
+		opts:        opts,
+		ratelimiter: NewRatelimiter(opts.Bandwidth)}
+	return l
 }
 
 func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
@@ -57,8 +62,8 @@ func (l *link) newStreamPair() (*stream, *stream) {
 	r1, w1 := io.Pipe()
 	r2, w2 := io.Pipe()
 
-	s1 := &stream{Reader: r1, Writer: w2}
-	s2 := &stream{Reader: r2, Writer: w1}
+	s1 := NewStream(w2, r1)
+	s2 := NewStream(w1, r2)
 	return s1, s2
 }
 
@@ -86,8 +91,17 @@ func (l *link) Peers() []peer.ID {
 
 func (l *link) SetOptions(o LinkOptions) {
 	l.opts = o
+	l.ratelimiter.UpdateBandwidth(l.opts.Bandwidth)
 }
 
 func (l *link) Options() LinkOptions {
 	return l.opts
+}
+
+func (l *link) GetLatency() time.Duration {
+	return l.opts.Latency
+}
+
+func (l *link) RateLimit(dataSize int) time.Duration {
+	return l.ratelimiter.Limit(dataSize)
 }

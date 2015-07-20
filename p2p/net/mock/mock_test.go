@@ -3,9 +3,11 @@ package mocknet
 import (
 	"bytes"
 	"io"
+	"math"
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	inet "github.com/ipfs/go-ipfs/p2p/net"
 	peer "github.com/ipfs/go-ipfs/p2p/peer"
@@ -477,4 +479,103 @@ func TestAdding(t *testing.T) {
 		t.Error("bytes mismatch 2")
 	}
 
+}
+
+func TestRateLimiting(t *testing.T) {
+	rl := NewRatelimiter(10)
+
+	if !within(rl.Limit(10), time.Duration(float32(time.Second)), time.Millisecond/10) {
+		t.Fail()
+	}
+	if !within(rl.Limit(10), time.Duration(float32(time.Second*2)), time.Millisecond) {
+		t.Fail()
+	}
+	if !within(rl.Limit(10), time.Duration(float32(time.Second*3)), time.Millisecond) {
+		t.Fail()
+	}
+
+	if within(rl.Limit(10), time.Duration(float32(time.Second*3)), time.Millisecond) {
+		t.Fail()
+	}
+
+	rl.UpdateBandwidth(50)
+	if !within(rl.Limit(75), time.Duration(float32(time.Second)*1.5), time.Millisecond/10) {
+		t.Fail()
+	}
+
+	if within(rl.Limit(75), time.Duration(float32(time.Second)*1.5), time.Millisecond/10) {
+		t.Fail()
+	}
+
+	rl.UpdateBandwidth(100)
+	if !within(rl.Limit(1), time.Duration(time.Millisecond*10), time.Millisecond/10) {
+		t.Fail()
+	}
+
+	if within(rl.Limit(1), time.Duration(time.Millisecond*10), time.Millisecond/10) {
+		t.Fail()
+	}
+}
+
+func within(t1 time.Duration, t2 time.Duration, tolerance time.Duration) bool {
+	return math.Abs(float64(t1)-float64(t2)) < float64(tolerance)
+}
+
+func TestLimitedStreams(t *testing.T) {
+	mn, err := FullMeshConnected(context.Background(), 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	messages := 4
+	messageSize := 500
+	handler := func(s inet.Stream) {
+		b := make([]byte, messageSize)
+		for i := 0; i < messages; i++ {
+			if _, err := io.ReadFull(s, b); err != nil {
+				log.Fatal(err)
+			}
+			if !bytes.Equal(b[:4], []byte("ping")) {
+				log.Fatal("bytes mismatch")
+			}
+			wg.Done()
+		}
+		s.Close()
+	}
+
+	hosts := mn.Hosts()
+	for _, h := range mn.Hosts() {
+		h.SetStreamHandler(protocol.TestingID, handler)
+	}
+
+	peers := mn.Peers()
+	links := mn.LinksBetweenPeers(peers[0], peers[1])
+	//  1000 byte per second bandwidth
+	bps := float64(1000)
+	opts := links[0].Options()
+	opts.Bandwidth = bps
+	for _, link := range links {
+		link.SetOptions(opts)
+	}
+
+	s, err := hosts[0].NewStream(protocol.TestingID, hosts[1].ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	filler := make([]byte, messageSize-4)
+	data := append([]byte("ping"), filler...)
+	before := time.Now()
+	for i := 0; i < messages; i++ {
+		wg.Add(1)
+		if _, err := s.Write(data); err != nil {
+			panic(err)
+		}
+	}
+
+	wg.Wait()
+	if !within(time.Since(before), time.Duration(time.Second*2), time.Second/3) {
+		t.Fatal("Expected 2ish seconds but got ", time.Since(before))
+	}
 }
