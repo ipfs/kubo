@@ -25,10 +25,7 @@ import (
 	path "github.com/ipfs/go-ipfs/path"
 )
 
-func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]key.Key, error) {
-	// TODO(cryptix): do we want a ctx as first param for (Un)Pin() as well, just like core.Resolve?
-	ctx := n.Context()
-
+func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, fpath := range paths {
 		dagnode, err := core.Resolve(ctx, n, path.Path(fpath))
@@ -62,9 +59,7 @@ func Pin(n *core.IpfsNode, paths []string, recursive bool) ([]key.Key, error) {
 	return out, nil
 }
 
-func Unpin(n *core.IpfsNode, paths []string, recursive bool) ([]key.Key, error) {
-	// TODO(cryptix): do we want a ctx as first param for (Un)Pin() as well, just like core.Resolve?
-	ctx := n.Context()
+func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]key.Key, error) {
 
 	dagnodes := make([]*merkledag.Node, 0)
 	for _, fpath := range paths {

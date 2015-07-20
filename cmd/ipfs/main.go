@@ -335,6 +335,13 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	} else {
 		log.Debug("Executing command locally")
 
+		ctx, err := cmds.GetContext(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+
+		req.Context().Context = ctx
+
 		// Okay!!!!! NOW we can call the command.
 		res = root.Call(req)
 

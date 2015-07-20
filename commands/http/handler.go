@@ -7,10 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
@@ -108,29 +106,11 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tout, found, err := req.Option("timeout").String()
+	ctx, err := cmds.GetContext(node.Context(), req)
 	if err != nil {
 		err = fmt.Errorf("error parsing timeout option: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	var ctx context.Context
-	if found {
-		duration, err := time.ParseDuration(tout)
-		if err != nil {
-			err = fmt.Errorf("error parsing timeout option: %s", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		tctx, cancel := context.WithTimeout(node.Context(), duration)
-		defer cancel()
-		ctx = tctx
-	} else {
-		cctx, cancel := context.WithCancel(node.Context())
-		defer cancel()
-		ctx = cctx
 	}
 
 	//ps: take note of the name clash - commands.Context != context.Context

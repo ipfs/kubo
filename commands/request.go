@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/commands/files"
@@ -296,4 +297,26 @@ func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd 
 	}
 
 	return req, nil
+}
+
+func GetContext(base context.Context, req Request) (context.Context, error) {
+	tout, found, err := req.Option("timeout").String()
+	if err != nil {
+		return nil, fmt.Errorf("error parsing timeout option: %s", err)
+	}
+
+	var ctx context.Context
+	if found {
+		duration, err := time.ParseDuration(tout)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing timeout option: %s", err)
+		}
+
+		tctx, _ := context.WithTimeout(base, duration)
+		ctx = tctx
+	} else {
+		cctx, _ := context.WithCancel(base)
+		ctx = cctx
+	}
+	return ctx, nil
 }

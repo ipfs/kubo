@@ -60,7 +60,12 @@ on disk.
 			recursive = false
 		}
 
-		added, err := corerepo.Pin(n, req.Arguments(), recursive)
+		go func() {
+			<-req.Context().Context.Done()
+			log.Error("CONTEXT IS OVER!")
+		}()
+
+		added, err := corerepo.Pin(n, req.Context().Context, req.Arguments(), recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -125,7 +130,7 @@ collected if needed.
 			recursive = false // default
 		}
 
-		removed, err := corerepo.Unpin(n, req.Arguments(), recursive)
+		removed, err := corerepo.Unpin(n, req.Context().Context, req.Arguments(), recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
