@@ -79,7 +79,7 @@ Resolve the value of another name recursively:
 		}
 
 		output, err := n.Namesys.ResolveN(n.Context(), name, depth)
-		if err != nil {
+		if err != nil && (err != namesys.ErrResolveRecursion || depth > 1) {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
