@@ -43,28 +43,42 @@ func TestNotifications(t *testing.T) {
 	// test everyone got the correct connection opened calls
 	for i, s := range nets {
 		n := notifiees[i]
-		notifs := make(map[peer.ID]inet.Conn)
-		for j := 0; j < len(nets)-1; j++ {
-			select {
-			case c := <-n.connected:
-				_, ok := notifs[c.RemotePeer()]
-				if ok {
-					t.Fatal("shouldnt have received more than one connection per peer")
+		notifs := make(map[peer.ID][]inet.Conn)
+		for j, s2 := range nets {
+			if i == j {
+				continue
+			}
+
+			// this feels a little sketchy, but its probably okay
+			for len(s.ConnsToPeer(s2.LocalPeer())) != len(notifs[s2.LocalPeer()]) {
+				select {
+				case c := <-n.connected:
+					nfp := notifs[c.RemotePeer()]
+					notifs[c.RemotePeer()] = append(nfp, c)
+				case <-time.After(timeout):
+					t.Fatal("timeout")
 				}
-				notifs[c.RemotePeer()] = c
-			case <-time.After(timeout):
-				t.Fatal("timeout")
 			}
 		}
 
-		for p, con := range notifs {
+		for p, cons := range notifs {
 			expect := s.ConnsToPeer(p)
-			if len(expect) != 1 {
-				t.Fatal("got more than one connection, not supposed to happen")
+			if len(expect) != len(cons) {
+				t.Fatal("got different number of connections")
 			}
 
-			if expect[0] != con {
-				t.Fatal("got different connection than we expected")
+			for _, c := range cons {
+				var found bool
+				for _, c2 := range expect {
+					if c == c2 {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					t.Fatal("connection not found!")
+				}
 			}
 		}
 	}
