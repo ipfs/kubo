@@ -88,7 +88,7 @@ remains to be implemented.
 		return nil
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

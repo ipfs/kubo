@@ -97,13 +97,13 @@ baz
 		cmds.StringOption("ipns-path", "n", "The path where IPNS should be mounted"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		cfg, err := req.Context().GetConfig()
+		cfg, err := req.InvocContext().GetConfig()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		node, err := req.Context().GetNode()
+		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

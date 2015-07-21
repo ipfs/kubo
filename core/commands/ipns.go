@@ -47,7 +47,7 @@ Resolve the value of another name:
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -81,7 +81,7 @@ Resolve the value of another name:
 		}
 
 		resolver := namesys.NewRoutingResolver(n.Routing)
-		output, err := resolver.ResolveN(n.Context(), name, depth)
+		output, err := resolver.ResolveN(req.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -62,7 +62,7 @@ The resolver will give:
 		if recursive {
 			depth = namesys.DefaultDepthLimit
 		}
-		output, err := resolver.ResolveN(req.Context().Context, name, depth)
+		output, err := resolver.ResolveN(req.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

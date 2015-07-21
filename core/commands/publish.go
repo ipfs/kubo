@@ -51,7 +51,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		log.Debug("Begin Publish")
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -90,7 +90,7 @@ Publish an <ipfs-path> to another public key (not implemented):
 
 		// TODO n.Keychain.Get(name).PrivKey
 		// TODO(cryptix): is req.Context().Context a child of n.Context()?
-		output, err := publish(req.Context().Context, n, n.PrivateKey, path.Path(pstr))
+		output, err := publish(req.Context(), n, n.PrivateKey, path.Path(pstr))
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -84,7 +84,7 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	ec := make(chan error, 1)
 	rc := make(chan cmds.Response, 1)
-	dc := req.Context().Context.Done()
+	dc := req.Context().Done()
 
 	go func() {
 		httpRes, err := http.DefaultClient.Do(httpReq)
@@ -181,7 +181,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 			dec := json.NewDecoder(httpRes.Body)
 			outputType := reflect.TypeOf(req.Command().Type)
 
-			ctx := req.Context().Context
+			ctx := req.Context()
 
 			for {
 				var v interface{}

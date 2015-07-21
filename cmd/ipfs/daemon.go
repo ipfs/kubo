@@ -110,11 +110,11 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
-	ctx := req.Context()
+	ctx := req.InvocContext()
 
 	go func() {
 		select {
-		case <-ctx.Context.Done():
+		case <-req.Context().Done():
 			fmt.Println("Received interrupt signal, shutting down...")
 		}
 	}()
@@ -141,8 +141,8 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		// configured. Consider moving this into a config helper method
 		// `IsInitialized` where the quality of the signal can be improved over
 		// time, and many call-sites can benefit.
-		if !util.FileExists(req.Context().ConfigRoot) {
-			err := initWithDefaults(os.Stdout, req.Context().ConfigRoot)
+		if !util.FileExists(req.InvocContext().ConfigRoot) {
+			err := initWithDefaults(os.Stdout, req.InvocContext().ConfigRoot)
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -152,7 +152,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(req.Context().ConfigRoot)
+	repo, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
@@ -190,7 +190,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		nb.SetRouting(corerouting.SupernodeClient(infos...))
 	}
 
-	node, err := nb.Build(ctx.Context)
+	node, err := nb.Build(req.Context())
 	if err != nil {
 		log.Error("error from node construction: ", err)
 		res.SetError(err, cmds.ErrNormal)
@@ -205,13 +205,13 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 		node.Close()
 
 		select {
-		case <-ctx.Context.Done():
+		case <-req.Context().Done():
 			log.Info("Gracefully shut down daemon")
 		default:
 		}
 	}()
 
-	req.Context().ConstructNode = func() (*core.IpfsNode, error) {
+	req.InvocContext().ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
 
@@ -258,7 +258,7 @@ func daemonFunc(req cmds.Request, res cmds.Response) {
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests
 func serveHTTPApi(req cmds.Request) (error, <-chan error) {
-	cfg, err := req.Context().GetConfig()
+	cfg, err := req.InvocContext().GetConfig()
 	if err != nil {
 		return fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err), nil
 	}
@@ -299,7 +299,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		},
 	})
 	var opts = []corehttp.ServeOption{
-		corehttp.CommandsOption(*req.Context()),
+		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
 		apiGw.ServeOption(),
 		corehttp.VersionOption(),
@@ -313,7 +313,7 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}
 
-	node, err := req.Context().ConstructNode()
+	node, err := req.InvocContext().ConstructNode()
 	if err != nil {
 		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
 	}
@@ -341,7 +341,7 @@ func printSwarmAddrs(node *core.IpfsNode) {
 
 // serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
 func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
-	cfg, err := req.Context().GetConfig()
+	cfg, err := req.InvocContext().GetConfig()
 	if err != nil {
 		return fmt.Errorf("serveHTTPGateway: GetConfig() failed: %s", err), nil
 	}
@@ -382,7 +382,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}
 
-	node, err := req.Context().ConstructNode()
+	node, err := req.InvocContext().ConstructNode()
 	if err != nil {
 		return fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err), nil
 	}
@@ -397,7 +397,7 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 
 //collects options and opens the fuse mountpoint
 func mountFuse(req cmds.Request) error {
-	cfg, err := req.Context().GetConfig()
+	cfg, err := req.InvocContext().GetConfig()
 	if err != nil {
 		return fmt.Errorf("mountFuse: GetConfig() failed: %s", err)
 	}
@@ -418,7 +418,7 @@ func mountFuse(req cmds.Request) error {
 		nsdir = cfg.Mounts.IPNS
 	}
 
-	node, err := req.Context().ConstructNode()
+	node, err := req.InvocContext().ConstructNode()
 	if err != nil {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}

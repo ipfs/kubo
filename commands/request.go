@@ -19,10 +19,6 @@ import (
 type OptMap map[string]interface{}
 
 type Context struct {
-	// this Context is temporary. Will be replaced soon, as we get
-	// rid of this variable entirely.
-	Context context.Context
-
 	Online     bool
 	ConfigRoot string
 
@@ -76,8 +72,10 @@ type Request interface {
 	SetArguments([]string)
 	Files() files.File
 	SetFiles(files.File)
-	Context() *Context
-	SetContext(Context)
+	Context() context.Context
+	SetRootContext(context.Context) error
+	InvocContext() *Context
+	SetInvocContext(Context)
 	Command() *Command
 	Values() map[string]interface{}
 	Stdin() io.Reader
@@ -92,6 +90,7 @@ type request struct {
 	files      files.File
 	cmd        *Command
 	ctx        Context
+	rctx       context.Context
 	optionDefs map[string]Option
 	values     map[string]interface{}
 	stdin      io.Reader
@@ -129,6 +128,16 @@ func (r *request) Options() OptMap {
 		output[k] = v
 	}
 	return output
+}
+
+func (r *request) SetRootContext(ctx context.Context) error {
+	ctx, err := getContext(ctx, r)
+	if err != nil {
+		return err
+	}
+
+	r.rctx = ctx
+	return nil
 }
 
 // SetOption sets the value of the option for given name.
@@ -174,11 +183,37 @@ func (r *request) SetFiles(f files.File) {
 	r.files = f
 }
 
-func (r *request) Context() *Context {
+func (r *request) Context() context.Context {
+	return r.rctx
+}
+
+func getContext(base context.Context, req Request) (context.Context, error) {
+	tout, found, err := req.Option("timeout").String()
+	if err != nil {
+		return nil, fmt.Errorf("error parsing timeout option: %s", err)
+	}
+
+	var ctx context.Context
+	if found {
+		duration, err := time.ParseDuration(tout)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing timeout option: %s", err)
+		}
+
+		tctx, _ := context.WithTimeout(base, duration)
+		ctx = tctx
+	} else {
+		cctx, _ := context.WithCancel(base)
+		ctx = cctx
+	}
+	return ctx, nil
+}
+
+func (r *request) InvocContext() *Context {
 	return &r.ctx
 }
 
-func (r *request) SetContext(ctx Context) {
+func (r *request) SetInvocContext(ctx Context) {
 	r.ctx = ctx
 }
 
@@ -275,48 +310,30 @@ func NewEmptyRequest() (Request, error) {
 // NewRequest returns a request initialized with given arguments
 // An non-nil error will be returned if the provided option values are invalid
 func NewRequest(path []string, opts OptMap, args []string, file files.File, cmd *Command, optDefs map[string]Option) (Request, error) {
-	if path == nil {
-		path = make([]string, 0)
-	}
 	if opts == nil {
 		opts = make(OptMap)
-	}
-	if args == nil {
-		args = make([]string, 0)
 	}
 	if optDefs == nil {
 		optDefs = make(map[string]Option)
 	}
 
-	ctx := Context{Context: context.TODO()}
+	ctx := Context{}
 	values := make(map[string]interface{})
-	req := &request{path, opts, args, file, cmd, ctx, optDefs, values, os.Stdin}
+	req := &request{
+		path:       path,
+		options:    opts,
+		arguments:  args,
+		files:      file,
+		cmd:        cmd,
+		ctx:        ctx,
+		optionDefs: optDefs,
+		values:     values,
+		stdin:      os.Stdin,
+	}
 	err := req.ConvertOptions()
 	if err != nil {
 		return nil, err
 	}
 
 	return req, nil
-}
-
-func GetContext(base context.Context, req Request) (context.Context, error) {
-	tout, found, err := req.Option("timeout").String()
-	if err != nil {
-		return nil, fmt.Errorf("error parsing timeout option: %s", err)
-	}
-
-	var ctx context.Context
-	if found {
-		duration, err := time.ParseDuration(tout)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing timeout option: %s", err)
-		}
-
-		tctx, _ := context.WithTimeout(base, duration)
-		ctx = tctx
-	} else {
-		cctx, _ := context.WithCancel(base)
-		ctx = cctx
-	}
-	return ctx, nil
 }

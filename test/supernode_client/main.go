@@ -233,8 +233,6 @@ func toPeerInfo(bootstrap config.BootstrapPeer) (p peer.PeerInfo, err error) {
 
 func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
 	return commands.Context{
-		// TODO deprecate this shit
-		Context:    context.Background(),
 		Online:     true,
 		ConfigRoot: repoPath,
 		LoadConfig: func(path string) (*config.Config, error) {

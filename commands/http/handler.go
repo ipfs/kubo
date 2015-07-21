@@ -106,17 +106,13 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, err := cmds.GetContext(node.Context(), req)
+	//ps: take note of the name clash - commands.Context != context.Context
+	req.SetInvocContext(i.ctx)
+	err = req.SetRootContext(node.Context())
 	if err != nil {
-		err = fmt.Errorf("error parsing timeout option: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	//ps: take note of the name clash - commands.Context != context.Context
-	cmdctx := i.ctx
-	cmdctx.Context = ctx
-	req.SetContext(cmdctx)
 
 	// call the command
 	res := i.root.Call(req)

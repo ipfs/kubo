@@ -27,13 +27,13 @@ it contains.
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.Context().GetNode()
+		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
-		readers, length, err := cat(req.Context().Context, node, req.Arguments())
+		readers, length, err := cat(req.Context(), node, req.Arguments())
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

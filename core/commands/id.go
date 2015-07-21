@@ -56,7 +56,7 @@ ipfs id supports the format option for output with the following keys:
 		cmds.StringOption("f", "format", "optional output format"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.Context().GetNode()
+		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -86,7 +86,7 @@ ipfs id supports the format option for output with the following keys:
 			return
 		}
 
-		p, err := node.Routing.FindPeer(req.Context().Context, id)
+		p, err := node.Routing.FindPeer(req.Context(), id)
 		if err == kb.ErrLookupFailure {
 			res.SetError(errors.New(offlineIdErrorMessage), cmds.ErrClient)
 			return

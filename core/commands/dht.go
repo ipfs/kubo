@@ -45,7 +45,7 @@ var queryDhtCmd = &cmds.Command{
 		cmds.BoolOption("verbose", "v", "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -58,7 +58,7 @@ var queryDhtCmd = &cmds.Command{
 		}
 
 		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		closestPeers, err := dht.GetClosestPeers(ctx, key.Key(req.Arguments()[0]))
 		if err != nil {
@@ -152,7 +152,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 		cmds.BoolOption("verbose", "v", "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -170,7 +170,7 @@ FindProviders will return a list of peers who are able to provide the value requ
 		res.SetOutput((<-chan interface{})(outChan))
 
 		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		pchan := dht.FindProvidersAsync(ctx, key.B58KeyDecode(req.Arguments()[0]), numProviders)
 		go func() {
@@ -265,7 +265,7 @@ var findPeerDhtCmd = &cmds.Command{
 		cmds.StringArg("peerID", true, true, "The peer to search for"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -287,7 +287,7 @@ var findPeerDhtCmd = &cmds.Command{
 		res.SetOutput((<-chan interface{})(outChan))
 
 		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		go func() {
 			defer close(outChan)
@@ -375,7 +375,7 @@ GetValue will return the value stored in the dht at the given key.
 		cmds.BoolOption("verbose", "v", "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -391,7 +391,7 @@ GetValue will return the value stored in the dht at the given key.
 		res.SetOutput((<-chan interface{})(outChan))
 
 		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		go func() {
 			defer close(outChan)
@@ -483,7 +483,7 @@ PutValue will store the given key value pair in the dht.
 		cmds.BoolOption("verbose", "v", "Write extra information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -499,7 +499,7 @@ PutValue will store the given key value pair in the dht.
 		res.SetOutput((<-chan interface{})(outChan))
 
 		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context().Context, events)
+		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 
 		key := key.B58KeyDecode(req.Arguments()[0])
 		data := req.Arguments()[1]

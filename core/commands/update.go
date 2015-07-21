@@ -33,7 +33,7 @@ var updateCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -73,7 +73,7 @@ var UpdateCheckCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -109,7 +109,7 @@ var UpdateLogCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

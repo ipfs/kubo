@@ -192,12 +192,12 @@ func (i *cmdInvocation) constructNodeFunc(ctx context.Context) func() (*core.Ipf
 			return nil, errors.New("constructing node without a request")
 		}
 
-		cmdctx := i.req.Context()
+		cmdctx := i.req.InvocContext()
 		if cmdctx == nil {
 			return nil, errors.New("constructing node without a request context")
 		}
 
-		r, err := fsrepo.Open(i.req.Context().ConfigRoot)
+		r, err := fsrepo.Open(i.req.InvocContext().ConfigRoot)
 		if err != nil { // repo is owned by the node
 			return nil, err
 		}
@@ -238,7 +238,7 @@ func (i *cmdInvocation) Parse(ctx context.Context, args []string) error {
 	log.Debugf("config path is %s", repoPath)
 
 	// this sets up the function that will initialize the config lazily.
-	cmdctx := i.req.Context()
+	cmdctx := i.req.InvocContext()
 	cmdctx.ConfigRoot = repoPath
 	cmdctx.LoadConfig = loadConfig
 	// this sets up the function that will initialize the node
@@ -279,10 +279,13 @@ func callPreCommandHooks(ctx context.Context, details cmdDetails, req cmds.Reque
 }
 
 func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd *cmds.Command) (cmds.Response, error) {
-	log.Info(config.EnvDir, " ", req.Context().ConfigRoot)
+	log.Info(config.EnvDir, " ", req.InvocContext().ConfigRoot)
 	var res cmds.Response
 
-	req.Context().Context = ctx
+	err := req.SetRootContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	details, err := commandDetails(req.Path(), root)
 	if err != nil {
@@ -309,7 +312,7 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 
 	if useDaemon {
 
-		cfg, err := req.Context().GetConfig()
+		cfg, err := req.InvocContext().GetConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -335,12 +338,10 @@ func callCommand(ctx context.Context, req cmds.Request, root *cmds.Command, cmd 
 	} else {
 		log.Debug("Executing command locally")
 
-		ctx, err := cmds.GetContext(ctx, req)
+		err := req.SetRootContext(ctx)
 		if err != nil {
 			return nil, err
 		}
-
-		req.Context().Context = ctx
 
 		// Okay!!!!! NOW we can call the command.
 		res = root.Call(req)
@@ -399,7 +400,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req cmds.Request, root *cmds.C
 
 	// at this point need to know whether daemon is running. we defer
 	// to this point so that some commands dont open files unnecessarily.
-	daemonLocked, err := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+	daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
 	if err != nil {
 		return false, err
 	}

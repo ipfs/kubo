@@ -80,7 +80,7 @@ var logTailCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		path := fmt.Sprintf("%s/logs/events.log", req.Context().ConfigRoot)
+		path := fmt.Sprintf("%s/logs/events.log", req.InvocContext().ConfigRoot)
 
 		outChan := make(chan interface{})
 
@@ -99,7 +99,7 @@ var logTailCmd = &cmds.Command{
 			}
 			defer t.Stop()
 
-			done := req.Context().Context.Done()
+			done := req.Context().Done()
 
 			for line := range t.Lines {
 				// return when context closes
