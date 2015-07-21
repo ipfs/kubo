@@ -13,6 +13,8 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	config "github.com/ipfs/go-ipfs/repo/config"
+
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 const (
@@ -34,6 +36,14 @@ func NewClient(address string) Client {
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
+
+	if req.Context() == nil {
+		log.Warningf("no context set in request")
+		err := req.SetRootContext(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// save user-provided encoding
 	previousUserProvidedEncoding, found, err := req.Option(cmds.EncShort).String()
