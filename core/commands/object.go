@@ -453,7 +453,9 @@ This removes the link named foo from the hash in $FOO_BAR and returns the
 resulting object hash.
 `,
 	},
-	Options: []cmds.Option{},
+	Options: []cmds.Option{
+		cmds.BoolOption("create", "p", "create intermediate directories on add-link"),
+	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "the hash of the node to modify"),
 		cmds.StringArg("command", true, false, "the operation to perform"),
@@ -610,7 +612,12 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 
 	parts := strings.Split(path, "/")
 
-	nnode, err := insertNodeAtPath(req.Context(), nd.DAG, root, parts, childk)
+	create, _, err := req.Option("create").Bool()
+	if err != nil {
+		return "", err
+	}
+
+	nnode, err := insertNodeAtPath(req.Context(), nd.DAG, root, parts, childk, create)
 	if err != nil {
 		return "", err
 	}
@@ -619,12 +626,14 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 
 func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 	childnd, err := ds.Get(ctx, childk)
 	if err != nil {
-		cancel()
 		return nil, err
 	}
-	cancel()
+
+	// ensure no link with that name already exists
+	_ = root.RemoveNodeLink(childname) // ignore error, only option is ErrNotFound
 
 	err = root.AddNodeLinkClean(childname, childnd)
 	if err != nil {
@@ -638,31 +647,33 @@ func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname s
 	return root, nil
 }
 
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key) (*dag.Node, error) {
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key, create bool) (*dag.Node, error) {
 	if len(path) == 1 {
 		return addLink(ctx, ds, root, path[0], toinsert)
 	}
 
+	var nd *dag.Node
 	child, err := root.GetNodeLink(path[0])
 	if err != nil {
-		return nil, err
+		// if 'create' is true, we create directories on the way down as needed
+		if err == dag.ErrNotFound && create {
+			nd = &dag.Node{Data: ft.FolderPBData()}
+		} else {
+			return nil, err
+		}
+	} else {
+		nd, err = child.GetNode(ctx, ds)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	nd, err := child.GetNode(ctx, ds)
+	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert, create)
 	if err != nil {
 		return nil, err
 	}
 
-	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert)
-	if err != nil {
-		return nil, err
-	}
-
-	err = root.RemoveNodeLink(path[0])
-	if err != nil {
-		return nil, err
-	}
-
+	_ = root.RemoveNodeLink(path[0])
 	err = root.AddNodeLinkClean(path[0], ndprime)
 	if err != nil {
 		return nil, err

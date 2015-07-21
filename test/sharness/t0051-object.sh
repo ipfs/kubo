@@ -145,6 +145,16 @@ test_object_cmd() {
 		echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > rmlink_exp &&
 		test_cmp rmlink_exp rmlink_output
 	'
+
+	test_expect_success "object patch --create works" '
+		OUT=$(ipfs object patch --create $EMPTY add-link a/b/c $FILE)
+	'
+
+	test_expect_success "result looks good" '
+		ipfs cat $OUT/a/b/c > p2_hwfile &&
+		test_cmp hwfile p2_hwfile
+	'
+
 }
 
 # should work offline
