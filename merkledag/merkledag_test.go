@@ -109,12 +109,19 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 		return
 	}
 
+	k, err := n.Key()
+	if err != nil {
+		t.Error("n.Key() failed")
+		return
+	}
+
 	expected := NodeStat{
 		NumLinks:       len(n.Links),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data), // includes framing.
 		DataSize:       len(n.Data),
 		CumulativeSize: int(cumSize),
+		Hash:           k.B58String(),
 	}
 
 	actual, err := n.Stat()
@@ -124,7 +131,7 @@ func SubtestNodeStat(t *testing.T, n *Node) {
 	}
 
 	if expected != *actual {
-		t.Error("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
+		t.Errorf("n.Stat incorrect.\nexpect: %s\nactual: %s", expected, actual)
 	} else {
 		fmt.Printf("n.Stat correct: %s\n", actual)
 	}
