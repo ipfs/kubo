@@ -34,7 +34,7 @@ var initCmd = &cmds.Command{
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs"),
 	},
 	PreRun: func(req cmds.Request) error {
-		daemonLocked, err := fsrepo.LockedByOtherProcess(req.Context().ConfigRoot)
+		daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
 		if err != nil {
 			return err
 		}
@@ -48,7 +48,7 @@ var initCmd = &cmds.Command{
 		return nil
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		if req.Context().Online {
+		if req.InvocContext().Online {
 			res.SetError(errors.New("init must be run offline only!"), cmds.ErrNormal)
 			return
 		}
@@ -69,7 +69,7 @@ var initCmd = &cmds.Command{
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		if err := doInit(os.Stdout, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
+		if err := doInit(os.Stdout, req.InvocContext().ConfigRoot, force, nBitsForKeypair); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}

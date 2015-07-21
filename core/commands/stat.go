@@ -40,7 +40,7 @@ var statBwCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.Context().GetNode()
+		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -121,7 +121,7 @@ var statBwCmd = &cmds.Command{
 				}
 				select {
 				case <-time.After(interval):
-				case <-req.Context().Context.Done():
+				case <-req.Context().Done():
 					return
 				}
 			}

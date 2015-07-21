@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
@@ -106,20 +105,14 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	ctx, cancel := context.WithCancel(node.Context())
-	defer cancel()
-	/*
-		TODO(cryptix): the next line looks very fishy to me..
-		It looks like the the context for the command request beeing prepared here is shared across all incoming requests..
 
-		I assume it really isn't because ServeHTTP() doesn't take a pointer receiver, but it's really subtule..
-
-		Shouldn't the context be just put on the command request?
-
-		ps: take note of the name clash - commands.Context != context.Context
-	*/
-	i.ctx.Context = ctx
-	req.SetContext(i.ctx)
+	//ps: take note of the name clash - commands.Context != context.Context
+	req.SetInvocContext(i.ctx)
+	err = req.SetRootContext(node.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// call the command
 	res := i.root.Call(req)

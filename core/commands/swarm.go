@@ -61,7 +61,7 @@ ipfs swarm peers lists the set of peers this node is connected to.
 	Run: func(req cmds.Request, res cmds.Response) {
 
 		log.Debug("ipfs swarm peers")
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -101,7 +101,7 @@ ipfs swarm addrs lists all addresses this node is aware of.
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -164,7 +164,7 @@ ipfs swarm addrs local lists all local addresses the node is listening on.
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -213,7 +213,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := context.TODO()
 
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -266,7 +266,7 @@ ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQA
 		cmds.StringArg("address", true, true, "address of peer to connect to").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -386,7 +386,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 		"rm":  swarmFiltersRmCmd,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -433,7 +433,7 @@ add your filters to the ipfs config file.
 		cmds.StringArg("address", true, true, "multiaddr to filter").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -475,7 +475,7 @@ remove your filters from the ipfs config file.
 		cmds.StringArg("address", true, true, "multiaddr filter to remove").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

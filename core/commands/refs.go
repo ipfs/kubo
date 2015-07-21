@@ -56,8 +56,8 @@ Note: list all refs recursively with -r.
 		cmds.BoolOption("recursive", "r", "Recursively list links of child nodes"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context().Context
-		n, err := req.Context().GetNode()
+		ctx := req.Context()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -156,8 +156,8 @@ Displays the hashes of all local objects.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context().Context
-		n, err := req.Context().GetNode()
+		ctx := req.Context()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

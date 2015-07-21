@@ -59,7 +59,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		node, err := req.Context().GetNode()
+		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -69,9 +69,9 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		var reader io.Reader
 		if archive, _, _ := req.Option("archive").Bool(); !archive && cmplvl != gzip.NoCompression {
 			// only use this when the flag is '-C' without '-a'
-			reader, err = getZip(req.Context().Context, node, p, cmplvl)
+			reader, err = getZip(req.Context(), node, p, cmplvl)
 		} else {
-			reader, err = get(req.Context().Context, node, p, cmplvl)
+			reader, err = get(req.Context(), node, p, cmplvl)
 		}
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)

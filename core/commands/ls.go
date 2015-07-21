@@ -50,7 +50,7 @@ it contains, with the following format:
 		cmds.BoolOption("headers", "", "Print table headers (Hash, Name, Size)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.Context().GetNode()
+		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -66,7 +66,7 @@ it contains, with the following format:
 
 		var dagnodes []*merkledag.Node
 		for _, fpath := range paths {
-			dagnode, err := core.Resolve(req.Context().Context, node, path.Path(fpath))
+			dagnode, err := core.Resolve(req.Context(), node, path.Path(fpath))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
@@ -81,7 +81,7 @@ it contains, with the following format:
 				Links: make([]LsLink, len(dagnode.Links)),
 			}
 			for j, link := range dagnode.Links {
-				ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+				ctx, cancel := context.WithTimeout(req.Context(), time.Minute)
 				defer cancel()
 				link.Node, err = link.GetNode(ctx, node.DAG)
 				if err != nil {

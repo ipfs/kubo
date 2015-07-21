@@ -93,14 +93,14 @@ output is the raw data of the object.
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
 		fpath := path.Path(req.Arguments()[0])
-		node, err := core.Resolve(req.Context().Context, n, fpath)
+		node, err := core.Resolve(req.Context(), n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -123,14 +123,14 @@ multihash.
 		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 
 		fpath := path.Path(req.Arguments()[0])
-		node, err := core.Resolve(req.Context().Context, n, fpath)
+		node, err := core.Resolve(req.Context(), n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -182,7 +182,7 @@ This command outputs data in the following encodings:
 		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -190,7 +190,7 @@ This command outputs data in the following encodings:
 
 		fpath := path.Path(req.Arguments()[0])
 
-		object, err := core.Resolve(req.Context().Context, n, fpath)
+		object, err := core.Resolve(req.Context(), n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -248,7 +248,7 @@ var objectStatCmd = &cmds.Command{
 		cmds.StringArg("key", true, false, "Key of the object to retrieve (in base58-encoded multihash format)").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -256,7 +256,7 @@ var objectStatCmd = &cmds.Command{
 
 		fpath := path.Path(req.Arguments()[0])
 
-		object, err := core.Resolve(req.Context().Context, n, fpath)
+		object, err := core.Resolve(req.Context(), n, fpath)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -335,7 +335,7 @@ and then run
 		cmds.StringOption("inputenc", "Encoding type of input data, either \"protobuf\" or \"json\""),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -397,7 +397,7 @@ Available templates:
 		cmds.StringArg("template", false, false, "optional template to use"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -461,7 +461,7 @@ resulting object hash.
 	},
 	Type: Object{},
 	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.Context().GetNode()
+		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -473,7 +473,7 @@ resulting object hash.
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(req.Context().Context, time.Second*30)
+		ctx, cancel := context.WithTimeout(req.Context(), time.Second*30)
 		rnode, err := nd.DAG.Get(ctx, rhash)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
@@ -535,7 +535,7 @@ func appendDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", fmt.Errorf("not enough arguments for set-data")
 	}
 
-	nd, err := req.Context().GetNode()
+	nd, err := req.InvocContext().GetNode()
 	if err != nil {
 		return "", err
 	}
@@ -555,7 +555,7 @@ func setDataCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", fmt.Errorf("not enough arguments for set-data")
 	}
 
-	nd, err := req.Context().GetNode()
+	nd, err := req.InvocContext().GetNode()
 	if err != nil {
 		return "", err
 	}
@@ -575,7 +575,7 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", fmt.Errorf("not enough arguments for rm-link")
 	}
 
-	nd, err := req.Context().GetNode()
+	nd, err := req.InvocContext().GetNode()
 	if err != nil {
 		return "", err
 	}
@@ -600,7 +600,7 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", fmt.Errorf("not enough arguments for add-link")
 	}
 
-	nd, err := req.Context().GetNode()
+	nd, err := req.InvocContext().GetNode()
 	if err != nil {
 		return "", err
 	}
@@ -610,7 +610,7 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 
 	parts := strings.Split(path, "/")
 
-	nnode, err := insertNodeAtPath(req.Context().Context, nd.DAG, root, parts, childk)
+	nnode, err := insertNodeAtPath(req.Context(), nd.DAG, root, parts, childk)
 	if err != nil {
 		return "", err
 	}

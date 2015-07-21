@@ -65,7 +65,7 @@ Set the value of the 'datastore.path' key:
 		args := req.Arguments()
 		key := args[0]
 
-		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -141,7 +141,7 @@ included in the output of this command.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.Context().ConfigRoot)
+		filename, err := config.Filename(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -166,7 +166,7 @@ variable set to your preferred text editor.
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.Context().ConfigRoot)
+		filename, err := config.Filename(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -192,7 +192,7 @@ can't be undone.
 		cmds.FileArg("file", true, false, "The file to use as the new config"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		r, err := fsrepo.Open(req.Context().ConfigRoot)
+		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

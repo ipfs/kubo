@@ -33,7 +33,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer`,
 	},
 	Type: KeyList{},
 	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.Context().GetNode()
+		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -78,7 +78,7 @@ var bitswapStatCmd = &cmds.Command{
 	},
 	Type: bitswap.Stat{},
 	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.Context().GetNode()
+		nd, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -75,8 +75,8 @@ trip latency information.
 		},
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context().Context
-		n, err := req.Context().GetNode()
+		ctx := req.Context()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

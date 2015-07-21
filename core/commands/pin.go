@@ -44,7 +44,7 @@ on disk.
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -60,7 +60,12 @@ on disk.
 			recursive = false
 		}
 
-		added, err := corerepo.Pin(n, req.Arguments(), recursive)
+		go func() {
+			<-req.Context().Done()
+			log.Error("CONTEXT IS OVER!")
+		}()
+
+		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -109,7 +114,7 @@ collected if needed.
 	},
 	Type: PinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -125,7 +130,7 @@ collected if needed.
 			recursive = false // default
 		}
 
-		removed, err := corerepo.Unpin(n, req.Arguments(), recursive)
+		removed, err := corerepo.Unpin(n, req.Context(), req.Arguments(), recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -177,7 +182,7 @@ Defaults to "direct".
 		cmds.BoolOption("quiet", "q", "Write just hashes of objects"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -37,7 +37,7 @@ IPFS very quickly. To start, run:
 
 func tourRunFunc(req cmds.Request, res cmds.Response) {
 
-	cfg, err := req.Context().GetConfig()
+	cfg, err := req.InvocContext().GetConfig()
 	if err != nil {
 		res.SetError(err, cmds.ErrNormal)
 		return
@@ -78,8 +78,8 @@ var cmdIpfsTourNext = &cmds.Command{
 
 	Run: func(req cmds.Request, res cmds.Response) {
 		w := new(bytes.Buffer)
-		path := req.Context().ConfigRoot
-		cfg, err := req.Context().GetConfig()
+		path := req.InvocContext().ConfigRoot
+		cfg, err := req.InvocContext().GetConfig()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -116,8 +116,8 @@ var cmdIpfsTourRestart = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		path := req.Context().ConfigRoot
-		cfg, err := req.Context().GetConfig()
+		path := req.InvocContext().ConfigRoot
+		cfg, err := req.InvocContext().GetConfig()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -138,7 +138,7 @@ var cmdIpfsTourList = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		cfg, err := req.Context().GetConfig()
+		cfg, err := req.InvocContext().GetConfig()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

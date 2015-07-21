@@ -242,7 +242,7 @@ test_expect_success "some are no longer there" '
 
 test_expect_success "recursive pin fails without objects" '
 	ipfs pin rm "$HASH_DIR1" &&
-	test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
+	test_must_fail ipfs pin add -r "$HASH_DIR1" --timeout=500ms 2>err_expected8 &&
 	grep "context deadline exceeded" err_expected8
 '
 

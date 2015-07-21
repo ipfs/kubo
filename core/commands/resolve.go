@@ -57,7 +57,7 @@ Resolve the value of another name recursively:
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -78,7 +78,7 @@ Resolve the value of another name recursively:
 			depth = namesys.DefaultDepthLimit
 		}
 
-		output, err := n.Namesys.ResolveN(n.Context(), name, depth)
+		output, err := n.Namesys.ResolveN(req.Context(), name, depth)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

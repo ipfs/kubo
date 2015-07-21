@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/ipfs/go-ipfs/blocks"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -115,7 +114,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.Context().GetNode()
+		n, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -163,7 +162,7 @@ It reads from stdin, and <key> is a base58 encoded multihash.
 }
 
 func getBlockForKey(req cmds.Request, skey string) (*blocks.Block, error) {
-	n, err := req.Context().GetNode()
+	n, err := req.InvocContext().GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +177,7 @@ func getBlockForKey(req cmds.Request, skey string) (*blocks.Block, error) {
 	}
 
 	k := key.Key(h)
-	b, err := n.Blocks.GetBlock(context.TODO(), k)
+	b, err := n.Blocks.GetBlock(req.Context(), k)
 	if err != nil {
 		return nil, err
 	}

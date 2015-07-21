@@ -52,7 +52,7 @@ size is the IPFS link size.
 		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from").EnableStdin(),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.Context().GetNode()
+		node, err := req.InvocContext().GetNode()
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -66,7 +66,7 @@ size is the IPFS link size.
 		}
 
 		for _, fpath := range paths {
-			ctx := req.Context().Context
+			ctx := req.Context()
 			merkleNode, err := core.Resolve(ctx, node, path.Path(fpath))
 			if err != nil {
 				res.SetError(err, cmds.ErrNormal)
