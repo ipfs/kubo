@@ -23,6 +23,7 @@ type Node struct {
 
 // NodeStat is a statistics object for a Node. Mostly sizes.
 type NodeStat struct {
+	Hash           string
 	NumLinks       int // number of links in link table
 	BlockSize      int // size of the raw, encoded data
 	LinksSize      int // size of the links segment
@@ -201,7 +202,13 @@ func (n *Node) Stat() (*NodeStat, error) {
 		return nil, err
 	}
 
+	key, err := n.Key()
+	if err != nil {
+		return nil, err
+	}
+
 	return &NodeStat{
+		Hash:           key.B58String(),
 		NumLinks:       len(n.Links),
 		BlockSize:      len(enc),
 		LinksSize:      len(enc) - len(n.Data), // includes framing.
