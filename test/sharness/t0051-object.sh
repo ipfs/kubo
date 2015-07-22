@@ -146,6 +146,15 @@ test_object_cmd() {
 		test_cmp rmlink_exp rmlink_output
 	'
 
+	test_expect_success "multilayer rm-link should work" '
+		ipfs object patch $(cat multi_patch) rm-link a/b/c > multi_link_rm_out
+	'
+
+	test_expect_success "output looks good" '
+		echo "QmZD3r9cZjzU8huNY2JS9TC6n8daDfT8TmE8zBSqG31Wvq" > multi_link_rm_exp &&
+		test_cmp multi_link_rm_out multi_link_rm_exp
+	'
+
 	test_expect_success "object patch --create works" '
 		OUT=$(ipfs object patch --create $EMPTY add-link a/b/c $FILE)
 	'
@@ -154,7 +163,6 @@ test_object_cmd() {
 		ipfs cat $OUT/a/b/c > p2_hwfile &&
 		test_cmp hwfile p2_hwfile
 	'
-
 }
 
 # should work offline

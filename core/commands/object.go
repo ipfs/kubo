@@ -582,19 +582,59 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	name := req.Arguments()[2]
+	path := strings.Split(req.Arguments()[2], "/")
 
-	err = root.RemoveNodeLink(name)
+	nnode, err := rmLink(req.Context(), nd.DAG, root, path)
 	if err != nil {
 		return "", err
 	}
 
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
+	return nnode.Key()
+}
+
+func rmLink(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string) (*dag.Node, error) {
+	if len(path) == 1 {
+		// base case, remove node in question
+		err := root.RemoveNodeLink(path[0])
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = ds.Add(root)
+		if err != nil {
+			return nil, err
+		}
+
+		return root, nil
 	}
 
-	return newkey, nil
+	nchild, err := root.GetNodeLink(path[0])
+	if err != nil {
+		return nil, err
+	}
+
+	nd, err := nchild.GetNode(ctx, ds)
+	if err != nil {
+		return nil, err
+	}
+
+	nnode, err := rmLink(ctx, ds, nd, path[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	_ = root.RemoveNodeLink(path[0])
+	err = root.AddNodeLinkClean(path[0], nnode)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = ds.Add(root)
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
 }
 
 func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
