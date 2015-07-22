@@ -469,9 +469,13 @@ resulting object hash.
 			return
 		}
 
-		rhash := key.B58KeyDecode(req.Arguments()[0])
+		rootarg := req.Arguments()[0]
+		if strings.HasPrefix(rootarg, "/ipfs/") {
+			rootarg = rootarg[6:]
+		}
+		rhash := key.B58KeyDecode(rootarg)
 		if rhash == "" {
-			res.SetError(fmt.Errorf("incorrectly formatted root hash"), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("incorrectly formatted root hash: %s", req.Arguments()[0]), cmds.ErrNormal)
 			return
 		}
 
@@ -665,6 +669,10 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 }
 
 func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
+	if childname == "" {
+		return nil, errors.New("cannot create link with no name!")
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 	childnd, err := ds.Get(ctx, childk)
