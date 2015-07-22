@@ -171,12 +171,15 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// w.WriteHeader(200)
 		err = copyChunks(applicationJson, w, out)
 		if err != nil {
-			log.Debug(err)
+			log.Debug("copy chunks error: ", err)
 		}
 		return
 	}
 
-	flushCopy(w, out)
+	err = flushCopy(w, out)
+	if err != nil {
+		log.Debug("Flush copy returned an error: ", err)
+	}
 }
 
 func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -191,8 +194,8 @@ func flushCopy(w http.ResponseWriter, out io.Reader) error {
 		return copyChunks("", w, out)
 	}
 
-	io.Copy(&flushResponse{w}, out)
-	return nil
+	_, err := io.Copy(&flushResponse{w}, out)
+	return err
 }
 
 // Copies from an io.Reader to a http.ResponseWriter.

@@ -102,12 +102,14 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 			ec <- err
 			return
 		}
+
 		// using the overridden JSON encoding in request
 		res, err := getResponse(httpRes, req)
 		if err != nil {
 			ec <- err
 			return
 		}
+
 		rc <- res
 	}()
 
@@ -179,6 +181,8 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		res.SetLength(length)
 	}
 
+	res.SetCloser(httpRes.Body)
+
 	if len(httpRes.Header.Get(streamHeader)) > 0 {
 		// if output is a stream, we can just use the body reader
 		res.SetOutput(httpRes.Body)
@@ -202,8 +206,15 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 				} else {
 					err = dec.Decode(&v)
 				}
+
+				// since we are just looping reading on the response, the only way to
+				// know we are 'done' is for the consumer to close the response body.
+				// doing so doesnt throw an io.EOF, but we want to treat it like one.
+				if err != nil && strings.Contains(err.Error(), "read on closed response body") {
+					err = io.EOF
+				}
 				if err != nil && err != io.EOF {
-					fmt.Println(err.Error())
+					log.Error(err)
 					return
 				}
 
