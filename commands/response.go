@@ -101,6 +101,10 @@ type Response interface {
 	SetLength(uint64)
 	Length() uint64
 
+	// underlying http connections need to be cleaned up, this is for that
+	Close() error
+	SetCloser(io.Closer)
+
 	// Marshal marshals out the response into a buffer. It uses the EncodingType
 	// on the Request to chose a Marshaler (Codec).
 	Marshal() (io.Reader, error)
@@ -121,6 +125,7 @@ type response struct {
 	length uint64
 	stdout io.Writer
 	stderr io.Writer
+	closer io.Closer
 }
 
 func (r *response) Request() Request {
@@ -212,6 +217,17 @@ func (r *response) Reader() (io.Reader, error) {
 	}
 
 	return r.out, nil
+}
+
+func (r *response) Close() error {
+	if r.closer != nil {
+		return r.closer.Close()
+	}
+	return nil
+}
+
+func (r *response) SetCloser(c io.Closer) {
+	r.closer = c
 }
 
 func (r *response) Stdout() io.Writer {
