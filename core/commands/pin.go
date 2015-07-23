@@ -60,11 +60,6 @@ on disk.
 			recursive = false
 		}
 
-		go func() {
-			<-req.Context().Done()
-			log.Error("CONTEXT IS OVER!")
-		}()
-
 		added, err := corerepo.Pin(n, req.Context(), req.Arguments(), recursive)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
