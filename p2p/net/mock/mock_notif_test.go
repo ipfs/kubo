@@ -7,6 +7,7 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	inet "github.com/ipfs/go-ipfs/p2p/net"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
 )
 
 func TestNotifications(t *testing.T) {
@@ -42,31 +43,43 @@ func TestNotifications(t *testing.T) {
 	// test everyone got the correct connection opened calls
 	for i, s := range nets {
 		n := notifiees[i]
-		for _, s2 := range nets {
-			var actual []inet.Conn
-			for len(s.ConnsToPeer(s2.LocalPeer())) != len(actual) {
+		notifs := make(map[peer.ID][]inet.Conn)
+		for j, s2 := range nets {
+			if i == j {
+				continue
+			}
+
+			// this feels a little sketchy, but its probably okay
+			for len(s.ConnsToPeer(s2.LocalPeer())) != len(notifs[s2.LocalPeer()]) {
 				select {
 				case c := <-n.connected:
-					actual = append(actual, c)
+					nfp := notifs[c.RemotePeer()]
+					notifs[c.RemotePeer()] = append(nfp, c)
 				case <-time.After(timeout):
 					t.Fatal("timeout")
 				}
 			}
+		}
 
-			expect := s.ConnsToPeer(s2.LocalPeer())
-			for _, c1 := range actual {
-				found := false
+		for p, cons := range notifs {
+			expect := s.ConnsToPeer(p)
+			if len(expect) != len(cons) {
+				t.Fatal("got different number of connections")
+			}
+
+			for _, c := range cons {
+				var found bool
 				for _, c2 := range expect {
-					if c1 == c2 {
+					if c == c2 {
 						found = true
 						break
 					}
 				}
+
 				if !found {
-					t.Error("connection not found", c1, len(expect), len(actual))
+					t.Fatal("connection not found!")
 				}
 			}
-
 		}
 	}
 
