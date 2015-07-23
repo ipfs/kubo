@@ -231,6 +231,10 @@
 			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
 		},
 		{
+			"ImportPath": "github.com/olekukonko/ts",
+			"Rev": "ecf753e7c962639ab5a1fb46f7da627d4c0a04b8"
+		},
+		{
 			"ImportPath": "github.com/prometheus/client_golang/model",
 			"Comment": "0.6.0-15-g00e4c46",
 			"Rev": "00e4c4629626a912cb8b44f8839a058768fc9c3f"
