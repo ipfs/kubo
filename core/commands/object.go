@@ -18,6 +18,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
@@ -588,57 +589,12 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 
 	path := strings.Split(req.Arguments()[2], "/")
 
-	nnode, err := rmLink(req.Context(), nd.DAG, root, path)
+	nnode, err := dagutils.RmLink(req.Context(), nd.DAG, root, path)
 	if err != nil {
 		return "", err
 	}
 
 	return nnode.Key()
-}
-
-func rmLink(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string) (*dag.Node, error) {
-	if len(path) == 1 {
-		// base case, remove node in question
-		err := root.RemoveNodeLink(path[0])
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = ds.Add(root)
-		if err != nil {
-			return nil, err
-		}
-
-		return root, nil
-	}
-
-	nchild, err := root.GetNodeLink(path[0])
-	if err != nil {
-		return nil, err
-	}
-
-	nd, err := nchild.GetNode(ctx, ds)
-	if err != nil {
-		return nil, err
-	}
-
-	nnode, err := rmLink(ctx, ds, nd, path[1:])
-	if err != nil {
-		return nil, err
-	}
-
-	_ = root.RemoveNodeLink(path[0])
-	err = root.AddNodeLinkClean(path[0], nnode)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-
-	return root, nil
 }
 
 func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
@@ -661,78 +617,11 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	nnode, err := insertNodeAtPath(req.Context(), nd.DAG, root, parts, childk, create)
+	nnode, err := dagutils.InsertNodeAtPath(req.Context(), nd.DAG, root, parts, childk, create)
 	if err != nil {
 		return "", err
 	}
 	return nnode.Key()
-}
-
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
-	if childname == "" {
-		return nil, errors.New("cannot create link with no name!")
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
-	childnd, err := ds.Get(ctx, childk)
-	if err != nil {
-		return nil, err
-	}
-
-	// ensure no link with that name already exists
-	_ = root.RemoveNodeLink(childname) // ignore error, only option is ErrNotFound
-
-	err = root.AddNodeLinkClean(childname, childnd)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-	return root, nil
-}
-
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key, create bool) (*dag.Node, error) {
-	if len(path) == 1 {
-		return addLink(ctx, ds, root, path[0], toinsert)
-	}
-
-	var nd *dag.Node
-	child, err := root.GetNodeLink(path[0])
-	if err != nil {
-		// if 'create' is true, we create directories on the way down as needed
-		if err == dag.ErrNotFound && create {
-			nd = &dag.Node{Data: ft.FolderPBData()}
-		} else {
-			return nil, err
-		}
-	} else {
-		nd, err = child.GetNode(ctx, ds)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert, create)
-	if err != nil {
-		return nil, err
-	}
-
-	_ = root.RemoveNodeLink(path[0])
-	err = root.AddNodeLinkClean(path[0], ndprime)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-
-	return root, nil
 }
 
 func nodeFromTemplate(template string) (*dag.Node, error) {

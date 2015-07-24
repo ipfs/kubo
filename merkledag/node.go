@@ -153,6 +153,15 @@ func (n *Node) GetNodeLink(name string) (*Link, error) {
 	return nil, ErrNotFound
 }
 
+func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*Node, error) {
+	lnk, err := n.GetNodeLink(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return lnk.GetNode(ctx, ds)
+}
+
 // Copy returns a copy of the node.
 // NOTE: does not make copies of Node objects in the links.
 func (n *Node) Copy() *Node {
