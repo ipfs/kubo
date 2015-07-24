@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
+
 	"github.com/ipfs/go-ipfs/commands"
 )
 
@@ -16,12 +18,20 @@ func assertHeaders(t *testing.T, resHeaders http.Header, reqHeaders map[string]s
 	}
 }
 
+func originCfg(origin string) *ServerConfig {
+	return &ServerConfig{
+		CORSOpts: &cors.Options{
+			AllowedOrigins: []string{origin},
+		},
+	}
+}
+
 func TestDisallowedOrigin(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "http://example.com/foo", nil)
 	req.Header.Add("Origin", "http://barbaz.com")
 
-	handler := NewHandler(commands.Context{}, nil, "")
+	handler := NewHandler(commands.Context{}, nil, originCfg(""))
 	handler.ServeHTTP(res, req)
 
 	assertHeaders(t, res.Header(), map[string]string{
@@ -38,7 +48,7 @@ func TestWildcardOrigin(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.com/foo", nil)
 	req.Header.Add("Origin", "http://foobar.com")
 
-	handler := NewHandler(commands.Context{}, nil, "*")
+	handler := NewHandler(commands.Context{}, nil, originCfg("*"))
 	handler.ServeHTTP(res, req)
 
 	assertHeaders(t, res.Header(), map[string]string{
@@ -57,7 +67,7 @@ func TestAllowedMethod(t *testing.T) {
 	req.Header.Add("Origin", "http://www.foobar.com")
 	req.Header.Add("Access-Control-Request-Method", "PUT")
 
-	handler := NewHandler(commands.Context{}, nil, "http://www.foobar.com")
+	handler := NewHandler(commands.Context{}, nil, originCfg("http://www.foobar.com"))
 	handler.ServeHTTP(res, req)
 
 	assertHeaders(t, res.Header(), map[string]string{

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
+	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
@@ -46,33 +46,51 @@ const (
 	plainText              = "text/plain"
 )
 
+var localhostOrigins = []string{
+	"http://127.0.0.1",
+	"https://127.0.0.1",
+	"http://localhost",
+	"https://localhost",
+}
+
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
 	cmds.XML:  "application/xml",
 	cmds.Text: "text/plain",
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
-	// allow whitelisted origins (so we can make API requests from the browser)
-	if len(allowedOrigin) > 0 {
-		log.Info("Allowing API requests from origin: " + allowedOrigin)
+type ServerConfig struct {
+	// AddHeaders is an optional function that gets to write additional
+	// headers to HTTP responses to the API requests.
+	AddHeaders func(http.Header)
+
+	// CORSOpts is a set of options for CORS headers.
+	CORSOpts *cors.Options
+}
+
+func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
+	if cfg == nil {
+		cfg = &ServerConfig{}
 	}
 
-	// Create a handler for the API.
-	internal := internalHandler{ctx, root}
+	if cfg.CORSOpts == nil {
+		cfg.CORSOpts = new(cors.Options)
+	}
 
-	// Create a CORS object for wrapping the internal handler.
-	c := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT"},
+	// by default, use GET, PUT, POST
+	if cfg.CORSOpts.AllowedMethods == nil {
+		cfg.CORSOpts.AllowedMethods = []string{"GET", "POST", "PUT"}
+	}
 
-		// use AllowOriginFunc instead of AllowedOrigins because we want to be
-		// restrictive by default.
-		AllowOriginFunc: func(origin string) bool {
-			return (allowedOrigin == "*") || (origin == allowedOrigin)
-		},
-	})
+	// by default, only let 127.0.0.1 through.
+	if cfg.CORSOpts.AllowedOrigins == nil {
+		cfg.CORSOpts.AllowedOrigins = localhostOrigins
+	}
 
 	// Wrap the internal handler with CORS handling-middleware.
+	// Create a handler for the API.
+	internal := internalHandler{ctx, root}
+	c := cors.New(*cfg.CORSOpts)
 	return &Handler{internal, c.Handler(internal)}
 }
 
@@ -129,7 +147,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := i.root.Call(req)
 
 	// now handle responding to the client properly
-	sendResponse(w, req, res)
+	sendResponse(w, r, req, res)
 }
 
 func guessMimeType(res cmds.Response) (string, error) {
@@ -145,7 +163,7 @@ func guessMimeType(res cmds.Response) (string, error) {
 	return mimeTypes[enc], nil
 }
 
-func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
+func sendResponse(w http.ResponseWriter, r *http.Request, req cmds.Request, res cmds.Response) {
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -202,6 +220,10 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 		h.Set(contentTypeHeader, mime)
 	}
 	h.Set(transferEncodingHeader, "chunked")
+
+	if r.Method == "HEAD" { // after all the headers.
+		return
+	}
 
 	if err := writeResponse(status, w, out); err != nil {
 		log.Error("error while writing stream", err)
