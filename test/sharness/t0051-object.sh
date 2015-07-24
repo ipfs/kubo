@@ -172,7 +172,9 @@ test_object_cmd() {
 	'
 
 	test_patch_create_path $EMPTY a/b/c $FILE
+
 	test_patch_create_path $EMPTY a $FILE
+
 	test_patch_create_path $EMPTY a/b/b/b/b $FILE
 
 	test_expect_success "create bad path fails" '
