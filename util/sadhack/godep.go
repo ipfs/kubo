@@ -8,3 +8,7 @@ import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/dustin/go-hum
 import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/iptb"
 
 import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/chriscool/go-sleep"
+
+// imported by chegga/pb on windows, this is here so running godeps on non-windows doesnt
+// drop it from our vendoring
+import _ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/olekukonko/ts"
