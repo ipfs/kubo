@@ -9,7 +9,7 @@ import (
 	"time"
 
 	proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	cxt "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	mdag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
@@ -28,7 +28,7 @@ type Reader struct {
 	err        error
 }
 
-func NewReader(path path.Path, dag mdag.DAGService, dagnode *mdag.Node, compression int) (*Reader, error) {
+func NewReader(ctx cxt.Context, path path.Path, dag mdag.DAGService, dagnode *mdag.Node, compression int) (*Reader, error) {
 
 	reader := &Reader{
 		signalChan: make(chan struct{}),
@@ -49,12 +49,11 @@ func NewReader(path path.Path, dag mdag.DAGService, dagnode *mdag.Node, compress
 	// writeToBuf will write the data to the buffer, and will signal when there
 	// is new data to read
 	_, filename := gopath.Split(path.String())
-	go reader.writeToBuf(dagnode, filename, 0)
-
+	go reader.writeToBuf(ctx, dagnode, filename, 0)
 	return reader, nil
 }
 
-func (r *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
+func (r *Reader) writeToBuf(ctx cxt.Context, dagnode *mdag.Node, path string, depth int) {
 	pb := new(upb.Data)
 	err := proto.Unmarshal(dagnode.Data, pb)
 	if err != nil {
@@ -80,16 +79,13 @@ func (r *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 		}
 		r.flush()
 
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*60)
-		defer cancel()
-
 		for i, ng := range r.dag.GetDAG(ctx, dagnode) {
 			childNode, err := ng.Get(ctx)
 			if err != nil {
 				r.emitError(err)
 				return
 			}
-			r.writeToBuf(childNode, gopath.Join(path, dagnode.Links[i].Name), depth+1)
+			r.writeToBuf(ctx, childNode, gopath.Join(path, dagnode.Links[i].Name), depth+1)
 		}
 		return
 	}
@@ -108,7 +104,7 @@ func (r *Reader) writeToBuf(dagnode *mdag.Node, path string, depth int) {
 	}
 	r.flush()
 
-	reader, err := uio.NewDagReader(context.TODO(), dagnode, r.dag)
+	reader, err := uio.NewDagReader(ctx, dagnode, r.dag)
 	if err != nil {
 		r.emitError(err)
 		return
