@@ -114,6 +114,16 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if cn, ok := w.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+				cancel()
+			case <-ctx.Done():
+			}
+		}()
+	}
+
 	// call the command
 	res := i.root.Call(req)
 
@@ -201,51 +211,17 @@ func flushCopy(w http.ResponseWriter, out io.Reader) error {
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
 func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error {
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		return errors.New("Could not create hijacker")
+	if contentType != "" {
+		w.Header().Set(contentTypeHeader, contentType)
 	}
-	conn, writer, err := hijacker.Hijack()
+
+	w.Header().Set(transferEncodingHeader, "chunked")
+	w.Header().Set(channelHeader, "1")
+
+	_, err := io.Copy(w, out)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
-
-	writer.WriteString("HTTP/1.1 200 OK\r\n")
-	if contentType != "" {
-		writer.WriteString(contentTypeHeader + ": " + contentType + "\r\n")
-	}
-	writer.WriteString(transferEncodingHeader + ": chunked\r\n")
-	writer.WriteString(channelHeader + ": 1\r\n\r\n")
-
-	buf := make([]byte, 32*1024)
-
-	for {
-		n, err := out.Read(buf)
-
-		if n > 0 {
-			length := fmt.Sprintf("%x\r\n", n)
-			writer.WriteString(length)
-
-			_, err := writer.Write(buf[0:n])
-			if err != nil {
-				return err
-			}
-
-			writer.WriteString("\r\n")
-			writer.Flush()
-		}
-
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if err == io.EOF {
-			break
-		}
-	}
-
-	writer.WriteString("0\r\n\r\n")
-	writer.Flush()
 
 	return nil
 }
