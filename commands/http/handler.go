@@ -166,19 +166,14 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	streamChans, _, _ := req.Option("stream-channels").Bool()
 	if isChan && streamChans {
-		// w.WriteString(transferEncodingHeader + ": chunked\r\n")
-		// w.Header().Set(channelHeader, "1")
-		// w.WriteHeader(200)
-		err = copyChunks(applicationJson, w, out)
-		if err != nil {
-			log.Debug("copy chunks error: ", err)
+		if err := copyChunks(applicationJson, w, out); err != nil {
+			log.Error("error while writing stream", err)
 		}
 		return
 	}
 
-	err = flushCopy(w, out)
-	if err != nil {
-		log.Debug("Flush copy returned an error: ", err)
+	if err := flushCopy(w, out); err != nil {
+		log.Error("error while writing stream", err)
 	}
 }
 
