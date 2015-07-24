@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
@@ -13,6 +14,11 @@ import (
 )
 
 const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
+
+type clearlineReader struct {
+	io.Reader
+	out io.Writer
+}
 
 var CatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -54,7 +60,7 @@ it contains.
 		bar.Start()
 
 		reader := bar.NewProxyReader(res.Output().(io.Reader))
-		res.SetOutput(reader)
+		res.SetOutput(&clearlineReader{reader, res.Stderr()})
 	},
 }
 
@@ -75,4 +81,12 @@ func cat(ctx context.Context, node *core.IpfsNode, paths []string) ([]io.Reader,
 		length += uint64(read.Size())
 	}
 	return readers, length, nil
+}
+
+func (r *clearlineReader) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if err == io.EOF {
+		fmt.Fprintf(r.out, "\033[2K\r") // clear progress bar line on EOF
+	}
+	return
 }
