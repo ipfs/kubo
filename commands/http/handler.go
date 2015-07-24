@@ -32,6 +32,7 @@ type Handler struct {
 var ErrNotFound = errors.New("404 page not found")
 
 const (
+	StreamErrHeader        = "X-Stream-Error"
 	streamHeader           = "X-Stream-Output"
 	channelHeader          = "X-Chunked-Output"
 	contentTypeHeader      = "Content-Type"
@@ -213,36 +214,52 @@ func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error 
 	writer.WriteString(transferEncodingHeader + ": chunked\r\n")
 	writer.WriteString(channelHeader + ": 1\r\n\r\n")
 
-	buf := make([]byte, 32*1024)
+	writeChunks := func() error {
+		buf := make([]byte, 32*1024)
+		for {
+			n, err := out.Read(buf)
 
-	for {
-		n, err := out.Read(buf)
+			if n > 0 {
+				length := fmt.Sprintf("%x\r\n", n)
+				writer.WriteString(length)
 
-		if n > 0 {
-			length := fmt.Sprintf("%x\r\n", n)
-			writer.WriteString(length)
+				_, err := writer.Write(buf[0:n])
+				if err != nil {
+					return err
+				}
 
-			_, err := writer.Write(buf[0:n])
-			if err != nil {
-				return err
+				writer.WriteString("\r\n")
+				writer.Flush()
 			}
 
-			writer.WriteString("\r\n")
-			writer.Flush()
+			if err != nil && err != io.EOF {
+				return err
+			}
+			if err == io.EOF {
+				break
+			}
 		}
-
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if err == io.EOF {
-			break
-		}
+		return nil
 	}
 
-	writer.WriteString("0\r\n\r\n")
-	writer.Flush()
+	streamErr := writeChunks()
+	writer.WriteString("0\r\n") // close body
 
+	// if there was a stream error, write out an error trailer. hopefully
+	// the client will pick it up!
+	if streamErr != nil {
+		writer.WriteString(StreamErrHeader + ": " + sanitizedErrStr(err) + "\r\n")
+	}
+	writer.WriteString("\r\n") // close response
+	writer.Flush()
 	return nil
+}
+
+func sanitizedErrStr(err error) string {
+	s := err.Error()
+	s = strings.Split(s, "\n")[0]
+	s = strings.Split(s, "\r")[0]
+	return s
 }
 
 type flushResponse struct {
