@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -183,16 +184,16 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 	res.SetCloser(httpRes.Body)
 
-	if len(httpRes.Header.Get(streamHeader)) > 0 {
+	if len(httpRes.Header.Get(streamHeader)) > 0 && contentType != "application/json" {
 		// if output is a stream, we can just use the body reader
-		res.SetOutput(httpRes.Body)
+		res.SetOutput(&httpResponseReader{httpRes})
 		return res, nil
 
 	} else if len(httpRes.Header.Get(channelHeader)) > 0 {
 		// if output is coming from a channel, decode each chunk
 		outChan := make(chan interface{})
 		go func() {
-			dec := json.NewDecoder(httpRes.Body)
+			dec := json.NewDecoder(&httpResponseReader{httpRes})
 			outputType := reflect.TypeOf(req.Command().Type)
 
 			ctx := req.Context()
@@ -237,7 +238,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		return res, nil
 	}
 
-	dec := json.NewDecoder(httpRes.Body)
+	dec := json.NewDecoder(&httpResponseReader{httpRes})
 
 	if httpRes.StatusCode >= http.StatusBadRequest {
 		e := cmds.Error{}
@@ -283,4 +284,31 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	}
 
 	return res, nil
+}
+
+type httpResponseReader struct {
+	resp *http.Response
+}
+
+func (r *httpResponseReader) Read(b []byte) (int, error) {
+	n, err := r.resp.Body.Read(b)
+	if err == io.EOF {
+		_ = r.resp.Body.Close()
+		trailerErr := r.checkError()
+		if trailerErr != nil {
+			return n, trailerErr
+		}
+	}
+	return n, err
+}
+
+func (r *httpResponseReader) checkError() error {
+	if e := r.resp.Trailer.Get(StreamErrHeader); e != "" {
+		return errors.New(e)
+	}
+	return nil
+}
+
+func (r *httpResponseReader) Close() error {
+	return r.resp.Body.Close()
 }
