@@ -242,6 +242,8 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 	return res, nil
 }
 
+// read json objects off of the given stream, and write the objects out to
+// the 'out' channel
 func readStreamedJson(req cmds.Request, httpRes *http.Response, out chan<- interface{}) {
 	defer close(out)
 	dec := json.NewDecoder(&httpResponseReader{httpRes})
@@ -270,6 +272,8 @@ func readStreamedJson(req cmds.Request, httpRes *http.Response, out chan<- inter
 	}
 }
 
+// decode a value of the given type, if the type is nil, attempt to decode into
+// an interface{} anyways
 func decodeTypedVal(t reflect.Type, dec *json.Decoder) (interface{}, error) {
 	var v interface{}
 	var err error
@@ -283,6 +287,9 @@ func decodeTypedVal(t reflect.Type, dec *json.Decoder) (interface{}, error) {
 	return v, err
 }
 
+// httpResponseReader reads from the response body, and checks for an error
+// in the http trailer upon EOF, this error if present is returned instead
+// of the EOF.
 type httpResponseReader struct {
 	resp *http.Response
 }

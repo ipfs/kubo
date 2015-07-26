@@ -193,6 +193,7 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 			mime = applicationJson
 		}
 	}
+
 	if mime != "" {
 		h.Set(contentTypeHeader, mime)
 	}
@@ -207,6 +208,7 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
 func copyChunks(status int, w http.ResponseWriter, out io.Reader) error {
+	// hijack the connection so we can write our own chunked output and trailers
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		log.Error("Failed to create hijacker! cannot continue!")
