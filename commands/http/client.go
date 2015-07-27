@@ -34,6 +34,9 @@ type client struct {
 }
 
 func NewClient(address string) Client {
+	// We cannot use the default transport because of a bug in go's connection reuse
+	// code. It causes random failures in the connection including io.EOF and connection
+	// refused on 'client.Do'
 	return &client{
 		serverAddress: address,
 		httpClient: http.Client{
