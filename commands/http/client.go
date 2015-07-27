@@ -30,10 +30,18 @@ type Client interface {
 
 type client struct {
 	serverAddress string
+	httpClient    http.Client
 }
 
 func NewClient(address string) Client {
-	return &client{address}
+	return &client{
+		serverAddress: address,
+		httpClient: http.Client{
+			Transport: &http.Transport{
+				DisableKeepAlives: true,
+			},
+		},
+	}
 }
 
 func (c *client) Send(req cmds.Request) (cmds.Response, error) {
@@ -85,20 +93,20 @@ func (c *client) Send(req cmds.Request) (cmds.Response, error) {
 
 	// TODO extract string consts?
 	if fileReader != nil {
-		httpReq.Header.Set("Content-Type", "multipart/form-data; boundary="+fileReader.Boundary())
-		httpReq.Header.Set("Content-Disposition", "form-data: name=\"files\"")
+		httpReq.Header.Set(contentTypeHeader, "multipart/form-data; boundary="+fileReader.Boundary())
+		httpReq.Header.Set(contentDispHeader, "form-data: name=\"files\"")
 	} else {
-		httpReq.Header.Set("Content-Type", "application/octet-stream")
+		httpReq.Header.Set(contentTypeHeader, applicationOctetStream)
 	}
 	version := config.CurrentVersionNumber
-	httpReq.Header.Set("User-Agent", fmt.Sprintf("/go-ipfs/%s/", version))
+	httpReq.Header.Set(uaHeader, fmt.Sprintf("/go-ipfs/%s/", version))
 
 	ec := make(chan error, 1)
 	rc := make(chan cmds.Response, 1)
 	dc := req.Context().Done()
 
 	go func() {
-		httpRes, err := http.DefaultClient.Do(httpReq)
+		httpRes, err := c.httpClient.Do(httpReq)
 		if err != nil {
 			ec <- err
 			return
@@ -182,24 +190,25 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 		res.SetLength(length)
 	}
 
-	res.SetCloser(httpRes.Body)
+	rr := &httpResponseReader{httpRes}
+	res.SetCloser(rr)
 
-	if contentType != "application/json" {
+	if contentType != applicationJson {
 		// for all non json output types, just stream back the output
-		res.SetOutput(&httpResponseReader{httpRes})
+		res.SetOutput(rr)
 		return res, nil
 
 	} else if len(httpRes.Header.Get(channelHeader)) > 0 {
 		// if output is coming from a channel, decode each chunk
 		outChan := make(chan interface{})
 
-		go readStreamedJson(req, httpRes, outChan)
+		go readStreamedJson(req, rr, outChan)
 
 		res.SetOutput((<-chan interface{})(outChan))
 		return res, nil
 	}
 
-	dec := json.NewDecoder(&httpResponseReader{httpRes})
+	dec := json.NewDecoder(rr)
 
 	// If we ran into an error
 	if httpRes.StatusCode >= http.StatusBadRequest {
@@ -211,7 +220,7 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 			e.Message = "Command not found."
 			e.Code = cmds.ErrClient
 
-		case contentType == "text/plain":
+		case contentType == plainText:
 			// handle non-marshalled errors
 			buf := bytes.NewBuffer(nil)
 			io.Copy(buf, httpRes.Body)
@@ -244,9 +253,9 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 // read json objects off of the given stream, and write the objects out to
 // the 'out' channel
-func readStreamedJson(req cmds.Request, httpRes *http.Response, out chan<- interface{}) {
+func readStreamedJson(req cmds.Request, rr io.Reader, out chan<- interface{}) {
 	defer close(out)
-	dec := json.NewDecoder(&httpResponseReader{httpRes})
+	dec := json.NewDecoder(rr)
 	outputType := reflect.TypeOf(req.Command().Type)
 
 	ctx := req.Context()
@@ -254,9 +263,7 @@ func readStreamedJson(req cmds.Request, httpRes *http.Response, out chan<- inter
 	for {
 		v, err := decodeTypedVal(outputType, dec)
 		if err != nil {
-			// since we are just looping reading on the response, the only way to
-			// know we are 'done' is for the consumer to close the response body.
-			// doing so doesnt throw an io.EOF, but we want to treat it like one.
+			// reading on a closed response body is as good as an io.EOF here
 			if !(strings.Contains(err.Error(), "read on closed response body") || err == io.EOF) {
 				log.Error(err)
 			}
@@ -268,7 +275,6 @@ func readStreamedJson(req cmds.Request, httpRes *http.Response, out chan<- inter
 			return
 		case out <- v:
 		}
-
 	}
 }
 

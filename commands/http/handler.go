@@ -36,10 +36,14 @@ const (
 	StreamErrHeader        = "X-Stream-Error"
 	streamHeader           = "X-Stream-Output"
 	channelHeader          = "X-Chunked-Output"
+	uaHeader               = "User-Agent"
 	contentTypeHeader      = "Content-Type"
 	contentLengthHeader    = "Content-Length"
+	contentDispHeader      = "Content-Disposition"
 	transferEncodingHeader = "Transfer-Encoding"
 	applicationJson        = "application/json"
+	applicationOctetStream = "application/octet-stream"
+	plainText              = "text/plain"
 )
 
 var mimeTypes = map[string]string{
@@ -156,7 +160,7 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 		return
 	}
 
-	status := 200
+	status := http.StatusOK
 	// if response contains an error, write an HTTP error status code
 	if e := res.Error(); e != nil {
 		if e.Code == cmds.ErrClient {
