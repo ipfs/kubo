@@ -175,6 +175,9 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 	}
 
 	if _, ok := res.Output().(io.Reader); ok {
+		// we don't set the Content-Type for streams, so that browsers can MIME-sniff the type themselves
+		// we set this header so clients have a way to know this is an output stream
+		// (not marshalled command output)
 		mime = ""
 		h.Set(streamHeader, "1")
 	}
