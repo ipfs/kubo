@@ -44,6 +44,16 @@ test_expect_success "'ipfs pin rm' output looks good" '
 	test_cmp expected1 actual1
 '
 
+test_expect_failure "ipfs repo gc fully reverse ipfs add" '
+    random 100000 41 >gcfile &&
+    disk_usage "$IPFS_PATH/blocks" >expected &&
+    hash=`ipfs add -q gcfile` &&
+    ipfs pin rm -r $hash &&
+    ipfs repo gc &&
+    disk_usage "$IPFS_PATH/blocks" >actual &&
+    test_cmp expected actual
+'
+
 test_expect_success "file no longer pinned" '
 	# we expect the welcome files and gw assets to show up here
 	echo "$HASH_WELCOME_DOCS" >expected2 &&

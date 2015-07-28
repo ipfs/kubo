@@ -314,3 +314,19 @@ test_str_contains() {
 	shift
 	echo "$@" | grep "$find" >/dev/null
 }
+
+disk_usage() {
+    # normalize du across systems
+    case $(uname -s) in
+        Linux)
+            DU="du -sb"
+            ;;
+        FreeBSD)
+            DU="du -s -A -B 1"
+            ;;
+        Darwin | DragonFly)
+            DU="du"
+            ;;
+    esac
+        $DU "$1" | awk "{print \$1}"
+}
