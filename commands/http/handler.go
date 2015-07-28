@@ -102,20 +102,6 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
 
-	// error on external referers (to prevent CSRF attacks)
-	referer := r.Referer()
-	scheme := r.URL.Scheme
-	if len(scheme) == 0 {
-		scheme = "http"
-	}
-	host := fmt.Sprintf("%s://%s/", scheme, r.Host)
-	// empty string means the user isn't following a link (they are directly typing in the url)
-	if referer != "" && !strings.HasPrefix(referer, host) {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden"))
-		return
-	}
-
 	req, err := Parse(r, i.root)
 	if err != nil {
 		if err == ErrNotFound {
