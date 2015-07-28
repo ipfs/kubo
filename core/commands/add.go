@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
 
@@ -208,7 +207,7 @@ remains to be implemented.
 			if len(output.Hash) > 0 {
 				if showProgressBar {
 					// clear progress bar line before we print "added x" output
-					fmt.Fprintf(res.Stderr(), "\r%s\r", strings.Repeat(" ", terminalWidth))
+					fmt.Fprintf(res.Stderr(), "\033[2K\r")
 				}
 				if quiet {
 					fmt.Fprintf(res.Stdout(), "%s\n", output.Hash)
