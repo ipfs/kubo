@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -32,12 +33,17 @@ type Handler struct {
 var ErrNotFound = errors.New("404 page not found")
 
 const (
+	StreamErrHeader        = "X-Stream-Error"
 	streamHeader           = "X-Stream-Output"
 	channelHeader          = "X-Chunked-Output"
+	uaHeader               = "User-Agent"
 	contentTypeHeader      = "Content-Type"
 	contentLengthHeader    = "Content-Length"
+	contentDispHeader      = "Content-Disposition"
 	transferEncodingHeader = "Transfer-Encoding"
 	applicationJson        = "application/json"
+	applicationOctetStream = "application/octet-stream"
+	plainText              = "text/plain"
 )
 
 var mimeTypes = map[string]string{
@@ -68,6 +74,11 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Han
 
 	// Wrap the internal handler with CORS handling-middleware.
 	return &Handler{internal, c.Handler(internal)}
+}
+
+func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Call the CORS handler which wraps the internal handler.
+	i.corsHandler.ServeHTTP(w, r)
 }
 
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -101,8 +112,8 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// get the node's context to pass into the commands.
 	node, err := i.ctx.GetNode()
 	if err != nil {
-		err = fmt.Errorf("cmds/http: couldn't GetNode(): %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s := fmt.Sprintf("cmds/http: couldn't GetNode(): %s", err)
+		http.Error(w, s, http.StatusInternalServerError)
 		return
 	}
 
@@ -117,44 +128,58 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// call the command
 	res := i.root.Call(req)
 
-	// set the Content-Type based on res output
+	// now handle responding to the client properly
+	sendResponse(w, req, res)
+}
+
+func guessMimeType(res cmds.Response) (string, error) {
 	if _, ok := res.Output().(io.Reader); ok {
 		// we don't set the Content-Type for streams, so that browsers can MIME-sniff the type themselves
 		// we set this header so clients have a way to know this is an output stream
 		// (not marshalled command output)
 		// TODO: set a specific Content-Type if the command response needs it to be a certain type
-		w.Header().Set(streamHeader, "1")
-
-	} else {
-		enc, found, err := req.Option(cmds.EncShort).String()
-		if err != nil || !found {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		mime := mimeTypes[enc]
-		w.Header().Set(contentTypeHeader, mime)
+		return "", nil
 	}
 
-	// set the Content-Length from the response length
-	if res.Length() > 0 {
-		w.Header().Set(contentLengthHeader, strconv.FormatUint(res.Length(), 10))
+	// Try to guess mimeType from the encoding option
+	enc, found, err := res.Request().Option(cmds.EncShort).String()
+	if err != nil {
+		return "", err
+	}
+	if !found {
+		return "", errors.New("no encoding option set")
 	}
 
+	return mimeTypes[enc], nil
+}
+
+func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
+	mime, err := guessMimeType(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	status := http.StatusOK
 	// if response contains an error, write an HTTP error status code
 	if e := res.Error(); e != nil {
 		if e.Code == cmds.ErrClient {
-			w.WriteHeader(http.StatusBadRequest)
+			status = http.StatusBadRequest
 		} else {
-			w.WriteHeader(http.StatusInternalServerError)
+			status = http.StatusInternalServerError
 		}
+		// NOTE: The error will actually be written out by the reader below
 	}
 
 	out, err := res.Reader()
 	if err != nil {
-		w.Header().Set(contentTypeHeader, "text/plain")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	h := w.Header()
+	if res.Length() > 0 {
+		h.Set(contentLengthHeader, strconv.FormatUint(res.Length(), 10))
 	}
 
 	// if output is a channel and user requested streaming channels,
@@ -165,44 +190,32 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	streamChans, _, _ := req.Option("stream-channels").Bool()
-	if isChan && streamChans {
-		// w.WriteString(transferEncodingHeader + ": chunked\r\n")
-		// w.Header().Set(channelHeader, "1")
-		// w.WriteHeader(200)
-		err = copyChunks(applicationJson, w, out)
-		if err != nil {
-			log.Debug("copy chunks error: ", err)
+	if isChan {
+		h.Set(channelHeader, "1")
+		if streamChans {
+			// streaming output from a channel will always be json objects
+			mime = applicationJson
 		}
-		return
 	}
 
-	err = flushCopy(w, out)
-	if err != nil {
-		log.Debug("Flush copy returned an error: ", err)
+	if mime != "" {
+		h.Set(contentTypeHeader, mime)
 	}
-}
+	h.Set(streamHeader, "1")
+	h.Set(transferEncodingHeader, "chunked")
 
-func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Call the CORS handler which wraps the internal handler.
-	i.corsHandler.ServeHTTP(w, r)
-}
-
-// flushCopy Copies from an io.Reader to a http.ResponseWriter.
-// Flushes chunks over HTTP stream as they are read (if supported by transport).
-func flushCopy(w http.ResponseWriter, out io.Reader) error {
-	if _, ok := w.(http.Flusher); !ok {
-		return copyChunks("", w, out)
+	if err := writeResponse(status, w, out); err != nil {
+		log.Error("error while writing stream", err)
 	}
-
-	_, err := io.Copy(&flushResponse{w}, out)
-	return err
 }
 
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
-func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error {
+func writeResponse(status int, w http.ResponseWriter, out io.Reader) error {
+	// hijack the connection so we can write our own chunked output and trailers
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
+		log.Error("Failed to create hijacker! cannot continue!")
 		return errors.New("Could not create hijacker")
 	}
 	conn, writer, err := hijacker.Hijack()
@@ -211,29 +224,47 @@ func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error 
 	}
 	defer conn.Close()
 
-	writer.WriteString("HTTP/1.1 200 OK\r\n")
-	if contentType != "" {
-		writer.WriteString(contentTypeHeader + ": " + contentType + "\r\n")
+	// write status
+	writer.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", status, http.StatusText(status)))
+
+	// Write out headers
+	w.Header().Write(writer)
+
+	// end of headers
+	writer.WriteString("\r\n")
+
+	// write body
+	streamErr := writeChunks(out, writer)
+
+	// close body
+	writer.WriteString("0\r\n")
+
+	// if there was a stream error, write out an error trailer. hopefully
+	// the client will pick it up!
+	if streamErr != nil {
+		writer.WriteString(StreamErrHeader + ": " + sanitizedErrStr(streamErr) + "\r\n")
 	}
-	writer.WriteString(transferEncodingHeader + ": chunked\r\n")
-	writer.WriteString(channelHeader + ": 1\r\n\r\n")
+	writer.WriteString("\r\n") // close response
+	writer.Flush()
+	return streamErr
+}
 
+func writeChunks(r io.Reader, w *bufio.ReadWriter) error {
 	buf := make([]byte, 32*1024)
-
 	for {
-		n, err := out.Read(buf)
+		n, err := r.Read(buf)
 
 		if n > 0 {
 			length := fmt.Sprintf("%x\r\n", n)
-			writer.WriteString(length)
+			w.WriteString(length)
 
-			_, err := writer.Write(buf[0:n])
+			_, err := w.Write(buf[0:n])
 			if err != nil {
 				return err
 			}
 
-			writer.WriteString("\r\n")
-			writer.Flush()
+			w.WriteString("\r\n")
+			w.Flush()
 		}
 
 		if err != nil && err != io.EOF {
@@ -243,25 +274,12 @@ func copyChunks(contentType string, w http.ResponseWriter, out io.Reader) error 
 			break
 		}
 	}
-
-	writer.WriteString("0\r\n\r\n")
-	writer.Flush()
-
 	return nil
 }
 
-type flushResponse struct {
-	W http.ResponseWriter
-}
-
-func (fr *flushResponse) Write(buf []byte) (int, error) {
-	n, err := fr.W.Write(buf)
-	if err != nil {
-		return n, err
-	}
-
-	if flusher, ok := fr.W.(http.Flusher); ok {
-		flusher.Flush()
-	}
-	return n, err
+func sanitizedErrStr(err error) string {
+	s := err.Error()
+	s = strings.Split(s, "\n")[0]
+	s = strings.Split(s, "\r")[0]
+	return s
 }

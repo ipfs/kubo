@@ -39,15 +39,13 @@ func (te *Extractor) Extract(reader io.Reader) error {
 		}
 
 		if header.Typeflag == tar.TypeDir {
-			err = te.extractDir(header, i, exists)
-			if err != nil {
+			if err := te.extractDir(header, i, exists); err != nil {
 				return err
 			}
 			continue
 		}
 
-		err = te.extractFile(header, tarReader, i, exists, pathIsDir)
-		if err != nil {
+		if err := te.extractFile(header, tarReader, i, exists, pathIsDir); err != nil {
 			return err
 		}
 	}

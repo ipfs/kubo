@@ -120,8 +120,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			bar.Start()
 			defer bar.Finish()
 
-			_, err = io.Copy(file, pbReader)
-			if err != nil {
+			if _, err := io.Copy(file, pbReader); err != nil {
 				res.SetError(err, cmds.ErrNormal)
 				return
 			}
@@ -140,10 +139,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		bar.Start()
 		defer bar.Finish()
-
 		extractor := &tar.Extractor{outPath}
-		err = extractor.Extract(reader)
-		if err != nil {
+		if err := extractor.Extract(reader); err != nil {
 			res.SetError(err, cmds.ErrNormal)
 		}
 	},
@@ -169,7 +166,7 @@ func get(ctx context.Context, node *core.IpfsNode, p path.Path, compression int)
 		return nil, err
 	}
 
-	return utar.NewReader(p, node.DAG, dagnode, compression)
+	return utar.NewReader(ctx, p, node.DAG, dagnode, compression)
 }
 
 // getZip is equivalent to `ipfs getdag $hash | gzip`
