@@ -314,3 +314,33 @@ test_str_contains() {
 	shift
 	echo "$@" | grep "$find" >/dev/null
 }
+
+test_links_in_trickle_dag() {
+	local LINKS="$(ipfs object links $1)"
+	local i="0"
+	echo "$LINKS" | while IFS= read -r line; do
+	    if [ $i -gt 0 ]; then
+            test_link_in_trickle_dag $(expr $i - 1) $line || return 1
+        fi
+		i=$(expr $i + 1)
+	done
+}
+
+test_link_in_trickle_dag() {
+    local LINK_NUMBER="$1"
+    local HASH="$2"
+	local DEFAULT_LINKS_PER_BLOCK=174
+	local STAT_OUT="$(ipfs object stat $HASH)"
+	local NUM_LINKS="$(get_object_stat_num_links $STAT_OUT)"
+    if [ $LINK_NUMBER -lt $DEFAULT_LINKS_PER_BLOCK ]; then
+        [ $NUM_LINKS -eq 0 ] || (echo "$HASH NumLinks: $NUM_LINKS != 0" && false)
+    else
+        [ $NUM_LINKS -ne 0 ] && test_links_in_trickle_dag $HASH ||
+        (echo "$HASH NumLinks: $NUM_LINKS == 0" && false)
+    fi
+}
+
+get_object_stat_num_links() {
+    echo $2
+}
+
