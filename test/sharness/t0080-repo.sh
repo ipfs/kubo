@@ -163,6 +163,30 @@ test_expect_success "'ipfs pin ls --type=all --quiet' is correct" '
 	test_sort_cmp allpins_uniq_hashes actual_allpins
 '
 
+test_expect_success "'ipfs refs --unique' is correct" '
+	mkdir -p uniques &&
+	cd uniques &&
+	echo "content1" > file1 &&
+	echo "content1" > file2 &&
+	ROOT=$(ipfs add -r -q . | tail -n1) &&
+	ipfs refs --unique $ROOT >expected &&
+	ipfs add -q file1 >unique_hash &&
+	test_cmp expected unique_hash
+'
+
+test_expect_success "'ipfs refs --unique --recursive' is correct" '
+	mkdir -p a/b/c &&
+	echo "c1" > a/f1 &&
+	echo "c1" > a/b/f1 &&
+	echo "c1" > a/b/c/f1 &&
+	echo "c2" > a/b/c/f2 &&
+	ROOT=$(ipfs add -r -q a | tail -n1) &&
+	ipfs refs --unique --recursive $ROOT >refs_output &&
+	wc -l refs_output | sed "s/^ *//g" >line_count &&
+	echo "4 refs_output" >expected &&
+	test_cmp expected line_count
+'
+
 test_kill_ipfs_daemon
 
 test_done
