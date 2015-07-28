@@ -41,7 +41,7 @@ func Parse(input []string, stdin *os.File, root *cmds.Command) (cmds.Request, *c
 		}
 	}
 
-	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive)
+	stringArgs, fileArgs, err := parseArgs(stringVals, stdin, cmd.Arguments, recursive, root)
 	if err != nil {
 		return req, cmd, path, err
 	}
@@ -196,7 +196,7 @@ func parseOpts(args []string, root *cmds.Command) (
 	return
 }
 
-func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool) ([]string, []files.File, error) {
+func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursive bool, root *cmds.Command) ([]string, []files.File, error) {
 	// ignore stdin on Windows
 	if runtime.GOOS == "windows" {
 		stdin = nil
@@ -231,7 +231,15 @@ func parseArgs(inputs []string, stdin *os.File, argDefs []cmds.Argument, recursi
 	// and the last arg definition is not variadic (or there are no definitions), return an error
 	notVariadic := len(argDefs) == 0 || !argDefs[len(argDefs)-1].Variadic
 	if notVariadic && len(inputs) > len(argDefs) {
-		return nil, nil, fmt.Errorf("Expected %v arguments, got %v: %v", len(argDefs), len(inputs), inputs)
+		suggestions := suggestUnknownCmd(inputs, root)
+
+		if len(suggestions) > 1 {
+			return nil, nil, fmt.Errorf("Unknown Command \"%s\"\n\nDid you mean any of these?\n\n\t%s", inputs[0], strings.Join(suggestions, "\n\t"))
+		} else if len(suggestions) > 0 {
+			return nil, nil, fmt.Errorf("Unknown Command \"%s\"\n\nDid you mean this?\n\n\t%s", inputs[0], suggestions[0])
+		} else {
+			return nil, nil, fmt.Errorf("Unknown Command \"%s\"\n", inputs[0])
+		}
 	}
 
 	stringArgs := make([]string, 0, numInputs)
