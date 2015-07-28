@@ -66,6 +66,7 @@ test_expect_success "file no longer pinned" '
 '
 
 test_expect_success "recursively pin afile" '
+	HASH=`ipfs add -q afile` &&
 	ipfs pin add -r "$HASH"
 '
 
