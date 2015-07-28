@@ -55,6 +55,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 	nd.Peerstore = peer.NewPeerstore()
 	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
 	nd.Peerstore.AddPubKey(p, ident.PublicKey())
+	nd.Identity = p
 
 	nd.PeerHost, err = mocknet.New(ctx).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
 	if err != nil {
