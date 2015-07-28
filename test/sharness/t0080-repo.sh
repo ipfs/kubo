@@ -66,6 +66,7 @@ test_expect_success "file no longer pinned" '
 '
 
 test_expect_success "recursively pin afile" '
+	HASH=`ipfs add -q afile` &&
 	ipfs pin add -r "$HASH"
 '
 
@@ -160,6 +161,53 @@ test_expect_success "'ipfs pin ls --type=all --quiet' is correct" '
 	cut -f1 -d " " allpins | sort | uniq >> allpins_uniq_hashes &&
 	ipfs pin ls --type=all --quiet >actual_allpins &&
 	test_sort_cmp allpins_uniq_hashes actual_allpins
+'
+
+test_expect_success "'ipfs refs --unique' is correct" '
+	mkdir -p uniques &&
+	cd uniques &&
+	echo "content1" > file1 &&
+	echo "content1" > file2 &&
+	ROOT=$(ipfs add -r -q . | tail -n1) &&
+	ipfs refs --unique $ROOT >expected &&
+	ipfs add -q file1 >unique_hash &&
+	test_cmp expected unique_hash
+'
+
+test_expect_success "'ipfs refs --unique --recursive' is correct" '
+	mkdir -p a/b/c &&
+	echo "c1" > a/f1 &&
+	echo "c1" > a/b/f1 &&
+	echo "c1" > a/b/c/f1 &&
+	echo "c2" > a/b/c/f2 &&
+	ROOT=$(ipfs add -r -q a | tail -n1) &&
+	ipfs refs --unique --recursive $ROOT >refs_output &&
+	wc -l refs_output | sed "s/^ *//g" >line_count &&
+	echo "4 refs_output" >expected &&
+	test_cmp expected line_count
+'
+
+test_expect_success "'ipfs refs --recursive (bigger)'" '
+	mkdir -p b/c/d/e &&
+	echo "content1" >b/f &&
+	echo "content1" >b/c/f1 &&
+	echo "content1" >b/c/d/f2 &&
+	echo "content2" >b/c/f2 &&
+	echo "content2" >b/c/d/f1 &&
+	echo "content2" >b/c/d/e/f &&
+	cp -r b b2 && mv b2 b/b2 &&
+	cp -r b b3 && mv b3 b/b3 &&
+	cp -r b b4 && mv b4 b/b4 &&
+	hash=$(ipfs add -r -q b | tail -n1) &&
+	ipfs refs -r "$hash" | wc -l | sed "s/^ *//g" >actual &&
+	echo "79" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
+	ipfs refs -r "$hash" | sort | uniq >expected &&
+	ipfs refs -r -u "$hash" | sort >actual &&
+	test_cmp expected actual
 '
 
 test_kill_ipfs_daemon
