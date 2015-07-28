@@ -204,14 +204,14 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 	h.Set(streamHeader, "1")
 	h.Set(transferEncodingHeader, "chunked")
 
-	if err := copyChunks(status, w, out); err != nil {
+	if err := writeResponse(status, w, out); err != nil {
 		log.Error("error while writing stream", err)
 	}
 }
 
 // Copies from an io.Reader to a http.ResponseWriter.
 // Flushes chunks over HTTP stream as they are read (if supported by transport).
-func copyChunks(status int, w http.ResponseWriter, out io.Reader) error {
+func writeResponse(status int, w http.ResponseWriter, out io.Reader) error {
 	// hijack the connection so we can write our own chunked output and trailers
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
@@ -282,20 +282,4 @@ func sanitizedErrStr(err error) string {
 	s = strings.Split(s, "\n")[0]
 	s = strings.Split(s, "\r")[0]
 	return s
-}
-
-type flushResponse struct {
-	W http.ResponseWriter
-}
-
-func (fr *flushResponse) Write(buf []byte) (int, error) {
-	n, err := fr.W.Write(buf)
-	if err != nil {
-		return n, err
-	}
-
-	if flusher, ok := fr.W.(http.Flusher); ok {
-		flusher.Flush()
-	}
-	return n, err
 }
