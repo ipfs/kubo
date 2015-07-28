@@ -70,13 +70,15 @@ type ServerConfig struct {
 
 func skipAPIHeader(h string) bool {
 	switch h {
+	case "Access-Control-Allow-Origin":
+		return true
+	case "Access-Control-Allow-Methods":
+		return true
+	case "Access-Control-Allow-Credentials":
+		return true
 	default:
 		return false
-	case "Access-Control-Allow-Origin":
-	case "Access-Control-Allow-Methods":
-	case "Access-Control-Allow-Credentials":
 	}
-	return true
 }
 
 func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
@@ -151,7 +153,7 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// now handle responding to the client properly
-	sendResponse(w, r, req, res)
+	sendResponse(w, r, res, req)
 }
 
 func guessMimeType(res cmds.Response) (string, error) {
@@ -167,7 +169,7 @@ func guessMimeType(res cmds.Response) (string, error) {
 	return mimeTypes[enc], nil
 }
 
-func sendResponse(w http.ResponseWriter, r *http.Request, req cmds.Request, res cmds.Response) {
+func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
