@@ -187,6 +187,29 @@ test_expect_success "'ipfs refs --unique --recursive' is correct" '
 	test_cmp expected line_count
 '
 
+test_expect_success "'ipfs refs --recursive (bigger)'" '
+	mkdir -p b/c/d/e &&
+	echo "content1" >b/f &&
+	echo "content1" >b/c/f1 &&
+	echo "content1" >b/c/d/f2 &&
+	echo "content2" >b/c/f2 &&
+	echo "content2" >b/c/d/f1 &&
+	echo "content2" >b/c/d/e/f &&
+	cp -r b b2 && mv b2 b/b2 &&
+	cp -r b b3 && mv b3 b/b3 &&
+	cp -r b b4 && mv b4 b/b4 &&
+	hash=$(ipfs add -r -q b | tail -n1) &&
+	ipfs refs -r "$hash" | wc -l | sed "s/^ *//g" >actual &&
+	echo "79" >expected &&
+	test_cmp expected actual
+'
+
+test_expect_success "'ipfs refs --unique --recursive (bigger)'" '
+	ipfs refs -r "$hash" | sort | uniq >expected &&
+	ipfs refs -r -u "$hash" | sort >actual &&
+	test_cmp expected actual
+'
+
 test_kill_ipfs_daemon
 
 test_done
