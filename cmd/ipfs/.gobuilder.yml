@@ -5,6 +5,6 @@ build_matrix:
     build_tags:
       - nofuse
 artifacts:
-  - dist/README.md
-  - dist/LICENSE
-  - dist/install.sh
+  README.md: dist/README.md
+  LICENSE: dist/LICENSE
+  install.sh: dist/install.sh
