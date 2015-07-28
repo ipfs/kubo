@@ -133,14 +133,6 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func guessMimeType(res cmds.Response) (string, error) {
-	if _, ok := res.Output().(io.Reader); ok {
-		// we don't set the Content-Type for streams, so that browsers can MIME-sniff the type themselves
-		// we set this header so clients have a way to know this is an output stream
-		// (not marshalled command output)
-		// TODO: set a specific Content-Type if the command response needs it to be a certain type
-		return "", nil
-	}
-
 	// Try to guess mimeType from the encoding option
 	enc, found, err := res.Request().Option(cmds.EncShort).String()
 	if err != nil {
@@ -182,6 +174,11 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 		h.Set(contentLengthHeader, strconv.FormatUint(res.Length(), 10))
 	}
 
+	if _, ok := res.Output().(io.Reader); ok {
+		mime = ""
+		h.Set(streamHeader, "1")
+	}
+
 	// if output is a channel and user requested streaming channels,
 	// use chunk copier for the output
 	_, isChan := res.Output().(chan interface{})
@@ -201,7 +198,6 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 	if mime != "" {
 		h.Set(contentTypeHeader, mime)
 	}
-	h.Set(streamHeader, "1")
 	h.Set(transferEncodingHeader, "chunked")
 
 	if err := writeResponse(status, w, out); err != nil {
