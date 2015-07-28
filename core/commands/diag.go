@@ -85,7 +85,6 @@ that consume the dot format to generate graphs of the network.
 	},
 
 	Options: []cmds.Option{
-		cmds.StringOption("timeout", "diagnostic timeout duration"),
 		cmds.StringOption("vis", "output vis. one of: "+strings.Join(visFmts, ", ")),
 	},
 
@@ -122,7 +121,7 @@ that consume the dot format to generate graphs of the network.
 			timeout = t
 		}
 
-		info, err := n.Diagnostics.GetDiagnostic(timeout)
+		info, err := n.Diagnostics.GetDiagnostic(req.Context(), timeout)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

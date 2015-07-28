@@ -134,9 +134,9 @@ func newID() string {
 }
 
 // GetDiagnostic runs a diagnostics request across the entire network
-func (d *Diagnostics) GetDiagnostic(timeout time.Duration) ([]*DiagInfo, error) {
+func (d *Diagnostics) GetDiagnostic(ctx context.Context, timeout time.Duration) ([]*DiagInfo, error) {
 	log.Debug("Getting diagnostic.")
-	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	diagID := newID()
