@@ -2,22 +2,44 @@ package dagutils
 
 import (
 	"errors"
-	"time"
+	"strings"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	dag "github.com/ipfs/go-ipfs/merkledag"
-	ft "github.com/ipfs/go-ipfs/unixfs"
 )
 
-func AddLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
+type Editor struct {
+	root *dag.Node
+	ds   dag.DAGService
+}
+
+func NewDagEditor(ds dag.DAGService, root *dag.Node) *Editor {
+	return &Editor{
+		root: root,
+		ds:   ds,
+	}
+}
+
+func (e *Editor) GetNode() *dag.Node {
+	return e.root.Copy()
+}
+
+func (e *Editor) AddLink(ctx context.Context, childname string, childk key.Key) error {
+	nd, err := addLink(ctx, e.ds, e.root, childname, childk)
+	if err != nil {
+		return err
+	}
+	e.root = nd
+	return nil
+}
+
+func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
 	if childname == "" {
 		return nil, errors.New("cannot create link with no name!")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
 	childnd, err := ds.Get(ctx, childk)
 	if err != nil {
 		return nil, err
@@ -38,22 +60,32 @@ func AddLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname s
 	return root, nil
 }
 
-func InsertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key, create bool) (*dag.Node, error) {
+func (e *Editor) InsertNodeAtPath(ctx context.Context, path string, toinsert key.Key, create func() *dag.Node) error {
+	splpath := strings.Split(path, "/")
+	nd, err := insertNodeAtPath(ctx, e.ds, e.root, splpath, toinsert, create)
+	if err != nil {
+		return err
+	}
+	e.root = nd
+	return nil
+}
+
+func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key, create func() *dag.Node) (*dag.Node, error) {
 	if len(path) == 1 {
-		return AddLink(ctx, ds, root, path[0], toinsert)
+		return addLink(ctx, ds, root, path[0], toinsert)
 	}
 
 	nd, err := root.GetLinkedNode(ctx, ds, path[0])
 	if err != nil {
 		// if 'create' is true, we create directories on the way down as needed
-		if err == dag.ErrNotFound && create {
-			nd = &dag.Node{Data: ft.FolderPBData()}
+		if err == dag.ErrNotFound && create != nil {
+			nd = create()
 		} else {
 			return nil, err
 		}
 	}
 
-	ndprime, err := InsertNodeAtPath(ctx, ds, nd, path[1:], toinsert, create)
+	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert, create)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +104,17 @@ func InsertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, pa
 	return root, nil
 }
 
-func RmLink(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string) (*dag.Node, error) {
+func (e *Editor) RmLink(ctx context.Context, path string) error {
+	splpath := strings.Split(path, "/")
+	nd, err := rmLink(ctx, e.ds, e.root, splpath)
+	if err != nil {
+		return err
+	}
+	e.root = nd
+	return nil
+}
+
+func rmLink(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string) (*dag.Node, error) {
 	if len(path) == 1 {
 		// base case, remove node in question
 		err := root.RemoveNodeLink(path[0])
@@ -93,7 +135,7 @@ func RmLink(ctx context.Context, ds dag.DAGService, root *dag.Node, path []strin
 		return nil, err
 	}
 
-	nnode, err := RmLink(ctx, ds, nd, path[1:])
+	nnode, err := rmLink(ctx, ds, nd, path[1:])
 	if err != nil {
 		return nil, err
 	}

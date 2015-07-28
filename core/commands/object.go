@@ -587,12 +587,16 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	path := strings.Split(req.Arguments()[2], "/")
+	path := req.Arguments()[2]
 
-	nnode, err := dagutils.RmLink(req.Context(), nd.DAG, root, path)
+	e := dagutils.NewDagEditor(nd.DAG, root)
+
+	err = e.RmLink(req.Context(), path)
 	if err != nil {
 		return "", err
 	}
+
+	nnode := e.GetNode()
 
 	return nnode.Key()
 }
@@ -610,17 +614,27 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 	path := req.Arguments()[2]
 	childk := key.B58KeyDecode(req.Arguments()[3])
 
-	parts := strings.Split(path, "/")
-
 	create, _, err := req.Option("create").Bool()
 	if err != nil {
 		return "", err
 	}
 
-	nnode, err := dagutils.InsertNodeAtPath(req.Context(), nd.DAG, root, parts, childk, create)
+	var createfunc func() *dag.Node
+	if create {
+		createfunc = func() *dag.Node {
+			return &dag.Node{Data: ft.FolderPBData()}
+		}
+	}
+
+	e := dagutils.NewDagEditor(nd.DAG, root)
+
+	err = e.InsertNodeAtPath(req.Context(), path, childk, createfunc)
 	if err != nil {
 		return "", err
 	}
+
+	nnode := e.GetNode()
+
 	return nnode.Key()
 }
 
