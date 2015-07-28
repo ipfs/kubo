@@ -21,6 +21,7 @@ var log = u.Logger("commands/http")
 type internalHandler struct {
 	ctx  cmds.Context
 	root *cmds.Command
+	cfg  *ServerConfig
 }
 
 // The Handler struct is funny because we want to wrap our internal handler
@@ -60,12 +61,22 @@ var mimeTypes = map[string]string{
 }
 
 type ServerConfig struct {
-	// AddHeaders is an optional function that gets to write additional
-	// headers to HTTP responses to the API requests.
-	AddHeaders func(http.Header)
+	// Headers is an optional map of headers that is written out.
+	Headers map[string][]string
 
 	// CORSOpts is a set of options for CORS headers.
 	CORSOpts *cors.Options
+}
+
+func skipAPIHeader(h string) bool {
+	switch h {
+	default:
+		return false
+	case "Access-Control-Allow-Origin":
+	case "Access-Control-Allow-Methods":
+	case "Access-Control-Allow-Credentials":
+	}
+	return true
 }
 
 func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
@@ -89,7 +100,7 @@ func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handle
 
 	// Wrap the internal handler with CORS handling-middleware.
 	// Create a handler for the API.
-	internal := internalHandler{ctx, root}
+	internal := internalHandler{ctx, root, cfg}
 	c := cors.New(*cfg.CORSOpts)
 	return &Handler{internal, c.Handler(internal)}
 }
@@ -131,6 +142,13 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// call the command
 	res := i.root.Call(req)
+
+	// set user's headers first.
+	for k, v := range i.cfg.Headers {
+		if !skipAPIHeader(k) {
+			w.Header()[k] = v
+		}
+	}
 
 	// now handle responding to the client properly
 	sendResponse(w, r, req, res)

@@ -39,7 +39,7 @@ func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	}
 }
 
-func addCORSFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
+func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	log.Info("Using API.HTTPHeaders:", nc.API.HTTPHeaders)
 
 	if acao := nc.API.HTTPHeaders["Access-Control-Allow-Origin"]; acao != nil {
@@ -53,6 +53,8 @@ func addCORSFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 			c.CORSOpts.AllowCredentials = (strings.ToLower(v) == "true")
 		}
 	}
+
+	c.Headers = nc.API.HTTPHeaders
 }
 
 func CommandsOption(cctx commands.Context) ServeOption {
@@ -64,7 +66,7 @@ func CommandsOption(cctx commands.Context) ServeOption {
 			},
 		}
 
-		addCORSFromConfig(cfg, n.Repo.Config())
+		addHeadersFromConfig(cfg, n.Repo.Config())
 		addCORSFromEnv(cfg)
 
 		cmdHandler := cmdsHttp.NewHandler(cctx, corecommands.Root, cfg)

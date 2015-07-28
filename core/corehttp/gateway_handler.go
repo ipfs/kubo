@@ -106,6 +106,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
 
 	// Suborigin header, sandboxes apps from each other in the browser (even
@@ -229,6 +230,7 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", k.String())
 	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
 }
@@ -242,6 +244,7 @@ func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", key.String())
 	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/", http.StatusCreated)
 }
@@ -340,6 +343,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", key.String())
 	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components, "/"), http.StatusCreated)
 }
@@ -411,8 +415,15 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", key.String())
 	http.Redirect(w, r, ipfsPathPrefix+key.String()+"/"+strings.Join(components[:len(components)-1], "/"), http.StatusCreated)
+}
+
+func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
+	for k, v := range i.config.Headers {
+		w.Header()[k] = v
+	}
 }
 
 func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
