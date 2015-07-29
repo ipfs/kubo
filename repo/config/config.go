@@ -26,6 +26,7 @@ type Config struct {
 	Tour             Tour                  // local node's tour position
 	Gateway          Gateway               // local node's gateway server options
 	SupernodeRouting SupernodeClientConfig // local node's routing servers (if SupernodeRouting enabled)
+	API              API                   // local node's API settings
 	Swarm            SwarmConfig
 	Log              Log
 }

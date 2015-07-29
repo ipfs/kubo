@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
+	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
@@ -21,6 +21,7 @@ var log = u.Logger("commands/http")
 type internalHandler struct {
 	ctx  cmds.Context
 	root *cmds.Command
+	cfg  *ServerConfig
 }
 
 // The Handler struct is funny because we want to wrap our internal handler
@@ -44,7 +45,21 @@ const (
 	applicationJson        = "application/json"
 	applicationOctetStream = "application/octet-stream"
 	plainText              = "text/plain"
+	originHeader           = "origin"
 )
+
+const (
+	ACAOrigin      = "Access-Control-Allow-Origin"
+	ACAMethods     = "Access-Control-Allow-Methods"
+	ACACredentials = "Access-Control-Allow-Credentials"
+)
+
+var localhostOrigins = []string{
+	"http://127.0.0.1",
+	"https://127.0.0.1",
+	"http://localhost",
+	"https://localhost",
+}
 
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
@@ -52,27 +67,50 @@ var mimeTypes = map[string]string{
 	cmds.Text: "text/plain",
 }
 
-func NewHandler(ctx cmds.Context, root *cmds.Command, allowedOrigin string) *Handler {
-	// allow whitelisted origins (so we can make API requests from the browser)
-	if len(allowedOrigin) > 0 {
-		log.Info("Allowing API requests from origin: " + allowedOrigin)
+type ServerConfig struct {
+	// Headers is an optional map of headers that is written out.
+	Headers map[string][]string
+
+	// CORSOpts is a set of options for CORS headers.
+	CORSOpts *cors.Options
+}
+
+func skipAPIHeader(h string) bool {
+	switch h {
+	case "Access-Control-Allow-Origin":
+		return true
+	case "Access-Control-Allow-Methods":
+		return true
+	case "Access-Control-Allow-Credentials":
+		return true
+	default:
+		return false
+	}
+}
+
+func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
+	if cfg == nil {
+		cfg = &ServerConfig{}
 	}
 
-	// Create a handler for the API.
-	internal := internalHandler{ctx, root}
+	if cfg.CORSOpts == nil {
+		cfg.CORSOpts = new(cors.Options)
+	}
 
-	// Create a CORS object for wrapping the internal handler.
-	c := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT"},
+	// by default, use GET, PUT, POST
+	if cfg.CORSOpts.AllowedMethods == nil {
+		cfg.CORSOpts.AllowedMethods = []string{"GET", "POST", "PUT"}
+	}
 
-		// use AllowOriginFunc instead of AllowedOrigins because we want to be
-		// restrictive by default.
-		AllowOriginFunc: func(origin string) bool {
-			return (allowedOrigin == "*") || (origin == allowedOrigin)
-		},
-	})
+	// by default, only let 127.0.0.1 through.
+	if cfg.CORSOpts.AllowedOrigins == nil {
+		cfg.CORSOpts.AllowedOrigins = localhostOrigins
+	}
 
 	// Wrap the internal handler with CORS handling-middleware.
+	// Create a handler for the API.
+	internal := internalHandler{ctx, root, cfg}
+	c := cors.New(*cfg.CORSOpts)
 	return &Handler{internal, c.Handler(internal)}
 }
 
@@ -84,17 +122,10 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
 
-	// error on external referers (to prevent CSRF attacks)
-	referer := r.Referer()
-	scheme := r.URL.Scheme
-	if len(scheme) == 0 {
-		scheme = "http"
-	}
-	host := fmt.Sprintf("%s://%s/", scheme, r.Host)
-	// empty string means the user isn't following a link (they are directly typing in the url)
-	if referer != "" && !strings.HasPrefix(referer, host) {
+	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("403 - Forbidden"))
+		log.Warningf("API blocked request to %s. (possible CSRF)", r.URL)
 		return
 	}
 
@@ -128,8 +159,15 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// call the command
 	res := i.root.Call(req)
 
+	// set user's headers first.
+	for k, v := range i.cfg.Headers {
+		if !skipAPIHeader(k) {
+			w.Header()[k] = v
+		}
+	}
+
 	// now handle responding to the client properly
-	sendResponse(w, req, res)
+	sendResponse(w, r, res, req)
 }
 
 func guessMimeType(res cmds.Response) (string, error) {
@@ -145,7 +183,7 @@ func guessMimeType(res cmds.Response) (string, error) {
 	return mimeTypes[enc], nil
 }
 
-func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
+func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req cmds.Request) {
 	mime, err := guessMimeType(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -202,6 +240,10 @@ func sendResponse(w http.ResponseWriter, req cmds.Request, res cmds.Response) {
 		h.Set(contentTypeHeader, mime)
 	}
 	h.Set(transferEncodingHeader, "chunked")
+
+	if r.Method == "HEAD" { // after all the headers.
+		return
+	}
 
 	if err := writeResponse(status, w, out); err != nil {
 		log.Error("error while writing stream", err)
@@ -281,4 +323,61 @@ func sanitizedErrStr(err error) string {
 	s = strings.Split(s, "\n")[0]
 	s = strings.Split(s, "\r")[0]
 	return s
+}
+
+// allowOrigin just stops the request if the origin is not allowed.
+// the CORS middleware apparently does not do this for us...
+func allowOrigin(r *http.Request, cfg *ServerConfig) bool {
+	origin := r.Header.Get("Origin")
+
+	// curl, or ipfs shell, typing it in manually, or clicking link
+	// NOT in a browser. this opens up a hole. we should close it,
+	// but right now it would break things. TODO
+	if origin == "" {
+		return true
+	}
+
+	for _, o := range cfg.CORSOpts.AllowedOrigins {
+		if o == "*" { // ok! you asked for it!
+			return true
+		}
+
+		if o == origin { // allowed explicitly
+			return true
+		}
+	}
+
+	return false
+}
+
+// allowReferer this is here to prevent some CSRF attacks that
+// the API would be vulnerable to. We check that the Referer
+// is allowed by CORS Origin (origins and referrers here will
+// work similarly in the normla uses of the API).
+// See discussion at https://github.com/ipfs/go-ipfs/issues/1532
+func allowReferer(r *http.Request, cfg *ServerConfig) bool {
+	referer := r.Referer()
+
+	// curl, or ipfs shell, typing it in manually, or clicking link
+	// NOT in a browser. this opens up a hole. we should close it,
+	// but right now it would break things. TODO
+	if referer == "" {
+		return true
+	}
+
+	// check CORS ACAOs and pretend Referer works like an origin.
+	// this is valid for many (most?) sane uses of the API in
+	// other applications, and will have the desired effect.
+	for _, o := range cfg.CORSOpts.AllowedOrigins {
+		if o == "*" { // ok! you asked for it!
+			return true
+		}
+
+		// referer is allowed explicitly
+		if o == referer {
+			return true
+		}
+	}
+
+	return false
 }

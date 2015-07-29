@@ -15,6 +15,7 @@ type Gateway struct {
 }
 
 type GatewayConfig struct {
+	Headers   map[string][]string
 	BlockList *BlockList
 	Writable  bool
 }
@@ -27,6 +28,9 @@ func NewGateway(conf GatewayConfig) *Gateway {
 
 func (g *Gateway) ServeOption() ServeOption {
 	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+		// pass user's HTTP headers
+		g.Config.Headers = n.Repo.Config().Gateway.HTTPHeaders
+
 		gateway, err := newGatewayHandler(n, g.Config)
 		if err != nil {
 			return nil, err

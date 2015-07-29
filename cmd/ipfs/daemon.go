@@ -61,20 +61,47 @@ The API address can be changed the same way:
 
 Make sure to restart the daemon after changing addresses.
 
-By default, the gateway is only accessible locally. To expose it to other computers
-in the network, use 0.0.0.0 as the ip address:
+By default, the gateway is only accessible locally. To expose it to
+other computers in the network, use 0.0.0.0 as the ip address:
 
    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 
-Be careful if you expose the API. It is a security risk, as anyone could control
-your node remotely. If you need to control the node remotely, make sure to protect
-the port as you would other services or database (firewall, authenticated proxy, etc).
+Be careful if you expose the API. It is a security risk, as anyone could
+control your node remotely. If you need to control the node remotely,
+make sure to protect the port as you would other services or database
+(firewall, authenticated proxy, etc).
 
-In order to explicitly allow Cross-Origin requests, export the root url as
-environment variable API_ORIGIN.  For example, to allow a local server at port 8888,
-run this then restart the daemon:
+HTTP Headers
 
-   export API_ORIGIN="http://localhost:8888/`,
+IPFS supports passing arbitrary headers to the API and Gateway. You can
+do this by setting headers on the API.HTTPHeaders and Gateway.HTTPHeaders
+keys:
+
+	ipfs config --json API.HTTPHeaders.X-Special-Header '["so special :)"]'
+	ipfs config --json Gateway.HTTPHeaders.X-Special-Header '["so special :)"]'
+
+Note that the value of the keys is an _array_ of strings. This is because
+headers can have more than one value, and it is convenient to pass through
+to other libraries.
+
+CORS Headers (for API)
+
+You can setup CORS headers the same way:
+
+	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
+	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
+	ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
+
+
+DEPRECATION NOTICE
+
+Previously, IPFS used an environment variable as seen below:
+
+   export API_ORIGIN="http://localhost:8888/"
+
+This is deprecated. It is still honored in this version, but will be removed in a
+future version, along with this notice. Please move to setting the HTTP Headers.
+`,
 	},
 
 	Options: []cmds.Option{
