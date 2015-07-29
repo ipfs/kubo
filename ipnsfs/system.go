@@ -34,6 +34,8 @@ var ErrIsDirectory = errors.New("error: is a directory")
 
 // Filesystem is the writeable fuse filesystem structure
 type Filesystem struct {
+	ctx context.Context
+
 	dserv dag.DAGService
 
 	nsys namesys.NameSystem
@@ -49,6 +51,7 @@ type Filesystem struct {
 func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSystem, pins pin.Pinner, keys ...ci.PrivKey) (*Filesystem, error) {
 	roots := make(map[string]*KeyRoot)
 	fs := &Filesystem{
+		ctx:      ctx,
 		roots:    roots,
 		nsys:     nsys,
 		dserv:    ds,
@@ -77,7 +80,7 @@ func (fs *Filesystem) Close() error {
 		wg.Add(1)
 		go func(r *KeyRoot) {
 			defer wg.Done()
-			err := r.Publish(context.TODO())
+			err := r.Publish(fs.ctx)
 			if err != nil {
 				log.Info(err)
 				return
