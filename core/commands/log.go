@@ -3,12 +3,10 @@ package commands
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/thirdparty/eventlog"
 	u "github.com/ipfs/go-ipfs/util"
-
-	tail "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/ActiveState/tail"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -80,61 +78,12 @@ var logTailCmd = &cmds.Command{
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		path := fmt.Sprintf("%s/logs/events.log", req.InvocContext().ConfigRoot)
-
-		outChan := make(chan interface{})
-
+		r, w := io.Pipe()
+		eventlog.WriterGroup.AddWriter(w)
 		go func() {
-			defer close(outChan)
-
-			t, err := tail.TailFile(path, tail.Config{
-				Location:  &tail.SeekInfo{0, 2},
-				Follow:    true,
-				MustExist: true,
-				Logger:    tail.DiscardingLogger,
-			})
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-			defer t.Stop()
-
-			done := req.Context().Done()
-
-			for line := range t.Lines {
-				// return when context closes
-				select {
-				case <-done:
-					return
-				default:
-				}
-
-				if line.Err != nil {
-					fmt.Println(err.Error())
-					return
-				}
-				// TODO: unpack the line text into a struct and output that
-				outChan <- &MessageOutput{line.Text}
-			}
+			<-req.Context().Done()
+			w.Close()
 		}()
-
-		res.SetOutput((<-chan interface{})(outChan))
+		res.SetOutput(r)
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			outChan, ok := res.Output().(<-chan interface{})
-			if !ok {
-				return nil, u.ErrCast()
-			}
-
-			return &cmds.ChannelMarshaler{
-				Channel: outChan,
-				Marshaler: func(v interface{}) (io.Reader, error) {
-					output := v.(*MessageOutput)
-					return strings.NewReader(output.Message + "\n"), nil
-				},
-			}, nil
-		},
-	},
-	Type: MessageOutput{},
 }
