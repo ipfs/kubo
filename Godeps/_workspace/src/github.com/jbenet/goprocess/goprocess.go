@@ -145,8 +145,6 @@ type Process interface {
 // lifecycle of a Process.
 type TeardownFunc func() error
 
-var nilTeardownFunc = func() error { return nil }
-
 // ProcessFunc is a function that takes a process. Its main use case is goprocess.Go,
 // which spawns a ProcessFunc in its own goroutine, and returns a corresponding
 // Process object.
