@@ -16,26 +16,31 @@ type KeyRemoved struct {
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning)
+	kr, err := GarbageCollectAsync(n, ctx)
 	if err != nil {
 		return err
 	}
 
-	for {
-		select {
-		case _, ok := <-rmed:
-			if !ok {
-				return nil
-			}
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	for _ = range kr {
 	}
 
+	return nil
 }
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemoved, error) {
-	rmed, err := gc.GC(ctx, n.Blockstore, n.Pinning)
+	// GC blocks from data blockstore
+	rmed, err := gc.GC(ctx, n.DataBlocks, n.Pinning)
+	if err != nil {
+		return nil, err
+	}
+
+	// GC blocks from state blockstore
+	ks := key.NewKeySet()
+	for _, k := range n.Pinning.InternalPins() {
+		ks.Add(k)
+	}
+
+	internal, err := gc.RunGC(ctx, n.StateBlocks, ks)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +49,13 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) (<-chan *KeyRemo
 	go func() {
 		defer close(out)
 		for k := range rmed {
+			select {
+			case out <- &KeyRemoved{k}:
+			case <-ctx.Done():
+				return
+			}
+		}
+		for k := range internal {
 			select {
 			case out <- &KeyRemoved{k}:
 			case <-ctx.Done():

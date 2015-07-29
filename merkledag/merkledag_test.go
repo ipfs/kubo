@@ -35,7 +35,7 @@ func getDagservAndPinner(t *testing.T) dagservAndPinner {
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))
 	dserv := NewDAGService(blockserv)
-	mpin := pin.NewPinner(db, dserv)
+	mpin := pin.NewPinner(db, dserv, dserv)
 	return dagservAndPinner{
 		ds: dserv,
 		mp: mpin,

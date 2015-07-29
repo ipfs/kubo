@@ -51,8 +51,11 @@ on disk.
 			return
 		}
 
-		unlock := n.Blockstore.PinLock()
+		// Lock both blockstores. TODO: rethink this?
+		unlock := n.DataBlocks.PinLock()
 		defer unlock()
+		sunlock := n.StateBlocks.PinLock()
+		defer sunlock()
 
 		// set recursive flag
 		recursive, found, err := req.Option("recursive").Bool()

@@ -86,13 +86,16 @@ type IpfsNode struct {
 	PrivateKey ic.PrivKey // the local node's private Key
 
 	// Services
-	Peerstore  peer.Peerstore       // storage for other Peer instances
-	Blockstore bstore.GCBlockstore  // the block store (lower level)
-	Blocks     *bserv.BlockService  // the block service, get/add blocks.
-	DAG        merkledag.DAGService // the merkle dag service, get/add objects.
-	Resolver   *path.Resolver       // the path resolution system
-	Reporter   metrics.Reporter
-	Discovery  discovery.Service
+	Peerstore   peer.Peerstore      // storage for other Peer instances
+	DataBlocks  bstore.GCBlockstore // the block store (lower level)
+	StateBlocks bstore.GCBlockstore // the private blockstore
+	Blocks      *bserv.BlockService // the block service, get/add blocks.
+
+	DAG       merkledag.DAGService // the merkle dag service, get/add objects.
+	StateDAG  merkledag.DAGService // the private merkledag service for local objects
+	Resolver  *path.Resolver       // the path resolution system
+	Reporter  metrics.Reporter
+	Discovery discovery.Service
 
 	// Online
 	PeerHost     p2phost.Host        // the network host (server+client)
@@ -162,7 +165,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return err
 	}
 
-	n.Reprovider = rp.NewReprovider(n.Routing, n.Blockstore)
+	n.Reprovider = rp.NewReprovider(n.Routing, n.DataBlocks)
 	go n.Reprovider.ProvideEvery(ctx, kReprovideFrequency)
 
 	// setup local discovery
@@ -220,7 +223,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	// setup exchange service
 	const alwaysSendToPeer = true // use YesManStrategy
 	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
-	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.Blockstore, alwaysSendToPeer)
+	n.Exchange = bitswap.New(ctx, n.Identity, bitswapNetwork, n.DataBlocks, alwaysSendToPeer)
 
 	// setup name system
 	n.Namesys = namesys.NewNameSystem(n.Routing)

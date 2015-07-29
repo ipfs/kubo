@@ -165,7 +165,7 @@ Displays the hashes of all local objects.
 		}
 
 		// todo: make async
-		allKeys, err := n.Blockstore.AllKeysChan(ctx)
+		allKeys, err := n.DataBlocks.AllKeysChan(ctx)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

@@ -296,6 +296,7 @@ func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set key.K
 			set.Add(k)
 			child, err := ds.Get(ctx, k)
 			if err != nil {
+				log.Error("not found: ", k)
 				return err
 			}
 			err = EnumerateChildren(ctx, ds, child, set)

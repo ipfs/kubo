@@ -34,12 +34,16 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, pn pin.Pinner) (<-chan key.
 		return nil, err
 	}
 
+	return RunGC(ctx, bs, gcs)
+}
+
+func RunGC(ctx context.Context, bs bstore.GCBlockstore, gcs key.KeySet) (<-chan key.Key, error) {
 	keychan, err := bs.AllKeysChan(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	output := make(chan key.Key)
+	output := make(chan key.Key, 16)
 	go func() {
 		defer close(output)
 		for {
@@ -98,11 +102,6 @@ func ColoredSet(pn pin.Pinner, ds dag.DAGService) (key.KeySet, error) {
 
 	for _, k := range pn.DirectKeys() {
 		gcs.Add(k)
-	}
-
-	err = Descendants(ds, gcs, pn.InternalPins())
-	if err != nil {
-		return nil, err
 	}
 
 	return gcs, nil

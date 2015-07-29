@@ -48,6 +48,9 @@ type BlockService struct {
 
 // NewBlockService creates a BlockService with given datastore instance.
 func New(bs blockstore.Blockstore, rem exchange.Interface) *BlockService {
+	if bs == nil {
+		panic("BlockService requires valid blockstore")
+	}
 	if rem == nil {
 		log.Warning("blockservice running in local (offline) mode.")
 	}

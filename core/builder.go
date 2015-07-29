@@ -129,7 +129,14 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	var err error
-	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
+	n.DataBlocks, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
+	if err != nil {
+		return err
+	}
+
+	n.StateBlocks, err = bstore.WriteCached(
+		bstore.NewBlockstoreWithPrefix(n.Repo.Datastore(), bstore.PrivateBlockPrefix),
+		kSizeBlockstoreWriteCache)
 	if err != nil {
 		return err
 	}
@@ -144,18 +151,19 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 			return err
 		}
 	} else {
-		n.Exchange = offline.Exchange(n.Blockstore)
+		n.Exchange = offline.Exchange(n.DataBlocks)
 	}
 
-	n.Blocks = bserv.New(n.Blockstore, n.Exchange)
+	n.Blocks = bserv.New(n.DataBlocks, n.Exchange)
 	n.DAG = dag.NewDAGService(n.Blocks)
-	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG)
+	n.StateDAG = dag.NewDAGService(bserv.New(n.StateBlocks, offline.Exchange(n.StateBlocks)))
+	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG, n.StateDAG)
 	if err != nil {
 		// TODO: we should move towards only running 'NewPinner' explicity on
 		// node init instead of implicitly here as a result of the pinner keys
 		// not being found in the datastore.
 		// this is kinda sketchy and could cause data loss
-		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG)
+		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG, n.StateDAG)
 	}
 	n.Resolver = &path.Resolver{DAG: n.DAG}
 

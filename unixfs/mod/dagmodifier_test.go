@@ -33,7 +33,7 @@ func getMockDagServ(t testing.TB) (mdag.DAGService, pin.Pinner) {
 	bstore := blockstore.NewBlockstore(tsds)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 	dserv := mdag.NewDAGService(bserv)
-	return dserv, pin.NewPinner(tsds, dserv)
+	return dserv, pin.NewPinner(tsds, dserv, dserv)
 }
 
 func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlockstore, pin.Pinner) {
@@ -42,7 +42,7 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.GCBlocks
 	bstore := blockstore.NewBlockstore(tsds)
 	bserv := bs.New(bstore, offline.Exchange(bstore))
 	dserv := mdag.NewDAGService(bserv)
-	return dserv, bstore, pin.NewPinner(tsds, dserv)
+	return dserv, bstore, pin.NewPinner(tsds, dserv, dserv)
 }
 
 func getNode(t testing.TB, dserv mdag.DAGService, size int64, pinner pin.Pinner) ([]byte, *mdag.Node) {

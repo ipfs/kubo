@@ -21,6 +21,8 @@ var log = eventlog.Logger("blockstore")
 // BlockPrefix namespaces blockstore datastores
 var BlockPrefix = ds.NewKey("blocks")
 
+var PrivateBlockPrefix = ds.NewKey("private")
+
 var ValueTypeMismatch = errors.New("The retrieved value is not a Block")
 
 var ErrNotFound = errors.New("blockstore: block not found")
@@ -52,11 +54,12 @@ type GCBlockstore interface {
 }
 
 func NewBlockstore(d ds.Batching) *blockstore {
-	var dsb ds.Batching
-	dd := dsns.Wrap(d, BlockPrefix)
-	dsb = dd
+	return NewBlockstoreWithPrefix(d, BlockPrefix)
+}
+
+func NewBlockstoreWithPrefix(d ds.Batching, prefix ds.Key) *blockstore {
 	return &blockstore{
-		datastore: dsb,
+		datastore: dsns.Wrap(d, prefix),
 	}
 }
 

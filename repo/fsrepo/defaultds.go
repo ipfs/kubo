@@ -18,6 +18,7 @@ import (
 const (
 	leveldbDirectory = "datastore"
 	flatfsDirectory  = "blocks"
+	stateDirectory   = "state"
 )
 
 func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
@@ -44,6 +45,11 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 		return nil, fmt.Errorf("unable to open flatfs datastore: %v", err)
 	}
 
+	stateDS, err := flatfs.New(path.Join(r.path, stateDirectory), 4)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open state datastore: %v", err)
+	}
+
 	// Add our PeerID to metrics paths to keep them unique
 	//
 	// As some tests just pass a zero-value Config to fsrepo.Init,
@@ -55,11 +61,17 @@ func openDefaultDatastore(r *FSRepo) (repo.Datastore, error) {
 	}
 	prefix := "fsrepo." + id + ".datastore."
 	metricsBlocks := measure.New(prefix+"blocks", blocksDS)
+	metricsState := measure.New(prefix+"state", stateDS)
 	metricsLevelDB := measure.New(prefix+"leveldb", leveldbDS)
+
 	mountDS := mount.New([]mount.Mount{
 		{
 			Prefix:    ds.NewKey("/blocks"),
 			Datastore: metricsBlocks,
+		},
+		{
+			Prefix:    ds.NewKey("/private"),
+			Datastore: metricsState,
 		},
 		{
 			Prefix:    ds.NewKey("/"),
@@ -87,6 +99,11 @@ func initDefaultDatastore(repoPath string, conf *config.Config) error {
 
 	flatfsPath := path.Join(repoPath, flatfsDirectory)
 	if err := dir.Writable(flatfsPath); err != nil {
+		return fmt.Errorf("datastore: %s", err)
+	}
+
+	statedsPath := path.Join(repoPath, stateDirectory)
+	if err := dir.Writable(statedsPath); err != nil {
 		return fmt.Errorf("datastore: %s", err)
 	}
 	return nil
