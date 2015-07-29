@@ -53,7 +53,7 @@ func getMockDagServAndBstore(t testing.TB) (mdag.DAGService, blockstore.Blocksto
 
 func getNode(t testing.TB, dserv mdag.DAGService, size int64, pinner pin.ManualPinner) ([]byte, *mdag.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
-	node, err := imp.BuildTrickleDagFromReader(in, dserv, &chunk.SizeSplitter{500}, imp.BasicPinnerCB(pinner))
+	node, err := imp.BuildTrickleDagFromReader(dserv, sizeSplitterGen(500)(in), imp.BasicPinnerCB(pinner))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,13 +117,19 @@ func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier) 
 	return orig
 }
 
+func sizeSplitterGen(size int64) chunk.SplitterGen {
+	return func(r io.Reader) chunk.Splitter {
+		return chunk.NewSizeSplitter(r, size)
+	}
+}
+
 func TestDagModifierBasic(t *testing.T) {
 	dserv, pin := getMockDagServ(t)
 	b, n := getNode(t, dserv, 50000, pin)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pin, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pin, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +184,7 @@ func TestMultiWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +237,7 @@ func TestMultiWriteAndFlush(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +285,7 @@ func TestWriteNewFile(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +328,7 @@ func TestMultiWriteCoal(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +374,7 @@ func TestLargeWriteChunks(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,7 +412,7 @@ func TestDagTruncate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,7 +443,7 @@ func TestSparseWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -491,7 +497,7 @@ func TestCorrectPinning(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -598,7 +604,7 @@ func BenchmarkDagmodWrite(b *testing.B) {
 
 	wrsize := 4096
 
-	dagmod, err := NewDagModifier(ctx, n, dserv, pins, &chunk.SizeSplitter{Size: 512})
+	dagmod, err := NewDagModifier(ctx, n, dserv, pins, sizeSplitterGen(512))
 	if err != nil {
 		b.Fatal(err)
 	}

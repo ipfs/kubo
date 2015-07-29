@@ -32,8 +32,8 @@ func TestSizeSplitterIsDeterministic(t *testing.T) {
 		bufA := copyBuf(bufR)
 		bufB := copyBuf(bufR)
 
-		chunksA := DefaultSplitter.Split(bytes.NewReader(bufA))
-		chunksB := DefaultSplitter.Split(bytes.NewReader(bufB))
+		chunksA, _ := Chan(DefaultSplitter(bytes.NewReader(bufA)))
+		chunksB, _ := Chan(DefaultSplitter(bytes.NewReader(bufB)))
 
 		for n := 0; ; n++ {
 			a, moreA := <-chunksA
@@ -65,8 +65,8 @@ func TestSizeSplitterFillsChunks(t *testing.T) {
 	max := 10000000
 	b := randBuf(t, max)
 	r := &clipReader{r: bytes.NewReader(b), size: 4000}
-	s := SizeSplitter{Size: 1024 * 256}
-	c := s.Split(r)
+	chunksize := int64(1024 * 256)
+	c, _ := Chan(NewSizeSplitter(r, chunksize))
 
 	sofar := 0
 	whole := make([]byte, max)
@@ -80,7 +80,7 @@ func TestSizeSplitterFillsChunks(t *testing.T) {
 		copy(whole[sofar:], chunk)
 
 		sofar += len(chunk)
-		if sofar != max && len(chunk) < s.Size {
+		if sofar != max && len(chunk) < int(chunksize) {
 			t.Fatal("sizesplitter split at a smaller size")
 		}
 	}

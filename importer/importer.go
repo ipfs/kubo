@@ -4,7 +4,6 @@ package importer
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	bal "github.com/ipfs/go-ipfs/importer/balanced"
@@ -36,12 +35,12 @@ func BuildDagFromFile(fpath string, ds dag.DAGService, mp pin.ManualPinner) (*da
 	}
 	defer f.Close()
 
-	return BuildDagFromReader(f, ds, chunk.DefaultSplitter, BasicPinnerCB(mp))
+	return BuildDagFromReader(ds, chunk.NewSizeSplitter(f, chunk.DefaultBlockSize), BasicPinnerCB(mp))
 }
 
-func BuildDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
+func BuildDagFromReader(ds dag.DAGService, spl chunk.Splitter, ncb h.NodeCB) (*dag.Node, error) {
 	// Start the splitter
-	blkch := spl.Split(r)
+	blkch, errch := chunk.Chan(spl)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
@@ -49,12 +48,12 @@ func BuildDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter,
 		NodeCB:   ncb,
 	}
 
-	return bal.BalancedLayout(dbp.New(blkch))
+	return bal.BalancedLayout(dbp.New(blkch, errch))
 }
 
-func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSplitter, ncb h.NodeCB) (*dag.Node, error) {
+func BuildTrickleDagFromReader(ds dag.DAGService, spl chunk.Splitter, ncb h.NodeCB) (*dag.Node, error) {
 	// Start the splitter
-	blkch := spl.Split(r)
+	blkch, errch := chunk.Chan(spl)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
@@ -62,7 +61,7 @@ func BuildTrickleDagFromReader(r io.Reader, ds dag.DAGService, spl chunk.BlockSp
 		NodeCB:   ncb,
 	}
 
-	return trickle.TrickleLayout(dbp.New(blkch))
+	return trickle.TrickleLayout(dbp.New(blkch, errch))
 }
 
 func BasicPinnerCB(p pin.ManualPinner) h.NodeCB {

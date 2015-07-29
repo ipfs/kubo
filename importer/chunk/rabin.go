@@ -1,94 +1,39 @@
 package chunk
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
+	"hash/fnv"
 	"io"
-	"math"
+
+	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/whyrusleeping/chunker"
 )
 
-type MaybeRabin struct {
-	mask         int
-	windowSize   int
-	MinBlockSize int
-	MaxBlockSize int
+var IpfsRabinPoly = chunker.Pol(17437180132763653)
+
+type Rabin struct {
+	r *chunker.Chunker
 }
 
-func NewMaybeRabin(avgBlkSize int) *MaybeRabin {
-	blkbits := uint(math.Log2(float64(avgBlkSize)))
-	rb := new(MaybeRabin)
-	rb.mask = (1 << blkbits) - 1
-	rb.windowSize = 16 // probably a good number...
-	rb.MinBlockSize = avgBlkSize / 2
-	rb.MaxBlockSize = (avgBlkSize / 2) * 3
-	return rb
+func NewRabin(r io.Reader, avgBlkSize uint64) *Rabin {
+	min := avgBlkSize / 3
+	max := avgBlkSize + (avgBlkSize / 2)
+
+	return NewRabinMinMax(r, avgBlkSize, min, max)
 }
 
-func (mr *MaybeRabin) Split(r io.Reader) chan []byte {
-	out := make(chan []byte, 16)
-	go func() {
-		inbuf := bufio.NewReader(r)
-		blkbuf := new(bytes.Buffer)
+func NewRabinMinMax(r io.Reader, min, avg, max uint64) *Rabin {
+	h := fnv.New32a()
+	ch := chunker.New(r, IpfsRabinPoly, h, avg, min, max)
 
-		// some bullshit numbers i made up
-		a := 10         // honestly, no idea what this is
-		MOD := 33554383 // randomly chosen (seriously)
-		an := 1
-		rollingHash := 0
+	return &Rabin{
+		r: ch,
+	}
+}
 
-		// Window is a circular buffer
-		window := make([]byte, mr.windowSize)
-		push := func(i int, val byte) (outval int) {
-			outval = int(window[i%len(window)])
-			window[i%len(window)] = val
-			return
-		}
+func (r *Rabin) NextBytes() ([]byte, error) {
+	ch, err := r.r.Next()
+	if err != nil {
+		return nil, err
+	}
 
-		// Duplicate byte slice
-		dup := func(b []byte) []byte {
-			d := make([]byte, len(b))
-			copy(d, b)
-			return d
-		}
-
-		// Fill up the window
-		i := 0
-		for ; i < mr.windowSize; i++ {
-			b, err := inbuf.ReadByte()
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			blkbuf.WriteByte(b)
-			push(i, b)
-			rollingHash = (rollingHash*a + int(b)) % MOD
-			an = (an * a) % MOD
-		}
-
-		for ; true; i++ {
-			b, err := inbuf.ReadByte()
-			if err != nil {
-				break
-			}
-			outval := push(i, b)
-			blkbuf.WriteByte(b)
-			rollingHash = (rollingHash*a + int(b) - an*outval) % MOD
-			if (rollingHash&mr.mask == mr.mask && blkbuf.Len() > mr.MinBlockSize) ||
-				blkbuf.Len() >= mr.MaxBlockSize {
-				out <- dup(blkbuf.Bytes())
-				blkbuf.Reset()
-			}
-
-			// Check if there are enough remaining
-			peek, err := inbuf.Peek(mr.windowSize)
-			if err != nil || len(peek) != mr.windowSize {
-				break
-			}
-		}
-		io.Copy(blkbuf, inbuf)
-		out <- blkbuf.Bytes()
-		close(out)
-	}()
-	return out
+	return ch.Data, nil
 }

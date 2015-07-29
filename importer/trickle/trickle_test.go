@@ -20,16 +20,16 @@ import (
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-func buildTestDag(r io.Reader, ds merkledag.DAGService, spl chunk.BlockSplitter) (*merkledag.Node, error) {
+func buildTestDag(ds merkledag.DAGService, spl chunk.Splitter) (*merkledag.Node, error) {
 	// Start the splitter
-	blkch := spl.Split(r)
+	blkch, errs := chunk.Chan(spl)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	nd, err := TrickleLayout(dbp.New(blkch))
+	nd, err := TrickleLayout(dbp.New(blkch, errs))
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +42,10 @@ func TestSizeBasedSplit(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	bs := &chunk.SizeSplitter{Size: 512}
+	bs := chunk.SizeSplitterGen(512)
 	testFileConsistency(t, bs, 32*512)
-	bs = &chunk.SizeSplitter{Size: 4096}
+
+	bs = chunk.SizeSplitterGen(4096)
 	testFileConsistency(t, bs, 32*4096)
 
 	// Uneven offset
@@ -57,13 +58,13 @@ func dup(b []byte) []byte {
 	return o
 }
 
-func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
+func testFileConsistency(t *testing.T, bs chunk.SplitterGen, nbytes int) {
 	should := make([]byte, nbytes)
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, bs)
+	nd, err := buildTestDag(ds, bs(read))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +91,7 @@ func TestBuilderConsistency(t *testing.T) {
 	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
 	should := dup(buf.Bytes())
 	dagserv := mdtest.Mock(t)
-	nd, err := buildTestDag(buf, dagserv, chunk.DefaultSplitter)
+	nd, err := buildTestDag(dagserv, chunk.DefaultSplitter(buf))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,39 +123,13 @@ func arrComp(a, b []byte) error {
 	return nil
 }
 
-func TestMaybeRabinConsistency(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	testFileConsistency(t, chunk.NewMaybeRabin(4096), 256*4096)
-}
-
-func TestRabinBlockSize(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	buf := new(bytes.Buffer)
-	nbytes := 1024 * 1024
-	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
-	rab := chunk.NewMaybeRabin(4096)
-	blkch := rab.Split(buf)
-
-	var blocks [][]byte
-	for b := range blkch {
-		blocks = append(blocks, b)
-	}
-
-	fmt.Printf("Avg block size: %d\n", nbytes/len(blocks))
-
-}
-
 type dagservAndPinner struct {
 	ds merkledag.DAGService
 	mp pin.ManualPinner
 }
 
 func TestIndirectBlocks(t *testing.T) {
-	splitter := &chunk.SizeSplitter{512}
+	splitter := chunk.SizeSplitterGen(512)
 	nbytes := 1024 * 1024
 	buf := make([]byte, nbytes)
 	u.NewTimeSeededRand().Read(buf)
@@ -162,7 +137,7 @@ func TestIndirectBlocks(t *testing.T) {
 	read := bytes.NewReader(buf)
 
 	ds := mdtest.Mock(t)
-	dag, err := buildTestDag(read, ds, splitter)
+	dag, err := buildTestDag(ds, splitter(read))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +164,7 @@ func TestSeekingBasic(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +201,7 @@ func TestSeekToBegin(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +245,7 @@ func TestSeekToAlmostBegin(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +289,7 @@ func TestSeekEnd(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +315,7 @@ func TestSeekEndSingleBlockFile(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{5000})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 5000))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +341,7 @@ func TestSeekingStress(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{1000})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 1000))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +386,7 @@ func TestSeekingConsistency(t *testing.T) {
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,7 +430,7 @@ func TestAppend(t *testing.T) {
 	// Reader for half the bytes
 	read := bytes.NewReader(should[:nbytes/2])
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -465,10 +440,10 @@ func TestAppend(t *testing.T) {
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	spl := &chunk.SizeSplitter{500}
-	blks := spl.Split(bytes.NewReader(should[nbytes/2:]))
+	r := bytes.NewReader(should[nbytes/2:])
+	blks, errs := chunk.Chan(chunk.NewSizeSplitter(r, 500))
 
-	nnode, err := TrickleAppend(nd, dbp.New(blks))
+	nnode, err := TrickleAppend(nd, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -504,7 +479,7 @@ func TestMultipleAppends(t *testing.T) {
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(nil)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(read, 500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -514,12 +489,12 @@ func TestMultipleAppends(t *testing.T) {
 		Maxlinks: 4,
 	}
 
-	spl := &chunk.SizeSplitter{500}
+	spl := chunk.SizeSplitterGen(500)
 
 	for i := 0; i < len(should); i++ {
-		blks := spl.Split(bytes.NewReader(should[i : i+1]))
+		blks, errs := chunk.Chan(spl(bytes.NewReader(should[i : i+1])))
 
-		nnode, err := TrickleAppend(nd, dbp.New(blks))
+		nnode, err := TrickleAppend(nd, dbp.New(blks, errs))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -559,18 +534,18 @@ func TestAppendSingleBytesToEmpty(t *testing.T) {
 		Maxlinks: 4,
 	}
 
-	spl := &chunk.SizeSplitter{500}
+	spl := chunk.SizeSplitterGen(500)
 
-	blks := spl.Split(bytes.NewReader(data[:1]))
+	blks, errs := chunk.Chan(spl(bytes.NewReader(data[:1])))
 
-	nnode, err := TrickleAppend(nd, dbp.New(blks))
+	nnode, err := TrickleAppend(nd, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	blks = spl.Split(bytes.NewReader(data[1:]))
+	blks, errs = chunk.Chan(spl(bytes.NewReader(data[1:])))
 
-	nnode, err = TrickleAppend(nnode, dbp.New(blks))
+	nnode, err = TrickleAppend(nnode, dbp.New(blks, errs))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,23 +12,38 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	h "github.com/ipfs/go-ipfs/importer/helpers"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	mdtest "github.com/ipfs/go-ipfs/merkledag/test"
 	pin "github.com/ipfs/go-ipfs/pin"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	u "github.com/ipfs/go-ipfs/util"
 )
 
-func buildTestDag(r io.Reader, ds merkledag.DAGService, spl chunk.BlockSplitter) (*merkledag.Node, error) {
+// TODO: extract these tests and more as a generic layout test suite
+
+func buildTestDag(ds dag.DAGService, spl chunk.Splitter) (*dag.Node, error) {
 	// Start the splitter
-	blkch := spl.Split(r)
+	blkch, errs := chunk.Chan(spl)
 
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
 	}
 
-	return BalancedLayout(dbp.New(blkch))
+	return BalancedLayout(dbp.New(blkch, errs))
+}
+
+func getTestDag(t *testing.T, ds dag.DAGService, size int64, blksize int64) (*dag.Node, []byte) {
+	data := make([]byte, size)
+	u.NewTimeSeededRand().Read(data)
+	r := bytes.NewReader(data)
+
+	nd, err := buildTestDag(ds, chunk.NewSizeSplitter(r, blksize))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return nd, data
 }
 
 //Test where calls to read are smaller than the chunk size
@@ -36,9 +51,10 @@ func TestSizeBasedSplit(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	bs := &chunk.SizeSplitter{Size: 512}
+
+	bs := chunk.SizeSplitterGen(512)
 	testFileConsistency(t, bs, 32*512)
-	bs = &chunk.SizeSplitter{Size: 4096}
+	bs = chunk.SizeSplitterGen(4096)
 	testFileConsistency(t, bs, 32*4096)
 
 	// Uneven offset
@@ -51,13 +67,13 @@ func dup(b []byte) []byte {
 	return o
 }
 
-func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
+func testFileConsistency(t *testing.T, bs chunk.SplitterGen, nbytes int) {
 	should := make([]byte, nbytes)
 	u.NewTimeSeededRand().Read(should)
 
 	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, bs)
+	nd, err := buildTestDag(ds, bs(read))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,15 +95,9 @@ func testFileConsistency(t *testing.T, bs chunk.BlockSplitter, nbytes int) {
 }
 
 func TestBuilderConsistency(t *testing.T) {
-	nbytes := 100000
-	buf := new(bytes.Buffer)
-	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
-	should := dup(buf.Bytes())
 	dagserv := mdtest.Mock(t)
-	nd, err := buildTestDag(buf, dagserv, chunk.DefaultSplitter)
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, should := getTestDag(t, dagserv, 100000, chunk.DefaultBlockSize)
+
 	r, err := uio.NewDagReader(context.Background(), nd, dagserv)
 	if err != nil {
 		t.Fatal(err)
@@ -116,50 +126,14 @@ func arrComp(a, b []byte) error {
 	return nil
 }
 
-func TestMaybeRabinConsistency(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	testFileConsistency(t, chunk.NewMaybeRabin(4096), 256*4096)
-}
-
-func TestRabinBlockSize(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	buf := new(bytes.Buffer)
-	nbytes := 1024 * 1024
-	io.CopyN(buf, u.NewTimeSeededRand(), int64(nbytes))
-	rab := chunk.NewMaybeRabin(4096)
-	blkch := rab.Split(buf)
-
-	var blocks [][]byte
-	for b := range blkch {
-		blocks = append(blocks, b)
-	}
-
-	fmt.Printf("Avg block size: %d\n", nbytes/len(blocks))
-
-}
-
 type dagservAndPinner struct {
-	ds merkledag.DAGService
+	ds dag.DAGService
 	mp pin.ManualPinner
 }
 
 func TestIndirectBlocks(t *testing.T) {
-	splitter := &chunk.SizeSplitter{512}
-	nbytes := 1024 * 1024
-	buf := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(buf)
-
-	read := bytes.NewReader(buf)
-
 	ds := mdtest.Mock(t)
-	dag, err := buildTestDag(read, ds, splitter)
-	if err != nil {
-		t.Fatal(err)
-	}
+	dag, buf := getTestDag(t, ds, 1024*1024, 512)
 
 	reader, err := uio.NewDagReader(context.Background(), dag, ds)
 	if err != nil {
@@ -178,15 +152,8 @@ func TestIndirectBlocks(t *testing.T) {
 
 func TestSeekingBasic(t *testing.T) {
 	nbytes := int64(10 * 1024)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, should := getTestDag(t, ds, nbytes, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
@@ -214,16 +181,8 @@ func TestSeekingBasic(t *testing.T) {
 }
 
 func TestSeekToBegin(t *testing.T) {
-	nbytes := int64(10 * 1024)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, should := getTestDag(t, ds, 10*1024, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
@@ -258,16 +217,8 @@ func TestSeekToBegin(t *testing.T) {
 }
 
 func TestSeekToAlmostBegin(t *testing.T) {
-	nbytes := int64(10 * 1024)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, should := getTestDag(t, ds, 10*1024, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
@@ -303,15 +254,8 @@ func TestSeekToAlmostBegin(t *testing.T) {
 
 func TestSeekEnd(t *testing.T) {
 	nbytes := int64(50 * 1024)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, _ := getTestDag(t, ds, nbytes, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
@@ -329,15 +273,8 @@ func TestSeekEnd(t *testing.T) {
 
 func TestSeekEndSingleBlockFile(t *testing.T) {
 	nbytes := int64(100)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{5000})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, _ := getTestDag(t, ds, nbytes, 5000)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
@@ -355,15 +292,8 @@ func TestSeekEndSingleBlockFile(t *testing.T) {
 
 func TestSeekingStress(t *testing.T) {
 	nbytes := int64(1024 * 1024)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{1000})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, should := getTestDag(t, ds, nbytes, 1000)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {
@@ -400,15 +330,8 @@ func TestSeekingStress(t *testing.T) {
 
 func TestSeekingConsistency(t *testing.T) {
 	nbytes := int64(128 * 1024)
-	should := make([]byte, nbytes)
-	u.NewTimeSeededRand().Read(should)
-
-	read := bytes.NewReader(should)
 	ds := mdtest.Mock(t)
-	nd, err := buildTestDag(read, ds, &chunk.SizeSplitter{500})
-	if err != nil {
-		t.Fatal(err)
-	}
+	nd, should := getTestDag(t, ds, nbytes, 500)
 
 	rs, err := uio.NewDagReader(context.Background(), nd, ds)
 	if err != nil {

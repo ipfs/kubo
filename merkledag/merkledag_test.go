@@ -163,9 +163,9 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 		dagservs = append(dagservs, NewDAGService(bsi))
 	}
 
-	spl := &chunk.SizeSplitter{512}
+	spl := chunk.NewSizeSplitter(read, 512)
 
-	root, err := imp.BuildDagFromReader(read, dagservs[0], spl, nil)
+	root, err := imp.BuildDagFromReader(dagservs[0], spl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

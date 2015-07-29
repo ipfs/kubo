@@ -40,7 +40,7 @@ type DagModifier struct {
 	curNode *mdag.Node
 	mp      pin.ManualPinner
 
-	splitter   chunk.BlockSplitter
+	splitter   chunk.SplitterGen
 	ctx        context.Context
 	readCancel func()
 
@@ -51,7 +51,7 @@ type DagModifier struct {
 	read *uio.DagReader
 }
 
-func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.BlockSplitter) (*DagModifier, error) {
+func NewDagModifier(ctx context.Context, from *mdag.Node, serv mdag.DAGService, mp pin.ManualPinner, spl chunk.SplitterGen) (*DagModifier, error) {
 	return &DagModifier{
 		curNode:  from.Copy(),
 		dagserv:  serv,
@@ -106,10 +106,10 @@ func (zr zeroReader) Read(b []byte) (int, error) {
 // expandSparse grows the file with zero blocks of 4096
 // A small blocksize is chosen to aid in deduplication
 func (dm *DagModifier) expandSparse(size int64) error {
-	spl := chunk.SizeSplitter{4096}
 	r := io.LimitReader(zeroReader{}, size)
-	blks := spl.Split(r)
-	nnode, err := dm.appendData(dm.curNode, blks)
+	spl := chunk.NewSizeSplitter(r, 4096)
+	blks, errs := chunk.Chan(spl)
+	nnode, err := dm.appendData(dm.curNode, blks, errs)
 	if err != nil {
 		return err
 	}
@@ -196,8 +196,8 @@ func (dm *DagModifier) Sync() error {
 
 	// need to write past end of current dag
 	if !done {
-		blks := dm.splitter.Split(dm.wrBuf)
-		nd, err = dm.appendData(dm.curNode, blks)
+		blks, errs := chunk.Chan(dm.splitter(dm.wrBuf))
+		nd, err = dm.appendData(dm.curNode, blks, errs)
 		if err != nil {
 			return err
 		}
@@ -306,14 +306,14 @@ func (dm *DagModifier) modifyDag(node *mdag.Node, offset uint64, data io.Reader)
 }
 
 // appendData appends the blocks from the given chan to the end of this dag
-func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte) (*mdag.Node, error) {
+func (dm *DagModifier) appendData(node *mdag.Node, blks <-chan []byte, errs <-chan error) (*mdag.Node, error) {
 	dbp := &help.DagBuilderParams{
 		Dagserv:  dm.dagserv,
 		Maxlinks: help.DefaultLinksPerBlock,
 		NodeCB:   imp.BasicPinnerCB(dm.mp),
 	}
 
-	return trickle.TrickleAppend(node, dbp.New(blks))
+	return trickle.TrickleAppend(node, dbp.New(blks, errs))
 }
 
 // Read data from this dag starting at the current offset

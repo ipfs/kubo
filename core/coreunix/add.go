@@ -25,10 +25,10 @@ var log = eventlog.Logger("coreunix")
 // datastore. Returns a key representing the root node.
 func Add(n *core.IpfsNode, r io.Reader) (string, error) {
 	// TODO more attractive function signature importer.BuildDagFromReader
+
 	dagNode, err := importer.BuildDagFromReader(
-		r,
 		n.DAG,
-		chunk.DefaultSplitter,
+		chunk.NewSizeSplitter(r, chunk.DefaultBlockSize),
 		importer.BasicPinnerCB(n.Pinning.GetManual()),
 	)
 	if err != nil {
@@ -96,9 +96,8 @@ func add(n *core.IpfsNode, reader io.Reader) (*merkledag.Node, error) {
 	mp := n.Pinning.GetManual()
 
 	node, err := importer.BuildDagFromReader(
-		reader,
 		n.DAG,
-		chunk.DefaultSplitter,
+		chunk.DefaultSplitter(reader),
 		importer.PinIndirectCB(mp),
 	)
 	if err != nil {
