@@ -12,7 +12,6 @@ package ipnsfs
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -35,6 +34,8 @@ var ErrIsDirectory = errors.New("error: is a directory")
 
 // Filesystem is the writeable fuse filesystem structure
 type Filesystem struct {
+	ctx context.Context
+
 	dserv dag.DAGService
 
 	nsys namesys.NameSystem
@@ -50,6 +51,7 @@ type Filesystem struct {
 func NewFilesystem(ctx context.Context, ds dag.DAGService, nsys namesys.NameSystem, pins pin.Pinner, keys ...ci.PrivKey) (*Filesystem, error) {
 	roots := make(map[string]*KeyRoot)
 	fs := &Filesystem{
+		ctx:      ctx,
 		roots:    roots,
 		nsys:     nsys,
 		dserv:    ds,
@@ -78,7 +80,7 @@ func (fs *Filesystem) Close() error {
 		wg.Add(1)
 		go func(r *KeyRoot) {
 			defer wg.Done()
-			err := r.Publish(context.TODO())
+			err := r.Publish(fs.ctx)
 			if err != nil {
 				log.Info(err)
 				return
@@ -119,7 +121,8 @@ type FSNode interface {
 
 // KeyRoot represents the root of a filesystem tree pointed to by a given keypair
 type KeyRoot struct {
-	key ci.PrivKey
+	key  ci.PrivKey
+	name string
 
 	// node is the merkledag node pointed to by this keypair
 	node *dag.Node
@@ -146,6 +149,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, k ci.PrivKey) (*KeyRoot
 	root := new(KeyRoot)
 	root.key = k
 	root.fs = fs
+	root.name = name
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
@@ -230,8 +234,13 @@ func (kr *KeyRoot) Publish(ctx context.Context) error {
 	// otherwise we are holding the lock through a costly
 	// network operation
 
-	fmt.Println("Publishing!")
-	return kr.fs.nsys.Publish(ctx, kr.key, path.FromKey(k))
+	kp := path.FromKey(k)
+
+	ev := &eventlog.Metadata{"name": kr.name, "key": kp}
+	defer log.EventBegin(ctx, "ipnsfsPublishing", ev).Done()
+	log.Info("ipnsfs publishing %s -> %s", kr.name, kp)
+
+	return kr.fs.nsys.Publish(ctx, kr.key, kp)
 }
 
 // Republisher manages when to publish the ipns entry associated with a given key
