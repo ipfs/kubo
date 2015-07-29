@@ -6,41 +6,73 @@ import (
 
 type KeySet interface {
 	Add(Key)
+	Has(Key) bool
 	Remove(Key)
 	Keys() []Key
 }
 
-type ks struct {
-	lock sync.RWMutex
-	data map[Key]struct{}
+type keySet struct {
+	keys map[Key]struct{}
 }
 
-func NewKeySet() KeySet {
-	return &ks{
-		data: make(map[Key]struct{}),
+func NewKeySet() *keySet {
+	return &keySet{make(map[Key]struct{})}
+}
+
+func (gcs *keySet) Add(k Key) {
+	gcs.keys[k] = struct{}{}
+}
+
+func (gcs *keySet) Has(k Key) bool {
+	_, has := gcs.keys[k]
+	return has
+}
+
+func (ks *keySet) Keys() []Key {
+	var out []Key
+	for k, _ := range ks.keys {
+		out = append(out, k)
 	}
+	return out
 }
 
-func (wl *ks) Add(k Key) {
-	wl.lock.Lock()
-	defer wl.lock.Unlock()
-
-	wl.data[k] = struct{}{}
+func (ks *keySet) Remove(k Key) {
+	delete(ks.keys, k)
 }
 
-func (wl *ks) Remove(k Key) {
-	wl.lock.Lock()
-	defer wl.lock.Unlock()
+// TODO: implement disk-backed keyset for working with massive DAGs
 
-	delete(wl.data, k)
+type threadsafe struct {
+	lk sync.Mutex
+	ks KeySet
 }
 
-func (wl *ks) Keys() []Key {
-	wl.lock.RLock()
-	defer wl.lock.RUnlock()
-	keys := make([]Key, 0)
-	for k := range wl.data {
-		keys = append(keys, k)
-	}
+func Threadsafe(ks KeySet) *threadsafe {
+	return &threadsafe{ks: ks}
+}
+
+func (ts *threadsafe) Has(k Key) bool {
+	ts.lk.Lock()
+	out := ts.ks.Has(k)
+	ts.lk.Unlock() //defer is slow
+	return out
+}
+
+func (ts *threadsafe) Remove(k Key) {
+	ts.lk.Lock()
+	ts.ks.Remove(k)
+	ts.lk.Unlock() //defer is slow
+}
+
+func (ts *threadsafe) Add(k Key) {
+	ts.lk.Lock()
+	ts.ks.Add(k)
+	ts.lk.Unlock() //defer is slow
+}
+
+func (ts *threadsafe) Keys() []Key {
+	ts.lk.Lock()
+	keys := ts.ks.Keys()
+	ts.lk.Unlock() //defer is slow
 	return keys
 }

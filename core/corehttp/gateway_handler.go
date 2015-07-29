@@ -103,15 +103,28 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		ipnsHostname = true
 	}
 
-	if i.config.BlockList != nil && i.config.BlockList.ShouldBlock(urlPath) {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden"))
-		return
-	}
-
 	nd, err := core.Resolve(ctx, i.node, path.Path(urlPath))
 	if err != nil {
 		webError(w, "Path Resolve error", err, http.StatusBadRequest)
+		return
+	}
+
+	k, err := nd.Key()
+	if err != nil {
+		log.Error("failed to get key from node: %s", err)
+		webError(w, "Marshaling Error", err, http.StatusInternalServerError)
+		return
+	}
+
+	if i.config.BlackList != nil && i.config.BlackList.Has(k) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden (content on blacklist)"))
+		return
+	}
+
+	if i.config.WhiteList != nil && !i.config.WhiteList.Has(k) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden (content on blacklist)"))
 		return
 	}
 

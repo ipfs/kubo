@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -8,13 +9,13 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 
 	_ "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/codahale/metrics/runtime"
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
+	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
@@ -310,23 +311,20 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
 
+	var whitelist key.KeySet
+	if !unrestricted {
+		whitelist = key.Threadsafe(key.NewKeySet())
+		for _, webuipath := range corehttp.WebUIPaths {
+			// extract the key
+			whitelist.Add(key.B58KeyDecode(webuipath[6:]))
+		}
+	}
+
 	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
-		Writable: true,
-		BlockList: &corehttp.BlockList{
-			Decider: func(s string) bool {
-				if unrestricted {
-					return true
-				}
-				// for now, only allow paths in the WebUI path
-				for _, webuipath := range corehttp.WebUIPaths {
-					if strings.HasPrefix(s, webuipath) {
-						return true
-					}
-				}
-				return false
-			},
-		},
+		Writable:  true,
+		WhiteList: whitelist,
 	})
+
 	var opts = []corehttp.ServeOption{
 		corehttp.CommandsOption(*req.InvocContext()),
 		corehttp.WebUIOption,
@@ -401,11 +399,36 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
 	}
 
+	var blacklist key.KeySet
+	var whitelist key.KeySet
+	if cfg.Gateway.BlackList != "" {
+		l, err := loadKeySetFromURL(cfg.Gateway.BlackList)
+		if err != nil {
+			return err, nil
+		}
+		blacklist = l
+	}
+
+	if cfg.Gateway.WhiteList != "" {
+		l, err := loadKeySetFromURL(cfg.Gateway.WhiteList)
+		if err != nil {
+			return err, nil
+		}
+		whitelist = l
+	}
+
+	gateway := corehttp.Gateway{
+		Config: corehttp.GatewayConfig{
+			BlackList: blacklist,
+			WhiteList: whitelist,
+		},
+	}
+
 	var opts = []corehttp.ServeOption{
 		corehttp.CommandsROOption(*req.InvocContext()),
 		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(writable),
+		gateway.ServeOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
@@ -423,6 +446,24 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		close(errc)
 	}()
 	return nil, errc
+}
+
+func loadKeySetFromURL(url string) (key.KeySet, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	ks := key.NewKeySet()
+	scan := bufio.NewScanner(resp.Body)
+	for scan.Scan() {
+		k := key.B58KeyDecode(scan.Text())
+		if k == "" {
+			return nil, fmt.Errorf("invalid key in set")
+		}
+		ks.Add(k)
+	}
+	return key.Threadsafe(ks), nil
 }
 
 //collects options and opens the fuse mountpoint
