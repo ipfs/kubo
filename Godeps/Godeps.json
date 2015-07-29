@@ -187,6 +187,10 @@
 			"Rev": "cd535bd25356746b9b1e824871dda7da932460e2"
 		},
 		{
+			"ImportPath": "github.com/jbenet/go-random-files",
+			"Rev": "737479700b40b4b50e914e963ce8d9d44603e3c8"
+		},
+		{
 			"ImportPath": "github.com/jbenet/go-reuseport",
 			"Rev": "48959f1fad204b6cf2c0e8d086ef69f03f2de961"
 		},

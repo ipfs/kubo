@@ -3,6 +3,7 @@ BINS = bin/random bin/multihash bin/ipfs bin/pollEndpoint bin/iptb bin/go-sleep
 IPFS_ROOT = ../
 IPFS_CMD = ../cmd/ipfs
 RANDOM_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random
+RANDOM_FILES_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-random-files
 MULTIHASH_SRC = ../Godeps/_workspace/src/github.com/jbenet/go-multihash
 IPTB_SRC = ../Godeps/_workspace/src/github.com/whyrusleeping/iptb
 POLLENDPOINT_SRC= ../thirdparty/pollEndpoint
@@ -25,6 +26,10 @@ find_go_files = $(shell find $(1) -name "*.go")
 bin/random: $(call find_go_files, $(RANDOM_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o bin/random $(RANDOM_SRC)/random
+
+bin/random-files:
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o bin/random-files $(RANDOM_FILES_SRC)/random-files
 
 bin/multihash: $(call find_go_files, $(MULTIHASH_SRC)) IPFS-BUILD-OPTIONS
 	@echo "*** installing $@ ***"
