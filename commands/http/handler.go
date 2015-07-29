@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	u "github.com/ipfs/go-ipfs/util"
@@ -150,7 +151,11 @@ func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	//ps: take note of the name clash - commands.Context != context.Context
 	req.SetInvocContext(i.ctx)
-	err = req.SetRootContext(node.Context())
+
+	ctx, cancel := context.WithCancel(node.Context())
+	defer cancel()
+
+	err = req.SetRootContext(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -246,7 +251,12 @@ func sendResponse(w http.ResponseWriter, r *http.Request, res cmds.Response, req
 	}
 
 	if err := writeResponse(status, w, out); err != nil {
-		log.Error("error while writing stream", err)
+		if strings.Contains(err.Error(), "broken pipe") {
+			log.Info("client disconnect while writing stream ", err)
+			return
+		}
+
+		log.Error("error while writing stream ", err)
 	}
 }
 
