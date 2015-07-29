@@ -130,8 +130,12 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 		return nil, err
 	}
 
-	node.proc = goprocessctx.WithContextAndTeardown(ctx, node.teardown)
-	node.ctx = ctx
+	if node.ctx == nil {
+		node.ctx = ctx
+	}
+	if node.proc == nil {
+		node.proc = goprocessctx.WithContextAndTeardown(node.ctx, node.teardown)
+	}
 
 	success := false // flip to true after all sub-system inits succeed
 	defer func() {
@@ -216,6 +220,9 @@ func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, 
 			}(),
 			Repo: r,
 		}
+
+		n.ctx = ctx
+		n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
 
 		// setup Peerstore
 		n.Peerstore = peer.NewPeerstore()

@@ -4,6 +4,7 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	syncds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	"github.com/ipfs/go-ipfs/blocks/blockstore"
 	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	commands "github.com/ipfs/go-ipfs/commands"
@@ -24,7 +25,7 @@ import (
 
 // TODO this is super sketch. Deprecate and initialize one that shares code
 // with the actual core constructor. Lots of fields aren't initialized.
-// Additionally, the context group isn't wired up. This is as good as broken.
+// "This is as good as broken." --- is it?
 
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
@@ -55,8 +56,9 @@ func NewMockNode() (*core.IpfsNode, error) {
 	nd.Peerstore = peer.NewPeerstore()
 	nd.Peerstore.AddPrivKey(p, ident.PrivateKey())
 	nd.Peerstore.AddPubKey(p, ident.PublicKey())
+	nd.Identity = p
 
-	nd.PeerHost, err = mocknet.New(ctx).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
+	nd.PeerHost, err = mocknet.New(nd.Context()).AddPeer(ident.PrivateKey(), ident.Address()) // effectively offline
 	if err != nil {
 		return nil, err
 	}
