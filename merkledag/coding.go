@@ -37,16 +37,6 @@ func (n *Node) Unmarshal(encoded []byte) error {
 	return nil
 }
 
-// MarshalTo encodes a *Node instance into a given byte slice.
-// The conversion uses an intermediate PBNode.
-func (n *Node) MarshalTo(encoded []byte) error {
-	pbn := n.getPBNode()
-	if _, err := pbn.MarshalTo(encoded); err != nil {
-		return fmt.Errorf("Marshal failed. %v", err)
-	}
-	return nil
-}
-
 // Marshal encodes a *Node instance into a new byte slice.
 // The conversion uses an intermediate PBNode.
 func (n *Node) Marshal() ([]byte, error) {
@@ -82,7 +72,7 @@ func (n *Node) Encoded(force bool) ([]byte, error) {
 		var err error
 		n.encoded, err = n.Marshal()
 		if err != nil {
-			return []byte{}, err
+			return nil, err
 		}
 		n.cached = u.Hash(n.encoded)
 	}

@@ -129,13 +129,23 @@ func (n *Node) AddRawLink(name string, l *Link) error {
 // Remove a link on this node by the given name
 func (n *Node) RemoveNodeLink(name string) error {
 	n.encoded = nil
-	for i, l := range n.Links {
-		if l.Name == name {
-			n.Links = append(n.Links[:i], n.Links[i+1:]...)
-			return nil
+	good := make([]*Link, 0, len(n.Links))
+	var found bool
+
+	for _, l := range n.Links {
+		if l.Name != name {
+			good = append(good, l)
+		} else {
+			found = true
 		}
 	}
-	return ErrNotFound
+	n.Links = good
+
+	if !found {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
 // Return a copy of the link with given name
@@ -151,6 +161,15 @@ func (n *Node) GetNodeLink(name string) (*Link, error) {
 		}
 	}
 	return nil, ErrNotFound
+}
+
+func (n *Node) GetLinkedNode(ctx context.Context, ds DAGService, name string) (*Node, error) {
+	lnk, err := n.GetNodeLink(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return lnk.GetNode(ctx, ds)
 }
 
 // Copy returns a copy of the node.

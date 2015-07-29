@@ -10,6 +10,22 @@ test_description="Test object command"
 
 test_init_ipfs
 
+test_patch_create_path() {
+	root=$1
+	name=$2
+	target=$3
+
+	test_expect_success "object patch --create works" '
+		PCOUT=$(ipfs object patch --create $root add-link $name $target)
+	'
+
+	test_expect_success "output looks good" '
+		ipfs cat $PCOUT/$name > tpcp_out &&
+		ipfs cat $target > tpcp_exp &&
+		test_cmp tpcp_out tpcp_exp
+	'
+}
+
 test_object_cmd() {
 
 	test_expect_success "'ipfs add testData' succeeds" '
@@ -144,6 +160,25 @@ test_object_cmd() {
 	test_expect_success "output should be empty" '
 		echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > rmlink_exp &&
 		test_cmp rmlink_exp rmlink_output
+	'
+
+	test_expect_success "multilayer rm-link should work" '
+		ipfs object patch $(cat multi_patch) rm-link a/b/c > multi_link_rm_out
+	'
+
+	test_expect_success "output looks good" '
+		echo "QmZD3r9cZjzU8huNY2JS9TC6n8daDfT8TmE8zBSqG31Wvq" > multi_link_rm_exp &&
+		test_cmp multi_link_rm_out multi_link_rm_exp
+	'
+
+	test_patch_create_path $EMPTY a/b/c $FILE
+
+	test_patch_create_path $EMPTY a $FILE
+
+	test_patch_create_path $EMPTY a/b/b/b/b $FILE
+
+	test_expect_success "create bad path fails" '
+		test_must_fail ipfs object patch --create $EMPTY add-link / $FILE
 	'
 }
 

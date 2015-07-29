@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"testing"
 
@@ -220,4 +221,71 @@ func runBatchFetchTest(t *testing.T, read io.Reader) {
 	}
 
 	wg.Wait()
+}
+
+func TestRecursiveAdd(t *testing.T) {
+	a := &Node{Data: []byte("A")}
+	b := &Node{Data: []byte("B")}
+	c := &Node{Data: []byte("C")}
+	d := &Node{Data: []byte("D")}
+	e := &Node{Data: []byte("E")}
+
+	err := a.AddNodeLink("blah", b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = b.AddNodeLink("foo", c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = b.AddNodeLink("bar", d)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = d.AddNodeLink("baz", e)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dsp := getDagservAndPinner(t)
+	err = dsp.ds.AddRecursive(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertCanGet(t, dsp.ds, a)
+	assertCanGet(t, dsp.ds, b)
+	assertCanGet(t, dsp.ds, c)
+	assertCanGet(t, dsp.ds, d)
+	assertCanGet(t, dsp.ds, e)
+}
+
+func assertCanGet(t *testing.T, ds DAGService, n *Node) {
+	k, err := n.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ds.Get(context.TODO(), k)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCantGet(t *testing.T) {
+	dsp := getDagservAndPinner(t)
+	a := &Node{Data: []byte("A")}
+
+	k, err := a.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = dsp.ds.Get(context.TODO(), k)
+	if !strings.Contains(err.Error(), "not found") {
+		t.Fatal("expected err not found, got: ", err)
+	}
 }

@@ -18,6 +18,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	u "github.com/ipfs/go-ipfs/util"
@@ -453,7 +454,9 @@ This removes the link named foo from the hash in $FOO_BAR and returns the
 resulting object hash.
 `,
 	},
-	Options: []cmds.Option{},
+	Options: []cmds.Option{
+		cmds.BoolOption("create", "p", "create intermediate directories on add-link"),
+	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "the hash of the node to modify"),
 		cmds.StringArg("command", true, false, "the operation to perform"),
@@ -467,9 +470,13 @@ resulting object hash.
 			return
 		}
 
-		rhash := key.B58KeyDecode(req.Arguments()[0])
+		rootarg := req.Arguments()[0]
+		if strings.HasPrefix(rootarg, "/ipfs/") {
+			rootarg = rootarg[6:]
+		}
+		rhash := key.B58KeyDecode(rootarg)
 		if rhash == "" {
-			res.SetError(fmt.Errorf("incorrectly formatted root hash"), cmds.ErrNormal)
+			res.SetError(fmt.Errorf("incorrectly formatted root hash: %s", req.Arguments()[0]), cmds.ErrNormal)
 			return
 		}
 
@@ -580,19 +587,18 @@ func rmLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 		return "", err
 	}
 
-	name := req.Arguments()[2]
+	path := req.Arguments()[2]
 
-	err = root.RemoveNodeLink(name)
+	e := dagutils.NewDagEditor(nd.DAG, root)
+
+	err = e.RmLink(req.Context(), path)
 	if err != nil {
 		return "", err
 	}
 
-	newkey, err := nd.DAG.Add(root)
-	if err != nil {
-		return "", err
-	}
+	nnode := e.GetNode()
 
-	return newkey, nil
+	return nnode.Key()
 }
 
 func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
@@ -608,72 +614,28 @@ func addLinkCaller(req cmds.Request, root *dag.Node) (key.Key, error) {
 	path := req.Arguments()[2]
 	childk := key.B58KeyDecode(req.Arguments()[3])
 
-	parts := strings.Split(path, "/")
-
-	nnode, err := insertNodeAtPath(req.Context(), nd.DAG, root, parts, childk)
+	create, _, err := req.Option("create").Bool()
 	if err != nil {
 		return "", err
 	}
+
+	var createfunc func() *dag.Node
+	if create {
+		createfunc = func() *dag.Node {
+			return &dag.Node{Data: ft.FolderPBData()}
+		}
+	}
+
+	e := dagutils.NewDagEditor(nd.DAG, root)
+
+	err = e.InsertNodeAtPath(req.Context(), path, childk, createfunc)
+	if err != nil {
+		return "", err
+	}
+
+	nnode := e.GetNode()
+
 	return nnode.Key()
-}
-
-func addLink(ctx context.Context, ds dag.DAGService, root *dag.Node, childname string, childk key.Key) (*dag.Node, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	childnd, err := ds.Get(ctx, childk)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-	cancel()
-
-	err = root.AddNodeLinkClean(childname, childnd)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-	return root, nil
-}
-
-func insertNodeAtPath(ctx context.Context, ds dag.DAGService, root *dag.Node, path []string, toinsert key.Key) (*dag.Node, error) {
-	if len(path) == 1 {
-		return addLink(ctx, ds, root, path[0], toinsert)
-	}
-
-	child, err := root.GetNodeLink(path[0])
-	if err != nil {
-		return nil, err
-	}
-
-	nd, err := child.GetNode(ctx, ds)
-	if err != nil {
-		return nil, err
-	}
-
-	ndprime, err := insertNodeAtPath(ctx, ds, nd, path[1:], toinsert)
-	if err != nil {
-		return nil, err
-	}
-
-	err = root.RemoveNodeLink(path[0])
-	if err != nil {
-		return nil, err
-	}
-
-	err = root.AddNodeLinkClean(path[0], ndprime)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ds.Add(root)
-	if err != nil {
-		return nil, err
-	}
-
-	return root, nil
 }
 
 func nodeFromTemplate(template string) (*dag.Node, error) {
