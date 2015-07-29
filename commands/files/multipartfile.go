@@ -68,6 +68,10 @@ func (f *MultipartFile) NextFile() (File, error) {
 }
 
 func (f *MultipartFile) FileName() string {
+	if f == nil || f.Part == nil {
+		return ""
+	}
+
 	filename, err := url.QueryUnescape(f.Part.FileName())
 	if err != nil {
 		// if there is a unescape error, just treat the name as unescaped

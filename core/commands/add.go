@@ -110,52 +110,65 @@ remains to be implemented.
 		outChan := make(chan interface{}, 8)
 		res.SetOutput((<-chan interface{})(outChan))
 
+		// addSingleFile is a function that adds a file given as a param.
+		addSingleFile := func(file files.File) error {
+			addParams := adder{
+				node:     n,
+				out:      outChan,
+				progress: progress,
+				hidden:   hidden,
+				trickle:  trickle,
+			}
+
+			rootnd, err := addParams.addFile(file)
+			if err != nil {
+				return err
+			}
+
+			rnk, err := rootnd.Key()
+			if err != nil {
+				return err
+			}
+
+			mp := n.Pinning.GetManual()
+			mp.RemovePinWithMode(rnk, pin.Indirect)
+			mp.PinWithMode(rnk, pin.Recursive)
+			return n.Pinning.Flush()
+		}
+
+		// addFilesSeparately loops over a convenience slice file to
+		// add each file individually. e.g. 'ipfs add a b c'
+		addFilesSeparately := func(sliceFile files.File) error {
+			for {
+				file, err := sliceFile.NextFile()
+				if err != nil && err != io.EOF {
+					return err
+				}
+				if file == nil {
+					return nil // done
+				}
+
+				if err := addSingleFile(file); err != nil {
+					return err
+				}
+			}
+		}
+
 		go func() {
 			defer close(outChan)
 
-			for {
-				file, err := req.Files().NextFile()
-				if err != nil && err != io.EOF {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-				if file == nil { // done
-					return
-				}
-
-				addParams := adder{
-					node:     n,
-					out:      outChan,
-					progress: progress,
-					hidden:   hidden,
-					trickle:  trickle,
-				}
-
-				if wrap {
-					file = files.NewSliceFile("", []files.File{file})
-				}
-
-				rootnd, err := addParams.addFile(file)
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-
-				rnk, err := rootnd.Key()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
-
-				mp := n.Pinning.GetManual()
-				mp.RemovePinWithMode(rnk, pin.Indirect)
-				mp.PinWithMode(rnk, pin.Recursive)
-
-				err = n.Pinning.Flush()
-				if err != nil {
-					res.SetError(err, cmds.ErrNormal)
-					return
-				}
+			// really, we're unrapping, if !wrap, because
+			// req.Files() is already a SliceFile() with all of them,
+			// so can just use that slice as the wrapper.
+			var err error
+			if wrap {
+				err = addSingleFile(req.Files())
+			} else {
+				err = addFilesSeparately(req.Files())
+			}
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
 			}
 		}()
 	},
