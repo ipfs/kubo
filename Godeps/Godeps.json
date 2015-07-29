@@ -15,10 +15,6 @@
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
-			"ImportPath": "github.com/ActiveState/tail",
-			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
-		},
-		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.7.3-2-g26709e2",
 			"Rev": "26709e2714106fb8ad40b773b711ebce25b78914"
@@ -110,11 +106,6 @@
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
 			"Rev": "9feabe6854fadca1abec9cd3bd2a613fe9a34000"
-		},
-		{
-			"ImportPath": "github.com/howeyc/fsnotify",
-			"Comment": "v0.9.0-11-g6b1ef89",
-			"Rev": "6b1ef893dc11e0447abda6da20a5203481878dda"
 		},
 		{
 			"ImportPath": "github.com/huin/goupnp",
@@ -327,10 +318,6 @@
 			"ImportPath": "gopkg.in/fsnotify.v1",
 			"Comment": "v1.2.0",
 			"Rev": "96c060f6a6b7e0d6f75fddd10efeaca3e5d1bcb0"
-		},
-		{
-			"ImportPath": "gopkg.in/tomb.v1",
-			"Rev": "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
 		}
 	]
 }
