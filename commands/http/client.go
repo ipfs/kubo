@@ -1,11 +1,11 @@
 package http
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -225,9 +225,11 @@ func getResponse(httpRes *http.Response, req cmds.Request) (cmds.Response, error
 
 		case contentType == plainText:
 			// handle non-marshalled errors
-			buf := bytes.NewBuffer(nil)
-			io.Copy(buf, httpRes.Body)
-			e.Message = string(buf.Bytes())
+			mes, err := ioutil.ReadAll(rr)
+			if err != nil {
+				return nil, err
+			}
+			e.Message = string(mes)
 			e.Code = cmds.ErrNormal
 
 		default:
@@ -266,8 +268,7 @@ func readStreamedJson(req cmds.Request, rr io.Reader, out chan<- interface{}) {
 	for {
 		v, err := decodeTypedVal(outputType, dec)
 		if err != nil {
-			// reading on a closed response body is as good as an io.EOF here
-			if !(strings.Contains(err.Error(), "read on closed response body") || err == io.EOF) {
+			if err != io.EOF {
 				log.Error(err)
 			}
 			return
@@ -305,6 +306,11 @@ type httpResponseReader struct {
 
 func (r *httpResponseReader) Read(b []byte) (int, error) {
 	n, err := r.resp.Body.Read(b)
+
+	// reading on a closed response body is as good as an io.EOF here
+	if err != nil && strings.Contains(err.Error(), "read on closed response body") {
+		err = io.EOF
+	}
 	if err == io.EOF {
 		_ = r.resp.Body.Close()
 		trailerErr := r.checkError()
