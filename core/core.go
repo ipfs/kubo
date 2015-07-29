@@ -382,6 +382,13 @@ func (n *IpfsNode) teardown() error {
 		n.Repo,
 	}
 
+	if n.Mounts.Ipfs != nil {
+		closers = append(closers, mount.Closer(n.Mounts.Ipfs))
+	}
+	if n.Mounts.Ipns != nil {
+		closers = append(closers, mount.Closer(n.Mounts.Ipns))
+	}
+
 	// Filesystem needs to be closed before network, dht, and blockservice
 	// so it can use them as its shutting down
 	if n.IpnsFs != nil {

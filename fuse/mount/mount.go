@@ -3,6 +3,7 @@ package mount
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 	"runtime"
 	"time"
@@ -33,7 +34,7 @@ type Mount interface {
 // It does so by calling diskutil or fusermount directly.
 func ForceUnmount(m Mount) error {
 	point := m.MountPoint()
-	log.Infof("Force-Unmounting %s...", point)
+	log.Warningf("Force-Unmounting %s...", point)
 
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
@@ -59,7 +60,7 @@ func ForceUnmount(m Mount) error {
 	}()
 
 	select {
-	case <-time.After(2 * time.Second):
+	case <-time.After(7 * time.Second):
 		return fmt.Errorf("umount timeout")
 	case err := <-errc:
 		return err
@@ -80,4 +81,17 @@ func ForceUnmountManyTimes(m Mount, attempts int) error {
 		<-time.After(time.Millisecond * 500)
 	}
 	return fmt.Errorf("Unmount %s failed after 10 seconds of trying.", m.MountPoint())
+}
+
+type closer struct {
+	M Mount
+}
+
+func (c *closer) Close() error {
+	log.Error(" (c *closer) Close(),", c.M.MountPoint())
+	return c.M.Unmount()
+}
+
+func Closer(m Mount) io.Closer {
+	return &closer{m}
 }

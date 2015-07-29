@@ -300,13 +300,11 @@ func TestAddChild(t *testing.T) {
 	testNone(t, Q)
 
 	go b.Close()
-	testNone(t, Q)
 	d.Close()
 	testStrs(t, Q, "b", "d")
 	testStrs(t, Q, "b", "d")
 
 	go a.Close()
-	testNone(t, Q)
 	c.Close()
 	testStrs(t, Q, "a", "c")
 	testStrs(t, Q, "a", "c")

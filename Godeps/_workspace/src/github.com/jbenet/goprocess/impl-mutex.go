@@ -25,10 +25,6 @@ type process struct {
 //  **after** entering <-Closing(), and
 //  **before** <-Closed().
 func newProcess(tf TeardownFunc) *process {
-	if tf == nil {
-		tf = nilTeardownFunc
-	}
-
 	return &process{
 		teardown: tf,
 		closed:   make(chan struct{}),
@@ -123,17 +119,19 @@ func (p *process) Go(f ProcessFunc) Process {
 // SetTeardown to assign a teardown function
 func (p *process) SetTeardown(tf TeardownFunc) {
 	if tf == nil {
-		tf = nilTeardownFunc
+		panic("cannot set nil TeardownFunc")
 	}
 
 	p.Lock()
-	if p.teardown == nil {
-		select {
-		case <-p.Closed():
-			p.teardown = tf
-			p.closeErr = tf()
-		default:
-		}
+	if p.teardown != nil {
+		panic("cannot SetTeardown twice")
+	}
+
+	p.teardown = tf
+	select {
+	case <-p.Closed():
+		p.closeErr = tf()
+	default:
 	}
 	p.Unlock()
 }
@@ -196,8 +194,10 @@ func (p *process) doClose() {
 		}
 	}
 
-	p.closeErr = p.teardown() // actually run the close logic (ok safe to teardown)
-	close(p.closed)           // signal that we're shut down (Closed)
+	if p.teardown != nil {
+		p.closeErr = p.teardown() // actually run the close logic (ok safe to teardown)
+	}
+	close(p.closed) // signal that we're shut down (Closed)
 
 	// go remove all the parents from the process links. optimization.
 	go func(waiters []*processLink) {
