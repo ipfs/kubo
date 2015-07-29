@@ -10,7 +10,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	files "github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	importer "github.com/ipfs/go-ipfs/importer"
 	"github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
@@ -128,10 +127,14 @@ remains to be implemented.
 					node:     n,
 					out:      outChan,
 					progress: progress,
-					wrap:     wrap,
 					hidden:   hidden,
 					trickle:  trickle,
 				}
+
+				if wrap {
+					file = files.NewSliceFile("", []files.File{file})
+				}
+
 				rootnd, err := addParams.addFile(file)
 				if err != nil {
 					res.SetError(err, cmds.ErrNormal)
@@ -247,7 +250,6 @@ type adder struct {
 	node     *core.IpfsNode
 	out      chan interface{}
 	progress bool
-	wrap     bool
 	hidden   bool
 	trickle  bool
 }
@@ -297,18 +299,6 @@ func (params *adder) addFile(file files.File) (*dag.Node, error) {
 	var reader io.Reader = file
 	if params.progress {
 		reader = &progressReader{file: file, out: params.out}
-	}
-
-	if params.wrap {
-		p, dagnode, err := coreunix.AddWrapped(params.node, reader, path.Base(file.FileName()))
-		if err != nil {
-			return nil, err
-		}
-		params.out <- &AddedObject{
-			Hash: p,
-			Name: file.FileName(),
-		}
-		return dagnode, nil
 	}
 
 	dagnode, err := add(params.node, reader, params.trickle)
