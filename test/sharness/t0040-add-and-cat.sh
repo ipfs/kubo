@@ -212,28 +212,6 @@ test_expect_success "'ipfs cat' output looks good" '
 	test_cmp mountdir/bigfile actual
 '
 
-test_expect_success "ipfs add -w succeeds" '
-	ipfs add -w mountdir/hello.txt >actual
-'
-
-test_expect_success "ipfs add -w output looks good" '
-	HASH_W1="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
-	HASH_W2="QmVJfrqd4ogGZME6LWkkikAGddYgh9dBs2U14DHZZUBk7W" &&
-	echo "added $HASH_W1 mountdir/hello.txt" >expected &&
-	echo "added $HASH_W2 " >>expected &&
-	test_cmp expected actual
-'
-
-test_expect_success "ipfs add -w succeeds (dir)" '
-	ipfs add -r -w mountdir | tail -n1 >actual
-'
-
-test_expect_success "ipfs add -w output looks good (dir)" '
-	HASH_W="Qmc341yGztU1o8n3c1u5xTYF3uE3zPPP2NYemG9MKz775V" &&
-	echo "added $HASH_W " >expected &&
-	test_cmp expected actual
-'
-
 test_expect_success FUSE "cat ipfs/bigfile succeeds" '
 	cat "ipfs/$HASH" >actual
 '
