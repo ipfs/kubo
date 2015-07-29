@@ -42,13 +42,13 @@ func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	log.Info("Using API.HTTPHeaders:", nc.API.HTTPHeaders)
 
-	if acao := nc.API.HTTPHeaders["Access-Control-Allow-Origin"]; acao != nil {
+	if acao := nc.API.HTTPHeaders[cmdsHttp.ACAOrigin]; acao != nil {
 		c.CORSOpts.AllowedOrigins = acao
 	}
-	if acam := nc.API.HTTPHeaders["Access-Control-Allow-Methods"]; acam != nil {
+	if acam := nc.API.HTTPHeaders[cmdsHttp.ACAMethods]; acam != nil {
 		c.CORSOpts.AllowedMethods = acam
 	}
-	if acac := nc.API.HTTPHeaders["Access-Control-Allow-Credentials"]; acac != nil {
+	if acac := nc.API.HTTPHeaders[cmdsHttp.ACACredentials]; acac != nil {
 		for _, v := range acac {
 			c.CORSOpts.AllowCredentials = (strings.ToLower(v) == "true")
 		}

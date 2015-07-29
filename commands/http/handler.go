@@ -45,6 +45,13 @@ const (
 	applicationJson        = "application/json"
 	applicationOctetStream = "application/octet-stream"
 	plainText              = "text/plain"
+	originHeader           = "origin"
+)
+
+const (
+	ACAOrigin      = "Access-Control-Allow-Origin"
+	ACAMethods     = "Access-Control-Allow-Methods"
+	ACACredentials = "Access-Control-Allow-Credentials"
 )
 
 var localhostOrigins = []string{
@@ -114,6 +121,13 @@ func (i Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (i internalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Incoming API request: ", r.URL)
+
+	if !allowOrigin(r, i.cfg) || !allowReferer(r, i.cfg) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden"))
+		log.Warningf("API blocked request to %s. (possible CSRF)", r.URL)
+		return
+	}
 
 	req, err := Parse(r, i.root)
 	if err != nil {
@@ -309,4 +323,61 @@ func sanitizedErrStr(err error) string {
 	s = strings.Split(s, "\n")[0]
 	s = strings.Split(s, "\r")[0]
 	return s
+}
+
+// allowOrigin just stops the request if the origin is not allowed.
+// the CORS middleware apparently does not do this for us...
+func allowOrigin(r *http.Request, cfg *ServerConfig) bool {
+	origin := r.Header.Get("Origin")
+
+	// curl, or ipfs shell, typing it in manually, or clicking link
+	// NOT in a browser. this opens up a hole. we should close it,
+	// but right now it would break things. TODO
+	if origin == "" {
+		return true
+	}
+
+	for _, o := range cfg.CORSOpts.AllowedOrigins {
+		if o == "*" { // ok! you asked for it!
+			return true
+		}
+
+		if o == origin { // allowed explicitly
+			return true
+		}
+	}
+
+	return false
+}
+
+// allowReferer this is here to prevent some CSRF attacks that
+// the API would be vulnerable to. We check that the Referer
+// is allowed by CORS Origin (origins and referrers here will
+// work similarly in the normla uses of the API).
+// See discussion at https://github.com/ipfs/go-ipfs/issues/1532
+func allowReferer(r *http.Request, cfg *ServerConfig) bool {
+	referer := r.Referer()
+
+	// curl, or ipfs shell, typing it in manually, or clicking link
+	// NOT in a browser. this opens up a hole. we should close it,
+	// but right now it would break things. TODO
+	if referer == "" {
+		return true
+	}
+
+	// check CORS ACAOs and pretend Referer works like an origin.
+	// this is valid for many (most?) sane uses of the API in
+	// other applications, and will have the desired effect.
+	for _, o := range cfg.CORSOpts.AllowedOrigins {
+		if o == "*" { // ok! you asked for it!
+			return true
+		}
+
+		// referer is allowed explicitly
+		if o == referer {
+			return true
+		}
+	}
+
+	return false
 }
