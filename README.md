@@ -14,7 +14,15 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-[Install Go 1.4+](http://golang.org/doc/install). Then simply:
+[Download Go 1.4+](https://golang.org/dl/). 
+
+Setup PATH environment variable e.g., by adding these lines to your /etc/profile (for a system-wide installation) or $HOME/.profile:
+```
+export PATH=$PATH:/usr/local/go/bin
+export PATH=$PATH:$GOPATH/bin
+```
+
+Then simply:
 
 ```
 go get -u github.com/ipfs/go-ipfs/cmd/ipfs
