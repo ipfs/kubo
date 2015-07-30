@@ -1,5 +1,87 @@
 # go-ipfs changelog
 
+### 0.3.6 - 2015-07-30
+
+This patch improves the resource consumption of go-ipfs,
+introduces a few new options on the CLI, and also
+fixes (yet again) windows builds.
+
+* Resource consumption:
+  * fixed goprocess memory leak @rht
+  * implement batching on datastore @whyrusleeping
+  * Fix bitswap memory leak @whyrusleeping
+  * let bitswap ignore temporary write errors @whyrusleeping
+  * remove logging to disk in favor of api endpoint @whyrusleeping
+  * --only-hash option for add to skip writing to disk @whyrusleeping
+
+* Tool changes
+  * improved `ipfs daemon` output with all addresses @jbenet
+  * improved `ipfs id -f` output, added `<addrs>` and  `\n \t` support @jbenet
+  * `ipfs swarm addrs local` now shows the local node's addrs @jbenet
+  * improved config json parsing @rht
+  * improved Dockerfile to use alpine linux @Luzifer @lgierth
+  * improved bash completion @MichaelMure 
+  * Improved 404 for gateway @cryptix
+  * add unixfs ls to list correct filesizes @wking
+  * ignore hidden files by default @gatesvp
+  * global --timeout flag @whyrusleeping
+  * fix random API failures by closing resp bodies @whyrusleeping
+  * ipfs swarm filters @whyrusleeping
+  * api returns errors in http trailers @whyrusleeping @jbenet 
+  * `ipfs patch` learned to create intermediate nodes @whyrusleeping
+  * `ipfs object stat` now shows Hash @whyrusleeping
+  * `ipfs cat` now clears progressbar on exit @rht
+  * `ipfs add -w -r <dir>` now wraps directories @jbenet
+  * `ipfs add -w <file1> <file2>` now wraps with one dir @jbenet
+  * API + Gateway now support arbitrary HTTP Headers from config @jbenet
+  * API now supports CORS properly from config @jbenet
+  * **Deprecated:** `API_ORIGIN` env var (use config, see `ipfs daemon --help`) @jbenet
+
+* General Codebase 
+  * `nofuse` tag for windows @Luzifer
+  * improved `ipfs add` code @gatesvp
+  * started requiring license trailers @chriscool @jbenet 
+  * removed CtxCloser for goprocess @rht
+  * remove deadcode @lgierth @whyrusleeping
+  * reduced number of logging libs to 2 (soon to be 1) @rht
+  * dial address filtering @whyrusleeping
+  * prometheus metrics @lgierth
+  * new index page for gateway @krl @cryptix
+  * move ping to separate protocol @whyrusleeping
+  * add events to bitswap for a dashboard @whyrusleeping
+  * add latency and bandwidth options to mocknet @heems
+  * levenshtein distance cmd autosuggest @sbruce
+  * refactor/cleanup of cmds http handler @whyrusleeping
+  * cmds http stream reports errors in trailers @whyrusleeping
+
+* Bugfixes
+  * fixed path resolution and validation @rht
+  * fixed `ipfs get -C` output and progress bar @rht
+  * Fixed install pkg dist bug @jbenet @Luzifer
+  * Fix `ipfs get` silent failure   @whyrusleeping
+  * `ipfs get` tarx no longer times out @jbenet
+  * `ipfs refs -r -u` is now correct @gatesvp
+  * Fix `ipfs add -w -r <dir>` wrapping bugs @jbenet
+  * Fixed FUSE unmount failures @jbenet
+  * Fixed `ipfs log tail` command (api + cli) @whyrusleeping
+
+* Testing
+  * sharness updates @chriscool
+  * ability to disable secio for testing @jbenet
+  * fixed many random test failures, more reliable CI @whyrusleeping
+  * Fixed racey notifier failures @whyrusleeping
+  * `ipfs refs -r -u` test cases @jbenet
+  * Fix failing pinning test @jbenet
+  * Better CORS + Referer tests @jbenet
+  * Added reversible gc test @rht
+  * Fixed bugs in FUSE IPNS tests @whyrusleeping
+  * Fixed bugs in FUSE IPFS tests @jbenet
+  * Added `random-files` tool for easier sharness tests @jbenet
+
+* Documentation
+  * Add link to init system examples @slang800
+  * Add CORS documentation to daemon init @carver  (Note: this will change soon)
+
 ### 0.3.5 - 2015-06-11
 
 This patch improves overall stability and performance
