@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	gopath "path"
 	"strings"
 	"time"
@@ -12,9 +13,8 @@ import (
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	"github.com/ipfs/go-ipfs/commands/files"
 	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/importer"
-	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/routing"
@@ -39,14 +39,6 @@ func newGatewayHandler(node *core.IpfsNode, conf GatewayConfig) (*gatewayHandler
 		config: conf,
 	}
 	return i, nil
-}
-
-// TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
-	// TODO(cryptix): change and remove this helper once PR1136 is merged
-	// return ufs.AddFromReader(i.node, r.Body)
-	return importer.BuildDagFromReader(
-		r, i.node.DAG, chunk.DefaultSplitter, importer.BasicPinnerCB(i.node.Pinning.GetManual()))
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
@@ -218,21 +210,74 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	nd, err := i.newDagFromReader(r.Body)
-	if err != nil {
-		internalWebError(w, err)
-		return
+	var resultHash string
+	var isDir bool
+	// if encoding is "tar/gzip", we assume its a directory
+	if v, ok := r.Header["Content-Encoding"]; ok && len(v) > 0 && v[0] == "tar/gzip" {
+		isDir = true
 	}
 
-	k, err := i.node.DAG.Add(nd)
-	if err != nil {
-		internalWebError(w, err)
-		return
-	}
+	if isDir {
+		// decompress, untar, and add directory to ipfs
+		tarBall, err := decompressBody(r)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
 
+		rootDir, err := unarchiveTarBall(tarBall)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+
+		dirFile, err := os.Open(rootDir)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+
+		file, err := files.NewSerialFile(rootDir, dirFile)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+
+		nd, err := i.addDirRecursive(file)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+
+		// remove the tmpdir
+		base, _ := gopath.Split(rootDir)
+		if err := os.RemoveAll(base); err != nil {
+			// no need to return
+			log.Errorf("failed to remove temp dir: %v", err)
+		}
+		key, err := nd.Key()
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		resultHash = key.String()
+	} else {
+		nd, err := i.newDagFromReader(r.Body)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+
+		k, err := i.node.DAG.Add(nd)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		resultHash = k.String()
+	}
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("IPFS-Hash", k.String())
-	http.Redirect(w, r, ipfsPathPrefix+k.String(), http.StatusCreated)
+	w.Header().Set("IPFS-Hash", resultHash)
+	http.Redirect(w, r, ipfsPathPrefix+resultHash, http.StatusCreated)
 }
 
 func (i *gatewayHandler) putEmptyDirHandler(w http.ResponseWriter, r *http.Request) {
