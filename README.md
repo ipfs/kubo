@@ -14,13 +14,38 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-[Download Go 1.4+](https://golang.org/dl/). 
+The canonical download instructions for IPFS are over at: http://ipfs.io/doc/install
 
-Setup PATH environment variable e.g., by adding these lines to your /etc/profile (for a system-wide installation) or $HOME/.profile:
+## Install prebuilt packages
+
+We use [gobuilder.me](https://gobuilder.me), a great service that automatically builds a release on every commit.
+
+You can see the latest builds for your platform at these links:
+
+- [`release` - the last released version](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs?branch=release)  **<-- recommended**
+- [`master` - development, stable](https://gobuilder.me/github.com/ipfs/go-ipfs/cmd/ipfs?branch=master)
+
+From there:
+- click "Download" on the build for your platform
+- open/extract the archive
+- move `ipfs` to your path (`install.sh` can do it for you)
+
+
+## Build from Source
+
+### Prerequisite: Install Go
+
+First, you'll need go. If you don't have it: [Download Go 1.4+](https://golang.org/dl/).
+
+You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 ```
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$GOPATH/bin
 ```
+
+(If you run into trouble, see the [Go install instructions](http://golang.org/doc/install))
+
+### Download + Compile IPFS
 
 Then simply:
 
@@ -52,36 +77,39 @@ dependencies as well.
     ipfs [<flags>] <command> [<arg>] ...
 
     Basic commands:
-    
+
         init          Initialize ipfs local configuration
         add <path>    Add an object to ipfs
         cat <ref>     Show ipfs object data
         ls <ref>      List links from an object
-    
+
     Tool commands:
-    
+
         config        Manage configuration
         update        Download and apply go-ipfs updates
         version       Show ipfs version information
         commands      List all available commands
         id            Show info about ipfs peers
-    
+
     Advanced Commands:
-    
+
         daemon        Start a long-running daemon process
         mount         Mount an ipfs read-only mountpoint
         serve         Serve an interface to ipfs
         diag          Print diagnostics
-    
+
     Plumbing commands:
-    
+
         block         Interact with raw blocks in the datastore
         object        Interact with raw dag nodes
-    
+
     Use 'ipfs <command> --help' to learn more about each command.
 ```
 
 ## Getting Started
+
+See also: http://ipfs.io/docs/getting-started/
+
 To start using ipfs, you must first initialize ipfs's config files on your
 system, this is done with `ipfs init`. See `ipfs init --help` for information on
 the optional arguments it takes. After initialization is complete, you can use
@@ -101,51 +129,51 @@ Basic proof of 'ipfs working' locally:
 ### Docker usage
 
 An ipfs docker image is hosted at [hub.docker.com/u/jbenet/go-ipfs](http://hub.docker.com/u/jbenet/go-ipfs).
-To make files visible inside the container you need to mount a host directory 
+To make files visible inside the container you need to mount a host directory
 with the `-v` option to docker. Choose a directory that you want to use to
-import/export files from ipfs. You should also choose a directory to store 
+import/export files from ipfs. You should also choose a directory to store
 ipfs files that will persist when you restart the container.
 
     export ipfs_staging=</absolute/path/to/somewhere/>
     export ipfs_data=</absolute/path/to/somewhere_else/>
-    
+
 Start a container running ipfs and expose ports 4001, 5001 and 8080:
 
     docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 8080:8080 -p 4001:4001 -p 5001:5001 jbenet/go-ipfs:latest
-    
+
 Watch the ipfs log:
 
     docker logs -f ipfs_host
-    
-Wait for ipfs to start. ipfs is running when you see: 
 
-    Gateway (readonly) server 
+Wait for ipfs to start. ipfs is running when you see:
+
+    Gateway (readonly) server
     listening on /ip4/0.0.0.0/tcp/8080
-    
+
 (you can now stop watching the log)
-   
+
 Run ipfs commands:
 
     docker exec ipfs_host ipfs <args...>
 
 For example: connect to peers
-    
+
     docker exec ipfs_host ipfs swarm peers
-    
+
 
 Add files:
 
     cp -r <something> $ipfs_staging
     docker exec ipfs_host ipfs add -r /export/<something>
-    
+
 Stop the running container:
 
     docker stop ipfs_host
-    
+
 #### Docker usage with VirtualBox/boot2docker (OSX and Windows)
 
-Since docker is running in the boot2docker VM, you need to forward 
-relevant ports from the VM to your host for ipfs act normally. This is 
+Since docker is running in the boot2docker VM, you need to forward
+relevant ports from the VM to your host for ipfs act normally. This is
 accomplished with the following command:
 
     boot2docker ssh -L 5001:localhost:5001 -L 4001:localhost:4001 -L 8080:localhost:8080 -fN
