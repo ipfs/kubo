@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -55,13 +56,6 @@ const (
 	ACACredentials = "Access-Control-Allow-Credentials"
 )
 
-var localhostOrigins = []string{
-	"http://127.0.0.1",
-	"https://127.0.0.1",
-	"http://localhost",
-	"https://localhost",
-}
-
 var mimeTypes = map[string]string{
 	cmds.JSON: "application/json",
 	cmds.XML:  "application/xml",
@@ -91,21 +85,7 @@ func skipAPIHeader(h string) bool {
 
 func NewHandler(ctx cmds.Context, root *cmds.Command, cfg *ServerConfig) *Handler {
 	if cfg == nil {
-		cfg = &ServerConfig{}
-	}
-
-	if cfg.CORSOpts == nil {
-		cfg.CORSOpts = new(cors.Options)
-	}
-
-	// by default, use GET, PUT, POST
-	if cfg.CORSOpts.AllowedMethods == nil {
-		cfg.CORSOpts.AllowedMethods = []string{"GET", "POST", "PUT"}
-	}
-
-	// by default, only let 127.0.0.1 through.
-	if cfg.CORSOpts.AllowedOrigins == nil {
-		cfg.CORSOpts.AllowedOrigins = localhostOrigins
+		panic("must provide a valid ServerConfig")
 	}
 
 	// Wrap the internal handler with CORS handling-middleware.
@@ -375,6 +355,16 @@ func allowReferer(r *http.Request, cfg *ServerConfig) bool {
 		return true
 	}
 
+	u, err := url.Parse(referer)
+	if err != nil {
+		// bad referer. but there _is_ something, so bail.
+		log.Debug("failed to parse referer: ", referer)
+		// debug because referer comes straight from the client. dont want to
+		// let people DOS by putting a huge referer that gets stored in log files.
+		return false
+	}
+	origin := u.Scheme + "://" + u.Host
+
 	// check CORS ACAOs and pretend Referer works like an origin.
 	// this is valid for many (most?) sane uses of the API in
 	// other applications, and will have the desired effect.
@@ -384,7 +374,7 @@ func allowReferer(r *http.Request, cfg *ServerConfig) bool {
 		}
 
 		// referer is allowed explicitly
-		if o == referer {
+		if o == origin {
 			return true
 		}
 	}

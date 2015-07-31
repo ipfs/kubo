@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	cors "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/rs/cors"
@@ -28,6 +29,13 @@ or
 
 	ipfs daemon --api-http-header 'Access-Control-Allow-Origin: *'
 `
+
+var defaultLocalhostOrigins = []string{
+	"http://127.0.0.1:<port>",
+	"https://127.0.0.1:<port>",
+	"http://localhost:<port>",
+	"https://localhost:<port>",
+}
 
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	origin := os.Getenv(originEnvKey)
@@ -58,6 +66,39 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	c.Headers = nc.API.HTTPHeaders
 }
 
+func addCORSDefaults(c *cmdsHttp.ServerConfig) {
+	// by default use localhost origins
+	if len(c.CORSOpts.AllowedOrigins) == 0 {
+		c.CORSOpts.AllowedOrigins = defaultLocalhostOrigins
+	}
+
+	// by default, use GET, PUT, POST
+	if len(c.CORSOpts.AllowedMethods) == 0 {
+		c.CORSOpts.AllowedMethods = []string{"GET", "POST", "PUT"}
+	}
+}
+
+func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
+
+	// we have to grab the port from an addr, which may be an ip6 addr.
+	// TODO: this should take multiaddrs and derive port from there.
+	port := ""
+	if tcpaddr, ok := addr.(*net.TCPAddr); ok {
+		port = strconv.Itoa(tcpaddr.Port)
+	} else if udpaddr, ok := addr.(*net.UDPAddr); ok {
+		port = strconv.Itoa(udpaddr.Port)
+	}
+
+	// we're listening on tcp/udp with ports. ("udp!?" you say? yeah... it happens...)
+	for i, o := range c.CORSOpts.AllowedOrigins {
+		// TODO: allow replacing <host>. tricky, ip4 and ip6 and hostnames...
+		if port != "" {
+			o = strings.Replace(o, "<port>", port, -1)
+		}
+		c.CORSOpts.AllowedOrigins[i] = o
+	}
+}
+
 func CommandsOption(cctx commands.Context) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
@@ -69,6 +110,8 @@ func CommandsOption(cctx commands.Context) ServeOption {
 
 		addHeadersFromConfig(cfg, n.Repo.Config())
 		addCORSFromEnv(cfg)
+		addCORSDefaults(cfg)
+		patchCORSVars(cfg, l.Addr())
 
 		cmdHandler := cmdsHttp.NewHandler(cctx, corecommands.Root, cfg)
 		mux.Handle(cmdsHttp.ApiPath+"/", cmdHandler)
