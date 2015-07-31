@@ -3,6 +3,7 @@ package main
 import (
 	_ "expvar"
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -126,8 +127,8 @@ future version, along with this notice. Please move to setting the HTTP Headers.
 // mostly useful to hook up things that register in the default muxer,
 // and don't provide a convenient http.Handler entry point, such as
 // expvar and http/pprof.
-func defaultMux(path string) func(node *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
-	return func(node *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+func defaultMux(path string) corehttp.ServeOption {
+	return func(node *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle(path, http.DefaultServeMux)
 		return mux, nil
 	}

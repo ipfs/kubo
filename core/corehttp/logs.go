@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"io"
+	"net"
 	"net/http"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -36,7 +37,7 @@ func (w *writeErrNotifier) Write(b []byte) (int, error) {
 }
 
 func LogOption() ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(200)
 			wnf, errs := newWriteErrNotifier(w)

@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -58,7 +59,7 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 }
 
 func CommandsOption(cctx commands.Context) ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
 		cfg := &cmdsHttp.ServerConfig{
 			CORSOpts: &cors.Options{
