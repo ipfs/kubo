@@ -14,7 +14,7 @@ Please put all issues regarding go IPFS _implementation_ in [this repo](https://
 
 ## Install
 
-The canonical download instructions for IPFS are over at: http://ipfs.io/doc/install
+The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install
 
 ## Install prebuilt packages
 
