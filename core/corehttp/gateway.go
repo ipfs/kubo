@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 
@@ -27,7 +28,7 @@ func NewGateway(conf GatewayConfig) *Gateway {
 }
 
 func (g *Gateway) ServeOption() ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		// pass user's HTTP headers
 		g.Config.Headers = n.Repo.Config().Gateway.HTTPHeaders
 
@@ -50,7 +51,7 @@ func GatewayOption(writable bool) ServeOption {
 }
 
 func VersionOption() ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Client Version:   %s\n", id.ClientVersion)
 			fmt.Fprintf(w, "Protocol Version: %s\n", id.IpfsVersion)

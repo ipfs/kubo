@@ -55,6 +55,14 @@ func newNodeWithMockNamesys(t *testing.T, ns mockNamesys) *core.IpfsNode {
 	return n
 }
 
+type delegatedHandler struct {
+	http.Handler
+}
+
+func (dh *delegatedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	dh.Handler.ServeHTTP(w, r)
+}
+
 func TestGatewayGet(t *testing.T) {
 	t.Skip("not sure whats going on here")
 	ns := mockNamesys{}
@@ -65,16 +73,20 @@ func TestGatewayGet(t *testing.T) {
 	}
 	ns["example.com"] = path.FromString("/ipfs/" + k)
 
-	h, err := makeHandler(n,
+	// need this variable here since we need to construct handler with
+	// listener, and server with handler. yay cycles.
+	dh := &delegatedHandler{}
+	ts := httptest.NewServer(dh)
+	defer ts.Close()
+
+	dh.Handler, err = makeHandler(n,
+		ts.Listener,
 		IPNSHostnameOption(),
 		GatewayOption(false),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	ts := httptest.NewServer(h)
-	defer ts.Close()
 
 	t.Log(ts.URL)
 	for _, test := range []struct {

@@ -23,16 +23,16 @@ var log = eventlog.Logger("core/server")
 // It returns the mux to expose to future options, which may be a new mux if it
 // is interested in mediating requests to future options, or the same mux
 // initially passed in if not.
-type ServeOption func(*core.IpfsNode, *http.ServeMux) (*http.ServeMux, error)
+type ServeOption func(*core.IpfsNode, net.Listener, *http.ServeMux) (*http.ServeMux, error)
 
 // makeHandler turns a list of ServeOptions into a http.Handler that implements
 // all of the given options, in order.
-func makeHandler(n *core.IpfsNode, options ...ServeOption) (http.Handler, error) {
+func makeHandler(n *core.IpfsNode, l net.Listener, options ...ServeOption) (http.Handler, error) {
 	topMux := http.NewServeMux()
 	mux := topMux
 	for _, option := range options {
 		var err error
-		mux, err = option(n, mux)
+		mux, err = option(n, l, mux)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 }
 
 func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {
-	handler, err := makeHandler(node, options...)
+	handler, err := makeHandler(node, lis, options...)
 	if err != nil {
 		return err
 	}

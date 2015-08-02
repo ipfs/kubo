@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"net"
 	"net/http"
 	"strings"
 
@@ -13,7 +14,7 @@ import (
 // an IPNS name.
 // The rewritten request points at the resolved name on the gateway handler.
 func IPNSHostnameOption() ServeOption {
-	return func(n *core.IpfsNode, mux *http.ServeMux) (*http.ServeMux, error) {
+	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		childMux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithCancel(n.Context())

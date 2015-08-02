@@ -31,6 +31,7 @@ func originCfg(origins []string) *ServerConfig {
 	return &ServerConfig{
 		CORSOpts: &cors.Options{
 			AllowedOrigins: origins,
+			AllowedMethods: []string{"GET", "PUT", "POST"},
 		},
 	}
 }
@@ -46,6 +47,13 @@ type testCase struct {
 	ResHeaders   map[string]string
 }
 
+var defaultOrigins = []string{
+	"http://localhost",
+	"http://127.0.0.1",
+	"https://localhost",
+	"https://127.0.0.1",
+}
+
 func getTestServer(t *testing.T, origins []string) *httptest.Server {
 	cmdsCtx, err := coremock.MockCmdsCtx()
 	if err != nil {
@@ -57,6 +65,10 @@ func getTestServer(t *testing.T, origins []string) *httptest.Server {
 		Subcommands: map[string]*cmds.Command{
 			"version": ipfscmd.VersionCmd,
 		},
+	}
+
+	if len(origins) == 0 {
+		origins = defaultOrigins
 	}
 
 	handler := NewHandler(cmdsCtx, cmdRoot, originCfg(origins))
