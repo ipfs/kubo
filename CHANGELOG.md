@@ -1,5 +1,11 @@
 # go-ipfs changelog
 
+### 0.3.7 - 2015-08-02
+
+This patch update fixes a problem we introduced in 0.3.6 and did not
+catch: the webui failed to work with out-of-the-box CORS configs.
+This has been fixed and now should work correctly. @jbenet
+
 ### 0.3.6 - 2015-07-30
 
 This patch improves the resource consumption of go-ipfs,
@@ -20,14 +26,14 @@ fixes (yet again) windows builds.
   * `ipfs swarm addrs local` now shows the local node's addrs @jbenet
   * improved config json parsing @rht
   * improved Dockerfile to use alpine linux @Luzifer @lgierth
-  * improved bash completion @MichaelMure 
+  * improved bash completion @MichaelMure
   * Improved 404 for gateway @cryptix
   * add unixfs ls to list correct filesizes @wking
   * ignore hidden files by default @gatesvp
   * global --timeout flag @whyrusleeping
   * fix random API failures by closing resp bodies @whyrusleeping
   * ipfs swarm filters @whyrusleeping
-  * api returns errors in http trailers @whyrusleeping @jbenet 
+  * api returns errors in http trailers @whyrusleeping @jbenet
   * `ipfs patch` learned to create intermediate nodes @whyrusleeping
   * `ipfs object stat` now shows Hash @whyrusleeping
   * `ipfs cat` now clears progressbar on exit @rht
@@ -37,10 +43,10 @@ fixes (yet again) windows builds.
   * API now supports CORS properly from config @jbenet
   * **Deprecated:** `API_ORIGIN` env var (use config, see `ipfs daemon --help`) @jbenet
 
-* General Codebase 
+* General Codebase
   * `nofuse` tag for windows @Luzifer
   * improved `ipfs add` code @gatesvp
-  * started requiring license trailers @chriscool @jbenet 
+  * started requiring license trailers @chriscool @jbenet
   * removed CtxCloser for goprocess @rht
   * remove deadcode @lgierth @whyrusleeping
   * reduced number of logging libs to 2 (soon to be 1) @rht
