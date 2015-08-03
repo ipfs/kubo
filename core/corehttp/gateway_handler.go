@@ -116,15 +116,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.config.BlackList != nil && i.config.BlackList.Has(k) {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden (content on blacklist)"))
+	if i.config.DenyList != nil && i.config.DenyList.Has(k) {
+		w.WriteHeader(451)
+		w.Write([]byte("451 - Unavailable For Legal Reasons"))
 		return
 	}
 
-	if i.config.WhiteList != nil && !i.config.WhiteList.Has(k) {
+	if i.config.AllowList != nil && !i.config.AllowList.Has(k) {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - Forbidden (content on blacklist)"))
+		w.Write([]byte("403 - Forbidden (content not on whitelist)"))
 		return
 	}
 

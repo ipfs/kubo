@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -311,18 +311,18 @@ func serveHTTPApi(req cmds.Request) (error, <-chan error) {
 		return fmt.Errorf("serveHTTPApi: Option(%s) failed: %s", unrestrictedApiAccessKwd, err), nil
 	}
 
-	var whitelist key.KeySet
+	var allowlist key.KeySet
 	if !unrestricted {
-		whitelist = key.Threadsafe(key.NewKeySet())
+		allowlist = key.Threadsafe(key.NewKeySet())
 		for _, webuipath := range corehttp.WebUIPaths {
 			// extract the key
-			whitelist.Add(key.B58KeyDecode(webuipath[6:]))
+			allowlist.Add(key.B58KeyDecode(webuipath[6:]))
 		}
 	}
 
 	apiGw := corehttp.NewGateway(corehttp.GatewayConfig{
 		Writable:  true,
-		WhiteList: whitelist,
+		AllowList: allowlist,
 	})
 
 	var opts = []corehttp.ServeOption{
@@ -399,28 +399,28 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 		fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
 	}
 
-	var blacklist key.KeySet
-	var whitelist key.KeySet
-	if cfg.Gateway.BlackList != "" {
-		l, err := loadKeySetFromURL(cfg.Gateway.BlackList)
+	var denylist key.KeySet
+	var allowlist key.KeySet
+	if len(cfg.Gateway.DenyList) > 0 {
+		l, err := loadKeySetFromURLs(cfg.Gateway.DenyList)
 		if err != nil {
 			return err, nil
 		}
-		blacklist = l
+		denylist = l
 	}
 
-	if cfg.Gateway.WhiteList != "" {
-		l, err := loadKeySetFromURL(cfg.Gateway.WhiteList)
+	if len(cfg.Gateway.AllowList) > 0 {
+		l, err := loadKeySetFromURLs(cfg.Gateway.AllowList)
 		if err != nil {
 			return err, nil
 		}
-		whitelist = l
+		allowlist = l
 	}
 
 	gateway := corehttp.Gateway{
 		Config: corehttp.GatewayConfig{
-			BlackList: blacklist,
-			WhiteList: whitelist,
+			DenyList:  denylist,
+			AllowList: allowlist,
 		},
 	}
 
@@ -448,20 +448,31 @@ func serveHTTPGateway(req cmds.Request) (error, <-chan error) {
 	return nil, errc
 }
 
-func loadKeySetFromURL(url string) (key.KeySet, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
+type listing struct {
+	Uri  string
+	Keys []string
+}
 
+func loadKeySetFromURLs(urls []string) (key.KeySet, error) {
 	ks := key.NewKeySet()
-	scan := bufio.NewScanner(resp.Body)
-	for scan.Scan() {
-		k := key.B58KeyDecode(scan.Text())
-		if k == "" {
-			return nil, fmt.Errorf("invalid key in set")
+	for _, url := range urls {
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, err
 		}
-		ks.Add(k)
+
+		var list listing
+		err = json.NewDecoder(resp.Body).Decode(&list)
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range list.Keys {
+			lk := key.B58KeyDecode(k)
+			if lk == "" {
+				return nil, fmt.Errorf("incorrectly formatted key '%s'", k)
+			}
+			ks.Add(lk)
+		}
 	}
 	return key.Threadsafe(ks), nil
 }

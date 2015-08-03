@@ -17,8 +17,8 @@ type Gateway struct {
 
 type GatewayConfig struct {
 	Headers   map[string][]string
-	BlackList key.KeySet
-	WhiteList key.KeySet
+	DenyList  key.KeySet
+	AllowList key.KeySet
 
 	Writable bool
 }
