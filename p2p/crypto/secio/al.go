@@ -18,7 +18,7 @@ import (
 )
 
 // List of supported ECDH curves
-var SupportedExchanges = "P-256,P-224,P-384,P-521"
+var SupportedExchanges = "P-256,P-384,P-521"
 
 // List of supported Ciphers
 var SupportedCiphers = "AES-256,AES-128,Blowfish"

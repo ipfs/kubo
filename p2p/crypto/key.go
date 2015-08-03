@@ -102,8 +102,6 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 	var curve elliptic.Curve
 
 	switch curveName {
-	case "P-224":
-		curve = elliptic.P224()
 	case "P-256":
 		curve = elliptic.P256()
 	case "P-384":
