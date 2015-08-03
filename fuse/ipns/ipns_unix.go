@@ -77,7 +77,7 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 			return nil, err
 		}
 		name := key.Key(pkh).B58String()
-		root, err := ipfs.IpnsFs.GetRoot(name)
+		root, err := ipfs.Mfs.GetRoot(name)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath strin
 	}
 
 	return &Root{
-		fs:        ipfs.IpnsFs,
+		fs:        ipfs.Mfs,
 		Ipfs:      ipfs,
 		IpfsRoot:  ipfspath,
 		IpnsRoot:  ipnspath,
@@ -159,13 +159,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 }
 
 func (r *Root) Close() error {
-	for _, kr := range r.Roots {
-		err := kr.Publish(r.Ipfs.Context())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return r.fs.Close()
 }
 
 // Forget is called when the filesystem is unmounted. probably.
@@ -267,16 +261,14 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 // ReadDirAll reads the link structure as directory entries
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var entries []fuse.Dirent
-	for _, name := range dir.dir.List() {
-		dirent := fuse.Dirent{Name: name}
+	listing, err := dir.dir.List()
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range listing {
+		dirent := fuse.Dirent{Name: entry.Name}
 
-		// TODO: make dir.dir.List() return dirinfos
-		child, err := dir.dir.Child(name)
-		if err != nil {
-			return nil, err
-		}
-
-		switch child.Type() {
+		switch nsfs.NodeType(entry.Type) {
 		case nsfs.TDir:
 			dirent.Type = fuse.DT_Dir
 		case nsfs.TFile:

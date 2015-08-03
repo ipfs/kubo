@@ -14,12 +14,12 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 	cfg := ipfs.Repo.Config()
 	allow_other := cfg.Mounts.FuseAllowOther
 
-	if ipfs.IpnsFs == nil {
-		fs, err := ipnsfs.NewFilesystem(ipfs.Context(), ipfs.DAG, ipfs.Namesys, ipfs.Pinning, ipfs.PrivateKey)
+	if ipfs.Mfs == nil {
+		fs, err := ipnsfs.NewFilesystem(ipfs.Context(), ipfs.DAG, ipfs.Pinning)
 		if err != nil {
 			return nil, err
 		}
-		ipfs.IpnsFs = fs
+		ipfs.Mfs = fs
 	}
 
 	fsys, err := NewFileSystem(ipfs, ipfs.PrivateKey, ipfsmp, ipnsmp)
