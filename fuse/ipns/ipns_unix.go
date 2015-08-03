@@ -17,11 +17,17 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
+	mfs "github.com/ipfs/go-ipfs/ipnsfs"
 	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 )
+
+func init() {
+	fuse.Debug = func(msg interface{}) { log.Error(msg) }
+}
 
 var log = eventlog.Logger("fuse/ipns")
 
@@ -62,36 +68,78 @@ type Root struct {
 	IpfsRoot  string
 	IpnsRoot  string
 	LocalDirs map[string]fs.Node
-	Roots     map[string]*nsfs.KeyRoot
+	Roots     map[string]*keyRoot
 
 	fs        *nsfs.Filesystem
 	LocalLink *Link
 }
 
+func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
+	return func(ctx context.Context, key key.Key) error {
+		return ipfs.Namesys.Publish(ctx, k, path.FromKey(key))
+	}
+}
+
+func (r *Root) loadKeyRoot(ctx context.Context, name string) (*mfs.KeyRoot, error) {
+
+	rt, ok := r.Roots[name]
+	if !ok {
+		return nil, fmt.Errorf("no key by name '%s'", name)
+	}
+
+	// already loaded
+	if rt.root != nil {
+		return rt.root, nil
+	}
+
+	p, err := path.ParsePath("/ipns/" + name)
+	if err != nil {
+		log.Errorf("mkpath %s: %s", name, err)
+		return nil, err
+	}
+
+	node, err := core.Resolve(ctx, r.Ipfs, p)
+	if err != nil {
+		log.Errorf("looking up %s: %s", p, err)
+		return nil, err
+	}
+
+	// load it lazily
+	root, err := r.Ipfs.Mfs.NewRoot(name, node, ipnsPubFunc(r.Ipfs, rt.k))
+	if err != nil {
+		return nil, err
+	}
+
+	rt.root = root
+
+	switch val := root.GetValue().(type) {
+	case *nsfs.Directory:
+		r.LocalDirs[name] = &Directory{dir: val}
+	case *nsfs.File:
+		r.LocalDirs[name] = &File{fi: val}
+	default:
+		return nil, errors.New("unrecognized type")
+	}
+
+	return root, nil
+}
+
+type keyRoot struct {
+	k    ci.PrivKey
+	root *mfs.KeyRoot
+}
+
 func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath string) (*Root, error) {
 	ldirs := make(map[string]fs.Node)
-	roots := make(map[string]*nsfs.KeyRoot)
+	roots := make(map[string]*keyRoot)
 	for _, k := range keys {
 		pkh, err := k.GetPublic().Hash()
 		if err != nil {
 			return nil, err
 		}
 		name := key.Key(pkh).B58String()
-		root, err := ipfs.Mfs.GetRoot(name)
-		if err != nil {
-			return nil, err
-		}
 
-		roots[name] = root
-
-		switch val := root.GetValue().(type) {
-		case *nsfs.Directory:
-			ldirs[name] = &Directory{dir: val}
-		case *nsfs.File:
-			ldirs[name] = &File{fi: val}
-		default:
-			return nil, errors.New("unrecognized type")
-		}
+		roots[name] = &keyRoot{k: k}
 	}
 
 	return &Root{
@@ -130,6 +178,16 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	nd, ok := s.LocalDirs[name]
+	if !ok {
+		// see if we have an unloaded root by this name
+		_, ok = s.Roots[name]
+		if ok {
+			_, err := s.loadKeyRoot(ctx, name)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	if ok {
 		switch nd := nd.(type) {
 		case *Directory:

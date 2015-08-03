@@ -23,6 +23,7 @@ func Resolve(ctx context.Context, n *IpfsNode, p path.Path) (*merkledag.Node, er
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
 
+		log.Error("RESOLVE!!!")
 		// TODO(cryptix): we sould be able to query the local cache for the path
 		if n.Namesys == nil {
 			return nil, ErrNoNamesys

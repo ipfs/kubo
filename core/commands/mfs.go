@@ -15,6 +15,8 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
+
+	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 type mfsMountListing struct {
@@ -120,7 +122,7 @@ var MfsCreateCmd = &cmds.Command{
 			rootnode = &dag.Node{Data: ft.FolderPBData()}
 		}
 
-		_, err = node.Mfs.NewRoot(name, rootnode, func(_ key.Key) error { return nil })
+		_, err = node.Mfs.NewRoot(name, rootnode, func(_ context.Context, _ key.Key) error { return nil })
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return

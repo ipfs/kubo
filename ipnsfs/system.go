@@ -98,6 +98,7 @@ func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
 	if ok {
 		return r, nil
 	}
+	panic("noooo")
 	return nil, ErrNotExist
 }
 
@@ -167,7 +168,7 @@ type KeyRoot struct {
 	repub *Republisher
 }
 
-type PubFunc func(key.Key) error
+type PubFunc func(context.Context, key.Key) error
 
 // newKeyRoot creates a new KeyRoot for the given key, and starts up a republisher routine
 // for it
@@ -227,7 +228,7 @@ func (kr *KeyRoot) closeChild(name string, nd *dag.Node) error {
 }
 
 func (kr *KeyRoot) Close() error {
-	return kr.repub.publish()
+	return kr.repub.Close()
 }
 
 // Republisher manages when to publish the ipns entry associated with a given key
@@ -280,6 +281,12 @@ func (p *Republisher) pubNow() {
 	}
 }
 
+func (p *Republisher) Close() error {
+	err := p.publish(p.ctx)
+	p.cancel()
+	return err
+}
+
 // Touch signals that an update has occurred since the last publish.
 // Multiple consecutive touches may extend the time period before
 // the next Publish occurs in order to more efficiently batch updates
@@ -311,7 +318,7 @@ func (np *Republisher) Run() {
 			case <-np.pubnowch:
 			}
 
-			err := np.publish()
+			err := np.publish(np.ctx)
 			if err != nil {
 				log.Error("republishRoot error: %s", err)
 			}
@@ -322,13 +329,13 @@ func (np *Republisher) Run() {
 	}
 }
 
-func (np *Republisher) publish() error {
+func (np *Republisher) publish(ctx context.Context) error {
 	np.lk.Lock()
 	topub := np.val
 	np.lk.Unlock()
 
 	log.Info("Publishing Changes!")
-	err := np.pubfunc(topub)
+	err := np.pubfunc(ctx, topub)
 	if err != nil {
 		return err
 	}
