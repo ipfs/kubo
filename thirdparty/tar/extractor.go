@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"io"
 	"os"
+	gopath "path"
 	fp "path/filepath"
 	"strings"
 )
@@ -39,7 +40,7 @@ func (te *Extractor) Extract(reader io.Reader) error {
 		}
 
 		if header.Typeflag == tar.TypeDir {
-			if err := te.extractDir(header, i, rootExists); err != nil {
+			if err := te.extractDir(header, i); err != nil {
 				return err
 			}
 			continue
@@ -52,13 +53,19 @@ func (te *Extractor) Extract(reader io.Reader) error {
 	return nil
 }
 
-func (te *Extractor) extractDir(h *tar.Header, depth int, rootExists bool) error {
-	pathElements := strings.Split(h.Name, "/")
-	if !rootExists {
-		pathElements = pathElements[1:]
-	}
-	path := fp.Join(pathElements...)
-	path = fp.Join(te.Path, path)
+// outputPath returns the path at whicht o place tarPath
+func (te *Extractor) outputPath(tarPath string) string {
+	elems := strings.Split(tarPath, "/") // break into elems
+	elems = elems[1:]                    // remove original root
+
+	path := fp.Join(elems...)     // join elems
+	path = fp.Join(te.Path, path) // rebase on extractor root
+	return path
+}
+
+func (te *Extractor) extractDir(h *tar.Header, depth int) error {
+	path := te.outputPath(h.Name)
+
 	if depth == 0 {
 		// if this is the root root directory, use it as the output path for remaining files
 		te.Path = path
@@ -73,18 +80,18 @@ func (te *Extractor) extractDir(h *tar.Header, depth int, rootExists bool) error
 }
 
 func (te *Extractor) extractFile(h *tar.Header, r *tar.Reader, depth int, rootExists bool, rootIsDir bool) error {
-	path := te.Path
-	if depth == 0 && rootExists {
-		// if depth is 0, this is the only file (we aren't 'ipfs get'ing a directory)
-		if rootIsDir { // putting file inside of a root dir.
-			path = fp.Join(te.Path, h.Name)
-		}
-		// else if the file exists, just overwrite it.
-	} else {
-		// we are outputting a directory, this file is inside of it
-		pathElements := strings.Split(h.Name, "/")[1:]
-		path = fp.Join(pathElements...)
-		path = fp.Join(te.Path, path)
+	path := te.outputPath(h.Name)
+
+	if depth == 0 { // if depth is 0, this is the only file (we aren't 'ipfs get'ing a directory)
+		if rootExists && rootIsDir {
+			// putting file inside of a root dir.
+			fnameo := gopath.Base(h.Name)
+			fnamen := fp.Base(path)
+			// add back original name if lost.
+			if fnameo != fnamen {
+				path = fp.Join(path, fnameo)
+			}
+		} // else if old file exists, just overwrite it.
 	}
 
 	file, err := os.Create(path)

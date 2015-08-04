@@ -37,9 +37,8 @@ test_get_cmd() {
 		test_cmp "$HASH" data
 	'
 
-	# this started failing after this change. fixed in later commit
-	test_expect_failure "ipfs get errors when trying to overwrite a file" '
-		test_must_fail ipfs get "$HASH" >actual &&
+	test_expect_success "ipfs get DOES NOT error when trying to overwrite a file" '
+		ipfs get "$HASH" >actual &&
 		rm "$HASH"
 	'
 
