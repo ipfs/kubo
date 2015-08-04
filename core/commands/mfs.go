@@ -59,6 +59,36 @@ on how this API could be better is very welcome.
 			return
 		}
 
+		session, found, err := req.Option("session").String()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		if found {
+			// if a session is specified, print out just the root hash for that fs
+			root, err := node.Mfs.GetRoot(session)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			nd, err := root.GetValue().GetNode()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			k, err := nd.Key()
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
+
+			res.SetOutput(&mfsMountListing{[]mfs.RootListing{mfs.RootListing{Hash: k}}})
+			return
+		}
+
+		// Default: list all roots
 		roots := node.Mfs.ListRoots()
 
 		res.SetOutput(&mfsMountListing{roots})
@@ -66,6 +96,11 @@ on how this API could be better is very welcome.
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			out := res.Output().(*mfsMountListing)
+			if len(out.Mounts) == 1 && out.Mounts[0].Name == "" {
+				// a session was specified, print out just the hash
+				return strings.NewReader(out.Mounts[0].Hash.B58String()), nil
+			}
+
 			buf := new(bytes.Buffer)
 			for _, o := range out.Mounts {
 				fmt.Fprintf(buf, "%s - %s\n", o.Name, o.Hash)
@@ -517,6 +552,123 @@ var MfsMvCmd = &cmds.Command{
 		}
 
 	},
+}
+
+var MfsWriteCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Write to a mutable file in a given filesystem",
+		ShortDescription: ``,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "path to write to"),
+		cmds.FileArg("data", true, false, "data to write").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.IntOption("o", "offset", "offset to write to"),
+		cmds.BoolOption("c", "create", "create the file if it does not exist"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if node.Mfs == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		sess, err := getSession(req.Option("session"))
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		root, err := node.Mfs.GetRoot(sess)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		path := req.Arguments()[0]
+		create, _, _ := req.Option("create").Bool()
+
+		fi, err := getFileHandle(root, path, create)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		offset, _, _ := req.Option("offset").Int()
+
+		_, err = fi.Seek(int64(offset), os.SEEK_SET)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		input, err := req.Files().NextFile()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		n, err := io.Copy(fi, input)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		log.Debugf("wrote %d bytes to %s", n, path)
+	},
+}
+
+func getFileHandle(root *mfs.Root, path string, create bool) (*mfs.File, error) {
+	dir := root.GetValue().(*mfs.Directory)
+
+	target, err := mfs.DirLookup(dir, path)
+	switch err {
+	case nil:
+		fi, ok := target.(*mfs.File)
+		if !ok {
+			return nil, fmt.Errorf("%s was not a file", path)
+		}
+		return fi, nil
+
+	case os.ErrNotExist:
+		if !create {
+			return nil, err
+		}
+
+		// if create is specified and the file doesnt exist, we create the file
+		dirname, fname := gopath.Split(path)
+		pdiri, err := mfs.DirLookup(dir, dirname)
+		if err != nil {
+			return nil, err
+		}
+		pdir, ok := pdiri.(*mfs.Directory)
+		if !ok {
+			return nil, fmt.Errorf("%s was not a directory", dirname)
+		}
+
+		nd := &dag.Node{Data: ft.FilePBData(nil, 0)}
+		err = pdir.AddChild(fname, nd)
+		if err != nil {
+			return nil, err
+		}
+
+		fsn, err := pdir.Child(fname)
+		if err != nil {
+			return nil, err
+		}
+
+		// can unsafely cast, if it fails, that means programmer error
+		return fsn.(*mfs.File), nil
+
+	default:
+		return nil, err
+	}
 }
 
 var MfsCmdTemplate = &cmds.Command{
