@@ -145,7 +145,7 @@ func TestBasic(t *testing.T) {
 	}
 
 	root := &dag.Node{Data: ft.FolderPBData()}
-	rt, err := fs.NewRoot("test", root, func(k key.Key) error {
+	rt, err := fs.NewRoot("test", root, func(ctx context.Context, k key.Key) error {
 		fmt.Println("PUBLISHED: ", k)
 		return nil
 	})
