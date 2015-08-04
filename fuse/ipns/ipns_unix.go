@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	fuse.Debug = func(msg interface{}) { log.Error(msg) }
+	fuse.Debug = func(msg interface{}) { fmt.Println(msg) }
 }
 
 var log = eventlog.Logger("fuse/ipns")
@@ -39,7 +39,11 @@ type FileSystem struct {
 
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
 func NewFileSystem(ipfs *core.IpfsNode, sk ci.PrivKey, ipfspath, ipnspath string) (*FileSystem, error) {
-	root, err := CreateRoot(ipfs, []ci.PrivKey{sk}, ipfspath, ipnspath)
+
+	kmap := map[string]ci.PrivKey{
+		"local": sk,
+	}
+	root, err := CreateRoot(ipfs, kmap, ipfspath, ipnspath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func (f *FileSystem) Destroy() {
 // Root is the root object of the filesystem tree.
 type Root struct {
 	Ipfs *core.IpfsNode
-	Keys []ci.PrivKey
+	Keys map[string]ci.PrivKey
 
 	// Used for symlinking into ipfs
 	IpfsRoot  string
@@ -70,8 +74,8 @@ type Root struct {
 	LocalDirs map[string]fs.Node
 	Roots     map[string]*keyRoot
 
-	fs        *nsfs.Filesystem
-	LocalLink *Link
+	fs         *nsfs.Filesystem
+	LocalLinks map[string]*Link
 }
 
 func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
@@ -105,7 +109,7 @@ func (r *Root) loadKeyRoot(ctx context.Context, name string) (*mfs.KeyRoot, erro
 	}
 
 	// load it lazily
-	root, err := r.Ipfs.Mfs.NewRoot(name, node, ipnsPubFunc(r.Ipfs, rt.k))
+	root, err := r.Ipfs.Mfs.NewRoot(rt.alias, node, ipnsPubFunc(r.Ipfs, rt.k))
 	if err != nil {
 		return nil, err
 	}
@@ -125,32 +129,42 @@ func (r *Root) loadKeyRoot(ctx context.Context, name string) (*mfs.KeyRoot, erro
 }
 
 type keyRoot struct {
-	k    ci.PrivKey
-	root *mfs.KeyRoot
+	k     ci.PrivKey
+	alias string
+	root  *mfs.KeyRoot
 }
 
-func CreateRoot(ipfs *core.IpfsNode, keys []ci.PrivKey, ipfspath, ipnspath string) (*Root, error) {
+func CreateRoot(ipfs *core.IpfsNode, keys map[string]ci.PrivKey, ipfspath, ipnspath string) (*Root, error) {
 	ldirs := make(map[string]fs.Node)
 	roots := make(map[string]*keyRoot)
-	for _, k := range keys {
+	links := make(map[string]*Link)
+	for alias, k := range keys {
 		pkh, err := k.GetPublic().Hash()
 		if err != nil {
 			return nil, err
 		}
 		name := key.Key(pkh).B58String()
 
-		roots[name] = &keyRoot{k: k}
+		roots[name] = &keyRoot{
+			k:     k,
+			alias: alias,
+		}
+
+		links[alias] = &Link{
+			Target: name,
+		}
+
 	}
 
 	return &Root{
-		fs:        ipfs.Mfs,
-		Ipfs:      ipfs,
-		IpfsRoot:  ipfspath,
-		IpnsRoot:  ipnspath,
-		Keys:      keys,
-		LocalDirs: ldirs,
-		LocalLink: &Link{ipfs.Identity.Pretty()},
-		Roots:     roots,
+		fs:         ipfs.Mfs,
+		Ipfs:       ipfs,
+		IpfsRoot:   ipfspath,
+		IpnsRoot:   ipnspath,
+		Keys:       keys,
+		LocalDirs:  ldirs,
+		LocalLinks: links,
+		Roots:      roots,
 	}, nil
 }
 
@@ -169,12 +183,8 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	// Local symlink to the node ID keyspace
-	if name == "local" {
-		if s.LocalLink == nil {
-			return nil, fuse.ENOENT
-		}
-		return s.LocalLink, nil
+	if lnk, ok := s.LocalLinks[name]; ok {
+		return lnk, nil
 	}
 
 	nd, ok := s.LocalDirs[name]
@@ -184,9 +194,13 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		if ok {
 			_, err := s.loadKeyRoot(ctx, name)
 			if err != nil {
+				log.Error("error loading key root: ", err)
 				return nil, err
 			}
+
+			nd = s.LocalDirs[name]
 		}
+		// fallthrough to logic after 'if ok { switch'
 	}
 	if ok {
 		switch nd := nd.(type) {
@@ -195,6 +209,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		case *File:
 			return nd, nil
 		default:
+			log.Errorf("uhm wtf: %#v", nd)
 			return nil, fuse.EIO
 		}
 	}
@@ -233,13 +248,9 @@ func (r *Root) Forget() {
 // as well as a symlink to the peerID key
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Root ReadDirAll")
-	listing := []fuse.Dirent{
-		{
-			Name: "local",
-			Type: fuse.DT_Link,
-		},
-	}
-	for _, k := range r.Keys {
+
+	var listing []fuse.Dirent
+	for alias, k := range r.Keys {
 		pub := k.GetPublic()
 		hash, err := pub.Hash()
 		if err != nil {
@@ -249,7 +260,11 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			Name: key.Key(hash).Pretty(),
 			Type: fuse.DT_Dir,
 		}
-		listing = append(listing, ent)
+		link := fuse.Dirent{
+			Name: alias,
+			Type: fuse.DT_Link,
+		}
+		listing = append(listing, ent, link)
 	}
 	return listing, nil
 }
