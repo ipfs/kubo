@@ -30,10 +30,14 @@ var MfsCmd = &cmds.Command{
 Mfs is an API for manipulating ipfs objects as if they were a unix filesystem.
 They can be seeded with an initial root hash, or by default are an empty directory.
 
-This API is currently experimental and likely to change. This notice will be removed
-when that is no longer the case. Feedback on how this API could be better is very
-welcome.
+NOTICE:
+This API is currently experimental and likely to change and may potentially be
+unstable. This notice will be removed when that is no longer the case. Feedback
+on how this API could be better is very welcome.
 		`,
+	},
+	Options: []cmds.Option{
+		cmds.StringOption("s", "session", "the name of the filesystem to operate on (default=local)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"create": MfsCreateCmd,
@@ -195,9 +199,6 @@ var MfsLsCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "path to show listing for"),
 	},
-	Options: []cmds.Option{
-		cmds.StringOption("s", "session", "the name of the filesystem to operate on (default=local)"),
-	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -293,9 +294,6 @@ var MfsPutCmd = &cmds.Command{
 		cmds.StringArg("object", true, false, "ipfspath of object to import"),
 		cmds.StringArg("path", true, false, "path within filesystem to import to"),
 	},
-	Options: []cmds.Option{
-		cmds.StringOption("s", "session", "the name of the filesystem to operate on (default=local)"),
-	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -372,7 +370,6 @@ var MfsReadCmd = &cmds.Command{
 		cmds.StringArg("path", true, false, "path to file to be read"),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption("s", "session", "the name of the filesystem to operate on (default=local)"),
 		cmds.IntOption("o", "offset", "offset to read from"),
 		cmds.IntOption("n", "count", "maximum number of bytes to read"),
 	},
@@ -441,9 +438,6 @@ var MfsMvCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("source", true, false, "source file to move"),
 		cmds.StringArg("dest", true, false, "target path for file to be moved to"),
-	},
-	Options: []cmds.Option{
-		cmds.StringOption("s", "session", "the name of the filesystem to operate on (default=local)"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
