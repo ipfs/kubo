@@ -84,7 +84,7 @@ func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
 	}
 }
 
-func (r *Root) loadKeyRoot(ctx context.Context, name string) (*mfs.KeyRoot, error) {
+func (r *Root) loadRoot(ctx context.Context, name string) (*mfs.Root, error) {
 
 	rt, ok := r.Roots[name]
 	if !ok {
@@ -131,7 +131,7 @@ func (r *Root) loadKeyRoot(ctx context.Context, name string) (*mfs.KeyRoot, erro
 type keyRoot struct {
 	k     ci.PrivKey
 	alias string
-	root  *mfs.KeyRoot
+	root  *mfs.Root
 }
 
 func CreateRoot(ipfs *core.IpfsNode, keys map[string]ci.PrivKey, ipfspath, ipnspath string) (*Root, error) {
@@ -192,7 +192,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		// see if we have an unloaded root by this name
 		_, ok = s.Roots[name]
 		if ok {
-			_, err := s.loadKeyRoot(ctx, name)
+			_, err := s.loadRoot(ctx, name)
 			if err != nil {
 				log.Error("error loading key root: ", err)
 				return nil, err
@@ -209,7 +209,6 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		case *File:
 			return nd, nil
 		default:
-			log.Errorf("uhm wtf: %#v", nd)
 			return nil, fuse.EIO
 		}
 	}
@@ -225,10 +224,10 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if segments[0] == "ipfs" {
 		p := strings.Join(resolved.Segments()[1:], "/")
 		return &Link{s.IpfsRoot + "/" + p}, nil
-	} else {
-		log.Error("Invalid path.Path: ", resolved)
-		return nil, errors.New("invalid path from ipns record")
 	}
+
+	log.Error("Invalid path.Path: ", resolved)
+	return nil, errors.New("invalid path from ipns record")
 }
 
 func (r *Root) Close() error {

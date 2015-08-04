@@ -4,8 +4,8 @@
 // It consists of four main structs:
 // 1) The Filesystem
 //        The filesystem serves as a container and entry point for the ipns filesystem
-// 2) KeyRoots
-//        KeyRoots represent the root of the keyspace controlled by a given keypair
+// 2) Root
+//        Root represent the root of the keyspace controlled by a given keypair
 // 3) Directories
 // 4) Files
 package ipnsfs
@@ -41,14 +41,14 @@ type Filesystem struct {
 
 	pins pin.Pinner
 
-	roots map[string]*KeyRoot
+	roots map[string]*Root
 
 	lk sync.Mutex
 }
 
 // NewFilesystem instantiates an ipns filesystem using the given parameters and locally owned keys
 func NewFilesystem(ctx context.Context, ds dag.DAGService, pins pin.Pinner) (*Filesystem, error) {
-	roots := make(map[string]*KeyRoot)
+	roots := make(map[string]*Root)
 	fs := &Filesystem{
 		ctx:      ctx,
 		roots:    roots,
@@ -60,7 +60,7 @@ func NewFilesystem(ctx context.Context, ds dag.DAGService, pins pin.Pinner) (*Fi
 	return fs, nil
 }
 
-func (fs *Filesystem) NewRoot(name string, root *dag.Node, pf PubFunc) (*KeyRoot, error) {
+func (fs *Filesystem) NewRoot(name string, root *dag.Node, pf PubFunc) (*Root, error) {
 	fs.lk.Lock()
 	defer fs.lk.Unlock()
 	_, ok := fs.roots[name]
@@ -68,7 +68,7 @@ func (fs *Filesystem) NewRoot(name string, root *dag.Node, pf PubFunc) (*KeyRoot
 		return nil, errors.New("already exists")
 	}
 
-	kr, err := fs.newKeyRoot(fs.ctx, root, pf)
+	kr, err := fs.newRoot(fs.ctx, root, pf)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (fs *Filesystem) Close() error {
 	wg := sync.WaitGroup{}
 	for _, r := range fs.roots {
 		wg.Add(1)
-		go func(r *KeyRoot) {
+		go func(r *Root) {
 			defer wg.Done()
 			r.repub.pubNow()
 		}(r)
@@ -90,8 +90,8 @@ func (fs *Filesystem) Close() error {
 	return nil
 }
 
-// GetRoot returns the KeyRoot of the given name
-func (fs *Filesystem) GetRoot(name string) (*KeyRoot, error) {
+// GetRoot returns the Root of the given name
+func (fs *Filesystem) GetRoot(name string) (*Root, error) {
 	fs.lk.Lock()
 	defer fs.lk.Unlock()
 	r, ok := fs.roots[name]
@@ -152,8 +152,8 @@ type FSNode interface {
 	Unlock()
 }
 
-// KeyRoot represents the root of a filesystem tree pointed to by a given keypair
-type KeyRoot struct {
+// Root represents the root of a filesystem tree pointed to by a given keypair
+type Root struct {
 	name string
 
 	// node is the merkledag node pointed to by this keypair
@@ -170,9 +170,9 @@ type KeyRoot struct {
 
 type PubFunc func(context.Context, key.Key) error
 
-// newKeyRoot creates a new KeyRoot for the given key, and starts up a republisher routine
+// newRoot creates a new Root for the given key, and starts up a republisher routine
 // for it
-func (fs *Filesystem) newKeyRoot(parent context.Context, node *dag.Node, pf PubFunc) (*KeyRoot, error) {
+func (fs *Filesystem) newRoot(parent context.Context, node *dag.Node, pf PubFunc) (*Root, error) {
 	name := "NO NAME (WIP)"
 
 	ndk, err := node.Key()
@@ -180,7 +180,7 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, node *dag.Node, pf PubF
 		return nil, err
 	}
 
-	root := new(KeyRoot)
+	root := new(Root)
 	root.fs = fs
 	root.name = name
 
@@ -211,13 +211,13 @@ func (fs *Filesystem) newKeyRoot(parent context.Context, node *dag.Node, pf PubF
 	return root, nil
 }
 
-func (kr *KeyRoot) GetValue() FSNode {
+func (kr *Root) GetValue() FSNode {
 	return kr.val
 }
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published
-func (kr *KeyRoot) closeChild(name string, nd *dag.Node) error {
+func (kr *Root) closeChild(name string, nd *dag.Node) error {
 	k, err := kr.fs.dserv.Add(nd)
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (kr *KeyRoot) closeChild(name string, nd *dag.Node) error {
 	return nil
 }
 
-func (kr *KeyRoot) Close() error {
+func (kr *Root) Close() error {
 	return kr.repub.Close()
 }
 

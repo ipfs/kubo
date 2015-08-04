@@ -340,7 +340,7 @@ var MfsPutCmd = &cmds.Command{
 	},
 }
 
-func PutNodeUnderRoot(root *mfs.KeyRoot, ipath string, nd *dag.Node) error {
+func PutNodeUnderRoot(root *mfs.Root, ipath string, nd *dag.Node) error {
 	dir, ok := root.GetValue().(*mfs.Directory)
 	if !ok {
 		return errors.New("root did not point to directory")
