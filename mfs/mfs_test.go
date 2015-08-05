@@ -1,11 +1,13 @@
-package ipnsfs
+package mfs
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"testing"
 
@@ -33,10 +35,7 @@ type dagservAndPinner struct {
 func getDagservAndPinner(t *testing.T) dagservAndPinner {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
-	blockserv, err := bserv.New(bs, offline.Exchange(bs))
-	if err != nil {
-		t.Fatal(err)
-	}
+	blockserv := bserv.New(bs, offline.Exchange(bs))
 	dserv := dag.NewDAGService(blockserv)
 	mpin := pin.NewPinner(db, dserv).GetManual()
 	return dagservAndPinner{
@@ -47,7 +46,7 @@ func getDagservAndPinner(t *testing.T) dagservAndPinner {
 
 func getRandFile(t *testing.T, ds dag.DAGService, size int64) *dag.Node {
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
-	nd, err := importer.BuildDagFromReader(r, ds, chunk.DefaultSplitter, nil)
+	nd, err := importer.BuildDagFromReader(ds, chunk.DefaultSplitter(r), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,6 +77,36 @@ func mkdirP(t *testing.T, root *Directory, path string) *Directory {
 		cur = n
 	}
 	return cur
+}
+
+func assertDirAtPath(root *Directory, path string, children []string) error {
+	fsn, err := DirLookup(root, path)
+	if err != nil {
+		return err
+	}
+
+	dir, ok := fsn.(*Directory)
+	if !ok {
+		return fmt.Errorf("%s was not a directory", path)
+	}
+
+	listing, err := dir.List()
+	if err != nil {
+		return err
+	}
+
+	var names []string
+	for _, d := range listing {
+		names = append(names, d.Name)
+	}
+
+	sort.Strings(children)
+	sort.Strings(names)
+	if !compStrArrs(children, names) {
+		return errors.New("directories children did not match!")
+	}
+
+	return nil
 }
 
 func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.Node, path string) error {
@@ -134,10 +163,8 @@ func catNode(ds dag.DAGService, nd *dag.Node) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func TestBasic(t *testing.T) {
+func setupFsAndRoot(ctx context.Context, t *testing.T, rootname string) (*dagservAndPinner, *Filesystem, *Root) {
 	dsp := getDagservAndPinner(t)
-
-	ctx := context.TODO()
 
 	fs, err := NewFilesystem(ctx, dsp.ds, dsp.mp)
 	if err != nil {
@@ -154,18 +181,27 @@ func TestBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	return &dsp, fs, rt
+}
+
+func TestBasic(t *testing.T) {
+	ctx := context.TODO()
+	dsp, _, rt := setupFsAndRoot(ctx, t, "test")
+
 	rootdir := rt.GetValue().(*Directory)
 
 	// test making a basic dir
-	_, err = rootdir.Mkdir("a")
+	_, err := rootdir.Mkdir("a")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	d := mkdirP(t, rootdir, "a/b/c/d/e/f/g")
+	path := "a/b/c/d/e/f/g"
+	d := mkdirP(t, rootdir, path)
 
 	fi := getRandFile(t, dsp.ds, 1000)
 
+	// test inserting that file
 	err = d.AddChild("afile", fi)
 	if err != nil {
 		t.Fatal(err)
@@ -175,4 +211,49 @@ func TestBasic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestMkdir(t *testing.T) {
+	ctx := context.TODO()
+	_, _, rt := setupFsAndRoot(ctx, t, "test")
+
+	rootdir := rt.GetValue().(*Directory)
+
+	dirsToMake := []string{"a", "B", "foo", "bar", "cats", "fish"}
+	sort.Strings(dirsToMake) // sort for easy comparing later
+
+	for _, d := range dirsToMake {
+		_, err := rootdir.Mkdir(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err := assertDirAtPath(rootdir, "/", dirsToMake)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, d := range dirsToMake {
+		mkdirP(t, rootdir, "a/"+d)
+	}
+
+	err = assertDirAtPath(rootdir, "/a", dirsToMake)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func compStrArrs(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }

@@ -6,7 +6,7 @@ package ipns
 import (
 	core "github.com/ipfs/go-ipfs/core"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	ipnsfs "github.com/ipfs/go-ipfs/ipnsfs"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 )
 
 // Mount mounts ipns at a given location, and returns a mount.Mount instance.
@@ -15,7 +15,7 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (mount.Mount, error) {
 	allow_other := cfg.Mounts.FuseAllowOther
 
 	if ipfs.Mfs == nil {
-		fs, err := ipnsfs.NewFilesystem(ipfs.Context(), ipfs.DAG, ipfs.Pinning)
+		fs, err := mfs.NewFilesystem(ipfs.Context(), ipfs.DAG, ipfs.Pinning)
 		if err != nil {
 			return nil, err
 		}

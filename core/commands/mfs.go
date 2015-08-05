@@ -11,8 +11,8 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	mfs "github.com/ipfs/go-ipfs/ipnsfs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
@@ -113,8 +113,15 @@ on how this API could be better is very welcome.
 
 var MfsCreateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Create a new mutable filesystem",
-		ShortDescription: ``,
+		Tagline: "Create a new mutable filesystem",
+		ShortDescription: `
+Creates a new mutable filesystem based on an optional root hash.
+
+Currently, it creates a filesystem with no special publish actions,
+all changes are merely propogated to the root, and are reflected in the hash
+displayed by 'ipfs mfs'. In the future, this command will allow you to specify
+publish actions and close actions for a given filesystem
+		`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -136,6 +143,10 @@ var MfsCreateCmd = &cmds.Command{
 		}
 
 		name := req.Arguments()[0]
+		if name == "" {
+			res.SetError(errors.New("cannot have unnamed filesystem"), cmds.ErrNormal)
+			return
+		}
 
 		rtkey, found, err := req.Option("root").String()
 		if err != nil {
@@ -321,8 +332,11 @@ var MfsLsCmd = &cmds.Command{
 
 var MfsPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "import a given file into a filesystem",
-		ShortDescription: ``,
+		Tagline: "import a given file into a filesystem",
+		ShortDescription: `
+Mfs 'put' takes a file that already exists in ipfs and imports it into a
+given mfs filesystem.
+		`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -397,8 +411,11 @@ func PutNodeUnderRoot(root *mfs.Root, ipath string, nd *dag.Node) error {
 
 var MfsReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Read a file in a given mfs",
-		ShortDescription: ``,
+		Tagline: "Read a file in a given mfs",
+		ShortDescription: `
+Read a specified number of bytes from a file at a given offset. By default, will
+read the entire file similar to unix cat.
+		`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -466,8 +483,15 @@ var MfsReadCmd = &cmds.Command{
 
 var MfsMvCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Move files",
-		ShortDescription: ``,
+		Tagline: "Move files",
+		ShortDescription: `
+Move files around. Just like traditional unix mv.
+
+Example:
+
+    ipfs mfs -s myfs mv /a/b/c /foo/newc
+
+		`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -556,8 +580,18 @@ var MfsMvCmd = &cmds.Command{
 
 var MfsWriteCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Write to a mutable file in a given filesystem",
-		ShortDescription: ``,
+		Tagline: "Write to a mutable file in a given filesystem",
+		ShortDescription: `
+Write data to a file in a given filesystem. This command allows you to specify
+a beginning offset to write to. The entire length of the input will be written.
+
+If the '--create' option is specified, the file will be create if it does not
+exist. Nonexistant intermediate directories will not be created.
+
+Example:
+
+	echo "hello world" | ipfs mfs -s myfs --create /a/b/file
+		`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "path to write to"),

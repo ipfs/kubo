@@ -17,9 +17,8 @@ import (
 
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	core "github.com/ipfs/go-ipfs/core"
-	mfs "github.com/ipfs/go-ipfs/ipnsfs"
-	nsfs "github.com/ipfs/go-ipfs/ipnsfs"
 	dag "github.com/ipfs/go-ipfs/merkledag"
+	mfs "github.com/ipfs/go-ipfs/mfs"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
 	path "github.com/ipfs/go-ipfs/path"
 	ft "github.com/ipfs/go-ipfs/unixfs"
@@ -74,7 +73,7 @@ type Root struct {
 	LocalDirs map[string]fs.Node
 	Roots     map[string]*keyRoot
 
-	fs         *nsfs.Filesystem
+	fs         *mfs.Filesystem
 	LocalLinks map[string]*Link
 }
 
@@ -117,9 +116,9 @@ func (r *Root) loadRoot(ctx context.Context, name string) (*mfs.Root, error) {
 	rt.root = root
 
 	switch val := root.GetValue().(type) {
-	case *nsfs.Directory:
+	case *mfs.Directory:
 		r.LocalDirs[name] = &Directory{dir: val}
-	case *nsfs.File:
+	case *mfs.File:
 		r.LocalDirs[name] = &File{fi: val}
 	default:
 		return nil, errors.New("unrecognized type")
@@ -268,16 +267,16 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return listing, nil
 }
 
-// Directory is wrapper over an ipnsfs directory to satisfy the fuse fs interface
+// Directory is wrapper over an mfs directory to satisfy the fuse fs interface
 type Directory struct {
-	dir *nsfs.Directory
+	dir *mfs.Directory
 
 	fs.NodeRef
 }
 
-// File is wrapper over an ipnsfs file to satisfy the fuse fs interface
+// File is wrapper over an mfs file to satisfy the fuse fs interface
 type File struct {
-	fi *nsfs.File
+	fi *mfs.File
 
 	fs.NodeRef
 }
@@ -319,9 +318,9 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	switch child := child.(type) {
-	case *nsfs.Directory:
+	case *mfs.Directory:
 		return &Directory{dir: child}, nil
-	case *nsfs.File:
+	case *mfs.File:
 		return &File{fi: child}, nil
 	default:
 		// NB: if this happens, we do not want to continue, unpredictable behaviour
@@ -340,10 +339,10 @@ func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	for _, entry := range listing {
 		dirent := fuse.Dirent{Name: entry.Name}
 
-		switch nsfs.NodeType(entry.Type) {
-		case nsfs.TDir:
+		switch mfs.NodeType(entry.Type) {
+		case mfs.TDir:
 			dirent.Type = fuse.DT_Dir
-		case nsfs.TFile:
+		case mfs.TFile:
 			dirent.Type = fuse.DT_File
 		}
 
@@ -485,7 +484,7 @@ func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp 
 		return nil, nil, err
 	}
 
-	fi, ok := child.(*nsfs.File)
+	fi, ok := child.(*mfs.File)
 	if !ok {
 		return nil, nil, errors.New("child creation failed")
 	}

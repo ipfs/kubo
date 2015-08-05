@@ -1,4 +1,4 @@
-// package ipnsfs implements an in memory model of a mutable ipns filesystem,
+// package mfs implements an in memory model of a mutable ipns filesystem,
 // to be used by the fuse filesystem.
 //
 // It consists of four main structs:
@@ -8,7 +8,7 @@
 //        Root represent the root of the keyspace controlled by a given keypair
 // 3) Directories
 // 4) Files
-package ipnsfs
+package mfs
 
 import (
 	"errors"
@@ -27,7 +27,7 @@ import (
 
 var ErrNotExist = errors.New("no such rootfs")
 
-var log = eventlog.Logger("ipnsfs")
+var log = eventlog.Logger("mfs")
 
 var ErrIsDirectory = errors.New("error: is a directory")
 
