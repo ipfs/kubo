@@ -39,8 +39,9 @@ const (
 	// kMaxPriority is the max priority as defined by the bitswap protocol
 	kMaxPriority = math.MaxInt32
 
-	HasBlockBufferSize = 256
-	provideWorkers     = 4
+	HasBlockBufferSize    = 256
+	provideKeysBufferSize = 2048
+	provideWorkerMax      = 512
 )
 
 var rebroadcastDelay = delay.Fixed(time.Second * 10)
@@ -85,7 +86,7 @@ func New(parent context.Context, p peer.ID, network bsnet.BitSwapNetwork,
 		findKeys:      make(chan *blockRequest, sizeBatchRequestChan),
 		process:       px,
 		newBlocks:     make(chan *blocks.Block, HasBlockBufferSize),
-		provideKeys:   make(chan key.Key),
+		provideKeys:   make(chan key.Key, provideKeysBufferSize),
 		wm:            NewWantManager(ctx, network),
 	}
 	go bs.wm.Run()
