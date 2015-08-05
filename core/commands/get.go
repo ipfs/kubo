@@ -98,52 +98,85 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return
 		}
 
-		if archive, _, _ := req.Option("archive").Bool(); archive || cmplvl != gzip.NoCompression {
-			if archive && !strings.HasSuffix(outPath, ".tar") {
-				outPath += ".tar"
-			}
-			if cmplvl != gzip.NoCompression {
-				outPath += ".gz"
-			}
-			fmt.Printf("Saving archive to %s\n", outPath)
+		archive, _, _ := req.Option("archive").Bool()
 
-			file, err := os.Create(outPath)
-			if err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-			defer file.Close()
+		gw := getWriter{
+			Out:         os.Stdout,
+			Err:         os.Stderr,
+			Archive:     archive,
+			Compression: cmplvl,
+		}
 
-			bar := pb.New(0).SetUnits(pb.U_BYTES)
-			bar.Output = os.Stderr
-			pbReader := bar.NewProxyReader(outReader)
-			bar.Start()
-			defer bar.Finish()
-
-			if _, err := io.Copy(file, pbReader); err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-
+		if err := gw.Write(outReader, outPath); err != nil {
+			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		fmt.Printf("Saving file(s) to %s\n", outPath)
-
-		// TODO: get total length of files
-		bar := pb.New(0).SetUnits(pb.U_BYTES)
-		bar.Output = os.Stderr
-
-		// wrap the reader with the progress bar proxy reader
-		reader := bar.NewProxyReader(outReader)
-
-		bar.Start()
-		defer bar.Finish()
-		extractor := &tar.Extractor{outPath}
-		if err := extractor.Extract(reader); err != nil {
-			res.SetError(err, cmds.ErrNormal)
-		}
 	},
+}
+
+func progressBarForReader(out io.Writer, r io.Reader) (*pb.ProgressBar, *pb.Reader) {
+	// setup bar reader
+	// TODO: get total length of files
+	bar := pb.New(0).SetUnits(pb.U_BYTES)
+	bar.Output = out
+	barR := bar.NewProxyReader(r)
+	return bar, barR
+}
+
+type getWriter struct {
+	Out io.Writer // for output to user
+	Err io.Writer // for progress bar output
+
+	Archive     bool
+	Compression int
+}
+
+func (gw *getWriter) Write(r io.Reader, fpath string) error {
+	if gw.Archive || gw.Compression != gzip.NoCompression {
+		return gw.writeArchive(r, fpath)
+	}
+	return gw.writeExtracted(r, fpath)
+}
+
+func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
+	// adjust file name if tar
+	if gw.Archive {
+		if !strings.HasSuffix(fpath, ".tar") && !strings.HasSuffix(fpath, ".tar.gz") {
+			fpath += ".tar"
+		}
+	}
+
+	// adjust file name if gz
+	if gw.Compression != gzip.NoCompression {
+		if !strings.HasSuffix(fpath, ".gz") {
+			fpath += ".gz"
+		}
+	}
+
+	// create file
+	file, err := os.Create(fpath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fmt.Fprintf(gw.Out, "Saving archive to %s\n", fpath)
+	bar, barR := progressBarForReader(gw.Err, r)
+	bar.Start()
+	defer bar.Finish()
+
+	_, err = io.Copy(file, barR)
+	return err
+}
+
+func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
+	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
+	bar, barR := progressBarForReader(gw.Err, r)
+	bar.Start()
+	defer bar.Finish()
+
+	extractor := &tar.Extractor{fpath}
+	return extractor.Extract(barR)
 }
 
 func getCompressOptions(req cmds.Request) (int, error) {
@@ -161,12 +194,12 @@ func getCompressOptions(req cmds.Request) (int, error) {
 }
 
 func get(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
-	dagnode, err := core.Resolve(ctx, node, p)
+	dn, err := core.Resolve(ctx, node, p)
 	if err != nil {
 		return nil, err
 	}
 
-	return utar.NewReader(ctx, p, node.DAG, dagnode, compression)
+	return utar.DagArchive(ctx, dn, p.String(), node.DAG, compression)
 }
 
 // getZip is equivalent to `ipfs getdag $hash | gzip`
