@@ -14,6 +14,7 @@ import (
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dssync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+
 	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
@@ -109,6 +110,20 @@ func assertDirAtPath(root *Directory, path string, children []string) error {
 	return nil
 }
 
+func compStrArrs(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 func assertFileAtPath(ds dag.DAGService, root *Directory, exp *dag.Node, path string) error {
 	parts := strings.Split(path, "/")
 	cur := root
@@ -185,7 +200,8 @@ func setupFsAndRoot(ctx context.Context, t *testing.T, rootname string) (*dagser
 }
 
 func TestBasic(t *testing.T) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	dsp, _, rt := setupFsAndRoot(ctx, t, "test")
 
 	rootdir := rt.GetValue().(*Directory)
@@ -214,7 +230,8 @@ func TestBasic(t *testing.T) {
 }
 
 func TestMkdir(t *testing.T) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	_, _, rt := setupFsAndRoot(ctx, t, "test")
 
 	rootdir := rt.GetValue().(*Directory)
@@ -244,16 +261,108 @@ func TestMkdir(t *testing.T) {
 	}
 }
 
-func compStrArrs(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
+func TestFilesystemMethods(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dsp := getDagservAndPinner(t)
+
+	fs, err := NewFilesystem(ctx, dsp.ds, dsp.mp)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
+	empty := &dag.Node{Data: ft.FolderPBData()}
+	pf := func(_ context.Context, _ key.Key) error { return nil }
+
+	roots := []string{"a", "b", "c", "d", "e"}
+	sort.Strings(roots)
+	for _, r := range roots {
+		_, err := fs.NewRoot(r, empty, pf)
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 
-	return true
+	// make sure they all show up in the listing
+	var rootstrs []string
+	for _, r := range fs.ListRoots() {
+		rootstrs = append(rootstrs, r.Name)
+	}
+
+	sort.Strings(rootstrs)
+
+	if !compStrArrs(rootstrs, roots) {
+		t.Fatal("didnt get expected roots in fs")
+	}
+
+	// make sure we can 'get' each of them
+	for _, r := range roots {
+		_, err := fs.GetRoot(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// make sure we *cant* get ones that dont exist
+	_, err = fs.GetRoot("NOTREAL")
+	if err != ErrNotExist {
+		t.Fatal("expected ErrNotExist, got: ", err)
+	}
+
+	// make sure we cant make a root that already exists
+	_, err = fs.NewRoot("a", empty, pf)
+	if err == nil {
+		t.Fatal("expected create already existing root to fail")
+	}
+
+	// closing a root works
+	final, err := fs.CloseRoot("b")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ek, _ := empty.Key()
+	if final != ek {
+		t.Fatal("final key was not as expected")
+	}
+
+	// closing filesystem succeeds
+	err = fs.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMfsFile(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dsp, _, rt := setupFsAndRoot(ctx, t, "test")
+
+	rootdir := rt.GetValue().(*Directory)
+
+	nd := getRandFile(t, dsp.ds, 1000)
+
+	err := rootdir.AddChild("file", nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fsn, err := rootdir.Child("file")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fi := fsn.(*File)
+
+	b := []byte("THIS IS A TEST")
+	n, err := fi.Write(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n != len(b) {
+		t.Fatal("didnt write correct number of bytes")
+	}
+
+	// TODO: test more file stuff
 }

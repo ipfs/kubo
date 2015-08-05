@@ -98,7 +98,7 @@ func (fs *Filesystem) GetRoot(name string) (*Root, error) {
 	if ok {
 		return r, nil
 	}
-	panic("noooo")
+
 	return nil, ErrNotExist
 }
 
@@ -154,8 +154,6 @@ type FSNode interface {
 
 // Root represents the root of a filesystem tree pointed to by a given keypair
 type Root struct {
-	name string
-
 	// node is the merkledag node pointed to by this keypair
 	node *dag.Node
 
@@ -173,8 +171,6 @@ type PubFunc func(context.Context, key.Key) error
 // newRoot creates a new Root for the given key, and starts up a republisher routine
 // for it
 func (fs *Filesystem) newRoot(parent context.Context, node *dag.Node, pf PubFunc) (*Root, error) {
-	name := "NO NAME (WIP)"
-
 	ndk, err := node.Key()
 	if err != nil {
 		return nil, err
@@ -182,7 +178,6 @@ func (fs *Filesystem) newRoot(parent context.Context, node *dag.Node, pf PubFunc
 
 	root := new(Root)
 	root.fs = fs
-	root.name = name
 
 	root.node = node
 
