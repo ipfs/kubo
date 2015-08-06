@@ -44,8 +44,10 @@ on how this API could be better is very welcome.
 		"close":  MfsCloseCmd,
 		"put":    MfsPutCmd,
 		"read":   MfsReadCmd,
+		"write":  MfsWriteCmd,
 		"mv":     MfsMvCmd,
 		"ls":     MfsLsCmd,
+		"mkdir":  MfsMkdirCmd,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -703,6 +705,83 @@ func getFileHandle(root *mfs.Root, path string, create bool) (*mfs.File, error) 
 	default:
 		return nil, err
 	}
+}
+
+var MfsMkdirCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "create a new directory",
+		ShortDescription: ``,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "path to dir to make"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("p", "parents", "no error if existing, make parent directories as needed"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if node.Mfs == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		sess, err := getSession(req.Option("session"))
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		root, err := node.Mfs.GetRoot(sess)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dashp, _, _ := req.Option("parents").Bool()
+
+		rootdir := root.GetValue().(*mfs.Directory)
+
+		dirtomake := req.Arguments()[0]
+
+		parts := strings.Split(dirtomake, "/")
+		if parts[0] == "" {
+			parts = parts[1:]
+		}
+
+		cur := rootdir
+		for i, d := range parts[:len(parts)-1] {
+			fsn, err := cur.Child(d)
+			if err != nil {
+				if err == os.ErrNotExist && dashp {
+					mkd, err := cur.Mkdir(d)
+					if err != nil {
+						res.SetError(err, cmds.ErrNormal)
+						return
+					}
+					fsn = mkd
+				}
+			}
+
+			next, ok := fsn.(*mfs.Directory)
+			if !ok {
+				res.SetError(fmt.Errorf("%s was not a directory", strings.Join(parts[:i], "/")), cmds.ErrNormal)
+				return
+			}
+			cur = next
+		}
+
+		_, err = cur.Mkdir(parts[len(parts)-1])
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+	},
 }
 
 var MfsCmdTemplate = &cmds.Command{

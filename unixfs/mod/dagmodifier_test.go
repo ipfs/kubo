@@ -453,7 +453,6 @@ func TestDagTruncate(t *testing.T) {
 	if size != 10 {
 		t.Fatal("size was incorrect!")
 	}
-
 }
 
 func TestSparseWrite(t *testing.T) {
