@@ -67,6 +67,7 @@ func WrapData(b []byte) []byte {
 	typ := pb.Data_Raw
 	pbdata.Data = b
 	pbdata.Type = &typ
+	pbdata.Filesize = proto.Uint64(uint64(len(b)))
 
 	out, err := proto.Marshal(pbdata)
 	if err != nil {

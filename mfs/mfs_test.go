@@ -259,6 +259,12 @@ func TestMkdir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// mkdir over existing dir should fail
+	_, err = rootdir.Mkdir("a")
+	if err == nil {
+		t.Fatal("should have failed!")
+	}
 }
 
 func TestFilesystemMethods(t *testing.T) {
@@ -333,6 +339,101 @@ func TestFilesystemMethods(t *testing.T) {
 	}
 }
 
+func TestDirectoryLoadFromDag(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dsp, _, rt := setupFsAndRoot(ctx, t, "test")
+
+	rootdir := rt.GetValue().(*Directory)
+
+	nd := getRandFile(t, dsp.ds, 1000)
+	_, err := dsp.ds.Add(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fihash, err := nd.Multihash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dir := &dag.Node{Data: ft.FolderPBData()}
+	_, err = dsp.ds.Add(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dirhash, err := dir.Multihash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	top := &dag.Node{
+		Data: ft.FolderPBData(),
+		Links: []*dag.Link{
+			&dag.Link{
+				Name: "a",
+				Hash: fihash,
+			},
+			&dag.Link{
+				Name: "b",
+				Hash: dirhash,
+			},
+		},
+	}
+
+	err = rootdir.AddChild("foo", top)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// get this dir
+	topi, err := rootdir.Child("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topd := topi.(*Directory)
+
+	// mkdir over existing but unloaded child file should fail
+	_, err = topd.Mkdir("a")
+	if err == nil {
+		t.Fatal("expected to fail!")
+	}
+
+	// mkdir over existing but unloaded child dir should fail
+	_, err = topd.Mkdir("b")
+	if err == nil {
+		t.Fatal("expected to fail!")
+	}
+
+	// adding a child over an existing path fails
+	err = topd.AddChild("b", nd)
+	if err == nil {
+		t.Fatal("expected to fail!")
+	}
+
+	err = assertFileAtPath(dsp.ds, rootdir, nd, "foo/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertDirAtPath(rootdir, "foo/b", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = rootdir.Unlink("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = assertDirAtPath(rootdir, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestMfsFile(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -340,6 +441,7 @@ func TestMfsFile(t *testing.T) {
 
 	rootdir := rt.GetValue().(*Directory)
 
+	fisize := 1000
 	nd := getRandFile(t, dsp.ds, 1000)
 
 	err := rootdir.AddChild("file", nd)
@@ -354,6 +456,17 @@ func TestMfsFile(t *testing.T) {
 
 	fi := fsn.(*File)
 
+	if fi.Type() != TFile {
+		t.Fatal("some is seriously wrong here")
+	}
+
+	// assert size is as expected
+	size, err := fi.Size()
+	if size != int64(fisize) {
+		t.Fatal("size isnt correct")
+	}
+
+	// write to beginning of file
 	b := []byte("THIS IS A TEST")
 	n, err := fi.Write(b)
 	if err != nil {
@@ -364,5 +477,88 @@ func TestMfsFile(t *testing.T) {
 		t.Fatal("didnt write correct number of bytes")
 	}
 
-	// TODO: test more file stuff
+	// sync file
+	err = fi.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure size hasnt changed
+	size, err = fi.Size()
+	if size != int64(fisize) {
+		t.Fatal("size isnt correct")
+	}
+
+	// seek back to beginning
+	ns, err := fi.Seek(0, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ns != 0 {
+		t.Fatal("didnt seek to beginning")
+	}
+
+	// read back bytes we wrote
+	buf := make([]byte, len(b))
+	n, err = fi.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n != len(buf) {
+		t.Fatal("didnt read enough")
+	}
+
+	if !bytes.Equal(buf, b) {
+		t.Fatal("data read was different than data written")
+	}
+
+	// truncate file to ten bytes
+	err = fi.Truncate(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	size, err = fi.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != 10 {
+		t.Fatal("size was incorrect: ", size)
+	}
+
+	// 'writeAt' to extend it
+	data := []byte("this is a test foo foo foo")
+	nwa, err := fi.WriteAt(data, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if nwa != len(data) {
+		t.Fatal(err)
+	}
+
+	// assert size once more
+	size, err = fi.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if size != int64(5+len(data)) {
+		t.Fatal("size was incorrect")
+	}
+
+	// make sure we can get node. TODO: verify it later
+	_, err = fi.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// close it out!
+	err = fi.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
