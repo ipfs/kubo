@@ -778,8 +778,10 @@ var MfsMkdirCmd = &cmds.Command{
 
 		_, err = cur.Mkdir(parts[len(parts)-1])
 		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
+			if !dashp || err != os.ErrExist {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 	},
 }
