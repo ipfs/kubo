@@ -173,6 +173,7 @@ type NodeListing struct {
 	Name string
 	Type int
 	Size int64
+	Hash string
 }
 
 func (d *Directory) List() ([]NodeListing, error) {
@@ -197,6 +198,17 @@ func (d *Directory) List() ([]NodeListing, error) {
 			}
 			child.Size = size
 		}
+		nd, err := c.GetNode()
+		if err != nil {
+			return nil, err
+		}
+
+		k, err := nd.Key()
+		if err != nil {
+			return nil, err
+		}
+
+		child.Hash = k.B58String()
 
 		out = append(out, child)
 	}
