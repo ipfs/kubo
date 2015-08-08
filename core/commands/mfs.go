@@ -120,7 +120,7 @@ var MfsCreateCmd = &cmds.Command{
 Creates a new mutable filesystem based on an optional root hash.
 
 Currently, it creates a filesystem with no special publish actions,
-all changes are merely propogated to the root, and are reflected in the hash
+all changes are merely propagated to the root, and are reflected in the hash
 displayed by 'ipfs mfs'. In the future, this command will allow you to specify
 publish actions and close actions for a given filesystem
 		`,
