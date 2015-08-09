@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bufio"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -11,13 +10,11 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/cheggaaa/pb"
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	path "github.com/ipfs/go-ipfs/path"
 	tar "github.com/ipfs/go-ipfs/thirdparty/tar"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	utar "github.com/ipfs/go-ipfs/unixfs/tar"
 )
 
@@ -64,15 +61,16 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
 		p := path.Path(req.Arguments()[0])
-		var reader io.Reader
-		if archive, _, _ := req.Option("archive").Bool(); !archive && cmplvl != gzip.NoCompression {
-			// only use this when the flag is '-C' without '-a'
-			reader, err = getZip(req.Context(), node, p, cmplvl)
-		} else {
-			reader, err = get(req.Context(), node, p, cmplvl)
+		ctx := req.Context()
+		dn, err := core.Resolve(ctx, node, p)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
+
+		archive, _, _ := req.Option("archive").Bool()
+		reader, err := utar.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
@@ -191,43 +189,4 @@ func getCompressOptions(req cmds.Request) (int, error) {
 		return gzip.NoCompression, ErrInvalidCompressionLevel
 	}
 	return gzip.NoCompression, nil
-}
-
-func get(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
-	dn, err := core.Resolve(ctx, node, p)
-	if err != nil {
-		return nil, err
-	}
-
-	return utar.DagArchive(ctx, dn, p.String(), node.DAG, compression)
-}
-
-// getZip is equivalent to `ipfs getdag $hash | gzip`
-func getZip(ctx context.Context, node *core.IpfsNode, p path.Path, compression int) (io.Reader, error) {
-	dagnode, err := core.Resolve(ctx, node, p)
-	if err != nil {
-		return nil, err
-	}
-
-	reader, err := uio.NewDagReader(ctx, dagnode, node.DAG)
-	if err != nil {
-		return nil, err
-	}
-
-	pr, pw := io.Pipe()
-	gw, err := gzip.NewWriterLevel(pw, compression)
-	if err != nil {
-		return nil, err
-	}
-	bufin := bufio.NewReader(reader)
-	go func() {
-		_, err := bufin.WriteTo(gw)
-		if err != nil {
-			log.Error("Fail to compress the stream")
-		}
-		gw.Close()
-		pw.Close()
-	}()
-
-	return pr, nil
 }

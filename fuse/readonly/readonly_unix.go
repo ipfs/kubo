@@ -180,7 +180,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 		return err
 	}
 
-	buf := resp.Data[:min(req.Size, int(r.Size()-req.Offset))]
+	buf := resp.Data[:min(req.Size, int(int64(r.Size())-req.Offset))]
 	n, err := io.ReadFull(r, buf)
 	if err != nil && err != io.EOF {
 		return err
