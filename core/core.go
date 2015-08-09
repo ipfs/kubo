@@ -46,7 +46,6 @@ import (
 	exchange "github.com/ipfs/go-ipfs/exchange"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap"
 	bsnet "github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	offline "github.com/ipfs/go-ipfs/exchange/offline"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
@@ -124,7 +123,9 @@ type Mounts struct {
 
 type ConfigOption func(ctx context.Context) (*IpfsNode, error)
 
+// DEPRECATED
 func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
+	log.Error("Using deprecated node construction method, please update to NodeBuilder")
 	node, err := option(ctx)
 	if err != nil {
 		return nil, err
@@ -175,80 +176,8 @@ func NewIPFSNode(ctx context.Context, option ConfigOption) (*IpfsNode, error) {
 	return node, nil
 }
 
-func Offline(r repo.Repo) ConfigOption {
-	return Standard(r, false)
-}
+func (n *IpfsNode) setupHost(ctx context.Context, hostOption HostOption) {
 
-func OnlineWithOptions(r repo.Repo, router RoutingOption, ho HostOption) ConfigOption {
-	return standardWithRouting(r, true, router, ho)
-}
-
-func Online(r repo.Repo) ConfigOption {
-	return Standard(r, true)
-}
-
-// DEPRECATED: use Online, Offline functions
-func Standard(r repo.Repo, online bool) ConfigOption {
-	return standardWithRouting(r, online, DHTOption, DefaultHostOption)
-}
-
-// TODO refactor so maybeRouter isn't special-cased in this way
-func standardWithRouting(r repo.Repo, online bool, routingOption RoutingOption, hostOption HostOption) ConfigOption {
-	return func(ctx context.Context) (n *IpfsNode, err error) {
-		// FIXME perform node construction in the main constructor so it isn't
-		// necessary to perform this teardown in this scope.
-		success := false
-		defer func() {
-			if !success && n != nil {
-				n.teardown()
-			}
-		}()
-
-		// TODO move as much of node initialization as possible into
-		// NewIPFSNode. The larger these config options are, the harder it is
-		// to test all node construction code paths.
-
-		if r == nil {
-			return nil, fmt.Errorf("repo required")
-		}
-		n = &IpfsNode{
-			mode: func() mode {
-				if online {
-					return onlineMode
-				}
-				return offlineMode
-			}(),
-			Repo: r,
-		}
-
-		n.ctx = ctx
-		n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
-
-		// setup Peerstore
-		n.Peerstore = peer.NewPeerstore()
-
-		// setup local peer ID (private key is loaded in online setup)
-		if err := n.loadID(); err != nil {
-			return nil, err
-		}
-
-		n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
-		if err != nil {
-			return nil, err
-		}
-
-		if online {
-			do := setupDiscoveryOption(n.Repo.Config().Discovery)
-			if err := n.startOnlineServices(ctx, routingOption, hostOption, do); err != nil {
-				return nil, err
-			}
-		} else {
-			n.Exchange = offline.Exchange(n.Blockstore)
-		}
-
-		success = true
-		return n, nil
-	}
 }
 
 func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption) error {
@@ -378,8 +307,11 @@ func (n *IpfsNode) teardown() error {
 	// owned objects are closed in this teardown to ensure that they're closed
 	// regardless of which constructor was used to add them to the node.
 	closers := []io.Closer{
-		n.Exchange,
 		n.Repo,
+	}
+
+	if n.Exchange != nil {
+		closers = append(closers, n.Exchange)
 	}
 
 	if n.Mounts.Ipfs != nil {

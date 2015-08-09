@@ -44,10 +44,11 @@ func NewMockNode() (*core.IpfsNode, error) {
 		},
 	}
 
-	nd, err := core.Offline(&repo.Mock{
+	r := &repo.Mock{
 		C: c,
 		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
-	})(ctx)
+	}
+	nd, err := core.NewNodeBuilder().Offline().SetRepo(r).Build(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -100,10 +101,11 @@ func MockCmdsCtx() (commands.Context, error) {
 		},
 	}
 
-	node, err := core.NewIPFSNode(context.Background(), core.Offline(&repo.Mock{
+	r := &repo.Mock{
 		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
 		C: conf,
-	}))
+	}
+	node, err := core.NewNodeBuilder().Offline().SetRepo(r).Build(context.Background())
 
 	return commands.Context{
 		Online:     true,

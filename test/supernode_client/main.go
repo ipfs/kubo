@@ -93,14 +93,13 @@ func run() error {
 		})
 	}
 
-	node, err := core.NewIPFSNode(
-		ctx,
-		core.OnlineWithOptions(
-			repo,
-			corerouting.SupernodeClient(infos...),
-			core.DefaultHostOption,
-		),
-	)
+	nb := core.NewNodeBuilder()
+	nb.Online()
+	nb.SetRepo(repo)
+	nb.SetRouting(corerouting.SupernodeClient(infos...))
+	nb.SetHost(core.DefaultHostOption)
+
+	node, err := nb.Build(ctx)
 	if err != nil {
 		return err
 	}
@@ -168,10 +167,12 @@ func runFileCattingWorker(ctx context.Context, n *core.IpfsNode) error {
 		return err
 	}
 
-	dummy, err := core.NewIPFSNode(ctx, core.Offline(&repo.Mock{
+	nb := core.NewNodeBuilder().Offline()
+	nb.SetRepo(&repo.Mock{
 		D: ds2.CloserWrap(syncds.MutexWrap(datastore.NewMapDatastore())),
 		C: *conf,
-	}))
+	})
+	dummy, err := nb.Build(ctx)
 	if err != nil {
 		return err
 	}

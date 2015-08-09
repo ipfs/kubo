@@ -7,9 +7,17 @@ import (
 
 	ds "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	dsync "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	goprocessctx "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/goprocess/context"
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
 	key "github.com/ipfs/go-ipfs/blocks/key"
+	bserv "github.com/ipfs/go-ipfs/blockservice"
+	offline "github.com/ipfs/go-ipfs/exchange/offline"
+	dag "github.com/ipfs/go-ipfs/merkledag"
 	ci "github.com/ipfs/go-ipfs/p2p/crypto"
+	peer "github.com/ipfs/go-ipfs/p2p/peer"
+	path "github.com/ipfs/go-ipfs/path"
+	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cfg "github.com/ipfs/go-ipfs/repo/config"
 )
@@ -109,6 +117,63 @@ func (nb *NodeBuilder) Build(ctx context.Context) (*IpfsNode, error) {
 		}
 		nb.repo = r
 	}
-	conf := standardWithRouting(nb.repo, nb.online, nb.routing, nb.peerhost)
-	return NewIPFSNode(ctx, conf)
+
+	n := &IpfsNode{
+		mode:      offlineMode,
+		Repo:      nb.repo,
+		ctx:       ctx,
+		Peerstore: peer.NewPeerstore(),
+	}
+	if nb.online {
+		n.mode = onlineMode
+	}
+
+	// TODO: this is a weird circular-ish dependency, rework it
+	n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
+
+	success := false
+	defer func() {
+		if !success {
+			n.teardown()
+		}
+	}()
+
+	// setup local peer ID (private key is loaded in online setup)
+	if err := n.loadID(); err != nil {
+		return nil, err
+	}
+
+	var err error
+	n.Blockstore, err = bstore.WriteCached(bstore.NewBlockstore(n.Repo.Datastore()), kSizeBlockstoreWriteCache)
+	if err != nil {
+		return nil, err
+	}
+
+	if nb.online {
+		do := setupDiscoveryOption(n.Repo.Config().Discovery)
+		if err := n.startOnlineServices(ctx, nb.routing, nb.peerhost, do); err != nil {
+			return nil, err
+		}
+	} else {
+		n.Exchange = offline.Exchange(n.Blockstore)
+	}
+
+	n.Blocks, err = bserv.New(n.Blockstore, n.Exchange)
+	if err != nil {
+		return nil, err
+	}
+
+	n.DAG = dag.NewDAGService(n.Blocks)
+	n.Pinning, err = pin.LoadPinner(n.Repo.Datastore(), n.DAG)
+	if err != nil {
+		// TODO: we should move towards only running 'NewPinner' explicity on
+		// node init instead of implicitly here as a result of the pinner keys
+		// not being found in the datastore.
+		// this is kinda sketchy and could cause data loss
+		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG)
+	}
+	n.Resolver = &path.Resolver{DAG: n.DAG}
+
+	success = true
+	return n, nil
 }
