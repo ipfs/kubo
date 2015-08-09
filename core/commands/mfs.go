@@ -31,9 +31,9 @@ Mfs is an API for manipulating ipfs objects as if they were a unix filesystem.
 They can be seeded with an initial root hash, or by default are an empty directory.
 
 NOTICE:
-This API is currently experimental and likely to change and may potentially be
+This API is currently experimental, likely to change, and may potentially be
 unstable. This notice will be removed when that is no longer the case. Feedback
-on how this API could be better is very welcome.
+on how this API could be improved is very welcome.
 		`,
 	},
 	Options: []cmds.Option{
@@ -383,32 +383,12 @@ given mfs filesystem.
 		}
 
 		path := req.Arguments()[1]
-		err = PutNodeUnderRoot(root, path, nd)
+		err = mfs.PutNodeUnderRoot(root, path, nd)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
 	},
-}
-
-func PutNodeUnderRoot(root *mfs.Root, ipath string, nd *dag.Node) error {
-	dir, ok := root.GetValue().(*mfs.Directory)
-	if !ok {
-		return errors.New("root did not point to directory")
-	}
-	dirp, filename := gopath.Split(ipath)
-
-	parent, err := mfs.DirLookup(dir, dirp)
-	if err != nil {
-		return fmt.Errorf("lookup '%s' failed: %s", dirp, err)
-	}
-
-	pdir, ok := parent.(*mfs.Directory)
-	if !ok {
-		return fmt.Errorf("%s did not point to directory", dirp)
-	}
-
-	return pdir.AddChild(filename, nd)
 }
 
 var MfsReadCmd = &cmds.Command{
@@ -528,55 +508,12 @@ Example:
 
 		src := req.Arguments()[0]
 		dst := req.Arguments()[1]
-		srcDir, srcFname := gopath.Split(src)
 
-		srcObj, err := mfs.DirLookup(rdir, src)
+		err = mfs.Mv(rdir, src, dst)
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
-
-		var dstDirStr string
-		var filename string
-		if dst[len(dst)-1] == '/' {
-			dstDirStr = dst
-			filename = srcFname
-		} else {
-			dstDirStr, filename = gopath.Split(dst)
-		}
-
-		dstDiri, err := mfs.DirLookup(rdir, dstDirStr)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		dstDir := dstDiri.(*mfs.Directory)
-		nd, err := srcObj.GetNode()
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		err = dstDir.AddChild(filename, nd)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		srcDirObji, err := mfs.DirLookup(rdir, srcDir)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
-		srcDirObj := srcDirObji.(*mfs.Directory)
-		err = srcDirObj.Unlink(srcFname)
-		if err != nil {
-			res.SetError(err, cmds.ErrNormal)
-			return
-		}
-
 	},
 }
 
@@ -709,8 +646,8 @@ func getFileHandle(root *mfs.Root, path string, create bool) (*mfs.File, error) 
 
 var MfsMkdirCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "create a new directory",
-		ShortDescription: ``,
+		Tagline:          "make directories",
+		ShortDescription: `Create the directory if it does not already exist`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -749,39 +686,10 @@ var MfsMkdirCmd = &cmds.Command{
 
 		dirtomake := req.Arguments()[0]
 
-		parts := strings.Split(dirtomake, "/")
-		if parts[0] == "" {
-			parts = parts[1:]
-		}
-
-		cur := rootdir
-		for i, d := range parts[:len(parts)-1] {
-			fsn, err := cur.Child(d)
-			if err != nil {
-				if err == os.ErrNotExist && dashp {
-					mkd, err := cur.Mkdir(d)
-					if err != nil {
-						res.SetError(err, cmds.ErrNormal)
-						return
-					}
-					fsn = mkd
-				}
-			}
-
-			next, ok := fsn.(*mfs.Directory)
-			if !ok {
-				res.SetError(fmt.Errorf("%s was not a directory", strings.Join(parts[:i], "/")), cmds.ErrNormal)
-				return
-			}
-			cur = next
-		}
-
-		_, err = cur.Mkdir(parts[len(parts)-1])
+		err = mfs.Mkdir(rootdir, dirtomake, dashp)
 		if err != nil {
-			if !dashp || err != os.ErrExist {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
+			res.SetError(err, cmds.ErrNormal)
+			return
 		}
 	},
 }
