@@ -10,6 +10,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 )
 
+// Mv moves the file or directory at 'src' to 'dst'
 func Mv(rootd *Directory, src, dst string) error {
 	srcDir, srcFname := gopath.Split(src)
 
@@ -57,6 +58,7 @@ func Mv(rootd *Directory, src, dst string) error {
 	return nil
 }
 
+// PutNodeUnderRoot inserts 'nd' at 'ipath' under the given filesystem root
 func PutNodeUnderRoot(root *Root, ipath string, nd *dag.Node) error {
 	dir, ok := root.GetValue().(*Directory)
 	if !ok {
@@ -77,6 +79,8 @@ func PutNodeUnderRoot(root *Root, ipath string, nd *dag.Node) error {
 	return pdir.AddChild(filename, nd)
 }
 
+// Mkdir creates a directory at 'path' under the directory 'd', creating
+// intermediary directories as needed if 'parents' is set to true
 func Mkdir(rootd *Directory, path string, parents bool) error {
 	parts := strings.Split(path, "/")
 	if parts[0] == "" {
@@ -111,4 +115,31 @@ func Mkdir(rootd *Directory, path string, parents bool) error {
 	}
 
 	return nil
+}
+
+// DirLookup will look up a file or directory at the given path
+// under the directory 'd'
+func DirLookup(d *Directory, path string) (FSNode, error) {
+	path = strings.Trim(path, "/")
+	parts := strings.Split(path, "/")
+	if len(parts) == 1 && parts[0] == "" {
+		return d, nil
+	}
+
+	var cur FSNode
+	cur = d
+	for i, p := range parts {
+		chdir, ok := cur.(*Directory)
+		if !ok {
+			return nil, fmt.Errorf("cannot access %s: Not a directory", strings.Join(parts[:i+1], "/"))
+		}
+
+		child, err := chdir.Child(p)
+		if err != nil {
+			return nil, err
+		}
+
+		cur = child
+	}
+	return cur, nil
 }

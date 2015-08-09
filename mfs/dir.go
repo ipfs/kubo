@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
@@ -16,6 +15,7 @@ import (
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
 var ErrInvalidChild = errors.New("invalid child node")
+var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
 	fs     *Filesystem
@@ -275,7 +275,7 @@ func (d *Directory) AddChild(name string, nd *dag.Node) error {
 
 	_, err = d.childUnsync(name)
 	if err == nil {
-		return errors.New("directory already has entry by that name")
+		return ErrDirExists
 	}
 
 	err = d.node.AddNodeLinkClean(name, nd)
@@ -308,29 +308,4 @@ func (d *Directory) Lock() {
 
 func (d *Directory) Unlock() {
 	d.lock.Unlock()
-}
-
-func DirLookup(d *Directory, path string) (FSNode, error) {
-	path = strings.Trim(path, "/")
-	parts := strings.Split(path, "/")
-	if len(parts) == 1 && parts[0] == "" {
-		return d, nil
-	}
-
-	var cur FSNode
-	cur = d
-	for i, p := range parts {
-		chdir, ok := cur.(*Directory)
-		if !ok {
-			return nil, fmt.Errorf("cannot access %s: Not a directory", strings.Join(parts[:i+1], "/"))
-		}
-
-		child, err := chdir.Child(p)
-		if err != nil {
-			return nil, err
-		}
-
-		cur = child
-	}
-	return cur, nil
 }

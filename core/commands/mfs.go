@@ -243,9 +243,11 @@ var MfsLsCmd = &cmds.Command{
 		Tagline:          "List directories inside a filesystem",
 		ShortDescription: ``,
 	},
-
 	Arguments: []cmds.Argument{
 		cmds.StringArg("path", true, false, "path to show listing for"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("l", "use long listing format"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -323,8 +325,14 @@ var MfsLsCmd = &cmds.Command{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			out := res.Output().(*MfsLsOutput)
 			buf := new(bytes.Buffer)
+			long, _, _ := res.Request().Option("l").Bool()
+
 			for _, o := range out.Entries {
-				fmt.Fprintf(buf, "%s\n", o.Name)
+				if long {
+					fmt.Fprintf(buf, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
+				} else {
+					fmt.Fprintf(buf, "%s\n", o.Name)
+				}
 			}
 			return buf, nil
 		},
