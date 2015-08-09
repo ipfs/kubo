@@ -122,33 +122,24 @@ func NewWriter(w io.Writer, dag mdag.DAGService, compression int) (*Writer, erro
 	}, nil
 }
 
-func (w *Writer) WriteDir(ctx cxt.Context, nd *mdag.Node, fpath string) error {
-	if err := writeDirHeader(w.TarW, fpath); err != nil {
-		return err
-	}
-
-	for i, ng := range w.Dag.GetDAG(ctx, nd) {
-		child, err := ng.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		npath := path.Join(fpath, nd.Links[i].Name)
-		if err := w.WriteNode(ctx, child, npath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (w *Writer) WriteFile(ctx cxt.Context, nd *mdag.Node, fpath string) error {
+func (w *Writer) WriteNode(ctx cxt.Context, nd *mdag.Node, fpath string) error {
 	pb := new(upb.Data)
 	if err := proto.Unmarshal(nd.Data, pb); err != nil {
 		return err
 	}
 
-	return w.writeFile(ctx, nd, pb, fpath)
+	switch pb.GetType() {
+	case upb.Data_Directory:
+		return w.writeDir(ctx, nd, fpath)
+	case upb.Data_File:
+		return w.writeFile(ctx, nd, pb, fpath)
+	default:
+		return fmt.Errorf("unixfs type not supported: %s", pb.GetType())
+	}
+}
+
+func (w *Writer) Close() error {
+	return w.TarW.Close()
 }
 
 func (w *Writer) writeFile(ctx cxt.Context, nd *mdag.Node, pb *upb.Data, fpath string) error {
@@ -169,24 +160,24 @@ func (w *Writer) writeFile(ctx cxt.Context, nd *mdag.Node, pb *upb.Data, fpath s
 	return nil
 }
 
-func (w *Writer) WriteNode(ctx cxt.Context, nd *mdag.Node, fpath string) error {
-	pb := new(upb.Data)
-	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+func (w *Writer) writeDir(ctx cxt.Context, nd *mdag.Node, fpath string) error {
+	if err := writeDirHeader(w.TarW, fpath); err != nil {
 		return err
 	}
 
-	switch pb.GetType() {
-	case upb.Data_Directory:
-		return w.WriteDir(ctx, nd, fpath)
-	case upb.Data_File:
-		return w.writeFile(ctx, nd, pb, fpath)
-	default:
-		return fmt.Errorf("unixfs type not supported: %s", pb.GetType())
-	}
-}
+	for i, ng := range w.Dag.GetDAG(ctx, nd) {
+		child, err := ng.Get(ctx)
+		if err != nil {
+			return err
+		}
 
-func (w *Writer) Close() error {
-	return w.TarW.Close()
+		npath := path.Join(fpath, nd.Links[i].Name)
+		if err := w.WriteNode(ctx, child, npath); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func writeDirHeader(w *tar.Writer, fpath string) error {
