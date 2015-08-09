@@ -57,8 +57,21 @@ func DagArchive(ctx cxt.Context, nd *mdag.Node, name string, dag mdag.DAGService
 	return piper, nil
 }
 
+//func GetTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService) (uint64, error) {
+//	return _getTarSize(ctx, nd, dag, true)
+//}
+
 func GetTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService) (uint64, error) {
-	return _getTarSize(ctx, nd, dag, true)
+	size := 2 * uint64(tarBlockSize) // tar root padding
+	getFilesize := func(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, pb *upb.Data, err error) error {
+		unixSize := pb.GetFilesize()
+		size += tarBlockSize + unixSize + (tarBlockSize - unixSize%tarBlockSize)
+		return err
+	}
+	if err := nodeWalk(ctx, nd, dag, getFilesize); err != nil {
+		return 0, err
+	}
+	return size, nil
 }
 
 func _getTarSize(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, isRoot bool) (uint64, error) {
@@ -120,6 +133,34 @@ func NewWriter(w io.Writer, dag mdag.DAGService, compression int) (*Writer, erro
 		Dag:  dag,
 		TarW: tar.NewWriter(w),
 	}, nil
+}
+
+type walkFunc func(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, pb *upb.Data, err error) error
+
+func nodeWalk(ctx cxt.Context, nd *mdag.Node, dag mdag.DAGService, nwFunc walkFunc) error {
+	pb := new(upb.Data)
+	if err := proto.Unmarshal(nd.Data, pb); err != nil {
+		return err
+	}
+
+	switch pb.GetType() {
+	case upb.Data_Directory:
+		// nwFunc does nothing on the directory itself, only it files
+		for _, ng := range dag.GetDAG(ctx, nd) {
+			child, err := ng.Get(ctx)
+			if err != nil {
+				return err
+			}
+			if err := nodeWalk(ctx, child, dag, nwFunc); err != nil {
+				return err
+			}
+		}
+		return nil
+	case upb.Data_File:
+		return nwFunc(ctx, nd, dag, pb, nil)
+	default:
+		return fmt.Errorf("unixfs type not supported: %s", pb.GetType())
+	}
 }
 
 func (w *Writer) WriteNode(ctx cxt.Context, nd *mdag.Node, fpath string) error {
