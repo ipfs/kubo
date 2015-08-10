@@ -48,6 +48,7 @@ on how this API could be improved is very welcome.
 		"mv":     MfsMvCmd,
 		"ls":     MfsLsCmd,
 		"mkdir":  MfsMkdirCmd,
+		"rm":     MfsRmCmd,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -698,6 +699,88 @@ var MfsMkdirCmd = &cmds.Command{
 		if err != nil {
 			res.SetError(err, cmds.ErrNormal)
 			return
+		}
+	},
+}
+
+var MfsRmCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "remove a file",
+		ShortDescription: ``,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, true, "file to remove"),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption("r", "recursive", "recursively remove directories"),
+	},
+	Run: func(req cmds.Request, res cmds.Response) {
+		node, err := req.InvocContext().GetNode()
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		if node.Mfs == nil {
+			res.SetError(errNotOnline, cmds.ErrNormal)
+			return
+		}
+
+		sess, err := getSession(req.Option("session"))
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		r, err := node.Mfs.GetRoot(sess)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		rdir := r.GetValue().(*mfs.Directory)
+
+		path := req.Arguments()[0]
+		dir, name := gopath.Split(path)
+		parent, err := mfs.DirLookup(rdir, dir)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		pdir, ok := parent.(*mfs.Directory)
+		if !ok {
+			res.SetError(fmt.Errorf("no such file or directory: %s", path), cmds.ErrNormal)
+			return
+		}
+
+		childi, err := pdir.Child(name)
+		if err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+
+		dashr, _, _ := req.Option("r").Bool()
+
+		switch childi.(type) {
+		case *mfs.Directory:
+			if dashr {
+				err := pdir.Unlink(name)
+				if err != nil {
+					res.SetError(err, cmds.ErrNormal)
+					return
+				}
+			} else {
+				res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmds.ErrNormal)
+				return
+			}
+		default:
+			err := pdir.Unlink(name)
+			if err != nil {
+				res.SetError(err, cmds.ErrNormal)
+				return
+			}
 		}
 	},
 }
